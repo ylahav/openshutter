@@ -108,28 +108,27 @@ jobs:
               sudo chown "$USER":"$USER" "$APP_DIR/.env"
             fi
 
-            # Create systemd service if missing
+            # Create/update systemd service
             SERVICE_FILE=/etc/systemd/system/openshutter.service
-            if [ ! -f $SERVICE_FILE ]; then
-              {
-                echo "[Unit]"
-                echo "Description=OpenShutter"
-                echo "After=network.target"
-                echo ""
-                echo "[Service]"
-                echo "Type=simple"
-                echo "WorkingDirectory=$APP_DIR"
-                echo "EnvironmentFile=$APP_DIR/.env"
-                echo "ExecStart=/usr/bin/node $APP_DIR/.next/standalone/server.js -p 4000"
-                echo "Restart=always"
-                echo "RestartSec=5"
-                echo ""
-                echo "[Install]"
-                echo "WantedBy=multi-user.target"
-              } | sudo tee $SERVICE_FILE > /dev/null
-              sudo systemctl daemon-reload
-              sudo systemctl enable openshutter
-            fi
+            echo "Creating/updating systemd service for $APP_DIR..."
+            {
+              echo "[Unit]"
+              echo "Description=OpenShutter"
+              echo "After=network.target"
+              echo ""
+              echo "[Service]"
+              echo "Type=simple"
+              echo "WorkingDirectory=$APP_DIR"
+              echo "EnvironmentFile=$APP_DIR/.env"
+              echo "ExecStart=/usr/bin/node $APP_DIR/.next/standalone/server.js -p 4000"
+              echo "Restart=always"
+              echo "RestartSec=5"
+              echo ""
+              echo "[Install]"
+              echo "WantedBy=multi-user.target"
+            } | sudo tee $SERVICE_FILE > /dev/null
+            sudo systemctl daemon-reload
+            sudo systemctl enable openshutter
 
             # Restart service
             sudo systemctl restart openshutter
