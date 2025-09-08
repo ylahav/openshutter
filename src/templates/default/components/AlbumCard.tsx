@@ -106,6 +106,7 @@ export default function AlbumCard({ album, className = '' }: AlbumCardProps) {
         
         <div className="flex items-center justify-between pt-4 border-t border-gray-100 mt-auto">
           <div className="flex items-center text-sm text-gray-500">
+
             {typeof album.photoCount === 'number' && album.photoCount > 0 && (
               <>
                 <svg className="w-4 h-4 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -129,9 +130,11 @@ export default function AlbumCard({ album, className = '' }: AlbumCardProps) {
             )}
           </div>
           
-          <div className="text-xs text-gray-400">
-            {new Date(album.createdAt).toLocaleDateString()}
-          </div>
+          {album.createdAt && (
+            <div className="text-xs text-gray-400">
+              {new Date(album.createdAt as any).toLocaleDateString()}
+            </div>
+          )}
         </div>
       </div>
       </div>
