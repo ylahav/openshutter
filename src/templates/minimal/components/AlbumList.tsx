@@ -37,13 +37,13 @@ export default function AlbumList({
     const sorted = [...albums].sort((a, b) => {
       switch (sortType) {
         case 'newest':
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          return new Date((b.createdAt as any) ?? 0).getTime() - new Date((a.createdAt as any) ?? 0).getTime()
         case 'oldest':
-          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          return new Date((a.createdAt as any) ?? 0).getTime() - new Date((b.createdAt as any) ?? 0).getTime()
         case 'name':
-          return a.name.localeCompare(b.name)
+          return String((a.name as any) ?? '').localeCompare(String((b.name as any) ?? ''))
         case 'photos':
-          return b.photoCount - a.photoCount
+          return (b.photoCount ?? 0) - (a.photoCount ?? 0)
         default:
           return 0
       }
