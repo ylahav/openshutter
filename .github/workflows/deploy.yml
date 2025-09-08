@@ -1,0 +1,97 @@
+name: Deploy to DigitalOcean
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build (standalone)
+        run: pnpm build
+
+      - name: Package artifact
+        run: |
+          tar -czf release.tgz \
+            .next/standalone \
+            .next/static \
+            public \
+            next.config.js \
+            package.json \
+            .env.example
+
+      - name: Upload to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          source: "release.tgz"
+          target: "~/apps/openshutter"
+
+      - name: Deploy on server
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          script: |
+            set -e
+            APP_DIR=~/apps/openshutter
+            mkdir -p $APP_DIR
+            cd $APP_DIR
+            tar -xzf release.tgz
+            rm -f release.tgz
+
+            # Create runtime env file if not exists
+            if [ ! -f .env ]; then
+              echo "Create .env on server based on required keys" >&2
+              touch .env
+            fi
+
+            # Create systemd service if missing
+            SERVICE_FILE=/etc/systemd/system/openshutter.service
+            if [ ! -f $SERVICE_FILE ]; then
+              sudo bash -c "cat > $SERVICE_FILE" <<'EOF'
+[Unit]
+Description=OpenShutter
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/${{ secrets.SSH_USER }}/apps/openshutter
+EnvironmentFile=/home/${{ secrets.SSH_USER }}/apps/openshutter/.env
+ExecStart=/usr/bin/node .next/standalone/server.js -p 4000
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+              sudo systemctl daemon-reload
+              sudo systemctl enable openshutter
+            fi
+
+            # Restart service
+            sudo systemctl restart openshutter

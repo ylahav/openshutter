@@ -59,7 +59,7 @@ const nextConfig = {
   },
 
   // Output and optimization
-  // output: 'standalone', // Disabled to allow 'next start'
+  output: 'standalone',
   trailingSlash: false,
   reactStrictMode: true,
 }
