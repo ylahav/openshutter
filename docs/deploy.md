@@ -1,35 +1,38 @@
 ## Deployment Process - OpenShutter
 
+This guide describes a minimal-on-server deployment using GitHub Actions and a standalone Next.js build.
+
 ### Environments
 - Production server (no Docker in prod per project notes)
 - Local dev via `pnpm dev` or Docker Compose if needed (internal APIs proxied to localhost)
-- Docker deployment options available (see [Docker Guide](docker.md))
+- Docker options available (see [Docker Guide](docker.md))
 
 ### Prerequisites
-- Node 18+
-- pnpm installed
+- Node 20+
+- Systemd available
 - MongoDB connection string configured in environment
-- Required env vars: `JWT_SECRET`, `NEXTAUTH_URL`, MongoDB URL, any storage provider vars
+- Required env vars on server: `MONGODB_URI`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, storage provider vars
 
-### Build
-1. Update `next.config.js` as required by the project
-2. Install deps: `pnpm install`
-3. Build: `pnpm build`
-4. Start: `pnpm start`
+### CI-driven Deployment (recommended)
+We ship a workflow at `.github/workflows/deploy.yml` that:
+1. Installs deps with pnpm
+2. Builds Next.js with `output: 'standalone'`
+3. Packages the build into `release.tgz`
+4. Uploads it via SSH/SCP to the server
+5. Extracts into `~/apps/openshutter` and restarts `systemd` service `openshutter`
 
-### Initial Admin
-- If no admin exists, the app creates one automatically on first auth path hit
-- Default created admin is not blocked
+#### GitHub Secrets
+Set these in repo settings:
+- `SSH_HOST`: server IP or hostname
+- `SSH_USER`: deploy user
+- `SSH_KEY`: private key (PEM) of the deploy user
+- `SSH_PORT`: optional (default 22)
 
-### Deployment (CLI-based)
-1. Ensure `.env` is configured on the server
-2. Upload source or pull from your repo
-3. Run:
-   - `pnpm install`
-   - `pnpm build`
-   - `pnpm start` (or your process manager, e.g., `pm2 start pnpm -- start`)
+#### One-time server prep
+```bash
+mkdir -p ~/apps/openshutter
+cp /path/to/your/.env ~/apps/openshutter/.env  # create with required keys if missing
+which node  # ensure /usr/bin/node and version >= 20
+```
 
-### Notes
-- On backend start, existing sessions are cleared
-- Docker-based flows are supported locally but not used in production
-- LanguageSelector hidden if only one active language configured
+After the first successful deploy, subsequent pushes to `main` will update and restart the service automatically.
