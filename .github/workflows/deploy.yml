@@ -35,6 +35,10 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build (standalone)
+        env:
+          MONGODB_URI: mongodb://127.0.0.1:27017/dummy
+          NEXTAUTH_SECRET: dummy-secret
+          NEXTAUTH_URL: https://example.com
         run: pnpm build
 
       - name: Package artifact
