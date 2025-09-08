@@ -103,22 +103,22 @@ jobs:
             # Create systemd service if missing
             SERVICE_FILE=/etc/systemd/system/openshutter.service
             if [ ! -f $SERVICE_FILE ]; then
-              sudo bash -c "cat > $SERVICE_FILE" << 'EOF'
-[Unit]
-Description=OpenShutter
-After=network.target
-
-[Service]
-Type=simple
-WorkingDirectory=$APP_DIR
-EnvironmentFile=$APP_DIR/.env
-ExecStart=/usr/bin/node $APP_DIR/.next/standalone/server.js -p 4000
-Restart=always
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
-EOF
+              {
+                echo "[Unit]"
+                echo "Description=OpenShutter"
+                echo "After=network.target"
+                echo ""
+                echo "[Service]"
+                echo "Type=simple"
+                echo "WorkingDirectory=$APP_DIR"
+                echo "EnvironmentFile=$APP_DIR/.env"
+                echo "ExecStart=/usr/bin/node $APP_DIR/.next/standalone/server.js -p 4000"
+                echo "Restart=always"
+                echo "RestartSec=5"
+                echo ""
+                echo "[Install]"
+                echo "WantedBy=multi-user.target"
+              } | sudo tee $SERVICE_FILE > /dev/null
               sudo systemctl daemon-reload
               sudo systemctl enable openshutter
             fi
@@ -154,22 +154,22 @@ EOF
             # Create systemd service if missing
             SERVICE_FILE=/etc/systemd/system/openshutter.service
             if [ ! -f $SERVICE_FILE ]; then
-              sudo bash -c "cat > $SERVICE_FILE" << 'EOF'
-[Unit]
-Description=OpenShutter
-After=network.target
-
-[Service]
-Type=simple
-WorkingDirectory=$APP_DIR
-EnvironmentFile=$APP_DIR/.env
-ExecStart=/usr/bin/node $APP_DIR/.next/standalone/server.js -p 4000
-Restart=always
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
-EOF
+              {
+                echo "[Unit]"
+                echo "Description=OpenShutter"
+                echo "After=network.target"
+                echo ""
+                echo "[Service]"
+                echo "Type=simple"
+                echo "WorkingDirectory=$APP_DIR"
+                echo "EnvironmentFile=$APP_DIR/.env"
+                echo "ExecStart=/usr/bin/node $APP_DIR/.next/standalone/server.js -p 4000"
+                echo "Restart=always"
+                echo "RestartSec=5"
+                echo ""
+                echo "[Install]"
+                echo "WantedBy=multi-user.target"
+              } | sudo tee $SERVICE_FILE > /dev/null
               sudo systemctl daemon-reload
               sudo systemctl enable openshutter
             fi
