@@ -60,7 +60,7 @@ jobs:
           password: ${{ secrets.SSH_PASSWORD }}
           port: ${{ secrets.SSH_PORT || 22 }}
           source: "release.tgz"
-          target: "${{ secrets.DEPLOY_DIR || '~/apps/openshutter' }}"
+          target: "~/apps/openshutter"
           timeout: 120s
           command_timeout: 120s
 
@@ -78,14 +78,28 @@ jobs:
             echo "SSH connection successful! Testing deployment..."
             echo "Deployment test - $(date)" > /tmp/openshutter-deploy-test.txt
             echo "Test file created at /tmp/openshutter-deploy-test.txt"
-            APP_DIR="${DEPLOY_DIR:-$HOME/apps/openshutter}"
-            mkdir -p "$APP_DIR"
-            cd "$APP_DIR"
-            tar -xzf release.tgz || tar -xzf "$HOME/apps/openshutter/release.tgz"
-            rm -f release.tgz "$HOME/apps/openshutter/release.tgz"
-
+            
+            # Define directories
+            SRC_DIR="$HOME/apps/openshutter"
+            APP_DIR="${DEPLOY_DIR:-$SRC_DIR}"
+            
+            # Ensure source directory exists and extract there first
+            mkdir -p "$SRC_DIR"
+            cd "$SRC_DIR"
+            echo "Extracting release.tgz in $SRC_DIR..."
+            tar -xzf release.tgz
+            echo "Extraction completed. Contents:"
+            ls -la
+            rm -f release.tgz
+            
             # If DEPLOY_DIR is different, sync files to target
-            # No separate SRC_DIR now; extracted directly into APP_DIR
+            if [ "$APP_DIR" != "$SRC_DIR" ]; then
+              echo "Syncing files from $SRC_DIR to $APP_DIR..."
+              sudo mkdir -p "$APP_DIR"
+              sudo rsync -a --delete "$SRC_DIR"/ "$APP_DIR"/
+              echo "Sync completed. Target contents:"
+              ls -la "$APP_DIR"
+            fi
 
             # Create runtime env file if not exists
             if [ ! -f "$APP_DIR/.env" ]; then
