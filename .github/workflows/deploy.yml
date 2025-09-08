@@ -103,7 +103,7 @@ jobs:
             # Create systemd service if missing
             SERVICE_FILE=/etc/systemd/system/openshutter.service
             if [ ! -f $SERVICE_FILE ]; then
-              sudo tee $SERVICE_FILE > /dev/null << 'EOF'
+              sudo bash -c "cat > $SERVICE_FILE" << 'EOF'
 [Unit]
 Description=OpenShutter
 After=network.target
@@ -154,7 +154,7 @@ EOF
             # Create systemd service if missing
             SERVICE_FILE=/etc/systemd/system/openshutter.service
             if [ ! -f $SERVICE_FILE ]; then
-              sudo tee $SERVICE_FILE > /dev/null << 'EOF'
+              sudo bash -c "cat > $SERVICE_FILE" << 'EOF'
 [Unit]
 Description=OpenShutter
 After=network.target
