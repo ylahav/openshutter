@@ -60,7 +60,9 @@ jobs:
           password: ${{ secrets.SSH_PASSWORD }}
           port: ${{ secrets.SSH_PORT || 22 }}
           source: "release.tgz"
-          target: "~/apps/openshutter"
+          target: "${{ secrets.DEPLOY_DIR || '~/apps/openshutter' }}"
+          timeout: 120s
+          command_timeout: 120s
 
       - name: Deploy on server
         uses: appleboy/ssh-action@v1.2.0
@@ -76,18 +78,14 @@ jobs:
             echo "SSH connection successful! Testing deployment..."
             echo "Deployment test - $(date)" > /tmp/openshutter-deploy-test.txt
             echo "Test file created at /tmp/openshutter-deploy-test.txt"
-            SRC_DIR="$HOME/apps/openshutter"
-            APP_DIR="${DEPLOY_DIR:-$SRC_DIR}"
-            mkdir -p "$SRC_DIR"
-            cd "$SRC_DIR"
-            tar -xzf release.tgz
-            rm -f release.tgz
+            APP_DIR="${DEPLOY_DIR:-$HOME/apps/openshutter}"
+            mkdir -p "$APP_DIR"
+            cd "$APP_DIR"
+            tar -xzf release.tgz || tar -xzf "$HOME/apps/openshutter/release.tgz"
+            rm -f release.tgz "$HOME/apps/openshutter/release.tgz"
 
             # If DEPLOY_DIR is different, sync files to target
-            if [ "$APP_DIR" != "$SRC_DIR" ]; then
-              sudo mkdir -p "$APP_DIR"
-              sudo rsync -a --delete "$SRC_DIR"/ "$APP_DIR"/
-            fi
+            # No separate SRC_DIR now; extracted directly into APP_DIR
 
             # Create runtime env file if not exists
             if [ ! -f "$APP_DIR/.env" ]; then
