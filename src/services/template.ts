@@ -1,6 +1,4 @@
 import { TemplateConfig, SiteTemplateConfig } from '@/types/template'
-import path from 'path'
-import fs from 'fs/promises'
 
 export class TemplateService {
   private static instance: TemplateService
@@ -20,28 +18,40 @@ export class TemplateService {
     const templates: TemplateConfig[] = []
 
     try {
-      // Try to discover templates by scanning the templates directory for config files
-      const templatesDir = path.join(process.cwd(), 'src', 'templates')
-      const entries = await fs.readdir(templatesDir, { withFileTypes: true })
+      let templateNames: string[] = ['default', 'modern', 'minimal', 'dark']
 
-      const discoveredNames: string[] = []
-      for (const entry of entries) {
-        if (!entry.isDirectory()) continue
-        const dirName = entry.name
-        const configPath = path.join(templatesDir, dirName, 'template.config.json')
+      // Only attempt filesystem discovery on the server
+      if (typeof window === 'undefined') {
+        const path = await import('path')
+        const fs = await import('fs/promises')
+
         try {
-          const stat = await fs.stat(configPath)
-          if (stat.isFile()) {
-            discoveredNames.push(dirName)
+          const templatesDir = path.join(process.cwd(), 'src', 'templates')
+          const entries = await fs.readdir(templatesDir, { withFileTypes: true })
+
+          const discoveredNames: string[] = []
+          for (const entry of entries) {
+            if (!entry.isDirectory()) continue
+            const dirName = entry.name
+            const configPath = path.join(templatesDir, dirName, 'template.config.json')
+            try {
+              const stat = await fs.stat(configPath)
+              if (stat.isFile()) {
+                discoveredNames.push(dirName)
+              }
+            } catch {
+              // No config file, skip
+            }
           }
-        } catch {
-          // No config file, skip
+
+          if (discoveredNames.length > 0) {
+            templateNames = discoveredNames
+          }
+        } catch (err) {
+          // Ignore discovery errors on server and use fallback
+          console.warn('Template discovery failed, using static list')
         }
       }
-
-      const templateNames = discoveredNames.length > 0
-        ? discoveredNames
-        : ['default', 'modern', 'minimal', 'dark'] // fallback to static list
 
       for (const templateName of templateNames) {
         const template = await this.loadTemplate(templateName)
@@ -63,11 +73,13 @@ export class TemplateService {
     }
 
     try {
-      // First try to load from per-template config file if present
-      const config = await this.readTemplateConfigFromFile(templateName)
-      if (config) {
-        this.templateCache.set(templateName, config)
-        return config
+      // First try to load from per-template config file if present (server only)
+      if (typeof window === 'undefined') {
+        const config = await this.readTemplateConfigFromFile(templateName)
+        if (config) {
+          this.templateCache.set(templateName, config)
+          return config
+        }
       }
 
       // Fallback to static config map
@@ -85,6 +97,8 @@ export class TemplateService {
 
   private async readTemplateConfigFromFile(templateName: string): Promise<TemplateConfig | null> {
     try {
+      const path = await import('path')
+      const fs = await import('fs/promises')
       const configPath = path.join(process.cwd(), 'src', 'templates', templateName, 'template.config.json')
       const json = await fs.readFile(configPath, 'utf-8')
       const parsed = JSON.parse(json) as TemplateConfig
