@@ -120,7 +120,7 @@ jobs:
               echo "Type=simple"
               echo "WorkingDirectory=$APP_DIR"
               echo "EnvironmentFile=$APP_DIR/.env"
-              echo "ExecStart=/usr/bin/node $APP_DIR/.next/standalone/server.js -p 4000"
+              echo "ExecStart=/usr/bin/node $APP_DIR/.next/standalone/server.js -p 3000"
               echo "Restart=always"
               echo "RestartSec=5"
               echo ""
