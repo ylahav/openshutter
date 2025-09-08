@@ -80,6 +80,9 @@ jobs:
           envs: DEPLOY_DIR
           script: |
             set -e
+            echo "SSH connection successful! Testing deployment..."
+            echo "Deployment test - $(date)" > /tmp/openshutter-deploy-test.txt
+            echo "Test file created at /tmp/openshutter-deploy-test.txt"
             SRC_DIR="$HOME/apps/openshutter"
             APP_DIR="${DEPLOY_DIR:-$SRC_DIR}"
             mkdir -p "$SRC_DIR"
@@ -137,6 +140,9 @@ jobs:
           envs: DEPLOY_DIR
           script: |
             set -e
+            echo "SSH connection successful! Testing deployment..."
+            echo "Deployment test - $(date)" > /tmp/openshutter-deploy-test.txt
+            echo "Test file created at /tmp/openshutter-deploy-test.txt"
             SRC_DIR="$HOME/apps/openshutter"
             APP_DIR="${DEPLOY_DIR:-$SRC_DIR}"
             mkdir -p "$SRC_DIR"
