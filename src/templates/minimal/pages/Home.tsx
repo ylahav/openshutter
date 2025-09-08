@@ -129,7 +129,7 @@ export default function HomePage() {
                       )}
                       <div className="flex items-center justify-between text-sm text-gray-500">
                         <div className="flex items-center space-x-4">
-                          {album.childAlbumCount && album.childAlbumCount > 0 && (
+                          {typeof album.childAlbumCount === 'number' && album.childAlbumCount > 0 && (
                             <span>
                               {album.childAlbumCount} sub-albums
                             </span>
