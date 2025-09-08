@@ -1,0 +1,74 @@
+export interface TemplateConfig {
+  templateName: string
+  displayName: string
+  description: string
+  version: string
+  author: string
+  thumbnail: string
+  category: 'minimal' | 'modern' | 'classic' | 'dark' | 'custom'
+  features: {
+    responsive: boolean
+    darkMode: boolean
+    animations: boolean
+    seoOptimized: boolean
+  }
+  colors: {
+    primary: string
+    secondary: string
+    accent: string
+    background: string
+    text: string
+    muted: string
+  }
+  fonts: {
+    heading: string
+    body: string
+  }
+  layout: {
+    maxWidth: string
+    containerPadding: string
+    gridGap: string
+  }
+  components: {
+    hero: string
+    albumCard: string
+    photoCard: string
+    albumList: string
+    gallery: string
+    navigation: string
+    footer: string
+  }
+  visibility: {
+    hero: boolean
+    languageSelector: boolean
+    authButtons: boolean
+    footerMenu: boolean
+    statistics?: boolean
+    promotion?: boolean
+  }
+  pages: {
+    home: string
+    gallery: string
+    album: string
+  }
+}
+
+export interface TemplatePage {
+  name: string
+  path: string
+  component: string
+  props?: Record<string, any>
+}
+
+export interface TemplateComponent {
+  name: string
+  path: string
+  props?: Record<string, any>
+}
+
+export interface SiteTemplateConfig {
+  activeTemplate: string
+  customColors?: Partial<TemplateConfig['colors']>
+  customFonts?: Partial<TemplateConfig['fonts']>
+  customLayout?: Partial<TemplateConfig['layout']>
+}

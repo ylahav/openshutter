@@ -1,0 +1,54 @@
+{
+  "templateName": "modern",
+  "displayName": "Modern",
+  "description": "Contemporary design with bold typography",
+  "version": "1.0.0",
+  "author": "OpenShutter",
+  "thumbnail": "/templates/modern/thumbnail.jpg",
+  "category": "modern",
+  "features": {
+    "responsive": true,
+    "darkMode": true,
+    "animations": true,
+    "seoOptimized": true
+  },
+  "colors": {
+    "primary": "#8B5CF6",
+    "secondary": "#1E293B",
+    "accent": "#F97316",
+    "background": "#F8FAFC",
+    "text": "#0F172A",
+    "muted": "#64748B"
+  },
+  "fonts": {
+    "heading": "Poppins",
+    "body": "Inter"
+  },
+  "layout": {
+    "maxWidth": "1400px",
+    "containerPadding": "2rem",
+    "gridGap": "2rem"
+  },
+  "components": {
+    "hero": "components/Hero.tsx",
+    "albumCard": "components/AlbumCard.tsx",
+    "photoCard": "components/PhotoCard.tsx",
+    "albumList": "components/AlbumList.tsx",
+    "gallery": "components/Gallery.tsx",
+    "navigation": "components/Header.tsx",
+    "footer": "components/Footer.tsx"
+  },
+  "visibility": {
+    "hero": true,
+    "languageSelector": true,
+    "authButtons": true,
+    "footerMenu": true,
+    "statistics": true,
+    "promotion": true
+  },
+  "pages": {
+    "home": "pages/Home.tsx",
+    "gallery": "pages/Gallery.tsx",
+    "album": "pages/Gallery.tsx"
+  }
+}

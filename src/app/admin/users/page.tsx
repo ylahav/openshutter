@@ -1,0 +1,213 @@
+'use client'
+
+import Link from 'next/link'
+import AdminGuard from '@/components/AdminGuard'
+import { useI18n } from '@/hooks/useI18n'
+import { useEffect, useState } from 'react'
+import { MultiLangUtils, MultiLangText } from '@/types/multi-lang'
+import MultiLangInput from '@/components/MultiLangInput'
+import { useLanguage } from '@/contexts/LanguageContext'
+
+interface UserItem {
+  _id: string
+  name: MultiLangText | string
+  username: string
+  role: 'admin' | 'owner' | 'guest'
+  groupAliases?: string[]
+  blocked?: boolean
+}
+
+export default function AdminUsersPage() {
+  const { currentLanguage } = useLanguage()
+  const { t } = useI18n()
+  const [users, setUsers] = useState<UserItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [editing, setEditing] = useState<(UserItem & { password?: string }) | null>(null)
+  const [savingEdit, setSavingEdit] = useState(false)
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setLoading(true)
+        const res = await fetch('/api/admin/users')
+        const data = await res.json()
+        if (data.success) setUsers(data.data)
+        else setError(data.error || 'Failed to load users')
+      } catch (e) {
+        setError('Failed to load users')
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+  }, [])
+
+  // create handled in modal
+
+  return (
+    <AdminGuard>
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">{t('users')}</h1>
+              <p className="text-gray-600 mt-2">{t('manageUsersRolesGroups')}</p>
+            </div>
+            <div className="flex gap-3">
+              <Link href="/admin" className="btn-secondary">{t('backToAdmin')}</Link>
+            </div>
+          </div>
+
+          {/* Top actions */}
+          <div className="flex justify-end mb-6">
+            <button className="btn-primary" onClick={() => setEditing({ _id: '', username: '', role: 'owner', name: { [currentLanguage]: '' }, blocked: false })}>{t('newUser')}</button>
+          </div>
+
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md text-sm text-red-700">{error}</div>
+          )}
+
+          {loading ? (
+            <div className="text-center text-gray-600">{t('loading')}</div>
+          ) : users.length === 0 ? (
+            <div className="text-center py-12 bg-white border rounded-lg">
+              <h3 className="text-lg font-medium text-gray-900 mb-2">{t('noUsersYet')}</h3>
+              <p className="text-gray-600 mb-4">{t('createUsersAssignGroups')}</p>
+              <button className="btn-primary">{t('createYourFirstUser')}</button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {users.map((u) => (
+                <div key={u._id} className="bg-white border rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        {typeof u.name === 'string' ? u.name : MultiLangUtils.getTextValue(u.name, currentLanguage)}
+                      </h3>
+                      <p className="text-sm text-gray-500">
+                        {u.username} • {u.role}
+                        {u.blocked && <span className="ml-2 px-2 py-1 bg-red-100 text-red-800 text-xs rounded">{t('blocked')}</span>}
+                      </p>
+                    </div>
+                    <button className="btn-secondary" onClick={() => setEditing(u)}>{t('edit')}</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Edit/Create Modal */}
+          {editing && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-lg w-full max-w-lg p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">{editing._id ? t('editUser') : t('createUser')}</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm text-gray-700 mb-1">{t('emailUsername')}</label>
+                    <input
+                      className={`input ${editing._id ? 'bg-gray-100' : ''}`}
+                      type="email"
+                      value={editing.username}
+                      onChange={e => !editing._id && setEditing(prev => prev ? { ...prev, username: e.target.value } : prev)}
+                      disabled={!!editing._id}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-700 mb-1">{t('nameLabel')}</label>
+                    <MultiLangInput
+                      value={(typeof editing.name === 'string' ? { [currentLanguage]: editing.name } : (editing.name as MultiLangText)) || {}}
+                      onChange={(value) => setEditing(prev => prev ? { ...prev, name: value as MultiLangText } : prev)}
+                      placeholder={t('enterUserName')}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-700 mb-1">{t('role')}</label>
+                    <select className="input" value={editing.role} onChange={e => setEditing(prev => prev ? { ...prev, role: e.target.value as any } : prev)}>
+                      <option value="owner">{t('owner')}</option>
+                      <option value="admin">{t('admin')}</option>
+                      <option value="guest">{t('guest')}</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-700 mb-1">{t('passwordLeaveBlank')}</label>
+                    <input className="input" type="password" value={editing.password || ''} onChange={e => setEditing(prev => prev ? { ...prev, password: e.target.value } : prev)} />
+                  </div>
+                  {editing._id && (
+                    <div>
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={editing.blocked || false}
+                          onChange={e => setEditing(prev => prev ? { ...prev, blocked: e.target.checked } : prev)}
+                          className="rounded"
+                        />
+                        <span className="text-sm text-gray-700">{t('blockThisUser')}</span>
+                      </label>
+                    </div>
+                  )}
+                </div>
+                {error && <div className="mt-3 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-700">{error}</div>}
+                <div className="flex justify-end gap-2 mt-4">
+                  <button className="btn-secondary" onClick={() => setEditing(null)}>{t('cancel')}</button>
+                  <button
+                    className="btn-primary"
+                    disabled={savingEdit}
+                    onClick={async () => {
+                      setSavingEdit(true)
+                      setError(null)
+                      try {
+                        if (editing._id) {
+                          const payload: any = { name: editing.name, role: editing.role }
+                          if (editing.password) payload.password = editing.password
+                          if (typeof editing.blocked === 'boolean') payload.blocked = editing.blocked
+                          const res = await fetch(`/api/admin/users/${editing._id}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload),
+                          })
+                          const data = await res.json()
+                          if (!data.success) setError(data.error || t('failedToUpdateUser'))
+                          else {
+                            setUsers(prev => prev.map(u => u._id === editing._id ? data.data : u))
+                            setEditing(null)
+                          }
+                        } else {
+                          // create
+                          const res = await fetch('/api/admin/users', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                                                      body: JSON.stringify({
+                            username: editing.username,
+                            password: editing.password,
+                            name: editing.name,
+                            role: editing.role,
+                            groupAliases: [],
+                            blocked: false,
+                          }),
+                          })
+                          const data = await res.json()
+                          if (!data.success) setError(data.error || t('failedToCreateUser'))
+                          else {
+                            setUsers(prev => [data.data, ...prev])
+                            setEditing(null)
+                          }
+                        }
+                      } catch {
+                        setError(t('requestFailed'))
+                      } finally {
+                        setSavingEdit(false)
+                      }
+                    }}
+                  >
+                    {savingEdit ? t('saving') : (editing._id ? t('saveChanges') : t('createUser'))}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </AdminGuard>
+  )
+}

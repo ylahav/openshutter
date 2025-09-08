@@ -1,0 +1,63 @@
+# OpenShutter Docker Compose with MongoDB
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: openshutter-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=password123
+      - MONGO_INITDB_DATABASE=openshutter
+    volumes:
+      - mongodb_data:/data/db
+      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - openshutter-network
+
+  openshutter:
+    build:
+      context: .
+      dockerfile: Dockerfile.with-mongo
+    container_name: openshutter-app
+    ports:
+      - "4000:4000"
+    environment:
+      - NODE_ENV=production
+      - MONGODB_URI=mongodb://admin:password123@mongodb:27017/openshutter?authSource=admin
+      - MONGODB_DB=openshutter
+      - NEXTAUTH_SECRET=your_nextauth_secret_here
+      - NEXTAUTH_URL=http://localhost:4000
+      - NEXT_PUBLIC_APP_URL=http://localhost:4000
+    volumes:
+      # Mount storage directory for local storage provider
+      - ./storage:/app/storage
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - openshutter-network
+
+volumes:
+  mongodb_data:
+    driver: local
+
+networks:
+  openshutter-network:
+    driver: bridge
