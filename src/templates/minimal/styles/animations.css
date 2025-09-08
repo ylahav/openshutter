@@ -1,0 +1,294 @@
+/* Minimal Template Styles */
+
+/* Clean, minimal animations */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Utility classes */
+.animate-fade-in {
+  animation: fade-in 0.6s ease-out;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.6s ease-out;
+}
+
+.animate-slide-in-left {
+  animation: slide-in-left 0.6s ease-out;
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.6s ease-out;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.5s ease-out;
+}
+
+/* Minimal hover effects */
+.hover-lift {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.hover-scale {
+  transition: transform 0.2s ease;
+}
+
+.hover-scale:hover {
+  transform: scale(1.02);
+}
+
+/* Clean focus states */
+.focus-ring {
+  transition: box-shadow 0.2s ease;
+}
+
+.focus-ring:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Minimal loading states */
+.skeleton {
+  background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Clean typography */
+.text-balance {
+  text-wrap: balance;
+}
+
+/* Minimal borders and shadows */
+.border-subtle {
+  border: 1px solid #e5e7eb;
+}
+
+.shadow-subtle {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.shadow-minimal {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* Clean button styles */
+.btn-minimal {
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.btn-minimal:hover {
+  transform: translateY(-1px);
+}
+
+.btn-minimal:active {
+  transform: translateY(0);
+}
+
+/* Minimal form elements */
+.input-minimal {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.input-minimal:focus {
+  outline: none;
+  border-color: #000;
+  box-shadow: 0 0 0 1px #000;
+}
+
+/* Clean spacing utilities */
+.space-minimal > * + * {
+  margin-top: 1rem;
+}
+
+.space-tight > * + * {
+  margin-top: 0.5rem;
+}
+
+/* Minimal grid gaps */
+.gap-minimal {
+  gap: 1rem;
+}
+
+.gap-tight {
+  gap: 0.5rem;
+}
+
+/* Clean line heights */
+.leading-tight {
+  line-height: 1.25;
+}
+
+.leading-relaxed {
+  line-height: 1.625;
+}
+
+.leading-loose {
+  line-height: 2;
+}
+
+/* Minimal color utilities */
+.text-muted {
+  color: #6b7280;
+}
+
+.text-subtle {
+  color: #9ca3af;
+}
+
+.bg-subtle {
+  background-color: #f9fafb;
+}
+
+.border-subtle {
+  border-color: #e5e7eb;
+}
+
+/* Clean transitions */
+.transition-minimal {
+  transition: all 0.2s ease;
+}
+
+.transition-smooth {
+  transition: all 0.3s ease;
+}
+
+/* Minimal responsive utilities */
+@media (max-width: 768px) {
+  .mobile-fade-in {
+    animation: fade-in 0.6s ease-out;
+  }
+  
+  .mobile-slide-up {
+    animation: slide-up 0.6s ease-out;
+  }
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  .print-friendly {
+    background: white !important;
+    color: black !important;
+    box-shadow: none !important;
+    border: 1px solid #000 !important;
+  }
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .border-subtle {
+    border-color: #000;
+  }
+  
+  .text-muted {
+    color: #000;
+  }
+  
+  .bg-subtle {
+    background-color: #fff;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .border-subtle {
+    border-color: #374151;
+  }
+  
+  .text-muted {
+    color: #9ca3af;
+  }
+  
+  .text-subtle {
+    color: #6b7280;
+  }
+  
+  .bg-subtle {
+    background-color: #111827;
+  }
+  
+  .skeleton {
+    background: linear-gradient(90deg, #374151 25%, #4b5563 50%, #374151 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+}

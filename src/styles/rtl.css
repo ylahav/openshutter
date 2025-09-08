@@ -1,0 +1,417 @@
+/* RTL (Right-to-Left) Language Support */
+
+/* Base RTL styles */
+.rtl {
+  direction: rtl;
+  text-align: right;
+}
+
+/* RTL-specific utility classes */
+.rtl .text-left {
+  text-align: right !important;
+}
+
+.rtl .text-right {
+  text-align: left !important;
+}
+
+.rtl .ml-auto {
+  margin-left: unset !important;
+  margin-right: auto !important;
+}
+
+.rtl .mr-auto {
+  margin-right: unset !important;
+  margin-left: auto !important;
+}
+
+.rtl .ml-0 {
+  margin-left: unset !important;
+  margin-right: 0 !important;
+}
+
+.rtl .mr-0 {
+  margin-right: unset !important;
+  margin-left: 0 !important;
+}
+
+/* RTL flexbox adjustments */
+.rtl .flex-row-reverse {
+  flex-direction: row-reverse !important;
+}
+
+.rtl .justify-start {
+  justify-content: flex-end !important;
+}
+
+.rtl .justify-end {
+  justify-content: flex-start !important;
+}
+
+/* RTL positioning adjustments */
+.rtl .left-0 {
+  left: unset !important;
+  right: 0 !important;
+}
+
+.rtl .right-0 {
+  right: unset !important;
+  left: 0 !important;
+}
+
+.rtl .left-1\/2 {
+  left: unset !important;
+  right: 50% !important;
+}
+
+.rtl .right-1\/2 {
+  right: unset !important;
+  left: 50% !important;
+}
+
+/* RTL transform adjustments */
+.rtl .-translate-x-1\/2 {
+  transform: translateX(50%) !important;
+}
+
+.rtl .translate-x-1\/2 {
+  transform: translateX(-50%) !important;
+}
+
+/* RTL border adjustments */
+.rtl .border-l {
+  border-left: unset !important;
+  border-right-width: 1px !important;
+}
+
+.rtl .border-r {
+  border-right: unset !important;
+  border-left-width: 1px !important;
+}
+
+.rtl .border-l-0 {
+  border-left: unset !important;
+  border-right-width: 0 !important;
+}
+
+.rtl .border-r-0 {
+  border-right: unset !important;
+  border-left-width: 0 !important;
+}
+
+/* RTL padding adjustments */
+.rtl .pl-0 {
+  padding-left: unset !important;
+  padding-right: 0 !important;
+}
+
+.rtl .pr-0 {
+  padding-right: unset !important;
+  padding-left: 0 !important;
+}
+
+.rtl .pl-1 {
+  padding-left: unset !important;
+  padding-right: 0.25rem !important;
+}
+
+.rtl .pr-1 {
+  padding-right: unset !important;
+  padding-left: 0.25rem !important;
+}
+
+.rtl .pl-2 {
+  padding-left: unset !important;
+  padding-right: 0.5rem !important;
+}
+
+.rtl .pr-2 {
+  padding-right: unset !important;
+  padding-left: 0.5rem !important;
+}
+
+.rtl .pl-3 {
+  padding-left: unset !important;
+  padding-right: 0.75rem !important;
+}
+
+.rtl .pr-3 {
+  padding-right: unset !important;
+  padding-left: 0.75rem !important;
+}
+
+.rtl .pl-4 {
+  padding-left: unset !important;
+  padding-right: 1rem !important;
+}
+
+.rtl .pr-4 {
+  padding-right: unset !important;
+  padding-left: 1rem !important;
+}
+
+/* RTL margin adjustments */
+.rtl .ml-1 {
+  margin-left: unset !important;
+  margin-right: 0.25rem !important;
+}
+
+.rtl .mr-1 {
+  margin-right: unset !important;
+  margin-left: 0.25rem !important;
+}
+
+.rtl .ml-2 {
+  margin-left: unset !important;
+  margin-right: 0.5rem !important;
+}
+
+.rtl .mr-2 {
+  margin-right: unset !important;
+  margin-left: 0.5rem !important;
+}
+
+.rtl .ml-3 {
+  margin-left: unset !important;
+  margin-right: 0.75rem !important;
+}
+
+.rtl .mr-3 {
+  margin-right: unset !important;
+  margin-left: 0.75rem !important;
+}
+
+.rtl .ml-4 {
+  margin-left: unset !important;
+  margin-right: 1rem !important;
+}
+
+.rtl .mr-4 {
+  margin-right: unset !important;
+  margin-left: 1rem !important;
+}
+
+/* RTL space adjustments */
+.rtl .space-x-1 > * + * {
+  margin-left: unset !important;
+  margin-right: 0.25rem !important;
+}
+
+.rtl .space-x-2 > * + * {
+  margin-left: unset !important;
+  margin-right: 0.5rem !important;
+}
+
+.rtl .space-x-3 > * + * {
+  margin-left: unset !important;
+  margin-right: 0.75rem !important;
+}
+
+.rtl .space-x-4 > * + * {
+  margin-left: unset !important;
+  margin-right: 1rem !important;
+}
+
+.rtl .space-x-6 > * + * {
+  margin-left: unset !important;
+  margin-right: 1.5rem !important;
+}
+
+.rtl .space-x-8 > * + * {
+  margin-left: unset !important;
+  margin-right: 2rem !important;
+}
+
+/* RTL grid adjustments */
+.rtl .col-start-1 {
+  grid-column-start: unset !important;
+  grid-column-end: 1 !important;
+}
+
+.rtl .col-end-1 {
+  grid-column-end: unset !important;
+  grid-column-start: 1 !important;
+}
+
+/* RTL icon adjustments */
+.rtl .transform {
+  transform: scaleX(-1) !important;
+}
+
+/* RTL text alignment utilities */
+.rtl .text-center {
+  text-align: center !important;
+}
+
+.rtl .text-justify {
+  text-align: justify !important;
+}
+
+/* RTL specific components */
+.rtl .language-tabs {
+  flex-direction: row-reverse;
+}
+
+.rtl .language-indicator {
+  left: 0.5rem !important;
+  right: unset !important;
+}
+
+/* RTL form elements */
+.rtl input[type="text"],
+.rtl input[type="email"],
+.rtl input[type="password"],
+.rtl textarea,
+.rtl select {
+  text-align: right;
+}
+
+/* RTL button groups */
+.rtl .btn-group > .btn:not(:first-child) {
+  border-top-left-radius: 0.375rem !important;
+  border-bottom-left-radius: 0.375rem !important;
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+
+.rtl .btn-group > .btn:not(:last-child) {
+  border-top-right-radius: 0.375rem !important;
+  border-bottom-right-radius: 0.375rem !important;
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+}
+
+/* RTL navigation */
+.rtl .nav-item:not(:first-child) {
+  margin-left: unset !important;
+  margin-right: 2rem !important;
+}
+
+/* RTL dropdowns */
+.rtl .dropdown-menu {
+  right: 0 !important;
+  left: unset !important;
+}
+
+/* RTL modals */
+.rtl .modal-header .close {
+  margin: -1rem auto -1rem -1rem !important;
+}
+
+/* RTL tooltips */
+.rtl .tooltip {
+  direction: rtl;
+}
+
+/* RTL popovers */
+.rtl .popover {
+  direction: rtl;
+}
+
+/* RTL carousel */
+.rtl .carousel-control-prev {
+  right: 0 !important;
+  left: unset !important;
+}
+
+.rtl .carousel-control-next {
+  left: 0 !important;
+  right: unset !important;
+}
+
+/* RTL pagination */
+.rtl .pagination .page-item:not(:first-child) .page-link {
+  margin-left: unset !important;
+  margin-right: -1px !important;
+}
+
+/* RTL breadcrumbs */
+.rtl .breadcrumb-item + .breadcrumb-item::before {
+  padding-left: unset !important;
+  padding-right: 0.5rem !important;
+}
+
+/* RTL list groups */
+.rtl .list-group-item:first-child {
+  border-top-right-radius: 0.375rem !important;
+  border-top-left-radius: 0 !important;
+}
+
+.rtl .list-group-item:last-child {
+  border-bottom-right-radius: 0.375rem !important;
+  border-bottom-left-radius: 0 !important;
+}
+
+/* RTL badges */
+.rtl .badge {
+  direction: rtl;
+}
+
+/* RTL alerts */
+.rtl .alert-dismissible {
+  padding-left: 1rem !important;
+  padding-right: 4rem !important;
+}
+
+.rtl .alert-dismissible .close {
+  right: unset !important;
+  left: 0 !important;
+}
+
+/* RTL progress bars */
+.rtl .progress-bar {
+  float: right !important;
+}
+
+/* RTL spinners */
+.rtl .spinner-border,
+.rtl .spinner-grow {
+  animation-direction: reverse;
+}
+
+/* RTL tables */
+.rtl .table th,
+.rtl .table td {
+  text-align: right;
+}
+
+/* RTL forms */
+.rtl .form-check {
+  padding-left: unset !important;
+  padding-right: 1.25rem !important;
+}
+
+.rtl .form-check-input {
+  margin-left: unset !important;
+  margin-right: -1.25rem !important;
+}
+
+/* RTL input groups */
+.rtl .input-group > .form-control:not(:first-child) {
+  border-top-left-radius: 0.375rem !important;
+  border-bottom-left-radius: 0.375rem !important;
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+
+.rtl .input-group > .form-control:not(:last-child) {
+  border-top-right-radius: 0.375rem !important;
+  border-bottom-right-radius: 0.375rem !important;
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+}
+
+/* RTL button groups */
+.rtl .btn-group > .btn:not(:first-child) {
+  border-top-left-radius: 0.375rem !important;
+  border-bottom-left-radius: 0.375rem !important;
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+
+.rtl .btn-group > .btn:not(:last-child) {
+  border-top-right-radius: 0.375rem !important;
+  border-bottom-right-radius: 0.375rem !important;
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+}

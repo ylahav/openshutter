@@ -1,0 +1,54 @@
+{
+  "templateName": "minimal",
+  "displayName": "Minimal",
+  "description": "Minimalist design focusing on content",
+  "version": "1.0.0",
+  "author": "OpenShutter",
+  "thumbnail": "/templates/minimal/thumbnail.jpg",
+  "category": "minimal",
+  "features": {
+    "responsive": true,
+    "darkMode": false,
+    "animations": false,
+    "seoOptimized": true
+  },
+  "colors": {
+    "primary": "#000000",
+    "secondary": "#333333",
+    "accent": "#666666",
+    "background": "#FFFFFF",
+    "text": "#000000",
+    "muted": "#999999"
+  },
+  "fonts": {
+    "heading": "Helvetica",
+    "body": "Helvetica"
+  },
+  "layout": {
+    "maxWidth": "1000px",
+    "containerPadding": "0.5rem",
+    "gridGap": "1rem"
+  },
+  "components": {
+    "hero": "components/Hero.tsx",
+    "albumCard": "components/AlbumCard.tsx",
+    "photoCard": "components/PhotoCard.tsx",
+    "albumList": "components/AlbumList.tsx",
+    "gallery": "components/Gallery.tsx",
+    "navigation": "components/Header.tsx",
+    "footer": "components/Footer.tsx"
+  },
+  "visibility": {
+    "hero": true,
+    "languageSelector": true,
+    "authButtons": true,
+    "footerMenu": true,
+    "statistics": true,
+    "promotion": true
+  },
+  "pages": {
+    "home": "pages/Home.tsx",
+    "gallery": "pages/Gallery.tsx",
+    "album": "pages/Gallery.tsx"
+  }
+}
