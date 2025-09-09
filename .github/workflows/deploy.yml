@@ -100,6 +100,15 @@ jobs:
               echo "Sync completed. Target contents:"
               ls -la "$APP_DIR"
             fi
+            
+            # Ensure static files are in the correct location for Next.js standalone
+            echo "Setting up static files for Next.js standalone..."
+            if [ -d "$APP_DIR/.next/static" ]; then
+              echo "Static files found at $APP_DIR/.next/static"
+              ls -la "$APP_DIR/.next/static" | head -10
+            else
+              echo "WARNING: Static files not found at $APP_DIR/.next/static"
+            fi
 
             # Create runtime env file if not exists
             if [ ! -f "$APP_DIR/.env" ]; then
