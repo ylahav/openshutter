@@ -73,8 +73,7 @@ jobs:
           password: ${{ secrets.SSH_PASSWORD }}
           port: ${{ secrets.SSH_PORT || 22 }}
           envs: DEPLOY_DIR
-          env: |
-            DEPLOY_DIR=${{ secrets.DEPLOY_DIR }}
+          env: DEPLOY_DIR=${{ secrets.DEPLOY_DIR }}
           script: |
             set -e
             echo "SSH connection successful! Testing deployment..."
@@ -121,27 +120,53 @@ jobs:
               sudo chown "$USER":"$USER" "$APP_DIR/.env"
             fi
 
-            # Create/update systemd service
-            SERVICE_FILE=/etc/systemd/system/openshutter.service
-            echo "Creating/updating systemd service for $APP_DIR..."
-            {
-              echo "[Unit]"
-              echo "Description=OpenShutter"
-              echo "After=network.target"
-              echo ""
-              echo "[Service]"
-              echo "Type=simple"
-              echo "WorkingDirectory=$APP_DIR"
-              echo "EnvironmentFile=$APP_DIR/.env"
-              echo "ExecStart=/usr/bin/node $APP_DIR/.next/standalone/server.js -p 4000"
-              echo "Restart=always"
-              echo "RestartSec=5"
-              echo ""
-              echo "[Install]"
-              echo "WantedBy=multi-user.target"
-            } | sudo tee $SERVICE_FILE > /dev/null
-            sudo systemctl daemon-reload
-            sudo systemctl enable openshutter
+            # Install PM2 if not already installed
+            if ! command -v pm2 &> /dev/null; then
+              echo "Installing PM2..."
+              sudo npm install -g pm2
+            fi
 
-            # Restart service
-            sudo systemctl restart openshutter
+            # Create PM2 ecosystem file
+            PM2_CONFIG="$APP_DIR/ecosystem.config.js"
+            echo "Creating PM2 ecosystem config at $PM2_CONFIG..."
+            cat > "$PM2_CONFIG" << EOF
+module.exports = {
+  apps: [{
+    name: 'openshutter',
+    script: '$APP_DIR/.next/standalone/server.js',
+    cwd: '$APP_DIR',
+    instances: 1,
+    exec_mode: 'fork',
+    env: {
+      NODE_ENV: 'production',
+      PORT: 4000
+    },
+    env_file: '$APP_DIR/.env',
+    log_file: '$APP_DIR/logs/combined.log',
+    out_file: '$APP_DIR/logs/out.log',
+    error_file: '$APP_DIR/logs/error.log',
+    log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+    merge_logs: true,
+    max_memory_restart: '1G',
+    restart_delay: 4000,
+    max_restarts: 10,
+    min_uptime: '10s'
+  }]
+}
+EOF
+
+            # Create logs directory
+            mkdir -p "$APP_DIR/logs"
+
+            # Stop existing PM2 process if running
+            pm2 stop openshutter 2>/dev/null || true
+            pm2 delete openshutter 2>/dev/null || true
+
+            # Start the application with PM2
+            echo "Starting OpenShutter with PM2..."
+            pm2 start "$PM2_CONFIG"
+            pm2 save
+            pm2 startup | grep -E '^sudo' | bash || true
+
+            # Show PM2 status
+            pm2 status
