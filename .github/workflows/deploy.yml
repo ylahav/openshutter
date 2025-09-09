@@ -129,31 +129,31 @@ jobs:
             # Create PM2 ecosystem file
             PM2_CONFIG="$APP_DIR/ecosystem.config.js"
             echo "Creating PM2 ecosystem config at $PM2_CONFIG..."
-            cat > "$PM2_CONFIG" << EOF
-module.exports = {
-  apps: [{
-    name: 'openshutter',
-    script: '$APP_DIR/.next/standalone/server.js',
-    cwd: '$APP_DIR',
-    instances: 1,
-    exec_mode: 'fork',
-    env: {
-      NODE_ENV: 'production',
-      PORT: 4000
-    },
-    env_file: '$APP_DIR/.env',
-    log_file: '$APP_DIR/logs/combined.log',
-    out_file: '$APP_DIR/logs/out.log',
-    error_file: '$APP_DIR/logs/error.log',
-    log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-    merge_logs: true,
-    max_memory_restart: '1G',
-    restart_delay: 4000,
-    max_restarts: 10,
-    min_uptime: '10s'
-  }]
-}
-EOF
+            {
+              echo "module.exports = {"
+              echo "  apps: [{"
+              echo "    name: 'openshutter',"
+              echo "    script: '$APP_DIR/.next/standalone/server.js',"
+              echo "    cwd: '$APP_DIR',"
+              echo "    instances: 1,"
+              echo "    exec_mode: 'fork',"
+              echo "    env: {"
+              echo "      NODE_ENV: 'production',"
+              echo "      PORT: 4000"
+              echo "    },"
+              echo "    env_file: '$APP_DIR/.env',"
+              echo "    log_file: '$APP_DIR/logs/combined.log',"
+              echo "    out_file: '$APP_DIR/logs/out.log',"
+              echo "    error_file: '$APP_DIR/logs/error.log',"
+              echo "    log_date_format: 'YYYY-MM-DD HH:mm:ss Z',"
+              echo "    merge_logs: true,"
+              echo "    max_memory_restart: '1G',"
+              echo "    restart_delay: 4000,"
+              echo "    max_restarts: 10,"
+              echo "    min_uptime: '10s'"
+              echo "  }]"
+              echo "}"
+            } > "$PM2_CONFIG"
 
             # Create logs directory
             mkdir -p "$APP_DIR/logs"
