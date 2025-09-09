@@ -106,9 +106,14 @@ jobs:
             ls -la "$APP_DIR"
             
             # Install production dependencies for standalone build
-            echo "Installing production dependencies..."
+            echo "Installing production dependencies with pnpm..."
             cd "$APP_DIR"
-            sudo npm install --production --no-optional
+            # Install pnpm if not available
+            if ! command -v pnpm &> /dev/null; then
+              echo "Installing pnpm..."
+              sudo npm install -g pnpm
+            fi
+            sudo pnpm install --production --frozen-lockfile
             echo "Dependencies installed. Node modules:"
             ls -la node_modules/ | head -10
             
@@ -128,53 +133,46 @@ jobs:
               sudo chown "$USER":"$USER" "$APP_DIR/.env"
             fi
 
-            # Install PM2 if not already installed
-            if ! command -v pm2 &> /dev/null; then
-              echo "Installing PM2..."
-              sudo npm install -g pm2
+            # Install Watt3 if not already installed
+            if ! command -v watt3 &> /dev/null; then
+              echo "Installing Watt3..."
+              curl -fsSL https://watt3.dev/install.sh | sudo bash
             fi
 
-            # Create PM2 ecosystem file
-            PM2_CONFIG="$APP_DIR/ecosystem.config.js"
-            echo "Creating PM2 ecosystem config at $PM2_CONFIG..."
+            # Create Watt3 configuration file
+            WATT3_CONFIG="$APP_DIR/watt3.toml"
+            echo "Creating Watt3 config at $WATT3_CONFIG..."
             {
-              echo "module.exports = {"
-              echo "  apps: [{"
-              echo "    name: 'openshutter',"
-              echo "    script: 'node $APP_DIR/.next/standalone/server.js',"
-              echo "    cwd: '$APP_DIR',"
-              echo "    instances: 1,"
-              echo "    exec_mode: 'fork',"
-              echo "    env: {"
-              echo "      NODE_ENV: 'production',"
-              echo "      PORT: 4000"
-              echo "    },"
-              echo "    env_file: '$APP_DIR/.env',"
-              echo "    log_file: '$APP_DIR/logs/combined.log',"
-              echo "    out_file: '$APP_DIR/logs/out.log',"
-              echo "    error_file: '$APP_DIR/logs/error.log',"
-              echo "    log_date_format: 'YYYY-MM-DD HH:mm:ss Z',"
-              echo "    merge_logs: true,"
-              echo "    max_memory_restart: '1G',"
-              echo "    restart_delay: 4000,"
-              echo "    max_restarts: 10,"
-              echo "    min_uptime: '10s'"
-              echo "  }]"
-              echo "}"
-            } > "$PM2_CONFIG"
+              echo "[processes.openshutter]"
+              echo "command = \"node .next/standalone/server.js\""
+              echo "cwd = \"$APP_DIR\""
+              echo "env = { NODE_ENV = \"production\", PORT = \"4000\" }"
+              echo "env_file = \"$APP_DIR/.env\""
+              echo "restart = \"always\""
+              echo "restart_delay = \"4s\""
+              echo "max_restarts = 10"
+              echo "min_uptime = \"10s\""
+              echo "max_memory = \"1G\""
+              echo ""
+              echo "[processes.openshutter.logging]"
+              echo "stdout = \"$APP_DIR/logs/out.log\""
+              echo "stderr = \"$APP_DIR/logs/error.log\""
+              echo "combined = \"$APP_DIR/logs/combined.log\""
+              echo "max_size = \"10MB\""
+              echo "max_files = 5"
+            } > "$WATT3_CONFIG"
 
             # Create logs directory
             mkdir -p "$APP_DIR/logs"
 
-            # Stop existing PM2 process if running
-            pm2 stop openshutter 2>/dev/null || true
-            pm2 delete openshutter 2>/dev/null || true
+            # Stop existing Watt3 process if running
+            watt3 stop openshutter 2>/dev/null || true
+            watt3 remove openshutter 2>/dev/null || true
 
-            # Start the application with PM2
-            echo "Starting OpenShutter with PM2..."
-            pm2 start "$PM2_CONFIG"
-            pm2 save
-            pm2 startup | grep -E '^sudo' | bash || true
+            # Start the application with Watt3
+            echo "Starting OpenShutter with Watt3..."
+            watt3 start "$WATT3_CONFIG"
+            watt3 save
 
-            # Show PM2 status
-            pm2 status
+            # Show Watt3 status
+            watt3 status
