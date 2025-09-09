@@ -83,6 +83,10 @@ jobs:
             SRC_DIR="$HOME/apps/openshutter"
             APP_DIR="${DEPLOY_DIR:-$SRC_DIR}"
             
+            echo "DEBUG: SRC_DIR=$SRC_DIR"
+            echo "DEBUG: APP_DIR=$APP_DIR"
+            echo "DEBUG: DEPLOY_DIR=$DEPLOY_DIR"
+            
             # Ensure source directory exists and extract there first
             mkdir -p "$SRC_DIR"
             cd "$SRC_DIR"
@@ -92,14 +96,12 @@ jobs:
             ls -la
             rm -f release.tgz
             
-            # If DEPLOY_DIR is different, sync files to target
-            if [ "$APP_DIR" != "$SRC_DIR" ]; then
-              echo "Syncing files from $SRC_DIR to $APP_DIR..."
-              sudo mkdir -p "$APP_DIR"
-              sudo rsync -a --delete "$SRC_DIR"/ "$APP_DIR"/
-              echo "Sync completed. Target contents:"
-              ls -la "$APP_DIR"
-            fi
+            # Always sync files to target (whether same or different)
+            echo "Syncing files from $SRC_DIR to $APP_DIR..."
+            sudo mkdir -p "$APP_DIR"
+            sudo rsync -a --delete "$SRC_DIR"/ "$APP_DIR"/
+            echo "Sync completed. Target contents:"
+            ls -la "$APP_DIR"
             
             # Ensure static files are in the correct location for Next.js standalone
             echo "Setting up static files for Next.js standalone..."
