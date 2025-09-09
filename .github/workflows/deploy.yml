@@ -73,7 +73,8 @@ jobs:
           password: ${{ secrets.SSH_PASSWORD }}
           port: ${{ secrets.SSH_PORT || 22 }}
           envs: DEPLOY_DIR
-          env: DEPLOY_DIR=${{ secrets.DEPLOY_DIR }}
+          env: |
+            DEPLOY_DIR=${{ secrets.DEPLOY_DIR }}
           script: |
             set -e
             echo "SSH connection successful! Testing deployment..."
@@ -104,6 +105,13 @@ jobs:
             echo "Sync completed. Target contents:"
             ls -la "$APP_DIR"
             
+            # Install production dependencies for standalone build
+            echo "Installing production dependencies..."
+            cd "$APP_DIR"
+            sudo npm install --production --no-optional
+            echo "Dependencies installed. Node modules:"
+            ls -la node_modules/ | head -10
+            
             # Ensure static files are in the correct location for Next.js standalone
             echo "Setting up static files for Next.js standalone..."
             if [ -d "$APP_DIR/.next/static" ]; then
@@ -133,7 +141,7 @@ jobs:
               echo "module.exports = {"
               echo "  apps: [{"
               echo "    name: 'openshutter',"
-              echo "    script: '$APP_DIR/.next/standalone/server.js',"
+              echo "    script: 'node $APP_DIR/.next/standalone/server.js',"
               echo "    cwd: '$APP_DIR',"
               echo "    instances: 1,"
               echo "    exec_mode: 'fork',"
