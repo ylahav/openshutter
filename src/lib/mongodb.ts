@@ -5,6 +5,13 @@ if (!process.env.MONGODB_URI) {
 }
 
 const uri = process.env.MONGODB_URI
+
+// Debug logging
+console.log('🔍 MongoDB Debug Info:')
+console.log('  - MONGODB_URI:', process.env.MONGODB_URI)
+console.log('  - MONGODB_DB:', process.env.MONGODB_DB)
+console.log('  - NODE_ENV:', process.env.NODE_ENV)
+console.log('  - All env vars with MONGODB:', Object.keys(process.env).filter(key => key.includes('MONGODB')))
 const options = {
   maxPoolSize: 10,
   serverSelectionTimeoutMS: 10000, // Increased from 5000
@@ -36,8 +43,14 @@ if (process.env.NODE_ENV === 'development') {
 
 export async function connectToDatabase(): Promise<{ client: MongoClient; db: Db }> {
   try {
+    console.log('🔗 Attempting to connect to MongoDB...')
+    console.log('  - Using URI:', uri)
+    console.log('  - Database name:', process.env.MONGODB_DB || 'openshutter')
+    
     const client = await clientPromise
     const db = client.db(process.env.MONGODB_DB || 'openshutter')
+    
+    console.log('✅ MongoDB client created, testing connection...')
     
     // Test the connection with a timeout
     const pingPromise = db.admin().ping()
@@ -47,9 +60,11 @@ export async function connectToDatabase(): Promise<{ client: MongoClient; db: Db
     
     await Promise.race([pingPromise, timeoutPromise])
     
+    console.log('✅ MongoDB connection successful!')
     return { client, db }
   } catch (error) {
-    console.error('Failed to connect to MongoDB:', error)
+    console.error('❌ Failed to connect to MongoDB:', error)
+    console.error('  - Error details:', error)
     throw new Error(`Database connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
   }
 }

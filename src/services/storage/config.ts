@@ -152,7 +152,7 @@ export class StorageConfigService {
         name: 'Local Storage',
         isEnabled: false,
         config: {
-          basePath: process.env.LOCAL_STORAGE_PATH || './uploads',
+          basePath: process.env.LOCAL_STORAGE_PATH || '/app/public/albums',
           maxFileSize: '100MB',
           isEnabled: false
         },
