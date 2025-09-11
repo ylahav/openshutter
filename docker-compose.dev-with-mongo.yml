@@ -1,8 +1,10 @@
-# OpenShutter Docker Compose with MongoDB
+# OpenShutter Development Docker Compose with MongoDB
+# Includes both the app and MongoDB database
+
 services:
   mongodb:
     image: mongo:7.0
-    container_name: openshutter-mongodb
+    container_name: openshutter-mongodb-dev
     ports:
       - "27017:27017"
     environment:
@@ -20,21 +22,18 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: openshutter
+    container_name: openshutter-dev
     ports:
       - "4000:4000"
-    environment:
-      - MONGODB_URI=mongodb://openshutter:openshutter123@mongodb:27017/openshutter?authSource=openshutter
-      - MONGODB_DB=openshutter
-      - NODE_ENV=development
-      - NEXTAUTH_SECRET=OpenShutter_Secret
-      - NEXTAUTH_URL=http://localhost:4000
-      - NEXT_PUBLIC_APP_URL=http://localhost:4000
+    # Use .env.local file instead of environment variables
+    # This allows .env.local to take precedence
     volumes:
       # Mount storage directory for local storage provider
       - ./storage:/app/storage
       # Mount logs directory
       - ./logs:/app/logs
+      # Mount .env.local file for environment variables
+      - ./.env.local:/app/.env.local
     restart: unless-stopped
     depends_on:
       - mongodb

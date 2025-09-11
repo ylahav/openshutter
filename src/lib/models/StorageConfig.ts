@@ -76,7 +76,7 @@ export const DEFAULT_STORAGE_CONFIGS = [
     name: 'Local Storage',
     isEnabled: false,
     config: {
-      basePath: '/var/openshutter/storage',
+      basePath: '/app/public/albums',
       maxFileSize: '100MB',
       isEnabled: false
     }

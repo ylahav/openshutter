@@ -86,7 +86,7 @@ export default function StorageSettingsPage() {
   })
 
   const [localConfig, setLocalConfig] = useState({
-    basePath: '/var/openshutter/storage',
+    basePath: '/app/public/albums',
     maxFileSize: '100MB',
     isEnabled: false
   })
@@ -644,7 +644,7 @@ export default function StorageSettingsPage() {
                             value={localConfig.basePath}
                             onChange={(e) => setLocalConfig(prev => ({ ...prev, basePath: e.target.value }))}
                             className="input"
-                            placeholder="/var/openshutter/storage"
+                            placeholder="/app/public/albums"
                           />
                           <p className="mt-1 text-sm text-gray-500">
                             Absolute path to the directory where photos will be stored

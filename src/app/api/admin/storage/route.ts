@@ -32,7 +32,7 @@ const DEFAULT_STORAGE_CONFIGS = [
     name: 'Local Storage',
     isEnabled: false,
     config: {
-      basePath: '/var/openshutter/storage',
+      basePath: '/app/public/albums',
       maxFileSize: '100MB',
       isEnabled: false
     }
@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
         isEnabled: configs.find(c => c.providerId === 'aws-s3')?.isEnabled || false
       },
       'local': {
-        basePath: configs.find(c => c.providerId === 'local')?.config?.basePath || '/var/openshutter/storage',
+        basePath: configs.find(c => c.providerId === 'local')?.config?.basePath || '/app/public/albums',
         maxFileSize: configs.find(c => c.providerId === 'local')?.config?.maxFileSize || '100MB',
         isEnabled: configs.find(c => c.providerId === 'local')?.isEnabled || false
       }

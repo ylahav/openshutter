@@ -8,7 +8,7 @@ async function checkExifStatus() {
     console.log('🔍 Checking EXIF status of photos...')
     
     // Connect to MongoDB with timeout
-    const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/openshutter'
+    const mongoUri = process.env.MONGODB_URI
     client = new MongoClient(mongoUri)
     
     // Set connection timeout

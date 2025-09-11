@@ -415,6 +415,17 @@
     "importInfo4": "Skips existing albums and photos",
     "importWarning": "Important Notice",
     "importWarningText": "Import process may take time depending on the number of files. Do not close the browser during import. Large imports are processed in batches to prevent timeouts.",
-    "manageImport": "Manage Import"
+    "manageImport": "Manage Import",
+    "deploymentPreparation": "Deployment Preparation",
+    "deploymentConfiguration": "Deployment Configuration",
+    "domainName": "Domain Name",
+    "port": "Port",
+    "pm2AppName": "PM2 App Name",
+    "projectRoot": "Project Root",
+    "deploymentPreview": "Deployment Preview",
+    "preparingDeployment": "Preparing Deployment",
+    "prepareDeploymentPackage": "Prepare Deployment Package",
+    "downloadDeploymentScript": "Download Deployment Script",
+    "deploymentInstructions": "Deployment Instructions"
   }
 }

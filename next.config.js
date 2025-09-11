@@ -1,4 +1,12 @@
 /** @type {import('next').NextConfig} */
+
+// Debug logging for environment variables
+console.log('🔍 Next.js Config Debug:')
+console.log('  - MONGODB_URI:', process.env.MONGODB_URI)
+console.log('  - MONGODB_DB:', process.env.MONGODB_DB)
+console.log('  - NODE_ENV:', process.env.NODE_ENV)
+console.log('  - All env vars:', Object.keys(process.env).filter(key => key.includes('MONGODB')))
+
 const nextConfig = {
   // Remove swcMinify as it's deprecated in Next.js 15
   // Remove experimental.turbo as it's deprecated
@@ -23,16 +31,7 @@ const nextConfig = {
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
 
-  // Environment variables
-  env: {
-    MONGODB_URI: process.env.MONGODB_URI,
-    GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
-    GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
-    GOOGLE_REFRESH_TOKEN: process.env.GOOGLE_REFRESH_TOKEN,
-    GOOGLE_DRIVE_FOLDER_ID: process.env.GOOGLE_DRIVE_FOLDER_ID,
-    NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
-    NEXTAUTH_URL: process.env.NEXTAUTH_URL,
-  },
+  // Environment variables are handled at runtime by Docker Compose
 
   // Webpack configuration for SVG handling
   webpack: (config) => {
@@ -59,7 +58,7 @@ const nextConfig = {
   },
 
   // Output and optimization
-  output: 'standalone',
+  outputFileTracingRoot: process.cwd(),
   trailingSlash: false,
   reactStrictMode: true,
 }

@@ -1,0 +1,35 @@
+# OpenShutter Production Docker Compose
+# Uses external MongoDB database (shared with other applications)
+
+services:
+  openshutter:
+    image: openshutter:latest
+    container_name: openshutter-prod
+    ports:
+      - "4000:4000"
+    env_file:
+      - env.production
+    volumes:
+      # Mount storage directory for local storage provider
+      - /var/openshutter/storage:/app/storage
+      # Mount logs directory
+      - /var/openshutter/logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    # Option 1: Use host networking (recommended for external MongoDB)
+    network_mode: host
+    # Option 2: Use bridge network with extra_hosts (uncomment if host networking doesn't work)
+    # networks:
+    #   - openshutter-network
+    # extra_hosts:
+    #   - "host.docker.internal:host-gateway"
+
+# Uncomment if using bridge networking instead of host networking
+# networks:
+#   openshutter-network:
+#     driver: bridge

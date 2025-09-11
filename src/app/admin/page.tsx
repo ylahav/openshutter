@@ -290,6 +290,30 @@ export default function AdminPage() {
             </Link>
           </div>
 
+          {/* Deployment Preparation */}
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="flex items-center mb-4">
+              <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                </svg>
+              </div>
+              <h2 className="text-xl font-semibold text-gray-900 ml-3">{t('admin.deploymentPreparation')}</h2>
+            </div>
+            <p className="text-gray-600 mb-4">
+              Prepare deployment package with custom domain and port configuration for PM2 deployment.
+            </p>
+            <Link
+              href="/admin/deployment"
+              className="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+            >
+              Prepare Deployment
+              <svg className="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={getArrowPath()} />
+              </svg>
+            </Link>
+          </div>
+
 
         </div>
       </div>

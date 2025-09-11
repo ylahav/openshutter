@@ -38,10 +38,8 @@ cp env.example .env
 # MONGODB_URI=your-mongodb-connection-string
 # NEXTAUTH_SECRET=your-secret-key
 # NEXTAUTH_URL=https://yourdomain.com
-# GOOGLE_CLIENT_ID=your-google-client-id
-# GOOGLE_CLIENT_SECRET=your-google-client-secret
-# GOOGLE_REFRESH_TOKEN=your-google-refresh-token
-# GOOGLE_DRIVE_FOLDER_ID=your-google-drive-folder-id
+# DEFAULT_STORAGE_PROVIDER=google-drive
+# NEXT_PUBLIC_APP_URL=https://yourdomain.com
 
 # Build the application
 pnpm build
@@ -51,8 +49,7 @@ pnpm build
 ```bash
 # Create deployment package
 tar -czf openshutter-release.tar.gz \
-  .next/standalone \
-  .next/static \
+  .next \
   public \
   next.config.js \
   package.json \
@@ -80,15 +77,15 @@ sudo apt-get install -y nodejs
 # Install pnpm
 sudo npm install -g pnpm
 
-# Install Watt3
-curl -fsSL https://watt3.dev/install.sh | sudo bash
+# Install PM2
+sudo npm install -g pm2
 
 # Install nginx
 sudo apt install nginx -y
 
 # Create application directory
-sudo mkdir -p /var/www/yairl.com
-sudo chown $USER:$USER /var/www/yairl.com
+sudo mkdir -p /var/www/yourdomain.com
+sudo chown $USER:$USER /var/www/yourdomain.com
 ```
 
 #### Upload and Extract Application
@@ -97,7 +94,7 @@ sudo chown $USER:$USER /var/www/yairl.com
 scp openshutter-release.tar.gz user@your-server-ip:/tmp/
 
 # On the server, extract the application
-cd /var/www/yairl.com
+cd /var/www/yourdomain.com
 tar -xzf /tmp/openshutter-release.tar.gz
 rm /tmp/openshutter-release.tar.gz
 
@@ -105,39 +102,49 @@ rm /tmp/openshutter-release.tar.gz
 pnpm install --production --frozen-lockfile
 ```
 
-### 3. Configure Watt3
+### 3. Configure PM2
 
-#### Create Watt3 Configuration File
+#### Create PM2 Ecosystem File
 ```bash
-# Create Watt3 configuration
-cat > /var/www/yairl.com/watt3.toml << 'EOF'
-[processes.openshutter]
-command = "node .next/standalone/server.js"
-cwd = "/var/www/yairl.com"
-env = { NODE_ENV = "production", PORT = "4000" }
-env_file = "/var/www/yairl.com/.env"
-restart = "always"
-restart_delay = "4s"
-max_restarts = 10
-min_uptime = "10s"
-max_memory = "1G"
-
-[processes.openshutter.logging]
-stdout = "/var/www/yairl.com/logs/out.log"
-stderr = "/var/www/yairl.com/logs/error.log"
-combined = "/var/www/yairl.com/logs/combined.log"
-max_size = "10MB"
-max_files = 5
+# Create PM2 configuration
+cat > /var/www/yourdomain.com/ecosystem.config.js << 'EOF'
+module.exports = {
+  apps: [{
+    name: 'openshutter',
+    script: 'pnpm start',
+    cwd: '/var/www/yourdomain.com',
+    instances: 1,
+    exec_mode: 'fork',
+    env: {
+      NODE_ENV: 'production',
+      PORT: 4000
+    },
+    env_file: '/var/www/yourdomain.com/.env',
+    log_file: '/var/www/yourdomain.com/logs/combined.log',
+    out_file: '/var/www/yourdomain.com/logs/out.log',
+    error_file: '/var/www/yourdomain.com/logs/error.log',
+    log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+    merge_logs: true,
+    max_memory_restart: '1G',
+    restart_delay: 4000,
+    max_restarts: 10,
+    min_uptime: '10s'
+  }]
+}
 EOF
 
 # Create logs directory
-mkdir -p /var/www/yairl.com/logs
+mkdir -p /var/www/yourdomain.com/logs
 
 # Start the application
-watt3 start /var/www/yairl.com/watt3.toml
+pm2 start /var/www/yourdomain.com/ecosystem.config.js
 
-# Save Watt3 configuration
-watt3 save
+# Save PM2 configuration
+pm2 save
+
+# Setup PM2 to start on boot
+pm2 startup
+# Follow the instructions provided by the command above
 ```
 
 ### 4. Configure Nginx
@@ -145,19 +152,19 @@ watt3 save
 #### Create Nginx Site Configuration
 ```bash
 # Create nginx site configuration
-sudo nano /etc/nginx/sites-available/yairl.com
+sudo nano /etc/nginx/sites-available/yourdomain.com
 ```
 
 Add this configuration:
 ```nginx
 server {
-    server_name yairl.com www.yairl.com;
-    root /var/www/yairl.com;
+    server_name yourdomain.com www.yourdomain.com;
+    root /var/www/yourdomain.com;
     index index.html;
 
     # Handle Next.js static files directly
     location /_next/static/ {
-        alias /var/www/yairl.com/.next/static/;
+        alias /var/www/yourdomain.com/.next/static/;
         expires 1y;
         add_header Cache-Control "public, immutable";
         access_log off;
@@ -165,7 +172,7 @@ server {
 
     # Handle public static files
     location /static/ {
-        alias /var/www/yairl.com/public/static/;
+        alias /var/www/yourdomain.com/public/static/;
         expires 1y;
         add_header Cache-Control "public, immutable";
         access_log off;
@@ -173,7 +180,7 @@ server {
 
     # Handle favicon and other public files
     location /favicon.ico {
-        alias /var/www/yairl.com/public/favicon.ico;
+        alias /var/www/yourdomain.com/public/favicon.ico;
         expires 1y;
         access_log off;
     }
@@ -197,7 +204,7 @@ server {
 #### Enable the Site
 ```bash
 # Enable the site
-sudo ln -s /etc/nginx/sites-available/yairl.com /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/yourdomain.com /etc/nginx/sites-enabled/
 
 # Remove default site (optional)
 sudo rm -f /etc/nginx/sites-enabled/default
@@ -216,7 +223,7 @@ sudo systemctl reload nginx
 sudo apt install certbot python3-certbot-nginx -y
 
 # Obtain SSL certificate
-sudo certbot --nginx -d yairl.com -d www.yairl.com
+sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com
 
 # Test auto-renewal
 sudo certbot renew --dry-run
@@ -233,31 +240,31 @@ sudo ufw enable
 
 ## Management Commands
 
-### Watt3 Commands
+### PM2 Commands
 ```bash
 # Check application status
-watt3 status
+pm2 status
 
 # View logs
-watt3 logs openshutter
+pm2 logs openshutter
 
 # Restart application
-watt3 restart openshutter
+pm2 restart openshutter
 
 # Stop application
-watt3 stop openshutter
+pm2 stop openshutter
 
 # Start application
-watt3 start openshutter
+pm2 start openshutter
 
 # Monitor in real-time
-watt3 monit
+pm2 monit
 
-# Save current Watt3 processes
-watt3 save
+# Save current PM2 processes
+pm2 save
 
 # Remove process
-watt3 remove openshutter
+pm2 delete openshutter
 ```
 
 ### Nginx Commands
@@ -279,17 +286,17 @@ sudo systemctl status nginx
 ```bash
 # 1. Build new version locally
 pnpm build
-tar -czf openshutter-release.tar.gz .next/standalone .next/static public next.config.js package.json pnpm-lock.yaml .env
+tar -czf openshutter-release.tar.gz .next public next.config.js package.json pnpm-lock.yaml .env
 
 # 2. Upload to server
 scp openshutter-release.tar.gz user@your-server-ip:/tmp/
 
 # 3. On server, update application
-cd /var/www/yairl.com
-watt3 stop openshutter
+cd /var/www/yourdomain.com
+pm2 stop openshutter
 tar -xzf /tmp/openshutter-release.tar.gz
 pnpm install --production --frozen-lockfile
-watt3 start openshutter
+pm2 start openshutter
 rm /tmp/openshutter-release.tar.gz
 ```
 
@@ -297,7 +304,7 @@ rm /tmp/openshutter-release.tar.gz
 
 ### Check Application Logs
 ```bash
-watt3 logs openshutter --lines 50
+pm2 logs openshutter --lines 50
 ```
 
 ### Check Nginx Logs
@@ -330,13 +337,25 @@ MONGODB_URI=mongodb://localhost:27017/openshutter
 
 # Authentication
 NEXTAUTH_SECRET=your-secret-key-here
-NEXTAUTH_URL=https://yairl.com
+NEXTAUTH_URL=https://yourdomain.com
 
-# Google Drive Integration
-GOOGLE_CLIENT_ID=your-google-client-id
-GOOGLE_CLIENT_SECRET=your-google-client-secret
-GOOGLE_REFRESH_TOKEN=your-google-refresh-token
-GOOGLE_DRIVE_FOLDER_ID=your-google-drive-folder-id
+# Storage Configuration
+DEFAULT_STORAGE_PROVIDER=google-drive
+
+# Application Configuration
+NEXT_PUBLIC_APP_URL=https://yourdomain.com
 ```
+
+## Storage Provider Configuration
+
+**Important**: All storage provider configurations (Google Drive, AWS S3, Local Storage) are managed through the admin interface, not environment variables. After deployment:
+
+1. Access the admin panel at `https://yourdomain.com/admin/storage`
+2. Configure your storage providers through the web interface
+3. Google Drive credentials are stored securely in the database
+4. AWS S3 credentials are stored securely in the database
+5. Local storage settings (path, max file size) are stored securely in the database
+
+The storage configuration is managed via the `/admin/storage` page in the application.
 
 This manual deployment process gives you full control over the deployment without relying on GitHub Actions.
