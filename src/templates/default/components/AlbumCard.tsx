@@ -67,23 +67,6 @@ export default function AlbumCard({ album, className = '' }: AlbumCardProps) {
         {/* Gradient Overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
         
-        {/* Badges */}
-        <div className="absolute top-4 right-4 flex flex-col gap-2">
-          {album.isFeatured && (
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold text-white shadow-lg bg-gradient-to-r from-yellow-500 to-orange-500">
-              ⭐ {t('featured')}
-            </span>
-          )}
-          {album.isPublic ? (
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold text-white shadow-lg bg-green-500">
-              🌐 {t('public')}
-            </span>
-          ) : (
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold text-white shadow-lg bg-gray-500">
-              🔒 {t('private')}
-            </span>
-          )}
-        </div>
 
         {/* Hover overlay with action */}
         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">

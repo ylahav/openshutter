@@ -60,14 +60,6 @@ export default function AlbumCard({ album, className = '' }: AlbumCardProps) {
           {/* Dark overlay on hover */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           
-          {/* Featured badge with dark theme */}
-          {(album as any).isFeatured && (
-            <div className="absolute top-4 right-4">
-              <div className="px-3 py-1 bg-gradient-to-r from-yellow-500 to-orange-500 text-black text-xs font-bold rounded-full shadow-lg">
-                ⭐ Featured
-              </div>
-            </div>
-          )}
 
           {/* Photo count with dark styling - only show if > 0 */}
           {(((album as any).photoCount || 0) > 0) && (

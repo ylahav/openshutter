@@ -12,6 +12,14 @@ export async function GET(request: NextRequest) {
     const storageProvider = searchParams.get('storageProvider')
     const isPublic = searchParams.get('isPublic')
     
+    console.log('Albums API Debug:', {
+      parentId,
+      level,
+      storageProvider,
+      isPublic,
+      url: request.url
+    })
+    
     // Build query
     const query: any = {}
     
@@ -19,7 +27,11 @@ export async function GET(request: NextRequest) {
       if (parentId === 'root') {
         query.parentAlbumId = null
       } else {
-        query.parentAlbumId = new ObjectId(parentId)
+        // Try both ObjectId and string to handle data type inconsistencies
+        query.$or = [
+          { parentAlbumId: new ObjectId(parentId) },
+          { parentAlbumId: parentId }
+        ]
       }
     }
     
@@ -37,6 +49,8 @@ export async function GET(request: NextRequest) {
     
     // Get albums with hierarchy info using native MongoDB driver
     const collection = db.collection('albums')
+    console.log('Albums API Query:', query)
+    
     const albums = await collection.find(query)
       .sort({ level: 1, order: 1, name: 1 })
       .project({
@@ -58,20 +72,36 @@ export async function GET(request: NextRequest) {
       })
       .toArray()
     
+    console.log('Albums API Found albums:', albums.length, albums.map(a => ({ _id: a._id, alias: a.alias, isPublic: a.isPublic, parentAlbumId: a.parentAlbumId })))
+    
+    // Special debug for emek-hefer album
+    if (parentId && parentId !== 'root') {
+      const emekHeferAlbum = await collection.findOne({ alias: 'emek-hefer' })
+      console.log('emek-hefer album debug:', emekHeferAlbum ? {
+        _id: emekHeferAlbum._id,
+        alias: emekHeferAlbum.alias,
+        isPublic: emekHeferAlbum.isPublic,
+        parentAlbumId: emekHeferAlbum.parentAlbumId,
+        parentAlbumIdString: emekHeferAlbum.parentAlbumId?.toString(),
+        parentId: parentId,
+        parentIdMatches: emekHeferAlbum.parentAlbumId?.toString() === parentId
+      } : 'emek-hefer album not found')
+    }
+    
     // Calculate child album count for each album
     const albumsWithChildCount = await Promise.all(
       albums.map(async (album) => {
-        // Try both ObjectId and string comparison
-        let childCount = await collection.countDocuments({ 
-          parentAlbumId: album._id 
-        })
-        
-        // If no results with ObjectId, try with string
-        if (childCount === 0) {
-          childCount = await collection.countDocuments({ 
-            parentAlbumId: album._id.toString() 
-          })
+        // Count only public child albums to match what's displayed
+        // Try both ObjectId and string to handle data type inconsistencies
+        const childCountQuery = {
+          $or: [
+            { parentAlbumId: album._id },
+            { parentAlbumId: album._id.toString() }
+          ],
+          isPublic: true
         }
+        
+        const childCount = await collection.countDocuments(childCountQuery)
         
         return {
           ...album,
@@ -169,7 +199,7 @@ export async function POST(request: NextRequest) {
       showExifData,
       storageProvider,
       storagePath,
-      parentAlbumId: parentAlbumId || null,
+      parentAlbumId: parentAlbumId ? new ObjectId(parentAlbumId) : null,
       parentPath,
       level,
       order,

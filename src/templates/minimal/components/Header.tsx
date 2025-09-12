@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
 import { useSiteConfig } from '@/hooks/useSiteConfig'
@@ -92,11 +91,10 @@ export default function Header() {
             <Link href="/" className="flex items-center space-x-3 group">
               {config?.logo ? (
                 <div className="relative w-8 h-8 rounded overflow-hidden">
-                  <Image
+                  <img
                     src={config.logo}
                     alt={MultiLangUtils.getTextValue(config.title, currentLanguage)}
-                    fill
-                    className="object-cover"
+                    className="w-full h-full object-cover"
                   />
                 </div>
               ) : (

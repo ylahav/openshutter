@@ -257,6 +257,11 @@ export class GoogleDriveService implements IStorageService {
 
   private async getFolderIdByPath(folderPath: string): Promise<string | null> {
     try {
+      // If folderPath is empty or just whitespace, return the root folder ID
+      if (!folderPath || folderPath.trim() === '') {
+        return this.config.folderId
+      }
+
       const pathParts = folderPath.split('/').filter(Boolean)
       let currentFolderId = this.config.folderId
 
