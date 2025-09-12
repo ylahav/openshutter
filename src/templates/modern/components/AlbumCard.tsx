@@ -59,14 +59,6 @@ export default function AlbumCard({ album, className = '' }: AlbumCardProps) {
           {/* Gradient overlay */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
           
-          {/* Featured badge */}
-          {album.isFeatured && (
-            <div className="absolute top-4 right-4">
-              <div className="px-3 py-1 bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-xs font-bold rounded-full shadow-lg">
-                ⭐ Featured
-              </div>
-            </div>
-          )}
 
           {/* Photo count badge */}
           <div className="absolute bottom-4 left-4">

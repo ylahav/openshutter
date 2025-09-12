@@ -56,14 +56,6 @@ export default function AlbumCard({ album, className = '' }: AlbumCardProps) {
             </div>
           )}
           
-          {/* Featured badge - minimal */}
-          {album.isFeatured && (
-            <div className="absolute top-4 right-4">
-              <div className="px-2 py-1 bg-black text-white text-xs font-medium">
-                Featured
-              </div>
-            </div>
-          )}
 
           {/* Photo count - minimal */}
           <div className="absolute bottom-4 left-4">

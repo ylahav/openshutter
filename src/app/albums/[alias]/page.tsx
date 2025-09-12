@@ -214,12 +214,18 @@ export default function AlbumPage({ params }: { params: Promise<{ alias: string 
           const albumResult = await albumResponse.json()
           if (albumResult.success) {
             const albumId = albumResult.data._id
+            console.log('Fetching child albums for album ID:', albumId)
             const response = await fetch(`/api/albums?parentId=${albumId}&isPublic=true`)
             if (response.ok) {
               const result = await response.json()
+              console.log('Child albums API response:', result)
               if (result.success) {
-                setChildAlbums(result.data.filter((album: Album) => album.isPublic))
+                const filteredAlbums = result.data.filter((album: Album) => album.isPublic)
+                console.log('Filtered child albums:', filteredAlbums)
+                setChildAlbums(filteredAlbums)
               }
+            } else {
+              console.error('Failed to fetch child albums, response not ok:', response.status)
             }
           }
         }
@@ -342,7 +348,7 @@ export default function AlbumPage({ params }: { params: Promise<{ alias: string 
       
       {/* Album Header */}
       <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-black border-b border-gray-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-12">
           <div className="text-center">
             <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
               <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
@@ -368,167 +374,165 @@ export default function AlbumPage({ params }: { params: Promise<{ alias: string 
       </div>
 
       {/* Photos Grid */}
-      <div id="photos-section" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 bg-gradient-to-br from-gray-900 via-gray-800 to-black">
-        {photos.length === 0 && childAlbums.length === 0 ? (
-          <div className="text-center py-12">
-            <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No photos available</h3>
-            <p className="mt-1 text-sm text-gray-500">This album doesn't have any published photos yet.</p>
+      {photos.length > 0 && (
+        <div id="photos-section" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 bg-gradient-to-br from-gray-900 via-gray-800 to-black">
+          {/* Photos Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {photos.map((photo) => (
+            <div 
+              key={photo._id} 
+              className="group cursor-pointer"
+              onClick={() => setSelectedPhoto(photo)}
+            >
+              <div className="aspect-w-1 aspect-h-1 bg-gray-200 rounded-lg overflow-hidden">
+                <img
+                  src={photo.storage.thumbnailPath || photo.storage.url}
+                  alt={typeof photo.title === 'string' ? photo.title : photo.title.en}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none'
+                    const fallback = e.currentTarget.nextElementSibling
+                    if (fallback) {
+                      fallback.classList.remove('hidden')
+                      fallback.classList.add('flex')
+                    }
+                  }}
+                />
+                <div className="absolute inset-0 items-center justify-center bg-gray-100 hidden">
+                  <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+              </div>
+              
+              {/* Photo Info */}
+              <div className="mt-2">
+                <h3 className="text-sm font-medium text-gray-900 truncate">
+                  {typeof photo.title === 'string' ? photo.title : photo.title.en}
+                </h3>
+                {(photo.metadata || photo.dimensions) && (
+                  <p className="text-xs text-gray-500">
+                    {(photo.metadata?.width || photo.dimensions?.width) || 0} × {(photo.metadata?.height || photo.dimensions?.height) || 0}
+                  </p>
+                )}
+                {/* EXIF Date */}
+                {photo.exif?.dateTimeOriginal && (
+                  <p className="text-xs text-gray-400 mt-1">
+                    📅 {new Date(photo.exif.dateTimeOriginal).toLocaleDateString()}
+                  </p>
+                )}
+              </div>
+
+              {/* Leading Badge */}
+              {photo.isLeading && (
+                <div className="absolute top-2 left-2">
+                  <span className="inline-flex items-center px-1 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                    Leading
+                  </span>
+                </div>
+              )}
+            </div>
+          ))}
           </div>
-        ) : photos.length > 0 ? (
-          <>
-            {/* Photos Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {photos.map((photo) => (
-              <div 
-                key={photo._id} 
-                className="group cursor-pointer"
-                onClick={() => setSelectedPhoto(photo)}
-              >
-                <div className="aspect-w-1 aspect-h-1 bg-gray-200 rounded-lg overflow-hidden">
-                  <img
-                    src={photo.storage.thumbnailPath || photo.storage.url}
-                    alt={typeof photo.title === 'string' ? photo.title : photo.title.en}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none'
-                      const fallback = e.currentTarget.nextElementSibling
-                      if (fallback) {
-                        fallback.classList.remove('hidden')
-                        fallback.classList.add('flex')
-                      }
-                    }}
-                  />
-                  <div className="absolute inset-0 items-center justify-center bg-gray-100 hidden">
-                    <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                  </div>
+
+          {/* Pagination Controls */}
+          {pagination.totalPages > 1 && (
+            <div className="mt-8 flex flex-col items-center space-y-4">
+              {/* Page Info */}
+              <div className="text-sm text-gray-500">
+                Showing {photos.length} of {pagination.total} photos
+                {pagination.totalPages > 1 && (
+                  <span> • Page {pagination.page} of {pagination.totalPages}</span>
+                )}
+              </div>
+
+              {/* Page Navigation */}
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => loadPage(pagination.page - 1)}
+                  disabled={!pagination.hasPrevPage || photosLoading}
+                  className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Previous
+                </button>
+                
+                {/* Page Numbers */}
+                <div className="flex space-x-1">
+                  {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                    let pageNum
+                    if (pagination.totalPages <= 5) {
+                      pageNum = i + 1
+                    } else if (pagination.page <= 3) {
+                      pageNum = i + 1
+                    } else if (pagination.page >= pagination.totalPages - 2) {
+                      pageNum = pagination.totalPages - 4 + i
+                    } else {
+                      pageNum = pagination.page - 2 + i
+                    }
+                    
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => loadPage(pageNum)}
+                        disabled={photosLoading}
+                        className={`px-3 py-2 text-sm font-medium rounded-md ${
+                          pageNum === pagination.page
+                            ? 'bg-blue-600 text-white'
+                            : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
+                        } disabled:opacity-50 disabled:cursor-not-allowed`}
+                      >
+                        {pageNum}
+                      </button>
+                    )
+                  })}
                 </div>
                 
-                {/* Photo Info */}
-                <div className="mt-2">
-                  <h3 className="text-sm font-medium text-gray-900 truncate">
-                    {typeof photo.title === 'string' ? photo.title : photo.title.en}
-                  </h3>
-                  {(photo.metadata || photo.dimensions) && (
-                    <p className="text-xs text-gray-500">
-                      {(photo.metadata?.width || photo.dimensions?.width) || 0} × {(photo.metadata?.height || photo.dimensions?.height) || 0}
-                    </p>
-                  )}
-                  {/* EXIF Date */}
-                  {photo.exif?.dateTimeOriginal && (
-                    <p className="text-xs text-gray-400 mt-1">
-                      📅 {new Date(photo.exif.dateTimeOriginal).toLocaleDateString()}
-                    </p>
-                  )}
-                </div>
-
-                {/* Leading Badge */}
-                {photo.isLeading && (
-                  <div className="absolute top-2 left-2">
-                    <span className="inline-flex items-center px-1 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                      Leading
-                    </span>
-                  </div>
-                )}
+                <button
+                  onClick={() => loadPage(pagination.page + 1)}
+                  disabled={!pagination.hasNextPage || photosLoading}
+                  className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
               </div>
-            ))}
+
+              {/* Load More Button (for infinite scroll alternative) */}
+              {pagination.hasNextPage && (
+                <button
+                  onClick={loadMorePhotos}
+                  disabled={photosLoading}
+                  className="px-6 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {photosLoading ? 'Loading...' : 'Load More Photos'}
+                </button>
+              )}
             </div>
-
-            {/* Pagination Controls */}
-            {pagination.totalPages > 1 && (
-              <div className="mt-8 flex flex-col items-center space-y-4">
-                {/* Page Info */}
-                <div className="text-sm text-gray-500">
-                  Showing {photos.length} of {pagination.total} photos
-                  {pagination.totalPages > 1 && (
-                    <span> • Page {pagination.page} of {pagination.totalPages}</span>
-                  )}
-                </div>
-
-                {/* Page Navigation */}
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => loadPage(pagination.page - 1)}
-                    disabled={!pagination.hasPrevPage || photosLoading}
-                    className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Previous
-                  </button>
-                  
-                  {/* Page Numbers */}
-                  <div className="flex space-x-1">
-                    {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
-                      let pageNum
-                      if (pagination.totalPages <= 5) {
-                        pageNum = i + 1
-                      } else if (pagination.page <= 3) {
-                        pageNum = i + 1
-                      } else if (pagination.page >= pagination.totalPages - 2) {
-                        pageNum = pagination.totalPages - 4 + i
-                      } else {
-                        pageNum = pagination.page - 2 + i
-                      }
-                      
-                      return (
-                        <button
-                          key={pageNum}
-                          onClick={() => loadPage(pageNum)}
-                          disabled={photosLoading}
-                          className={`px-3 py-2 text-sm font-medium rounded-md ${
-                            pageNum === pagination.page
-                              ? 'bg-blue-600 text-white'
-                              : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
-                          } disabled:opacity-50 disabled:cursor-not-allowed`}
-                        >
-                          {pageNum}
-                        </button>
-                      )
-                    })}
-                  </div>
-                  
-                  <button
-                    onClick={() => loadPage(pagination.page + 1)}
-                    disabled={!pagination.hasNextPage || photosLoading}
-                    className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Next
-                  </button>
-                </div>
-
-                {/* Load More Button (for infinite scroll alternative) */}
-                {pagination.hasNextPage && (
-                  <button
-                    onClick={loadMorePhotos}
-                    disabled={photosLoading}
-                    className="px-6 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {photosLoading ? 'Loading...' : 'Load More Photos'}
-                  </button>
-                )}
-              </div>
-            )}
-          </>
-        ) : null}
-      </div>
+          )}
+        </div>
+      )}
 
       {/* Child Albums Section */}
       {childAlbums.length > 0 && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="border-t border-gray-800 pt-8">
-            <h2 className="text-2xl font-bold text-white mb-6">
-              <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-                Sub Albums
-              </span>
-            </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
               {childAlbums.map((childAlbum) => (
                 <AlbumCard key={childAlbum._id} album={childAlbum} />
               ))}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Nothing Yet Message - Only show when both photos and child albums are empty */}
+      {photos.length === 0 && childAlbums.length === 0 && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="text-center">
+            <svg className="mx-auto h-16 w-16 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <h3 className="text-xl font-medium text-gray-300 mb-2">Nothing yet</h3>
+            <p className="text-gray-400">This album doesn't have any photos or sub-albums yet.</p>
           </div>
         </div>
       )}
