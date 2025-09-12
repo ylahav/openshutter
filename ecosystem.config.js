@@ -1,21 +1,21 @@
 module.exports = {
     apps: [{
-      name: 'yairlCom',
+      name: 'openshutter',
       script: 'pnpm',
       args: 'start',
-      cwd: '/var/www/yairl.com',
+      cwd: '/var/www/yourdomain.com',
       instances: 1,
       exec_mode: 'fork',
       env: {
         NODE_ENV: 'production',
         PORT: 4000
       },
-      env_file: '/var/www/yairl.com/.env',
+      env_file: '/var/www/yourdomain.com/.env',
       
       // Logging
-      log_file: '/var/www/yairl.com/logs/combined.log',
-      out_file: '/var/www/yairl.com/logs/out.log',
-      error_file: '/var/www/yairl.com/logs/error.log',
+      log_file: '/var/www/yourdomain.com/logs/combined.log',
+      out_file: '/var/www/yourdomain.com/logs/out.log',
+      error_file: '/var/www/yourdomain.com/logs/error.log',
       log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
       merge_logs: true,
       
