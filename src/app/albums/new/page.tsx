@@ -185,7 +185,7 @@ export default function CreateAlbumPage() {
           <div className="mb-8">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">{t('createNewAlbum')}</h1>
+                <h1 className="text-3xl font-bold text-gray-900">{t('admin.createNewAlbum')}</h1>
                 <p className="mt-2 text-gray-600">
                   Create a new album with hierarchical organization and storage provider selection.
                 </p>

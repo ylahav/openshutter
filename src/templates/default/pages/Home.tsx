@@ -33,8 +33,8 @@ export default function HomePage() {
     const fetchRootAlbums = async () => {
       try {
         setLoading(true)
-        // Fetch only root albums (no parent)
-        const response = await fetch('/api/albums?parentId=root&isPublic=true')
+        // Fetch only root albums (no parent) - API handles access control
+        const response = await fetch('/api/albums?parentId=root')
         
         if (!response.ok) {
           throw new Error('Failed to fetch albums')
@@ -44,9 +44,8 @@ export default function HomePage() {
         if (result.success) {
           const albums = result.data
           
-          // Filter to only public albums
-          const publicAlbums = albums.filter((album: Album) => album.isPublic)
-          setRootAlbums(publicAlbums)
+          // API already handles access control, so we can use all returned albums
+          setRootAlbums(albums)
         } else {
           setError(result.error || 'Failed to fetch albums')
         }

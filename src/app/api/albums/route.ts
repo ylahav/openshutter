@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { connectToDatabase } from '@/lib/mongodb'
 import { ObjectId } from 'mongodb'
+import { getCurrentUser, buildAlbumAccessQuery } from '@/lib/access-control'
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,15 +13,19 @@ export async function GET(request: NextRequest) {
     const storageProvider = searchParams.get('storageProvider')
     const isPublic = searchParams.get('isPublic')
     
+    // Get current user for access control
+    const user = await getCurrentUser()
+    
     console.log('Albums API Debug:', {
       parentId,
       level,
       storageProvider,
       isPublic,
-      url: request.url
+      url: request.url,
+      user: user ? { id: user.id, role: user.role } : 'anonymous'
     })
     
-    // Build query
+    // Build base query
     const query: any = {}
     
     if (parentId) {
@@ -47,11 +52,36 @@ export async function GET(request: NextRequest) {
       query.isPublic = isPublic === 'true'
     }
     
+    // Apply access control (admins see everything)
+    let finalQuery = query
+    if (user?.role !== 'admin') {
+      const accessQuery = await buildAlbumAccessQuery(user)
+      
+      // If the base query already has $or (for parentId), we need to combine it properly
+      if (query.$or) {
+        // The base query has $or for parentId matching, combine with access control
+        finalQuery = {
+          $and: [
+            { $or: query.$or }, // parentId matching
+            accessQuery // access control
+          ]
+        }
+      } else {
+        // Simple case: combine base query with access control
+        finalQuery = {
+          $and: [
+            query,
+            accessQuery
+          ]
+        }
+      }
+    }
+    
     // Get albums with hierarchy info using native MongoDB driver
     const collection = db.collection('albums')
-    console.log('Albums API Query:', query)
+    console.log('Albums API Final Query:', JSON.stringify(finalQuery, null, 2))
     
-    const albums = await collection.find(query)
+    const albums = await collection.find(finalQuery)
       .sort({ level: 1, order: 1, name: 1 })
       .project({
         _id: 1,
@@ -137,7 +167,9 @@ export async function POST(request: NextRequest) {
       showExifData = true,
       storageProvider = 'local',
       parentAlbumId,
-      order = 0
+      order = 0,
+      allowedGroups = [],
+      allowedUsers = []
     } = body
     
     // Validation
@@ -205,6 +237,8 @@ export async function POST(request: NextRequest) {
       order,
       createdBy: 'admin', // TODO: Get from authentication
       tags: [],
+      allowedGroups,
+      allowedUsers: allowedUsers.map((userId: string) => new ObjectId(userId)),
       photoCount: 0,
       createdAt: new Date(),
       updatedAt: new Date()

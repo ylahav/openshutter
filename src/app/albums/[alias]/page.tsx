@@ -195,7 +195,11 @@ export default function AlbumPage({ params }: { params: Promise<{ alias: string 
           setAlbum(result.data)
           await buildBreadcrumbs(result.data)
         } else {
-          setError(result.error || 'Failed to fetch album')
+          if (response.status === 403) {
+            setError('Access denied - You do not have permission to view this album')
+          } else {
+            setError(result.error || 'Failed to fetch album')
+          }
         }
       } catch (error) {
         console.error('Failed to fetch album:', error)
@@ -215,14 +219,14 @@ export default function AlbumPage({ params }: { params: Promise<{ alias: string 
           if (albumResult.success) {
             const albumId = albumResult.data._id
             console.log('Fetching child albums for album ID:', albumId)
-            const response = await fetch(`/api/albums?parentId=${albumId}&isPublic=true`)
+            const response = await fetch(`/api/albums?parentId=${albumId}`)
             if (response.ok) {
               const result = await response.json()
               console.log('Child albums API response:', result)
               if (result.success) {
-                const filteredAlbums = result.data.filter((album: Album) => album.isPublic)
-                console.log('Filtered child albums:', filteredAlbums)
-                setChildAlbums(filteredAlbums)
+                // API already handles access control, so we can use all returned albums
+                console.log('Child albums:', result.data)
+                setChildAlbums(result.data)
               }
             } else {
               console.error('Failed to fetch child albums, response not ok:', response.status)
@@ -266,14 +270,22 @@ export default function AlbumPage({ params }: { params: Promise<{ alias: string 
   }
 
   if (error || !album) {
+    const isAccessDenied = error?.includes('Access denied')
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="p-6 bg-red-900/20 border border-red-500/30 rounded-lg">
-            <h1 className="text-2xl font-bold text-red-400 mb-4">Album Not Found</h1>
-            <p className="text-gray-300 mb-4">{error || 'The album you are looking for does not exist or is not public.'}</p>
+          <div className={`p-6 ${isAccessDenied ? 'bg-yellow-900/20 border border-yellow-500/30' : 'bg-red-900/20 border border-red-500/30'} rounded-lg`}>
+            <h1 className={`text-2xl font-bold ${isAccessDenied ? 'text-yellow-400' : 'text-red-400'} mb-4`}>
+              {isAccessDenied ? 'Access Denied' : 'Album Not Found'}
+            </h1>
+            <p className="text-gray-300 mb-4">
+              {isAccessDenied 
+                ? 'You do not have permission to view this album. Please contact an administrator if you believe this is an error.'
+                : error || 'The album you are looking for does not exist.'
+              }
+            </p>
             <Link href="/albums" className="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
-              Browse All Albums
+              Browse Albums
             </Link>
           </div>
         </div>
@@ -281,21 +293,7 @@ export default function AlbumPage({ params }: { params: Promise<{ alias: string 
     )
   }
 
-  if (!album.isPublic) {
-    return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="p-6 bg-yellow-900/20 border border-yellow-500/30 rounded-lg">
-            <h1 className="text-2xl font-bold text-yellow-400 mb-4">Private Album</h1>
-            <p className="text-gray-300 mb-4">This album is private and not available for public viewing.</p>
-            <Link href="/albums" className="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
-              Browse Public Albums
-            </Link>
-          </div>
-        </div>
-      </div>
-    )
-  }
+  // Access control is handled by the API, so we don't need client-side checks
 
   return (
     <div className="min-h-screen bg-gray-900">
@@ -376,45 +374,57 @@ export default function AlbumPage({ params }: { params: Promise<{ alias: string 
       {/* Photos Grid */}
       {photos.length > 0 && (
         <div id="photos-section" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 bg-gradient-to-br from-gray-900 via-gray-800 to-black">
-          {/* Photos Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {photos.map((photo) => (
-            <div 
-              key={photo._id} 
-              className="group cursor-pointer"
-              onClick={() => setSelectedPhoto(photo)}
-            >
-              <div className="aspect-w-1 aspect-h-1 bg-gray-200 rounded-lg overflow-hidden">
-                <img
-                  src={photo.storage.thumbnailPath || photo.storage.url}
-                  alt={typeof photo.title === 'string' ? photo.title : photo.title.en}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none'
-                    const fallback = e.currentTarget.nextElementSibling
-                    if (fallback) {
-                      fallback.classList.remove('hidden')
-                      fallback.classList.add('flex')
-                    }
-                  }}
-                />
-                <div className="absolute inset-0 items-center justify-center bg-gray-100 hidden">
-                  <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
+          {/* Photos Masonry Grid */}
+          <div className="columns-1 sm:columns-2 md:columns-3 lg:columns-4 xl:columns-5 gap-6 space-y-6">
+          {photos.map((photo) => {
+            // Calculate aspect ratio to determine if it's portrait, landscape, or square
+            const width = photo.metadata?.width || photo.dimensions?.width || 1
+            const height = photo.metadata?.height || photo.dimensions?.height || 1
+            const aspectRatio = width / height
+            
+            // Determine size class based on aspect ratio
+            let sizeClass = 'break-inside-avoid'
+            if (aspectRatio > 1.3) {
+              // Landscape - can be larger
+              sizeClass += ' sm:col-span-2'
+            } else if (aspectRatio < 0.8) {
+              // Portrait - keep normal size but ensure good height
+              sizeClass += ' h-auto'
+            }
+            // Square photos keep default size
+            
+            return (
+              <div 
+                key={photo._id} 
+                className={`group cursor-pointer relative ${sizeClass}`}
+                onClick={() => setSelectedPhoto(photo)}
+              >
+                <div className="bg-gray-200 rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300">
+                  <img
+                    src={photo.storage.thumbnailPath || photo.storage.url}
+                    alt={typeof photo.title === 'string' ? photo.title : photo.title.en}
+                    className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-300"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none'
+                      const fallback = e.currentTarget.nextElementSibling
+                      if (fallback) {
+                        fallback.classList.remove('hidden')
+                        fallback.classList.add('flex')
+                      }
+                    }}
+                  />
+                  <div className="absolute inset-0 items-center justify-center bg-gray-100 hidden">
+                    <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
                 </div>
-              </div>
               
               {/* Photo Info */}
               <div className="mt-2">
                 <h3 className="text-sm font-medium text-gray-900 truncate">
                   {typeof photo.title === 'string' ? photo.title : photo.title.en}
                 </h3>
-                {(photo.metadata || photo.dimensions) && (
-                  <p className="text-xs text-gray-500">
-                    {(photo.metadata?.width || photo.dimensions?.width) || 0} × {(photo.metadata?.height || photo.dimensions?.height) || 0}
-                  </p>
-                )}
                 {/* EXIF Date */}
                 {photo.exif?.dateTimeOriginal && (
                   <p className="text-xs text-gray-400 mt-1">
@@ -423,16 +433,17 @@ export default function AlbumPage({ params }: { params: Promise<{ alias: string 
                 )}
               </div>
 
-              {/* Leading Badge */}
-              {photo.isLeading && (
-                <div className="absolute top-2 left-2">
-                  <span className="inline-flex items-center px-1 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                    Leading
-                  </span>
-                </div>
-              )}
-            </div>
-          ))}
+                {/* Leading Badge */}
+                {photo.isLeading && (
+                  <div className="absolute top-2 left-2">
+                    <span className="inline-flex items-center px-1 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                      Leading
+                    </span>
+                  </div>
+                )}
+              </div>
+            )
+          })}
           </div>
 
           {/* Pagination Controls */}

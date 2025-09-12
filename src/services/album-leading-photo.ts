@@ -41,10 +41,13 @@ export class AlbumLeadingPhotoService {
         }
       }
 
-      // Step 2: Get a random photo from the album
+      // Step 2: Get a random photo from the album (handle both string and ObjectId albumId formats)
       const albumPhotos = await db.collection('photos')
         .find({
-          albumId: new ObjectId(albumId),
+          $or: [
+            { albumId: new ObjectId(albumId) },
+            { albumId: albumId }
+          ],
           isPublished: true
         })
         .toArray()
@@ -88,10 +91,13 @@ export class AlbumLeadingPhotoService {
             }
           }
 
-          // If no specific leading photo, get any photo from child album
+          // If no specific leading photo, get any photo from child album (handle both string and ObjectId albumId formats)
           const childPhotos = await db.collection('photos')
             .find({
-              albumId: new ObjectId(childAlbum._id),
+              $or: [
+                { albumId: new ObjectId(childAlbum._id) },
+                { albumId: childAlbum._id.toString() }
+              ],
               isPublished: true
             })
             .limit(1)

@@ -94,6 +94,15 @@ const AlbumSchema = new Schema<IAlbum>({
     type: String,
     trim: true
   }],
+  // Access control fields
+  allowedGroups: [{
+    type: String,
+    trim: true
+  }],
+  allowedUsers: [{
+    type: Schema.Types.ObjectId,
+    ref: 'User'
+  }],
   metadata: {
     location: String,
     date: Date,

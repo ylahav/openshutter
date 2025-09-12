@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { connectToDatabase } from '@/lib/mongodb'
+import { getCurrentUser, checkAlbumAccess } from '@/lib/access-control'
 
 export async function GET(
   request: NextRequest,
@@ -32,6 +33,8 @@ export async function GET(
           updatedAt: 1,
           createdBy: 1,
           tags: 1,
+          allowedGroups: 1,
+          allowedUsers: 1,
           metadata: 1
         }
       }
@@ -44,12 +47,21 @@ export async function GET(
       )
     }
 
-    // Only return public albums
-    if (!album.isPublic) {
-      return NextResponse.json(
-        { success: false, error: 'Album is private' },
-        { status: 403 }
-      )
+    // Check access control (admins can access everything)
+    const user = await getCurrentUser()
+    if (user?.role !== 'admin') {
+      const hasAccess = await checkAlbumAccess({
+        isPublic: album.isPublic,
+        allowedGroups: album.allowedGroups,
+        allowedUsers: album.allowedUsers
+      }, user)
+
+      if (!hasAccess) {
+        return NextResponse.json(
+          { success: false, error: 'Access denied' },
+          { status: 403 }
+        )
+      }
     }
     return NextResponse.json({ success: true, data: album })
   } catch (error) {

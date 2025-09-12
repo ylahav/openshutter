@@ -7,6 +7,7 @@ Welcome to the OpenShutter documentation. This comprehensive guide covers all as
 ### Core Documentation
 - [System Requirements Document (PRD)](./SYSTEM_PRD.md) - System requirements and business logic
 - [Functional Specification](./functional-spec.md) - Detailed technical specifications
+- [Access Control System](./access-control.md) - Album permissions and user access management
 - [Deployment Guide](./deploy.md) - Production deployment instructions
 - [Docker Deployment Guide](./docker-deployment.md) - Docker containerization and deployment
 - [PM2 Deployment Guide](./pm2-deployment.md) - PM2 process manager deployment
@@ -25,7 +26,9 @@ Welcome to the OpenShutter documentation. This comprehensive guide covers all as
 
 ### Core Functionality
 - **Multi-Storage Support**: Google Drive, AWS S3, and local storage
-- **Album Management**: Hierarchical albums with privacy controls
+- **Album Management**: Hierarchical albums with advanced privacy controls
+- **Access Control System**: Granular permissions for albums (public, private, user/group-specific)
+- **Cover Photo Selection**: Admin interface for selecting album cover photos
 - **Photo Management**: Upload, organize, and display photos with metadata
 - **Multi-Language Support**: Internationalization with RTL support
 - **Template System**: Customizable gallery templates
@@ -34,9 +37,10 @@ Welcome to the OpenShutter documentation. This comprehensive guide covers all as
 ### Advanced Features
 - **EXIF Data Extraction**: Automatic photo metadata processing
 - **Rich Text Editor**: Tiptap-based editor with link support
-- **Responsive Design**: Mobile-first responsive layouts
-- **User Authentication**: NextAuth.js integration
+- **Responsive Design**: Mobile-first responsive layouts with masonry grids
+- **User Authentication**: NextAuth.js integration with role-based access
 - **Real-time Updates**: Live photo uploads and management
+- **UI Improvements**: Masonry layouts, role-based redirects, visual indicators
 
 ## 🏗️ Architecture
 

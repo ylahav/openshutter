@@ -22,9 +22,12 @@ export class AlbumPhotoCountService {
     
     const objectId = typeof albumId === 'string' ? new ObjectId(albumId) : albumId
     
-    // Get direct photos count
+    // Get direct photos count (handle both string and ObjectId albumId formats)
     const directPhotoCount = await db.collection('photos').countDocuments({
-      albumId: objectId,
+      $or: [
+        { albumId: objectId },
+        { albumId: objectId.toString() }
+      ],
       isPublished: true
     })
     

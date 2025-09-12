@@ -55,7 +55,7 @@ export default function AdminUsersPage() {
               <p className="text-gray-600 mt-2">{t('manageUsersRolesGroups')}</p>
             </div>
             <div className="flex gap-3">
-              <Link href="/admin" className="btn-secondary">{t('backToAdmin')}</Link>
+              <Link href="/admin" className="btn-secondary">{t('admin.backToAdmin')}</Link>
             </div>
           </div>
 

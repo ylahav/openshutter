@@ -26,7 +26,7 @@ export default function GalleryPage() {
       try {
         setLoading(true)
         // Fetch only root albums (no parent)
-        const response = await fetch('/api/albums?parentId=root&isPublic=true')
+        const response = await fetch('/api/albums?parentId=root')
         
         if (!response.ok) {
           throw new Error('Failed to fetch albums')
@@ -36,12 +36,9 @@ export default function GalleryPage() {
         if (result.success) {
           const albums = result.data
           
-          // Filter to only public albums and sort by order
-          const publicAlbums = albums
-            .filter((album: Album) => album.isPublic)
-            .sort((a: Album, b: Album) => a.order - b.order)
-          
-          setAlbums(publicAlbums)
+          // API already handles access control, so we can use all returned albums
+          const sortedAlbums = albums.sort((a: Album, b: Album) => a.order - b.order)
+          setAlbums(sortedAlbums)
         } else {
           setError(result.error || 'Failed to fetch albums')
         }
