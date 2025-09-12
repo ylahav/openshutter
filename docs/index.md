@@ -8,14 +8,15 @@ Welcome to the OpenShutter documentation. This comprehensive guide covers all as
 - [System Requirements Document (PRD)](./SYSTEM_PRD.md) - System requirements and business logic
 - [Functional Specification](./functional-spec.md) - Detailed technical specifications
 - [Deployment Guide](./deploy.md) - Production deployment instructions
-- [Docker Guide](./docker.md) - Docker containerization and deployment
+- [Docker Deployment Guide](./docker-deployment.md) - Docker containerization and deployment
+- [PM2 Deployment Guide](./pm2-deployment.md) - PM2 process manager deployment
 - [Admin Setup Guide](./ADMIN_SETUP.md) - Initial admin configuration
 
 ### Quick Start
 1. **Installation**: Follow the main [README.md](../README.md) for setup instructions
 2. **Admin Access**: Use the credentials in [ADMIN_SETUP.md](./ADMIN_SETUP.md)
 3. **Configuration**: Set up storage providers via the admin dashboard
-4. **Deployment**: Follow the [deployment guide](./deploy.md) for production setup
+4. **Deployment**: Follow the [deployment guide](./deploy.md) for production setup, or use [Docker](./docker-deployment.md) or [PM2](./pm2-deployment.md) deployment options
 
 ### Theming and Templates
 - [Creating a New Template](./templates.md) - How to build and register a custom template

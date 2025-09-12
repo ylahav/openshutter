@@ -244,8 +244,18 @@ pnpm lint
 
 ## 📦 Deployment
 
-### Vercel (Recommended)
+OpenShutter supports multiple deployment options:
 
+### PM2 Deployment (Recommended)
+Follow the [PM2 Deployment Guide](docs/pm2-deployment.md) for production deployment using PM2 process manager.
+
+### Docker Deployment
+Follow the [Docker Deployment Guide](docs/docker-deployment.md) for containerized deployment.
+
+### Manual Deployment
+Follow the [Deployment Guide](docs/deploy.md) for manual deployment instructions.
+
+### Vercel (Alternative)
 1. **Push to GitHub**
    ```bash
    git add .
@@ -257,18 +267,6 @@ pnpm lint
    - Connect your GitHub repository
    - Add environment variables
    - Deploy automatically
-
-### Docker
-
-1. **Build image**
-   ```bash
-   docker build -t openshutter .
-   ```
-
-2. **Run container**
-   ```bash
-   docker run -p 4000:4000 --env-file .env.local openshutter
-   ```
 
 ## 🤝 Contributing
 

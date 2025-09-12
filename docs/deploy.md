@@ -4,12 +4,13 @@ This guide describes deployment options for OpenShutter using GitHub Actions and
 
 ### Deployment Options
 - **[GitHub Actions Deployment](#ci-driven-deployment-recommended)** - Automated deployment via GitHub Actions
-- **[Manual Deployment](./manual-deploy.md)** - Step-by-step manual deployment without GitHub Actions
+- **[PM2 Deployment](./pm2-deployment.md)** - PM2 process manager deployment
+- **[Docker Deployment](./docker-deployment.md)** - Docker containerized deployment
 
 ### Environments
 - Production server (no Docker in prod per project notes)
 - Local dev via `pnpm dev` or Docker Compose if needed (internal APIs proxied to localhost)
-- Docker options available (see [Docker Guide](docker.md))
+- Docker options available (see [Docker Deployment Guide](./docker-deployment.md))
 
 ### Prerequisites
 - Node 20+
