@@ -1,11 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
-import { signIn } from 'next-auth/react'
+import { signIn, useSession } from 'next-auth/react'
 import { useI18n } from '@/hooks/useI18n'
 
 interface FormData {
@@ -16,12 +16,25 @@ interface FormData {
 export default function LoginPage() {
   const router = useRouter()
   const { t } = useI18n()
+  const { data: session, status } = useSession()
   const [formData, setFormData] = useState<FormData>({
     email: '',
     password: ''
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
+
+  // Handle redirect after successful login
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user) {
+      const userRole = (session.user as any)?.role
+      if (userRole === 'admin') {
+        router.push('/admin')
+      } else {
+        router.push('/') // Redirect guest users to home page
+      }
+    }
+  }, [status, session, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -33,11 +46,10 @@ export default function LoginPage() {
         redirect: false,
         email: formData.email,
         password: formData.password,
-        callbackUrl: '/admin',
       })
 
       if (result?.ok) {
-        router.push(result.url || '/admin')
+        // The useEffect will handle the redirect based on user role
         return
       }
       setError(t('auth.invalidCredentials'))
@@ -71,7 +83,7 @@ export default function LoginPage() {
             </div>
             <h2 className="text-3xl font-bold text-gray-900">{t('auth.signInTo')}</h2>
             <p className="mt-2 text-sm text-gray-600">
-              {t('auth.accessAdminPanel')}
+              {t('auth.accessGallery')}
             </p>
           </div>
 

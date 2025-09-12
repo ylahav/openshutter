@@ -55,6 +55,9 @@ export interface Album {
   updatedAt: Date
   createdBy: string
   tags: string[]
+  // Access control fields
+  allowedGroups?: string[] // Array of group aliases that can access this album
+  allowedUsers?: string[] // Array of user ObjectIds that can access this album
   metadata?: {
     location?: string
     date?: Date

@@ -6,10 +6,12 @@ A comprehensive photo gallery management system with multi-storage support, adva
 
 - **Multi-Storage Support**: Google Drive, AWS S3, and local storage
 - **Smart Tagging System**: Organize photos with intelligent tags and dynamic collections
-- **Album Management**: Hierarchical albums with privacy controls
+- **Album Management**: Hierarchical albums with advanced privacy controls
+- **Access Control System**: Granular permissions for albums (public, private, user/group-specific)
+- **Cover Photo Selection**: Admin interface for selecting album cover photos
 - **Batch Operations**: Upload and manage hundreds of photos efficiently
 - **Multi-Language Support**: Internationalization with RTL support
-- **Responsive Design**: Beautiful galleries for all devices
+- **Responsive Design**: Beautiful galleries for all devices with masonry layouts
 - **Real-time Updates**: Live photo uploads and collaborative features
 - **Admin-Only Dashboard**: Restricted access for administrative functions
 - **Storage Management**: Configure and manage multiple storage providers
@@ -302,6 +304,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [x] EXIF data extraction and processing
 - [x] Multi-language support with RTL
 - [x] Template customization system
+- [x] **Advanced Access Control System** - Granular album permissions
+- [x] **Cover Photo Selection** - Admin interface for album covers
+- [x] **UI Improvements** - Masonry layouts, role-based redirects
+- [x] **Code Cleanup** - Translation file optimization
 
 ### Phase 2 (Next 6 months) *
 - [ ] Advanced search and filtering
@@ -330,9 +336,23 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🔐 Access Control
 
-- **Public Access**: Home page, public albums, photo browsing
-- **User Access**: Login required for personal albums and photo uploads
-- **Admin Access**: Dashboard, storage settings, and administrative functions restricted to admin users only
+### Album Access Levels
+- **Public Albums**: Visible to all users (logged in or anonymous)
+- **Private Albums**: Require authentication
+  - **Open Private**: No specific restrictions - all logged-in users can access
+  - **Restricted Private**: Limited to specific users or groups
+    - `allowedUsers`: Array of specific user IDs
+    - `allowedGroups`: Array of group aliases
+    - User must be in `allowedUsers` OR belong to one of `allowedGroups`
+
+### User Roles
+- **Admin**: Full access to dashboard, storage settings, and administrative functions
+- **Owner**: Full access to all albums and photos
+- **Guest**: Access to albums based on permissions
+
+### Role-Based Redirects
+- **Admin users**: Redirected to `/admin` after login
+- **Other users**: Redirected to `/` (home page) after login
 
 ---
 

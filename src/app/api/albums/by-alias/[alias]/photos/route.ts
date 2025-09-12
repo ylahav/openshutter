@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { connectToDatabase } from '@/lib/mongodb'
 import { ExifExtractor } from '@/services/exif-extractor'
+import { getCurrentUser, checkAlbumAccess } from '@/lib/access-control'
 
 export async function GET(
   request: NextRequest,
@@ -17,8 +18,18 @@ export async function GET(
     
     const { db } = await connectToDatabase()
     
-    // First get the album to check if it's public
-    const album = await db.collection('albums').findOne({ alias })
+    // First get the album to check access
+    const album = await db.collection('albums').findOne(
+      { alias },
+      {
+        projection: {
+          _id: 1,
+          isPublic: 1,
+          allowedGroups: 1,
+          allowedUsers: 1
+        }
+      }
+    )
     
     if (!album) {
       return NextResponse.json(
@@ -27,24 +38,39 @@ export async function GET(
       )
     }
 
-    // Only return photos for public albums
-    if (!album.isPublic) {
-      return NextResponse.json(
-        { success: false, error: 'Album is private' },
-        { status: 403 }
-      )
+    // Check access control (admins can access everything)
+    const user = await getCurrentUser()
+    if (user?.role !== 'admin') {
+      const hasAccess = await checkAlbumAccess({
+        isPublic: album.isPublic,
+        allowedGroups: album.allowedGroups,
+        allowedUsers: album.allowedUsers
+      }, user)
+
+      if (!hasAccess) {
+        return NextResponse.json(
+          { success: false, error: 'Access denied' },
+          { status: 403 }
+        )
+      }
     }
 
-    // Get total count for pagination
+    // Get total count for pagination (handle both string and ObjectId albumId formats)
     const totalPhotos = await db.collection('photos').countDocuments({
-      albumId: album._id,
+      $or: [
+        { albumId: album._id },
+        { albumId: album._id.toString() }
+      ],
       isPublished: true
     })
 
     // Get photos for this album with pagination (only published ones for public view)
     const photos = await db.collection('photos')
       .find({ 
-        albumId: album._id,
+        $or: [
+          { albumId: album._id },
+          { albumId: album._id.toString() }
+        ],
         isPublished: true 
       })
       .sort({ createdAt: -1 })

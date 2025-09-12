@@ -35,12 +35,8 @@ export default function AlbumsSection() {
         
         const result = await response.json()
         if (result.success) {
-          // Filter albums based on login status
-          const filteredAlbums = isLoggedIn 
-            ? result.data 
-            : result.data.filter((album: Album) => album.isPublic)
-          
-          setAlbums(filteredAlbums)
+          // API already handles access control, so we can use all returned albums
+          setAlbums(result.data)
         } else {
           console.error('API returned error:', result.error)
         }
