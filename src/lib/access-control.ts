@@ -48,7 +48,7 @@ export async function checkAlbumAccess(album: AlbumAccessInfo, user: UserSession
   }
 
   // Check if user is in allowed users list
-  if (hasAllowedUsers) {
+  if (hasAllowedUsers && album.allowedUsers) {
     const userObjectId = new ObjectId(user.id)
     const hasUserAccess = album.allowedUsers.some(userId => {
       try {
@@ -63,7 +63,7 @@ export async function checkAlbumAccess(album: AlbumAccessInfo, user: UserSession
   }
 
   // Check if user belongs to any allowed groups
-  if (hasAllowedGroups) {
+  if (hasAllowedGroups && album.allowedGroups) {
     const { db } = await connectToDatabase()
     const userDoc = await db.collection('users').findOne({ _id: new ObjectId(user.id) })
     
