@@ -34,3 +34,9 @@ coverage/
 # Misc
 *.swp
 *.swo
+
+# Package manager lockfile (not tracked)
+pnpm-lock.yaml
+
+# i18n backups
+src/i18n/*.backup
