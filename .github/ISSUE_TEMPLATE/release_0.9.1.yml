@@ -1,0 +1,30 @@
+name: Release 0.9.1 Tracking
+description: Checklist and tracking for 0.9.1 release
+title: "chore(release): 0.9.1 tracking"
+labels: ["release", "0.9.1"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this issue to track the 0.9.1 release.
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope
+      options:
+        - label: Admin UX polish (Blog Categories)
+        - label: Owner Dashboard navigation/RTL details
+        - label: i18n parity (EN/HE)
+        - label: API validation/messages
+        - label: Docs clarifications (PM2/Docker, templates examples)
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Release Checklist
+      options:
+        - label: Triage items confirmed
+        - label: CHANGELOG.md updated
+        - label: Release notes finalized (docs/RELEASE_NOTES_0.9.1.md)
+        - label: Version bumped in package.json
+        - label: Tag created and pushed
+
