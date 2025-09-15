@@ -3,7 +3,9 @@ import type { NextRequest } from 'next/server'
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
-  if (pathname.startsWith('/admin')) {
+  
+  // Check for admin or owner routes
+  if (pathname.startsWith('/admin') || pathname.startsWith('/owner')) {
     const sessionToken =
       req.cookies.get('authjs.session-token')?.value ||
       req.cookies.get('__Secure-authjs.session-token')?.value ||
@@ -20,5 +22,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*'],
+  matcher: ['/admin/:path*', '/owner/:path*'],
 }

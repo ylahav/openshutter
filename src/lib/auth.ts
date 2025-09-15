@@ -65,15 +65,19 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        // Persist role on token
+        // Persist role and id on token
         ;(token as any).role = (user as any).role || 'owner'
+        ;(token as any)._id = (user as any).id
+        ;(token as any).name = (user as any).name
       }
       return token
     },
     async session({ session, token }) {
       if (session.user) {
         ;(session.user as any).id = token.sub
+        ;(session.user as any)._id = (token as any)._id
         ;(session.user as any).role = (token as any).role || 'owner'
+        ;(session.user as any).name = (token as any).name || session.user.name
       }
       return session
     },

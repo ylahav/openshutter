@@ -34,8 +34,8 @@ Location: `src/lib/initial-admin.ts`
 
 ```typescript
 export const INITIAL_ADMIN_CREDENTIALS = {
-  email: 'admin@openshutter.org',    // Change this
-  password: 'admin123',              // Change this
+  email: 'admin@openshutter.com',    // Change this
+  password: 'admin123!',             // Change this
   name: 'System Administrator',
   role: 'admin'
 }
@@ -96,6 +96,12 @@ NEXTAUTH_URL=http://localhost:4000
 - Photo organization
 - Tag management
 - Content moderation
+- **Blog Categories Management**
+  - Create and manage blog categories
+  - Multi-language support for category titles and descriptions
+  - Category status management (active/inactive)
+  - Sort order configuration
+  - Leading image assignment
 
 ## 🚨 Troubleshooting
 

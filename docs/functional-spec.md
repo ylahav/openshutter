@@ -10,6 +10,7 @@
 - NextAuth (credentials, JWT strategy)
 - Session includes user `_id`, `role`, `email`
 - `AdminGuard` limits admin routes to `role === 'admin'`
+- `OwnerGuard` limits owner routes to `role === 'admin'` or `role === 'owner'`
 - Blocked users cannot authenticate
 - On backend start, ensure at least one active admin must remain after updates/deletes
 - **Access Control System:**
@@ -17,7 +18,8 @@
   - Private albums: require authentication
     - If no `allowedUsers` and no `allowedGroups` (empty or not exist): every logged-in user can see
     - Otherwise: user must be in `allowedUsers` list OR belong to one of `allowedGroups`
-  - Role-based redirection: admins → `/admin`, others → `/` (home page)
+  - Owner albums: owners can only edit/delete albums they created (`createdBy` field)
+  - Role-based redirection: admins → `/admin`, owners → `/owner`, others → `/` (home page)
 
 ### 3. Entities
 - SiteConfig: title (ml text), description (ml html), logo, languages (active, default), theme
@@ -25,10 +27,12 @@
   - `isPublic`: boolean (public/private)
   - `allowedUsers`: ObjectId[] (specific user access)
   - `allowedGroups`: string[] (group-based access)
+  - `createdBy`: string (user ID who created the album)
   - `coverPhotoId`: ObjectId (selected cover photo)
 - Photo: title (ml text), description (ml html), tags[], people[], location{name, coords, address}, flags
 - User: name (ml text), username(email), passwordHash, role, groupAliases[], blocked
 - Group: name (ml text), alias
+- BlogCategory: title (ml text), description (ml text), alias, leadingImage, isActive, sortOrder
 
 ### 4. Admin UI
 - Site Config editor with multi-lang inputs and languages selection
@@ -41,6 +45,20 @@
     - Visual indicator for currently selected cover photo
     - API: GET `/api/admin/albums/[id]/photos`, PUT `/api/admin/albums/[id]/cover-photo`
 - Photos admin: edit form uses `MultiLangInput`, `MultiLangHTMLEditor`, `PhotoMetadataEditor`
+- **Blog Categories Management:** Create and manage blog categories with multi-language support
+  - Category creation: title (ml text), description (ml text), alias, leading image, sort order
+  - Category listing: search, filter by status, pagination support
+  - Category editing: full CRUD operations with multi-language inputs
+  - Status management: activate/deactivate categories
+  - API: GET/POST `/api/admin/blog-categories`, PUT/DELETE `/api/admin/blog-categories/[id]`
+
+### 4.1. Owner UI
+- **Owner Dashboard** (`/owner`): Focused interface for album management
+  - Profile management: edit name, email, change password
+  - Albums management: view, create, edit, delete own albums
+  - Album creation: form with auto-generated aliases and privacy settings
+- **Access Control**: Owners can only manage albums they created
+- **Role-based Interface**: Admin users see full admin panel, owners see simplified interface
 
 ### 5. Public UI
 - Header shows site title (ml), optional logo, LanguageSelector (if >1 active)
@@ -70,6 +88,7 @@
   - GET `/api/albums/by-alias/[alias]/photos` - album photos with access control
   - GET `/api/admin/albums/[id]/photos` - admin: get photos for cover selection
   - PUT `/api/admin/albums/[id]/cover-photo` - admin: set album cover photo
+- Profile Management: owner GET/PUT `/api/auth/profile` - user profile and password management
 
 ### 8. Data Validation & Migrations
 - Utilities migrate legacy string fields to multi-language objects
@@ -92,3 +111,12 @@
 - **UI Improvements:** Masonry layout, role-based redirects, visual indicators
 - **Code Cleanup:** Removed duplicate translation keys, improved error handling
 - **Database Compatibility:** Fixed ObjectId/string format handling across APIs
+- **Owner User Case:** Implemented owner role with dedicated dashboard and album management
+  - Owner dashboard with profile management and albums management
+  - Album ownership tracking with `createdBy` field
+  - Role-based access control for album editing and deletion
+  - Profile management API for owners to edit information and change passwords
+- **Profile Management:** Users can edit their profiles and change passwords
+- **Role-Based Redirects:** Admin → `/admin`, Owner → `/owner`, Guest → `/`
+- **Album Ownership:** Track who created each album, owners can only edit their own albums
+- **Enhanced Security:** Improved access control validation and error handling

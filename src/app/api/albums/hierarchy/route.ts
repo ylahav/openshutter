@@ -13,6 +13,7 @@ interface AlbumNode {
   level: number
   order: number
   photoCount: number
+  createdBy: string
   children?: AlbumNode[]
 }
 
@@ -51,7 +52,8 @@ export async function GET(request: NextRequest) {
         parentAlbumId: 1,
         level: 1,
         order: 1,
-        photoCount: 1
+        photoCount: 1,
+        createdBy: 1
       })
       .toArray()
     
@@ -73,6 +75,7 @@ export async function GET(request: NextRequest) {
             level: album.level,
             order: album.order,
             photoCount: album.photoCount,
+            createdBy: album.createdBy,
             children: buildTree(album._id)
           }
           nodes.push(node)

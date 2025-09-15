@@ -126,46 +126,30 @@ pm2 startup
 ### Application Control
 ```bash
 # Start application
-pnpm run pm2:start
-# or
 pm2 start ecosystem.config.js
 
 # Stop application
-pnpm run pm2:stop
-# or
 pm2 stop openshutter
 
 # Restart application
-pnpm run pm2:restart
-# or
 pm2 restart openshutter
 
 # Reload application (zero-downtime)
-pnpm run pm2:reload
-# or
 pm2 reload openshutter
 
 # Delete application
-pnpm run pm2:delete
-# or
 pm2 delete openshutter
 ```
 
 ### Monitoring & Logs
 ```bash
 # Check status
-pnpm run pm2:status
-# or
 pm2 status
 
 # View logs
-pnpm run pm2:logs
-# or
 pm2 logs openshutter
 
 # Monitor in real-time
-pnpm run pm2:monit
-# or
 pm2 monit
 
 # View specific number of log lines

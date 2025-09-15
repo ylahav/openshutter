@@ -53,9 +53,7 @@ export async function GET(request: NextRequest) {
     
     // If no configs exist, create default ones
     if (configs.length === 0) {
-      console.log('No storage configs found, creating defaults...')
       const result = await collection.insertMany(DEFAULT_STORAGE_CONFIGS)
-      console.log('Default configs created:', result.insertedIds)
       configs = await collection.find({}).toArray()
     }
 
@@ -137,8 +135,6 @@ export async function POST(request: NextRequest) {
       { upsert: true }
     )
 
-    console.log(`Storage configuration saved for ${provider}:`, result)
-
     return NextResponse.json({ 
       success: true, 
       message: `${provider} configuration saved successfully`,
@@ -186,8 +182,6 @@ export async function PUT(request: NextRequest) {
         { status: 404 }
       )
     }
-
-    console.log(`Storage provider ${provider} status updated to:`, enabled)
 
     return NextResponse.json({ 
       success: true, 

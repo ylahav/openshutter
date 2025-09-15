@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { connectToDatabase } from '@/lib/mongodb'
-import { getCurrentUser } from '@/lib/access-control'
+import { getCurrentUser } from '@/lib/access-control-server'
 import { ObjectId } from 'mongodb'
 
 export async function PUT(

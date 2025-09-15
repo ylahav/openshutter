@@ -15,6 +15,7 @@ To provide a modern, scalable, and user-friendly photo gallery management system
 - **Content Creators**: Bloggers, influencers, and digital content creators
 - **Organizations**: Companies, non-profits, and institutions with image management needs
 - **Event Planners**: Wedding planners, event organizers managing event photos
+- **Album Owners**: Users who create and maintain their own photo albums with limited system access
 
 ### Secondary Users
 - **End Viewers**: Gallery visitors and photo consumers
@@ -61,27 +62,45 @@ To provide a modern, scalable, and user-friendly photo gallery management system
   - Complex user management
   - Limited backup options
 
+### Persona 4: Album Owner (David)
+- **Age**: 30
+- **Experience**: 3 years in photography
+- **Needs**:
+  - Create and manage personal photo albums
+  - Edit profile and change password
+  - Upload and organize photos
+  - Share albums with specific people
+- **Pain Points**:
+  - No access to system administration
+  - Limited to own album management
+  - Need simple, focused interface
+
 ## Core Features & Requirements
 
 ### 1. Authentication & User Management
 
 #### Requirements
 - Secure user authentication
-- Role-based access control (Admin, Editor, User)
+- Role-based access control (Admin, Owner, Guest)
 - Session management with persistent login
 - Password security
 - User profile management
+- Owner-specific dashboard and functionality
 
 #### User Stories
 - **As a user**, I want to log in securely so that my account is protected
 - **As an admin**, I want to manage user roles so that I can control access levels
 - **As a user**, I want to stay logged in so that I don't need to re-authenticate frequently
+- **As an owner**, I want to manage my own albums so that I can organize my photos
+- **As an owner**, I want to edit my profile so that I can keep my information up to date
 
 #### Acceptance Criteria
 - Login/logout functionality works correctly
 - Authentication tokens expire appropriately
 - Role permissions are enforced
 - Session persistence works across browser sessions
+- Owners can only access their own albums and public albums
+- Owners have dedicated dashboard separate from admin interface
 
 ### 2. Album Management
 
@@ -397,6 +416,8 @@ To provide a modern, scalable, and user-friendly photo gallery management system
 - **Dynamic home page navigation** ✅
 - **Tag gallery pages** ✅
 - **Batch photo tagging** ✅
+- **Owner user case with dedicated dashboard** ✅
+- **Album ownership tracking and access control** ✅
 
 ### Phase 2 (Next 6 months)
 - Advanced search and filtering
