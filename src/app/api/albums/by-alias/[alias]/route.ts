@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { connectToDatabase } from '@/lib/mongodb'
-import { getCurrentUser, checkAlbumAccess } from '@/lib/access-control'
+import { getCurrentUser, checkAlbumAccess } from '@/lib/access-control-server'
 
 export async function GET(
   request: NextRequest,

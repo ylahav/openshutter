@@ -85,6 +85,7 @@ export interface User {
   role: UserRole
   groupAliases: string[]
   blocked: boolean
+  allowedStorageProviders: string[] // Array of storage provider IDs the user can use
   createdAt: Date
   updatedAt: Date
 }
@@ -181,6 +182,50 @@ export interface BatchUploadRequest {
   albumId?: string
   tags?: string[]
   storageProviderId: string
+}
+
+// Blog Article Types
+export interface BlogArticle {
+  _id?: string
+  title: MultiLangText
+  slug: string
+  leadingImage?: {
+    url: string
+    alt: MultiLangText
+    storageProvider: string
+    storagePath: string
+  }
+  category: string
+  tags: string[]
+  content: MultiLangHTML
+  excerpt?: MultiLangText
+  isPublished: boolean
+  isFeatured: boolean
+  authorId: string
+  publishedAt?: Date
+  createdAt: Date
+  updatedAt: Date
+  viewCount: number
+  seoTitle?: MultiLangText
+  seoDescription?: MultiLangText
+}
+
+// Blog Category Types
+export interface BlogCategory {
+  _id?: string
+  alias: string
+  title: MultiLangText
+  description?: MultiLangText
+  leadingImage?: {
+    url: string
+    alt: MultiLangText
+    storageProvider: string
+    storagePath: string
+  }
+  isActive: boolean
+  sortOrder: number
+  createdAt: Date
+  updatedAt: Date
 }
 
 // Search and Filter Types

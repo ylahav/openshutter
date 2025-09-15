@@ -5,11 +5,21 @@ import { useRouter } from 'next/navigation'
 import { signOut } from 'next-auth/react'
 import { useI18n } from '@/hooks/useI18n'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useSession } from 'next-auth/react'
+import { useEffect } from 'react'
 
 export default function AdminPage() {
   const router = useRouter()
   const { t } = useI18n()
   const { isRTL } = useLanguage()
+  const { data: session } = useSession()
+
+  // Redirect owners to owner dashboard
+  useEffect(() => {
+    if (session?.user && (session.user as any)?.role === 'owner') {
+      router.push('/owner')
+    }
+  }, [session, router])
 
   // Get the correct arrow direction based on RTL
   const getArrowPath = () => isRTL ? "M15 19l-7-7 7-7" : "M9 5l7 7-7 7"
@@ -212,6 +222,30 @@ export default function AdminPage() {
               className="inline-flex items-center px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
             >
               {t('admin.manageGroups')}
+              <svg className="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={getArrowPath()} />
+              </svg>
+            </Link>
+          </div>
+
+          {/* Blog Categories Management */}
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="flex items-center mb-4">
+              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                </svg>
+              </div>
+              <h2 className="text-xl font-semibold text-gray-900 ml-3">{t('admin.blogCategories')}</h2>
+            </div>
+            <p className="text-gray-600 mb-4">
+              {t('admin.manageBlogCategories')}
+            </p>
+            <Link
+              href="/admin/blog-categories"
+              className="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+            >
+              {t('admin.manageBlogCategories')}
               <svg className="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={getArrowPath()} />
               </svg>

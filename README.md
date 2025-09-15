@@ -7,14 +7,18 @@ A comprehensive photo gallery management system with multi-storage support, adva
 - **Multi-Storage Support**: Google Drive, AWS S3, and local storage
 - **Smart Tagging System**: Organize photos with intelligent tags and dynamic collections
 - **Album Management**: Hierarchical albums with advanced privacy controls
-- **Access Control System**: Granular permissions for albums (public, private, user/group-specific)
+- **Advanced Access Control**: Granular permissions for albums (public, private, user/group-specific)
+- **Owner Dashboard**: Dedicated interface for album owners to manage their collections
 - **Cover Photo Selection**: Admin interface for selecting album cover photos
 - **Batch Operations**: Upload and manage hundreds of photos efficiently
 - **Multi-Language Support**: Internationalization with RTL support
 - **Responsive Design**: Beautiful galleries for all devices with masonry layouts
 - **Real-time Updates**: Live photo uploads and collaborative features
-- **Admin-Only Dashboard**: Restricted access for administrative functions
-- **Storage Management**: Configure and manage multiple storage providers
+- **Role-Based Access**: Admin, Owner, and Guest roles with different capabilities
+- **Storage Management**: Configure and manage multiple storage providers through admin interface
+- **Profile Management**: Users can edit their profiles and change passwords
+- **Template Customization**: Customizable gallery templates and themes
+- **Blog Categories Management**: Create and manage blog categories with multi-language support
 
 ## 🚀 Tech Stack
 
@@ -76,7 +80,7 @@ A comprehensive photo gallery management system with multi-storage support, adva
 
 **⚠️ IMPORTANT: Change these credentials after first login!**
 
-- **Email**: `admin@openshutter.org`
+- **Email**: `admin@openshutter.com`
 - **Password**: `admin123!`
 - **Role**: System Administrator
 
@@ -114,7 +118,11 @@ src/
 │   │   ├── photos/     # Photo management
 │   │   ├── storage/    # Storage settings
 │   │   ├── templates/  # Template customization
-│   │   └── users/      # User management
+│   │   ├── users/      # User management
+│   │   └── blog-categories/ # Blog categories management
+│   ├── owner/          # Owner dashboard pages
+│   │   ├── profile/    # Profile management
+│   │   └── albums/     # Owner album management
 │   ├── albums/         # Public album pages
 │   ├── photos/         # Public photo pages
 │   ├── api/            # API routes
@@ -124,10 +132,13 @@ src/
 │   ├── Header.tsx      # Navigation header
 │   ├── Footer.tsx      # Copyright footer
 │   ├── TiptapHTMLEditor.tsx # Rich text editor with links
+│   ├── AdminGuard.tsx  # Admin role protection
+│   ├── OwnerGuard.tsx  # Owner role protection
 │   └── [feature]/     # Feature-specific components
 ├── lib/                 # Utility libraries
 │   ├── mongodb.ts      # MongoDB connection
 │   ├── auth.ts         # Authentication configuration
+│   ├── access-control.ts # Album access control logic
 │   └── models/         # Database models
 ├── services/            # Business logic services
 │   ├── storage/        # Storage providers (Google Drive, S3, Local)
@@ -308,6 +319,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [x] **Cover Photo Selection** - Admin interface for album covers
 - [x] **UI Improvements** - Masonry layouts, role-based redirects
 - [x] **Code Cleanup** - Translation file optimization
+- [x] **Owner Dashboard** - Dedicated interface for album owners
+- [x] **Profile Management** - User profile editing and password changes
+- [x] **Role-Based Access Control** - Admin, Owner, and Guest roles
+- [x] **Album Ownership Tracking** - Track who created each album
 
 ### Phase 2 (Next 6 months) *
 - [ ] Advanced search and filtering
@@ -347,12 +362,21 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ### User Roles
 - **Admin**: Full access to dashboard, storage settings, and administrative functions
-- **Owner**: Full access to all albums and photos
+- **Owner**: Access to own albums + public albums + albums with granted access
+  - Can create, edit, and delete own albums
+  - Can upload and manage photos in own albums
+  - Can edit profile and change password
 - **Guest**: Access to albums based on permissions
 
 ### Role-Based Redirects
 - **Admin users**: Redirected to `/admin` after login
-- **Other users**: Redirected to `/` (home page) after login
+- **Owner users**: Redirected to `/owner` (owner dashboard) after login
+- **Guest users**: Redirected to `/` (home page) after login
+
+### Album Ownership
+- Albums track who created them via `createdBy` field
+- Owners can only edit/delete albums they created
+- Admins can manage all albums regardless of ownership
 
 ---
 

@@ -1,8 +1,3 @@
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
-import { connectToDatabase } from '@/lib/mongodb'
-import { ObjectId } from 'mongodb'
-
 export interface UserSession {
   id: string
   email: string
@@ -14,154 +9,50 @@ export interface AlbumAccessInfo {
   isPublic: boolean
   allowedGroups?: string[]
   allowedUsers?: string[]
+  createdBy?: string
 }
 
 /**
- * Check if a user has access to an album
- * @param album - Album access information
+ * Check if user can create albums
  * @param user - User session information
- * @returns boolean indicating if user has access
+ * @returns boolean indicating if user can create albums
  */
-export async function checkAlbumAccess(album: AlbumAccessInfo, user: UserSession | null): Promise<boolean> {
-  // Admins can access everything
-  if (user?.role === 'admin') {
-    return true
-  }
+export function canCreateAlbums(user: UserSession | null): boolean {
+  return user?.role === 'admin' || user?.role === 'owner'
+}
 
-  // If album is public, everyone can access it
-  if (album.isPublic) {
-    return true
-  }
-
-  // For private albums, user must be logged in
-  if (!user) {
-    return false
-  }
-
-  // For private albums, check if there are specific access restrictions
-  const hasAllowedUsers = album.allowedUsers && album.allowedUsers.length > 0
-  const hasAllowedGroups = album.allowedGroups && album.allowedGroups.length > 0
-
-  // If no specific restrictions, any logged-in user can access
-  if (!hasAllowedUsers && !hasAllowedGroups) {
-    return true
-  }
-
-  // Check if user is in allowed users list
-  if (hasAllowedUsers && album.allowedUsers) {
-    const userObjectId = new ObjectId(user.id)
-    const hasUserAccess = album.allowedUsers.some(userId => {
-      try {
-        return new ObjectId(userId).equals(userObjectId)
-      } catch {
-        return false
-      }
-    })
-    if (hasUserAccess) {
-      return true
-    }
-  }
-
-  // Check if user belongs to any allowed groups
-  if (hasAllowedGroups && album.allowedGroups) {
-    const { db } = await connectToDatabase()
-    const userDoc = await db.collection('users').findOne({ _id: new ObjectId(user.id) })
-    
-    if (userDoc?.groupAliases) {
-      const hasGroupAccess = album.allowedGroups.some(groupAlias => 
-        userDoc.groupAliases.includes(groupAlias)
-      )
-      if (hasGroupAccess) {
-        return true
-      }
-    }
-  }
-
+/**
+ * Check if user can edit album
+ * @param album - Album information
+ * @param user - User session information
+ * @returns boolean indicating if user can edit album
+ */
+export function canEditAlbum(album: any, user: UserSession | null): boolean {
+  if (!user) return false
+  
+  // Admins can edit everything
+  if (user.role === 'admin') return true
+  
+  // Owners can edit their own albums
+  if (user.role === 'owner' && album.createdBy === user.id) return true
+  
   return false
 }
 
 /**
- * Get current user session with proper typing
- */
-export async function getCurrentUser(): Promise<UserSession | null> {
-  const session = await getServerSession(authOptions)
-  
-  if (!session?.user) {
-    return null
-  }
-
-  return {
-    id: (session.user as any).id,
-    email: session.user.email!,
-    name: session.user.name!,
-    role: (session.user as any).role || 'guest'
-  }
-}
-
-/**
- * Filter albums based on user access
- * @param albums - Array of albums to filter
+ * Check if user can delete album
+ * @param album - Album information
  * @param user - User session information
- * @returns Array of albums the user can access
+ * @returns boolean indicating if user can delete album
  */
-export async function filterAlbumsByAccess(albums: any[], user: UserSession | null): Promise<any[]> {
-  const accessibleAlbums = []
+export function canDeleteAlbum(album: any, user: UserSession | null): boolean {
+  if (!user) return false
   
-  for (const album of albums) {
-    const hasAccess = await checkAlbumAccess({
-      isPublic: album.isPublic,
-      allowedGroups: album.allowedGroups,
-      allowedUsers: album.allowedUsers
-    }, user)
-    
-    if (hasAccess) {
-      accessibleAlbums.push(album)
-    }
-  }
+  // Admins can delete everything
+  if (user.role === 'admin') return true
   
-  return accessibleAlbums
-}
-
-/**
- * Build MongoDB query for albums accessible by user
- * @param user - User session information
- * @returns MongoDB query object
- */
-export async function buildAlbumAccessQuery(user: UserSession | null): Promise<any> {
-  // Admins can see everything
-  if (user?.role === 'admin') {
-    return {}
-  }
-
-  // If no user, only public albums
-  if (!user) {
-    return { isPublic: true }
-  }
-
-  // Get user's groups
-  const { db } = await connectToDatabase()
-  const userDoc = await db.collection('users').findOne({ _id: new ObjectId(user.id) })
-  const userGroups = userDoc?.groupAliases || []
-
-  // Build query: public albums OR (private albums with no restrictions) OR (private albums where user is allowed)
-  return {
-    $or: [
-      { isPublic: true },
-      {
-        isPublic: false,
-        $and: [
-          { $or: [{ allowedUsers: { $exists: false } }, { allowedUsers: { $size: 0 } }] },
-          { $or: [{ allowedGroups: { $exists: false } }, { allowedGroups: { $size: 0 } }] }
-        ]
-      },
-      {
-        isPublic: false,
-        allowedUsers: new ObjectId(user.id)
-      },
-      ...(userGroups.length > 0 ? [{
-        isPublic: false,
-        allowedGroups: { $in: userGroups }
-      }] : [])
-    ]
-  }
+  // Owners can delete their own albums
+  if (user.role === 'owner' && album.createdBy === user.id) return true
+  
+  return false
 }

@@ -7,11 +7,11 @@ if (!process.env.MONGODB_URI) {
 const uri = process.env.MONGODB_URI
 
 // Debug logging
-console.log('🔍 MongoDB Debug Info:')
-console.log('  - MONGODB_URI:', process.env.MONGODB_URI)
-console.log('  - MONGODB_DB:', process.env.MONGODB_DB)
-console.log('  - NODE_ENV:', process.env.NODE_ENV)
-console.log('  - All env vars with MONGODB:', Object.keys(process.env).filter(key => key.includes('MONGODB')))
+console.debug('🔍 MongoDB Debug Info:')
+console.debug('  - MONGODB_URI:', process.env.MONGODB_URI)
+console.debug('  - MONGODB_DB:', process.env.MONGODB_DB)
+console.debug('  - NODE_ENV:', process.env.NODE_ENV)
+console.debug('  - All env vars with MONGODB:', Object.keys(process.env).filter(key => key.includes('MONGODB')))
 const options = {
   maxPoolSize: 10,
   serverSelectionTimeoutMS: 10000, // Increased from 5000

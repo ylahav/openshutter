@@ -31,8 +31,8 @@
   "license": "MIT",
   "dependencies": {
     "@auth/mongodb-adapter": "^3.10.0",
-    "@aws-sdk/client-s3": "^3.887.0",
-    "@aws-sdk/s3-request-presigner": "^3.887.0",
+    "@aws-sdk/client-s3": "^3.888.0",
+    "@aws-sdk/s3-request-presigner": "^3.888.0",
     "@tanstack/react-query": "^5.87.4",
     "@tiptap/extension-bold": "^3.4.2",
     "@tiptap/extension-bullet-list": "^3.4.2",
@@ -41,6 +41,7 @@
     "@tiptap/extension-hard-break": "^3.4.2",
     "@tiptap/extension-heading": "^3.4.2",
     "@tiptap/extension-horizontal-rule": "^3.4.2",
+    "@tiptap/extension-image": "^3.4.2",
     "@tiptap/extension-italic": "^3.4.2",
     "@tiptap/extension-link": "^3.4.2",
     "@tiptap/extension-list-item": "^3.4.2",
@@ -51,6 +52,7 @@
     "@tiptap/extension-underline": "^3.4.2",
     "@tiptap/react": "^3.4.2",
     "@tiptap/starter-kit": "^3.4.2",
+    "@types/uuid": "^10.0.0",
     "archiver": "^7.0.1",
     "autoprefixer": "^10.4.21",
     "bcryptjs": "^3.0.2",
@@ -73,8 +75,10 @@
     "react-hook-form": "^7.62.0",
     "react-i18next": "^15.7.3",
     "sharp": "^0.34.3",
+    "slugify": "^1.6.6",
     "tailwindcss": "^4.1.13",
     "typescript": "^5.9.2",
+    "uuid": "^13.0.0",
     "yauzl": "^3.2.0",
     "zustand": "^5.0.8"
   },
@@ -84,11 +88,11 @@
     "@types/archiver": "^6.0.3",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/multer": "^2.0.0",
-    "@types/react": "^19.1.12",
+    "@types/react": "^19.1.13",
     "@types/react-dom": "^19.1.9",
     "@types/yauzl": "^2.10.3",
     "eslint": "^9.35.0",
     "eslint-config-next": "^15.5.3"
   },
-  "packageManager": "pnpm@10.15.0+sha512.486ebc259d3e999a4e8691ce03b5cac4a71cbeca39372a9b762cb500cfdf0873e2cb16abe3d951b1ee2cf012503f027b98b6584e4df22524e0c7450d9ec7aa7b"
+  "packageManager": "pnpm@10.16.1+sha512.0e155aa2629db8672b49e8475da6226aa4bdea85fdcdfdc15350874946d4f3c91faaf64cbdc4a5d1ab8002f473d5c3fcedcd197989cf0390f9badd3c04678706"
 }

@@ -35,9 +35,14 @@ The access control system determines which albums users can view based on their 
 - **Capabilities**: All album management, user management, system configuration
 
 ### Owner
-- **Access**: All albums and photos
-- **Redirect**: `/` (home page) after login
-- **Capabilities**: Full album and photo access
+- **Access**: Own albums + public albums + albums with user/group access
+- **Redirect**: `/owner` (owner dashboard) after login
+- **Capabilities**: 
+  - Create, edit, and delete own albums
+  - Upload and manage photos in own albums
+  - Edit profile and change password
+  - View public albums and albums with granted access
+  - Access owner dashboard with focused interface
 
 ### Guest
 - **Access**: Based on album permissions
@@ -56,6 +61,7 @@ The access control system determines which albums users can view based on their 
   isPublic: boolean,
   allowedUsers: ObjectId[], // Array of user IDs
   allowedGroups: string[],  // Array of group aliases
+  createdBy: string,        // User ID who created the album
   coverPhotoId: ObjectId,   // Selected cover photo
   // ... other fields
 }
@@ -119,6 +125,9 @@ Location: `src/lib/access-control.ts`
 #### Functions
 - `checkAlbumAccess(album, user)`: Validates user access to specific album
 - `buildAlbumAccessQuery(user)`: Builds MongoDB query for album filtering
+- `canCreateAlbums(user)`: Checks if user can create albums
+- `canEditAlbum(album, user)`: Checks if user can edit specific album
+- `canDeleteAlbum(album, user)`: Checks if user can delete specific album
 
 #### Usage
 ```typescript
@@ -151,6 +160,8 @@ useEffect(() => {
   if (session?.user) {
     if (session.user.role === 'admin') {
       router.push('/admin')
+    } else if (session.user.role === 'owner') {
+      router.push('/owner')
     } else {
       router.push('/')
     }
@@ -162,6 +173,30 @@ useEffect(() => {
 - **Home Page**: Shows all accessible albums
 - **Album Pages**: Displays "Access Denied" for restricted albums
 - **Admin Interface**: Full access for admin users
+- **Owner Interface**: Access to own albums + public albums + granted access albums
+
+## Owner Dashboard
+
+### Overview
+The Owner Dashboard (`/owner`) provides a focused interface for album owners to manage their photo collections without access to system administration features.
+
+### Features
+- **Profile Management** (`/owner/profile`): Edit personal information and change password
+- **Albums Management** (`/owner/albums`): View, create, edit, and delete own albums
+- **Album Creation** (`/owner/albums/new`): Create new albums with privacy settings
+
+### Access Control
+- Owners can only edit/delete albums they created (`createdBy` field matches user ID)
+- Owners can view all public albums and albums with granted access
+- Owners cannot access admin-only features (user management, system configuration, etc.)
+
+### API Endpoints
+- `GET /api/auth/profile` - Get user profile information
+- `PUT /api/auth/profile` - Update user profile and password
+- `GET /api/albums` - List accessible albums (filtered by ownership and permissions)
+- `POST /api/albums` - Create new album (sets `createdBy` field)
+- `PUT /api/albums/[id]` - Update album (only if owner)
+- `DELETE /api/albums/[id]` - Delete album (only if owner)
 
 ## Error Handling
 

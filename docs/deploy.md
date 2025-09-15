@@ -13,7 +13,8 @@ This guide describes deployment options for OpenShutter using GitHub Actions and
 - Docker options available (see [Docker Deployment Guide](./docker-deployment.md))
 
 ### Prerequisites
-- Node 20+
+- Node.js 20+
+- pnpm package manager
 - PM2 process manager (installed automatically)
 - MongoDB connection string configured in environment
 - Required env vars on server: `MONGODB_URI`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, storage provider vars

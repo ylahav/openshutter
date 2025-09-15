@@ -42,11 +42,29 @@ export default function Header() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
+  // Get user name for display
+  const getUserDisplayName = () => {
+    if (!session?.user) return 'User'
+    const userName = (session.user as any)?.name
+    if (!userName) return 'User'
+    
+    // Handle both string and multi-language object names
+    if (typeof userName === 'string') {
+      return userName
+    }
+    
+    // Extract name from multi-language object
+    return MultiLangUtils.getTextValue(userName, currentLanguage) || 'User'
+  }
+
   const navigation = [
     { name: t('navigation.home'), href: '/' },
     { name: t('navigation.albums'), href: '/albums' },
-    ...(isLoggedIn && userRole === 'admin' ? [
-      { name: t('navigation.admin'), href: '/admin' }
+    ...(isLoggedIn && (userRole === 'admin' || userRole === 'owner') ? [
+      { 
+        name: t('navigation.admin'), 
+        href: userRole === 'admin' ? '/admin' : '/owner' 
+      }
     ] : [])
   ]
 
@@ -205,7 +223,7 @@ export default function Header() {
                 {isLoggedIn ? (
                   <div className="space-y-2">
                     <div className="px-3 py-2 text-sm text-white/60">
-                      Welcome, {userRole === 'admin' ? 'Admin' : 'User'}
+                      Welcome, {getUserDisplayName()}
                     </div>
                     <button
                       onClick={() => {

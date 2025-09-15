@@ -19,7 +19,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { name, username, password, role, groupAliases, blocked } = body || {}
+    const { name, username, password, role, groupAliases, blocked, allowedStorageProviders } = body || {}
     if (!name || !username || !password || !role) {
       return NextResponse.json({ success: false, error: 'name, username, password, role are required' }, { status: 400 })
     }
@@ -37,6 +37,7 @@ export async function POST(request: NextRequest) {
       role,
       groupAliases: Array.isArray(groupAliases) ? groupAliases : [],
       blocked: Boolean(blocked),
+      allowedStorageProviders: Array.isArray(allowedStorageProviders) ? allowedStorageProviders : ['local'],
       createdAt: now,
       updatedAt: now,
     }

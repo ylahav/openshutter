@@ -30,6 +30,8 @@ export default function LoginPage() {
       const userRole = (session.user as any)?.role
       if (userRole === 'admin') {
         router.push('/admin')
+      } else if (userRole === 'owner') {
+        router.push('/owner')
       } else {
         router.push('/') // Redirect guest users to home page
       }

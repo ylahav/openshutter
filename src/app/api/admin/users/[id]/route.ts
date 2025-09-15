@@ -27,13 +27,14 @@ export async function PUT(
   try {
     const { id } = await params
     const body = await request.json()
-    const { name, password, role, groupAliases, blocked } = body || {}
+    const { name, password, role, groupAliases, blocked, allowedStorageProviders } = body || {}
     const update: any = { updatedAt: new Date() }
     if (name) update.name = name
     if (role) update.role = role
     if (Array.isArray(groupAliases)) update.groupAliases = groupAliases
     if (password) update.passwordHash = await hashPassword(password)
     if (typeof blocked === 'boolean') update.blocked = blocked
+    if (Array.isArray(allowedStorageProviders)) update.allowedStorageProviders = allowedStorageProviders
 
     const { db } = await connectToDatabase()
     const _id = new ObjectId(id)

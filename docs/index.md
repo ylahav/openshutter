@@ -8,10 +8,12 @@ Welcome to the OpenShutter documentation. This comprehensive guide covers all as
 - [System Requirements Document (PRD)](./SYSTEM_PRD.md) - System requirements and business logic
 - [Functional Specification](./functional-spec.md) - Detailed technical specifications
 - [Access Control System](./access-control.md) - Album permissions and user access management
+- [Owner Dashboard](./owner-dashboard.md) - Owner role dashboard and album management
 - [Deployment Guide](./deploy.md) - Production deployment instructions
 - [Docker Deployment Guide](./docker-deployment.md) - Docker containerization and deployment
 - [PM2 Deployment Guide](./pm2-deployment.md) - PM2 process manager deployment
 - [Admin Setup Guide](./ADMIN_SETUP.md) - Initial admin configuration
+- [Translation Guide](./translation-guide.md) - Multi-language support and translation keys
 
 ### Quick Start
 1. **Installation**: Follow the main [README.md](../README.md) for setup instructions
@@ -27,12 +29,15 @@ Welcome to the OpenShutter documentation. This comprehensive guide covers all as
 ### Core Functionality
 - **Multi-Storage Support**: Google Drive, AWS S3, and local storage
 - **Album Management**: Hierarchical albums with advanced privacy controls
-- **Access Control System**: Granular permissions for albums (public, private, user/group-specific)
+- **Advanced Access Control**: Granular permissions for albums (public, private, user/group-specific)
+- **Owner Dashboard**: Focused interface for album owners to manage their collections
 - **Cover Photo Selection**: Admin interface for selecting album cover photos
 - **Photo Management**: Upload, organize, and display photos with metadata
 - **Multi-Language Support**: Internationalization with RTL support
 - **Template System**: Customizable gallery templates
 - **Admin Dashboard**: Comprehensive administrative interface
+- **Profile Management**: User profile editing and password changes
+- **Role-Based Access**: Admin, Owner, and Guest roles with different capabilities
 
 ### Advanced Features
 - **EXIF Data Extraction**: Automatic photo metadata processing
@@ -57,13 +62,25 @@ Welcome to the OpenShutter documentation. This comprehensive guide covers all as
 src/
 ├── app/                 # Next.js app directory
 │   ├── admin/          # Admin-only pages
-│   ├── albums/         # Album management
-│   ├── photos/         # Photo management
+│   │   ├── albums/     # Album management
+│   │   ├── photos/     # Photo management
+│   │   ├── storage/    # Storage settings
+│   │   ├── templates/  # Template customization
+│   │   └── users/      # User management
+│   ├── owner/          # Owner dashboard pages
+│   │   ├── profile/    # Profile management
+│   │   └── albums/     # Owner album management
+│   ├── albums/         # Public album pages
+│   ├── photos/         # Public photo pages
 │   └── api/            # API routes
 ├── components/         # Reusable components
 │   ├── ui/            # UI component library
+│   ├── AdminGuard.tsx  # Admin role protection
+│   ├── OwnerGuard.tsx  # Owner role protection
 │   └── [feature]/     # Feature-specific components
 ├── lib/               # Utility libraries
+│   ├── access-control.ts # Album access control logic
+│   └── [utilities]/   # Other utility functions
 ├── services/          # Business logic
 ├── types/             # TypeScript definitions
 └── hooks/             # Custom React hooks
@@ -118,4 +135,4 @@ For issues, questions, or contributions:
 
 ---
 
-*Last updated: September 2025*
+*Last updated: January 2025*

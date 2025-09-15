@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import { useI18n } from '@/hooks/useI18n'
@@ -13,7 +14,7 @@ interface AlbumFormData {
   description: string
   isPublic: boolean
   isFeatured: boolean
-  storageProvider: 'google-drive' | 'aws-s3' | 'local'
+  storageProvider: string
   parentAlbumId: string
 }
 
@@ -23,6 +24,13 @@ interface AlbumOption {
   alias: string
   level: number
   storagePath: string
+}
+
+interface StorageOption {
+  id: string
+  name: string
+  type: string
+  isEnabled: boolean
 }
 
 interface NotificationState {
@@ -35,8 +43,11 @@ interface NotificationState {
 export default function CreateAlbumPage() {
   const router = useRouter()
   const { t } = useI18n()
+  const { data: session } = useSession()
   const [isLoading, setIsLoading] = useState(false)
   const [parentAlbums, setParentAlbums] = useState<AlbumOption[]>([])
+  const [storageOptions, setStorageOptions] = useState<StorageOption[]>([])
+  const [loadingStorageOptions, setLoadingStorageOptions] = useState(true)
   const [notification, setNotification] = useState<NotificationState>({
     isOpen: false,
     type: 'info',
@@ -56,7 +67,8 @@ export default function CreateAlbumPage() {
 
   useEffect(() => {
     loadParentAlbums()
-  }, [])
+    loadStorageOptions()
+  }, [session])
 
   const showNotification = (type: 'success' | 'error' | 'info' | 'warning', title: string, message: string) => {
     setNotification({
@@ -77,17 +89,25 @@ export default function CreateAlbumPage() {
       if (response.ok) {
         const data = await response.json()
         if (data.success) {
+          const userRole = (session?.user as any)?.role
+          const userId = (session?.user as any)?._id
+          
           // Flatten the tree to get all albums for parent selection
           const flattenAlbums = (albums: any[]): AlbumOption[] => {
             let result: AlbumOption[] = []
             for (const album of albums) {
-              result.push({
-                _id: album._id,
-                name: album.name,
-                alias: album.alias,
-                level: album.level,
-                storagePath: album.storagePath
-              })
+              // For owners, only include albums they created
+              // For admins, include all albums
+              if (userRole === 'admin' || (userRole === 'owner' && album.createdBy === userId)) {
+                result.push({
+                  _id: album._id,
+                  name: album.name,
+                  alias: album.alias,
+                  level: album.level,
+                  storagePath: album.storagePath
+                })
+              }
+              
               if (album.children && album.children.length > 0) {
                 result = result.concat(flattenAlbums(album.children))
               }
@@ -101,6 +121,52 @@ export default function CreateAlbumPage() {
       }
     } catch (error) {
       console.error('Failed to load parent albums:', error)
+    }
+  }
+
+  const loadStorageOptions = async () => {
+    try {
+      const userRole = (session?.user as any)?.role
+      
+      // For owners, use the owner-specific API that respects permissions
+      // For admins and others, use the admin API that shows all options
+      const apiEndpoint = userRole === 'owner' 
+        ? '/api/owner/storage-options' 
+        : '/api/admin/storage-options'
+      
+      const response = await fetch(apiEndpoint)
+      const data = await response.json()
+      
+      if (data.success) {
+        setStorageOptions(data.data)
+        // Set default storage provider to first available option
+        if (data.data.length > 0) {
+          setFormData(prev => ({
+            ...prev,
+            storageProvider: data.data[0].id
+          }))
+        }
+      } else {
+        console.error('Failed to load storage options:', data.error)
+        // Fallback to local storage
+        setStorageOptions([{
+          id: 'local',
+          name: 'Local Storage',
+          type: 'local',
+          isEnabled: true
+        }])
+      }
+    } catch (error) {
+      console.error('Error loading storage options:', error)
+      // Fallback to local storage
+      setStorageOptions([{
+        id: 'local',
+        name: 'Local Storage',
+        type: 'local',
+        isEnabled: true
+      }])
+    } finally {
+      setLoadingStorageOptions(false)
     }
   }
 
@@ -259,19 +325,33 @@ export default function CreateAlbumPage() {
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Storage Provider *
                       </label>
-                      <select
-                        value={formData.storageProvider}
-                        onChange={(e) => setFormData(prev => ({ 
-                          ...prev, 
-                          storageProvider: e.target.value as 'google-drive' | 'aws-s3' | 'local'
-                        }))}
-                        className="input"
-                        required
-                      >
-                        <option value="local">Local Storage</option>
-                        <option value="google-drive">Google Drive</option>
-                        <option value="aws-s3">Amazon S3</option>
-                      </select>
+                      {loadingStorageOptions ? (
+                        <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50">
+                          <div className="flex items-center">
+                            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Loading storage options...
+                          </div>
+                        </div>
+                      ) : (
+                        <select
+                          value={formData.storageProvider}
+                          onChange={(e) => setFormData(prev => ({ 
+                            ...prev, 
+                            storageProvider: e.target.value
+                          }))}
+                          className="input"
+                          required
+                        >
+                          {storageOptions.map((option) => (
+                            <option key={option.id} value={option.id}>
+                              {option.name}
+                            </option>
+                          ))}
+                        </select>
+                      )}
                       <p className="mt-1 text-xs text-gray-500">
                         Where photos will be stored
                       </p>
