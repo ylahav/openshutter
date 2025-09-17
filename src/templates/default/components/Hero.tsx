@@ -107,6 +107,11 @@ export default function Hero({
   const currentPhoto = galleryPhotos[currentPhotoIndex]
   const backgroundImageUrl = backgroundImage || (currentPhoto ? decodeURIComponent(currentPhoto.storage.url) : null)
 
+  // If there are no photos and no explicit background, hide the hero entirely
+  if (!loading && !backgroundImageUrl) {
+    return null
+  }
+
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-blue-600 to-blue-800">
       {/* Background */}
@@ -118,11 +123,7 @@ export default function Hero({
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
           <div className="absolute inset-0 bg-gradient-to-r from-black/30 via-transparent to-black/30"></div>
         </div>
-      ) : (
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-600 to-blue-800">
-          <div className="absolute inset-0 bg-dot-pattern opacity-20"></div>
-        </div>
-      )}
+      ) : null}
 
       {/* Loading indicator */}
       {loading && (
