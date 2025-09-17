@@ -1,0 +1,10 @@
+{
+  "name": "simple",
+  "displayName": "Simple (DaisyUI)",
+  "description": "A minimal, clean template powered by DaisyUI components.",
+  "version": "0.1.0",
+  "author": "OpenShutter",
+  "entry": "pages/Home"
+}
+
+
