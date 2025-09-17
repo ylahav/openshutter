@@ -35,16 +35,22 @@ export async function POST(request: NextRequest) {
     // Check if .next directory exists, if not build it
     const nextDir = join(process.cwd(), '.next')
     if (!existsSync(nextDir)) {
-      console.log('Building Next.js application...')
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Building Next.js application...')
+      }
       try {
         execSync('pnpm build', { stdio: 'inherit', cwd: process.cwd() })
-        console.log('Build completed successfully')
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Build completed successfully')
+        }
       } catch (error) {
         console.error('Build failed:', error)
         return NextResponse.json({ error: 'Build failed. Please run "pnpm build" manually first.' }, { status: 500 })
       }
     } else {
-      console.log('Using existing .next directory')
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Using existing .next directory')
+      }
     }
 
     // Create custom ecosystem.config.js
@@ -88,7 +94,9 @@ export async function POST(request: NextRequest) {
     // Write custom ecosystem.config.js
     try {
       writeFileSync('ecosystem.config.js', ecosystemConfig)
-      console.log('Custom ecosystem.config.js created')
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Custom ecosystem.config.js created')
+      }
     } catch (error) {
       console.error('Failed to write ecosystem.config.js:', error)
       return NextResponse.json({ error: 'Failed to create ecosystem configuration' }, { status: 500 })
@@ -100,7 +108,9 @@ export async function POST(request: NextRequest) {
 
     return new Promise<NextResponse>((resolve, reject) => {
       output.on('close', () => {
-        console.log(`Deployment package created: ${archive.pointer()} bytes`)
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`Deployment package created: ${archive.pointer()} bytes`)
+        }
         
         // Read the zip file and send as response
         const zipBuffer = readFileSync(`openshutter-deployment-${config.domain}.zip`)
@@ -146,10 +156,14 @@ export async function POST(request: NextRequest) {
             const stat = require('fs').statSync(filePath)
             if (stat.isDirectory()) {
               archive.directory(filePath, file)
-              console.log(`Added directory: ${file}`)
+              if (process.env.NODE_ENV === 'development') {
+                console.log(`Added directory: ${file}`)
+              }
             } else {
               archive.file(filePath, { name: file })
-              console.log(`Added file: ${file}`)
+              if (process.env.NODE_ENV === 'development') {
+                console.log(`Added file: ${file}`)
+              }
             }
           } catch (error) {
             console.error(`Error adding ${file} to archive:`, error)

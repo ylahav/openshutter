@@ -16,6 +16,7 @@ export async function GET(request: NextRequest) {
         theme: config.theme,
         seo: config.seo,
         contact: config.contact,
+        pages: (config as any).pages,
         features: config.features,
         template: config.template
       }

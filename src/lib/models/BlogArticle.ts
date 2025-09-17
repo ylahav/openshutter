@@ -106,7 +106,6 @@ BlogArticleSchema.pre('save', function(next) {
 })
 
 // Indexes for performance
-BlogArticleSchema.index({ slug: 1 })
 BlogArticleSchema.index({ authorId: 1 })
 BlogArticleSchema.index({ category: 1 })
 BlogArticleSchema.index({ tags: 1 })

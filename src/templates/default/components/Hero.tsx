@@ -1,190 +1,227 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Link from 'next/link'
-import { useI18n } from '@/hooks/useI18n'
+import { useSiteConfig } from '@/hooks/useSiteConfig'
 import { MultiLangUtils } from '@/types/multi-lang'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useI18n } from '@/hooks/useI18n'
 
-interface Photo {
-  _id: string
-  title: Record<string, string> | string
-  storage: {
-    url: string
-    path: string
-    provider: string
-  }
-}
-
-interface SiteConfig {
-  title: any
-  description: any
-}
-
-interface HeroProps {
-  title?: string
-  subtitle?: string
-  ctaText?: string
-  ctaLink?: string
-  backgroundImage?: string
-}
-
-export default function Hero({
-  title,
-  subtitle,
-  ctaText = "Explore Gallery",
-  ctaLink = "/albums",
-  backgroundImage
-}: HeroProps) {
-  const [galleryPhotos, setGalleryPhotos] = useState<Photo[]>([])
-  const [siteConfig, setSiteConfig] = useState<SiteConfig | null>(null)
-  const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0)
-  const [loading, setLoading] = useState(true)
-  const { currentLanguage, isRTL } = useLanguage()
+export default function Hero() {
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(false)
+  const [isLoaded, setIsLoaded] = useState(false)
+  const [galleryPhotos, setGalleryPhotos] = useState<any[]>([])
+  const { config, loading: configLoading } = useSiteConfig()
+  const { currentLanguage } = useLanguage()
   const { t } = useI18n()
 
-  // Get the correct arrow direction based on RTL
-  const getArrowPath = () => isRTL ? "M15 19l-7-7 7-7" : "M9 5l7 7-7 7"
+  // Theme detection
+  useEffect(() => {
+    const checkTheme = () => {
+      const stored = localStorage.getItem('theme')
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+      setIsDarkMode(stored === 'dark' || (!stored && prefersDark))
+    }
 
+    // Listen for theme changes from header
+    const handleThemeChange = (event: CustomEvent) => {
+      const newTheme = event.detail.theme
+      const isDark = newTheme === 'dark'
+      setIsDarkMode(isDark)
+    }
+
+    checkTheme()
+    window.addEventListener('storage', checkTheme)
+    window.addEventListener('themeChanged', handleThemeChange as EventListener)
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', checkTheme)
+
+    return () => {
+      window.removeEventListener('storage', checkTheme)
+      window.removeEventListener('themeChanged', handleThemeChange as EventListener)
+      window.matchMedia('(prefers-color-scheme: dark)').removeEventListener('change', checkTheme)
+    }
+  }, [])
+
+  // Animation trigger
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoaded(true), 100)
+    return () => clearTimeout(timer)
+  }, [])
+
+  // Load gallery-leading photos
   useEffect(() => {
     const fetchGalleryPhotos = async () => {
       try {
         const response = await fetch('/api/photos/gallery-leading?limit=3')
         if (response.ok) {
           const data = await response.json()
-          if (data.success) {
+          if (data?.success && Array.isArray(data.data)) {
             setGalleryPhotos(data.data)
           }
         }
-      } catch (error) {
-        console.error('Failed to fetch gallery photos:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    const fetchSiteConfig = async () => {
-      try {
-        const response = await fetch('/api/site-config')
-        if (response.ok) {
-          const data = await response.json()
-          if (data.success) {
-            setSiteConfig(data.data)
-          }
-        }
-      } catch (error) {
-        console.error('Failed to fetch site config:', error)
+      } catch (err) {
+        // noop
       }
     }
 
     fetchGalleryPhotos()
-    fetchSiteConfig()
   }, [])
 
-  // Auto-rotate background photos
-  useEffect(() => {
-    if (galleryPhotos.length > 1) {
-      const interval = setInterval(() => {
-        setCurrentPhotoIndex((prev) => (prev + 1) % galleryPhotos.length)
-      }, 8000)
-      return () => clearInterval(interval)
-    }
-    return undefined
-  }, [galleryPhotos.length])
+  // Get site title and description
+  const getSiteTitle = () => {
+    if (!config?.title) return 'OpenShutter'
+    return MultiLangUtils.getTextValue(config.title, currentLanguage) || 'OpenShutter'
+  }
 
-  // Use provided props or fall back to site config (multi-language aware)
-  const displayTitle = title || (loading ? '' : MultiLangUtils.getTextValue(siteConfig?.title, currentLanguage) || t('hero.defaultTitle'))
-  const displaySubtitle = subtitle || (loading ? '' : (() => {
-    if (siteConfig?.description) {
-      // Strip HTML tags for plain text display
-      const htmlContent = MultiLangUtils.getHTMLValue(siteConfig.description, currentLanguage)
-      return htmlContent.replace(/<[^>]*>/g, '')
-    }
-    return t('hero.defaultSubtitle')
-  })())
+  const getSiteDescription = () => {
+    if (!config?.description) return 'Capturing moments that matter'
+    return MultiLangUtils.getHTMLValue(config.description, currentLanguage) || 'Capturing moments that matter'
+  }
 
-  // Get current background image
-  const currentPhoto = galleryPhotos[currentPhotoIndex]
-  const backgroundImageUrl = backgroundImage || (currentPhoto ? decodeURIComponent(currentPhoto.storage.url) : null)
+  // Get hero background image: prefer gallery-leading photo, then logo, then placeholder
+  const getHeroImage = () => {
+    const first = galleryPhotos[0]
+    const url = first?.storage?.url || first?.storage?.thumbnailPath
+    return url || config?.logo || '/api/placeholder/1920/1080'
+  }
+
+  if (configLoading) {
+    return (
+      <section className="relative h-screen flex items-center justify-center bg-gray-100">
+        <div className="animate-pulse text-center">
+          <div className="h-16 bg-gray-300 rounded w-96 mb-4"></div>
+          <div className="h-6 bg-gray-300 rounded w-64"></div>
+        </div>
+      </section>
+    )
+  }
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-blue-600 to-blue-800">
-      {/* Background */}
-      {backgroundImageUrl ? (
-        <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-1000 ease-in-out"
-          style={{ backgroundImage: `url(${backgroundImageUrl})` }}
+    <section className="relative min-h-[calc(100vh-5rem)] flex items-center justify-center overflow-visible">
+      {/* Background Image with Parallax Effect */}
+      <div 
+        className="absolute inset-0 z-[-1] bg-cover bg-center bg-no-repeat transform scale-105 transition-transform duration-1000 hover:scale-100 pointer-events-none"
+        style={{
+          backgroundImage: `url(${getHeroImage()})`,
+          filter: isDarkMode ? 'brightness(0.4) contrast(1.2)' : 'brightness(0.8) contrast(1.1)'
+        }}
+      />
+      
+      {/* Overlay for better text contrast */}
+      <div 
+        className={`absolute inset-0 z-[-1] pointer-events-none ${
+          isDarkMode 
+            ? 'bg-black/40' 
+            : 'bg-white/30'
+        }`}
+      />
+      
+      {/* Content Container */}
+      <div className="relative z-10 text-center px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto">
+        {/* Site Title with Animation */}
+        <h1 
+          className={`text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6 transition-all duration-1000 ${
+            isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+          } ${
+            isDarkMode 
+              ? 'text-white drop-shadow-2xl' 
+              : 'text-gray-900 drop-shadow-lg'
+          }`}
+          style={{
+            fontFamily: 'Inter, system-ui, sans-serif',
+            letterSpacing: '-0.02em',
+            lineHeight: '0.9'
+          }}
         >
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
-          <div className="absolute inset-0 bg-gradient-to-r from-black/30 via-transparent to-black/30"></div>
-        </div>
-      ) : (
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-600 to-blue-800">
-          <div className="absolute inset-0 bg-dot-pattern opacity-20"></div>
-        </div>
-      )}
-
-      {/* Loading indicator */}
-      {loading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-          <div className="text-center text-white">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-            <p className="text-lg">{t('loading')}</p>
-          </div>
-        </div>
-      )}
-
-      {/* Main Content */}
-      <div className="relative z-10 max-w-4xl mx-auto px-6 text-center text-white">
-        <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
-          {displayTitle}
+          <span className="block transform hover:scale-105 transition-transform duration-300">
+            {getSiteTitle()}
+          </span>
         </h1>
         
-        <p className="text-xl md:text-2xl mb-8 text-blue-100 max-w-2xl mx-auto leading-relaxed">
-          {displaySubtitle}
-        </p>
-
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Link
-            href={ctaLink}
-            className="inline-flex items-center px-8 py-4 bg-white text-blue-600 font-semibold rounded-lg hover:bg-blue-50 transition-colors duration-300 shadow-lg"
+        {/* Description/Tagline with Animation */}
+        <div 
+          className={`text-lg sm:text-xl md:text-2xl lg:text-3xl font-light mb-8 max-w-3xl mx-auto transition-all duration-1000 delay-300 ${
+            isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+          } ${
+            isDarkMode 
+              ? 'text-gray-200 drop-shadow-xl' 
+              : 'text-gray-700 drop-shadow-md'
+          }`}
+          style={{
+            fontFamily: 'Inter, system-ui, sans-serif',
+            letterSpacing: '0.01em',
+            lineHeight: '1.4'
+          }}
+          dangerouslySetInnerHTML={{ __html: getSiteDescription() }}
+        />
+        
+        {/* Call to Action Buttons with Animation */}
+        <div 
+          className={`flex flex-col sm:flex-row gap-4 justify-center items-center transition-all duration-1000 delay-500 ${
+            isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+          }`}
+        >
+          <a
+            href="/albums"
+            className={`px-8 py-4 rounded-full font-semibold text-lg transition-all duration-300 transform hover:scale-105 hover:shadow-xl ${
+              isDarkMode
+                ? 'bg-white text-gray-900 hover:bg-gray-100 shadow-lg'
+                : 'bg-gray-900 text-white hover:bg-gray-800 shadow-lg'
+            }`}
           >
-            <span className="mr-2">{ctaText}</span>
-            <svg 
-              className="w-5 h-5 transition-transform group-hover:translate-x-1" 
-              fill="none" 
-              stroke="currentColor" 
-              viewBox="0 0 24 24"
+            {t('navigation.portfolio')}
+          </a>
+          
+          {config?.pages?.contact?.enabled && (
+            <a
+              href="/contact"
+              className={`px-8 py-4 rounded-full font-semibold text-lg transition-all duration-300 transform hover:scale-105 border-2 ${
+                isDarkMode
+                  ? 'border-white text-white hover:bg-white hover:text-gray-900'
+                  : 'border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white'
+              }`}
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={getArrowPath()} />
-            </svg>
-          </Link>
+              {t('navigation.contact')}
+            </a>
+          )}
         </div>
-
-        {/* Photo indicators */}
-        {galleryPhotos.length > 1 && (
-          <div className="flex justify-center mt-12 space-x-2">
-            {galleryPhotos.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => setCurrentPhotoIndex(index)}
-                className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                  index === currentPhotoIndex 
-                    ? 'bg-white' 
-                    : 'bg-white/50 hover:bg-white/75'
-                }`}
-              />
-            ))}
+      </div>
+      
+      {/* Scroll Indicator */}
+      <div 
+        className={`absolute bottom-8 left-1/2 transform -translate-x-1/2 transition-all duration-1000 delay-700 ${
+          isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+        }`}
+      >
+        <div className="flex flex-col items-center">
+          <span 
+            className={`text-sm font-medium mb-2 ${
+              isDarkMode ? 'text-gray-300' : 'text-gray-600'
+            }`}
+          >
+            Scroll to explore
+          </span>
+          <div 
+            className={`w-6 h-10 border-2 rounded-full flex justify-center ${
+              isDarkMode ? 'border-gray-300' : 'border-gray-600'
+            }`}
+          >
+            <div 
+              className={`w-1 h-3 rounded-full mt-2 animate-bounce ${
+                isDarkMode ? 'bg-gray-300' : 'bg-gray-600'
+              }`}
+            />
           </div>
-        )}
-      </div>
-
-      {/* Scroll indicator */}
-      <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2">
-        <div className="w-px h-12 bg-white/50">
-          <div className="w-px h-6 bg-white animate-pulse"></div>
         </div>
       </div>
+      
+      {/* Subtle Gradient Overlay for Better Text Readability */}
+      <div 
+        className={`absolute inset-0 pointer-events-none ${
+          isDarkMode
+            ? 'bg-gradient-to-b from-transparent via-transparent to-black/20'
+            : 'bg-gradient-to-b from-transparent via-transparent to-white/20'
+        }`}
+      />
     </section>
   )
 }

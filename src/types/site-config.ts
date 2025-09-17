@@ -60,6 +60,27 @@ export interface SiteConfig {
       twitter?: string
       linkedin?: string
     }
+    notifications?: {
+      emailEnabled?: boolean
+      to?: string
+    }
+  }
+  pages?: {
+    about?: {
+      enabled: boolean
+      title?: MultiLangText
+      content?: MultiLangHTML
+    }
+    services?: {
+      enabled: boolean
+      title?: MultiLangText
+      content?: MultiLangHTML
+    }
+    contact?: {
+      enabled: boolean
+      title?: MultiLangText
+      content?: MultiLangHTML
+    }
   }
   features: {
     enableComments: boolean
@@ -82,5 +103,6 @@ export interface SiteConfigUpdate {
   template?: Partial<SiteConfig['template']>
   seo?: Partial<SiteConfig['seo']>
   contact?: Partial<SiteConfig['contact']>
+  pages?: Partial<SiteConfig['pages']>
   features?: Partial<SiteConfig['features']>
 }

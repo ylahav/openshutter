@@ -5,9 +5,9 @@ import { use } from 'react'
 import Link from 'next/link'
 import { MultiLangUtils } from '@/types/multi-lang'
 import { useLanguage } from '@/contexts/LanguageContext'
-import Header from '@/templates/dark/components/Header'
-import Footer from '@/templates/dark/components/Footer'
-import AlbumCard from '@/templates/dark/components/AlbumCard'
+import TemplateHeader from '@/templates/components/TemplateHeader'
+import TemplateFooter from '@/templates/components/TemplateFooter'
+import TemplateAlbumCard from '@/templates/components/TemplateAlbumCard'
 import PhotoViewer from '@/components/PhotoViewer'
 
 interface Photo {
@@ -91,6 +91,7 @@ interface Album {
 }
 
 export default function AlbumPage({ params }: { params: Promise<{ alias: string }> }) {
+  
   const resolvedParams = use(params)
   const [album, setAlbum] = useState<Album | null>(null)
   const [photos, setPhotos] = useState<Photo[]>([])
@@ -109,7 +110,34 @@ export default function AlbumPage({ params }: { params: Promise<{ alias: string 
     hasNextPage: false,
     hasPrevPage: false
   })
-  const { currentLanguage } = useLanguage()
+  const { currentLanguage, isRTL } = useLanguage()
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(false)
+
+  // Theme detection and sync with header/footer
+  useEffect(() => {
+    const checkTheme = () => {
+      const stored = typeof window !== 'undefined' ? window.localStorage.getItem('theme') : null
+      const prefersDark = typeof window !== 'undefined' ? (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) : false
+      setIsDarkMode(stored ? stored === 'dark' : prefersDark)
+    }
+    const handleThemeChange = (event: CustomEvent) => {
+      const newTheme = (event as any).detail?.theme
+      if (newTheme) setIsDarkMode(newTheme === 'dark')
+    }
+    checkTheme()
+    if (typeof window !== 'undefined') {
+      window.addEventListener('storage', checkTheme)
+      window.addEventListener('themeChanged', handleThemeChange as EventListener)
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', checkTheme)
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('storage', checkTheme)
+        window.removeEventListener('themeChanged', handleThemeChange as EventListener)
+        window.matchMedia('(prefers-color-scheme: dark)').removeEventListener('change', checkTheme)
+      }
+    }
+  }, [])
 
   const buildBreadcrumbs = async (album: Album) => {
     if (!album.parentPath) {
@@ -218,14 +246,20 @@ export default function AlbumPage({ params }: { params: Promise<{ alias: string 
           const albumResult = await albumResponse.json()
           if (albumResult.success) {
             const albumId = albumResult.data._id
-            console.log('Fetching child albums for album ID:', albumId)
+            if (process.env.NODE_ENV === 'development') {
+              console.log('Fetching child albums for album ID:', albumId)
+            }
             const response = await fetch(`/api/albums?parentId=${albumId}`)
             if (response.ok) {
               const result = await response.json()
-              console.log('Child albums API response:', result)
+              if (process.env.NODE_ENV === 'development') {
+                console.log('Child albums API response:', result)
+              }
               if (result.success) {
                 // API already handles access control, so we can use all returned albums
-                console.log('Child albums:', result.data)
+                if (process.env.NODE_ENV === 'development') {
+                  console.log('Child albums:', result.data)
+                }
                 setChildAlbums(result.data)
               }
             } else {
@@ -296,17 +330,17 @@ export default function AlbumPage({ params }: { params: Promise<{ alias: string 
   // Access control is handled by the API, so we don't need client-side checks
 
   return (
-    <div className="min-h-screen bg-gray-900">
-      <Header />
+    <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
+      <TemplateHeader />
       
       {/* Breadcrumb Navigation */}
       {breadcrumbs.length > 0 && (
-        <div className="bg-gray-800 border-b border-gray-700">
+        <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'} border-b`}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
             <nav className="flex" aria-label="Breadcrumb">
               <ol className="flex items-center space-x-2">
                 <li>
-                  <Link href="/" className="text-gray-400 hover:text-gray-300">
+                  <Link href="/" className={`${isDarkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700'}`}>
                     <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
                       <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
                     </svg>
@@ -316,12 +350,12 @@ export default function AlbumPage({ params }: { params: Promise<{ alias: string 
                 {breadcrumbs.map((breadcrumb, index) => (
                   <li key={breadcrumb.alias}>
                     <div className="flex items-center">
-                      <svg className="h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                      <svg className={`h-5 w-5 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
                       </svg>
                       <Link 
                         href={`/albums/${breadcrumb.alias}`}
-                        className="ml-2 text-sm font-medium text-gray-400 hover:text-gray-300"
+                        className={`ml-2 text-sm font-medium ${isDarkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-600 hover:text-gray-800'}`}
                       >
                         {breadcrumb.name}
                       </Link>
@@ -330,10 +364,10 @@ export default function AlbumPage({ params }: { params: Promise<{ alias: string 
                 ))}
                 <li>
                   <div className="flex items-center">
-                    <svg className="h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                    <svg className={`h-5 w-5 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
                     </svg>
-                    <span className="ml-2 text-sm font-medium text-gray-900" aria-current="page">
+                    <span className={`ml-2 text-sm font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`} aria-current="page">
                       {album ? MultiLangUtils.getTextValue(album.name as any, currentLanguage) : '...'}
                     </span>
                   </div>
@@ -345,19 +379,21 @@ export default function AlbumPage({ params }: { params: Promise<{ alias: string 
       )}
       
       {/* Album Header */}
-      <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-black border-b border-gray-800">
+      <div className={`border-b ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-12">
-          <div className="text-center">
-            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
-              <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+          <div className={`${isRTL ? 'text-right' : 'text-left'}`}>
+            <h1 className={`text-4xl md:text-5xl font-bold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+              <span>
                 {MultiLangUtils.getTextValue(album.name as any, currentLanguage)}
               </span>
             </h1>
             {album.description && (
-              <div className="text-xl text-gray-300 mb-6 max-w-3xl mx-auto" dangerouslySetInnerHTML={{ __html: MultiLangUtils.getHTMLValue(album.description as any, currentLanguage) }} />
+              <div className={`text-lg ${isRTL ? 'text-right ml-auto' : 'text-left mr-auto'} ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-6 max-w-3xl`} dangerouslySetInnerHTML={{ __html: MultiLangUtils.getHTMLValue(album.description as any, currentLanguage) }} />
             )}
-            <div className="flex items-center justify-center space-x-4 text-sm text-gray-400">
-              <span>{totalPhotoCount || pagination.total || photos.length} photos</span>
+            <div className={`flex items-center ${isRTL ? 'justify-end' : 'justify-start'} space-x-4 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+              {(totalPhotoCount || pagination.total || photos.length) > 0 && (
+                <span>{totalPhotoCount || pagination.total || photos.length} photos</span>
+              )}
               {album.isFeatured && (
                 <>
                   <span>•</span>
@@ -373,7 +409,7 @@ export default function AlbumPage({ params }: { params: Promise<{ alias: string 
 
       {/* Photos Grid */}
       {photos.length > 0 && (
-        <div id="photos-section" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 bg-gradient-to-br from-gray-900 via-gray-800 to-black">
+        <div id="photos-section" className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 ${isDarkMode ? 'bg-transparent' : 'bg-transparent'}`}>
           {/* Photos Masonry Grid */}
           <div className="columns-1 sm:columns-2 md:columns-3 lg:columns-4 xl:columns-5 gap-6 space-y-6">
           {photos.map((photo) => {
@@ -399,7 +435,7 @@ export default function AlbumPage({ params }: { params: Promise<{ alias: string 
                 className={`group cursor-pointer relative ${sizeClass}`}
                 onClick={() => setSelectedPhoto(photo)}
               >
-                <div className="bg-gray-200 rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300">
+                <div className={`${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'} rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300`}>
                   <img
                     src={photo.storage.thumbnailPath || photo.storage.url}
                     alt={typeof photo.title === 'string' ? photo.title : photo.title.en}
@@ -413,8 +449,8 @@ export default function AlbumPage({ params }: { params: Promise<{ alias: string 
                       }
                     }}
                   />
-                  <div className="absolute inset-0 items-center justify-center bg-gray-100 hidden">
-                    <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className={`absolute inset-0 items-center justify-center ${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'} hidden`}>
+                    <svg className={`w-8 h-8 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
                   </div>
@@ -422,12 +458,12 @@ export default function AlbumPage({ params }: { params: Promise<{ alias: string 
               
               {/* Photo Info */}
               <div className="mt-2">
-                <h3 className="text-sm font-medium text-gray-900 truncate">
+                <h3 className={`text-sm font-medium truncate ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                   {typeof photo.title === 'string' ? photo.title : photo.title.en}
                 </h3>
                 {/* EXIF Date */}
                 {photo.exif?.dateTimeOriginal && (
-                  <p className="text-xs text-gray-400 mt-1">
+                  <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                     📅 {new Date(photo.exif.dateTimeOriginal).toLocaleDateString()}
                   </p>
                 )}
@@ -528,7 +564,7 @@ export default function AlbumPage({ params }: { params: Promise<{ alias: string 
           <div className="border-t border-gray-800 pt-8">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
               {childAlbums.map((childAlbum) => (
-                <AlbumCard key={childAlbum._id} album={childAlbum} />
+                <TemplateAlbumCard key={childAlbum._id} album={childAlbum} />
               ))}
             </div>
           </div>
@@ -558,7 +594,7 @@ export default function AlbumPage({ params }: { params: Promise<{ alias: string 
         showExifData={album?.showExifData}
       />
 
-      <Footer />
+      <TemplateFooter />
     </div>
   )
 }

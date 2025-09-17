@@ -116,8 +116,8 @@ export default function Hero({
   return (
     <section className="relative min-h-screen flex items-center justify-center bg-white">
       {/* Subtle background pattern */}
-      <div className="absolute inset-0 opacity-5">
-        <div className="absolute inset-0" style={{
+      <div className="absolute inset-0 opacity-5 pointer-events-none">
+        <div className="absolute inset-0 pointer-events-none" style={{
           backgroundImage: `radial-gradient(circle at 1px 1px, #000 1px, transparent 0)`,
           backgroundSize: '20px 20px'
         }}></div>
@@ -125,7 +125,7 @@ export default function Hero({
 
       {/* Background photo overlay - very subtle */}
       {currentPhoto && (
-        <div className="absolute inset-0 opacity-5">
+        <div className="absolute inset-0 opacity-5 pointer-events-none">
           <Image
             src={currentPhoto.storage.url}
             alt={MultiLangUtils.getTextValue(currentPhoto.title, currentLanguage)}

@@ -94,6 +94,7 @@ export default function SiteConfigPage() {
           seo: config.seo,
           theme: config.theme,
           contact: config.contact,
+          pages: config.pages,
           features: config.features,
           template: config.template
         }),
@@ -541,6 +542,218 @@ export default function SiteConfigPage() {
                     onChange={(e) => handleInputChange('theme.secondaryColor', e.target.value)}
                     className="w-full h-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
+                </div>
+              </div>
+            </div>
+
+            {/* Pages (About / Services / Contact) */}
+            <div className="border-b border-gray-200 pb-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Pages</h2>
+
+              {/* About Page */}
+              <div className="mb-8">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-md font-medium text-gray-800">About Page</h3>
+                  <label className="inline-flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={config.pages?.about?.enabled !== false}
+                      onChange={(e) => {
+                        setConfig({
+                          ...config,
+                          pages: {
+                            ...config.pages,
+                            about: {
+                              ...(config.pages?.about || {}),
+                              enabled: e.target.checked
+                            }
+                          }
+                        })
+                      }}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-gray-700">Enabled</span>
+                  </label>
+                </div>
+                <div className="grid grid-cols-1 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
+                    <MultiLangInput
+                      value={config.pages?.about?.title || {}}
+                      onChange={(value) => setConfig({
+                        ...config,
+                        pages: {
+                          ...config.pages,
+                          about: {
+                            enabled: config.pages?.about?.enabled ?? false,
+                            ...(config.pages?.about || {}),
+                            title: value
+                          }
+                        }
+                      })}
+                      placeholder="Enter About title..."
+                      showLanguageTabs={true}
+                      defaultLanguage={config.languages?.defaultLanguage || 'en'}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Content</label>
+                    <MultiLangHTMLEditor
+                      value={config.pages?.about?.content || {}}
+                      onChange={(value) => setConfig({
+                        ...config,
+                        pages: {
+                          ...config.pages,
+                          about: {
+                            enabled: config.pages?.about?.enabled ?? false,
+                            ...(config.pages?.about || {}),
+                            content: value
+                          }
+                        }
+                      })}
+                      height={200}
+                      showLanguageTabs={true}
+                      defaultLanguage={config.languages?.defaultLanguage || 'en'}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Services Page */}
+              <div className="mb-8">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-md font-medium text-gray-800">Services Page</h3>
+                  <label className="inline-flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={config.pages?.services?.enabled !== false}
+                      onChange={(e) => {
+                        setConfig({
+                          ...config,
+                          pages: {
+                            ...config.pages,
+                            services: {
+                              ...(config.pages?.services || {}),
+                              enabled: e.target.checked
+                            }
+                          }
+                        })
+                      }}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-gray-700">Enabled</span>
+                  </label>
+                </div>
+                <div className="grid grid-cols-1 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
+                    <MultiLangInput
+                      value={config.pages?.services?.title || {}}
+                      onChange={(value) => setConfig({
+                        ...config,
+                        pages: {
+                          ...config.pages,
+                          services: {
+                            enabled: config.pages?.services?.enabled ?? false,
+                            ...(config.pages?.services || {}),
+                            title: value
+                          }
+                        }
+                      })}
+                      placeholder="Enter Services title..."
+                      showLanguageTabs={true}
+                      defaultLanguage={config.languages?.defaultLanguage || 'en'}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Content</label>
+                    <MultiLangHTMLEditor
+                      value={config.pages?.services?.content || {}}
+                      onChange={(value) => setConfig({
+                        ...config,
+                        pages: {
+                          ...config.pages,
+                          services: {
+                            enabled: config.pages?.services?.enabled ?? false,
+                            ...(config.pages?.services || {}),
+                            content: value
+                          }
+                        }
+                      })}
+                      height={200}
+                      showLanguageTabs={true}
+                      defaultLanguage={config.languages?.defaultLanguage || 'en'}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Contact Page */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-md font-medium text-gray-800">Contact Page</h3>
+                  <label className="inline-flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={config.pages?.contact?.enabled !== false}
+                      onChange={(e) => {
+                        setConfig({
+                          ...config,
+                          pages: {
+                            ...config.pages,
+                            contact: {
+                              ...(config.pages?.contact || {}),
+                              enabled: e.target.checked
+                            }
+                          }
+                        })
+                      }}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-gray-700">Enabled</span>
+                  </label>
+                </div>
+                <div className="grid grid-cols-1 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
+                    <MultiLangInput
+                      value={config.pages?.contact?.title || {}}
+                      onChange={(value) => setConfig({
+                        ...config,
+                        pages: {
+                          ...config.pages,
+                          contact: {
+                            enabled: config.pages?.contact?.enabled ?? false,
+                            ...(config.pages?.contact || {}),
+                            title: value
+                          }
+                        }
+                      })}
+                      placeholder="Enter Contact title..."
+                      showLanguageTabs={true}
+                      defaultLanguage={config.languages?.defaultLanguage || 'en'}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Content</label>
+                    <MultiLangHTMLEditor
+                      value={config.pages?.contact?.content || {}}
+                      onChange={(value) => setConfig({
+                        ...config,
+                        pages: {
+                          ...config.pages,
+                          contact: {
+                            enabled: config.pages?.contact?.enabled ?? false,
+                            ...(config.pages?.contact || {}),
+                            content: value
+                          }
+                        }
+                      })}
+                      height={200}
+                      showLanguageTabs={true}
+                      defaultLanguage={config.languages?.defaultLanguage || 'en'}
+                    />
+                  </div>
                 </div>
               </div>
             </div>

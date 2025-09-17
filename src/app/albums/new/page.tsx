@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
-import Header from '@/components/Header'
-import Footer from '@/components/Footer'
+import Header from '@/templates/default/components/Header'
+import Footer from '@/templates/default/components/Footer'
 import { useI18n } from '@/hooks/useI18n'
 import NotificationDialog from '@/components/NotificationDialog'
 

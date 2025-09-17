@@ -73,7 +73,9 @@ export class ExifExtractor {
   private static parseExifDate(dateValue: any): Date | null {
     try {
       if (!dateValue) return null
-      console.log(`Parsing EXIF date: "${dateValue}" (type: ${typeof dateValue})`)
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Parsing EXIF date: "${dateValue}" (type: ${typeof dateValue})`)
+      }
       
       let date: Date
       
@@ -83,14 +85,20 @@ export class ExifExtractor {
         const timestamp = typeof dateValue === 'string' ? parseInt(dateValue, 10) : dateValue
         const timestampMs = timestamp < 10000000000 ? timestamp * 1000 : timestamp // Convert seconds to milliseconds if needed
         date = new Date(timestampMs)
-        console.log(`Parsed as Unix timestamp: ${timestamp} -> ${date.toISOString()}`)
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`Parsed as Unix timestamp: ${timestamp} -> ${date.toISOString()}`)
+        }
       } else if (typeof dateValue === 'string') {
         // EXIF date format: "2025:07:18 05:13:46"
         // Convert to ISO format: "2025-07-18T05:13:46"
         const isoString = dateValue.replace(':', '-').replace(':', '-').replace(' ', 'T')
-        console.log(`Converted to ISO: "${isoString}"`)
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`Converted to ISO: "${isoString}"`)
+        }
         date = new Date(isoString)
-        console.log(`Parsed as EXIF string: ${date.toISOString()}`)
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`Parsed as EXIF string: ${date.toISOString()}`)
+        }
       } else {
         console.warn(`Unsupported date format: ${dateValue} (type: ${typeof dateValue})`)
         return null
@@ -123,10 +131,12 @@ export class ExifExtractor {
       }
 
       // Debug: Log all available EXIF tags
-      console.log('🔍 Available EXIF tags:')
-      Object.keys(result.tags).forEach(key => {
-        console.log(`   ${key}: "${result.tags[key]}" (type: ${typeof result.tags[key]})`)
-      })
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔍 Available EXIF tags:')
+        Object.keys(result.tags).forEach(key => {
+          console.log(`   ${key}: "${result.tags[key]}" (type: ${typeof result.tags[key]})`)
+        })
+      }
 
       // Extract comprehensive EXIF data
       const exifData: ExifData = {}
@@ -137,23 +147,31 @@ export class ExifExtractor {
       if (result.tags.SerialNumber) exifData.serialNumber = result.tags.SerialNumber
       
       // Date and Time - Parse EXIF date format (YYYY:MM:DD HH:mm:ss)
-      console.log('📅 Checking date fields...')
-      console.log(`   DateTime exists: ${!!result.tags.DateTime}`)
-      console.log(`   DateTimeOriginal exists: ${!!result.tags.DateTimeOriginal}`)
-      console.log(`   DateTimeDigitized exists: ${!!result.tags.DateTimeDigitized}`)
+      if (process.env.NODE_ENV === 'development') {
+        console.log('📅 Checking date fields...')
+        console.log(`   DateTime exists: ${!!result.tags.DateTime}`)
+        console.log(`   DateTimeOriginal exists: ${!!result.tags.DateTimeOriginal}`)
+        console.log(`   DateTimeDigitized exists: ${!!result.tags.DateTimeDigitized}`)
+      }
       
       if (result.tags.DateTime) {
-        console.log(`Raw DateTime: "${result.tags.DateTime}"`)
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`Raw DateTime: "${result.tags.DateTime}"`)
+        }
         const parsedDate = this.parseExifDate(result.tags.DateTime)
         if (parsedDate) exifData.dateTime = parsedDate
       }
       if (result.tags.DateTimeOriginal) {
-        console.log(`Raw DateTimeOriginal: "${result.tags.DateTimeOriginal}"`)
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`Raw DateTimeOriginal: "${result.tags.DateTimeOriginal}"`)
+        }
         const parsedDate = this.parseExifDate(result.tags.DateTimeOriginal)
         if (parsedDate) exifData.dateTimeOriginal = parsedDate
       }
       if (result.tags.DateTimeDigitized) {
-        console.log(`Raw DateTimeDigitized: "${result.tags.DateTimeDigitized}"`)
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`Raw DateTimeDigitized: "${result.tags.DateTimeDigitized}"`)
+        }
         const parsedDate = this.parseExifDate(result.tags.DateTimeDigitized)
         if (parsedDate) exifData.dateTimeDigitized = parsedDate
       }
@@ -215,8 +233,10 @@ export class ExifExtractor {
         }
       }
       
-      console.log('📊 Final extracted EXIF data:')
-      console.log(JSON.stringify(exifData, null, 2))
+      if (process.env.NODE_ENV === 'development') {
+        console.log('📊 Final extracted EXIF data:')
+        console.log(JSON.stringify(exifData, null, 2))
+      }
       
       return Object.keys(exifData).length > 0 ? exifData : null
     } catch (error) {
@@ -236,16 +256,20 @@ export class ExifExtractor {
         return photo // Already has EXIF data
       }
 
-      console.log(`🔍 Extracting EXIF data for photo: ${photo.filename}`)
-      console.log(`   Storage provider: ${photo.storage?.provider}`)
-      console.log(`   Storage path: ${photo.storage?.path}`)
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`🔍 Extracting EXIF data for photo: ${photo.filename}`)
+        console.log(`   Storage provider: ${photo.storage?.provider}`)
+        console.log(`   Storage path: ${photo.storage?.path}`)
+      }
 
       // Get the storage provider
       const storageProvider = photo.storage?.provider || 'local'
       const storageService = await storageManager.getProvider(storageProvider as 'local' | 'google-drive' | 'aws-s3')
 
-      console.log(`   Storage service type: ${storageService.constructor.name}`)
-      console.log(`   Available methods: ${Object.getOwnPropertyNames(Object.getPrototypeOf(storageService)).filter(name => name !== 'constructor')}`)
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`   Storage service type: ${storageService.constructor.name}`)
+        console.log(`   Available methods: ${Object.getOwnPropertyNames(Object.getPrototypeOf(storageService)).filter(name => name !== 'constructor')}`)
+      }
 
       // Download the original file
       const fileBuffer = await storageService.getFileBuffer(photo.storage.path)
@@ -271,9 +295,13 @@ export class ExifExtractor {
       const updatedPhoto = { ...photo, exif: exifData }
       
       if (exifData) {
-        console.log(`✅ Extracted EXIF data for ${photo.filename}:`, Object.keys(exifData))
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`✅ Extracted EXIF data for ${photo.filename}:`, Object.keys(exifData))
+        }
       } else {
-        console.log(`ℹ️  No EXIF data found for ${photo.filename}`)
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`ℹ️  No EXIF data found for ${photo.filename}`)
+        }
       }
 
       return updatedPhoto

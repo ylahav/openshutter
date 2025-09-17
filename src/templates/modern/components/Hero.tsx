@@ -118,13 +118,13 @@ export default function Hero({
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Animated gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
-        <div className="absolute inset-0 bg-gradient-to-tr from-pink-500/20 via-purple-500/20 to-blue-500/20 animate-pulse"></div>
-        <div className="absolute inset-0 bg-gradient-to-bl from-cyan-500/10 via-transparent to-purple-500/10"></div>
+      <div className="absolute inset-0 bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 pointer-events-none">
+        <div className="absolute inset-0 bg-gradient-to-tr from-pink-500/20 via-purple-500/20 to-blue-500/20 animate-pulse pointer-events-none"></div>
+        <div className="absolute inset-0 bg-gradient-to-bl from-cyan-500/10 via-transparent to-purple-500/10 pointer-events-none"></div>
       </div>
 
       {/* Floating geometric shapes */}
-      <div className="absolute inset-0 overflow-hidden">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-20 left-10 w-20 h-20 bg-white/10 rounded-full blur-xl animate-bounce"></div>
         <div className="absolute top-40 right-20 w-32 h-32 bg-purple-500/20 rounded-full blur-2xl animate-pulse"></div>
         <div className="absolute bottom-20 left-1/4 w-16 h-16 bg-cyan-500/20 rounded-full blur-lg animate-bounce"></div>
@@ -133,7 +133,7 @@ export default function Hero({
 
       {/* Background photo overlay */}
       {currentPhoto && (
-        <div className="absolute inset-0 opacity-20">
+        <div className="absolute inset-0 opacity-20 pointer-events-none">
           <Image
             src={currentPhoto.storage.url}
             alt={MultiLangUtils.getTextValue(currentPhoto.title, currentLanguage)}

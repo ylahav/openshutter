@@ -38,6 +38,11 @@ export class SiteConfigService {
       // Handle backward compatibility for title and description
       title: this.configCache.title || defaultConfig.title,
       description: this.configCache.description || defaultConfig.description,
+      // Ensure pages exist with defaults merged
+      pages: {
+        ...(defaultConfig as any).pages,
+        ...(this.configCache as any).pages,
+      },
       // Ensure contact.socialMedia object is properly structured
       contact: {
         ...defaultConfig.contact,
@@ -156,6 +161,23 @@ export class SiteConfigService {
           linkedin: ''
         }
       },
+      pages: {
+        about: {
+          enabled: true,
+          title: { en: 'About' },
+          content: { en: '<p>About our studio.</p>' }
+        },
+        services: {
+          enabled: true,
+          title: { en: 'Services' },
+          content: { en: '<p>Our services overview.</p>' }
+        },
+        contact: {
+          enabled: true,
+          title: { en: 'Contact' },
+          content: { en: '<p>Reach us via email or phone.</p>' }
+        }
+      },
       features: {
         enableComments: true,
         enableSharing: true,
@@ -200,6 +222,11 @@ export class SiteConfigService {
         // Handle backward compatibility for title and description
         title: migratedConfig.title || defaultConfig.title,
         description: migratedConfig.description || defaultConfig.description,
+        // Ensure pages exist with defaults merged
+        pages: {
+          ...(defaultConfig as any).pages,
+          ...(migratedConfig as any).pages,
+        },
         // Ensure contact.socialMedia object is properly structured
         contact: {
           ...defaultConfig.contact,
