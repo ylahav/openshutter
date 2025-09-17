@@ -59,7 +59,16 @@ module.exports = {
   },
   plugins: [require('daisyui')],
   daisyui: {
-    themes: true,
+    themes: [
+      {
+        light: {
+          ...require('daisyui/src/theming/themes')['light']
+        },
+        dark: {
+          ...require('daisyui/src/theming/themes')['dark']
+        }
+      }
+    ],
     darkTheme: 'dark',
     base: true,
     styled: true,
