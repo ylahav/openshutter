@@ -16,14 +16,16 @@ export async function GET(request: NextRequest) {
     // Get current user for access control
     const user = await getCurrentUser()
     
-    console.log('Albums API Debug:', {
-      parentId,
-      level,
-      storageProvider,
-      isPublic,
-      url: request.url,
-      user: user ? { id: user.id, role: user.role } : 'anonymous'
-    })
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Albums API Debug:', {
+        parentId,
+        level,
+        storageProvider,
+        isPublic,
+        url: request.url,
+        user: user ? { id: user.id, role: user.role } : 'anonymous'
+      })
+    }
     
     // Build base query
     const query: any = {}
@@ -79,7 +81,10 @@ export async function GET(request: NextRequest) {
     
     // Get albums with hierarchy info using native MongoDB driver
     const collection = db.collection('albums')
-    console.log('Albums API Final Query:', JSON.stringify(finalQuery, null, 2))
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Albums API Final Query:', JSON.stringify(finalQuery, null, 2))
+    }
     
     const albums = await collection.find(finalQuery)
       .sort({ level: 1, order: 1, name: 1 })
@@ -102,20 +107,22 @@ export async function GET(request: NextRequest) {
       })
       .toArray()
     
-    console.log('Albums API Found albums:', albums.length, albums.map(a => ({ _id: a._id, alias: a.alias, isPublic: a.isPublic, parentAlbumId: a.parentAlbumId })))
-    
-    // Special debug for emek-hefer album
-    if (parentId && parentId !== 'root') {
-      const emekHeferAlbum = await collection.findOne({ alias: 'emek-hefer' })
-      console.log('emek-hefer album debug:', emekHeferAlbum ? {
-        _id: emekHeferAlbum._id,
-        alias: emekHeferAlbum.alias,
-        isPublic: emekHeferAlbum.isPublic,
-        parentAlbumId: emekHeferAlbum.parentAlbumId,
-        parentAlbumIdString: emekHeferAlbum.parentAlbumId?.toString(),
-        parentId: parentId,
-        parentIdMatches: emekHeferAlbum.parentAlbumId?.toString() === parentId
-      } : 'emek-hefer album not found')
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Albums API Found albums:', albums.length, albums.map(a => ({ _id: a._id, alias: a.alias, isPublic: a.isPublic, parentAlbumId: a.parentAlbumId })))
+      
+      // Special debug for emek-hefer album
+      if (parentId && parentId !== 'root') {
+        const emekHeferAlbum = await collection.findOne({ alias: 'emek-hefer' })
+        console.log('emek-hefer album debug:', emekHeferAlbum ? {
+          _id: emekHeferAlbum._id,
+          alias: emekHeferAlbum.alias,
+          isPublic: emekHeferAlbum.isPublic,
+          parentAlbumId: emekHeferAlbum.parentAlbumId,
+          parentAlbumIdString: emekHeferAlbum.parentAlbumId?.toString(),
+          parentId: parentId,
+          parentIdMatches: emekHeferAlbum.parentAlbumId?.toString() === parentId
+        } : 'emek-hefer album not found')
+      }
     }
     
     // Calculate child album count for each album

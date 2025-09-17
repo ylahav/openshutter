@@ -64,7 +64,9 @@ export default function AdminUsersPage() {
         const data = await response.json()
         
         if (data.success) {
-          console.log('Storage options loaded:', data.data)
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Storage options loaded:', data.data)
+          }
           setStorageOptions(data.data)
         } else {
           console.error('Failed to load storage options:', data.error)

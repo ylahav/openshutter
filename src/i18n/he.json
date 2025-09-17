@@ -2,7 +2,12 @@
   "navigation": {
     "home": "בית",
     "albums": "אלבומים",
-    "admin": "ניהול"
+    "admin": "ניהול",
+    "portfolio": "אלבומים",
+    "about": "אודות",
+    "services": "שירותים",
+    "blog": "בלוג",
+    "contact": "צור קשר"
   },
   "header": {
     "logout": "התנתק"
@@ -43,6 +48,17 @@
   "footer": {
     "allRightsReserved": "כל הזכויות שמורות",
     "systemDescription": "מערכת ניהול גלריית תמונות מקיפה"
+  },
+  "contact": {
+    "name": "שם",
+    "email": "אימייל",
+    "subject": "נושא",
+    "request": "בקשה",
+    "send": "שלח הודעה",
+    "sending": "שולח...",
+    "submitted": "ההודעה נשלחה בהצלחה.",
+    "failed": "שליחת ההודעה נכשלה.",
+    "validationRequired": "שם ואימייל הם שדות חובה."
   },
   "admin": {
     "adminPanel": "פאנל ניהול",
@@ -585,5 +601,11 @@
     "deactivate": "השבת",
     "allStatuses": "כל הסטטוסים",
     "search": "חפש"
+  },
+  "footer": {
+    "allRightsReserved": "כל הזכויות שמורות",
+    "photoLicensing": "רישיון תמונות",
+    "privacyPolicy": "מדיניות פרטיות",
+    "termsOfService": "תנאי שירות"
   }
 }

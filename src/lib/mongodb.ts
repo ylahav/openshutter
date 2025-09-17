@@ -43,14 +43,18 @@ if (process.env.NODE_ENV === 'development') {
 
 export async function connectToDatabase(): Promise<{ client: MongoClient; db: Db }> {
   try {
-    console.log('🔗 Attempting to connect to MongoDB...')
-    console.log('  - Using URI:', uri)
-    console.log('  - Database name:', process.env.MONGODB_DB || 'openshutter')
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔗 Attempting to connect to MongoDB...')
+      console.log('  - Using URI:', uri)
+      console.log('  - Database name:', process.env.MONGODB_DB || 'openshutter')
+    }
     
     const client = await clientPromise
     const db = client.db(process.env.MONGODB_DB || 'openshutter')
     
-    console.log('✅ MongoDB client created, testing connection...')
+    if (process.env.NODE_ENV === 'development') {
+      console.log('✅ MongoDB client created, testing connection...')
+    }
     
     // Test the connection with a timeout
     const pingPromise = db.admin().ping()
@@ -60,7 +64,9 @@ export async function connectToDatabase(): Promise<{ client: MongoClient; db: Db
     
     await Promise.race([pingPromise, timeoutPromise])
     
-    console.log('✅ MongoDB connection successful!')
+    if (process.env.NODE_ENV === 'development') {
+      console.log('✅ MongoDB connection successful!')
+    }
     return { client, db }
   } catch (error) {
     console.error('❌ Failed to connect to MongoDB:', error)

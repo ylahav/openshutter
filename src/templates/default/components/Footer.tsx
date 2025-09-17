@@ -1,43 +1,77 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import { useSiteConfig } from '@/hooks/useSiteConfig'
 import { MultiLangUtils } from '@/types/multi-lang'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useI18n } from '@/hooks/useI18n'
-import { useTemplateConfig } from '@/hooks/useTemplateConfig'
 
 export default function Footer() {
-  const { config, loading } = useSiteConfig()
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(false)
+  const { config, loading: configLoading } = useSiteConfig()
   const { currentLanguage } = useLanguage()
   const { t } = useI18n()
-  const { isComponentVisible } = useTemplateConfig()
 
+  // Get current year for copyright
   const currentYear = new Date().getFullYear()
 
-  const footerLinks = {
-    gallery: [
-      { name: t('navigation.home'), href: '/' },
-      { name: t('navigation.albums'), href: '/albums' },
-      { name: 'Featured Photos', href: '/photos?featured=true' },
-      { name: 'Recent Uploads', href: '/photos?recent=true' }
-    ],
-    about: [
-      { name: 'About Us', href: '/about' },
-      { name: 'Contact', href: '/contact' },
-      { name: 'Privacy Policy', href: '/privacy' },
-      { name: 'Terms of Service', href: '/terms' }
-    ]
+  // Get photographer/company name from site config
+  const getCompanyName = () => {
+    if (!config?.title) return 'OpenShutter'
+    return MultiLangUtils.getTextValue(config.title, currentLanguage) || 'OpenShutter'
   }
 
-  // Don't render until config is loaded
-  if (loading) {
+  // Social media links from site config
+  const socialMediaLinks = config?.contact?.socialMedia || {}
+
+  // Essential links
+  const essentialLinks = [
+    { name: t('footer.photoLicensing'), href: '/licensing' },
+    { name: t('footer.privacyPolicy'), href: '/privacy' },
+    { name: t('footer.termsOfService'), href: '/terms' }
+  ]
+
+  // Theme detection and toggle
+  useEffect(() => {
+    const checkTheme = () => {
+      const stored = localStorage.getItem('theme')
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+      setIsDarkMode(stored === 'dark' || (!stored && prefersDark))
+    }
+
+    // Listen for theme changes from header
+    const handleThemeChange = (event: CustomEvent) => {
+      const newTheme = event.detail.theme
+      const isDark = newTheme === 'dark'
+      setIsDarkMode(isDark)
+    }
+
+    checkTheme()
+    window.addEventListener('storage', checkTheme)
+    window.addEventListener('themeChanged', handleThemeChange as EventListener)
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', checkTheme)
+
+    return () => {
+      window.removeEventListener('storage', checkTheme)
+      window.removeEventListener('themeChanged', handleThemeChange as EventListener)
+      window.matchMedia('(prefers-color-scheme: dark)').removeEventListener('change', checkTheme)
+    }
+  }, [])
+
+
+  if (configLoading) {
     return (
-      <footer className="bg-gray-800 border-t border-gray-700">
-        <div className="max-w-6xl mx-auto px-6 py-12">
-          <div className="flex justify-center">
-            <div className="animate-pulse text-gray-400">Loading...</div>
+      <footer className="border-t border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="animate-pulse">
+            <div className="h-4 bg-gray-200 rounded w-1/3 mb-4"></div>
+            <div className="flex gap-4 mb-4">
+              <div className="w-6 h-6 bg-gray-200 rounded"></div>
+              <div className="w-6 h-6 bg-gray-200 rounded"></div>
+              <div className="w-6 h-6 bg-gray-200 rounded"></div>
+            </div>
+            <div className="h-3 bg-gray-200 rounded w-1/4"></div>
           </div>
         </div>
       </footer>
@@ -45,130 +79,211 @@ export default function Footer() {
   }
 
   return (
-    <footer className="bg-gray-800 border-t border-gray-700">
-      <div className="max-w-6xl mx-auto px-6 py-12">
-        {/* Main footer content - only show if footer menu is enabled */}
-        {isComponentVisible('footerMenu') && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
-            {/* Brand section */}
-            <div>
-              <div className="flex items-center space-x-3 mb-4">
-                {config?.logo ? (
-                  <div className="relative w-8 h-8 rounded overflow-hidden ring-2 ring-gray-600">
-                    <Image
-                      src={config.logo}
-                      alt={MultiLangUtils.getTextValue(config.title, currentLanguage)}
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                ) : (
-                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded flex items-center justify-center">
-                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                  </div>
-                )}
-                <span className="text-lg font-semibold text-white">
-                  {config?.title ? MultiLangUtils.getTextValue(config.title, currentLanguage) : 'OpenShutter'}
-                </span>
+    <footer 
+      className={`border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}
+      style={isDarkMode ? { backgroundColor: '#0f1114' } : { backgroundColor: '#fafafa' }}
+    >
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
+          {/* Copyright Information */}
+          <div className="md:col-span-1 flex justify-center md:justify-start">
+            <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+              © {currentYear} {getCompanyName()}. {t('footer.allRightsReserved')}.
+            </p>
+          </div>
+
+          {/* Social Media Links */}
+          <div className="md:col-span-1 flex justify-center">
+            <div className="flex space-x-2">
+              {socialMediaLinks.instagram && (
+                <a
+                  href={socialMediaLinks.instagram}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`p-2 rounded-lg transition-colors ${
+                    isDarkMode 
+                      ? 'text-gray-400 hover:text-white hover:bg-gray-800' 
+                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                  }`}
+                  aria-label="Instagram"
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 6.62 5.367 11.987 11.988 11.987s11.987-5.367 11.987-11.987C24.014 5.367 18.647.001 12.017.001zM8.449 16.988c-1.297 0-2.448-.49-3.323-1.297C4.198 14.895 3.708 13.744 3.708 12.447s.49-2.448 1.418-3.323c.875-.807 2.026-1.297 3.323-1.297s2.448.49 3.323 1.297c.928.875 1.418 2.026 1.418 3.323s-.49 2.448-1.418 3.244c-.875.807-2.026 1.297-3.323 1.297zm7.83-9.281c-.49 0-.928-.175-1.297-.49-.368-.315-.49-.753-.49-1.243 0-.49.122-.928.49-1.243.369-.315.807-.49 1.297-.49s.928.175 1.297.49c.368.315.49.753.49 1.243 0 .49-.122.928-.49 1.243-.369.315-.807.49-1.297.49z"/>
+                    <path d="M12.017 5.835c-3.323 0-6.012 2.689-6.012 6.012s2.689 6.012 6.012 6.012 6.012-2.689 6.012-6.012-2.689-6.012-6.012-6.012zm0 9.281c-1.802 0-3.269-1.467-3.269-3.269s1.467-3.269 3.269-3.269 3.269 1.467 3.269 3.269-1.467 3.269-3.269 3.269z"/>
+                  </svg>
+                </a>
+              )}
+              
+              {socialMediaLinks.facebook && (
+                <a
+                  href={socialMediaLinks.facebook}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`p-2 rounded-lg transition-colors ${
+                    isDarkMode 
+                      ? 'text-gray-400 hover:text-white hover:bg-gray-800' 
+                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                  }`}
+                  aria-label="Facebook"
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                  </svg>
+                </a>
+              )}
+              
+              {socialMediaLinks.linkedin && (
+                <a
+                  href={socialMediaLinks.linkedin}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`p-2 rounded-lg transition-colors ${
+                    isDarkMode 
+                      ? 'text-gray-400 hover:text-white hover:bg-gray-800' 
+                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                  }`}
+                  aria-label="LinkedIn"
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                  </svg>
+                </a>
+              )}
+
+              {socialMediaLinks.twitter && (
+                <a
+                  href={socialMediaLinks.twitter}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`p-2 rounded-lg transition-colors ${
+                    isDarkMode 
+                      ? 'text-gray-400 hover:text-white hover:bg-gray-800' 
+                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                  }`}
+                  aria-label="Twitter"
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
+                  </svg>
+                </a>
+              )}
               </div>
-              <div 
-                className="text-gray-400 text-sm leading-relaxed"
-                dangerouslySetInnerHTML={{ 
-                  __html: config?.description ? MultiLangUtils.getHTMLValue(config.description, currentLanguage) : 
-                  '<p>A sophisticated photo gallery platform for showcasing your memories with style.</p>'
-                }}
-              />
             </div>
 
-            {/* Gallery links */}
-            <div>
-              <h3 className="text-sm font-semibold text-white mb-4">
-                <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                  Gallery
-                </span>
-              </h3>
-              <ul className="space-y-2">
-                {footerLinks.gallery.map((link) => (
-                  <li key={link.name}>
-                    <Link
-                      href={link.href}
-                      className="text-sm text-gray-400 hover:text-white transition-colors duration-300 hover:translate-x-1 transform inline-block"
-                    >
-                      {link.name}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* About links */}
-            <div>
-              <h3 className="text-sm font-semibold text-white mb-4">
-                <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                  About
-                </span>
-              </h3>
-              <ul className="space-y-2">
-                {footerLinks.about.map((link) => (
-                  <li key={link.name}>
-                    <Link
-                      href={link.href}
-                      className="text-sm text-gray-400 hover:text-white transition-colors duration-300 hover:translate-x-1 transform inline-block"
-                    >
-                      {link.name}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
+          {/* Essential Links */}
+          <div className="md:col-span-1 flex justify-center md:justify-end">
+            <div className="flex flex-wrap gap-4 text-sm">
+              {essentialLinks.map((link) => (
+                <Link
+                  key={link.name}
+                  href={link.href}
+                  className={`transition-colors ${
+                    isDarkMode 
+                      ? 'text-gray-400 hover:text-white' 
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  {link.name}
+                </Link>
+              ))}
             </div>
           </div>
-        )}
-
-        {/* Bottom section - always show copyright and social icons */}
-        <div className={`border-t border-gray-700 ${isComponentVisible('footerMenu') ? 'pt-8' : 'pt-4'}`}>
-          <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-            <div className="text-sm text-gray-400">
-              © {currentYear} {config?.title ? MultiLangUtils.getTextValue(config.title, currentLanguage) : 'OpenShutter'}. All rights reserved.
-            </div>
+        </div>
             
-            <div className="flex items-center space-x-4">
-              <div className="text-sm text-gray-400">
-                Powered by OpenShutter
-              </div>
-              
-              {/* Social links */}
-              <div className="flex items-center space-x-3">
-                {config?.contact?.socialMedia?.twitter && (
-                  <a href={config.contact.socialMedia.twitter} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors duration-300">
+        {/* Mobile Layout - Stack vertically on small screens */}
+        <div className="md:hidden mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+          <div className="text-center space-y-4">
+            {/* Social Media Links - Centered */}
+            <div className="flex justify-center space-x-2">
+              {socialMediaLinks.instagram && (
+                <a
+                  href={socialMediaLinks.instagram}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`p-2 rounded-lg transition-colors ${
+                    isDarkMode 
+                      ? 'text-gray-400 hover:text-white hover:bg-gray-800' 
+                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                  }`}
+                  aria-label="Instagram"
+                >
                     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/>
+                    <path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 6.62 5.367 11.987 11.988 11.987s11.987-5.367 11.987-11.987C24.014 5.367 18.647.001 12.017.001zM8.449 16.988c-1.297 0-2.448-.49-3.323-1.297C4.198 14.895 3.708 13.744 3.708 12.447s.49-2.448 1.418-3.323c.875-.807 2.026-1.297 3.323-1.297s2.448.49 3.323 1.297c.928.875 1.418 2.026 1.418 3.323s-.49 2.448-1.418 3.244c-.875.807-2.026 1.297-3.323 1.297zm7.83-9.281c-.49 0-.928-.175-1.297-.49-.368-.315-.49-.753-.49-1.243 0-.49.122-.928.49-1.243.369-.315.807-.49 1.297-.49s.928.175 1.297.49c.368.315.49.753.49 1.243 0 .49-.122.928-.49 1.243-.369.315-.807.49-1.297.49z"/>
+                    <path d="M12.017 5.835c-3.323 0-6.012 2.689-6.012 6.012s2.689 6.012 6.012 6.012 6.012-2.689 6.012-6.012-2.689-6.012-6.012-6.012zm0 9.281c-1.802 0-3.269-1.467-3.269-3.269s1.467-3.269 3.269-3.269 3.269 1.467 3.269 3.269-1.467 3.269-3.269 3.269z"/>
                     </svg>
                   </a>
                 )}
-                {config?.contact?.socialMedia?.facebook && (
-                  <a href={config.contact.socialMedia.facebook} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors duration-300">
+              
+              {socialMediaLinks.facebook && (
+                <a
+                  href={socialMediaLinks.facebook}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`p-2 rounded-lg transition-colors ${
+                    isDarkMode 
+                      ? 'text-gray-400 hover:text-white hover:bg-gray-800' 
+                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                  }`}
+                  aria-label="Facebook"
+                >
                     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
                     </svg>
                   </a>
                 )}
-                {config?.contact?.socialMedia?.instagram && (
-                  <a href={config.contact.socialMedia.instagram} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors duration-300">
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.174-.105-.949-.199-2.403.041-3.439.219-.937 1.406-5.957 1.406-5.957s-.359-.72-.359-1.781c0-1.663.967-2.911 2.168-2.911 1.024 0 1.518.769 1.518 1.688 0 1.029-.653 2.567-.992 3.992-.285 1.193.6 2.165 1.775 2.165 2.128 0 3.768-2.245 3.768-5.487 0-2.861-2.063-4.869-5.008-4.869-3.41 0-5.409 2.562-5.409 5.199 0 1.033.394 2.143.889 2.741.099.12.112.225.085.345-.09.375-.293 1.199-.334 1.363-.053.225-.172.271-.402.165-1.495-.69-2.433-2.878-2.433-4.646 0-3.776 2.748-7.252 7.92-7.252 4.158 0 7.392 2.967 7.392 6.923 0 4.135-2.607 7.462-6.233 7.462-1.214 0-2.357-.629-2.746-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146C9.57 23.812 10.763 24.009 12.017 24.009c6.624 0 11.99-5.367 11.99-11.988C24.007 5.367 18.641.001.012.001z"/>
-                    </svg>
-                  </a>
-                )}
-                {config?.contact?.socialMedia?.linkedin && (
-                  <a href={config.contact.socialMedia.linkedin} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors duration-300">
+              
+              {socialMediaLinks.linkedin && (
+                <a
+                  href={socialMediaLinks.linkedin}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`p-2 rounded-lg transition-colors ${
+                    isDarkMode 
+                      ? 'text-gray-400 hover:text-white hover:bg-gray-800' 
+                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                  }`}
+                  aria-label="LinkedIn"
+                >
                     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
                     </svg>
                   </a>
                 )}
-              </div>
+
+              {socialMediaLinks.twitter && (
+                <a
+                  href={socialMediaLinks.twitter}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`p-2 rounded-lg transition-colors ${
+                    isDarkMode 
+                      ? 'text-gray-400 hover:text-white hover:bg-gray-800' 
+                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                  }`}
+                  aria-label="Twitter"
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
+                  </svg>
+                </a>
+              )}
+            </div>
+
+            {/* Essential Links - Centered */}
+            <div className="flex flex-wrap justify-center gap-4 text-sm">
+              {essentialLinks.map((link) => (
+                <Link
+                  key={link.name}
+                  href={link.href}
+                  className={`transition-colors ${
+                    isDarkMode 
+                      ? 'text-gray-400 hover:text-white' 
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  {link.name}
+                </Link>
+              ))}
             </div>
           </div>
         </div>

@@ -18,7 +18,9 @@ export class AwsS3Service implements IStorageService {
 
   constructor(config: Record<string, any>) {
     this.config = config
-    console.log('AwsS3Service constructor - config:', JSON.stringify(config, null, 2))
+    if (process.env.NODE_ENV === 'development') {
+      console.log('AwsS3Service constructor - config:', JSON.stringify(config, null, 2))
+    }
     this.initializeS3Client()
   }
 

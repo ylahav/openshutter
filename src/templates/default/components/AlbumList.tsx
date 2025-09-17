@@ -27,6 +27,7 @@ export default function AlbumList({
   const [albums, setAlbums] = useState<TemplateAlbum[]>(propAlbums || [])
   const [loading, setLoading] = useState(propLoading || false)
   const [error, setError] = useState<string | null>(propError || null)
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(false)
   const { t } = useI18n()
 
   useEffect(() => {
@@ -46,6 +47,33 @@ export default function AlbumList({
       setError(propError)
     }
   }, [propError])
+
+  // Theme detection
+  useEffect(() => {
+    const checkTheme = () => {
+      const stored = localStorage.getItem('theme')
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+      setIsDarkMode(stored === 'dark' || (!stored && prefersDark))
+    }
+
+    // Listen for theme changes from header
+    const handleThemeChange = (event: CustomEvent) => {
+      const newTheme = event.detail.theme
+      const isDark = newTheme === 'dark'
+      setIsDarkMode(isDark)
+    }
+
+    checkTheme()
+    window.addEventListener('storage', checkTheme)
+    window.addEventListener('themeChanged', handleThemeChange as EventListener)
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', checkTheme)
+
+    return () => {
+      window.removeEventListener('storage', checkTheme)
+      window.removeEventListener('themeChanged', handleThemeChange as EventListener)
+      window.matchMedia('(prefers-color-scheme: dark)').removeEventListener('change', checkTheme)
+    }
+  }, [])
 
   // Filter albums if needed
   const filteredAlbums = showFeatured 
@@ -90,38 +118,30 @@ export default function AlbumList({
   }
 
   return (
-    <section className={`py-12 bg-gray-50 ${className}`}>
+    <section className={`py-12 ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'} ${className}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">
-            {title || t('albums.galleryTitle')}
-          </h2>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            {subtitle || t('albums.gallerySubtitle')}
-          </p>
-        </div>
 
-        {/* Albums Grid */}
+        {/* Albums Masonry Grid */}
         {filteredAlbums.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredAlbums.map((album) => (
-              <AlbumCard
-                key={album._id}
-                album={album}
-                className="h-full"
-              />
+          <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-6 [column-fill:_balance]"><div className="[&>*]:mb-6">
+            {filteredAlbums.map((album, idx) => (
+              <div key={album._id} className={`break-inside-avoid ${idx % 5 === 0 ? 'transform md:translate-y-2' : idx % 7 === 0 ? 'transform md:-translate-y-2' : ''}`}>
+                <AlbumCard
+                  album={album}
+                  className="h-full shadow-sm hover:shadow-md transition-shadow duration-300"
+                />
+              </div>
             ))}
-          </div>
+          </div></div>
         ) : (
           <div className="text-center py-12">
-            <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className={`mx-auto h-12 w-12 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
             </svg>
-            <h3 className="mt-2 text-sm font-medium text-gray-900">
+            <h3 className={`mt-2 text-sm font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
               {showFeatured ? t('albums.noFeaturedTitle', 'No featured albums') : t('albums.noAlbumsTitle')}
             </h3>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className={`mt-1 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
               {showFeatured 
                 ? t('albums.noFeaturedText', 'No albums have been marked as featured yet.')
                 : t('albums.noAlbumsText')

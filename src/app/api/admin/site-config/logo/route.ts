@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     await fs.writeFile(filePath, buffer)
     
     // Update site configuration with new logo URL
-    const logoUrl = `/logos/${filename}`
+    const logoUrl = `/api/logos/${filename}`
     const updatedConfig = await siteConfigService.updateConfig({ logo: logoUrl })
 
     return NextResponse.json({
@@ -77,7 +77,7 @@ export async function DELETE(request: NextRequest) {
     
     if (currentConfig.logo) {
       // Extract the filename from the logo URL
-      const filename = currentConfig.logo.replace('/logos/', '')
+      const filename = currentConfig.logo.replace('/api/logos/', '')
       
       try {
         // Delete the logo file from public folder

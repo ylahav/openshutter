@@ -57,7 +57,9 @@ export async function POST(request: NextRequest) {
         }
       } catch (error) {
         // Directory doesn't exist, skip it
-        console.log(`Directory ${dir} doesn't exist, skipping...`)
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`Directory ${dir} doesn't exist, skipping...`)
+        }
       }
     }
 

@@ -2,7 +2,12 @@
   "navigation": {
     "home": "Home",
     "albums": "Albums",
-    "admin": "Admin"
+    "admin": "Admin",
+    "portfolio": "Albums",
+    "about": "About",
+    "services": "Services",
+    "blog": "Blog",
+    "contact": "Contact"
   },
   "header": {
     "logout": "Logout"
@@ -43,6 +48,17 @@
   "footer": {
     "allRightsReserved": "All rights reserved",
     "systemDescription": "A comprehensive photo gallery management system"
+  },
+  "contact": {
+    "name": "Name",
+    "email": "Email",
+    "subject": "Subject",
+    "request": "Request",
+    "send": "Send Message",
+    "sending": "Sending...",
+    "submitted": "Your message has been sent.",
+    "failed": "Failed to send your message.",
+    "validationRequired": "Name and email are required."
   },
   "admin": {
     "adminPanel": "Admin Panel",
@@ -596,5 +612,11 @@
     "deactivate": "Deactivate",
     "allStatuses": "All Statuses",
     "search": "Search"
+  },
+  "footer": {
+    "allRightsReserved": "All Rights Reserved",
+    "photoLicensing": "Photo Licensing",
+    "privacyPolicy": "Privacy Policy",
+    "termsOfService": "Terms of Service"
   }
 }

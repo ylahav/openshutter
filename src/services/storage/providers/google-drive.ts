@@ -461,27 +461,37 @@ export class GoogleDriveService implements IStorageService {
 
   private async getFileIdByPath(filePath: string): Promise<string | null> {
     try {
-      console.log(`GoogleDriveService: Getting file ID for path: ${filePath}`)
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`GoogleDriveService: Getting file ID for path: ${filePath}`)
+      }
       
       const pathParts = filePath.split('/').filter(Boolean)
       if (pathParts.length === 0) {
-        console.log(`GoogleDriveService: Empty path parts for: ${filePath}`)
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`GoogleDriveService: Empty path parts for: ${filePath}`)
+        }
         return null
       }
 
       const fileName = pathParts[pathParts.length - 1]
       const folderPath = pathParts.slice(0, -1).join('/')
       
-      console.log(`GoogleDriveService: File name: ${fileName}, folder path: ${folderPath}`)
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`GoogleDriveService: File name: ${fileName}, folder path: ${folderPath}`)
+      }
       
       let parentFolderId = this.config.folderId
       if (folderPath) {
         parentFolderId = await this.getFolderIdByPath(folderPath) || this.config.folderId
-        console.log(`GoogleDriveService: Resolved folder path to ID: ${parentFolderId}`)
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`GoogleDriveService: Resolved folder path to ID: ${parentFolderId}`)
+        }
       }
 
       const query = `'${parentFolderId}' in parents and name='${fileName}' and mimeType!='application/vnd.google-apps.folder' and trashed=false`
-      console.log(`GoogleDriveService: Searching with query: ${query}`)
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`GoogleDriveService: Searching with query: ${query}`)
+      }
 
       const response = await this.drive.files.list({
         q: query,
@@ -490,7 +500,9 @@ export class GoogleDriveService implements IStorageService {
       })
 
       const fileId = response.data.files && response.data.files.length > 0 ? response.data.files[0].id : null
-      console.log(`GoogleDriveService: Found file ID: ${fileId} for path: ${filePath}`)
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`GoogleDriveService: Found file ID: ${fileId} for path: ${filePath}`)
+      }
       
       return fileId
     } catch (error) {
@@ -557,28 +569,38 @@ export class GoogleDriveService implements IStorageService {
 
   async getFileBuffer(filePath: string): Promise<Buffer | null> {
     try {
-      console.log(`GoogleDriveService: Getting file buffer for path: ${filePath}`)
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`GoogleDriveService: Getting file buffer for path: ${filePath}`)
+      }
       
       // Ensure we have a valid access token
       if (!this.config.accessToken || (this.config.tokenExpiry && new Date() >= this.config.tokenExpiry)) {
-        console.log('GoogleDriveService: Refreshing access token for getFileBuffer...')
+        if (process.env.NODE_ENV === 'development') {
+          console.log('GoogleDriveService: Refreshing access token for getFileBuffer...')
+        }
         await this.refreshAccessToken()
       }
 
       const fileId = await this.getFileIdByPath(filePath)
       if (!fileId) {
-        console.log(`GoogleDriveService: Could not find file ID for path: ${filePath}`)
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`GoogleDriveService: Could not find file ID for path: ${filePath}`)
+        }
         return null
       }
 
-      console.log(`GoogleDriveService: Found file ID: ${fileId} for path: ${filePath}`)
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`GoogleDriveService: Found file ID: ${fileId} for path: ${filePath}`)
+      }
 
       const response = await this.drive.files.get({
         fileId: fileId,
         alt: 'media'
       })
 
-      console.log(`GoogleDriveService: Successfully downloaded file, size: ${response.data.length} bytes`)
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`GoogleDriveService: Successfully downloaded file, size: ${response.data.length} bytes`)
+      }
       
       // Handle different response data types
       if (response.data instanceof Buffer) {
@@ -591,7 +613,9 @@ export class GoogleDriveService implements IStorageService {
         return Buffer.from(response.data, 'binary')
       } else {
         // For Blob or other types, try to convert to ArrayBuffer first
-        console.log(`GoogleDriveService: Response data type: ${typeof response.data}, constructor: ${response.data.constructor.name}`)
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`GoogleDriveService: Response data type: ${typeof response.data}, constructor: ${response.data.constructor.name}`)
+        }
         if (response.data.arrayBuffer) {
           const arrayBuffer = await response.data.arrayBuffer()
           return Buffer.from(arrayBuffer)

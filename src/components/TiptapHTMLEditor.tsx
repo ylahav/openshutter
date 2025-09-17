@@ -17,7 +17,7 @@ import Code from '@tiptap/extension-code'
 import HardBreak from '@tiptap/extension-hard-break'
 import HorizontalRule from '@tiptap/extension-horizontal-rule'
 import Link from '@tiptap/extension-link'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 interface TiptapHTMLEditorProps {
   value: string
@@ -40,8 +40,7 @@ export default function TiptapHTMLEditor({
   const [linkUrl, setLinkUrl] = useState('')
   const [linkText, setLinkText] = useState('')
 
-  const editor = useEditor({
-    extensions: [
+  const extensions = useMemo(() => [
       StarterKit.configure({
         // Disable some default extensions we'll configure individually
         heading: false,
@@ -80,7 +79,10 @@ export default function TiptapHTMLEditor({
           class: 'text-blue-600 underline cursor-pointer hover:text-blue-800',
         },
       }),
-    ],
+  ], [])
+
+  const editor = useEditor({
+    extensions,
     content: value,
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML())

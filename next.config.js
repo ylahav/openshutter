@@ -58,6 +58,7 @@ const nextConfig = {
   },
 
   // Output and optimization
+  output: 'standalone',
   outputFileTracingRoot: process.cwd(),
   trailingSlash: false,
   reactStrictMode: true,

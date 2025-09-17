@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { MultiLangUtils } from '@/types/multi-lang'
@@ -14,6 +15,7 @@ interface AlbumCardProps {
 }
 
 export default function AlbumCard({ album, className = '' }: AlbumCardProps) {
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(false)
   const { currentLanguage } = useLanguage()
   const { t } = useI18n()
   const displayName = MultiLangUtils.getTextValue(album.name as any, currentLanguage)
@@ -21,13 +23,48 @@ export default function AlbumCard({ album, className = '' }: AlbumCardProps) {
   const { url: coverImageUrl, loading: coverImageLoading } = useAlbumCoverImage(album._id)
   const childAlbumCount = (album as any).childAlbumCount ?? 0
 
+  // Theme detection
+  useEffect(() => {
+    const checkTheme = () => {
+      const stored = localStorage.getItem('theme')
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+      setIsDarkMode(stored === 'dark' || (!stored && prefersDark))
+    }
+
+    // Listen for theme changes from header
+    const handleThemeChange = (event: CustomEvent) => {
+      const newTheme = event.detail.theme
+      const isDark = newTheme === 'dark'
+      setIsDarkMode(isDark)
+    }
+
+    checkTheme()
+    window.addEventListener('storage', checkTheme)
+    window.addEventListener('themeChanged', handleThemeChange as EventListener)
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', checkTheme)
+
+    return () => {
+      window.removeEventListener('storage', checkTheme)
+      window.removeEventListener('themeChanged', handleThemeChange as EventListener)
+      window.matchMedia('(prefers-color-scheme: dark)').removeEventListener('change', checkTheme)
+    }
+  }, [])
+
   return (
     <Link href={`/albums/${album.alias}`}>
       <div 
-        className={`group relative bg-white overflow-hidden border border-gray-100 cursor-pointer hover:shadow-lg transition-shadow duration-300 h-80 flex flex-col ${className}`}
+        className={`group relative overflow-hidden cursor-pointer hover:shadow-lg transition-shadow duration-300 rounded-xl ${
+          isDarkMode 
+            ? 'bg-gray-800 border border-gray-700 hover:shadow-2xl' 
+            : 'bg-white border border-gray-100'
+        } ${className}`}
       >
       {/* Cover Image */}
-      <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden flex-shrink-0">
+      <div className={`relative h-56 overflow-hidden flex-shrink-0 ${
+        isDarkMode 
+          ? 'bg-gradient-to-br from-gray-700 to-gray-800' 
+          : 'bg-gradient-to-br from-gray-100 to-gray-200'
+      }`}>
         {!coverImageLoading && coverImageUrl ? (
           <img
             src={coverImageUrl}
@@ -46,21 +83,33 @@ export default function AlbumCard({ album, className = '' }: AlbumCardProps) {
         
         {/* Loading state */}
         {coverImageLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
+          <div className={`absolute inset-0 flex items-center justify-center ${
+            isDarkMode 
+              ? 'bg-gradient-to-br from-gray-700 to-gray-800' 
+              : 'bg-gradient-to-br from-gray-100 to-gray-200'
+          }`}>
             <div className="text-center">
-              <div className="w-8 h-8 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin mx-auto mb-2"></div>
-              <p className="text-xs text-gray-500">Loading...</p>
+              <div className={`w-8 h-8 border-2 rounded-full animate-spin mx-auto mb-2 ${
+                isDarkMode 
+                  ? 'border-gray-600 border-t-blue-400' 
+                  : 'border-gray-300 border-t-blue-500'
+              }`}></div>
+              <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Loading...</p>
             </div>
           </div>
         )}
         
         {/* Placeholder */}
-        <div className={`absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200 ${(!coverImageLoading && coverImageUrl) ? 'hidden' : ''}`}>
+        <div className={`absolute inset-0 flex items-center justify-center ${
+          isDarkMode 
+            ? 'bg-gradient-to-br from-gray-700 to-gray-800' 
+            : 'bg-gradient-to-br from-gray-100 to-gray-200'
+        } ${(!coverImageLoading && coverImageUrl) ? 'hidden' : ''}`}>
           <div className="text-center">
-            <svg className="w-16 h-16 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className={`w-16 h-16 mx-auto mb-2 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
             </svg>
-            <p className="text-xs text-gray-500">{t('noCoverImage')}</p>
+            <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{t('noCoverImage')}</p>
           </div>
         </div>
         
@@ -77,18 +126,28 @@ export default function AlbumCard({ album, className = '' }: AlbumCardProps) {
       </div>
 
       {/* Content */}
-      <div className="p-6 bg-white flex-1 flex flex-col">
-        <h3 className="text-xl font-bold text-gray-900 mb-3 transition-colors duration-200 line-clamp-1 group-hover:text-blue-600">
+      <div className={`p-5 flex-1 flex flex-col ${
+        isDarkMode ? 'bg-gray-800' : 'bg-white'
+      }`}>
+        <h3 className={`text-lg font-bold mb-2 transition-colors duration-200 line-clamp-1 group-hover:text-blue-600 ${
+          isDarkMode ? 'text-white' : 'text-gray-900'
+        }`}>
           {displayName}
         </h3>
         
         <div 
-          className="text-gray-600 text-sm mb-4 line-clamp-2 leading-relaxed flex-1"
+          className={`text-sm mb-4 line-clamp-2 leading-relaxed flex-1 ${
+            isDarkMode ? 'text-gray-300' : 'text-gray-600'
+          }`}
           dangerouslySetInnerHTML={{ __html: displayDesc }}
         />
         
-        <div className="flex items-center justify-between pt-4 border-t border-gray-100 mt-auto">
-          <div className="flex items-center text-sm text-gray-500">
+        <div className={`flex items-center justify-between pt-4 border-t mt-auto ${
+          isDarkMode ? 'border-gray-700' : 'border-gray-100'
+        }`}>
+          <div className={`flex items-center text-sm ${
+            isDarkMode ? 'text-gray-400' : 'text-gray-500'
+          }`}>
 
             {typeof album.photoCount === 'number' && album.photoCount > 0 && (
               <>
@@ -109,12 +168,12 @@ export default function AlbumCard({ album, className = '' }: AlbumCardProps) {
               </>
             )}
             {album.photoCount === 0 && childAlbumCount === 0 && (
-              <span className="text-gray-400 text-sm">{t('emptyAlbum')}</span>
+              <span className={`text-sm ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>{t('emptyAlbum')}</span>
             )}
           </div>
           
           {album.createdAt && (
-            <div className="text-xs text-gray-400">
+            <div className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
               {new Date(album.createdAt as any).toLocaleDateString()}
             </div>
           )}

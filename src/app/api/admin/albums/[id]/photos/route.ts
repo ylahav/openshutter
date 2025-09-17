@@ -31,12 +31,13 @@ export async function GET(
     }
 
     // Get photos from this album (handle both string and ObjectId albumId formats)
+    // Admins should see all photos regardless of publication state
     const photos = await db.collection('photos').find({
       $or: [
         { albumId: id },
-        { albumId: new ObjectId(id) }
-      ],
-      isPublished: true
+        { albumId: new ObjectId(id) },
+        { $expr: { $eq: [ { $toString: "$albumId" }, id ] } }
+      ]
     }).project({
       _id: 1,
       title: 1,
@@ -44,48 +45,52 @@ export async function GET(
       storage: 1,
       metadata: 1,
       dimensions: 1,
-      createdAt: 1
+      createdAt: 1,
+      isPublished: 1,
+      isLeading: 1,
+      isGalleryLeading: 1
     }).sort({ createdAt: -1 }).toArray()
 
-    // If no photos in this album, get photos from child albums
+    // Always also fetch photos from child albums for a complete view
     let childAlbumPhotos = []
-    if (photos.length === 0) {
-      // Get child albums (handle both string and ObjectId parentAlbumId formats)
-      const childAlbums = await db.collection('albums').find({
+    // Get child albums (handle both string and ObjectId parentAlbumId formats)
+    const childAlbums = await db.collection('albums').find({
+      $or: [
+        { parentAlbumId: new ObjectId(id) },
+        { parentAlbumId: id }
+      ]
+    }).toArray()
+
+    // Get photos from each child album (all photos for admin)
+    for (const childAlbum of childAlbums) {
+      const childPhotos = await db.collection('photos').find({
         $or: [
-          { parentAlbumId: new ObjectId(id) },
-          { parentAlbumId: id }
+          { albumId: childAlbum._id },
+          { albumId: childAlbum._id.toString() },
+          { $expr: { $eq: [ { $toString: "$albumId" }, childAlbum._id.toString() ] } }
         ]
-      }).toArray()
+      }).project({
+        _id: 1,
+        title: 1,
+        filename: 1,
+        storage: 1,
+        metadata: 1,
+        dimensions: 1,
+        createdAt: 1,
+        albumId: 1,
+        isPublished: 1,
+        isLeading: 1,
+        isGalleryLeading: 1
+      }).sort({ createdAt: -1 }).toArray()
 
-      // Get photos from each child album
-      for (const childAlbum of childAlbums) {
-        const childPhotos = await db.collection('photos').find({
-          $or: [
-            { albumId: childAlbum._id },
-            { albumId: childAlbum._id.toString() }
-          ],
-          isPublished: true
-        }).project({
-          _id: 1,
-          title: 1,
-          filename: 1,
-          storage: 1,
-          metadata: 1,
-          dimensions: 1,
-          createdAt: 1,
-          albumId: 1
-        }).sort({ createdAt: -1 }).toArray() // Get all photos from child albums
-
-        childAlbumPhotos.push(...childPhotos.map(photo => ({
-          ...photo,
-          sourceAlbum: {
-            _id: childAlbum._id,
-            name: childAlbum.name,
-            alias: childAlbum.alias
-          }
-        })))
-      }
+      childAlbumPhotos.push(...childPhotos.map(photo => ({
+        ...photo,
+        sourceAlbum: {
+          _id: childAlbum._id,
+          name: childAlbum.name,
+          alias: childAlbum.alias
+        }
+      })))
     }
 
     return NextResponse.json({

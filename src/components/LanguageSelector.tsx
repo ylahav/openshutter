@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { SUPPORTED_LANGUAGES, LanguageCode } from '@/types/multi-lang'
 import { useSiteConfig } from '@/hooks/useSiteConfig'
 
@@ -23,6 +24,9 @@ export function LanguageSelector({
 }: LanguageSelectorProps) {
   const { config } = useSiteConfig()
   const [isOpen, setIsOpen] = useState(false)
+  const buttonRef = useRef<HTMLButtonElement | null>(null)
+  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({})
+  const [mounted, setMounted] = useState(false)
 
   // Get active languages from site config, fallback to all supported languages
   const activeLanguages = config?.languages?.activeLanguages || ['en']
@@ -42,10 +46,21 @@ export function LanguageSelector({
     setIsOpen(false)
   }
 
+  // Position dropdown using viewport-fixed coordinates to avoid being clipped/covered
+  useEffect(() => {
+    setMounted(true)
+    if (!isOpen || !buttonRef.current) return
+    const rect = buttonRef.current.getBoundingClientRect()
+    const top = rect.bottom + 4 // small gap
+    const left = rect.right - 192 // width: 192px (w-48)
+    setDropdownStyle({ top, left, position: 'fixed' as const })
+  }, [isOpen])
+
   return (
-    <div className={`relative ${className}`}>
+    <div className={`relative z-[2000] ${className}`}>
       {/* Current Language Display */}
       <button
+        ref={buttonRef}
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={`
@@ -55,6 +70,7 @@ export function LanguageSelector({
           ${compact ? 'text-sm' : 'text-base'}
         `}
         style={{ color: '#111827' }}
+        
         aria-haspopup="listbox"
         aria-expanded={isOpen}
       >
@@ -85,13 +101,17 @@ export function LanguageSelector({
         <>
           {/* Backdrop */}
           <div
-            className="fixed inset-0 z-10"
+            className="fixed inset-0 z-[2999]"
             onClick={() => setIsOpen(false)}
           />
           
-          {/* Dropdown Menu */}
-          <div className="absolute right-0 mt-1 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-20">
-            <ul className="py-1">
+          {/* Dropdown Menu via portal */}
+          {mounted && createPortal(
+            <div
+              className="fixed w-48 bg-white border border-gray-200 rounded-md shadow-lg z-[3000] pointer-events-auto"
+              style={dropdownStyle}
+            >
+              <ul className="py-1">
               {availableLanguages.map((language) => {
                 const isSelected = language.code === currentLanguage
                 const isRTL = language.isRTL
@@ -147,8 +167,9 @@ export function LanguageSelector({
                   </li>
                 )
               })}
-            </ul>
-          </div>
+              </ul>
+            </div>, document.body)
+          }
         </>
       )}
     </div>

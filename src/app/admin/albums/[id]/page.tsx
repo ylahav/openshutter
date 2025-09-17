@@ -111,12 +111,17 @@ export default function AdminAlbumDetailPage({ params }: { params: Promise<{ id:
 
     const fetchPhotos = async () => {
       try {
-        const response = await fetch(`/api/albums/${resolvedParams.id}/photos`)
+        // Use admin endpoint and include photos from child albums
+        const response = await fetch(`/api/admin/albums/${resolvedParams.id}/photos`)
         if (response.ok) {
           const result = await response.json()
           if (result.success) {
-            setPhotos(result.data)
+            const albumPhotos = Array.isArray(result.data?.albumPhotos) ? result.data.albumPhotos : []
+            const childAlbumPhotos = Array.isArray(result.data?.childAlbumPhotos) ? result.data.childAlbumPhotos : []
+            setPhotos([...albumPhotos, ...childAlbumPhotos])
           }
+        } else {
+          console.error('Failed to fetch photos: HTTP', response.status)
         }
       } catch (error) {
         console.error('Failed to fetch photos:', error)

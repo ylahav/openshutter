@@ -84,9 +84,10 @@ export default function Header() {
   }
 
   return (
-    <header className="bg-white shadow-sm border-b border-gray-200">
+    <>
+      <header className="fixed top-0 left-0 right-0 z-[1000] bg-white shadow-sm border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+        <div className="flex justify-between items-center h-20">
           {/* Logo */}
           <div className="flex items-center">
             <Link href="/" className="flex items-center space-x-3">
@@ -96,7 +97,7 @@ export default function Header() {
                     src={config.logo} 
                     alt={MultiLangUtils.getTextValue(config?.title, currentLanguage) || 'OpenShutter'} 
                     className="w-10 h-10 object-contain shrink-0"
-                    onLoad={() => console.log('Logo loaded successfully:', config.logo)}
+                    onLoad={() => process.env.NODE_ENV === 'development' && console.log('Logo loaded successfully:', config.logo)}
                     onError={(e) => console.error('Logo failed to load:', config.logo, e)}
                   />
                 </>
@@ -231,6 +232,9 @@ export default function Header() {
           </div>
         )}
       </div>
-    </header>
+      </header>
+      {/* Spacer to offset fixed header height */}
+      <div className="h-20" />
+    </>
   )
 }
