@@ -2,6 +2,8 @@
   "navigation": {
     "home": "בית",
     "albums": "אלבומים",
+    "about": "אודות",
+    "contact": "צור קשר",
     "admin": "ניהול"
   },
   "header": {
@@ -18,7 +20,8 @@
     "noAlbumsTitle": "אין אלבומים עדיין",
     "noAlbumsText": "אין אלבומים ציבוריים זמינים כרגע.",
     "galleryTitle": "גלריה",
-    "gallerySubtitle": "חקור את אוספי התמונות שלנו"
+    "gallerySubtitle": "חקור את אוספי התמונות שלנו",
+    "openAlbum": "פתח אלבום"
   },
   "loading": {
     "loading": "טוען...",
@@ -26,6 +29,7 @@
   },
   "auth": {
     "signIn": "התחבר",
+    "login": "התחבר",
     "signingIn": "מתחבר...",
     "signInTo": "התחבר ל-OpenShutter",
     "accessAdminPanel": "גש לפאנל הניהול של גלריית התמונות שלך",

@@ -1,195 +1,108 @@
-'use client'
+'use client';
+import React, { useEffect, useState } from 'react';
+import { useSiteConfig } from '@/hooks/useSiteConfig';
+import { MultiLangUtils } from '@/types/multi-lang';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { useI18n } from '@/hooks/useI18n';
 
-import { useState, useEffect } from 'react'
-import Link from 'next/link'
-import Image from 'next/image'
-import { useI18n } from '@/hooks/useI18n'
-import { MultiLangUtils } from '@/types/multi-lang'
-import { useLanguage } from '@/contexts/LanguageContext'
-
-interface Photo {
-  _id: string
-  title: Record<string, string> | string
-  storage: {
-    url: string
-    path: string
-    provider: string
-  }
+interface Photo { 
+  _id: string;
+  title: Record<string, string> | string;
+  storage: { url: string; thumbnailPath?: string };
 }
 
-interface SiteConfig {
-  title: any
-  description: any
-}
+const Hero: React.FC = () => {
+  const [photos, setPhotos] = useState<Photo[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+  const { config } = useSiteConfig();
+  const { currentLanguage } = useLanguage();
+  const { t } = useI18n();
 
-interface HeroProps {
-  title?: string
-  subtitle?: string
-  ctaText?: string
-  ctaLink?: string
-  backgroundImage?: string
-}
-
-export default function Hero({
-  title,
-  subtitle,
-  ctaText = "Explore Gallery",
-  ctaLink = "/albums",
-  backgroundImage
-}: HeroProps) {
-  const [galleryPhotos, setGalleryPhotos] = useState<Photo[]>([])
-  const [siteConfig, setSiteConfig] = useState<SiteConfig | null>(null)
-  const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0)
-  const [loading, setLoading] = useState(true)
-  const { currentLanguage, isRTL } = useLanguage()
-  const { t } = useI18n()
-
-  // Get the correct arrow direction based on RTL
-  const getArrowPath = () => isRTL ? "M15 19l-7-7 7-7" : "M9 5l7 7-7 7"
+  // Configurable rotation interval (in seconds)
+  const ROTATION_INTERVAL = 15;
 
   useEffect(() => {
-    const fetchGalleryPhotos = async () => {
+    const fetchPhotos = async () => {
       try {
-        const response = await fetch('/api/photos/gallery-leading?limit=3')
-        if (response.ok) {
-          const data = await response.json()
-          if (data.success) {
-            setGalleryPhotos(data.data)
-          }
+        const res = await fetch('/api/photos/gallery-leading?limit=10');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success) setPhotos(data.data);
         }
-      } catch (error) {
-        console.error('Failed to fetch gallery photos:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
+      } catch {}
+      finally { setLoading(false); }
+    };
+    fetchPhotos();
+  }, []);
 
-    const fetchSiteConfig = async () => {
-      try {
-        const response = await fetch('/api/site-config')
-        if (response.ok) {
-          const data = await response.json()
-          if (data.success) {
-            setSiteConfig(data.data)
-          }
-        }
-      } catch (error) {
-        console.error('Failed to fetch site config:', error)
-      }
-    }
-
-    fetchGalleryPhotos()
-    fetchSiteConfig()
-  }, [])
-
-  // Auto-rotate background photos
+  // Auto-rotate photos
   useEffect(() => {
-    if (galleryPhotos.length > 1) {
+    if (photos.length > 1) {
       const interval = setInterval(() => {
-        setCurrentPhotoIndex((prev) => (prev + 1) % galleryPhotos.length)
-      }, 8000)
-      return () => clearInterval(interval)
+        setCurrentPhotoIndex((prev) => (prev + 1) % photos.length);
+      }, ROTATION_INTERVAL * 1000);
+      return () => clearInterval(interval);
     }
-    return undefined
-  }, [galleryPhotos.length])
+    return undefined;
+  }, [photos.length]);
 
-  const getDisplayTitle = () => {
-    if (title) return title
-    if (siteConfig?.title) {
-      return MultiLangUtils.getTextValue(siteConfig.title, currentLanguage)
-    }
-    return t('hero.title')
+  if (!loading && photos.length === 0) {
+    return null;
   }
 
-  const getDisplaySubtitle = () => {
-    if (subtitle) return subtitle
-    if (siteConfig?.description) {
-      // Strip HTML tags for plain text display
-      const htmlContent = MultiLangUtils.getHTMLValue(siteConfig.description, currentLanguage)
-      return htmlContent.replace(/<[^>]*>/g, '')
-    }
-    return t('hero.subtitle')
-  }
-
-  const currentPhoto = galleryPhotos[currentPhotoIndex]
+  // Get title and description from site config or fallback
+  const title = config?.title ? MultiLangUtils.getTextValue(config.title, currentLanguage) : 'Photography';
+  const description = config?.description ? MultiLangUtils.getHTMLValue(config.description, currentLanguage) : 'Capturing moments with simplicity and elegance through the art of visual storytelling.';
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center bg-white">
-      {/* Subtle background pattern */}
-      <div className="absolute inset-0 opacity-5">
-        <div className="absolute inset-0" style={{
-          backgroundImage: `radial-gradient(circle at 1px 1px, #000 1px, transparent 0)`,
-          backgroundSize: '20px 20px'
-        }}></div>
-      </div>
-
-      {/* Background photo overlay - very subtle */}
-      {currentPhoto && (
-        <div className="absolute inset-0 opacity-5">
-          <Image
-            src={currentPhoto.storage.url}
-            alt={MultiLangUtils.getTextValue(currentPhoto.title, currentLanguage)}
-            fill
-            className="object-cover transition-opacity duration-2000"
-            priority
+    <section className="minimal-hero">
+      {/* Background Image */}
+      {!loading && photos.length > 0 && (
+        <div className="minimal-hero-bg">
+          <img
+            key={photos[currentPhotoIndex]._id}
+            src={photos[currentPhotoIndex].storage.thumbnailPath || photos[currentPhotoIndex].storage.url}
+            alt={typeof photos[currentPhotoIndex].title === 'string' ? photos[currentPhotoIndex].title : MultiLangUtils.getTextValue(photos[currentPhotoIndex].title, currentLanguage)}
+            className="minimal-hero-bg-image"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+            }}
           />
         </div>
       )}
 
-      {/* Main content */}
-      <div className="relative z-10 max-w-4xl mx-auto px-6 text-center">
-        {/* Main heading */}
-        <h1 className="text-5xl md:text-7xl font-light text-gray-900 mb-8 leading-tight tracking-tight">
-          {getDisplayTitle()}
+      {/* Hero Content */}
+      <div className="minimal-hero-content">
+        <h1 className="minimal-hero-title">
+          {title}
         </h1>
-
-        {/* Subtitle */}
-        <p className="text-lg md:text-xl text-gray-600 mb-12 max-w-2xl mx-auto leading-relaxed font-light">
-          {getDisplaySubtitle()}
-        </p>
-
-        {/* CTA Button */}
-        <div className="flex justify-center">
-          <Link
-            href={ctaLink}
-            className="group inline-flex items-center px-8 py-4 border-2 border-gray-900 text-gray-900 font-medium hover:bg-gray-900 hover:text-white transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:ring-offset-2"
-          >
-            <span className="mr-3">{ctaText}</span>
-            <svg 
-              className="w-4 h-4 transition-transform group-hover:translate-x-1" 
-              fill="none" 
-              stroke="currentColor" 
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={getArrowPath()} />
-            </svg>
-          </Link>
-        </div>
-
-        {/* Photo indicators - minimal */}
-        {galleryPhotos.length > 1 && (
-          <div className="flex justify-center mt-16 space-x-2">
-            {galleryPhotos.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => setCurrentPhotoIndex(index)}
-                className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                  index === currentPhotoIndex 
-                    ? 'bg-gray-900' 
-                    : 'bg-gray-300 hover:bg-gray-600'
-                }`}
-              />
-            ))}
-          </div>
-        )}
+        <div 
+          className="minimal-hero-description"
+          dangerouslySetInnerHTML={{ __html: description }}
+        />
       </div>
 
-      {/* Scroll indicator - minimal */}
-      <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2">
-        <div className="w-px h-12 bg-gray-300">
-          <div className="w-px h-6 bg-gray-900 animate-pulse"></div>
-        </div>
+      {/* Scroll Indicator */}
+      <div className="minimal-scroll-indicator">
+        <div className="minimal-scroll-line"></div>
       </div>
+
+      {/* Photo indicators */}
+      {!loading && photos.length > 1 && (
+        <div className="minimal-photo-indicators">
+          {photos.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => setCurrentPhotoIndex(index)}
+              className={`minimal-photo-indicator ${index === currentPhotoIndex ? 'minimal-photo-indicator-active' : ''}`}
+              aria-label={`Go to photo ${index + 1}`}
+            />
+          ))}
+        </div>
+      )}
     </section>
-  )
-}
+  );
+};
+
+export default Hero;

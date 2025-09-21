@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { MultiLangHTML } from '@/types/multi-lang'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useSiteConfig } from '@/hooks/useSiteConfig'
 import TiptapHTMLEditor from './TiptapHTMLEditor'
 
 interface MultiLangHTMLEditorProps {
@@ -25,11 +26,14 @@ export default function MultiLangHTMLEditor({
   className = ''
 }: MultiLangHTMLEditorProps) {
   const { currentLanguage, isRTL: globalIsRTL } = useLanguage()
+  const { config } = useSiteConfig()
   const [activeLanguage, setActiveLanguage] = useState(defaultLanguage)
   const [editorValue, setEditorValue] = useState('')
 
-  // Get available languages - for now using default, can be enhanced later
-  const availableLanguages = ['en', 'he']
+  // Get available languages from site config, fallback to English
+  const availableLanguages = config?.languages?.activeLanguages?.length
+    ? config.languages.activeLanguages
+    : ['en']
   
   // Determine if current language is RTL
   const isRTL = activeLanguage === 'he' || activeLanguage === 'ar' || activeLanguage === 'fa'
@@ -39,6 +43,13 @@ export default function MultiLangHTMLEditor({
     const currentValue = value[activeLanguage] || ''
     setEditorValue(currentValue)
   }, [activeLanguage, value])
+
+  // Sync active language when defaultLanguage prop changes (e.g., after config loads)
+  useEffect(() => {
+    if (defaultLanguage && activeLanguage !== defaultLanguage) {
+      setActiveLanguage(defaultLanguage)
+    }
+  }, [defaultLanguage])
 
   // Handle editor content changes
   const handleEditorChange = (newValue: string) => {

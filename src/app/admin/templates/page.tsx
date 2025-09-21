@@ -153,21 +153,28 @@ export default function AdminTemplatesPage() {
 
           {/* Templates Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {templates.map((template) => (
+            {templates.map((template) => {
+              const primary = template.colors?.primary || '#0ea5e9'
+              const secondary = template.colors?.secondary || '#64748b'
+              const accent = template.colors?.accent || '#22c55e'
+              const features = template.features || {}
+              const category = template.category || 'general'
+
+              return (
               <div key={template.templateName} className="bg-white rounded-lg shadow-md overflow-hidden">
                 {/* Template Preview */}
                 <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200">
                   <div 
                     className="absolute inset-0 bg-cover bg-center"
                     style={{
-                      backgroundImage: `linear-gradient(45deg, ${template.colors.primary}20, ${template.colors.secondary}20)`
+                      backgroundImage: `linear-gradient(45deg, ${primary}20, ${secondary}20)`
                     }}
                   />
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="text-center">
-                      <div className="w-16 h-16 mx-auto mb-2 rounded-lg shadow-md" style={{ backgroundColor: template.colors.primary }}></div>
-                      <div className="w-12 h-12 mx-auto mb-2 rounded-lg shadow-md" style={{ backgroundColor: template.colors.secondary }}></div>
-                      <div className="w-8 h-8 mx-auto rounded-lg shadow-md" style={{ backgroundColor: template.colors.accent }}></div>
+                      <div className="w-16 h-16 mx-auto mb-2 rounded-lg shadow-md" style={{ backgroundColor: primary }}></div>
+                      <div className="w-12 h-12 mx-auto mb-2 rounded-lg shadow-md" style={{ backgroundColor: secondary }}></div>
+                      <div className="w-8 h-8 mx-auto rounded-lg shadow-md" style={{ backgroundColor: accent }}></div>
                     </div>
                   </div>
                   
@@ -193,31 +200,31 @@ export default function AdminTemplatesPage() {
 
                   {/* Template Features */}
                   <div className="flex flex-wrap gap-2 mb-4">
-                    {template.features.responsive && (
+                    {features.responsive && (
                       <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                         {t('admin.responsive')}
                       </span>
                     )}
-                    {template.features.darkMode && (
+                    {features.darkMode && (
                       <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
                         {t('admin.darkMode')}
                       </span>
                     )}
-                    {template.features.animations && (
+                    {features.animations && (
                       <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
                         {t('admin.animations')}
                       </span>
                     )}
                     <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                      {template.category}
+                      {category}
                     </span>
                   </div>
 
                   {/* Template Colors */}
                   <div className="flex gap-2 mb-4">
-                    <div className="w-6 h-6 rounded-full border-2 border-gray-300" style={{ backgroundColor: template.colors.primary }}></div>
-                    <div className="w-6 h-6 rounded-full border-2 border-gray-300" style={{ backgroundColor: template.colors.secondary }}></div>
-                    <div className="w-6 h-6 rounded-full border-2 border-gray-300" style={{ backgroundColor: template.colors.accent }}></div>
+                    <div className="w-6 h-6 rounded-full border-2 border-gray-300" style={{ backgroundColor: primary }}></div>
+                    <div className="w-6 h-6 rounded-full border-2 border-gray-300" style={{ backgroundColor: secondary }}></div>
+                    <div className="w-6 h-6 rounded-full border-2 border-gray-300" style={{ backgroundColor: accent }}></div>
                   </div>
 
                   {/* Actions */}
@@ -248,7 +255,7 @@ export default function AdminTemplatesPage() {
                   </div>
                 </div>
               </div>
-            ))}
+            )})}
           </div>
 
           {/* Empty State */}

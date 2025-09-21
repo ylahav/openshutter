@@ -5,7 +5,7 @@ import { useActiveTemplate } from '@/hooks/useTemplate'
 import { templateService } from '@/services/template'
 
 interface DynamicTemplateLoaderProps {
-  pageName: 'home' | 'gallery' | 'album'
+  pageName: 'home' | 'gallery' | 'album' | 'login'
   fallback?: React.ReactNode
 }
 

@@ -31,7 +31,12 @@ export async function GET(
     // Get photos for this album
     const photosCollection = db.collection('photos')
     const photos = await photosCollection
-      .find({ albumId: objectId })
+      .find({ 
+        $or: [
+          { albumId: objectId },
+          { albumId: id }
+        ]
+      })
       .sort({ uploadedAt: -1 })
       .toArray()
 

@@ -1,4 +1,6 @@
 import { TemplateConfig, SiteTemplateConfig } from '@/types/template'
+import { TemplateOverridesService, TemplateWithOverrides } from './template-overrides'
+import { SiteConfig } from '@/types/site-config'
 
 export class TemplateService {
   private static instance: TemplateService
@@ -15,23 +17,18 @@ export class TemplateService {
   }
 
   async getAvailableTemplates(): Promise<TemplateConfig[]> {
-    const templates: TemplateConfig[] = []
-
     try {
-      // Use static list to ensure client builds don't pull in Node-only modules
-      const templateNames: string[] = ['default', 'modern', 'minimal', 'dark']
-
-      for (const templateName of templateNames) {
-        const template = await this.loadTemplate(templateName)
-        if (template) {
-          templates.push(template)
+      const response = await fetch('/api/admin/templates', { cache: 'no-store' })
+      if (response.ok) {
+        const result = await response.json()
+        if (result?.success && Array.isArray(result.data)) {
+          return result.data as TemplateConfig[]
         }
       }
     } catch (error) {
       console.error('Error loading templates:', error)
     }
-
-    return templates
+    return []
   }
 
   async loadTemplate(templateName: string): Promise<TemplateConfig | null> {
@@ -109,13 +106,23 @@ export class TemplateService {
       }
 
       const componentPath = template.components[componentName as keyof typeof template.components]
-      if (!componentPath) {
-        return null
+      if (componentPath) {
+        try {
+          const component = await import(`@/templates/${templateName}/${componentPath}`)
+          return component.default || component
+        } catch (e) {
+          // Fall through to default template
+        }
       }
 
-      // Dynamic import of the component
-      const component = await import(`@/templates/${templateName}/${componentPath}`)
-      return component.default || component
+      // Fallback to default component if not defined or import failed
+      const defaultTemplate = await this.getTemplateConfig('default')
+      const defaultPath = defaultTemplate?.components[componentName as keyof typeof defaultTemplate.components]
+      if (defaultPath) {
+        const fallback = await import(`@/templates/default/${defaultPath}`)
+        return fallback.default || fallback
+      }
+      return null
     } catch (error) {
       console.error(`Error loading template component ${componentName}:`, error)
       return null
@@ -130,13 +137,23 @@ export class TemplateService {
       }
 
       const pagePath = template.pages[pageName as keyof typeof template.pages]
-      if (!pagePath) {
-        return null
+      if (pagePath) {
+        try {
+          const page = await import(`@/templates/${templateName}/${pagePath}`)
+          return page.default || page
+        } catch (e) {
+          // Fall through to default template
+        }
       }
 
-      // Dynamic import of the page
-      const page = await import(`@/templates/${templateName}/${pagePath}`)
-      return page.default || page
+      // Fallback to default page if not defined or import failed
+      const defaultTemplate = await this.getTemplateConfig('default')
+      const defaultPath = defaultTemplate?.pages[pageName as keyof typeof defaultTemplate.pages]
+      if (defaultPath) {
+        const fallback = await import(`@/templates/default/${defaultPath}`)
+        return fallback.default || fallback
+      }
+      return null
     } catch (error) {
       console.error(`Error loading template page ${pageName}:`, error)
       return null
@@ -144,219 +161,105 @@ export class TemplateService {
   }
 
   async getTemplateConfig(templateName: string): Promise<TemplateConfig | null> {
-    // Static template configurations
-    const templates: Record<string, TemplateConfig> = {
-      default: {
-        templateName: 'default',
-        displayName: 'Default',
-        description: 'Clean and simple default template',
-        version: '1.0.0',
-        author: 'OpenShutter',
-        thumbnail: '/templates/default/thumbnail.jpg',
-        category: 'minimal',
-        features: {
-          responsive: true,
-          darkMode: false,
-          animations: true,
-          seoOptimized: true
-        },
-        colors: {
-          primary: '#3B82F6',
-          secondary: '#1F2937',
-          accent: '#F59E0B',
-          background: '#FFFFFF',
-          text: '#1F2937',
-          muted: '#6B7280'
-        },
-        fonts: {
-          heading: 'Inter',
-          body: 'Inter'
-        },
-        layout: {
-          maxWidth: '1200px',
-          containerPadding: '1rem',
-          gridGap: '1.5rem'
-        },
-        components: {
-          hero: 'components/Hero.tsx',
-          albumCard: 'components/AlbumCard.tsx',
-          photoCard: 'components/PhotoCard.tsx',
-          albumList: 'components/AlbumList.tsx',
-          gallery: 'components/Gallery.tsx',
-          navigation: 'components/Navigation.tsx',
-          footer: 'components/Footer.tsx'
-        },
-        visibility: {
-          hero: true,
-          languageSelector: true,
-          authButtons: true,
-          footerMenu: true
-        },
-        pages: {
-          home: 'pages/Home.tsx',
-          gallery: 'pages/Gallery.tsx',
-          album: 'pages/Album.tsx'
-        }
-      },
-      modern: {
-        templateName: 'modern',
-        displayName: 'Modern',
-        description: 'Contemporary design with bold typography',
-        version: '1.0.0',
-        author: 'OpenShutter',
-        thumbnail: '/templates/modern/thumbnail.jpg',
-        category: 'modern',
-        features: {
-          responsive: true,
-          darkMode: true,
-          animations: true,
-          seoOptimized: true
-        },
-        colors: {
-          primary: '#8B5CF6',
-          secondary: '#1E293B',
-          accent: '#F97316',
-          background: '#F8FAFC',
-          text: '#0F172A',
-          muted: '#64748B'
-        },
-        fonts: {
-          heading: 'Poppins',
-          body: 'Inter'
-        },
-        layout: {
-          maxWidth: '1400px',
-          containerPadding: '2rem',
-          gridGap: '2rem'
-        },
-        components: {
-          hero: 'components/Hero.tsx',
-          albumCard: 'components/AlbumCard.tsx',
-          photoCard: 'components/PhotoCard.tsx',
-          albumList: 'components/AlbumList.tsx',
-          gallery: 'components/Gallery.tsx',
-          navigation: 'components/Navigation.tsx',
-          footer: 'components/Footer.tsx'
-        },
-        visibility: {
-          hero: true,
-          languageSelector: true,
-          authButtons: true,
-          footerMenu: true
-        },
-        pages: {
-          home: 'pages/Home.tsx',
-          gallery: 'pages/Gallery.tsx',
-          album: 'pages/Album.tsx'
-        }
-      },
-      minimal: {
-        templateName: 'minimal',
-        displayName: 'Minimal',
-        description: 'Minimalist design focusing on content',
-        version: '1.0.0',
-        author: 'OpenShutter',
-        thumbnail: '/templates/minimal/thumbnail.jpg',
-        category: 'minimal',
-        features: {
-          responsive: true,
-          darkMode: false,
-          animations: false,
-          seoOptimized: true
-        },
-        colors: {
-          primary: '#000000',
-          secondary: '#333333',
-          accent: '#666666',
-          background: '#FFFFFF',
-          text: '#000000',
-          muted: '#999999'
-        },
-        fonts: {
-          heading: 'Helvetica',
-          body: 'Helvetica'
-        },
-        layout: {
-          maxWidth: '1000px',
-          containerPadding: '0.5rem',
-          gridGap: '1rem'
-        },
-        components: {
-          hero: 'components/Hero.tsx',
-          albumCard: 'components/AlbumCard.tsx',
-          photoCard: 'components/PhotoCard.tsx',
-          albumList: 'components/AlbumList.tsx',
-          gallery: 'components/Gallery.tsx',
-          navigation: 'components/Navigation.tsx',
-          footer: 'components/Footer.tsx'
-        },
-        visibility: {
-          hero: true,
-          languageSelector: true,
-          authButtons: true,
-          footerMenu: true
-        },
-        pages: {
-          home: 'pages/Home.tsx',
-          gallery: 'pages/Gallery.tsx',
-          album: 'pages/Album.tsx'
-        }
-      },
-      dark: {
-        templateName: 'dark',
-        displayName: 'Dark',
-        description: 'Dark theme for modern aesthetics',
-        version: '1.0.0',
-        author: 'OpenShutter',
-        thumbnail: '/templates/dark/thumbnail.jpg',
-        category: 'dark',
-        features: {
-          responsive: true,
-          darkMode: true,
-          animations: true,
-          seoOptimized: true
-        },
-        colors: {
-          primary: '#10B981',
-          secondary: '#374151',
-          accent: '#F59E0B',
-          background: '#111827',
-          text: '#F9FAFB',
-          muted: '#9CA3AF'
-        },
-        fonts: {
-          heading: 'Inter',
-          body: 'Inter'
-        },
-        layout: {
-          maxWidth: '1200px',
-          containerPadding: '1rem',
-          gridGap: '1.5rem'
-        },
-        components: {
-          hero: 'components/Hero.tsx',
-          albumCard: 'components/AlbumCard.tsx',
-          photoCard: 'components/PhotoCard.tsx',
-          albumList: 'components/AlbumList.tsx',
-          gallery: 'components/Gallery.tsx',
-          navigation: 'components/Navigation.tsx',
-          footer: 'components/Footer.tsx'
-        },
-        visibility: {
-          hero: true,
-          languageSelector: true,
-          authButtons: true,
-          footerMenu: true
-        },
-        pages: {
-          home: 'pages/Home.tsx',
-          gallery: 'pages/Gallery.tsx',
-          album: 'pages/Album.tsx'
+    // First, try to load from server-side JSON (admin API) to allow dynamic templates
+    try {
+      const response = await fetch('/api/admin/templates', { cache: 'no-store' })
+      if (response.ok) {
+        const result = await response.json()
+        if (result?.success && Array.isArray(result.data)) {
+          const fromJson = result.data.find((t: any) => t?.templateName === templateName)
+          if (fromJson) {
+            return fromJson as TemplateConfig
+          }
+          // Fallback to 'default' template from JSON
+          const defaultJson = result.data.find((t: any) => t?.templateName === 'default')
+          if (defaultJson) {
+            return defaultJson as TemplateConfig
+          }
         }
       }
+    } catch (err) {
+      // Ignore and fallback to static map below
     }
+    // Final safety fallback: minimal 'default' template config
+    const fallbackDefault: TemplateConfig = {
+      templateName: 'default',
+      displayName: 'Default',
+      description: 'Fallback default template',
+      version: '1.0.0',
+      author: 'OpenShutter',
+      thumbnail: '/templates/default/thumbnail.jpg',
+      category: 'minimal',
+      features: { responsive: true, darkMode: false, animations: true, seoOptimized: true },
+      colors: { primary: '#3B82F6', secondary: '#1F2937', accent: '#F59E0B', background: '#FFFFFF', text: '#1F2937', muted: '#6B7280' },
+      fonts: { heading: 'Inter', body: 'Inter' },
+      layout: { maxWidth: '1200px', containerPadding: '1rem', gridGap: '1.5rem' },
+      components: {
+        hero: 'components/Hero.tsx',
+        albumCard: 'components/AlbumCard.tsx',
+        photoCard: 'components/PhotoCard.tsx',
+        albumList: 'components/AlbumList.tsx',
+        gallery: 'components/Gallery.tsx',
+        navigation: 'components/Navigation.tsx',
+        footer: 'components/Footer.tsx',
+      },
+      visibility: { hero: true, languageSelector: true, authButtons: true, footerMenu: true },
+      pages: { home: 'pages/Home.tsx', gallery: 'pages/Gallery.tsx', album: 'pages/Album.tsx' },
+    }
+    return fallbackDefault
+  }
 
-    return templates[templateName] || null
+  /**
+   * Get template configuration with site config overrides applied
+   */
+  async getTemplateWithOverrides(templateName: string, siteConfig: SiteConfig): Promise<TemplateWithOverrides | null> {
+    return TemplateOverridesService.getTemplateWithOverrides(templateName, siteConfig)
+  }
+
+  /**
+   * Get active template with overrides applied
+   */
+  async getActiveTemplateWithOverrides(siteConfig: SiteConfig): Promise<TemplateWithOverrides | null> {
+    const activeTemplateName = siteConfig.template?.activeTemplate || 'default'
+    return this.getTemplateWithOverrides(activeTemplateName, siteConfig)
+  }
+
+  /**
+   * Update site config with template overrides
+   */
+  updateSiteConfigOverrides(
+    siteConfig: SiteConfig,
+    templateName: string,
+    overrides: {
+      customColors?: Partial<TemplateConfig['colors']>
+      customFonts?: Partial<TemplateConfig['fonts']>
+      customLayout?: Partial<TemplateConfig['layout']>
+      componentVisibility?: Partial<TemplateConfig['visibility']>
+      headerConfig?: TemplateConfig['componentsConfig'] extends { header: infer H } ? Partial<H> : never
+    }
+  ): SiteConfig {
+    return TemplateOverridesService.updateSiteConfigOverrides(siteConfig, templateName, overrides)
+  }
+
+  /**
+   * Reset template overrides
+   */
+  resetTemplateOverrides(siteConfig: SiteConfig): SiteConfig {
+    return TemplateOverridesService.resetTemplateOverrides(siteConfig)
+  }
+
+  /**
+   * Check if template has overrides
+   */
+  hasTemplateOverrides(siteConfig: SiteConfig): boolean {
+    return TemplateOverridesService.hasOverrides(siteConfig)
+  }
+
+  /**
+   * Get active overrides
+   */
+  getActiveOverrides(siteConfig: SiteConfig) {
+    return TemplateOverridesService.getActiveOverrides(siteConfig)
   }
 }
 

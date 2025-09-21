@@ -89,6 +89,7 @@ export default function Header() {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <div className="flex items-center">
+            <div>system</div>
             <Link href="/" className="flex items-center space-x-3">
               {config?.logo ? (
                 <>

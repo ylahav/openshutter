@@ -237,46 +237,105 @@ To provide a modern, scalable, and user-friendly photo gallery management system
 ### 7. Template System
 
 #### Requirements
-- Dynamic template loading
-- Template marketplace
-- Template configuration
+- Dynamic template loading with CSS Modules support
+- Multiple built-in templates (Modern, Minimal, Fancy, Default)
+- Template configuration with CSS variables system
 - Live preview functionality
 - Template export/import
 - Custom template creation
+- Responsive design with mobile-first approach
+- Dark/light theme support per template
+- CSS variables for consistent theming
+- Template-specific styling with SCSS modules
 
 #### User Stories
 - **As a user**, I want to choose different gallery themes so that I can match my brand
 - **As a photographer**, I want to preview templates so that I can see how my gallery will look
 - **As a developer**, I want to create custom templates so that I can offer unique designs
+- **As a user**, I want templates to work consistently across all devices so that my gallery looks professional everywhere
+- **As a user**, I want templates to support both light and dark themes so that I can match my preferences
 
 #### Acceptance Criteria
-- Templates load correctly
-- Preview shows accurate representation
-- Configuration options work properly
+- Templates load correctly with proper CSS variable support
+- Preview shows accurate representation across all device sizes
+- Configuration options work properly with live updates
 - Export/import functions correctly
+- CSS variables are properly defined and applied
+- Templates are fully responsive and accessible
+- Dark/light theme switching works seamlessly
+- Template-specific styles don't conflict with global styles
 
 ### 8. User Interface
 
 #### Requirements
-- Responsive design (mobile and desktop)
-- Modern design principles
-- Dark/light theme support
-- Internationalization (i18n)
-- Accessibility compliance
-- Performance optimization
+- Responsive design (mobile and desktop) with mobile-first approach
+- Modern design principles with clean, minimalist aesthetics
+- Dark/light theme support with seamless switching
+- Internationalization (i18n) with RTL language support
+- Accessibility compliance (WCAG 2.1 AA)
+- Performance optimization with lazy loading
+- CSS Modules for component-scoped styling
+- CSS variables system for consistent theming
+- Hero sections with dynamic background images
+- Smooth animations and transitions
+- Modern typography and spacing
+- Card-based layouts for content organization
+- Interactive elements with hover states
 
 #### User Stories
 - **As a user**, I want to use the system on my phone so that I can manage photos on the go
 - **As a user**, I want to switch themes so that I can work comfortably in different lighting
 - **As a user**, I want the interface in my language so that I can use it effectively
+- **As a visitor**, I want to see beautiful hero sections with rotating background images so that the site looks professional
+- **As a user**, I want smooth animations so that the interface feels modern and polished
+- **As a user**, I want consistent styling across all pages so that the experience feels cohesive
 
 #### Acceptance Criteria
-- Interface works on all device sizes
-- Theme switching functions properly
-- i18n displays correct language
-- Performance meets standards
+- Interface works on all device sizes with proper responsive breakpoints
+- Theme switching functions properly with CSS variable updates
+- i18n displays correct language with RTL support where applicable
+- Performance meets standards with < 3 second page load times
+- CSS variables are properly defined and applied consistently
+- Hero sections display background images correctly with fallback gradients
+- Animations are smooth and don't impact performance
+- All interactive elements have proper hover and focus states
+- Typography is readable and follows modern design principles
 
-### 9. Internationalization (i18n) and Multi-language Support
+### 9. CSS Variables and Styling System
+
+#### Requirements
+- Centralized CSS variables system for consistent theming
+- Template-specific variable definitions in globals.css
+- Light and dark mode variable sets
+- SCSS modules for component-scoped styling
+- CSS variable fallbacks for missing definitions
+- Dynamic theme switching through CSS variable updates
+- Consistent naming convention for variables
+- Performance optimization through CSS variable usage
+
+#### User Stories
+- **As a developer**, I want to use CSS variables so that I can maintain consistent theming across templates
+- **As a user**, I want theme switching to work seamlessly so that all elements update correctly
+- **As a developer**, I want SCSS modules so that I can avoid style conflicts between components
+- **As a designer**, I want centralized color definitions so that I can easily update the brand colors
+
+#### Acceptance Criteria
+- All CSS variables are properly defined in globals.css
+- Light and dark mode variables are complete and consistent
+- SCSS modules compile correctly without conflicts
+- Theme switching updates all variables instantly
+- Missing variables have appropriate fallbacks
+- Variable naming follows consistent conventions
+- Performance is not impacted by CSS variable usage
+
+#### Technical Implementation
+- Variables defined in `:root` and `html.dark` selectors
+- Template-specific variables prefixed with template name (e.g., `--modern-*`)
+- SCSS modules use CSS variables for dynamic theming
+- Fallback values provided for critical variables
+- Variables cover: colors, spacing, typography, layout dimensions
+
+### 10. Internationalization (i18n) and Multi-language Support
 
 #### Requirements
 - Runtime language switching via a language selector; selection is persisted between sessions
@@ -378,6 +437,9 @@ To provide a modern, scalable, and user-friendly photo gallery management system
 - **Tag Usage**: 20+ tags created per user per month
 - **Tag Gallery Views**: 30+ tag gallery visits per user per month
 - **Photo Tagging**: 80% of photos tagged with relevant labels
+- **Template Usage**: 90% of users actively using modern templates
+- **Theme Switching**: 40% of users switch between light/dark themes
+- **Hero Image Engagement**: 60% of visitors interact with hero sections
 
 ### Performance Metrics
 - **Page Load Time**: < 3 seconds average
@@ -418,6 +480,10 @@ To provide a modern, scalable, and user-friendly photo gallery management system
 - **Batch photo tagging** ✅
 - **Owner user case with dedicated dashboard** ✅
 - **Album ownership tracking and access control** ✅
+- **Modern template system with CSS Modules** ✅
+- **CSS variables system for consistent theming** ✅
+- **Hero sections with dynamic background images** ✅
+- **Dark/light theme support across templates** ✅
 
 ### Phase 2 (Next 6 months)
 - Advanced search and filtering

@@ -4,7 +4,7 @@ import { useActiveTemplate } from '@/hooks/useTemplate'
 import { LanguageProvider } from '@/contexts/LanguageContext'
 
 interface TemplateWrapperProps {
-  pageName: 'home' | 'gallery' | 'album'
+  pageName: 'home' | 'gallery' | 'album' | 'login'
   children?: React.ReactNode
   fallback?: React.ReactNode
 }
@@ -63,17 +63,32 @@ export default function TemplateWrapper({
     )
   }
 
+  // Safe color/layout fallbacks
+  const colors = {
+    primary: template.colors?.primary || '#0ea5e9',
+    secondary: template.colors?.secondary || '#64748b',
+    accent: template.colors?.accent || '#22c55e',
+    background: template.colors?.background || '#ffffff',
+    text: template.colors?.text || '#0f172a',
+    muted: template.colors?.muted || '#e5e7eb',
+  }
+  const layout = {
+    maxWidth: template.layout?.maxWidth || '1200px',
+    containerPadding: template.layout?.containerPadding || '1rem',
+    gridGap: template.layout?.gridGap || '1rem',
+  }
+
   // Apply template styles
   const templateStyles = {
-    '--primary-color': template.colors.primary,
-    '--secondary-color': template.colors.secondary,
-    '--accent-color': template.colors.accent,
-    '--background-color': template.colors.background,
-    '--text-color': template.colors.text,
-    '--muted-color': template.colors.muted,
-    '--max-width': template.layout.maxWidth,
-    '--container-padding': template.layout.containerPadding,
-    '--grid-gap': template.layout.gridGap,
+    '--primary-color': colors.primary,
+    '--secondary-color': colors.secondary,
+    '--accent-color': colors.accent,
+    '--background-color': colors.background,
+    '--text-color': colors.text,
+    '--muted-color': colors.muted,
+    '--max-width': layout.maxWidth,
+    '--container-padding': layout.containerPadding,
+    '--grid-gap': layout.gridGap,
   } as React.CSSProperties
 
   return (
@@ -85,22 +100,22 @@ export default function TemplateWrapper({
         {/* Apply template fonts */}
         <style jsx global>{`
           :root {
-            --primary-color: ${template.colors.primary};
-            --secondary-color: ${template.colors.secondary};
-            --accent-color: ${template.colors.accent};
-            --background-color: ${template.colors.background};
-            --text-color: ${template.colors.text};
-            --muted-color: ${template.colors.muted};
+            --primary-color: ${colors.primary};
+            --secondary-color: ${colors.secondary};
+            --accent-color: ${colors.accent};
+            --background-color: ${colors.background};
+            --text-color: ${colors.text};
+            --muted-color: ${colors.muted};
           }
           
           body {
-            font-family: ${template.fonts.body}, sans-serif;
-            background-color: ${template.colors.background};
-            color: ${template.colors.text};
+            font-family: ${template.fonts?.body || 'Inter'}, sans-serif;
+            background-color: ${colors.background};
+            color: ${colors.text};
           }
           
           h1, h2, h3, h4, h5, h6 {
-            font-family: ${template.fonts.heading}, sans-serif;
+            font-family: ${template.fonts?.heading || 'Inter'}, sans-serif;
           }
         `}</style>
         

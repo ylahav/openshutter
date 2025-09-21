@@ -2,6 +2,8 @@
   "navigation": {
     "home": "Home",
     "albums": "Albums",
+    "about": "About",
+    "contact": "Contact",
     "admin": "Admin"
   },
   "header": {
@@ -18,7 +20,8 @@
     "noAlbumsTitle": "No albums yet",
     "noAlbumsText": "No public albums are available at the moment.",
     "galleryTitle": "Gallery",
-    "gallerySubtitle": "Explore our photo collections"
+    "gallerySubtitle": "Explore our photo collections",
+    "openAlbum": "Open Album"
   },
   "loading": {
     "loading": "Loading...",
@@ -26,6 +29,7 @@
   },
   "auth": {
     "signIn": "Sign in",
+    "login": "Login",
     "signingIn": "Signing in...",
     "signInTo": "Sign in to OpenShutter",
     "accessAdminPanel": "Access your photo gallery management admin panel",

@@ -43,6 +43,15 @@ export interface SiteConfig {
       statistics?: boolean
       promotion?: boolean
     }
+    headerConfig?: {
+      showLogo?: boolean
+      showSiteTitle?: boolean
+      menu?: { labelKey?: string; label?: string; href: string }[]
+      enableThemeToggle?: boolean
+      enableLanguageSelector?: boolean
+      showGreeting?: boolean
+      showAuthButtons?: boolean
+    }
   }
   seo: {
     metaTitle: string
@@ -53,13 +62,21 @@ export interface SiteConfig {
   contact: {
     email?: string
     phone?: string
-    address?: string
+    address?: MultiLangText
     socialMedia?: {
       facebook?: string
       instagram?: string
       twitter?: string
       linkedin?: string
     }
+  }
+  homePage?: {
+    services?: {
+      number: string
+      title: MultiLangText
+      description: MultiLangHTML
+    }[]
+    contactTitle?: MultiLangText
   }
   features: {
     enableComments: boolean
@@ -82,5 +99,6 @@ export interface SiteConfigUpdate {
   template?: Partial<SiteConfig['template']>
   seo?: Partial<SiteConfig['seo']>
   contact?: Partial<SiteConfig['contact']>
+  homePage?: Partial<SiteConfig['homePage']>
   features?: Partial<SiteConfig['features']>
 }

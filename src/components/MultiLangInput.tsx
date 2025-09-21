@@ -14,6 +14,8 @@ interface MultiLangInputProps {
   maxLength?: number
   showLanguageTabs?: boolean
   defaultLanguage?: LanguageCode
+  multiline?: boolean
+  rows?: number
 }
 
 export function MultiLangInput({
@@ -24,7 +26,9 @@ export function MultiLangInput({
   required = false,
   maxLength,
   showLanguageTabs = true,
-  defaultLanguage = 'en'
+  defaultLanguage = 'en',
+  multiline = false,
+  rows = 3
 }: MultiLangInputProps) {
   const { config } = useSiteConfig()
   const { isRTL } = useLanguage()
@@ -41,6 +45,13 @@ export function MultiLangInput({
   useEffect(() => {
     setInputValue(MultiLangUtils.getValue(value, activeLanguage))
   }, [activeLanguage, value])
+
+  // Sync active language when defaultLanguage prop changes (e.g., after config loads)
+  useEffect(() => {
+    if (defaultLanguage && activeLanguage !== defaultLanguage) {
+      setActiveLanguage(defaultLanguage)
+    }
+  }, [defaultLanguage])
 
   // Handle input change
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -103,24 +114,47 @@ export function MultiLangInput({
 
       {/* Input Field */}
       <div className="relative">
-        <input
-          type="text"
-          value={inputValue}
-          onChange={handleInputChange}
-          placeholder={placeholder}
-          required={required}
-          maxLength={maxLength}
-          className={`
-            w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm
-            focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-            ${currentLangConfig?.isRTL ? 'text-right' : 'text-left'}
-            ${className}
-          `}
-          dir={currentLangConfig?.isRTL ? 'rtl' : 'ltr'}
-        />
+        {multiline ? (
+          <textarea
+            value={inputValue}
+            onChange={handleInputChange}
+            placeholder={placeholder}
+            required={required}
+            maxLength={maxLength}
+            rows={rows}
+            className={`
+              w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm
+              text-gray-900 placeholder-gray-500
+              focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+              ${currentLangConfig?.isRTL ? 'text-right' : 'text-left'}
+              ${className}
+            `}
+            dir={currentLangConfig?.isRTL ? 'rtl' : 'ltr'}
+          />
+        ) : (
+          <input
+            type="text"
+            value={inputValue}
+            onChange={handleInputChange}
+            placeholder={placeholder}
+            required={required}
+            maxLength={maxLength}
+            className={`
+              w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm
+              text-gray-900 placeholder-gray-500
+              focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+              ${currentLangConfig?.isRTL ? 'text-right' : 'text-left'}
+              ${className}
+            `}
+            dir={currentLangConfig?.isRTL ? 'rtl' : 'ltr'}
+          />
+        )}
         
         {/* Language Indicator */}
-        <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+        <div
+          className={`absolute ${currentLangConfig?.isRTL ? 'left-2' : 'right-2'} top-1/2 transform -translate-y-1/2`}
+          dir={currentLangConfig?.isRTL ? 'rtl' : 'ltr'}
+        >
           <span className="text-xs text-gray-400 bg-white px-1">
             {currentLangConfig?.code.toUpperCase()}
           </span>

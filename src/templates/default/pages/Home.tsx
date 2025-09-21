@@ -5,8 +5,9 @@ import Hero from '../components/Hero'
 import AlbumList from '../components/AlbumList'
 import { useI18n } from '@/hooks/useI18n'
 import { useTemplateConfig } from '@/hooks/useTemplateConfig'
-import Header from '@/components/Header'
-import Footer from '@/components/Footer'
+import Header from '../components/Header'
+import Footer from '../components/Footer'
+import styles from '../styles.module.scss'
 
 interface Album {
   _id: string

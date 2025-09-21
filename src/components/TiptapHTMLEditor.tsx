@@ -54,6 +54,8 @@ export default function TiptapHTMLEditor({
         listItem: false,
         hardBreak: false,
         horizontalRule: false,
+        link: false, // Disable default link extension
+        underline: false, // Disable default underline extension
       }),
       Heading.configure({
         levels: [1, 2, 3, 4, 5, 6],
@@ -81,13 +83,13 @@ export default function TiptapHTMLEditor({
         },
       }),
     ],
-    content: value,
+    content: value || '',
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML())
     },
     editorProps: {
       attributes: {
-        class: `prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none ${isRTL ? 'rtl' : 'ltr'}`,
+        class: `prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none ${isRTL ? 'rtl' : 'ltr'} text-gray-900 bg-white`,
         dir: isRTL ? 'rtl' : 'ltr',
         style: `min-height: ${height}px;`,
       },
@@ -97,10 +99,21 @@ export default function TiptapHTMLEditor({
 
   // Update editor content when value prop changes
   useEffect(() => {
-    if (editor && value !== editor.getHTML()) {
-      editor.commands.setContent(value)
+    if (editor && value !== undefined) {
+      const currentContent = editor.getHTML()
+      // Only update if the content is actually different
+      if (value !== currentContent && value.trim() !== currentContent.trim()) {
+        editor.commands.setContent(value, { emitUpdate: false }) // don't emit update event
+      }
     }
   }, [editor, value])
+
+  // Initialize editor with content when editor is first created
+  useEffect(() => {
+    if (editor && value && !editor.getHTML().trim()) {
+      editor.commands.setContent(value, { emitUpdate: false })
+    }
+  }, [editor])
 
   // Update direction when isRTL changes
   useEffect(() => {
@@ -220,13 +233,13 @@ export default function TiptapHTMLEditor({
   return (
     <div className={`border border-gray-300 rounded-md ${className}`}>
       {/* Toolbar */}
-      <div className="border-b border-gray-200 p-2 flex flex-wrap gap-1 bg-gray-50">
+      <div className="border-b border-gray-200 p-2 flex flex-wrap gap-1 bg-gray-50 text-gray-700">
         {/* Text Formatting */}
         <div className="flex gap-1 border-r border-gray-300 pr-2 mr-2">
           <button
             type="button"
             onClick={toggleBold}
-            className={`p-2 rounded hover:bg-gray-200 ${editor.isActive('bold') ? 'bg-gray-300' : ''}`}
+            className={`p-2 rounded hover:bg-gray-200 text-gray-700 hover:text-gray-900 ${editor.isActive('bold') ? 'bg-gray-300 text-gray-900' : ''}`}
             title="Bold"
           >
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -236,7 +249,7 @@ export default function TiptapHTMLEditor({
           <button
             type="button"
             onClick={toggleItalic}
-            className={`p-2 rounded hover:bg-gray-200 ${editor.isActive('italic') ? 'bg-gray-300' : ''}`}
+            className={`p-2 rounded hover:bg-gray-200 text-gray-700 hover:text-gray-900 ${editor.isActive('italic') ? 'bg-gray-300 text-gray-900' : ''}`}
             title="Italic"
           >
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -246,7 +259,7 @@ export default function TiptapHTMLEditor({
           <button
             type="button"
             onClick={toggleUnderline}
-            className={`p-2 rounded hover:bg-gray-200 ${editor.isActive('underline') ? 'bg-gray-300' : ''}`}
+            className={`p-2 rounded hover:bg-gray-200 text-gray-700 hover:text-gray-900 ${editor.isActive('underline') ? 'bg-gray-300 text-gray-900' : ''}`}
             title="Underline"
           >
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -256,7 +269,7 @@ export default function TiptapHTMLEditor({
           <button
             type="button"
             onClick={toggleStrike}
-            className={`p-2 rounded hover:bg-gray-200 ${editor.isActive('strike') ? 'bg-gray-300' : ''}`}
+            className={`p-2 rounded hover:bg-gray-200 text-gray-700 hover:text-gray-900 ${editor.isActive('strike') ? 'bg-gray-300 text-gray-900' : ''}`}
             title="Strikethrough"
           >
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -266,7 +279,7 @@ export default function TiptapHTMLEditor({
           <button
             type="button"
             onClick={toggleCode}
-            className={`p-2 rounded hover:bg-gray-200 ${editor.isActive('code') ? 'bg-gray-300' : ''}`}
+            className={`p-2 rounded hover:bg-gray-200 text-gray-700 hover:text-gray-900 ${editor.isActive('code') ? 'bg-gray-300 text-gray-900' : ''}`}
             title="Code"
           >
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -287,7 +300,7 @@ export default function TiptapHTMLEditor({
                 setHeading(level as 1 | 2 | 3 | 4 | 5 | 6)
               }
             }}
-            className="px-2 py-1 text-sm border border-gray-300 rounded"
+            className="px-2 py-1 text-sm border border-gray-300 rounded text-gray-700 bg-white"
           >
             <option value={0}>Paragraph</option>
             <option value={1}>Heading 1</option>
@@ -304,7 +317,7 @@ export default function TiptapHTMLEditor({
           <button
             type="button"
             onClick={toggleBulletList}
-            className={`p-2 rounded hover:bg-gray-200 ${editor.isActive('bulletList') ? 'bg-gray-300' : ''}`}
+            className={`p-2 rounded hover:bg-gray-200 text-gray-700 hover:text-gray-900 ${editor.isActive('bulletList') ? 'bg-gray-300 text-gray-900' : ''}`}
             title="Bullet List"
           >
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -314,7 +327,7 @@ export default function TiptapHTMLEditor({
           <button
             type="button"
             onClick={toggleOrderedList}
-            className={`p-2 rounded hover:bg-gray-200 ${editor.isActive('orderedList') ? 'bg-gray-300' : ''}`}
+            className={`p-2 rounded hover:bg-gray-200 text-gray-700 hover:text-gray-900 ${editor.isActive('orderedList') ? 'bg-gray-300 text-gray-900' : ''}`}
             title="Numbered List"
           >
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -328,7 +341,7 @@ export default function TiptapHTMLEditor({
           <button
             type="button"
             onClick={() => setTextAlign('left')}
-            className={`p-2 rounded hover:bg-gray-200 ${editor.isActive({ textAlign: 'left' }) ? 'bg-gray-300' : ''}`}
+            className={`p-2 rounded hover:bg-gray-200 text-gray-700 hover:text-gray-900 ${editor.isActive({ textAlign: 'left' }) ? 'bg-gray-300 text-gray-900' : ''}`}
             title="Align Left"
           >
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -338,7 +351,7 @@ export default function TiptapHTMLEditor({
           <button
             type="button"
             onClick={() => setTextAlign('center')}
-            className={`p-2 rounded hover:bg-gray-200 ${editor.isActive({ textAlign: 'center' }) ? 'bg-gray-300' : ''}`}
+            className={`p-2 rounded hover:bg-gray-200 text-gray-700 hover:text-gray-900 ${editor.isActive({ textAlign: 'center' }) ? 'bg-gray-300 text-gray-900' : ''}`}
             title="Align Center"
           >
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -348,7 +361,7 @@ export default function TiptapHTMLEditor({
           <button
             type="button"
             onClick={() => setTextAlign('right')}
-            className={`p-2 rounded hover:bg-gray-200 ${editor.isActive({ textAlign: 'right' }) ? 'bg-gray-300' : ''}`}
+            className={`p-2 rounded hover:bg-gray-200 text-gray-700 hover:text-gray-900 ${editor.isActive({ textAlign: 'right' }) ? 'bg-gray-300 text-gray-900' : ''}`}
             title="Align Right"
           >
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -362,7 +375,7 @@ export default function TiptapHTMLEditor({
           <button
             type="button"
             onClick={openLinkDialog}
-            className={`p-2 rounded hover:bg-gray-200 ${editor.isActive('link') ? 'bg-gray-300' : ''}`}
+            className={`p-2 rounded hover:bg-gray-200 text-gray-700 hover:text-gray-900 ${editor.isActive('link') ? 'bg-gray-300 text-gray-900' : ''}`}
             title="Add/Edit Link"
           >
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -373,7 +386,7 @@ export default function TiptapHTMLEditor({
             <button
               type="button"
               onClick={unsetLink}
-              className="p-2 rounded hover:bg-gray-200"
+              className="p-2 rounded hover:bg-gray-200 text-gray-700 hover:text-gray-900"
               title="Remove Link"
             >
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -384,7 +397,7 @@ export default function TiptapHTMLEditor({
           <button
             type="button"
             onClick={insertHorizontalRule}
-            className="p-2 rounded hover:bg-gray-200"
+            className="p-2 rounded hover:bg-gray-200 text-gray-700 hover:text-gray-900"
             title="Horizontal Rule"
           >
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">

@@ -1,230 +1,180 @@
-'use client'
+"use client";
+import React, { useEffect, useMemo, useState } from 'react';
+import styles from '../styles.module.scss'
+import Header from '../components/Header';
+import Hero from '../components/Hero';
+import Footer from '../components/Footer';
+import Link from 'next/link';
+import { useSiteConfig } from '@/hooks/useSiteConfig';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { MultiLangUtils } from '@/types/multi-lang';
+import { useMultipleAlbumCoverImages } from '@/hooks/useAlbumCoverImage';
+import { useI18n } from '@/hooks/useI18n';
+import { useActiveTemplate } from '@/hooks/useTemplate';
 
-import { useState, useEffect } from 'react'
-import Header from '../components/Header'
-import Hero from '../components/Hero'
-import AlbumList from '../components/AlbumList'
-import Footer from '../components/Footer'
-import { useI18n } from '@/hooks/useI18n'
-import { useTemplateConfig } from '@/hooks/useTemplateConfig'
-import { MultiLangUtils } from '@/types/multi-lang'
-import { useLanguage } from '@/contexts/LanguageContext'
+type Album = {
+  _id: string;
+  name: string | Record<string, string>;
+  description?: string | Record<string, string>;
+  isFeatured?: boolean;
+  photoCount?: number;
+};
 
-interface Album {
-  _id: string
-  name: string
-  alias: string
-  description: string
-  photoCount: number
-  childAlbumCount?: number
-  coverImage?: string
-  isPublic: boolean
-  isFeatured: boolean
-  createdAt: string
-}
+const MinimalHomePage: React.FC = () => {
+  const { config } = useSiteConfig();
+  const [albums, setAlbums] = useState<Album[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { currentLanguage } = useLanguage();
+  const { t } = useI18n();
+  const { template: activeTemplate } = useActiveTemplate();
 
-export default function HomePage() {
-  const { t } = useI18n()
-  const { isComponentVisible } = useTemplateConfig()
-  const { currentLanguage } = useLanguage()
-  const [rootAlbums, setRootAlbums] = useState<Album[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const getText = (val?: string | Record<string,string>): string | undefined => {
+    if (!val) return undefined;
+    if (typeof val === 'string') return val;
+    return MultiLangUtils.getTextValue(val, currentLanguage) || undefined;
+  };
 
   useEffect(() => {
     const fetchRootAlbums = async () => {
       try {
-        setLoading(true)
-        // Fetch only root albums (no parent) - API handles access control
-        const response = await fetch('/api/albums?parentId=root')
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch albums')
+        const res = await fetch('/api/albums?parentId=root');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success) {
+            setAlbums(data.data || []);
+          }
         }
-        
-        const result = await response.json()
-        if (result.success) {
-          const albums = result.data
-          
-          // API already handles access control, so we can use all returned albums
-          setRootAlbums(albums)
-        } else {
-          setError(result.error || 'Failed to fetch albums')
-        }
-      } catch (error) {
-        console.error('Failed to fetch albums:', error)
-        setError('Failed to fetch albums')
-      } finally {
-        setLoading(false)
+      } catch {}
+      finally {
+        setLoading(false);
       }
-    }
+    };
+    fetchRootAlbums();
+  }, []);
 
-    fetchRootAlbums()
-  }, [])
+  // Leading/cover images for albums
+  const albumIds = useMemo(() => albums.map(a => a._id), [albums]);
+  const { coverImages, loading: coversLoading } = useMultipleAlbumCoverImages(albumIds);
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Header */}
+    <main className="minimal-page">
       <Header />
-      
-      {/* Hero Section */}
-      {isComponentVisible('hero') && <Hero />}
-      
-      {/* Albums Section */}
-      {rootAlbums.length > 0 && (
-        <section className="py-20 bg-gray-50">
-          <div className="max-w-6xl mx-auto px-6">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-light text-gray-900 mb-4">
-                {t('albums.galleryTitle')}
-              </h2>
-              <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-                {t('albums.gallerySubtitle')}
-              </p>
+      <Hero />
+
+      {/* Gallery Section */}
+      <section className="minimal-gallery">
+        <div className="minimal-container">
+          {loading ? (
+            <div className="minimal-gallery-grid">
+              {Array.from({ length: 9 }).map((_, i) => (
+                <div key={i} className="minimal-gallery-item minimal-gallery-loading"></div>
+              ))}
             </div>
-
-            {/* Featured albums grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 mb-16">
-              {rootAlbums.slice(0, 8).map((album) => (
-                <div key={album._id} className="group">
-                  <div className="bg-white border border-gray-200 hover:border-gray-300 transition-all duration-300 hover:shadow-lg">
-                    {/* Image container */}
-                    <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
-                      <img
-                        src={album.coverImage || '/api/placeholder/400/300'}
-                        alt={MultiLangUtils.getTextValue(album.name, currentLanguage)}
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      />
-                      
-                      {/* Featured badge */}
-                      {album.isFeatured && (
-                        <div className="absolute top-4 right-4">
-                          <div className="px-2 py-1 bg-black text-white text-xs font-medium">
-                            Featured
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Photo count */}
-                      <div className="absolute bottom-4 left-4">
-                        <div className="px-2 py-1 bg-white/90 text-gray-900 text-sm font-medium">
-                          {album.photoCount} {album.photoCount === 1 ? 'photo' : 'photos'}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Content section */}
-                    <div className="p-6">
-                      <h3 className="text-lg font-medium text-gray-900 mb-2 group-hover:text-gray-700 transition-colors duration-300">
-                        {MultiLangUtils.getTextValue(album.name, currentLanguage)}
-                      </h3>
-                      {album.description && (
-                        <div 
-                          className="text-gray-600 text-sm mb-4 line-clamp-2"
-                          dangerouslySetInnerHTML={{ 
-                            __html: MultiLangUtils.getHTMLValue(album.description, currentLanguage) 
-                          }}
-                        />
-                      )}
-                      <div className="flex items-center justify-between text-sm text-gray-500">
-                        <div className="flex items-center space-x-4">
-                          {typeof album.childAlbumCount === 'number' && album.childAlbumCount > 0 && (
-                            <span>
-                              {album.childAlbumCount} sub-albums
-                            </span>
-                          )}
-                        </div>
-                        <span className="text-xs">
-                          {new Date(album.createdAt).toLocaleDateString('en-US', {
-                            year: 'numeric',
-                            month: 'short'
-                          })}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
+          ) : albums.length > 0 ? (
+            <div className="minimal-gallery-grid">
+              {albums.slice(0, 9).map((album, index) => (
+                <div 
+                  key={album._id} 
+                  className={`minimal-gallery-item ${index === 3 ? 'minimal-gallery-item-wide' : ''}`}
+                >
+                  {coverImages[album._id] && (
+                    <img
+                      src={coverImages[album._id]}
+                      alt={getText(album.name) || 'Album cover'}
+                      className="minimal-gallery-image"
+                    />
+                  )}
+                  <div className="minimal-gallery-overlay"></div>
                 </div>
               ))}
             </div>
+          ) : (
+            <div className="minimal-gallery-empty">
+              <p>No albums yet</p>
+            </div>
+          )}
+        </div>
+      </section>
 
-            {/* View all albums button */}
-            {rootAlbums.length > 8 && (
-              <div className="text-center">
-                <a
-                  href="/albums"
-                  className="inline-flex items-center px-6 py-3 border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 transition-colors duration-300"
-                >
-                  View All Albums
-                  <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </a>
-              </div>
-            )}
+      {/* Services Section */}
+      {activeTemplate?.pageConfig?.home?.showServices && (
+        <section className="minimal-services">
+          <div className="minimal-container">
+            <h2 className="minimal-services-title">
+              Services
+            </h2>
+            <div className="minimal-services-grid">
+              {config?.homePage?.services?.map((service, index) => (
+                <div key={index} className="minimal-service-item">
+                  <div className="minimal-service-number">
+                    {service.number}
+                  </div>
+                  <h3 className="minimal-service-title">
+                    {MultiLangUtils.getTextValue(service.title, currentLanguage)}
+                  </h3>
+                  <div 
+                    className="minimal-service-description"
+                    dangerouslySetInnerHTML={{ 
+                      __html: MultiLangUtils.getHTMLValue(service.description, currentLanguage) || '' 
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
           </div>
         </section>
       )}
 
-      {/* Stats Section */}
-      <section className="py-20 bg-white border-t border-gray-200">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-            <div>
-              <div className="text-3xl md:text-4xl font-light text-gray-900 mb-2">
-                {rootAlbums.length}
-              </div>
-              <div className="text-gray-600">
-                Albums Created
-              </div>
-            </div>
-            <div>
-              <div className="text-3xl md:text-4xl font-light text-gray-900 mb-2">
-                {rootAlbums.reduce((total, album) => total + album.photoCount, 0)}
-              </div>
-              <div className="text-gray-600">
-                Photos Shared
-              </div>
-            </div>
-            <div>
-              <div className="text-3xl md:text-4xl font-light text-gray-900 mb-2">
-                24/7
-              </div>
-              <div className="text-gray-600">
-                Always Available
-              </div>
+      {/* Contact Section */}
+      {activeTemplate?.pageConfig?.home?.showContact && (
+        <section className="minimal-contact">
+          <div className="minimal-container">
+            <h2 className="minimal-contact-title">
+              {config?.homePage?.contactTitle ? MultiLangUtils.getTextValue(config.homePage.contactTitle, currentLanguage) : 'Get In Touch'}
+            </h2>
+            <div className="minimal-contact-info">
+              {config?.contact?.email && (
+                <div className="minimal-contact-item">
+                  <h3 className="minimal-contact-label">
+                    Email
+                  </h3>
+                  <p className="minimal-contact-value">
+                    <a href={`mailto:${config.contact.email}`} className="minimal-contact-link">
+                      {config.contact.email}
+                    </a>
+                  </p>
+                </div>
+              )}
+              {config?.contact?.phone && (
+                <div className="minimal-contact-item">
+                  <h3 className="minimal-contact-label">
+                    Phone
+                  </h3>
+                  <p className="minimal-contact-value">
+                    <a href={`tel:${config.contact.phone}`} className="minimal-contact-link">
+                      {config.contact.phone}
+                    </a>
+                  </p>
+                </div>
+              )}
+              {config?.contact?.address && (
+                <div className="minimal-contact-item">
+                  <h3 className="minimal-contact-label">
+                    Location
+                  </h3>
+                  <p className="minimal-contact-value">
+                    {MultiLangUtils.getTextValue(config.contact.address, currentLanguage)}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
-      {/* CTA Section */}
-      <section className="py-20 bg-gray-50 border-t border-gray-200">
-        <div className="max-w-4xl mx-auto px-6 text-center">
-          <h2 className="text-3xl md:text-4xl font-light text-gray-900 mb-6">
-            Ready to Share Your Story?
-          </h2>
-          <p className="text-lg text-gray-600 mb-8">
-            Create clean galleries, organize your memories, and share them with the world.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <a
-              href="/albums"
-              className="px-6 py-3 bg-gray-900 text-white font-medium hover:bg-gray-800 transition-colors duration-300"
-            >
-              Explore Gallery
-            </a>
-            <a
-              href="/login"
-              className="px-6 py-3 border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 transition-colors duration-300"
-            >
-              Get Started
-            </a>
-          </div>
-        </div>
-      </section>
+      <Footer />
+    </main>
+  );
+};
 
-      {/* Footer */}
-      {isComponentVisible('footerMenu') && <Footer />}
-    </div>
-  )
-}
+export default MinimalHomePage;

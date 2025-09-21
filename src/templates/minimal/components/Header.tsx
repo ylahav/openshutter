@@ -2,25 +2,35 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
 import { useSiteConfig } from '@/hooks/useSiteConfig'
 import { MultiLangUtils } from '@/types/multi-lang'
 import { useLanguage } from '@/contexts/LanguageContext'
-import LanguageSelector from '@/components/LanguageSelector'
 import { useI18n } from '@/hooks/useI18n'
 import { useTemplateConfig } from '@/hooks/useTemplateConfig'
+import { useActiveTemplate } from '@/hooks/useTemplate'
+import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Menu, X, Sun, Moon, User, LogOut, Globe } from 'lucide-react'
+import { useTheme } from 'next-themes'
 
 export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const [isScrolled, setIsScrolled] = useState(false)
+  const [theme, setTheme] = useState<'light' | 'dark'>('light')
+  const { theme: activeTheme, setTheme: setThemeNext } = useTheme()
   const pathname = usePathname()
-  const router = useRouter()
   const { config, loading: configLoading } = useSiteConfig()
   const { currentLanguage, setCurrentLanguage } = useLanguage()
   const { t } = useI18n()
   const { data: session, status } = useSession()
   const { isComponentVisible } = useTemplateConfig()
+  const { template: activeTemplate } = useActiveTemplate()
 
   const isActive = (path: string) => pathname === path
 
@@ -29,18 +39,20 @@ export default function Header() {
   const userRole = (session?.user as any)?.role || null
 
   const handleLogout = () => {
-    // Use NextAuth's signOut to properly invalidate the session
     signOut({ callbackUrl: '/' })
   }
 
-  // Handle scroll effect
+  // Theme management via next-themes
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20)
-    }
-    window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
+    const current = (activeTheme as 'light' | 'dark') || 'light'
+    setTheme(current)
+  }, [activeTheme])
+
+  const toggleTheme = () => {
+    const next = theme === 'light' ? 'dark' : 'light'
+    setTheme(next)
+    setThemeNext(next)
+  }
 
   // Get user name for display
   const getUserDisplayName = () => {
@@ -48,12 +60,10 @@ export default function Header() {
     const userName = (session.user as any)?.name
     if (!userName) return 'User'
     
-    // Handle both string and multi-language object names
     if (typeof userName === 'string') {
       return userName
     }
     
-    // Extract name from multi-language object
     return MultiLangUtils.getTextValue(userName, currentLanguage) || 'User'
   }
 
@@ -71,181 +81,188 @@ export default function Header() {
   // Show loading state while config is loading
   if (configLoading) {
     return (
-      <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            {/* Loading Logo */}
-            <div className="flex items-center">
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-gray-200 rounded animate-pulse shrink-0"></div>
-                <div className="w-24 h-5 bg-gray-200 rounded animate-pulse"></div>
-              </div>
-            </div>
-            
-            {/* Loading Navigation */}
-            <nav className="hidden md:flex items-center gap-6">
-              <div className="w-12 h-4 bg-gray-200 rounded animate-pulse"></div>
-              <div className="w-16 h-4 bg-gray-200 rounded animate-pulse"></div>
-            </nav>
-            
-            {/* Loading Language Selector */}
-            <div className="w-16 h-6 bg-gray-200 rounded animate-pulse"></div>
+      <header className="minimal-header">
+        <nav className="minimal-nav">
+          <div className="minimal-logo">
+            {config?.title ? MultiLangUtils.getTextValue(config.title, currentLanguage) : 'OpenShutter'}
           </div>
-        </div>
+          <div className="minimal-actions">
+            <div className="minimal-loading-nav">
+              <div className="minimal-loading-item"></div>
+              <div className="minimal-loading-item"></div>
+            </div>
+            <div className="minimal-loading-btn"></div>
+          </div>
+        </nav>
       </header>
     )
   }
 
   return (
-    <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-      isScrolled 
-        ? 'bg-white/95 backdrop-blur-sm border-b border-gray-200 shadow-sm' 
-        : 'bg-white border-b border-gray-200'
-    }`}>
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          {/* Logo */}
-          <div className="flex items-center">
-            <Link href="/" className="flex items-center space-x-3 group">
-              {config?.logo ? (
-                <div className="relative w-8 h-8 rounded overflow-hidden">
-                  <img
-                    src={config.logo}
-                    alt={MultiLangUtils.getTextValue(config.title, currentLanguage)}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              ) : (
-                <div className="w-8 h-8 bg-gray-900 rounded flex items-center justify-center">
-                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                </div>
-              )}
-              <span className="text-lg font-medium text-gray-900">
-                {config?.title ? MultiLangUtils.getTextValue(config.title, currentLanguage) : 'OpenShutter'}
-              </span>
-            </Link>
-          </div>
+    <header className="minimal-header">
+      <nav className="minimal-nav">
+        {/* Logo */}
+        <Link href="/" className="minimal-logo">
+          {config?.title ? MultiLangUtils.getTextValue(config.title, currentLanguage) : 'OpenShutter'}
+        </Link>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-8">
+        {/* Desktop Navigation */}
+        <ul className="minimal-nav-menu">
+          {navigation.map((item) => (
+            <li key={item.name}>
+              <Link
+                href={item.href}
+                className={`minimal-nav-link ${isActive(item.href) ? 'minimal-nav-link-active' : ''}`}
+              >
+                {item.name}
+              </Link>
+            </li>
+          ))}
+        </ul>
+
+        {/* Actions */}
+        <div className="minimal-actions">
+          {/* Theme Toggle */}
+          {activeTemplate?.componentsConfig?.header?.enableThemeToggle && (
+            <Button
+              variant="ghost"
+              onClick={toggleTheme}
+              className="minimal-btn"
+              aria-label="Toggle theme"
+            >
+              {theme === 'light' ? 'Dark' : 'Light'}
+            </Button>
+          )}
+
+          {/* Language Selector */}
+          {config?.languages?.activeLanguages && 
+           config.languages.activeLanguages.length > 1 && 
+           activeTemplate?.componentsConfig?.header?.enableLanguageSelector && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  className="minimal-btn minimal-btn-with-icon"
+                  aria-label="Select language"
+                >
+                  <Globe className="h-4 w-4 mr-2" />
+                  {currentLanguage.toUpperCase()}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="minimal-dropdown">
+                {config.languages.activeLanguages.map((lang) => (
+                  <DropdownMenuItem
+                    key={lang}
+                    onClick={() => setCurrentLanguage(lang)}
+                    className={`minimal-dropdown-item ${currentLanguage === lang ? 'minimal-dropdown-item-active' : ''}`}
+                  >
+                    {lang.toUpperCase()}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+
+          {/* Authentication */}
+          {activeTemplate?.componentsConfig?.header?.showAuthButtons && (
+            <>
+              {isLoggedIn ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      className="minimal-btn minimal-btn-with-icon"
+                    >
+                      <User className="h-4 w-4" />
+                      {getUserDisplayName()}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="minimal-dropdown">
+                    <DropdownMenuItem 
+                      onClick={handleLogout} 
+                      className="minimal-dropdown-item minimal-dropdown-item-danger"
+                    >
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Logout
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Button asChild className="minimal-btn">
+                  <Link href="/login">
+                    {t('auth.signIn')}
+                  </Link>
+                </Button>
+              )}
+            </>
+          )}
+
+          {/* Mobile menu button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="minimal-mobile-btn"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          >
+            {isMobileMenuOpen ? (
+              <X className="h-5 w-5" />
+            ) : (
+              <Menu className="h-5 w-5" />
+            )}
+          </Button>
+        </div>
+      </nav>
+
+      {/* Mobile Navigation */}
+      {isMobileMenuOpen && (
+        <div className="minimal-mobile-menu">
+          <div className="minimal-mobile-content">
             {navigation.map((item) => (
               <Link
                 key={item.name}
                 href={item.href}
-                className={`text-sm font-medium transition-colors duration-300 ${
-                  isActive(item.href)
-                    ? 'text-gray-900'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
+                className={`minimal-mobile-link ${isActive(item.href) ? 'minimal-mobile-link-active' : ''}`}
+                onClick={() => setIsMobileMenuOpen(false)}
               >
                 {item.name}
               </Link>
             ))}
-          </nav>
-
-          {/* Right side actions */}
-          <div className="flex items-center space-x-4">
-            {/* Language Selector - only show if more than one language is active and component is enabled */}
-            {config?.languages?.activeLanguages && 
-             config.languages.activeLanguages.length > 1 && 
-             isComponentVisible('languageSelector') && (
-              <LanguageSelector
-                currentLanguage={currentLanguage}
-                onLanguageChange={setCurrentLanguage}
-                compact
-              />
-            )}
-
-            {/* Authentication */}
-            {isComponentVisible('authButtons') && isLoggedIn ? (
-              <div className="flex items-center space-x-3">
-                <div className="hidden sm:block text-sm text-gray-600">
-                  Welcome, <span className="font-medium text-gray-900">{userRole === 'admin' ? 'Admin' : 'User'}</span>
-                </div>
-                <button
-                  onClick={handleLogout}
-                  className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors duration-300"
-                >
-                  {t('header.logout')}
-                </button>
-              </div>
-              ) : isComponentVisible('authButtons') ? (
-                <Link
-                  href="/login"
-                  className="px-4 py-2 bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 transition-colors duration-300"
-                >
-                  {t('auth.signIn')}
-                </Link>
-              ) : null}
-
-            {/* Mobile menu button */}
-            <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="md:hidden p-2 text-gray-600 hover:text-gray-900 transition-colors duration-300"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                {isMobileMenuOpen ? (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                ) : (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                )}
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        {/* Mobile Navigation */}
-        {isMobileMenuOpen && (
-          <div className="md:hidden">
-            <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 border-t border-gray-200 bg-white">
-              {navigation.map((item) => (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={`block px-3 py-2 text-base font-medium transition-colors duration-300 ${
-                    isActive(item.href)
-                      ? 'text-gray-900 bg-gray-50'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                  }`}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  {item.name}
-                </Link>
-              ))}
-              
-              {/* Mobile Authentication Actions */}
-              <div className="pt-4 border-t border-gray-200">
+            
+            {/* Mobile Authentication Actions */}
+            {activeTemplate?.componentsConfig?.header?.showAuthButtons && (
+              <div className="minimal-mobile-auth">
                 {isLoggedIn ? (
-                  <div className="space-y-2">
-                    <div className="px-3 py-2 text-sm text-gray-600">
+                  <div className="minimal-mobile-auth-content">
+                    <div className="minimal-mobile-welcome">
                       Welcome, {getUserDisplayName()}
                     </div>
-                    <button
+                    <Button
+                      variant="ghost"
                       onClick={() => {
                         handleLogout()
                         setIsMobileMenuOpen(false)
                       }}
-                      className="w-full text-left px-3 py-2 text-base font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors duration-300"
+                      className="minimal-mobile-logout"
                     >
-                      {t('header.logout')}
-                    </button>
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Logout
+                    </Button>
                   </div>
                 ) : (
-                  <Link
-                    href="/login"
-                    className="block px-3 py-2 text-base font-medium text-white bg-gray-900 hover:bg-gray-800 transition-colors duration-300"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    {t('auth.signIn')}
-                  </Link>
+                  <Button asChild className="minimal-mobile-login">
+                    <Link
+                      href="/login"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      {t('auth.signIn')}
+                    </Link>
+                  </Button>
                 )}
               </div>
-            </div>
+            )}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </header>
   )
 }

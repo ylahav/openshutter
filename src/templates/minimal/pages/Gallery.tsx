@@ -1,74 +1,20 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { MultiLangUtils } from '@/types/multi-lang'
-import { useLanguage } from '@/contexts/LanguageContext'
-import { useI18n } from '@/hooks/useI18n'
+import React from 'react'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
-import AlbumList from '../components/AlbumList'
-import { TemplateAlbum } from '@/types/ui'
 
-interface Album extends TemplateAlbum {
-  _id: string
-  order: number
-}
-
-export default function GalleryPage() {
-  const { currentLanguage } = useLanguage()
-  const { t } = useI18n()
-  const [albums, setAlbums] = useState<Album[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    const fetchRootAlbums = async () => {
-      try {
-        setLoading(true)
-        // Fetch only root albums (no parent)
-        const response = await fetch('/api/albums?parentId=root')
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch albums')
-        }
-        
-        const result = await response.json()
-        if (result.success) {
-          const albums = result.data
-          
-          // API already handles access control, so we can use all returned albums
-          const sortedAlbums = albums.sort((a: Album, b: Album) => a.order - b.order)
-          setAlbums(sortedAlbums)
-        } else {
-          setError(result.error || 'Failed to fetch albums')
-        }
-      } catch (error) {
-        console.error('Failed to fetch albums:', error)
-        setError('Failed to fetch albums')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchRootAlbums()
-  }, [])
-
+const Gallery: React.FC = () => {
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-background">
       <Header />
-      
-      {/* Main Content */}
-      <main className="py-16">
-        <AlbumList 
-          albums={albums}
-          loading={loading}
-          error={error}
-          title={t('albums')}
-          subtitle={t('browsePhotoCollections')}
-        />
+      <main className="container mx-auto px-4 py-8">
+        <h1 className="text-3xl font-bold mb-6">Gallery</h1>
+        <p className="text-muted-foreground">Gallery page coming soon...</p>
       </main>
-      
       <Footer />
     </div>
   )
 }
+
+export default Gallery

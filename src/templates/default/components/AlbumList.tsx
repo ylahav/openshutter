@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import AlbumCard from './AlbumCard'
 import { useI18n } from '@/hooks/useI18n'
+import styles from '../styles.module.scss'
 import { TemplateAlbum } from '@/types/ui'
 
 interface AlbumListProps {

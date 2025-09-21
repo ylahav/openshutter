@@ -12,6 +12,46 @@
   --color-primary-700: #0369a1;
   --color-primary-800: #075985;
   --color-primary-900: #0c4a6e;
+
+  /* Light theme */
+  --color-background: 0 0% 100%;
+  --color-foreground: 222.2 84% 4.9%;
+  --color-muted: 210 40% 98%;
+  --color-muted-foreground: 215.4 16.3% 46.9%;
+  --color-border: 214.3 31.8% 91.4%;
+  --color-input: 214.3 31.8% 91.4%;
+  --color-ring: 199.89 89.1% 48%;
+  --color-primary: 199.89 89.1% 48%;
+  --color-primary-foreground: 0 0% 100%;
+  --color-secondary: 210 40% 98%;
+  --color-secondary-foreground: 222.2 84% 4.9%;
+  --color-destructive: 0 84.2% 60.2%;
+  --color-destructive-foreground: 0 0% 100%;
+  --color-accent: 210 40% 98%;
+  --color-accent-foreground: 222.2 84% 4.9%;
+  --color-popover: 0 0% 100%;
+  --color-popover-foreground: 222.2 84% 4.9%;
+}
+
+/* Support html.dark per shadcn/ui */
+html.dark {
+  --color-background: 222.2 84% 4.9%;
+  --color-foreground: 210 40% 98%;
+  --color-muted: 217.2 32.6% 17.5%;
+  --color-muted-foreground: 215 20.2% 65.1%;
+  --color-border: 217.2 32.6% 17.5%;
+  --color-input: 217.2 32.6% 17.5%;
+  --color-ring: 199.89 89.1% 48%;
+  --color-primary: 199.89 89.1% 48%;
+  --color-primary-foreground: 0 0% 100%;
+  --color-secondary: 217.2 32.6% 17.5%;
+  --color-secondary-foreground: 210 40% 98%;
+  --color-destructive: 0 62.8% 30.6%;
+  --color-destructive-foreground: 0 0% 100%;
+  --color-accent: 217.2 32.6% 17.5%;
+  --color-accent-foreground: 210 40% 98%;
+  --color-popover: 222.2 84% 4.9%;
+  --color-popover-foreground: 210 40% 98%;
 }
 
 @layer base {
@@ -20,11 +60,11 @@
   }
   
   body {
-    @apply text-gray-900 bg-gray-50;
+    @apply text-foreground bg-background;
   }
   
   * {
-    @apply border-gray-200;
+    @apply border-border;
   }
 }
 
@@ -144,4 +184,128 @@
 /* Dot pattern background */
 .bg-dot-pattern {
   background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.1'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* ========================================
+   TEMPLATE CSS VARIABLES
+   ======================================== */
+
+/* Modern Template Variables */
+:root {
+  --modern-primary: #0ea5e9;
+  --modern-secondary: #64748b;
+  --modern-accent: #22c55e;
+  --modern-background: #ffffff;
+  --modern-text: #0f172a;
+  --modern-text-secondary: #64748b;
+  --modern-muted: #e5e7eb;
+  --modern-bg-secondary: #f8fafc;
+  --modern-max-width: 1280px;
+  --modern-container-padding: 1.5rem;
+  --modern-grid-gap: 1.5rem;
+}
+
+html.dark {
+  --modern-primary: #38bdf8;
+  --modern-secondary: #94a3b8;
+  --modern-accent: #4ade80;
+  --modern-background: #0f172a;
+  --modern-text: #f8fafc;
+  --modern-text-secondary: #94a3b8;
+  --modern-muted: #334155;
+  --modern-bg-secondary: #1e293b;
+}
+
+/* Default Template Variables */
+:root {
+  --default-bg: #ffffff;
+  --default-bg-secondary: #f8fafc;
+  --default-text: #1e293b;
+  --default-text-secondary: #64748b;
+  --default-border: #e2e8f0;
+  --default-hover: #f1f5f9;
+  --default-accent: #3b82f6;
+  --default-accent-hover: #2563eb;
+  --default-shadow: rgba(0, 0, 0, 0.1);
+  --default-shadow-hover: rgba(0, 0, 0, 0.15);
+  --default-glass: rgba(255, 255, 255, 0.1);
+  --default-glass-border: rgba(255, 255, 255, 0.2);
+  --default-skeleton: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+}
+
+html.dark {
+  --default-bg: #0f172a;
+  --default-bg-secondary: #1e293b;
+  --default-text: #f1f5f9;
+  --default-text-secondary: #94a3b8;
+  --default-border: #334155;
+  --default-hover: #334155;
+  --default-accent: #60a5fa;
+  --default-accent-hover: #3b82f6;
+  --default-shadow: rgba(0, 0, 0, 0.3);
+  --default-shadow-hover: rgba(0, 0, 0, 0.4);
+  --default-glass: rgba(0, 0, 0, 0.2);
+  --default-glass-border: rgba(255, 255, 255, 0.1);
+  --default-skeleton: linear-gradient(90deg, #374151 25%, #4b5563 50%, #374151 75%);
+}
+
+/* Fancy Template Variables */
+:root {
+  --fancy-primary: #d4af37;
+  --fancy-secondary: #8b7355;
+  --fancy-accent: #f4e4bc;
+  --fancy-background: #faf9f7;
+  --fancy-bg-secondary: #f5f3f0;
+  --fancy-text: #2c2c2c;
+  --fancy-muted: #6b6b6b;
+  --fancy-border: #e5e0d6;
+  --fancy-hover: #f0ebe0;
+  --fancy-glass: rgba(250, 249, 247, 0.8);
+  --fancy-skeleton: linear-gradient(90deg, #f0ebe0 25%, #e5e0d6 50%, #f0ebe0 75%);
+  --fancy-max-width: 1280px;
+  --fancy-container-padding: 1.5rem;
+  --fancy-grid-gap: 1.5rem;
+}
+
+html.dark {
+  --fancy-primary: #f4e4bc;
+  --fancy-secondary: #d4af37;
+  --fancy-accent: #8b7355;
+  --fancy-background: #1a1a1a;
+  --fancy-bg-secondary: #2a2a2a;
+  --fancy-text: #f5f3f0;
+  --fancy-muted: #a0a0a0;
+  --fancy-border: #404040;
+  --fancy-hover: #333333;
+  --fancy-glass: rgba(26, 26, 26, 0.8);
+  --fancy-skeleton: linear-gradient(90deg, #333333 25%, #404040 50%, #333333 75%);
+}
+
+/* Minimal Template Variables */
+:root {
+  --minimal-primary: #3b82f6;
+  --minimal-secondary: #1e40af;
+  --minimal-accent: #60a5fa;
+  --minimal-background: #ffffff;
+  --minimal-bg-secondary: #f8fafc;
+  --minimal-text: #1e293b;
+  --minimal-muted: #64748b;
+  --minimal-border: #e2e8f0;
+  --minimal-hover: #f1f5f9;
+  --minimal-glass: rgba(255, 255, 255, 0.8);
+  --minimal-skeleton: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+}
+
+html.dark {
+  --minimal-primary: #60a5fa;
+  --minimal-secondary: #3b82f6;
+  --minimal-accent: #93c5fd;
+  --minimal-background: #0f172a;
+  --minimal-bg-secondary: #1e293b;
+  --minimal-text: #f1f5f9;
+  --minimal-muted: #94a3b8;
+  --minimal-border: #334155;
+  --minimal-hover: #334155;
+  --minimal-glass: rgba(15, 23, 42, 0.8);
+  --minimal-skeleton: linear-gradient(90deg, #374151 25%, #4b5563 50%, #374151 75%);
 }

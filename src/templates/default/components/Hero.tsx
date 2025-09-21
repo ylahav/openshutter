@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useI18n } from '@/hooks/useI18n'
+import styles from '../styles.module.scss'
 import { MultiLangUtils } from '@/types/multi-lang'
 import { useLanguage } from '@/contexts/LanguageContext'
 
@@ -113,7 +114,7 @@ export default function Hero({
   }
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-blue-600 to-blue-800">
+    <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-primary to-primary/80">
       {/* Background */}
       {backgroundImageUrl ? (
         <div 
@@ -127,9 +128,9 @@ export default function Hero({
 
       {/* Loading indicator */}
       {loading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-          <div className="text-center text-white">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+        <div className="absolute inset-0 flex items-center justify-center bg-background/50">
+          <div className="text-center text-foreground">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-foreground mx-auto mb-4"></div>
             <p className="text-lg">{t('loading')}</p>
           </div>
         </div>
@@ -141,14 +142,14 @@ export default function Hero({
           {displayTitle}
         </h1>
         
-        <p className="text-xl md:text-2xl mb-8 text-blue-100 max-w-2xl mx-auto leading-relaxed">
+        <p className="text-xl md:text-2xl mb-8 text-white/90 max-w-2xl mx-auto leading-relaxed">
           {displaySubtitle}
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Link
             href={ctaLink}
-            className="inline-flex items-center px-8 py-4 bg-white text-blue-600 font-semibold rounded-lg hover:bg-blue-50 transition-colors duration-300 shadow-lg"
+            className="inline-flex items-center px-8 py-4 bg-background text-foreground font-semibold rounded-lg hover:bg-muted transition-colors duration-300 shadow-lg"
           >
             <span className="mr-2">{ctaText}</span>
             <svg 

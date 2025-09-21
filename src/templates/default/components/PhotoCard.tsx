@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { MultiLangUtils } from '@/types/multi-lang'
 import { useLanguage } from '@/contexts/LanguageContext'
+import styles from '../styles.module.scss'
 
 interface Photo {
   _id: string

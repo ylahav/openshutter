@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 
-interface TemplateCustomization {
+export interface TemplateCustomization {
   colors: {
     primary: string
     secondary: string

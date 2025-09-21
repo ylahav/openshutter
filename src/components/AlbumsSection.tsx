@@ -2,11 +2,14 @@
 
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
+import { useLanguage } from '@/contexts/LanguageContext'
+import { MultiLangUtils } from '@/types/multi-lang'
+import { useMultipleAlbumCoverImages } from '@/hooks/useAlbumCoverImage'
 
 interface Album {
   _id: string
-  name: string
-  description: string
+  name: any // Multi-language object
+  description: any // Multi-language object
   isPublic: boolean
   isFeatured: boolean
   storageProvider: string
@@ -23,20 +26,26 @@ export default function AlbumsSection() {
   const [albums, setAlbums] = useState<Album[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isLoggedIn, setIsLoggedIn] = useState(false) // TODO: Replace with actual auth state
+  const { currentLanguage } = useLanguage()
+  
+  // Get cover images for all albums
+  const albumIds = albums.map(album => album._id)
+  const { coverImages, loading: coverImagesLoading } = useMultipleAlbumCoverImages(albumIds)
 
   useEffect(() => {
     const fetchAlbums = async () => {
       try {
-        // Fetch albums from the real API
-        const response = await fetch('/api/albums')
+        // Fetch only root albums (level 0)
+        const response = await fetch('/api/albums?level=0')
         if (!response.ok) {
           throw new Error('Failed to fetch albums')
         }
         
         const result = await response.json()
         if (result.success) {
-          // API already handles access control, so we can use all returned albums
-          setAlbums(result.data)
+          // Filter to only root albums (level 0)
+          const rootAlbums = result.data.filter((album: Album) => album.level === 0)
+          setAlbums(rootAlbums)
         } else {
           console.error('API returned error:', result.error)
         }
@@ -66,17 +75,6 @@ export default function AlbumsSection() {
   return (
     <section className="py-16 bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-            Featured Albums
-          </h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            {isLoggedIn 
-              ? 'Explore your complete photo collection organized into beautiful albums'
-              : 'Discover our public photo collections showcasing stunning photography'
-            }
-          </p>
-        </div>
 
         {albums.length === 0 ? (
           <div className="text-center py-12">
@@ -103,18 +101,29 @@ export default function AlbumsSection() {
             {albums.map((album) => (
               <div key={album._id} className="card hover:shadow-xl transition-all duration-300 group">
                 <div className="aspect-w-16 aspect-h-9 bg-gray-200 rounded-t-lg overflow-hidden">
-                  {/* Album cover image placeholder */}
-                  <div className="w-full h-48 bg-gradient-to-br from-primary-100 to-primary-200 flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
-                    <svg className="w-16 h-16 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                    </svg>
-                  </div>
+                  {coverImages[album._id] ? (
+                    <img
+                      src={coverImages[album._id]}
+                      alt={MultiLangUtils.getTextValue(album.name, currentLanguage)}
+                      className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  ) : coverImagesLoading ? (
+                    <div className="w-full h-48 bg-gray-200 flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+                    </div>
+                  ) : (
+                    <div className="w-full h-48 bg-gradient-to-br from-primary-100 to-primary-200 flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
+                      <svg className="w-16 h-16 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                      </svg>
+                    </div>
+                  )}
                 </div>
                 
                 <div className="card-body">
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="text-xl font-semibold text-gray-900 group-hover:text-primary-600 transition-colors">
-                      {album.name}
+                      {MultiLangUtils.getTextValue(album.name, currentLanguage)}
                     </h3>
                     {album.isFeatured && (
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
@@ -123,9 +132,12 @@ export default function AlbumsSection() {
                     )}
                   </div>
                   
-                  <p className="text-gray-600 mb-4 line-clamp-2">
-                    {album.description || 'No description available'}
-                  </p>
+                  <div 
+                    className="text-gray-600 mb-4 line-clamp-2"
+                    dangerouslySetInnerHTML={{
+                      __html: MultiLangUtils.getHTMLValue(album.description, currentLanguage) || 'No description available'
+                    }}
+                  />
                   
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-500">
@@ -141,14 +153,6 @@ export default function AlbumsSection() {
                 </div>
               </div>
             ))}
-          </div>
-        )}
-
-        {isLoggedIn && (
-          <div className="text-center mt-12">
-            <Link href="/albums" className="btn-secondary text-lg px-8 py-3">
-              View All Albums
-            </Link>
           </div>
         )}
       </div>

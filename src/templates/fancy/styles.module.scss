@@ -1,0 +1,736 @@
+// Fancy Template Styles - CSS Modules
+// Sophisticated, luxurious template with timeless appeal
+
+// Base theme class
+.theme {
+  background-color: var(--fancy-background);
+  color: var(--fancy-text);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+// Elegant page wrapper
+.elegantPage {
+  min-height: 100vh;
+  background: var(--fancy-background);
+  color: var(--fancy-text);
+}
+
+// Elegant container
+.elegantContainer {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+// Elegant headings
+.elegantHeading2 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--fancy-text);
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+// Elegant divider
+.elegantDivider {
+  width: 60px;
+  height: 3px;
+  background: linear-gradient(90deg, var(--fancy-primary), var(--fancy-secondary));
+  margin: 0 auto 2rem;
+}
+
+// Services section
+.elegantServices {
+  padding: 5rem 0;
+  background: var(--fancy-bg-secondary);
+}
+
+.elegantServicesTitle {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.elegantServicesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+}
+
+.elegantServiceItem {
+  text-align: center;
+  padding: 2rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease;
+}
+
+.elegantServiceItem:hover {
+  transform: translateY(-5px);
+}
+
+.elegantServiceNumber {
+  width: 60px;
+  height: 60px;
+  background: linear-gradient(135deg, var(--fancy-primary), var(--fancy-secondary));
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+  color: white;
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.elegantServiceTitle {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--fancy-text);
+  margin-bottom: 1rem;
+}
+
+.elegantServiceDescription {
+  color: var(--fancy-muted);
+  line-height: 1.6;
+}
+
+// Gallery section
+.elegantGallery {
+  padding: 5rem 0;
+  background: var(--fancy-background);
+}
+
+.elegantGalleryTitle {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.elegantGalleryFilters {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 3rem;
+  flex-wrap: wrap;
+}
+
+.elegantFilterButton {
+  padding: 0.5rem 1.5rem;
+  border: 2px solid var(--fancy-border);
+  background: transparent;
+  color: var(--fancy-text);
+  border-radius: 25px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.elegantFilterButton:hover,
+.elegantFilterButton.active {
+  background: var(--fancy-primary);
+  color: white;
+  border-color: var(--fancy-primary);
+}
+
+.elegantGalleryGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+}
+
+.elegantGalleryItem {
+  position: relative;
+  height: 300px;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.elegantGalleryItem:hover {
+  transform: scale(1.05);
+}
+
+.elegantGalleryOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, rgba(212, 175, 55, 0.9), rgba(139, 115, 85, 0.9));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.elegantGalleryItem:hover .elegantGalleryOverlay {
+  opacity: 1;
+}
+
+.elegantGalleryOverlayContent {
+  text-align: center;
+  color: white;
+}
+
+.elegantGalleryOverlayTitle {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.elegantGalleryOverlaySubtitle {
+  font-size: 1rem;
+  opacity: 0.9;
+}
+
+// Testimonials section
+.elegantTestimonials {
+  padding: 5rem 0;
+  background: var(--fancy-bg-secondary);
+}
+
+.elegantTestimonialsTitle {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.elegantTestimonialsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+}
+
+.elegantTestimonialItem {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.elegantTestimonialText {
+  font-style: italic;
+  color: var(--fancy-muted);
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
+}
+
+.elegantTestimonialAuthor {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.elegantTestimonialAvatar {
+  width: 50px;
+  height: 50px;
+  background: linear-gradient(135deg, var(--fancy-primary), var(--fancy-secondary));
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+}
+
+.elegantTestimonialName {
+  font-weight: 600;
+  color: var(--fancy-text);
+}
+
+.elegantTestimonialRole {
+  color: var(--fancy-muted);
+  font-size: 0.9rem;
+}
+
+// Contact section
+.elegantContact {
+  padding: 5rem 0;
+  background: var(--fancy-background);
+}
+
+.elegantContactTitle {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.elegantContactContent {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4rem;
+  align-items: start;
+}
+
+.elegantContactInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.elegantContactItem {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.elegantContactIcon {
+  width: 50px;
+  height: 50px;
+  background: var(--fancy-primary);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  color: white;
+}
+
+.elegantContactDetails h4 {
+  font-weight: 600;
+  color: var(--fancy-text);
+  margin-bottom: 0.25rem;
+}
+
+.elegantContactDetails p {
+  color: var(--fancy-muted);
+  margin: 0;
+}
+
+.elegantContactForm {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.elegantAccentBorder {
+  border: 2px solid var(--fancy-primary);
+  border-radius: 8px;
+  padding: 2rem;
+  text-align: center;
+}
+
+.elegantCtaButton {
+  background: linear-gradient(135deg, var(--fancy-primary), var(--fancy-secondary));
+  color: white;
+  padding: 1rem 2rem;
+  border-radius: 25px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: transform 0.3s ease;
+  display: inline-block;
+}
+
+.elegantCtaButton:hover {
+  transform: translateY(-2px);
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .elegantContainer {
+    padding: 0 1rem;
+  }
+  
+  .elegantContactContent {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+  
+  .elegantServicesGrid,
+  .elegantGalleryGrid,
+  .elegantTestimonialsGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+// Text styles
+.text {
+  color: var(--fancy-text);
+}
+
+.textSecondary {
+  color: var(--fancy-muted);
+}
+
+.accent {
+  color: var(--fancy-primary);
+}
+
+.accentBg {
+  background-color: var(--fancy-primary);
+}
+
+// Header styles
+.header {
+  background: var(--fancy-glass);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--fancy-border);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  transition: all 0.3s ease;
+}
+
+.logoContainer {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.headerNav {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
+.headerNav a {
+  color: var(--fancy-text);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.3s ease;
+  position: relative;
+  padding: 0.5rem 0;
+}
+
+.headerNav a:hover {
+  color: var(--fancy-primary);
+}
+
+.headerNav a.active {
+  color: var(--fancy-primary);
+}
+
+.headerNav a.active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: var(--fancy-primary);
+}
+
+.themeToggle {
+  background: none;
+  border: none;
+  color: var(--fancy-text);
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.themeToggle:hover {
+  background-color: var(--fancy-hover);
+}
+
+.languageSelector {
+  display: flex;
+  align-items: center;
+}
+
+.logoutButton,
+.authButton {
+  background-color: var(--fancy-primary);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.logoutButton:hover,
+.authButton:hover {
+  background-color: var(--fancy-secondary);
+  transform: translateY(-1px);
+}
+
+// Footer styles
+.footer {
+  background-color: var(--fancy-bg-secondary);
+  color: var(--fancy-text);
+  padding: 3rem 0 1rem;
+  margin-top: auto;
+}
+
+.footer h3 {
+  color: var(--fancy-text);
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.footer h3 span {
+  color: var(--fancy-primary);
+}
+
+.footer a {
+  color: var(--fancy-muted);
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.footer a:hover {
+  color: var(--fancy-text);
+}
+
+// Hero section
+.hero {
+  background: linear-gradient(135deg, var(--fancy-background) 0%, var(--fancy-bg-secondary) 100%);
+  padding: 6rem 0;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="%23000" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+  opacity: 0.3;
+}
+
+.heroContent {
+  position: relative;
+  z-index: 1;
+  max-width: var(--fancy-max-width);
+  margin: 0 auto;
+  padding: 0 var(--fancy-container-padding);
+}
+
+.heroTitle {
+  font-size: 3.5rem;
+  font-weight: 800;
+  line-height: 1.1;
+  margin-bottom: 1.5rem;
+  background: linear-gradient(135deg, var(--fancy-text) 0%, var(--fancy-primary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.heroSubtitle {
+  font-size: 1.25rem;
+  color: var(--fancy-muted);
+  margin-bottom: 2rem;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.heroButtons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+// Buttons
+.button {
+  background-color: var(--fancy-primary);
+  color: white;
+  border: none;
+  padding: 0.75rem 2rem;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-block;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.button:hover {
+  background-color: var(--fancy-secondary);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+.buttonOutline {
+  background-color: transparent;
+  color: var(--fancy-text);
+  border: 2px solid var(--fancy-primary);
+}
+
+.buttonOutline:hover {
+  background-color: var(--fancy-primary);
+  color: white;
+}
+
+// Gallery section
+.gallery {
+  padding: 5rem 0;
+  background-color: var(--fancy-background);
+}
+
+.galleryTitle {
+  font-size: 2.5rem;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 3rem;
+  color: var(--fancy-text);
+}
+
+.galleryGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--fancy-grid-gap);
+  max-width: var(--fancy-max-width);
+  margin: 0 auto;
+  padding: 0 var(--fancy-container-padding);
+}
+
+.card {
+  background: white;
+  border-radius: 1rem;
+  overflow: hidden;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  border: 1px solid var(--fancy-border);
+}
+
+:global(html.dark) .card {
+  background: var(--fancy-bg-secondary);
+  border-color: var(--fancy-muted);
+}
+
+.card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+}
+
+.cardImage {
+  width: 100%;
+  height: 250px;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.card:hover .cardImage {
+  transform: scale(1.05);
+}
+
+// Section styles
+.section {
+  padding: 5rem 0;
+  max-width: var(--fancy-max-width);
+  margin: 0 auto;
+  padding-left: var(--fancy-container-padding);
+  padding-right: var(--fancy-container-padding);
+}
+
+.sectionNarrow {
+  max-width: 800px;
+}
+
+.sectionTitle {
+  font-size: 2.5rem;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 2rem;
+  color: var(--fancy-text);
+}
+
+.sectionContent {
+  font-size: 1.125rem;
+  line-height: 1.7;
+  color: var(--fancy-muted);
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.heading3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--fancy-text);
+  margin-bottom: 1rem;
+}
+
+// Loading states
+.loading {
+  background: var(--fancy-skeleton);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .heroTitle {
+    font-size: 2.5rem;
+  }
+  
+  .heroSubtitle {
+    font-size: 1.125rem;
+  }
+  
+  .heroButtons {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .galleryGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .sectionTitle {
+    font-size: 2rem;
+  }
+  
+  .headerNav {
+    display: none;
+  }
+}
+
+// Mobile menu styles
+.mobileMenu {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 50;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding-top: 4rem;
+}
+
+.mobileMenuContent {
+  background: var(--fancy-background);
+  width: 80%;
+  max-width: 300px;
+  height: 100%;
+  padding: 2rem;
+  box-shadow: -4px 0 6px rgba(0, 0, 0, 0.1);
+}
+
+.mobileMenuContent a {
+  display: block;
+  padding: 1rem 0;
+  color: var(--fancy-text);
+  text-decoration: none;
+  font-weight: 500;
+  border-bottom: 1px solid var(--fancy-border);
+}
+
+.mobileMenuContent a:hover {
+  color: var(--fancy-primary);
+}
+
+.mobileMenuContent a:last-child {
+  border-bottom: none;
+}

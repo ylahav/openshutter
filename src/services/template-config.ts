@@ -43,12 +43,12 @@ export class TemplateConfigService {
 
     // Start with template defaults
     const visibility: TemplateComponentVisibility = {
-      hero: templateConfig.visibility.hero,
-      languageSelector: templateConfig.visibility.languageSelector,
-      authButtons: templateConfig.visibility.authButtons,
-      footerMenu: templateConfig.visibility.footerMenu,
-      statistics: templateConfig.visibility.statistics || true,
-      promotion: templateConfig.visibility.promotion || true
+      hero: templateConfig.visibility?.hero ?? true,
+      languageSelector: templateConfig.visibility?.languageSelector ?? true,
+      authButtons: templateConfig.visibility?.authButtons ?? true,
+      footerMenu: templateConfig.visibility?.footerMenu ?? true,
+      statistics: templateConfig.visibility?.statistics ?? true,
+      promotion: templateConfig.visibility?.promotion ?? true
     }
 
     // Apply site-specific overrides if they exist
@@ -141,12 +141,12 @@ export class TemplateConfigService {
 
     // Reset to template defaults
     updatedConfig.template.componentVisibility = {
-      hero: templateConfig.visibility.hero,
-      languageSelector: templateConfig.visibility.languageSelector,
-      authButtons: templateConfig.visibility.authButtons,
-      footerMenu: templateConfig.visibility.footerMenu,
-      statistics: templateConfig.visibility.statistics || true,
-      promotion: templateConfig.visibility.promotion || true
+      hero: templateConfig.visibility?.hero ?? true,
+      languageSelector: templateConfig.visibility?.languageSelector ?? true,
+      authButtons: templateConfig.visibility?.authButtons ?? true,
+      footerMenu: templateConfig.visibility?.footerMenu ?? true,
+      statistics: templateConfig.visibility?.statistics ?? true,
+      promotion: templateConfig.visibility?.promotion ?? true
     }
 
     return updatedConfig

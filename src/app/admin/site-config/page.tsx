@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { SiteConfig } from '@/types/site-config'
 import MultiLangInput from '@/components/MultiLangInput'
 import MultiLangHTMLEditor from '@/components/MultiLangHTMLEditor'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { MultiLangText, MultiLangHTML, MultiLangUtils } from '@/types/multi-lang'
 import { useI18n } from '@/hooks/useI18n'
 
@@ -94,6 +95,7 @@ export default function SiteConfigPage() {
           seo: config.seo,
           theme: config.theme,
           contact: config.contact,
+          homePage: config.homePage,
           features: config.features,
           template: config.template
         }),
@@ -304,254 +306,214 @@ export default function SiteConfigPage() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Basic Settings */}
-            <div className="border-b border-gray-200 pb-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('admin.basicSettings')}</h2>
-              
-              <div className="grid grid-cols-1 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t('admin.siteTitle')}
-                  </label>
-                  <MultiLangInput
-                    value={config.title}
-                    onChange={(value) => setConfig({ ...config, title: value })}
-                    placeholder="Enter site title in current language..."
-                    required={true}
-                    maxLength={100}
-                    showLanguageTabs={true}
-                    defaultLanguage={config.languages?.defaultLanguage || 'en'}
-                  />
-                </div>
+            <Tabs defaultValue="basic" className="w-full">
+              <TabsList className="mb-4 bg-gray-100 text-gray-600 w-full grid grid-cols-6">
+                <TabsTrigger className="text-gray-600 data-[state=active]:text-gray-900 w-full" value="basic">{t('admin.basicSettings')}</TabsTrigger>
+                <TabsTrigger className="text-gray-600 data-[state=active]:text-gray-900 w-full" value="languages">{t('admin.languageSettings')}</TabsTrigger>
+                <TabsTrigger className="text-gray-600 data-[state=active]:text-gray-900 w-full" value="branding">Branding</TabsTrigger>
+                <TabsTrigger className="text-gray-600 data-[state=active]:text-gray-900 w-full" value="seo">SEO</TabsTrigger>
+                <TabsTrigger className="text-gray-600 data-[state=active]:text-gray-900 w-full" value="contact">Contact</TabsTrigger>
+                <TabsTrigger className="text-gray-600 data-[state=active]:text-gray-900 w-full" value="home">Services</TabsTrigger>
+              </TabsList>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t('admin.siteDescription')}
-                  </label>
-                  <MultiLangHTMLEditor
-                    value={config.description}
-                    onChange={(value) => setConfig({ ...config, description: value })}
-                    placeholder="Enter site description in current language..."
-                    height={150}
-                    showLanguageTabs={true}
-                    defaultLanguage={config.languages?.defaultLanguage || 'en'}
-                  />
-                </div>
-              </div>
-            </div>
+              <TabsContent value="basic">
+                <div className="grid grid-cols-1 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {t('admin.siteTitle')}
+                    </label>
+                    <MultiLangInput
+                      value={config.title}
+                      onChange={(value) => setConfig({ ...config, title: value })}
+                      placeholder="Enter site title in current language..."
+                      required={true}
+                      maxLength={100}
+                      showLanguageTabs={true}
+                      defaultLanguage={config.languages?.defaultLanguage || 'en'}
+                    />
+                  </div>
 
-            {/* Language Settings */}
-            <div className="border-b border-gray-200 pb-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('admin.languageSettings')}</h2>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t('admin.activeLanguages')}
-                  </label>
-                  <p className="text-sm text-gray-600 mb-3">
-                    Select which languages are available for content editing. Only selected languages will appear in multi-language fields.
-                  </p>
-                  
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {availableLanguages.map((lang) => {
-                      const isActive = config.languages?.activeLanguages?.includes(lang.code) || false
-                      
-                      return (
-                        <label key={lang.code} className="flex items-center space-x-2 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={isActive}
-                            onChange={(e) => {
-                              const currentLanguages = config.languages?.activeLanguages || []
-                              const newLanguages = e.target.checked
-                                ? [...currentLanguages, lang.code]
-                                : currentLanguages.filter((l: string) => l !== lang.code)
-                              
-                              setConfig({
-                                ...config,
-                                languages: {
-                                  ...config.languages,
-                                  activeLanguages: newLanguages,
-                                  defaultLanguage: config.languages?.defaultLanguage || 'en'
-                                }
-                              })
-                            }}
-                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                          />
-                          <span className="text-lg">{lang.flag}</span>
-                          <span className="text-sm text-gray-700">{lang.name}</span>
-                        </label>
-                      )
-                    })}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {t('admin.siteDescription')}
+                    </label>
+                    <MultiLangHTMLEditor
+                      value={config.description}
+                      onChange={(value) => setConfig({ ...config, description: value })}
+                      placeholder="Enter site description in current language..."
+                      height={150}
+                      showLanguageTabs={true}
+                      defaultLanguage={config.languages?.defaultLanguage || 'en'}
+                    />
                   </div>
                 </div>
+              </TabsContent>
 
-                <div>
-                  <label htmlFor="defaultLanguage" className="block text-sm font-medium text-gray-700 mb-1">
-                    Default Language
-                  </label>
-                  <select
-                    id="defaultLanguage"
-                    value={config.languages?.defaultLanguage || 'en'}
-                    onChange={(e) => {
-                      setConfig({
-                        ...config,
-                        languages: {
-                          ...config.languages,
-                          defaultLanguage: e.target.value,
-                          activeLanguages: config.languages?.activeLanguages || ['en']
-                        }
-                      })
-                    }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    {config.languages?.activeLanguages?.map((langCode) => {
-                      const lang = availableLanguages.find(l => l.code === langCode)
-                      
-                      return (
-                        <option key={langCode} value={langCode}>
-                          {lang?.name || langCode}
-                        </option>
-                      )
-                    })}
-                  </select>
-                  <p className="text-xs text-gray-500 mt-1">
-                    The default language will be used when content is not available in the user's preferred language.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Logo Settings */}
-            <div className="border-b border-gray-200 pb-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Logo Settings</h2>
-              
-              <div className="space-y-4">
-                {/* Current Logo Display */}
-                {config.logo && (
-                  <div className="flex items-center space-x-4">
-                    <div className="text-sm text-gray-600">Current Logo:</div>
-                    <img 
-                      src={config.logo} 
-                      alt="Site Logo" 
-                      className="h-16 w-auto object-contain border border-gray-200 rounded"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleLogoDelete}
-                      disabled={logoUploading}
-                      className="px-3 py-1 text-sm text-red-600 hover:text-red-800 hover:bg-red-50 rounded border border-red-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              <TabsContent value="languages">
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {t('admin.activeLanguages')}
+                    </label>
+                    <p className="text-sm text-gray-600 mb-3">
+                      Select which languages are available for content editing. Only selected languages will appear in multi-language fields.
+                    </p>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {availableLanguages.map((lang) => {
+                        const isActive = config.languages?.activeLanguages?.includes(lang.code) || false
+                        return (
+                          <label key={lang.code} className="flex items-center space-x-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={isActive}
+                              onChange={(e) => {
+                                const currentLanguages = config.languages?.activeLanguages || []
+                                const newLanguages = e.target.checked
+                                  ? [...currentLanguages, lang.code]
+                                  : currentLanguages.filter((l: string) => l !== lang.code)
+                                setConfig({
+                                  ...config,
+                                  languages: {
+                                    ...config.languages,
+                                    activeLanguages: newLanguages,
+                                    defaultLanguage: config.languages?.defaultLanguage || 'en'
+                                  }
+                                })
+                              }}
+                              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            <span className="text-lg">{lang.flag}</span>
+                            <span className="text-sm text-gray-700">{lang.name}</span>
+                          </label>
+                        )
+                      })}
+                    </div>
+                  </div>
+                  <div>
+                    <label htmlFor="defaultLanguage" className="block text-sm font-medium text-gray-700 mb-1">
+                      Default Language
+                    </label>
+                    <select
+                      id="defaultLanguage"
+                      value={config.languages?.defaultLanguage || 'en'}
+                      onChange={(e) => {
+                        setConfig({
+                          ...config,
+                          languages: {
+                            ...config.languages,
+                            defaultLanguage: e.target.value,
+                            activeLanguages: config.languages?.activeLanguages || ['en']
+                          }
+                        })
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
-                      {logoUploading ? 'Deleting...' : 'Delete Logo'}
-                    </button>
+                      {config.languages?.activeLanguages?.map((langCode) => {
+                        const lang = availableLanguages.find(l => l.code === langCode)
+                        return (
+                          <option key={langCode} value={langCode}>
+                            {lang?.name || langCode}
+                          </option>
+                        )
+                      })}
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">
+                      The default language will be used when content is not available in the user's preferred language.
+                    </p>
                   </div>
-                )}
+                </div>
+              </TabsContent>
 
-                {/* Logo Upload */}
-                <div>
-                  <label htmlFor="logo" className="block text-sm font-medium text-gray-700 mb-2">
-                    Upload New Logo
-                  </label>
-                  <div className="flex items-center space-x-3">
+              <TabsContent value="branding">
+                <div className="space-y-4">
+                  {config.logo && (
+                    <div className="flex items-center space-x-4">
+                      <div className="text-sm text-gray-600">Current Logo:</div>
+                      <img src={config.logo} alt="Site Logo" className="h-16 w-auto object-contain border border-gray-200 rounded" />
+                      <button
+                        type="button"
+                        onClick={handleLogoDelete}
+                        disabled={logoUploading}
+                        className="px-3 py-1 text-sm text-red-600 hover:text-red-800 hover:bg-red-50 rounded border border-red-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {logoUploading ? 'Deleting...' : 'Delete Logo'}
+                      </button>
+                    </div>
+                  )}
+                  <div>
+                    <label htmlFor="logo" className="block text-sm font-medium text-gray-700 mb-2">Upload New Logo</label>
+                    <div className="flex items-center space-x-3">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        id="logo"
+                        accept="image/*"
+                        onChange={handleLogoUpload}
+                        className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                        disabled={logoUploading}
+                      />
+                      {logoUploading && (
+                        <div className="flex items-center text-sm text-gray-500">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                          Uploading...
+                        </div>
+                      )}
+                    </div>
+                    <p className="mt-1 text-xs text-gray-500">Supported formats: JPEG, PNG, GIF, WebP, SVG. Max size: 5MB.</p>
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="seo">
+                <div className="grid grid-cols-1 gap-4">
+                  <div>
+                    <label htmlFor="metaTitle" className="block text-sm font-medium text-gray-700 mb-1">{t('admin.metaTitle')}</label>
                     <input
-                      ref={fileInputRef}
-                      type="file"
-                      id="logo"
-                      accept="image/*"
-                      onChange={handleLogoUpload}
-                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                      disabled={logoUploading}
+                      type="text"
+                      id="metaTitle"
+                      value={config.seo.metaTitle}
+                      onChange={(e) => handleInputChange('seo.metaTitle', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Enter meta title"
                     />
-                    {logoUploading && (
-                      <div className="flex items-center text-sm text-gray-500">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
-                        Uploading...
-                      </div>
-                    )}
                   </div>
-                  <p className="mt-1 text-xs text-gray-500">
-                    Supported formats: JPEG, PNG, GIF, WebP, SVG. Max size: 5MB.
-                  </p>
+                  <div>
+                    <label htmlFor="metaDescription" className="block text-sm font-medium text-gray-700 mb-1">{t('admin.metaDescription')}</label>
+                    <textarea
+                      id="metaDescription"
+                      value={config.seo.metaDescription}
+                      onChange={(e) => handleInputChange('seo.metaDescription', e.target.value)}
+                      rows={3}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Enter meta description"
+                    />
+                  </div>
                 </div>
-              </div>
-            </div>
+              </TabsContent>
 
-            {/* SEO Settings */}
-            <div className="border-b border-gray-200 pb-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">SEO Settings</h2>
-              
-              <div className="grid grid-cols-1 gap-4">
-                <div>
-                  <label htmlFor="metaTitle" className="block text-sm font-medium text-gray-700 mb-1">
-                    {t('admin.metaTitle')}
-                  </label>
-                  <input
-                    type="text"
-                    id="metaTitle"
-                    value={config.seo.metaTitle}
-                    onChange={(e) => handleInputChange('seo.metaTitle', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Enter meta title"
-                  />
-                </div>
+              <TabsContent value="contact">
+                <div className="space-y-6">
+                  {/* Contact Section Title (for homepage) */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Contact Section Title
+                    </label>
+                    <MultiLangInput
+                      value={config.homePage?.contactTitle || { en: '', he: '' }}
+                      onChange={(value) => setConfig({
+                        ...config,
+                        homePage: {
+                          ...config.homePage,
+                          contactTitle: value
+                        }
+                      })}
+                      placeholder="Enter contact section title..."
+                      showLanguageTabs={true}
+                      defaultLanguage={config.languages?.defaultLanguage || 'en'}
+                    />
+                  </div>
 
-                <div>
-                  <label htmlFor="metaDescription" className="block text-sm font-medium text-gray-700 mb-1">
-                    {t('admin.metaDescription')}
-                  </label>
-                  <textarea
-                    id="metaDescription"
-                    value={config.seo.metaDescription}
-                    onChange={(e) => handleInputChange('seo.metaDescription', e.target.value)}
-                    rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Enter meta description"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Theme Settings */}
-            <div className="border-b border-gray-200 pb-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Theme Settings</h2>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="primaryColor" className="block text-sm font-medium text-gray-700 mb-1">
-                    Primary Color
-                  </label>
-                  <input
-                    type="color"
-                    id="primaryColor"
-                    value={config.theme.primaryColor}
-                    onChange={(e) => handleInputChange('theme.primaryColor', e.target.value)}
-                    className="w-full h-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="secondaryColor" className="block text-sm font-medium text-gray-700 mb-1">
-                    Secondary Color
-                  </label>
-                  <input
-                    type="color"
-                    id="secondaryColor"
-                    value={config.theme.secondaryColor}
-                    onChange={(e) => handleInputChange('theme.secondaryColor', e.target.value)}
-                    className="w-full h-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Contact & Social Media Settings */}
-            <div className="border-b border-gray-200 pb-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Contact & Social Media</h2>
-              
-              <div className="space-y-6">
-                {/* Contact Information */}
-                <div>
+                  {/* Contact Information */}
                   <h3 className="text-md font-medium text-gray-800 mb-3">Contact Information</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
@@ -563,7 +525,7 @@ export default function SiteConfigPage() {
                         id="contactEmail"
                         value={config.contact?.email || ''}
                         onChange={(e) => handleInputChange('contact.email', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="contact@example.com"
                       />
                     </div>
@@ -577,25 +539,33 @@ export default function SiteConfigPage() {
                         id="contactPhone"
                         value={config.contact?.phone || ''}
                         onChange={(e) => handleInputChange('contact.phone', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="+1 (555) 123-4567"
                       />
                     </div>
                   </div>
 
                   <div className="mt-4">
-                    <label htmlFor="contactAddress" className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
                       Address
                     </label>
-                    <textarea
-                      id="contactAddress"
-                      value={config.contact?.address || ''}
-                      onChange={(e) => handleInputChange('contact.address', e.target.value)}
+                    <MultiLangInput
+                      value={config.contact?.address || { en: '', he: '' }}
+                      onChange={(value) => setConfig({
+                        ...config,
+                        contact: {
+                          ...config.contact,
+                          address: value
+                        }
+                      })}
+                      placeholder="Enter address in current language..."
+                      showLanguageTabs={true}
+                      defaultLanguage={config.languages?.defaultLanguage || 'en'}
+                      multiline={true}
                       rows={3}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="123 Main Street, City, State 12345"
                     />
                   </div>
+                  
                 </div>
 
                 {/* Social Media Links */}
@@ -620,7 +590,7 @@ export default function SiteConfigPage() {
                         id="socialTwitter"
                         value={config.contact?.socialMedia?.twitter || ''}
                         onChange={(e) => handleInputChange('contact.socialMedia.twitter', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="https://twitter.com/yourusername"
                       />
                     </div>
@@ -639,7 +609,7 @@ export default function SiteConfigPage() {
                         id="socialFacebook"
                         value={config.contact?.socialMedia?.facebook || ''}
                         onChange={(e) => handleInputChange('contact.socialMedia.facebook', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="https://facebook.com/yourpage"
                       />
                     </div>
@@ -658,7 +628,7 @@ export default function SiteConfigPage() {
                         id="socialInstagram"
                         value={config.contact?.socialMedia?.instagram || ''}
                         onChange={(e) => handleInputChange('contact.socialMedia.instagram', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="https://instagram.com/yourusername"
                       />
                     </div>
@@ -677,14 +647,138 @@ export default function SiteConfigPage() {
                         id="socialLinkedin"
                         value={config.contact?.socialMedia?.linkedin || ''}
                         onChange={(e) => handleInputChange('contact.socialMedia.linkedin', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="https://linkedin.com/in/yourprofile"
                       />
                     </div>
                   </div>
                 </div>
-              </div>
-            </div>
+              </TabsContent>
+
+              <TabsContent value="home">
+                <div className="space-y-6">
+                {/* Services Section */}
+                <div>
+                  <h3 className="text-md font-medium text-gray-800 mb-3">Services</h3>
+                  <div className="space-y-4">
+                    {config.homePage?.services?.map((service, index) => (
+                      <div key={index} className="border border-gray-200 rounded-lg p-4 relative">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newServices = (config.homePage?.services || []).filter((_, i) => i !== index)
+                            setConfig({
+                              ...config,
+                              homePage: {
+                                ...config.homePage,
+                                services: newServices
+                              }
+                            })
+                          }}
+                          className="absolute top-3 right-3 px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+                        >
+                          Remove
+                        </button>
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                          <div className="md:col-span-1">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Service Number
+                            </label>
+                            <input
+                              type="text"
+                              value={service.number}
+                              onChange={(e) => {
+                                const newServices = [...(config.homePage?.services || [])]
+                                newServices[index] = { ...service, number: e.target.value }
+                                setConfig({
+                                  ...config,
+                                  homePage: {
+                                    ...config.homePage,
+                                    services: newServices
+                                  }
+                                })
+                              }}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              placeholder="01"
+                            />
+                          </div>
+                          <div className="md:col-span-4">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Service Title
+                            </label>
+                            <MultiLangInput
+                              value={service.title}
+                              onChange={(value) => {
+                                const newServices = [...(config.homePage?.services || [])]
+                                newServices[index] = { ...service, title: value }
+                                setConfig({
+                                  ...config,
+                                  homePage: {
+                                    ...config.homePage,
+                                    services: newServices
+                                  }
+                                })
+                              }}
+                              placeholder="Enter service title..."
+                              showLanguageTabs={true}
+                              defaultLanguage={config.languages?.defaultLanguage || 'en'}
+                            />
+                          </div>
+                        </div>
+                        <div className="mt-3">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Service Description
+                          </label>
+                          <MultiLangHTMLEditor
+                            value={service.description as any}
+                            onChange={(value) => {
+                              const newServices = [...(config.homePage?.services || [])]
+                              newServices[index] = { ...service, description: value }
+                              setConfig({
+                                ...config,
+                                homePage: {
+                                  ...config.homePage,
+                                  services: newServices
+                                }
+                              })
+                            }}
+                            placeholder="Enter service description..."
+                            height={180}
+                            showLanguageTabs={true}
+                            defaultLanguage={config.languages?.defaultLanguage || 'en'}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newServices = [
+                          ...(config.homePage?.services || []),
+                          {
+                            number: `${(config.homePage?.services?.length || 0) + 1}`.padStart(2, '0'),
+                            title: { en: '', he: '' },
+                            description: { en: '', he: '' }
+                          }
+                        ]
+                        setConfig({
+                          ...config,
+                          homePage: {
+                            ...config.homePage,
+                            services: newServices
+                          }
+                        })
+                      }}
+                      className="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+                    >
+                      Add New Service
+                    </button>
+                  </div>
+                </div>
+                </div>
+              </TabsContent>
+
+            </Tabs>
 
             {/* Submit Button */}
             <div className="flex justify-end">

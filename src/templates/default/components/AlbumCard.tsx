@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { MultiLangUtils } from '@/types/multi-lang'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useI18n } from '@/hooks/useI18n'
+import styles from '../styles.module.scss'
 import { useAlbumCoverImage } from '@/hooks/useAlbumCoverImage'
 import { TemplateAlbum } from '@/types/ui'
 

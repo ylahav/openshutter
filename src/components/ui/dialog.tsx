@@ -40,15 +40,21 @@ const Dialog = ({ open, onOpenChange, children }: DialogProps) => {
 }
 
 const DialogContent = React.forwardRef<HTMLDivElement, DialogContentProps>(
-  ({ className = '', children, ...props }, ref) => (
-    <div
-      ref={ref}
-      className={`bg-white rounded-lg shadow-lg w-full max-w-md mx-4 ${className}`}
-      {...props}
-    >
-      {children}
-    </div>
-  )
+  ({ className = '', children, ...props }, ref) => {
+    // Check if custom width classes are provided
+    const hasCustomWidth = className.includes('max-w-') || className.includes('w-[')
+    const defaultWidth = hasCustomWidth ? '' : 'max-w-md'
+    
+    return (
+      <div
+        ref={ref}
+        className={`bg-white rounded-lg shadow-lg w-full ${defaultWidth} mx-4 ${className}`}
+        {...props}
+      >
+        {children}
+      </div>
+    )
+  }
 )
 DialogContent.displayName = 'DialogContent'
 

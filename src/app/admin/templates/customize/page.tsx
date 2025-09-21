@@ -1,35 +1,235 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import { TemplateCustomization } from '@/hooks/useTemplateCustomization'
 import AdminGuard from '@/components/AdminGuard'
-import Header from '@/templates/default/components/Header'
-import Footer from '@/templates/default/components/Footer'
+import Header from '@/components/Header'
+import Footer from '@/components/Footer'
 
-interface TemplateCustomization {
-  colors: {
-    primary: string
-    secondary: string
-    accent: string
-    background: string
-    text: string
+type TemplateSummary = {
+  templateName: string
+  displayName: string
+  version: string
+  description?: string
+}
+
+export default function TemplateCustomizationPage() {
+  const [templates, setTemplates] = useState<TemplateSummary[]>([])
+  const [activeTemplate, setActiveTemplate] = useState<string>('')
+  const [selected, setSelected] = useState<string>('')
+  const [raw, setRaw] = useState<string>('')
+  const [originalRaw, setOriginalRaw] = useState<string>('')
+  const [loading, setLoading] = useState<boolean>(true)
+  const [saving, setSaving] = useState<boolean>(false)
+  const [error, setError] = useState<string | null>(null)
+  const [message, setMessage] = useState<string | null>(null)
+
+  // Load templates and active template
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        const [tplRes, cfgRes] = await Promise.all([
+          fetch('/api/admin/templates', { cache: 'no-store' }),
+          fetch('/api/admin/site-config', { cache: 'no-store' }),
+        ])
+        const tplJson = await tplRes.json()
+        const cfgJson = await cfgRes.json()
+        if (tplJson?.success && Array.isArray(tplJson.data)) {
+          setTemplates(tplJson.data)
+        }
+        const current = cfgJson?.data?.template?.activeTemplate || 'default'
+        setActiveTemplate(current)
+        setSelected(current)
+      } catch (e) {
+        setError('Failed to load templates')
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+  }, [])
+
+  // Load JSON of selected template
+  useEffect(() => {
+    const fetchConfig = async () => {
+      if (!selected) return
+      try {
+        setError(null)
+        setRaw('')
+        const res = await fetch(`/api/admin/templates/${selected}/config`, { cache: 'no-store' })
+        const json = await res.json()
+        if (json?.success && json.data) {
+          const pretty = JSON.stringify(json.data, null, 2)
+          setRaw(pretty)
+          setOriginalRaw(pretty)
+        } else {
+          setError(json?.error || 'Failed to load template config')
+        }
+      } catch (e) {
+        setError('Failed to load template config')
+      }
+    }
+    fetchConfig()
+  }, [selected])
+
+  const currentTemplate = useMemo(() => templates.find(t => t.templateName === selected), [templates, selected])
+
+  const save = async () => {
+    try {
+      setSaving(true)
+      setError(null)
+      setMessage(null)
+      let parsed: any
+      try {
+        parsed = JSON.parse(raw)
+      } catch {
+        setError('Invalid JSON')
+        return
+      }
+      if (parsed.templateName !== selected) {
+        setError('templateName must match the selected template')
+        return
+      }
+      const res = await fetch(`/api/admin/templates/${selected}/config`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(parsed),
+      })
+      const j = await res.json()
+      if (!j?.success) {
+        setError(j?.error || 'Failed to save')
+        return
+      }
+      setMessage('Saved successfully')
+      // Keep original in sync after successful save
+      setOriginalRaw(JSON.stringify(parsed, null, 2))
+      // Refresh list cache
+      await fetch('/api/admin/templates', { cache: 'no-store' })
+    } catch (e) {
+      setError('Failed to save')
+    } finally {
+      setSaving(false)
+      setTimeout(() => setMessage(null), 2000)
+    }
   }
-  typography: {
-    fontFamily: string
-    headingSize: string
-    bodySize: string
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background text-foreground p-6">
+        <div className="max-w-6xl mx-auto">
+          <p>Loading...</p>
+        </div>
+      </div>
+    )
   }
-  layout: {
-    headerStyle: string
-    cardStyle: string
-    spacing: string
-  }
-  effects: {
-    animations: boolean
-    shadows: boolean
-    gradients: boolean
-    glassMorphism: boolean
-  }
+
+  return (
+    <div className="min-h-screen bg-background text-foreground p-6">
+      <div className="max-w-6xl mx-auto space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-semibold">Template Customization</h1>
+          <Link href="/admin/templates" className="btn-secondary">Back to Templates</Link>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="text-sm">Select template:</label>
+          <select
+            className="border rounded px-2 py-1 bg-background text-foreground"
+            value={selected}
+            onChange={(e) => setSelected(e.target.value)}
+          >
+            {templates.map(t => (
+              <option key={t.templateName} value={t.templateName}>
+                {t.displayName} ({t.templateName})
+              </option>
+            ))}
+          </select>
+          {selected === activeTemplate && (
+            <span className="text-xs px-2 py-1 rounded bg-green-600 text-white">Active</span>
+          )}
+        </div>
+
+        {currentTemplate && (
+          <div className="text-sm opacity-80">
+            <div><strong>Name:</strong> {currentTemplate.displayName}</div>
+            <div><strong>Version:</strong> {currentTemplate.version}</div>
+            {currentTemplate.description && <div><strong>Description:</strong> {currentTemplate.description}</div>}
+          </div>
+        )}
+
+        {error && (
+          <div className="p-3 rounded bg-red-100 text-red-800 border border-red-200">{error}</div>
+        )}
+        {message && (
+          <div className="p-3 rounded bg-green-100 text-green-800 border border-green-200">{message}</div>
+        )}
+
+        {/* Side-by-side editor and help */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+          {/* Editor */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">template.config.json</label>
+            <textarea
+              className="w-full h-[500px] border rounded p-3 font-mono text-sm bg-background text-foreground"
+              value={raw}
+              onChange={(e) => setRaw(e.target.value)}
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={save}
+                disabled={saving}
+                className="px-4 py-2 rounded bg-blue-600 text-white disabled:opacity-50"
+              >
+                {saving ? 'Saving...' : 'Save'}
+              </button>
+              <button
+                onClick={() => {
+                  setRaw(originalRaw)
+                  window.location.href = '/admin/templates'
+                }}
+                disabled={saving || raw === originalRaw}
+                className="px-4 py-2 rounded bg-muted disabled:opacity-50"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+
+          {/* Help */}
+          <div>
+            {/* spacer to align with editor label */}
+            <div className="text-sm font-medium invisible mb-2">template.config.json</div>
+            <div className="rounded border p-4 bg-muted/40">
+              <h2 className="font-semibold mb-2">template.config.json quick help</h2>
+              <ul className="text-sm leading-6 list-disc pl-5">
+              <li><strong>templateName</strong>: folder/name id of the template.</li>
+              <li><strong>displayName</strong>, <strong>version</strong>, <strong>author</strong>, <strong>description</strong>, <strong>category</strong>: metadata for Admin.</li>
+              <li><strong>features</strong>: {`{ responsive, darkMode, animations, seoOptimized }`} – flags only.</li>
+              <li><strong>colors</strong>: brand palette {`{ primary, secondary, accent, background, text, muted }`}.</li>
+              <li><strong>fonts</strong>: {`{ heading, body }`} – used by TemplateWrapper.</li>
+              <li><strong>layout</strong>: sizing {`{ maxWidth, containerPadding, gridGap }`}.</li>
+              <li><strong>components</strong>: file paths for template parts (e.g. navigation → components/Header.tsx).</li>
+              <li><strong>visibility</strong>: global toggles (e.g. hero, languageSelector, authButtons, footerMenu).</li>
+              <li><strong>pages</strong>: entry components for routes {`{ home, gallery, album }`}.</li>
+              <li><strong>assets</strong>: {`{ thumbnail }`} for Admin preview.</li>
+              <li><strong>componentsConfig.header</strong>: behavior flags and menu:
+                <ul className="list-disc pl-5 mt-1">
+                  <li><strong>showLogo</strong>, <strong>showSiteTitle</strong></li>
+                  <li><strong>menu</strong>: array of {`{ labelKey?, label?, href }`} (prefer labelKey for i18n)</li>
+                  <li><strong>enableThemeToggle</strong>, <strong>enableLanguageSelector</strong></li>
+                  <li><strong>showGreeting</strong>, <strong>showAuthButtons</strong></li>
+                </ul>
+              </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 const FONT_OPTIONS = [
@@ -94,7 +294,7 @@ const COLOR_PRESETS = [
   }
 ]
 
-export default function TemplateCustomizePage() {
+function TemplateCustomizePage() {
   const [customization, setCustomization] = useState<TemplateCustomization>({
     colors: {
       primary: '#0ea5e9',

@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { TemplateConfig } from '@/types/template'
 import { templateService } from '@/services/template'
+import { useSiteConfig } from './useSiteConfig'
+import { TemplateWithOverrides } from '@/services/template-overrides'
 
 export function useTemplate(templateName?: string) {
   const [template, setTemplate] = useState<TemplateConfig | null>(null)
@@ -36,7 +38,8 @@ export function useTemplate(templateName?: string) {
 }
 
 export function useActiveTemplate() {
-  const [template, setTemplate] = useState<TemplateConfig | null>(null)
+  const { config } = useSiteConfig()
+  const [template, setTemplate] = useState<TemplateWithOverrides | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -46,12 +49,22 @@ export function useActiveTemplate() {
         setLoading(true)
         setError(null)
         
-        const activeTemplate = await templateService.getActiveTemplate()
-        
-        if (activeTemplate) {
-          setTemplate(activeTemplate)
+        if (config) {
+          // Use template with overrides if site config is available
+          const activeTemplate = await templateService.getActiveTemplateWithOverrides(config)
+          if (activeTemplate) {
+            setTemplate(activeTemplate)
+          } else {
+            setError('No active template found')
+          }
         } else {
-          setError('No active template found')
+          // Fallback to base template without overrides
+          const activeTemplate = await templateService.getActiveTemplate()
+          if (activeTemplate) {
+            setTemplate(activeTemplate as TemplateWithOverrides)
+          } else {
+            setError('No active template found')
+          }
         }
       } catch (err) {
         console.error('Error loading active template:', err)
@@ -62,7 +75,7 @@ export function useActiveTemplate() {
     }
 
     loadActiveTemplate()
-  }, [])
+  }, [config])
 
   return { template, loading, error }
 }

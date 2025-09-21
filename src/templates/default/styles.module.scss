@@ -1,0 +1,265 @@
+// Default Template Styles - CSS Modules
+// Clean and modern design with animations
+
+// Base theme classes
+.theme {
+  background-color: var(--default-bg);
+  color: var(--default-text);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.bgSecondary {
+  background-color: var(--default-bg-secondary);
+}
+
+.textSecondary {
+  color: var(--default-text-secondary);
+}
+
+.border {
+  border-color: var(--default-border);
+}
+
+.hover {
+  background-color: var(--default-hover);
+}
+
+.accent {
+  color: var(--default-accent);
+}
+
+.accentBg {
+  background-color: var(--default-accent);
+}
+
+.accentHover:hover {
+  background-color: var(--default-accent-hover);
+}
+
+// Glass effect
+.glass {
+  background: var(--default-glass);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--default-glass-border);
+}
+
+// Hover effects
+.hoverLift {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hoverLift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px var(--default-shadow-hover);
+}
+
+// Card hover effect
+.cardHover {
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.cardHover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 30px var(--default-shadow);
+}
+
+// Skeleton loading
+.skeleton {
+  background: var(--default-skeleton);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+// Header styles
+.header {
+  background: var(--default-glass);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--default-border);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  transition: all 0.3s ease;
+}
+
+.logoContainer {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.headerNav {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
+.headerNav a {
+  color: var(--default-text);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.3s ease;
+  position: relative;
+  padding: 0.5rem 0;
+}
+
+.headerNav a:hover {
+  color: var(--default-accent);
+}
+
+.headerNav a.active {
+  color: var(--default-accent);
+}
+
+.headerNav a.active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: var(--default-accent);
+}
+
+.themeToggle {
+  background: none;
+  border: none;
+  color: var(--default-text);
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.themeToggle:hover {
+  background-color: var(--default-hover);
+}
+
+.languageSelector {
+  display: flex;
+  align-items: center;
+}
+
+.logoutButton,
+.authButton {
+  background-color: var(--default-accent);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.logoutButton:hover,
+.authButton:hover {
+  background-color: var(--default-accent-hover);
+  transform: translateY(-1px);
+}
+
+// Footer styles
+.footer {
+  background-color: var(--default-bg-secondary);
+  color: var(--default-text);
+  padding: 3rem 0 1rem;
+  margin-top: auto;
+}
+
+.footer h3 {
+  color: var(--default-text);
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.footer h3 span {
+  color: var(--default-accent);
+}
+
+.footer a {
+  color: var(--default-text-secondary);
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.footer a:hover {
+  color: var(--default-text);
+}
+
+// Main content
+.mainContent {
+  flex: 1;
+  min-height: calc(100vh - 200px);
+}
+
+// Loading states
+.loading {
+  background: var(--default-skeleton);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+// Text styles
+.text {
+  color: var(--default-text);
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .headerNav {
+    display: none;
+  }
+  
+  .header {
+    padding: 0 1rem;
+  }
+}
+
+// Mobile menu styles
+.mobileMenu {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 50;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding-top: 4rem;
+}
+
+.mobileMenuContent {
+  background: var(--default-bg);
+  width: 80%;
+  max-width: 300px;
+  height: 100%;
+  padding: 2rem;
+  box-shadow: -4px 0 6px var(--default-shadow);
+}
+
+.mobileMenuContent a {
+  display: block;
+  padding: 1rem 0;
+  color: var(--default-text);
+  text-decoration: none;
+  font-weight: 500;
+  border-bottom: 1px solid var(--default-border);
+}
+
+.mobileMenuContent a:hover {
+  color: var(--default-accent);
+}
+
+.mobileMenuContent a:last-child {
+  border-bottom: none;
+}

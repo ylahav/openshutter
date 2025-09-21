@@ -38,18 +38,52 @@ export interface TemplateConfig {
     navigation: string
     footer: string
   }
-  visibility: {
-    hero: boolean
-    languageSelector: boolean
-    authButtons: boolean
-    footerMenu: boolean
-    statistics?: boolean
-    promotion?: boolean
+  pageConfig?: {
+    home?: {
+      showHero?: boolean
+      showServices?: boolean
+      showContact?: boolean
+      showTestimonials?: boolean
+    }
+    albums?: {
+      showHeader?: boolean
+      showFilters?: boolean
+      showSearch?: boolean
+    }
+    album?: {
+      showHeader?: boolean
+      showNavigation?: boolean
+      showMetadata?: boolean
+    }
+  }
+  componentsConfig?: {
+    header?: {
+      showLogo?: boolean
+      showSiteTitle?: boolean
+      menu?: { labelKey?: string; label?: string; href: string }[]
+      enableThemeToggle?: boolean
+      enableLanguageSelector?: boolean
+      showGreeting?: boolean
+      showAuthButtons?: boolean
+    }
+    footer?: {
+      showCopyright?: boolean
+      showSocialMedia?: boolean
+      showPoweredBy?: boolean
+    }
   }
   pages: {
     home: string
     gallery: string
     album: string
+  }
+  visibility?: {
+    hero?: boolean
+    languageSelector?: boolean
+    authButtons?: boolean
+    footerMenu?: boolean
+    statistics?: boolean
+    promotion?: boolean
   }
 }
 
