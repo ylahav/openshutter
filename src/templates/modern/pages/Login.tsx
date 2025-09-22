@@ -90,7 +90,7 @@ export default function LoginPage() {
               </svg>
             </div>
             <h2 className={`text-4xl font-bold ${styles.heading1} mb-2`}>
-              {t('auth.signInTo')} {MultiLangUtils.getTextValue(config?.title, currentLanguage) || 'OpenShutter'}
+              {t('auth.signInTo')} {MultiLangUtils.getTextValue(config?.title ?? '', currentLanguage) || 'OpenShutter'}
             </h2>
             {/* Subtitle removed as requested */}
           </div>
