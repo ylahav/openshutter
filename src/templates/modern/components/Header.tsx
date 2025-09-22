@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useContext } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
@@ -109,12 +110,13 @@ export default function Header() {
                 ? (
                     config?.logo
                       ? (
-                        <img 
+                        <Image 
                           src={config.logo} 
                           alt={MultiLangUtils.getTextValue(config?.title, currentLanguage) || 'OpenShutter'} 
+                          width={40}
+                          height={40}
                           className="w-10 h-10 object-contain shrink-0 rounded-lg"
-                          onLoad={() => console.log('Logo loaded successfully:', config.logo)}
-                          onError={(e) => console.error('Logo failed to load:', config.logo, e)}
+                          priority
                         />
                       )
                       : (
@@ -154,7 +156,7 @@ export default function Header() {
             {/* Optional Controls */}
             <div className="flex items-center gap-3">
               {/* Theme Toggle */}
-              {headerCfg?.enableThemeToggle && (
+              {(headerCfg?.enableThemeToggle ?? true) && (
                 <button
                   onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
                   className={`${styles.themeToggle} p-2 rounded-lg`}
@@ -204,7 +206,7 @@ export default function Header() {
           {/* Mobile menu button */}
           <div className="md:hidden flex items-center gap-2">
             {/* Theme Toggle for Mobile */}
-            {headerCfg?.enableThemeToggle && (
+            {(headerCfg?.enableThemeToggle ?? true) && (
               <button
                 onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
                 className={`${styles.themeToggle} p-2 rounded-lg`}

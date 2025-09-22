@@ -8,79 +8,14 @@ import AdminGuard from '@/components/AdminGuard'
 import { MultiLangUtils } from '@/types/multi-lang'
 import { useLanguage } from '@/contexts/LanguageContext'
 import ConfirmDialog from '@/components/ConfirmDialog'
-
-interface Photo {
-  _id: string
-  title: string | { en: string }
-  filename: string
-  storage: {
-    url: string
-    thumbnailPath: string
-    path: string
-    provider: string
-  }
-  metadata?: {
-    width: number
-    height: number
-    size: number
-    mimeType: string
-  }
-  dimensions?: {
-    width: number
-    height: number
-  }
-  size?: number
-  mimeType?: string
-  isLeading: boolean
-  isPublished: boolean
-  isGalleryLeading?: boolean
-  createdAt: string
-  exif?: {
-    dateTimeOriginal?: string
-    make?: string
-    model?: string
-    exposureTime?: string
-    fNumber?: string
-    iso?: number
-    focalLength?: string
-    flash?: string
-    whiteBalance?: string
-    meteringMode?: string
-    exposureProgram?: string
-    exposureMode?: string
-    sceneCaptureType?: string
-    colorSpace?: string
-    lensModel?: string
-    lensInfo?: string
-    serialNumber?: string
-    software?: string
-    xResolution?: number
-    yResolution?: number
-    resolutionUnit?: string
-    subsecTimeOriginal?: string
-    subsecTimeDigitized?: string
-  }
-}
-
-interface Album {
-  _id: string
-  name: string
-  alias: string
-  description: string
-  coverImage?: string
-  isPublic: boolean
-  isFeatured: boolean
-  photoCount: number
-  createdAt: string
-  updatedAt: string
-}
+import { TemplateAlbum, TemplatePhoto } from '@/types'
 
 export default function AdminAlbumDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { currentLanguage } = useLanguage()
   const resolvedParams = use(params)
   const router = useRouter()
-  const [album, setAlbum] = useState<Album | null>(null)
-  const [photos, setPhotos] = useState<Photo[]>([])
+  const [album, setAlbum] = useState<TemplateAlbum | null>(null)
+  const [photos, setPhotos] = useState<TemplatePhoto[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)

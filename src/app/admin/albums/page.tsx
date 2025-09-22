@@ -6,29 +6,10 @@ import { useI18n } from '@/hooks/useI18n'
 import AdminGuard from '@/components/AdminGuard'
 import { MultiLangUtils } from '@/types/multi-lang'
 import { useLanguage } from '@/contexts/LanguageContext'
-
-interface Album {
-  _id: string
-  name: any
-  alias: string
-  description: any
-  isPublic: boolean
-  isFeatured: boolean
-  storageProvider: string
-  storagePath: string
-  parentAlbumId?: string
-  parentPath: string
-  level: number
-  order: number
-  photoCount: number
-  createdAt: string
-  allowedGroups?: string[]
-  allowedUsers?: string[]
-  coverPhotoId?: string
-}
+import { TemplateAlbum } from '@/types'
 
 export default function AdminAlbumsPage() {
-  const [albums, setAlbums] = useState<Album[]>([])
+  const [albums, setAlbums] = useState<TemplateAlbum[]>([])
   const { currentLanguage } = useLanguage()
   const { t } = useI18n()
   const [isLoading, setIsLoading] = useState(true)
@@ -37,7 +18,7 @@ export default function AdminAlbumsPage() {
   // Cover photo modal state
   const [coverPhotoModal, setCoverPhotoModal] = useState<{
     isOpen: boolean
-    album: Album | null
+    album: TemplateAlbum | null
     photos: any[]
     childAlbumPhotos: any[]
     loading: boolean
@@ -80,7 +61,7 @@ export default function AdminAlbumsPage() {
     fetchAlbums()
   }, [])
 
-  const openCoverPhotoModal = async (album: Album) => {
+  const openCoverPhotoModal = async (album: TemplateAlbum) => {
     setCoverPhotoModal({
       isOpen: true,
       album,

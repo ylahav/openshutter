@@ -1,24 +1,25 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Page, PageCreate, PageUpdate } from '@/lib/models/Page'
-import { MultiLangInput } from '@/components/MultiLangInput'
-import MultiLangHTMLEditor from '@/components/MultiLangHTMLEditor'
-import { useLanguage } from '@/contexts/LanguageContext'
-import { MultiLangUtils } from '@/types/multi-lang'
+import { useState, useEffect, Suspense } from 'react'
+import dynamic from 'next/dynamic'
+import { Page, PageCreate } from '@/lib/models/Page'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Switch } from '@/components/ui/switch'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Badge } from '@/components/ui/badge'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import ConfirmDialog from '@/components/ConfirmDialog'
-import { Plus, Edit, Trash2, Eye, EyeOff } from 'lucide-react'
+import { Plus } from 'lucide-react'
+
+// Dynamic imports for heavy components
+const PageList = dynamic(() => import('@/components/admin/Pages/PageList'), {
+  loading: () => <div className="animate-pulse bg-gray-200 h-64 rounded-lg" />
+})
+
+const PageFilters = dynamic(() => import('@/components/admin/Pages/PageFilters'), {
+  loading: () => <div className="animate-pulse bg-gray-200 h-16 rounded-lg" />
+})
+
+const PageDialogs = dynamic(() => import('@/components/admin/Pages/PageDialogs'), {
+  loading: () => <div className="animate-pulse bg-gray-200 h-32 rounded-lg" />
+})
 
 export default function PagesManagement() {
-  const { currentLanguage } = useLanguage()
   const [pages, setPages] = useState<Page[]>([])
   const [loading, setLoading] = useState(true)
   const [editingPage, setEditingPage] = useState<Page | null>(null)
@@ -178,15 +179,6 @@ export default function PagesManagement() {
     setIsDeleteDialogOpen(true)
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
 
   if (loading) {
     return <div className="p-6">Loading pages...</div>
@@ -225,294 +217,45 @@ export default function PagesManagement() {
           </div>
         </div>
 
-        {/* Create Dialog */}
-      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="max-w-7xl w-[98vw] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Create New Page</DialogTitle>
-          </DialogHeader>
-          <PageForm 
-            formData={formData} 
-            setFormData={setFormData} 
-            onSubmit={handleCreate}
-            onCancel={() => setIsCreateDialogOpen(false)}
-            submitText="Create Page"
-          />
-        </DialogContent>
-        </Dialog>
-
         {/* Filters */}
-        <div className="flex gap-4 mb-6">
-          <div className="flex items-center gap-2">
-            <Label htmlFor="category-filter">Category:</Label>
-            <Select value={filterCategory} onValueChange={setFilterCategory}>
-              <SelectTrigger className="w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="system">System</SelectItem>
-                <SelectItem value="site">Site</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex items-center gap-2">
-            <Label htmlFor="published-filter">Status:</Label>
-            <Select value={filterPublished} onValueChange={setFilterPublished}>
-              <SelectTrigger className="w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="true">Published</SelectItem>
-                <SelectItem value="false">Draft</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
+        <Suspense fallback={<div className="animate-pulse bg-gray-200 h-16 rounded-lg mb-6" />}>
+          <PageFilters
+            filterCategory={filterCategory}
+            setFilterCategory={setFilterCategory}
+            filterPublished={filterPublished}
+            setFilterPublished={setFilterPublished}
+          />
+        </Suspense>
 
         {/* Pages List */}
-        <div className="grid gap-4">
-          {pages.map((page) => (
-            <Card key={page._id}>
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle className="text-lg">
-                      {MultiLangUtils.getTextValue(page.title, currentLanguage)}
-                    </CardTitle>
-                    <div className="text-sm text-gray-500 mt-1">
-                      /{page.alias}
-                    </div>
-                    <div className="flex items-center gap-2 mt-2">
-                      <Badge variant={page.category === 'system' ? 'default' : 'secondary'}>
-                        {page.category}
-                      </Badge>
-                      <Badge variant={page.isPublished ? 'default' : 'outline'}>
-                        {page.isPublished ? (
-                          <>
-                            <Eye className="w-3 h-3 mr-1" />
-                            Published
-                          </>
-                        ) : (
-                          <>
-                            <EyeOff className="w-3 h-3 mr-1" />
-                            Draft
-                          </>
-                        )}
-                      </Badge>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => openEditDialog(page)}
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => openDeleteDialog(page)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-sm text-gray-600">
-                  <p>Created: {formatDate(page.createdAt)}</p>
-                  <p>Updated: {formatDate(page.updatedAt)}</p>
-                  {page.subtitle && (
-                    <p className="mt-2">
-                      {MultiLangUtils.getTextValue(page.subtitle, currentLanguage)}
-                    </p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <Suspense fallback={<div className="animate-pulse bg-gray-200 h-64 rounded-lg" />}>
+          <PageList
+            pages={pages}
+            onEdit={openEditDialog}
+            onDelete={openDeleteDialog}
+          />
+        </Suspense>
 
-        {/* Edit Dialog */}
-        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="max-w-7xl w-[98vw] max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Edit Page</DialogTitle>
-            </DialogHeader>
-            <PageForm 
-              formData={formData} 
-              setFormData={setFormData} 
-              onSubmit={handleUpdate}
-              onCancel={() => setIsEditDialogOpen(false)}
-              submitText="Update Page"
-            />
-          </DialogContent>
-        </Dialog>
-
-        {/* Delete Confirmation */}
-        <ConfirmDialog
-          isOpen={isDeleteDialogOpen}
-          title="Delete Page"
-          message={`Are you sure you want to delete "${pageToDelete ? MultiLangUtils.getTextValue(pageToDelete.title, currentLanguage) : ''}"? This action cannot be undone.`}
-          confirmText="Delete"
-          cancelText="Cancel"
-          variant="danger"
-          onConfirm={handleDelete}
-          onCancel={() => {
-            setIsDeleteDialogOpen(false)
-            setPageToDelete(null)
-          }}
-        />
+        {/* Dialogs */}
+        <Suspense fallback={<div className="animate-pulse bg-gray-200 h-32 rounded-lg" />}>
+          <PageDialogs
+            isCreateDialogOpen={isCreateDialogOpen}
+            setIsCreateDialogOpen={setIsCreateDialogOpen}
+            isEditDialogOpen={isEditDialogOpen}
+            setIsEditDialogOpen={setIsEditDialogOpen}
+            editingPage={editingPage}
+            isDeleteDialogOpen={isDeleteDialogOpen}
+            setIsDeleteDialogOpen={setIsDeleteDialogOpen}
+            pageToDelete={pageToDelete}
+            setPageToDelete={setPageToDelete}
+            formData={formData}
+            setFormData={setFormData}
+            onCreate={handleCreate}
+            onUpdate={handleUpdate}
+            onDelete={handleDelete}
+          />
+        </Suspense>
       </div>
     </div>
-  )
-}
-
-interface PageFormProps {
-  formData: PageCreate
-  setFormData: (data: PageCreate) => void
-  onSubmit: () => void
-  onCancel: () => void
-  submitText: string
-}
-
-function PageForm({ formData, setFormData, onSubmit, onCancel, submitText }: PageFormProps) {
-  const { currentLanguage } = useLanguage()
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    onSubmit()
-  }
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-8 p-6">
-      {/* Title and Alias */}
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="title">Title *</Label>
-          <MultiLangInput
-            value={formData.title}
-            onChange={(value) => setFormData({ ...formData, title: value })}
-            placeholder="Page title"
-            className="text-gray-900"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="alias">Alias/Slug *</Label>
-          <Input
-            id="alias"
-            value={formData.alias}
-            onChange={(e) => setFormData({ ...formData, alias: e.target.value })}
-            placeholder="page-alias"
-            className="text-gray-900"
-          />
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="subtitle">Subtitle</Label>
-        <MultiLangInput
-          value={formData.subtitle || { en: '' }}
-          onChange={(value) => setFormData({ ...formData, subtitle: value })}
-          placeholder="Page subtitle (optional)"
-          className="text-gray-900"
-        />
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="category">Category</Label>
-          <Select 
-            value={formData.category} 
-            onValueChange={(value: 'system' | 'site') => setFormData({ ...formData, category: value })}
-          >
-            <SelectTrigger className="text-gray-900">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="system">System</SelectItem>
-              <SelectItem value="site">Site</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="leadingImage">Leading Image</Label>
-          <Input
-            id="leadingImage"
-            type="file"
-            accept="image/*"
-            onChange={(e) => {
-              const file = e.target.files?.[0]
-              if (file) {
-                // For now, we'll use a placeholder URL. In a real app, you'd upload to a server
-                const url = URL.createObjectURL(file)
-                setFormData({ ...formData, leadingImage: url })
-              }
-            }}
-            className="text-gray-900"
-          />
-          {formData.leadingImage && (
-            <div className="mt-2">
-              <img 
-                src={formData.leadingImage} 
-                alt="Preview" 
-                className="w-32 h-20 object-cover rounded border"
-              />
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg border">
-        <Switch
-          id="isPublished"
-          checked={formData.isPublished}
-          onCheckedChange={(checked) => setFormData({ ...formData, isPublished: checked })}
-        />
-        <Label htmlFor="isPublished" className="text-sm font-medium text-gray-700">
-          Published
-        </Label>
-        <span className="text-xs text-gray-500">
-          {formData.isPublished ? 'This page will be visible to visitors' : 'This page will be saved as draft'}
-        </span>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="introText">Intro Text</Label>
-        <MultiLangHTMLEditor
-          value={formData.introText || { en: '' }}
-          onChange={(value) => setFormData({ ...formData, introText: value })}
-          placeholder="Introduction text (optional)"
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="content">Content</Label>
-        <MultiLangHTMLEditor
-          value={formData.content || { en: '' }}
-          onChange={(value) => setFormData({ ...formData, content: value })}
-          placeholder="Main content"
-        />
-      </div>
-
-      <div className="flex justify-end gap-3 pt-4 border-t">
-        <Button 
-          type="button" 
-          variant="outline" 
-          onClick={onCancel}
-          className="px-6"
-        >
-          Cancel
-        </Button>
-        <Button type="submit" className="bg-blue-600 hover:bg-blue-700 px-6">
-          {submitText}
-        </Button>
-      </div>
-    </form>
   )
 }

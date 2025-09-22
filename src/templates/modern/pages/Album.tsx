@@ -1,47 +1,17 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { useSiteConfig } from '@/hooks/useSiteConfig'
 import { MultiLangUtils } from '@/types/multi-lang'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useI18n } from '@/hooks/useI18n'
+import { TemplateAlbum, TemplatePhoto } from '@/types'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 import styles from '../styles.module.scss'
-
-interface Album {
-  _id: string
-  name: any
-  alias: string
-  description: any
-  photoCount: number
-  childAlbumCount?: number
-  coverPhotoId?: string
-  isPublic: boolean
-  isFeatured: boolean
-  createdAt: string
-  level: number
-  order: number
-  parentAlbumId?: string
-  parentPath?: string
-}
-
-interface Photo {
-  _id: string
-  url?: string
-  storage?: {
-    url: string
-    thumbnailPath: string
-    path: string
-    provider: string
-  }
-  alt?: string
-  title?: any
-  description?: any
-  isPublished: boolean
-}
 
 export default function AlbumPage() {
   const params = useParams()
@@ -50,12 +20,12 @@ export default function AlbumPage() {
   const { currentLanguage } = useLanguage()
   const { t } = useI18n()
   const [selectedImage, setSelectedImage] = useState<number | null>(null)
-  const [album, setAlbum] = useState<Album | null>(null)
-  const [photos, setPhotos] = useState<Photo[]>([])
-  const [subAlbums, setSubAlbums] = useState<Album[]>([])
+  const [album, setAlbum] = useState<TemplateAlbum | null>(null)
+  const [photos, setPhotos] = useState<TemplatePhoto[]>([])
+  const [subAlbums, setSubAlbums] = useState<TemplateAlbum[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [subAlbumCoverPhotos, setSubAlbumCoverPhotos] = useState<Record<string, Photo>>({})
+  const [subAlbumCoverPhotos, setSubAlbumCoverPhotos] = useState<Record<string, TemplatePhoto>>({})
 
   // Function to fetch cover photo for a sub-album
   const fetchSubAlbumCoverPhoto = async (albumId: string, coverPhotoId: string) => {
@@ -112,7 +82,7 @@ export default function AlbumPage() {
             setSubAlbums(subAlbumsResult.data)
             
             // Fetch cover photos for sub-albums that have them
-            subAlbumsResult.data.forEach((subAlbum: Album) => {
+            subAlbumsResult.data.forEach((subAlbum: TemplateAlbum) => {
               if (subAlbum.coverPhotoId) {
                 fetchSubAlbumCoverPhoto(subAlbum._id, subAlbum.coverPhotoId)
               }
@@ -234,18 +204,15 @@ export default function AlbumPage() {
                     <div className={`${styles.card} ${styles.animateScaleIn} h-full flex flex-col`} style={{ animationDelay: `${i * 0.1}s` }}>
                       <div className="overflow-hidden flex-shrink-0">
                         {subAlbum.coverPhotoId && subAlbumCoverPhotos[subAlbum._id] ? (
-                          <img
-                            src={subAlbumCoverPhotos[subAlbum._id].storage?.thumbnailPath || subAlbumCoverPhotos[subAlbum._id].url}
+                          <Image
+                            src={subAlbumCoverPhotos[subAlbum._id].storage?.thumbnailPath || subAlbumCoverPhotos[subAlbum._id].url || '/placeholder.jpg'}
                             alt={MultiLangUtils.getTextValue(subAlbum.name, currentLanguage)}
+                            width={400}
+                            height={300}
                             className={styles.cardImage}
-                            onError={(e) => {
-                              // Fallback to folder icon if image fails to load
-                              e.currentTarget.style.display = 'none'
-                              const nextElement = e.currentTarget.nextElementSibling as HTMLElement
-                              if (nextElement) {
-                                nextElement.style.display = 'flex'
-                              }
-                            }}
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                            loading="lazy"
+                            fetchPriority={i < 2 ? 'low' : 'auto'}
                           />
                         ) : null}
                         <div 
@@ -297,10 +264,15 @@ export default function AlbumPage() {
                     onClick={() => setSelectedImage(i)}
                   >
                     <div className="overflow-hidden">
-                      <img
+                      <Image
                         src={photo.storage?.thumbnailPath || photo.url || '/placeholder.jpg'}
-                        alt={MultiLangUtils.getTextValue(photo.alt, currentLanguage) || `Photo ${i + 1}`}
+                        alt={photo.alt ? MultiLangUtils.getTextValue(photo.alt, currentLanguage) : `Photo ${i + 1}`}
+                        width={400}
+                        height={300}
                         className={styles.cardImage}
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        loading="lazy"
+                        fetchPriority="low"
                       />
                     </div>
                     <div className="p-4">
@@ -342,10 +314,14 @@ export default function AlbumPage() {
             onClick={() => setSelectedImage(null)}
           >
             <div className="relative max-w-4xl max-h-full">
-              <img
+              <Image
                 src={photos[selectedImage].storage?.url || photos[selectedImage].url || '/placeholder.jpg'}
-                alt={MultiLangUtils.getTextValue(photos[selectedImage].alt, currentLanguage) || `Photo ${selectedImage + 1}`}
+                alt={photos[selectedImage].alt ? MultiLangUtils.getTextValue(photos[selectedImage].alt, currentLanguage) : `Photo ${selectedImage + 1}`}
+                width={1200}
+                height={800}
                 className="max-w-full max-h-full object-contain rounded-lg"
+                priority
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 70vw"
               />
               <button
                 onClick={() => setSelectedImage(null)}

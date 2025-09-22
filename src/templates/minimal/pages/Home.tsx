@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useMemo, useState } from 'react';
+import Image from 'next/image';
 import styles from '../styles.module.scss'
 import Header from '../components/Header';
 import Hero from '../components/Hero';
@@ -78,10 +79,14 @@ const MinimalHomePage: React.FC = () => {
                   className={`minimal-gallery-item ${index === 3 ? 'minimal-gallery-item-wide' : ''}`}
                 >
                   {coverImages[album._id] && (
-                    <img
+                    <Image
                       src={coverImages[album._id]}
                       alt={getText(album.name) || 'Album cover'}
+                      width={400}
+                      height={300}
                       className="minimal-gallery-image"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      loading="lazy"
                     />
                   )}
                   <div className="minimal-gallery-overlay"></div>

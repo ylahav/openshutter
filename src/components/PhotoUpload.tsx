@@ -1,9 +1,26 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, Suspense } from 'react'
+import dynamic from 'next/dynamic'
+import { useSearchParams } from 'next/navigation'
 import { useDropzone } from 'react-dropzone'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useSearchParams } from 'next/navigation'
+import { TemplateAlbum } from '@/types'
+import { useLanguage } from '@/contexts/LanguageContext'
+import { MultiLangUtils } from '@/types/multi-lang'
+
+// Dynamic imports for heavy components
+const UploadDropzone = dynamic(() => import('@/components/upload/UploadDropzone'), {
+  loading: () => <div className="animate-pulse bg-gray-200 h-32 rounded-lg" />
+})
+
+const UploadProgressList = dynamic(() => import('@/components/upload/UploadProgress'), {
+  loading: () => <div className="animate-pulse bg-gray-200 h-24 rounded-lg" />
+})
+
+const UploadForm = dynamic(() => import('@/components/upload/UploadForm'), {
+  loading: () => <div className="animate-pulse bg-gray-200 h-64 rounded-lg" />
+})
 
 interface UploadProgress {
   filename: string
@@ -12,17 +29,11 @@ interface UploadProgress {
   error?: string
 }
 
-interface Album {
-  _id: string
-  name: string
-  alias: string
-  storageProvider: string
-}
-
 export default function PhotoUpload() {
+  const { currentLanguage } = useLanguage()
   const [uploads, setUploads] = useState<UploadProgress[]>([])
   const [isUploading, setIsUploading] = useState(false)
-  const [albums, setAlbums] = useState<Album[]>([])
+  const [albums, setAlbums] = useState<TemplateAlbum[]>([])
   const [selectedAlbumId, setSelectedAlbumId] = useState<string>('')
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -57,7 +68,7 @@ export default function PhotoUpload() {
     }
   }, [searchParams])
 
-  const onDrop = useCallback(async (acceptedFiles: File[]) => {
+  const handleFilesSelected = useCallback(async (acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return
 
     setIsUploading(true)
@@ -131,7 +142,7 @@ export default function PhotoUpload() {
   }, [uploads.length, selectedAlbumId, title, description, tags])
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
+    onDrop: handleFilesSelected,
     accept: {
       'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp', '.bmp']
     },
@@ -162,115 +173,28 @@ export default function PhotoUpload() {
         </div>
         
         <div className="card-body">
-          {/* Upload Options */}
-          <div className="mb-6 space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Album (Optional)
-                </label>
-                <select
-                  value={selectedAlbumId}
-                  onChange={(e) => setSelectedAlbumId(e.target.value)}
-                  className="form-input"
-                >
-                  <option value="">No Album</option>
-                  {albums.map((album) => (
-                    <option key={album._id} value={album._id}>
-                      {album.name} ({album.storageProvider})
-                    </option>
-                  ))}
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Title
-                </label>
-                <input
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Photo title (optional)"
-                  className="form-input"
-                />
-              </div>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Description
-              </label>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Photo description (optional)"
-                rows={3}
-                className="form-textarea"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Tags
-              </label>
-              <input
-                type="text"
-                value={tags}
-                onChange={(e) => setTags(e.target.value)}
-                placeholder="Comma-separated tags (optional)"
-                className="form-input"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Separate multiple tags with commas
-              </p>
-            </div>
-          </div>
+          {/* Upload Form */}
+          <Suspense fallback={<div className="animate-pulse bg-gray-200 h-64 rounded-lg mb-6" />}>
+            <UploadForm
+              albums={albums}
+              selectedAlbumId={selectedAlbumId}
+              onAlbumChange={setSelectedAlbumId}
+              title={title}
+              onTitleChange={setTitle}
+              description={description}
+              onDescriptionChange={setDescription}
+              tags={tags}
+              onTagsChange={setTags}
+            />
+          </Suspense>
 
           {/* Drop Zone */}
-          <div
-            {...getRootProps()}
-            className={`
-              border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors
-              ${isDragActive 
-                ? 'border-primary-400 bg-primary-50' 
-                : 'border-gray-300 hover:border-primary-400 hover:bg-gray-50'
-              }
-            `}
-          >
-            <input {...getInputProps()} />
-            
-            <div className="space-y-4">
-              <svg 
-                className="mx-auto h-12 w-12 text-gray-400" 
-                stroke="currentColor" 
-                fill="none" 
-                viewBox="0 0 48 48"
-              >
-                <path 
-                  d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" 
-                  strokeWidth={2} 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round" 
-                />
-              </svg>
-              
-              <div>
-                <p className="text-lg font-medium text-gray-900">
-                  {isDragActive ? 'Drop photos here' : 'Upload photos'}
-                </p>
-                <p className="text-sm text-gray-500">
-                  PNG, JPG, GIF, WEBP up to 100MB
-                </p>
-              </div>
-              
-              {!isDragActive && (
-                <button className="btn-primary">
-                  Choose Files
-                </button>
-              )}
-            </div>
-          </div>
+          <Suspense fallback={<div className="animate-pulse bg-gray-200 h-32 rounded-lg mb-6" />}>
+            <UploadDropzone
+              onFilesSelected={handleFilesSelected}
+              isUploading={isUploading}
+            />
+          </Suspense>
 
           {/* Upload Progress */}
           {uploads.length > 0 && (

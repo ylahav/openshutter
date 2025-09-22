@@ -231,51 +231,6 @@ export class SiteConfigService {
     this.lastCacheUpdate = 0
   }
 
-  /**
-   * Migrate legacy configuration from 'config' collection to 'site_config'
-   * Returns the migrated document if migration occurred, otherwise null
-   */
-  private async migrateFromLegacy(): Promise<any | null> {
-    const { db } = await connectToDatabase()
-    const legacyCollection = db.collection('config')
-    const targetCollection = db.collection('site_config')
-
-    // If there is already a site_config doc, do nothing
-    const existing = await targetCollection.findOne({})
-    if (existing) {
-      console.log('📋 site_config already exists, skipping migration')
-      return existing
-    }
-
-    const legacy = await legacyCollection.findOne({})
-    console.log('🔍 Legacy config collection check:', legacy ? 'Found data' : 'No data found')
-    if (!legacy) {
-      return null
-    }
-
-    // Prepare migrated document
-    const migrated = this.migrateToMultiLang({
-      ...legacy,
-      updatedAt: new Date(),
-      createdAt: legacy.createdAt ? legacy.createdAt : new Date(),
-    })
-
-    // Remove Mongo _id if present to let insertOne generate a new one
-    // while keeping a reference for potential debugging
-    const { _id: _legacyId, ...documentWithoutId } = migrated
-
-    const insertResult = await targetCollection.insertOne(documentWithoutId)
-
-    // Best-effort cleanup of legacy to avoid duplication
-    try {
-      await legacyCollection.deleteMany({})
-    } catch (cleanupError) {
-      // Non-fatal; log and continue
-      console.warn('Cleanup of legacy config collection failed:', cleanupError)
-    }
-
-    return { ...migrated, _id: insertResult.insertedId }
-  }
 }
 
 // Export singleton instance

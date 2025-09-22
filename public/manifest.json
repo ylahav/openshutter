@@ -1,0 +1,63 @@
+{
+  "name": "OpenShutter - Photo Gallery Management",
+  "short_name": "OpenShutter",
+  "description": "A comprehensive photo gallery management system with multi-storage support",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "en",
+  "categories": ["photography", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshot-wide.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide"
+    },
+    {
+      "src": "/screenshot-narrow.png",
+      "sizes": "750x1334",
+      "type": "image/png",
+      "form_factor": "narrow"
+    }
+  ],
+  "features": [
+    "Photo Gallery Management",
+    "Multi-Storage Support",
+    "Offline Access",
+    "Responsive Design"
+  ],
+  "shortcuts": [
+    {
+      "name": "View Albums",
+      "short_name": "Albums",
+      "description": "Browse photo albums",
+      "url": "/albums",
+      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Upload Photos",
+      "short_name": "Upload",
+      "description": "Upload new photos",
+      "url": "/photos/upload",
+      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
+    }
+  ]
+}

@@ -7,7 +7,7 @@ import { useLanguage } from '@/contexts/LanguageContext'
 import { useI18n } from '@/hooks/useI18n'
 import styles from '../styles.module.scss'
 import { useAlbumCoverImage } from '@/hooks/useAlbumCoverImage'
-import { TemplateAlbum } from '@/types/ui'
+import { TemplateAlbum } from '@/types'
 
 interface AlbumCardProps {
   album: TemplateAlbum
@@ -30,18 +30,18 @@ export default function AlbumCard({ album, className = '' }: AlbumCardProps) {
       {/* Cover Image */}
       <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden flex-shrink-0">
         {!coverImageLoading && coverImageUrl ? (
-          <img
+          <Image
             src={coverImageUrl}
             alt={displayName}
+            width={400}
+            height={192}
             className={`w-full h-full transition-transform duration-700 ease-out ${
               coverImageUrl.includes('/logos/') 
                 ? 'object-contain bg-gray-50 p-4' 
                 : 'object-cover group-hover:scale-110'
             }`}
-            onError={(e) => {
-              e.currentTarget.style.display = 'none'
-              e.currentTarget.nextElementSibling?.classList.remove('hidden')
-            }}
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            loading="lazy"
           />
         ) : null}
         

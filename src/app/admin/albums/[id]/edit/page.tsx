@@ -11,38 +11,12 @@ import MultiLangInput from '@/components/MultiLangInput'
 import MultiLangHTMLEditor from '@/components/MultiLangHTMLEditor'
 import { MultiLangText, MultiLangHTML, MultiLangUtils } from '@/types/multi-lang'
 import { useLanguage } from '@/contexts/LanguageContext'
-
-interface Album {
-  _id: string
-  name: string
-  alias: string
-  description: string
-  isPublic: boolean
-  isFeatured: boolean
-  showExifData: boolean
-  storageProvider: string
-  storagePath: string
-  parentAlbumId?: string
-  parentPath?: string
-  level: number
-  order: number
-  coverPhotoId?: string
-  photoCount: number
-  createdAt: string
-  updatedAt: string
-  createdBy: string
-  tags: string[]
-  metadata?: {
-    location?: string
-    date?: Date
-    category?: string
-  }
-}
+import { TemplateAlbum } from '@/types'
 
 export default function EditAlbumPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params)
   const router = useRouter()
-  const [album, setAlbum] = useState<Album | null>(null)
+  const [album, setAlbum] = useState<TemplateAlbum | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)

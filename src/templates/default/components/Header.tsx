@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useContext } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
@@ -108,12 +109,13 @@ export default function Header() {
                 ? (
                     config?.logo
                       ? (
-                        <img 
+                        <Image 
                           src={config.logo} 
                           alt={MultiLangUtils.getTextValue(config?.title, currentLanguage) || 'OpenShutter'} 
+                          width={40}
+                          height={40}
                           className="w-10 h-10 object-contain shrink-0"
-                          onLoad={() => console.log('Logo loaded successfully:', config.logo)}
-                          onError={(e) => console.error('Logo failed to load:', config.logo, e)}
+                          priority
                         />
                       )
                       : (

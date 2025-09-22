@@ -1,18 +1,14 @@
 'use client';
 import React, { useEffect, useState } from 'react';
+import Image from 'next/image';
 import { useSiteConfig } from '@/hooks/useSiteConfig';
 import { MultiLangUtils } from '@/types/multi-lang';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useI18n } from '@/hooks/useI18n';
-
-interface Photo { 
-  _id: string;
-  title: Record<string, string> | string;
-  storage: { url: string; thumbnailPath?: string };
-}
+import { TemplatePhoto } from '@/types';
 
 const Hero: React.FC = () => {
-  const [photos, setPhotos] = useState<Photo[]>([]);
+  const [photos, setPhotos] = useState<TemplatePhoto[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const { config } = useSiteConfig();
@@ -60,14 +56,15 @@ const Hero: React.FC = () => {
       {/* Background Image */}
       {!loading && photos.length > 0 && (
         <div className="minimal-hero-bg">
-          <img
+          <Image
             key={photos[currentPhotoIndex]._id}
-            src={photos[currentPhotoIndex].storage.thumbnailPath || photos[currentPhotoIndex].storage.url}
+            src={photos[currentPhotoIndex].storage.thumbnailPath || photos[currentPhotoIndex].storage.url || '/placeholder.jpg'}
             alt={typeof photos[currentPhotoIndex].title === 'string' ? photos[currentPhotoIndex].title : MultiLangUtils.getTextValue(photos[currentPhotoIndex].title, currentLanguage)}
+            fill
             className="minimal-hero-bg-image"
-            onError={(e) => {
-              e.currentTarget.style.display = 'none';
-            }}
+            priority
+            sizes="100vw"
+            style={{ objectFit: 'cover' }}
           />
         </div>
       )}

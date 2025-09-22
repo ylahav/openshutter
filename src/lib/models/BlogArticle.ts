@@ -106,7 +106,7 @@ BlogArticleSchema.pre('save', function(next) {
 })
 
 // Indexes for performance
-BlogArticleSchema.index({ slug: 1 })
+// Note: slug index is automatically created by unique: true in schema
 BlogArticleSchema.index({ authorId: 1 })
 BlogArticleSchema.index({ category: 1 })
 BlogArticleSchema.index({ tags: 1 })

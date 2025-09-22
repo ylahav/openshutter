@@ -4,28 +4,16 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useI18n } from '@/hooks/useI18n'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { MultiLangUtils } from '@/types/multi-lang'
 import { useSession } from 'next-auth/react'
 import { canCreateAlbums, canEditAlbum, canDeleteAlbum } from '@/lib/access-control'
-
-interface Album {
-  _id: string
-  name: string
-  alias: string
-  description?: string
-  isPublic: boolean
-  isFeatured: boolean
-  photoCount: number
-  coverPhotoId?: string
-  createdAt: string
-  updatedAt: string
-  createdBy: string
-}
+import { TemplateAlbum } from '@/types'
 
 export default function OwnerAlbumsPage() {
   const { t } = useI18n()
-  const { isRTL } = useLanguage()
+  const { isRTL, currentLanguage } = useLanguage()
   const { data: session } = useSession()
-  const [albums, setAlbums] = useState<Album[]>([])
+  const [albums, setAlbums] = useState<TemplateAlbum[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -172,7 +160,7 @@ export default function OwnerAlbumsPage() {
                   {album.coverPhotoId ? (
                     <img
                       src={`/api/photos/${album.coverPhotoId}/thumbnail`}
-                      alt={album.name}
+                      alt={MultiLangUtils.getTextValue(album.name, currentLanguage)}
                       className="w-full h-48 object-cover"
                     />
                   ) : (
@@ -186,7 +174,7 @@ export default function OwnerAlbumsPage() {
                 <div className="p-4">
                   <div className="flex items-start justify-between mb-2">
                     <h3 className="text-lg font-semibold text-gray-900 truncate">
-                      {album.name}
+                      {MultiLangUtils.getTextValue(album.name, currentLanguage)}
                     </h3>
                     <div className="flex items-center space-x-1">
                       {album.isPublic ? (
@@ -208,7 +196,7 @@ export default function OwnerAlbumsPage() {
 
                   {album.description && (
                     <p className="text-gray-600 text-sm mb-3 line-clamp-2">
-                      {album.description}
+                      {MultiLangUtils.getTextValue(album.description, currentLanguage)}
                     </p>
                   )}
 

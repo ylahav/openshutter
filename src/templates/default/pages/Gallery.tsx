@@ -9,16 +9,12 @@ import Footer from '../components/Footer'
 import styles from '../styles.module.scss'
 import AlbumCard from '../components/AlbumCard'
 
-import { TemplateAlbum } from '@/types/ui'
-
-interface Album extends TemplateAlbum {
-  order: number
-}
+import { TemplateAlbum } from '@/types'
 
 export default function GalleryPage() {
   const { currentLanguage } = useLanguage()
   const { t } = useI18n()
-  const [albums, setAlbums] = useState<Album[]>([])
+  const [albums, setAlbums] = useState<TemplateAlbum[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -38,7 +34,7 @@ export default function GalleryPage() {
           const albums = result.data
           
           // API already handles access control, so we can use all returned albums
-          const sortedAlbums = albums.sort((a: Album, b: Album) => a.order - b.order)
+          const sortedAlbums = albums.sort((a: TemplateAlbum, b: TemplateAlbum) => a.order - b.order)
           setAlbums(sortedAlbums)
         } else {
           setError(result.error || 'Failed to fetch albums')
@@ -106,10 +102,19 @@ export default function GalleryPage() {
                     alias: album.alias,
                     description: album.description,
                     photoCount: album.photoCount,
-                    coverImage: undefined, // TODO: Fetch cover image from coverPhotoId
+                    coverPhotoUrl: undefined, // TODO: Fetch cover image from coverPhotoId
                     isPublic: album.isPublic,
                     isFeatured: album.isFeatured,
-                    createdAt: album.createdAt
+                    createdAt: album.createdAt,
+                    updatedAt: album.updatedAt || album.createdAt,
+                    storageProvider: album.storageProvider || 'local',
+                    storagePath: album.storagePath || '',
+                    level: album.level || 0,
+                    order: album.order || 0,
+                    parentAlbumId: album.parentAlbumId,
+                    parentPath: album.parentPath || '',
+                    createdBy: album.createdBy || '',
+                    tags: album.tags || []
                   }}
                 />
               ))}

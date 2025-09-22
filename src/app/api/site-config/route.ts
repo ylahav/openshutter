@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { siteConfigService } from '@/services/site-config'
+import { CacheManager } from '@/services/cache-manager'
 
 export async function GET(request: NextRequest) {
   try {
     const config = await siteConfigService.getConfig()
     
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       data: {
         title: config.title,
@@ -21,6 +22,9 @@ export async function GET(request: NextRequest) {
         template: config.template
       }
     })
+
+    // Apply cache headers for site config (cache for 1 hour)
+    return CacheManager.applyCacheHeaders(response, 'api')
   } catch (error) {
     console.error('Failed to get site config:', error)
     return NextResponse.json(

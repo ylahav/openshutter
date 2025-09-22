@@ -8,21 +8,14 @@ import { useSiteConfig } from '@/hooks/useSiteConfig'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useActiveTemplate } from '@/hooks/useTemplate'
 import { MultiLangUtils } from '@/types/multi-lang'
+import { TemplateAlbum } from '@/types'
 import styles from '../styles.module.scss'
-
-interface Album {
-  _id: string
-  name: string | Record<string, string>
-  description?: string | Record<string, string>
-  isFeatured?: boolean
-  photoCount?: number
-}
 
 export default function ElegantHomePage() {
   const { config } = useSiteConfig()
   const { currentLanguage } = useLanguage()
   const { template: activeTemplate } = useActiveTemplate()
-  const [albums, setAlbums] = useState<Album[]>([])
+  const [albums, setAlbums] = useState<TemplateAlbum[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedCategory, setSelectedCategory] = useState('all')
 

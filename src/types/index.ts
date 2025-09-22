@@ -99,6 +99,8 @@ export interface Photo {
   originalFilename: string
   mimeType: string
   size: number
+  originalSize?: number
+  compressionRatio?: number
   dimensions: {
     width: number
     height: number
@@ -109,6 +111,9 @@ export interface Photo {
     url: string
     bucket?: string
     folderId?: string
+    thumbnailPath?: string
+    thumbnails?: Record<string, string>
+    blurDataURL?: string
   }
   albumId?: string
   tags: string[]
@@ -251,4 +256,234 @@ export interface SearchQuery {
   limit?: number
   sortBy?: 'uploadedAt' | 'filename' | 'size' | 'dimensions'
   sortOrder?: 'asc' | 'desc'
+}
+
+// ============================================================================
+// TEMPLATE-SPECIFIC TYPES
+// ============================================================================
+// These types are designed for template compatibility and API responses
+// They convert Date objects to strings and add template-specific fields
+
+// Template Album - for use in templates and API responses
+export interface TemplateAlbum extends Omit<Album, '_id' | 'createdAt' | 'updatedAt' | 'firstPhotoDate' | 'lastPhotoDate'> {
+  // Make _id required for templates (API responses always have _id)
+  _id: string
+  
+  // Convert Date fields to strings for template compatibility
+  createdAt: string
+  updatedAt: string
+  firstPhotoDate?: string
+  lastPhotoDate?: string
+  
+  // Additional template-specific fields
+  childAlbumCount?: number  // Count of direct child albums
+  coverPhotoUrl?: string    // Direct URL to cover photo for easy access
+}
+
+// Template Photo - for use in templates and API responses  
+export interface TemplatePhoto extends Omit<Photo, 'uploadedAt' | 'updatedAt' | 'storage'> {
+  // Convert Date fields to strings for template compatibility
+  uploadedAt: string
+  updatedAt: string
+  
+  // Enhanced storage type for templates
+  storage: {
+    provider: string
+    fileId: string
+    url: string
+    bucket?: string
+    folderId?: string
+    path: string           // Full storage path
+    thumbnailPath: string  // Thumbnail path for templates
+    thumbnails?: Record<string, string>  // Multiple thumbnail sizes
+    blurDataURL?: string   // Blur placeholder for progressive loading
+  }
+  
+  // Additional template-specific fields
+  url?: string              // Direct URL for backward compatibility
+  thumbnailUrl?: string     // Direct thumbnail URL for easy access
+  alt?: MultiLangText       // Alt text for accessibility
+  albumName?: string        // Album name for display
+  metadata?: {              // Additional metadata for templates
+    width: number
+    height: number
+    size: number
+    mimeType: string
+  }
+  
+  // EXIF data for templates
+  exif?: {
+    dateTimeOriginal?: string
+    make?: string
+    model?: string
+    exposureTime?: string
+    fNumber?: string
+    iso?: number
+    focalLength?: string
+    flash?: string
+    whiteBalance?: string
+    meteringMode?: string
+    exposureProgram?: string
+    exposureMode?: string
+    sceneCaptureType?: string
+    colorSpace?: string
+    lensModel?: string
+    lensInfo?: string
+    serialNumber?: string
+    software?: string
+    xResolution?: number
+    yResolution?: number
+    resolutionUnit?: string
+    subsecTimeOriginal?: string
+    subsecTimeDigitized?: string
+    gps?: {
+      latitude?: number
+      longitude?: number
+      altitude?: number
+    }
+  }
+}
+
+// ============================================================================
+// API RESPONSE TYPES
+// ============================================================================
+// These types are specifically designed for API responses and include
+// additional computed fields that are commonly needed
+
+// Album API Response - includes computed fields for API responses
+export interface AlbumApiResponse extends TemplateAlbum {
+  // Additional API-specific computed fields
+  childAlbumCount: number   // Always present in API responses
+  totalPhotoCount?: number  // Total photos including sub-albums
+  coverPhotoUrl?: string    // Direct URL to cover photo
+  breadcrumbs?: Array<{     // Navigation breadcrumbs
+    _id: string
+    name: string
+    alias: string
+  }>
+}
+
+// Photo API Response - includes computed fields for API responses
+export interface PhotoApiResponse extends TemplatePhoto {
+  // Additional API-specific computed fields
+  thumbnailUrl: string      // Always present in API responses
+  fullSizeUrl: string       // Full size image URL
+  exifData?: {              // Processed EXIF data
+    make?: string
+    model?: string
+    dateTime?: string
+    exposureTime?: string
+    fNumber?: number
+    iso?: number
+    focalLength?: number
+    gps?: {
+      latitude: number
+      longitude: number
+    }
+  }
+}
+
+// ============================================================================
+// COMPONENT-SPECIFIC TYPES
+// ============================================================================
+// These types are designed for specific component use cases
+
+// Album Card Props - for album card components
+export interface AlbumCardData extends TemplateAlbum {
+  coverPhotoUrl?: string
+  childAlbumCount: number
+  photoCount: number
+}
+
+// Photo Card Props - for photo card components
+export interface PhotoCardData extends TemplatePhoto {
+  thumbnailUrl: string
+  fullSizeUrl: string
+  alt: MultiLangText
+}
+
+// Gallery Grid Props - for gallery grid components
+export interface GalleryGridData {
+  albums: AlbumCardData[]
+  photos: PhotoCardData[]
+  loading: boolean
+  error?: string
+}
+
+// ============================================================================
+// LEGACY COMPATIBILITY TYPES
+// ============================================================================
+// These types maintain backward compatibility with existing code
+// that uses 'any' types or simplified structures
+
+// Legacy Album - for backward compatibility with existing templates
+export interface LegacyAlbum {
+  _id: string
+  name: any  // MultiLangText or string
+  alias: string
+  description: any  // MultiLangHTML or string
+  photoCount: number
+  childAlbumCount?: number
+  coverPhotoId?: string
+  isPublic: boolean
+  isFeatured: boolean
+  createdAt: string
+  level: number
+  order: number
+  parentAlbumId?: string
+  parentPath?: string
+}
+
+// Legacy Photo - for backward compatibility with existing templates
+export interface LegacyPhoto {
+  _id: string
+  url?: string
+  storage?: {
+    url: string
+    thumbnailPath: string
+    path: string
+    provider: string
+  }
+  alt?: any  // MultiLangText or string
+  title?: any
+  description?: any
+  isPublished: boolean
+  isLeading?: boolean
+  isGalleryLeading?: boolean
+}
+
+// ============================================================================
+// TYPE UTILITIES
+// ============================================================================
+// Helper types and utilities for type conversion and validation
+
+// Convert API response to template type
+export type ApiToTemplate<T> = T extends AlbumApiResponse ? TemplateAlbum :
+  T extends PhotoApiResponse ? TemplatePhoto : T
+
+// Convert template type to legacy type
+export type TemplateToLegacy<T> = T extends TemplateAlbum ? LegacyAlbum :
+  T extends TemplatePhoto ? LegacyPhoto : T
+
+// Union type for all album variants
+export type AnyAlbum = Album | TemplateAlbum | AlbumApiResponse | LegacyAlbum
+
+// Union type for all photo variants  
+export type AnyPhoto = Photo | TemplatePhoto | PhotoApiResponse | LegacyPhoto
+
+// Type guard functions
+export const isTemplateAlbum = (album: AnyAlbum): album is TemplateAlbum => {
+  return 'createdAt' in album && typeof album.createdAt === 'string'
+}
+
+export const isTemplatePhoto = (photo: AnyPhoto): photo is TemplatePhoto => {
+  return 'uploadedAt' in photo && typeof photo.uploadedAt === 'string'
+}
+
+export const isApiAlbum = (album: AnyAlbum): album is AlbumApiResponse => {
+  return 'childAlbumCount' in album && typeof album.childAlbumCount === 'number'
+}
+
+export const isApiPhoto = (photo: AnyPhoto): photo is PhotoApiResponse => {
+  return 'thumbnailUrl' in photo && typeof photo.thumbnailUrl === 'string'
 }

@@ -5,7 +5,7 @@ export interface TemplateConfig {
   version: string
   author: string
   thumbnail: string
-  category: 'minimal' | 'modern' | 'classic' | 'dark' | 'custom'
+  category: 'minimal' | 'modern' | 'classic' | 'dark' | 'custom' | 'elegant'
   features: {
     responsive: boolean
     darkMode: boolean

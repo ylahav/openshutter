@@ -1,38 +1,26 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { useSiteConfig } from '@/hooks/useSiteConfig'
 import { MultiLangUtils } from '@/types/multi-lang'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useI18n } from '@/hooks/useI18n'
 import { useTheme } from 'next-themes'
+import { TemplatePhoto } from '@/types'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 import AlbumsSection from '@/components/AlbumsSection'
 
 import styles from '../styles.module.scss'
 
-interface Photo {
-  _id: string
-  url?: string
-  storage?: {
-    url: string
-    thumbnailPath: string
-    path: string
-    provider: string
-  }
-  alt?: string
-  isGalleryLeading: boolean
-  isPublished: boolean
-}
-
 export default function HomePage() {
   const { config, loading } = useSiteConfig()
   const { currentLanguage } = useLanguage()
   const { t } = useI18n()
   const { theme } = useTheme()
-  const [leadingPhotos, setLeadingPhotos] = useState<Photo[]>([])
+  const [leadingPhotos, setLeadingPhotos] = useState<TemplatePhoto[]>([])
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0)
 
   // Load leading photos for hero background
@@ -91,10 +79,14 @@ export default function HomePage() {
         <section className={styles.hero}>
           <div className={styles.heroBackground}>
             {leadingPhotos.length > 0 ? (
-              <img
-                src={leadingPhotos[currentPhotoIndex]?.url || leadingPhotos[currentPhotoIndex]?.storage?.url}
-                alt={leadingPhotos[currentPhotoIndex]?.alt || 'Gallery photo'}
+              <Image
+                src={leadingPhotos[currentPhotoIndex]?.url || leadingPhotos[currentPhotoIndex]?.storage?.url || '/placeholder.jpg'}
+                alt={leadingPhotos[currentPhotoIndex]?.alt ? MultiLangUtils.getTextValue(leadingPhotos[currentPhotoIndex].alt, currentLanguage) : 'Gallery photo'}
+                fill
                 className={styles.heroBackgroundImage}
+                priority
+                sizes="100vw"
+                style={{ objectFit: 'cover' }}
               />
             ) : (
               <div className={styles.heroBackgroundFallback}>
