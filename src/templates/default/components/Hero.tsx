@@ -96,12 +96,13 @@ export default function Hero({
             src={backgroundImageUrl}
             alt="Hero background"
             fill
-            className="object-cover transition-all duration-1000 ease-in-out"
+            className="w-full h-full"
+            imageClassName="object-cover transition-all duration-1000 ease-in-out"
             priority={currentPhotoIndex === 0}
             sizes="100vw"
+            unoptimized={backgroundImageUrl.startsWith('http')}
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
-          <div className="absolute inset-0 bg-gradient-to-r from-black/30 via-transparent to-black/30"></div>
+          {/* Removed gradient overlays to show background photos clearly */}
         </div>
       ) : null}
 

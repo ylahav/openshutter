@@ -99,11 +99,11 @@ export default function Header() {
   }
   
   return (
-    <header className="styles.header shadow-sm">
+    <header className={`${styles.header} shadow-sm`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <div className="flex items-center styles.logo-container">
+          <div className={`flex items-center ${styles.logoContainer}`}>
             <Link href="/" className="flex items-center space-x-3">
               {(headerCfg?.showLogo ?? true)
                 ? (
@@ -135,9 +135,8 @@ export default function Header() {
               )}
             </Link>
           </div>
-          <div className="flex items-center">default</div>
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-6 styles.header-nav">
+          <nav className={`hidden md:flex items-center gap-6 ${styles.headerNav}`}>
             {navigation.map((item) => (
               <Link
                 key={item.name}
@@ -155,10 +154,10 @@ export default function Header() {
             {/* Optional Controls */}
             <div className="flex items-center gap-3">
               {/* Theme Toggle */}
-              {headerCfg?.enableThemeToggle && (
+              {(headerCfg?.enableThemeToggle ?? true) && (
                 <button
                   onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                  className="styles.theme-toggle px-3 py-2 text-sm rounded-md"
+                  className={`${styles.themeToggle} px-3 py-2 text-sm rounded-md`}
                   aria-label="Toggle theme"
                 >
                   {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
@@ -168,7 +167,7 @@ export default function Header() {
               {config?.languages?.activeLanguages && 
                config.languages.activeLanguages.length > 1 && 
                (headerCfg?.enableLanguageSelector ?? true) && (
-                <div className="styles.language-selector">
+                <div className={styles.languageSelector}>
                   <LanguageSelector
                     currentLanguage={currentLanguage}
                     onLanguageChange={setCurrentLanguage}
@@ -186,7 +185,7 @@ export default function Header() {
                   )}
                   <button
                     onClick={handleLogout}
-                    className="styles.logout-button px-4 py-2 text-sm font-medium rounded-md"
+                    className={`${styles.logoutButton} px-4 py-2 text-sm font-medium rounded-md`}
                   >
                     Logout
                   </button>
@@ -194,7 +193,7 @@ export default function Header() {
               ) : (headerCfg?.showAuthButtons ?? true) ? (
                 <Link
                   href="/login"
-                  className="styles.auth-button px-4 py-2 text-sm font-medium rounded-md"
+                  className={`${styles.authButton} px-4 py-2 text-sm font-medium rounded-md`}
                 >
                   {t('auth.signIn')}
                 </Link>

@@ -9,6 +9,7 @@ interface LazyImageProps {
   width?: number
   height?: number
   className?: string
+  imageClassName?: string
   priority?: boolean
   sizes?: string
   style?: React.CSSProperties
@@ -18,6 +19,7 @@ interface LazyImageProps {
   blurDataURL?: string
   fetchPriority?: 'high' | 'low' | 'auto'
   loading?: 'eager' | 'lazy'
+  unoptimized?: boolean
 }
 
 export default function LazyImage({
@@ -26,6 +28,7 @@ export default function LazyImage({
   width,
   height,
   className = '',
+  imageClassName = '',
   priority = false,
   sizes,
   style,
@@ -34,7 +37,8 @@ export default function LazyImage({
   placeholder = 'empty',
   blurDataURL,
   fetchPriority = 'auto',
-  loading
+  loading,
+  unoptimized = false
 }: LazyImageProps) {
   const [isLoaded, setIsLoaded] = useState(false)
   const [isInView, setIsInView] = useState(priority)
@@ -100,8 +104,9 @@ export default function LazyImage({
           onLoad={handleLoad}
           loading={loading ?? (priority ? 'eager' : 'lazy')}
           fetchPriority={fetchPriority}
+          unoptimized={unoptimized}
           decoding="async"
-          className={`transition-opacity duration-300 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
+          className={`transition-opacity duration-300 ${isLoaded ? 'opacity-100' : 'opacity-0'} ${imageClassName}`}
         />
       )}
     </div>

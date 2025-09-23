@@ -1,8 +1,14 @@
 /** @type {import('next').NextConfig} */
 
-const withBundleAnalyzer = require('@next/bundle-analyzer')({
-  enabled: process.env.ANALYZE === 'true',
-})
+const withBundleAnalyzer = (() => {
+  try {
+    return require('@next/bundle-analyzer')({
+      enabled: process.env.ANALYZE === 'true',
+    })
+  } catch {
+    return (config) => config
+  }
+})()
 
 const nextConfig = {
   // Image optimization
@@ -102,6 +108,7 @@ const nextConfig = {
   },
 
   // Output and optimization
+  output: 'standalone',
   outputFileTracingRoot: process.cwd(),
   trailingSlash: false,
   reactStrictMode: true,
