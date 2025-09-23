@@ -1,19 +1,37 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
+import dynamic from 'next/dynamic'
 import { useTemplateOverrides } from '@/hooks/useTemplateOverrides'
 import { useSiteConfig } from '@/hooks/useSiteConfig'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
-import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Loader2, Palette, Type, Layout, Eye, Settings, RotateCcw, ArrowLeft } from 'lucide-react'
+import { Loader2, Settings, RotateCcw, ArrowLeft, Palette, Type, Layout, Eye } from 'lucide-react'
+
+// Dynamic imports for heavy components
+const ColorCustomization = dynamic(() => import('@/components/admin/TemplateOverrides/ColorCustomization'), {
+  loading: () => <div className="animate-pulse bg-gray-200 h-64 rounded-lg" />
+})
+
+const FontCustomization = dynamic(() => import('@/components/admin/TemplateOverrides/FontCustomization'), {
+  loading: () => <div className="animate-pulse bg-gray-200 h-64 rounded-lg" />
+})
+
+const LayoutCustomization = dynamic(() => import('@/components/admin/TemplateOverrides/LayoutCustomization'), {
+  loading: () => <div className="animate-pulse bg-gray-200 h-64 rounded-lg" />
+})
+
+const VisibilityCustomization = dynamic(() => import('@/components/admin/TemplateOverrides/VisibilityCustomization'), {
+  loading: () => <div className="animate-pulse bg-gray-200 h-64 rounded-lg" />
+})
 
 export default function TemplateOverridesPage() {
   const router = useRouter()
@@ -259,178 +277,40 @@ export default function TemplateOverridesPage() {
         </TabsList>
 
         <TabsContent value="colors" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Color Customization</CardTitle>
-              <CardDescription>
-                Override the template's color scheme
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="primary">Primary Color</Label>
-                  <Input
-                    id="primary"
-                    type="color"
-                    value={localOverrides.customColors?.primary || template.colors.primary}
-                    onChange={(e) => handleColorChange('primary', e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="secondary">Secondary Color</Label>
-                  <Input
-                    id="secondary"
-                    type="color"
-                    value={localOverrides.customColors?.secondary || template.colors.secondary}
-                    onChange={(e) => handleColorChange('secondary', e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="accent">Accent Color</Label>
-                  <Input
-                    id="accent"
-                    type="color"
-                    value={localOverrides.customColors?.accent || template.colors.accent}
-                    onChange={(e) => handleColorChange('accent', e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="background">Background Color</Label>
-                  <Input
-                    id="background"
-                    type="color"
-                    value={localOverrides.customColors?.background || template.colors.background}
-                    onChange={(e) => handleColorChange('background', e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="text">Text Color</Label>
-                  <Input
-                    id="text"
-                    type="color"
-                    value={localOverrides.customColors?.text || template.colors.text}
-                    onChange={(e) => handleColorChange('text', e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="muted">Muted Color</Label>
-                  <Input
-                    id="muted"
-                    type="color"
-                    value={localOverrides.customColors?.muted || template.colors.muted}
-                    onChange={(e) => handleColorChange('muted', e.target.value)}
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <Suspense fallback={<div className="animate-pulse bg-gray-200 h-64 rounded-lg" />}>
+            <ColorCustomization
+              localOverrides={localOverrides}
+              onColorChange={handleColorChange}
+            />
+          </Suspense>
         </TabsContent>
 
         <TabsContent value="fonts" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Font Customization</CardTitle>
-              <CardDescription>
-                Override the template's font settings
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="heading-font">Heading Font</Label>
-                  <Input
-                    id="heading-font"
-                    value={localOverrides.customFonts?.heading || template.fonts.heading}
-                    onChange={(e) => handleFontChange('heading', e.target.value)}
-                    placeholder="e.g., Inter, Roboto, Arial"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="body-font">Body Font</Label>
-                  <Input
-                    id="body-font"
-                    value={localOverrides.customFonts?.body || template.fonts.body}
-                    onChange={(e) => handleFontChange('body', e.target.value)}
-                    placeholder="e.g., Inter, Roboto, Arial"
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <Suspense fallback={<div className="animate-pulse bg-gray-200 h-64 rounded-lg" />}>
+            <FontCustomization
+              localOverrides={localOverrides}
+              onFontChange={handleFontChange}
+            />
+          </Suspense>
         </TabsContent>
 
         <TabsContent value="layout" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Layout Customization</CardTitle>
-              <CardDescription>
-                Override the template's layout settings
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="max-width">Max Width</Label>
-                  <Input
-                    id="max-width"
-                    value={localOverrides.customLayout?.maxWidth || template.layout.maxWidth}
-                    onChange={(e) => handleLayoutChange('maxWidth', e.target.value)}
-                    placeholder="e.g., 1200px, 100%"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="container-padding">Container Padding</Label>
-                  <Input
-                    id="container-padding"
-                    value={localOverrides.customLayout?.containerPadding || template.layout.containerPadding}
-                    onChange={(e) => handleLayoutChange('containerPadding', e.target.value)}
-                    placeholder="e.g., 1rem, 2rem"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="grid-gap">Grid Gap</Label>
-                  <Input
-                    id="grid-gap"
-                    value={localOverrides.customLayout?.gridGap || template.layout.gridGap}
-                    onChange={(e) => handleLayoutChange('gridGap', e.target.value)}
-                    placeholder="e.g., 1.5rem, 2rem"
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <Suspense fallback={<div className="animate-pulse bg-gray-200 h-64 rounded-lg" />}>
+            <LayoutCustomization
+              localOverrides={localOverrides}
+              onLayoutChange={handleLayoutChange}
+            />
+          </Suspense>
         </TabsContent>
 
         <TabsContent value="visibility" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Component Visibility</CardTitle>
-              <CardDescription>
-                Show or hide template components
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-4">
-                {Object.entries(template.visibility || {}).map(([component, defaultValue]) => (
-                  <div key={component} className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label className="text-sm font-medium capitalize">
-                        {component.replace(/([A-Z])/g, ' $1').trim()}
-                      </Label>
-                      <p className="text-sm text-muted-foreground">
-                        {defaultValue ? 'Visible by default' : 'Hidden by default'}
-                      </p>
-                    </div>
-                    <Switch
-                      checked={localOverrides.componentVisibility?.[component] ?? defaultValue}
-                      onCheckedChange={(checked) => handleVisibilityChange(component, checked)}
-                    />
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          <Suspense fallback={<div className="animate-pulse bg-gray-200 h-64 rounded-lg" />}>
+            <VisibilityCustomization
+              localOverrides={localOverrides}
+              onVisibilityChange={handleVisibilityChange}
+              template={template}
+            />
+          </Suspense>
         </TabsContent>
 
         <TabsContent value="header" className="space-y-4">

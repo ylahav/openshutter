@@ -6,21 +6,10 @@ import { useI18n } from '@/hooks/useI18n'
 import styles from '../styles.module.scss'
 import { MultiLangUtils } from '@/types/multi-lang'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useSiteConfig } from '@/hooks/useSiteConfig'
+import { TemplatePhoto } from '@/types'
+import LazyImage from '@/components/LazyImage'
 
-interface Photo {
-  _id: string
-  title: Record<string, string> | string
-  storage: {
-    url: string
-    path: string
-    provider: string
-  }
-}
-
-interface SiteConfig {
-  title: any
-  description: any
-}
 
 interface HeroProps {
   title?: string
@@ -37,12 +26,12 @@ export default function Hero({
   ctaLink = "/albums",
   backgroundImage
 }: HeroProps) {
-  const [galleryPhotos, setGalleryPhotos] = useState<Photo[]>([])
-  const [siteConfig, setSiteConfig] = useState<SiteConfig | null>(null)
+  const [galleryPhotos, setGalleryPhotos] = useState<TemplatePhoto[]>([])
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0)
   const [loading, setLoading] = useState(true)
   const { currentLanguage, isRTL } = useLanguage()
   const { t } = useI18n()
+  const { config: siteConfig } = useSiteConfig()
 
   // Get the correct arrow direction based on RTL
   const getArrowPath = () => isRTL ? "M15 19l-7-7 7-7" : "M9 5l7 7-7 7"
@@ -64,22 +53,7 @@ export default function Hero({
       }
     }
 
-    const fetchSiteConfig = async () => {
-      try {
-        const response = await fetch('/api/site-config')
-        if (response.ok) {
-          const data = await response.json()
-          if (data.success) {
-            setSiteConfig(data.data)
-          }
-        }
-      } catch (error) {
-        console.error('Failed to fetch site config:', error)
-      }
-    }
-
     fetchGalleryPhotos()
-    fetchSiteConfig()
   }, [])
 
   // Auto-rotate background photos
@@ -94,7 +68,7 @@ export default function Hero({
   }, [galleryPhotos.length])
 
   // Use provided props or fall back to site config (multi-language aware)
-  const displayTitle = title || (loading ? '' : MultiLangUtils.getTextValue(siteConfig?.title, currentLanguage) || t('hero.defaultTitle'))
+  const displayTitle = title || (loading ? '' : (siteConfig?.title ? MultiLangUtils.getTextValue(siteConfig.title, currentLanguage) : '') || t('hero.defaultTitle'))
   const displaySubtitle = subtitle || (loading ? '' : (() => {
     if (siteConfig?.description) {
       // Strip HTML tags for plain text display
@@ -117,12 +91,18 @@ export default function Hero({
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-primary to-primary/80">
       {/* Background */}
       {backgroundImageUrl ? (
-        <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-1000 ease-in-out"
-          style={{ backgroundImage: `url(${backgroundImageUrl})` }}
-        >
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
-          <div className="absolute inset-0 bg-gradient-to-r from-black/30 via-transparent to-black/30"></div>
+        <div className="absolute inset-0">
+          <LazyImage
+            src={backgroundImageUrl}
+            alt="Hero background"
+            fill
+            className="w-full h-full"
+            imageClassName="object-cover transition-all duration-1000 ease-in-out"
+            priority={currentPhotoIndex === 0}
+            sizes="100vw"
+            unoptimized={backgroundImageUrl.startsWith('http')}
+          />
+          {/* Removed gradient overlays to show background photos clearly */}
         </div>
       ) : null}
 

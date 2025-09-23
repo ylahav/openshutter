@@ -1,50 +1,26 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
+import ProgressiveImage from '@/components/ProgressiveImage'
 import { useSiteConfig } from '@/hooks/useSiteConfig'
 import { MultiLangUtils } from '@/types/multi-lang'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useI18n } from '@/hooks/useI18n'
+import { TemplateAlbum, TemplatePhoto } from '@/types'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 import styles from '../styles.module.scss'
-
-interface Album {
-  _id: string
-  name: any // MultiLangText or string
-  alias: string
-  description: any // MultiLangHTML or string
-  photoCount: number
-  childAlbumCount?: number
-  coverPhotoId?: string
-  isPublic: boolean
-  isFeatured: boolean
-  createdAt: string
-  level: number
-  order: number
-}
-
-interface Photo {
-  _id: string
-  url?: string
-  storage?: {
-    url: string
-    thumbnailPath: string
-    path: string
-    provider: string
-  }
-  alt?: string
-}
 
 export default function GalleryPage() {
   const { config, loading: configLoading } = useSiteConfig()
   const { currentLanguage } = useLanguage()
   const { t } = useI18n()
-  const [albums, setAlbums] = useState<Album[]>([])
+  const [albums, setAlbums] = useState<TemplateAlbum[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [coverPhotos, setCoverPhotos] = useState<Record<string, Photo>>({})
+  const [coverPhotos, setCoverPhotos] = useState<Record<string, TemplatePhoto>>({})
 
   // Function to fetch cover photo for an album
   const fetchCoverPhoto = async (albumId: string, coverPhotoId: string) => {
@@ -83,11 +59,11 @@ export default function GalleryPage() {
           console.log('Albums data:', albums)
           
           // API already handles access control, so we can use all returned albums
-          const sortedAlbums = albums.sort((a: Album, b: Album) => a.order - b.order)
+          const sortedAlbums = albums.sort((a: TemplateAlbum, b: TemplateAlbum) => a.order - b.order)
           setAlbums(sortedAlbums)
           
           // Fetch cover photos for albums that have them
-          sortedAlbums.forEach((album: Album) => {
+          sortedAlbums.forEach((album: TemplateAlbum) => {
             if (album.coverPhotoId) {
               fetchCoverPhoto(album._id, album.coverPhotoId)
             }
@@ -148,18 +124,16 @@ export default function GalleryPage() {
                   <div className={`${styles.card} ${styles.animateScaleIn} h-full flex flex-col`} style={{ animationDelay: `${i * 0.1}s` }}>
                     <div className="overflow-hidden flex-shrink-0">
                       {album.coverPhotoId && coverPhotos[album._id] ? (
-                        <img
-                          src={coverPhotos[album._id].storage?.thumbnailPath || coverPhotos[album._id].url}
+                        <ProgressiveImage
+                          photo={coverPhotos[album._id]}
                           alt={MultiLangUtils.getTextValue(album.name, currentLanguage)}
+                          width={400}
+                          height={300}
                           className={styles.cardImage}
-                          onError={(e) => {
-                            // Fallback to placeholder if image fails to load
-                            e.currentTarget.style.display = 'none'
-                            const nextElement = e.currentTarget.nextElementSibling as HTMLElement
-                            if (nextElement) {
-                              nextElement.style.display = 'flex'
-                            }
-                          }}
+                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                          loading="lazy"
+                          fetchPriority="low"
+                          useOptimalDimensions={true}
                         />
                       ) : null}
                       <div 

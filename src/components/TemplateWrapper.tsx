@@ -18,6 +18,7 @@ export default function TemplateWrapper({
 
   // Show loading state
   if (templateLoading) {
+    console.log('TemplateWrapper: Loading template...', { templateLoading, templateError })
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">

@@ -11,6 +11,7 @@ export const metadata: Metadata = {
   creator: 'OpenShutter Team',
   publisher: 'OpenShutter',
   robots: 'index, follow',
+  manifest: '/manifest.json',
   openGraph: {
     title: 'OpenShutter - Photo Gallery Management System',
     description: 'A comprehensive photo gallery management system with multi-storage support.',

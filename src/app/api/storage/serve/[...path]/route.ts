@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { storageManager } from '@/services/storage/manager'
+import { CacheManager } from '@/services/cache-manager'
 
 export async function GET(
   request: NextRequest,
@@ -47,19 +48,36 @@ export async function GET(
     
     console.log(`Storage API: Successfully got file buffer, size: ${fileBuffer.length} bytes`)
     
-    // Determine content type
+    // Determine content type and cache strategy
     const ext = fullFilePath.split('.').pop()?.toLowerCase()
     const contentType = getContentType(ext)
     
-    // Return file with appropriate headers
-    return new NextResponse(new Uint8Array(fileBuffer), {
+    // Determine if this is a thumbnail or full image
+    const isThumbnail = fullFilePath.includes('/thumb/') || 
+                       fullFilePath.includes('/micro/') || 
+                       fullFilePath.includes('/small/') || 
+                       fullFilePath.includes('/medium/') || 
+                       fullFilePath.includes('/large/') || 
+                       fullFilePath.includes('/hero/')
+    
+    const cacheType = isThumbnail ? 'thumbnails' : 'images'
+    
+    // Check if client has a valid cached version
+    if (CacheManager.shouldServeFromCache(request, cacheType)) {
+      return new NextResponse(null, { status: 304 })
+    }
+    
+    // Create response with advanced caching headers
+    const response = new NextResponse(new Uint8Array(fileBuffer), {
       headers: {
         'Content-Type': contentType,
         'Content-Length': fileBuffer.length.toString(),
-        'Cache-Control': 'public, max-age=31536000', // Cache for 1 year
         'Last-Modified': new Date().toUTCString()
       }
     })
+    
+    // Apply advanced cache headers
+    return CacheManager.applyCacheHeaders(response, cacheType)
     
   } catch (error) {
     console.error('Error serving file:', error)

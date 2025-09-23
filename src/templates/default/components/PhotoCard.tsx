@@ -1,66 +1,16 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { MultiLangUtils } from '@/types/multi-lang'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { TemplatePhoto } from '@/types'
 import styles from '../styles.module.scss'
 
-interface Photo {
-  _id: string
-  title: string
-  filename: string
-  originalFilename: string
-  mimeType: string
-  size: number
-  dimensions: {
-    width: number
-    height: number
-  }
-  storage: {
-    provider: string
-    url: string
-    path: string
-    thumbnailPath: string
-  }
-  albumId?: string
-  albumName?: string
-  tags: string[]
-  isPublished: boolean
-  isLeading: boolean
-  isGalleryLeading?: boolean
-  uploadedBy: string
-  uploadedAt: string
-  exif?: {
-    dateTimeOriginal?: string
-    make?: string
-    model?: string
-    exposureTime?: string
-    fNumber?: string
-    iso?: number
-    focalLength?: string
-    flash?: string
-    whiteBalance?: string
-    meteringMode?: string
-    exposureProgram?: string
-    exposureMode?: string
-    sceneCaptureType?: string
-    colorSpace?: string
-    lensModel?: string
-    lensInfo?: string
-    serialNumber?: string
-    software?: string
-    xResolution?: number
-    yResolution?: number
-    resolutionUnit?: string
-    subsecTimeOriginal?: string
-    subsecTimeDigitized?: string
-  }
-}
-
 interface PhotoCardProps {
-  photo: Photo
+  photo: TemplatePhoto
   className?: string
-  onClick?: (photo: Photo) => void
+  onClick?: (photo: TemplatePhoto) => void
   showDetails?: boolean
 }
 
@@ -104,14 +54,18 @@ export default function PhotoCard({
         )}
 
         {/* Image */}
-        <img
-          src={photo.storage.thumbnailPath || photo.storage.url}
-          alt={photo.title}
+        <Image
+          src={photo.storage.thumbnailPath || photo.storage.url || '/placeholder.jpg'}
+          alt={MultiLangUtils.getTextValue(photo.title, currentLanguage)}
+          width={400}
+          height={192}
           className={`w-full h-48 object-cover transition-opacity duration-300 ${
             imageLoaded ? 'opacity-100' : 'opacity-0'
           }`}
           onLoad={handleImageLoad}
           onError={handleImageError}
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          loading="lazy"
         />
 
         {/* Fallback Image */}

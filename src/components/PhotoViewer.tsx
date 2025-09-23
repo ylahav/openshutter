@@ -3,92 +3,93 @@
 import { useState, useEffect, useCallback } from 'react'
 import { MultiLangUtils } from '@/types/multi-lang'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { TemplatePhoto } from '@/types'
 
-interface Photo {
-  _id: string
-  title: Record<string, string> | string
-  description?: Record<string, string> | string
-  storage: {
-    url: string
-    thumbnailPath: string
-  }
-  tags?: string[]
-  people?: string[]
-  location?: {
-    name: string
-    coordinates?: { latitude: number; longitude: number }
-    address?: string
-  }
-  exif?: {
-    // Basic Camera Information
-    make?: string
-    model?: string
-    serialNumber?: string
-    
-    // Date and Time
-    dateTime?: string
-    dateTimeOriginal?: string
-    dateTimeDigitized?: string
-    offsetTime?: string
-    offsetTimeOriginal?: string
-    offsetTimeDigitized?: string
-    
-    // Camera Settings
-    exposureTime?: string
-    fNumber?: string
-    iso?: number
-    focalLength?: string
-    exposureProgram?: string
-    exposureMode?: string
-    exposureBiasValue?: number
-    maxApertureValue?: number
-    shutterSpeedValue?: string
-    apertureValue?: string
-    
-    // Image Quality
-    whiteBalance?: string
-    meteringMode?: string
-    flash?: string
-    colorSpace?: string
-    customRendered?: string
-    sceneCaptureType?: string
-    
-    // Resolution
-    xResolution?: number
-    yResolution?: number
-    resolutionUnit?: string
-    focalPlaneXResolution?: number
-    focalPlaneYResolution?: number
-    focalPlaneResolutionUnit?: string
-    
-    // Lens Information
-    lensInfo?: string
-    lensModel?: string
-    lensSerialNumber?: string
-    
-    // Software and Processing
-    software?: string
-    copyright?: string
-    exifVersion?: string
-    
-    // GPS Information
-    gps?: {
-      latitude?: number
-      longitude?: number
-      altitude?: number
-    }
-    
-    // Additional Technical Data
-    recommendedExposureIndex?: number
-    subsecTimeOriginal?: string
-    subsecTimeDigitized?: string
-  }
-  uploadedAt?: string
-  createdAt: string
-}
+// interface Photo { // Removed - now using TemplatePhoto from @/types
+  // _id: string
+  // title: Record<string, string> | string
+  // description?: Record<string, string> | string
+  // storage: {
+  //   url: string
+  //   thumbnailPath: string
+  // }
+  // tags?: string[]
+  // people?: string[]
+  // location?: {
+  //   name: string
+  //   coordinates?: { latitude: number; longitude: number }
+  //   address?: string
+  // }
+  // exif?: {
+  //   // Basic Camera Information
+  //   make?: string
+  //   model?: string
+  //   serialNumber?: string
+  //   
+  //   // Date and Time
+  //   dateTime?: string
+  //   dateTimeOriginal?: string
+  //   dateTimeDigitized?: string
+  //   offsetTime?: string
+  //   offsetTimeOriginal?: string
+  //   offsetTimeDigitized?: string
+  //   
+  //   // Camera Settings
+  //   exposureTime?: string
+  //   fNumber?: string
+  //   iso?: number
+  //   focalLength?: string
+  //   exposureProgram?: string
+  //   exposureMode?: string
+  //   exposureBiasValue?: number
+  //   maxApertureValue?: number
+  //   shutterSpeedValue?: string
+  //   apertureValue?: string
+  //   
+  //   // Image Quality
+  //   whiteBalance?: string
+  //   meteringMode?: string
+  //   flash?: string
+  //   colorSpace?: string
+  //   customRendered?: string
+  //   sceneCaptureType?: string
+  //   
+  //   // Resolution
+  //   xResolution?: number
+  //   yResolution?: number
+  //   resolutionUnit?: string
+  //   focalPlaneXResolution?: number
+  //   focalPlaneYResolution?: number
+  //   focalPlaneResolutionUnit?: string
+  //   
+  //   // Lens Information
+  //   lensInfo?: string
+  //   lensModel?: string
+  //   lensSerialNumber?: string
+  //   
+  //   // Software and Processing
+  //   software?: string
+  //   copyright?: string
+  //   exifVersion?: string
+  //   
+  //   // GPS Information
+  //   gps?: {
+  //     latitude?: number
+  //     longitude?: number
+  //     altitude?: number
+  //   }
+  //   
+  //   // Additional Technical Data
+  //   recommendedExposureIndex?: number
+  //   subsecTimeOriginal?: string
+  //   subsecTimeDigitized?: string
+  // }
+  // uploadedAt?: string
+  // createdAt: string
+// }
 
 interface PhotoViewerProps {
-  photos: Photo[]
+  photos: TemplatePhoto[]
   currentIndex: number
   isOpen: boolean
   onClose: () => void

@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { useSiteConfig } from '@/hooks/useSiteConfig'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -86,15 +87,16 @@ const ElegantHeader: React.FC = () => {
             }}
           >
             {config?.logo && (
-              <img 
+              <Image 
                 src={config.logo} 
                 alt={siteTitle}
+                width={50}
+                height={50}
                 style={{
-                  width: '50px',
-                  height: '50px',
                   objectFit: 'contain',
                   borderRadius: '8px'
                 }}
+                priority
               />
             )}
             <span 

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { connectToDatabase } from '@/lib/mongodb'
 import { ObjectId } from 'mongodb'
 import { getCurrentUser, buildAlbumAccessQuery } from '@/lib/access-control-server'
+import { CacheManager } from '@/services/cache-manager'
+import { DatabaseOptimizer } from '@/services/database-optimizer'
 
 export async function GET(request: NextRequest) {
   try {
@@ -102,23 +104,7 @@ export async function GET(request: NextRequest) {
       })
       .toArray()
     
-    console.log('Albums API Found albums:', albums.length, albums.map(a => ({ _id: a._id, alias: a.alias, isPublic: a.isPublic, parentAlbumId: a.parentAlbumId })))
-    
-    // Special debug for emek-hefer album
-    if (parentId && parentId !== 'root') {
-      const emekHeferAlbum = await collection.findOne({ alias: 'emek-hefer' })
-      console.log('emek-hefer album debug:', emekHeferAlbum ? {
-        _id: emekHeferAlbum._id,
-        alias: emekHeferAlbum.alias,
-        isPublic: emekHeferAlbum.isPublic,
-        parentAlbumId: emekHeferAlbum.parentAlbumId,
-        parentAlbumIdString: emekHeferAlbum.parentAlbumId?.toString(),
-        parentId: parentId,
-        parentIdMatches: emekHeferAlbum.parentAlbumId?.toString() === parentId
-      } : 'emek-hefer album not found')
-    }
-    
-    // Calculate child album count for each album
+    // Calculate child album count and photo count for each album
     const albumsWithChildCount = await Promise.all(
       albums.map(async (album) => {
         // Count only public child albums to match what's displayed
@@ -133,17 +119,40 @@ export async function GET(request: NextRequest) {
         
         const childCount = await collection.countDocuments(childCountQuery)
         
+        // Calculate actual photo count for this album
+        const actualPhotoCount = await db.collection('photos').countDocuments({
+          $or: [
+            { albumId: album._id },
+            { albumId: album._id.toString() }
+          ],
+          isPublished: true
+        })
+        
         return {
           ...album,
-          childAlbumCount: childCount
+          childAlbumCount: childCount,
+          photoCount: actualPhotoCount // Use calculated photo count instead of stored value
         }
       })
     )
     
-    return NextResponse.json({
+    console.log('Albums API Found albums:', albums.length, albums.map(a => ({ 
+      _id: a._id, 
+      alias: a.alias, 
+      isPublic: a.isPublic, 
+      photoCount: a.photoCount,
+      childAlbumCount: a.childAlbumCount
+    })))
+    
+    // Create response with caching
+    const response = NextResponse.json({
       success: true,
       data: albumsWithChildCount
     })
+    
+    // Apply cache headers based on whether this is public data
+    const cacheType = isPublic === 'true' ? 'albums' : 'sensitive'
+    return CacheManager.applyCacheHeaders(response, cacheType)
   } catch (error) {
     console.error('Failed to get albums:', error)
     return NextResponse.json(

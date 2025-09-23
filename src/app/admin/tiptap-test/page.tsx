@@ -1,11 +1,26 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
+import dynamic from 'next/dynamic'
 import AdminGuard from '@/components/AdminGuard'
 import Header from '@/templates/default/components/Header'
 import Footer from '@/templates/default/components/Footer'
-import MultiLangHTMLEditor from '@/components/MultiLangHTMLEditor'
 import { MultiLangHTML } from '@/types/multi-lang'
+
+// Dynamic imports for heavy components
+const MultiLangHTMLEditor = dynamic(() => import('@/components/MultiLangHTMLEditor'), {
+  loading: () => (
+    <div className="border border-gray-200 rounded-md p-4 bg-gray-50">
+      <p className="text-gray-600 text-center py-8">
+        Loading editor...
+      </p>
+    </div>
+  )
+})
+
+const EditorDemo = dynamic(() => import('@/components/admin/TiptapTest/EditorDemo'), {
+  loading: () => <div className="animate-pulse bg-gray-200 h-64 rounded-lg" />
+})
 
 export default function TiptapTestPage() {
   const [content, setContent] = useState<MultiLangHTML>({
@@ -23,45 +38,27 @@ export default function TiptapTestPage() {
             <h1 className="text-2xl font-bold text-gray-900 mb-6">Tiptap Editor Test</h1>
             
             <div className="space-y-6">
-              <div>
-                <h2 className="text-lg font-semibold text-gray-700 mb-3">Multi-Language HTML Editor</h2>
-                <MultiLangHTMLEditor
-                  value={content}
-                  onChange={setContent}
-                  placeholder="Start typing in your preferred language..."
-                  height={300}
-                  showLanguageTabs={true}
-                  defaultLanguage="en"
-                />
-              </div>
-
-              <div>
-                <h2 className="text-lg font-semibold text-gray-700 mb-3">Current Content (JSON)</h2>
-                <pre className="bg-gray-100 p-4 rounded-md text-sm overflow-auto max-h-64">
-                  {JSON.stringify(content, null, 2)}
-                </pre>
-              </div>
-
-              <div>
-                <h2 className="text-lg font-semibold text-gray-700 mb-3">Rendered Content</h2>
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="text-md font-medium text-gray-600 mb-2">English:</h3>
-                    <div 
-                      className="prose max-w-none p-4 border border-gray-200 rounded-md bg-white"
-                      dangerouslySetInnerHTML={{ __html: content.en || '<p>No content</p>' }}
-                    />
-                  </div>
-                  <div>
-                    <h3 className="text-md font-medium text-gray-600 mb-2">Hebrew:</h3>
-                    <div 
-                      className="prose max-w-none p-4 border border-gray-200 rounded-md bg-white"
-                      dir="rtl"
-                      dangerouslySetInnerHTML={{ __html: content.he || '<p>אין תוכן</p>' }}
-                    />
-                  </div>
+              <Suspense fallback={
+                <div className="border border-gray-200 rounded-md p-4 bg-gray-50">
+                  <p className="text-gray-600 text-center py-8">Loading editor...</p>
                 </div>
-              </div>
+              }>
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-700 mb-3">Multi-Language HTML Editor</h2>
+                  <MultiLangHTMLEditor
+                    value={content}
+                    onChange={setContent}
+                    placeholder="Start typing in your preferred language..."
+                    height={300}
+                    showLanguageTabs={true}
+                    defaultLanguage="en"
+                  />
+                </div>
+              </Suspense>
+
+              <Suspense fallback={<div className="animate-pulse bg-gray-200 h-64 rounded-lg" />}>
+                <EditorDemo content={content} setContent={setContent} />
+              </Suspense>
             </div>
           </div>
         </main>

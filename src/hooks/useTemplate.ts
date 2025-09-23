@@ -46,30 +46,24 @@ export function useActiveTemplate() {
   useEffect(() => {
     const loadActiveTemplate = async () => {
       try {
+        console.log('useActiveTemplate: Starting to load active template...')
         setLoading(true)
         setError(null)
         
-        if (config) {
-          // Use template with overrides if site config is available
-          const activeTemplate = await templateService.getActiveTemplateWithOverrides(config)
-          if (activeTemplate) {
-            setTemplate(activeTemplate)
-          } else {
-            setError('No active template found')
-          }
+        // For public pages, use basic template without overrides to avoid admin API calls
+        const activeTemplate = await templateService.getActiveTemplate()
+        console.log('useActiveTemplate: Got active template:', activeTemplate)
+        if (activeTemplate) {
+          setTemplate(activeTemplate as TemplateWithOverrides)
         } else {
-          // Fallback to base template without overrides
-          const activeTemplate = await templateService.getActiveTemplate()
-          if (activeTemplate) {
-            setTemplate(activeTemplate as TemplateWithOverrides)
-          } else {
-            setError('No active template found')
-          }
+          console.error('useActiveTemplate: No active template found')
+          setError('No active template found')
         }
       } catch (err) {
         console.error('Error loading active template:', err)
         setError('Failed to load active template')
       } finally {
+        console.log('useActiveTemplate: Finished loading, setting loading to false')
         setLoading(false)
       }
     }

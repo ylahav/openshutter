@@ -5,25 +5,10 @@ import { useState, useEffect } from 'react'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { MultiLangUtils } from '@/types/multi-lang'
 import { useMultipleAlbumCoverImages } from '@/hooks/useAlbumCoverImage'
-
-interface Album {
-  _id: string
-  name: any // Multi-language object
-  description: any // Multi-language object
-  isPublic: boolean
-  isFeatured: boolean
-  storageProvider: string
-  storagePath: string
-  parentAlbumId?: string
-  parentPath: string
-  level: number
-  order: number
-  photoCount: number
-  createdAt: string
-}
+import { TemplateAlbum } from '@/types'
 
 export default function AlbumsSection() {
-  const [albums, setAlbums] = useState<Album[]>([])
+  const [albums, setAlbums] = useState<TemplateAlbum[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isLoggedIn, setIsLoggedIn] = useState(false) // TODO: Replace with actual auth state
   const { currentLanguage } = useLanguage()
@@ -44,7 +29,7 @@ export default function AlbumsSection() {
         const result = await response.json()
         if (result.success) {
           // Filter to only root albums (level 0)
-          const rootAlbums = result.data.filter((album: Album) => album.level === 0)
+          const rootAlbums = result.data.filter((album: TemplateAlbum) => album.level === 0)
           setAlbums(rootAlbums)
         } else {
           console.error('API returned error:', result.error)
@@ -135,7 +120,7 @@ export default function AlbumsSection() {
                   <div 
                     className="text-gray-600 mb-4 line-clamp-2"
                     dangerouslySetInnerHTML={{
-                      __html: MultiLangUtils.getHTMLValue(album.description, currentLanguage) || 'No description available'
+                      __html: album.description ? MultiLangUtils.getHTMLValue(album.description, currentLanguage) || 'No description available' : 'No description available'
                     }}
                   />
                   
@@ -144,7 +129,7 @@ export default function AlbumsSection() {
                       {album.photoCount || 0} photos
                     </span>
                     <Link 
-                      href={`/albums/${album._id}`} 
+                      href={`/albums/${album.alias}`} 
                       className="text-primary-600 hover:text-primary-700 font-medium text-sm group-hover:underline"
                     >
                       View Album →

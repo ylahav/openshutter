@@ -6,6 +6,7 @@ export class TemplateService {
   private static instance: TemplateService
   private templateCache: Map<string, TemplateConfig> = new Map()
   private activeTemplate: TemplateConfig | null = null
+  private pageLoaders: Record<string, Record<string, () => Promise<any>>> | null = null
 
   private constructor() {}
   
@@ -54,15 +55,17 @@ export class TemplateService {
   // Note: Reading template config files from the filesystem is disabled in client builds
 
   async getActiveTemplate(): Promise<TemplateConfig | null> {
+    console.log('getActiveTemplate', this.activeTemplate)
     if (this.activeTemplate) {
       return this.activeTemplate
     }
 
     try {
-      // Use API call instead of direct service import
-      const response = await fetch('/api/admin/site-config')
+      // Use public API instead of admin API
+      const response = await fetch('/api/site-config')
       if (response.ok) {
         const result = await response.json()
+        console.log('getActiveTemplate result', result)
         if (result.success) {
           const templateName = result.data.template?.activeTemplate || 'default'
           const template = await this.loadTemplate(templateName)
@@ -129,30 +132,52 @@ export class TemplateService {
     }
   }
 
+  private buildPageLoaders(): Record<string, Record<string, () => Promise<any>>> {
+    // Auto-discover all template page modules using webpack context (lazy mode for code-splitting)
+    // Pattern matches: src/templates/<template>/pages/<Page>.tsx|ts
+    // Note: path here is relative to this file after compilation
+    //       '../templates' resolves to 'src/templates'
+    // @ts-ignore - webpack specific API
+    const ctx = require.context('../templates', true, /\/pages\/[^/]+\.(tsx|ts)$/i, 'lazy')
+    const loaders: Record<string, Record<string, () => Promise<any>>> = {}
+    ctx.keys().forEach((key: string) => {
+      // Key example: './modern/pages/Login.tsx'
+      const match = key.match(/^\.\/([^/]+)\/pages\/([^/.]+)\.(tsx|ts)$/i)
+      if (!match) return
+      const [, tName, pName] = match
+      const templateKey = tName.toLowerCase()
+      const pageKey = pName.toLowerCase()
+      if (!loaders[templateKey]) loaders[templateKey] = {}
+      loaders[templateKey][pageKey] = () => ctx(key)
+    })
+    return loaders
+  }
+
   async getTemplatePage(templateName: string, pageName: string): Promise<any> {
     try {
-      const template = await this.loadTemplate(templateName)
-      if (!template) {
-        return null
+      console.log(`getTemplatePage: Loading ${pageName} for template ${templateName}`)
+      if (!this.pageLoaders) {
+        this.pageLoaders = this.buildPageLoaders()
       }
 
-      const pagePath = template.pages[pageName as keyof typeof template.pages]
-      if (pagePath) {
-        try {
-          const page = await import(`@/templates/${templateName}/${pagePath}`)
-          return page.default || page
-        } catch (e) {
-          // Fall through to default template
-        }
+      const tplKey = (templateName || 'default').toLowerCase()
+      const pageKey = (pageName || '').toLowerCase()
+      const byTemplate = this.pageLoaders[tplKey] || this.pageLoaders['default'] || {}
+      const loader = byTemplate[pageKey]
+      if (loader) {
+        const mod = await loader()
+        return mod.default || mod
       }
 
-      // Fallback to default page if not defined or import failed
-      const defaultTemplate = await this.getTemplateConfig('default')
-      const defaultPath = defaultTemplate?.pages[pageName as keyof typeof defaultTemplate.pages]
-      if (defaultPath) {
-        const fallback = await import(`@/templates/default/${defaultPath}`)
-        return fallback.default || fallback
+      // Fallback to default template
+      const fallbackByDefault = this.pageLoaders['default'] || {}
+      const fallbackLoader = fallbackByDefault[pageKey]
+      if (fallbackLoader) {
+        const mod = await fallbackLoader()
+        return mod.default || mod
       }
+
+      console.error(`getTemplatePage: No page loader found for ${pageName}`)
       return null
     } catch (error) {
       console.error(`Error loading template page ${pageName}:`, error)
@@ -161,31 +186,14 @@ export class TemplateService {
   }
 
   async getTemplateConfig(templateName: string): Promise<TemplateConfig | null> {
-    // First, try to load from server-side JSON (admin API) to allow dynamic templates
-    try {
-      const response = await fetch('/api/admin/templates', { cache: 'no-store' })
-      if (response.ok) {
-        const result = await response.json()
-        if (result?.success && Array.isArray(result.data)) {
-          const fromJson = result.data.find((t: any) => t?.templateName === templateName)
-          if (fromJson) {
-            return fromJson as TemplateConfig
-          }
-          // Fallback to 'default' template from JSON
-          const defaultJson = result.data.find((t: any) => t?.templateName === 'default')
-          if (defaultJson) {
-            return defaultJson as TemplateConfig
-          }
-        }
-      }
-    } catch (err) {
-      // Ignore and fallback to static map below
-    }
-    // Final safety fallback: minimal 'default' template config
-    const fallbackDefault: TemplateConfig = {
+    // For public pages, use static template configurations to avoid admin API calls
+    // This prevents multiple admin API calls on the homepage
+    // Static template configurations for public use (no admin API calls)
+    const staticTemplates: Record<string, TemplateConfig> = {
+      'default': {
       templateName: 'default',
       displayName: 'Default',
-      description: 'Fallback default template',
+        description: 'Clean and minimal template',
       version: '1.0.0',
       author: 'OpenShutter',
       thumbnail: '/templates/default/thumbnail.jpg',
@@ -205,8 +213,83 @@ export class TemplateService {
       },
       visibility: { hero: true, languageSelector: true, authButtons: true, footerMenu: true },
       pages: { home: 'pages/Home.tsx', gallery: 'pages/Gallery.tsx', album: 'pages/Album.tsx' },
+      },
+      'modern': {
+        templateName: 'modern',
+        displayName: 'Modern',
+        description: 'Contemporary and sleek design',
+        version: '1.0.0',
+        author: 'OpenShutter',
+        thumbnail: '/templates/modern/thumbnail.jpg',
+        category: 'modern',
+        features: { responsive: true, darkMode: true, animations: true, seoOptimized: true },
+        colors: { primary: '#3b82f6', secondary: '#6b7280', accent: '#10b981', background: '#ffffff', text: '#111827', muted: '#6b7280' },
+        fonts: { heading: 'Inter', body: 'Inter' },
+        layout: { maxWidth: '1200px', containerPadding: '1rem', gridGap: '1.5rem' },
+        components: {
+          hero: 'components/Hero.tsx',
+          albumCard: 'components/AlbumCard.tsx',
+          photoCard: 'components/PhotoCard.tsx',
+          albumList: 'components/AlbumList.tsx',
+          gallery: 'components/Gallery.tsx',
+          navigation: 'components/Navigation.tsx',
+          footer: 'components/Footer.tsx',
+        },
+        visibility: { hero: true, languageSelector: true, authButtons: true, footerMenu: true },
+        pages: { home: 'pages/Home.tsx', gallery: 'pages/Gallery.tsx', album: 'pages/Album.tsx' },
+      },
+      'fancy': {
+        templateName: 'fancy',
+        displayName: 'Fancy',
+        description: 'Elegant and sophisticated design',
+        version: '1.0.0',
+        author: 'OpenShutter',
+        thumbnail: '/templates/fancy/thumbnail.jpg',
+        category: 'elegant',
+        features: { responsive: true, darkMode: true, animations: true, seoOptimized: true },
+        colors: { primary: '#8b5cf6', secondary: '#a78bfa', accent: '#f59e0b', background: '#ffffff', text: '#1f2937', muted: '#6b7280' },
+        fonts: { heading: 'Playfair Display', body: 'Inter' },
+        layout: { maxWidth: '1200px', containerPadding: '1rem', gridGap: '1.5rem' },
+        components: {
+          hero: 'components/Hero.tsx',
+          albumCard: 'components/AlbumCard.tsx',
+          photoCard: 'components/PhotoCard.tsx',
+          albumList: 'components/AlbumList.tsx',
+          gallery: 'components/Gallery.tsx',
+          navigation: 'components/Navigation.tsx',
+          footer: 'components/Footer.tsx',
+        },
+        visibility: { hero: true, languageSelector: true, authButtons: true, footerMenu: true },
+        pages: { home: 'pages/Home.tsx', gallery: 'pages/Gallery.tsx', album: 'pages/Album.tsx' },
+      },
+      'minimal': {
+        templateName: 'minimal',
+        displayName: 'Minimal',
+        description: 'Ultra-minimal and clean design',
+        version: '1.0.0',
+        author: 'OpenShutter',
+        thumbnail: '/templates/minimal/thumbnail.jpg',
+        category: 'minimal',
+        features: { responsive: true, darkMode: false, animations: false, seoOptimized: true },
+        colors: { primary: '#000000', secondary: '#6b7280', accent: '#000000', background: '#ffffff', text: '#000000', muted: '#6b7280' },
+        fonts: { heading: 'Inter', body: 'Inter' },
+        layout: { maxWidth: '1200px', containerPadding: '1rem', gridGap: '1rem' },
+        components: {
+          hero: 'components/Hero.tsx',
+          albumCard: 'components/AlbumCard.tsx',
+          photoCard: 'components/PhotoCard.tsx',
+          albumList: 'components/AlbumList.tsx',
+          gallery: 'components/Gallery.tsx',
+          navigation: 'components/Navigation.tsx',
+          footer: 'components/Footer.tsx',
+        },
+        visibility: { hero: true, languageSelector: true, authButtons: true, footerMenu: true },
+        pages: { home: 'pages/Home.tsx', gallery: 'pages/Gallery.tsx', album: 'pages/Album.tsx' },
+      }
     }
-    return fallbackDefault
+    
+    // Return the requested template or default
+    return staticTemplates[templateName] || staticTemplates['default']
   }
 
   /**

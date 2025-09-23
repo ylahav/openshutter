@@ -1,57 +1,51 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import { use } from 'react'
+import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import AdminGuard from '@/components/AdminGuard'
 import Header from '@/templates/default/components/Header'
 import Footer from '@/templates/default/components/Footer'
-import MultiLangInput from '@/components/MultiLangInput'
-import MultiLangHTMLEditor from '@/components/MultiLangHTMLEditor'
-import PhotoMetadataEditor from '@/components/PhotoMetadataEditor'
 import { MultiLangText, MultiLangHTML, MultiLangUtils } from '@/types/multi-lang'
+import { TemplatePhoto } from '@/types'
 
-interface Photo {
-  _id: string
-  title: string | { en: string }
-  description: string | { en: string }
-  filename: string
-  originalFilename: string
-  mimeType: string
-  size: number
-  dimensions?: {
-    width: number
-    height: number
-  }
-  storage: {
-    url: string
-    thumbnailPath: string
-    path: string
-    provider: string
-  }
-  albumId?: string
-  tags: string[]
-  people: string[]
-  location?: {
-    name: string
-    coordinates?: {
-      latitude: number
-      longitude: number
-    }
-    address?: string
-  }
-  isLeading: boolean
-  isPublished: boolean
-  isGalleryLeading?: boolean
-  createdAt: string
-  updatedAt: string
-}
+// Dynamic imports for heavy components
+const MultiLangHTMLEditor = dynamic(() => import('@/components/MultiLangHTMLEditor'), {
+  loading: () => (
+    <div className="border border-gray-200 rounded-md p-4 bg-gray-50">
+      <p className="text-gray-600 text-center py-8">
+        Loading editor...
+      </p>
+    </div>
+  )
+})
+
+const PhotoMetadataEditor = dynamic(() => import('@/components/PhotoMetadataEditor'), {
+  loading: () => <div className="animate-pulse bg-gray-200 h-64 rounded-lg" />
+})
+
+const PhotoPreview = dynamic(() => import('@/components/admin/PhotoEdit/PhotoPreview'), {
+  loading: () => <div className="animate-pulse bg-gray-200 h-32 rounded-lg" />
+})
+
+const PhotoBasicFields = dynamic(() => import('@/components/admin/PhotoEdit/PhotoBasicFields'), {
+  loading: () => <div className="animate-pulse bg-gray-200 h-16 rounded-lg" />
+})
+
+const PhotoStatusToggles = dynamic(() => import('@/components/admin/PhotoEdit/PhotoStatusToggles'), {
+  loading: () => <div className="animate-pulse bg-gray-200 h-24 rounded-lg" />
+})
+
+const PhotoActions = dynamic(() => import('@/components/admin/PhotoEdit/PhotoActions'), {
+  loading: () => <div className="animate-pulse bg-gray-200 h-16 rounded-lg" />
+})
 
 export default function EditPhotoPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params)
   const router = useRouter()
-  const [photo, setPhoto] = useState<Photo | null>(null)
+  const [photo, setPhoto] = useState<TemplatePhoto | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -252,70 +246,35 @@ export default function EditPhotoPage({ params }: { params: Promise<{ id: string
             <div className="p-6">
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Photo Preview */}
-                <div className="flex items-start space-x-6">
-                  <div className="flex-shrink-0">
-                    <img
-                      src={photo.storage.thumbnailPath || photo.storage.url}
-                      alt={typeof photo.title === 'string' ? photo.title : photo.title.en}
-                      className="w-32 h-32 object-cover rounded-lg"
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          File Name
-                        </label>
-                        <p className="text-sm text-gray-600">{photo.originalFilename}</p>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          File Size
-                        </label>
-                        <p className="text-sm text-gray-600">{(photo.size / 1024 / 1024).toFixed(2)} MB</p>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Dimensions
-                        </label>
-                        <p className="text-sm text-gray-600">
-                          {photo.dimensions?.width || 0} × {photo.dimensions?.height || 0}
-                        </p>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Type
-                        </label>
-                        <p className="text-sm text-gray-600">{photo.mimeType}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <Suspense fallback={<div className="animate-pulse bg-gray-200 h-32 rounded-lg" />}>
+                  <PhotoPreview photo={photo} />
+                </Suspense>
 
                 {/* Title */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Title
-                  </label>
-                  <MultiLangInput
-                    value={formData.title}
-                    onChange={(value) => setFormData(prev => ({ ...prev, title: value as MultiLangText }))}
-                    placeholder="Enter photo title..."
-                    required
+                <Suspense fallback={<div className="animate-pulse bg-gray-200 h-16 rounded-lg" />}>
+                  <PhotoBasicFields
+                    title={formData.title}
+                    onTitleChange={(value) => setFormData(prev => ({ ...prev, title: value as MultiLangText }))}
                   />
-                </div>
+                </Suspense>
 
                 {/* Description */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Description
                   </label>
-                  <MultiLangHTMLEditor
-                    value={formData.description}
-                    onChange={(value) => setFormData(prev => ({ ...prev, description: value as MultiLangHTML }))}
-                    placeholder="Enter photo description..."
-                    height={240}
-                  />
+                  <Suspense fallback={
+                    <div className="border border-gray-200 rounded-md p-4 bg-gray-50">
+                      <p className="text-gray-600 text-center py-8">Loading editor...</p>
+                    </div>
+                  }>
+                    <MultiLangHTMLEditor
+                      value={formData.description}
+                      onChange={(value) => setFormData(prev => ({ ...prev, description: value as MultiLangHTML }))}
+                      placeholder="Enter photo description..."
+                      height={240}
+                    />
+                  </Suspense>
                 </div>
 
                 {/* Metadata */}
@@ -323,89 +282,43 @@ export default function EditPhotoPage({ params }: { params: Promise<{ id: string
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Photo Metadata
                   </label>
-                  <PhotoMetadataEditor
-                    tags={formData.tags}
-                    people={formData.people}
-                    location={formData.location}
-                    onTagsChange={handleTagsChange}
-                    onPeopleChange={handlePeopleChange}
-                    onLocationChange={handleLocationChange}
-                  />
+                  <Suspense fallback={<div className="animate-pulse bg-gray-200 h-64 rounded-lg" />}>
+                    <PhotoMetadataEditor
+                      tags={formData.tags}
+                      people={formData.people}
+                      location={formData.location}
+                      onTagsChange={handleTagsChange}
+                      onPeopleChange={handlePeopleChange}
+                      onLocationChange={handleLocationChange}
+                    />
+                  </Suspense>
                 </div>
 
                 {/* Status Toggles */}
-                <div className="flex flex-col space-y-4">
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      id="isPublished"
-                      name="isPublished"
-                      checked={formData.isPublished}
-                      onChange={handleInputChange}
-                      className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-                    />
-                    <label htmlFor="isPublished" className="ml-2 block text-sm text-gray-700">
-                      Published (visible to public)
-                    </label>
-                  </div>
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      id="isLeading"
-                      name="isLeading"
-                      checked={formData.isLeading}
-                      onChange={handleInputChange}
-                      className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-                    />
-                    <label htmlFor="isLeading" className="ml-2 block text-sm text-gray-700">
-                      Leading Photo (album cover)
-                    </label>
-                  </div>
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      id="isGalleryLeading"
-                      name="isGalleryLeading"
-                      checked={formData.isGalleryLeading}
-                      onChange={handleInputChange}
-                      className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-                    />
-                    <label htmlFor="isGalleryLeading" className="ml-2 block text-sm text-gray-700">
-                      Gallery Leading Photo (hero showcase)
-                    </label>
-                  </div>
-                </div>
+                <Suspense fallback={<div className="animate-pulse bg-gray-200 h-24 rounded-lg" />}>
+                  <PhotoStatusToggles
+                    isPublished={formData.isPublished}
+                    isLeading={formData.isLeading}
+                    isGalleryLeading={formData.isGalleryLeading}
+                    onInputChange={handleInputChange}
+                  />
+                </Suspense>
 
-                {/* Error Message */}
-                {error && (
-                  <div className="bg-red-50 border border-red-200 rounded-md p-4">
-                    <p className="text-sm text-red-600">{error}</p>
-                  </div>
-                )}
-
-                {/* Action Buttons */}
-                <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
-                  <button
-                    type="button"
-                    onClick={() => {
+                {/* Actions */}
+                <Suspense fallback={<div className="animate-pulse bg-gray-200 h-16 rounded-lg" />}>
+                  <PhotoActions
+                    saving={saving}
+                    error={error}
+                    photo={photo}
+                    onBack={() => {
                       if (typeof window !== 'undefined' && window.history.length > 1) {
                         router.back()
                       } else {
                         router.push(photo?.albumId ? `/admin/albums/${String(photo.albumId)}` : '/admin/albums')
                       }
                     }}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="px-4 py-2 text-sm font-medium text-white bg-primary-600 border border-transparent rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {saving ? 'Saving...' : 'Save Changes'}
-                  </button>
-                </div>
+                  />
+                </Suspense>
               </form>
             </div>
           </div>

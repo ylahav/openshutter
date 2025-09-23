@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { connectToDatabase } from '@/lib/mongodb'
 import { ObjectId } from 'mongodb'
 import { ExifExtractor } from '@/services/exif-extractor'
+import { DatabaseOptimizer } from '@/services/database-optimizer'
+import { CacheManager } from '@/services/cache-manager'
 
 export async function GET(
   request: NextRequest,
@@ -28,7 +30,7 @@ export async function GET(
       )
     }
 
-    // Get photos for this album
+    // Get photos for this album using the working logic
     const photosCollection = db.collection('photos')
     const photos = await photosCollection
       .find({ 

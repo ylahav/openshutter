@@ -1,15 +1,16 @@
 /** @type {import('next').NextConfig} */
 
-// Debug logging for environment variables
-console.log('🔍 Next.js Config Debug:')
-console.log('  - MONGODB_URI:', process.env.MONGODB_URI)
-console.log('  - MONGODB_DB:', process.env.MONGODB_DB)
-console.log('  - NODE_ENV:', process.env.NODE_ENV)
-console.log('  - All env vars:', Object.keys(process.env).filter(key => key.includes('MONGODB')))
+const withBundleAnalyzer = (() => {
+  try {
+    return require('@next/bundle-analyzer')({
+      enabled: process.env.ANALYZE === 'true',
+    })
+  } catch {
+    return (config) => config
+  }
+})()
 
 const nextConfig = {
-  // Remove swcMinify as it's deprecated in Next.js 15
-  // Remove experimental.turbo as it's deprecated
   // Image optimization
   images: {
     remotePatterns: [
@@ -33,8 +34,9 @@ const nextConfig = {
 
   // Environment variables are handled at runtime by Docker Compose
 
-  // Webpack configuration for SVG handling
-  webpack: (config) => {
+  // Webpack configuration for optimization
+  webpack: (config, { dev, isServer }) => {
+    // SVG handling
     config.module.rules.push({
       test: /\.svg$/,
       use: ['@svgr/webpack'],
@@ -45,6 +47,54 @@ const nextConfig = {
       test: /\.(png|jpe?g|gif|webp)$/i,
       type: 'asset/resource',
     })
+
+    // Bundle optimization
+    if (!dev && !isServer) {
+      // Enable tree shaking
+      config.optimization.usedExports = true
+      config.optimization.sideEffects = false
+
+      // Split chunks more aggressively
+      config.optimization.splitChunks = {
+        chunks: 'all',
+        cacheGroups: {
+          default: false,
+          vendors: false,
+          // Vendor chunk for large libraries
+          vendor: {
+            name: 'vendor',
+            chunks: 'all',
+            test: /[\\/]node_modules[\\/]/,
+            priority: 20,
+            maxSize: 50000, // 50KB max
+          },
+          // Common chunk for shared code
+          common: {
+            name: 'common',
+            minChunks: 2,
+            chunks: 'all',
+            priority: 10,
+            maxSize: 30000, // 30KB max
+          },
+          // React and Next.js specific
+          react: {
+            name: 'react',
+            test: /[\\/]node_modules[\\/](react|react-dom|next)[\\/]/,
+            chunks: 'all',
+            priority: 30,
+            maxSize: 40000, // 40KB max
+          },
+          // UI components
+          ui: {
+            name: 'ui',
+            test: /[\\/]node_modules[\\/](@radix-ui|lucide-react|framer-motion)[\\/]/,
+            chunks: 'all',
+            priority: 25,
+            maxSize: 35000, // 35KB max
+          }
+        }
+      }
+    }
     
     return config
   },
@@ -58,9 +108,30 @@ const nextConfig = {
   },
 
   // Output and optimization
+  output: 'standalone',
   outputFileTracingRoot: process.cwd(),
   trailingSlash: false,
   reactStrictMode: true,
+
+  // Experimental features for better performance
+  experimental: {
+    optimizePackageImports: ['lucide-react', '@radix-ui/react-icons', 'framer-motion'],
+  },
+
+  // Turbopack configuration (replaces experimental.turbo)
+  turbopack: {
+    rules: {
+      '*.svg': {
+        loaders: ['@svgr/webpack'],
+        as: '*.js',
+      },
+    },
+  },
+
+  // Compiler optimizations
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production',
+  },
 }
 
-module.exports = nextConfig
+module.exports = withBundleAnalyzer(nextConfig)

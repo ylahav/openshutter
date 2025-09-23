@@ -5,28 +5,15 @@ import Hero from '../components/Hero'
 import AlbumList from '../components/AlbumList'
 import { useI18n } from '@/hooks/useI18n'
 import { useTemplateConfig } from '@/hooks/useTemplateConfig'
+import { TemplateAlbum } from '@/types'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 import styles from '../styles.module.scss'
 
-interface Album {
-  _id: string
-  name: string
-  alias: string
-  description: string
-  photoCount: number
-  coverImage?: string
-  isPublic: boolean
-  isFeatured: boolean
-  createdAt: string
-  level: number
-  parentAlbumId?: string
-}
-
 export default function HomePage() {
   const { t } = useI18n()
   const { isComponentVisible } = useTemplateConfig()
-  const [rootAlbums, setRootAlbums] = useState<Album[]>([])
+  const [rootAlbums, setRootAlbums] = useState<TemplateAlbum[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 

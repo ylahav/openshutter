@@ -22,7 +22,7 @@ export function LanguageProvider({
   children, 
   defaultLanguage = DEFAULT_LANGUAGE 
 }: LanguageProviderProps) {
-  const { config } = useSiteConfig()
+  const { config, loading: configLoading } = useSiteConfig()
   const [currentLanguage, setCurrentLanguage] = useState<LanguageCode>(defaultLanguage)
 
   // Get current language configuration
@@ -50,6 +50,11 @@ export function LanguageProvider({
 
   // Load language preference from localStorage and handle single language configuration
   useEffect(() => {
+    // Don't process language config if site config is still loading
+    if (configLoading) {
+      return
+    }
+
     const activeLanguages = config?.languages?.activeLanguages || [DEFAULT_LANGUAGE]
     
     // If only one language is configured, use it automatically
@@ -68,7 +73,7 @@ export function LanguageProvider({
       setCurrentLanguage(config.languages.defaultLanguage)
       localStorage.setItem('openshutter-language', config.languages.defaultLanguage)
     }
-  }, [config])
+  }, [config, configLoading])
 
   // Save language preference to localStorage
   const handleLanguageChange = (language: LanguageCode) => {

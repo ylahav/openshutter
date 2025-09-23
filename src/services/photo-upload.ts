@@ -2,6 +2,8 @@ import sharp from 'sharp'
 import { connectToDatabase } from '@/lib/mongodb'
 import { storageManager } from './storage/manager'
 import { ObjectId } from 'mongodb'
+import { ThumbnailGenerator } from './thumbnail-generator'
+import { ImageCompressionService } from './image-compression'
 
 export interface PhotoUploadOptions {
   albumId?: string
@@ -16,6 +18,8 @@ export interface PhotoUploadResult {
   photo?: any
   error?: string
   thumbnailPath?: string
+  thumbnails?: Record<string, string>
+  blurDataURL?: string
   exifData?: any
 }
 
@@ -67,9 +71,12 @@ export class PhotoUploadService {
         albumPath = album.storagePath
       }
 
-      // Upload original file
+      // Compress original image for web delivery
+      const compressionResult = await ImageCompressionService.compressImage(fileBuffer, 'gallery')
+      
+      // Upload compressed original file
       const uploadResult = await storageService.uploadFile(
-        fileBuffer,
+        compressionResult.compressed,
         filename,
         mimeType,
         albumPath,
@@ -81,30 +88,47 @@ export class PhotoUploadService {
         }
       )
 
-      // Generate thumbnail
-      const thumbnailBuffer = await this.generateThumbnail(fileBuffer)
-      const thumbnailFilename = `thumb-${filename}`
+      // Generate multiple thumbnails
+      const thumbnailBuffers = await ThumbnailGenerator.generateAllThumbnails(fileBuffer, filename)
+      const thumbnails: Record<string, string> = {}
       
-      // Upload thumbnail to thumb subfolder
-      let thumbnailPath = albumPath
-      if (albumPath) {
-        // Try to create thumb subfolder by using the path structure
+      // Upload each thumbnail size
+      for (const [sizeName, buffer] of Object.entries(thumbnailBuffers)) {
         try {
-          const thumbFolderResult = await storageService.createFolder('thumb', albumPath)
-          thumbnailPath = `${albumPath}/thumb`
+          const sizeConfig = ThumbnailGenerator.getThumbnailSize(sizeName as any)
+          const thumbnailFilename = `${sizeName}-${filename}`
+          
+          // Create size-specific folder
+          let sizeFolderPath = albumPath
+          if (albumPath) {
+            try {
+              await storageService.createFolder(sizeConfig.folder, albumPath)
+              sizeFolderPath = `${albumPath}/${sizeConfig.folder}`
+            } catch (error) {
+              console.warn(`PhotoUploadService: Failed to create ${sizeConfig.folder} folder:`, error)
+            }
+          }
+          
+          // Upload thumbnail
+          const thumbnailResult = await storageService.uploadFile(
+            buffer,
+            thumbnailFilename,
+            'image/jpeg',
+            sizeFolderPath,
+            { originalFile: filename, size: sizeName }
+          )
+          
+          thumbnails[sizeName] = `/api/storage/serve/${storageProvider}/${encodeURIComponent(thumbnailResult.path)}`
         } catch (error) {
-          console.warn('PhotoUploadService: Failed to create thumb subfolder, using album folder:', error)
+          console.warn(`PhotoUploadService: Failed to upload ${sizeName} thumbnail:`, error)
         }
       }
       
-      // Upload thumbnail to thumb subfolder
-      const thumbnailResult = await storageService.uploadFile(
-        thumbnailBuffer,
-        thumbnailFilename,
-        'image/jpeg',
-        thumbnailPath,
-        { originalFile: filename }
-      )
+      // Generate blur placeholder for progressive loading
+      const blurDataURL = await ThumbnailGenerator.generateBlurPlaceholder(fileBuffer)
+      
+      // Keep the original thumbnail for backward compatibility
+      const mediumThumbnail = thumbnails.medium || thumbnails.small || Object.values(thumbnails)[0]
 
       // Extract EXIF data
       const exifData = await this.extractExifData(fileBuffer)
@@ -123,14 +147,18 @@ export class PhotoUploadService {
         filename,
         originalFilename,
         mimeType,
-        size: fileBuffer.length,
+        size: compressionResult.compressed.length,
+        originalSize: fileBuffer.length,
+        compressionRatio: compressionResult.compressionRatio,
         dimensions,
         storage: {
           provider: storageProvider,
           fileId: uploadResult.fileId,
           url: `/api/storage/serve/${storageProvider}/${encodeURIComponent(uploadResult.path)}`,
           path: uploadResult.path,
-          thumbnailPath: `/api/storage/serve/${storageProvider}/${encodeURIComponent(thumbnailResult.path)}`,
+          thumbnailPath: mediumThumbnail,
+          thumbnails: thumbnails,
+          blurDataURL: blurDataURL,
           folderId: uploadResult.folderId
         },
         albumId: options.albumId ? new ObjectId(options.albumId) : null,
@@ -163,7 +191,9 @@ export class PhotoUploadService {
       return {
         success: true,
         photo: savedPhoto,
-        thumbnailPath: thumbnailResult.url,
+        thumbnailPath: mediumThumbnail,
+        thumbnails: thumbnails,
+        blurDataURL: blurDataURL,
         exifData
       }
 
