@@ -1,72 +1,87 @@
-## Deployment Process - OpenShutter
+## Deployment - ZIP-based (build-for-deployment.js)
 
-This guide describes deployment options for OpenShutter using GitHub Actions and Next.js builds.
+This guide covers manual deployment using the ZIP produced by `scripts/build-for-deployment.js`.
 
-### Deployment Options
-- **[GitHub Actions Deployment](#ci-driven-deployment-recommended)** - Automated deployment via GitHub Actions
-- **[PM2 Deployment](./pm2-deployment.md)** - PM2 process manager deployment
-- **[Docker Deployment](./docker-deployment.md)** - Docker containerized deployment
+### Overview
+- Two modes controlled by `STANDALONE=true`:
+  - Non-standalone (default): bundles full `.next` and `src/`
+  - Standalone: bundles `.next/standalone` + `.next/static`
 
-### Environments
-- Production server (no Docker in prod per project notes)
-- Local dev via `pnpm dev` or Docker Compose if needed (internal APIs proxied to localhost)
-- Docker options available (see [Docker Deployment Guide](./docker-deployment.md))
+### Produce the ZIP locally
+```bash
+# Non-standalone (default)
+pnpm run build:deploy
 
-### Prerequisites
+# Standalone
+STANDALONE=true pnpm run build:deploy
+```
+
+You will get `openshutter-deployment.zip` in the project root.
+
+### ZIP contents
+- Non-standalone ZIP:
+  - `.next`, `public`, `src`, `package.json`, `pnpm-lock.yaml`, `next.config.js`, `tsconfig.json`, `postcss.config.js`, `tailwind.config.js`, `ecosystem.config.js`
+- Standalone ZIP:
+  - `.next/standalone`, `.next/static`, `public`, `package.json`, `pnpm-lock.yaml`, `next.config.js`, `tsconfig.json`, `postcss.config.js`, `tailwind.config.js`, `ecosystem.config.js`
+
+### Server prerequisites
 - Node.js 20+
-- pnpm package manager
-- PM2 process manager (installed automatically)
-- MongoDB connection string configured in environment
-- Required env vars on server: `MONGODB_URI`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, storage provider vars
+- pnpm
+- PM2 (`npm i -g pm2`) optional
+- `.env` with `MONGODB_URI`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, etc.
 
-### CI-driven Deployment (recommended)
-We ship a workflow at `.github/workflows/deploy.yml` that:
-1. Installs deps with pnpm
-2. Builds Next.js application
-3. Packages the build into `release.tgz`
-4. Uploads it via SSH/SCP to the server
-5. Extracts into `~/apps/openshutter` and manages with PM2 process manager
-
-#### GitHub Secrets
-Set these in repo settings:
-- `SSH_HOST`: server IP or hostname
-- `SSH_USER`: deploy user
-- `SSH_KEY`: private key (PEM) of the deploy user
-- `SSH_PORT`: optional (default 22)
-
-#### One-time server prep
+### Deploy: Non-standalone ZIP
 ```bash
-mkdir -p ~/apps/openshutter
-cp /path/to/your/.env ~/apps/openshutter/.env  # create with required keys if missing
-which node  # ensure /usr/bin/node and version >= 20
-```
+# Upload
+scp openshutter-deployment.zip user@server:/tmp/
 
-After the first successful deploy, subsequent pushes to `main` will update and restart the application automatically.
+# On server
+ssh user@server
+sudo mkdir -p /var/www/yourdomain.com
+sudo chown $USER:$USER /var/www/yourdomain.com
+cd /var/www/yourdomain.com
+unzip -o /tmp/openshutter-deployment.zip
 
-### PM2 Management Commands
+# Install all deps (no --prod)
+pnpm install --frozen-lockfile
 
-```bash
-# Check application status
-pm2 status
+# Start
+PORT=4000 pnpm start
 
-# View logs
-pm2 logs openshutter
-
-# Restart application
-pm2 restart openshutter
-
-# Stop application
-pm2 stop openshutter
-
-# Start application
-pm2 start openshutter
-
-# Monitor in real-time
-pm2 monit
-
-# Save current PM2 processes
+# PM2 (optional)
+pm2 start "pnpm start" --name openshutter -- start -p 4000
 pm2 save
-
-# Remove process
-pm2 delete openshutter
 ```
+
+Notes:
+- If you do `pnpm install --prod` and then try to build, CSS tooling may be missing.
+
+### Deploy: Standalone ZIP
+```bash
+# Upload
+scp openshutter-deployment.zip user@server:/tmp/
+
+# On server
+ssh user@server
+sudo mkdir -p /var/www/yourdomain.com
+sudo chown $USER:$USER /var/www/yourdomain.com
+cd /var/www/yourdomain.com
+unzip -o /tmp/openshutter-deployment.zip
+
+# Optional: install prod deps
+pnpm install --prod --frozen-lockfile || true
+
+# Start standalone server
+PORT=4000 node .next/standalone/server.js
+
+# PM2 (optional)
+pm2 start .next/standalone/server.js --name openshutter --update-env --env production
+pm2 save
+```
+
+### Troubleshooting
+- "Couldn't find any `pages` or `app` directory": ensure `src/` exists in the non-standalone ZIP.
+- Missing CSS: install all deps for non-standalone or use standalone ZIP.
+- Module not found (`class-variance-authority`, `clsx`, `tailwind-merge`): ensure they are in `dependencies` and repackage.
+
+For nginx and advanced PM2 usage, see [./pm2-deployment.md](./pm2-deployment.md).

@@ -108,7 +108,8 @@ const nextConfig = {
   },
 
   // Output and optimization
-  output: 'standalone',
+  // Use standalone only when explicitly requested
+  output: process.env.STANDALONE === 'true' ? 'standalone' : undefined,
   outputFileTracingRoot: process.cwd(),
   trailingSlash: false,
   reactStrictMode: true,

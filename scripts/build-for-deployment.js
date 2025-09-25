@@ -8,24 +8,46 @@ const archiver = require('archiver');
 const PROJECT_ROOT = process.cwd();
 const BUILD_DIR = path.join(PROJECT_ROOT, '.next');
 const PUBLIC_DIR = path.join(PROJECT_ROOT, 'public');
+const SRC_DIR = path.join(PROJECT_ROOT, 'src');
 const OUTPUT_FILE = path.join(PROJECT_ROOT, 'openshutter-deployment.zip');
 
 // Files to include in deployment package
-const FILES_TO_INCLUDE = [
-  '.next',
-  'public',
-  'package.json',
-  'pnpm-lock.yaml',
-  'next.config.js',
-  'ecosystem.config.js'
-];
+// Default to non-standalone package that includes the full .next build and source code
+// Switch to standalone by setting STANDALONE=true when running this script
+const isStandalone = process.env.STANDALONE === 'true';
+const FILES_TO_INCLUDE = isStandalone
+  ? [
+      '.next/standalone',
+      '.next/static',
+      'public',
+      'package.json',
+      'pnpm-lock.yaml',
+      'next.config.js',
+      'tsconfig.json',
+      'postcss.config.js',
+      'tailwind.config.js',
+      'ecosystem.config.js'
+    ]
+  : [
+      '.next',
+      'public',
+      'src',
+      'package.json',
+      'pnpm-lock.yaml',
+      'next.config.js',
+      'tsconfig.json',
+      'postcss.config.js',
+      'tailwind.config.js',
+      'ecosystem.config.js'
+    ];
 
 console.log('🚀 Building OpenShutter for PM2 deployment...\n');
 
 // Step 1: Build the application
 console.log('📦 Building Next.js application...');
 try {
-  execSync('pnpm build', { stdio: 'inherit', cwd: PROJECT_ROOT });
+  const buildEnv = isStandalone ? { ...process.env, STANDALONE: 'true' } : process.env;
+  execSync('pnpm build', { stdio: 'inherit', cwd: PROJECT_ROOT, env: buildEnv });
   console.log('✅ Build completed successfully\n');
 } catch (error) {
   console.error('❌ Build failed:', error.message);

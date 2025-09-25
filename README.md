@@ -259,14 +259,17 @@ pnpm lint
 
 OpenShutter supports multiple deployment options:
 
+### ZIP-based (build-for-deployment.js)
+- Create the ZIP locally:
+  - Non-standalone: `pnpm run build:deploy`
+  - Standalone: `STANDALONE=true pnpm run build:deploy`
+- Then follow [docs/deploy.md](docs/deploy.md) for server steps.
+
 ### PM2 Deployment (Recommended)
-Follow the [PM2 Deployment Guide](docs/pm2-deployment.md) for production deployment using PM2 process manager.
+Use PM2 to run the production server. See [docs/pm2-deployment.md](docs/pm2-deployment.md) for ZIP-based steps and PM2 commands.
 
 ### Docker Deployment
-Follow the [Docker Deployment Guide](docs/docker-deployment.md) for containerized deployment.
-
-### Manual Deployment
-Follow the [Deployment Guide](docs/deploy.md) for manual deployment instructions.
+See [docs/docker-deployment.md](docs/docker-deployment.md) for containerized deployment.
 
 ### Vercel (Alternative)
 1. **Push to GitHub**

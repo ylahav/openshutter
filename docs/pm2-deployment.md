@@ -25,17 +25,19 @@ The PM2 deployment process consists of two main steps:
 
 ## Quick Start
 
-### 1. Local Development (Build & Package)
+### 1. Local Build & Package (ZIP-based)
 
 ```bash
-# Build the application and create deployment package
+# Non-standalone ZIP (default)
 pnpm run build:deploy
+
+# Standalone ZIP
+STANDALONE=true pnpm run build:deploy
 ```
 
-This command will:
-- Run `pnpm build` to build the Next.js application
-- Create a ZIP file containing: `.next`, `public`, `package.json`, `pnpm-lock.yaml`, `next.config.js`, `ecosystem.config.js`
-- Output: `openshutter-deployment.zip`
+This creates `openshutter-deployment.zip` aligned with `scripts/build-for-deployment.js`:
+- Non-standalone: `.next`, `public`, `src`, `package.json`, `pnpm-lock.yaml`, `next.config.js`, `tsconfig.json`, `postcss.config.js`, `tailwind.config.js`, `ecosystem.config.js`
+- Standalone: `.next/standalone`, `.next/static`, `public`, `package.json`, `pnpm-lock.yaml`, `next.config.js`, `tsconfig.json`, `postcss.config.js`, `tailwind.config.js`, `ecosystem.config.js`
 
 ### 2. Server Deployment
 
@@ -104,14 +106,14 @@ cd /var/www/yourdomain.com
 # Extract deployment package
 unzip /tmp/openshutter-deployment.zip
 
-# Install production dependencies
-pnpm install --prod --frozen-lockfile
+# Non-standalone: install all deps (no --prod)
+pnpm install --frozen-lockfile
 
 # Create logs directory
 mkdir -p logs
 
-# Start with PM2
-pm2 start ecosystem.config.js
+# Start with PM2 (non-standalone)
+pm2 start "pnpm start" --name openshutter -- start -p 4000
 
 # Save PM2 configuration
 pm2 save
@@ -214,6 +216,16 @@ module.exports = {
       listen_timeout: 10000
     }]
   }
+```
+
+#### Standalone (alternative without ecosystem file)
+```bash
+# Start the standalone server directly
+PORT=4000 node .next/standalone/server.js
+
+# Or with PM2
+pm2 start .next/standalone/server.js --name openshutter --update-env --env production
+pm2 save
 ```
 
 ## Nginx Configuration
