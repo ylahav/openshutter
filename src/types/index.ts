@@ -69,6 +69,27 @@ export interface Album {
 // User/Group Types
 export type UserRole = 'admin' | 'owner' | 'guest'
 
+// Audit logging
+export type AuditAction =
+  | 'album.view.allow'
+  | 'album.view.deny'
+  | 'photo.view.allow'
+  | 'photo.view.deny'
+
+export interface AuditLogEntry {
+  _id?: string
+  timestamp: Date
+  action: AuditAction
+  userId?: string | null
+  userRole?: UserRole | null
+  ip?: string | null
+  userAgent?: string | null
+  resourceType: 'album' | 'photo'
+  resourceId?: string | null
+  resourceAlias?: string | null
+  details?: Record<string, unknown>
+}
+
 export interface Group {
   _id?: string
   alias: string

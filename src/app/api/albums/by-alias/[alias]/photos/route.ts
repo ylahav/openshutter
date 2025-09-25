@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { connectToDatabase } from '@/lib/mongodb'
 import { ExifExtractor } from '@/services/exif-extractor'
 import { getCurrentUser, checkAlbumAccess } from '@/lib/access-control-server'
+import { writeAuditLog } from '@/services/audit-log'
 
 export async function GET(
   request: NextRequest,
@@ -48,11 +49,33 @@ export async function GET(
       }, user)
 
       if (!hasAccess) {
+        await writeAuditLog({
+          action: 'photo.view.deny',
+          userId: user?.id ?? null,
+          userRole: user?.role ?? null,
+          ip: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || request.ip,
+          userAgent: request.headers.get('user-agent'),
+          resourceType: 'photo',
+          resourceId: album._id?.toString?.() ?? null,
+          resourceAlias: alias,
+          details: { reason: 'access_denied' }
+        })
         return NextResponse.json(
           { success: false, error: 'Access denied' },
           { status: 403 }
         )
       }
+      await writeAuditLog({
+        action: 'photo.view.allow',
+        userId: user?.id ?? null,
+        userRole: user?.role ?? null,
+        ip: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || request.ip,
+        userAgent: request.headers.get('user-agent'),
+        resourceType: 'photo',
+        resourceId: album._id?.toString?.() ?? null,
+        resourceAlias: alias,
+        details: { isPublic: album.isPublic === true, page, limit }
+      })
     }
 
     // Get total count for pagination (handle both string and ObjectId albumId formats)
