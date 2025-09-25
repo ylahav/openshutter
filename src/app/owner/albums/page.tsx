@@ -8,6 +8,7 @@ import { MultiLangUtils } from '@/types/multi-lang'
 import { useSession } from 'next-auth/react'
 import { canCreateAlbums, canEditAlbum, canDeleteAlbum } from '@/lib/access-control'
 import { TemplateAlbum } from '@/types'
+import AlbumTree from '@/components/AlbumTree'
 
 export default function OwnerAlbumsPage() {
   const { t } = useI18n()
@@ -28,12 +29,12 @@ export default function OwnerAlbumsPage() {
   const fetchAlbums = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/albums')
+      const response = await fetch('/api/albums?mine=true')
       if (!response.ok) {
         throw new Error('Failed to fetch albums')
       }
       const data = await response.json()
-      setAlbums(data.albums || [])
+      setAlbums(data.data || [])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {
@@ -152,100 +153,27 @@ export default function OwnerAlbumsPage() {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {albums.map((album) => (
-              <div key={album._id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-                {/* Cover Photo */}
-                <div className="aspect-w-16 aspect-h-12 bg-gray-200">
-                  {album.coverPhotoId ? (
-                    <img
-                      src={`/api/photos/${album.coverPhotoId}/thumbnail`}
-                      alt={MultiLangUtils.getTextValue(album.name, currentLanguage)}
-                      className="w-full h-48 object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-48 bg-gray-200 flex items-center justify-center">
-                      <div className="text-gray-400 text-4xl">📷</div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Album Info */}
-                <div className="p-4">
-                  <div className="flex items-start justify-between mb-2">
-                    <h3 className="text-lg font-semibold text-gray-900 truncate">
-                      {MultiLangUtils.getTextValue(album.name, currentLanguage)}
-                    </h3>
-                    <div className="flex items-center space-x-1">
-                      {album.isPublic ? (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          {t('admin.public')}
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                          {t('admin.private')}
-                        </span>
-                      )}
-                      {album.isFeatured && (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                          {t('admin.featured')}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {album.description && (
-                    <p className="text-gray-600 text-sm mb-3 line-clamp-2">
-                      {MultiLangUtils.getTextValue(album.description, currentLanguage)}
-                    </p>
-                  )}
-
-                  <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
-                    <span>{album.photoCount} {t('admin.photos')}</span>
-                    <span>{new Date(album.createdAt).toLocaleDateString()}</span>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex space-x-2">
-                    <Link
-                      href={`/albums/${album.alias}`}
-                      className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                    >
-                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                      </svg>
-                      {t('admin.view')}
-                    </Link>
-
-                    {canEditAlbum(album, session?.user as any) && (
-                      <Link
-                        href={`${isAdmin ? "/admin" : "/owner"}/albums/${album._id}/edit`}
-                        className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                      >
-                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                        {t('admin.edit')}
-                      </Link>
-                    )}
-
-                    {canDeleteAlbum(album, session?.user as any) && (
-                      <button
-                        onClick={() => handleDeleteAlbum(album._id)}
-                        className="flex-1 inline-flex items-center justify-center px-3 py-2 border border-red-300 rounded-md text-sm font-medium text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
-                      >
-                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                        {t('admin.delete')}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+          <AlbumTree
+            albums={albums.map(a => ({
+              _id: a._id,
+              name: MultiLangUtils.getTextValue(a.name, currentLanguage),
+              alias: a.alias,
+              parentAlbumId: (a as any).parentAlbumId ?? null,
+              level: a.level,
+              order: a.order,
+              childAlbumCount: a.childAlbumCount,
+            }))}
+            onReorder={async (updates) => {
+              await fetch('/api/admin/albums/reorder', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ updates })
+              })
+              // Optionally refresh list
+              await fetchAlbums()
+            }}
+            onOpen={(node) => { window.location.href = `/owner/albums/${node._id}` }}
+          />
         )}
       </div>
     </div>

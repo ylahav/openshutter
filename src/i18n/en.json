@@ -442,6 +442,7 @@
     "myAlbums": "My Albums",
     "createEditMyAlbums": "Create, edit, and manage your photo albums",
     "manageMyAlbums": "Manage My Albums",
+    "createNewAlbum": "Create New Album",
     "confirmDeleteAlbum": "Are you sure you want to delete this album? This action cannot be undone.",
     "tryAgain": "Try Again",
     "backToDashboard": "Back to Dashboard",

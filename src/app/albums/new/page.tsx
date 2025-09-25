@@ -211,7 +211,11 @@ export default function CreateAlbumPage() {
         if (data.success) {
           showNotification('success', 'Album Created', 'Album created successfully!')
           setTimeout(() => {
-            router.push(`/admin/albums/${data.data._id}`)
+            const role = (session?.user as any)?.role
+            const dest = role === 'admin'
+              ? `/admin/albums/${data.data._id}/edit`
+              : '/owner/albums'
+            router.push(dest)
           }, 1500)
         } else {
           showNotification('error', 'Creation Failed', data.error || 'Failed to create album')

@@ -14,6 +14,7 @@ export async function GET(request: NextRequest) {
     const level = searchParams.get('level')
     const storageProvider = searchParams.get('storageProvider')
     const isPublic = searchParams.get('isPublic')
+    const mine = searchParams.get('mine')
     
     // Get current user for access control
     const user = await getCurrentUser()
@@ -23,12 +24,29 @@ export async function GET(request: NextRequest) {
       level,
       storageProvider,
       isPublic,
+      mine,
       url: request.url,
       user: user ? { id: user.id, role: user.role } : 'anonymous'
     })
     
     // Build base query
     const query: any = {}
+    if (mine === 'true') {
+      if (!user) {
+        return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+      }
+      // Match both string and ObjectId representations of createdBy
+      try {
+        const userObjectId = new ObjectId(user.id)
+        query.$or = [
+          { createdBy: user.id },
+          { createdBy: userObjectId }
+        ]
+      } catch {
+        query.createdBy = user.id
+      }
+      console.log('Albums API Applying mine=true filter for user:', user.id)
+    }
     
     if (parentId) {
       if (parentId === 'root') {
@@ -54,29 +72,25 @@ export async function GET(request: NextRequest) {
       query.isPublic = isPublic === 'true'
     }
     
-    // Apply access control (admins see everything)
+    // Apply access control (admins see everything) unless explicitly requesting mine=true
     let finalQuery = query
-    if (user?.role !== 'admin') {
-      const accessQuery = await buildAlbumAccessQuery(user)
-      
-      // If the base query already has $or (for parentId), we need to combine it properly
-      if (query.$or) {
-        // The base query has $or for parentId matching, combine with access control
-        finalQuery = {
-          $and: [
-            { $or: query.$or }, // parentId matching
-            accessQuery // access control
-          ]
-        }
-      } else {
-        // Simple case: combine base query with access control
-        finalQuery = {
-          $and: [
-            query,
-            accessQuery
-          ]
+    if (mine !== 'true') {
+      if (user?.role !== 'admin') {
+        const accessQuery = await buildAlbumAccessQuery(user)
+        // If the base query already has $or (for parentId or createdBy variants), combine properly
+        if (query.$or) {
+          finalQuery = {
+            $and: [
+              { $or: query.$or },
+              accessQuery
+            ]
+          }
+        } else {
+          finalQuery = { $and: [query, accessQuery] }
         }
       }
+    } else {
+      console.log('Albums API mine=true: skipping access control merge; using createdBy filter only')
     }
     
     // Get albums with hierarchy info using native MongoDB driver
@@ -166,6 +180,13 @@ export async function POST(request: NextRequest) {
   try {
     const { db } = await connectToDatabase()
     const body = await request.json()
+    const user = await getCurrentUser()
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
     
     const {
       name,
@@ -244,7 +265,7 @@ export async function POST(request: NextRequest) {
       parentPath,
       level,
       order,
-      createdBy: 'admin', // TODO: Get from authentication
+      createdBy: user.id,
       tags: [],
       allowedGroups,
       allowedUsers: allowedUsers.map((userId: string) => new ObjectId(userId)),

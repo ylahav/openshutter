@@ -180,7 +180,7 @@ export default function AdminAlbumsPage() {
             </div>
             <div className="flex space-x-3">
               <Link href="/albums/new" className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors duration-200 bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500">
-                {t('admincreateNewAlbum')}
+                {t('admin.createNewAlbum')}
               </Link>
               <Link href="/admin" className="btn-secondary">
                 {t('admin.backToAdmin')}
