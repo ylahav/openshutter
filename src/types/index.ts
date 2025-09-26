@@ -53,7 +53,7 @@ export interface Album {
   lastPhotoDate?: Date // Date of the latest photo in the album
   createdAt: Date
   updatedAt: Date
-  createdBy: string
+  createdBy: string // ObjectId as string for API compatibility
   tags: string[]
   // Access control fields
   allowedGroups?: string[] // Array of group aliases that can access this album
@@ -150,7 +150,7 @@ export interface Photo {
   isPublished: boolean
   isLeading: boolean
   isGalleryLeading: boolean
-  uploadedBy: string
+  uploadedBy: string // ObjectId as string for API compatibility
   uploadedAt: Date
   updatedAt: Date
 }

@@ -265,7 +265,7 @@ export async function POST(request: NextRequest) {
       parentPath,
       level,
       order,
-      createdBy: user.id,
+      createdBy: new ObjectId(user.id),
       tags: [],
       allowedGroups,
       allowedUsers: allowedUsers.map((userId: string) => new ObjectId(userId)),

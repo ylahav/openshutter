@@ -7,6 +7,8 @@ import AdminGuard from '@/components/AdminGuard'
 import { MultiLangUtils } from '@/types/multi-lang'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { TemplateAlbum } from '@/types'
+import NotificationDialog from '@/components/NotificationDialog'
+import ConfirmDialog from '@/components/ConfirmDialog'
 
 export default function AdminAlbumsPage() {
   const [albums, setAlbums] = useState<TemplateAlbum[]>([])
@@ -14,6 +16,27 @@ export default function AdminAlbumsPage() {
   const { t } = useI18n()
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [reReadingExif, setReReadingExif] = useState<string | null>(null)
+  const [notification, setNotification] = useState<{
+    isOpen: boolean
+    type: 'success' | 'error' | 'info' | 'warning'
+    title: string
+    message: string
+  }>({
+    isOpen: false,
+    type: 'info',
+    title: '',
+    message: ''
+  })
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean
+    albumId: string | null
+    albumName: string
+  }>({
+    isOpen: false,
+    albumId: null,
+    albumName: ''
+  })
   
   // Cover photo modal state
   const [coverPhotoModal, setCoverPhotoModal] = useState<{
@@ -151,6 +174,63 @@ export default function AdminAlbumsPage() {
     return Math.ceil(coverPhotoModal.totalPhotos / coverPhotoModal.photosPerPage)
   }
 
+  const handleReReadExif = (albumId: string, albumName: string) => {
+    setConfirmDialog({
+      isOpen: true,
+      albumId,
+      albumName
+    })
+  }
+
+  const confirmReReadExif = async () => {
+    if (!confirmDialog.albumId) return
+    
+    setConfirmDialog({ isOpen: false, albumId: null, albumName: '' })
+    
+    try {
+      setReReadingExif(confirmDialog.albumId)
+      const response = await fetch(`/api/admin/albums/${confirmDialog.albumId}/re-read-exif`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+
+      const result = await response.json()
+      
+      if (result.success) {
+        const message = t('albums.exifReReadResults')
+          .replace('{processed}', result.data.processed)
+          .replace('{updated}', result.data.updated)
+          .replace('{errors}', result.data.errors)
+          + (result.data.errorsList ? t('albums.exifReReadErrors').replace('{errors}', result.data.errorsList.join('\n')) : '')
+        setNotification({
+          isOpen: true,
+          type: 'success',
+          title: t('albums.exifReReadCompleted'),
+          message: message
+        })
+      } else {
+        setNotification({
+          isOpen: true,
+          type: 'error',
+          title: t('albums.exifReReadFailed'),
+          message: result.error || t('albums.exifReReadUnknownError')
+        })
+      }
+    } catch (error) {
+      console.error('Failed to re-read EXIF data:', error)
+      setNotification({
+        isOpen: true,
+        type: 'error',
+        title: t('albums.exifReReadFailed'),
+        message: t('albums.exifReReadTryAgain')
+      })
+    } finally {
+      setReReadingExif(null)
+    }
+  }
+
   if (isLoading) {
     return (
       <AdminGuard>
@@ -276,25 +356,41 @@ export default function AdminAlbumsPage() {
                     <span>{album.storageProvider}</span>
                   </div>
                   
-                  <div className="flex space-x-2">
-                    <Link
-                      href={`/admin/albums/${album._id}`}
-                      className="flex-1 text-center px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      {t('manage')}
-                    </Link>
+                  <div className="space-y-2">
+                    <div className="flex space-x-2">
+                      <Link
+                        href={`/admin/albums/${album._id}`}
+                        className="flex-1 text-center px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        {t('manage')}
+                      </Link>
+                      <button
+                        onClick={() => openCoverPhotoModal(album)}
+                        className="flex-1 text-center px-3 py-2 text-sm font-medium text-purple-600 bg-purple-50 rounded-md hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      >
+                        {t('admin.setCoverPhoto')}
+                      </button>
+                      <Link
+                        href={`/albums/${album.alias}`}
+                        className="flex-1 text-center px-3 py-2 text-sm font-medium text-gray-600 bg-gray-50 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                      >
+                        {t('view')}
+                      </Link>
+                    </div>
                     <button
-                      onClick={() => openCoverPhotoModal(album)}
-                      className="flex-1 text-center px-3 py-2 text-sm font-medium text-purple-600 bg-purple-50 rounded-md hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      onClick={() => handleReReadExif(album._id, typeof album.name === 'string' ? album.name : MultiLangUtils.getValue(album.name as any, currentLanguage))}
+                      disabled={reReadingExif === album._id}
+                      className="w-full text-center px-3 py-2 text-sm font-medium text-orange-600 bg-orange-50 rounded-md hover:bg-orange-100 focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {t('admin.setCoverPhoto')}
+                    {reReadingExif === album._id ? (
+                      <div className="flex items-center justify-center">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-orange-600 mr-2"></div>
+                        {t('albums.reReadingExif')}
+                      </div>
+                    ) : (
+                      t('albums.reReadExifData')
+                    )}
                     </button>
-                    <Link
-                      href={`/albums/${album.alias}`}
-                      className="flex-1 text-center px-3 py-2 text-sm font-medium text-gray-600 bg-gray-50 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500"
-                    >
-                      {t('view')}
-                    </Link>
                   </div>
                 </div>
               </div>
@@ -468,6 +564,28 @@ export default function AdminAlbumsPage() {
           </div>
         </div>
       )}
+
+      {/* Notification Dialog */}
+      <NotificationDialog
+        isOpen={notification.isOpen}
+        onClose={() => setNotification(prev => ({ ...prev, isOpen: false }))}
+        type={notification.type}
+        title={notification.title}
+        message={notification.message}
+        autoClose={false}
+      />
+
+      {/* Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        onCancel={() => setConfirmDialog({ isOpen: false, albumId: null, albumName: '' })}
+        onConfirm={confirmReReadExif}
+        title={t('albums.reReadExifData')}
+        message={`${t('albums.confirmReReadExif').replace('this album', `"${confirmDialog.albumName}"`)}`}
+        confirmText={t('albums.reReadExifData')}
+        cancelText={t('cancel')}
+        variant="default"
+      />
     </AdminGuard>
   )
 }

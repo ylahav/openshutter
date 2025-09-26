@@ -1,8 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { PhotoUploadService } from '@/services/photo-upload'
+import { getCurrentUser } from '@/lib/access-control-server'
 
 export async function POST(request: NextRequest) {
   try {
+    // Get current user for authentication and user ID
+    const user = await getCurrentUser()
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
     // Parse form data
     const formData = await request.formData()
     const file = formData.get('file') as File
@@ -51,7 +61,8 @@ export async function POST(request: NextRequest) {
         albumId: albumId || undefined,
         title: title || undefined,
         description: description || undefined,
-        tags: parsedTags
+        tags: parsedTags,
+        uploadedBy: user.id
       }
     )
 

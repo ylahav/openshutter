@@ -106,6 +106,8 @@ export class ImageCompressionService {
         fit: 'inside',
         withoutEnlargement: true
       })
+      // Preserve existing EXIF metadata from the source image
+      .withMetadata()
       .jpeg({
         quality: config.quality,
         progressive: config.progressive,

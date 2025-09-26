@@ -229,11 +229,13 @@ export class ExifExtractor {
    * Extract EXIF data from a photo and update the database
    * This is the main method for on-demand EXIF extraction
    */
-  static async extractAndUpdateExif(photo: any): Promise<any> {
+  static async extractAndUpdateExif(photo: any, options?: { force?: boolean }): Promise<any> {
     try {
       // Check if photo already has EXIF data
-      if (photo.exif && photo.exif !== null) {
-        return photo // Already has EXIF data
+      if (!options?.force) {
+        if (photo.exif && photo.exif !== null) {
+          return photo // Already has EXIF data
+        }
       }
 
       console.log(`🔍 Extracting EXIF data for photo: ${photo.filename}`)
@@ -243,6 +245,15 @@ export class ExifExtractor {
       // Get the storage provider
       const storageProvider = photo.storage?.provider || 'local'
       const storageService = await storageManager.getProvider(storageProvider as 'local' | 'google-drive' | 'aws-s3')
+      try {
+        // Debug provider config (e.g., local basePath)
+        // getConfig is available on our storage services
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const cfg = (storageService as any).getConfig?.()
+        if (cfg && cfg.basePath) {
+          console.log(`   Storage basePath: ${cfg.basePath}`)
+        }
+      } catch {}
 
       console.log(`   Storage service type: ${storageService.constructor.name}`)
       console.log(`   Available methods: ${Object.getOwnPropertyNames(Object.getPrototypeOf(storageService)).filter(name => name !== 'constructor')}`)
@@ -262,13 +273,15 @@ export class ExifExtractor {
       const { db } = await connectToDatabase()
       const photosCollection = db.collection('photos')
       
-      await photosCollection.updateOne(
-        { _id: photo._id },
-        { $set: { exif: exifData } }
-      )
+      if (exifData) {
+        await photosCollection.updateOne(
+          { _id: photo._id },
+          { $set: { exif: exifData } }
+        )
+      }
 
-      // Return updated photo
-      const updatedPhoto = { ...photo, exif: exifData }
+      // Return updated photo (preserve existing exif if new is null)
+      const updatedPhoto = { ...photo, exif: exifData ?? photo.exif ?? null }
       
       if (exifData) {
         console.log(`✅ Extracted EXIF data for ${photo.filename}:`, Object.keys(exifData))

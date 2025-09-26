@@ -1,4 +1,4 @@
-import mongoose, { Document, Schema } from 'mongoose'
+import mongoose, { Document, Schema, Types } from 'mongoose'
 
 export interface IPhoto extends Document {
   title: Record<string, string>
@@ -20,12 +20,12 @@ export interface IPhoto extends Document {
     path: string
     thumbnailPath: string
   }
-  albumId?: mongoose.Types.ObjectId
+  albumId?: Types.ObjectId
   tags: string[]
   isPublished: boolean
   isLeading: boolean
   isGalleryLeading: boolean
-  uploadedBy: string
+  uploadedBy: Types.ObjectId
   uploadedAt: Date
   updatedAt: Date
   exif?: {
@@ -114,7 +114,8 @@ const PhotoSchema = new Schema<IPhoto>({
     default: false
   },
   uploadedBy: {
-    type: String,
+    type: Schema.Types.ObjectId,
+    ref: 'User',
     required: true
   },
   uploadedAt: {

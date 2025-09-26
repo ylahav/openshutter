@@ -32,7 +32,7 @@ export class PhotoUploadService {
     fileBuffer: Buffer,
     originalFilename: string,
     mimeType: string,
-    options: PhotoUploadOptions = {}
+    options: PhotoUploadOptions & { uploadedBy?: string } = {}
   ): Promise<PhotoUploadResult> {
     try {
       // Connect to database
@@ -130,14 +130,28 @@ export class PhotoUploadService {
       // Keep the original thumbnail for backward compatibility
       const mediumThumbnail = thumbnails.medium || thumbnails.small || Object.values(thumbnails)[0]
 
-      // Extract EXIF data
-      const exifData = await this.extractExifData(fileBuffer)
+      // Extract EXIF data (use comprehensive extractor)
+      const { ExifExtractor } = await import('@/services/exif-extractor')
+      const exifData = await ExifExtractor.extractExifData(fileBuffer)
 
       // Get image dimensions
       const imageInfo = await sharp(fileBuffer).metadata()
       const dimensions = {
         width: imageInfo.width || 0,
         height: imageInfo.height || 0
+      }
+
+      // Resolve uploader ObjectId (fallback to real system user if not provided)
+      let uploaderObjectId: ObjectId
+      if (options.uploadedBy) {
+        uploaderObjectId = new ObjectId(options.uploadedBy)
+      } else {
+        try {
+          const systemUser = await db.collection('users').findOne({ username: 'system' })
+          uploaderObjectId = systemUser?._id || new ObjectId('000000000000000000000000')
+        } catch {
+          uploaderObjectId = new ObjectId('000000000000000000000000')
+        }
       }
 
       // Prepare photo data for database
@@ -165,7 +179,7 @@ export class PhotoUploadService {
         tags: options.tags || [],
         isPublished: true,
         isLeading: false,
-        uploadedBy: 'admin', // TODO: Get from authenticated user
+        uploadedBy: uploaderObjectId,
         uploadedAt: new Date(),
         updatedAt: new Date(),
         exif: exifData

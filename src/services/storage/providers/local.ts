@@ -292,6 +292,7 @@ export class LocalStorageService implements IStorageService {
   async getFileBuffer(filePath: string): Promise<Buffer | null> {
     try {
       const fullPath = this.getFullPath(filePath)
+      console.log('Local storage get file buffer:', fullPath)
       const buffer = await fs.readFile(fullPath)
       return buffer
     } catch (error) {

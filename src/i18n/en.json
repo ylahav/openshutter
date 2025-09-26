@@ -21,7 +21,16 @@
     "noAlbumsText": "No public albums are available at the moment.",
     "galleryTitle": "Gallery",
     "gallerySubtitle": "Explore our photo collections",
-    "openAlbum": "Open Album"
+    "openAlbum": "Open Album",
+    "reReadExifData": "Re-read EXIF Data",
+    "reReadingExif": "Re-reading EXIF...",
+    "confirmReReadExif": "Are you sure you want to re-read EXIF data for all photos in this album? This may take a while for albums with many photos.",
+    "exifReReadCompleted": "EXIF Data Re-read Completed",
+    "exifReReadFailed": "Failed to Re-read EXIF Data",
+    "exifReReadResults": "Processed: {processed} photos\nUpdated: {updated} photos\nErrors: {errors}",
+    "exifReReadErrors": "\n\nErrors:\n{errors}",
+    "exifReReadTryAgain": "Please try again later",
+    "exifReReadUnknownError": "An unknown error occurred"
   },
   "loading": {
     "loading": "Loading...",

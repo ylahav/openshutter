@@ -2,9 +2,13 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
+import PhotoLightbox from '@/components/PhotoLightbox'
 import { MultiLangUtils } from '@/types/multi-lang'
 import { TemplateAlbum, TemplatePhoto } from '@/types'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useI18n } from '@/hooks/useI18n'
+import NotificationDialog from '@/components/NotificationDialog'
+import ConfirmDialog from '@/components/ConfirmDialog'
 
 export interface AlbumDetailViewProps {
   album: TemplateAlbum
@@ -15,11 +19,27 @@ export interface AlbumDetailViewProps {
 
 export default function AlbumDetailView({ album, photos, role, albumId }: AlbumDetailViewProps) {
   const { currentLanguage } = useLanguage()
+  const { t } = useI18n()
   const backHref = role === 'admin' ? '/admin/albums' : '/owner/albums'
   const editHref = role === 'admin' ? `/admin/albums/${albumId}/edit` : `/owner/albums/${albumId}/edit`
   const uploadHref = role === 'admin' ? `/admin/photos/upload?albumId=${albumId}` : `/photos/upload?albumId=${albumId}&returnTo=/owner/albums/${albumId}`
   const [localPhotos, setLocalPhotos] = useState<TemplatePhoto[]>(photos)
   const [deletingPhoto, setDeletingPhoto] = useState<string | null>(null)
+  const [lightboxOpen, setLightboxOpen] = useState(false)
+  const [lightboxIndex, setLightboxIndex] = useState(0)
+  const [reReadingExif, setReReadingExif] = useState(false)
+  const [notification, setNotification] = useState<{
+    isOpen: boolean
+    type: 'success' | 'error' | 'info' | 'warning'
+    title: string
+    message: string
+  }>({
+    isOpen: false,
+    type: 'info',
+    title: '',
+    message: ''
+  })
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false)
 
   const handleDeletePhoto = async (photoId: string) => {
     try {
@@ -30,6 +50,61 @@ export default function AlbumDetailView({ album, photos, role, albumId }: AlbumD
       }
     } finally {
       setDeletingPhoto(null)
+    }
+  }
+
+  const handleReReadExif = () => {
+    setShowConfirmDialog(true)
+  }
+
+  const confirmReReadExif = async () => {
+    setShowConfirmDialog(false)
+    
+    try {
+      setReReadingExif(true)
+      const response = await fetch(`/api/admin/albums/${albumId}/re-read-exif`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+
+      const result = await response.json()
+      
+      if (result.success) {
+        const message = t('albums.exifReReadResults')
+          .replace('{processed}', result.data.processed)
+          .replace('{updated}', result.data.updated)
+          .replace('{errors}', result.data.errors)
+          + (result.data.errorsList ? t('albums.exifReReadErrors').replace('{errors}', result.data.errorsList.join('\n')) : '')
+        setNotification({
+          isOpen: true,
+          type: 'success',
+          title: t('albums.exifReReadCompleted'),
+          message: message
+        })
+        // Refresh the page to show updated EXIF data after a short delay
+        setTimeout(() => {
+          window.location.reload()
+        }, 2000)
+      } else {
+        setNotification({
+          isOpen: true,
+          type: 'error',
+          title: t('albums.exifReReadFailed'),
+          message: result.error || t('albums.exifReReadUnknownError')
+        })
+      }
+    } catch (error) {
+      console.error('Failed to re-read EXIF data:', error)
+      setNotification({
+        isOpen: true,
+        type: 'error',
+        title: t('albums.exifReReadFailed'),
+        message: t('albums.exifReReadTryAgain')
+      })
+    } finally {
+      setReReadingExif(false)
     }
   }
 
@@ -93,6 +168,22 @@ export default function AlbumDetailView({ album, photos, role, albumId }: AlbumD
                 <Link href={uploadHref} className="btn-primary w-full text-center">
                   Upload Photos
                 </Link>
+                {(role === 'admin' || role === 'owner') && (
+                  <button
+                    onClick={handleReReadExif}
+                    disabled={reReadingExif}
+                    className="w-full text-center px-4 py-2 text-sm font-medium text-orange-600 bg-orange-50 rounded-md hover:bg-orange-100 focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {reReadingExif ? (
+                      <div className="flex items-center justify-center">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-orange-600 mr-2"></div>
+                        {t('albums.reReadingExif')}
+                      </div>
+                    ) : (
+                      t('albums.reReadExifData')
+                    )}
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -116,15 +207,21 @@ export default function AlbumDetailView({ album, photos, role, albumId }: AlbumD
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {localPhotos.map((photo) => (
+              {localPhotos.map((photo, idx) => (
                 <div key={photo._id} className="relative group">
-                  <div className="aspect-w-1 aspect-h-1 bg-gray-200 rounded-lg overflow-hidden">
-                    <img
-                      src={(photo as any).storage?.thumbnailPath || (photo as any).storage?.url}
-                      alt={typeof photo.title === 'string' ? photo.title : (photo.title as any)?.en}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
+                  <button
+                    type="button"
+                    className="block w-full text-left"
+                    onClick={() => { setLightboxIndex(idx); setLightboxOpen(true) }}
+                  >
+                    <div className="aspect-w-1 aspect-h-1 bg-gray-200 rounded-lg overflow-hidden">
+                      <img
+                        src={(photo as any).storage?.thumbnailPath || (photo as any).storage?.url}
+                        alt={typeof photo.title === 'string' ? photo.title : (photo.title as any)?.en}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    </div>
+                  </button>
                   <div className="mt-2">
                     <h3 className="text-sm font-medium text-gray-900 truncate">
                       {typeof photo.title === 'string' ? photo.title : (photo.title as any)?.en}
@@ -182,6 +279,117 @@ export default function AlbumDetailView({ album, photos, role, albumId }: AlbumD
           )}
         </div>
       </div>
+      {/* Lightbox */}
+      <PhotoLightbox
+        photos={localPhotos.map(p => ({
+          _id: p._id,
+          url: (p as any).storage?.url || (p as any).storage?.originalPath,
+          thumbnailUrl: (p as any).storage?.thumbnailPath,
+          title: typeof p.title === 'string' ? p.title : (p.title as any)?.en,
+          takenAt: (p as any).exif?.dateTimeOriginal,
+          exif: (p as any).exif ? {
+            // Basic Camera Information
+            make: (p as any).exif.make,
+            model: (p as any).exif.model,
+            serialNumber: (p as any).exif.serialNumber,
+            
+            // Date and Time
+            dateTime: (p as any).exif.dateTime,
+            dateTimeOriginal: (p as any).exif.dateTimeOriginal,
+            dateTimeDigitized: (p as any).exif.dateTimeDigitized,
+            offsetTime: (p as any).exif.offsetTime,
+            offsetTimeOriginal: (p as any).exif.offsetTimeOriginal,
+            offsetTimeDigitized: (p as any).exif.offsetTimeDigitized,
+            
+            // Camera Settings
+            exposureTime: (p as any).exif.exposureTime,
+            fNumber: (p as any).exif.fNumber,
+            iso: (p as any).exif.iso,
+            focalLength: (p as any).exif.focalLength,
+            exposureProgram: (p as any).exif.exposureProgram,
+            exposureMode: (p as any).exif.exposureMode,
+            exposureBiasValue: (p as any).exif.exposureBiasValue,
+            maxApertureValue: (p as any).exif.maxApertureValue,
+            shutterSpeedValue: (p as any).exif.shutterSpeedValue,
+            apertureValue: (p as any).exif.apertureValue,
+            
+            // Image Quality
+            whiteBalance: (p as any).exif.whiteBalance,
+            meteringMode: (p as any).exif.meteringMode,
+            flash: (p as any).exif.flash,
+            colorSpace: (p as any).exif.colorSpace,
+            customRendered: (p as any).exif.customRendered,
+            sceneCaptureType: (p as any).exif.sceneCaptureType,
+            
+            // Resolution
+            xResolution: (p as any).exif.xResolution,
+            yResolution: (p as any).exif.yResolution,
+            resolutionUnit: (p as any).exif.resolutionUnit,
+            focalPlaneXResolution: (p as any).exif.focalPlaneXResolution,
+            focalPlaneYResolution: (p as any).exif.focalPlaneYResolution,
+            focalPlaneResolutionUnit: (p as any).exif.focalPlaneResolutionUnit,
+            
+            // Lens Information
+            lensInfo: (p as any).exif.lensInfo,
+            lensModel: (p as any).exif.lensModel,
+            lensSerialNumber: (p as any).exif.lensSerialNumber,
+            
+            // Software and Processing
+            software: (p as any).exif.software,
+            copyright: (p as any).exif.copyright,
+            exifVersion: (p as any).exif.exifVersion,
+            
+            // GPS Information
+            gps: (p as any).exif.gps ? {
+              latitude: (p as any).exif.gps.latitude,
+              longitude: (p as any).exif.gps.longitude,
+              altitude: (p as any).exif.gps.altitude,
+            } : undefined,
+            
+            // Additional Technical Data
+            recommendedExposureIndex: (p as any).exif.recommendedExposureIndex,
+            subsecTimeOriginal: (p as any).exif.subsecTimeOriginal,
+            subsecTimeDigitized: (p as any).exif.subsecTimeDigitized,
+            
+            // Legacy fields for backward compatibility
+            gpsLatitude: (p as any).exif.gpsLatitude,
+            gpsLongitude: (p as any).exif.gpsLongitude,
+          } : undefined,
+          metadata: (p as any).metadata ? {
+            width: (p as any).metadata.width,
+            height: (p as any).metadata.height,
+            fileSize: (p as any).metadata.fileSize,
+            format: (p as any).metadata.format,
+          } : undefined,
+        }))}
+        startIndex={lightboxIndex}
+        isOpen={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+        autoPlay={false}
+        intervalMs={4000}
+      />
+
+      {/* Notification Dialog */}
+      <NotificationDialog
+        isOpen={notification.isOpen}
+        onClose={() => setNotification(prev => ({ ...prev, isOpen: false }))}
+        type={notification.type}
+        title={notification.title}
+        message={notification.message}
+        autoClose={false}
+      />
+
+      {/* Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={showConfirmDialog}
+        onCancel={() => setShowConfirmDialog(false)}
+        onConfirm={confirmReReadExif}
+        title={t('albums.reReadExifData')}
+        message={t('albums.confirmReReadExif')}
+        confirmText={t('albums.reReadExifData')}
+        cancelText={t('cancel')}
+        variant="default"
+      />
     </div>
   )
 }

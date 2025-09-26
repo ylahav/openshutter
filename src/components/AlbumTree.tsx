@@ -7,6 +7,8 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
+  useDroppable,
+  useDraggable,
 } from '@dnd-kit/core'
 import {
   SortableContext,
@@ -14,7 +16,6 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { useDroppable, useDraggable } from '@dnd-kit/core'
 
 type AlbumItem = {
   _id: string
@@ -65,10 +66,9 @@ function flatten(nodes: AlbumTreeNode[]): AlbumTreeNode[] {
 import Link from 'next/link'
 
 function TreeRow({ node, renderActions, onOpen }: { node: AlbumTreeNode; renderActions?: (node: AlbumTreeNode) => React.ReactNode; onOpen?: (node: AlbumTreeNode) => void }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useDraggable({ id: node._id })
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: node._id })
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
-    transition,
     opacity: isDragging ? 0.5 : 1,
   }
   return (

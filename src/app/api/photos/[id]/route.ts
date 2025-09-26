@@ -165,8 +165,8 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params
-    const url = new URL(request.url)
-    const deleteFromStorage = url.searchParams.get('deleteFromStorage') === 'true'
+    // Always delete from storage when removing a photo
+    const deleteFromStorage = true
     const { db } = await connectToDatabase()
     
     if (!id) {
@@ -224,7 +224,7 @@ export async function DELETE(
       }
     }
 
-    // Delete physical files from storage if requested
+    // Delete physical files from storage
     if (deleteFromStorage && photo.storage) {
       try {
         // For local storage, delete files directly
@@ -244,28 +244,28 @@ export async function DELETE(
           
           const basePath = localConfig.config.basePath
           
-          // Delete main photo file
+          // Helper to resolve relative -> absolute path under basePath
+          const resolveAbs = (relative: string) => (
+            path.isAbsolute(basePath)
+              ? path.join(basePath, relative)
+              : path.join(process.cwd(), basePath, relative)
+          )
+
+          // Prefer deleting by storage.path (source of truth)
+          if (photo.storage.path) {
+            try { await fs.unlink(resolveAbs(photo.storage.path)) } catch (err) { console.error('Delete storage.path failed:', err) }
+          }
+
+          // Fallback delete by storage.url if present
           if (photo.storage.url) {
-            // Extract relative path from photo URL (handle both old and new formats)
             let photoPath = photo.storage.url
-            if (photoPath.startsWith('/api/storage/serve/local/')) {
-              photoPath = photoPath.replace('/api/storage/serve/local/', '')
-            } else if (photoPath.startsWith('/api/storage/local/')) {
-              photoPath = photoPath.replace('/api/storage/local/', '')
-            }
+            if (photoPath.startsWith('/api/storage/serve/local/')) photoPath = photoPath.replace('/api/storage/serve/local/', '')
+            else if (photoPath.startsWith('/api/storage/local/')) photoPath = photoPath.replace('/api/storage/local/', '')
             const decodedPhotoPath = decodeURIComponent(photoPath)
-            const filePath = path.isAbsolute(basePath)
-              ? path.join(basePath, decodedPhotoPath)
-              : path.join(process.cwd(), basePath, decodedPhotoPath)
-            
-            try {
-              await fs.unlink(filePath)
-            } catch (err) {
-              console.error('Failed to delete main photo file:', err)
-            }
+            try { await fs.unlink(resolveAbs(decodedPhotoPath)) } catch (err) { /* ignore if already removed */ }
           }
           
-          // Delete thumbnail file
+          // Delete legacy single thumbnail
           if (photo.storage.thumbnailPath) {
             // Extract relative path from thumbnail URL (handle both old and new formats)
             let thumbnailPath = photo.storage.thumbnailPath
@@ -275,14 +275,19 @@ export async function DELETE(
               thumbnailPath = thumbnailPath.replace('/api/storage/local/', '')
             }
             const decodedThumbnailPath = decodeURIComponent(thumbnailPath)
-            const thumbnailFilePath = path.isAbsolute(basePath)
-              ? path.join(basePath, decodedThumbnailPath)
-              : path.join(process.cwd(), basePath, decodedThumbnailPath)
-            
-            try {
-              await fs.unlink(thumbnailFilePath)
-            } catch (err) {
-              console.error('Failed to delete thumbnail file:', err)
+            try { await fs.unlink(resolveAbs(decodedThumbnailPath)) } catch (err) { /* ignore */ }
+          }
+
+          // Delete thumbnails map if present
+          if (photo.storage.thumbnails && typeof photo.storage.thumbnails === 'object') {
+            for (const key of Object.keys(photo.storage.thumbnails)) {
+              const thumbUrl = photo.storage.thumbnails[key]
+              if (typeof thumbUrl !== 'string') continue
+              let rel = thumbUrl
+              if (rel.startsWith('/api/storage/serve/local/')) rel = rel.replace('/api/storage/serve/local/', '')
+              else if (rel.startsWith('/api/storage/local/')) rel = rel.replace('/api/storage/local/', '')
+              const decodedRel = decodeURIComponent(rel)
+              try { await fs.unlink(resolveAbs(decodedRel)) } catch { /* ignore */ }
             }
           }
         }

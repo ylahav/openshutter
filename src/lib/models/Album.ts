@@ -1,8 +1,12 @@
-import mongoose, { Schema, Document } from 'mongoose'
+import mongoose, { Schema, Document, Types } from 'mongoose'
 import { Album } from '@/types'
 
-export interface IAlbum extends Omit<Album, '_id'>, Document {
-  _id: any
+export interface IAlbum extends Omit<Album, '_id' | 'createdBy' | 'parentAlbumId' | 'coverPhotoId' | 'allowedUsers'>, Document {
+  _id: Types.ObjectId
+  createdBy: Types.ObjectId
+  parentAlbumId?: Types.ObjectId
+  coverPhotoId?: Types.ObjectId
+  allowedUsers?: Types.ObjectId[]
 }
 
 const AlbumSchema = new Schema<IAlbum>({
@@ -87,7 +91,8 @@ const AlbumSchema = new Schema<IAlbum>({
     default: Date.now
   },
   createdBy: {
-    type: String,
+    type: Schema.Types.ObjectId,
+    ref: 'User',
     required: true
   },
   tags: [{
