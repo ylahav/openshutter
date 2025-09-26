@@ -37,4 +37,14 @@ coverage/
 
 # i18n backups
 src/i18n/*.backup
+
+# Build artifacts and deployment packages
 *.zip
+*.tar
+*.tar.gz
+openshutter-image.tar
+openshutter-deployment.tar.gz
+
+# Storage and logs
+storage/
+logs/
