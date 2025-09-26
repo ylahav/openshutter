@@ -1,6 +1,6 @@
 {
   "name": "openshutter",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "description": "A comprehensive photo gallery management system with multi-storage support",
   "main": "index.js",
   "scripts": {
@@ -10,19 +10,18 @@
     "start:standalone": "PORT=${PORT:-4000} NODE_ENV=production node .next/standalone/server.js",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
-    "build:deploy": "node scripts/build-for-deployment.js",
-    "docker:build": "chmod +x scripts/docker-build.sh && ./scripts/docker-build.sh",
-    "docker:dev": "docker-compose up --build",
-    "docker:prod": "docker-compose -f docker-compose.prod.yml up -d",
-    "docker:deploy": "chmod +x scripts/docker-deploy.sh && ./scripts/docker-deploy.sh",
-    "docker:stop": "docker-compose down && docker-compose -f docker-compose.prod.yml down",
-    "docker:logs": "docker logs openshutter-dev || docker logs openshutter-prod",
+    "docker:build": "docker build -t openshutter .",
+    "docker:run": "docker run -p 4000:4000 --env-file .env.local openshutter",
+    "docker:dev": "docker-compose -f docker-compose.dev.yml up --build",
+    "docker:prod": "docker-compose up -d --build",
+    "docker:stop": "docker-compose down && docker-compose -f docker-compose.dev.yml down",
+    "docker:logs": "docker-compose logs -f",
+    "docker:clean": "docker system prune -f && docker volume prune -f",
+    "docker:test": "powershell -ExecutionPolicy Bypass -File scripts/test-docker.ps1",
+    "build:prod": "scripts\\build-for-production.bat",
+    "deploy:prod": "scripts\\deploy-to-server.bat",
     "migrate:objectid": "node src/scripts/migrate-to-objectid-references.js",
-    "migrate:refs": "node src/scripts/migrate-objectid-refs-albums-photos.js",
-    "test:reread-exif": "node src/scripts/test-reread-exif.js",
-    "test:photo-exif": "node src/scripts/test-photo-exif.js",
-    "reread:album": "node src/scripts/reread-exif-by-album.js",
-    "storage:set-base": "node src/scripts/set-local-storage-basepath.js"
+    "migrate:refs": "node src/scripts/migrate-objectid-refs-albums-photos.js"
   },
   "keywords": [
     "photo-gallery",

@@ -9,9 +9,9 @@ pnpm-debug.log*
 .next/
 out/
 
-# Production
-build
-dist
+# Production build
+build/
+dist/
 
 # Environment variables
 .env
@@ -31,7 +31,7 @@ pids
 *.pid.lock
 
 # Coverage directory used by tools like istanbul
-coverage
+coverage/
 *.lcov
 
 # nyc test coverage
@@ -46,12 +46,6 @@ jspm_packages/
 # Optional eslint cache
 .eslintcache
 
-# Microbundle cache
-.rpt2_cache/
-.rts2_cache_cjs/
-.rts2_cache_es/
-.rts2_cache_umd/
-
 # Optional REPL history
 .node_repl_history
 
@@ -65,31 +59,37 @@ jspm_packages/
 .cache
 .parcel-cache
 
-# Next.js build output
+# next.js build output
 .next
 
-# Nuxt.js build / generate output
+# nuxt.js build output
 .nuxt
 
-# Gatsby files
-.cache/
+# vuepress build output
+.vuepress/dist
 
-# Storybook build outputs
-.out
-.storybook-out
+# Serverless directories
+.serverless
 
-# Temporary folders
-tmp/
-temp/
+# FuseBox cache
+.fusebox/
 
-# Editor directories and files
+# DynamoDB Local files
+.dynamodb/
+
+# TernJS port file
+.tern-port
+
+# Stores VSCode versions used for testing VSCode extensions
+.vscode-test
+
+# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
-*~
 
-# OS generated files
+# OS
 .DS_Store
 .DS_Store?
 ._*
@@ -104,26 +104,28 @@ Thumbs.db
 
 # Docker
 Dockerfile*
-docker-compose*
+docker-compose*.yml
 .dockerignore
 
 # Documentation
-docs/
 README.md
-*.md
+CHANGELOG.md
 
 # Scripts
-src/scripts/
+scripts/
+
+# Storage (will be mounted as volume)
+storage/
 
 # Test files
-test-local/
 *.test.js
 *.test.ts
 *.spec.js
 *.spec.ts
+__tests__/
+test/
+tests/
 
-# Backup files
-backup-*.zip
-
-# TypeScript build info
-tsconfig.tsbuildinfo
+# Temporary files
+tmp/
+temp/

@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  openshutter-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    container_name: openshutter-dev
+    ports:
+      - "4000:4000"
+    env_file:
+      - .env.local
+    environment:
+      - NODE_ENV=development
+      - PORT=4000
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+      - ./storage:/app/storage
+      - ./logs:/app/logs
+    command: pnpm dev
+    restart: unless-stopped
+    networks:
+      - openshutter-network
+
+networks:
+  openshutter-network:
+    driver: bridge

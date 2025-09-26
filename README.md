@@ -40,6 +40,36 @@ A comprehensive photo gallery management system with multi-storage support, adva
 
 ## 🛠️ Installation
 
+### Option 1: Docker (Recommended)
+
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd openshutter
+   ```
+
+2. **Set up environment variables**
+   ```bash
+   cp env.example .env.local
+   # Edit .env.local with your configuration
+   ```
+
+3. **Test Docker setup**
+   ```bash
+   pnpm docker:test
+   ```
+
+4. **Start with Docker**
+   ```bash
+   # Development
+   pnpm docker:dev
+   
+   # Production
+   pnpm docker:prod
+   ```
+
+### Option 2: Local Development
+
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
@@ -104,6 +134,40 @@ For detailed admin setup instructions, see [docs/ADMIN_SETUP.md](docs/ADMIN_SETU
    pnpm lint         # Run ESLint
    pnpm type-check   # Run TypeScript type checking
    ```
+
+## 🚀 Production Deployment
+
+### Docker Deployment (Recommended)
+
+1. **Build and deploy automatically**
+   ```bash
+   pnpm deploy:prod user@your-server
+   ```
+
+2. **Manual deployment**
+   ```bash
+   # Build production package
+   pnpm build:prod
+   
+   # Copy to server and deploy
+   scp openshutter-deployment.tar.gz user@your-server:/opt/openshutter/
+   ssh user@your-server "cd /opt/openshutter && tar -xzf openshutter-deployment.tar.gz && docker load < openshutter-image.tar && docker-compose -f docker-compose.prod.yml up -d"
+   ```
+
+### Available Docker Commands
+
+```bash
+pnpm docker:build    # Build Docker image
+pnpm docker:dev      # Start development environment
+pnpm docker:prod     # Start production environment
+pnpm docker:stop     # Stop all containers
+pnpm docker:logs     # View container logs
+pnpm docker:test     # Test Docker setup
+pnpm build:prod      # Build production package
+pnpm deploy:prod     # Deploy to production server
+```
+
+For detailed deployment instructions, see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 ## 📁 Project Structure
 

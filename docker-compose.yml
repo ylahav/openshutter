@@ -1,21 +1,6 @@
-# OpenShutter Docker Compose with MongoDB
-services:
-  mongodb:
-    image: mongo:7.0
-    container_name: openshutter-mongodb
-    ports:
-      - "27017:27017"
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: password
-      MONGO_INITDB_DATABASE: openshutter
-    volumes:
-      - mongodb_data:/data/db
-      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
-    restart: unless-stopped
-    networks:
-      - openshutter-network
+version: '3.8'
 
+services:
   openshutter:
     build:
       context: .
@@ -23,32 +8,23 @@ services:
     container_name: openshutter
     ports:
       - "4000:4000"
+    env_file:
+      - .env.local
     environment:
-      - MONGODB_URI=mongodb://openshutter:openshutter123@mongodb:27017/openshutter?authSource=openshutter
-      - MONGODB_DB=openshutter
-      - NODE_ENV=development
-      - NEXTAUTH_SECRET=OpenShutter_Secret
-      - NEXTAUTH_URL=http://localhost:4000
-      - NEXT_PUBLIC_APP_URL=http://localhost:4000
+      - NODE_ENV=production
+      - PORT=4000
     volumes:
-      # Mount storage directory for local storage provider
       - ./storage:/app/storage
-      # Mount logs directory
       - ./logs:/app/logs
     restart: unless-stopped
-    depends_on:
-      - mongodb
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4000/api/health"]
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:4000/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
     networks:
       - openshutter-network
-
-volumes:
-  mongodb_data:
 
 networks:
   openshutter-network:

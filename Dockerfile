@@ -1,79 +1,69 @@
-# OpenShutter Multi-Environment Dockerfile
-FROM node:18-alpine AS base
+# Multi-stage Docker build for Next.js application
+# Stage 1: Build the application
+FROM node:18-alpine AS builder
 
-# Install dependencies only when needed
-FROM base AS deps
-# Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
-RUN apk add --no-cache libc6-compat wget
+# Set working directory
 WORKDIR /app
 
-# Install dependencies based on the preferred package manager
-COPY package.json pnpm-lock.yaml* ./
-RUN corepack enable pnpm && pnpm install
+# Install pnpm globally
+RUN npm install -g pnpm
 
-# Rebuild the source code only when needed
-FROM base AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
+# Copy package files
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+
+# Install dependencies
+RUN pnpm install --frozen-lockfile
+
+# Copy source code
 COPY . .
 
-# Next.js collects completely anonymous telemetry data about general usage.
-# Learn more here: https://nextjs.org/telemetry
-# Uncomment the following line in case you want to disable telemetry during the build.
-ENV NEXT_TELEMETRY_DISABLED 1
+# Set environment variables for build
+ENV NODE_ENV=production
+ENV STANDALONE=true
 
-# Set build-time environment variables to prevent build errors
+# Set default environment variables for build (will be overridden at runtime)
 ENV MONGODB_URI=mongodb://localhost:27017/openshutter
-ENV MONGODB_DB=openshutter
 ENV NEXTAUTH_SECRET=build-time-secret
 ENV NEXTAUTH_URL=http://localhost:4000
-ENV NEXT_PUBLIC_APP_URL=http://localhost:4000
+ENV LOCAL_STORAGE_PATH=/app/storage
+ENV STORAGE_PROVIDER=local
 
-# Ensure public directory exists and build
-RUN mkdir -p public && corepack enable pnpm && pnpm run build
+# Build the application
+RUN pnpm build
 
-# Production image, copy all the files and run next
-FROM base AS runner
+# Stage 2: Production runtime
+FROM node:18-alpine AS runner
+
+# Set working directory
 WORKDIR /app
 
-# Default environment variables (can be overridden by env files)
+# Set environment variables
 ENV NODE_ENV=production
-ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=4000
-ENV HOSTNAME=0.0.0.0
 
-# Install wget for health checks and enable pnpm
-RUN apk add --no-cache wget
-RUN corepack enable pnpm
-
+# Create non-root user
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Copy public directory
+# Copy built application from builder stage
 COPY --from=builder /app/public ./public
 
-# Set the correct permission for prerender cache
-RUN mkdir .next
-RUN chown nextjs:nodejs .next
+# Copy standalone build
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Copy the built application
-COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
-COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
+# Create storage directory and set permissions
+RUN mkdir -p /app/storage && chown -R nextjs:nodejs /app/storage
 
-# Environment files are handled by Docker Compose
-
-# Create storage and logs directories
-RUN mkdir -p /app/storage /app/logs /app/public/albums
-RUN chown -R nextjs:nodejs /app/storage /app/logs /app/public/albums
-
+# Switch to non-root user
 USER nextjs
 
+# Expose port
 EXPOSE 4000
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:4000/api/health || exit 1
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:4000/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
 
-# Start the Next.js application
-CMD ["pnpm", "start"]
+# Start the application
+CMD ["node", "server.js"]
