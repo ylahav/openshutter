@@ -13,6 +13,7 @@ import { useI18n } from '@/hooks/useI18n'
 import { useActiveTemplate } from '@/hooks/useTemplate'
 import { useTheme } from 'next-themes'
 import { Sun, Moon, Menu, X } from 'lucide-react'
+import { SearchBar } from '@/components/search/SearchBar'
 import styles from '../styles.module.scss'
 
 export default function Header() {
@@ -35,6 +36,12 @@ export default function Header() {
   const handleLogout = () => {
     // Use NextAuth's signOut to properly invalidate the session
     signOut({ callbackUrl: '/' })
+  }
+
+  const handleSearch = (query: string) => {
+    if (query.trim()) {
+      router.push(`/search?q=${encodeURIComponent(query.trim())}`)
+    }
   }
 
   // Get header config from active template
@@ -63,6 +70,7 @@ export default function Header() {
     : [
         { name: t('navigation.home'), href: '/' },
         { name: t('navigation.albums'), href: '/albums' },
+        { name: t('search.title'), href: '/search' },
       ]
   const navigation = [
     ...baseMenu,
@@ -135,6 +143,15 @@ export default function Header() {
                 </span>
               )}
             </Link>
+          </div>
+
+          {/* Search Bar */}
+          <div className="hidden md:flex flex-1 max-w-md mx-8">
+            <SearchBar
+              query=""
+              onSearch={handleSearch}
+              placeholder={t('search.placeholder', 'Search photos and albums...')}
+            />
           </div>
 
           {/* Desktop Navigation */}
@@ -229,6 +246,18 @@ export default function Header() {
         {isMobileMenuOpen && (
           <div className="md:hidden">
             <div className={`px-2 pt-2 pb-3 space-y-1 ${styles.bgSecondary} rounded-lg mt-2`}>
+              {/* Mobile Search Bar */}
+              <div className="px-3 py-2">
+                <SearchBar
+                  query=""
+                  onSearch={(query) => {
+                    handleSearch(query)
+                    setIsMobileMenuOpen(false)
+                  }}
+                  placeholder={t('search.placeholder', 'Search photos and albums...')}
+                />
+              </div>
+              
               {navigation.map((item) => (
                 <Link
                   key={item.name}

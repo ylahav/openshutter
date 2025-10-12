@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import PhotoLightbox from '@/components/PhotoLightbox'
+import BulkActions from '@/components/admin/BulkActions'
 import { MultiLangUtils } from '@/types/multi-lang'
 import { TemplateAlbum, TemplatePhoto } from '@/types'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -28,6 +29,8 @@ export default function AlbumDetailView({ album, photos, role, albumId }: AlbumD
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState(0)
   const [reReadingExif, setReReadingExif] = useState(false)
+  const [selectedPhotos, setSelectedPhotos] = useState<string[]>([])
+  const [bulkMode, setBulkMode] = useState(false)
   const [notification, setNotification] = useState<{
     isOpen: boolean
     type: 'success' | 'error' | 'info' | 'warning'
@@ -106,6 +109,83 @@ export default function AlbumDetailView({ album, photos, role, albumId }: AlbumD
     } finally {
       setReReadingExif(false)
     }
+  }
+
+  // Bulk actions handlers
+  const handleBulkUpdate = async (updates: {
+    tags?: string[]
+    people?: string[]
+    location?: {
+      name: string
+      coordinates?: { latitude: number; longitude: number }
+      address?: string
+    }
+    isPublished?: boolean
+    isLeading?: boolean
+  }) => {
+    try {
+      const response = await fetch(`/api/photos/bulk-update`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          photoIds: selectedPhotos,
+          updates
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to update photos')
+      }
+
+      const result = await response.json()
+      if (result.success) {
+        setNotification({
+          isOpen: true,
+          type: 'success',
+          title: 'Bulk Update Successful',
+          message: `Successfully updated ${selectedPhotos.length} photos`
+        })
+        setSelectedPhotos([])
+        setBulkMode(false)
+        // Refresh the page to show updated data
+        setTimeout(() => {
+          window.location.reload()
+        }, 1000)
+      } else {
+        throw new Error(result.error || 'Failed to update photos')
+      }
+    } catch (error) {
+      console.error('Failed to bulk update photos:', error)
+      setNotification({
+        isOpen: true,
+        type: 'error',
+        title: 'Bulk Update Failed',
+        message: error instanceof Error ? error.message : 'An error occurred'
+      })
+    }
+  }
+
+  const handlePhotoSelection = (photoId: string) => {
+    setSelectedPhotos(prev => 
+      prev.includes(photoId) 
+        ? prev.filter(id => id !== photoId)
+        : [...prev, photoId]
+    )
+  }
+
+  const handleSelectAll = () => {
+    if (selectedPhotos.length === localPhotos.length) {
+      setSelectedPhotos([])
+    } else {
+      setSelectedPhotos(localPhotos.map(photo => photo._id))
+    }
+  }
+
+  const handleClearSelection = () => {
+    setSelectedPhotos([])
+    setBulkMode(false)
   }
 
   return (
@@ -193,10 +273,48 @@ export default function AlbumDetailView({ album, photos, role, albumId }: AlbumD
         <div className="bg-white rounded-lg shadow-md p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-gray-900">Photos ({localPhotos.length})</h2>
-            <Link href={uploadHref} className="btn-primary">
-              Upload Photos
-            </Link>
+            <div className="flex items-center gap-3">
+              {role === 'admin' && localPhotos.length > 0 && (
+                <button
+                  onClick={() => setBulkMode(!bulkMode)}
+                  className={`px-4 py-2 text-sm font-medium rounded-md ${
+                    bulkMode 
+                      ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {bulkMode ? 'Exit Bulk Mode' : 'Bulk Actions'}
+                </button>
+              )}
+              <Link href={uploadHref} className="btn-primary">
+                Upload Photos
+              </Link>
+            </div>
           </div>
+
+          {bulkMode && localPhotos.length > 0 && (
+            <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={handleSelectAll}
+                    className="text-sm text-blue-600 hover:text-blue-800"
+                  >
+                    {selectedPhotos.length === localPhotos.length ? 'Deselect All' : 'Select All'}
+                  </button>
+                  <span className="text-sm text-gray-600">
+                    {selectedPhotos.length} of {localPhotos.length} selected
+                  </span>
+                </div>
+                <button
+                  onClick={handleClearSelection}
+                  className="text-sm text-gray-500 hover:text-gray-700"
+                >
+                  Clear Selection
+                </button>
+              </div>
+            </div>
+          )}
           {localPhotos.length === 0 ? (
             <div className="text-center py-12">
               <h3 className="mt-2 text-sm font-medium text-gray-900">No photos</h3>
@@ -208,11 +326,28 @@ export default function AlbumDetailView({ album, photos, role, albumId }: AlbumD
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {localPhotos.map((photo, idx) => (
-                <div key={photo._id} className="relative group">
+                <div key={photo._id} className={`relative group ${bulkMode ? 'cursor-pointer' : ''}`}>
+                  {bulkMode && (
+                    <div className="absolute top-2 left-2 z-10">
+                      <input
+                        type="checkbox"
+                        checked={selectedPhotos.includes(photo._id)}
+                        onChange={() => handlePhotoSelection(photo._id)}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                    </div>
+                  )}
                   <button
                     type="button"
                     className="block w-full text-left"
-                    onClick={() => { setLightboxIndex(idx); setLightboxOpen(true) }}
+                    onClick={() => {
+                      if (!bulkMode) {
+                        setLightboxIndex(idx)
+                        setLightboxOpen(true)
+                      } else {
+                        handlePhotoSelection(photo._id)
+                      }
+                    }}
                   >
                     <div className="aspect-w-1 aspect-h-1 bg-gray-200 rounded-lg overflow-hidden">
                       <img
@@ -390,6 +525,16 @@ export default function AlbumDetailView({ album, photos, role, albumId }: AlbumD
         cancelText={t('cancel')}
         variant="default"
       />
+
+      {/* Bulk Actions */}
+      {role === 'admin' && (
+        <BulkActions
+          selectedItems={selectedPhotos}
+          onBulkUpdate={handleBulkUpdate}
+          onClearSelection={handleClearSelection}
+          itemType="photos"
+        />
+      )}
     </div>
   )
 }

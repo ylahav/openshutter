@@ -9,6 +9,7 @@ import Header from '@/templates/default/components/Header'
 import Footer from '@/templates/default/components/Footer'
 import MultiLangInput from '@/components/MultiLangInput'
 import MultiLangHTMLEditor from '@/components/MultiLangHTMLEditor'
+import AlbumMetadataEditor from '@/components/AlbumMetadataEditor'
 import { MultiLangText, MultiLangHTML, MultiLangUtils } from '@/types/multi-lang'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { TemplateAlbum } from '@/types'
@@ -23,6 +24,16 @@ export default function EditAlbumPage({ params }: { params: Promise<{ id: string
   const [formData, setFormData] = useState({
     name: {} as MultiLangText,
     description: {} as MultiLangHTML,
+    tags: [] as string[],
+    people: [] as string[],
+    location: undefined as {
+      name: string
+      coordinates?: {
+        latitude: number
+        longitude: number
+      }
+      address?: string
+    } | undefined,
     isPublic: false,
     isFeatured: false,
     showExifData: true,
@@ -48,6 +59,9 @@ export default function EditAlbumPage({ params }: { params: Promise<{ id: string
           setFormData({
             name: (typeof albumData.name === 'string' ? { en: albumData.name } : (albumData.name || {})) as MultiLangText,
             description: (typeof albumData.description === 'string' ? { en: albumData.description } : (albumData.description || {})) as MultiLangHTML,
+            tags: albumData.tags || [],
+            people: albumData.people || [],
+            location: albumData.location,
             isPublic: albumData.isPublic || false,
             isFeatured: albumData.isFeatured || false,
             showExifData: albumData.showExifData !== undefined ? albumData.showExifData : true,
@@ -83,6 +97,9 @@ export default function EditAlbumPage({ params }: { params: Promise<{ id: string
           ...formData,
           name: MultiLangUtils.clean(formData.name),
           description: MultiLangUtils.clean(formData.description),
+          tags: formData.tags,
+          people: formData.people,
+          location: formData.location,
         }),
       })
 
@@ -112,6 +129,23 @@ export default function EditAlbumPage({ params }: { params: Promise<{ id: string
       [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : 
               type === 'number' ? parseInt(value) || 0 : value
     }))
+  }
+
+  // Metadata handlers
+  const handleTagsChange = (tags: string[]) => {
+    setFormData(prev => ({ ...prev, tags }))
+  }
+
+  const handlePeopleChange = (people: string[]) => {
+    setFormData(prev => ({ ...prev, people }))
+  }
+
+  const handleLocationChange = (location?: {
+    name: string
+    coordinates?: { latitude: number; longitude: number }
+    address?: string
+  }) => {
+    setFormData(prev => ({ ...prev, location }))
   }
 
   if (loading) {
@@ -214,6 +248,21 @@ export default function EditAlbumPage({ params }: { params: Promise<{ id: string
                     onChange={(value) => setFormData(prev => ({ ...prev, description: value as MultiLangHTML }))}
                     placeholder="Enter album description..."
                     height={240}
+                  />
+                </div>
+
+                {/* Metadata */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Album Metadata
+                  </label>
+                  <AlbumMetadataEditor
+                    tags={formData.tags}
+                    people={formData.people}
+                    location={formData.location}
+                    onTagsChange={handleTagsChange}
+                    onPeopleChange={handlePeopleChange}
+                    onLocationChange={handleLocationChange}
                   />
                 </div>
 

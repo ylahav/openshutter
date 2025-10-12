@@ -43,7 +43,8 @@ export function MultiLangInput({
 
   // Update input value when active language changes
   useEffect(() => {
-    setInputValue(MultiLangUtils.getValue(value, activeLanguage))
+    const stringValue = MultiLangUtils.getValue(value, activeLanguage)
+    setInputValue(typeof stringValue === 'string' ? stringValue : '')
   }, [activeLanguage, value])
 
   // Sync active language when defaultLanguage prop changes (e.g., after config loads)

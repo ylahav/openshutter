@@ -1,4 +1,5 @@
 import { MongoClient, Db } from 'mongodb'
+import mongoose from 'mongoose'
 
 if (!process.env.MONGODB_URI) {
   throw new Error('Please define the MONGODB_URI environment variable inside .env.local')
@@ -87,5 +88,31 @@ process.on('SIGTERM', async () => {
   await closeDatabaseConnection()
   process.exit(0)
 })
+
+// Mongoose connection
+let mongooseConnection: typeof mongoose | null = null
+
+export async function connectMongoose() {
+  if (mongooseConnection && mongoose.connection.readyState === 1) {
+    return mongooseConnection
+  }
+
+  try {
+    console.debug('🔗 Connecting to MongoDB with Mongoose...')
+    await mongoose.connect(uri, {
+      maxPoolSize: 10,
+      serverSelectionTimeoutMS: 10000,
+      socketTimeoutMS: 45000,
+      connectTimeoutMS: 10000,
+    })
+    
+    mongooseConnection = mongoose
+    console.debug('✅ Mongoose connected successfully!')
+    return mongooseConnection
+  } catch (error) {
+    console.error('❌ Mongoose connection failed:', error)
+    throw error
+  }
+}
 
 export default clientPromise

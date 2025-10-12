@@ -247,7 +247,7 @@ export class DatabaseOptimizer {
     query: string,
     filters: {
       albumId?: string
-      tags?: string[]
+      tags?: ObjectId[]
       dateRange?: { start: Date; end: Date }
     } = {},
     options: QueryOptimizationOptions = {}
@@ -258,17 +258,21 @@ export class DatabaseOptimizer {
       isPublished: true
     }
 
-    // Text search
+    // Text search using regex (no index required)
     if (query) {
-      matchStage.$text = { $search: query }
+      matchStage.$or = [
+        { 'title.en': { $regex: query, $options: 'i' } },
+        { 'title.he': { $regex: query, $options: 'i' } },
+        { 'description.en': { $regex: query, $options: 'i' } },
+        { 'description.he': { $regex: query, $options: 'i' } },
+        { filename: { $regex: query, $options: 'i' } },
+        { originalFilename: { $regex: query, $options: 'i' } }
+      ]
     }
 
     // Album filter
     if (filters.albumId) {
-      matchStage.$or = [
-        { albumId: new ObjectId(filters.albumId) },
-        { albumId: filters.albumId }
-      ]
+      matchStage.albumId = { $in: [new ObjectId(filters.albumId), filters.albumId] }
     }
 
     // Tags filter
@@ -300,11 +304,10 @@ export class DatabaseOptimizer {
       {
         $addFields: {
           albumName: { $arrayElemAt: ['$album.name', 0] },
-          albumAlias: { $arrayElemAt: ['$album.alias', 0] },
-          score: { $meta: 'textScore' }
+          albumAlias: { $arrayElemAt: ['$album.alias', 0] }
         }
       },
-      { $sort: { score: { $meta: 'textScore' }, uploadedAt: -1 } }
+      { $sort: { uploadedAt: -1 } }
     ]
 
     if (options.limit) {

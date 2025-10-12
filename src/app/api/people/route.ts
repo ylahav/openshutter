@@ -1,0 +1,262 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { connectToDatabase, connectMongoose } from '@/lib/mongodb'
+import { getCurrentUser } from '@/lib/access-control-server'
+import { PersonModel } from '@/lib/models/Person'
+import { TagModel } from '@/lib/models/Tag'
+
+export async function GET(request: NextRequest) {
+  console.log('People API called')
+  try {
+    const { searchParams } = new URL(request.url)
+    
+    // Get query parameters
+    const search = searchParams.get('search')
+    const page = parseInt(searchParams.get('page') || '1')
+    const limit = parseInt(searchParams.get('limit') || '20')
+    const isActive = searchParams.get('isActive')
+    
+    // Get current user for access control
+    const user = await getCurrentUser()
+    if (!user) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+    }
+    
+    // Connect to database and ensure Mongoose is connected
+    await connectMongoose()
+    
+    // Build query
+    const query: any = {}
+    
+    if (search) {
+      // Search in multi-language fields using regex
+      query.$or = [
+        { 'firstName.en': { $regex: search, $options: 'i' } },
+        { 'firstName.he': { $regex: search, $options: 'i' } },
+        { 'lastName.en': { $regex: search, $options: 'i' } },
+        { 'lastName.he': { $regex: search, $options: 'i' } },
+        { 'fullName.en': { $regex: search, $options: 'i' } },
+        { 'fullName.he': { $regex: search, $options: 'i' } },
+        { 'nickname.en': { $regex: search, $options: 'i' } },
+        { 'nickname.he': { $regex: search, $options: 'i' } },
+        { 'description.en': { $regex: search, $options: 'i' } },
+        { 'description.he': { $regex: search, $options: 'i' } }
+      ]
+    }
+    
+    if (isActive !== null) {
+      query.isActive = isActive === 'true'
+    }
+    
+    // Get people with pagination
+    const skip = (page - 1) * limit
+    const [people, total] = await Promise.all([
+      PersonModel.find(query)
+        .sort({ 'fullName.en': 1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      PersonModel.countDocuments(query)
+    ])
+    
+    console.log('People API - Query and Results:', {
+      query,
+      total,
+      peopleCount: people.length,
+      people: people.map(p => ({
+        _id: p._id,
+        firstName: p.firstName,
+        lastName: p.lastName,
+        fullName: p.fullName,
+        isActive: p.isActive
+      }))
+    })
+
+    // Get all unique tag IDs from people
+    const tagIds = [...new Set(people.flatMap(person => person.tags || []))]
+    
+    // Fetch tags separately
+    const tags = tagIds.length > 0 ? await TagModel.find({ _id: { $in: tagIds } }).lean() : []
+    const tagsMap = new Map(tags.map((tag: any) => [String(tag._id), tag]))
+
+    // Add tag data to people and convert old string format to MultiLangText format for compatibility
+    const peopleWithTags = people.map(person => {
+      const firstName = typeof (person as any).firstName === 'string' 
+        ? { en: (person as any).firstName, he: '' } 
+        : (person as any).firstName
+      
+      const lastName = typeof (person as any).lastName === 'string' 
+        ? { en: (person as any).lastName, he: '' } 
+        : ((person as any).lastName || (person as any).familyName || { en: '', he: '' })
+      
+      // Generate fullName from firstName and lastName
+      const fullName = {
+        en: `${firstName.en || ''} ${lastName.en || ''}`.trim(),
+        he: `${firstName.he || ''} ${lastName.he || ''}`.trim()
+      }
+      
+      return {
+        ...person,
+        firstName,
+        lastName,
+        fullName,
+        tags: (person.tags || []).map((tagId: any) => tagsMap.get(String(tagId))).filter(Boolean),
+        nickname: typeof (person as any).nickname === 'string' 
+          ? { en: (person as any).nickname, he: '' } 
+          : ((person as any).nickname || {}),
+        description: typeof (person as any).description === 'string' 
+          ? { en: (person as any).description, he: '' } 
+          : ((person as any).description || {})
+      }
+    })
+    
+    return NextResponse.json({
+      success: true,
+      data: peopleWithTags,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    })
+    
+  } catch (error) {
+    console.error('People API error:', error)
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : undefined
+    })
+    return NextResponse.json(
+      { success: false, error: 'Failed to fetch people' },
+      { status: 500 }
+    )
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    // Get current user for access control
+    const user = await getCurrentUser()
+    if (!user) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+    }
+    
+    // Connect to database and ensure Mongoose is connected
+    await connectMongoose()
+    
+    const body = await request.json()
+    const { firstName, lastName, nickname, birthDate, description, tags } = body
+    
+    // Validate required fields
+    if (!firstName || !lastName || 
+        !firstName.en || !lastName.en || 
+        (!firstName.en.trim() && !firstName.he?.trim()) || 
+        (!lastName.en.trim() && !lastName.he?.trim())) {
+      return NextResponse.json(
+        { success: false, error: 'First name and last name are required in at least one language' },
+        { status: 400 }
+      )
+    }
+    
+    // Convert tag strings to ObjectIds
+    let tagObjectIds = []
+    if (tags && tags.length > 0) {
+      const { TagModel } = await import('@/lib/models/Tag')
+      for (const tagName of tags) {
+        let tag = await TagModel.findOne({ name: tagName.trim() })
+        if (!tag) {
+          tag = await TagModel.create({ 
+            name: tagName.trim(), 
+            createdBy: user.id 
+          })
+        }
+        tagObjectIds.push(tag._id)
+      }
+    }
+    
+    // Generate fullName from firstName and lastName for comparison
+    const fullNameEn = `${firstName.en || ''} ${lastName.en || ''}`.trim()
+    const fullNameHe = `${firstName.he || ''} ${lastName.he || ''}`.trim()
+    
+    // Check if person already exists (check by exact full name match)
+    const duplicateConditions = []
+    
+    // Only check for English full name if it's not empty
+    if (fullNameEn) {
+      duplicateConditions.push({ 'fullName.en': fullNameEn })
+    }
+    
+    // Only check for Hebrew full name if it's not empty
+    if (fullNameHe) {
+      duplicateConditions.push({ 'fullName.he': fullNameHe })
+    }
+    
+    // If no valid full names to check, skip duplicate check
+    if (duplicateConditions.length === 0) {
+      console.log('No valid full names to check for duplicates')
+    } else {
+      const duplicateQuery = { $or: duplicateConditions }
+      
+      console.log('Duplicate check query:', duplicateQuery)
+      console.log('Looking for fullNameEn:', fullNameEn)
+      console.log('Looking for fullNameHe:', fullNameHe)
+      
+      const existingPerson = await PersonModel.findOne(duplicateQuery)
+      
+      if (existingPerson) {
+        console.log('Person creation blocked - existing person found:', {
+          existingPerson: {
+            _id: existingPerson._id,
+            firstName: existingPerson.firstName,
+            lastName: existingPerson.lastName,
+            fullName: existingPerson.fullName,
+            isActive: existingPerson.isActive
+          },
+          newPerson: {
+            firstName,
+            lastName,
+            fullNameEn,
+            fullNameHe
+          }
+        })
+        return NextResponse.json(
+          { success: false, error: 'Person with this name already exists' },
+          { status: 409 }
+        )
+      }
+    }
+    
+    // Generate fullName from firstName and lastName
+    const fullName = {
+      en: `${firstName.en || ''} ${lastName.en || ''}`.trim(),
+      he: `${firstName.he || ''} ${lastName.he || ''}`.trim()
+    }
+    
+    // Create new person
+    const person = new PersonModel({
+      firstName,
+      lastName,
+      fullName,
+      nickname: nickname || {},
+      birthDate: birthDate ? new Date(birthDate) : undefined,
+      description: description || {},
+      tags: tagObjectIds,
+      createdBy: user.id
+    })
+    
+    await person.save()
+    
+    return NextResponse.json({
+      success: true,
+      data: person
+    })
+    
+  } catch (error) {
+    console.error('Create person error:', error)
+    return NextResponse.json(
+      { success: false, error: 'Failed to create person' },
+      { status: 500 }
+    )
+  }
+}

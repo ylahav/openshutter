@@ -1,6 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { Plus, X } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import CollectionPopup from '@/components/admin/CollectionPopup'
 
 interface PhotoMetadataEditorProps {
   tags: string[]
@@ -33,12 +37,15 @@ export default function PhotoMetadataEditor({
   onPeopleChange,
   onLocationChange
 }: PhotoMetadataEditorProps) {
-  const [newTag, setNewTag] = useState('')
-  const [newPerson, setNewPerson] = useState('')
   const [locationName, setLocationName] = useState(location?.name || '')
   const [locationAddress, setLocationAddress] = useState(location?.address || '')
   const [locationLat, setLocationLat] = useState(location?.coordinates?.latitude?.toString() || '')
   const [locationLng, setLocationLng] = useState(location?.coordinates?.longitude?.toString() || '')
+  
+  // Popup states
+  const [tagsPopupOpen, setTagsPopupOpen] = useState(false)
+  const [peoplePopupOpen, setPeoplePopupOpen] = useState(false)
+  const [locationsPopupOpen, setLocationsPopupOpen] = useState(false)
 
   // Update location when form changes
   useEffect(() => {
@@ -59,47 +66,39 @@ export default function PhotoMetadataEditor({
     }
   }, [locationName, locationAddress, locationLat, locationLng, onLocationChange])
 
-  const addTag = () => {
-    if (newTag.trim() && !tags.includes(newTag.trim())) {
-      onTagsChange([...tags, newTag.trim()])
-      setNewTag('')
-    }
-  }
-
   const removeTag = (tagToRemove: string) => {
     onTagsChange(tags.filter(tag => tag !== tagToRemove))
-  }
-
-  const addPerson = () => {
-    if (newPerson.trim() && !people.includes(newPerson.trim())) {
-      onPeopleChange([...people, newPerson.trim()])
-      setNewPerson('')
-    }
   }
 
   const removePerson = (personToRemove: string) => {
     onPeopleChange(people.filter(person => person !== personToRemove))
   }
 
-  const handleKeyPress = (e: React.KeyboardEvent, action: () => void) => {
-    if (e.key === 'Enter') {
-      e.preventDefault()
-      action()
-    }
-  }
-
   return (
     <div className="space-y-6">
       {/* Tags Section */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Tags
-        </label>
-        <div className="flex flex-wrap gap-2 mb-3">
+        <div className="flex items-center justify-between mb-2">
+          <label className="block text-sm font-medium text-gray-700">
+            Tags
+          </label>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setTagsPopupOpen(true)}
+            className="text-blue-600 border-blue-200 hover:bg-blue-50"
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Add Tags
+          </Button>
+        </div>
+        <div className="flex flex-wrap gap-2">
           {tags.map((tag, index) => (
-            <span
+            <Badge
               key={index}
-              className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800"
+              variant="secondary"
+              className="bg-blue-100 text-blue-800 hover:bg-blue-200"
             >
               {tag}
               <button
@@ -107,42 +106,39 @@ export default function PhotoMetadataEditor({
                 onClick={() => removeTag(tag)}
                 className="ml-2 text-blue-600 hover:text-blue-800"
               >
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <X className="h-3 w-3" />
               </button>
-            </span>
+            </Badge>
           ))}
-        </div>
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={newTag}
-            onChange={(e) => setNewTag(e.target.value)}
-            onKeyPress={(e) => handleKeyPress(e, addTag)}
-            placeholder="Add a tag..."
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-          <button
-            type="button"
-            onClick={addTag}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            Add
-          </button>
+          {tags.length === 0 && (
+            <p className="text-sm text-gray-500 italic">No tags selected</p>
+          )}
         </div>
       </div>
 
       {/* People Section */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          People
-        </label>
-        <div className="flex flex-wrap gap-2 mb-3">
+        <div className="flex items-center justify-between mb-2">
+          <label className="block text-sm font-medium text-gray-700">
+            People
+          </label>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setPeoplePopupOpen(true)}
+            className="text-green-600 border-green-200 hover:bg-green-50"
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Add People
+          </Button>
+        </div>
+        <div className="flex flex-wrap gap-2">
           {people.map((person, index) => (
-            <span
+            <Badge
               key={index}
-              className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-green-100 text-green-800"
+              variant="secondary"
+              className="bg-green-100 text-green-800 hover:bg-green-200"
             >
               👤 {person}
               <button
@@ -150,37 +146,33 @@ export default function PhotoMetadataEditor({
                 onClick={() => removePerson(person)}
                 className="ml-2 text-green-600 hover:text-green-800"
               >
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <X className="h-3 w-3" />
               </button>
-            </span>
+            </Badge>
           ))}
-        </div>
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={newPerson}
-            onChange={(e) => setNewPerson(e.target.value)}
-            onKeyPress={(e) => handleKeyPress(e, addPerson)}
-            placeholder="Add a person..."
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-          />
-          <button
-            type="button"
-            onClick={addPerson}
-            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
-          >
-            Add
-          </button>
+          {people.length === 0 && (
+            <p className="text-sm text-gray-500 italic">No people selected</p>
+          )}
         </div>
       </div>
 
       {/* Location Section */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Location
-        </label>
+        <div className="flex items-center justify-between mb-2">
+          <label className="block text-sm font-medium text-gray-700">
+            Location
+          </label>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setLocationsPopupOpen(true)}
+            className="text-purple-600 border-purple-200 hover:bg-purple-50"
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Add Location
+          </Button>
+        </div>
         <div className="space-y-3">
           <div>
             <input
@@ -233,6 +225,43 @@ export default function PhotoMetadataEditor({
           )}
         </div>
       </div>
+
+      {/* Collection Popups */}
+      <CollectionPopup
+        isOpen={tagsPopupOpen}
+        onClose={() => setTagsPopupOpen(false)}
+        title="Select Tags"
+        collectionType="tags"
+        selectedItems={tags || []}
+        onSelectionChange={onTagsChange}
+        searchPlaceholder="Search tags..."
+      />
+
+      <CollectionPopup
+        isOpen={peoplePopupOpen}
+        onClose={() => setPeoplePopupOpen(false)}
+        title="Select People"
+        collectionType="people"
+        selectedItems={people || []}
+        onSelectionChange={onPeopleChange}
+        searchPlaceholder="Search people..."
+      />
+
+      <CollectionPopup
+        isOpen={locationsPopupOpen}
+        onClose={() => setLocationsPopupOpen(false)}
+        title="Select Location"
+        collectionType="locations"
+        selectedItems={location?.name ? [location.name] : []}
+        onSelectionChange={(items) => {
+          if (items.length > 0) {
+            setLocationName(items[0])
+          } else {
+            setLocationName('')
+          }
+        }}
+        searchPlaceholder="Search locations..."
+      />
     </div>
   )
 }

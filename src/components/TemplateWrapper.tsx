@@ -4,7 +4,7 @@ import { useActiveTemplate } from '@/hooks/useTemplate'
 import { LanguageProvider } from '@/contexts/LanguageContext'
 
 interface TemplateWrapperProps {
-  pageName: 'home' | 'gallery' | 'album' | 'login'
+  pageName: 'home' | 'gallery' | 'album' | 'login' | 'search'
   children?: React.ReactNode
   fallback?: React.ReactNode
 }

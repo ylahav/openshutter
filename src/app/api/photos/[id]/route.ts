@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { connectToDatabase } from '@/lib/mongodb'
+import { connectMongoose } from '@/lib/mongodb'
 import { ObjectId } from 'mongodb'
 import { storageConfigService } from '@/services/storage/config'
 import { ExifExtractor } from '@/services/exif-extractor'
+import { PersonModel } from '@/lib/models/Person'
+import { TagModel } from '@/lib/models/Tag'
+import { LocationModel } from '@/lib/models/Location'
 
 export async function GET(
   request: NextRequest,
@@ -121,17 +125,62 @@ export async function PUT(
 
     // Handle tags update
     if (Array.isArray(updateData.tags)) {
-      updateFields.tags = updateData.tags
+      // Connect to Mongoose for model queries
+      await connectMongoose()
+      
+      // Convert tag names to ObjectIds
+      const tagIds = []
+      for (const tagName of updateData.tags) {
+        const tag = await TagModel.findOne({ name: tagName })
+        if (tag) {
+          tagIds.push(tag._id)
+        }
+      }
+      updateFields.tags = tagIds
     }
 
     // Handle people update
     if (Array.isArray(updateData.people)) {
-      updateFields.people = updateData.people
+      // Connect to Mongoose for model queries
+      await connectMongoose()
+      
+      // Convert people names to ObjectIds
+      const peopleIds = []
+      for (const personName of updateData.people) {
+        const person = await PersonModel.findOne({
+          $or: [
+            { 'fullName.en': personName },
+            { 'fullName': personName },
+            { 'firstName.en': personName },
+            { 'firstName': personName }
+          ]
+        })
+        if (person) {
+          peopleIds.push(person._id)
+        }
+      }
+      updateFields.people = peopleIds
     }
 
     // Handle location update
     if (updateData.location !== undefined) {
-      updateFields.location = updateData.location
+      if (updateData.location && updateData.location.name) {
+        // Connect to Mongoose for model queries
+        await connectMongoose()
+        
+        // Convert location name to ObjectId
+        const location = await LocationModel.findOne({ name: updateData.location.name })
+        if (location) {
+          updateFields.location = {
+            ...updateData.location,
+            _id: location._id
+          }
+        } else {
+          updateFields.location = updateData.location
+        }
+      } else {
+        updateFields.location = updateData.location
+      }
     }
 
     // Update the photo

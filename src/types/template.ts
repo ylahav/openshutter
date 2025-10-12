@@ -76,6 +76,7 @@ export interface TemplateConfig {
     home: string
     gallery: string
     album: string
+    search: string
   }
   visibility?: {
     hero?: boolean

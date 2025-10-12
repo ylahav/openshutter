@@ -1,3 +1,82 @@
+## v0.9.2 (Pre-release) - 2025-01-15
+
+### Highlights
+- **Advanced Search System**: Comprehensive search across photos, albums, people, and locations
+- **People Management**: Complete people tagging and organization system with multi-language support
+- **Location Management**: Geospatial location tracking with coordinates and categories
+- **Enhanced Tag System**: Improved tag management with categories and usage tracking
+- **Bulk Photo Operations**: Efficient management of multiple photos with metadata updates
+- **Multi-Language Search**: Search functionality with RTL support and language-specific queries
+
+### Features
+- **Search Page** (`/search`): Advanced search interface with filtering and sorting
+  - Search across photos, albums, people, and locations
+  - Advanced filtering: tags, dates, storage provider, privacy settings
+  - Multi-language search support with RTL compatibility
+  - Sorting options: relevance, date, filename, size
+  - Pagination support for large result sets
+- **People Management System**:
+  - Person profiles with firstName, lastName, fullName, nickname, description (multi-language)
+  - People admin interface with CRUD operations
+  - Integration with photos for people tagging
+  - Profile image support with storage provider integration
+- **Location Management System**:
+  - Location profiles with coordinates, addresses, and categories
+  - Geospatial search capabilities
+  - Location admin interface with coordinate-based search
+  - Integration with photos for location tagging
+- **Enhanced Tag System**:
+  - Tag categories for better organization (general, location, event, object, mood, technical, custom)
+  - Usage tracking across photos
+  - Tag admin interface with bulk operations
+  - Color coding and description support
+- **Bulk Photo Operations**:
+  - Bulk metadata updates for tags, people, locations
+  - Bulk actions component for admin interface
+  - Enhanced photo management capabilities
+  - Batch operations for large photo collections
+
+### API Endpoints
+- **Search**: GET `/api/search` - comprehensive search with filtering
+- **People**: GET/POST `/api/admin/people`, GET/PUT/DELETE `/api/admin/people/[id]`
+- **Locations**: GET/POST `/api/admin/locations`, GET/PUT/DELETE `/api/admin/locations/[id]`
+- **Tags**: GET/POST `/api/admin/tags`, GET/PUT/DELETE `/api/admin/tags/[id]`
+- **Bulk Operations**: PUT `/api/photos/bulk-update` - bulk photo metadata updates
+
+### Database Models
+- **Person Model**: Multi-language person profiles with relationships
+- **Location Model**: Geospatial location data with coordinates and categories
+- **Tag Model**: Enhanced tag system with categories and usage tracking
+- **Photo Model**: Updated with people, location, and enhanced tag relationships
+
+### Documentation
+- Updated README.md with new search, people, locations, and tags features
+- Updated functional-spec.md with new entities and API endpoints
+- Updated SYSTEM_PRD.md with new user stories and requirements
+- Enhanced project structure documentation
+
+### Internationalization
+- Added search functionality translations (EN/HE)
+- Added people management translations
+- Added location management translations
+- Added tag management translations
+- Enhanced multi-language search support
+
+### Fixes/Improvements
+- Enhanced database optimization for search operations
+- Improved multi-language field handling
+- Better error handling for search operations
+- Enhanced UI components for search and management interfaces
+
+### Breaking Changes
+- None
+
+### Upgrade Notes
+- Ensure env and DB are configured; new models will be created automatically
+- Clear browser cache for new search and admin assets
+- Rebuild after pulling: `pnpm install && pnpm build`
+- New search functionality requires no additional configuration
+
 ## v0.9 (Pre-release) - 2025-09-15
 
 ### Highlights
@@ -38,5 +117,3 @@
 - Ensure env and DB are configured; migrate translations if you maintain custom locales
 - Clear browser cache for new admin assets
 - Rebuild after pulling: `pnpm install && pnpm build`
-
-

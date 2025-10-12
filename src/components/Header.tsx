@@ -9,6 +9,7 @@ import { MultiLangUtils } from '@/types/multi-lang'
 import { useLanguage } from '@/contexts/LanguageContext'
 import LanguageSelector from '@/components/LanguageSelector'
 import { useI18n } from '@/hooks/useI18n'
+import { SearchBar } from '@/components/search/SearchBar'
 
 export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
@@ -44,9 +45,16 @@ export default function Header() {
     signOut({ callbackUrl: '/' })
   }
 
+  const handleSearch = (query: string) => {
+    if (query.trim()) {
+      router.push(`/search?q=${encodeURIComponent(query.trim())}`)
+    }
+  }
+
   const navigation = [
     { name: t('navigation.home'), href: '/' },
     { name: t('navigation.albums'), href: '/albums' },
+    { name: t('search.title'), href: '/search' },
     ...(isLoggedIn && (userRole === 'admin' || userRole === 'owner') ? [
       { 
         name: t('navigation.admin'), 
@@ -113,6 +121,15 @@ export default function Header() {
                 {config?.title ? MultiLangUtils.getTextValue(config.title, currentLanguage) : 'OpenShutter'}
               </span>
             </Link>
+          </div>
+
+          {/* Search Bar */}
+          <div className="hidden md:flex flex-1 max-w-md mx-8">
+            <SearchBar
+              query=""
+              onSearch={handleSearch}
+              placeholder={t('search.placeholder', 'Search photos and albums...')}
+            />
           </div>
 
           {/* Desktop Navigation */}
@@ -186,6 +203,18 @@ export default function Header() {
         {isMobileMenuOpen && (
           <div className="md:hidden">
             <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 border-t border-gray-200">
+              {/* Mobile Search Bar */}
+              <div className="px-3 py-2">
+                <SearchBar
+                  query=""
+                  onSearch={(query) => {
+                    handleSearch(query)
+                    setIsMobileMenuOpen(false)
+                  }}
+                  placeholder={t('search.placeholder', 'Search photos and albums...')}
+                />
+              </div>
+              
               {navigation.map((item) => (
                 <Link
                   key={item.name}

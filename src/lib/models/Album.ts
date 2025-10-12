@@ -96,8 +96,9 @@ const AlbumSchema = new Schema<IAlbum>({
     required: true
   },
   tags: [{
-    type: String,
-    trim: true
+    type: Schema.Types.ObjectId,
+    ref: 'Tag',
+    default: []
   }],
   // Access control fields
   allowedGroups: [{
@@ -128,6 +129,7 @@ AlbumSchema.index({ isPublic: 1 })
 AlbumSchema.index({ isFeatured: 1 })
 AlbumSchema.index({ firstPhotoDate: 1 })
 AlbumSchema.index({ lastPhotoDate: 1 })
+AlbumSchema.index({ tags: 1 })
 
 // Virtual for full path
 AlbumSchema.virtual('fullPath').get(function() {

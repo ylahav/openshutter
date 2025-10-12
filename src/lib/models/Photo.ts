@@ -21,7 +21,9 @@ export interface IPhoto extends Document {
     thumbnailPath: string
   }
   albumId?: Types.ObjectId
-  tags: string[]
+  tags: Types.ObjectId[] // References to Tag documents
+  people: Types.ObjectId[] // References to Person documents
+  location?: Types.ObjectId // Reference to Location document
   isPublished: boolean
   isLeading: boolean
   isGalleryLeading: boolean
@@ -98,9 +100,19 @@ const PhotoSchema = new Schema<IPhoto>({
     ref: 'Album'
   },
   tags: [{
-    type: String,
+    type: Schema.Types.ObjectId,
+    ref: 'Tag',
     default: []
   }],
+  people: [{
+    type: Schema.Types.ObjectId,
+    ref: 'Person',
+    default: []
+  }],
+  location: {
+    type: Schema.Types.ObjectId,
+    ref: 'Location'
+  },
   isPublished: {
     type: Boolean,
     default: true
@@ -154,8 +166,10 @@ const PhotoSchema = new Schema<IPhoto>({
 // Indexes
 PhotoSchema.index({ albumId: 1 })
 PhotoSchema.index({ uploadedBy: 1 })
-PhotoSchema.index({ isPublished: 1 })
+PhotoSchema.index({ people: 1 })
 PhotoSchema.index({ tags: 1 })
+PhotoSchema.index({ location: 1 })
+PhotoSchema.index({ isPublished: 1 })
 PhotoSchema.index({ uploadedAt: -1 })
 // filename index is already defined as unique: true in the schema
 

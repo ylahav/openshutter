@@ -86,6 +86,7 @@
     "home": "pages/Home.tsx",
     "gallery": "pages/Gallery.tsx",
     "album": "pages/Album.tsx",
-    "login": "pages/Login.tsx"
+    "login": "pages/Login.tsx",
+    "search": "pages/Search.tsx"
   }
 }

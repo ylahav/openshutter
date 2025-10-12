@@ -212,7 +212,7 @@ export class TemplateService {
         footer: 'components/Footer.tsx',
       },
       visibility: { hero: true, languageSelector: true, authButtons: true, footerMenu: true },
-      pages: { home: 'pages/Home.tsx', gallery: 'pages/Gallery.tsx', album: 'pages/Album.tsx' },
+      pages: { home: 'pages/Home.tsx', gallery: 'pages/Gallery.tsx', album: 'pages/Album.tsx', search: 'pages/Search.tsx' },
       },
       'modern': {
         templateName: 'modern',
@@ -236,7 +236,7 @@ export class TemplateService {
           footer: 'components/Footer.tsx',
         },
         visibility: { hero: true, languageSelector: true, authButtons: true, footerMenu: true },
-        pages: { home: 'pages/Home.tsx', gallery: 'pages/Gallery.tsx', album: 'pages/Album.tsx' },
+        pages: { home: 'pages/Home.tsx', gallery: 'pages/Gallery.tsx', album: 'pages/Album.tsx', search: 'pages/Search.tsx' },
       },
       'fancy': {
         templateName: 'fancy',
@@ -260,7 +260,7 @@ export class TemplateService {
           footer: 'components/Footer.tsx',
         },
         visibility: { hero: true, languageSelector: true, authButtons: true, footerMenu: true },
-        pages: { home: 'pages/Home.tsx', gallery: 'pages/Gallery.tsx', album: 'pages/Album.tsx' },
+        pages: { home: 'pages/Home.tsx', gallery: 'pages/Gallery.tsx', album: 'pages/Album.tsx', search: 'pages/Search.tsx' },
       },
       'minimal': {
         templateName: 'minimal',
@@ -284,7 +284,7 @@ export class TemplateService {
           footer: 'components/Footer.tsx',
         },
         visibility: { hero: true, languageSelector: true, authButtons: true, footerMenu: true },
-        pages: { home: 'pages/Home.tsx', gallery: 'pages/Gallery.tsx', album: 'pages/Album.tsx' },
+        pages: { home: 'pages/Home.tsx', gallery: 'pages/Gallery.tsx', album: 'pages/Album.tsx', search: 'pages/Search.tsx' },
       }
     }
     

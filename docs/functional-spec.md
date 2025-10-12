@@ -30,6 +30,9 @@
   - `createdBy`: string (user ID who created the album)
   - `coverPhotoId`: ObjectId (selected cover photo)
 - Photo: title (ml text), description (ml html), tags[], people[], location{name, coords, address}, flags
+- Person: firstName (ml text), lastName (ml text), fullName (ml text), nickname (ml text), description (ml text), profileImage, tags[], isActive
+- Location: name (ml text), description (ml text), address, city, state, country, coordinates, placeId, category, isActive, usageCount
+- Tag: name, description, color, category, isActive, usageCount
 - User: name (ml text), username(email), passwordHash, role, groupAliases[], blocked
 - Group: name (ml text), alias
 - BlogCategory: title (ml text), description (ml text), alias, leadingImage, isActive, sortOrder
@@ -45,6 +48,24 @@
     - Visual indicator for currently selected cover photo
     - API: GET `/api/admin/albums/[id]/photos`, PUT `/api/admin/albums/[id]/cover-photo`
 - Photos admin: edit form uses `MultiLangInput`, `MultiLangHTMLEditor`, `PhotoMetadataEditor`
+- **People Management:** Create and manage people with multi-language support
+  - Person creation: firstName (ml text), lastName (ml text), nickname (ml text), description (ml text), profileImage
+  - Person listing: search, filter by status, pagination support
+  - Person editing: full CRUD operations with multi-language inputs
+  - Status management: activate/deactivate people
+  - API: GET/POST `/api/admin/people`, PUT/DELETE `/api/admin/people/[id]`
+- **Location Management:** Create and manage locations with geospatial support
+  - Location creation: name (ml text), description (ml text), address, coordinates, category
+  - Location listing: search, filter by category, pagination support
+  - Location editing: full CRUD operations with multi-language inputs
+  - Geospatial search: find locations by coordinates
+  - API: GET/POST `/api/admin/locations`, PUT/DELETE `/api/admin/locations/[id]`
+- **Tag Management:** Create and manage tags with categories and usage tracking
+  - Tag creation: name, description, color, category
+  - Tag listing: search, filter by category, pagination support
+  - Tag editing: full CRUD operations
+  - Usage tracking: monitor tag usage across photos
+  - API: GET/POST `/api/admin/tags`, PUT/DELETE `/api/admin/tags/[id]`
 - **Blog Categories Management:** Create and manage blog categories with multi-language support
   - Category creation: title (ml text), description (ml text), alias, leading image, sort order
   - Category listing: search, filter by status, pagination support
@@ -69,6 +90,13 @@
 - Album details page shows children and photos with ml rendering
   - **Access Control:** API-level filtering based on user permissions
   - **Error Handling:** "Access Denied" for restricted albums
+- **Search Page** (`/search`): Comprehensive search functionality
+  - Search across photos, albums, people, and locations
+  - Advanced filtering: tags, dates, storage provider, privacy settings
+  - Multi-language search support
+  - Sorting options: relevance, date, filename, size
+  - Pagination support for large result sets
+  - API: GET `/api/search` with comprehensive filtering
 
 ### 6. Template Customization
 - Admin page `/admin/templates/customize`
@@ -88,6 +116,11 @@
   - GET `/api/albums/by-alias/[alias]/photos` - album photos with access control
   - GET `/api/admin/albums/[id]/photos` - admin: get photos for cover selection
   - PUT `/api/admin/albums/[id]/cover-photo` - admin: set album cover photo
+- Search: GET `/api/search` - comprehensive search across photos, albums, people, locations
+- People: admin GET/POST `/api/admin/people`, GET/PUT/DELETE `/api/admin/people/:id`
+- Locations: admin GET/POST `/api/admin/locations`, GET/PUT/DELETE `/api/admin/locations/:id`
+- Tags: admin GET/POST `/api/admin/tags`, GET/PUT/DELETE `/api/admin/tags/:id`
+- Bulk Operations: PUT `/api/photos/bulk-update` - bulk photo metadata updates
 - Profile Management: owner GET/PUT `/api/auth/profile` - user profile and password management
 
 ### 8. Data Validation & Migrations
@@ -120,3 +153,23 @@
 - **Role-Based Redirects:** Admin → `/admin`, Owner → `/owner`, Guest → `/`
 - **Album Ownership:** Track who created each album, owners can only edit their own albums
 - **Enhanced Security:** Improved access control validation and error handling
+- **Advanced Search System:** Comprehensive search across photos, albums, people, and locations
+  - Multi-language search support with filtering and sorting
+  - Advanced search page with filters for tags, dates, storage providers
+  - Search API with comprehensive filtering capabilities
+- **People Management:** Complete people tagging and organization system
+  - Multi-language person profiles with firstName, lastName, nickname, description
+  - People admin interface with CRUD operations
+  - Integration with photos for people tagging
+- **Location Management:** Geospatial location tracking and organization
+  - Location profiles with coordinates, addresses, and categories
+  - Location admin interface with geospatial search
+  - Integration with photos for location tagging
+- **Enhanced Tag System:** Improved tag management with categories and usage tracking
+  - Tag categories for better organization
+  - Usage tracking across photos
+  - Tag admin interface with bulk operations
+- **Bulk Photo Operations:** Efficient management of multiple photos
+  - Bulk metadata updates for tags, people, locations
+  - Bulk actions component for admin interface
+  - Enhanced photo management capabilities

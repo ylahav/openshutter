@@ -74,14 +74,25 @@ export const MultiLangUtils = {
   getValue: (field: MultiLangText | MultiLangHTML, languageCode: string): string => {
     if (!field) return ''
     
+    // Ensure field is an object
+    if (typeof field !== 'object') {
+      return ''
+    }
+    
     // Try to get value for requested language
     if (field[languageCode]) {
-      return field[languageCode]
+      const value = field[languageCode]
+      return typeof value === 'string' ? value : ''
     }
     
     // Fallback to first available language
     const firstLanguage = Object.keys(field)[0]
-    return firstLanguage ? field[firstLanguage] : ''
+    if (firstLanguage) {
+      const value = field[firstLanguage]
+      return typeof value === 'string' ? value : ''
+    }
+    
+    return ''
   },
 
   // Get text value from either a plain string or multi-lang object
