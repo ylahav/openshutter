@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { useI18n } from '@/hooks/useI18n'
+import { useLanguage } from '@/contexts/LanguageContext'
+import { MultiLangUtils } from '@/types/multi-lang'
 import AdminTemplate from '@/components/admin/AdminTemplate'
 import { MultiLangInput } from '@/components/MultiLangInput'
 import { MultiLangText } from '@/types/multi-lang'
@@ -28,30 +30,25 @@ const LOCATION_CATEGORIES = [
 ]
 
 // Helper function to safely extract display name from multi-language object
-const getDisplayName = (name: MultiLangText | string): string => {
+const getDisplayName = (name: MultiLangText | string, currentLanguage: string): string => {
   if (typeof name === 'string') {
     return name
   }
-  if (typeof name === 'object' && name) {
-    return name.en || name.he || ''
-  }
-  return ''
+  return MultiLangUtils.getTextValue(name, currentLanguage) || ''
 }
 
 // Helper function to safely extract display description
-const getDisplayDescription = (description?: MultiLangText | string): string => {
+const getDisplayDescription = (description: MultiLangText | string | undefined, currentLanguage: string): string => {
   if (!description) return ''
   if (typeof description === 'string') {
     return description
   }
-  if (typeof description === 'object' && description) {
-    return description.en || description.he || ''
-  }
-  return ''
+  return MultiLangUtils.getTextValue(description, currentLanguage) || ''
 }
 
 export default function LocationsPage() {
   const { t } = useI18n()
+  const { currentLanguage } = useLanguage()
   
   const [locations, setLocations] = useState<Location[]>([])
   const [loading, setLoading] = useState(true)
@@ -526,7 +523,7 @@ export default function LocationsPage() {
                     <tr key={location._id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>
-                          <div className="text-sm font-medium text-gray-900">{getDisplayName(location.name)}</div>
+                          <div className="text-sm font-medium text-gray-900">{getDisplayName(location.name, currentLanguage)}</div>
                           {location.address && (
                             <div className="text-sm text-gray-500">{location.address}</div>
                           )}

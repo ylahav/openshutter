@@ -92,7 +92,9 @@ export async function PUT(
     }
 
     // Update alias if title changes
-    const titleText = (title as MultiLangText).en || (title as MultiLangText).he || 'untitled'
+    const titleText = (typeof title === 'string')
+      ? title
+      : ((title && typeof title === 'object') ? (title.en || title.he || 'untitled') : 'untitled')
     const newAlias = slugify(titleText, { lower: true, strict: true })
     let uniqueAlias = newAlias
     if (newAlias !== existingCategory.alias) {

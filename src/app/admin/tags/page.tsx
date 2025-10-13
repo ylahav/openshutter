@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { useI18n } from '@/hooks/useI18n'
+import { useLanguage } from '@/contexts/LanguageContext'
+import { MultiLangUtils } from '@/types/multi-lang'
 import AdminTemplate from '@/components/admin/AdminTemplate'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -29,30 +31,25 @@ const COLOR_PRESETS = [
 ]
 
 // Helper function to safely extract display name from multi-language object
-const getDisplayName = (name: string | {en?: string, he?: string}): string => {
+const getDisplayName = (name: string | {en?: string, he?: string}, currentLanguage: string): string => {
   if (typeof name === 'string') {
     return name
   }
-  if (typeof name === 'object' && name && 'en' in name) {
-    return (name as {en?: string, he?: string}).en || (name as {en?: string, he?: string}).he || ''
-  }
-  return ''
+  return MultiLangUtils.getTextValue(name, currentLanguage) || ''
 }
 
 // Helper function to safely extract display description
-const getDisplayDescription = (description?: string | {en?: string, he?: string}): string => {
+const getDisplayDescription = (description: string | {en?: string, he?: string} | undefined, currentLanguage: string): string => {
   if (!description) return ''
   if (typeof description === 'string') {
     return description
   }
-  if (typeof description === 'object' && description && 'en' in description) {
-    return (description as {en?: string, he?: string}).en || (description as {en?: string, he?: string}).he || ''
-  }
-  return ''
+  return MultiLangUtils.getTextValue(description, currentLanguage) || ''
 }
 
 export default function TagsManagementPage() {
   const { t } = useI18n()
+  const { currentLanguage } = useLanguage()
   const [tags, setTags] = useState<Tag[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -192,8 +189,8 @@ export default function TagsManagementPage() {
   const openEditDialog = (tag: Tag) => {
     setEditingTag(tag)
     setFormData({
-      name: getDisplayName(tag.name),
-      description: getDisplayDescription(tag.description),
+      name: getDisplayName(tag.name, currentLanguage),
+      description: getDisplayDescription(tag.description, currentLanguage),
       color: tag.color || '',
       category: tag.category
     })
@@ -354,7 +351,7 @@ export default function TagsManagementPage() {
                     className="w-4 h-4 rounded-full"
                     style={{ backgroundColor: tag.color }}
                   />
-                  <h3 className="font-semibold text-gray-900 truncate">{getDisplayName(tag.name)}</h3>
+                  <h3 className="font-semibold text-gray-900 truncate">{getDisplayName(tag.name, currentLanguage)}</h3>
                 </div>
                 
                 <div className="flex space-x-1">
@@ -377,7 +374,7 @@ export default function TagsManagementPage() {
               </div>
               
               {tag.description && (
-                <p className="text-sm text-gray-600 mb-2">{getDisplayDescription(tag.description)}</p>
+                <p className="text-sm text-gray-600 mb-2">{getDisplayDescription(tag.description, currentLanguage)}</p>
               )}
               
               <div className="flex items-center justify-between text-xs text-gray-500">
@@ -480,7 +477,7 @@ export default function TagsManagementPage() {
           </DialogHeader>
           <div className="space-y-4">
             <p className="text-gray-600">
-              Are you sure you want to delete the tag <strong>"{tagToDelete ? getDisplayName(tagToDelete.name) : ''}"</strong>? 
+              Are you sure you want to delete the tag <strong>"{tagToDelete ? getDisplayName(tagToDelete.name, currentLanguage) : ''}"</strong>? 
               This action cannot be undone.
             </p>
             <div className="flex justify-end space-x-2">

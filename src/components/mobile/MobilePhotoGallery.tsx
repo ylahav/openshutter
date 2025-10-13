@@ -2,6 +2,8 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { useI18n } from '@/hooks/useI18n'
+import { useLanguage } from '@/contexts/LanguageContext'
+import { MultiLangUtils } from '@/types/multi-lang'
 // Simple interface for mobile gallery display
 interface MobilePhoto {
   _id: string
@@ -47,6 +49,7 @@ export default function MobilePhotoGallery({
   className = ''
 }: MobilePhotoGalleryProps) {
   const { t } = useI18n()
+  const { currentLanguage } = useLanguage()
   const [selectedPhoto, setSelectedPhoto] = useState<MobilePhoto | null>(null)
   const [selectedIndex, setSelectedIndex] = useState(0)
   const [isLightboxOpen, setIsLightboxOpen] = useState(false)
@@ -159,6 +162,18 @@ export default function MobilePhotoGallery({
     return new Date(dateString).toLocaleDateString()
   }
 
+  // Helper functions to get text values using translation utilities
+  const getTitleText = (title: string | Record<string, string>): string => {
+    if (typeof title === 'string') return title
+    return MultiLangUtils.getTextValue(title, currentLanguage) || 'Photo'
+  }
+
+  const getDescriptionText = (description?: string | Record<string, string>): string => {
+    if (!description) return ''
+    if (typeof description === 'string') return description
+    return MultiLangUtils.getTextValue(description, currentLanguage) || ''
+  }
+
   return (
     <div className={`mobile-photo-gallery ${className}`}>
       {/* Photo Grid */}
@@ -171,7 +186,7 @@ export default function MobilePhotoGallery({
           >
             <img
               src={photo.storage.thumbnailPath || photo.storage.url}
-              alt={typeof photo.title === 'string' ? photo.title : photo.title.en || photo.title.he || 'Photo'}
+              alt={getTitleText(photo.title)}
               className="w-full h-full object-cover transition-transform group-hover:scale-105"
               loading="lazy"
             />
@@ -180,7 +195,7 @@ export default function MobilePhotoGallery({
             <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
               <div className="text-white text-center">
                 <h3 className="font-medium text-sm truncate px-2">
-                  {typeof photo.title === 'string' ? photo.title : photo.title.en || photo.title.he || 'Photo'}
+                  {getTitleText(photo.title)}
                 </h3>
                 <p className="text-xs opacity-90">
                   {formatDate(photo.uploadedAt instanceof Date ? photo.uploadedAt.toISOString() : photo.uploadedAt)}
@@ -209,7 +224,7 @@ export default function MobilePhotoGallery({
               </button>
               <div>
                 <h2 className="font-semibold text-lg truncate">
-                  {typeof selectedPhoto.title === 'string' ? selectedPhoto.title : selectedPhoto.title.en || selectedPhoto.title.he || 'Photo'}
+                  {getTitleText(selectedPhoto.title)}
                 </h2>
                 <p className="text-sm opacity-80">
                   {selectedIndex + 1} of {photos.length}
@@ -245,7 +260,7 @@ export default function MobilePhotoGallery({
               <img
                 ref={imageRef}
                 src={selectedPhoto.storage.url}
-                alt={typeof selectedPhoto.title === 'string' ? selectedPhoto.title : selectedPhoto.title.en || selectedPhoto.title.he || 'Photo'}
+                alt={getTitleText(selectedPhoto.title)}
                 className="max-w-full max-h-full object-contain transition-transform"
                 style={{
                   transform: `scale(${zoom}) rotate(${rotation}deg)`
@@ -295,7 +310,7 @@ export default function MobilePhotoGallery({
             <div className="space-y-2">
               {selectedPhoto.description && (
                 <p className="text-sm opacity-90">
-                  {typeof selectedPhoto.description === 'string' ? selectedPhoto.description : selectedPhoto.description?.en || selectedPhoto.description?.he || ''}
+                  {getDescriptionText(selectedPhoto.description)}
                 </p>
               )}
               

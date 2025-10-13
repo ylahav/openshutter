@@ -96,7 +96,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Title is required' }, { status: 400 })
     }
 
-    const titleText = (title as MultiLangText).en || (title as MultiLangText).he || 'untitled'
+    const titleText = (typeof title === 'string')
+      ? title
+      : ((title && typeof title === 'object') ? (title.en || title.he || 'untitled') : 'untitled')
     const generatedAlias = slugify(titleText, { lower: true, strict: true })
 
     // Ensure alias is unique

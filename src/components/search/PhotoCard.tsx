@@ -4,6 +4,8 @@ import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useI18n } from '@/hooks/useI18n'
+import { useLanguage } from '@/contexts/LanguageContext'
+import { MultiLangUtils } from '@/types/multi-lang'
 import { Photo } from '@/types'
 import { Calendar, Image as ImageIcon, Tag, Eye } from 'lucide-react'
 import { format } from 'date-fns'
@@ -15,6 +17,7 @@ interface PhotoCardProps {
 
 export function PhotoCard({ photo, viewMode }: PhotoCardProps) {
   const { t } = useI18n()
+  const { currentLanguage } = useLanguage()
   const [imageError, setImageError] = useState(false)
   
   const formatFileSize = (bytes: number) => {
@@ -35,7 +38,7 @@ export function PhotoCard({ photo, viewMode }: PhotoCardProps) {
               {!imageError && photo.storage?.url ? (
                 <Image
                   src={photo.storage.url}
-                  alt={photo.title?.en || photo.filename}
+                  alt={(typeof photo.title === 'string' ? photo.title : MultiLangUtils.getTextValue(photo.title as any, currentLanguage)) || photo.filename}
                   width={64}
                   height={64}
                   className="w-full h-full object-cover"
@@ -54,7 +57,7 @@ export function PhotoCard({ photo, viewMode }: PhotoCardProps) {
             <div className="flex items-start justify-between">
               <div className="flex-1 min-w-0">
                 <h4 className="text-sm font-medium text-gray-900 truncate">
-                  {photo.title?.en || photo.filename}
+                  {(typeof photo.title === 'string' ? photo.title : MultiLangUtils.getTextValue(photo.title as any, currentLanguage)) || photo.filename}
                 </h4>
                 <p className="text-sm text-gray-600 truncate">
                   {photo.originalFilename}
@@ -112,7 +115,7 @@ export function PhotoCard({ photo, viewMode }: PhotoCardProps) {
         {!imageError && photo.storage?.url ? (
           <Image
             src={photo.storage.url}
-            alt={photo.title?.en || photo.filename}
+            alt={(typeof photo.title === 'string' ? photo.title : MultiLangUtils.getTextValue(photo.title as any, currentLanguage)) || photo.filename}
             fill
             className="object-cover"
             onError={() => setImageError(true)}
@@ -138,7 +141,7 @@ export function PhotoCard({ photo, viewMode }: PhotoCardProps) {
       {/* Content */}
       <div className="p-3">
         <h4 className="text-sm font-medium text-gray-900 truncate mb-1">
-          {photo.title?.en || photo.filename}
+          {(typeof photo.title === 'string' ? photo.title : MultiLangUtils.getTextValue(photo.title as any, currentLanguage)) || photo.filename}
         </h4>
         <div className="flex items-center justify-between text-xs text-gray-500 mb-2">
           <span className="flex items-center">

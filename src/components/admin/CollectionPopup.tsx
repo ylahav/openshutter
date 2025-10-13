@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { X, Plus, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useLanguage } from '@/contexts/LanguageContext'
+import { MultiLangUtils } from '@/types/multi-lang'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -41,6 +43,7 @@ export default function CollectionPopup({
   placeholder = "Search and select items...",
   searchPlaceholder = "Search..."
 }: CollectionPopupProps) {
+  const { currentLanguage } = useLanguage()
   const [searchQuery, setSearchQuery] = useState('')
   const [items, setItems] = useState<CollectionItem[]>([])
   const [loading, setLoading] = useState(false)
@@ -141,7 +144,13 @@ export default function CollectionPopup({
     let identifier = ''
     
     if (collectionType === 'people') {
-      identifier = String(item.fullName?.en || item.fullName || item.firstName?.en || item.firstName || '')
+      const fullName = typeof item.fullName === 'string' 
+        ? item.fullName 
+        : MultiLangUtils.getTextValue(item.fullName || {}, currentLanguage)
+      const firstName = typeof item.firstName === 'string' 
+        ? item.firstName 
+        : MultiLangUtils.getTextValue(item.firstName || {}, currentLanguage)
+      identifier = String(fullName || firstName || '')
     } else if (collectionType === 'tags') {
       identifier = String(item.name || '')
     } else if (collectionType === 'locations') {
@@ -208,11 +217,17 @@ export default function CollectionPopup({
     let description = ''
     
     if (collectionType === 'people') {
-      name = String(item.fullName?.en || item.fullName || item.firstName?.en || item.firstName || '')
+      name = String(
+        typeof item.fullName === 'string' 
+          ? item.fullName 
+          : MultiLangUtils.getTextValue(item.fullName || {}, currentLanguage) ||
+            (typeof item.firstName === 'string' ? item.firstName : MultiLangUtils.getTextValue(item.firstName || {}, currentLanguage)) ||
+            ''
+      )
       description = String(
-        (typeof item.description === 'object' && item.description?.en) || 
-        item.description || 
-        ''
+        typeof item.description === 'string' 
+          ? item.description 
+          : MultiLangUtils.getTextValue(item.description || {}, currentLanguage) || ''
       )
     } else if (collectionType === 'tags') {
       name = String(item.name || '')

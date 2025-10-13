@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { useI18n } from '@/hooks/useI18n'
+import { useLanguage } from '@/contexts/LanguageContext'
+import { MultiLangUtils } from '@/types/multi-lang'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
@@ -40,6 +42,7 @@ export function SearchFilters({
   onSortChange
 }: SearchFiltersProps) {
   const { t } = useI18n()
+  const { currentLanguage } = useLanguage()
   const [availableTags, setAvailableTags] = useState<Array<string | {en?: string, he?: string}>>([])
   const [availableAlbums, setAvailableAlbums] = useState<Array<{_id: string, name: string | {en?: string, he?: string}}>>([])
   const [tagInput, setTagInput] = useState('')
@@ -177,11 +180,7 @@ export function SearchFilters({
                     key={String(tag)}
                     className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
                   >
-                    {String(
-                      typeof tag === 'object' && tag && 'en' in tag 
-                        ? (tag as {en?: string, he?: string}).en || (tag as {en?: string, he?: string}).he || '' 
-                        : tag || ''
-                    )}
+                    {typeof tag === 'string' ? tag : (MultiLangUtils.getTextValue(tag as any, currentLanguage) || '')}
                     <button
                       onClick={() => handleTagRemove(tag)}
                       className="ml-1 hover:text-blue-600"
@@ -213,11 +212,9 @@ export function SearchFilters({
                   if (!albumId) return null
                   return (
                     <SelectItem key={album._id} value={albumId}>
-                      {String(
-                        typeof album.name === 'object' && album.name && 'en' in album.name 
-                          ? (album.name as {en?: string, he?: string}).en || (album.name as {en?: string, he?: string}).he || '' 
-                          : album.name || 'Unnamed Album'
-                      )}
+                      {typeof album.name === 'string' 
+                        ? (album.name || 'Unnamed Album') 
+                        : (MultiLangUtils.getTextValue(album.name as any, currentLanguage) || 'Unnamed Album')}
                     </SelectItem>
                   )
                 })

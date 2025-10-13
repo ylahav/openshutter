@@ -470,7 +470,7 @@ export default function AdminAlbumsPage() {
                           >
                             <img
                               src={photo.storage?.thumbnailPath || photo.storage?.url}
-                              alt={photo.title?.en || photo.filename}
+                              alt={(typeof photo.title === 'string' ? photo.title : MultiLangUtils.getTextValue(photo.title as any, currentLanguage)) || photo.filename}
                               className={`w-full h-20 object-cover rounded-lg hover:opacity-75 transition-opacity ${
                                 isCurrentCover ? 'ring-2 ring-blue-500' : ''
                               }`}
@@ -482,7 +482,7 @@ export default function AdminAlbumsPage() {
                             )}
                             {photo.sourceAlbum && (
                               <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-60 text-white text-xs p-1 rounded-b-lg truncate">
-                                {photo.sourceAlbum.name?.en || photo.sourceAlbum.alias}
+                                {typeof photo.sourceAlbum.name === 'string' ? photo.sourceAlbum.name : MultiLangUtils.getTextValue(photo.sourceAlbum.name as any, currentLanguage) || photo.sourceAlbum.alias}
                               </div>
                             )}
                           </div>
