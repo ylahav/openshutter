@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { connectToDatabase, connectMongoose } from '@/lib/mongodb'
 import { getCurrentUser } from '@/lib/access-control-server'
 import { PersonModel } from '@/lib/models/Person'
+import { SUPPORTED_LANGUAGES } from '@/types/multi-lang'
 import { TagModel } from '@/lib/models/Tag'
 
 export async function GET(request: NextRequest) {
@@ -28,19 +29,9 @@ export async function GET(request: NextRequest) {
     const query: any = {}
     
     if (search) {
-      // Search in multi-language fields using regex
-      query.$or = [
-        { 'firstName.en': { $regex: search, $options: 'i' } },
-        { 'firstName.he': { $regex: search, $options: 'i' } },
-        { 'lastName.en': { $regex: search, $options: 'i' } },
-        { 'lastName.he': { $regex: search, $options: 'i' } },
-        { 'fullName.en': { $regex: search, $options: 'i' } },
-        { 'fullName.he': { $regex: search, $options: 'i' } },
-        { 'nickname.en': { $regex: search, $options: 'i' } },
-        { 'nickname.he': { $regex: search, $options: 'i' } },
-        { 'description.en': { $regex: search, $options: 'i' } },
-        { 'description.he': { $regex: search, $options: 'i' } }
-      ]
+      const langs = SUPPORTED_LANGUAGES.map(l => l.code)
+      const fields = ['firstName', 'lastName', 'fullName', 'nickname', 'description']
+      query.$or = fields.flatMap(f => langs.map(code => ({ [`${f}.${code}`]: { $regex: search, $options: 'i' } })))
     }
     
     if (isActive !== null) {
@@ -51,7 +42,7 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit
     const [people, total] = await Promise.all([
       PersonModel.find(query)
-        .sort({ 'fullName.en': 1 })
+        .sort({ fullName: 1 })
         .skip(skip)
         .limit(limit)
         .lean(),
@@ -149,10 +140,13 @@ export async function POST(request: NextRequest) {
     const { firstName, lastName, nickname, birthDate, description, tags } = body
     
     // Validate required fields
-    if (!firstName || !lastName || 
-        !firstName.en || !lastName.en || 
-        (!firstName.en.trim() && !firstName.he?.trim()) || 
-        (!lastName.en.trim() && !lastName.he?.trim())) {
+    const anyFirst = typeof firstName === 'string'
+      ? !!firstName.trim()
+      : Object.values((firstName as Record<string, string>) || {}).some((v) => (v || '').trim())
+    const anyLast = typeof lastName === 'string'
+      ? !!lastName.trim()
+      : Object.values((lastName as Record<string, string>) || {}).some((v) => (v || '').trim())
+    if (!anyFirst || !anyLast) {
       return NextResponse.json(
         { success: false, error: 'First name and last name are required in at least one language' },
         { status: 400 }
@@ -176,20 +170,21 @@ export async function POST(request: NextRequest) {
     }
     
     // Generate fullName from firstName and lastName for comparison
-    const fullNameEn = `${firstName.en || ''} ${lastName.en || ''}`.trim()
-    const fullNameHe = `${firstName.he || ''} ${lastName.he || ''}`.trim()
+    const langs = SUPPORTED_LANGUAGES.map(l => l.code)
+    const fullNamesByLang = langs.reduce((acc: any, code: string) => {
+      const fn = typeof firstName === 'object' ? (firstName as any)[code] || '' : ''
+      const ln = typeof lastName === 'object' ? (lastName as any)[code] || '' : ''
+      const combined = `${(fn || '').trim()} ${(ln || '').trim()}`.trim()
+      if (combined) acc[code] = combined
+      return acc
+    }, {})
     
     // Check if person already exists (check by exact full name match)
     const duplicateConditions = []
     
     // Only check for English full name if it's not empty
-    if (fullNameEn) {
-      duplicateConditions.push({ 'fullName.en': fullNameEn })
-    }
-    
-    // Only check for Hebrew full name if it's not empty
-    if (fullNameHe) {
-      duplicateConditions.push({ 'fullName.he': fullNameHe })
+    for (const code of Object.keys(fullNamesByLang)) {
+      duplicateConditions.push({ [`fullName.${code}`]: (fullNamesByLang as any)[code] })
     }
     
     // If no valid full names to check, skip duplicate check
@@ -199,8 +194,7 @@ export async function POST(request: NextRequest) {
       const duplicateQuery = { $or: duplicateConditions }
       
       console.log('Duplicate check query:', duplicateQuery)
-      console.log('Looking for fullNameEn:', fullNameEn)
-      console.log('Looking for fullNameHe:', fullNameHe)
+      console.log('Looking for fullNames:', fullNamesByLang)
       
       const existingPerson = await PersonModel.findOne(duplicateQuery)
       
@@ -216,8 +210,7 @@ export async function POST(request: NextRequest) {
           newPerson: {
             firstName,
             lastName,
-            fullNameEn,
-            fullNameHe
+            fullNames: fullNamesByLang
           }
         })
         return NextResponse.json(
@@ -228,10 +221,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Generate fullName from firstName and lastName
-    const fullName = {
-      en: `${firstName.en || ''} ${lastName.en || ''}`.trim(),
-      he: `${firstName.he || ''} ${lastName.he || ''}`.trim()
-    }
+    const fullName = fullNamesByLang
     
     // Create new person
     const person = new PersonModel({

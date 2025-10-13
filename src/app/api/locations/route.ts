@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { connectToDatabase } from '@/lib/mongodb'
 import { getCurrentUser } from '@/lib/access-control-server'
 import { LocationModel } from '@/lib/models/Location'
+import { SUPPORTED_LANGUAGES } from '@/types/multi-lang'
 
 export async function GET(request: NextRequest) {
   try {
@@ -98,7 +99,10 @@ export async function POST(request: NextRequest) {
     } = body
     
     // Validate required fields
-    if (!name || (typeof name === 'object' && (!name.en && !name.he))) {
+    const hasAnyName = typeof name === 'string'
+      ? !!name.trim()
+      : Object.values((name as Record<string, string>) || {}).some((v) => (v || '').trim())
+    if (!hasAnyName) {
       return NextResponse.json(
         { success: false, error: 'Location name is required' },
         { status: 400 }
@@ -107,22 +111,33 @@ export async function POST(request: NextRequest) {
     
     // Convert name to multi-language format if it's a string
     const nameObj = typeof name === 'string' 
-      ? { en: name.trim(), he: '' }
-      : { en: name.en?.trim() || '', he: name.he?.trim() || '' }
+      ? { en: name.trim() }
+      : Object.fromEntries(
+          SUPPORTED_LANGUAGES
+            .map(l => [l.code, (name as any)[l.code]?.trim() || ''])
+        )
     
     // Convert description to multi-language format if it's a string
     const descriptionObj = description 
       ? (typeof description === 'string' 
-          ? { en: description.trim(), he: '' }
-          : { en: description.en?.trim() || '', he: description.he?.trim() || '' })
-      : { en: '', he: '' }
+          ? { en: description.trim() }
+          : Object.fromEntries(
+              SUPPORTED_LANGUAGES
+                .map(l => [l.code, (description as any)[l.code]?.trim() || ''])
+            ))
+      : {}
     
-    // Check if location already exists (check by English name)
-    const existingLocation = await LocationModel.findOne({
-      'name.en': nameObj.en,
-      city: city?.trim(),
-      country: country?.trim()
-    })
+    // Check if location already exists (check by any language name)
+    const nameConditions = SUPPORTED_LANGUAGES
+      .map(l => ({ [`name.${l.code}`]: (nameObj as any)[l.code] }))
+      .filter(cond => Object.values(cond)[0])
+    const existingLocation = nameConditions.length
+      ? await LocationModel.findOne({
+          $or: nameConditions,
+          city: city?.trim(),
+          country: country?.trim()
+        })
+      : null
     
     if (existingLocation) {
       return NextResponse.json(

@@ -6,6 +6,7 @@ import { DatabaseOptimizer } from '@/services/database-optimizer'
 import { PersonModel } from '@/lib/models/Person'
 import { TagModel } from '@/lib/models/Tag'
 import { LocationModel } from '@/lib/models/Location'
+import { SUPPORTED_LANGUAGES } from '@/types/multi-lang'
 
 export async function GET(request: NextRequest) {
   try {
@@ -181,16 +182,9 @@ export async function GET(request: NextRequest) {
       
       // Text search in people names and descriptions using regex
       if (query) {
-        peopleQuery.$or = [
-          { 'firstName.en': { $regex: query, $options: 'i' } },
-          { 'firstName.he': { $regex: query, $options: 'i' } },
-          { 'lastName.en': { $regex: query, $options: 'i' } },
-          { 'lastName.he': { $regex: query, $options: 'i' } },
-          { 'fullName.en': { $regex: query, $options: 'i' } },
-          { 'fullName.he': { $regex: query, $options: 'i' } },
-          { 'nickname.en': { $regex: query, $options: 'i' } },
-          { 'nickname.he': { $regex: query, $options: 'i' } }
-        ]
+        const langs = SUPPORTED_LANGUAGES.map(l => l.code)
+        const fields = ['firstName', 'lastName', 'fullName', 'nickname']
+        peopleQuery.$or = fields.flatMap(f => langs.map(code => ({ [`${f}.${code}`]: { $regex: query, $options: 'i' } })))
       }
       
       // Get people with pagination
@@ -212,11 +206,15 @@ export async function GET(request: NextRequest) {
           ? { en: (person as any).lastName, he: '' } 
           : ((person as any).lastName || (person as any).familyName || { en: '', he: '' })
         
-        // Generate fullName from firstName and lastName
-        const fullName = {
-          en: `${firstName.en || ''} ${lastName.en || ''}`.trim(),
-          he: `${firstName.he || ''} ${lastName.he || ''}`.trim()
-        }
+        // Generate fullName from firstName and lastName across languages
+        const langCodes = SUPPORTED_LANGUAGES.map(l => l.code)
+        const fullName = langCodes.reduce((acc: any, code: string) => {
+          const fn = typeof firstName === 'object' ? (firstName as any)[code] || '' : ''
+          const ln = typeof lastName === 'object' ? (lastName as any)[code] || '' : ''
+          const combined = `${(fn || '').trim()} ${(ln || '').trim()}`.trim()
+          if (combined) acc[code] = combined
+          return acc
+        }, {})
         
         return {
           ...person,
@@ -245,11 +243,11 @@ export async function GET(request: NextRequest) {
       
       // Text search in location names, descriptions, and addresses using regex
       if (query) {
+        const langs = SUPPORTED_LANGUAGES.map(l => l.code)
+        const nameDesc = ['name', 'description']
+        const textConds = nameDesc.flatMap(f => langs.map(code => ({ [`${f}.${code}`]: { $regex: query, $options: 'i' } })))
         locationQuery.$or = [
-          { 'name.en': { $regex: query, $options: 'i' } },
-          { 'name.he': { $regex: query, $options: 'i' } },
-          { 'description.en': { $regex: query, $options: 'i' } },
-          { 'description.he': { $regex: query, $options: 'i' } },
+          ...textConds,
           { address: { $regex: query, $options: 'i' } },
           { city: { $regex: query, $options: 'i' } },
           { state: { $regex: query, $options: 'i' } },
@@ -260,7 +258,7 @@ export async function GET(request: NextRequest) {
       // Get locations with pagination
       const locations = await LocationModel.find(locationQuery)
         .sort({ 
-          [sortBy === 'date' ? 'createdAt' : 'name.en']: sortOrder === 'asc' ? 1 : -1 
+          [sortBy === 'date' ? 'createdAt' : 'name']: sortOrder === 'asc' ? 1 : -1 
         })
         .skip((page - 1) * limit)
         .limit(limit)

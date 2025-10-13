@@ -260,11 +260,12 @@ export class DatabaseOptimizer {
 
     // Text search using regex (no index required)
     if (query) {
+      const { SUPPORTED_LANGUAGES } = await import('@/types/multi-lang')
+      const langs = SUPPORTED_LANGUAGES.map(l => l.code)
+      const fields = ['title', 'description']
+      const langConds = fields.flatMap(f => langs.map(code => ({ [`${f}.${code}`]: { $regex: query, $options: 'i' } })))
       matchStage.$or = [
-        { 'title.en': { $regex: query, $options: 'i' } },
-        { 'title.he': { $regex: query, $options: 'i' } },
-        { 'description.en': { $regex: query, $options: 'i' } },
-        { 'description.he': { $regex: query, $options: 'i' } },
+        ...langConds,
         { filename: { $regex: query, $options: 'i' } },
         { originalFilename: { $regex: query, $options: 'i' } }
       ]

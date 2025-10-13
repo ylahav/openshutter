@@ -12,7 +12,7 @@ export default function PhotoPreview({ photo }: PhotoPreviewProps) {
       <div className="flex-shrink-0">
         <img
           src={photo.storage.thumbnailPath || photo.storage.url}
-          alt={typeof photo.title === 'string' ? photo.title : photo.title.en}
+          alt={typeof photo.title === 'string' ? photo.title : (photo as any).title?.en || ''}
           className="w-32 h-32 object-cover rounded-lg"
         />
       </div>

@@ -352,14 +352,14 @@ export default function AlbumDetailView({ album, photos, role, albumId }: AlbumD
                     <div className="aspect-w-1 aspect-h-1 bg-gray-200 rounded-lg overflow-hidden">
                       <img
                         src={(photo as any).storage?.thumbnailPath || (photo as any).storage?.url}
-                        alt={typeof photo.title === 'string' ? photo.title : (photo.title as any)?.en}
+                        alt={typeof photo.title === 'string' ? photo.title : MultiLangUtils.getTextValue((photo as any).title, currentLanguage) || ''}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
                     </div>
                   </button>
                   <div className="mt-2">
                     <h3 className="text-sm font-medium text-gray-900 truncate">
-                      {typeof photo.title === 'string' ? photo.title : (photo.title as any)?.en}
+                      {typeof photo.title === 'string' ? photo.title : MultiLangUtils.getTextValue((photo as any).title, currentLanguage) || ''}
                     </h3>
                   </div>
 
@@ -420,7 +420,7 @@ export default function AlbumDetailView({ album, photos, role, albumId }: AlbumD
           _id: p._id,
           url: (p as any).storage?.url || (p as any).storage?.originalPath,
           thumbnailUrl: (p as any).storage?.thumbnailPath,
-          title: typeof p.title === 'string' ? p.title : (p.title as any)?.en,
+          title: typeof p.title === 'string' ? p.title : MultiLangUtils.getTextValue((p as any).title, currentLanguage) || '',
           takenAt: (p as any).exif?.dateTimeOriginal,
           exif: (p as any).exif ? {
             // Basic Camera Information

@@ -222,7 +222,7 @@ export default function EditPhotoPage({ params }: { params: Promise<{ id: string
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Edit Photo</h1>
               <p className="mt-2 text-gray-600">
-                {typeof photo.title === 'string' ? photo.title : photo.title.en}
+                {typeof photo.title === 'string' ? photo.title : (photo as any).title?.en || ''}
               </p>
             </div>
             <div className="flex space-x-3">
