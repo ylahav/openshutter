@@ -670,5 +670,54 @@
     "deactivate": "Deactivate",
     "allStatuses": "All Statuses",
     "search": "Search"
+  },
+  "mobile": {
+    "nav": {
+      "home": "Home",
+      "search": "Search",
+      "albums": "Albums",
+      "upload": "Upload",
+      "people": "People",
+      "locations": "Locations",
+      "tags": "Tags",
+      "dashboard": "Dashboard",
+      "menu": "Menu",
+      "login": "Login",
+      "logout": "Logout"
+    },
+    "upload": {
+      "selectFiles": "Select Files",
+      "takePhoto": "Take Photo",
+      "dragDrop": "Drag and drop files here, or click to select",
+      "maxFiles": "Max {maxFiles} files, 50MB each",
+      "selectedFiles": "Selected Files",
+      "uploading": "Uploading...",
+      "uploadFiles": "Upload {count} Files",
+      "success": "Upload completed successfully!",
+      "error": "Upload failed. Please try again.",
+      "invalidFiles": "Some files were skipped due to invalid format or size"
+    },
+    "search": {
+      "placeholder": "Search photos, albums, people...",
+      "searchType": "Search Type",
+      "all": "All",
+      "photos": "Photos",
+      "albums": "Albums",
+      "people": "People",
+      "locations": "Locations",
+      "dateRange": "Date Range",
+      "from": "From",
+      "to": "To",
+      "location": "Location",
+      "locationPlaceholder": "Enter location name...",
+      "clear": "Clear All",
+      "apply": "Apply Filters"
+    },
+    "gallery": {
+      "previous": "Previous",
+      "next": "Next",
+      "people": "People",
+      "location": "Location"
+    }
   }
 }

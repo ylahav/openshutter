@@ -42,7 +42,11 @@
     "Photo Gallery Management",
     "Multi-Storage Support",
     "Offline Access",
-    "Responsive Design"
+    "Responsive Design",
+    "Mobile-Optimized Interface",
+    "Touch-Friendly Navigation",
+    "Camera Integration",
+    "Advanced Search"
   ],
   "shortcuts": [
     {
@@ -53,10 +57,24 @@
       "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
     },
     {
+      "name": "Search Photos",
+      "short_name": "Search",
+      "description": "Search through photos and albums",
+      "url": "/search",
+      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
       "name": "Upload Photos",
       "short_name": "Upload",
       "description": "Upload new photos",
       "url": "/photos/upload",
+      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Mobile Search",
+      "short_name": "Mobile",
+      "description": "Mobile-optimized search interface",
+      "url": "/mobile/search",
       "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
     }
   ]

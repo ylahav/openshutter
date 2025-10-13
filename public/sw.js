@@ -1,33 +1,51 @@
-// Service Worker for OpenShutter
-const CACHE_NAME = 'openshutter-v1'
-const STATIC_CACHE = 'openshutter-static-v1'
-const DYNAMIC_CACHE = 'openshutter-dynamic-v1'
+// Service Worker for OpenShutter - Enhanced Mobile Support
+const CACHE_NAME = 'openshutter-v2'
+const STATIC_CACHE = 'openshutter-static-v2'
+const DYNAMIC_CACHE = 'openshutter-dynamic-v2'
+const IMAGE_CACHE = 'openshutter-images-v2'
 
 // Assets to cache immediately
 const STATIC_ASSETS = [
   '/',
   '/albums',
   '/login',
+  '/search',
   '/offline',
   '/manifest.json'
+]
+
+// Mobile-specific assets
+const MOBILE_ASSETS = [
+  '/icon-192x192.png',
+  '/icon-512x512.png',
+  '/screenshot-narrow.png'
 ]
 
 // Install event - cache static assets
 self.addEventListener('install', (event) => {
   console.log('Service Worker installing...')
   event.waitUntil(
-    caches.open(STATIC_CACHE)
-      .then((cache) => {
-        console.log('Caching static assets')
-        return cache.addAll(STATIC_ASSETS)
-      })
-      .then(() => {
-        console.log('Static assets cached successfully')
-        return self.skipWaiting()
-      })
-      .catch((error) => {
-        console.error('Failed to cache static assets:', error)
-      })
+    Promise.all([
+      // Cache static assets
+      caches.open(STATIC_CACHE)
+        .then((cache) => {
+          console.log('Caching static assets')
+          return cache.addAll(STATIC_ASSETS)
+        }),
+      // Cache mobile assets
+      caches.open(STATIC_CACHE)
+        .then((cache) => {
+          console.log('Caching mobile assets')
+          return cache.addAll(MOBILE_ASSETS)
+        })
+    ])
+    .then(() => {
+      console.log('All assets cached successfully')
+      return self.skipWaiting()
+    })
+    .catch((error) => {
+      console.error('Failed to cache assets:', error)
+    })
   )
 })
 
@@ -102,6 +120,37 @@ self.addEventListener('fetch', (event) => {
                   headers: { 'Content-Type': 'application/json' }
                 }
               )
+            })
+        })
+    )
+    return
+  }
+
+  // Image requests - Cache First with mobile optimization
+  if (url.pathname.match(/\.(jpg|jpeg|png|gif|webp|avif)$/)) {
+    event.respondWith(
+      caches.open(IMAGE_CACHE)
+        .then((cache) => {
+          return cache.match(request)
+            .then((cachedResponse) => {
+              if (cachedResponse) {
+                return cachedResponse
+              }
+              
+              return fetch(request)
+                .then((response) => {
+                  if (response.ok) {
+                    cache.put(request, response.clone())
+                  }
+                  return response
+                })
+                .catch(() => {
+                  // Return a placeholder image for mobile
+                  return new Response(
+                    '<svg width="300" height="200" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="#f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="#6b7280" font-family="Arial, sans-serif" font-size="14">Image unavailable offline</text></svg>',
+                    { headers: { 'Content-Type': 'image/svg+xml' } }
+                  )
+                })
             })
         })
     )

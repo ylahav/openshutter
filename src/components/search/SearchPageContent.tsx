@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import { useI18n } from '@/hooks/useI18n'
 import { SearchFilters } from './SearchFilters'
 import { SearchResults } from './SearchResults'
+import { SearchResult } from '@/types/search'
 
 interface SearchFilters {
   tags: string[]
@@ -14,25 +15,6 @@ interface SearchFilters {
   storageProvider: string
   isPublic: string
   mine: boolean
-}
-
-interface SearchResult {
-  _id: string
-  type: 'photo' | 'album' | 'person'
-  title: string
-  description?: string
-  thumbnail?: string
-  albumId?: string
-  albumName?: string
-  createdAt: string
-  updatedAt: string
-  isPublished?: boolean
-  tags?: string[]
-  people?: string[]
-  location?: {
-    name: string
-    coordinates?: [number, number]
-  }
 }
 
 export default function SearchPageContent() {
