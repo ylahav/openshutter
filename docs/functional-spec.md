@@ -21,7 +21,16 @@
   - Owner albums: owners can only edit/delete albums they created (`createdBy` field)
   - Role-based redirection: admins → `/admin`, owners → `/owner`, others → `/` (home page)
 
-### 3. Entities
+### 3. Mobile & PWA Features
+- **Progressive Web App**: Installable on mobile devices with native app experience
+- **Offline Support**: Service worker caching for photos, albums, and search results
+- **Touch Navigation**: Swipe gestures, pinch-to-zoom, and touch-friendly controls
+- **Mobile Upload**: Direct camera integration for photo capture and upload
+- **Mobile Search**: Touch-optimized search with filters and gesture navigation
+- **Responsive Gallery**: Masonry layouts optimized for mobile screens
+- **Mobile Shortcuts**: Quick access to mobile-optimized features
+
+### 4. Entities
 - SiteConfig: title (ml text), description (ml html), logo, languages (active, default), theme
 - Album: name (ml text), description (ml html), cover image, alias, parent, counts, visibility, access control
   - `isPublic`: boolean (public/private)

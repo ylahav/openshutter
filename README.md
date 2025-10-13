@@ -17,6 +17,8 @@ A comprehensive photo gallery management system with multi-storage support, adva
 - **Bulk Photo Management**: Apply tags, locations, and metadata to multiple photos
 - **Multi-Language Support**: Internationalization with RTL support
 - **Responsive Design**: Beautiful galleries for all devices with masonry layouts
+- **Mobile-First PWA**: Progressive Web App with offline capabilities and mobile optimization
+- **Touch-Optimized Interface**: Mobile navigation, photo upload, and search with gesture support
 - **Real-time Updates**: Live photo uploads and collaborative features
 - **Role-Based Access**: Admin, Owner, and Guest roles with different capabilities
 - **Storage Management**: Configure and manage multiple storage providers through admin interface
@@ -33,6 +35,16 @@ A comprehensive photo gallery management system with multi-storage support, adva
 - **Authentication**: NextAuth.js
 - **Rich Text**: Tiptap Editor
 - **State Management**: React Query
+
+## 📱 Mobile Features
+
+- **Progressive Web App (PWA)**: Install on mobile devices with native app experience
+- **Offline Support**: View cached photos and albums without internet connection
+- **Touch Navigation**: Swipe gestures, pinch-to-zoom, and touch-friendly controls
+- **Mobile Upload**: Direct camera integration for photo capture and upload
+- **Mobile Search**: Touch-optimized search with filters and gesture navigation
+- **Responsive Gallery**: Masonry layouts optimized for mobile screens
+- **Mobile Shortcuts**: Quick access to mobile-optimized features
 
 ## 📋 Prerequisites
 
