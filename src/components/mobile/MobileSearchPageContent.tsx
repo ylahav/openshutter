@@ -6,7 +6,7 @@ import { useI18n } from '@/hooks/useI18n'
 import MobileLayout from './MobileLayout'
 import MobileSearch from './MobileSearch'
 import MobilePhotoGallery from './MobilePhotoGallery'
-import { SearchFilters, SearchResult } from '@/types/search'
+import { MobileSearchFilters, SearchResult } from '@/types/search'
 
 export default function MobileSearchPageContent() {
   const { t } = useI18n()
@@ -44,7 +44,7 @@ export default function MobileSearchPageContent() {
   const [activeTab, setActiveTab] = useState<'photos' | 'albums' | 'people' | 'locations'>('photos')
 
   // Search function
-  const performSearch = async (searchQuery: string, filters: SearchFilters) => {
+  const performSearch = async (searchQuery: string, filters: MobileSearchFilters) => {
     if (!searchQuery.trim()) {
       setResults({
         photos: [],
@@ -112,7 +112,7 @@ export default function MobileSearchPageContent() {
     }
   }, [query])
 
-  const handleSearch = (searchQuery: string, filters: SearchFilters) => {
+  const handleSearch = (searchQuery: string, filters: MobileSearchFilters) => {
     performSearch(searchQuery, filters)
   }
 

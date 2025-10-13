@@ -2,11 +2,21 @@
  * Shared search types for OpenShutter
  */
 
-export interface SearchFilters {
+export interface MobileSearchFilters {
   type: 'all' | 'photos' | 'albums' | 'people' | 'locations'
   tags: string[]
   dateRange: { from: string; to: string }
   location: string
+}
+
+export interface DesktopSearchFilters {
+  tags: string[]
+  albumId: string | null
+  dateFrom: string
+  dateTo: string
+  storageProvider: string
+  isPublic: string
+  mine: boolean
 }
 
 export interface SearchResult {

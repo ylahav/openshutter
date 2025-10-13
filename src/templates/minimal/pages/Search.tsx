@@ -3,28 +3,18 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useI18n } from '@/hooks/useI18n'
-import { SearchFilters } from '@/components/search/SearchFilters'
+import { SearchFilters as SearchFiltersComponent } from '@/components/search/SearchFilters'
 import { SearchResults } from '@/components/search/SearchResults'
-import { SearchResult } from '@/types/search'
+import { SearchResult, DesktopSearchFilters } from '@/types/search'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
-
-interface SearchFilters {
-  tags: string[]
-  albumId: string | null
-  dateFrom: string
-  dateTo: string
-  storageProvider: string
-  isPublic: string
-  mine: boolean
-}
 
 export default function SearchPage() {
   const { t } = useI18n()
   const searchParams = useSearchParams()
   const query = searchParams.get('q') || ''
 
-  const [filters, setFilters] = useState<SearchFilters>({
+  const [filters, setFilters] = useState<DesktopSearchFilters>({
     tags: [],
     albumId: null,
     dateFrom: '',
@@ -87,7 +77,7 @@ export default function SearchPage() {
     performSearch()
   }, [query, type, filters, sortBy, sortOrder])
 
-  const handleFilterChange = (newFilters: Partial<SearchFilters>) => {
+  const handleFilterChange = (newFilters: Partial<DesktopSearchFilters>) => {
     setFilters(prev => ({ ...prev, ...newFilters }))
   }
 
@@ -160,7 +150,7 @@ export default function SearchPage() {
           {/* Filters Sidebar */}
           <div className="lg:col-span-1">
             <div className="bg-card rounded-lg p-4 border sticky top-8">
-              <SearchFilters
+              <SearchFiltersComponent
                 filters={filters}
                 onFilterChange={handleFilterChange}
                 type={type}

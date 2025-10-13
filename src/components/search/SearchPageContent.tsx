@@ -3,26 +3,16 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useI18n } from '@/hooks/useI18n'
-import { SearchFilters } from './SearchFilters'
+import { SearchFilters as SearchFiltersComponent } from './SearchFilters'
 import { SearchResults } from './SearchResults'
-import { SearchResult } from '@/types/search'
-
-interface SearchFilters {
-  tags: string[]
-  albumId: string | null
-  dateFrom: string
-  dateTo: string
-  storageProvider: string
-  isPublic: string
-  mine: boolean
-}
+import { SearchResult, DesktopSearchFilters } from '@/types/search'
 
 export default function SearchPageContent() {
   const { t } = useI18n()
   const searchParams = useSearchParams()
   const query = searchParams.get('q') || ''
 
-  const [filters, setFilters] = useState<SearchFilters>({
+  const [filters, setFilters] = useState<DesktopSearchFilters>({
     tags: [],
     albumId: null,
     dateFrom: '',
@@ -133,7 +123,7 @@ export default function SearchPageContent() {
     performSearch()
   }, [query, type, filters, sortBy, sortOrder])
 
-  const handleFilterChange = (newFilters: Partial<SearchFilters>) => {
+  const handleFilterChange = (newFilters: Partial<DesktopSearchFilters>) => {
     setFilters(prev => ({ ...prev, ...newFilters }))
   }
 
@@ -204,7 +194,7 @@ export default function SearchPageContent() {
           {/* Filters Sidebar */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg p-4 shadow sticky top-8">
-              <SearchFilters
+              <SearchFiltersComponent
                 filters={filters}
                 onFilterChange={handleFilterChange}
                 type={type}

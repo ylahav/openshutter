@@ -3,10 +3,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { useI18n } from '@/hooks/useI18n'
 import { Search, Filter, X, Camera, MapPin, User, Tag } from 'lucide-react'
-import { SearchFilters } from '@/types/search'
+import { MobileSearchFilters } from '@/types/search'
 
 interface MobileSearchProps {
-  onSearch: (query: string, filters: SearchFilters) => void
+  onSearch: (query: string, filters: MobileSearchFilters) => void
   placeholder?: string
   className?: string
 }
@@ -19,7 +19,7 @@ export default function MobileSearch({
   const { t } = useI18n()
   const [query, setQuery] = useState('')
   const [showFilters, setShowFilters] = useState(false)
-  const [filters, setFilters] = useState<SearchFilters>({
+  const [filters, setFilters] = useState<MobileSearchFilters>({
     type: 'all',
     tags: [],
     dateRange: { from: '', to: '' },
