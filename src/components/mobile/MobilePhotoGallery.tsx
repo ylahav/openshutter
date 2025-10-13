@@ -2,6 +2,24 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { useI18n } from '@/hooks/useI18n'
+// Simple interface for mobile gallery display
+interface MobilePhoto {
+  _id: string
+  title: string | Record<string, string>
+  description?: string | Record<string, string>
+  storage: {
+    url: string
+    thumbnailPath: string
+  }
+  dimensions: {
+    width: number
+    height: number
+  }
+  uploadedAt: string | Date
+  tags?: string[]
+  people?: string[]
+  location?: string | { name: string; coordinates?: [number, number] }
+}
 import { 
   Heart, 
   Share2, 
@@ -15,27 +33,11 @@ import {
   RotateCw
 } from 'lucide-react'
 
-interface Photo {
-  _id: string
-  title: string
-  description?: string
-  storage: {
-    url: string
-    thumbnailPath: string
-  }
-  dimensions: {
-    width: number
-    height: number
-  }
-  uploadedAt: string
-  tags?: string[]
-  people?: string[]
-  location?: string
-}
+// Using Photo from @/types/index.ts instead of local interface
 
 interface MobilePhotoGalleryProps {
-  photos: Photo[]
-  onPhotoSelect?: (photo: Photo, index: number) => void
+  photos: MobilePhoto[]
+  onPhotoSelect?: (photo: MobilePhoto, index: number) => void
   className?: string
 }
 
@@ -45,7 +47,7 @@ export default function MobilePhotoGallery({
   className = ''
 }: MobilePhotoGalleryProps) {
   const { t } = useI18n()
-  const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null)
+  const [selectedPhoto, setSelectedPhoto] = useState<MobilePhoto | null>(null)
   const [selectedIndex, setSelectedIndex] = useState(0)
   const [isLightboxOpen, setIsLightboxOpen] = useState(false)
   const [zoom, setZoom] = useState(1)
@@ -54,7 +56,7 @@ export default function MobilePhotoGallery({
   const lightboxRef = useRef<HTMLDivElement>(null)
   const imageRef = useRef<HTMLImageElement>(null)
 
-  const openLightbox = useCallback((photo: Photo, index: number) => {
+  const openLightbox = useCallback((photo: MobilePhoto, index: number) => {
     setSelectedPhoto(photo)
     setSelectedIndex(index)
     setIsLightboxOpen(true)
@@ -169,7 +171,7 @@ export default function MobilePhotoGallery({
           >
             <img
               src={photo.storage.thumbnailPath || photo.storage.url}
-              alt={photo.title}
+              alt={typeof photo.title === 'string' ? photo.title : photo.title.en || photo.title.he || 'Photo'}
               className="w-full h-full object-cover transition-transform group-hover:scale-105"
               loading="lazy"
             />
@@ -178,10 +180,10 @@ export default function MobilePhotoGallery({
             <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
               <div className="text-white text-center">
                 <h3 className="font-medium text-sm truncate px-2">
-                  {photo.title}
+                  {typeof photo.title === 'string' ? photo.title : photo.title.en || photo.title.he || 'Photo'}
                 </h3>
                 <p className="text-xs opacity-90">
-                  {formatDate(photo.uploadedAt)}
+                  {formatDate(photo.uploadedAt instanceof Date ? photo.uploadedAt.toISOString() : photo.uploadedAt)}
                 </p>
               </div>
             </div>
@@ -207,7 +209,7 @@ export default function MobilePhotoGallery({
               </button>
               <div>
                 <h2 className="font-semibold text-lg truncate">
-                  {selectedPhoto.title}
+                  {typeof selectedPhoto.title === 'string' ? selectedPhoto.title : selectedPhoto.title.en || selectedPhoto.title.he || 'Photo'}
                 </h2>
                 <p className="text-sm opacity-80">
                   {selectedIndex + 1} of {photos.length}
@@ -243,7 +245,7 @@ export default function MobilePhotoGallery({
               <img
                 ref={imageRef}
                 src={selectedPhoto.storage.url}
-                alt={selectedPhoto.title}
+                alt={typeof selectedPhoto.title === 'string' ? selectedPhoto.title : selectedPhoto.title.en || selectedPhoto.title.he || 'Photo'}
                 className="max-w-full max-h-full object-contain transition-transform"
                 style={{
                   transform: `scale(${zoom}) rotate(${rotation}deg)`
@@ -293,7 +295,7 @@ export default function MobilePhotoGallery({
             <div className="space-y-2">
               {selectedPhoto.description && (
                 <p className="text-sm opacity-90">
-                  {selectedPhoto.description}
+                  {typeof selectedPhoto.description === 'string' ? selectedPhoto.description : selectedPhoto.description?.en || selectedPhoto.description?.he || ''}
                 </p>
               )}
               
@@ -325,7 +327,7 @@ export default function MobilePhotoGallery({
                     {t('mobile.gallery.location', 'Location')}:
                   </span>
                   <span className="text-xs">
-                    {selectedPhoto.location}
+                    {typeof selectedPhoto.location === 'string' ? selectedPhoto.location : selectedPhoto.location?.name || ''}
                   </span>
                 </div>
               )}

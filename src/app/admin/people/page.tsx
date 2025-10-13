@@ -14,20 +14,9 @@ import { format } from 'date-fns'
 import { MultiLangText, MultiLangUtils } from '@/types/multi-lang'
 import { MultiLangInput } from '@/components/MultiLangInput'
 import AdminTemplate from '@/components/admin/AdminTemplate'
+import { Person } from '@/types/index'
 
-interface Person {
-  _id: string
-  firstName: MultiLangText
-  lastName: MultiLangText
-  fullName: MultiLangText
-  nickname?: MultiLangText
-  birthDate?: string
-  description?: MultiLangText
-  tags: (string | { _id: string; name: string; color?: string })[]
-  isActive: boolean
-  createdAt: string
-  updatedAt: string
-}
+// Using IPerson from @/lib/models/Person.ts instead of local interface
 
 
 export default function PeopleManagementPage() {

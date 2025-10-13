@@ -8,19 +8,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Plus, Search, Edit, Trash2, Tag, Palette } from 'lucide-react'
+import { Plus, Search, Edit, Trash2, Tag as TagIcon, Palette } from 'lucide-react'
+import { Tag } from '@/types/index'
 
-interface Tag {
-  _id: string
-  name: string | {en?: string, he?: string}
-  description?: string | {en?: string, he?: string}
-  color: string
-  category: string
-  isActive: boolean
-  usageCount: number
-  createdAt: string
-  updatedAt: string
-}
+// Using ITag from @/lib/models/Tag.ts instead of local interface
 
 const TAG_CATEGORIES = [
   { value: 'general', label: 'General' },
@@ -203,7 +194,7 @@ export default function TagsManagementPage() {
     setFormData({
       name: getDisplayName(tag.name),
       description: getDisplayDescription(tag.description),
-      color: tag.color,
+      color: tag.color || '',
       category: tag.category
     })
     setIsEditDialogOpen(true)
@@ -349,7 +340,7 @@ export default function TagsManagementPage() {
         </div>
       ) : tags.length === 0 ? (
         <div className="text-center py-8">
-          <Tag className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <TagIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">No tags found</h3>
           <p className="text-gray-600">Start by adding your first tag.</p>
         </div>

@@ -7,17 +7,15 @@ import Header from '../components/Header'
 import Footer from '../components/Footer'
 import { signIn, useSession } from 'next-auth/react'
 import { useI18n } from '@/hooks/useI18n'
+import { LoginFormData } from '@/types/index'
 
-interface FormData {
-  email: string
-  password: string
-}
+// Using LoginFormData from @/types/index.ts instead of local interface
 
 export default function LoginPage() {
   const router = useRouter()
   const { t } = useI18n()
   const { data: session, status } = useSession()
-  const [formData, setFormData] = useState<FormData>({
+  const [formData, setFormData] = useState<LoginFormData>({
     email: '',
     password: ''
   })
@@ -65,7 +63,7 @@ export default function LoginPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
-    setFormData((prev: FormData) => ({
+    setFormData((prev: LoginFormData) => ({
       ...prev,
       [name]: value
     }))

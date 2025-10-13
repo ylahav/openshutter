@@ -11,27 +11,9 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { MapPin, Plus, Search, Edit, Trash2, Map } from 'lucide-react'
+import { Location } from '@/types/index'
 
-interface Location {
-  _id: string
-  name: MultiLangText | string
-  description?: MultiLangText | string
-  address?: string
-  city?: string
-  state?: string
-  country?: string
-  postalCode?: string
-  coordinates?: {
-    latitude: number
-    longitude: number
-  }
-  placeId?: string
-  category: string
-  isActive: boolean
-  usageCount: number
-  createdAt: string
-  updatedAt: string
-}
+// Using ILocation from @/lib/models/Location.ts instead of local interface
 
 const LOCATION_CATEGORIES = [
   { value: 'city', label: 'City' },

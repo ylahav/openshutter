@@ -1,3 +1,52 @@
+// Common Form Types
+export interface LoginFormData {
+  email: string
+  password: string
+}
+
+// Entity Types (for API responses)
+export interface Person {
+  _id: string
+  firstName: { en?: string; he?: string }
+  lastName: { en?: string; he?: string }
+  fullName: { en?: string; he?: string }
+  nickname?: { en?: string; he?: string }
+  birthDate?: string
+  description?: { en?: string; he?: string }
+  profileImage?: {
+    url: string
+    storageProvider: string
+    fileId: string
+  }
+  tags: (string | { _id: string; name: string; color?: string })[]
+  isActive: boolean
+  createdBy: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface Location {
+  _id: string
+  name: { en?: string; he?: string }
+  description?: { en?: string; he?: string }
+  address?: string
+  city?: string
+  state?: string
+  country?: string
+  postalCode?: string
+  coordinates?: {
+    latitude: number
+    longitude: number
+  }
+  placeId?: string
+  category: string
+  isActive: boolean
+  usageCount: number
+  createdBy: string
+  createdAt: string
+  updatedAt: string
+}
+
 // Storage Provider Types
 export interface StorageProvider {
   _id: string
@@ -160,6 +209,7 @@ export interface Tag {
   _id: string
   name: Record<string, string> // Multi-language support
   description: Record<string, string>
+  color?: string
   category: string
   isHomeView: boolean
   usageCount: number

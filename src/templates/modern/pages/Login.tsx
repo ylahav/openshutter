@@ -11,11 +11,9 @@ import { useI18n } from '@/hooks/useI18n'
 import { useSiteConfig } from '@/hooks/useSiteConfig'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { MultiLangUtils } from '@/types/multi-lang'
+import { LoginFormData } from '@/types/index'
 
-interface FormData {
-  email: string
-  password: string
-}
+// Using LoginFormData from @/types/index.ts instead of local interface
 
 export default function LoginPage() {
   const router = useRouter()
@@ -23,7 +21,7 @@ export default function LoginPage() {
   const { data: session, status } = useSession()
   const { config } = useSiteConfig()
   const { currentLanguage } = useLanguage()
-  const [formData, setFormData] = useState<FormData>({
+  const [formData, setFormData] = useState<LoginFormData>({
     email: '',
     password: ''
   })
@@ -71,7 +69,7 @@ export default function LoginPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
-    setFormData((prev: FormData) => ({
+    setFormData((prev: LoginFormData) => ({
       ...prev,
       [name]: value
     }))
