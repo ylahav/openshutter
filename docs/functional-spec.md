@@ -30,7 +30,20 @@
 - **Responsive Gallery**: Masonry layouts optimized for mobile screens
 - **Mobile Shortcuts**: Quick access to mobile-optimized features
 
-### 4. Entities
+### 4. Content Protection & Security
+- **Right-Click Protection**: Disables context menu while preserving functionality in text editors
+- **Developer Tools Blocking**: Prevents F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U shortcuts
+- **Content Security**: Blocks Ctrl+S (save page) and drag-and-drop of images
+- **Smart Exceptions**: Allows right-click in text editors (ProseMirror, Quill, TipTap)
+- **Configurable Warnings**: Customizable warning messages for blocked actions
+- **Multi-Layer Protection**: CSS and JavaScript-based content protection
+- **Accessibility Preserved**: Maintains legitimate user interactions and accessibility
+- **Client-Side Components**:
+  - `RightClickDisabler`: Core protection component with event handling
+  - `ClientRightClickDisabler`: Client-side wrapper with dynamic import
+  - Integration with root layout for site-wide protection
+
+### 5. Entities
 - SiteConfig: title (ml text), description (ml html), logo, languages (active, default), theme
 - Album: name (ml text), description (ml html), cover image, alias, parent, counts, visibility, access control
   - `isPublic`: boolean (public/private)
@@ -46,7 +59,7 @@
 - Group: name (ml text), alias
 - BlogCategory: title (ml text), description (ml text), alias, leadingImage, isActive, sortOrder
 
-### 4. Admin UI
+### 6. Admin UI
 - Site Config editor with multi-lang inputs and languages selection
 - Users management: create/edit, block toggle, roles, groups
 - Groups management: CRUD, name is multi-lang, alias immutable

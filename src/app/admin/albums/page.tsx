@@ -32,10 +32,12 @@ export default function AdminAlbumsPage() {
     isOpen: boolean
     albumId: string | null
     albumName: string
+    action: 'exif' | 'delete' | null
   }>({
     isOpen: false,
     albumId: null,
-    albumName: ''
+    albumName: '',
+    action: null
   })
   
   // Cover photo modal state
@@ -59,28 +61,28 @@ export default function AdminAlbumsPage() {
     totalPhotos: 0
   })
 
-  useEffect(() => {
-    const fetchAlbums = async () => {
-      try {
-        const response = await fetch('/api/albums')
-        if (!response.ok) {
-          throw new Error('Failed to fetch albums')
-        }
-        
-        const result = await response.json()
-        if (result.success) {
-          setAlbums(result.data)
-        } else {
-          setError(result.error || 'Failed to fetch albums')
-        }
-      } catch (error) {
-        console.error('Failed to fetch albums:', error)
-        setError('Failed to fetch albums')
-      } finally {
-        setIsLoading(false)
+  const fetchAlbums = async () => {
+    try {
+      const response = await fetch('/api/albums')
+      if (!response.ok) {
+        throw new Error('Failed to fetch albums')
       }
+      
+      const result = await response.json()
+      if (result.success) {
+        setAlbums(result.data)
+      } else {
+        setError(result.error || 'Failed to fetch albums')
+      }
+    } catch (error) {
+      console.error('Failed to fetch albums:', error)
+      setError('Failed to fetch albums')
+    } finally {
+      setIsLoading(false)
     }
+  }
 
+  useEffect(() => {
     fetchAlbums()
   }, [])
 
@@ -178,14 +180,15 @@ export default function AdminAlbumsPage() {
     setConfirmDialog({
       isOpen: true,
       albumId,
-      albumName
+      albumName,
+      action: 'exif'
     })
   }
 
   const confirmReReadExif = async () => {
     if (!confirmDialog.albumId) return
     
-    setConfirmDialog({ isOpen: false, albumId: null, albumName: '' })
+    setConfirmDialog({ isOpen: false, albumId: null, albumName: '', action: null })
     
     try {
       setReReadingExif(confirmDialog.albumId)
@@ -228,6 +231,59 @@ export default function AdminAlbumsPage() {
       })
     } finally {
       setReReadingExif(null)
+    }
+  }
+
+  const handleDeleteAlbum = (albumId: string, albumName: string) => {
+    setConfirmDialog({
+      isOpen: true,
+      albumId,
+      albumName,
+      action: 'delete'
+    })
+  }
+
+  const confirmDeleteAlbum = async () => {
+    if (!confirmDialog.albumId) return
+    
+    setConfirmDialog({ isOpen: false, albumId: null, albumName: '', action: null })
+    
+    try {
+      const response = await fetch(`/api/albums/${confirmDialog.albumId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+
+      const result = await response.json()
+      
+      if (result.success) {
+        setNotification({
+          isOpen: true,
+          type: 'success',
+          title: t('albums.deleteSuccess'),
+          message: t('albums.deleteSuccessMessage').replace('{albumName}', confirmDialog.albumName)
+        })
+        
+        // Refresh albums list
+        await fetchAlbums()
+      } else {
+        setNotification({
+          isOpen: true,
+          type: 'error',
+          title: t('albums.deleteError'),
+          message: result.error || t('albums.deleteUnknownError')
+        })
+      }
+    } catch (error) {
+      console.error('Failed to delete album:', error)
+      setNotification({
+        isOpen: true,
+        type: 'error',
+        title: t('albums.deleteError'),
+        message: t('albums.deleteTryAgain')
+      })
     }
   }
 
@@ -390,6 +446,12 @@ export default function AdminAlbumsPage() {
                     ) : (
                       t('albums.reReadExifData')
                     )}
+                    </button>
+                    <button
+                      onClick={() => handleDeleteAlbum(album._id, typeof album.name === 'string' ? album.name : MultiLangUtils.getValue(album.name as any, currentLanguage))}
+                      className="w-full text-center px-3 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-md hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-500"
+                    >
+                      {t('delete')}
                     </button>
                   </div>
                 </div>
@@ -578,13 +640,16 @@ export default function AdminAlbumsPage() {
       {/* Confirmation Dialog */}
       <ConfirmDialog
         isOpen={confirmDialog.isOpen}
-        onCancel={() => setConfirmDialog({ isOpen: false, albumId: null, albumName: '' })}
-        onConfirm={confirmReReadExif}
-        title={t('albums.reReadExifData')}
-        message={`${t('albums.confirmReReadExif').replace('this album', `"${confirmDialog.albumName}"`)}`}
-        confirmText={t('albums.reReadExifData')}
+        onCancel={() => setConfirmDialog({ isOpen: false, albumId: null, albumName: '', action: null })}
+        onConfirm={confirmDialog.action === 'delete' ? confirmDeleteAlbum : confirmReReadExif}
+        title={confirmDialog.action === 'delete' ? t('delete') : t('albums.reReadExifData')}
+        message={confirmDialog.action === 'delete' 
+          ? `${t('albums.confirmDelete').replace('this album', `"${confirmDialog.albumName}"`)}`
+          : `${t('albums.confirmReReadExif').replace('this album', `"${confirmDialog.albumName}"`)}`
+        }
+        confirmText={confirmDialog.action === 'delete' ? t('delete') : t('albums.reReadExifData')}
         cancelText={t('cancel')}
-        variant="default"
+        variant={confirmDialog.action === 'delete' ? 'danger' : 'default'}
       />
     </AdminGuard>
   )

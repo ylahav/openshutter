@@ -30,7 +30,13 @@
     "exifReReadResults": "עובדו: {processed} תמונות\nעודכנו: {updated} תמונות\nשגיאות: {errors}",
     "exifReReadErrors": "\n\nשגיאות:\n{errors}",
     "exifReReadTryAgain": "אנא נסה שוב מאוחר יותר",
-    "exifReReadUnknownError": "אירעה שגיאה לא ידועה"
+    "exifReReadUnknownError": "אירעה שגיאה לא ידועה",
+    "confirmDelete": "האם אתה בטוח שברצונך למחוק את \"{albumName}\"? פעולה זו לא ניתנת לביטול.",
+    "deleteSuccess": "אלבום נמחק",
+    "deleteSuccessMessage": "האלבום \"{albumName}\" נמחק בהצלחה.",
+    "deleteError": "נכשל במחיקת האלבום",
+    "deleteUnknownError": "אירעה שגיאה לא ידועה במהלך המחיקה",
+    "deleteTryAgain": "אנא נסה שוב מאוחר יותר"
   },
   "loading": {
     "loading": "טוען...",

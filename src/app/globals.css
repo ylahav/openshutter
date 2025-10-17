@@ -135,6 +135,80 @@ html.dark {
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+  
+  /* Right-click prevention utilities */
+  .no-context-menu {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  .no-drag {
+    -webkit-user-drag: none;
+    -khtml-user-drag: none;
+    -moz-user-drag: none;
+    -o-user-drag: none;
+    user-drag: none;
+  }
+  
+  .no-copy {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+}
+
+/* Global right-click prevention for images and media */
+img, video, canvas {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  -khtml-user-drag: none;
+  -moz-user-drag: none;
+  -o-user-drag: none;
+  user-drag: none;
+}
+
+/* Re-enable pointer events for interactive images (like buttons) */
+img[role="button"], 
+img[onclick], 
+img[data-clickable="true"],
+img.interactive,
+img.cursor-pointer,
+img[class*="cursor-pointer"] {
+  pointer-events: auto;
+}
+
+/* Ensure gallery images remain clickable but prevent right-click */
+.gallery img,
+.photo-card img,
+[class*="gallery"] img,
+[class*="photo"] img {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+/* Allow right-click context menus in text editors and input fields */
+input, textarea, [contenteditable], .ProseMirror, .ql-editor, .tiptap-editor {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+  pointer-events: auto;
+}
+
+/* Ensure text editors can have context menus */
+.ProseMirror * {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
 }
 
 /* Custom animations */

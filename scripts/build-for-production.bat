@@ -1,4 +1,4 @@
-@echo off
+rem @echo off
 REM Build OpenShutter for production deployment (Windows)
 REM This script creates a production-ready Docker image and exports it
 
@@ -16,8 +16,8 @@ if errorlevel 1 (
 
 REM Create production environment file if it doesn't exist
 if not exist .env.production (
-    echo ⚠️  Creating .env.production from .env.example
-    copy .env.example .env.production
+    echo ⚠️  Creating .env.production from env.development
+    copy env.development .env.production
     echo ⚠️  Please edit .env.production with your production values
 )
 
@@ -45,7 +45,7 @@ if %errorlevel% equ 0 (
 
 REM Create deployment package
 echo 📁 Creating deployment package...
-tar -czf openshutter-deployment.tar.gz openshutter-image.tar docker-compose.prod.yml .env.production DEPLOYMENT.md
+tar -czf openshutter-deployment.tar.gz openshutter-image.tar docker-compose.prod.yml .env.production docs/DEPLOYMENT.md
 
 if %errorlevel% equ 0 (
     echo ✅ Deployment package created: openshutter-deployment.tar.gz

@@ -25,6 +25,8 @@ A comprehensive photo gallery management system with multi-storage support, adva
 - **Profile Management**: Users can edit their profiles and change passwords
 - **Template Customization**: Customizable gallery templates and themes
 - **Blog Categories Management**: Create and manage blog categories with multi-language support
+- **Content Protection**: Advanced right-click and developer tools protection with smart exceptions
+- **Security Features**: Multi-layer content protection with customizable warnings
 
 ## 🚀 Tech Stack
 
@@ -45,6 +47,16 @@ A comprehensive photo gallery management system with multi-storage support, adva
 - **Mobile Search**: Touch-optimized search with filters and gesture navigation
 - **Responsive Gallery**: Masonry layouts optimized for mobile screens
 - **Mobile Shortcuts**: Quick access to mobile-optimized features
+
+## 🔒 Content Protection
+
+- **Right-Click Protection**: Disables context menu while preserving functionality in text editors
+- **Developer Tools Blocking**: Prevents F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U shortcuts
+- **Content Security**: Blocks Ctrl+S (save page) and drag-and-drop of images
+- **Smart Exceptions**: Allows right-click in text editors (ProseMirror, Quill, TipTap)
+- **Configurable Warnings**: Customizable warning messages for blocked actions
+- **Multi-Layer Protection**: CSS and JavaScript-based content protection
+- **Accessibility Preserved**: Maintains legitimate user interactions and accessibility
 
 ## 📋 Prerequisites
 

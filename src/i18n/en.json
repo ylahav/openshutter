@@ -31,6 +31,13 @@
     "exifReReadErrors": "\n\nErrors:\n{errors}",
     "exifReReadTryAgain": "Please try again later",
     "exifReReadUnknownError": "An unknown error occurred"
+    ,
+    "confirmDelete": "Are you sure you want to delete \"{albumName}\"? This action cannot be undone.",
+    "deleteSuccess": "Album deleted",
+    "deleteSuccessMessage": "Album \"{albumName}\" was deleted successfully.",
+    "deleteError": "Failed to delete album",
+    "deleteUnknownError": "An unknown error occurred while deleting the album",
+    "deleteTryAgain": "Please try again later"
   },
   "loading": {
     "loading": "Loading...",

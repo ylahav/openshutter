@@ -1,3 +1,92 @@
+## v0.9.3 (Pre-release) - 2025-01-15
+
+### Highlights
+- **Content Protection System**: Advanced right-click and developer tools protection
+- **Enhanced Theme System**: Improved theme provider with proper client-side mounting
+- **Security Features**: Comprehensive content protection with customizable warnings
+- **CSS Utilities**: New utility classes for content protection and user interaction control
+
+### Features
+- **Right-Click Protection**:
+  - Disables right-click context menu (except in text editors and input fields)
+  - Blocks F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U keyboard shortcuts
+  - Prevents Ctrl+S (save page) and drag-and-drop of images
+  - Configurable warning messages for blocked actions
+  - Smart detection of text editors and input fields to allow context menus
+- **Content Protection Components**:
+  - `RightClickDisabler`: Core protection component with event handling
+  - `ClientRightClickDisabler`: Client-side wrapper with dynamic import
+  - Integration with root layout for site-wide protection
+- **Enhanced Theme Provider**:
+  - Proper client-side mounting to prevent hydration issues
+  - Improved theme switching with system preference detection
+  - Better performance with conditional rendering
+
+### Security Features
+- **Multi-layer Protection**:
+  - CSS-based user selection and drag prevention
+  - JavaScript event blocking for developer tools
+  - Keyboard shortcut interception
+  - Image and media protection
+- **Smart Exceptions**:
+  - Allows right-click in text editors (ProseMirror, Quill, TipTap)
+  - Preserves functionality in input fields and contenteditable elements
+  - Maintains accessibility for legitimate user interactions
+- **Configurable Warnings**:
+  - Customizable warning messages for blocked actions
+  - Optional warning display with user-friendly messages
+  - Professional content protection without breaking UX
+
+### CSS Enhancements
+- **Content Protection Utilities**:
+  - `.no-context-menu`: Prevents text selection and context menus
+  - `.no-drag`: Disables drag and drop functionality
+  - `.no-copy`: Prevents content copying
+- **Media Protection**:
+  - Global image and video protection
+  - Selective re-enabling for interactive elements
+  - Gallery image clickability preservation
+- **Template Variables**:
+  - Enhanced CSS custom properties for all templates
+  - Improved dark mode support
+  - Better color consistency across themes
+
+### Technical Improvements
+- **Client-Side Optimization**:
+  - Dynamic imports for right-click protection
+  - SSR-safe component loading
+  - Performance-optimized event handling
+- **Theme System**:
+  - Hydration-safe theme provider
+  - System preference detection
+  - Smooth theme transitions
+- **Code Quality**:
+  - TypeScript improvements
+  - Better error handling
+  - Enhanced maintainability
+
+### Internationalization
+- **Content Protection Messages**:
+  - Configurable warning messages in multiple languages
+  - Professional content protection messaging
+  - User-friendly security notifications
+
+### Fixes/Improvements
+- **Theme Provider**: Fixed hydration issues with proper client-side mounting
+- **Content Protection**: Added comprehensive right-click and developer tools blocking
+- **CSS Utilities**: Enhanced content protection with smart exceptions
+- **Performance**: Optimized client-side component loading
+- **Security**: Multi-layer content protection system
+
+### Breaking Changes
+- None
+
+### Upgrade Notes
+- Content protection is enabled by default but can be configured
+- Theme provider changes are backward compatible
+- Clear browser cache for new CSS utilities
+- Rebuild after pulling: `pnpm install && pnpm build`
+
 ## v0.9.2 (Pre-release) - 2025-01-15
 
 ### Highlights

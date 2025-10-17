@@ -20,11 +20,11 @@ COPY . .
 # Set environment variables for build
 ENV NODE_ENV=production
 ENV STANDALONE=true
+# Increase Node memory to avoid OOM during Next.js build
+ENV NODE_OPTIONS=--max-old-space-size=4096
 
-# Set default environment variables for build (will be overridden at runtime)
+# Minimal non-sensitive defaults for build (runtime should provide real values)
 ENV MONGODB_URI=mongodb://localhost:27017/openshutter
-ENV NEXTAUTH_SECRET=build-time-secret
-ENV NEXTAUTH_URL=http://localhost:4000
 ENV LOCAL_STORAGE_PATH=/app/storage
 ENV STORAGE_PROVIDER=local
 
