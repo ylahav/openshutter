@@ -42,9 +42,9 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="min-h-screen bg-background text-foreground no-context-menu no-drag">
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+        <ThemeProvider>
           <Providers>
-            <ClientRightClickDisabler enabled={true} showWarning={false} />
+            <ClientRightClickDisabler enabled={process.env.NODE_ENV === 'production'} showWarning={false} />
             {children}
           </Providers>
         </ThemeProvider>

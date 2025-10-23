@@ -279,11 +279,16 @@ export async function POST(request: NextRequest) {
     // Create storage folder if needed
     if (storageProvider !== 'local') {
       try {
+        console.log(`Creating storage folder for album ${alias} with provider ${storageProvider}`)
         const { storageManager } = await import('@/services/storage/manager')
-        const storageService = await storageManager.getProvider(storageProvider as 'google-drive' | 'aws-s3')
+        const storageService = await storageManager.getProvider(storageProvider as 'google-drive' | 'aws-s3' | 'backblaze' | 'wasabi')
+        
+        console.log(`Storage service obtained:`, storageService.constructor.name)
+        console.log(`Creating folder with name: ${alias}, parentPath: ${parentPath}`)
         
         // Create the album folder
-        await storageService.createFolder(alias, parentPath)
+        const result = await storageService.createFolder(alias, parentPath)
+        console.log(`Folder creation result:`, result)
       } catch (error) {
         console.error(`Failed to create storage folder for album ${alias}:`, error)
         // Don't fail the album creation if folder creation fails

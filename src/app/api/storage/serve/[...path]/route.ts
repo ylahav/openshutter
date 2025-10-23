@@ -21,7 +21,7 @@ export async function GET(
       )
     }
     
-    const provider = pathParts[0] as 'local' | 'google-drive' | 'aws-s3'
+    const provider = pathParts[0] as 'local' | 'google-drive' | 'aws-s3' | 'backblaze' | 'wasabi'
     const filePathParts = pathParts.slice(1)
     const fullFilePath = filePathParts.join('/')
     

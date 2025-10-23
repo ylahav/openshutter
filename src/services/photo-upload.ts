@@ -58,7 +58,9 @@ export class PhotoUploadService {
       }
 
       // Get storage service from the new storage manager
-      const storageService = await storageManager.getProvider(storageProvider as 'local' | 'google-drive' | 'aws-s3')
+      console.log(`PhotoUploadService: Getting storage service for provider: ${storageProvider}`)
+      const storageService = await storageManager.getProvider(storageProvider as 'local' | 'google-drive' | 'aws-s3' | 'backblaze' | 'wasabi')
+      console.log(`PhotoUploadService: Storage service obtained:`, storageService.constructor.name)
 
       // Generate unique filename
       const timestamp = Date.now()
@@ -75,6 +77,7 @@ export class PhotoUploadService {
       const compressionResult = await ImageCompressionService.compressImage(fileBuffer, 'gallery')
       
       // Upload compressed original file
+      console.log(`PhotoUploadService: Uploading file ${filename} to path: ${albumPath}`)
       const uploadResult = await storageService.uploadFile(
         compressionResult.compressed,
         filename,
@@ -87,6 +90,7 @@ export class PhotoUploadService {
           description: options.description || ''
         }
       )
+      console.log(`PhotoUploadService: Upload result:`, uploadResult)
 
       // Generate multiple thumbnails
       const thumbnailBuffers = await ThumbnailGenerator.generateAllThumbnails(fileBuffer, filename)

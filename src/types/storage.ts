@@ -30,10 +30,29 @@ export interface LocalStorageConfig {
   isEnabled: boolean
 }
 
+export interface BackblazeConfig {
+  applicationKeyId: string
+  applicationKey: string
+  bucketName: string
+  region: string
+  isEnabled: boolean
+}
+
+export interface WasabiConfig {
+  accessKeyId: string
+  secretAccessKey: string
+  bucketName: string
+  region: string
+  endpoint: string
+  isEnabled: boolean
+}
+
 export interface StorageConfig {
   googleDrive: GoogleDriveConfig
   awsS3: AwsS3Config
   local: LocalStorageConfig
+  backblaze: BackblazeConfig
+  wasabi: WasabiConfig
 }
 
 export interface StorageProviderStatus {

@@ -51,7 +51,7 @@ export interface Location {
 export interface StorageProvider {
   _id: string
   name: string
-  type: 'google-drive' | 'aws-s3' | 'local'
+  type: 'google-drive' | 'aws-s3' | 'local' | 'backblaze' | 'wasabi'
   config: StorageConfig
   isActive: boolean
   isDefault: boolean
@@ -78,6 +78,19 @@ export interface StorageConfig {
     path: string
     maxSize: number
   }
+  backblaze?: {
+    applicationKeyId: string
+    applicationKey: string
+    bucketName: string
+    region: string
+  }
+  wasabi?: {
+    accessKeyId: string
+    secretAccessKey: string
+    bucketName: string
+    region: string
+    endpoint: string
+  }
 }
 
 // Album Types
@@ -90,7 +103,7 @@ export interface Album {
   description?: MultiLangHTML
   isPublic: boolean
   isFeatured: boolean
-  storageProvider: 'google-drive' | 'aws-s3' | 'local'
+  storageProvider: 'google-drive' | 'aws-s3' | 'local' | 'backblaze' | 'wasabi'
   storagePath: string // Full storage path like /parent/son/alias
   parentAlbumId?: string // Reference to parent album
   parentPath?: string // Path to parent like /parent/son

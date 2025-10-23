@@ -46,7 +46,7 @@ export default function AdminAlbumDetailPage({ params }: { params: Promise<{ id:
 
     const fetchPhotos = async () => {
       try {
-        const response = await fetch(`/api/albums/${resolvedParams.id}/photos`)
+        const response = await fetch(`/api/admin/albums/${resolvedParams.id}/photos`)
         if (response.ok) {
           const result = await response.json()
           if (result.success) {

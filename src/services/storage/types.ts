@@ -1,5 +1,5 @@
 // Storage Provider Types
-export type StorageProviderId = 'google-drive' | 'aws-s3' | 'local'
+export type StorageProviderId = 'google-drive' | 'aws-s3' | 'local' | 'backblaze' | 'wasabi'
 
 // Base Storage Configuration
 export interface BaseStorageConfig {
@@ -31,6 +31,24 @@ export interface AwsS3Config {
 export interface LocalStorageConfig {
   basePath: string
   maxFileSize: string
+  isEnabled: boolean
+}
+
+export interface BackblazeConfig {
+  applicationKeyId: string
+  applicationKey: string
+  bucketName: string
+  region: string
+  endpoint?: string
+  isEnabled: boolean
+}
+
+export interface WasabiConfig {
+  accessKeyId: string
+  secretAccessKey: string
+  bucketName: string
+  region: string
+  endpoint: string
   isEnabled: boolean
 }
 

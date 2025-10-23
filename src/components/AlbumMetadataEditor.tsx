@@ -64,7 +64,7 @@ export default function AlbumMetadataEditor({
     } else {
       onLocationChange(undefined)
     }
-  }, [locationName, locationAddress, locationLat, locationLng, onLocationChange])
+  }, [locationName, locationAddress, locationLat, locationLng])
 
   const removeTag = (tagToRemove: string) => {
     onTagsChange(tags.filter(tag => tag !== tagToRemove))

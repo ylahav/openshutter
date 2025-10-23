@@ -15,6 +15,8 @@ import {
 import { LocalStorageService } from './providers/local'
 import { GoogleDriveService } from './providers/google-drive'
 import { AwsS3Service } from './providers/aws-s3'
+import { BackblazeService } from './providers/backblaze'
+import { WasabiService } from './providers/wasabi'
 
 export class StorageManager implements IStorageManager {
   private static instance: StorageManager
@@ -333,6 +335,31 @@ export class StorageManager implements IStorageManager {
           isEnabled: config.isEnabled
         }
         return new AwsS3Service(flattenedS3Config)
+      case 'backblaze':
+        // Flatten the nested config structure for Backblaze
+        const flattenedBackblazeConfig = {
+          ...config,
+          // Extract nested config properties to top level
+          applicationKeyId: config.applicationKeyId,
+          applicationKey: config.applicationKey,
+          bucketName: config.bucketName,
+          region: config.region,
+          isEnabled: config.isEnabled
+        }
+        return new BackblazeService(flattenedBackblazeConfig)
+      case 'wasabi':
+        // Flatten the nested config structure for Wasabi
+        const flattenedWasabiConfig = {
+          ...config,
+          // Extract nested config properties to top level
+          accessKeyId: config.accessKeyId,
+          secretAccessKey: config.secretAccessKey,
+          bucketName: config.bucketName,
+          region: config.region,
+          endpoint: config.endpoint,
+          isEnabled: config.isEnabled
+        }
+        return new WasabiService(flattenedWasabiConfig)
       default:
         throw new StorageConfigError(`Unsupported storage provider: ${providerId}`, providerId)
     }

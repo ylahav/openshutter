@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { connectToDatabase } from '@/lib/mongodb'
-import { getCurrentUser } from '@/lib/access-control-server'
 import { ObjectId } from 'mongodb'
+import { ExifExtractor } from '@/services/exif-extractor'
+import { getCurrentUser } from '@/lib/access-control-server'
 
 export async function GET(
   request: NextRequest,
@@ -9,97 +10,85 @@ export async function GET(
 ) {
   try {
     const { id } = await params
-    
-    // Check if user is admin
-    const user = await getCurrentUser()
-    if (!user || user.role !== 'admin') {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
-
     const { db } = await connectToDatabase()
     
-    // Get the album
-    const album = await db.collection('albums').findOne({ _id: new ObjectId(id) })
-    if (!album) {
+    if (!id) {
       return NextResponse.json(
-        { success: false, error: 'Album not found' },
-        { status: 404 }
+        { success: false, error: 'Album ID is required' },
+        { status: 400 }
       )
     }
 
-    // Get photos from this album (handle both string and ObjectId albumId formats)
-    const photos = await db.collection('photos').find({
-      $or: [
-        { albumId: id },
-        { albumId: new ObjectId(id) }
-      ],
-      isPublished: true
-    }).project({
-      _id: 1,
-      title: 1,
-      filename: 1,
-      storage: 1,
-      metadata: 1,
-      dimensions: 1,
-      createdAt: 1
-    }).sort({ createdAt: -1 }).toArray()
-
-    // If no photos in this album, get photos from child albums
-    let childAlbumPhotos = []
-    if (photos.length === 0) {
-      // Get child albums (handle both string and ObjectId parentAlbumId formats)
-      const childAlbums = await db.collection('albums').find({
-        $or: [
-          { parentAlbumId: new ObjectId(id) },
-          { parentAlbumId: id }
-        ]
-      }).toArray()
-
-      // Get photos from each child album
-      for (const childAlbum of childAlbums) {
-        const childPhotos = await db.collection('photos').find({
-          $or: [
-            { albumId: childAlbum._id },
-            { albumId: childAlbum._id.toString() }
-          ],
-          isPublished: true
-        }).project({
-          _id: 1,
-          title: 1,
-          filename: 1,
-          storage: 1,
-          metadata: 1,
-          dimensions: 1,
-          createdAt: 1,
-          albumId: 1
-        }).sort({ createdAt: -1 }).toArray() // Get all photos from child albums
-
-        childAlbumPhotos.push(...childPhotos.map(photo => ({
-          ...photo,
-          sourceAlbum: {
-            _id: childAlbum._id,
-            name: childAlbum.name,
-            alias: childAlbum.alias
-          }
-        })))
-      }
+    // Check if user is admin
+    const user = await getCurrentUser()
+    console.log('Admin Photos API: User check:', {
+      user: user ? { id: user.id, role: user.role } : 'null',
+      isAdmin: user?.role === 'admin'
+    })
+    
+    if (!user || user.role !== 'admin') {
+      console.log('Admin Photos API: Access denied - not admin')
+      return NextResponse.json(
+        { success: false, error: 'Admin access required' },
+        { status: 403 }
+      )
     }
+
+    let objectId
+    try {
+      objectId = new ObjectId(id)
+    } catch (error) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid album ID format' },
+        { status: 400 }
+      )
+    }
+
+    // Get ALL photos for this album (including unpublished) - admin only
+    const photosCollection = db.collection('photos')
+    console.log(`Admin Photos API: Looking for ALL photos with albumId: ${id} or ObjectId: ${objectId}`)
+    
+    const query = { 
+      $or: [
+        { albumId: objectId },
+        { albumId: id }
+      ]
+    }
+    
+    console.log(`Admin Photos API: Query:`, JSON.stringify(query, null, 2))
+    
+    const photos = await photosCollection
+      .find(query)
+      .sort({ uploadedAt: -1 })
+      .toArray()
+    
+    console.log(`Admin Photos API: Found ${photos.length} photos for album ${id} (including unpublished)`)
+    if (photos.length > 0) {
+      console.log('Admin Photos API: First photo sample:', {
+        _id: photos[0]._id,
+        filename: photos[0].filename,
+        albumId: photos[0].albumId,
+        isPublished: photos[0].isPublished,
+        storage: photos[0].storage
+      })
+    } else {
+      console.log('Admin Photos API: No photos found - checking if album exists...')
+      const albumCollection = db.collection('albums')
+      const album = await albumCollection.findOne({ _id: objectId })
+      console.log('Admin Photos API: Album exists:', !!album, album ? { _id: album._id, alias: album.alias } : null)
+    }
+
+    // Process photos for EXIF data extraction (on-demand)
+    const processedPhotos = await ExifExtractor.processPhotosForExif(photos)
 
     return NextResponse.json({
       success: true,
-      data: {
-        albumPhotos: photos,
-        childAlbumPhotos: childAlbumPhotos,
-        totalPhotos: photos.length + childAlbumPhotos.length
-      }
+      data: processedPhotos
     })
   } catch (error) {
-    console.error('Error fetching album photos for selection:', error)
+    console.error('Failed to get admin album photos:', error)
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch photos' },
+      { success: false, error: 'Failed to get admin album photos' },
       { status: 500 }
     )
   }

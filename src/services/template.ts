@@ -138,7 +138,7 @@ export class TemplateService {
     // Note: path here is relative to this file after compilation
     //       '../templates' resolves to 'src/templates'
     // @ts-ignore - webpack specific API
-    const ctx = require.context('../templates', true, /\/pages\/[^/]+\.(tsx|ts)$/i, 'lazy')
+    const ctx = require.context('../templates', true, /\/pages\/[^/]+\.(tsx|ts)$/i)
     const loaders: Record<string, Record<string, () => Promise<any>>> = {}
     ctx.keys().forEach((key: string) => {
       // Key example: './modern/pages/Login.tsx'

@@ -99,12 +99,9 @@ const nextConfig = {
     return config
   },
 
-  // TypeScript and ESLint
+  // TypeScript
   typescript: {
     ignoreBuildErrors: false,
-  },
-  eslint: {
-    ignoreDuringBuilds: false,
   },
 
   // Output and optimization

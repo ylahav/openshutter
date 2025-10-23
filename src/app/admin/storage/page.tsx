@@ -60,6 +60,22 @@ export default function StorageSettingsPage() {
       isEnabled: false
     },
     {
+      id: 'backblaze',
+      name: 'Backblaze B2',
+      description: 'Low-cost cloud storage with S3-compatible API',
+      status: 'inactive',
+      lastSync: t('admin.never'),
+      isEnabled: false
+    },
+    {
+      id: 'wasabi',
+      name: 'Wasabi',
+      description: 'Hot cloud storage with S3-compatible API',
+      status: 'inactive',
+      lastSync: t('admin.never'),
+      isEnabled: false
+    },
+    {
       id: 'local',
       name: t('admin.localStorage'),
       description: t('admin.fileStorageOnLocalServer'),
@@ -82,6 +98,24 @@ export default function StorageSettingsPage() {
     secretAccessKey: '',
     region: 'us-east-1',
     bucketName: '',
+    isEnabled: false
+  })
+
+  const [backblazeConfig, setBackblazeConfig] = useState({
+    applicationKeyId: '',
+    applicationKey: '',
+    bucketName: '',
+    region: 'us-west-2',
+    endpoint: '',
+    isEnabled: false
+  })
+
+  const [wasabiConfig, setWasabiConfig] = useState({
+    accessKeyId: '',
+    secretAccessKey: '',
+    bucketName: '',
+    region: 'us-east-1',
+    endpoint: 'https://s3.wasabisys.com',
     isEnabled: false
   })
 
@@ -179,6 +213,18 @@ export default function StorageSettingsPage() {
             updateProviderStatus('aws-s3', configs['aws-s3'].isEnabled)
           }
           
+          // Update Backblaze config
+          if (configs['backblaze']) {
+            setBackblazeConfig(configs['backblaze'])
+            updateProviderStatus('backblaze', configs['backblaze'].isEnabled)
+          }
+          
+          // Update Wasabi config
+          if (configs['wasabi']) {
+            setWasabiConfig(configs['wasabi'])
+            updateProviderStatus('wasabi', configs['wasabi'].isEnabled)
+          }
+          
           // Update Local Storage config
           if (configs['local']) {
             setLocalConfig(configs['local'])
@@ -265,6 +311,66 @@ export default function StorageSettingsPage() {
     }
   }
 
+  const handleBackblazeSave = async () => {
+    try {
+      const response = await fetch('/api/admin/storage', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          provider: 'backblaze',
+          config: backblazeConfig
+        })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success) {
+          showNotification('success', 'Configuration Saved', 'Backblaze configuration saved successfully!')
+          updateProviderStatus('backblaze', backblazeConfig.isEnabled)
+        } else {
+          showNotification('error', 'Save Failed', 'Failed to save configuration: ' + data.error)
+        }
+      } else {
+        showNotification('error', 'Save Failed', 'Failed to save Backblaze configuration')
+      }
+    } catch (error) {
+      console.error('Failed to save Backblaze config:', error)
+      showNotification('error', 'Save Failed', 'Failed to save Backblaze configuration')
+    }
+  }
+
+  const handleWasabiSave = async () => {
+    try {
+      const response = await fetch('/api/admin/storage', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          provider: 'wasabi',
+          config: wasabiConfig
+        })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success) {
+          showNotification('success', 'Configuration Saved', 'Wasabi configuration saved successfully!')
+          updateProviderStatus('wasabi', wasabiConfig.isEnabled)
+        } else {
+          showNotification('error', 'Save Failed', 'Failed to save configuration: ' + data.error)
+        }
+      } else {
+        showNotification('error', 'Save Failed', 'Failed to save Wasabi configuration')
+      }
+    } catch (error) {
+      console.error('Failed to save Wasabi config:', error)
+      showNotification('error', 'Save Failed', 'Failed to save Wasabi configuration')
+    }
+  }
+
   const handleLocalSave = async () => {
     try {
       const response = await fetch('/api/admin/storage', {
@@ -307,6 +413,22 @@ export default function StorageSettingsPage() {
         } else {
           showNotification('error', 'Connection Test', 'Google Drive connection failed. Check your configuration.')
         }
+      } else if (providerId === 'backblaze') {
+        const response = await fetch('/api/storage/backblaze/test')
+        if (response.ok) {
+          showNotification('success', 'Connection Test', 'Backblaze connection successful!')
+        } else {
+          const data = await response.json().catch(() => ({}))
+          showNotification('error', 'Connection Test', `Backblaze connection failed. ${data.error || ''}`)
+        }
+      } else if (providerId === 'wasabi') {
+        const response = await fetch('/api/storage/wasabi/test')
+        if (response.ok) {
+          showNotification('success', 'Connection Test', 'Wasabi connection successful!')
+        } else {
+          const data = await response.json().catch(() => ({}))
+          showNotification('error', 'Connection Test', `Wasabi connection failed. ${data.error || ''}`)
+        }
       } else {
         showNotification('info', 'Connection Test', `${providerId} connection test not implemented yet.`)
       }
@@ -340,6 +462,10 @@ export default function StorageSettingsPage() {
             setGoogleDriveConfig(prev => ({ ...prev, isEnabled: enabled }))
           } else if (providerId === 'aws-s3') {
             setAwsS3Config(prev => ({ ...prev, isEnabled: enabled }))
+          } else if (providerId === 'backblaze') {
+            setBackblazeConfig(prev => ({ ...prev, isEnabled: enabled }))
+          } else if (providerId === 'wasabi') {
+            setWasabiConfig(prev => ({ ...prev, isEnabled: enabled }))
           } else if (providerId === 'local') {
             setLocalConfig(prev => ({ ...prev, isEnabled: enabled }))
           }
@@ -461,6 +587,8 @@ export default function StorageSettingsPage() {
                     {[
                       { id: 'google-drive', name: t('admin.googleDrive') },
                       { id: 'aws-s3', name: t('admin.awsS3') },
+                      { id: 'backblaze', name: 'Backblaze B2' },
+                      { id: 'wasabi', name: 'Wasabi' },
                       { id: 'local', name: t('admin.localStorage') }
                     ].map((tab) => (
                       <button
@@ -623,6 +751,176 @@ export default function StorageSettingsPage() {
                           className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors duration-200 bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500"
                         >
                           {t('admin.saveAwsS3Configuration')}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Backblaze Configuration */}
+                {activeTab === 'backblaze' && (
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="text-lg font-medium text-gray-900 mb-4">Backblaze B2 Configuration</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Application Key ID
+                          </label>
+                          <input
+                            type="text"
+                            value={backblazeConfig.applicationKeyId}
+                            onChange={(e) => setBackblazeConfig(prev => ({ ...prev, applicationKeyId: e.target.value }))}
+                            className="input"
+                            placeholder="Enter Backblaze Application Key ID"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Application Key
+                          </label>
+                          <input
+                            type="password"
+                            value={backblazeConfig.applicationKey}
+                            onChange={(e) => setBackblazeConfig(prev => ({ ...prev, applicationKey: e.target.value }))}
+                            className="input"
+                            placeholder="Enter Backblaze Application Key"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Bucket Name
+                          </label>
+                          <input
+                            type="text"
+                            value={backblazeConfig.bucketName}
+                            onChange={(e) => setBackblazeConfig(prev => ({ ...prev, bucketName: e.target.value }))}
+                            className="input"
+                            placeholder="Enter Backblaze Bucket Name"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Region
+                          </label>
+                          <select
+                            value={backblazeConfig.region}
+                            onChange={(e) => setBackblazeConfig(prev => ({ ...prev, region: e.target.value }))}
+                            className="input"
+                          >
+                            <option value="us-west-2">US West (Oregon)</option>
+                            <option value="us-west-1">US West (N. California)</option>
+                            <option value="eu-central-1">Europe (Frankfurt)</option>
+                            <option value="ap-southeast-1">Asia Pacific (Singapore)</option>
+                          </select>
+                        </div>
+                        <div className="md:col-span-2">
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Endpoint (optional)
+                          </label>
+                          <input
+                            type="text"
+                            value={backblazeConfig.endpoint}
+                            onChange={(e) => setBackblazeConfig(prev => ({ ...prev, endpoint: e.target.value }))}
+                            className="input"
+                            placeholder="e.g. https://s3.eu-central-003.backblazeb2.com"
+                          />
+                          <p className="mt-1 text-sm text-gray-500">
+                            If your region uses a numbered endpoint, specify it here.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="mt-6">
+                        <button
+                          onClick={handleBackblazeSave}
+                          className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors duration-200 bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500"
+                        >
+                          Save Backblaze Configuration
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Wasabi Configuration */}
+                {activeTab === 'wasabi' && (
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="text-lg font-medium text-gray-900 mb-4">Wasabi Configuration</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Access Key ID
+                          </label>
+                          <input
+                            type="text"
+                            value={wasabiConfig.accessKeyId}
+                            onChange={(e) => setWasabiConfig(prev => ({ ...prev, accessKeyId: e.target.value }))}
+                            className="input"
+                            placeholder="Enter Wasabi Access Key ID"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Secret Access Key
+                          </label>
+                          <input
+                            type="password"
+                            value={wasabiConfig.secretAccessKey}
+                            onChange={(e) => setWasabiConfig(prev => ({ ...prev, secretAccessKey: e.target.value }))}
+                            className="input"
+                            placeholder="Enter Wasabi Secret Access Key"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Bucket Name
+                          </label>
+                          <input
+                            type="text"
+                            value={wasabiConfig.bucketName}
+                            onChange={(e) => setWasabiConfig(prev => ({ ...prev, bucketName: e.target.value }))}
+                            className="input"
+                            placeholder="Enter Wasabi Bucket Name"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Region
+                          </label>
+                          <select
+                            value={wasabiConfig.region}
+                            onChange={(e) => setWasabiConfig(prev => ({ ...prev, region: e.target.value }))}
+                            className="input"
+                          >
+                            <option value="us-east-1">US East (N. Virginia)</option>
+                            <option value="us-west-1">US West (N. California)</option>
+                            <option value="eu-central-1">Europe (Amsterdam)</option>
+                            <option value="ap-northeast-1">Asia Pacific (Tokyo)</option>
+                          </select>
+                        </div>
+                        <div className="md:col-span-2">
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Endpoint
+                          </label>
+                          <input
+                            type="text"
+                            value={wasabiConfig.endpoint}
+                            onChange={(e) => setWasabiConfig(prev => ({ ...prev, endpoint: e.target.value }))}
+                            className="input"
+                            placeholder="https://s3.wasabisys.com"
+                          />
+                          <p className="mt-1 text-sm text-gray-500">
+                            Wasabi S3-compatible endpoint URL
+                          </p>
+                        </div>
+                      </div>
+                      <div className="mt-6">
+                        <button
+                          onClick={handleWasabiSave}
+                          className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors duration-200 bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500"
+                        >
+                          Save Wasabi Configuration
                         </button>
                       </div>
                     </div>

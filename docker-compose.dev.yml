@@ -1,6 +1,19 @@
 version: '3.8'
 
 services:
+  mongodb:
+    image: mongo:7.0
+    container_name: openshutter-mongodb-dev
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_DATABASE=openshutter
+    volumes:
+      - mongodb_dev_data:/data/db
+    restart: unless-stopped
+    networks:
+      - openshutter-network
+
   openshutter-dev:
     build:
       context: .
@@ -14,6 +27,7 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=4000
+      - MONGODB_URI=mongodb://mongodb:27017/openshutter
     volumes:
       - .:/app
       - /app/node_modules
@@ -22,8 +36,13 @@ services:
       - ./logs:/app/logs
     command: pnpm dev
     restart: unless-stopped
+    depends_on:
+      - mongodb
     networks:
       - openshutter-network
+
+volumes:
+  mongodb_dev_data:
 
 networks:
   openshutter-network:

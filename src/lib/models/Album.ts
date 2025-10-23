@@ -37,7 +37,7 @@ const AlbumSchema = new Schema<IAlbum>({
   storageProvider: {
     type: String,
     required: true,
-    enum: ['google-drive', 'aws-s3', 'local'],
+    enum: ['google-drive', 'aws-s3', 'local', 'backblaze', 'wasabi'],
     default: 'local'
   },
   storagePath: {

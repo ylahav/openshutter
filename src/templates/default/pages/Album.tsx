@@ -156,10 +156,21 @@ export default function AlbumPage() {
                         src={p.storage?.thumbnailPath || p.url || '/placeholder.jpg'}
                         alt={p.alt ? MultiLangUtils.getTextValue(p.alt, currentLanguage) : `Photo ${i + 1}`}
                         width={400}
-                        height={300}
+                        height={400}
                         className={styles.cardImage}
                         loading="lazy"
+                        style={{ objectFit: 'cover' }}
                       />
+                    </div>
+                    <div className="p-4">
+                      <h3 className="text-sm font-medium text-gray-900 truncate">
+                        {typeof p.title === 'string' ? p.title : MultiLangUtils.getTextValue(p.title, currentLanguage) || `Photo ${i + 1}`}
+                      </h3>
+                      {p.description && (
+                        <p className="text-xs text-gray-600 mt-1 line-clamp-2">
+                          {typeof p.description === 'string' ? p.description : MultiLangUtils.getTextValue(p.description, currentLanguage)}
+                        </p>
+                      )}
                     </div>
                   </div>
                 ))}

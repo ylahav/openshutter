@@ -28,6 +28,32 @@ const DEFAULT_STORAGE_CONFIGS = [
     }
   },
   {
+    providerId: 'backblaze',
+    name: 'Backblaze B2',
+    isEnabled: false,
+    config: {
+      applicationKeyId: '',
+      applicationKey: '',
+      bucketName: '',
+      region: 'us-west-2',
+      endpoint: '',
+      isEnabled: false
+    }
+  },
+  {
+    providerId: 'wasabi',
+    name: 'Wasabi',
+    isEnabled: false,
+    config: {
+      accessKeyId: '',
+      secretAccessKey: '',
+      bucketName: '',
+      region: 'us-east-1',
+      endpoint: 'https://s3.wasabisys.com',
+      isEnabled: false
+    }
+  },
+  {
     providerId: 'local',
     name: 'Local Storage',
     isEnabled: false,
@@ -72,6 +98,22 @@ export async function GET(request: NextRequest) {
         region: configs.find(c => c.providerId === 'aws-s3')?.config?.region || 'us-east-1',
         bucketName: configs.find(c => c.providerId === 'aws-s3')?.config?.bucketName || '',
         isEnabled: configs.find(c => c.providerId === 'aws-s3')?.isEnabled || false
+      },
+      'backblaze': {
+        applicationKeyId: configs.find(c => c.providerId === 'backblaze')?.config?.applicationKeyId || '',
+        applicationKey: configs.find(c => c.providerId === 'backblaze')?.config?.applicationKey || '',
+        bucketName: configs.find(c => c.providerId === 'backblaze')?.config?.bucketName || '',
+        region: configs.find(c => c.providerId === 'backblaze')?.config?.region || 'us-west-2',
+        endpoint: configs.find(c => c.providerId === 'backblaze')?.config?.endpoint || '',
+        isEnabled: configs.find(c => c.providerId === 'backblaze')?.isEnabled || false
+      },
+      'wasabi': {
+        accessKeyId: configs.find(c => c.providerId === 'wasabi')?.config?.accessKeyId || '',
+        secretAccessKey: configs.find(c => c.providerId === 'wasabi')?.config?.secretAccessKey || '',
+        bucketName: configs.find(c => c.providerId === 'wasabi')?.config?.bucketName || '',
+        region: configs.find(c => c.providerId === 'wasabi')?.config?.region || 'us-east-1',
+        endpoint: configs.find(c => c.providerId === 'wasabi')?.config?.endpoint || 'https://s3.wasabisys.com',
+        isEnabled: configs.find(c => c.providerId === 'wasabi')?.isEnabled || false
       },
       'local': {
         basePath: configs.find(c => c.providerId === 'local')?.config?.basePath || '/app/public/albums',
@@ -119,7 +161,9 @@ export async function POST(request: NextRequest) {
     const updateData = {
       providerId: provider,
       name: provider === 'google-drive' ? 'Google Drive' : 
-            provider === 'aws-s3' ? 'Amazon S3' : 'Local Storage',
+            provider === 'aws-s3' ? 'Amazon S3' : 
+            provider === 'backblaze' ? 'Backblaze B2' : 
+            provider === 'wasabi' ? 'Wasabi' : 'Local Storage',
       isEnabled: config.isEnabled || false,
       config: config,
       updatedAt: new Date()

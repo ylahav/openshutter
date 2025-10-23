@@ -103,12 +103,11 @@ export default function AdminAlbumsPage() {
       if (response.ok) {
         const result = await response.json()
         if (result.success) {
-          const allPhotos = [...result.data.albumPhotos, ...result.data.childAlbumPhotos]
           setCoverPhotoModal(prev => ({
             ...prev,
-            photos: result.data.albumPhotos,
-            childAlbumPhotos: result.data.childAlbumPhotos,
-            totalPhotos: allPhotos.length,
+            photos: result.data,
+            childAlbumPhotos: [],
+            totalPhotos: result.data.length,
             loading: false
           }))
         }

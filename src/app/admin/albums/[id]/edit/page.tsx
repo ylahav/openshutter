@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { use } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -132,21 +132,21 @@ export default function EditAlbumPage({ params }: { params: Promise<{ id: string
   }
 
   // Metadata handlers
-  const handleTagsChange = (tags: string[]) => {
+  const handleTagsChange = useCallback((tags: string[]) => {
     setFormData(prev => ({ ...prev, tags }))
-  }
+  }, [])
 
-  const handlePeopleChange = (people: string[]) => {
+  const handlePeopleChange = useCallback((people: string[]) => {
     setFormData(prev => ({ ...prev, people }))
-  }
+  }, [])
 
-  const handleLocationChange = (location?: {
+  const handleLocationChange = useCallback((location?: {
     name: string
     coordinates?: { latitude: number; longitude: number }
     address?: string
   }) => {
     setFormData(prev => ({ ...prev, location }))
-  }
+  }, [])
 
   if (loading) {
     return (
