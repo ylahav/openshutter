@@ -4,7 +4,7 @@ A comprehensive photo gallery management system with multi-storage support, adva
 
 ## ✨ Features
 
-- **Multi-Storage Support**: Google Drive, AWS S3, and local storage
+- **Multi-Storage Support**: Google Drive, AWS S3, Backblaze B2, Wasabi, and local storage
 - **Smart Tagging System**: Organize photos with intelligent tags and dynamic collections
 - **Advanced Search**: Comprehensive search across photos, albums, people, and locations
 - **People Management**: Tag and organize photos by people with multi-language support
@@ -33,7 +33,7 @@ A comprehensive photo gallery management system with multi-storage support, adva
 - **Frontend**: Next.js 15, React 19, TypeScript
 - **Styling**: Tailwind CSS, Framer Motion
 - **Backend**: Next.js API Routes, MongoDB
-- **Storage**: Google Drive API, AWS S3, Local Storage
+- **Storage**: Google Drive API, AWS S3, Backblaze B2, Wasabi, Local Storage
 - **Authentication**: NextAuth.js
 - **Rich Text**: Tiptap Editor
 - **State Management**: React Query

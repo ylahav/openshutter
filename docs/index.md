@@ -9,6 +9,7 @@ Welcome to the OpenShutter documentation. This comprehensive guide covers all as
 - [Functional Specification](./functional-spec.md) - Detailed technical specifications
 - [Access Control System](./access-control.md) - Album permissions and user access management
 - [Owner Dashboard](./owner-dashboard.md) - Owner role dashboard and album management
+- [Storage Configuration](./STORAGE.md) - Storage providers setup and management
 - [Deployment Guide](./deploy.md) - Production deployment instructions
 - [Docker Deployment Guide](./docker-deployment.md) - Docker containerization and deployment
 - [PM2 Deployment Guide](./pm2-deployment.md) - PM2 process manager deployment
@@ -27,7 +28,7 @@ Welcome to the OpenShutter documentation. This comprehensive guide covers all as
 ## 🎯 Current Features
 
 ### Core Functionality
-- **Multi-Storage Support**: Google Drive, AWS S3, and local storage
+- **Multi-Storage Support**: Google Drive, AWS S3, Backblaze B2, Wasabi, and local storage
 - **Album Management**: Hierarchical albums with advanced privacy controls
 - **Advanced Access Control**: Granular permissions for albums (public, private, user/group-specific)
 - **Owner Dashboard**: Focused interface for album owners to manage their collections
@@ -98,6 +99,8 @@ Key configuration options in `.env.local`:
 ### Storage Providers
 - **Google Drive**: Cloud storage with API integration
 - **AWS S3**: Scalable object storage
+- **Backblaze B2**: Cost-effective S3-compatible storage
+- **Wasabi**: High-performance S3-compatible storage
 - **Local Storage**: File storage on server
 
 ## 🚀 Development
