@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import PhotoLightbox from '@/components/PhotoLightbox'
 import BulkActions from '@/components/admin/BulkActions'
 import { MultiLangUtils } from '@/types/multi-lang'
@@ -25,6 +25,11 @@ export default function AlbumDetailView({ album, photos, role, albumId }: AlbumD
   const editHref = role === 'admin' ? `/admin/albums/${albumId}/edit` : `/owner/albums/${albumId}/edit`
   const uploadHref = role === 'admin' ? `/admin/photos/upload?albumId=${albumId}` : `/photos/upload?albumId=${albumId}&returnTo=/owner/albums/${albumId}`
   const [localPhotos, setLocalPhotos] = useState<TemplatePhoto[]>(photos)
+
+  // Keep localPhotos in sync when parent updates photos after initial render
+  useEffect(() => {
+    setLocalPhotos(photos)
+  }, [photos])
   const [deletingPhoto, setDeletingPhoto] = useState<string | null>(null)
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState(0)

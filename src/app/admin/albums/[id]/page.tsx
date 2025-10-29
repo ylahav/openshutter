@@ -25,7 +25,7 @@ export default function AdminAlbumDetailPage({ params }: { params: Promise<{ id:
     const fetchAlbum = async () => {
       try {
         setLoading(true)
-        const response = await fetch(`/api/albums/${resolvedParams.id}`)
+        const response = await fetch(`/api/albums/${resolvedParams.id}?t=${Date.now()}`, { cache: 'no-store' })
         if (!response.ok) {
           throw new Error('Failed to fetch album')
         }
@@ -46,7 +46,7 @@ export default function AdminAlbumDetailPage({ params }: { params: Promise<{ id:
 
     const fetchPhotos = async () => {
       try {
-        const response = await fetch(`/api/admin/albums/${resolvedParams.id}/photos`)
+        const response = await fetch(`/api/admin/albums/${resolvedParams.id}/photos?t=${Date.now()}`, { cache: 'no-store' })
         if (response.ok) {
           const result = await response.json()
           if (result.success) {

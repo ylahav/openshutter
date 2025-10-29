@@ -12,6 +12,7 @@ import { TemplateAlbum, TemplatePhoto } from '@/types'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 import styles from '../styles.module.scss'
+import PhotoLightbox from '@/components/PhotoLightbox'
 
 export default function AlbumPage() {
   const params = useParams()
@@ -19,7 +20,8 @@ export default function AlbumPage() {
   const { config, loading: configLoading } = useSiteConfig()
   const { currentLanguage } = useLanguage()
   const { t } = useI18n()
-  const [selectedImage, setSelectedImage] = useState<number | null>(null)
+  const [lightboxOpen, setLightboxOpen] = useState(false)
+  const [lightboxIndex, setLightboxIndex] = useState(0)
   const [album, setAlbum] = useState<TemplateAlbum | null>(null)
   const [photos, setPhotos] = useState<TemplatePhoto[]>([])
   const [subAlbums, setSubAlbums] = useState<TemplateAlbum[]>([])
@@ -30,7 +32,7 @@ export default function AlbumPage() {
   // Function to fetch cover photo for a sub-album
   const fetchSubAlbumCoverPhoto = async (albumId: string, coverPhotoId: string) => {
     try {
-      const response = await fetch(`/api/photos/${coverPhotoId}`)
+      const response = await fetch(`/api/photos/${coverPhotoId}?t=${Date.now()}`, { cache: 'no-store' })
       if (response.ok) {
         const result = await response.json()
         if (result.success) {
@@ -53,7 +55,7 @@ export default function AlbumPage() {
         setLoading(true)
         
         // Fetch album by alias
-        const albumResponse = await fetch(`/api/albums/by-alias/${alias}`)
+        const albumResponse = await fetch(`/api/albums/by-alias/${alias}?t=${Date.now()}`, { cache: 'no-store' })
         if (!albumResponse.ok) {
           throw new Error('Album not found')
         }
@@ -66,7 +68,7 @@ export default function AlbumPage() {
         setAlbum(albumResult.data)
         
         // Fetch photos for this album
-        const photosResponse = await fetch(`/api/albums/${albumResult.data._id}/photos`)
+        const photosResponse = await fetch(`/api/albums/${albumResult.data._id}/photos?t=${Date.now()}`, { cache: 'no-store' })
         if (photosResponse.ok) {
           const photosResult = await photosResponse.json()
           if (photosResult.success) {
@@ -75,7 +77,7 @@ export default function AlbumPage() {
         }
         
         // Fetch sub-albums
-        const subAlbumsResponse = await fetch(`/api/albums?parentId=${albumResult.data._id}`)
+        const subAlbumsResponse = await fetch(`/api/albums?parentId=${albumResult.data._id}&t=${Date.now()}`, { cache: 'no-store' })
         if (subAlbumsResponse.ok) {
           const subAlbumsResult = await subAlbumsResponse.json()
           if (subAlbumsResult.success) {
@@ -261,7 +263,7 @@ export default function AlbumPage() {
                     key={photo._id} 
                     className={`${styles.card} ${styles.animateScaleIn} cursor-pointer`} 
                     style={{ animationDelay: `${i * 0.05}s` }}
-                    onClick={() => setSelectedImage(i)}
+                    onClick={() => { setLightboxIndex(i); setLightboxOpen(true) }}
                   >
                     <div className="overflow-hidden">
                       <Image
@@ -306,35 +308,76 @@ export default function AlbumPage() {
           </section>
         )}
 
-        {/* Image Modal */}
-        {selectedImage !== null && photos[selectedImage] && (
-          <div 
-            className="fixed inset-0 flex items-center justify-center z-50 p-4"
-            style={{ backgroundColor: 'rgba(0, 0, 0, 0.9)' }}
-            onClick={() => setSelectedImage(null)}
-          >
-            <div className="relative max-w-4xl max-h-full">
-              <Image
-                src={photos[selectedImage].storage?.url || photos[selectedImage].url || '/placeholder.jpg'}
-                alt={photos[selectedImage].alt ? MultiLangUtils.getTextValue(photos[selectedImage].alt, currentLanguage) : `Photo ${selectedImage + 1}`}
-                width={1200}
-                height={800}
-                className="max-w-full max-h-full object-contain rounded-lg"
-                priority
-                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 70vw"
-              />
-              <button
-                onClick={() => setSelectedImage(null)}
-                className="absolute top-4 right-4 transition-colors"
-                style={{ color: 'white' }}
-              >
-                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-          </div>
-        )}
+        {/* Photo Lightbox: prev/next, EXIF toggle, autoplay support */}
+        <PhotoLightbox
+          photos={photos.map(p => ({
+            _id: p._id,
+            url: p.storage?.url || p.url || '/placeholder.jpg',
+            thumbnailUrl: p.storage?.thumbnailPath,
+            title: typeof p.title === 'string' ? p.title : (p.title as any)?.[currentLanguage] || (p.title as any)?.en,
+            takenAt: (p as any).exif?.dateTimeOriginal,
+            exif: (p as any).exif ? {
+              make: (p as any).exif.make,
+              model: (p as any).exif.model,
+              serialNumber: (p as any).exif.serialNumber,
+              dateTime: (p as any).exif.dateTime,
+              dateTimeOriginal: (p as any).exif.dateTimeOriginal,
+              dateTimeDigitized: (p as any).exif.dateTimeDigitized,
+              offsetTime: (p as any).exif.offsetTime,
+              offsetTimeOriginal: (p as any).exif.offsetTimeOriginal,
+              offsetTimeDigitized: (p as any).exif.offsetTimeDigitized,
+              exposureTime: (p as any).exif.exposureTime,
+              fNumber: (p as any).exif.fNumber,
+              iso: (p as any).exif.iso,
+              focalLength: (p as any).exif.focalLength,
+              exposureProgram: (p as any).exif.exposureProgram,
+              exposureMode: (p as any).exif.exposureMode,
+              exposureBiasValue: (p as any).exif.exposureBiasValue,
+              maxApertureValue: (p as any).exif.maxApertureValue,
+              shutterSpeedValue: (p as any).exif.shutterSpeedValue,
+              apertureValue: (p as any).exif.apertureValue,
+              whiteBalance: (p as any).exif.whiteBalance,
+              meteringMode: (p as any).exif.meteringMode,
+              flash: (p as any).exif.flash,
+              colorSpace: (p as any).exif.colorSpace,
+              customRendered: (p as any).exif.customRendered,
+              sceneCaptureType: (p as any).exif.sceneCaptureType,
+              xResolution: (p as any).exif.xResolution,
+              yResolution: (p as any).exif.yResolution,
+              resolutionUnit: (p as any).exif.resolutionUnit,
+              focalPlaneXResolution: (p as any).exif.focalPlaneXResolution,
+              focalPlaneYResolution: (p as any).exif.focalPlaneYResolution,
+              focalPlaneResolutionUnit: (p as any).exif.focalPlaneResolutionUnit,
+              lensInfo: (p as any).exif.lensInfo,
+              lensModel: (p as any).exif.lensModel,
+              lensSerialNumber: (p as any).exif.lensSerialNumber,
+              software: (p as any).exif.software,
+              copyright: (p as any).exif.copyright,
+              exifVersion: (p as any).exif.exifVersion,
+              gps: (p as any).exif.gps ? {
+                latitude: (p as any).exif.gps.latitude,
+                longitude: (p as any).exif.gps.longitude,
+                altitude: (p as any).exif.gps.altitude,
+              } : undefined,
+              recommendedExposureIndex: (p as any).exif.recommendedExposureIndex,
+              subsecTimeOriginal: (p as any).exif.subsecTimeOriginal,
+              subsecTimeDigitized: (p as any).exif.subsecTimeDigitized,
+              gpsLatitude: (p as any).exif.gpsLatitude,
+              gpsLongitude: (p as any).exif.gpsLongitude,
+            } : undefined,
+            metadata: (p as any).metadata ? {
+              width: (p as any).metadata.width,
+              height: (p as any).metadata.height,
+              fileSize: (p as any).metadata.fileSize,
+              format: (p as any).metadata.format,
+            } : undefined,
+          }))}
+          startIndex={lightboxIndex}
+          isOpen={lightboxOpen}
+          onClose={() => setLightboxOpen(false)}
+          autoPlay={false}
+          intervalMs={4000}
+        />
 
         {/* Navigation - Commented out */}
         {/* <section className={`${styles.section} ${styles.bgSecondary}`}>
