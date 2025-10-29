@@ -57,7 +57,7 @@ UserSchema.pre('save', function(next) {
 })
 
 // Indexes for performance
-UserSchema.index({ username: 1 })
+// Note: username index is already defined as unique: true in the schema
 UserSchema.index({ role: 1 })
 UserSchema.index({ blocked: 1 })
 

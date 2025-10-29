@@ -39,6 +39,11 @@ else
     exit 1
 fi
 
+# Clean up old files
+echo -e "${BLUE}🧹 Cleaning up old build files...${NC}"
+rm -f openshutter-image.tar
+rm -f openshutter-deployment.tar.gz
+
 # Export the image
 echo -e "${BLUE}📦 Exporting Docker image...${NC}"
 docker save openshutter:latest > openshutter-image.tar
@@ -55,8 +60,9 @@ echo -e "${BLUE}📁 Creating deployment package...${NC}"
 tar -czf openshutter-deployment.tar.gz \
     openshutter-image.tar \
     docker-compose.prod.yml \
+    docker-compose.external-mongodb.yml \
     .env.production \
-    DEPLOYMENT.md
+    docs/DEPLOYMENT.md
 
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✅ Deployment package created: openshutter-deployment.tar.gz${NC}"
@@ -76,7 +82,9 @@ echo -e "${BLUE}Next steps:${NC}"
 echo -e "  1. Copy ${YELLOW}openshutter-deployment.tar.gz${NC} to your server"
 echo -e "  2. Extract: ${YELLOW}tar -xzf openshutter-deployment.tar.gz${NC}"
 echo -e "  3. Load image: ${YELLOW}docker load < openshutter-image.tar${NC}"
-echo -e "  4. Start: ${YELLOW}docker-compose -f docker-compose.prod.yml up -d${NC}"
+echo -e "  4. Configure ${YELLOW}.env.production${NC} with your MongoDB URI"
+echo -e "  5. Start with MongoDB: ${YELLOW}docker-compose -f docker-compose.prod.yml up -d${NC}"
+echo -e "  6. OR start with external MongoDB: ${YELLOW}docker-compose -f docker-compose.external-mongodb.yml up -d${NC}"
 echo ""
 echo -e "${BLUE}Or use the deployment script:${NC}"
 echo -e "  ${YELLOW}./scripts/deploy-to-server.sh user@your-server${NC}"

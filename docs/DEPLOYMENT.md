@@ -25,7 +25,7 @@ pnpm build:prod
 # This creates: openshutter-deployment.tar.gz
 ```
 
-#### 2. Deploy to Server
+#### 2. Deploy to Server (choose one compose file)
 
 ```bash
 # Copy deployment package to server
@@ -36,7 +36,15 @@ ssh user@your-server
 cd /opt/openshutter
 tar -xzf openshutter-deployment.tar.gz
 docker load < openshutter-image.tar
+
+# Option A: Run with bundled MongoDB service (includes MongoDB container)
 docker-compose -f docker-compose.prod.yml up -d
+
+# Option B: Run with EXTERNAL MongoDB (no Mongo container)
+#   - If MongoDB runs on the SAME server as Docker, set in .env.production:
+#       MONGODB_URI=mongodb://localhost:27017/openshutter
+#   - Then start with the external compose file (uses host networking)
+docker-compose -f docker-compose.external-mongodb.yml up -d
 ```
 
 ## Option 2: Source Code Deployment
@@ -134,7 +142,15 @@ chmod +x deploy.sh
 
 ```env
 # MongoDB Configuration
-MONGODB_URI=mongodb://your-mongodb-host:27017/openshutter
+# - With docker-compose.prod.yml (bundled MongoDB):
+#     MONGODB_URI=mongodb://mongodb:27017/openshutter
+# - External MongoDB on SAME server (host networking):
+#     MONGODB_URI=mongodb://localhost:27017/openshutter
+# - External MongoDB on DIFFERENT server:
+#     MONGODB_URI=mongodb://your-mongodb-host:27017/openshutter
+# - MongoDB Atlas:
+#     MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/openshutter
+MONGODB_URI=mongodb://localhost:27017/openshutter
 MONGODB_DB=openshutter
 
 # NextAuth Configuration
@@ -154,10 +170,15 @@ NODE_ENV=production
 NEXT_PUBLIC_APP_URL=https://your-domain.com
 ```
 
-### 2. Production Docker Compose (`docker-compose.prod.yml`)
+### 2. Production Docker Compose (two options)
 
 ```yaml
+# docker-compose.prod.yml (includes MongoDB service)
 services:
+  mongodb:
+    image: mongo:7.0
+    ports:
+      - "27017:27017"
   openshutter:
     image: openshutter:latest
     container_name: openshutter-prod
@@ -165,9 +186,29 @@ services:
       - "4000:4000"
     env_file:
       - .env.production
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017/openshutter
     volumes:
       - ./storage:/app/storage
       - ./logs:/app/logs
+    restart: unless-stopped
+    depends_on:
+      - mongodb
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:4000/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+# docker-compose.external-mongodb.yml (uses host network, no MongoDB service)
+services:
+  openshutter:
+    image: openshutter:latest
+    container_name: openshutter-prod
+    network_mode: host
+    env_file:
+      - .env.production
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:4000/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"]
@@ -176,6 +217,8 @@ services:
       retries: 3
       start_period: 40s
 ```
+
+> Note: With `network_mode: host`, the container shares the host network. The app binds directly to port 4000 on the host, and `localhost:27017` resolves to the host MongoDB.
 
 ## Server Requirements
 

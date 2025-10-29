@@ -45,7 +45,7 @@ if %errorlevel% equ 0 (
 
 REM Create deployment package
 echo 📁 Creating deployment package...
-tar -czf openshutter-deployment.tar.gz openshutter-image.tar docker-compose.prod.yml .env.production docs/DEPLOYMENT.md
+tar -czf openshutter-deployment.tar.gz openshutter-image.tar docker-compose.prod.yml docker-compose.external-mongodb.yml .env.production docs/DEPLOYMENT.md
 
 if %errorlevel% equ 0 (
     echo ✅ Deployment package created: openshutter-deployment.tar.gz
@@ -65,7 +65,9 @@ echo Next steps:
 echo   1. Copy openshutter-deployment.tar.gz to your server
 echo   2. Extract: tar -xzf openshutter-deployment.tar.gz
 echo   3. Load image: docker load ^< openshutter-image.tar
-echo   4. Start: docker-compose -f docker-compose.prod.yml up -d
+echo   4. Configure .env.production with your MongoDB URI
+echo   5. Start with MongoDB: docker-compose -f docker-compose.prod.yml up -d
+echo   6. OR start with external MongoDB: docker-compose -f docker-compose.external-mongodb.yml up -d
 echo.
 echo Or use the deployment script:
 echo   scripts\deploy-to-server.bat user@your-server

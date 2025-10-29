@@ -96,7 +96,13 @@ openshutter/
    pnpm run docker:deploy
    
    # Or manually
-   docker-compose -f docker-compose.prod.yml up -d
+  # Option A: with bundled MongoDB service
+  docker-compose -f docker-compose.prod.yml up -d
+
+  # Option B: with EXTERNAL MongoDB (same server or remote)
+  #   - Set MONGODB_URI in .env.production, e.g. for same server:
+  #       MONGODB_URI=mongodb://localhost:27017/openshutter
+  docker-compose -f docker-compose.external-mongodb.yml up -d
    ```
 
 5. **Verify MongoDB Connection**:

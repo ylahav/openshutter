@@ -269,6 +269,7 @@ To provide a modern, scalable, and user-friendly photo gallery management system
 - Storage migration capabilities
 - Backup and restore functionality
 - File access control
+- Support S3-compatible providers (Wasabi, Backblaze B2) in addition to AWS S3 and Local
 
 #### User Stories
 - **As a user**, I want to choose where my files are stored so that I can optimize for cost and performance
@@ -281,6 +282,39 @@ To provide a modern, scalable, and user-friendly photo gallery management system
 - Duplicate detection works accurately
 - Storage migration completes successfully
 - Backup/restore functions properly
+- S3-compatible providers work with custom endpoints and path-style addressing
+- Large file uploads (100MB+) succeed to Wasabi and Backblaze B2
+- Public read URLs are generated correctly per provider configuration
+
+#### Supported Storage Providers
+- Local filesystem (default)
+- AWS S3
+- Wasabi (S3-compatible)
+- Backblaze B2 (S3-compatible)
+
+#### S3-Compatible Providers (Wasabi, Backblaze B2)
+- Must support custom endpoint configuration
+- Must support path-style addressing toggle (some regions require it)
+- Must support regional endpoints
+- Must support server-side encryption toggle where applicable
+
+Required configuration fields (admin panel):
+- Provider: `aws-s3` | `wasabi` | `backblaze`
+- Region: string (e.g., `us-east-1`, `eu-central-1`)
+- Endpoint: string (e.g., `https://s3.wasabisys.com`, `https://s3.us-west-002.backblazeb2.com`)
+- Bucket name: string
+- Access key ID: string (stored securely)
+- Secret access key: string (stored securely)
+- Path-style addressing: boolean
+- Public base URL/Cloudfront URL (optional)
+- Default ACL/public-read toggle (optional)
+
+Operational notes:
+- Endpoints and credentials are stored encrypted in the database
+- Uploads use multipart for files > 5MB when provider supports it
+- Generated object keys are deterministic and avoid collisions
+- Deleting a photo removes the object from the backing provider
+- A background task can verify object existence and repair missing files
 
 ### 6. Repository Import System
 
