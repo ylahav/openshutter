@@ -1,3 +1,35 @@
+## v0.9.5 - 2025-10-29
+
+### Highlights
+- Infrastructure: Upgrade Docker base to Node.js 20 for Next.js 16 compatibility
+- Deployment: Added external MongoDB compose using host networking; improved build artifacts packaging and cleanup
+- Frontend: Album lightbox on modern template with prev/next, EXIF toggle, and autoplay
+- Admin: Album page shows fetched photos immediately (no manual refresh required)
+
+### Features
+- Docker
+  - Builder/runner images updated to `node:20-alpine`
+  - New `docker-compose.external-mongodb.yml` for deployments with external MongoDB (same-host friendly via `network_mode: host`)
+- Frontend Album View (Modern Template)
+  - Integrated `PhotoLightbox` with:
+    - Navigation (prev/next, arrow keys)
+    - EXIF panel (toggle with button or “I”)
+    - Slideshow autoplay (toggle with button or spacebar)
+- Documentation
+  - Deployment docs updated with external Mongo option and host networking notes
+  - Docker deployment guide updated with run instructions for both modes
+  - PRD updated to include Wasabi/Backblaze as S3-compatible providers and required config
+
+### Fixes
+- Build scripts: remove old `openshutter-image.tar` and `openshutter-deployment.tar.gz` before exporting to prevent file growth across builds
+- Admin Albums: `AlbumDetailView` now syncs `localPhotos` with incoming `photos` prop so photos render as soon as they load
+- Fetch freshness: album/photos/sub-albums requests use `cache: 'no-store'` and a timestamp to avoid stale responses
+
+### Upgrade Notes
+- Rebuild Docker images after pulling: `pnpm build:prod` or `pnpm docker:build`
+- For external MongoDB on the same server, set `MONGODB_URI=mongodb://localhost:27017/openshutter` and use `docker-compose.external-mongodb.yml`
+- For Wasabi/Backblaze usage, configure endpoint, region, bucket, and credentials in admin storage settings
+
 ## v0.9.3 (Pre-release) - 2025-01-15
 
 ### Highlights
