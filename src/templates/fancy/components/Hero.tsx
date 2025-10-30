@@ -66,6 +66,19 @@ const ElegantHero: React.FC = () => {
             sizes="100vw"
             style={{ objectFit: 'cover' }}
           />
+          {/* Gradient overlay at top for header contrast - ensures header is always visible */}
+          <div 
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: '150px',
+              background: 'linear-gradient(to bottom, rgba(250, 249, 247, 0.5), transparent)',
+              zIndex: 1,
+              pointerEvents: 'none'
+            }}
+          />
         </div>
       )}
 

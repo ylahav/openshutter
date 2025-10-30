@@ -52,10 +52,10 @@ const Hero: React.FC = () => {
   const description = config?.description ? MultiLangUtils.getHTMLValue(config.description, currentLanguage) : 'Capturing moments with simplicity and elegance through the art of visual storytelling.';
 
   return (
-    <section className="minimal-hero">
+    <section className="minimal-hero" style={{ position: 'relative', minHeight: '80vh', marginTop: '0' }}>
       {/* Background Image */}
       {!loading && photos.length > 0 && (
-        <div className="minimal-hero-bg">
+        <div className="minimal-hero-bg" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1 }}>
           <Image
             key={photos[currentPhotoIndex]._id}
             src={photos[currentPhotoIndex].storage.thumbnailPath || photos[currentPhotoIndex].storage.url || '/placeholder.jpg'}
@@ -66,11 +66,24 @@ const Hero: React.FC = () => {
             sizes="100vw"
             style={{ objectFit: 'cover' }}
           />
+          {/* Gradient overlay at top for header contrast */}
+          <div 
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: '150px',
+              background: 'linear-gradient(to bottom, rgba(255, 255, 255, 0.6), transparent)',
+              zIndex: 2,
+              pointerEvents: 'none'
+            }}
+          />
         </div>
       )}
 
       {/* Hero Content */}
-      <div className="minimal-hero-content">
+      <div className="minimal-hero-content" style={{ position: 'relative', zIndex: 3, paddingTop: '80px' }}>
         <h1 className="minimal-hero-title">
           {title}
         </h1>

@@ -103,6 +103,63 @@ Notes:
 - Use Tailwind classes and existing UI components where convenient.
 - Keep props simple; pull data via existing hooks/services as needed.
 
+### Simplifying Album Pages with Shared Hooks
+
+OpenShutter provides a shared `useAlbumData` hook to reduce boilerplate when creating album pages:
+
+```tsx
+import { useAlbumData } from '@/hooks/useAlbumData'
+import PhotoLightbox from '@/components/PhotoLightbox'
+
+export default function AlbumPage() {
+  const params = useParams()
+  const alias = params?.alias as string
+  const { currentLanguage } = useLanguage()
+  const { album, photos, subAlbums, loading, error, subAlbumCoverPhotos } = useAlbumData(alias)
+  const [lightboxOpen, setLightboxOpen] = useState(false)
+  const [lightboxIndex, setLightboxIndex] = useState(0)
+
+  // Use the data returned by the hook...
+  // The hook automatically:
+  // - Fetches album by alias
+  // - Fetches photos for the album
+  // - Fetches sub-albums
+  // - Fetches cover photos for sub-albums
+  // - Handles loading and error states
+  // - Uses no-cache fetches to prevent stale data
+}
+```
+
+### PhotoLightbox Integration
+
+All templates should integrate the `PhotoLightbox` component for consistent photo viewing experience across templates:
+
+```tsx
+<PhotoLightbox
+  photos={photos.map(p => ({
+    _id: p._id,
+    url: p.storage?.url || p.url || '/placeholder.jpg',
+    thumbnailUrl: p.storage?.thumbnailPath,
+    title: typeof p.title === 'string' ? p.title : (p.title as any)?.[currentLanguage] || (p.title as any)?.en,
+    takenAt: (p as any).exif?.dateTimeOriginal,
+    exif: (p as any).exif ? { /* EXIF data */ } : undefined,
+    metadata: (p as any).metadata ? { /* metadata */ } : undefined,
+  }))}
+  startIndex={lightboxIndex}
+  isOpen={lightboxOpen}
+  onClose={() => setLightboxOpen(false)}
+  autoPlay={false}
+  intervalMs={4000}
+/>
+```
+
+Features provided by PhotoLightbox:
+- Previous/Next navigation (buttons, arrow keys, swipe)
+- EXIF data display (toggle with button or "I" key)
+- Autoplay slideshow (toggle with button or spacebar)
+- Fullscreen support (F key)
+- Keyboard shortcuts (Arrow keys, Space, Escape, F, I)
+
 ## Auto-Discovery
 
 At runtime, the system scans `src/templates` for folders containing `template.config.json`. Discovered templates are returned by the `GET /api/admin/templates` endpoint and shown in the admin UI.
@@ -122,4 +179,17 @@ If no config files are found, the built-in templates are used as a fallback to e
 
 ---
 
-Last updated: September 2025
+## Template Updates
+
+### Minimal Template (October 2025)
+- Header: horizontal layout with desktop nav and mobile toggle; sticky, glass background.
+- Hero: improved text readability with dark gradient overlay and text-shadow.
+- Home Albums: responsive grid using `minimal-gallery-grid` (1/2/3 columns).
+- Albums Page (`/albums`): implemented. Displays root albums grid with cover images, title, and photo count; loading and empty states included.
+
+Key classes available globally (via `globals.css`):
+- `minimal-header`, `minimal-nav`, `minimal-nav-menu`, `minimal-actions`
+- `minimal-hero`, `minimal-hero-bg`, `minimal-hero-title`, `minimal-hero-description`
+- `minimal-gallery`, `minimal-container`, `minimal-gallery-grid`, `minimal-gallery-item`, `minimal-gallery-image`
+
+Last updated: October 2025

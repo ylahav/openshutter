@@ -99,7 +99,14 @@ export default function Header() {
   }
 
   return (
-    <header className="minimal-header">
+    <header className="minimal-header" style={{ 
+      position: 'sticky', 
+      top: 0, 
+      zIndex: 100,
+      background: 'rgba(255, 255, 255, 0.85)',
+      backdropFilter: 'blur(10px)',
+      borderBottom: '1px solid rgba(0, 0, 0, 0.1)'
+    }}>
       <nav className="minimal-nav">
         {/* Logo */}
         <Link href="/" className="minimal-logo">

@@ -56,9 +56,10 @@ const ElegantHeader: React.FC = () => {
         left: 0,
         right: 0,
         zIndex: 1000,
-        background: isScrolled ? 'rgba(250, 249, 247, 0.95)' : 'transparent',
-        backdropFilter: isScrolled ? 'blur(10px)' : 'none',
-        borderBottom: isScrolled ? '1px solid rgba(212, 175, 55, 0.2)' : 'none',
+        // Always have a semi-transparent background for contrast, lighter when not scrolled
+        background: isScrolled ? 'rgba(250, 249, 247, 0.95)' : 'rgba(250, 249, 247, 0.7)',
+        backdropFilter: isScrolled ? 'blur(10px)' : 'blur(5px)',
+        borderBottom: isScrolled ? '1px solid rgba(212, 175, 55, 0.2)' : '1px solid rgba(212, 175, 55, 0.1)',
         transition: 'all 0.3s ease'
       }}
     >
