@@ -27,7 +27,7 @@ export default function SearchPage() {
   const [results, setResults] = useState<SearchResult[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [type, setType] = useState<'all' | 'photos' | 'albums' | 'people'>('all')
+  const [type, setType] = useState<'all' | 'photos' | 'albums' | 'people' | 'locations'>('all')
   const [sortBy, setSortBy] = useState<'relevance' | 'date' | 'filename' | 'size'>('relevance')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
 
@@ -81,7 +81,7 @@ export default function SearchPage() {
     setFilters(prev => ({ ...prev, ...newFilters }))
   }
 
-  const handleTypeChange = (newType: 'all' | 'photos' | 'albums' | 'people') => {
+  const handleTypeChange = (newType: 'all' | 'photos' | 'albums' | 'people' | 'locations') => {
     setType(newType)
   }
 
@@ -185,9 +185,11 @@ export default function SearchPage() {
                   photos: results.filter(r => r.type === 'photo') as any[],
                   albums: results.filter(r => r.type === 'album') as any[],
                   people: results.filter(r => r.type === 'person') as any[],
+                  locations: results.filter(r => r.type === 'location') as any[],
                   totalPhotos: results.filter(r => r.type === 'photo').length,
                   totalAlbums: results.filter(r => r.type === 'album').length,
                   totalPeople: results.filter(r => r.type === 'person').length,
+                  totalLocations: results.filter(r => r.type === 'location').length,
                   page: 1,
                   limit: 20,
                   hasMore: false

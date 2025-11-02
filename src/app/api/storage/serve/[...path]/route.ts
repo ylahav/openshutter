@@ -13,8 +13,9 @@ export async function GET(
     
     // Extract provider and file path from the URL
     // Expected format: /api/storage/serve/{provider}/{filepath}
-    const pathParts = decodedPath.split('/')
+    const pathParts = decodedPath.split('/').filter(Boolean) // Remove empty parts
     if (pathParts.length < 2) {
+      console.error('Storage API: Invalid path format', { decodedPath, pathParts })
       return NextResponse.json(
         { error: 'Invalid path format. Expected: /api/storage/serve/{provider}/{filepath}' },
         { status: 400 }
@@ -28,8 +29,9 @@ export async function GET(
     // Get file info from storage manager
     const fileInfo = await storageManager.getPhotoInfo(fullFilePath, provider)
     if (!fileInfo) {
+      console.error('Storage API: File not found', { fullFilePath, provider, decodedPath })
       return NextResponse.json(
-        { error: 'File not found' },
+        { error: 'File not found', path: fullFilePath, provider },
         { status: 404 }
       )
     }

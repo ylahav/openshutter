@@ -15,6 +15,7 @@ import { useActiveTemplate } from '@/hooks/useTemplate';
 
 type Album = {
   _id: string;
+  alias?: string;
   name: string | Record<string, string>;
   description?: string | Record<string, string>;
   isFeatured?: boolean;
@@ -73,25 +74,36 @@ const MinimalHomePage: React.FC = () => {
             </div>
           ) : albums.length > 0 ? (
             <div className="minimal-gallery-grid">
-              {albums.slice(0, 9).map((album, index) => (
-                <div 
-                  key={album._id} 
-                  className={`minimal-gallery-item ${index === 3 ? 'minimal-gallery-item-wide' : ''}`}
-                >
-                  {coverImages[album._id] && (
-                    <Image
-                      src={coverImages[album._id]}
-                      alt={getText(album.name) || 'Album cover'}
-                      width={400}
-                      height={300}
-                      className="minimal-gallery-image"
-                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                      loading="lazy"
-                    />
-                  )}
-                  <div className="minimal-gallery-overlay"></div>
-                </div>
-              ))}
+              {albums.slice(0, 9).map((album, index) => {
+                const tile = (
+                  <div 
+                    key={album._id} 
+                    className={`minimal-gallery-item ${index === 3 ? 'minimal-gallery-item-wide' : ''}`}
+                  >
+                    {coverImages[album._id] ? (
+                      <Image
+                        src={coverImages[album._id]}
+                        alt={getText(album.name) || 'Album cover'}
+                        width={800}
+                        height={600}
+                        className="minimal-gallery-image"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div style={{ aspectRatio: '4 / 3', background: 'var(--minimal-hover)' }} />
+                    )}
+                    <div className="minimal-gallery-overlay"></div>
+                    <div className="minimal-gallery-caption">
+                      <div className="minimal-gallery-caption-title">{getText(album.name) || 'Untitled Album'}</div>
+                      <div className="minimal-gallery-caption-meta">{album.photoCount || 0} photos</div>
+                    </div>
+                  </div>
+                )
+                return album.alias ? (
+                  <Link key={album._id} href={`/albums/${album.alias}`}>{tile}</Link>
+                ) : tile
+              })}
             </div>
           ) : (
             <div className="minimal-gallery-empty">

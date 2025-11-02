@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { MultiLangUtils } from '@/types/multi-lang'
 import { Plus, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -41,6 +42,7 @@ export default function PhotoMetadataEditor({
   const [locationAddress, setLocationAddress] = useState(location?.address || '')
   const [locationLat, setLocationLat] = useState(location?.coordinates?.latitude?.toString() || '')
   const [locationLng, setLocationLng] = useState(location?.coordinates?.longitude?.toString() || '')
+  const [personLabels, setPersonLabels] = useState<Record<string, string>>({})
   
   // Popup states
   const [tagsPopupOpen, setTagsPopupOpen] = useState(false)
@@ -73,6 +75,44 @@ export default function PhotoMetadataEditor({
   const removePerson = (personToRemove: string) => {
     onPeopleChange(people.filter(person => person !== personToRemove))
   }
+
+  // Resolve person IDs to display names for badges
+  useEffect(() => {
+    const isObjectId = (val: string) => /^[a-fA-F0-9]{24}$/.test(val)
+    const ids = (people || []).filter(p => typeof p === 'string' && isObjectId(p)) as string[]
+    if (ids.length === 0) {
+      const map: Record<string,string> = {}
+      for (const p of people || []) map[p] = String(p)
+      setPersonLabels(map)
+      return
+    }
+    let cancelled = false
+    ;(async () => {
+      try {
+        const entries = await Promise.all(ids.map(async (id) => {
+          try {
+            const res = await fetch(`/api/people/${id}`)
+            if (!res.ok) return [id, id] as const
+            const data = await res.json()
+            if (!data?.success || !data?.data) return [id, id] as const
+            const person = data.data
+            const label = MultiLangUtils.getTextValue(person.fullName || person.firstName, 'en') || person.nickname?.en || id
+            return [id, label] as const
+          } catch {
+            return [id, id] as const
+          }
+        }))
+        if (cancelled) return
+        const map: Record<string,string> = {}
+        for (const [id, label] of entries) map[id] = label
+        for (const p of people || []) if (!isObjectId(p)) map[p] = String(p)
+        setPersonLabels(map)
+      } catch {
+        // ignore
+      }
+    })()
+    return () => { cancelled = true }
+  }, [people])
 
   return (
     <div className="space-y-6">
@@ -140,7 +180,7 @@ export default function PhotoMetadataEditor({
               variant="secondary"
               className="bg-green-100 text-green-800 hover:bg-green-200"
             >
-              👤 {person}
+              👤 {personLabels[String(person)] || String(person)}
               <button
                 type="button"
                 onClick={() => removePerson(person)}

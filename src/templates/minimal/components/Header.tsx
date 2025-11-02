@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useSession, signOut } from 'next-auth/react'
+import { useSession, signOut } from '@/hooks/useAuth'
 import { useSiteConfig } from '@/hooks/useSiteConfig'
 import { MultiLangUtils } from '@/types/multi-lang'
 import { useLanguage } from '@/contexts/LanguageContext'

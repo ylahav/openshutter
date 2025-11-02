@@ -2,12 +2,12 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
+// Using regular img tag for API-served images instead of Next.js Image
 import { useI18n } from '@/hooks/useI18n'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { MultiLangUtils } from '@/types/multi-lang'
 import { Photo } from '@/types'
-import { Calendar, Image as ImageIcon, Tag, Eye } from 'lucide-react'
+import { Calendar, Image as ImageIcon, Tag, Eye } from '@/lib/icons'
 import { format } from 'date-fns'
 
 interface PhotoCardProps {
@@ -35,12 +35,10 @@ export function PhotoCard({ photo, viewMode }: PhotoCardProps) {
           {/* Thumbnail */}
           <div className="flex-shrink-0">
             <div className="w-16 h-16 bg-gray-200 rounded-lg overflow-hidden">
-              {!imageError && photo.storage?.url ? (
-                <Image
-                  src={photo.storage.url}
+              {!imageError && (photo.storage?.thumbnailPath || photo.storage?.url) ? (
+                <img
+                  src={photo.storage?.thumbnailPath || photo.storage?.url || ''}
                   alt={(typeof photo.title === 'string' ? photo.title : MultiLangUtils.getTextValue(photo.title as any, currentLanguage)) || photo.filename}
-                  width={64}
-                  height={64}
                   className="w-full h-full object-cover"
                   onError={() => setImageError(true)}
                 />
@@ -111,13 +109,12 @@ export function PhotoCard({ photo, viewMode }: PhotoCardProps) {
   return (
     <div className="bg-white rounded-lg shadow-sm border overflow-hidden hover:shadow-md transition-shadow">
       {/* Image */}
-      <div className="aspect-square bg-gray-200 relative">
-        {!imageError && photo.storage?.url ? (
-          <Image
-            src={photo.storage.url}
+      <div className="aspect-square bg-gray-200 relative overflow-hidden">
+        {!imageError && (photo.storage?.thumbnailPath || photo.storage?.url) ? (
+          <img
+            src={photo.storage?.thumbnailPath || photo.storage?.url || ''}
             alt={(typeof photo.title === 'string' ? photo.title : MultiLangUtils.getTextValue(photo.title as any, currentLanguage)) || photo.filename}
-            fill
-            className="object-cover"
+            className="absolute inset-0 w-full h-full object-cover"
             onError={() => setImageError(true)}
           />
         ) : (

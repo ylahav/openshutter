@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { CalendarIcon, X } from 'lucide-react'
+import { CalendarIcon, X } from '@/lib/icons'
 import { format } from 'date-fns'
 
 interface SearchFiltersProps {
@@ -25,8 +25,8 @@ interface SearchFiltersProps {
     mine: boolean
   }
   onFilterChange: (filters: any) => void
-  type: 'all' | 'photos' | 'albums' | 'people'
-  onTypeChange: (type: 'all' | 'photos' | 'albums' | 'people') => void
+  type: 'all' | 'photos' | 'albums' | 'people' | 'locations'
+  onTypeChange: (type: 'all' | 'photos' | 'albums' | 'people' | 'locations') => void
   sortBy: 'relevance' | 'date' | 'filename' | 'size'
   sortOrder: 'asc' | 'desc'
   onSortChange: (sortBy: 'relevance' | 'date' | 'filename' | 'size', sortOrder: 'asc' | 'desc') => void
@@ -119,94 +119,56 @@ export function SearchFilters({
   )
   
   return (
-    <div className="bg-white rounded-lg shadow-sm border p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-semibold text-gray-900">
+    <div className="bg-white rounded-lg shadow-sm border p-4">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-base font-semibold text-gray-900">
           {t('search.filters', 'Filters')}
         </h3>
         {hasActiveFilters && (
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={clearFilters}
-            className="text-gray-600 hover:text-gray-800"
+            className="h-8 text-xs text-gray-600 hover:text-gray-800"
           >
-            <X className="h-4 w-4 mr-1" />
-            {t('search.clearFilters', 'Clear')}
+            <X className="h-3 w-3 mr-1" />
+            Clear
           </Button>
         )}
       </div>
       
-      <div className="space-y-6">
-        {/* Search Type */}
+      <div className="space-y-4">
+        {/* Search Type - Simplified */}
         <div>
-          <Label className="text-sm font-medium text-gray-700 mb-2 block">
-            {t('search.searchType', 'Search Type')}
+          <Label className="text-xs font-medium text-gray-700 mb-1.5 block">
+            {t('search.searchType', 'Type')}
           </Label>
           <Select value={type} onValueChange={onTypeChange}>
-            <SelectTrigger>
+            <SelectTrigger className="h-9 text-sm">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-white text-foreground border shadow-md">
               <SelectItem value="all">{t('search.all', 'All')}</SelectItem>
               <SelectItem value="photos">{t('search.photos', 'Photos')}</SelectItem>
               <SelectItem value="albums">{t('search.albums', 'Albums')}</SelectItem>
-              <SelectItem value="people">{t('search.people', 'People')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
         
-        {/* Tags */}
+        {/* Album Filter - Simplified */}
         <div>
-          <Label className="text-sm font-medium text-gray-700 mb-2 block">
-            {t('search.tags', 'Tags')}
-          </Label>
-          <div className="space-y-2">
-            <div className="flex gap-2">
-              <Input
-                value={tagInput}
-                onChange={(e) => setTagInput(e.target.value)}
-                placeholder={t('search.addTag', 'Add tag...')}
-                onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleTagAdd())}
-              />
-              <Button type="button" onClick={handleTagAdd} size="sm">
-                {t('search.add', 'Add')}
-              </Button>
-            </div>
-            {filters.tags.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {filters.tags.map((tag) => (
-                  <span
-                    key={String(tag)}
-                    className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
-                  >
-                    {typeof tag === 'string' ? tag : (MultiLangUtils.getTextValue(tag as any, currentLanguage) || '')}
-                    <button
-                      onClick={() => handleTagRemove(tag)}
-                      className="ml-1 hover:text-blue-600"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-        
-        {/* Album Filter */}
-        <div>
-          <Label className="text-sm font-medium text-gray-700 mb-2 block">
+          <Label className="text-xs font-medium text-gray-700 mb-1.5 block">
             {t('search.album', 'Album')}
           </Label>
           <Select value={filters.albumId || 'all'} onValueChange={(value) => onFilterChange({...filters, albumId: value === 'all' ? undefined : value})}>
-            <SelectTrigger>
-              <SelectValue placeholder={t('search.selectAlbum', 'Select album...')} />
+            <SelectTrigger className="h-9 text-sm">
+              <SelectValue placeholder={t('search.allAlbums', 'All Albums')} />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-white text-foreground border shadow-md">
               <SelectItem value="all">{t('search.allAlbums', 'All Albums')}</SelectItem>
               {availableAlbums
                 .filter(album => album && album._id && String(album._id).trim() !== '')
+                .slice(0, 20) // Limit to 20 albums for simplicity
                 .map((album) => {
                   const albumId = String(album._id).trim()
                   if (!albumId) return null
@@ -223,126 +185,34 @@ export function SearchFilters({
           </Select>
         </div>
         
-        {/* Date Range */}
+        {/* Sort - Simplified */}
         <div>
-          <Label className="text-sm font-medium text-gray-700 mb-2 block">
-            {t('search.dateRange', 'Date Range')}
-          </Label>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <Popover open={dateFromOpen} onOpenChange={setDateFromOpen}>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-full justify-start text-left font-normal">
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {filters.dateFrom ? format(new Date(filters.dateFrom), 'MMM dd, yyyy') : t('search.from', 'From')}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={filters.dateFrom ? new Date(filters.dateFrom) : undefined}
-                    onSelect={(date) => handleDateChange('dateFrom', date)}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-            <div>
-              <Popover open={dateToOpen} onOpenChange={setDateToOpen}>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-full justify-start text-left font-normal">
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {filters.dateTo ? format(new Date(filters.dateTo), 'MMM dd, yyyy') : t('search.to', 'To')}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={filters.dateTo ? new Date(filters.dateTo) : undefined}
-                    onSelect={(date) => handleDateChange('dateTo', date)}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-          </div>
-        </div>
-        
-        {/* Storage Provider */}
-        <div>
-          <Label className="text-sm font-medium text-gray-700 mb-2 block">
-            {t('search.storageProvider', 'Storage Provider')}
-          </Label>
-          <Select value={filters.storageProvider || 'all'} onValueChange={(value) => onFilterChange({...filters, storageProvider: value === 'all' ? undefined : value})}>
-            <SelectTrigger>
-              <SelectValue placeholder={t('search.selectProvider', 'Select provider...')} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t('search.allProviders', 'All Providers')}</SelectItem>
-              <SelectItem value="google-drive">Google Drive</SelectItem>
-              <SelectItem value="aws-s3">AWS S3</SelectItem>
-              <SelectItem value="local">Local Storage</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        
-        {/* Visibility */}
-        <div>
-          <Label className="text-sm font-medium text-gray-700 mb-2 block">
-            {t('search.visibility', 'Visibility')}
-          </Label>
-          <Select value={filters.isPublic !== undefined ? String(filters.isPublic) : 'all'} onValueChange={(value) => onFilterChange({...filters, isPublic: value === 'all' ? undefined : value === 'true'})}>
-            <SelectTrigger>
-              <SelectValue placeholder={t('search.selectVisibility', 'Select visibility...')} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t('search.allVisibility', 'All')}</SelectItem>
-              <SelectItem value="true">{t('search.public', 'Public')}</SelectItem>
-              <SelectItem value="false">{t('search.private', 'Private')}</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        
-        {/* My Content */}
-        <div className="flex items-center space-x-2">
-          <Checkbox
-            id="mine"
-            checked={filters.mine}
-            onCheckedChange={(checked) => onFilterChange({...filters, mine: !!checked})}
-          />
-          <Label htmlFor="mine" className="text-sm font-medium text-gray-700">
-            {t('search.myContent', 'My content only')}
-          </Label>
-        </div>
-        
-        {/* Sort Options */}
-        <div>
-          <Label className="text-sm font-medium text-gray-700 mb-2 block">
+          <Label className="text-xs font-medium text-gray-700 mb-1.5 block">
             {t('search.sortBy', 'Sort By')}
           </Label>
           <div className="space-y-2">
-            <Select value={sortBy} onValueChange={(value) => onSortChange(value as 'relevance' | 'date' | 'filename' | 'size', sortOrder)}>
-              <SelectTrigger>
+            <Select value={sortBy} onValueChange={(value) => onSortChange(value as any, sortOrder)}>
+              <SelectTrigger className="h-9 text-sm">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-white text-foreground border shadow-md">
                 <SelectItem value="relevance">{t('search.relevance', 'Relevance')}</SelectItem>
                 <SelectItem value="date">{t('search.date', 'Date')}</SelectItem>
                 <SelectItem value="filename">{t('search.filename', 'Filename')}</SelectItem>
-                <SelectItem value="size">{t('search.size', 'Size')}</SelectItem>
               </SelectContent>
             </Select>
             <Select value={sortOrder} onValueChange={(value) => onSortChange(sortBy, value as 'asc' | 'desc')}>
-              <SelectTrigger>
+              <SelectTrigger className="h-9 text-sm">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="desc">{t('search.descending', 'Descending')}</SelectItem>
-                <SelectItem value="asc">{t('search.ascending', 'Ascending')}</SelectItem>
+              <SelectContent className="bg-white text-foreground border shadow-md">
+                <SelectItem value="desc">{t('search.descending', 'Newest First')}</SelectItem>
+                <SelectItem value="asc">{t('search.ascending', 'Oldest First')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </div>
+        
       </div>
     </div>
   )

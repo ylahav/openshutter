@@ -1,7 +1,7 @@
 import { Metadata } from 'next'
-import { Suspense } from 'react'
 import { siteConfigService } from '@/services/site-config'
-import SearchPageContent from '@/components/search/SearchPageContent'
+import TemplateWrapper from '@/components/TemplateWrapper'
+import DynamicTemplateLoader from '@/components/DynamicTemplateLoader'
 
 export async function generateMetadata(): Promise<Metadata> {
   try {
@@ -30,10 +30,8 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default function SearchPageWrapper() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-    </div>}>
-      <SearchPageContent />
-    </Suspense>
+    <TemplateWrapper pageName="search">
+      <DynamicTemplateLoader pageName="search" />
+    </TemplateWrapper>
   )
 }

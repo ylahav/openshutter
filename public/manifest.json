@@ -24,20 +24,7 @@
       "purpose": "any maskable"
     }
   ],
-  "screenshots": [
-    {
-      "src": "/screenshot-wide.png",
-      "sizes": "1280x720",
-      "type": "image/png",
-      "form_factor": "wide"
-    },
-    {
-      "src": "/screenshot-narrow.png",
-      "sizes": "750x1334",
-      "type": "image/png",
-      "form_factor": "narrow"
-    }
-  ],
+  "screenshots": [],
   "features": [
     "Photo Gallery Management",
     "Multi-Storage Support",
@@ -53,29 +40,19 @@
       "name": "View Albums",
       "short_name": "Albums",
       "description": "Browse photo albums",
-      "url": "/albums",
-      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
+      "url": "/albums"
     },
     {
       "name": "Search Photos",
       "short_name": "Search",
       "description": "Search through photos and albums",
-      "url": "/search",
-      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
+      "url": "/search"
     },
     {
       "name": "Upload Photos",
       "short_name": "Upload",
       "description": "Upload new photos",
-      "url": "/photos/upload",
-      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
-    },
-    {
-      "name": "Mobile Search",
-      "short_name": "Mobile",
-      "description": "Mobile-optimized search interface",
-      "url": "/mobile/search",
-      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
+      "url": "/photos/upload"
     }
   ]
 }

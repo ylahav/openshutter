@@ -1,18 +1,23 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useI18n } from '@/hooks/useI18n'
 import { SearchFilters as SearchFiltersComponent } from '@/components/search/SearchFilters'
 import { SearchResults } from '@/components/search/SearchResults'
-import { SearchResult, DesktopSearchFilters } from '@/types/search'
+import { DesktopSearchFilters } from '@/types/search'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 
 export default function SearchPage() {
   const { t } = useI18n()
+  const router = useRouter()
+  const pathname = usePathname()
   const searchParams = useSearchParams()
   const query = searchParams.get('q') || ''
+  const [inputValue, setInputValue] = useState(query)
 
   const [filters, setFilters] = useState<DesktopSearchFilters>({
     tags: [],
@@ -24,17 +29,43 @@ export default function SearchPage() {
     mine: false
   })
 
-  const [results, setResults] = useState<SearchResult[]>([])
+  const [results, setResults] = useState({
+    photos: [],
+    albums: [],
+    people: [],
+    locations: [],
+    totalPhotos: 0,
+    totalAlbums: 0,
+    totalPeople: 0,
+    totalLocations: 0,
+    page: 1,
+    limit: 20,
+    hasMore: false
+  } as any)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [type, setType] = useState<'all' | 'photos' | 'albums' | 'people'>('all')
+  const [type, setType] = useState<'all' | 'photos' | 'albums' | 'people' | 'locations'>('all')
   const [sortBy, setSortBy] = useState<'relevance' | 'date' | 'filename' | 'size'>('relevance')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
+
+  useEffect(() => { setInputValue(query) }, [query])
+
+  const submitSearch = (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
+    const params = new URLSearchParams(Array.from(searchParams.entries()))
+    if (inputValue && inputValue.trim()) params.set('q', inputValue.trim())
+    else params.delete('q')
+    router.push(`${pathname}?${params.toString()}`)
+  }
 
   // Search function
   const performSearch = async () => {
     if (!query.trim()) {
-      setResults([])
+      setResults({
+        photos: [], albums: [], people: [], locations: [],
+        totalPhotos: 0, totalAlbums: 0, totalPeople: 0, totalLocations: 0,
+        page: 1, limit: 20, hasMore: false
+      })
       return
     }
 
@@ -60,7 +91,19 @@ export default function SearchPage() {
       const data = await response.json()
 
       if (data.success) {
-        setResults(data.results || [])
+        console.log('Modern Search - API Response:', {
+          hasData: !!data.data,
+          hasResults: !!data.results,
+          dataKeys: data.data ? Object.keys(data.data) : [],
+          resultsKeys: data.results ? Object.keys(data.results) : [],
+          totalPhotos: data.data?.totalPhotos || data.results?.totalPhotos || 0,
+          photosArrayLength: data.data?.photos?.length || data.results?.photos?.length || 0
+        })
+        setResults(data.data || data.results || {
+          photos: [], albums: [], people: [], locations: [],
+          totalPhotos: 0, totalAlbums: 0, totalPeople: 0, totalLocations: 0,
+          page: 1, limit: 20, hasMore: false
+        })
       } else {
         setError(data.error || 'Search failed')
       }
@@ -81,7 +124,7 @@ export default function SearchPage() {
     setFilters(prev => ({ ...prev, ...newFilters }))
   }
 
-  const handleTypeChange = (newType: 'all' | 'photos' | 'albums' | 'people') => {
+  const handleTypeChange = (newType: 'all' | 'photos' | 'albums' | 'people' | 'locations') => {
     setType(newType)
   }
 
@@ -107,50 +150,30 @@ export default function SearchPage() {
   )
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+    <div className="min-h-screen bg-linear-to-br from-slate-50 via-blue-50 to-indigo-50">
       <Header />
       
       <main className="container mx-auto px-6 py-12 max-w-7xl">
         {/* Search Header */}
         <div className="text-center mb-12">
-          <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent mb-4">
+          <h1 className="text-5xl font-bold bg-linear-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent mb-4">
             {t('search.title', 'Search Gallery')}
           </h1>
           <p className="text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed">
             {t('search.subtitle', 'Discover and explore our curated collection of beautiful moments')}
           </p>
+          <form onSubmit={submitSearch} className="mt-6 max-w-2xl mx-auto flex gap-3">
+            <Input
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              placeholder={t('search.placeholder', 'Search by people, albums, locations, tags...')}
+              className="bg-white/90"
+            />
+            <Button type="submit" className="px-6">
+              {t('search.search', 'Search')}
+            </Button>
+          </form>
         </div>
-
-        {/* Search Query Display */}
-        {query && (
-          <div className="bg-white/70 backdrop-blur-lg rounded-3xl p-8 mb-10 shadow-xl border border-white/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-bold text-slate-800 mb-2">
-                  {t('search.resultsFor', 'Results for')}: <span className="text-blue-600">"{query}"</span>
-                </h2>
-                <p className="text-slate-600">
-                  {loading ? (
-                    <span className="flex items-center gap-2">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                      {t('search.searching', 'Searching...')}
-                    </span>
-                  ) : (
-                    `${results.length} ${t('search.resultsFound', 'results found')}`
-                  )}
-                </p>
-              </div>
-              {hasActiveFilters && (
-                <button
-                  onClick={clearFilters}
-                  className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-2xl transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-                >
-                  {t('search.clearFilters', 'Clear Filters')}
-                </button>
-              )}
-            </div>
-          </div>
-        )}
 
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
           {/* Filters Sidebar */}
@@ -187,17 +210,7 @@ export default function SearchPage() {
 
             {!loading && !error && (
               <SearchResults 
-                results={{
-                  photos: results.filter(r => r.type === 'photo') as any[],
-                  albums: results.filter(r => r.type === 'album') as any[],
-                  people: results.filter(r => r.type === 'person') as any[],
-                  totalPhotos: results.filter(r => r.type === 'photo').length,
-                  totalAlbums: results.filter(r => r.type === 'album').length,
-                  totalPeople: results.filter(r => r.type === 'person').length,
-                  page: 1,
-                  limit: 20,
-                  hasMore: false
-                }}
+                results={results as any}
                 query={query}
                 type={type}
                 loading={loading}
@@ -206,7 +219,7 @@ export default function SearchPage() {
               />
             )}
 
-            {!loading && !error && results.length === 0 && query && (
+            {!loading && !error && ((results.totalPhotos||0)+(results.totalAlbums||0)+(results.totalPeople||0)===0) && query && (
               <div className="text-center py-16">
                 <div className="text-8xl text-slate-300 mb-6">🔍</div>
                 <h3 className="text-3xl font-bold text-slate-800 mb-4">
@@ -217,7 +230,7 @@ export default function SearchPage() {
                 </p>
                 <button
                   onClick={clearFilters}
-                  className="px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-2xl transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+                  className="px-8 py-4 bg-linear-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-2xl transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-1"
                 >
                   {t('search.clearAllFilters', 'Clear All Filters')}
                 </button>

@@ -16,9 +16,11 @@ interface SearchResultsData {
   photos: Photo[]
   albums: Album[]
   people: any[]
+  locations: any[]
   totalPhotos: number
   totalAlbums: number
   totalPeople: number
+  totalLocations: number
   page: number
   limit: number
   hasMore: boolean
@@ -33,9 +35,11 @@ function SearchPageContent() {
     photos: [],
     albums: [],
     people: [],
+    locations: [],
     totalPhotos: 0,
     totalAlbums: 0,
     totalPeople: 0,
+    totalLocations: 0,
     page: 1,
     limit: 20,
     hasMore: false
@@ -45,7 +49,7 @@ function SearchPageContent() {
   
   // Search state
   const [query, setQuery] = useState(searchParams.get('q') || '')
-  const [type, setType] = useState<'all' | 'photos' | 'albums' | 'people'>((searchParams.get('type') as 'all' | 'photos' | 'albums' | 'people') || 'all')
+  const [type, setType] = useState<'all' | 'photos' | 'albums' | 'people' | 'locations'>((searchParams.get('type') as 'all' | 'photos' | 'albums' | 'people' | 'locations') || 'all')
   const [filters, setFilters] = useState({
     tags: searchParams.get('tags')?.split(',').filter(Boolean) || [],
     albumId: searchParams.get('albumId') || '',
@@ -92,7 +96,8 @@ function SearchPageContent() {
             ...data.data,
             photos: [...prev.photos, ...data.data.photos],
             albums: [...prev.albums, ...data.data.albums],
-            people: [...prev.people, ...data.data.people]
+            people: [...prev.people, ...data.data.people],
+            locations: [...(prev.locations || []), ...((data.data.locations as any[]) || [])]
           }))
         }
       } else {

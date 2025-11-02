@@ -49,7 +49,7 @@ export default function SearchPageContent() {
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [type, setType] = useState<'all' | 'photos' | 'albums' | 'people'>('all')
+  const [type, setType] = useState<'all' | 'photos' | 'albums' | 'people' | 'locations'>('all')
   const [sortBy, setSortBy] = useState<'relevance' | 'date' | 'filename' | 'size'>('relevance')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
 
@@ -94,7 +94,7 @@ export default function SearchPageContent() {
       const data = await response.json()
 
       if (data.success) {
-        setResults(data.results || {
+        setResults(data.data || {
           photos: [],
           albums: [],
           people: [],
@@ -127,7 +127,7 @@ export default function SearchPageContent() {
     setFilters(prev => ({ ...prev, ...newFilters }))
   }
 
-  const handleTypeChange = (newType: 'all' | 'photos' | 'albums' | 'people') => {
+  const handleTypeChange = (newType: 'all' | 'photos' | 'albums' | 'people' | 'locations') => {
     setType(newType)
   }
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -54,16 +54,45 @@ export default function AlbumPage() {
     )
   }
 
+  // Filters
+  const allTags = useMemo(() => {
+    const set = new Set<string>()
+    photos.forEach((p: any) => {
+      if (Array.isArray(p.tags)) p.tags.forEach((t: string) => set.add(t))
+    })
+    return Array.from(set).sort()
+  }, [photos])
+
+  const [selectedTag, setSelectedTag] = useState<string>('')
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest')
+
+  const filteredPhotos = useMemo(() => {
+    let arr = photos as any[]
+    if (selectedTag) {
+      arr = arr.filter(p => Array.isArray(p.tags) && p.tags.includes(selectedTag))
+    }
+    arr = arr.slice().sort((a, b) => {
+      const da = (a as any).exif?.dateTimeOriginal || (a as any).createdAt || 0
+      const db = (b as any).exif?.dateTimeOriginal || (b as any).createdAt || 0
+      return sortOrder === 'newest' ? (new Date(db).getTime() - new Date(da).getTime()) : (new Date(da).getTime() - new Date(db).getTime())
+    })
+    return arr
+  }, [photos, selectedTag, sortOrder])
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
       
       <main className="container mx-auto px-4 py-8">
-        {/* Album Header */}
+        {/* Breadcrumbs + Header */}
         <div className="mb-8">
-          <Link href="/albums" className="text-muted-foreground hover:text-foreground mb-4 inline-block">
-            ← Back to Albums
-          </Link>
+          <nav className="text-sm text-muted-foreground mb-2">
+            <Link href="/" className="hover:underline">Home</Link>
+            <span className="mx-2">/</span>
+            <Link href="/albums" className="hover:underline">Albums</Link>
+            <span className="mx-2">/</span>
+            <span className="text-foreground">{MultiLangUtils.getTextValue(album.name, currentLanguage)}</span>
+          </nav>
           <h1 className="text-3xl font-bold mb-4">
             {MultiLangUtils.getTextValue(album.name, currentLanguage)}
           </h1>
@@ -77,34 +106,61 @@ export default function AlbumPage() {
           )}
         </div>
 
+        {/* Filters */}
+        {(allTags.length > 0) && (
+          <div className="flex flex-wrap items-center gap-3 mb-6">
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-muted-foreground">Tag</label>
+              <select
+                className="border rounded-md px-2 py-1 text-sm bg-background"
+                value={selectedTag}
+                onChange={(e) => setSelectedTag(e.target.value)}
+              >
+                <option value="">All</option>
+                {allTags.map((tag) => (
+                  <option key={tag} value={tag}>{tag}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-muted-foreground">Sort</label>
+              <select
+                className="border rounded-md px-2 py-1 text-sm bg-background"
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value as any)}
+              >
+                <option value="newest">Newest</option>
+                <option value="oldest">Oldest</option>
+              </select>
+            </div>
+          </div>
+        )}
+
         {/* Sub-albums */}
         {subAlbums.length > 0 && (
           <div className="mb-8">
             <h2 className="text-2xl font-semibold mb-4">Sub Albums</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="minimal-gallery-grid">
               {subAlbums.map((subAlbum) => (
                 <Link key={subAlbum._id} href={`/albums/${subAlbum.alias}`}>
-                  <div className="border rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
+                  <div className="minimal-gallery-item">
                     {subAlbum.coverPhotoId && subAlbumCoverPhotos[subAlbum._id] ? (
                       <Image
                         src={subAlbumCoverPhotos[subAlbum._id].storage?.thumbnailPath || subAlbumCoverPhotos[subAlbum._id].url || '/placeholder.jpg'}
                         alt={MultiLangUtils.getTextValue(subAlbum.name, currentLanguage)}
-                        width={400}
-                        height={300}
-                        className="w-full h-48 object-cover"
+                        width={800}
+                        height={600}
+                        className="minimal-gallery-image"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        loading="lazy"
                       />
                     ) : (
-                      <div className="w-full h-48 bg-muted flex items-center justify-center">
-                        <div className="text-4xl">📁</div>
-                      </div>
+                      <div style={{ aspectRatio: '4 / 3', background: 'var(--minimal-hover)' }} />
                     )}
-                    <div className="p-4">
-                      <h3 className="font-semibold mb-2">
-                        {MultiLangUtils.getTextValue(subAlbum.name, currentLanguage)}
-                      </h3>
-                      <p className="text-sm text-muted-foreground">
-                        {subAlbum.photoCount || 0} photos
-                      </p>
+                    <div className="minimal-gallery-overlay"></div>
+                    <div className="minimal-gallery-caption">
+                      <div className="minimal-gallery-caption-title">{MultiLangUtils.getTextValue(subAlbum.name, currentLanguage)}</div>
+                      <div className="minimal-gallery-caption-meta">{subAlbum.photoCount || 0} photos</div>
                     </div>
                   </div>
                 </Link>
@@ -114,42 +170,38 @@ export default function AlbumPage() {
         )}
 
         {/* Photos Grid */}
-        {photos.length > 0 && (
+        {filteredPhotos.length > 0 && (
           <div>
             <h2 className="text-2xl font-semibold mb-4">Photos</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {photos.map((photo, i) => (
-                <div
-                  key={photo._id}
-                  className="cursor-pointer border rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
-                  onClick={() => { setLightboxIndex(i); setLightboxOpen(true) }}
-                >
-                  <div className="aspect-square relative">
+            <div className="minimal-masonry">
+              {filteredPhotos.map((photo: any, i: number) => {
+                const metaW = (photo as any).metadata?.width
+                const metaH = (photo as any).metadata?.height
+                const h = (metaW && metaH) ? Math.max(400, Math.round(800 * (metaH / metaW))) : 600
+                return (
+                  <div
+                    key={photo._id}
+                    className="minimal-masonry-item cursor-pointer"
+                    onClick={() => { setLightboxIndex(i); setLightboxOpen(true) }}
+                  >
                     <Image
                       src={photo.storage?.thumbnailPath || photo.url || '/placeholder.jpg'}
                       alt={typeof photo.title === 'string' ? photo.title : MultiLangUtils.getTextValue(photo.title as any, currentLanguage) || `Photo ${i + 1}`}
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+                      width={800}
+                      height={h}
+                      loading="lazy"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      style={{ width: '100%', height: 'auto', display: 'block' }}
                     />
                   </div>
-                  {(photo.title || photo.description) && (
-                    <div className="p-3">
-                      {photo.title && (
-                        <h3 className="text-sm font-medium truncate">
-                          {typeof photo.title === 'string' ? photo.title : MultiLangUtils.getTextValue(photo.title as any, currentLanguage)}
-                        </h3>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
         )}
 
         {/* Empty State */}
-        {photos.length === 0 && subAlbums.length === 0 && (
+        {filteredPhotos.length === 0 && subAlbums.length === 0 && (
           <div className="text-center py-12">
             <p className="text-muted-foreground">This album is empty.</p>
           </div>
@@ -160,7 +212,7 @@ export default function AlbumPage() {
 
       {/* Photo Lightbox */}
       <PhotoLightbox
-        photos={photos.map(p => ({
+        photos={filteredPhotos.map(p => ({
           _id: p._id,
           url: p.storage?.url || p.url || '/placeholder.jpg',
           thumbnailUrl: p.storage?.thumbnailPath,

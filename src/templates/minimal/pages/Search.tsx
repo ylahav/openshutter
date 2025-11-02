@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import { useI18n } from '@/hooks/useI18n'
 import { SearchFilters as SearchFiltersComponent } from '@/components/search/SearchFilters'
 import { SearchResults } from '@/components/search/SearchResults'
-import { SearchResult, DesktopSearchFilters } from '@/types/search'
+import { SearchResults as SearchResultsType, DesktopSearchFilters } from '@/types/search'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 
@@ -24,17 +24,41 @@ export default function SearchPage() {
     mine: false
   })
 
-  const [results, setResults] = useState<SearchResult[]>([])
+  const [results, setResults] = useState<SearchResultsType>({
+    photos: [],
+    albums: [],
+    people: [],
+    locations: [],
+    totalPhotos: 0,
+    totalAlbums: 0,
+    totalPeople: 0,
+    totalLocations: 0,
+    page: 1,
+    limit: 20,
+    hasMore: false
+  })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [type, setType] = useState<'all' | 'photos' | 'albums' | 'people'>('all')
+  const [type, setType] = useState<'all' | 'photos' | 'albums' | 'people' | 'locations'>('all')
   const [sortBy, setSortBy] = useState<'relevance' | 'date' | 'filename' | 'size'>('relevance')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
 
   // Search function
   const performSearch = async () => {
     if (!query.trim()) {
-      setResults([])
+      setResults({
+        photos: [],
+        albums: [],
+        people: [],
+        locations: [],
+        totalPhotos: 0,
+        totalAlbums: 0,
+        totalPeople: 0,
+        totalLocations: 0,
+        page: 1,
+        limit: 20,
+        hasMore: false
+      })
       return
     }
 
@@ -59,8 +83,48 @@ export default function SearchPage() {
       const response = await fetch(`/api/search?${searchParams}`)
       const data = await response.json()
 
+      console.log('Search response:', { 
+        success: data.success, 
+        hasData: !!data.data, 
+        dataKeys: data.data ? Object.keys(data.data) : [],
+        photoCount: data.data?.photos?.length || 0,
+        totalPhotos: data.data?.totalPhotos || 0,
+        samplePhoto: data.data?.photos?.[0]
+      })
+
       if (data.success) {
-        setResults(data.results || [])
+        const newResults = data.data || {
+          photos: [],
+          albums: [],
+          people: [],
+          locations: [],
+          totalPhotos: 0,
+          totalAlbums: 0,
+          totalPeople: 0,
+          totalLocations: 0,
+          page: 1,
+          limit: 20,
+          hasMore: false
+        }
+        
+        console.log('Setting results:', {
+          photos: newResults.photos?.length || 0,
+          totalPhotos: newResults.totalPhotos || 0,
+          totalAlbums: newResults.totalAlbums || 0,
+          totalPeople: newResults.totalPeople || 0,
+          photosIsArray: Array.isArray(newResults.photos),
+          photosType: typeof newResults.photos,
+          photosValue: newResults.photos,
+          fullNewResults: newResults
+        })
+        
+        // Ensure photos is always an array
+        if (newResults.photos && !Array.isArray(newResults.photos)) {
+          console.warn('Photos is not an array, converting:', newResults.photos)
+          newResults.photos = []
+        }
+        
+        setResults(newResults)
       } else {
         setError(data.error || 'Search failed')
       }
@@ -75,13 +139,22 @@ export default function SearchPage() {
   // Perform search when query or filters change
   useEffect(() => {
     performSearch()
-  }, [query, type, filters, sortBy, sortOrder])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query, type, sortBy, sortOrder])
+  
+  // Separate effect for filters to avoid infinite loops
+  useEffect(() => {
+    if (query.trim()) {
+      performSearch()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters])
 
   const handleFilterChange = (newFilters: Partial<DesktopSearchFilters>) => {
     setFilters(prev => ({ ...prev, ...newFilters }))
   }
 
-  const handleTypeChange = (newType: 'all' | 'photos' | 'albums' | 'people') => {
+  const handleTypeChange = (newType: 'all' | 'photos' | 'albums' | 'people' | 'locations') => {
     setType(newType)
   }
 
@@ -131,7 +204,7 @@ export default function SearchPage() {
                 </h2>
                 <p className="text-muted-foreground text-sm">
                   {loading ? t('search.searching', 'Searching...') : 
-                   `${results.length} ${t('search.resultsFound', 'results found')}`}
+                   `${(results.totalPhotos || 0) + (results.totalAlbums || 0) + (results.totalPeople || 0) + (results.totalLocations || 0)} ${t('search.resultsFound', 'results found')}`}
                 </p>
               </div>
               {hasActiveFilters && (
@@ -181,17 +254,7 @@ export default function SearchPage() {
 
             {!loading && !error && (
               <SearchResults 
-                results={{
-                  photos: results.filter(r => r.type === 'photo') as any[],
-                  albums: results.filter(r => r.type === 'album') as any[],
-                  people: results.filter(r => r.type === 'person') as any[],
-                  totalPhotos: results.filter(r => r.type === 'photo').length,
-                  totalAlbums: results.filter(r => r.type === 'album').length,
-                  totalPeople: results.filter(r => r.type === 'person').length,
-                  page: 1,
-                  limit: 20,
-                  hasMore: false
-                }}
+                results={results}
                 query={query}
                 type={type}
                 loading={loading}
@@ -200,7 +263,7 @@ export default function SearchPage() {
               />
             )}
 
-            {!loading && !error && results.length === 0 && query && (
+            {!loading && !error && (results.totalPhotos + results.totalAlbums + results.totalPeople + results.totalLocations) === 0 && query && (
               <div className="text-center py-8">
                 <div className="text-4xl text-muted-foreground mb-4">🔍</div>
                 <h3 className="text-lg font-semibold text-foreground mb-2">

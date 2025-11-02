@@ -254,22 +254,7 @@ export class DatabaseOptimizer {
   ): Promise<any[]> {
     const { db } = await connectToDatabase()
     
-    const matchStage: any = {
-      isPublished: true
-    }
-
-    // Text search using regex (no index required)
-    if (query) {
-      const { SUPPORTED_LANGUAGES } = await import('@/types/multi-lang')
-      const langs = SUPPORTED_LANGUAGES.map(l => l.code)
-      const fields = ['title', 'description']
-      const langConds = fields.flatMap(f => langs.map(code => ({ [`${f}.${code}`]: { $regex: query, $options: 'i' } })))
-      matchStage.$or = [
-        ...langConds,
-        { filename: { $regex: query, $options: 'i' } },
-        { originalFilename: { $regex: query, $options: 'i' } }
-      ]
-    }
+    const matchStage: any = { isPublished: true }
 
     // Album filter
     if (filters.albumId) {
@@ -289,6 +274,28 @@ export class DatabaseOptimizer {
       }
     }
 
+    // Build language-aware conditions synchronously
+    let textMatchAfterLookups: any | null = null
+    if (query) {
+      const { SUPPORTED_LANGUAGES } = await import('@/types/multi-lang')
+      const langs = SUPPORTED_LANGUAGES.map(l => l.code)
+      const titleDescConds = ['title', 'description']
+        .flatMap(f => langs.map(code => ({ [`${f}.${code}`]: { $regex: query, $options: 'i' } })))
+      const fileConds = [
+        { filename: { $regex: query, $options: 'i' } },
+        { originalFilename: { $regex: query, $options: 'i' } }
+      ]
+      // If photos store people as plain string names, match directly on array
+      const peopleArrayRegex = { people: { $regex: query, $options: 'i' } } as any
+      const peopleConds = ([] as any[]).concat(
+        ...(['fullName', 'firstName', 'lastName', 'nickname'].map(f =>
+          langs.map(code => ({ [`peopleDocs.${f}.${code}`]: { $regex: query, $options: 'i' } }))
+        )),
+        ['fullName', 'firstName', 'lastName', 'nickname'].map(f => ({ [`peopleDocs.${f}`]: { $regex: query, $options: 'i' } }))
+      )
+      textMatchAfterLookups = { $or: [ ...titleDescConds, ...fileConds, peopleArrayRegex, ...peopleConds ] }
+    }
+
     const pipeline: any[] = [
       { $match: matchStage },
       {
@@ -302,6 +309,38 @@ export class DatabaseOptimizer {
           ]
         }
       },
+      // Normalize people to ObjectIds and join
+      {
+        $addFields: {
+          peopleObjectIds: {
+            $map: {
+              input: { $ifNull: ['$people', []] },
+              as: 'p',
+              in: {
+                $cond: [
+                  { $eq: [ { $type: '$$p' }, 'objectId' ] },
+                  '$$p',
+                  {
+                    $convert: { input: '$$p', to: 'objectId', onError: null, onNull: null }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        $lookup: {
+          from: 'people',
+          localField: 'peopleObjectIds',
+          foreignField: '_id',
+          as: 'peopleDocs',
+          pipeline: [
+            { $project: { fullName: 1, firstName: 1, lastName: 1, nickname: 1 } }
+          ]
+        }
+      },
+      ...(textMatchAfterLookups ? [{ $match: textMatchAfterLookups }] : []),
       {
         $addFields: {
           albumName: { $arrayElemAt: ['$album.name', 0] },

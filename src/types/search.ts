@@ -39,10 +39,10 @@ export interface SearchResult {
 }
 
 export interface SearchResults {
-  photos: SearchResult[]
-  albums: SearchResult[]
-  people: SearchResult[]
-  locations: SearchResult[]
+  photos: any[] // Full photo objects from database
+  albums: any[] // Full album objects from database
+  people: any[] // Full person objects from database
+  locations: any[] // Full location objects from database
   totalPhotos: number
   totalAlbums: number
   totalPeople: number

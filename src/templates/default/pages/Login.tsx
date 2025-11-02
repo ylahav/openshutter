@@ -6,7 +6,7 @@ import Link from 'next/link'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 import styles from '../styles.module.scss'
-import { signIn, useSession } from 'next-auth/react'
+import { signIn, useSession } from '@/hooks/useAuth'
 import { useI18n } from '@/hooks/useI18n'
 import { LoginFormData } from '@/types/index'
 

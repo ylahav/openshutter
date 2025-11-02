@@ -108,7 +108,7 @@ export default function GalleryPage() {
           {/* Page Header */}
           <div className="mb-12 text-center">
             <h1 className="text-5xl font-bold mb-4 text-foreground">Portfolio</h1>
-            <div className="w-24 h-1 bg-gradient-to-r from-transparent via-primary to-transparent mx-auto mb-2"></div>
+            <div className="w-24 h-1 bg-linear-to-r from-transparent via-primary to-transparent mx-auto mb-2"></div>
             <p className="text-muted-foreground text-lg">Explore our photo collections</p>
           </div>
 
@@ -133,7 +133,7 @@ export default function GalleryPage() {
                   <div className="group relative overflow-hidden rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 cursor-pointer">
                     {/* Cover Image */}
                     {album.coverPhotoId && coverPhotos[album._id] ? (
-                      <div className="aspect-[4/3] relative overflow-hidden">
+                      <div className="aspect-4/3 relative overflow-hidden">
                         <Image
                           src={coverPhotos[album._id].storage?.thumbnailPath || coverPhotos[album._id].storage?.url || coverPhotos[album._id].url || '/placeholder.jpg'}
                           alt={MultiLangUtils.getTextValue(album.name, currentLanguage)}
@@ -143,7 +143,7 @@ export default function GalleryPage() {
                         />
                       </div>
                     ) : (
-                      <div className="aspect-[4/3] bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                      <div className="aspect-4/3 bg-linear-to-br from-primary/20 to-primary/5 flex items-center justify-center">
                         <div className="text-5xl">📷</div>
                       </div>
                     )}

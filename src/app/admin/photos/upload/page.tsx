@@ -10,6 +10,8 @@ import Link from 'next/link'
 import AdminGuard from '@/components/AdminGuard'
 import Header from '@/templates/default/components/Header'
 import Footer from '@/templates/default/components/Footer'
+import { MultiLangUtils } from '@/types/multi-lang'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface UploadProgress {
   file: File
@@ -21,6 +23,7 @@ interface UploadProgress {
 function PhotoUploadPageContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
+  const { currentLanguage } = useLanguage()
   const albumId = searchParams.get('albumId')
   
   const [uploads, setUploads] = useState<UploadProgress[]>([])
@@ -41,7 +44,12 @@ function PhotoUploadPageContent() {
       if (response.ok) {
         const result = await response.json()
         if (result.success) {
-          setAlbumName(result.data.name)
+          // Handle multilingual album name - extract text value using MultiLangUtils
+          const name = result.data.name
+          const nameText = typeof name === 'string' 
+            ? name 
+            : MultiLangUtils.getTextValue(name, currentLanguage) || 'Album'
+          setAlbumName(nameText)
         }
       }
     } catch (error) {

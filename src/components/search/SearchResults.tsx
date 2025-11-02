@@ -7,25 +7,18 @@ import { PhotoCard } from '@/components/search/PhotoCard'
 import { AlbumCard } from '@/components/search/AlbumCard'
 import { PersonCard } from '@/components/search/PersonCard'
 import { Photo, Album } from '@/types'
-import { Loader2, Search, Image, Folder, User } from 'lucide-react'
+import { SearchResults as SearchResultsType } from '@/types/search'
+import { Loader2, Search, Image, Folder, User } from '@/lib/icons'
 
+// The SearchResults type from API has full objects, which should be compatible with Photo/Album
+// But we'll accept any[] for flexibility since the API returns full database objects
 interface SearchResultsProps {
-  results: {
-    photos: Photo[]
-    albums: Album[]
-    people: any[]
-    totalPhotos: number
-    totalAlbums: number
-    totalPeople: number
-    page: number
-    limit: number
-    hasMore: boolean
-  }
+  results: SearchResultsType
   loading: boolean
   error: string | null
   onLoadMore: () => void
   query: string
-  type: string
+  type: 'all' | 'photos' | 'albums' | 'people' | 'locations'
 }
 
 export function SearchResults({
@@ -39,8 +32,39 @@ export function SearchResults({
   const { t } = useI18n()
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   
-  const totalResults = results.totalPhotos + results.totalAlbums + results.totalPeople
-  const hasResults = totalResults > 0
+  // Calculate totals - use array lengths if totals are missing
+  // But also check totalPhotos/totalAlbums as fallback in case arrays are delayed
+  const photoCount = Array.isArray(results.photos) && results.photos.length > 0 
+    ? results.photos.length 
+    : (results.totalPhotos || 0)
+  const albumCount = Array.isArray(results.albums) && results.albums.length > 0
+    ? results.albums.length
+    : (results.totalAlbums || 0)
+  const peopleCount = Array.isArray(results.people) && results.people.length > 0
+    ? results.people.length
+    : (results.totalPeople || 0)
+  const locationCount = Array.isArray(results.locations) && results.locations.length > 0
+    ? results.locations.length
+    : (results.totalLocations || 0)
+  const totalResults = photoCount + albumCount + peopleCount + locationCount
+  const hasResults = totalResults > 0 || (results.totalPhotos || 0) > 0 || (results.totalAlbums || 0) > 0
+  
+  console.log('SearchResults render:', {
+    totalResults,
+    hasResults,
+    photosArrayLength: results.photos?.length || 0,
+    photosTotal: results.totalPhotos || 0,
+    photoCount,
+    loading,
+    error,
+    query,
+    type,
+    allResultKeys: Object.keys(results || {}),
+    resultsPhotosIsArray: Array.isArray(results.photos),
+    resultsPhotosType: typeof results.photos,
+    resultsPhotosValue: results.photos,
+    willRenderPhotos: (type === 'photos' || type === 'all') && results.photos && results.photos.length > 0
+  })
   
   if (error) {
     return (
@@ -71,20 +95,7 @@ export function SearchResults({
     )
   }
   
-  if (query && !loading && !hasResults) {
-    return (
-      <div className="bg-white rounded-lg shadow-sm border p-8 text-center">
-        <Search className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">
-          {t('search.noResults', 'No Results Found')}
-        </h3>
-        <p className="text-gray-600">
-          {t('search.noResultsDescription', 'Try adjusting your search terms or filters')}
-        </p>
-      </div>
-    )
-  }
-  
+  // Always render the results section - let it handle empty state internally
   return (
     <div className="space-y-6">
       {/* Results Header */}
@@ -137,14 +148,14 @@ export function SearchResults({
       )}
       
       {/* Results */}
-      {hasResults && !loading && (
+      {!loading && (
         <div className="space-y-6">
           {/* Photos */}
-          {(type === 'photos' || type === 'all') && results.photos.length > 0 && (
+          {(type === 'photos' || type === 'all') && Array.isArray(results.photos) && results.photos.length > 0 && (
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                 <Image className="h-5 w-5 mr-2" />
-                {t('search.photos', 'Photos')} ({results.totalPhotos})
+                {t('search.photos', 'Photos')} ({results.photos.length || results.totalPhotos || 0})
               </h3>
               <div className={
                 viewMode === 'grid' 
@@ -163,11 +174,11 @@ export function SearchResults({
           )}
           
           {/* Albums */}
-          {(type === 'albums' || type === 'all') && results.albums.length > 0 && (
+          {(type === 'albums' || type === 'all') && Array.isArray(results.albums) && results.albums.length > 0 && (
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                 <Folder className="h-5 w-5 mr-2" />
-                {t('search.albums', 'Albums')} ({results.totalAlbums})
+                {t('search.albums', 'Albums')} ({results.totalAlbums || results.albums.length})
               </h3>
               <div className={
                 viewMode === 'grid' 
@@ -185,28 +196,7 @@ export function SearchResults({
             </div>
           )}
           
-          {/* People */}
-          {(type === 'people' || type === 'all') && results.people.length > 0 && (
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <User className="h-5 w-5 mr-2" />
-                {t('search.people', 'People')} ({results.totalPeople})
-              </h3>
-              <div className={
-                viewMode === 'grid' 
-                  ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'
-                  : 'space-y-4'
-              }>
-                {results.people.map((person) => (
-                  <PersonCard
-                    key={person._id}
-                    person={person}
-                    viewMode={viewMode}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
+          {/* People and Locations sections removed - only showing photos and albums */}
           
           {/* Load More Button */}
           {results.hasMore && (
@@ -225,6 +215,19 @@ export function SearchResults({
                   t('search.loadMore', 'Load More')
                 )}
               </Button>
+            </div>
+          )}
+          
+          {/* No Results Message */}
+          {query && !hasResults && (
+            <div className="bg-white rounded-lg shadow-sm border p-8 text-center">
+              <Search className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                {t('search.noResults', 'No Results Found')}
+              </h3>
+              <p className="text-gray-600">
+                {t('search.noResultsDescription', 'Try adjusting your search terms or filters')}
+              </p>
             </div>
           )}
         </div>
