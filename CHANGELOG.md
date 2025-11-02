@@ -1,3 +1,31 @@
+## [Unreleased]
+
+### Fixed
+- **Search Functionality**: Enhanced person search to support first names, last names, and full names with comprehensive matching
+  - Added word-by-word matching in fullName fields
+  - Improved ObjectId matching for photos referencing people
+  - Added debug logging for troubleshooting search issues
+  - Fixed search results to only show photos and albums (removed people/locations from results)
+- **React Error #31**: Fixed production error where multilingual objects were being rendered directly
+  - Fixed album name display in photo upload page to properly extract text from multilingual objects
+  - Added proper MultiLangUtils handling throughout upload components
+- **Photo Thumbnails**: Fixed black boxes in search results
+  - Switched from Next.js Image component to regular img tag for API-served images
+  - Improved thumbnail path handling with fallback to full image URL
+- **Search Filters**: Simplified left sidebar filters
+  - Removed unnecessary filters (date range, storage provider, visibility, mine only, tags)
+  - Streamlined to essential filters: Search Type, Album, and Sort options
+- **Turbopack HMR**: Fixed Hot Module Replacement issues
+  - Created wrapper modules for next-auth/react (`src/hooks/useAuth.ts`)
+  - Created wrapper module for lucide-react icons (`src/lib/icons.ts`)
+  - Updated all components to use wrappers instead of direct imports
+- **Icon Manifest**: Fixed PWA manifest errors
+  - Removed references to missing screenshot files
+  - Cleaned up shortcut icon references
+- **Storage API**: Improved error handling and logging
+  - Added better path validation and error messages
+  - Enhanced logging for debugging image loading issues
+
 ## v0.9.5 - 2025-10-29
 
 ### Highlights
