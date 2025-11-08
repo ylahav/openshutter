@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import PhotoLightbox from '@/components/PhotoLightbox'
 import BulkActions from '@/components/admin/BulkActions'
 import { MultiLangUtils } from '@/types/multi-lang'
@@ -31,6 +31,14 @@ export default function AlbumDetailView({ album, photos, role, albumId }: AlbumD
   useEffect(() => {
     setLocalPhotos(photos)
   }, [photos])
+
+  // Set webkitdirectory attribute for folder selection
+  useEffect(() => {
+    if (fileInputRef.current) {
+      fileInputRef.current.setAttribute('webkitdirectory', '')
+      fileInputRef.current.setAttribute('directory', '')
+    }
+  }, [])
   const [deletingPhoto, setDeletingPhoto] = useState<string | null>(null)
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState(0)
@@ -56,6 +64,7 @@ export default function AlbumDetailView({ album, photos, role, albumId }: AlbumD
   })
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   const [checkingFiles, setCheckingFiles] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [checkFilesResults, setCheckFilesResults] = useState<{
     missingFiles: Array<{ filename: string; normalized: string }>
     fileMap: Map<string, File> // Map of normalized filename to File object
@@ -291,9 +300,8 @@ export default function AlbumDetailView({ album, photos, role, albumId }: AlbumD
                         'Check Local Files'
                       )}
                       <input
+                        ref={fileInputRef}
                         type="file"
-                        webkitdirectory=""
-                        directory=""
                         multiple
                         className="hidden"
                         disabled={checkingFiles}
