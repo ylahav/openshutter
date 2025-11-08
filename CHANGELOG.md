@@ -1,5 +1,14 @@
 ## [Unreleased]
 
+### Added
+- **Album File Check Feature**: Added ability to compare local folder with album photos
+  - "Check Local Files" button in album management page
+  - Compares local files with uploaded photos by `originalFilename`
+  - Shows missing files (in local but not uploaded) and extra files (uploaded but not in local)
+  - Dialog to select and upload missing files directly from the check results
+  - Upload progress indicator during batch upload
+  - Supports selecting individual files or all files for upload
+
 ### Fixed
 - **Logout Redirect**: Fixed production logout redirecting to localhost instead of production domain
   - Updated MobileNavigation to use NextAuth's signOut with relative callback URL

@@ -10,6 +10,10 @@ interface NotificationDialogProps {
   message: string
   autoClose?: boolean
   autoCloseDelay?: number
+  actionButton?: {
+    label: string
+    onClick: () => void
+  }
 }
 
 export default function NotificationDialog({
@@ -19,7 +23,8 @@ export default function NotificationDialog({
   title,
   message,
   autoClose = true,
-  autoCloseDelay = 3000
+  autoCloseDelay = 3000,
+  actionButton
 }: NotificationDialogProps) {
   const [mounted, setMounted] = useState(false)
 
@@ -136,13 +141,26 @@ export default function NotificationDialog({
                 {title}
               </h3>
               <div className="mt-2">
-                <p className="text-sm text-gray-500">
-                  {message}
-                </p>
+                <div 
+                  className="text-sm text-gray-500"
+                  dangerouslySetInnerHTML={{ __html: message }}
+                />
               </div>
             </div>
           </div>
-          <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
+          <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse sm:gap-3">
+            {actionButton && (
+              <button
+                type="button"
+                className={`inline-flex w-full justify-center rounded-md px-3 py-2 text-sm font-semibold text-white shadow-sm sm:w-auto ${getButtonColors()} focus:outline-none focus:ring-2 focus:ring-offset-2`}
+                onClick={() => {
+                  actionButton.onClick()
+                  onClose()
+                }}
+              >
+                {actionButton.label}
+              </button>
+            )}
             <button
               type="button"
               className={`inline-flex w-full justify-center rounded-md px-3 py-2 text-sm font-semibold text-white shadow-sm sm:ml-3 sm:w-auto ${getButtonColors()} focus:outline-none focus:ring-2 focus:ring-offset-2`}

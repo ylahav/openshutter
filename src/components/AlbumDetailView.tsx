@@ -10,6 +10,7 @@ import { useLanguage } from '@/contexts/LanguageContext'
 import { useI18n } from '@/hooks/useI18n'
 import NotificationDialog from '@/components/NotificationDialog'
 import ConfirmDialog from '@/components/ConfirmDialog'
+import CheckFilesDialog from '@/components/admin/CheckFilesDialog'
 
 export interface AlbumDetailViewProps {
   album: TemplateAlbum
@@ -41,13 +42,24 @@ export default function AlbumDetailView({ album, photos, role, albumId }: AlbumD
     type: 'success' | 'error' | 'info' | 'warning'
     title: string
     message: string
+    autoClose?: boolean
+    actionButton?: {
+      label: string
+      onClick: () => void
+    }
   }>({
     isOpen: false,
     type: 'info',
     title: '',
-    message: ''
+    message: '',
+    autoClose: true
   })
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
+  const [checkingFiles, setCheckingFiles] = useState(false)
+  const [checkFilesResults, setCheckFilesResults] = useState<{
+    missingFiles: Array<{ filename: string; normalized: string }>
+    fileMap: Map<string, File> // Map of normalized filename to File object
+  } | null>(null)
 
   const handleDeletePhoto = async (photoId: string) => {
     try {
@@ -254,20 +266,125 @@ export default function AlbumDetailView({ album, photos, role, albumId }: AlbumD
                   Upload Photos
                 </Link>
                 {(role === 'admin' || role === 'owner') && (
-                  <button
-                    onClick={handleReReadExif}
-                    disabled={reReadingExif}
-                    className="w-full text-center px-4 py-2 text-sm font-medium text-orange-600 bg-orange-50 rounded-md hover:bg-orange-100 focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {reReadingExif ? (
-                      <div className="flex items-center justify-center">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-orange-600 mr-2"></div>
-                        {t('albums.reReadingExif')}
-                      </div>
-                    ) : (
-                      t('albums.reReadExifData')
-                    )}
-                  </button>
+                  <>
+                    <button
+                      onClick={handleReReadExif}
+                      disabled={reReadingExif}
+                      className="w-full text-center px-4 py-2 text-sm font-medium text-orange-600 bg-orange-50 rounded-md hover:bg-orange-100 focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {reReadingExif ? (
+                        <div className="flex items-center justify-center">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-orange-600 mr-2"></div>
+                          {t('albums.reReadingExif')}
+                        </div>
+                      ) : (
+                        t('albums.reReadExifData')
+                      )}
+                    </button>
+                    <label className="w-full text-center px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+                      {checkingFiles ? (
+                        <div className="flex items-center justify-center">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                          Checking...
+                        </div>
+                      ) : (
+                        'Check Local Files'
+                      )}
+                      <input
+                        type="file"
+                        webkitdirectory=""
+                        directory=""
+                        multiple
+                        className="hidden"
+                        disabled={checkingFiles}
+                        onChange={async (e) => {
+                          const files = e.target.files
+                          if (!files || files.length === 0) return
+                          
+                          try {
+                            setCheckingFiles(true)
+                            const fileArray = Array.from(files)
+                            const filenames = fileArray.map(f => f.name)
+                            
+                            // Create a map of normalized filename to File object
+                            const fileMap = new Map<string, File>()
+                            fileArray.forEach(file => {
+                              const normalized = file.name.toLowerCase().trim()
+                              fileMap.set(normalized, file)
+                            })
+                            
+                            const response = await fetch(`/api/admin/albums/${albumId}/check-files`, {
+                              method: 'POST',
+                              headers: {
+                                'Content-Type': 'application/json'
+                              },
+                              body: JSON.stringify({ filenames })
+                            })
+                            
+                            const result = await response.json()
+                            
+                            if (result.success) {
+                              const { data } = result
+                              const { summary, missingFiles, extraFiles } = data
+                              
+                              // Store results for the dialog
+                              setCheckFilesResults({
+                                missingFiles: missingFiles,
+                                fileMap: fileMap
+                              })
+                              
+                              // Build notification message with HTML formatting
+                              let message = `Found ${data.totalLocalFiles} local files and ${data.totalUploadedFiles} uploaded files.<br/><br/>`
+                              
+                              if (summary.missingCount > 0) {
+                                message += `⚠️ <strong>Missing ${summary.missingCount} file(s) not uploaded.</strong><br/>Click to select and upload them.`
+                              }
+                              
+                              if (summary.extraCount > 0) {
+                                message += `<br/><br/>📦 <strong>${summary.extraCount} file(s) in album but not in local folder.</strong>`
+                              }
+                              
+                              if (summary.missingCount === 0 && summary.extraCount === 0) {
+                                message = `✅ <strong>All files match!</strong><br/>Found ${summary.matchingCount} matching files.`
+                              }
+                              
+                              setNotification({
+                                isOpen: true,
+                                type: summary.missingCount > 0 ? 'warning' : summary.extraCount > 0 ? 'info' : 'success',
+                                title: 'File Check Results',
+                                message: message,
+                                autoClose: summary.missingCount === 0 && summary.extraCount === 0,
+                                actionButton: summary.missingCount > 0 ? {
+                                  label: 'Select & Upload Missing Files',
+                                  onClick: () => {
+                                    // Dialog is already set, it will show when notification closes
+                                  }
+                                } : undefined
+                              })
+                            } else {
+                              setNotification({
+                                isOpen: true,
+                                type: 'error',
+                                title: 'Check Failed',
+                                message: result.error || 'Failed to check files'
+                              })
+                            }
+                          } catch (error) {
+                            setNotification({
+                              isOpen: true,
+                              type: 'error',
+                              title: 'Check Failed',
+                              message: 'Failed to check files'
+                            })
+                          } finally {
+                            setCheckingFiles(false)
+                            // Reset input
+                            e.target.value = ''
+                          }
+                        }}
+                      />
+                    </label>
+                  </>
                 )}
               </div>
             </div>
@@ -516,7 +633,8 @@ export default function AlbumDetailView({ album, photos, role, albumId }: AlbumD
         type={notification.type}
         title={notification.title}
         message={notification.message}
-        autoClose={false}
+        autoClose={notification.autoClose !== false}
+        actionButton={notification.actionButton}
       />
 
       {/* Confirmation Dialog */}
@@ -530,6 +648,25 @@ export default function AlbumDetailView({ album, photos, role, albumId }: AlbumD
         cancelText={t('cancel')}
         variant="default"
       />
+
+      {/* Check Files Dialog */}
+      {checkFilesResults && checkFilesResults.missingFiles.length > 0 && (
+        <CheckFilesDialog
+          isOpen={true}
+          onClose={() => {
+            setCheckFilesResults(null)
+          }}
+          missingFiles={checkFilesResults.missingFiles}
+          fileMap={checkFilesResults.fileMap}
+          albumId={albumId}
+          onUploadComplete={() => {
+            // Refresh photos after upload
+            setCheckFilesResults(null)
+            window.location.reload()
+          }}
+        />
+      )}
+
 
       {/* Bulk Actions */}
       {role === 'admin' && (
