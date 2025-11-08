@@ -1,6 +1,32 @@
 ## [Unreleased]
 
 ### Fixed
+- **Logout Redirect**: Fixed production logout redirecting to localhost instead of production domain
+  - Updated MobileNavigation to use NextAuth's signOut with relative callback URL
+  - Fixed logout flow to respect NEXTAUTH_URL environment variable
+- **Locations API**: Fixed 500 error when fetching locations
+  - Added connectMongoose() call before using LocationModel (Mongoose models require Mongoose connection)
+  - Replaced $text search with regex search across multilingual fields (name.en, name.he, names.en, names.he)
+  - Fixed sorting to use only root-level fields (removed nested multilingual fields from sort options)
+  - Added comprehensive error logging for debugging
+- **Locations Display**: Fixed empty location names in admin interface
+  - Updated admin locations page to handle both 'name' and 'names' fields
+  - Improved getDisplayName helper to extract text from multilingual objects correctly
+  - Added fallback display showing location ID when name is missing
+- **CollectionPopup Locations**: Fixed location selection and display in popup
+  - Updated to handle both 'name' and 'names' fields when displaying locations
+  - Fixed search filtering to work with multilingual location names
+  - Enhanced search to include address, city, and country fields
+  - Updated API search to query both 'name' and 'names' fields
+- **Person Creation**: Fixed person creation from photo edit page
+  - Improved name parsing to split full names into firstName and lastName
+  - Handles single-word names by using the name for both fields
+  - Ensures both firstName and lastName have values (required by API validation)
+- **Photo People Update**: Fixed people not being saved when editing photos
+  - Enhanced people lookup to search across all multilingual fields (fullName.en/he, firstName.en/he, lastName.en/he)
+  - Added ObjectId support for direct ID lookups
+  - Improved error handling with detailed logging for missing people
+  - Added validation to return clear error messages when people aren't found
 - **Search Functionality**: Enhanced person search to support first names, last names, and full names with comprehensive matching
   - Added word-by-word matching in fullName fields
   - Improved ObjectId matching for photos referencing people

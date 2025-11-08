@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { connectToDatabase } from '@/lib/mongodb'
+import { connectToDatabase, connectMongoose } from '@/lib/mongodb'
 import { getCurrentUser } from '@/lib/access-control-server'
 import { LocationModel } from '@/lib/models/Location'
 import { SUPPORTED_LANGUAGES } from '@/types/multi-lang'
@@ -7,7 +7,17 @@ import { SUPPORTED_LANGUAGES } from '@/types/multi-lang'
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const { db } = await connectToDatabase()
+    
+    // Connect to database first (native MongoDB driver)
+    await connectToDatabase()
+    
+    // Ensure Mongoose is connected before using Mongoose models
+    await connectMongoose()
+    
+    // Ensure LocationModel is available
+    if (!LocationModel) {
+      throw new Error('LocationModel is not available')
+    }
     
     // Get query parameters
     const search = searchParams.get('search')
@@ -28,20 +38,46 @@ export async function GET(request: NextRequest) {
     const query: any = {}
     
     if (search) {
-      query.$text = { $search: search }
+      // Use regex search across multilingual fields and address fields
+      // Escape special regex characters
+      const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      const langs = SUPPORTED_LANGUAGES.map(l => l.code)
+      
+      // Search in name and names fields (handle both singular and plural)
+      // Also search in description (multilingual fields)
+      const nameConds = ['name', 'names'].flatMap(f => 
+        langs.map(code => ({
+          [`${f}.${code}`]: { $regex: escapedSearch, $options: 'i' }
+        }))
+      )
+      
+      const descConds = langs.map(code => ({
+        [`description.${code}`]: { $regex: escapedSearch, $options: 'i' }
+      }))
+      
+      // Search in address fields
+      const addressConds = ['address', 'city', 'state', 'country'].map(f => ({
+        [f]: { $regex: escapedSearch, $options: 'i' }
+      }))
+      
+      query.$or = [...nameConds, ...descConds, ...addressConds]
     }
     
     if (category) {
       query.category = category
     }
     
-    if (isActive !== null) {
+    if (isActive !== null && isActive !== '') {
       query.isActive = isActive === 'true'
     }
     
-    // Build sort object
+    // Build sort object - use only root-level fields (name is nested multilingual object)
+    const validSortFields = ['usageCount', 'createdAt', 'updatedAt', 'city', 'country', 'category']
+    const safeSortBy = validSortFields.includes(sortBy) ? sortBy : 'createdAt'
     const sort: any = {}
-    sort[sortBy] = sortOrder === 'asc' ? 1 : -1
+    sort[safeSortBy] = sortOrder === 'asc' ? 1 : -1
+    
+    console.log('Locations API query:', { query, sort, page, limit })
     
     // Get locations with pagination
     const skip = (page - 1) * limit
@@ -53,6 +89,8 @@ export async function GET(request: NextRequest) {
         .lean(),
       LocationModel.countDocuments(query)
     ])
+    
+    console.log('Locations API result:', { count: locations.length, total })
     
     return NextResponse.json({
       success: true,
@@ -67,8 +105,15 @@ export async function GET(request: NextRequest) {
     
   } catch (error) {
     console.error('Locations API error:', error)
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    const errorStack = error instanceof Error ? error.stack : undefined
+    console.error('Error details:', { errorMessage, errorStack })
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch locations' },
+      { 
+        success: false, 
+        error: 'Failed to fetch locations',
+        details: process.env.NODE_ENV === 'development' ? errorMessage : undefined
+      },
       { status: 500 }
     )
   }
@@ -76,7 +121,11 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { db } = await connectToDatabase()
+    // Connect to database first (native MongoDB driver)
+    await connectToDatabase()
+    
+    // Ensure Mongoose is connected before using Mongoose models
+    await connectMongoose()
     
     // Get current user for access control
     const user = await getCurrentUser()

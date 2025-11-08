@@ -30,11 +30,16 @@ const LOCATION_CATEGORIES = [
 ]
 
 // Helper function to safely extract display name from multi-language object
-const getDisplayName = (name: MultiLangText | string, currentLanguage: string): string => {
-  if (typeof name === 'string') {
-    return name
+// Handles both 'name' and 'names' fields (in case of data inconsistency)
+const getDisplayName = (location: Location, currentLanguage: string): string => {
+  // Try 'name' first, then 'names' (handle both singular and plural)
+  const nameField = (location as any).name || (location as any).names
+  if (!nameField) return '(No name)'
+  if (typeof nameField === 'string') {
+    return nameField.trim() || '(No name)'
   }
-  return MultiLangUtils.getTextValue(name, currentLanguage) || ''
+  const value = MultiLangUtils.getTextValue(nameField, currentLanguage)
+  return value?.trim() || '(No name)'
 }
 
 // Helper function to safely extract display description
@@ -106,8 +111,19 @@ export default function LocationsPage() {
       
       const data = await response.json()
       if (data.success) {
-        setLocations(data.data)
-        setTotalPages(data.pagination.pages)
+        console.log('Locations API response:', data)
+        console.log('Locations data:', data.data)
+        if (data.data && data.data.length > 0) {
+          const firstLocation = data.data[0]
+          console.log('First location sample:', firstLocation)
+          console.log('First location keys:', Object.keys(firstLocation))
+          console.log('First location name field:', firstLocation.name)
+          console.log('First location names field:', (firstLocation as any).names)
+          console.log('First location name type:', typeof firstLocation.name)
+          console.log('First location name value:', JSON.stringify(firstLocation.name))
+        }
+        setLocations(data.data || [])
+        setTotalPages(data.pagination?.pages || 1)
       } else {
         throw new Error(data.error || 'Failed to fetch locations')
       }
@@ -166,10 +182,12 @@ export default function LocationsPage() {
   // Handle edit
   const handleEdit = (location: Location) => {
     setEditingLocation(location)
+    // Handle both 'name' and 'names' fields
+    const nameField = (location as any).name || (location as any).names
     setFormData({
-      name: typeof location.name === 'string' 
-        ? { en: location.name, he: '' } 
-        : location.name,
+      name: typeof nameField === 'string' 
+        ? { en: nameField, he: '' } 
+        : (nameField || { en: '', he: '' }),
       description: typeof location.description === 'string' 
         ? { en: location.description, he: '' } 
         : (location.description || { en: '', he: '' }),
@@ -523,7 +541,12 @@ export default function LocationsPage() {
                     <tr key={location._id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>
-                          <div className="text-sm font-medium text-gray-900">{getDisplayName(location.name, currentLanguage)}</div>
+                          <div className="text-sm font-medium text-gray-900">
+                            {getDisplayName(location, currentLanguage)}
+                            {getDisplayName(location, currentLanguage) === '(No name)' && (
+                              <span className="text-xs text-gray-400 ml-2">(ID: {location._id.slice(-8)})</span>
+                            )}
+                          </div>
                           {location.address && (
                             <div className="text-sm text-gray-500">{location.address}</div>
                           )}
@@ -531,6 +554,9 @@ export default function LocationsPage() {
                             <div className="text-sm text-gray-500">
                               {location.city}, {location.country}
                             </div>
+                          )}
+                          {!location.address && !location.city && !location.country && (
+                            <div className="text-xs text-gray-400 italic">No address information</div>
                           )}
                         </div>
                       </td>

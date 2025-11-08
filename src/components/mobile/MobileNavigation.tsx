@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useI18n } from '@/hooks/useI18n'
+import { signOut } from '@/hooks/useAuth'
 import { 
   Home, 
   Search, 
@@ -226,7 +227,7 @@ export default function MobileNavigation({
               
               <button
                 onClick={() => {
-                  router.push('/logout')
+                  signOut({ callbackUrl: '/' })
                   setIsMenuOpen(false)
                 }}
                 className="w-full px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"

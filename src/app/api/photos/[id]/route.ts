@@ -146,20 +146,82 @@ export async function PUT(
       
       // Convert people names to ObjectIds
       const peopleIds = []
+      const notFoundNames = []
+      
       for (const personName of updateData.people) {
+        if (!personName) {
+          console.warn('Invalid person name (empty):', personName)
+          continue
+        }
+        
+        // Check if it's already an ObjectId
+        if (ObjectId.isValid(personName)) {
+          try {
+            const person = await PersonModel.findById(personName)
+            if (person) {
+              peopleIds.push(person._id)
+              continue
+            }
+          } catch (err) {
+            console.warn('Error looking up person by ID:', personName, err)
+          }
+        }
+        
+        // If not an ObjectId or not found by ID, search by name
+        if (typeof personName !== 'string') {
+          console.warn('Invalid person name (not string):', personName)
+          continue
+        }
+        
+        const trimmedName = personName.trim()
+        if (!trimmedName) continue
+        
+        // Search for person by name across all multilingual fields
+        // Use regex for exact matching (case-insensitive)
+        const escapedName = trimmedName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
         const person = await PersonModel.findOne({
           $or: [
-            { 'fullName.en': personName },
-            { 'fullName': personName },
-            { 'firstName.en': personName },
-            { 'firstName': personName }
+            { 'fullName.en': { $regex: `^${escapedName}$`, $options: 'i' } },
+            { 'fullName.he': { $regex: `^${escapedName}$`, $options: 'i' } },
+            { 'fullName': { $regex: `^${escapedName}$`, $options: 'i' } },
+            { 'firstName.en': { $regex: `^${escapedName}$`, $options: 'i' } },
+            { 'firstName.he': { $regex: `^${escapedName}$`, $options: 'i' } },
+            { 'firstName': { $regex: `^${escapedName}$`, $options: 'i' } },
+            { 'lastName.en': { $regex: `^${escapedName}$`, $options: 'i' } },
+            { 'lastName.he': { $regex: `^${escapedName}$`, $options: 'i' } },
+            { 'lastName': { $regex: `^${escapedName}$`, $options: 'i' } }
           ]
         })
+        
         if (person) {
           peopleIds.push(person._id)
+        } else {
+          notFoundNames.push(trimmedName)
+          console.warn(`Person not found: "${trimmedName}"`)
         }
       }
-      updateFields.people = peopleIds
+      
+      if (notFoundNames.length > 0) {
+        console.warn('People not found:', notFoundNames)
+        // If some people weren't found, still update with the ones we found
+        // but log a warning - this allows partial updates
+      }
+      
+      // Only update people if we found at least some, or if the array is explicitly empty (to clear)
+      if (peopleIds.length > 0 || updateData.people.length === 0) {
+        updateFields.people = peopleIds
+        console.log(`Converted ${peopleIds.length} people names to IDs out of ${updateData.people.length} provided`)
+      } else {
+        // If we provided people but found none, that's an error
+        console.error('No people found for provided names:', updateData.people)
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: `Could not find any of the provided people: ${notFoundNames.join(', ')}` 
+          },
+          { status: 400 }
+        )
+      }
     }
 
     // Handle location update
