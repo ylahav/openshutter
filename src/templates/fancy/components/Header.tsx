@@ -8,6 +8,8 @@ import { useLanguage } from '@/contexts/LanguageContext'
 import { useI18n } from '@/hooks/useI18n'
 import { MultiLangUtils } from '@/types/multi-lang'
 import { ElegantLanguageSelector } from './ElegantLanguageSelector'
+import { SearchPopup } from '@/components/search/SearchPopup'
+import { Search } from '@/lib/icons'
 import styles from '../styles.module.scss'
 
 const ElegantHeader: React.FC = () => {
@@ -16,6 +18,7 @@ const ElegantHeader: React.FC = () => {
   const { t } = useI18n()
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isSearchPopupOpen, setIsSearchPopupOpen] = useState(false)
 
   useEffect(() => {
     const handleScroll = () => {
@@ -161,6 +164,29 @@ const ElegantHeader: React.FC = () => {
             </Link>
             ))}
           </div>
+
+          {/* Search Icon */}
+          <button
+            onClick={() => setIsSearchPopupOpen(true)}
+            className="elegant-search-button"
+            style={{
+              padding: '0.5rem',
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              color: 'var(--elegant-charcoal)',
+              transition: 'color 0.3s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = 'var(--elegant-gold)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = 'var(--elegant-charcoal)'
+            }}
+            aria-label="Search"
+          >
+            <Search className="h-5 w-5" />
+          </button>
 
           {/* Language Selector and Auth Buttons */}
           <div 
@@ -402,7 +428,11 @@ const ElegantHeader: React.FC = () => {
         .elegant-nav-link:hover .elegant-nav-underline {
           width: 100%;
         }
-      `}</style>
+      `}      </style>
+      <SearchPopup
+        isOpen={isSearchPopupOpen}
+        onClose={() => setIsSearchPopupOpen(false)}
+      />
     </header>
   )
 }

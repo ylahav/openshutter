@@ -3,13 +3,14 @@ import { connectToDatabase, connectMongoose } from '@/lib/mongodb'
 import { getCurrentUser } from '@/lib/access-control-server'
 import { LocationModel } from '@/lib/models/Location'
 import { SUPPORTED_LANGUAGES } from '@/types/multi-lang'
+import { ObjectId } from 'mongodb'
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     
     // Connect to database first (native MongoDB driver)
-    await connectToDatabase()
+    const { db } = await connectToDatabase()
     
     // Ensure Mongoose is connected before using Mongoose models
     await connectMongoose()
@@ -30,9 +31,7 @@ export async function GET(request: NextRequest) {
     
     // Get current user for access control
     const user = await getCurrentUser()
-    if (!user) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
-    }
+    const isPublicOnly = !user
     
     // Build query
     const query: any = {}
@@ -77,11 +76,11 @@ export async function GET(request: NextRequest) {
     const sort: any = {}
     sort[safeSortBy] = sortOrder === 'asc' ? 1 : -1
     
-    console.log('Locations API query:', { query, sort, page, limit })
+    console.log('Locations API query:', { query, sort, page, limit, isPublicOnly })
     
     // Get locations with pagination
     const skip = (page - 1) * limit
-    const [locations, total] = await Promise.all([
+    let [locations, total] = await Promise.all([
       LocationModel.find(query)
         .sort(sort)
         .skip(skip)
@@ -89,6 +88,46 @@ export async function GET(request: NextRequest) {
         .lean(),
       LocationModel.countDocuments(query)
     ])
+    
+    // If public only, filter to locations used in published photos in public albums
+    if (isPublicOnly) {
+      // Get all public album IDs (handle both ObjectId and string formats)
+      const publicAlbums = await db.collection('albums').find(
+        { isPublic: true },
+        { projection: { _id: 1 } }
+      ).toArray()
+      const publicAlbumIds = publicAlbums.map((a: any) => {
+        const id = a._id
+        return id instanceof ObjectId ? id : new ObjectId(String(id))
+      })
+      const publicAlbumIdStrings = publicAlbumIds.map((id: any) => String(id))
+      
+      // Get all location IDs used in published photos that are in public albums
+      // Handle both ObjectId and string albumId formats
+      const publicPhotoLocations = await db.collection('photos').distinct('location', {
+        isPublished: true,
+        $or: [
+          { albumId: { $in: publicAlbumIds } },
+          { albumId: { $in: publicAlbumIdStrings } }
+        ],
+        location: { $exists: true, $ne: null }
+      })
+      
+      // Normalize location IDs to strings for comparison
+      const publicLocationIds = [...new Set(
+        publicPhotoLocations.map((id: any) => {
+          if (id instanceof ObjectId) return id.toString()
+          return String(id)
+        })
+      )]
+      
+      // Filter locations to only those used in public photos
+      locations = locations.filter((location: any) => {
+        const locationIdStr = location._id instanceof ObjectId ? location._id.toString() : String(location._id)
+        return publicLocationIds.includes(locationIdStr)
+      })
+      total = locations.length
+    }
     
     console.log('Locations API result:', { count: locations.length, total })
     

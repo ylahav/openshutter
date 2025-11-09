@@ -133,7 +133,8 @@ export async function PUT(
       for (const tagName of updateData.tags) {
         const tag = await TagModel.findOne({ name: tagName })
         if (tag) {
-          tagIds.push(tag._id)
+          // Convert Mongoose ObjectId to native MongoDB ObjectId
+          tagIds.push(new ObjectId(String(tag._id)))
         }
       }
       updateFields.tags = tagIds
@@ -159,7 +160,8 @@ export async function PUT(
           try {
             const person = await PersonModel.findById(personName)
             if (person) {
-              peopleIds.push(person._id)
+              // Convert Mongoose ObjectId to native MongoDB ObjectId
+              peopleIds.push(new ObjectId(String(person._id)))
               continue
             }
           } catch (err) {
@@ -177,10 +179,16 @@ export async function PUT(
         if (!trimmedName) continue
         
         // Search for person by name across all multilingual fields
-        // Use regex for exact matching (case-insensitive)
+        // Use substring matching (not exact) to handle variations
         const escapedName = trimmedName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+        
+        // Try multiple matching strategies:
+        // 1. Exact match (case-insensitive)
+        // 2. Substring match (in case full name is "John Smith" but we're searching for "John")
+        // 3. Word boundary match (to match "John" in "John Smith")
         const person = await PersonModel.findOne({
           $or: [
+            // Exact matches
             { 'fullName.en': { $regex: `^${escapedName}$`, $options: 'i' } },
             { 'fullName.he': { $regex: `^${escapedName}$`, $options: 'i' } },
             { 'fullName': { $regex: `^${escapedName}$`, $options: 'i' } },
@@ -189,12 +197,23 @@ export async function PUT(
             { 'firstName': { $regex: `^${escapedName}$`, $options: 'i' } },
             { 'lastName.en': { $regex: `^${escapedName}$`, $options: 'i' } },
             { 'lastName.he': { $regex: `^${escapedName}$`, $options: 'i' } },
-            { 'lastName': { $regex: `^${escapedName}$`, $options: 'i' } }
+            { 'lastName': { $regex: `^${escapedName}$`, $options: 'i' } },
+            // Substring matches (for partial name matching)
+            { 'fullName.en': { $regex: escapedName, $options: 'i' } },
+            { 'fullName.he': { $regex: escapedName, $options: 'i' } },
+            { 'fullName': { $regex: escapedName, $options: 'i' } },
+            { 'firstName.en': { $regex: escapedName, $options: 'i' } },
+            { 'firstName.he': { $regex: escapedName, $options: 'i' } },
+            { 'firstName': { $regex: escapedName, $options: 'i' } },
+            { 'lastName.en': { $regex: escapedName, $options: 'i' } },
+            { 'lastName.he': { $regex: escapedName, $options: 'i' } },
+            { 'lastName': { $regex: escapedName, $options: 'i' } }
           ]
         })
         
         if (person) {
-          peopleIds.push(person._id)
+          // Convert Mongoose ObjectId to native MongoDB ObjectId
+          peopleIds.push(new ObjectId(String(person._id)))
         } else {
           notFoundNames.push(trimmedName)
           console.warn(`Person not found: "${trimmedName}"`)
@@ -233,12 +252,16 @@ export async function PUT(
         // Convert location name to ObjectId
         const location = await LocationModel.findOne({ name: updateData.location.name })
         if (location) {
-          updateFields.location = {
-            ...updateData.location,
-            _id: location._id
-          }
+          // Convert Mongoose ObjectId to native MongoDB ObjectId
+          updateFields.location = new ObjectId(String(location._id))
         } else {
-          updateFields.location = updateData.location
+          // If location not found, try to use the provided location data
+          // But if it has an _id, convert it to native ObjectId
+          if (updateData.location._id) {
+            updateFields.location = new ObjectId(String(updateData.location._id))
+          } else {
+            updateFields.location = updateData.location
+          }
         }
       } else {
         updateFields.location = updateData.location

@@ -13,11 +13,13 @@ import { useI18n } from '@/hooks/useI18n'
 import { useActiveTemplate } from '@/hooks/useTemplate'
 import { useTheme } from 'next-themes'
 import { Sun, Moon, Menu, X } from 'lucide-react'
-import { SearchBar } from '@/components/search/SearchBar'
+import { Search } from 'lucide-react'
+import { SearchPopup } from '@/components/search/SearchPopup'
 import styles from '../styles.module.scss'
 
 export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isSearchPopupOpen, setIsSearchPopupOpen] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
   const { config, loading: configLoading } = useSiteConfig()
@@ -145,13 +147,15 @@ export default function Header() {
             </Link>
           </div>
 
-          {/* Search Bar */}
-          <div className="hidden md:flex flex-1 max-w-md mx-8">
-            <SearchBar
-              query=""
-              onSearch={handleSearch}
-              placeholder={t('search.placeholder', 'Search photos and albums...')}
-            />
+          {/* Search Icon */}
+          <div className="hidden md:flex flex-1 max-w-md mx-8 justify-center">
+            <button
+              onClick={() => setIsSearchPopupOpen(true)}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              aria-label="Search"
+            >
+              <Search className="h-5 w-5 text-gray-600" />
+            </button>
           </div>
 
           {/* Desktop Navigation */}
@@ -321,6 +325,10 @@ export default function Header() {
           </div>
         )}
       </div>
+      <SearchPopup
+        isOpen={isSearchPopupOpen}
+        onClose={() => setIsSearchPopupOpen(false)}
+      />
     </header>
   )
 }

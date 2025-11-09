@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     
     // Get search parameters
     const query = searchParams.get('q') || ''
-    const type = searchParams.get('type') || 'all' // 'photos', 'albums', 'people', 'locations', 'all'
+        const type = searchParams.get('type') || 'all' // 'photos', 'albums', 'people', 'locations', 'all'
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '20')
     const sortBy = searchParams.get('sortBy') || 'relevance'
@@ -27,6 +27,9 @@ export async function GET(request: NextRequest) {
     // Filter parameters
     const tagIds = searchParams.get('tags')?.split(',').filter(Boolean).map(id => new ObjectId(id)) || []
     const albumId = searchParams.get('albumId')
+    const peopleIds = searchParams.get('people')?.split(',').filter(Boolean).map(id => new ObjectId(id)) || []
+    const locationIds = searchParams.get('locationIds')?.split(',').filter(Boolean).map(id => new ObjectId(id)) || []
+    const locationId = searchParams.get('locationId') // Keep for backward compatibility
     const dateFrom = searchParams.get('dateFrom')
     const dateTo = searchParams.get('dateTo')
     const storageProvider = searchParams.get('storageProvider')
@@ -270,14 +273,97 @@ export async function GET(request: NextRequest) {
       }
       
       if (albumId) {
-        additionalFilters.push({ albumId: { $in: [new ObjectId(albumId), albumId] } })
+        // Get all child album IDs recursively
+        const getAllChildAlbumIds = async (parentId: string | ObjectId): Promise<ObjectId[]> => {
+          const parentObjectId = typeof parentId === 'string' ? new ObjectId(parentId) : parentId
+          const childAlbums = await db.collection('albums').find({
+            $or: [
+              { parentAlbumId: parentObjectId },
+              { parentAlbumId: parentId.toString() }
+            ]
+          }).project({ _id: 1 }).toArray()
+          
+          let allIds: ObjectId[] = [parentObjectId]
+          for (const child of childAlbums) {
+            const childIds = await getAllChildAlbumIds(child._id)
+            allIds = allIds.concat(childIds)
+          }
+          return allIds
+        }
+        
+        const allAlbumIds = await getAllChildAlbumIds(albumId)
+        const albumIdStrings = allAlbumIds.map(id => String(id))
+        
+        additionalFilters.push({
+          $or: [
+            { albumId: { $in: allAlbumIds } },
+            { albumId: { $in: albumIdStrings } }
+          ]
+        })
+      }
+      
+      if (peopleIds.length > 0) {
+        // Handle both ObjectId and string formats for people field
+        // The people field is an array, so $in checks if any of the IDs are in the array
+        const peopleIdStrings = peopleIds.map(id => String(id))
+        // Combine all possible ID formats into a single array for $in
+        // This handles cases where people array contains ObjectIds, strings, or mixed types
+        const allPeopleIds = [...peopleIds, ...peopleIdStrings]
+        additionalFilters.push({
+          people: { $in: allPeopleIds }
+        })
+      }
+      
+      // Handle location filters (support both single locationId and multiple locationIds)
+      const finalLocationIds = locationIds.length > 0 ? locationIds : (locationId ? [new ObjectId(locationId)] : [])
+      if (finalLocationIds.length > 0) {
+        // Handle both ObjectId and string formats for location field
+        const locationIdStrings = finalLocationIds.map(id => String(id))
+        additionalFilters.push({
+          $or: [
+            { location: { $in: finalLocationIds } },
+            { location: { $in: locationIdStrings } }
+          ]
+        })
       }
       
       if (dateFrom || dateTo) {
         const dateFilter: any = {}
-        if (dateFrom) dateFilter.$gte = new Date(dateFrom)
-        if (dateTo) dateFilter.$lte = new Date(dateTo)
-        additionalFilters.push({ uploadedAt: dateFilter })
+        if (dateFrom) {
+          // Parse date string and set to start of day in UTC to avoid timezone issues
+          // dateFrom is in format "YYYY-MM-DD", parse it as UTC midnight
+          const [year, month, day] = dateFrom.split('-').map(Number)
+          const fromDate = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0))
+          dateFilter.$gte = fromDate
+        }
+        if (dateTo) {
+          // Parse date string and set to end of day in UTC
+          const [year, month, day] = dateTo.split('-').map(Number)
+          const toDate = new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999))
+          dateFilter.$lte = toDate
+        }
+        
+        console.log('Date filter applied:', { 
+          dateFrom, 
+          dateTo, 
+          dateFilter,
+          fromDateISO: dateFilter.$gte ? dateFilter.$gte.toISOString() : undefined,
+          toDateISO: dateFilter.$lte ? dateFilter.$lte.toISOString() : undefined
+        })
+        
+        // Simplified date filter: match photos where ANY of these date fields fall within the range
+        // Priority: exif.dateTime > exif.dateTimeOriginal > uploadedAt
+        // This uses a simpler $or structure that MongoDB can optimize better
+        additionalFilters.push({
+          $or: [
+            // Match if exif.dateTime exists and is in range
+            { 'exif.dateTime': dateFilter },
+            // Match if exif.dateTimeOriginal exists and is in range
+            { 'exif.dateTimeOriginal': dateFilter },
+            // Match if uploadedAt is in range (for photos without EXIF dates)
+            { uploadedAt: dateFilter }
+          ]
+        })
       }
       
       if (storageProvider) {
@@ -304,17 +390,68 @@ export async function GET(request: NextRequest) {
         if (photoQuery.$and) {
           photoQuery.$and.push(...additionalFilters)
         } else {
-          // Combine filters with $and if we have multiple conditions
-          if (Object.keys(photoQuery).length > 1) {
+          // Combine filters with $and if we have multiple conditions or if any filter uses $or/$and
+          const hasComplexFilters = additionalFilters.some((f: any) => f.$or || f.$and)
+          if (Object.keys(photoQuery).length > 1 || hasComplexFilters) {
             const baseQuery = { ...photoQuery }
             photoQuery = {
               $and: [baseQuery, ...additionalFilters]
             }
           } else {
-            // Just merge the filters
+            // Just merge the filters (only for simple field filters)
             Object.assign(photoQuery, ...additionalFilters)
           }
         }
+      }
+      
+      // Debug: Test date filter separately and show sample photos with dates
+      if (dateFrom || dateTo) {
+        const dateFilter: any = {}
+        if (dateFrom) {
+          const [year, month, day] = dateFrom.split('-').map(Number)
+          const fromDate = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0))
+          dateFilter.$gte = fromDate
+        }
+        if (dateTo) {
+          const [year, month, day] = dateTo.split('-').map(Number)
+          const toDate = new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999))
+          dateFilter.$lte = toDate
+        }
+        const dateTestQuery = {
+          isPublished: true,
+          $or: [
+            { 'exif.dateTime': dateFilter },
+            { 'exif.dateTimeOriginal': dateFilter },
+            { uploadedAt: dateFilter }
+          ]
+        }
+        const dateTestCount = await db.collection('photos').countDocuments(dateTestQuery)
+        console.log(`Date filter test (isPublished + date range): ${dateTestCount} photos`)
+        
+        // Also test without isPublished
+        const dateTestQuery2 = {
+          $or: [
+            { 'exif.dateTime': dateFilter },
+            { 'exif.dateTimeOriginal': dateFilter },
+            { uploadedAt: dateFilter }
+          ]
+        }
+        const dateTestCount2 = await db.collection('photos').countDocuments(dateTestQuery2)
+        console.log(`Date filter test (date range only): ${dateTestCount2} photos`)
+        
+        // Get a few sample photos to see their actual dates
+        const samplePhotos = await db.collection('photos')
+          .find({ isPublished: true })
+          .toArray()
+        console.log('Sample photos with dates:', samplePhotos.map((p: any) => ({
+          _id: String(p._id),
+          uploadedAt: p.uploadedAt ? new Date(p.uploadedAt).toISOString() : null,
+          exifDateTime: p.exif?.dateTime ? new Date(p.exif.dateTime).toISOString() : null,
+          exifDateTimeOriginal: p.exif?.dateTimeOriginal ? new Date(p.exif.dateTimeOriginal).toISOString() : null,
+          inRange: p.uploadedAt && dateFilter.$gte && dateFilter.$lte 
+            ? (new Date(p.uploadedAt) >= dateFilter.$gte && new Date(p.uploadedAt) <= dateFilter.$lte)
+            : false
+        })))
       }
       
       // Debug: Check what photos exist with matching person IDs (before applying full query)
@@ -364,15 +501,49 @@ export async function GET(request: NextRequest) {
       // Get total count
       const totalPhotos = await db.collection('photos').countDocuments(photoQuery)
       
+      // Debug: Check a sample photo to see what date fields it has
+      if (dateFrom || dateTo) {
+        const samplePhoto = await db.collection('photos').findOne({ isPublished: true })
+        if (samplePhoto) {
+          console.log('Sample photo date fields:', {
+            _id: String(samplePhoto._id),
+            uploadedAt: samplePhoto.uploadedAt ? new Date(samplePhoto.uploadedAt).toISOString() : null,
+            exifDateTime: samplePhoto.exif?.dateTime ? new Date(samplePhoto.exif.dateTime).toISOString() : null,
+            exifDateTimeOriginal: samplePhoto.exif?.dateTimeOriginal ? new Date(samplePhoto.exif.dateTimeOriginal).toISOString() : null,
+            hasExif: !!samplePhoto.exif
+          })
+        }
+      }
+      
       console.log(`Photo query results: found ${totalPhotos} photos, returning ${photos.length}`)
       console.log('Sample photo from query:', photos[0] ? {
         _id: String(photos[0]._id),
         hasPeople: Array.isArray(photos[0].people),
         peopleArray: photos[0].people?.map((p: any) => String(p)) || [],
-        isPublished: photos[0].isPublished
+        isPublished: photos[0].isPublished,
+        hasStorage: !!photos[0].storage,
+        thumbnailPath: photos[0].storage?.thumbnailPath,
+        storageProvider: photos[0].storage?.provider
       } : 'No photos found')
       
-      results.photos = photos
+      // Transform photos to ensure thumbnail URLs are properly constructed
+      const transformedPhotos = photos.map((photo: any) => {
+        if (photo.storage) {
+          // Ensure thumbnailPath is a full URL
+          if (photo.storage.thumbnailPath && !photo.storage.thumbnailPath.startsWith('/api/storage/serve/') && !photo.storage.thumbnailPath.startsWith('http')) {
+            const provider = photo.storage.provider || 'local'
+            photo.storage.thumbnailPath = `/api/storage/serve/${provider}/${encodeURIComponent(photo.storage.thumbnailPath)}`
+          }
+          // Ensure url is a full URL if it's not already
+          if (photo.storage.url && !photo.storage.url.startsWith('/api/storage/serve/') && !photo.storage.url.startsWith('http')) {
+            const provider = photo.storage.provider || 'local'
+            photo.storage.url = `/api/storage/serve/${provider}/${encodeURIComponent(photo.storage.url)}`
+          }
+        }
+        return photo
+      })
+      
+      results.photos = transformedPhotos
       results.totalPhotos = totalPhotos
     }
     
@@ -422,7 +593,7 @@ export async function GET(request: NextRequest) {
         if (albumQuery.tags) {
           albumQuery.tags = { $in: [...tagIds, ...(Array.isArray(albumQuery.tags.$in) ? albumQuery.tags.$in : [])] }
         } else {
-          albumQuery.tags = { $in: tagIds }
+        albumQuery.tags = { $in: tagIds }
         }
       }
       
@@ -444,10 +615,10 @@ export async function GET(request: NextRequest) {
             ]
             delete albumQuery.$or
           } else {
-            albumQuery.$or = [
-              { createdBy: user.id },
-              { createdBy: userObjectId }
-            ]
+          albumQuery.$or = [
+            { createdBy: user.id },
+            { createdBy: userObjectId }
+          ]
           }
         } catch {
           if (albumQuery.$or) {
@@ -457,7 +628,7 @@ export async function GET(request: NextRequest) {
             ]
             delete albumQuery.$or
           } else {
-            albumQuery.createdBy = user.id
+          albumQuery.createdBy = user.id
           }
         }
       }
@@ -468,7 +639,7 @@ export async function GET(request: NextRequest) {
         if (albumQuery.$and) {
           albumQuery.$and.push(accessQuery)
         } else {
-          albumQuery = { $and: [albumQuery, accessQuery] }
+        albumQuery = { $and: [albumQuery, accessQuery] }
         }
       }
       

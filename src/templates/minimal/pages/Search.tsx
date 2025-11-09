@@ -253,14 +253,13 @@ export default function SearchPage() {
             )}
 
             {!loading && !error && (
-              <SearchResults 
-                results={results}
-                query={query}
-                type={type}
-                loading={loading}
-                error={error}
-                onLoadMore={() => {}}
-              />
+                <SearchResults
+                  results={results}
+                  query={query}
+                  loading={loading}
+                  error={error}
+                  onLoadMore={() => {}}
+                />
             )}
 
             {!loading && !error && (results.totalPhotos + results.totalAlbums + results.totalPeople + results.totalLocations) === 0 && query && (

@@ -10,6 +10,7 @@ import Header from '@/templates/default/components/Header'
 import Footer from '@/templates/default/components/Footer'
 import { MultiLangText, MultiLangHTML, MultiLangUtils } from '@/types/multi-lang'
 import { TemplatePhoto } from '@/types'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 // Dynamic imports for heavy components
 const MultiLangHTMLEditor = dynamic(() => import('@/components/MultiLangHTMLEditor'), {
@@ -45,6 +46,7 @@ const PhotoActions = dynamic(() => import('@/components/admin/PhotoEdit/PhotoAct
 export default function EditPhotoPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params)
   const router = useRouter()
+  const { currentLanguage } = useLanguage()
   const [photo, setPhoto] = useState<TemplatePhoto | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -81,12 +83,48 @@ export default function EditPhotoPage({ params }: { params: Promise<{ id: string
           const photoData = result.data
           setPhoto(photoData)
           
+          // Convert people ObjectIds to names for the form
+          let peopleNames: string[] = []
+          if (photoData.people && Array.isArray(photoData.people) && photoData.people.length > 0) {
+            try {
+              const peopleResponse = await fetch(`/api/people?limit=1000`)
+              if (peopleResponse.ok) {
+                const peopleResult = await peopleResponse.json()
+                if (peopleResult.success && peopleResult.data) {
+                  const allPeople = peopleResult.data
+                  // Convert ObjectIds to names
+                  peopleNames = photoData.people
+                    .map((personId: any) => {
+                      const personIdStr = String(personId)
+                      const person = allPeople.find((p: any) => 
+                        String(p._id) === personIdStr
+                      )
+                      if (person) {
+                        // Get display name (same logic as CollectionPopup)
+                        const fullName = typeof person.fullName === 'string' 
+                          ? person.fullName 
+                          : MultiLangUtils.getTextValue(person.fullName || {}, currentLanguage)
+                        const firstName = typeof person.firstName === 'string' 
+                          ? person.firstName 
+                          : MultiLangUtils.getTextValue(person.firstName || {}, currentLanguage)
+                        return fullName || firstName || ''
+                      }
+                      return null
+                    })
+                    .filter(Boolean) as string[]
+                }
+              }
+            } catch (err) {
+              console.error('Failed to load people names:', err)
+            }
+          }
+          
           // Initialize form data
           setFormData({
             title: (typeof photoData.title === 'string' ? { en: photoData.title } : (photoData.title || {})) as MultiLangText,
             description: (typeof photoData.description === 'string' ? { en: photoData.description } : (photoData.description || {})) as MultiLangHTML,
             tags: photoData.tags || [],
-            people: photoData.people || [],
+            people: peopleNames,
             location: photoData.location,
             isPublished: photoData.isPublished,
             isLeading: photoData.isLeading,

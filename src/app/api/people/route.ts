@@ -4,6 +4,7 @@ import { getCurrentUser } from '@/lib/access-control-server'
 import { PersonModel } from '@/lib/models/Person'
 import { SUPPORTED_LANGUAGES } from '@/types/multi-lang'
 import { TagModel } from '@/lib/models/Tag'
+import { ObjectId } from 'mongodb'
 
 export async function GET(request: NextRequest) {
   console.log('People API called')
@@ -18,12 +19,11 @@ export async function GET(request: NextRequest) {
     
     // Get current user for access control
     const user = await getCurrentUser()
-    if (!user) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
-    }
+    const isPublicOnly = !user
     
     // Connect to database and ensure Mongoose is connected
     await connectMongoose()
+    const { db } = await connectToDatabase()
     
     // Build query
     const query: any = {}
@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
     
     // Get people with pagination
     const skip = (page - 1) * limit
-    const [people, total] = await Promise.all([
+    let [people, total] = await Promise.all([
       PersonModel.find(query)
         .sort({ fullName: 1 })
         .skip(skip)
@@ -48,6 +48,46 @@ export async function GET(request: NextRequest) {
         .lean(),
       PersonModel.countDocuments(query)
     ])
+    
+    // If public only, filter to people tagged in published photos in public albums
+    if (isPublicOnly) {
+      // Get all public album IDs (handle both ObjectId and string formats)
+      const publicAlbums = await db.collection('albums').find(
+        { isPublic: true },
+        { projection: { _id: 1 } }
+      ).toArray()
+      const publicAlbumIds = publicAlbums.map((a: any) => {
+        const id = a._id
+        return id instanceof ObjectId ? id : new ObjectId(String(id))
+      })
+      const publicAlbumIdStrings = publicAlbumIds.map((id: any) => String(id))
+      
+      // Get all people IDs tagged in published photos that are in public albums
+      // Handle both ObjectId and string albumId formats
+      const publicPhotoPeople = await db.collection('photos').distinct('people', {
+        isPublished: true,
+        $or: [
+          { albumId: { $in: publicAlbumIds } },
+          { albumId: { $in: publicAlbumIdStrings } }
+        ],
+        people: { $exists: true, $ne: [] }
+      })
+      
+      // Normalize people IDs to strings for comparison
+      const publicPeopleIds = [...new Set(
+        publicPhotoPeople.map((id: any) => {
+          if (id instanceof ObjectId) return id.toString()
+          return String(id)
+        })
+      )]
+      
+      // Filter people to only those tagged in public photos
+      people = people.filter((person: any) => {
+        const personIdStr = person._id instanceof ObjectId ? person._id.toString() : String(person._id)
+        return publicPeopleIds.includes(personIdStr)
+      })
+      total = people.length
+    }
     
     console.log('People API - Query and Results:', {
       query,

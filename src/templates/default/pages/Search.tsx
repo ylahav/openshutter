@@ -192,7 +192,6 @@ function SearchPageContent() {
                 error={error}
                 onLoadMore={loadMore}
                 query={query}
-                type={type}
               />
             </Suspense>
           </div>

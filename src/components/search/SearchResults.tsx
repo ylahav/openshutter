@@ -4,11 +4,12 @@ import { useState } from 'react'
 import { useI18n } from '@/hooks/useI18n'
 import { Button } from '@/components/ui/button'
 import { PhotoCard } from '@/components/search/PhotoCard'
-import { AlbumCard } from '@/components/search/AlbumCard'
-import { PersonCard } from '@/components/search/PersonCard'
-import { Photo, Album } from '@/types'
+import PhotoLightbox from '@/components/PhotoLightbox'
+import { Photo } from '@/types'
 import { SearchResults as SearchResultsType } from '@/types/search'
-import { Loader2, Search, Image, Folder, User } from '@/lib/icons'
+import { Loader2, Search } from '@/lib/icons'
+import { useLanguage } from '@/contexts/LanguageContext'
+import { MultiLangUtils } from '@/types/multi-lang'
 
 // The SearchResults type from API has full objects, which should be compatible with Photo/Album
 // But we'll accept any[] for flexibility since the API returns full database objects
@@ -18,7 +19,6 @@ interface SearchResultsProps {
   error: string | null
   onLoadMore: () => void
   query: string
-  type: 'all' | 'photos' | 'albums' | 'people' | 'locations'
 }
 
 export function SearchResults({
@@ -26,45 +26,70 @@ export function SearchResults({
   loading,
   error,
   onLoadMore,
-  query,
-  type
+  query
 }: SearchResultsProps) {
   const { t } = useI18n()
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  const { currentLanguage } = useLanguage()
+  const [lightboxOpen, setLightboxOpen] = useState(false)
+  const [lightboxIndex, setLightboxIndex] = useState(0)
   
-  // Calculate totals - use array lengths if totals are missing
-  // But also check totalPhotos/totalAlbums as fallback in case arrays are delayed
+  // Calculate photo count
   const photoCount = Array.isArray(results.photos) && results.photos.length > 0 
     ? results.photos.length 
     : (results.totalPhotos || 0)
-  const albumCount = Array.isArray(results.albums) && results.albums.length > 0
-    ? results.albums.length
-    : (results.totalAlbums || 0)
-  const peopleCount = Array.isArray(results.people) && results.people.length > 0
-    ? results.people.length
-    : (results.totalPeople || 0)
-  const locationCount = Array.isArray(results.locations) && results.locations.length > 0
-    ? results.locations.length
-    : (results.totalLocations || 0)
-  const totalResults = photoCount + albumCount + peopleCount + locationCount
-  const hasResults = totalResults > 0 || (results.totalPhotos || 0) > 0 || (results.totalAlbums || 0) > 0
+  const hasResults = photoCount > 0 || (results.totalPhotos || 0) > 0
   
-  console.log('SearchResults render:', {
-    totalResults,
-    hasResults,
-    photosArrayLength: results.photos?.length || 0,
-    photosTotal: results.totalPhotos || 0,
-    photoCount,
-    loading,
-    error,
-    query,
-    type,
-    allResultKeys: Object.keys(results || {}),
-    resultsPhotosIsArray: Array.isArray(results.photos),
-    resultsPhotosType: typeof results.photos,
-    resultsPhotosValue: results.photos,
-    willRenderPhotos: (type === 'photos' || type === 'all') && results.photos && results.photos.length > 0
-  })
+  // Prepare photos for lightbox - ensure URLs are properly formatted
+  const lightboxPhotos = Array.isArray(results.photos) ? results.photos.map((photo: any) => {
+    // Get full image URL (not thumbnail)
+    let imageUrl = ''
+    if (photo.storage?.url) {
+      if (photo.storage.url.startsWith('/api/storage/serve/') || photo.storage.url.startsWith('http')) {
+        imageUrl = photo.storage.url
+      } else {
+        const provider = photo.storage.provider || 'local'
+        imageUrl = `/api/storage/serve/${provider}/${encodeURIComponent(photo.storage.url)}`
+      }
+    } else if (photo.storage?.thumbnailPath) {
+      // Fallback to thumbnail if full URL not available
+      if (photo.storage.thumbnailPath.startsWith('/api/storage/serve/') || photo.storage.thumbnailPath.startsWith('http')) {
+        imageUrl = photo.storage.thumbnailPath
+      } else {
+        const provider = photo.storage.provider || 'local'
+        imageUrl = `/api/storage/serve/${provider}/${encodeURIComponent(photo.storage.thumbnailPath)}`
+      }
+    }
+    
+    // Get thumbnail URL
+    let thumbnailUrl = ''
+    if (photo.storage?.thumbnailPath) {
+      if (photo.storage.thumbnailPath.startsWith('/api/storage/serve/') || photo.storage.thumbnailPath.startsWith('http')) {
+        thumbnailUrl = photo.storage.thumbnailPath
+      } else {
+        const provider = photo.storage.provider || 'local'
+        thumbnailUrl = `/api/storage/serve/${provider}/${encodeURIComponent(photo.storage.thumbnailPath)}`
+      }
+    } else if (photo.storage?.url) {
+      thumbnailUrl = imageUrl
+    }
+    
+    return {
+      _id: photo._id,
+      url: imageUrl,
+      thumbnailUrl: thumbnailUrl,
+      title: typeof photo.title === 'string' 
+        ? photo.title 
+        : MultiLangUtils.getTextValue(photo.title || {}, currentLanguage) || '',
+      takenAt: photo.exif?.dateTime || photo.uploadedAt,
+      exif: photo.exif,
+      metadata: photo.dimensions ? {
+        width: photo.dimensions.width,
+        height: photo.dimensions.height,
+        fileSize: photo.size,
+        format: photo.mimeType
+      } : undefined
+    }
+  }) : []
   
   if (error) {
     return (
@@ -107,25 +132,8 @@ export function SearchResults({
                 {t('search.results', 'Search Results')}
               </h2>
               <span className="text-sm text-gray-600">
-                {totalResults} {t('search.totalResults', 'results found')}
+                {photoCount} {photoCount === 1 ? t('search.photo', 'photo') : t('search.photos', 'photos')}
               </span>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <Button
-                variant={viewMode === 'grid' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setViewMode('grid')}
-              >
-                <Image className="h-4 w-4" />
-              </Button>
-              <Button
-                variant={viewMode === 'list' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setViewMode('list')}
-              >
-                <Folder className="h-4 w-4" />
-              </Button>
             </div>
           </div>
           
@@ -150,53 +158,26 @@ export function SearchResults({
       {/* Results */}
       {!loading && (
         <div className="space-y-6">
-          {/* Photos */}
-          {(type === 'photos' || type === 'all') && Array.isArray(results.photos) && results.photos.length > 0 && (
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <Image className="h-5 w-5 mr-2" />
-                {t('search.photos', 'Photos')} ({results.photos.length || results.totalPhotos || 0})
-              </h3>
-              <div className={
-                viewMode === 'grid' 
-                  ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'
-                  : 'space-y-4'
-              }>
-                {results.photos.map((photo) => (
+          {/* Photos Grid */}
+          {Array.isArray(results.photos) && results.photos.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {results.photos.map((photo, index) => (
+                <div
+                  key={photo._id}
+                  onClick={() => {
+                    setLightboxIndex(index)
+                    setLightboxOpen(true)
+                  }}
+                  className="cursor-pointer"
+                >
                   <PhotoCard
-                    key={photo._id}
                     photo={photo}
-                    viewMode={viewMode}
+                    viewMode="grid"
                   />
-                ))}
-              </div>
+                </div>
+              ))}
             </div>
           )}
-          
-          {/* Albums */}
-          {(type === 'albums' || type === 'all') && Array.isArray(results.albums) && results.albums.length > 0 && (
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <Folder className="h-5 w-5 mr-2" />
-                {t('search.albums', 'Albums')} ({results.totalAlbums || results.albums.length})
-              </h3>
-              <div className={
-                viewMode === 'grid' 
-                  ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'
-                  : 'space-y-4'
-              }>
-                {results.albums.map((album) => (
-                  <AlbumCard
-                    key={album._id}
-                    album={album}
-                    viewMode={viewMode}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-          
-          {/* People and Locations sections removed - only showing photos and albums */}
           
           {/* Load More Button */}
           {results.hasMore && (
@@ -231,6 +212,16 @@ export function SearchResults({
             </div>
           )}
         </div>
+      )}
+      
+      {/* Photo Lightbox */}
+      {lightboxPhotos.length > 0 && (
+        <PhotoLightbox
+          photos={lightboxPhotos}
+          startIndex={lightboxIndex}
+          isOpen={lightboxOpen}
+          onClose={() => setLightboxOpen(false)}
+        />
       )}
     </div>
   )

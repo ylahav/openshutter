@@ -195,7 +195,6 @@ export default function SearchPage() {
                   hasMore: false
                 }}
                 query={query}
-                type={type}
                 loading={loading}
                 error={error}
                 onLoadMore={() => {}}

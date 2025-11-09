@@ -1,5 +1,23 @@
 ## [Unreleased]
 
+### Changed
+- **Search UI**: Replaced search field in header with search icon that opens a popup
+  - Search icon in desktop header opens advanced filter popup (all templates: default, modern, fancy, minimal)
+  - Popup includes all filter options (Albums, Tags, People, Locations)
+  - Submit button navigates to search page with selected filters as URL parameters
+  - Search page automatically reads and applies filter parameters from URL
+  - Fixed popup z-index to appear above all content using React portal (renders to document.body)
+  - Fixed popup centering with proper overflow handling
+- **Date Range Filter**: Temporarily removed from search interface (still supported in API)
+  - Date range filter section hidden in both search page and search popup
+  - Date parameters still accepted by API but not exposed in UI
+- **Public Access Control for Filters**: Tags, People, and Locations filters now show only public content for non-authenticated users
+  - Tags API: Returns only tags used in published photos within public albums, plus tags on public albums
+  - People API: Returns only people tagged in published photos within public albums
+  - Locations API: Returns only locations used in published photos within public albums
+  - All filter sections remain visible for all users, but content is filtered based on authentication status
+  - Fixed ObjectId handling in all three APIs to properly compare MongoDB ObjectIds with Mongoose ObjectIds
+
 ### Added
 - **Album File Check Feature**: Added ability to compare local folder with album photos
   - "Check Local Files" button in album management page

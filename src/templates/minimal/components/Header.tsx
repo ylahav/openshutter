@@ -19,9 +19,12 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Menu, X, Sun, Moon, User, LogOut, Globe } from 'lucide-react'
 import { useTheme } from 'next-themes'
+import { SearchPopup } from '@/components/search/SearchPopup'
+import { Search } from '@/lib/icons'
 
 export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isSearchPopupOpen, setIsSearchPopupOpen] = useState(false)
   const [theme, setTheme] = useState<'light' | 'dark'>('light')
   const { theme: activeTheme, setTheme: setThemeNext } = useTheme()
   const pathname = usePathname()
@@ -270,6 +273,10 @@ export default function Header() {
           </div>
         </div>
       )}
+      <SearchPopup
+        isOpen={isSearchPopupOpen}
+        onClose={() => setIsSearchPopupOpen(false)}
+      />
     </header>
   )
 }
