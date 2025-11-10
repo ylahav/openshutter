@@ -250,16 +250,20 @@ export default function Header() {
         {isMobileMenuOpen && (
           <div className="md:hidden">
             <div className={`px-2 pt-2 pb-3 space-y-1 ${styles.bgSecondary} rounded-lg mt-2`}>
-              {/* Mobile Search Bar */}
+              {/* Mobile Search Button */}
               <div className="px-3 py-2">
-                <SearchBar
-                  query=""
-                  onSearch={(query) => {
-                    handleSearch(query)
+                <button
+                  onClick={() => {
+                    setIsSearchPopupOpen(true)
                     setIsMobileMenuOpen(false)
                   }}
-                  placeholder={t('search.placeholder', 'Search photos and albums...')}
-                />
+                  className="w-full flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                >
+                  <Search className="h-5 w-5 text-gray-600" />
+                  <span className="text-sm text-gray-700">
+                    {t('search.title', 'Search')}
+                  </span>
+                </button>
               </div>
               
               {navigation.map((item) => (
