@@ -39,11 +39,6 @@ export default function Header() {
     signOut({ callbackUrl: '/' })
   }
 
-  const handleSearch = (query: string) => {
-    if (query.trim()) {
-      router.push(`/search?q=${encodeURIComponent(query.trim())}`)
-    }
-  }
 
   // Get header config from active template
   const headerCfg = activeTemplate?.componentsConfig?.header || null
