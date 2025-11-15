@@ -116,6 +116,11 @@ const nextConfig = {
     optimizePackageImports: ['lucide-react', '@radix-ui/react-icons', 'framer-motion'],
   },
 
+  // Note: Body size limit for file uploads is controlled by Next.js server
+  // For production, configure at deployment level (nginx, reverse proxy)
+  // Default limit is ~4.5MB for JSON, but form data may have different limits
+  // The API route at /api/photos/upload supports up to 100MB files
+
   // Turbopack configuration (replaces experimental.turbo)
   turbopack: {
     rules: {

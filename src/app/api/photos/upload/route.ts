@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { PhotoUploadService } from '@/services/photo-upload'
 import { getCurrentUser } from '@/lib/access-control-server'
 
+// Configure route to accept larger body size (up to 100MB)
+// Note: Next.js has a default body size limit (~4.5MB for JSON, ~20MB for form data)
+// To increase this limit, you may need to:
+// 1. For development: Set NODE_OPTIONS environment variable or use a custom server
+// 2. For production: Configure at deployment level (nginx client_max_body_size, etc.)
+export const runtime = 'nodejs'
+export const maxDuration = 300 // 5 minutes for large file uploads
+
 export async function POST(request: NextRequest) {
   try {
     // Get current user for authentication and user ID

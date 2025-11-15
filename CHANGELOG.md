@@ -1,5 +1,13 @@
 ## [Unreleased]
 
+### Added
+- **File Upload Size Limit Documentation**: Added comprehensive documentation for handling file upload size limits
+  - Created `docs/UPLOAD_LIMITS.md` with explanations and solutions for Next.js body size limits
+  - Documented default limits (~4.5MB for JSON, ~20MB for form data)
+  - Provided solutions for development and production environments
+  - Added configuration notes in API route and next.config.js
+  - API route configured to accept up to 100MB files (server-level limit may need additional configuration)
+
 ### Changed
 - **Search UI**: Replaced search field in header with search icon that opens a popup
   - Search icon in desktop header opens advanced filter popup (all templates: default, modern, fancy, minimal)
