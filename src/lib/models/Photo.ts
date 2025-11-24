@@ -173,11 +173,7 @@ PhotoSchema.index({ isPublished: 1 })
 PhotoSchema.index({ uploadedAt: -1 })
 // filename index is already defined as unique: true in the schema
 
-// Pre-save hook to update updatedAt
-PhotoSchema.pre('save', function(next) {
-  this.updatedAt = new Date()
-  next()
-})
+
 
 export const PhotoModel = mongoose.models.Photo || 
   mongoose.model<IPhoto>('Photo', PhotoSchema)

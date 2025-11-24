@@ -117,9 +117,8 @@ const AlbumSchema = new Schema<IAlbum>({
 })
 
 // Update timestamps
-AlbumSchema.pre('save', function(next) {
+AlbumSchema.pre('save', function() {
   this.updatedAt = new Date()
-  next()
 })
 
 // Indexes for performance

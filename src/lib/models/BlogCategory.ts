@@ -63,9 +63,8 @@ const BlogCategorySchema = new Schema<IBlogCategory>({
   }
 })
 
-BlogCategorySchema.pre('save', function(next) {
+BlogCategorySchema.pre('save', async function() {
   this.updatedAt = new Date()
-  next()
 })
 
 // Ensure the model is registered with the correct collection name

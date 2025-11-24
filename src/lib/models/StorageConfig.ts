@@ -34,9 +34,8 @@ const StorageProviderConfigSchema = new Schema<IStorageProviderConfig>({
 })
 
 // Update the updatedAt field before saving
-StorageProviderConfigSchema.pre('save', function(next) {
+StorageProviderConfigSchema.pre('save', async function() {
   this.updatedAt = new Date()
-  next()
 })
 
 // Create indexes - removed duplicate index definition

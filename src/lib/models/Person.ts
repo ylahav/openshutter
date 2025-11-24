@@ -85,7 +85,7 @@ const PersonSchema = new Schema<IPerson>({
 })
 
 // Create fullName before saving
-PersonSchema.pre('save', function(next) {
+PersonSchema.pre('save', async function() {
   if (this.firstName && this.lastName) {
     this.fullName = {}
     
@@ -102,7 +102,6 @@ PersonSchema.pre('save', function(next) {
       this.fullName[lang] = `${firstName} ${lastName}`.trim()
     })
   }
-  next()
 })
 
 // Indexes for performance

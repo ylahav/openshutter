@@ -94,15 +94,13 @@ const BlogArticleSchema = new Schema<IBlogArticle>({
 })
 
 // Update timestamps
-BlogArticleSchema.pre('save', function(next) {
+BlogArticleSchema.pre('save', async function() {
   this.updatedAt = new Date()
   
   // Set publishedAt when article is published
   if (this.isPublished && !this.publishedAt) {
     this.publishedAt = new Date()
   }
-  
-  next()
 })
 
 // Indexes for performance
