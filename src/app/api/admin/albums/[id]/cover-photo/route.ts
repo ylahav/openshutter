@@ -57,6 +57,28 @@ export async function PUT(
       }
     )
 
+    // If a cover photo was set, update isLeading flags
+    if (coverPhotoId) {
+      const coverId = new ObjectId(coverPhotoId)
+      
+      // Set the new cover photo as leading
+      await db.collection('photos').updateOne(
+        { _id: coverId },
+        { $set: { isLeading: true } }
+      )
+
+      // Unset isLeading for all other photos in this album
+      // We need to know the albumId of the photo, but we can assume it's in the current album
+      // or we can query by the albumId we just updated
+      await db.collection('photos').updateMany(
+        { 
+          albumId: new ObjectId(id), 
+          _id: { $ne: coverId } 
+        },
+        { $set: { isLeading: false } }
+      )
+    }
+
     return NextResponse.json({
       success: true,
       message: 'Cover photo updated successfully'

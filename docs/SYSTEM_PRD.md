@@ -111,6 +111,7 @@ To provide a modern, scalable, and user-friendly photo gallery management system
 - Album privacy settings (public/private)
 - Featured album functionality
 - Multiple storage location support
+- Cover photo selection (from own photos or sub-albums)
 
 #### User Stories
 - **As a photographer**, I want to create albums for different events so that I can organize my photos
@@ -132,7 +133,7 @@ To provide a modern, scalable, and user-friendly photo gallery management system
 - Photo metadata extraction
 - Thumbnail generation
 - Photo visibility controls (published/unpublished)
-- Leading photo selection (album and site)
+- Leading photo selection (synonymous with Album Cover, one per album)
 - Batch operations (publish/unpublish/delete)
 - Photo search and filtering
 

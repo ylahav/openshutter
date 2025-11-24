@@ -43,6 +43,16 @@ export async function GET(
       )
     }
 
+    // Check if this photo is the album's cover photo
+    if (photo.albumId) {
+      const album = await db.collection('albums').findOne({ _id: new ObjectId(photo.albumId) })
+      if (album && album.coverPhotoId && album.coverPhotoId.toString() === photo._id.toString()) {
+        // Force isLeading to true if it's the album cover
+        // This fixes the issue where the UI shows unchecked even if it is the cover
+        photo.isLeading = true
+      }
+    }
+
     // Process photo for EXIF data extraction (on-demand)
     const processedPhoto = await ExifExtractor.extractAndUpdateExif(photo)
 
@@ -283,6 +293,56 @@ export async function PUT(
 
     // Return the updated photo
     const updatedPhoto = await photosCollection.findOne({ _id: objectId })
+    
+    if (!updatedPhoto) {
+      return NextResponse.json(
+        { success: false, error: 'Photo not found after update' },
+        { status: 404 }
+      )
+    }
+
+    // Update Album coverPhotoId if isLeading changed
+    if (typeof updateData.isLeading === 'boolean' && updatedPhoto.albumId) {
+      const albumsCollection = db.collection('albums')
+      
+      if (updateData.isLeading) {
+        // Set this photo as the album cover
+        // Ensure albumId is an ObjectId
+        const albumObjectId = new ObjectId(updatedPhoto.albumId)
+        
+        console.log(`Setting photo ${objectId} as cover for album ${albumObjectId}`)
+        
+        const updateResult = await albumsCollection.updateOne(
+          { _id: albumObjectId },
+          { $set: { coverPhotoId: objectId } }
+        )
+        
+        console.log(`Album update result: matched=${updateResult.matchedCount}, modified=${updateResult.modifiedCount}`)
+
+        // Unset isLeading for all other photos in this album
+        await photosCollection.updateMany(
+          { 
+            albumId: updatedPhoto.albumId, // Use original value to match photo documents format
+            _id: { $ne: objectId } 
+          },
+          { $set: { isLeading: false } }
+        )
+      } else {
+        // If this was the album cover, unset it
+        // We need to check if it was actually the cover before unsetting
+        // to avoid race conditions or unsetting a new cover
+        const albumObjectId = new ObjectId(updatedPhoto.albumId)
+        
+        await albumsCollection.updateOne(
+          { 
+            _id: albumObjectId,
+            coverPhotoId: objectId
+          },
+          { $unset: { coverPhotoId: 1 } }
+        )
+      }
+    }
+
     return NextResponse.json({ success: true, data: updatedPhoto })
   } catch (error) {
     console.error('Failed to update photo:', error)

@@ -149,6 +149,32 @@ export async function GET(request: NextRequest) {
         }
       })
     )
+
+    // Fetch cover photos for all albums that have one
+    const coverPhotoIds = albums
+      .filter(a => a.coverPhotoId)
+      .map(a => new ObjectId(a.coverPhotoId))
+    
+    const coverPhotos = await db.collection('photos')
+      .find({ _id: { $in: coverPhotoIds } })
+      .project({ _id: 1, 'storage.url': 1, 'storage.thumbnailPath': 1 })
+      .toArray()
+    
+    const coverPhotoMap = new Map(
+      coverPhotos.map(p => [p._id.toString(), p])
+    )
+
+    // Combine all data
+    const finalAlbums = albumsWithChildCount.map((album: any) => {
+      let coverPhoto = null
+      if (album.coverPhotoId) {
+        coverPhoto = coverPhotoMap.get(album.coverPhotoId.toString())
+      }
+      return {
+        ...album,
+        coverPhoto
+      }
+    })
     
     console.log('Albums API Found albums:', albums.length, albums.map(a => ({ 
       _id: a._id, 
@@ -161,7 +187,7 @@ export async function GET(request: NextRequest) {
     // Create response with caching
     const response = NextResponse.json({
       success: true,
-      data: albumsWithChildCount
+      data: finalAlbums
     })
     
     // Apply cache headers based on whether this is public data

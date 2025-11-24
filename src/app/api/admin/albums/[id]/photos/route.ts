@@ -62,6 +62,56 @@ export async function GET(
       .sort({ uploadedAt: -1 })
       .toArray()
     
+    // If includeSubAlbums is requested, fetch photos from child albums
+    const { searchParams } = new URL(request.url)
+    const includeSubAlbums = searchParams.get('includeSubAlbums') === 'true'
+    
+    if (includeSubAlbums) {
+      console.log(`Admin Photos API: Fetching photos from sub-albums for ${id}`)
+      
+      // Find child albums
+      const childAlbums = await db.collection('albums').find({
+        $or: [
+          { parentAlbumId: objectId },
+          { parentAlbumId: id }
+        ]
+      }).toArray()
+      
+      if (childAlbums.length > 0) {
+        const childAlbumIds = childAlbums.map(a => a._id)
+        const childAlbumIdsStr = childAlbums.map(a => a._id.toString())
+        
+        // Fetch photos from child albums
+        const childPhotos = await photosCollection.find({
+          $or: [
+            { albumId: { $in: childAlbumIds } },
+            { albumId: { $in: childAlbumIdsStr } }
+          ]
+        })
+        .sort({ uploadedAt: -1 })
+        .limit(100) // Limit to prevent overwhelming response
+        .toArray()
+        
+        // Add source album info to child photos
+        const albumMap = new Map(childAlbums.map(a => [a._id.toString(), a]))
+        
+        const childPhotosWithSource = childPhotos.map(photo => {
+          const sourceAlbum = photo.albumId ? albumMap.get(photo.albumId.toString()) : null
+          return {
+            ...photo,
+            sourceAlbum: sourceAlbum ? {
+              _id: sourceAlbum._id,
+              name: sourceAlbum.name,
+              alias: sourceAlbum.alias
+            } : null
+          }
+        })
+        
+        // Combine photos
+        photos.push(...childPhotosWithSource)
+      }
+    }
+    
     console.log(`Admin Photos API: Found ${photos.length} photos for album ${id} (including unpublished)`)
     if (photos.length > 0) {
       console.log('Admin Photos API: First photo sample:', {

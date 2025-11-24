@@ -5,6 +5,7 @@ import { PhotoModel } from '@/lib/models/Photo'
 import { PersonModel } from '@/lib/models/Person'
 import { TagModel } from '@/lib/models/Tag'
 import { LocationModel } from '@/lib/models/Location'
+import { ObjectId } from 'mongodb'
 
 export async function POST(request: NextRequest) {
   try {
@@ -94,6 +95,49 @@ export async function POST(request: NextRequest) {
       { _id: { $in: photoIds } },
       { $set: updateData }
     )
+
+    // Handle isLeading updates for albums
+    if (updates.isLeading !== undefined) {
+      const { db } = await connectToDatabase()
+      const albumsCollection = db.collection('albums')
+      
+      // Fetch affected photos to get their albumIds
+      // We need to cast photoIds to ObjectIds if they are strings
+      const objectIds = photoIds.map((id: string) => new ObjectId(id))
+      const photos = await db.collection('photos').find({ _id: { $in: objectIds } }).toArray()
+      
+      for (const photo of photos) {
+        if (!photo.albumId) continue
+        
+        if (updates.isLeading) {
+          // Set as cover
+          await albumsCollection.updateOne(
+            { _id: photo.albumId },
+            { $set: { coverPhotoId: photo._id } }
+          )
+
+          // Unset isLeading for all other photos in this album
+          // Note: If multiple photos from the same album are in this bulk update and all set to isLeading=true,
+          // the last one processed will win (race condition in loop, but acceptable for bulk op)
+          await db.collection('photos').updateMany(
+            { 
+              albumId: photo.albumId, 
+              _id: { $ne: photo._id } 
+            },
+            { $set: { isLeading: false } }
+          )
+        } else {
+          // Unset if it was the cover
+          await albumsCollection.updateOne(
+            { 
+              _id: photo.albumId,
+              coverPhotoId: photo._id
+            },
+            { $unset: { coverPhotoId: 1 } }
+          )
+        }
+      }
+    }
 
     return NextResponse.json({
       success: true,

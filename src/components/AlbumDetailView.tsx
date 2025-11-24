@@ -312,13 +312,29 @@ export default function AlbumDetailView({ album, photos, role, albumId }: AlbumD
                           try {
                             setCheckingFiles(true)
                             const fileArray = Array.from(files)
-                            const filenames = fileArray.map(f => f.name)
+                            
+                            // Extract just the filename from path (webkitdirectory includes folder path)
+                            // e.g., "MyPhotos/photo.jpg" -> "photo.jpg"
+                            const extractFilename = (filePath: string): string => {
+                              return filePath.split(/[/\\]/).pop() || filePath
+                            }
+                            
+                            const filenames = fileArray.map(f => extractFilename(f.name))
                             
                             // Create a map of normalized filename to File object
+                            // Also create new File objects with clean filenames (without folder path)
                             const fileMap = new Map<string, File>()
                             fileArray.forEach(file => {
-                              const normalized = file.name.toLowerCase().trim()
-                              fileMap.set(normalized, file)
+                              const cleanFilename = extractFilename(file.name)
+                              const normalized = cleanFilename.toLowerCase().trim()
+                              
+                              // Create a new File object with just the filename (not the full path)
+                              const cleanFile = new File([file], cleanFilename, {
+                                type: file.type,
+                                lastModified: file.lastModified
+                              })
+                              
+                              fileMap.set(normalized, cleanFile)
                             })
                             
                             const response = await fetch(`/api/admin/albums/${albumId}/check-files`, {
@@ -671,6 +687,15 @@ export default function AlbumDetailView({ album, photos, role, albumId }: AlbumD
             // Refresh photos after upload
             setCheckFilesResults(null)
             window.location.reload()
+          }}
+          onNotification={(type, title, message) => {
+            setNotification({
+              isOpen: true,
+              type,
+              title,
+              message,
+              autoClose: type === 'success'
+            })
           }}
         />
       )}

@@ -14,6 +14,7 @@ interface CheckFilesDialogProps {
   fileMap: Map<string, File>
   albumId: string
   onUploadComplete?: () => void
+  onNotification?: (type: 'success' | 'error' | 'info' | 'warning', title: string, message: string) => void
 }
 
 export default function CheckFilesDialog({
@@ -22,7 +23,8 @@ export default function CheckFilesDialog({
   missingFiles,
   fileMap,
   albumId,
-  onUploadComplete
+  onUploadComplete,
+  onNotification
 }: CheckFilesDialogProps) {
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set())
   const [uploading, setUploading] = useState(false)
@@ -66,6 +68,8 @@ export default function CheckFilesDialog({
       })
 
       let uploaded = 0
+      const errors: string[] = []
+      
       for (const file of filesToUpload) {
         try {
           const formData = new FormData()
@@ -80,24 +84,61 @@ export default function CheckFilesDialog({
           if (response.ok) {
             uploaded++
             setUploadProgress({ current: uploaded, total: filesToUpload.length })
+          } else {
+            const errorData = await response.json().catch(() => ({}))
+            errors.push(`${file.name}: ${errorData.error || 'Upload failed'}`)
           }
         } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+          errors.push(`${file.name}: ${errorMessage}`)
           console.error(`Failed to upload ${file.name}:`, error)
         }
       }
 
-      if (onUploadComplete) {
-        onUploadComplete()
+      // Show success or error notification
+      if (uploaded === filesToUpload.length) {
+        // All files uploaded successfully
+        if (onNotification) {
+          onNotification('success', 'Upload Complete', `Successfully uploaded ${uploaded} file(s).`)
+        }
+        if (onUploadComplete) {
+          onUploadComplete()
+        }
+        // Close dialog after a short delay to show the notification
+        setTimeout(() => {
+          onClose()
+          setSelectedFiles(new Set())
+          setUploadProgress(null)
+        }, 500)
+      } else if (uploaded > 0) {
+        // Partial success
+        if (onNotification) {
+          onNotification('warning', 'Partial Upload', `Uploaded ${uploaded} of ${filesToUpload.length} file(s). ${errors.length > 0 ? errors.slice(0, 3).join('; ') : ''}`)
+        }
+        if (onUploadComplete) {
+          onUploadComplete()
+        }
+        setTimeout(() => {
+          onClose()
+          setSelectedFiles(new Set())
+          setUploadProgress(null)
+        }, 500)
+      } else {
+        // All failed
+        if (onNotification) {
+          onNotification('error', 'Upload Failed', `Failed to upload files. ${errors.slice(0, 3).join('; ')}`)
+        }
+        setUploading(false)
+        setUploadProgress(null)
       }
-
-      // Close dialog and show success
-      onClose()
-      setSelectedFiles(new Set())
-      setUploadProgress(null)
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
       console.error('Upload error:', error)
-    } finally {
+      if (onNotification) {
+        onNotification('error', 'Upload Error', errorMessage)
+      }
       setUploading(false)
+      setUploadProgress(null)
     }
   }
 

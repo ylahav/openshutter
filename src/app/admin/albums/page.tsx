@@ -99,9 +99,22 @@ export default function AdminAlbumsPage() {
     })
 
     try {
-      const response = await fetch(`/api/admin/albums/${album._id}/photos`)
+      let response = await fetch(`/api/admin/albums/${album._id}/photos`)
       if (response.ok) {
-        const result = await response.json()
+        let result = await response.json()
+        
+        // If no photos found, try fetching from sub-albums
+        if (result.success && result.data.length === 0) {
+          console.log('No photos in album, fetching from sub-albums...')
+          const subResponse = await fetch(`/api/admin/albums/${album._id}/photos?includeSubAlbums=true`)
+          if (subResponse.ok) {
+            const subResult = await subResponse.json()
+            if (subResult.success && subResult.data.length > 0) {
+              result = subResult
+            }
+          }
+        }
+
         if (result.success) {
           setCoverPhotoModal(prev => ({
             ...prev,
@@ -146,10 +159,18 @@ export default function AdminAlbumsPage() {
       if (response.ok) {
         const result = await response.json()
         if (result.success) {
+          // Find the photo object
+          const allPhotos = [...coverPhotoModal.photos, ...coverPhotoModal.childAlbumPhotos]
+          const selectedPhoto = allPhotos.find(p => p._id === photoId)
+
           // Update the album in the local state
           setAlbums(prev => prev.map(album => 
             album._id === coverPhotoModal.album!._id 
-              ? { ...album, coverPhotoId: photoId }
+              ? { 
+                  ...album, 
+                  coverPhotoId: photoId,
+                  coverPhoto: selectedPhoto // Update the full photo object for the UI
+                }
               : album
           ))
           closeCoverPhotoModal()
@@ -377,7 +398,26 @@ export default function AdminAlbumsPage() {
           {/* Albums Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {albums.map((album) => (
-              <div key={album._id} className="bg-white rounded-lg shadow-md overflow-hidden">
+              <div key={album._id} className="bg-white rounded-lg shadow-md overflow-hidden group">
+                <div className="relative h-48 bg-gray-200">
+                  {/* Cover Photo */}
+                  {(album as any).coverPhoto ? (
+                    <img
+                      src={(album as any).coverPhoto.storage?.thumbnailPath || (album as any).coverPhoto.storage?.url}
+                      alt={typeof album.name === 'string' ? album.name : MultiLangUtils.getValue(album.name as any, currentLanguage)}
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-gray-400">
+                      <svg className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                  )}
+                  
+                  {/* Overlay Gradient */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                </div>
                 <div className="p-6">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold text-gray-900 truncate">{typeof album.name === 'string' ? album.name : MultiLangUtils.getValue(album.name as any, currentLanguage)}</h3>
