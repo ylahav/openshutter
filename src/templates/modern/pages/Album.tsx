@@ -11,6 +11,7 @@ import { useI18n } from '@/hooks/useI18n'
 import { TemplateAlbum, TemplatePhoto } from '@/types'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
+import AlbumBreadcrumbs from '@/components/AlbumBreadcrumbs'
 import styles from '../styles.module.scss'
 import PhotoLightbox from '@/components/PhotoLightbox'
 
@@ -164,13 +165,17 @@ export default function AlbumPage() {
       <Header />
       
       <main className="flex-1">
+        {/* Breadcrumbs */}
+        {album && (
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-1">
+            <AlbumBreadcrumbs album={album} role="public" />
+          </div>
+        )}
+        
         {/* Album Header */}
-        <section className={styles.section}>
+        <section className={styles.sectionTight}>
           <div className="max-w-6xl mx-auto">
-            <div className="flex items-center justify-between mb-8">
-              <Link href="/albums" className={`${styles.textSecondary} hover:${styles.text} transition-colors`}>
-                ← Back to Albums
-              </Link>
+            <div className="flex items-center justify-end mb-4">
               <div className={`${styles.textSecondary} text-sm`}>
                 {photos.length} photos
                 {subAlbums.length > 0 && (
@@ -198,7 +203,7 @@ export default function AlbumPage() {
 
         {/* Sub-albums Section */}
         {subAlbums.length > 0 && (
-          <section className={styles.section}>
+          <section className={styles.sectionTight}>
             <div className="max-w-6xl mx-auto">
               <div className={styles.galleryGrid}>
                 {subAlbums.map((subAlbum, i) => (
@@ -255,7 +260,7 @@ export default function AlbumPage() {
 
         {/* Photos Section */}
         {photos.length > 0 && (
-          <section className={styles.gallery}>
+          <section className={`${styles.gallery} ${styles.sectionTight}`}>
             <div className="max-w-6xl mx-auto">
               <div className={styles.galleryGrid}>
                 {photos.map((photo, i) => (

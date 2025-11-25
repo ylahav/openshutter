@@ -10,6 +10,7 @@ import { useI18n } from '@/hooks/useI18n'
 import { TemplateAlbum, TemplatePhoto } from '@/types'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
+import AlbumBreadcrumbs from '@/components/AlbumBreadcrumbs'
 import PhotoLightbox from '@/components/PhotoLightbox'
 import styles from '../styles.module.scss'
 
@@ -96,7 +97,14 @@ export default function AlbumPage() {
       <Header />
 
       <main className="flex-1">
-        <section className={styles.section}>
+        {/* Breadcrumbs */}
+        {album && (
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-2">
+            <AlbumBreadcrumbs album={album} role="public" />
+          </div>
+        )}
+        
+        <section className="py-6">
           <div className="max-w-6xl mx-auto text-center">
             <h1 className={styles.sectionTitle}>
               {MultiLangUtils.getTextValue(album.name, currentLanguage)}
@@ -113,7 +121,7 @@ export default function AlbumPage() {
         </section>
 
         {subAlbums.length > 0 && (
-          <section className={styles.section}>
+          <section className="py-6">
             <div className="max-w-6xl mx-auto">
               <h2 className={styles.heading2}>Sub Albums</h2>
               <div className={styles.galleryGrid}>
@@ -180,7 +188,7 @@ export default function AlbumPage() {
         )}
 
         {photos.length === 0 && subAlbums.length === 0 && (
-          <section className={styles.section}>
+          <section className="py-6">
             <div className="max-w-6xl mx-auto text-center">
               <div className={styles.textSecondary}>This album is empty.</div>
             </div>

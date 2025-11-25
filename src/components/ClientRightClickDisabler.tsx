@@ -4,7 +4,8 @@ import dynamic from 'next/dynamic'
 
 // Dynamically import RightClickDisabler to ensure it only runs on client side
 const RightClickDisabler = dynamic(() => import('@/components/RightClickDisabler'), {
-  ssr: false
+  ssr: false,
+  loading: () => null
 })
 
 interface ClientRightClickDisablerProps {
@@ -16,4 +17,3 @@ interface ClientRightClickDisablerProps {
 export default function ClientRightClickDisabler(props: ClientRightClickDisablerProps) {
   return <RightClickDisabler {...props} />
 }
-

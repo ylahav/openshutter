@@ -1,6 +1,23 @@
 ## [Unreleased]
 
 ### Added
+- **Album Breadcrumbs Navigation**: Added breadcrumb navigation to all album pages
+  - Breadcrumbs show full album hierarchy (Albums → Parent Albums → Current Album)
+  - Available on admin, owner, and public album pages
+  - Clickable links for easy navigation through album hierarchy
+  - Supports both ID-based (admin/owner) and alias-based (public) routing
+  - Integrated into all template styles (default, modern, fancy, minimal)
+- **Album Tree Drag-and-Drop**: Implemented drag-and-drop reordering for albums in management page
+  - Visual drag handles (⋮⋮) for each album row
+  - Reorder albums within same parent or move between parents
+  - Optimistic UI updates with server synchronization
+  - Prevents moving albums into their own descendants
+  - Real-time visual feedback during drag operations
+- **Album Tree Accordion**: Added collapsible sections for album hierarchy
+  - Accordion toggle for level 2+ albums (level 1 nodes can expand/collapse children)
+  - Arrow indicator only appears when album has sub-albums
+  - Smooth expand/collapse animations
+  - State persists during navigation
 - **File Upload Size Limit Documentation**: Added comprehensive documentation for handling file upload size limits
   - Created `docs/UPLOAD_LIMITS.md` with explanations and solutions for Next.js body size limits
   - Documented default limits (~4.5MB for JSON, ~20MB for form data)
@@ -9,6 +26,13 @@
   - API route configured to accept up to 100MB files (server-level limit may need additional configuration)
 
 ### Changed
+- **Album Page Spacing**: Reduced excessive spacing on album pages for better content density
+  - Reduced section padding from 5rem (80px) to 2rem (32px) top, 1rem (16px) bottom
+  - Reduced breadcrumb margins from 24px to 8px (mb-6 to mb-2)
+  - Reduced bottom margins from 32px to 16px throughout album pages
+  - Tighter spacing between album header, sub-albums, and photos sections
+  - Improved visual hierarchy with optimized spacing throughout
+  - Added `sectionTight` CSS class for compact album page sections
 - **Search UI**: Replaced search field in header with search icon that opens a popup
   - Search icon in desktop header opens advanced filter popup (all templates: default, modern, fancy, minimal)
   - Popup includes all filter options (Albums, Tags, People, Locations)

@@ -11,6 +11,7 @@ import { useI18n } from '@/hooks/useI18n'
 import NotificationDialog from '@/components/NotificationDialog'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import CheckFilesDialog from '@/components/admin/CheckFilesDialog'
+import AlbumBreadcrumbs from './AlbumBreadcrumbs'
 
 export interface AlbumDetailViewProps {
   album: TemplateAlbum
@@ -217,6 +218,9 @@ export default function AlbumDetailView({ album, photos, role, albumId }: AlbumD
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Breadcrumbs */}
+        <AlbumBreadcrumbs album={album} role={role} currentPage="view" />
+        
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -229,9 +233,6 @@ export default function AlbumDetailView({ album, photos, role, albumId }: AlbumD
             )}
           </div>
           <div className="flex space-x-3">
-            <Link href={backHref} className="btn-secondary">
-              Back to Albums
-            </Link>
             <Link href={editHref} className="btn-primary">
               Edit Album
             </Link>

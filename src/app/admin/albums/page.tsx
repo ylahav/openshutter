@@ -9,6 +9,7 @@ import { useLanguage } from '@/contexts/LanguageContext'
 import { TemplateAlbum } from '@/types'
 import NotificationDialog from '@/components/NotificationDialog'
 import ConfirmDialog from '@/components/ConfirmDialog'
+import AlbumTree from '@/components/AlbumTree'
 
 export default function AdminAlbumsPage() {
   const [albums, setAlbums] = useState<TemplateAlbum[]>([])
@@ -395,111 +396,8 @@ export default function AdminAlbumsPage() {
             </div>
           )}
 
-          {/* Albums Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {albums.map((album) => (
-              <div key={album._id} className="bg-white rounded-lg shadow-md overflow-hidden group">
-                <div className="relative h-48 bg-gray-200">
-                  {/* Cover Photo */}
-                  {(album as any).coverPhoto ? (
-                    <img
-                      src={(album as any).coverPhoto.storage?.thumbnailPath || (album as any).coverPhoto.storage?.url}
-                      alt={typeof album.name === 'string' ? album.name : MultiLangUtils.getValue(album.name as any, currentLanguage)}
-                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                    />
-                  ) : (
-                    <div className="flex items-center justify-center h-full text-gray-400">
-                      <svg className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                    </div>
-                  )}
-                  
-                  {/* Overlay Gradient */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                </div>
-                <div className="p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900 truncate">{typeof album.name === 'string' ? album.name : MultiLangUtils.getValue(album.name as any, currentLanguage)}</h3>
-                    <div className="flex space-x-2">
-                      {album.isFeatured && (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                          {t('featured')}
-                        </span>
-                      )}
-                      {album.isPublic ? (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          {t('public')}
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                          {t('private')}
-                        </span>
-                      )}
-                      {!album.isPublic && (album.allowedGroups?.length || album.allowedUsers?.length) && (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                          {t('restricted')}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <p className="text-sm text-gray-600 mb-4 line-clamp-2">{typeof album.description === 'string' ? album.description : MultiLangUtils.getValue(album.description as any, currentLanguage)}</p>
-                  
-                  <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
-                    <span>{album.photoCount} {t('photos')}</span>
-                    <span>{album.storageProvider}</span>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <div className="flex space-x-2">
-                      <Link
-                        href={`/admin/albums/${album._id}`}
-                        className="flex-1 text-center px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      >
-                        {t('manage')}
-                      </Link>
-                      <button
-                        onClick={() => openCoverPhotoModal(album)}
-                        className="flex-1 text-center px-3 py-2 text-sm font-medium text-purple-600 bg-purple-50 rounded-md hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      >
-                        {t('admin.setCoverPhoto')}
-                      </button>
-                      <Link
-                        href={`/albums/${album.alias}`}
-                        className="flex-1 text-center px-3 py-2 text-sm font-medium text-gray-600 bg-gray-50 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500"
-                      >
-                        {t('view')}
-                      </Link>
-                    </div>
-                    <button
-                      onClick={() => handleReReadExif(album._id, typeof album.name === 'string' ? album.name : MultiLangUtils.getValue(album.name as any, currentLanguage))}
-                      disabled={reReadingExif === album._id}
-                      className="w-full text-center px-3 py-2 text-sm font-medium text-orange-600 bg-orange-50 rounded-md hover:bg-orange-100 focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                    {reReadingExif === album._id ? (
-                      <div className="flex items-center justify-center">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-orange-600 mr-2"></div>
-                        {t('albums.reReadingExif')}
-                      </div>
-                    ) : (
-                      t('albums.reReadExifData')
-                    )}
-                    </button>
-                    <button
-                      onClick={() => handleDeleteAlbum(album._id, typeof album.name === 'string' ? album.name : MultiLangUtils.getValue(album.name as any, currentLanguage))}
-                      className="w-full text-center px-3 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-md hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-500"
-                    >
-                      {t('delete')}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Empty State */}
-          {albums.length === 0 && !error && (
+          {/* Albums Hierarchy Tree */}
+          {albums.length === 0 && !error ? (
             <div className="text-center py-12">
               <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
@@ -514,6 +412,129 @@ export default function AdminAlbumsPage() {
                   {t('createAlbum')}
                 </Link>
               </div>
+            </div>
+          ) : (
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <AlbumTree
+                albums={albums.map(a => ({
+                  _id: a._id,
+                  name: typeof a.name === 'string' ? a.name : MultiLangUtils.getTextValue(a.name as any, currentLanguage),
+                  alias: a.alias,
+                  parentAlbumId: (a as any).parentAlbumId ?? null,
+                  level: a.level ?? 0,
+                  order: a.order ?? 0,
+                  childAlbumCount: (a as any).childAlbumCount ?? 0,
+                }))}
+                onReorder={async (updates) => {
+                  try {
+                    const response = await fetch('/api/admin/albums/reorder', {
+                      method: 'PUT',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ updates })
+                    })
+                    if (!response.ok) {
+                      throw new Error('Failed to reorder albums')
+                    }
+                    // Refresh albums to show updated order
+                    await fetchAlbums()
+                  } catch (error) {
+                    console.error('Failed to reorder albums:', error)
+                    setNotification({
+                      isOpen: true,
+                      type: 'error',
+                      title: t('albums.reorderError'),
+                      message: t('albums.reorderErrorMessage')
+                    })
+                  }
+                }}
+                onOpen={(node) => {
+                  window.location.href = `/admin/albums/${node._id}`
+                }}
+                renderActions={(node) => {
+                  const album = albums.find(a => a._id === node._id)
+                  if (!album) return null
+                  
+                  const albumName = typeof album.name === 'string' ? album.name : MultiLangUtils.getValue(album.name as any, currentLanguage)
+                  
+                  return (
+                    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                      {/* Status badges */}
+                      <div className="flex items-center gap-1">
+                        {album.isFeatured && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800" title={t('featured')}>
+                            ⭐
+                          </span>
+                        )}
+                        {album.isPublic ? (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800" title={t('public')}>
+                            🌐
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800" title={t('private')}>
+                            🔒
+                          </span>
+                        )}
+                      </div>
+                      
+                      {/* Photo count */}
+                      <span className="text-xs text-gray-500" title={`${album.photoCount} ${t('photos')}`}>
+                        📷 {album.photoCount}
+                      </span>
+                      
+                      {/* Action buttons */}
+                      <div className="flex items-center gap-1">
+                        <Link
+                          href={`/admin/albums/${album._id}`}
+                          className="px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          title={t('manage')}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {t('manage')}
+                        </Link>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            openCoverPhotoModal(album)
+                          }}
+                          className="px-2 py-1 text-xs font-medium text-purple-600 bg-purple-50 rounded hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          title={t('admin.setCoverPhoto')}
+                        >
+                          🖼️
+                        </button>
+                        <Link
+                          href={`/albums/${album.alias}`}
+                          className="px-2 py-1 text-xs font-medium text-gray-600 bg-gray-50 rounded hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                          title={t('view')}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          👁️
+                        </Link>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleReReadExif(album._id, albumName)
+                          }}
+                          disabled={reReadingExif === album._id}
+                          className="px-2 py-1 text-xs font-medium text-orange-600 bg-orange-50 rounded hover:bg-orange-100 focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                          title={t('albums.reReadExifData')}
+                        >
+                          {reReadingExif === album._id ? '⏳' : '🔄'}
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleDeleteAlbum(album._id, albumName)
+                          }}
+                          className="px-2 py-1 text-xs font-medium text-red-600 bg-red-50 rounded hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-500"
+                          title={t('delete')}
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    </div>
+                  )
+                }}
+              />
             </div>
           )}
         </div>

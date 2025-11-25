@@ -9,6 +9,7 @@ import { useLanguage } from '@/contexts/LanguageContext'
 import { useAlbumData } from '@/hooks/useAlbumData'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
+import AlbumBreadcrumbs from '@/components/AlbumBreadcrumbs'
 import PhotoLightbox from '@/components/PhotoLightbox'
 
 export default function AlbumPage() {
@@ -90,14 +91,12 @@ export default function AlbumPage() {
       <main className="py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Breadcrumbs + Header */}
-          <div className="mb-12">
-            <nav className="text-sm text-muted-foreground mb-4 text-center">
-              <Link href="/" className="hover:underline">Home</Link>
-              <span className="mx-2">/</span>
-              <Link href="/albums" className="hover:underline">Albums</Link>
-              <span className="mx-2">/</span>
-              <span className="text-foreground">{MultiLangUtils.getTextValue(album.name, currentLanguage)}</span>
-            </nav>
+          <div className="mb-6">
+            {album && (
+              <div className="mb-2 text-center">
+                <AlbumBreadcrumbs album={album} role="public" />
+              </div>
+            )}
             <h1 className="text-4xl font-bold mb-4">
               {MultiLangUtils.getTextValue(album.name, currentLanguage)}
             </h1>

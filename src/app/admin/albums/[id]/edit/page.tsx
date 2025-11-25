@@ -10,6 +10,7 @@ import Footer from '@/templates/default/components/Footer'
 import MultiLangInput from '@/components/MultiLangInput'
 import MultiLangHTMLEditor from '@/components/MultiLangHTMLEditor'
 import AlbumMetadataEditor from '@/components/AlbumMetadataEditor'
+import AlbumBreadcrumbs from '@/components/AlbumBreadcrumbs'
 import { MultiLangText, MultiLangHTML, MultiLangUtils } from '@/types/multi-lang'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { TemplateAlbum } from '@/types'
@@ -191,6 +192,9 @@ export default function EditAlbumPage({ params }: { params: Promise<{ id: string
         <Header />
         
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Breadcrumbs */}
+          <AlbumBreadcrumbs album={album} role="admin" currentPage="edit" />
+          
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div>
@@ -198,11 +202,6 @@ export default function EditAlbumPage({ params }: { params: Promise<{ id: string
               <p className="mt-2 text-gray-600">
                 {MultiLangUtils.getValue(album.name as any, currentLanguage)}
               </p>
-            </div>
-            <div className="flex space-x-3">
-              <Link href={`/admin/albums/${resolvedParams.id}`} className="btn-secondary">
-                Back to Album
-              </Link>
             </div>
           </div>
 

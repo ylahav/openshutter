@@ -346,6 +346,14 @@
   padding-right: var(--modern-container-padding);
 }
 
+.sectionTight {
+  padding: 2rem 0 1rem 0;
+  max-width: var(--modern-max-width);
+  margin: 0 auto;
+  padding-left: var(--modern-container-padding);
+  padding-right: var(--modern-container-padding);
+}
+
 .sectionNarrow {
   max-width: 800px;
 }
