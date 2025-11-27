@@ -6,6 +6,7 @@ import { PersonModel } from '@/lib/models/Person'
 import { TagModel } from '@/lib/models/Tag'
 import { LocationModel } from '@/lib/models/Location'
 import { ObjectId } from 'mongodb'
+import { Types } from 'mongoose'
 
 export async function POST(request: NextRequest) {
   try {
@@ -69,16 +70,46 @@ export async function POST(request: NextRequest) {
       updateData.people = peopleIds
     }
     
-    if (updates.location) {
-      // Convert location name to ObjectId
-      const location = await LocationModel.findOne({ name: updates.location.name })
-      if (location) {
-        updateData.location = {
-          ...updates.location,
-          _id: location._id
+    if (updates.location !== undefined) {
+      if (updates.location && updates.location.name) {
+        // Search for location by multilingual name fields
+        // Location name is stored as { en?: string; he?: string }
+        // The display name from CollectionPopup needs to be matched against these fields
+        const locationName = updates.location.name.trim()
+        const location = await LocationModel.findOne({
+          $or: [
+            { 'name.en': locationName },
+            { 'name.he': locationName },
+            // Also try case-insensitive match
+            { 'name.en': { $regex: `^${locationName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: 'i' } },
+            { 'name.he': { $regex: `^${locationName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: 'i' } }
+          ]
+        })
+        
+        if (location) {
+          // Use Mongoose ObjectId directly (PhotoModel expects Mongoose ObjectIds)
+          updateData.location = location._id
+        } else {
+          // If location not found, try to use the provided location data
+          if (updates.location._id) {
+            // Convert to Mongoose ObjectId
+            try {
+              updateData.location = new Types.ObjectId(String(updates.location._id))
+            } catch {
+              console.warn(`Invalid location ID: ${updates.location._id}`)
+              // Skip location update if ID is invalid
+            }
+          } else {
+            // Location doesn't exist - return error to user
+            return NextResponse.json({
+              success: false,
+              error: `Location "${updates.location.name}" not found. Please create the location first or check the name spelling.`
+            }, { status: 400 })
+          }
         }
       } else {
-        updateData.location = updates.location
+        // If location is null/undefined, unset it
+        updateData.location = null
       }
     }
     
@@ -90,11 +121,49 @@ export async function POST(request: NextRequest) {
       updateData.isLeading = updates.isLeading
     }
 
-    // Update photos
+    // Check if we have any updates to apply
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json({
+        success: false,
+        error: 'No valid updates to apply. Please check that tags, people, location, or status fields are provided correctly.'
+      }, { status: 400 })
+    }
+
+    // Convert photoIds to Mongoose ObjectIds
+    const mongoosePhotoIds = photoIds.map((id: string) => {
+      try {
+        return new Types.ObjectId(id)
+      } catch {
+        return null
+      }
+    }).filter(Boolean) as Types.ObjectId[]
+
+    if (mongoosePhotoIds.length === 0) {
+      return NextResponse.json({
+        success: false,
+        error: 'Invalid photo IDs'
+      }, { status: 400 })
+    }
+
+    // Add updatedAt timestamp
+    updateData.updatedAt = new Date()
+
+    console.log('Bulk update data:', {
+      photoIds: mongoosePhotoIds.length,
+      updateData,
+      updateKeys: Object.keys(updateData)
+    })
+
+    // Update photos using Mongoose
     const result = await PhotoModel.updateMany(
-      { _id: { $in: photoIds } },
+      { _id: { $in: mongoosePhotoIds } },
       { $set: updateData }
     )
+
+    console.log('Bulk update result:', {
+      matchedCount: result.matchedCount,
+      modifiedCount: result.modifiedCount
+    })
 
     // Handle isLeading updates for albums
     if (updates.isLeading !== undefined) {

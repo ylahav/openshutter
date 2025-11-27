@@ -49,6 +49,14 @@ export default function PhotoMetadataEditor({
   const [peoplePopupOpen, setPeoplePopupOpen] = useState(false)
   const [locationsPopupOpen, setLocationsPopupOpen] = useState(false)
 
+  // Update location fields when location prop changes
+  useEffect(() => {
+    setLocationName(location?.name || '')
+    setLocationAddress(location?.address || '')
+    setLocationLat(location?.coordinates?.latitude?.toString() || '')
+    setLocationLng(location?.coordinates?.longitude?.toString() || '')
+  }, [location])
+
   // Update location when form changes
   useEffect(() => {
     if (locationName.trim()) {

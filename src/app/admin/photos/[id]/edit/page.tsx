@@ -43,6 +43,11 @@ const PhotoActions = dynamic(() => import('@/components/admin/PhotoEdit/PhotoAct
   loading: () => <div className="animate-pulse bg-gray-200 h-16 rounded-lg" />
 })
 
+const PhotoFaceRecognition = dynamic(() => import('@/components/admin/PhotoFaceRecognition'), {
+  ssr: false,
+  loading: () => <div className="animate-pulse bg-gray-200 h-32 rounded-lg" />
+})
+
 export default function EditPhotoPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params)
   const router = useRouter()
@@ -341,6 +346,26 @@ export default function EditPhotoPage({ params }: { params: Promise<{ id: string
                     onInputChange={handleInputChange}
                   />
                 </Suspense>
+
+                {/* Face Recognition */}
+                {photo.storage?.url && (
+                  <Suspense fallback={<div className="animate-pulse bg-gray-200 h-32 rounded-lg" />}>
+                    <PhotoFaceRecognition
+                      photoId={resolvedParams.id}
+                      imageUrl={photo.storage.url}
+                      detectedFaces={photo.faceRecognition?.faces?.map((face: any) => ({
+                        box: face.box,
+                        landmarks: face.landmarks,
+                        matchedPersonId: face.matchedPersonId?.toString(),
+                        confidence: face.confidence
+                      })) || []}
+                      onFacesUpdated={() => {
+                        // Refresh photo data
+                        window.location.reload()
+                      }}
+                    />
+                  </Suspense>
+                )}
 
                 {/* Actions */}
                 <Suspense fallback={<div className="animate-pulse bg-gray-200 h-16 rounded-lg" />}>

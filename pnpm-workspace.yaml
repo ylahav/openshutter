@@ -1,6 +1,7 @@
 onlyBuiltDependencies:
   - '@parcel/watcher'
   - '@tailwindcss/oxide'
+  - canvas
   - core-js
   - sharp
   - unrs-resolver

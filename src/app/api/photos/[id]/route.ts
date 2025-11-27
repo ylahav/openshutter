@@ -43,6 +43,31 @@ export async function GET(
       )
     }
 
+    // Populate location if it exists (location is stored as ObjectId reference)
+    if (photo.location) {
+      await connectMongoose()
+      const location = await LocationModel.findById(photo.location).lean()
+      if (location) {
+        // Convert location to the format expected by the form
+        const locationName = typeof location.name === 'string' 
+          ? location.name 
+          : (location.name?.en || location.name?.he || '')
+        
+        photo.location = {
+          _id: location._id.toString(),
+          name: locationName,
+          address: location.address,
+          coordinates: location.coordinates ? {
+            latitude: location.coordinates.latitude,
+            longitude: location.coordinates.longitude
+          } : undefined
+        }
+      } else {
+        // Location reference exists but location not found - set to null
+        photo.location = null
+      }
+    }
+
     // Check if this photo is the album's cover photo
     if (photo.albumId) {
       const album = await db.collection('albums').findOne({ _id: new ObjectId(photo.albumId) })
@@ -259,8 +284,19 @@ export async function PUT(
         // Connect to Mongoose for model queries
         await connectMongoose()
         
-        // Convert location name to ObjectId
-        const location = await LocationModel.findOne({ name: updateData.location.name })
+        // Search for location by multilingual name fields
+        // Location name is stored as { en?: string; he?: string }
+        const locationName = updateData.location.name.trim()
+        const location = await LocationModel.findOne({
+          $or: [
+            { 'name.en': locationName },
+            { 'name.he': locationName },
+            // Also try case-insensitive match
+            { 'name.en': { $regex: `^${locationName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: 'i' } },
+            { 'name.he': { $regex: `^${locationName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: 'i' } }
+          ]
+        })
+        
         if (location) {
           // Convert Mongoose ObjectId to native MongoDB ObjectId
           updateFields.location = new ObjectId(String(location._id))

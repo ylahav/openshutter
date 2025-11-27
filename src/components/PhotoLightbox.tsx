@@ -8,6 +8,13 @@ export interface LightboxPhoto {
   thumbnailUrl?: string
   title?: string
   takenAt?: string | Date
+  faceRecognition?: {
+    faces?: Array<{
+      box: { x: number; y: number; width: number; height: number }
+      matchedPersonId?: string
+      confidence?: number
+    }>
+  }
   exif?: {
     // Basic Camera Information
     make?: string
@@ -107,10 +114,169 @@ export default function PhotoLightbox({
   const [touchStart, setTouchStart] = useState<number | null>(null)
   const [touchEnd, setTouchEnd] = useState<number | null>(null)
   const [showInfo, setShowInfo] = useState(false)
+  const [showFaces, setShowFaces] = useState(false)
+  const [faceData, setFaceData] = useState<{
+    faces: Array<{
+      box: { x: number; y: number; width: number; height: number }
+      matchedPersonId?: string
+      confidence?: number
+      personName?: string
+    }>
+    imageSize: { width: number; height: number }
+  } | null>(null)
+  const imageRef = useRef<HTMLImageElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
     setCurrent(startIndex)
   }, [startIndex])
+
+  // Fetch face data when photo changes
+  useEffect(() => {
+    if (!isOpen) return
+    
+    const photo = photos[current]
+    if (!photo?._id) {
+      // Check if face data is already in photo object
+      const faces = photo?.faceRecognition?.faces
+      if (faces && Array.isArray(faces) && faces.length > 0) {
+        setFaceData({
+          faces: faces.map((face: any) => ({
+            box: face.box,
+            matchedPersonId: face.matchedPersonId?.toString(),
+            confidence: face.confidence
+          })),
+          imageSize: { width: 0, height: 0 }
+        })
+        return
+      }
+      setFaceData(null)
+      return
+    }
+
+    const fetchFaceData = async () => {
+      try {
+        const response = await fetch(`/api/photos/${photo._id}`)
+      if (response.ok) {
+        const result = await response.json()
+        if (result.success && result.data?.faceRecognition?.faces?.length > 0) {
+          // Fetch person names for matched faces (only if authenticated)
+          const facesWithNames = await Promise.all(
+            result.data.faceRecognition.faces.map(async (face: any) => {
+              if (face.matchedPersonId) {
+                try {
+                  const personResponse = await fetch(`/api/people/${face.matchedPersonId}`)
+                  if (personResponse.ok) {
+                    const personData = await personResponse.json()
+                    if (personData.success && personData.data) {
+                      const person = personData.data
+                      const name = person.fullName?.en || person.fullName?.he || person.firstName?.en || person.firstName?.he || 'Unknown'
+                      return { ...face, personName: name }
+                    }
+                  }
+                } catch (err) {
+                  // Silently fail if not authenticated or person not found
+                  console.debug('Could not fetch person name:', err)
+                }
+              }
+              return face
+            })
+          )
+          setFaceData({
+            faces: facesWithNames,
+            imageSize: { width: 0, height: 0 } // Will be updated when image loads
+          })
+        } else {
+          setFaceData(null)
+        }
+      }
+      } catch (error) {
+        console.error('Failed to fetch face data:', error)
+        setFaceData(null)
+      }
+    }
+
+    fetchFaceData()
+  }, [current, isOpen, photos])
+
+  // Draw faces on canvas when image loads or face data changes
+  useEffect(() => {
+    if (!showFaces || !faceData || !imageRef.current || !canvasRef.current) return
+
+    const img = imageRef.current
+    const canvas = canvasRef.current
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    // Wait for image to load
+    if (!img.complete) {
+      img.onload = () => {
+        canvas.width = img.offsetWidth
+        canvas.height = img.offsetHeight
+        drawFaces()
+      }
+    } else {
+      canvas.width = img.offsetWidth
+      canvas.height = img.offsetHeight
+      drawFaces()
+    }
+
+    function drawFaces() {
+      if (!ctx || !img || !faceData) return
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+      // Get actual image dimensions
+      const imgNaturalWidth = img.naturalWidth || faceData.imageSize.width
+      const imgNaturalHeight = img.naturalHeight || faceData.imageSize.height
+      
+      if (!imgNaturalWidth || !imgNaturalHeight) return
+
+      // Calculate scale factors - face boxes are relative to natural image size
+      const displayedWidth = img.offsetWidth
+      const displayedHeight = img.offsetHeight
+      const scaleX = displayedWidth / imgNaturalWidth
+      const scaleY = displayedHeight / imgNaturalHeight
+
+      faceData.faces.forEach((face) => {
+        const x = face.box.x * scaleX
+        const y = face.box.y * scaleY
+        const width = face.box.width * scaleX
+        const height = face.box.height * scaleY
+
+        // Draw bounding box
+        ctx.strokeStyle = face.matchedPersonId ? '#10b981' : '#f59e0b'
+        ctx.lineWidth = 2
+        ctx.strokeRect(x, y, width, height)
+
+        // Draw label background
+        if (face.personName) {
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.7)'
+          const labelText = face.personName
+          ctx.font = '14px sans-serif'
+          const textMetrics = ctx.measureText(labelText)
+          const labelWidth = textMetrics.width + 8
+          const labelHeight = 20
+          ctx.fillRect(x, y - labelHeight, labelWidth, labelHeight)
+
+          // Draw label text
+          ctx.fillStyle = '#ffffff'
+          ctx.fillText(labelText, x + 4, y - 6)
+        }
+      })
+    }
+
+    // Redraw on resize
+    const handleResize = () => {
+      if (img.complete) {
+        canvas.width = img.offsetWidth
+        canvas.height = img.offsetHeight
+        drawFaces()
+      }
+    }
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [showFaces, faceData, current])
 
   useEffect(() => {
     if (!isOpen) return
@@ -194,7 +360,7 @@ export default function PhotoLightbox({
   return (
     <div
       ref={containerRef}
-      className="fixed inset-0 z-[1000] bg-black/95 text-white flex flex-col"
+      className="fixed inset-0 z-1000 bg-black/95 text-white flex flex-col"
       role="dialog"
       aria-modal="true"
     >
@@ -202,6 +368,16 @@ export default function PhotoLightbox({
       <div className="flex items-center justify-between px-4 py-2 text-sm">
         <div className="opacity-80">{current + 1} / {photos.length}</div>
         <div className="flex items-center gap-2">
+          {faceData && faceData.faces.length > 0 && (
+            <button 
+              onClick={() => setShowFaces(s => !s)} 
+              className="px-2 py-1 rounded hover:bg-white/10" 
+              aria-label="Toggle Face Detection"
+              title={`${showFaces ? 'Hide' : 'Show'} detected faces`}
+            >
+              {showFaces ? '👤' : '👥'}
+            </button>
+          )}
           <button onClick={toggleFullscreen} className="px-2 py-1 rounded hover:bg-white/10" aria-label="Toggle Fullscreen">⛶</button>
           <button onClick={() => setPlaying(p => !p)} className="px-2 py-1 rounded hover:bg-white/10" aria-label="Play/Pause">
             {playing ? 'Pause' : 'Play'}
@@ -229,11 +405,30 @@ export default function PhotoLightbox({
         </button>
         <div className="max-h-[85vh] max-w-[92vw] relative">
           <img
+            ref={imageRef}
             src={photo.url}
             alt={photo.title || ''}
             className="object-contain max-h-[85vh] max-w-[92vw]"
             draggable={false}
+            onLoad={(e) => {
+              const img = e.currentTarget
+              if (faceData && canvasRef.current) {
+                canvasRef.current.width = img.offsetWidth
+                canvasRef.current.height = img.offsetHeight
+                setFaceData({
+                  ...faceData,
+                  imageSize: { width: img.naturalWidth, height: img.naturalHeight }
+                })
+              }
+            }}
           />
+          {showFaces && faceData && faceData.faces.length > 0 && (
+            <canvas
+              ref={canvasRef}
+              className="absolute top-0 left-0 pointer-events-none"
+              style={{ maxWidth: '100%', maxHeight: '100%' }}
+            />
+          )}
           
           {/* Info Overlay */}
           {showInfo && (
@@ -420,7 +615,30 @@ export default function PhotoLightbox({
                   </div>
                 )}
 
-                {/* File Info */}
+                    {/* Face Recognition */}
+                    {faceData && faceData.faces.length > 0 && (
+                      <div className="space-y-1 border-t border-white/20 pt-2">
+                        <div className="text-xs font-medium opacity-70">Detected People</div>
+                        <div className="space-y-1">
+                          {faceData.faces.map((face, idx) => (
+                            <div key={idx} className="text-sm">
+                              {face.personName ? (
+                                <span className="text-green-400">✓ {face.personName}</span>
+                              ) : (
+                                <span className="opacity-60">Face {idx + 1} (unidentified)</span>
+                              )}
+                              {face.confidence && face.confidence < 1.0 && (
+                                <span className="opacity-60 ml-2">
+                                  ({(face.confidence * 100).toFixed(0)}%)
+                                </span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* File Info */}
                 {photo.metadata && (
                   <div className="space-y-1 border-t border-white/20 pt-2 text-xs opacity-60">
                     {photo.metadata.format && <div>Format: {photo.metadata.format.toUpperCase()}</div>}

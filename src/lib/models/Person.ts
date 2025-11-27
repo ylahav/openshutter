@@ -13,6 +13,11 @@ export interface IPerson extends Document {
     storageProvider: string
     fileId: string
   }
+  faceRecognition?: {
+    descriptor: number[] // 128D face descriptor vector
+    extractedAt?: Date
+    modelVersion?: string
+  }
   tags: Types.ObjectId[] // References to Tag collection
   isActive: boolean
   createdBy: Types.ObjectId
@@ -66,6 +71,11 @@ const PersonSchema = new Schema<IPerson>({
     url: String,
     storageProvider: String,
     fileId: String
+  },
+  faceRecognition: {
+    descriptor: [Number], // 128D face descriptor vector
+    extractedAt: Date,
+    modelVersion: String
   },
   tags: [{
     type: Schema.Types.ObjectId,

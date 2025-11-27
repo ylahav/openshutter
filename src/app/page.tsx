@@ -28,10 +28,14 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
+import ErrorBoundary from '@/components/ErrorBoundary'
+
 export default function HomePageWrapper() {
   return (
-    <TemplateWrapper pageName="home">
-      <DynamicTemplateLoader pageName="home" />
-    </TemplateWrapper>
+    <ErrorBoundary>
+      <TemplateWrapper pageName="home">
+        <DynamicTemplateLoader pageName="home" />
+      </TemplateWrapper>
+    </ErrorBoundary>
   )
 }

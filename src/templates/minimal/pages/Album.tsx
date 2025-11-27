@@ -192,6 +192,54 @@ export default function AlbumPage() {
                       sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                       style={{ width: '100%', height: 'auto', display: 'block' }}
                     />
+                    {/* Tags, People, Location */}
+                    {(photo.tags?.length > 0 || photo.people?.length > 0 || photo.location) && (
+                      <div className="p-2 bg-white">
+                        <div className="flex flex-wrap gap-1">
+                          {/* Tags */}
+                          {photo.tags && Array.isArray(photo.tags) && photo.tags.length > 0 && (
+                            <>
+                              {photo.tags.slice(0, 2).map((tag: any, tagIdx: number) => (
+                                <span key={tagIdx} className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-blue-100 text-blue-800">
+                                  {typeof tag === 'string' ? tag : tag.name || tag}
+                                </span>
+                              ))}
+                              {photo.tags.length > 2 && (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-gray-100 text-gray-600">
+                                  +{photo.tags.length - 2}
+                                </span>
+                              )}
+                            </>
+                          )}
+                          
+                          {/* People */}
+                          {photo.people && Array.isArray(photo.people) && photo.people.length > 0 && (
+                            <>
+                              {photo.people.slice(0, 2).map((person: any, personIdx: number) => {
+                                const personName = typeof person === 'string' ? person : (person.name || person.fullName || person.firstName || person)
+                                return (
+                                  <span key={personIdx} className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-purple-100 text-purple-800">
+                                    👤 {personName}
+                                  </span>
+                                )
+                              })}
+                              {photo.people.length > 2 && (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-gray-100 text-gray-600">
+                                  +{photo.people.length - 2}
+                                </span>
+                              )}
+                            </>
+                          )}
+                          
+                          {/* Location */}
+                          {photo.location && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-green-100 text-green-800">
+                              📍 {typeof photo.location === 'string' ? photo.location : photo.location.name || ''}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )
               })}

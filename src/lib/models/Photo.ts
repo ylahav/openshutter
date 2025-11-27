@@ -53,6 +53,28 @@ export interface IPhoto extends Document {
     rating?: number
     [key: string]: any
   }
+  faceRecognition?: {
+    faces: Array<{
+      descriptor: number[] // 128D face descriptor vector
+      box: {
+        x: number
+        y: number
+        width: number
+        height: number
+      }
+      landmarks?: {
+        leftEye: { x: number; y: number }
+        rightEye: { x: number; y: number }
+        nose: { x: number; y: number }
+        mouth: { x: number; y: number }
+      }
+      detectedAt: Date
+      matchedPersonId?: Types.ObjectId // Reference to Person if matched
+      confidence?: number // Match confidence score
+    }>
+    processedAt?: Date
+    modelVersion?: string
+  }
 }
 
 const PhotoSchema = new Schema<IPhoto>({
@@ -158,6 +180,28 @@ const PhotoSchema = new Schema<IPhoto>({
     location: String,
     category: String,
     rating: Number
+  },
+  faceRecognition: {
+    faces: [{
+      descriptor: [Number], // 128D face descriptor vector
+      box: {
+        x: Number,
+        y: Number,
+        width: Number,
+        height: Number
+      },
+      landmarks: {
+        leftEye: { x: Number, y: Number },
+        rightEye: { x: Number, y: Number },
+        nose: { x: Number, y: Number },
+        mouth: { x: Number, y: Number }
+      },
+      detectedAt: { type: Date, default: Date.now },
+      matchedPersonId: { type: Schema.Types.ObjectId, ref: 'Person' },
+      confidence: Number
+    }],
+    processedAt: Date,
+    modelVersion: String
   }
 }, {
   timestamps: true

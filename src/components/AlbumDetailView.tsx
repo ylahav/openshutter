@@ -64,12 +64,14 @@ export default function AlbumDetailView({ album, photos, role, albumId }: AlbumD
     autoClose: true
   })
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
+  const [showFaceDetectionConfirm, setShowFaceDetectionConfirm] = useState(false)
   const [checkingFiles, setCheckingFiles] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [checkFilesResults, setCheckFilesResults] = useState<{
     missingFiles: Array<{ filename: string; normalized: string }>
     fileMap: Map<string, File> // Map of normalized filename to File object
   } | null>(null)
+  const [detectingFaces, setDetectingFaces] = useState(false)
 
   const handleDeletePhoto = async (photoId: string) => {
     try {
@@ -162,27 +164,32 @@ export default function AlbumDetailView({ album, photos, role, albumId }: AlbumD
         }),
       })
 
-      if (!response.ok) {
-        throw new Error('Failed to update photos')
+      let result
+      try {
+        result = await response.json()
+      } catch (parseError) {
+        // If response is not JSON, get text
+        const text = await response.text()
+        throw new Error(`Server error (${response.status}): ${text || response.statusText}`)
+      }
+      
+      if (!response.ok || !result.success) {
+        const errorMessage = result.error || `Server returned ${response.status}: ${response.statusText}` || 'Failed to update photos'
+        throw new Error(errorMessage)
       }
 
-      const result = await response.json()
-      if (result.success) {
-        setNotification({
-          isOpen: true,
-          type: 'success',
-          title: 'Bulk Update Successful',
-          message: `Successfully updated ${selectedPhotos.length} photos`
-        })
-        setSelectedPhotos([])
-        setBulkMode(false)
-        // Refresh the page to show updated data
-        setTimeout(() => {
-          window.location.reload()
-        }, 1000)
-      } else {
-        throw new Error(result.error || 'Failed to update photos')
-      }
+      setNotification({
+        isOpen: true,
+        type: 'success',
+        title: 'Bulk Update Successful',
+        message: `Successfully updated ${result.data?.modifiedCount || selectedPhotos.length} photo(s)`
+      })
+      setSelectedPhotos([])
+      setBulkMode(false)
+      // Refresh the page to show updated data
+      setTimeout(() => {
+        window.location.reload()
+      }, 1000)
     } catch (error) {
       console.error('Failed to bulk update photos:', error)
       setNotification({
@@ -213,6 +220,201 @@ export default function AlbumDetailView({ album, photos, role, albumId }: AlbumD
   const handleClearSelection = () => {
     setSelectedPhotos([])
     setBulkMode(false)
+  }
+
+  const handleBulkFaceDetection = () => {
+    if (localPhotos.length === 0) return
+    setShowFaceDetectionConfirm(true)
+  }
+
+  const confirmBulkFaceDetection = async () => {
+    setShowFaceDetectionConfirm(false)
+    setDetectingFaces(true)
+    
+    // Dynamically import face recognition service
+    const { FaceRecognitionService } = await import('@/services/face-recognition')
+    
+    try {
+      // Load models first
+      setNotification({
+        isOpen: true,
+        type: 'info',
+        title: 'Loading Face Detection Models',
+        message: 'Please wait...',
+        autoClose: false
+      })
+
+      await FaceRecognitionService.loadModels()
+
+      const photosToProcess = localPhotos.filter(photo => photo.storage?.url)
+      let processed = 0
+      let succeeded = 0
+      let failed = 0
+      const errors: string[] = []
+
+      for (const photo of photosToProcess) {
+        try {
+          setNotification({
+            isOpen: true,
+            type: 'info',
+            title: 'Face Detection & Matching Progress',
+            message: `Detecting faces and matching to people in photo ${processed + 1} of ${photosToProcess.length}...`,
+            autoClose: false
+          })
+
+          // Load image
+          const img = new Image()
+          img.crossOrigin = 'anonymous'
+          
+          await new Promise((resolve, reject) => {
+            img.onload = resolve
+            img.onerror = reject
+            img.src = photo.storage.url
+          })
+
+          // Detect faces
+          const detections = await FaceRecognitionService.detectFaces(img)
+
+          if (detections.length > 0) {
+            // Prepare faces data
+            const facesData = detections.map(detection => ({
+              descriptor: Array.from(detection.descriptor),
+              box: detection.box,
+              landmarks: detection.landmarks
+            }))
+
+            // First, temporarily save all faces for matching
+            const detectResponse = await fetch('/api/admin/face-recognition/detect', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                photoId: photo._id,
+                faces: facesData
+              })
+            })
+
+            if (detectResponse.ok) {
+              const detectResult = await detectResponse.json()
+              if (detectResult.success) {
+                // Auto-match detected faces to existing people
+                try {
+                  const matchResponse = await fetch('/api/admin/face-recognition/match', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      photoId: photo._id,
+                      threshold: 0.6
+                    })
+                  })
+
+                  if (matchResponse.ok) {
+                    const matchResult = await matchResponse.json()
+                    if (matchResult.success && matchResult.data?.matches) {
+                      // Only keep faces that were matched
+                      const matchedFaces = matchResult.data.matches
+                        .filter((m: any) => m.personId)
+                        .map((m: any) => {
+                          const face = facesData[m.faceIndex]
+                          return {
+                            descriptor: face.descriptor,
+                            box: face.box,
+                            landmarks: face.landmarks,
+                            matchedPersonId: m.personId,
+                            confidence: m.confidence
+                          }
+                        })
+
+                      // Update photo to only store matched faces
+                      if (matchedFaces.length > 0) {
+                        const updateResponse = await fetch('/api/admin/face-recognition/detect', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            photoId: photo._id,
+                            faces: matchedFaces,
+                            onlyMatched: true // Flag to indicate we're updating with only matched faces
+                          })
+                        })
+
+                        if (updateResponse.ok) {
+                          const matchedCount = matchedFaces.length
+                          console.log(`Stored ${matchedCount} matched face(s) in photo ${photo.title || photo._id}`)
+                        }
+                      } else {
+                        // No matches - remove all faces by updating with empty array
+                        const updateResponse = await fetch('/api/admin/face-recognition/detect', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            photoId: photo._id,
+                            faces: [],
+                            onlyMatched: true
+                          })
+                        })
+                        if (updateResponse.ok) {
+                          console.log(`No matches found - removed faces from photo ${photo.title || photo._id}`)
+                        }
+                      }
+                    }
+                  }
+                } catch (matchError) {
+                  // Don't fail the whole operation if matching fails
+                  console.warn(`Failed to auto-match faces for photo ${photo.title || photo._id}:`, matchError)
+                }
+                
+                succeeded++
+              } else {
+                failed++
+                errors.push(`${photo.title || photo._id}: ${detectResult.error || 'Failed to save'}`)
+              }
+            } else {
+              failed++
+              const errorData = await detectResponse.json().catch(() => ({}))
+              errors.push(`${photo.title || photo._id}: ${errorData.error || 'Request failed'}`)
+            }
+          } else {
+            // No faces detected - still count as processed
+            succeeded++
+          }
+
+          processed++
+
+          // Small delay between photos
+          await new Promise(resolve => setTimeout(resolve, 300))
+        } catch (error) {
+          failed++
+          processed++
+          errors.push(`${photo.title || photo._id}: ${error instanceof Error ? error.message : 'Unknown error'}`)
+        }
+      }
+
+      // Final notification
+      setNotification({
+        isOpen: true,
+        type: succeeded > 0 ? (failed === 0 ? 'success' : 'warning') : 'error',
+        title: 'Face Detection & Matching Complete',
+        message: `Processed ${processed} photos: ${succeeded} succeeded, ${failed} failed. Faces were automatically matched to existing people where possible.${errors.length > 0 && errors.length <= 10 ? `\n\nErrors:\n${errors.join('\n')}` : errors.length > 10 ? `\n\n${errors.length} errors occurred.` : ''}`,
+        autoClose: true
+      })
+
+      // Refresh photos to show detected faces
+      if (succeeded > 0) {
+        setTimeout(() => {
+          window.location.reload()
+        }, 2000)
+      }
+    } catch (error) {
+      console.error('Bulk face detection failed:', error)
+      setNotification({
+        isOpen: true,
+        type: 'error',
+        title: 'Face Detection Failed',
+        message: error instanceof Error ? error.message : 'Failed to detect faces. Make sure face detection models are loaded.',
+        autoClose: true
+      })
+    } finally {
+      setDetectingFaces(false)
+    }
   }
 
   return (
@@ -289,6 +491,20 @@ export default function AlbumDetailView({ album, photos, role, albumId }: AlbumD
                         </div>
                       ) : (
                         t('albums.reReadExifData')
+                      )}
+                    </button>
+                    <button
+                      onClick={handleBulkFaceDetection}
+                      disabled={detectingFaces || localPhotos.length === 0}
+                      className="w-full text-center px-4 py-2 text-sm font-medium text-purple-600 bg-purple-50 rounded-md hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {detectingFaces ? (
+                        <div className="flex items-center justify-center">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600 mr-2"></div>
+                          Detecting Faces...
+                        </div>
+                      ) : (
+                        '🔍 Detect Faces in All Photos'
                       )}
                     </button>
                     <label className="w-full text-center px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
@@ -505,9 +721,54 @@ export default function AlbumDetailView({ album, photos, role, albumId }: AlbumD
                     </div>
                   </button>
                   <div className="mt-2">
-                    <h3 className="text-sm font-medium text-gray-900 truncate">
+                    <h3 className="text-sm font-medium text-gray-900 truncate mb-1">
                       {typeof photo.title === 'string' ? photo.title : MultiLangUtils.getTextValue((photo as any).title, currentLanguage) || ''}
                     </h3>
+                    
+                    {/* Tags, People, Location */}
+                    <div className="flex flex-wrap gap-1 text-xs">
+                      {/* Tags */}
+                      {(photo as any).tags && Array.isArray((photo as any).tags) && (photo as any).tags.length > 0 && (
+                        <>
+                          {(photo as any).tags.slice(0, 2).map((tag: any, tagIdx: number) => (
+                            <span key={tagIdx} className="inline-flex items-center px-1.5 py-0.5 rounded bg-blue-100 text-blue-800">
+                              {typeof tag === 'string' ? tag : tag.name || tag}
+                            </span>
+                          ))}
+                          {(photo as any).tags.length > 2 && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">
+                              +{(photo as any).tags.length - 2}
+                            </span>
+                          )}
+                        </>
+                      )}
+                      
+                      {/* People */}
+                      {(photo as any).people && Array.isArray((photo as any).people) && (photo as any).people.length > 0 && (
+                        <>
+                          {(photo as any).people.slice(0, 2).map((person: any, personIdx: number) => {
+                            const personName = typeof person === 'string' ? person : (person.name || person.fullName || person.firstName || person)
+                            return (
+                              <span key={personIdx} className="inline-flex items-center px-1.5 py-0.5 rounded bg-purple-100 text-purple-800">
+                                👤 {personName}
+                              </span>
+                            )
+                          })}
+                          {(photo as any).people.length > 2 && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">
+                              +{(photo as any).people.length - 2}
+                            </span>
+                          )}
+                        </>
+                      )}
+                      
+                      {/* Location */}
+                      {(photo as any).location && (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-green-100 text-green-800">
+                          📍 {typeof (photo as any).location === 'string' ? (photo as any).location : (photo as any).location.name || ''}
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   {/* Status Badges */}
@@ -671,6 +932,17 @@ export default function AlbumDetailView({ album, photos, role, albumId }: AlbumD
         message={t('albums.confirmReReadExif')}
         confirmText={t('albums.reReadExifData')}
         cancelText={t('cancel')}
+        variant="default"
+      />
+
+      <ConfirmDialog
+        isOpen={showFaceDetectionConfirm}
+        onCancel={() => setShowFaceDetectionConfirm(false)}
+        onConfirm={confirmBulkFaceDetection}
+        title="Detect Faces in All Photos"
+        message={`Detect faces in all ${localPhotos.length} photos in this album? This will process each photo for face detection and matching, which may take a while.`}
+        confirmText="Start Detection"
+        cancelText="Cancel"
         variant="default"
       />
 

@@ -215,6 +215,23 @@ export interface Photo {
   uploadedBy: string // ObjectId as string for API compatibility
   uploadedAt: Date
   updatedAt: Date
+  faceRecognition?: {
+    faces: Array<{
+      descriptor: number[] // 128D vector
+      box: { x: number; y: number; width: number; height: number }
+      landmarks?: {
+        leftEye: { x: number; y: number }
+        rightEye: { x: number; y: number }
+        nose: { x: number; y: number }
+        mouth: { x: number; y: number }
+      }
+      matchedPersonId?: string // ObjectId as string for API compatibility
+      confidence?: number
+      detectedAt: Date
+    }>
+    processedAt?: Date
+    modelVersion?: string
+  }
 }
 
 // Tag Types

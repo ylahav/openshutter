@@ -209,7 +209,7 @@ export default function AlbumPage() {
                 {subAlbums.map((subAlbum, i) => (
                   <Link key={subAlbum._id} href={`/albums/${subAlbum.alias}`}>
                     <div className={`${styles.card} ${styles.animateScaleIn} h-full flex flex-col`} style={{ animationDelay: `${i * 0.1}s` }}>
-                      <div className="overflow-hidden flex-shrink-0">
+                      <div className="overflow-hidden shrink-0">
                         {subAlbum.coverPhotoId && subAlbumCoverPhotos[subAlbum._id] ? (
                           <Image
                             src={subAlbumCoverPhotos[subAlbum._id].storage?.thumbnailPath || subAlbumCoverPhotos[subAlbum._id].url || '/placeholder.jpg'}
@@ -229,7 +229,7 @@ export default function AlbumPage() {
                           <div className="text-4xl text-gray-400">📁</div>
                         </div>
                       </div>
-                      <div className="p-4 flex flex-col flex-grow">
+                      <div className="p-4 flex flex-col grow">
                         <h3 className={`${styles.heading3} mb-2`}>
                           {MultiLangUtils.getTextValue(subAlbum.name, currentLanguage)}
                         </h3>
@@ -243,7 +243,7 @@ export default function AlbumPage() {
                         </div>
                         {subAlbum.description && (
                           <div 
-                            className={`${styles.textSecondary} text-sm flex-grow`}
+                            className={`${styles.textSecondary} text-sm grow`}
                             dangerouslySetInnerHTML={{
                               __html: MultiLangUtils.getHTMLValue(subAlbum.description, currentLanguage)
                             }}
@@ -288,11 +288,58 @@ export default function AlbumPage() {
                       </h3>
                       {photo.description && (
                         <div 
-                          className={`${styles.textSecondary} text-sm`}
+                          className={`${styles.textSecondary} text-sm mb-2`}
                           dangerouslySetInnerHTML={{
                             __html: MultiLangUtils.getHTMLValue(photo.description, currentLanguage)
                           }}
                         />
+                      )}
+                      
+                      {/* Tags, People, Location */}
+                      {(photo.tags?.length > 0 || photo.people?.length > 0 || photo.location) && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {/* Tags */}
+                          {photo.tags && Array.isArray(photo.tags) && photo.tags.length > 0 && (
+                            <>
+                              {photo.tags.slice(0, 2).map((tag: any, tagIdx: number) => (
+                                <span key={tagIdx} className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-blue-100 text-blue-800">
+                                  {typeof tag === 'string' ? tag : tag.name || tag}
+                                </span>
+                              ))}
+                              {photo.tags.length > 2 && (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-gray-100 text-gray-600">
+                                  +{photo.tags.length - 2}
+                                </span>
+                              )}
+                            </>
+                          )}
+                          
+                          {/* People */}
+                          {photo.people && Array.isArray(photo.people) && photo.people.length > 0 && (
+                            <>
+                              {photo.people.slice(0, 2).map((person: any, personIdx: number) => {
+                                const personName = typeof person === 'string' ? person : (person.name || person.fullName || person.firstName || person)
+                                return (
+                                  <span key={personIdx} className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-purple-100 text-purple-800">
+                                    👤 {personName}
+                                  </span>
+                                )
+                              })}
+                              {photo.people.length > 2 && (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-gray-100 text-gray-600">
+                                  +{photo.people.length - 2}
+                                </span>
+                              )}
+                            </>
+                          )}
+                          
+                          {/* Location */}
+                          {photo.location && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-green-100 text-green-800">
+                              📍 {typeof photo.location === 'string' ? photo.location : photo.location.name || ''}
+                            </span>
+                          )}
+                        </div>
                       )}
                     </div>
                   </div>
@@ -375,6 +422,13 @@ export default function AlbumPage() {
               height: (p as any).metadata.height,
               fileSize: (p as any).metadata.fileSize,
               format: (p as any).metadata.format,
+            } : undefined,
+            faceRecognition: (p as any).faceRecognition ? {
+              faces: (p as any).faceRecognition.faces?.map((face: any) => ({
+                box: face.box,
+                matchedPersonId: face.matchedPersonId?.toString(),
+                confidence: face.confidence
+              })) || []
             } : undefined,
           }))}
           startIndex={lightboxIndex}

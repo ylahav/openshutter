@@ -8,6 +8,7 @@ A comprehensive photo gallery management system with multi-storage support, adva
 - **Smart Tagging System**: Organize photos with intelligent tags and dynamic collections
 - **Advanced Search**: Comprehensive search across photos, albums, people, and locations
 - **People Management**: Tag and organize photos by people with multi-language support
+- **Face Recognition**: Detect faces in photos, match them to known people, and auto-tag photos
 - **Location Management**: Geospatial location tracking with coordinates and categories
 - **Album Management**: Hierarchical albums with advanced privacy controls
 - **Advanced Access Control**: Granular permissions for albums (public, private, user/group-specific)
@@ -27,6 +28,7 @@ A comprehensive photo gallery management system with multi-storage support, adva
 - **Blog Categories Management**: Create and manage blog categories with multi-language support
 - **Content Protection**: Advanced right-click and developer tools protection with smart exceptions
 - **Security Features**: Multi-layer content protection with customizable warnings
+- **Face Recognition**: AI-powered face detection and recognition with automatic people tagging
 
 ## 🚀 Tech Stack
 
@@ -439,6 +441,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [x] **Location Management** - Geospatial location tracking with coordinates and categories
 - [x] **Enhanced Tag System** - Categories, usage tracking, and bulk operations
 - [x] **Bulk Photo Operations** - Apply metadata to multiple photos simultaneously
+- [x] **Face Recognition System** - AI-powered face detection, matching, and auto-tagging
+- [x] **Photo Metadata Display** - Tags, people, and location shown in photo cards
+- [x] **Popup Dialogs** - Replaced browser alerts with styled confirmation and notification dialogs
 
 ### Phase 2 (Next 6 months) *
 - [ ] Advanced search and filtering

@@ -1,6 +1,28 @@
 ## [Unreleased]
 
 ### Added
+- **Face Recognition System**: Complete face detection and recognition functionality
+  - Client-side face detection using face-api.js with TinyFaceDetector model
+  - Face descriptor extraction (128D vectors) for face matching
+  - Manual face selection, resizing, and deletion on photos
+  - Visual distinction between auto-detected and manually selected faces (different border colors)
+  - Face matching against known people with confidence scores
+  - Manual face-to-person assignment via dropdown selection
+  - Bulk face detection at album level for processing multiple photos
+  - Face detection display in frontend album view (PhotoLightbox) with bounding boxes
+  - Face recognition models stored in `public/models/face-api/`
+  - API endpoints for face detection, matching, and assignment
+  - Face data stored in photo documents with descriptors, bounding boxes, and matched person IDs
+- **Photo Metadata Display**: Enhanced photo cards with metadata information
+  - Tags, people names, and location displayed below photos in album management view
+  - Same metadata display in frontend album view (all templates: default, modern, fancy, minimal)
+  - People displayed as names (not IDs) using multilingual support
+  - Location displayed with multilingual name extraction
+  - Tags displayed with multilingual support
+- **Popup Dialogs**: Replaced browser alerts with styled popup dialogs
+  - Confirmation dialogs for bulk operations (face detection, EXIF re-reading)
+  - Notification dialogs for success/error messages
+  - Consistent UI/UX across all admin operations
 - **Album Breadcrumbs Navigation**: Added breadcrumb navigation to all album pages
   - Breadcrumbs show full album hierarchy (Albums → Parent Albums → Current Album)
   - Available on admin, owner, and public album pages
@@ -26,6 +48,18 @@
   - API route configured to accept up to 100MB files (server-level limit may need additional configuration)
 
 ### Changed
+- **Face Recognition UI**: Improved user experience for face detection and matching
+  - Replaced browser `alert()` calls with popup notification dialogs
+  - Added confirmation dialog for bulk face detection operations
+  - Enhanced error handling with user-friendly messages
+  - Improved visual feedback during face detection and matching processes
+- **Photo API Endpoints**: Enhanced photo APIs to populate metadata references
+  - GET `/api/photos/[id]` now populates location object with multilingual name
+  - GET `/api/albums/[id]/photos` and `/api/albums/by-alias/[alias]/photos` populate tags, people, and location as display names/objects
+  - Bulk update API searches locations by multilingual name fields (name.en, name.he)
+- **Photo Metadata Editor**: Improved location handling in photo edit form
+  - Added useEffect to sync location prop changes to form fields
+  - Ensures form fields update when location data is populated from API
 - **Album Page Spacing**: Reduced excessive spacing on album pages for better content density
   - Reduced section padding from 5rem (80px) to 2rem (32px) top, 1rem (16px) bottom
   - Reduced breadcrumb margins from 24px to 8px (mb-6 to mb-2)
@@ -60,6 +94,21 @@
   - Supports selecting individual files or all files for upload
 
 ### Fixed
+- **Face Recognition Errors**: Fixed multiple face recognition issues
+  - Fixed "Descriptors must have the same length" error by adding descriptor normalization and validation
+  - Fixed face detection not updating photo.people array by preserving matchedPersonId values
+  - Fixed TypeScript errors related to faceRecognition property in Photo interface
+  - Fixed canvas build errors in Docker by adding Python and graphics libraries
+  - Fixed HMR errors related to nested dynamic imports in PhotoFaceRecognition component
+- **TypeScript Build Errors**: Fixed TypeScript 5+ compatibility issues
+  - Added `override` modifier to ErrorBoundary component methods (componentDidCatch, render)
+  - Fixed useState declaration syntax errors
+  - Fixed property access errors (detection.detection.box → detection.box)
+  - Fixed undefined property access errors (photo.faceRecognition.faces.length)
+- **Location Lookup**: Fixed location search in bulk update operations
+  - Updated API to search locations by multilingual name fields (name.en, name.he) using case-insensitive regex
+  - Fixed location not appearing in photo edit form after bulk update
+  - Ensured location data is properly populated from ObjectId references
 - **Logout Redirect**: Fixed production logout redirecting to localhost instead of production domain
   - Updated MobileNavigation to use NextAuth's signOut with relative callback URL
   - Fixed logout flow to respect NEXTAUTH_URL environment variable

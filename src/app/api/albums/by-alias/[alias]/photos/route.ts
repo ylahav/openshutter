@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { connectToDatabase } from '@/lib/mongodb'
+import { connectMongoose } from '@/lib/mongodb'
+import { ObjectId } from 'mongodb'
 import { ExifExtractor } from '@/services/exif-extractor'
 import { getCurrentUser, checkAlbumAccess } from '@/lib/access-control-server'
 import { writeAuditLog } from '@/services/audit-log'
+import { TagModel } from '@/lib/models/Tag'
+import { PersonModel } from '@/lib/models/Person'
+import { LocationModel } from '@/lib/models/Location'
 
 export async function GET(
   request: NextRequest,
@@ -105,6 +110,84 @@ export async function GET(
     // Process photos for EXIF data extraction (on-demand)
     const processedPhotos = await ExifExtractor.processPhotosForExif(photos)
     
+    // Populate tags, people, and location names
+    await connectMongoose()
+    
+    // Get all unique tag IDs, people IDs, and location IDs
+    const tagIds = new Set<string>()
+    const peopleIds = new Set<string>()
+    const locationIds = new Set<string>()
+    
+    processedPhotos.forEach((photo: any) => {
+      if (photo.tags && Array.isArray(photo.tags)) {
+        photo.tags.forEach((tagId: any) => {
+          tagIds.add(String(tagId))
+        })
+      }
+      if (photo.people && Array.isArray(photo.people)) {
+        photo.people.forEach((personId: any) => {
+          peopleIds.add(String(personId))
+        })
+      }
+      if (photo.location) {
+        locationIds.add(String(photo.location))
+      }
+    })
+
+    // Fetch all tags, people, and locations
+    const [tags, people, locations] = await Promise.all([
+      TagModel.find({ _id: { $in: Array.from(tagIds).map(id => new ObjectId(id)) } }).lean(),
+      PersonModel.find({ _id: { $in: Array.from(peopleIds).map(id => new ObjectId(id)) } }).lean(),
+      LocationModel.find({ _id: { $in: Array.from(locationIds).map(id => new ObjectId(id)) } }).lean()
+    ])
+
+    // Create lookup maps
+    const tagMap = new Map(tags.map(tag => [String(tag._id), tag.name]))
+    const peopleMap = new Map(people.map(person => {
+      const fullName = typeof person.fullName === 'string' 
+        ? person.fullName 
+        : (person.fullName?.en || person.fullName?.he || '')
+      const firstName = typeof person.firstName === 'string'
+        ? person.firstName
+        : (person.firstName?.en || person.firstName?.he || '')
+      return [String(person._id), fullName || firstName || 'Unknown']
+    }))
+    const locationMap = new Map(locations.map(location => {
+      const name = typeof location.name === 'string'
+        ? location.name
+        : (location.name?.en || location.name?.he || '')
+      return [String(location._id), {
+        name,
+        address: location.address,
+        coordinates: location.coordinates
+      }]
+    }))
+
+    // Populate photos with names
+    const populatedPhotos = processedPhotos.map((photo: any) => {
+      const populated: any = { ...photo }
+      
+      // Populate tags
+      if (photo.tags && Array.isArray(photo.tags)) {
+        populated.tags = photo.tags.map((tagId: any) => tagMap.get(String(tagId)) || tagId)
+      }
+      
+      // Populate people
+      if (photo.people && Array.isArray(photo.people)) {
+        populated.people = photo.people.map((personId: any) => peopleMap.get(String(personId)) || personId)
+      }
+      
+      // Populate location
+      if (photo.location) {
+        const locationData = locationMap.get(String(photo.location))
+        if (locationData) {
+          populated.location = locationData
+        }
+      }
+      
+      return populated
+    })
+    
     // Calculate pagination info
     const totalPages = Math.ceil(totalPhotos / limit)
     const hasNextPage = page < totalPages
@@ -112,7 +195,7 @@ export async function GET(
     
     return NextResponse.json({ 
       success: true, 
-      data: processedPhotos,
+      data: populatedPhotos,
       pagination: {
         page,
         limit,

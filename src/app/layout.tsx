@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import Providers from './providers'
 import { ThemeProvider } from '@/components/theme-provider'
-import ClientRightClickDisabler from '@/components/ClientRightClickDisabler'
+import RightClickDisablerClient from '@/components/ClientRightClickDisabler'
 
 export const metadata: Metadata = {
   title: 'OpenShutter - Photo Gallery Management System',
@@ -44,7 +44,7 @@ export default function RootLayout({
       <body className="min-h-screen bg-background text-foreground no-context-menu no-drag">
         <ThemeProvider>
           <Providers>
-            <ClientRightClickDisabler enabled={process.env.NODE_ENV === 'production'} showWarning={false} />
+            <RightClickDisablerClient enabled={true} showWarning={false} />
             {children}
           </Providers>
         </ThemeProvider>

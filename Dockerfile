@@ -5,6 +5,20 @@ FROM node:20-alpine AS builder
 # Set working directory
 WORKDIR /app
 
+# Install build dependencies for canvas (native module)
+# canvas requires Python, build tools, and graphics libraries
+RUN apk add --no-cache \
+    python3 \
+    make \
+    g++ \
+    cairo-dev \
+    jpeg-dev \
+    pango-dev \
+    giflib-dev \
+    pixman-dev \
+    librsvg-dev \
+    && ln -sf python3 /usr/bin/python
+
 # Install pnpm globally
 RUN npm install -g pnpm
 
@@ -36,6 +50,16 @@ FROM node:20-alpine AS runner
 
 # Set working directory
 WORKDIR /app
+
+# Install runtime dependencies for canvas (shared libraries)
+# These are needed at runtime even though canvas is compiled
+RUN apk add --no-cache \
+    cairo \
+    jpeg \
+    pango \
+    giflib \
+    pixman \
+    librsvg
 
 # Set environment variables
 ENV NODE_ENV=production
