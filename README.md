@@ -32,9 +32,9 @@ A comprehensive photo gallery management system with multi-storage support, adva
 
 ## 🚀 Tech Stack
 
-- **Frontend**: Next.js 15, React 19, TypeScript
-- **Styling**: Tailwind CSS, Framer Motion
-- **Backend**: Next.js API Routes, MongoDB
+- **Frontend**: Next.js 15, React 19, TypeScript, Tailwind CSS
+- **Backend**: Node.js, Express, Mongoose
+- **Database**: MongoDB
 - **Storage**: Google Drive API, AWS S3, Backblaze B2, Wasabi, Local Storage
 - **Authentication**: NextAuth.js
 - **Rich Text**: Tiptap Editor
@@ -202,62 +202,26 @@ For detailed deployment instructions, see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.m
 ## 📁 Project Structure
 
 ```
-src/
-├── app/                 # Next.js 15 app directory
-│   ├── layout.tsx      # Root layout
-│   ├── page.tsx        # Home page with header, hero, albums, footer
-│   ├── login/          # Login page
-│   ├── search/         # Search functionality
-│   ├── admin/          # Admin pages and dashboard
-│   │   ├── albums/     # Album management
-│   │   ├── photos/     # Photo management
-│   │   ├── people/     # People management
-│   │   ├── locations/  # Location management
-│   │   ├── tags/       # Tag management
-│   │   ├── storage/    # Storage settings
-│   │   ├── templates/  # Template customization
-│   │   ├── users/      # User management
-│   │   └── blog-categories/ # Blog categories management
-│   ├── owner/          # Owner dashboard pages
-│   │   ├── profile/    # Profile management
-│   │   └── albums/     # Owner album management
-│   ├── albums/         # Public album pages
-│   ├── photos/         # Public photo pages
-│   ├── api/            # API routes
-│   │   ├── search/     # Search API
-│   │   ├── people/     # People API
-│   │   ├── locations/  # Locations API
-│   │   ├── tags/       # Tags API
-│   │   └── photos/bulk-update/ # Bulk photo operations
-│   └── globals.css     # Global styles
-├── components/          # Reusable React components
-│   ├── ui/            # UI component library (Dialog, Button, etc.)
-│   ├── search/        # Search functionality components
-│   ├── admin/         # Admin-specific components
-│   ├── Header.tsx      # Navigation header
-│   ├── Footer.tsx      # Copyright footer
-│   ├── TiptapHTMLEditor.tsx # Rich text editor with links
-│   ├── AdminGuard.tsx  # Admin role protection
-│   ├── OwnerGuard.tsx  # Owner role protection
-│   └── [feature]/     # Feature-specific components
-├── lib/                 # Utility libraries
-│   ├── mongodb.ts      # MongoDB connection
-│   ├── auth.ts         # Authentication configuration
-│   ├── access-control.ts # Album access control logic
-│   └── models/         # Database models
-│       ├── Album.ts    # Album model
-│       ├── Photo.ts    # Photo model
-│       ├── Person.ts   # Person model
-│       ├── Location.ts # Location model
-│       └── Tag.ts      # Tag model
-├── services/            # Business logic services
-│   ├── storage/        # Storage providers (Google Drive, S3, Local)
-│   ├── exif-extractor.ts # EXIF data processing
-│   └── site-config.ts  # Site configuration
-├── types/               # TypeScript type definitions
-├── hooks/               # Custom React hooks
-├── i18n/               # Internationalization files
-└── templates/          # Gallery templates
+.
+├── frontend/            # Next.js 15 frontend application
+│   ├── src/
+│   │   ├── app/         # App router pages and layouts
+│   │   ├── components/  # React components
+│   │   ├── hooks/       # Custom hooks
+│   │   └── lib/         # Frontend utilities
+│   ├── public/          # Static assets
+│   └── next.config.js   # Frontend configuration & proxy setup
+│
+├── backend/             # Node.js/Express backend application
+│   ├── src/
+│   │   ├── config/      # Database and server config
+│   │   ├── models/      # Mongoose models (Album, Photo, etc.)
+│   │   ├── routes/      # Express API routes
+│   │   ├── services/    # Business logic (Upload, Storage, etc.)
+│   │   └── index.ts     # Server entry point
+│   └── package.json     # Backend dependencies
+│
+└── docker-compose.yml   # Orchestration for frontend, backend, and db
 ```
 
 ## 🔧 Configuration

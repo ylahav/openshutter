@@ -1,0 +1,166 @@
+/** @type {import('next').NextConfig} */
+
+const withBundleAnalyzer = (() => {
+  try {
+    return require('@next/bundle-analyzer')({
+      enabled: process.env.ANALYZE === 'true',
+    })
+  } catch {
+    return (config) => config
+  }
+})()
+
+const nextConfig = {
+  // Image optimization
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'drive.google.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+        port: '',
+        pathname: '/**',
+      },
+    ],
+    formats: ['image/webp', 'image/avif'],
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+  },
+
+  // Environment variables are handled at runtime by Docker Compose
+
+  // Webpack configuration for optimization
+  webpack: (config, { dev, isServer }) => {
+    // SVG handling
+    config.module.rules.push({
+      test: /\.svg$/,
+      use: ['@svgr/webpack'],
+    })
+    
+    // Handle other file types
+    config.module.rules.push({
+      test: /\.(png|jpe?g|gif|webp)$/i,
+      type: 'asset/resource',
+    })
+
+    // Bundle optimization
+    if (!dev && !isServer) {
+      // Enable tree shaking
+      config.optimization.usedExports = true
+      config.optimization.sideEffects = false
+
+      // Split chunks more aggressively
+      config.optimization.splitChunks = {
+        chunks: 'all',
+        cacheGroups: {
+          default: false,
+          vendors: false,
+          // Vendor chunk for large libraries
+          vendor: {
+            name: 'vendor',
+            chunks: 'all',
+            test: /[\\/]node_modules[\\/]/,
+            priority: 20,
+            maxSize: 50000, // 50KB max
+          },
+          // Common chunk for shared code
+          common: {
+            name: 'common',
+            minChunks: 2,
+            chunks: 'all',
+            priority: 10,
+            maxSize: 30000, // 30KB max
+          },
+          // React and Next.js specific
+          react: {
+            name: 'react',
+            test: /[\\/]node_modules[\\/](react|react-dom|next)[\\/]/,
+            chunks: 'all',
+            priority: 30,
+            maxSize: 40000, // 40KB max
+          },
+          // UI components
+          ui: {
+            name: 'ui',
+            test: /[\\/]node_modules[\\/](@radix-ui|lucide-react|framer-motion)[\\/]/,
+            chunks: 'all',
+            priority: 25,
+            maxSize: 35000, // 35KB max
+          }
+        }
+      }
+    }
+    
+    return config
+  },
+
+  // TypeScript
+  typescript: {
+    ignoreBuildErrors: false,
+  },
+
+  // Output and optimization
+  // Use standalone only when explicitly requested
+  output: process.env.STANDALONE === 'true' ? 'standalone' : undefined,
+  outputFileTracingRoot: process.cwd(),
+  trailingSlash: false,
+  reactStrictMode: true,
+
+  // Experimental features for better performance
+  experimental: {
+    optimizePackageImports: ['lucide-react', '@radix-ui/react-icons', 'framer-motion'],
+  },
+
+  // Note: Body size limit for file uploads is controlled by Next.js server
+  // For production, configure at deployment level (nginx, reverse proxy)
+  // Default limit is ~4.5MB for JSON, but form data may have different limits
+  // The API route at /api/photos/upload supports up to 100MB files
+
+  // Turbopack configuration (replaces experimental.turbo)
+  turbopack: {
+    rules: {
+      '*.svg': {
+        loaders: ['@svgr/webpack'],
+        as: '*.js',
+      },
+    },
+    // Improve HMR stability
+    resolveAlias: {
+      // Ensure consistent module resolution
+    },
+  },
+  
+  // Improve HMR stability
+  onDemandEntries: {
+    // Period (in ms) where the server will keep pages in the buffer
+    maxInactiveAge: 25 * 1000,
+    // Number of pages that should be kept simultaneously without being disposed
+    pagesBufferLength: 2,
+  },
+
+  // Compiler optimizations
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production',
+  },
+
+  // Rewrites to proxy API requests to backend
+  async rewrites() {
+    return [
+      {
+        source: '/api/photos/:path*',
+        destination: 'http://localhost:5000/api/photos/:path*',
+      },
+      {
+        source: '/api/albums/:path*',
+        destination: 'http://localhost:5000/api/albums/:path*',
+      },
+    ]
+  },
+}
+
+module.exports = withBundleAnalyzer(nextConfig)

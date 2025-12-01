@@ -1,5 +1,21 @@
 ## [Unreleased]
 
+### Architecture
+- **Frontend/Backend Split**: Separated the monolithic Next.js application into distinct frontend and backend services
+  - **Frontend**: Next.js 15 application (port 4000) focused on UI and rendering
+  - **Backend**: Node.js/Express application (port 5000) handling API, database connections, and business logic
+  - **API Proxy**: Frontend proxies API requests to the backend transparently
+  - **Improved Scalability**: Better separation of concerns and easier independent scaling
+- **Backend Migration**: Migrated core API routes to Express
+  - Photos API (`/api/photos`, `/api/photos/[id]`, `/api/photos/bulk-update`)
+  - Albums API (`/api/albums`, `/api/albums/[id]`, `/api/albums/[id]/photos`, `/api/albums/by-alias/[alias]`)
+  - Admin APIs for People, Locations, Tags
+  - Face Recognition processing moved to dedicated backend service
+- **Database Optimization**:
+  - Direct Mongoose integration in backend service
+  - Improved connection handling and model registration
+  - Fixed orphaned data issues during migration
+
 ### Added
 - **Face Recognition System**: Complete face detection and recognition functionality
   - Client-side face detection using face-api.js with TinyFaceDetector model
