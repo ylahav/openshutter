@@ -24,7 +24,9 @@ const Hero: React.FC = () => {
         const res = await fetch('/api/photos/gallery-leading?limit=10');
         if (res.ok) {
           const data = await res.json();
-          if (data.success) setPhotos(data.data);
+          // Note: /api/photos/gallery-leading may be a Next.js route, handle both formats
+          const photos = data.success ? data.data : (Array.isArray(data) ? data : data.data || [])
+          setPhotos(Array.isArray(photos) ? photos : [])
         }
       } catch {}
       finally { setLoading(false); }

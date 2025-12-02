@@ -33,9 +33,9 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.PhotoModel = void 0;
+exports.PhotoModel = exports.PhotoSchema = void 0;
 const mongoose_1 = __importStar(require("mongoose"));
-const PhotoSchema = new mongoose_1.Schema({
+exports.PhotoSchema = new mongoose_1.Schema({
     title: {
         type: mongoose_1.Schema.Types.Mixed,
         required: true,
@@ -165,13 +165,13 @@ const PhotoSchema = new mongoose_1.Schema({
     timestamps: true
 });
 // Indexes
-PhotoSchema.index({ albumId: 1 });
-PhotoSchema.index({ uploadedBy: 1 });
-PhotoSchema.index({ people: 1 });
-PhotoSchema.index({ tags: 1 });
-PhotoSchema.index({ location: 1 });
-PhotoSchema.index({ isPublished: 1 });
-PhotoSchema.index({ uploadedAt: -1 });
+exports.PhotoSchema.index({ albumId: 1 });
+exports.PhotoSchema.index({ uploadedBy: 1 });
+exports.PhotoSchema.index({ people: 1 });
+exports.PhotoSchema.index({ tags: 1 });
+exports.PhotoSchema.index({ location: 1 });
+exports.PhotoSchema.index({ isPublished: 1 });
+exports.PhotoSchema.index({ uploadedAt: -1 });
 // filename index is already defined as unique: true in the schema
 exports.PhotoModel = mongoose_1.default.models.Photo ||
-    mongoose_1.default.model('Photo', PhotoSchema);
+    mongoose_1.default.model('Photo', exports.PhotoSchema);

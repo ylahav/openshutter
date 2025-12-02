@@ -36,24 +36,22 @@ export default function AlbumPage() {
 
         const albumRes = await fetch(`/api/albums/by-alias/${alias}`)
         if (!albumRes.ok) throw new Error('Album not found')
-        const albumJson = await albumRes.json()
-        if (!albumJson.success) throw new Error(albumJson.error || 'Failed to fetch album')
-        const a: TemplateAlbum = albumJson.data
+        const a: TemplateAlbum = await albumRes.json()
         setAlbum(a)
 
         const photosRes = await fetch(`/api/albums/${a._id}/photos`)
         if (photosRes.ok) {
           const photosJson = await photosRes.json()
-          if (photosJson.success) {
-            const photosData = photosJson.data.photos || photosJson.data
-            setPhotos(Array.isArray(photosData) ? photosData : [])
-          }
+          // Backend returns { photos: [...], pagination: {...} }
+          const photosData = photosJson.photos || []
+          setPhotos(Array.isArray(photosData) ? photosData : [])
         }
 
         const subAlbumsRes = await fetch(`/api/albums?parentId=${a._id}`)
         if (subAlbumsRes.ok) {
-          const subAlbumsJson = await subAlbumsRes.json()
-          if (subAlbumsJson.success) setSubAlbums(subAlbumsJson.data)
+          const subAlbums = await subAlbumsRes.json()
+          // Backend returns array directly
+          setSubAlbums(Array.isArray(subAlbums) ? subAlbums : [])
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch album')

@@ -42,9 +42,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.AlbumModel = void 0;
+exports.AlbumModel = exports.AlbumSchema = void 0;
 const mongoose_1 = __importStar(require("mongoose"));
-const AlbumSchema = new mongoose_1.Schema({
+exports.AlbumSchema = new mongoose_1.Schema({
     name: {
         type: String,
         required: true,
@@ -151,32 +151,32 @@ const AlbumSchema = new mongoose_1.Schema({
     }
 });
 // Update timestamps
-AlbumSchema.pre('save', function () {
+exports.AlbumSchema.pre('save', function () {
     this.updatedAt = new Date();
 });
 // Indexes for performance
-AlbumSchema.index({ parentAlbumId: 1, order: 1 });
-AlbumSchema.index({ level: 1 });
-AlbumSchema.index({ isPublic: 1 });
-AlbumSchema.index({ isFeatured: 1 });
-AlbumSchema.index({ firstPhotoDate: 1 });
-AlbumSchema.index({ lastPhotoDate: 1 });
-AlbumSchema.index({ tags: 1 });
+exports.AlbumSchema.index({ parentAlbumId: 1, order: 1 });
+exports.AlbumSchema.index({ level: 1 });
+exports.AlbumSchema.index({ isPublic: 1 });
+exports.AlbumSchema.index({ isFeatured: 1 });
+exports.AlbumSchema.index({ firstPhotoDate: 1 });
+exports.AlbumSchema.index({ lastPhotoDate: 1 });
+exports.AlbumSchema.index({ tags: 1 });
 // Virtual for full path
-AlbumSchema.virtual('fullPath').get(function () {
+exports.AlbumSchema.virtual('fullPath').get(function () {
     if (this.parentPath) {
         return `${this.parentPath}/${this.alias}`;
     }
     return this.alias;
 });
 // Method to get children
-AlbumSchema.methods.getChildren = function () {
+exports.AlbumSchema.methods.getChildren = function () {
     return __awaiter(this, void 0, void 0, function* () {
         return yield this.model('Album').find({ parentAlbumId: this._id }).sort({ order: 1 });
     });
 };
 // Method to get siblings
-AlbumSchema.methods.getSiblings = function () {
+exports.AlbumSchema.methods.getSiblings = function () {
     return __awaiter(this, void 0, void 0, function* () {
         if (!this.parentAlbumId) {
             return yield this.model('Album').find({ parentAlbumId: null }).sort({ order: 1 });
@@ -185,7 +185,7 @@ AlbumSchema.methods.getSiblings = function () {
     });
 };
 // Method to get ancestors
-AlbumSchema.methods.getAncestors = function () {
+exports.AlbumSchema.methods.getAncestors = function () {
     return __awaiter(this, void 0, void 0, function* () {
         const ancestors = [];
         let current = this;
@@ -202,4 +202,4 @@ AlbumSchema.methods.getAncestors = function () {
     });
 };
 exports.AlbumModel = mongoose_1.default.models.Album ||
-    mongoose_1.default.model('Album', AlbumSchema);
+    mongoose_1.default.model('Album', exports.AlbumSchema);

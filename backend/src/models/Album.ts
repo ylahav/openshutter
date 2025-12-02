@@ -39,7 +39,7 @@ export interface IAlbum extends Omit<Album, '_id' | 'createdBy' | 'parentAlbumId
   allowedUsers?: Types.ObjectId[]
 }
 
-const AlbumSchema = new Schema<IAlbum>({
+export const AlbumSchema = new Schema<IAlbum>({
   name: {
     type: String,
     required: true,

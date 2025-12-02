@@ -29,7 +29,7 @@ export interface IPerson extends Document {
   updatedAt: Date
 }
 
-const PersonSchema = new Schema<IPerson>({
+export const PersonSchema = new Schema<IPerson>({
   firstName: {
     type: Schema.Types.Mixed,
     required: true,

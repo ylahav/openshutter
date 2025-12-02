@@ -42,9 +42,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.PersonModel = void 0;
+exports.PersonModel = exports.PersonSchema = void 0;
 const mongoose_1 = __importStar(require("mongoose"));
-const PersonSchema = new mongoose_1.Schema({
+exports.PersonSchema = new mongoose_1.Schema({
     firstName: {
         type: mongoose_1.Schema.Types.Mixed,
         required: true,
@@ -113,7 +113,7 @@ const PersonSchema = new mongoose_1.Schema({
     timestamps: true
 });
 // Create fullName before saving
-PersonSchema.pre('save', function () {
+exports.PersonSchema.pre('save', function () {
     return __awaiter(this, void 0, void 0, function* () {
         if (this.firstName && this.lastName) {
             this.fullName = {};
@@ -132,18 +132,18 @@ PersonSchema.pre('save', function () {
     });
 });
 // Indexes for performance
-PersonSchema.index({ firstName: 1, lastName: 1 });
-PersonSchema.index({ fullName: 1 });
-PersonSchema.index({ nickname: 1 });
-PersonSchema.index({ tags: 1 });
-PersonSchema.index({ isActive: 1 });
-PersonSchema.index({ createdBy: 1 });
+exports.PersonSchema.index({ firstName: 1, lastName: 1 });
+exports.PersonSchema.index({ fullName: 1 });
+exports.PersonSchema.index({ nickname: 1 });
+exports.PersonSchema.index({ tags: 1 });
+exports.PersonSchema.index({ isActive: 1 });
+exports.PersonSchema.index({ createdBy: 1 });
 // Text search index - using wildcard to index all language fields
-PersonSchema.index({
+exports.PersonSchema.index({
     'firstName.*': 'text',
     'lastName.*': 'text',
     'fullName.*': 'text',
     'nickname.*': 'text',
     'description.*': 'text'
 });
-exports.PersonModel = mongoose_1.default.models.Person || mongoose_1.default.model('Person', PersonSchema);
+exports.PersonModel = mongoose_1.default.models.Person || mongoose_1.default.model('Person', exports.PersonSchema);

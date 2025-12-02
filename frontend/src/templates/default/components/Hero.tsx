@@ -42,9 +42,9 @@ export default function Hero({
         const response = await fetch('/api/photos/gallery-leading?limit=3')
         if (response.ok) {
           const data = await response.json()
-          if (data.success) {
-            setGalleryPhotos(data.data)
-          }
+          // Note: /api/photos/gallery-leading may be a Next.js route, handle both formats
+          const photos = data.success ? data.data : (Array.isArray(data) ? data : data.data || [])
+          setGalleryPhotos(Array.isArray(photos) ? photos : [])
         }
       } catch (error) {
         console.error('Failed to fetch gallery photos:', error)

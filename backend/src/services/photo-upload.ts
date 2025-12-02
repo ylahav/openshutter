@@ -1,5 +1,5 @@
+import { Injectable } from '@nestjs/common';
 import sharp from 'sharp'
-import { connectDB } from '../config/db'
 import { storageManager } from './storage/manager'
 import mongoose, { Types } from 'mongoose'
 import { ThumbnailGenerator } from './thumbnail-generator'
@@ -28,20 +28,19 @@ export interface PhotoUploadResult {
   exifData?: any
 }
 
+@Injectable()
 export class PhotoUploadService {
   private static readonly THUMBNAIL_WIDTH = 300
   private static readonly THUMBNAIL_HEIGHT = 300
   private static readonly THUMBNAIL_QUALITY = 80
 
-  static async uploadPhoto(
+  async uploadPhoto(
     fileBuffer: Buffer,
     originalFilename: string,
     mimeType: string,
     options: PhotoUploadOptions & { uploadedBy?: string } = {}
   ): Promise<PhotoUploadResult> {
     try {
-      // Connect to database
-      await connectDB()
       const db = mongoose.connection.db;
       
       if (!db) {
@@ -303,7 +302,7 @@ export class PhotoUploadService {
 
   // Folder creation is handled when albums are created, not during photo upload
 
-  private static async ensurePhotosCollection(db: any): Promise<void> {
+  private async ensurePhotosCollection(db: any): Promise<void> {
     try {
       const existing = await db.listCollections({ name: 'photos' }).toArray()
       if (existing.length === 0) {

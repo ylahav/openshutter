@@ -14,13 +14,28 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.connectDB = void 0;
 const mongoose_1 = __importDefault(require("mongoose"));
-const dotenv_1 = __importDefault(require("dotenv"));
-dotenv_1.default.config();
-const MONGODB_URI = process.env.MONGODB_URI;
-if (!MONGODB_URI) {
-    throw new Error('Please define the MONGODB_URI environment variable');
-}
+/**
+ * Ensure MongoDB connection is established
+ * Note: In NestJS, the database connection is handled by DatabaseModule,
+ * but this function can be used by standalone services that need to ensure connection
+ */
 const connectDB = () => __awaiter(void 0, void 0, void 0, function* () {
+    // If already connected, return the connection
+    if (mongoose_1.default.connection.readyState === 1) {
+        return mongoose_1.default.connection;
+    }
+    // If connecting, wait for it
+    if (mongoose_1.default.connection.readyState === 2) {
+        return new Promise((resolve, reject) => {
+            mongoose_1.default.connection.once('connected', () => resolve(mongoose_1.default.connection));
+            mongoose_1.default.connection.once('error', reject);
+        });
+    }
+    // Otherwise, connect (this should rarely happen in NestJS context)
+    const MONGODB_URI = process.env.MONGODB_URI;
+    if (!MONGODB_URI) {
+        throw new Error('Please define the MONGODB_URI environment variable');
+    }
     try {
         const conn = yield mongoose_1.default.connect(MONGODB_URI);
         console.log(`MongoDB Connected: ${conn.connection.host}`);
@@ -28,7 +43,7 @@ const connectDB = () => __awaiter(void 0, void 0, void 0, function* () {
     }
     catch (error) {
         console.error('Error connecting to MongoDB:', error);
-        process.exit(1);
+        throw error;
     }
 });
 exports.connectDB = connectDB;

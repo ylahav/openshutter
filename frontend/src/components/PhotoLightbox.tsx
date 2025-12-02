@@ -157,39 +157,38 @@ export default function PhotoLightbox({
     const fetchFaceData = async () => {
       try {
         const response = await fetch(`/api/photos/${photo._id}`)
-      if (response.ok) {
-        const result = await response.json()
-        if (result.success && result.data?.faceRecognition?.faces?.length > 0) {
-          // Fetch person names for matched faces (only if authenticated)
-          const facesWithNames = await Promise.all(
-            result.data.faceRecognition.faces.map(async (face: any) => {
-              if (face.matchedPersonId) {
-                try {
-                  const personResponse = await fetch(`/api/people/${face.matchedPersonId}`)
-                  if (personResponse.ok) {
-                    const personData = await personResponse.json()
-                    if (personData.success && personData.data) {
-                      const person = personData.data
+        if (response.ok) {
+          const photoData = await response.json()
+          if (photoData?.faceRecognition?.faces?.length > 0) {
+            // Fetch person names for matched faces (only if authenticated)
+            const facesWithNames = await Promise.all(
+              photoData.faceRecognition.faces.map(async (face: any) => {
+                if (face.matchedPersonId) {
+                  try {
+                    const personResponse = await fetch(`/api/people/${face.matchedPersonId}`)
+                    if (personResponse.ok) {
+                      const personData = await personResponse.json()
+                      // Note: /api/people is a Next.js route, may still use success wrapper
+                      const person = personData.success ? personData.data : personData
                       const name = person.fullName?.en || person.fullName?.he || person.firstName?.en || person.firstName?.he || 'Unknown'
                       return { ...face, personName: name }
                     }
+                  } catch (err) {
+                    // Silently fail if not authenticated or person not found
+                    console.debug('Could not fetch person name:', err)
                   }
-                } catch (err) {
-                  // Silently fail if not authenticated or person not found
-                  console.debug('Could not fetch person name:', err)
                 }
-              }
-              return face
+                return face
+              })
+            )
+            setFaceData({
+              faces: facesWithNames,
+              imageSize: { width: 0, height: 0 } // Will be updated when image loads
             })
-          )
-          setFaceData({
-            faces: facesWithNames,
-            imageSize: { width: 0, height: 0 } // Will be updated when image loads
-          })
-        } else {
-          setFaceData(null)
+          } else {
+            setFaceData(null)
+          }
         }
-      }
       } catch (error) {
         console.error('Failed to fetch face data:', error)
         setFaceData(null)

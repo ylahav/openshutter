@@ -15,6 +15,12 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 }) : function(o, v) {
     o["default"] = v;
 });
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
 var __importStar = (this && this.__importStar) || (function () {
     var ownKeys = function(o) {
         ownKeys = Object.getOwnPropertyNames || function (o) {
@@ -46,19 +52,17 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PhotoUploadService = void 0;
+const common_1 = require("@nestjs/common");
 const sharp_1 = __importDefault(require("sharp"));
-const db_1 = require("../config/db");
 const manager_1 = require("./storage/manager");
 const mongoose_1 = __importStar(require("mongoose"));
 const thumbnail_generator_1 = require("./thumbnail-generator");
 const image_compression_1 = require("./image-compression");
 const { ObjectId } = mongoose_1.Types;
-class PhotoUploadService {
-    static uploadPhoto(fileBuffer_1, originalFilename_1, mimeType_1) {
+let PhotoUploadService = class PhotoUploadService {
+    uploadPhoto(fileBuffer_1, originalFilename_1, mimeType_1) {
         return __awaiter(this, arguments, void 0, function* (fileBuffer, originalFilename, mimeType, options = {}) {
             try {
-                // Connect to database
-                yield (0, db_1.connectDB)();
                 const db = mongoose_1.default.connection.db;
                 if (!db) {
                     throw new Error('Database connection not established');
@@ -289,7 +293,7 @@ class PhotoUploadService {
         });
     }
     // Folder creation is handled when albums are created, not during photo upload
-    static ensurePhotosCollection(db) {
+    ensurePhotosCollection(db) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const existing = yield db.listCollections({ name: 'photos' }).toArray();
@@ -313,8 +317,11 @@ class PhotoUploadService {
             }
         });
     }
-}
+};
 exports.PhotoUploadService = PhotoUploadService;
 PhotoUploadService.THUMBNAIL_WIDTH = 300;
 PhotoUploadService.THUMBNAIL_HEIGHT = 300;
 PhotoUploadService.THUMBNAIL_QUALITY = 80;
+exports.PhotoUploadService = PhotoUploadService = __decorate([
+    (0, common_1.Injectable)()
+], PhotoUploadService);

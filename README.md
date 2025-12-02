@@ -33,7 +33,7 @@ A comprehensive photo gallery management system with multi-storage support, adva
 ## 🚀 Tech Stack
 
 - **Frontend**: Next.js 15, React 19, TypeScript, Tailwind CSS
-- **Backend**: Node.js, Express, Mongoose
+- **Backend**: Node.js, NestJS, Mongoose
 - **Database**: MongoDB
 - **Storage**: Google Drive API, AWS S3, Backblaze B2, Wasabi, Local Storage
 - **Authentication**: NextAuth.js
@@ -212,13 +212,17 @@ For detailed deployment instructions, see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.m
 │   ├── public/          # Static assets
 │   └── next.config.js   # Frontend configuration & proxy setup
 │
-├── backend/             # Node.js/Express backend application
+├── backend/             # Node.js/NestJS backend application
 │   ├── src/
-│   │   ├── config/      # Database and server config
+│   │   ├── albums/      # Albums module (controller, service, module)
+│   │   ├── photos/      # Photos module (controller, service, module)
+│   │   ├── config/      # Configuration (NestJS ConfigModule)
+│   │   ├── database/    # Database module (Mongoose integration)
 │   │   ├── models/      # Mongoose models (Album, Photo, etc.)
-│   │   ├── routes/      # Express API routes
 │   │   ├── services/    # Business logic (Upload, Storage, etc.)
-│   │   └── index.ts     # Server entry point
+│   │   ├── common/      # Shared filters, interceptors, etc.
+│   │   ├── app.module.ts # Root NestJS module
+│   │   └── main.ts      # NestJS application entry point
 │   └── package.json     # Backend dependencies
 │
 └── docker-compose.yml   # Orchestration for frontend, backend, and db

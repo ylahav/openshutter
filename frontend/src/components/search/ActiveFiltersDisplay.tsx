@@ -32,10 +32,12 @@ export function ActiveFiltersDisplay({
       fetch(`/api/albums/${filters.albumId}`)
         .then(res => res.json())
         .then(data => {
-          if (data.success && data.data) {
-            const name = typeof data.data.name === 'string'
-              ? data.data.name
-              : MultiLangUtils.getTextValue(data.data.name, currentLanguage)
+          // Handle both old format (with success wrapper) and new format (direct data)
+          const album = data.success ? data.data : data
+          if (album) {
+            const name = typeof album.name === 'string'
+              ? album.name
+              : MultiLangUtils.getTextValue(album.name, currentLanguage)
             setAlbumName(name)
           }
         })

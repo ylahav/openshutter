@@ -33,9 +33,9 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.TagModel = void 0;
+exports.TagModel = exports.TagSchema = void 0;
 const mongoose_1 = __importStar(require("mongoose"));
-const TagSchema = new mongoose_1.Schema({
+exports.TagSchema = new mongoose_1.Schema({
     name: {
         type: String,
         required: true,
@@ -75,22 +75,22 @@ const TagSchema = new mongoose_1.Schema({
 });
 // Indexes for performance
 // Note: name index is already defined as unique: true in the schema
-TagSchema.index({ category: 1 });
-TagSchema.index({ isActive: 1 });
-TagSchema.index({ usageCount: -1 });
-TagSchema.index({ createdBy: 1 });
+exports.TagSchema.index({ category: 1 });
+exports.TagSchema.index({ isActive: 1 });
+exports.TagSchema.index({ usageCount: -1 });
+exports.TagSchema.index({ createdBy: 1 });
 // Text search index
-TagSchema.index({
+exports.TagSchema.index({
     name: 'text',
     description: 'text'
 });
 // Update usage count when tag is used
-TagSchema.methods.incrementUsage = function () {
+exports.TagSchema.methods.incrementUsage = function () {
     this.usageCount += 1;
     return this.save();
 };
-TagSchema.methods.decrementUsage = function () {
+exports.TagSchema.methods.decrementUsage = function () {
     this.usageCount = Math.max(0, this.usageCount - 1);
     return this.save();
 };
-exports.TagModel = mongoose_1.default.models.Tag || mongoose_1.default.model('Tag', TagSchema);
+exports.TagModel = mongoose_1.default.models.Tag || mongoose_1.default.model('Tag', exports.TagSchema);

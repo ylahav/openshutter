@@ -77,9 +77,9 @@ export default function FaceMatchingPanel({
           const photoResponse = await fetch(`/api/photos/${photoId}`)
           if (photoResponse.ok) {
             const photoData = await photoResponse.json()
-            if (photoData.success && photoData.data?.faceRecognition?.faces) {
+            if (photoData?.faceRecognition?.faces) {
               // Update faces with matched data
-              const updatedFaces = photoData.data.faceRecognition.faces.map((face: any) => ({
+              const updatedFaces = photoData.faceRecognition.faces.map((face: any) => ({
                 box: face.box,
                 matchedPersonId: face.matchedPersonId?.toString(),
                 confidence: face.confidence

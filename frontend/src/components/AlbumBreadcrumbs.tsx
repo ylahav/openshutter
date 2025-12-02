@@ -60,10 +60,10 @@ export default function AlbumBreadcrumbs({ album, role = 'public', currentPage }
           try {
             const response = await fetch(`/api/albums/${currentParentId}`)
             if (response.ok) {
-              const result = await response.json()
-              if (result.success && result.data) {
-                parentChain.push(result.data)
-                currentParentId = (result.data as any).parentAlbumId
+              const album = await response.json()
+              if (album) {
+                parentChain.push(album)
+                currentParentId = (album as any).parentAlbumId
               } else {
                 break
               }

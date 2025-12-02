@@ -47,10 +47,9 @@ export default function PhotoUpload() {
       try {
         const response = await fetch('/api/albums')
         if (response.ok) {
-          const result = await response.json()
-          if (result.success) {
-            setAlbums(result.data)
-          }
+          const albums = await response.json()
+          // Backend returns array directly
+          setAlbums(Array.isArray(albums) ? albums : [])
         }
       } catch (error) {
         console.error('Failed to load albums:', error)

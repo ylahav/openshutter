@@ -21,7 +21,7 @@ export interface ILocation extends Document {
   updatedAt: Date
 }
 
-const LocationSchema = new Schema<ILocation>({
+export const LocationSchema = new Schema<ILocation>({
   name: {
     en: { type: String, trim: true },
     he: { type: String, trim: true }

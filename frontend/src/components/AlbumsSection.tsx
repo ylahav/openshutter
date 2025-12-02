@@ -26,13 +26,15 @@ export default function AlbumsSection() {
           throw new Error('Failed to fetch albums')
         }
         
-        const result = await response.json()
-        if (result.success) {
-          // Filter to only root albums (level 0)
-          const rootAlbums = result.data.filter((album: TemplateAlbum) => album.level === 0)
+        const albums = await response.json()
+        // Backend returns array directly
+        // Filter to only root albums (level 0)
+        if (Array.isArray(albums)) {
+          const rootAlbums = albums.filter((album: TemplateAlbum) => album.level === 0)
           setAlbums(rootAlbums)
         } else {
-          console.error('API returned error:', result.error)
+          console.error('API returned unexpected format:', albums)
+          setAlbums([])
         }
       } catch (error) {
         console.error('Failed to fetch albums:', error)

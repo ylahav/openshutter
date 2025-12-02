@@ -77,7 +77,7 @@ export interface IPhoto extends Document {
   }
 }
 
-const PhotoSchema = new Schema<IPhoto>({
+export const PhotoSchema = new Schema<IPhoto>({
   title: {
     type: Schema.Types.Mixed,
     required: true,

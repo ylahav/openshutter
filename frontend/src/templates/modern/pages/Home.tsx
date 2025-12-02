@@ -30,8 +30,10 @@ export default function HomePage() {
         const response = await fetch('/api/photos/gallery-leading?limit=10')
         if (response.ok) {
           const result = await response.json()
-          if (result.success && result.data && result.data.length > 0) {
-            setLeadingPhotos(result.data)
+          // Note: /api/photos/gallery-leading may be a Next.js route, handle both formats
+          const photos = result.success ? result.data : (Array.isArray(result) ? result : result.data || [])
+          if (Array.isArray(photos) && photos.length > 0) {
+            setLeadingPhotos(photos)
           }
         }
       } catch (error) {

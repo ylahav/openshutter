@@ -30,12 +30,8 @@ export default function AdminAlbumDetailPage({ params }: { params: Promise<{ id:
           throw new Error('Failed to fetch album')
         }
         
-        const result = await response.json()
-        if (result.success) {
-          setAlbum(result.data)
-        } else {
-          setError(result.error || 'Failed to fetch album')
-        }
+        const album = await response.json()
+        setAlbum(album)
       } catch (error) {
         console.error('Failed to fetch album:', error)
         setError('Failed to fetch album')

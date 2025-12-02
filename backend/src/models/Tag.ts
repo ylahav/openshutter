@@ -12,7 +12,7 @@ export interface ITag extends Document {
   updatedAt: Date
 }
 
-const TagSchema = new Schema<ITag>({
+export const TagSchema = new Schema<ITag>({
   name: {
     type: String,
     required: true,

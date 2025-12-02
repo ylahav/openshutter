@@ -69,12 +69,9 @@ export default function AdminAlbumsPage() {
         throw new Error('Failed to fetch albums')
       }
       
-      const result = await response.json()
-      if (result.success) {
-        setAlbums(result.data)
-      } else {
-        setError(result.error || 'Failed to fetch albums')
-      }
+      const albums = await response.json()
+      // Backend returns array directly
+      setAlbums(Array.isArray(albums) ? albums : [])
     } catch (error) {
       console.error('Failed to fetch albums:', error)
       setError('Failed to fetch albums')

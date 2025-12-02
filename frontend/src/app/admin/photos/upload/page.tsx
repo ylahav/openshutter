@@ -42,15 +42,13 @@ function PhotoUploadPageContent() {
     try {
       const response = await fetch(`/api/albums/${albumId}`)
       if (response.ok) {
-        const result = await response.json()
-        if (result.success) {
-          // Handle multilingual album name - extract text value using MultiLangUtils
-          const name = result.data.name
-          const nameText = typeof name === 'string' 
-            ? name 
-            : MultiLangUtils.getTextValue(name, currentLanguage) || 'Album'
-          setAlbumName(nameText)
-        }
+        const album = await response.json()
+        // Handle multilingual album name - extract text value using MultiLangUtils
+        const name = album.name
+        const nameText = typeof name === 'string' 
+          ? name 
+          : MultiLangUtils.getTextValue(name, currentLanguage) || 'Album'
+        setAlbumName(nameText)
       }
     } catch (error) {
       console.error('Failed to fetch album name:', error)

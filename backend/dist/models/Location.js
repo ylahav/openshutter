@@ -33,9 +33,9 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.LocationModel = void 0;
+exports.LocationModel = exports.LocationSchema = void 0;
 const mongoose_1 = __importStar(require("mongoose"));
-const LocationSchema = new mongoose_1.Schema({
+exports.LocationSchema = new mongoose_1.Schema({
     name: {
         en: { type: String, trim: true },
         he: { type: String, trim: true }
@@ -103,17 +103,17 @@ const LocationSchema = new mongoose_1.Schema({
     timestamps: true
 });
 // Indexes for performance
-LocationSchema.index({ name: 1 });
-LocationSchema.index({ city: 1 });
-LocationSchema.index({ country: 1 });
-LocationSchema.index({ category: 1 });
-LocationSchema.index({ isActive: 1 });
-LocationSchema.index({ usageCount: -1 });
-LocationSchema.index({ createdBy: 1 });
+exports.LocationSchema.index({ name: 1 });
+exports.LocationSchema.index({ city: 1 });
+exports.LocationSchema.index({ country: 1 });
+exports.LocationSchema.index({ category: 1 });
+exports.LocationSchema.index({ isActive: 1 });
+exports.LocationSchema.index({ usageCount: -1 });
+exports.LocationSchema.index({ createdBy: 1 });
 // Geospatial index for coordinates
-LocationSchema.index({ 'coordinates.latitude': 1, 'coordinates.longitude': 1 });
+exports.LocationSchema.index({ 'coordinates.latitude': 1, 'coordinates.longitude': 1 });
 // Text search index
-LocationSchema.index({
+exports.LocationSchema.index({
     name: 'text',
     description: 'text',
     address: 'text',
@@ -122,12 +122,12 @@ LocationSchema.index({
     country: 'text'
 });
 // Update usage count when location is used
-LocationSchema.methods.incrementUsage = function () {
+exports.LocationSchema.methods.incrementUsage = function () {
     this.usageCount += 1;
     return this.save();
 };
-LocationSchema.methods.decrementUsage = function () {
+exports.LocationSchema.methods.decrementUsage = function () {
     this.usageCount = Math.max(0, this.usageCount - 1);
     return this.save();
 };
-exports.LocationModel = mongoose_1.default.models.Location || mongoose_1.default.model('Location', LocationSchema);
+exports.LocationModel = mongoose_1.default.models.Location || mongoose_1.default.model('Location', exports.LocationSchema);

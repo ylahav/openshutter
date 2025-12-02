@@ -28,14 +28,13 @@ export default function HomePage() {
           throw new Error('Failed to fetch albums')
         }
         
-        const result = await response.json()
-        if (result.success) {
-          const albums = result.data
-          
+        const albums = await response.json()
+        // Backend returns array directly
+        if (Array.isArray(albums)) {
           // API already handles access control, so we can use all returned albums
           setRootAlbums(albums)
         } else {
-          setError(result.error || 'Failed to fetch albums')
+          setError('Failed to fetch albums')
         }
       } catch (error) {
         console.error('Failed to fetch albums:', error)

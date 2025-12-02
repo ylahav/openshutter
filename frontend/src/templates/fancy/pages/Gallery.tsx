@@ -26,13 +26,11 @@ export default function GalleryPage() {
     try {
       const response = await fetch(`/api/photos/${coverPhotoId}?t=${Date.now()}`, { cache: 'no-store' })
       if (response.ok) {
-        const result = await response.json()
-        if (result.success) {
-          setCoverPhotos(prev => ({
-            ...prev,
-            [albumId]: result.data
-          }))
-        }
+        const photo = await response.json()
+        setCoverPhotos(prev => ({
+          ...prev,
+          [albumId]: photo
+        }))
       }
     } catch (error) {
       console.error(`Failed to fetch cover photo for album ${albumId}:`, error)
@@ -51,9 +49,9 @@ export default function GalleryPage() {
           throw new Error('Failed to fetch albums')
         }
         
-        const result = await response.json()
-        if (result.success) {
-          const albums = result.data
+        const albums = await response.json()
+        // Backend returns array directly
+        if (Array.isArray(albums)) {
           
           // Sort albums by order
           const sortedAlbums = albums.sort((a: TemplateAlbum, b: TemplateAlbum) => (a.order || 0) - (b.order || 0))
@@ -66,7 +64,8 @@ export default function GalleryPage() {
             }
           })
         } else {
-          setError(result.error || 'Failed to fetch albums')
+          console.error('API returned unexpected format:', albums)
+          setError('Failed to fetch albums')
         }
       } catch (error) {
         console.error('Failed to fetch albums:', error)

@@ -61,9 +61,9 @@ export default function PhotoFaceRecognition({
     try {
       const response = await fetch(`/api/photos/${photoId}`)
       if (response.ok) {
-        const result = await response.json()
-        if (result.success && result.data?.faceRecognition?.faces) {
-          const updatedFaces = result.data.faceRecognition.faces.map((face: any) => ({
+        const photo = await response.json()
+        if (photo?.faceRecognition?.faces) {
+          const updatedFaces = photo.faceRecognition.faces.map((face: any) => ({
             box: face.box,
             landmarks: face.landmarks,
             matchedPersonId: face.matchedPersonId?.toString(),

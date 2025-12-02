@@ -27,13 +27,11 @@ export function useAlbumData(alias: string | undefined): UseAlbumDataResult {
     try {
       const response = await fetch(`/api/photos/${coverPhotoId}?t=${Date.now()}`, { cache: 'no-store' })
       if (response.ok) {
-        const result = await response.json()
-        if (result.success) {
-          setSubAlbumCoverPhotos(prev => ({
-            ...prev,
-            [albumId]: result.data
-          }))
-        }
+        const photo = await response.json()
+        setSubAlbumCoverPhotos(prev => ({
+          ...prev,
+          [albumId]: photo
+        }))
       }
     } catch (error) {
       console.error(`Failed to fetch cover photo for sub-album ${albumId}:`, error)
@@ -54,37 +52,31 @@ export function useAlbumData(alias: string | undefined): UseAlbumDataResult {
           throw new Error('Album not found')
         }
         
-        const albumResult = await albumResponse.json()
-        if (!albumResult.success) {
-          throw new Error(albumResult.error || 'Failed to fetch album')
-        }
-        
-        setAlbum(albumResult.data)
+        const album = await albumResponse.json()
+        setAlbum(album)
 
         // Fetch photos for this album
-        const photosResponse = await fetch(`/api/albums/${albumResult.data._id}/photos?t=${Date.now()}`, { cache: 'no-store' })
+        const photosResponse = await fetch(`/api/albums/${album._id}/photos?t=${Date.now()}`, { cache: 'no-store' })
         if (photosResponse.ok) {
           const photosResult = await photosResponse.json()
-          if (photosResult.success) {
-            const photosData = photosResult.data.photos || photosResult.data
-            setPhotos(Array.isArray(photosData) ? photosData : [])
-          }
+          // Backend returns { photos: [...], pagination: {...} }
+          const photosData = photosResult.photos || []
+          setPhotos(Array.isArray(photosData) ? photosData : [])
         }
 
         // Fetch sub-albums
-        const subAlbumsResponse = await fetch(`/api/albums?parentId=${albumResult.data._id}&t=${Date.now()}`, { cache: 'no-store' })
+        const subAlbumsResponse = await fetch(`/api/albums?parentId=${album._id}&t=${Date.now()}`, { cache: 'no-store' })
         if (subAlbumsResponse.ok) {
-          const subAlbumsResult = await subAlbumsResponse.json()
-          if (subAlbumsResult.success) {
-            setSubAlbums(subAlbumsResult.data)
-            
-            // Fetch cover photos for sub-albums that have them
-            subAlbumsResult.data.forEach((subAlbum: TemplateAlbum) => {
-              if (subAlbum.coverPhotoId) {
-                fetchSubAlbumCoverPhoto(subAlbum._id, subAlbum.coverPhotoId)
-              }
-            })
-          }
+          const subAlbums = await subAlbumsResponse.json()
+          // Backend returns array directly
+          setSubAlbums(Array.isArray(subAlbums) ? subAlbums : [])
+          
+          // Fetch cover photos for sub-albums that have them
+          subAlbums.forEach((subAlbum: TemplateAlbum) => {
+            if (subAlbum.coverPhotoId) {
+              fetchSubAlbumCoverPhoto(subAlbum._id, subAlbum.coverPhotoId)
+            }
+          })
         }
       } catch (err) {
         console.error('Failed to fetch album data:', err)

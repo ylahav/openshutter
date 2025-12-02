@@ -27,13 +27,11 @@ export default function GalleryPage() {
     try {
       const response = await fetch(`/api/photos/${coverPhotoId}`)
       if (response.ok) {
-        const result = await response.json()
-        if (result.success) {
-          setCoverPhotos(prev => ({
-            ...prev,
-            [albumId]: result.data
-          }))
-        }
+        const photo = await response.json()
+        setCoverPhotos(prev => ({
+          ...prev,
+          [albumId]: photo
+        }))
       }
     } catch (error) {
       console.error(`Failed to fetch cover photo for album ${albumId}:`, error)
@@ -51,9 +49,9 @@ export default function GalleryPage() {
           throw new Error('Failed to fetch albums')
         }
         
-        const result = await response.json()
-        if (result.success) {
-          const albums = result.data
+        const albums = await response.json()
+        // Backend returns array directly
+        if (Array.isArray(albums)) {
           
           // Debug: Log album data to see what we're getting
           console.log('Albums data:', albums)
@@ -69,7 +67,8 @@ export default function GalleryPage() {
             }
           })
         } else {
-          setError(result.error || 'Failed to fetch albums')
+          console.error('API returned unexpected format:', albums)
+          setError('Failed to fetch albums')
         }
       } catch (error) {
         console.error('Failed to fetch albums:', error)
@@ -145,7 +144,9 @@ export default function GalleryPage() {
                     </div>
                     <div className="p-4 flex flex-col flex-grow">
                       <h3 className={`${styles.heading3} mb-2`}>
-                        {MultiLangUtils.getTextValue(album.name, currentLanguage)}
+                        {album.name 
+                          ? MultiLangUtils.getTextValue(album.name, currentLanguage)
+                          : album.alias || 'Untitled Album'}
                       </h3>
                       <div className={`${styles.textSecondary} text-sm mb-2`}>
                         {album.photoCount > 0 && (

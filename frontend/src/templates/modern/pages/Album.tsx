@@ -29,19 +29,46 @@ export default function AlbumPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [subAlbumCoverPhotos, setSubAlbumCoverPhotos] = useState<Record<string, TemplatePhoto>>({})
+  const [pagination, setPagination] = useState<{ page: number; limit: number; total: number; pages: number } | null>(null)
+  const [loadingMore, setLoadingMore] = useState(false)
+
+  // Function to load more photos
+  const loadMorePhotos = async () => {
+    if (!album || !pagination || loadingMore) return
+    
+    const albumId = String(album._id)
+    const nextPage = pagination.page + 1
+    
+    if (nextPage > pagination.pages) return // No more pages
+    
+    try {
+      setLoadingMore(true)
+      const photosResponse = await fetch(`/api/albums/${albumId}/photos?page=${nextPage}&limit=50&t=${Date.now()}`, { cache: 'no-store' })
+      if (photosResponse.ok) {
+        const photosResult = await photosResponse.json()
+        const newPhotos = photosResult.photos || []
+        setPhotos(prev => [...prev, ...newPhotos])
+        if (photosResult.pagination) {
+          setPagination(photosResult.pagination)
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load more photos:', error)
+    } finally {
+      setLoadingMore(false)
+    }
+  }
 
   // Function to fetch cover photo for a sub-album
   const fetchSubAlbumCoverPhoto = async (albumId: string, coverPhotoId: string) => {
     try {
       const response = await fetch(`/api/photos/${coverPhotoId}?t=${Date.now()}`, { cache: 'no-store' })
       if (response.ok) {
-        const result = await response.json()
-        if (result.success) {
-          setSubAlbumCoverPhotos(prev => ({
-            ...prev,
-            [albumId]: result.data
-          }))
-        }
+        const photo = await response.json()
+        setSubAlbumCoverPhotos(prev => ({
+          ...prev,
+          [albumId]: photo
+        }))
       }
     } catch (error) {
       console.error(`Failed to fetch cover photo for sub-album ${albumId}:`, error)
@@ -61,37 +88,47 @@ export default function AlbumPage() {
           throw new Error('Album not found')
         }
         
-        const albumResult = await albumResponse.json()
-        if (!albumResult.success) {
-          throw new Error(albumResult.error || 'Failed to fetch album')
-        }
+        const album = await albumResponse.json()
+        setAlbum(album)
         
-        setAlbum(albumResult.data)
+        // Convert album._id to string (handles both string and ObjectId)
+        const albumId = String(album._id || '')
         
-        // Fetch photos for this album
-        const photosResponse = await fetch(`/api/albums/${albumResult.data._id}/photos?t=${Date.now()}`, { cache: 'no-store' })
+        // Fetch photos for this album (first page)
+        const photosResponse = await fetch(`/api/albums/${albumId}/photos?page=1&limit=50&t=${Date.now()}`, { cache: 'no-store' })
         if (photosResponse.ok) {
           const photosResult = await photosResponse.json()
-          if (photosResult.success) {
-            const photosData = photosResult.data.photos || photosResult.data
-            setPhotos(Array.isArray(photosData) ? photosData : [])
+          // Backend returns { photos: [...], pagination: {...} }
+          const photosData = photosResult.photos || []
+          setPhotos(Array.isArray(photosData) ? photosData : [])
+          if (photosResult.pagination) {
+            setPagination(photosResult.pagination)
           }
         }
         
         // Fetch sub-albums
-        const subAlbumsResponse = await fetch(`/api/albums?parentId=${albumResult.data._id}&t=${Date.now()}`, { cache: 'no-store' })
+        console.log('Fetching sub-albums for album:', { alias, albumId, album })
+        const subAlbumsResponse = await fetch(`/api/albums?parentId=${albumId}&t=${Date.now()}`, { cache: 'no-store' })
         if (subAlbumsResponse.ok) {
-          const subAlbumsResult = await subAlbumsResponse.json()
-          if (subAlbumsResult.success) {
-            setSubAlbums(subAlbumsResult.data)
-            
-            // Fetch cover photos for sub-albums that have them
-            subAlbumsResult.data.forEach((subAlbum: TemplateAlbum) => {
-              if (subAlbum.coverPhotoId) {
-                fetchSubAlbumCoverPhoto(subAlbum._id, subAlbum.coverPhotoId)
-              }
-            })
-          }
+          const subAlbums = await subAlbumsResponse.json()
+          console.log('Sub-albums response:', subAlbums)
+          console.log('First sub-album sample:', subAlbums[0] ? {
+            _id: subAlbums[0]._id,
+            alias: subAlbums[0].alias,
+            name: subAlbums[0].name,
+            nameType: typeof subAlbums[0].name
+          } : 'No albums')
+          // Backend returns array directly
+          setSubAlbums(Array.isArray(subAlbums) ? subAlbums : [])
+          
+          // Fetch cover photos for sub-albums that have them
+          subAlbums.forEach((subAlbum: TemplateAlbum) => {
+            if (subAlbum.coverPhotoId) {
+              fetchSubAlbumCoverPhoto(subAlbum._id, subAlbum.coverPhotoId)
+            }
+          })
+        } else {
+          console.error('Failed to fetch sub-albums:', subAlbumsResponse.status, subAlbumsResponse.statusText)
         }
         
       } catch (error) {
@@ -232,7 +269,11 @@ export default function AlbumPage() {
                       </div>
                       <div className="p-4 flex flex-col grow">
                         <h3 className={`${styles.heading3} mb-2`}>
-                          {MultiLangUtils.getTextValue(subAlbum.name, currentLanguage)}
+                          {subAlbum.name 
+                            ? (typeof subAlbum.name === 'string' 
+                                ? subAlbum.name 
+                                : MultiLangUtils.getTextValue(subAlbum.name, currentLanguage))
+                            : subAlbum.alias || 'Untitled Album'}
                         </h3>
                         <div className={`${styles.textSecondary} text-sm mb-2`}>
                           {subAlbum.photoCount > 0 && (
@@ -302,11 +343,20 @@ export default function AlbumPage() {
                           {/* Tags */}
                           {photo.tags && Array.isArray(photo.tags) && photo.tags.length > 0 && (
                             <>
-                              {photo.tags.slice(0, 2).map((tag: any, tagIdx: number) => (
-                                <span key={tagIdx} className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-blue-100 text-blue-800">
-                                  {typeof tag === 'string' ? tag : MultiLangUtils.getTextValue(tag.name, currentLanguage)}
-                                </span>
-                              ))}
+                              {photo.tags.slice(0, 2).map((tag: any, tagIdx: number) => {
+                                const tagName = typeof tag === 'string' 
+                                  ? tag 
+                                  : (tag.name 
+                                      ? (typeof tag.name === 'string' 
+                                          ? tag.name 
+                                          : MultiLangUtils.getTextValue(tag.name, currentLanguage))
+                                      : 'Untagged')
+                                return (
+                                  <span key={tagIdx} className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-blue-100 text-blue-800">
+                                    {tagName}
+                                  </span>
+                                )
+                              })}
                               {photo.tags.length > 2 && (
                                 <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-gray-100 text-gray-600">
                                   +{photo.tags.length - 2}
@@ -319,7 +369,24 @@ export default function AlbumPage() {
                           {photo.people && Array.isArray(photo.people) && photo.people.length > 0 && (
                             <>
                               {photo.people.slice(0, 2).map((person: any, personIdx: number) => {
-                                const personName = typeof person === 'string' ? person : (person.name || person.fullName || person.firstName || person)
+                                let personName: string
+                                if (typeof person === 'string') {
+                                  personName = person
+                                } else if (person.name) {
+                                  personName = typeof person.name === 'string' 
+                                    ? person.name 
+                                    : MultiLangUtils.getTextValue(person.name, currentLanguage)
+                                } else if (person.fullName) {
+                                  personName = typeof person.fullName === 'string'
+                                    ? person.fullName
+                                    : MultiLangUtils.getTextValue(person.fullName, currentLanguage)
+                                } else if (person.firstName) {
+                                  personName = typeof person.firstName === 'string'
+                                    ? person.firstName
+                                    : MultiLangUtils.getTextValue(person.firstName, currentLanguage)
+                                } else {
+                                  personName = 'Unknown'
+                                }
                                 return (
                                   <span key={personIdx} className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-purple-100 text-purple-800">
                                     👤 {personName}
@@ -337,7 +404,11 @@ export default function AlbumPage() {
                           {/* Location */}
                           {photo.location && (
                             <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-green-100 text-green-800">
-                              📍 {typeof photo.location === 'string' ? photo.location : MultiLangUtils.getTextValue(photo.location.name, currentLanguage)}
+                              📍 {typeof photo.location === 'string' 
+                                ? photo.location 
+                                : (photo.location.name 
+                                    ? MultiLangUtils.getTextValue(photo.location.name, currentLanguage)
+                                    : 'Unknown location')}
                             </span>
                           )}
                         </div>
@@ -346,6 +417,19 @@ export default function AlbumPage() {
                   </div>
                 ))}
               </div>
+              
+              {/* Load More Button */}
+              {pagination && pagination.page < pagination.pages && (
+                <div className="text-center mt-8">
+                  <button
+                    onClick={loadMorePhotos}
+                    disabled={loadingMore}
+                    className={`${styles.button} ${loadingMore ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    {loadingMore ? 'Loading...' : `Load More (${pagination.total - photos.length} remaining)`}
+                  </button>
+                </div>
+              )}
             </div>
           </section>
         )}
