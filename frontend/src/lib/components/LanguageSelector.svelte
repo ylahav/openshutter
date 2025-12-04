@@ -80,7 +80,13 @@
 	<!-- Language Dropdown -->
 	{#if isOpen}
 		<!-- Backdrop -->
-		<div class="fixed inset-0 z-10" on:click={close} />
+		<div
+			class="fixed inset-0 z-10"
+			role="button"
+			tabindex="-1"
+			on:click={close}
+			on:keydown={(e) => e.key === 'Escape' && close()}
+		></div>
 
 		<!-- Dropdown Menu -->
 		<div class="absolute right-0 mt-1 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-20">
