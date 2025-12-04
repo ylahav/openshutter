@@ -1,0 +1,40 @@
+{
+  "name": "openshutter",
+  "version": "0.9.6",
+  "type": "module",
+  "description": "A comprehensive photo gallery management system with multi-storage support",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"pnpm --filter backend dev\" \"pnpm --filter frontend dev\"",
+    "dev:frontend": "pnpm --filter frontend dev",
+    "dev:backend": "pnpm --filter backend dev",
+    "build": "pnpm --filter backend build && pnpm --filter frontend build",
+    "build:frontend": "pnpm --filter frontend build",
+    "build:backend": "pnpm --filter backend build",
+    "start": "concurrently \"pnpm --filter backend start\" \"pnpm --filter frontend preview\"",
+    "start:frontend": "pnpm --filter frontend preview",
+    "start:backend": "pnpm --filter backend start",
+    "lint": "pnpm --filter frontend lint && pnpm --filter backend lint",
+    "type-check": "pnpm --filter frontend type-check"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  },
+  "keywords": [
+    "photo-gallery",
+    "image-management",
+    "sveltekit",
+    "nestjs",
+    "mongodb",
+    "google-drive",
+    "aws-s3",
+    "typescript"
+  ],
+  "author": "OpenShutter Team",
+  "license": "MIT",
+  "packageManager": "pnpm@10.24.0",
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  }
+}
