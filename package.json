@@ -15,7 +15,9 @@
     "start:frontend": "pnpm --filter openshutter preview",
     "start:backend": "pnpm --filter openshutter-backend start",
     "lint": "pnpm --filter openshutter lint && pnpm --filter openshutter-backend lint",
-    "type-check": "pnpm --filter openshutter type-check"
+    "type-check": "pnpm --filter openshutter type-check",
+    "build:prod": "./scripts/build-for-production.sh",
+    "deploy": "./scripts/deploy-to-server.sh"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"
