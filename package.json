@@ -5,7 +5,7 @@
   "description": "A comprehensive photo gallery management system with multi-storage support",
   "private": true,
   "scripts": {
-    "dev": "concurrently --kill-others-on-fail --kill-others --names \"backend,frontend\" --prefix-colors \"blue,green\" \"pnpm --filter openshutter-backend dev\" \"node -e 'setTimeout(() => process.exit(0), 3000)' && pnpm --filter openshutter dev\"",
+    "dev": "concurrently --kill-others-on-fail --kill-others --names \"backend,frontend\" --prefix-colors \"blue,green\" \"pnpm --filter openshutter-backend dev\" \"node scripts/delay-start.js 3000 pnpm --filter openshutter dev\"",
     "dev:frontend": "pnpm --filter openshutter dev",
     "dev:backend": "pnpm --filter openshutter-backend dev",
     "build": "pnpm --filter openshutter-backend build && pnpm --filter openshutter build",
