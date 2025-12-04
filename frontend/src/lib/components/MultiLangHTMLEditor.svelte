@@ -5,7 +5,7 @@
 	import TiptapHTMLEditor from './TiptapHTMLEditor.svelte';
 
 	export let value: MultiLangHTML = {};
-	export let onChange: (value: MultiLangHTML) => void;
+	export let onChange: ((value: MultiLangHTML) => void) | undefined = undefined;
 	export let placeholder = 'Start typing...';
 	export let height = 200;
 	export let showLanguageTabs = true;
@@ -73,7 +73,14 @@
 		// Track what we're sending to parent
 		lastSentValue = updatedValue;
 		
-		onChange(updatedValue);
+		// Update parent - use onChange if provided, otherwise update value directly (for bind:value)
+		if (onChange) {
+			onChange(updatedValue);
+		} else {
+			// When using bind:value, Svelte handles the binding automatically
+			// We just need to update the value prop
+			value = updatedValue;
+		}
 		
 		// Reset flag after a longer delay to ensure parent has updated
 		// This prevents the reactive statement from overwriting user input
@@ -105,10 +112,8 @@
 		// Track what we're sending to parent
 		lastSentValue = updatedValue;
 		
-		// Notify parent of the current language's value (preserving all languages)
-		onChange(updatedValue);
-
-		// Switch to new language - this must happen synchronously
+		// Switch to new language FIRST (before updating parent)
+		// This ensures we read the correct value for the new language
 		activeLanguage = language;
 		
 		// Get the value for the new language - check updatedValue first (includes unsaved changes), then value prop
@@ -117,6 +122,19 @@
 		
 		// Update lastSentValue to include the new language's value
 		lastSentValue = { ...updatedValue, [language]: editorValue };
+		
+		// Update parent AFTER we've switched languages and set editorValue
+		// This ensures the parent gets the complete updated value with all languages
+		if (onChange) {
+			onChange(lastSentValue);
+		} else {
+			// When using bind:value, Svelte handles the binding automatically
+			// We need to update the value prop with the complete object including the new language
+			// Use a small delay to ensure editorValue is set before updating parent
+			setTimeout(() => {
+				value = lastSentValue;
+			}, 0);
+		}
 		
 		// Allow reactive updates again after a brief delay
 		// This ensures the reactive statement can update if the parent value prop changes

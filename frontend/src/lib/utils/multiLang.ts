@@ -111,7 +111,11 @@ export function clean(field: MultiLangText | MultiLangHTML): MultiLangText | Mul
 	const validLanguages = SUPPORTED_LANGUAGES.map((lang) => lang.code);
 	return Object.keys(field).reduce((acc, key) => {
 		if (validLanguages.includes(key)) {
-			acc[key] = field[key];
+			const value = field[key];
+			// Only include string values (filter out null, undefined, non-strings)
+			if (typeof value === 'string') {
+				acc[key] = value;
+			}
 		}
 		return acc;
 	}, {} as MultiLangText | MultiLangHTML);

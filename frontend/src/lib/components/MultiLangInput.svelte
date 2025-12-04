@@ -6,7 +6,7 @@
 	import type { MultiLangText, LanguageCode } from '$lib/types/multi-lang';
 
 	export let value: MultiLangText = {};
-	export let onChange: (value: MultiLangText) => void;
+	export let onChange: ((value: MultiLangText) => void) | undefined = undefined;
 	export let placeholder = 'Enter text...';
 	export let className = '';
 	export let required = false;
@@ -84,7 +84,13 @@
 		// Track what we're sending to parent
 		lastSentValue = updatedField;
 		
-		onChange(updatedField);
+		// Update parent if onChange is provided, otherwise rely on bind:value
+		if (onChange) {
+			onChange(updatedField);
+		} else {
+			// When using bind:value, update the value prop directly
+			value = updatedField;
+		}
 		
 		// Reset flag after a longer delay to ensure parent has updated
 		// This prevents the reactive statement from overwriting user input
@@ -116,8 +122,14 @@
 		// Track what we're sending to parent
 		lastSentValue = updatedField;
 		
-		// Notify parent of the current language's value (preserving all languages)
-		onChange(updatedField);
+		// Update parent - use onChange if provided, otherwise update value directly (for bind:value)
+		if (onChange) {
+			onChange(updatedField);
+		} else {
+			// When using bind:value, Svelte handles the binding automatically
+			// We just need to update the value prop
+			value = updatedField;
+		}
 
 		// Switch to new language - this must happen synchronously
 		activeLanguage = languageCode;

@@ -161,6 +161,13 @@ let LocationsController = class LocationsController {
                     throw new Error('Database connection not established');
                 const collection = db.collection('locations');
                 const { name, description, address, city, state, country, postalCode, coordinates, placeId, category, isActive, } = body;
+                console.log('Received location create request:', {
+                    name: typeof name,
+                    description: typeof description,
+                    descriptionValue: description,
+                    descriptionKeys: description && typeof description === 'object' ? Object.keys(description) : 'N/A',
+                    descriptionValues: description && typeof description === 'object' ? Object.values(description) : 'N/A'
+                });
                 // Validate required fields - name must have at least one language
                 const nameObj = name || {};
                 const hasName = typeof name === 'string' ? !!name.trim() : Object.values(nameObj || {}).some((v) => (v || '').trim());
@@ -179,20 +186,29 @@ let LocationsController = class LocationsController {
                         }
                     });
                 }
-                // Normalize description object
+                // Normalize description object - filter out empty strings after trimming
                 const normalizedDescription = {};
-                if (description) {
+                if (description !== undefined && description !== null) {
                     if (typeof description === 'string') {
-                        normalizedDescription.en = description.trim();
+                        const trimmed = description.trim();
+                        if (trimmed) {
+                            normalizedDescription.en = trimmed;
+                        }
                     }
                     else if (typeof description === 'object') {
                         Object.keys(description).forEach((key) => {
-                            if (description[key] && typeof description[key] === 'string') {
-                                normalizedDescription[key] = description[key].trim();
+                            const val = description[key];
+                            if (typeof val === 'string') {
+                                const trimmed = val.trim();
+                                // Don't filter out HTML content - even if it's just tags, it's valid content
+                                if (trimmed) {
+                                    normalizedDescription[key] = trimmed;
+                                }
                             }
                         });
                     }
                 }
+                console.log('Normalized description:', normalizedDescription);
                 // Validate coordinates if provided
                 if (coordinates) {
                     const lat = parseFloat(coordinates.latitude);
@@ -228,7 +244,7 @@ let LocationsController = class LocationsController {
                 const now = new Date();
                 const locationData = {
                     name: normalizedName,
-                    description: Object.keys(normalizedDescription).length > 0 ? normalizedDescription : undefined,
+                    description: Object.keys(normalizedDescription).length > 0 ? normalizedDescription : null,
                     address: (address === null || address === void 0 ? void 0 : address.trim()) || undefined,
                     city: (city === null || city === void 0 ? void 0 : city.trim()) || undefined,
                     state: (state === null || state === void 0 ? void 0 : state.trim()) || undefined,
@@ -308,23 +324,30 @@ let LocationsController = class LocationsController {
                         throw new common_1.BadRequestException('Location name is required in at least one language');
                     }
                 }
-                // Normalize description object if provided
-                let normalizedDescription;
+                // Normalize description object if provided - filter out empty strings after trimming
+                let normalizedDescription = undefined;
                 if (description !== undefined) {
                     normalizedDescription = {};
                     if (typeof description === 'string') {
-                        normalizedDescription.en = description.trim();
+                        const trimmed = description.trim();
+                        if (trimmed) {
+                            normalizedDescription.en = trimmed;
+                        }
                     }
                     else if (description && typeof description === 'object') {
                         Object.keys(description).forEach((key) => {
-                            if (description[key] && typeof description[key] === 'string') {
-                                normalizedDescription[key] = description[key].trim();
+                            const val = description[key];
+                            if (typeof val === 'string') {
+                                const trimmed = val.trim();
+                                if (trimmed) {
+                                    normalizedDescription[key] = trimmed;
+                                }
                             }
                         });
                     }
-                    // Remove if empty
+                    // Set to null if empty (explicitly provided but empty), undefined means don't update
                     if (Object.keys(normalizedDescription).length === 0) {
-                        normalizedDescription = undefined;
+                        normalizedDescription = null;
                     }
                 }
                 // Validate coordinates if provided
@@ -367,8 +390,9 @@ let LocationsController = class LocationsController {
                 };
                 if (normalizedName !== undefined)
                     updateData.name = normalizedName;
-                if (normalizedDescription !== undefined)
-                    updateData.description = normalizedDescription;
+                if (normalizedDescription !== undefined) {
+                    updateData.description = normalizedDescription; // Can be object with content or null if explicitly cleared
+                }
                 if (address !== undefined)
                     updateData.address = (address === null || address === void 0 ? void 0 : address.trim()) || null;
                 if (city !== undefined)

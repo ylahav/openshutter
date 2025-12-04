@@ -71,19 +71,29 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
 		}
 
 		// Convert name to multi-language format if it's a string
+		// Filter out empty strings to keep only languages with actual content
 		const nameObj =
 			typeof name === 'string'
 				? { en: name.trim() }
 				: Object.fromEntries(
-						SUPPORTED_LANGUAGES.map((l) => [l.code, (name as any)[l.code]?.trim() || ''])
+						SUPPORTED_LANGUAGES.map((l) => {
+							const val = (name as any)?.[l.code];
+							return [l.code, typeof val === 'string' ? val.trim() : ''];
+						})
+							.filter(([_, value]) => value && typeof value === 'string' && value.trim().length > 0)
 					);
 
 		// Convert description to multi-language format if it's a string
+		// Filter out empty strings to keep only languages with actual content
 		const descriptionObj = description
 			? typeof description === 'string'
 				? { en: description.trim() }
 				: Object.fromEntries(
-						SUPPORTED_LANGUAGES.map((l) => [l.code, (description as any)[l.code]?.trim() || ''])
+						SUPPORTED_LANGUAGES.map((l) => {
+							const val = (description as any)?.[l.code];
+							return [l.code, typeof val === 'string' ? val.trim() : ''];
+						})
+							.filter(([_, value]) => value && typeof value === 'string' && value.trim().length > 0)
 					)
 			: undefined;
 

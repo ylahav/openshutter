@@ -89,29 +89,60 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		const body = await request.json();
 		const { name, description, color, category } = body;
 
+		// Debug: log what we received
+		console.log('Received tag data:', { name, description, color, category });
+		console.log('Name type:', typeof name, 'Is object:', typeof name === 'object', 'Is string:', typeof name === 'string');
+
 		// Validate required fields - support both string and multi-language
 		const hasAnyName =
 			typeof name === 'string'
 				? !!name.trim()
-				: Object.values((name as Record<string, string>) || {}).some((v) => (v || '').trim());
+				: name && typeof name === 'object'
+					? Object.values(name as Record<string, any>).some((v) => typeof v === 'string' && v.trim().length > 0)
+					: false;
 		if (!hasAnyName) {
 			return json({ success: false, error: 'Tag name is required' }, { status: 400 });
 		}
 
 		// Convert name to multi-language format if it's a string
+		// Filter out empty strings to keep only languages with actual content
 		const nameObj =
 			typeof name === 'string'
 				? { en: name.trim() }
 				: Object.fromEntries(
-						SUPPORTED_LANGUAGES.map((l) => [l.code, (name as any)[l.code]?.trim() || ''])
+						SUPPORTED_LANGUAGES.map((l) => {
+							const val = (name as any)?.[l.code];
+							return [l.code, typeof val === 'string' ? val.trim() : ''];
+						})
+							.filter(([_, value]) => value && typeof value === 'string' && value.trim().length > 0)
 					);
 
+		// Ensure nameObj is not empty and all values are strings
+		if (!nameObj || Object.keys(nameObj).length === 0) {
+			return json({ success: false, error: 'Tag name is required in at least one language' }, { status: 400 });
+		}
+
+		// Validate that all values in nameObj are strings
+		for (const [key, value] of Object.entries(nameObj)) {
+			if (typeof value !== 'string') {
+				console.error(`Invalid name value for language ${key}:`, value, typeof value);
+				return json({ success: false, error: `Invalid name value for language ${key}` }, { status: 400 });
+			}
+		}
+
+		console.log('Final nameObj:', nameObj);
+
 		// Convert description to multi-language format if it's a string
+		// Filter out empty strings to keep only languages with actual content
 		const descriptionObj = description
 			? typeof description === 'string'
 				? { en: description.trim() }
 				: Object.fromEntries(
-						SUPPORTED_LANGUAGES.map((l) => [l.code, (description as any)[l.code]?.trim() || ''])
+						SUPPORTED_LANGUAGES.map((l) => {
+							const val = (description as any)?.[l.code];
+							return [l.code, typeof val === 'string' ? val.trim() : ''];
+						})
+							.filter(([_, value]) => value && typeof value === 'string' && value.trim().length > 0)
 					)
 			: undefined;
 
@@ -138,9 +169,22 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			);
 		}
 
-		// Create new tag
+		// Create new tag - ensure nameObj is a plain object with only string values
+		const cleanNameObj: Record<string, string> = {};
+		for (const [key, value] of Object.entries(nameObj)) {
+			if (typeof value === 'string' && value.trim().length > 0) {
+				cleanNameObj[key] = value.trim();
+			}
+		}
+
+		if (Object.keys(cleanNameObj).length === 0) {
+			return json({ success: false, error: 'Tag name is required in at least one language' }, { status: 400 });
+		}
+
+		console.log('Creating tag with cleanNameObj:', cleanNameObj);
+
 		const tag = new TagModel({
-			name: nameObj,
+			name: cleanNameObj,
 			description: descriptionObj,
 			color: color || '#3B82F6',
 			category: category || 'general',
@@ -155,6 +199,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		});
 	} catch (error) {
 		console.error('Create tag error:', error);
-		return json({ success: false, error: 'Failed to create tag' }, { status: 500 });
+		const errorMessage = error instanceof Error ? error.message : String(error);
+		return json({ success: false, error: `Failed to create tag: ${errorMessage}` }, { status: 500 });
 	}
 };

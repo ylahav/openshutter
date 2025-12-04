@@ -2,6 +2,7 @@ import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, BadR
 import { AdminGuard } from '../common/guards/admin.guard';
 import { connectDB } from '../config/db';
 import mongoose, { Types } from 'mongoose';
+import { SUPPORTED_LANGUAGES } from '../types/multi-lang';
 
 @Controller('admin/tags')
 @UseGuards(AdminGuard)
@@ -27,10 +28,17 @@ export class TagsController {
       const query: any = {};
 
       if (search) {
-        query.$or = [
+        // Support search in both string and multi-language fields
+        const langs = SUPPORTED_LANGUAGES.map((l) => l.code);
+        const searchConditions = [
+          // String fields (backward compatibility)
           { name: { $regex: search, $options: 'i' } },
           { description: { $regex: search, $options: 'i' } },
+          // Multi-language fields
+          ...langs.map((code) => ({ [`name.${code}`]: { $regex: search, $options: 'i' } })),
+          ...langs.map((code) => ({ [`description.${code}`]: { $regex: search, $options: 'i' } }))
         ];
+        query.$or = searchConditions;
       }
 
       if (category && category !== 'all') {
@@ -120,13 +128,64 @@ export class TagsController {
 
       const { name, description, color, category } = body;
 
-      // Validate required fields
-      if (!name || !name.trim()) {
+      // Validate required fields - support both string and multi-language
+      const hasAnyName =
+        typeof name === 'string'
+          ? !!name.trim()
+          : name && typeof name === 'object'
+            ? Object.values(name as Record<string, any>).some((v) => typeof v === 'string' && v.trim().length > 0)
+            : false;
+      if (!hasAnyName) {
         throw new BadRequestException('Tag name is required');
       }
 
-      // Check if tag already exists
-      const existingTag = await collection.findOne({ name: name.trim() });
+      // Convert name to multi-language format if it's a string
+      // Filter out empty strings to keep only languages with actual content
+      const nameObj =
+        typeof name === 'string'
+          ? { en: name.trim() }
+          : Object.fromEntries(
+              SUPPORTED_LANGUAGES.map((l) => {
+                const val = (name as any)?.[l.code];
+                return [l.code, typeof val === 'string' ? val.trim() : ''];
+              })
+                .filter(([_, value]) => value && typeof value === 'string' && value.trim().length > 0)
+            );
+
+      // Ensure nameObj is not empty
+      if (!nameObj || Object.keys(nameObj).length === 0) {
+        throw new BadRequestException('Tag name is required in at least one language');
+      }
+
+      // Convert description to multi-language format if it's a string
+      // Filter out empty strings to keep only languages with actual content
+      const descriptionObj = description
+        ? typeof description === 'string'
+          ? { en: description.trim() }
+          : Object.fromEntries(
+              SUPPORTED_LANGUAGES.map((l) => {
+                const val = (description as any)?.[l.code];
+                return [l.code, typeof val === 'string' ? val.trim() : ''];
+              })
+                .filter(([_, value]) => value && typeof value === 'string' && value.trim().length > 0)
+            )
+        : undefined;
+
+      // Check if tag already exists (check by any language name)
+      const nameConditions = SUPPORTED_LANGUAGES.map((l) => ({
+        [`name.${l.code}`]: (nameObj as any)[l.code]
+      })).filter((cond) => Object.values(cond)[0]);
+      
+      // Also check old string format for backward compatibility
+      const existingTagQuery: any = {
+        $or: [
+          ...(nameConditions.length ? nameConditions : []),
+          // Backward compatibility: check string name
+          ...(typeof name === 'string' ? [{ name: name.trim() }] : [])
+        ]
+      };
+
+      const existingTag = await collection.findOne(existingTagQuery);
       if (existingTag) {
         throw new BadRequestException('Tag with this name already exists');
       }
@@ -138,8 +197,8 @@ export class TagsController {
       // Create tag
       const now = new Date();
       const tagData = {
-        name: name.trim(),
-        description: description?.trim() || '',
+        name: nameObj,
+        description: descriptionObj,
         color: color || '#3B82F6',
         category: tagCategory,
         isActive: true,
@@ -192,25 +251,79 @@ export class TagsController {
 
       const { name, description, color, category, isActive } = body;
 
-      // Check if name changed and if new name already exists
-      if (name && name.trim() !== tag.name) {
-        const existingTag = await collection.findOne({ name: name.trim() });
+      // Update tag
+      const updateData: any = {
+        updatedAt: new Date(),
+      };
+
+      if (name !== undefined) {
+        // Validate required fields - support both string and multi-language
+        const hasAnyName =
+          typeof name === 'string'
+            ? !!name.trim()
+            : name && typeof name === 'object'
+              ? Object.values(name as Record<string, any>).some((v) => typeof v === 'string' && v.trim().length > 0)
+              : false;
+        if (!hasAnyName) {
+          throw new BadRequestException('Tag name is required');
+        }
+
+        // Convert name to multi-language format if it's a string
+        const nameObj =
+          typeof name === 'string'
+            ? { en: name.trim() }
+            : Object.fromEntries(
+                SUPPORTED_LANGUAGES.map((l) => {
+                  const val = (name as any)?.[l.code];
+                  return [l.code, typeof val === 'string' ? val.trim() : ''];
+                })
+                  .filter(([_, value]) => value && typeof value === 'string' && value.trim().length > 0)
+              );
+
+        if (!nameObj || Object.keys(nameObj).length === 0) {
+          throw new BadRequestException('Tag name is required in at least one language');
+        }
+
+        // Check if name changed and if new name already exists
+        const nameConditions = SUPPORTED_LANGUAGES.map((l) => ({
+          [`name.${l.code}`]: (nameObj as any)[l.code]
+        })).filter((cond) => Object.values(cond)[0]);
+
+        const duplicateQuery: any = {
+          _id: { $ne: new Types.ObjectId(id) },
+          $or: [
+            ...(nameConditions.length ? nameConditions : []),
+            ...(typeof name === 'string' ? [{ name: name.trim() }] : [])
+          ]
+        };
+
+        const existingTag = await collection.findOne(duplicateQuery);
         if (existingTag) {
           throw new BadRequestException('Tag with this name already exists');
         }
+
+        updateData.name = nameObj;
+      }
+
+      if (description !== undefined) {
+        const descriptionObj = description
+          ? typeof description === 'string'
+            ? { en: description.trim() }
+            : Object.fromEntries(
+                SUPPORTED_LANGUAGES.map((l) => {
+                  const val = (description as any)?.[l.code];
+                  return [l.code, typeof val === 'string' ? val.trim() : ''];
+                })
+                  .filter(([_, value]) => value && typeof value === 'string' && value.trim().length > 0)
+              )
+          : undefined;
+        updateData.description = descriptionObj;
       }
 
       // Validate category
       const validCategories = ['general', 'location', 'event', 'object', 'mood', 'technical', 'custom'];
       const tagCategory = category && validCategories.includes(category) ? category : tag.category;
 
-      // Update tag
-      const updateData: any = {
-        updatedAt: new Date(),
-      };
-
-      if (name !== undefined) updateData.name = name.trim();
-      if (description !== undefined) updateData.description = description?.trim() || '';
       if (color !== undefined) updateData.color = color;
       if (category !== undefined) updateData.category = tagCategory;
       if (isActive !== undefined) updateData.isActive = isActive;

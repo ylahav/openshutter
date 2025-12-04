@@ -161,6 +161,7 @@
 
 		try {
 			console.log('Creating location with data:', formData);
+			console.log('Description field:', formData.description);
 			const payload: any = {
 				...formData,
 				coordinates:
@@ -173,6 +174,7 @@
 			};
 			// Remove empty coordinate fields
 			if (!payload.coordinates) delete payload.coordinates;
+			console.log('Payload being sent:', JSON.stringify(payload, null, 2));
 
 			const response = await fetch('/api/admin/locations', {
 				method: 'POST',
@@ -908,4 +910,3 @@
 		</div>
 	</div>
 {/if}
-

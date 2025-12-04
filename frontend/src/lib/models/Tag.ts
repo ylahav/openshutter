@@ -23,7 +23,10 @@ const TagSchema = new Schema<ITag>({
         if (typeof v === 'string') return v.trim().length > 0
         if (typeof v === 'object' && v !== null) {
           // Check if it's a MultiLangText object (has at least one language key)
-          const langs = Object.keys(v).filter(k => typeof v[k] === 'string' && v[k].trim().length > 0)
+          const langs = Object.keys(v).filter(k => {
+            const val = v[k];
+            return typeof val === 'string' && val.trim().length > 0;
+          })
           return langs.length > 0
         }
         return false
