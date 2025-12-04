@@ -151,12 +151,22 @@
 				})
 			});
 
+			const responseData = await response.json().catch((e) => {
+				console.error('Failed to parse response:', e);
+				return null;
+			});
+
 			if (!response.ok) {
-				const errorData = await response.json().catch(() => ({}));
-				throw new Error(errorData.message || 'Failed to create person');
+				const errorMessage = responseData?.error || responseData?.message || `HTTP ${response.status}: Failed to create person`;
+				throw new Error(errorMessage);
 			}
 
-			const newPerson = await response.json();
+			if (!responseData) {
+				throw new Error('No data returned from server');
+			}
+
+			// Handle both direct person object and wrapped response
+			const newPerson = responseData.data || responseData;
 			people = [...people, newPerson];
 			message = 'Person created successfully!';
 			showCreateDialog = false;
@@ -202,12 +212,22 @@
 				})
 			});
 
+			const responseData = await response.json().catch((e) => {
+				console.error('Failed to parse response:', e);
+				return null;
+			});
+
 			if (!response.ok) {
-				const errorData = await response.json().catch(() => ({}));
-				throw new Error(errorData.message || 'Failed to update person');
+				const errorMessage = responseData?.error || responseData?.message || `HTTP ${response.status}: Failed to update person`;
+				throw new Error(errorMessage);
 			}
 
-			const updatedPerson = await response.json();
+			if (!responseData) {
+				throw new Error('No data returned from server');
+			}
+
+			// Handle both direct person object and wrapped response
+			const updatedPerson = responseData.data || responseData;
 			people = people.map((p) => (p._id === editingPerson._id ? updatedPerson : p));
 			message = 'Person updated successfully!';
 			showEditDialog = false;
