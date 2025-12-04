@@ -103,6 +103,21 @@ export function getLanguagesWithContent(field: MultiLangText | MultiLangHTML): s
 }
 
 /**
+ * Clean field by removing invalid keys (non-language keys)
+ */
+export function clean(field: MultiLangText | MultiLangHTML): MultiLangText | MultiLangHTML {
+	if (!field) return {};
+
+	const validLanguages = SUPPORTED_LANGUAGES.map((lang) => lang.code);
+	return Object.keys(field).reduce((acc, key) => {
+		if (validLanguages.includes(key)) {
+			acc[key] = field[key];
+		}
+		return acc;
+	}, {} as MultiLangText | MultiLangHTML);
+}
+
+/**
  * MultiLangUtils - utility class for multilingual operations
  */
 export const MultiLangUtils = {
@@ -111,5 +126,6 @@ export const MultiLangUtils = {
 	getValue,
 	setValue,
 	hasContent,
-	getLanguagesWithContent
+	getLanguagesWithContent,
+	clean
 };
