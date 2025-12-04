@@ -44,7 +44,7 @@ Welcome to the OpenShutter documentation. This comprehensive guide covers all as
 - **EXIF Data Extraction**: Automatic photo metadata processing
 - **Rich Text Editor**: Tiptap-based editor with link support
 - **Responsive Design**: Mobile-first responsive layouts with masonry grids
-- **User Authentication**: NextAuth.js integration with role-based access
+- **User Authentication**: JWT-based authentication with role-based access
 - **Real-time Updates**: Live photo uploads and management
 - **UI Improvements**: Masonry layouts, role-based redirects, visual indicators
 
@@ -55,7 +55,7 @@ Welcome to the OpenShutter documentation. This comprehensive guide covers all as
 - **Styling**: Tailwind CSS, Svelte transitions
 - **Backend**: NestJS API (port 5000), MongoDB
 - **Storage**: Google Drive API, AWS S3, Backblaze B2, Wasabi, Local Storage
-- **Authentication**: NextAuth.js (being adapted for SvelteKit)
+- **Authentication**: JWT-based authentication (SvelteKit compatible)
 - **Rich Text**: Tiptap Editor with extensions
 
 ### Project Structure

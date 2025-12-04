@@ -35,16 +35,13 @@ scp openshutter-deployment.tar.gz user@your-server:/opt/openshutter/
 ssh user@your-server
 cd /opt/openshutter
 tar -xzf openshutter-deployment.tar.gz
-docker load < openshutter-image.tar
+cd openshutter
+pnpm install --prod
+./start.sh
 
-# Option A: Run with bundled MongoDB service (includes MongoDB container)
-docker-compose -f docker-compose.prod.yml up -d
-
-# Option B: Run with EXTERNAL MongoDB (no Mongo container)
-#   - If MongoDB runs on the SAME server as Docker, set in .env.production:
-#       MONGODB_URI=mongodb://localhost:27017/openshutter
-#   - Then start with the external compose file (uses host networking)
-docker-compose -f docker-compose.external-mongodb.yml up -d
+# Or use Docker (if docker-compose files are included):
+# docker load < openshutter-image.tar  # if using Docker
+# docker-compose -f docker-compose.prod.yml up -d
 ```
 
 ## Option 2: Source Code Deployment
@@ -63,9 +60,10 @@ docker-compose -f docker-compose.external-mongodb.yml up -d
 # Create deployment package
 tar -czf openshutter-source.tar.gz \
   --exclude=node_modules \
-  --exclude=.next \
   --exclude=.svelte-kit \
   --exclude=build \
+  --exclude=backend/dist \
+  --exclude=frontend/build \
   --exclude=storage \
   --exclude=logs \
   --exclude=.git \
@@ -73,7 +71,7 @@ tar -czf openshutter-source.tar.gz \
   .
 ```
 
-**Note**: During the SvelteKit migration, both `.next` (Next.js) and `.svelte-kit` (SvelteKit) build directories may exist. Both are excluded from deployment as they will be rebuilt on the server.
+**Note**: Build directories (`.svelte-kit`, `build`, `backend/dist`) are excluded from deployment as they will be rebuilt on the server.
 
 #### 2. Copy to Server
 
@@ -157,9 +155,9 @@ chmod +x deploy.sh
 MONGODB_URI=mongodb://localhost:27017/openshutter
 MONGODB_DB=openshutter
 
-# NextAuth Configuration
-NEXTAUTH_SECRET=your-production-secret-key
-NEXTAUTH_URL=https://your-domain.com
+# Authentication Configuration
+JWT_SECRET=your-production-secret-key
+FRONTEND_URL=https://your-domain.com
 
 # Google OAuth2 Configuration
 GOOGLE_CLIENT_ID=your-google-client-id
