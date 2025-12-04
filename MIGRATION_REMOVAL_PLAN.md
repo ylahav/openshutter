@@ -88,8 +88,42 @@ Removed Next.js pages that have complete SvelteKit equivalents:
 - `components/ConfirmDialog.tsx` → Already have `lib/components/ConfirmDialog.svelte`
 - `components/admin/CollectionPopup.tsx` → Already have `lib/components/CollectionPopup.svelte`
 
-### Phase 3: Migrate API Routes
+### Phase 3: Migrate API Routes ✅ IN PROGRESS
 Convert `app/api/**/route.ts` to `routes/api/**/+server.ts` format.
+
+**Completed:**
+- ✅ `/api/admin/tags` - GET, POST
+- ✅ `/api/admin/tags/[id]` - GET, PUT, DELETE
+- ✅ `/api/admin/people` - GET, POST
+- ✅ `/api/admin/people/[id]` - GET, PUT, DELETE
+- ✅ `/api/admin/locations` - GET, POST
+- ✅ `/api/admin/locations/[id]` - GET, PUT, DELETE
+
+**Remaining:**
+- `/api/admin/users` - GET, POST
+- `/api/admin/users/[id]` - GET, PUT, DELETE
+- `/api/admin/groups` - GET, POST
+- `/api/admin/groups/[id]` - GET, PUT, DELETE
+- `/api/admin/albums` - Various routes
+- `/api/admin/photos` - Various routes
+- `/api/admin/pages` - GET, POST
+- `/api/admin/pages/[id]` - GET, PUT, DELETE
+- `/api/admin/blog-categories` - GET, POST
+- `/api/admin/blog-categories/[id]` - GET, PUT, DELETE
+- `/api/admin/templates` - Various routes
+- `/api/admin/site-config` - GET, PUT
+- `/api/admin/deployment` - POST
+- `/api/admin/backup-restore` - Various routes
+- `/api/admin/audit-logs` - GET
+- `/api/admin/analytics` - GET
+- `/api/admin/import-sync` - Various routes
+- `/api/admin/face-recognition` - Various routes
+- `/api/albums` - Various routes
+- `/api/photos` - Various routes
+- `/api/search` - GET
+- `/api/auth` - Various routes (partially migrated)
+- `/api/storage` - Various routes
+- Public routes: `/api/tags`, `/api/people`, `/api/locations` (keep for public access)
 
 ### Phase 4: Remove React Dependencies
 After all React code is removed:
