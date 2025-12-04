@@ -147,4 +147,3 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
 		return json({ success: false, error: 'Failed to delete tag' }, { status: 500 });
 	}
 };
-
