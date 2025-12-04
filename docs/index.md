@@ -51,41 +51,39 @@ Welcome to the OpenShutter documentation. This comprehensive guide covers all as
 ## 🏗️ Architecture
 
 ### Tech Stack
-- **Frontend**: Next.js 15, React 19, TypeScript
-- **Styling**: Tailwind CSS, Framer Motion
-- **Backend**: Next.js API Routes, MongoDB
-- **Storage**: Google Drive API, AWS S3, Local Storage
-- **Authentication**: NextAuth.js
+- **Frontend**: SvelteKit 2, Svelte 5, TypeScript (migrating from Next.js 15/React 19)
+- **Styling**: Tailwind CSS, Svelte transitions
+- **Backend**: NestJS API (port 5000), MongoDB
+- **Storage**: Google Drive API, AWS S3, Backblaze B2, Wasabi, Local Storage
+- **Authentication**: NextAuth.js (being adapted for SvelteKit)
 - **Rich Text**: Tiptap Editor with extensions
 
 ### Project Structure
 ```
-src/
-├── app/                 # Next.js app directory
-│   ├── admin/          # Admin-only pages
+frontend/src/
+├── routes/             # SvelteKit routes (migrated)
+│   ├── admin/          # Admin pages (migrated to SvelteKit)
 │   │   ├── albums/     # Album management
 │   │   ├── photos/     # Photo management
 │   │   ├── storage/    # Storage settings
 │   │   ├── templates/  # Template customization
 │   │   └── users/      # User management
-│   ├── owner/          # Owner dashboard pages
-│   │   ├── profile/    # Profile management
-│   │   └── albums/     # Owner album management
-│   ├── albums/         # Public album pages
-│   ├── photos/         # Public photo pages
-│   └── api/            # API routes
-├── components/         # Reusable components
-│   ├── ui/            # UI component library
-│   ├── AdminGuard.tsx  # Admin role protection
-│   ├── OwnerGuard.tsx  # Owner role protection
-│   └── [feature]/     # Feature-specific components
-├── lib/               # Utility libraries
-│   ├── access-control.ts # Album access control logic
-│   └── [utilities]/   # Other utility functions
-├── services/          # Business logic
-├── types/             # TypeScript definitions
-└── hooks/             # Custom React hooks
+│   ├── albums/         # Public album pages (migrated)
+│   ├── auth/           # Authentication routes
+│   └── +layout.svelte  # Root layout
+├── lib/                # SvelteKit library code
+│   ├── components/     # Svelte components (migrated)
+│   ├── stores/         # Svelte stores (language, siteConfig)
+│   ├── types/          # TypeScript definitions
+│   └── utils/          # Utility functions
+├── app/                # Next.js code (legacy, being migrated)
+│   ├── admin/          # Next.js admin pages (to be removed)
+│   ├── components/     # React components (to be migrated)
+│   └── api/            # Next.js API routes (legacy)
+└── templates/          # Gallery templates
 ```
+
+**Migration Status**: The frontend is migrating from Next.js to SvelteKit. Most admin routes and core infrastructure have been migrated. See [SVELTEKIT_PROGRESS.md](../frontend/SVELTEKIT_PROGRESS.md) for detailed status.
 
 ## 🔧 Configuration
 
@@ -107,9 +105,11 @@ Key configuration options in `.env.local`:
 
 ### Available Scripts
 ```bash
-pnpm dev          # Development server (port 4000)
-pnpm build        # Production build
-pnpm start        # Production server
+pnpm dev          # SvelteKit development server (port 4000)
+pnpm dev:next     # Next.js development server (legacy, during migration)
+pnpm build        # Build SvelteKit for production
+pnpm build:next   # Build Next.js for production (legacy)
+pnpm start        # Production server (port 4000)
 pnpm lint         # Code linting
 pnpm type-check   # TypeScript checking
 ```
@@ -124,9 +124,11 @@ pnpm type-check   # TypeScript checking
 ## 📖 Additional Resources
 
 - **Main README**: [../README.md](../README.md) - Complete setup and usage guide
-- **API Documentation**: Available in `/api` routes
-- **Component Library**: Located in `src/components/ui/`
-- **Type Definitions**: Available in `src/types/`
+- **SvelteKit Migration**: [../frontend/SVELTEKIT_PROGRESS.md](../frontend/SVELTEKIT_PROGRESS.md) - Migration status and progress
+- **Component Migration**: [../COMPONENT_MIGRATION_STATUS.md](../COMPONENT_MIGRATION_STATUS.md) - Component migration status
+- **API Documentation**: Backend API available at `http://localhost:5000/api`
+- **Component Library**: Located in `src/lib/components/` (Svelte) and `src/components/ui/` (React, legacy)
+- **Type Definitions**: Available in `src/lib/types/`
 
 ## 🆘 Support
 
@@ -139,3 +141,5 @@ For issues, questions, or contributions:
 ---
 
 *Last updated: January 2025*
+
+**Note**: The frontend is currently migrating from Next.js to SvelteKit. Most admin routes have been migrated. Legacy Next.js code remains in `src/app/` during the migration period.

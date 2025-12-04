@@ -1,1 +1,32 @@
 node_modules
+
+# Build artifacts
+*.zip
+*.tar
+*.tar.gz
+*.log
+
+# Environment files
+.env
+.env.local
+.env.production
+.env.development
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# SvelteKit build artifacts (in frontend/)
+frontend/.svelte-kit/
+frontend/build/
+frontend/.svelte-kit/
+
+# Next.js build artifacts (legacy, during migration)
+.next/
+out/

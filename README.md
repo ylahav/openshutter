@@ -32,13 +32,13 @@ A comprehensive photo gallery management system with multi-storage support, adva
 
 ## 🚀 Tech Stack
 
-- **Frontend**: Next.js 15, React 19, TypeScript, Tailwind CSS
+- **Frontend**: SvelteKit 2, Svelte 5, TypeScript, Tailwind CSS (migrating from Next.js 15/React 19)
 - **Backend**: Node.js, NestJS, Mongoose
 - **Database**: MongoDB
 - **Storage**: Google Drive API, AWS S3, Backblaze B2, Wasabi, Local Storage
-- **Authentication**: NextAuth.js
+- **Authentication**: NextAuth.js (being adapted for SvelteKit)
 - **Rich Text**: Tiptap Editor
-- **State Management**: React Query
+- **State Management**: Svelte stores and reactivity (migrating from React Query)
 
 ## 📱 Mobile Features
 
@@ -158,8 +158,10 @@ For detailed admin setup instructions, see [docs/ADMIN_SETUP.md](docs/ADMIN_SETU
 
 3. **Available scripts**
    ```bash
-   pnpm dev          # Start development server on port 4000
-   pnpm build        # Build for production
+   pnpm dev          # Start SvelteKit development server on port 4000
+   pnpm dev:next     # Start Next.js development server (legacy, during migration)
+   pnpm build        # Build SvelteKit for production
+   pnpm build:next   # Build Next.js for production (legacy)
    pnpm start        # Start production server on port 4000
    pnpm lint         # Run ESLint
    pnpm type-check   # Run TypeScript type checking
@@ -203,14 +205,25 @@ For detailed deployment instructions, see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.m
 
 ```
 .
-├── frontend/            # Next.js 15 frontend application
+├── frontend/            # SvelteKit 2 frontend application (migrating from Next.js)
 │   ├── src/
-│   │   ├── app/         # App router pages and layouts
-│   │   ├── components/  # React components
-│   │   ├── hooks/       # Custom hooks
-│   │   └── lib/         # Frontend utilities
+│   │   ├── routes/      # SvelteKit routes (+page.svelte, +layout.svelte)
+│   │   │   ├── admin/   # Admin pages (migrated to SvelteKit)
+│   │   │   ├── albums/  # Album pages (migrated to SvelteKit)
+│   │   │   └── auth/    # Authentication routes
+│   │   ├── lib/         # SvelteKit library code
+│   │   │   ├── components/  # Svelte components
+│   │   │   ├── stores/      # Svelte stores (language, siteConfig)
+│   │   │   ├── types/       # TypeScript types
+│   │   │   └── utils/       # Utility functions
+│   │   ├── app/         # Next.js code (legacy, being migrated)
+│   │   │   ├── admin/   # Next.js admin pages (to be removed)
+│   │   │   └── components/  # React components (to be migrated)
+│   │   └── templates/   # Gallery templates
 │   ├── public/          # Static assets
-│   └── next.config.js   # Frontend configuration & proxy setup
+│   ├── svelte.config.js # SvelteKit configuration
+│   ├── vite.config.ts   # Vite configuration & API proxy
+│   └── package.json     # Frontend dependencies
 │
 ├── backend/             # Node.js/NestJS backend application
 │   ├── src/
@@ -227,6 +240,8 @@ For detailed deployment instructions, see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.m
 │
 └── docker-compose.yml   # Orchestration for frontend, backend, and db
 ```
+
+**Migration Status**: The frontend is currently migrating from Next.js to SvelteKit. Most admin routes and core infrastructure have been migrated. See [SVELTEKIT_PROGRESS.md](frontend/SVELTEKIT_PROGRESS.md) for detailed migration status.
 
 ## 🔧 Configuration
 

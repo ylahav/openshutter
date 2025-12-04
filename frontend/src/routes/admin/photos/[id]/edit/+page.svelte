@@ -10,6 +10,7 @@
 	import NotificationDialog from '$lib/components/NotificationDialog.svelte';
 	import FaceDetectionViewer from '$lib/components/FaceDetectionViewer.svelte';
 	import FaceMatchingPanel from '$lib/components/FaceMatchingPanel.svelte';
+	import CollectionPopup from '$lib/components/CollectionPopup.svelte';
 
 	interface Photo {
 		_id: string;
@@ -73,24 +74,34 @@
 	let loadingOptions = true;
 	let loadPhotoCalled = false;
 	
+	// Popup states
+	let showTagsPopup = false;
+	let showPeoplePopup = false;
+	let showLocationPopup = false;
+	
+	// Track the last loaded photoId to prevent reloading the same photo
+	let lastLoadedPhotoId: string | null = null;
+	
 	// Update photoId from route params reactively
 	$: {
 		const id = $page.params.id || '';
 		if (id && id !== photoId) {
-			console.log('[Reactive] photoId updated from route params:', id);
 			photoId = id;
 			// Reset loading state when navigating to a new photo
 			loadPhotoCalled = false;
+			lastLoadedPhotoId = null; // Reset so new photo can be loaded
 		}
 	}
 	
 	// Load photo when photoId changes (for navigation between photos)
-	$: if (browser && photoId && !loadPhotoCalled) {
-		console.log('[Reactive] photoId changed, calling loadPhoto:', photoId);
+	// Only trigger once per photoId change
+	$: if (browser && photoId && !loadPhotoCalled && photoId !== lastLoadedPhotoId) {
 		loadPhoto().catch((err) => {
 			console.error('[Reactive] loadPhoto error:', err);
 			error = `Failed to load photo: ${err instanceof Error ? err.message : 'Unknown error'}`;
 			loading = false;
+			loadPhotoCalled = false; // Reset on error so it can retry
+			lastLoadedPhotoId = null; // Reset on error
 		});
 	}
 
@@ -107,16 +118,8 @@
 
 	function getPhotoUrl(photo: Photo, preferFullSize: boolean = false): string {
 		if (!photo.storage) {
-			console.log('Photo has no storage object:', photo._id, photo.filename);
 			return '';
 		}
-		
-		console.log('Getting photo URL for:', {
-			_id: photo._id,
-			filename: photo.filename,
-			storage: photo.storage,
-			preferFullSize,
-		});
 		
 		// If we need full size (e.g., for face detection), prioritize full image paths
 		if (preferFullSize) {
@@ -151,11 +154,9 @@
 				// If it's a thumbnail path, convert to full image path
 				if (cleanPath.includes('/medium/') || cleanPath.includes('/small/') || cleanPath.includes('/thumb/')) {
 					cleanPath = getFullImagePath(cleanPath);
-					console.log('Converted thumbnail path to full image path:', cleanPath);
 				}
 				
 				const constructed = `/api/storage/serve/${provider}/${encodeURIComponent(cleanPath)}`;
-				console.log('Using path (full size):', constructed, 'from:', photo.storage.path);
 				return constructed;
 			}
 			
@@ -171,11 +172,9 @@
 							const fullPath = getFullImagePath(extractedPath);
 							const provider = photo.storage.provider || 'local';
 							const constructed = `/api/storage/serve/${provider}/${encodeURIComponent(fullPath)}`;
-							console.log('Using url (converted from thumbnail):', constructed, 'from:', photo.storage.url);
 							return constructed;
 						}
 					} else {
-						console.log('Using url (full size):', photo.storage.url);
 						return photo.storage.url;
 					}
 				} else {
@@ -187,11 +186,9 @@
 					// If it's a thumbnail path, convert to full image path
 					if (cleanPath.includes('/medium/') || cleanPath.includes('/small/') || cleanPath.includes('/thumb/')) {
 						cleanPath = getFullImagePath(cleanPath);
-						console.log('Converted thumbnail url to full image path:', cleanPath);
 					}
 					
 					const constructed = `/api/storage/serve/${provider}/${encodeURIComponent(cleanPath)}`;
-					console.log('Using url (full size, constructed):', constructed, 'from:', photo.storage.url);
 					return constructed;
 				}
 			}
@@ -203,13 +200,11 @@
 			const thumbnailUrl = thumbnails.medium || thumbnails.small || Object.values(thumbnails)[0];
 			if (thumbnailUrl) {
 				if (thumbnailUrl.startsWith('/api/storage/serve/') || thumbnailUrl.startsWith('http')) {
-					console.log('Using thumbnail URL (full):', thumbnailUrl);
 					return thumbnailUrl;
 				}
 				const provider = photo.storage.provider || 'local';
 				const cleanPath = thumbnailUrl.startsWith('/') ? thumbnailUrl.slice(1) : thumbnailUrl;
 				const constructed = `/api/storage/serve/${provider}/${encodeURIComponent(cleanPath)}`;
-				console.log('Using thumbnail URL (constructed):', constructed);
 				return constructed;
 			}
 		}
@@ -217,7 +212,6 @@
 		// Check thumbnailPath
 		if (photo.storage.thumbnailPath) {
 			if (photo.storage.thumbnailPath.startsWith('/api/storage/serve/') || photo.storage.thumbnailPath.startsWith('http')) {
-				console.log('Using thumbnailPath (full):', photo.storage.thumbnailPath);
 				return photo.storage.thumbnailPath;
 			}
 			const provider = photo.storage.provider || 'local';
@@ -225,14 +219,12 @@
 				? photo.storage.thumbnailPath.slice(1) 
 				: photo.storage.thumbnailPath;
 			const constructed = `/api/storage/serve/${provider}/${encodeURIComponent(cleanPath)}`;
-			console.log('Using thumbnailPath (constructed):', constructed, 'from:', photo.storage.thumbnailPath);
 			return constructed;
 		}
 		
 		// Fallback to url
 		if (photo.storage.url) {
 			if (photo.storage.url.startsWith('/api/storage/serve/') || photo.storage.url.startsWith('http')) {
-				console.log('Using url (full):', photo.storage.url);
 				return photo.storage.url;
 			}
 			const provider = photo.storage.provider || 'local';
@@ -240,7 +232,6 @@
 				? photo.storage.url.slice(1) 
 				: photo.storage.url;
 			const constructed = `/api/storage/serve/${provider}/${encodeURIComponent(cleanPath)}`;
-			console.log('Using url (constructed):', constructed, 'from:', photo.storage.url);
 			return constructed;
 		}
 		
@@ -251,22 +242,18 @@
 				? photo.storage.path.slice(1) 
 				: photo.storage.path;
 			const constructed = `/api/storage/serve/${provider}/${encodeURIComponent(cleanPath)}`;
-			console.log('Using path (constructed):', constructed, 'from:', photo.storage.path);
 			return constructed;
 		}
 		
-		console.log('No valid photo URL found for:', photo._id, photo.filename, photo.storage);
 		return '';
 	}
 
 	async function loadPhoto() {
 		if (loadPhotoCalled) {
-			console.log('[loadPhoto] Already called, skipping');
 			return;
 		}
 		
 		if (!photoId) {
-			console.error('[loadPhoto] Called but photoId is empty');
 			error = 'No photo ID provided';
 			loading = false;
 			return;
@@ -274,16 +261,16 @@
 		
 		loadPhotoCalled = true;
 		
+		let timeoutId: ReturnType<typeof setTimeout> | null = null;
+		const controller = new AbortController();
+		
 		try {
 			loading = true;
 			error = '';
-			console.log('[loadPhoto] Starting - Photo ID:', photoId);
 			const url = `/api/admin/photos/${photoId}?t=${Date.now()}`;
-			console.log('[loadPhoto] Fetching from URL:', url);
 			
 			// Add timeout to prevent hanging
-			const controller = new AbortController();
-			const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+			timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 			
 			try {
 				const response = await fetch(url, {
@@ -291,8 +278,11 @@
 					signal: controller.signal,
 				});
 				
-				clearTimeout(timeoutId);
-				console.log('[loadPhoto] Response status:', response.status, response.statusText);
+				// Clear timeout immediately when response is received
+				if (timeoutId) {
+					clearTimeout(timeoutId);
+					timeoutId = null;
+				}
 				
 				if (!response.ok) {
 					const errorText = await response.text();
@@ -301,15 +291,15 @@
 				}
 				
 				const data = await response.json();
-				console.log('[loadPhoto] Photo data received:', data);
+				loading = false;
 				photo = data;
-				console.log('[loadPhoto] Photo loaded successfully');
-				if (photo) {
-					console.log('[loadPhoto] Photo storage:', photo.storage);
-					console.log('[loadPhoto] Photo URL constructed:', getPhotoUrl(photo));
-				}
+				lastLoadedPhotoId = photoId; // Mark this photo as loaded
 			} catch (fetchError: any) {
-				clearTimeout(timeoutId);
+				// Clear timeout on error
+				if (timeoutId) {
+					clearTimeout(timeoutId);
+					timeoutId = null;
+				}
 				if (fetchError.name === 'AbortError') {
 					throw new Error('Request timeout - the server took too long to respond');
 				}
@@ -339,7 +329,7 @@
 					photo.location
 						? typeof photo.location === 'string'
 							? photo.location
-							: photo.location._id?.toString() || photo.location.toString()
+							: (photo.location as any)._id?.toString() || String(photo.location)
 						: null;
 			}
 		} catch (err) {
@@ -347,9 +337,13 @@
 			error = `Failed to load photo: ${err instanceof Error ? err.message : 'Unknown error'}`;
 			photo = null;
 		} finally {
-			console.log('[loadPhoto] Finally block - setting loading to false');
+			// Always clear timeout in finally block to ensure it's cleared
+			if (timeoutId) {
+				clearTimeout(timeoutId);
+				timeoutId = null;
+			}
 			loading = false;
-			loadPhotoCalled = false; // Reset so it can be called again if needed
+			// Don't reset loadPhotoCalled here - it's reset when photoId changes in the reactive block above
 		}
 	}
 
@@ -362,8 +356,8 @@
 			error = '';
 
 			const updateData = {
-				title: MultiLangUtils.clean(formData.title),
-				description: MultiLangUtils.clean(formData.description),
+				title: formData.title,
+				description: formData.description,
 				isPublished: formData.isPublished,
 				isLeading: formData.isLeading,
 				isGalleryLeading: formData.isGalleryLeading,
@@ -386,7 +380,6 @@
 			}
 
 			const updatedPhoto = await response.json();
-			console.log('Photo updated:', updatedPhoto);
 
 			notification = {
 				show: true,
@@ -479,9 +472,7 @@
 	}
 
 	onMount(() => {
-		console.log('[onMount] Starting, browser:', browser, 'route params:', $page.params);
 		if (!browser) {
-			console.log('[onMount] Not in browser, setting loading to false');
 			loading = false;
 			return;
 		}
@@ -490,19 +481,16 @@
 		const initialPhotoId = $page.params.id || '';
 		if (initialPhotoId) {
 			photoId = initialPhotoId;
-			console.log('[onMount] photoId set from route params:', photoId);
 		}
 		
 		// Load photo and options
 		if (photoId) {
-			console.log('[onMount] Calling loadPhoto with photoId:', photoId);
 			loadPhoto().catch((err) => {
 				console.error('[onMount] loadPhoto error:', err);
 				error = `Failed to load photo: ${err instanceof Error ? err.message : 'Unknown error'}`;
 				loading = false;
 			});
 		} else {
-			console.error('[onMount] No photoId available');
 			error = 'No photo ID provided';
 			loading = false;
 		}
@@ -527,7 +515,7 @@
 		{#if loading}
 			<div class="text-center py-12">
 				<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-				<p class="mt-4 text-gray-600">Loading photo...</p>
+				<p class="mt-4 text-gray-600">Loading photo...!!!</p>
 			</div>
 		{:else if error && !photo}
 			<div class="text-center py-12">
@@ -565,11 +553,8 @@
 								alt={MultiLangUtils.getTextValue(photo.title, $currentLanguage) || photo.filename}
 								class="max-w-full max-h-96 object-contain rounded-lg"
 								on:error={(e) => {
-									console.error('Image failed to load:', photoUrl, photo);
-									e.currentTarget.style.display = 'none';
-								}}
-								on:load={() => {
-									console.log('Image loaded successfully:', photoUrl);
+									const target = e.currentTarget as HTMLImageElement;
+									if (target) target.style.display = 'none';
 								}}
 							/>
 						{:else}
@@ -600,13 +585,15 @@
 				<form on:submit={handleSubmit} class="p-6 space-y-6">
 					<!-- Title -->
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-2">
+						<div class="block text-sm font-medium text-gray-700 mb-2">
 							Photo Title
-						</label>
+						</div>
 						<MultiLangInput
 							value={formData.title}
 							onChange={(value) => {
-								formData = { ...formData, title: value };
+								// Merge with existing to preserve all languages
+								formData.title = { ...formData.title, ...value };
+								formData = formData; // Trigger reactivity
 							}}
 							placeholder="Enter photo title..."
 						/>
@@ -614,13 +601,15 @@
 
 					<!-- Description -->
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-2">
+						<div class="block text-sm font-medium text-gray-700 mb-2">
 							Description
-						</label>
+						</div>
 						<MultiLangHTMLEditor
 							value={formData.description}
 							onChange={(value) => {
-								formData = { ...formData, description: value };
+								// Merge with existing to preserve all languages
+								formData.description = { ...formData.description, ...value };
+								formData = formData; // Trigger reactivity
 							}}
 							placeholder="Enter photo description..."
 							height={240}
@@ -674,69 +663,148 @@
 					<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
 						<!-- Tags -->
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-2">
+							<div class="block text-sm font-medium text-gray-700 mb-2">
 								Tags
-							</label>
+							</div>
 							{#if loadingOptions}
 								<div class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500">
 									Loading tags...
 								</div>
 							{:else}
-								<select
-									multiple
-									class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[100px]"
-									bind:value={formData.tags}
-								>
-									{#each tags as tag}
-										<option value={tag._id}>{getTagName(tag)}</option>
-									{/each}
-								</select>
-								<p class="text-xs text-gray-500 mt-1">Hold Ctrl/Cmd to select multiple</p>
+								<div class="space-y-2">
+									<!-- Selected Tags Display -->
+									{#if formData.tags && formData.tags.length > 0}
+										<div class="flex flex-wrap gap-2 mb-2">
+											{#each formData.tags as tagId}
+												{@const tag = tags.find(t => t._id === tagId)}
+												{#if tag}
+													<span class="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 text-sm rounded-md">
+														{getTagName(tag)}
+														<button
+															type="button"
+															on:click={() => {
+																formData.tags = formData.tags.filter((id) => id !== tagId);
+																formData = formData;
+															}}
+															class="hover:text-blue-900"
+														>
+															×
+														</button>
+													</span>
+												{/if}
+											{/each}
+										</div>
+									{/if}
+									<!-- Add Tag Button -->
+									<button
+										type="button"
+										on:click={() => (showTagsPopup = true)}
+										class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white hover:bg-gray-50 text-gray-700 flex items-center justify-center gap-2"
+									>
+										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+										</svg>
+										Add Tag
+									</button>
+								</div>
 							{/if}
 						</div>
 
 						<!-- People -->
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-2">
+							<div class="block text-sm font-medium text-gray-700 mb-2">
 								People
-							</label>
+							</div>
 							{#if loadingOptions}
 								<div class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500">
 									Loading people...
 								</div>
 							{:else}
-								<select
-									multiple
-									class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[100px]"
-									bind:value={formData.people}
-								>
-									{#each people as person}
-										<option value={person._id}>{getPersonName(person)}</option>
-									{/each}
-								</select>
-								<p class="text-xs text-gray-500 mt-1">Hold Ctrl/Cmd to select multiple</p>
+								<div class="space-y-2">
+									<!-- Selected People Display -->
+									{#if formData.people && formData.people.length > 0}
+										<div class="flex flex-wrap gap-2 mb-2">
+											{#each formData.people as personId}
+												{@const person = people.find(p => p._id === personId)}
+												{#if person}
+													<span class="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-800 text-sm rounded-md">
+														{getPersonName(person)}
+														<button
+															type="button"
+															on:click={() => {
+																formData.people = formData.people.filter((id) => id !== personId);
+																formData = formData;
+															}}
+															class="hover:text-green-900"
+														>
+															×
+														</button>
+													</span>
+												{/if}
+											{/each}
+										</div>
+									{/if}
+									<!-- Add Person Button -->
+									<button
+										type="button"
+										on:click|preventDefault|stopPropagation={() => {
+											showPeoplePopup = true;
+										}}
+										class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white hover:bg-gray-50 text-gray-700 flex items-center justify-center gap-2"
+									>
+										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+										</svg>
+										Add Person
+									</button>
+								</div>
 							{/if}
 						</div>
 
 						<!-- Location -->
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-2">
+							<div class="block text-sm font-medium text-gray-700 mb-2">
 								Location
-							</label>
+							</div>
 							{#if loadingOptions}
 								<div class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500">
 									Loading locations...
 								</div>
 							{:else}
-								<select
-									class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-									bind:value={formData.location}
-								>
-									<option value="">No location</option>
-									{#each locations as location}
-										<option value={location._id}>{getLocationName(location)}</option>
-									{/each}
-								</select>
+								<div class="space-y-2">
+									<!-- Selected Location Display -->
+									{#if formData.location}
+										{@const location = locations.find(l => l._id === formData.location)}
+										{#if location}
+											<div class="mb-2">
+												<span class="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-800 text-sm rounded-md">
+													{getLocationName(location)}
+													<button
+														type="button"
+														on:click={() => {
+															formData.location = null;
+															formData = formData;
+														}}
+														class="hover:text-purple-900"
+													>
+														×
+													</button>
+												</span>
+											</div>
+										{/if}
+									{/if}
+									<!-- Add Location Button -->
+									<button
+										type="button"
+										on:click={() => (showLocationPopup = true)}
+										class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white hover:bg-gray-50 text-gray-700 flex items-center justify-center gap-2"
+									>
+										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+										</svg>
+										{formData.location ? 'Change Location' : 'Add Location'}
+									</button>
+								</div>
 							{/if}
 						</div>
 					</div>
@@ -756,7 +824,6 @@
 									}}
 									onFaceClick={(index) => {
 										// Handle face click if needed
-										console.log('Face clicked:', index);
 									}}
 									onError={(error) => {
 										notification = { show: true, message: error, type: 'error' };
@@ -787,7 +854,6 @@
 										}}
 										onFaceClick={(index) => {
 											// Handle face click if needed
-											console.log('Face clicked:', index);
 										}}
 									/>
 								{/if}
@@ -859,4 +925,50 @@
 	onClose={() => {
 		notification.show = false;
 	}}
+/>
+
+<!-- Collection Popups -->
+<CollectionPopup
+	isOpen={showTagsPopup}
+	onClose={() => {
+		showTagsPopup = false;
+	}}
+	title="Select Tags"
+	collectionType="tags"
+	selectedItems={formData.tags}
+	onSelectionChange={(items) => {
+		formData.tags = items;
+		formData = formData;
+	}}
+	searchPlaceholder="Search tags..."
+/>
+
+<CollectionPopup
+	isOpen={showPeoplePopup}
+	onClose={() => {
+		showPeoplePopup = false;
+	}}
+	title="Select People"
+	collectionType="people"
+	selectedItems={formData.people}
+	onSelectionChange={(items) => {
+		formData.people = items;
+		formData = formData;
+	}}
+	searchPlaceholder="Search people..."
+/>
+
+<CollectionPopup
+	isOpen={showLocationPopup}
+	onClose={() => {
+		showLocationPopup = false;
+	}}
+	title="Select Location"
+	collectionType="locations"
+	selectedItems={formData.location ? [formData.location] : []}
+	onSelectionChange={(items) => {
+		formData.location = items.length > 0 ? items[0] : null;
+		formData = formData;
+	}}
+	searchPlaceholder="Search locations..."
 />

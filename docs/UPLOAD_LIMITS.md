@@ -1,12 +1,12 @@
 # File Upload Size Limits
 
 ## Issue
-Next.js has a default body size limit that may restrict file uploads. The default limit is approximately:
+During the migration from Next.js to SvelteKit, file uploads are handled by the NestJS backend API (port 5000). However, if requests are proxied through Next.js (legacy routes), Next.js has a default body size limit that may restrict file uploads:
 - **JSON requests**: ~4.5MB
 - **Form data (multipart)**: ~20MB
 
 ## Current Configuration
-The photo upload API route (`/api/photos/upload`) is configured to accept files up to **100MB**, but the Next.js server may reject requests before they reach the route handler.
+The photo upload API endpoint (`/api/photos/upload`) is handled by the NestJS backend and configured to accept files up to **100MB**. If requests are proxied through Next.js (during migration), the Next.js server may reject requests before they reach the backend API.
 
 ## Solutions
 
@@ -48,9 +48,10 @@ If running in Docker or standalone mode, you may need to:
 
 ## Current Status
 
-- API route limit: **100MB** (configured in `src/app/api/photos/upload/route.ts`)
-- Next.js server limit: **~20MB** (default, may vary)
-- Frontend limit: **100MB** (configured in `src/components/PhotoUpload.tsx`)
+- **Backend API limit**: **100MB** (configured in NestJS backend)
+- **Next.js proxy limit**: **~20MB** (default, may vary - only affects legacy routes during migration)
+- **SvelteKit proxy limit**: Configured in `vite.config.ts` (defaults to higher limits)
+- **Frontend limit**: **100MB** (configured in upload components)
 
 ## Testing
 
@@ -61,6 +62,8 @@ To test if the limit has been increased:
 
 ## Notes
 
-- The body size limit is enforced by Next.js before the request reaches the API route handler
+- **During migration**: If requests go through Next.js (legacy routes), the body size limit is enforced by Next.js before reaching the NestJS backend
+- **After migration**: SvelteKit routes proxy directly to NestJS backend, bypassing Next.js limits
 - Error messages may indicate "Request entity too large" or similar
-- Configuration may vary between Next.js versions
+- Configuration may vary between Next.js and SvelteKit versions
+- The NestJS backend handles uploads directly and has higher limits configured

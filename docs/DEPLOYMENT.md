@@ -51,7 +51,7 @@ docker-compose -f docker-compose.external-mongodb.yml up -d
 
 ### What to Copy to Server
 
-1. **Source Code** (excluding node_modules, .next, etc.)
+1. **Source Code** (excluding node_modules, build artifacts, etc.)
 2. **Docker Files** (Dockerfile, docker-compose.yml)
 3. **Environment File** (`.env.production`)
 
@@ -64,12 +64,16 @@ docker-compose -f docker-compose.external-mongodb.yml up -d
 tar -czf openshutter-source.tar.gz \
   --exclude=node_modules \
   --exclude=.next \
+  --exclude=.svelte-kit \
+  --exclude=build \
   --exclude=storage \
   --exclude=logs \
   --exclude=.git \
   --exclude=.env.local \
   .
 ```
+
+**Note**: During the SvelteKit migration, both `.next` (Next.js) and `.svelte-kit` (SvelteKit) build directories may exist. Both are excluded from deployment as they will be rebuilt on the server.
 
 #### 2. Copy to Server
 
