@@ -117,4 +117,18 @@ After all React code is removed:
 - Some React components may still be used by remaining Next.js pages
 - Templates (`templates/*`) are React components - migrate to Svelte templates later
 - Be careful with shared utilities and services - they may be used by both
+- Next.js config files (`next.config.js`, `next-env.d.ts`) must stay until all Next.js pages are removed
 
+## Progress Summary
+- ✅ Phase 1: Removed 21 migrated Next.js pages
+- ⏳ Phase 2: Waiting for remaining Next.js pages to be migrated before removing React components
+- ⏳ Phase 3: API routes migration (61 routes remaining)
+- ⏳ Phase 4: React dependencies removal
+- ⏳ Phase 5: React contexts and hooks removal
+
+## Next Steps
+1. Migrate remaining Next.js pages to SvelteKit
+2. Start migrating API routes from `app/api/**/route.ts` to `routes/api/**/+server.ts`
+3. Remove React components once no longer used
+4. Remove Next.js config files once all pages are migrated
+5. Remove React dependencies from package.json
