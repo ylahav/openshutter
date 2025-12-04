@@ -5,17 +5,17 @@
   "description": "A comprehensive photo gallery management system with multi-storage support",
   "private": true,
   "scripts": {
-    "dev": "concurrently \"pnpm --filter backend dev\" \"pnpm --filter frontend dev\"",
-    "dev:frontend": "pnpm --filter frontend dev",
-    "dev:backend": "pnpm --filter backend dev",
-    "build": "pnpm --filter backend build && pnpm --filter frontend build",
-    "build:frontend": "pnpm --filter frontend build",
-    "build:backend": "pnpm --filter backend build",
-    "start": "concurrently \"pnpm --filter backend start\" \"pnpm --filter frontend preview\"",
-    "start:frontend": "pnpm --filter frontend preview",
-    "start:backend": "pnpm --filter backend start",
-    "lint": "pnpm --filter frontend lint && pnpm --filter backend lint",
-    "type-check": "pnpm --filter frontend type-check"
+    "dev": "concurrently \"pnpm --filter openshutter-backend dev\" \"pnpm --filter openshutter dev\"",
+    "dev:frontend": "pnpm --filter openshutter dev",
+    "dev:backend": "pnpm --filter openshutter-backend dev",
+    "build": "pnpm --filter openshutter-backend build && pnpm --filter openshutter build",
+    "build:frontend": "pnpm --filter openshutter build",
+    "build:backend": "pnpm --filter openshutter-backend build",
+    "start": "concurrently \"pnpm --filter openshutter-backend start\" \"pnpm --filter openshutter preview\"",
+    "start:frontend": "pnpm --filter openshutter preview",
+    "start:backend": "pnpm --filter openshutter-backend start",
+    "lint": "pnpm --filter openshutter lint && pnpm --filter openshutter-backend lint",
+    "type-check": "pnpm --filter openshutter type-check"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"
