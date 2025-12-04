@@ -200,4 +200,3 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		return json({ success: false, error: 'Failed to create person' }, { status: 500 });
 	}
 };
-

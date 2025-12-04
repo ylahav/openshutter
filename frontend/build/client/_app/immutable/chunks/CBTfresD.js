@@ -1,1 +1,0 @@
-import{V as u,b as o,aB as _,O as a,af as g,a5 as p,aa as i,a3 as l,a2 as d,a4 as m}from"./CK0-DIe0.js";function E(n,r){let t=null,f=a;var s;if(a){t=m;for(var e=g(document.head);e!==null&&(e.nodeType!==p||e.data!==n);)e=i(e);if(e===null)l(!1);else{var y=i(e);e.remove(),d(y)}}a||(s=document.head.appendChild(u()));try{o(()=>r(s),_)}finally{f&&(l(!0),d(t))}}export{E as h};

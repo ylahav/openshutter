@@ -1,1 +1,0 @@
-import{e as t,z as S,v as b,A as h,S as k}from"./CK0-DIe0.js";function u(r,i){return r===i||r?.[k]===i}function c(r={},i,a,A){return t(()=>{var f,s;return S(()=>{f=s,s=[],b(()=>{r!==a(...s)&&(i(r,...s),f&&u(a(...f),r)&&i(null,...f))})}),()=>{h(()=>{s&&u(a(...s),r)&&i(null,...s)})}}),r}export{c as b};

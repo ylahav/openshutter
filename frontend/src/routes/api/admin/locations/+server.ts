@@ -195,4 +195,3 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		return json({ success: false, error: 'Failed to create location' }, { status: 500 });
 	}
 };
-

@@ -207,4 +207,3 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
 		return json({ success: false, error: 'Failed to delete location' }, { status: 500 });
 	}
 };
-

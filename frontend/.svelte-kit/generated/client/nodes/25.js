@@ -1,1 +1,0 @@
-export { default as component } from "../../../../src/routes/albums/new/+page.svelte";

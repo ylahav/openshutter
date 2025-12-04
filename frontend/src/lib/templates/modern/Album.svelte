@@ -246,16 +246,6 @@
 			</div>
 		{/if}
 
-		<!-- DEBUG: Temporary display of albumData.subAlbums -->
-		{#if albumData.subAlbums}
-			<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
-				<div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-					<h2 class="text-sm font-bold text-yellow-800 mb-2">DEBUG: albumData.subAlbums</h2>
-					<pre class="text-xs overflow-auto max-h-96 bg-white p-3 rounded border">{JSON.stringify(albumData.subAlbums, null, 2)}</pre>
-				</div>
-			</div>
-		{/if}
-
 		<section class="py-8">
 			<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
 				<div class="text-center mb-8">
