@@ -1,11 +1,23 @@
 import mongoose, { Schema, Document, Types } from 'mongoose'
 
+// Simple schema for multi-language text
+const MultiLangTextSchema = new Schema({
+  en: { type: String, default: '' },
+  he: { type: String, default: '' },
+}, { _id: false });
+
+// Simple schema for multi-language HTML
+const MultiLangHTMLSchema = new Schema({
+  en: { type: String, default: '' },
+  he: { type: String, default: '' },
+}, { _id: false });
+
 // Define interfaces locally instead of importing from @/types
 export interface Album {
   _id: string
-  name: string
+  name: { en?: string; he?: string } | string
   alias: string
-  description?: string
+  description?: { en?: string; he?: string } | string
   isPublic: boolean
   isFeatured: boolean
   storageProvider: 'google-drive' | 'aws-s3' | 'local' | 'backblaze' | 'wasabi'
@@ -41,9 +53,8 @@ export interface IAlbum extends Omit<Album, '_id' | 'createdBy' | 'parentAlbumId
 
 export const AlbumSchema = new Schema<IAlbum>({
   name: {
-    type: String,
+    type: Schema.Types.Mixed, // Allow both string and multilingual object
     required: true,
-    trim: true
   },
   alias: {
     type: String,
@@ -53,8 +64,7 @@ export const AlbumSchema = new Schema<IAlbum>({
     lowercase: true
   },
   description: {
-    type: String,
-    trim: true
+    type: Schema.Types.Mixed, // Allow both string and multilingual object
   },
   isPublic: {
     type: Boolean,

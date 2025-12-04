@@ -9,6 +9,23 @@ export class PhotosService {
     @InjectModel('Photo') private photoModel: Model<IPhoto>,
   ) {}
 
+  /**
+   * Get gallery-leading photos for hero/landing pages.
+   * Returns photos with isGalleryLeading + isPublished sorted by uploadedAt desc.
+   */
+  async findGalleryLeading(limit = 5) {
+    const photos = await this.photoModel
+      .find({
+        isGalleryLeading: true,
+        isPublished: true,
+      })
+      .sort({ uploadedAt: -1 })
+      .limit(limit)
+      .exec();
+
+    return photos;
+  }
+
   async findAll(page = 1, limit = 20) {
     const skip = (page - 1) * limit;
 

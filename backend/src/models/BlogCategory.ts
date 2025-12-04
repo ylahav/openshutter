@@ -24,7 +24,7 @@ export interface IBlogCategory extends Document {
   updatedAt: Date
 }
 
-const BlogCategorySchema = new Schema<IBlogCategory>({
+export const BlogCategorySchema = new Schema<IBlogCategory>({
   alias: {
     type: String,
     required: true,

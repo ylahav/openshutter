@@ -75,3 +75,5 @@ UserSchema.index({ blocked: 1 })
 
 export const UserModel = mongoose.models.User || 
   mongoose.model<IUserDocument>('User', UserSchema)
+
+export { UserSchema }

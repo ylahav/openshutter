@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AlbumsController } from './albums.controller';
+import { AlbumsAdminController } from './albums-admin.controller';
 import { AlbumsService } from './albums.service';
 import { AlbumSchema } from '../models/Album';
 import { PhotoSchema } from '../models/Photo';
@@ -18,7 +19,7 @@ import { LocationSchema } from '../models/Location';
       { name: 'Location', schema: LocationSchema },
     ]),
   ],
-  controllers: [AlbumsController],
+  controllers: [AlbumsController, AlbumsAdminController],
   providers: [AlbumsService],
   exports: [AlbumsService],
 })

@@ -1,17 +1,20 @@
 import { MongoClient, Db } from 'mongodb'
 import mongoose from 'mongoose'
+import { env } from '$env/dynamic/private'
 
-if (!process.env.MONGODB_URI) {
-  throw new Error('Please define the MONGODB_URI environment variable inside .env.local')
+// In SvelteKit, server-side env vars are available via $env/dynamic/private
+// Fallback to process.env for compatibility
+const uri = env.MONGODB_URI || process.env.MONGODB_URI
+
+if (!uri) {
+  throw new Error('Please define the MONGODB_URI environment variable in .env file')
 }
 
-const uri = process.env.MONGODB_URI
-
 // Debug logging
-console.debug('  - MONGODB_URI:', process.env.MONGODB_URI)
-console.debug('  - MONGODB_DB:', process.env.MONGODB_DB)
-console.debug('  - NODE_ENV:', process.env.NODE_ENV)
-console.debug('  - All env vars with MONGODB:', Object.keys(process.env).filter(key => key.includes('MONGODB')))
+const dbName = env.MONGODB_DB || process.env.MONGODB_DB || 'openshutter'
+console.debug('  - MONGODB_URI:', uri ? '***' : 'NOT SET')
+console.debug('  - MONGODB_DB:', dbName)
+console.debug('  - NODE_ENV:', env.NODE_ENV || process.env.NODE_ENV)
 const options = {
   maxPoolSize: 10,
   serverSelectionTimeoutMS: 10000, // Increased from 5000
@@ -23,7 +26,8 @@ const options = {
 let client: MongoClient
 let clientPromise: Promise<MongoClient>
 
-if (process.env.NODE_ENV === 'development') {
+const nodeEnv = env.NODE_ENV || process.env.NODE_ENV || 'development'
+if (nodeEnv === 'development') {
   // In development mode, use a global variable so that the value
   // is preserved across module reloads caused by HMR (Hot Module Replacement).
   let globalWithMongo = global as typeof globalThis & {
@@ -44,11 +48,11 @@ if (process.env.NODE_ENV === 'development') {
 export async function connectToDatabase(): Promise<{ client: MongoClient; db: Db }> {
   try {
     console.log('🔗 Attempting to connect to MongoDB...')
-    console.log('  - Using URI:', uri)
-    console.log('  - Database name:', process.env.MONGODB_DB || 'openshutter')
+    console.log('  - Using URI:', uri ? '***' : 'NOT SET')
+    console.log('  - Database name:', dbName)
     
     const client = await clientPromise
-    const db = client.db(process.env.MONGODB_DB || 'openshutter')
+    const db = client.db(dbName)
     
     console.log('✅ MongoDB client created, testing connection...')
     

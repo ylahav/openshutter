@@ -141,8 +141,8 @@ export class SiteConfigService {
         textColor: '#1e293b'
       },
       seo: {
-        metaTitle: 'OpenShutter Gallery - Beautiful Photo Gallery',
-        metaDescription: 'Discover amazing photos in our beautiful gallery',
+        metaTitle: { en: 'OpenShutter Gallery - Beautiful Photo Gallery' },
+        metaDescription: { en: 'Discover amazing photos in our beautiful gallery' },
         metaKeywords: ['gallery', 'photos', 'photography', 'images', 'art']
       },
       contact: {

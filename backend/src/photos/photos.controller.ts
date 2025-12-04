@@ -22,6 +22,15 @@ export class PhotosController {
     private readonly photoUploadService: PhotoUploadService,
   ) {}
 
+  @Get('gallery-leading')
+  async findGalleryLeading(
+    @Query('limit') limit?: string,
+  ) {
+    const limitNum = limit ? parseInt(limit, 10) || 5 : 5;
+    // Return direct array, frontend handles shape
+    return this.photosService.findGalleryLeading(limitNum);
+  }
+
   @Get()
   async findAll(
     @Query('page') page?: string,

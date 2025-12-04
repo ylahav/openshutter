@@ -42,14 +42,14 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.BlogCategoryModel = void 0;
+exports.BlogCategoryModel = exports.BlogCategorySchema = void 0;
 const mongoose_1 = __importStar(require("mongoose"));
 // Simple schema for multi-language text
 const MultiLangTextSchema = new mongoose_1.Schema({
     en: { type: String, default: '' },
     he: { type: String, default: '' }
 }, { _id: false });
-const BlogCategorySchema = new mongoose_1.Schema({
+exports.BlogCategorySchema = new mongoose_1.Schema({
     alias: {
         type: String,
         required: true,
@@ -87,11 +87,11 @@ const BlogCategorySchema = new mongoose_1.Schema({
         default: Date.now
     }
 });
-BlogCategorySchema.pre('save', function () {
+exports.BlogCategorySchema.pre('save', function () {
     return __awaiter(this, void 0, void 0, function* () {
         this.updatedAt = new Date();
     });
 });
 // Ensure the model is registered with the correct collection name
 exports.BlogCategoryModel = mongoose_1.default.models.BlogCategory ||
-    mongoose_1.default.model('BlogCategory', BlogCategorySchema, 'blogcategories');
+    mongoose_1.default.model('BlogCategory', exports.BlogCategorySchema, 'blogcategories');

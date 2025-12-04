@@ -84,6 +84,7 @@ class SiteConfigService {
      * Migrate existing string-based title/description to multi-language format
      */
     migrateToMultiLang(config) {
+        var _a, _b;
         // Convert string title to multi-language format
         if (typeof config.title === 'string') {
             config.title = { en: config.title };
@@ -99,6 +100,20 @@ class SiteConfigService {
         else if (config.description && typeof config.description === 'object') {
             // Clean existing multi-language description
             config.description = multi_lang_1.MultiLangUtils.clean(config.description);
+        }
+        // Convert string metaTitle to multi-language format
+        if (config.seo && typeof config.seo.metaTitle === 'string') {
+            config.seo.metaTitle = { en: config.seo.metaTitle };
+        }
+        else if (((_a = config.seo) === null || _a === void 0 ? void 0 : _a.metaTitle) && typeof config.seo.metaTitle === 'object') {
+            config.seo.metaTitle = multi_lang_1.MultiLangUtils.clean(config.seo.metaTitle);
+        }
+        // Convert string metaDescription to multi-language format
+        if (config.seo && typeof config.seo.metaDescription === 'string') {
+            config.seo.metaDescription = { en: config.seo.metaDescription };
+        }
+        else if (((_b = config.seo) === null || _b === void 0 ? void 0 : _b.metaDescription) && typeof config.seo.metaDescription === 'object') {
+            config.seo.metaDescription = multi_lang_1.MultiLangUtils.clean(config.seo.metaDescription);
         }
         return config;
     }
@@ -146,8 +161,8 @@ class SiteConfigService {
                 textColor: '#1e293b'
             },
             seo: {
-                metaTitle: 'OpenShutter Gallery - Beautiful Photo Gallery',
-                metaDescription: 'Discover amazing photos in our beautiful gallery',
+                metaTitle: { en: 'OpenShutter Gallery - Beautiful Photo Gallery' },
+                metaDescription: { en: 'Discover amazing photos in our beautiful gallery' },
                 metaKeywords: ['gallery', 'photos', 'photography', 'images', 'art']
             },
             contact: {

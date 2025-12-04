@@ -98,6 +98,20 @@ export class SiteConfigService {
       config.description = MultiLangUtils.clean(config.description)
     }
     
+    // Convert string metaTitle to multi-language format
+    if (config.seo && typeof config.seo.metaTitle === 'string') {
+      config.seo.metaTitle = { en: config.seo.metaTitle }
+    } else if (config.seo?.metaTitle && typeof config.seo.metaTitle === 'object') {
+      config.seo.metaTitle = MultiLangUtils.clean(config.seo.metaTitle)
+    }
+    
+    // Convert string metaDescription to multi-language format
+    if (config.seo && typeof config.seo.metaDescription === 'string') {
+      config.seo.metaDescription = { en: config.seo.metaDescription }
+    } else if (config.seo?.metaDescription && typeof config.seo.metaDescription === 'object') {
+      config.seo.metaDescription = MultiLangUtils.clean(config.seo.metaDescription)
+    }
+    
     return config
   }
 
@@ -146,8 +160,8 @@ export class SiteConfigService {
         textColor: '#1e293b'
       },
       seo: {
-        metaTitle: 'OpenShutter Gallery - Beautiful Photo Gallery',
-        metaDescription: 'Discover amazing photos in our beautiful gallery',
+        metaTitle: { en: 'OpenShutter Gallery - Beautiful Photo Gallery' },
+        metaDescription: { en: 'Discover amazing photos in our beautiful gallery' },
         metaKeywords: ['gallery', 'photos', 'photography', 'images', 'art']
       },
       contact: {

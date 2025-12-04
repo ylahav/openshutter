@@ -29,6 +29,23 @@ let PhotosService = class PhotosService {
     constructor(photoModel) {
         this.photoModel = photoModel;
     }
+    /**
+     * Get gallery-leading photos for hero/landing pages.
+     * Returns photos with isGalleryLeading + isPublished sorted by uploadedAt desc.
+     */
+    findGalleryLeading() {
+        return __awaiter(this, arguments, void 0, function* (limit = 5) {
+            const photos = yield this.photoModel
+                .find({
+                isGalleryLeading: true,
+                isPublished: true,
+            })
+                .sort({ uploadedAt: -1 })
+                .limit(limit)
+                .exec();
+            return photos;
+        });
+    }
     findAll() {
         return __awaiter(this, arguments, void 0, function* (page = 1, limit = 20) {
             const skip = (page - 1) * limit;

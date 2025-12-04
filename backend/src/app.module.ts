@@ -3,7 +3,25 @@ import { ConfigModule } from '@nestjs/config';
 import { DatabaseModule } from './database/database.module';
 import { PhotosModule } from './photos/photos.module';
 import { AlbumsModule } from './albums/albums.module';
+import { AuthModule } from './auth/auth.module';
 import { HealthController } from './health/health.controller';
+import { SiteConfigController } from './site-config/site-config.controller';
+import { StorageController } from './storage/storage.controller';
+import { StorageAdminController } from './storage/storage-admin.controller';
+import { TemplatesController } from './templates/templates.controller';
+import { PeopleModule } from './people/people.module';
+import { TagsModule } from './tags/tags.module';
+import { LocationsModule } from './locations/locations.module';
+import { UsersModule } from './users/users.module';
+import { GroupsModule } from './groups/groups.module';
+import { PagesModule } from './pages/pages.module';
+import { BlogCategoriesModule } from './blog-categories/blog-categories.module';
+import { BackupModule } from './backup/backup.module';
+import { AnalyticsModule } from './analytics/analytics.module';
+import { DeploymentModule } from './deployment/deployment.module';
+import { AdminGuard } from './common/guards/admin.guard';
+import { PhotosAdminController } from './photos/photos-admin.controller';
+import { FaceDetectionModule } from './face-detection/face-detection.module';
 import configuration from './config/configuration';
 
 @Module({
@@ -16,8 +34,20 @@ import configuration from './config/configuration';
     DatabaseModule,
     PhotosModule,
     AlbumsModule,
+    AuthModule,
+    PeopleModule,
+    TagsModule,
+    LocationsModule,
+    UsersModule,
+    GroupsModule,
+    PagesModule,
+    BlogCategoriesModule,
+    BackupModule,
+    AnalyticsModule,
+    DeploymentModule,
+    FaceDetectionModule,
   ],
-  controllers: [HealthController],
-  providers: [],
+  controllers: [HealthController, SiteConfigController, StorageController, StorageAdminController, TemplatesController, PhotosAdminController],
+  providers: [AdminGuard],
 })
 export class AppModule {}

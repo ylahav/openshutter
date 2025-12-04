@@ -1,11 +1,22 @@
 /**
- * Face Recognition Service
+ * Face Detection Service
  * 
  * Provides face detection and recognition capabilities using face-api.js
- * Supports both client-side (browser) and server-side (Node.js) processing
+ * Client-side only (browser) - must not be executed during SSR
  */
 
-import * as faceapi from 'face-api.js'
+// Dynamic import to avoid SSR issues
+let faceapi: typeof import('face-api.js') | null = null;
+
+async function getFaceApi() {
+	if (typeof window === 'undefined') {
+		throw new Error('Face detection service can only be used in the browser');
+	}
+	if (!faceapi) {
+		faceapi = await import('face-api.js');
+	}
+	return faceapi;
+}
 
 export interface FaceDetection {
   descriptor: Float32Array | number[] // 128D face descriptor
@@ -38,6 +49,10 @@ export class FaceRecognitionService {
    * Should be called before using detection/recognition functions
    */
   static async loadModels(): Promise<void> {
+    if (typeof window === 'undefined') {
+      throw new Error('Face detection models can only be loaded in the browser');
+    }
+
     if (this.modelsLoaded) {
       return Promise.resolve()
     }
@@ -48,6 +63,9 @@ export class FaceRecognitionService {
 
     this.loadingPromise = (async () => {
       try {
+        // Load face-api.js dynamically (browser only)
+        const faceapi = await getFaceApi();
+        
         // Load models from public directory
         // face-api.js expects models in subdirectories matching the model names
         // We need to specify the full path to each model's directory
@@ -63,15 +81,15 @@ export class FaceRecognitionService {
         ])
 
         this.modelsLoaded = true
-        console.log('Face recognition models loaded successfully')
+        console.log('Face detection models loaded successfully')
       } catch (error) {
-        console.error('Failed to load face recognition models:', error)
+        console.error('Failed to load face detection models:', error)
         console.error('Model base URL:', '/models/face-api')
         console.error('Expected structure:')
         console.error('  /models/face-api/tiny_face_detector/tiny_face_detector_model-weights_manifest.json')
         console.error('  /models/face-api/face_landmark_68/face_landmark_68_model-weights_manifest.json')
         console.error('  /models/face-api/face_recognition/face_recognition_model-weights_manifest.json')
-        throw new Error('Failed to load face recognition models. Please ensure models are available at /models/face-api with subdirectories: tiny_face_detector, face_landmark_68, face_recognition')
+        throw new Error('Failed to load face detection models. Please ensure models are available at /models/face-api with subdirectories: tiny_face_detector, face_landmark_68, face_recognition')
       }
     })()
 
@@ -87,7 +105,12 @@ export class FaceRecognitionService {
     image: HTMLImageElement | HTMLCanvasElement | string,
     options?: { scoreThreshold?: number; inputSize?: number }
   ): Promise<FaceDetection[]> {
+    if (typeof window === 'undefined') {
+      throw new Error('Face detection can only be used in the browser');
+    }
+
     await this.loadModels()
+    const faceapi = await getFaceApi();
 
     let input: HTMLImageElement | HTMLCanvasElement
 
@@ -159,7 +182,12 @@ export class FaceRecognitionService {
     image: HTMLImageElement | HTMLCanvasElement,
     box: { x: number; y: number; width: number; height: number }
   ): Promise<FaceDetection | null> {
+    if (typeof window === 'undefined') {
+      throw new Error('Face detection can only be used in the browser');
+    }
+
     await this.loadModels()
+    const faceapi = await getFaceApi();
 
     // Create a canvas to crop the region
     const canvas = document.createElement('canvas')

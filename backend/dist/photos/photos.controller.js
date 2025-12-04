@@ -32,6 +32,13 @@ let PhotosController = class PhotosController {
         this.photosService = photosService;
         this.photoUploadService = photoUploadService;
     }
+    findGalleryLeading(limit) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const limitNum = limit ? parseInt(limit, 10) || 5 : 5;
+            // Return direct array, frontend handles shape
+            return this.photosService.findGalleryLeading(limitNum);
+        });
+    }
     findAll(page, limit) {
         return __awaiter(this, void 0, void 0, function* () {
             const pageNum = page ? parseInt(page, 10) || 1 : 1;
@@ -63,6 +70,13 @@ let PhotosController = class PhotosController {
     }
 };
 exports.PhotosController = PhotosController;
+__decorate([
+    (0, common_1.Get)('gallery-leading'),
+    __param(0, (0, common_1.Query)('limit')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], PhotosController.prototype, "findGalleryLeading", null);
 __decorate([
     (0, common_1.Get)(),
     __param(0, (0, common_1.Query)('page')),

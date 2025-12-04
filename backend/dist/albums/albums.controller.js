@@ -45,6 +45,13 @@ let AlbumsController = class AlbumsController {
             return this.albumsService.findPhotosByAlbumId(id, pageNum, limitNum);
         });
     }
+    getAlbumData(idOrAlias, page, limit) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const pageNum = page ? parseInt(page, 10) || 1 : 1;
+            const limitNum = limit ? parseInt(limit, 10) || 50 : 50;
+            return this.albumsService.getAlbumData(idOrAlias, pageNum, limitNum);
+        });
+    }
     findOne(idOrAlias) {
         return __awaiter(this, void 0, void 0, function* () {
             return this.albumsService.findOneByIdOrAlias(idOrAlias);
@@ -76,6 +83,15 @@ __decorate([
     __metadata("design:paramtypes", [String, String, String]),
     __metadata("design:returntype", Promise)
 ], AlbumsController.prototype, "findPhotos", null);
+__decorate([
+    (0, common_1.Get)(':idOrAlias/data'),
+    __param(0, (0, common_1.Param)('idOrAlias')),
+    __param(1, (0, common_1.Query)('page')),
+    __param(2, (0, common_1.Query)('limit')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, String]),
+    __metadata("design:returntype", Promise)
+], AlbumsController.prototype, "getAlbumData", null);
 __decorate([
     (0, common_1.Get)(':idOrAlias'),
     __param(0, (0, common_1.Param)('idOrAlias')),

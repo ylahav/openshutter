@@ -14,9 +14,12 @@ const core_1 = require("@nestjs/core");
 const common_1 = require("@nestjs/common");
 const app_module_1 = require("./app.module");
 const http_exception_filter_1 = require("./common/filters/http-exception.filter");
+const cookieParser = require('cookie-parser');
 function bootstrap() {
     return __awaiter(this, void 0, void 0, function* () {
         const app = yield core_1.NestFactory.create(app_module_1.AppModule);
+        // Enable cookie parser for JWT tokens
+        app.use(cookieParser());
         // Enable CORS with proper configuration
         app.enableCors({
             origin: process.env.FRONTEND_URL || 'http://localhost:4000',

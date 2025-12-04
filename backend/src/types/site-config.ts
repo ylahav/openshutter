@@ -54,8 +54,8 @@ export interface SiteConfig {
     }
   }
   seo: {
-    metaTitle: string
-    metaDescription: string
+    metaTitle: MultiLangText
+    metaDescription: MultiLangText
     metaKeywords: string[]
     ogImage?: string
   }

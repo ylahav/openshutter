@@ -34,6 +34,17 @@ export class AlbumsController {
     return this.albumsService.findPhotosByAlbumId(id, pageNum, limitNum);
   }
 
+  @Get(':idOrAlias/data')
+  async getAlbumData(
+    @Param('idOrAlias') idOrAlias: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const pageNum = page ? parseInt(page, 10) || 1 : 1;
+    const limitNum = limit ? parseInt(limit, 10) || 50 : 50;
+    return this.albumsService.getAlbumData(idOrAlias, pageNum, limitNum);
+  }
+
   @Get(':idOrAlias')
   async findOne(@Param('idOrAlias') idOrAlias: string) {
     return this.albumsService.findOneByIdOrAlias(idOrAlias);
