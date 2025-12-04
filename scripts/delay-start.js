@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const { spawn } = require('child_process');
+import { spawn } from 'child_process';
 
 const delay = parseInt(process.argv[2] || '3000', 10);
 const command = process.argv.slice(3);
@@ -25,4 +25,3 @@ setTimeout(() => {
 
 // Keep process alive
 process.stdin.resume();
-
