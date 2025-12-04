@@ -1,7 +1,8 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { connectToDatabase } from '$lib/mongodb';
+import { connectToDatabase, connectMongoose } from '$lib/mongodb';
 import { TagModel } from '$lib/models/Tag';
+import { SUPPORTED_LANGUAGES } from '$lib/types/multi-lang';
 import { ObjectId } from 'mongodb';
 
 export const GET: RequestHandler = async ({ params, locals }) => {
@@ -12,6 +13,7 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 		}
 
 		const { id } = await params;
+		await connectMongoose();
 		const { db } = await connectToDatabase();
 
 		// Validate ObjectId
@@ -43,6 +45,7 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
 		}
 
 		const { id } = await params;
+		await connectMongoose();
 		const { db } = await connectToDatabase();
 		const body = await request.json();
 		const { name, description, color, category, isActive } = body;
@@ -52,8 +55,12 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
 			return json({ success: false, error: 'Invalid tag ID' }, { status: 400 });
 		}
 
-		// Validate required fields
-		if (!name) {
+		// Validate required fields - support both string and multi-language
+		const hasAnyName =
+			typeof name === 'string'
+				? !!name.trim()
+				: Object.values((name as Record<string, string>) || {}).some((v) => (v || '').trim());
+		if (!hasAnyName) {
 			return json({ success: false, error: 'Tag name is required' }, { status: 400 });
 		}
 
@@ -63,11 +70,38 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
 			return json({ success: false, error: 'Tag not found' }, { status: 404 });
 		}
 
+		// Convert name to multi-language format if it's a string
+		const nameObj =
+			typeof name === 'string'
+				? { en: name.trim() }
+				: Object.fromEntries(
+						SUPPORTED_LANGUAGES.map((l) => [l.code, (name as any)[l.code]?.trim() || ''])
+					);
+
+		// Convert description to multi-language format if it's a string
+		const descriptionObj = description
+			? typeof description === 'string'
+				? { en: description.trim() }
+				: Object.fromEntries(
+						SUPPORTED_LANGUAGES.map((l) => [l.code, (description as any)[l.code]?.trim() || ''])
+					)
+			: undefined;
+
 		// Check if another tag with same name exists (excluding current tag)
-		const duplicateTag = await TagModel.findOne({
-			name: name.trim(),
-			_id: { $ne: id }
-		});
+		const nameConditions = SUPPORTED_LANGUAGES.map((l) => ({
+			[`name.${l.code}`]: (nameObj as any)[l.code]
+		})).filter((cond) => Object.values(cond)[0]);
+
+		const duplicateTagQuery: any = {
+			_id: { $ne: id },
+			$or: [
+				...(nameConditions.length ? nameConditions : []),
+				// Backward compatibility: check string name
+				...(typeof name === 'string' ? [{ name: name.trim() }] : [])
+			]
+		};
+
+		const duplicateTag = await TagModel.findOne(duplicateTagQuery);
 
 		if (duplicateTag) {
 			return json(
@@ -80,8 +114,8 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
 		const updatedTag = await TagModel.findByIdAndUpdate(
 			id,
 			{
-				name: name.trim(),
-				description: description?.trim(),
+				name: nameObj,
+				description: descriptionObj,
 				color: color || '#3B82F6',
 				category: category || 'general',
 				isActive: isActive !== undefined ? isActive : true
@@ -107,6 +141,7 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
 		}
 
 		const { id } = await params;
+		await connectMongoose();
 		const { db } = await connectToDatabase();
 
 		// Validate ObjectId

@@ -126,4 +126,3 @@ These public routes should remain as Next.js routes until the public pages are m
 3. ✅ Verify response formats match frontend expectations
 4. ✅ Document any issues found
 5. Once confirmed working, mark routes as production-ready
-

@@ -1,7 +1,8 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { connectToDatabase } from '$lib/mongodb';
+import { connectToDatabase, connectMongoose } from '$lib/mongodb';
 import { TagModel } from '$lib/models/Tag';
+import { SUPPORTED_LANGUAGES } from '$lib/types/multi-lang';
 import { ObjectId } from 'mongodb';
 
 export const GET: RequestHandler = async ({ url, locals }) => {
@@ -11,6 +12,7 @@ export const GET: RequestHandler = async ({ url, locals }) => {
 			return json({ success: false, error: 'Unauthorized' }, { status: 401 });
 		}
 
+		await connectMongoose();
 		const { db } = await connectToDatabase();
 		const searchParams = url.searchParams;
 
@@ -27,7 +29,17 @@ export const GET: RequestHandler = async ({ url, locals }) => {
 		const query: any = {};
 
 		if (search) {
-			query.$text = { $search: search };
+			// Support search in both string and multi-language fields
+			const langs = SUPPORTED_LANGUAGES.map((l) => l.code);
+			const searchConditions = [
+				// String fields (backward compatibility)
+				{ name: { $regex: search, $options: 'i' } },
+				{ description: { $regex: search, $options: 'i' } },
+				// Multi-language fields
+				...langs.map((code) => ({ [`name.${code}`]: { $regex: search, $options: 'i' } })),
+				...langs.map((code) => ({ [`description.${code}`]: { $regex: search, $options: 'i' } }))
+			];
+			query.$or = searchConditions;
 		}
 
 		if (category) {
@@ -72,19 +84,52 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			return json({ success: false, error: 'Unauthorized' }, { status: 401 });
 		}
 
+		await connectMongoose();
 		const { db } = await connectToDatabase();
 		const body = await request.json();
 		const { name, description, color, category } = body;
 
-		// Validate required fields
-		if (!name) {
+		// Validate required fields - support both string and multi-language
+		const hasAnyName =
+			typeof name === 'string'
+				? !!name.trim()
+				: Object.values((name as Record<string, string>) || {}).some((v) => (v || '').trim());
+		if (!hasAnyName) {
 			return json({ success: false, error: 'Tag name is required' }, { status: 400 });
 		}
 
-		// Check if tag already exists
-		const existingTag = await TagModel.findOne({
-			name: name.trim()
-		});
+		// Convert name to multi-language format if it's a string
+		const nameObj =
+			typeof name === 'string'
+				? { en: name.trim() }
+				: Object.fromEntries(
+						SUPPORTED_LANGUAGES.map((l) => [l.code, (name as any)[l.code]?.trim() || ''])
+					);
+
+		// Convert description to multi-language format if it's a string
+		const descriptionObj = description
+			? typeof description === 'string'
+				? { en: description.trim() }
+				: Object.fromEntries(
+						SUPPORTED_LANGUAGES.map((l) => [l.code, (description as any)[l.code]?.trim() || ''])
+					)
+			: undefined;
+
+		// Check if tag already exists (check by any language name)
+		const nameConditions = SUPPORTED_LANGUAGES.map((l) => ({
+			[`name.${l.code}`]: (nameObj as any)[l.code]
+		})).filter((cond) => Object.values(cond)[0]);
+		
+		// Also check old string format for backward compatibility
+		const existingTagQuery: any = {
+			$or: [
+				...(nameConditions.length ? nameConditions : []),
+				// Backward compatibility: check string name
+				...(typeof name === 'string' ? [{ name: name.trim() }] : [])
+			]
+		};
+
+		const existingTag = await TagModel.findOne(existingTagQuery);
 
 		if (existingTag) {
 			return json(
@@ -95,8 +140,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 		// Create new tag
 		const tag = new TagModel({
-			name: name.trim(),
-			description: description?.trim(),
+			name: nameObj,
+			description: descriptionObj,
 			color: color || '#3B82F6',
 			category: category || 'general',
 			createdBy: locals.user.id

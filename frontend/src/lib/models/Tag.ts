@@ -1,8 +1,9 @@
 import mongoose, { Document, Schema, Types } from 'mongoose'
+import type { MultiLangText } from '../types/multi-lang'
 
 export interface ITag extends Document {
-  name: string
-  description?: string
+  name: string | MultiLangText
+  description?: string | MultiLangText
   color?: string
   category?: string
   isActive: boolean
@@ -14,14 +15,37 @@ export interface ITag extends Document {
 
 const TagSchema = new Schema<ITag>({
   name: {
-    type: String,
+    type: Schema.Types.Mixed,
     required: true,
-    trim: true,
-    unique: true
+    validate: {
+      validator: function(v: any) {
+        // Allow string or MultiLangText object
+        if (typeof v === 'string') return v.trim().length > 0
+        if (typeof v === 'object' && v !== null) {
+          // Check if it's a MultiLangText object (has at least one language key)
+          const langs = Object.keys(v).filter(k => typeof v[k] === 'string' && v[k].trim().length > 0)
+          return langs.length > 0
+        }
+        return false
+      },
+      message: 'Tag name must be a non-empty string or multi-language object'
+    }
   },
   description: {
-    type: String,
-    trim: true
+    type: Schema.Types.Mixed,
+    validate: {
+      validator: function(v: any) {
+        if (!v) return true // Optional field
+        // Allow string or MultiLangText object
+        if (typeof v === 'string') return true
+        if (typeof v === 'object' && v !== null) {
+          // Check if it's a MultiLangText object
+          return Object.values(v).some(val => typeof val === 'string')
+        }
+        return false
+      },
+      message: 'Tag description must be a string or multi-language object'
+    }
   },
   color: {
     type: String,
@@ -58,7 +82,9 @@ TagSchema.index({ isActive: 1 })
 TagSchema.index({ usageCount: -1 })
 TagSchema.index({ createdBy: 1 })
 
-// Text search index
+// Text search index - Note: MongoDB text search works with string fields
+// For multi-language fields, we'll need to handle search differently
+// Keeping this for backward compatibility with string-based tags
 TagSchema.index({
   name: 'text',
   description: 'text'

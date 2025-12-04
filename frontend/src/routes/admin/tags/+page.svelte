@@ -1,13 +1,16 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { MultiLangUtils } from '$lib/utils/multiLang';
+	import MultiLangInput from '$lib/components/MultiLangInput.svelte';
+	import type { MultiLangText } from '$lib/types/multi-lang';
 
 	export let data; // From +layout.server.ts, contains user info
 
 	interface Tag {
 		_id: string;
-		name: string;
-		description?: string;
+		name: string | MultiLangText;
+		description?: string | MultiLangText;
 		color?: string;
 		category?: string;
 		isActive?: boolean;
@@ -53,8 +56,8 @@
 
 	// Form state
 	let formData = {
-		name: '',
-		description: '',
+		name: { en: '', he: '' } as MultiLangText,
+		description: { en: '', he: '' } as MultiLangText,
 		color: '#3B82F6',
 		category: 'general',
 		isActive: true
@@ -88,8 +91,8 @@
 
 	function resetForm() {
 		formData = {
-			name: '',
-			description: '',
+			name: { en: '', he: '' } as MultiLangText,
+			description: { en: '', he: '' } as MultiLangText,
 			color: '#3B82F6',
 			category: 'general',
 			isActive: true
@@ -104,9 +107,16 @@
 
 	function openEditDialog(tag: Tag) {
 		editingTag = tag;
+		// Convert string to MultiLangText if needed (backward compatibility)
+		const nameField =
+			typeof tag.name === 'string' ? { en: tag.name, he: '' } : tag.name || { en: '', he: '' };
+		const descriptionField =
+			typeof tag.description === 'string'
+				? { en: tag.description, he: '' }
+				: tag.description || { en: '', he: '' };
 		formData = {
-			name: tag.name || '',
-			description: tag.description || '',
+			name: nameField,
+			description: descriptionField,
 			color: tag.color || '#3B82F6',
 			category: tag.category || 'general',
 			isActive: tag.isActive !== undefined ? tag.isActive : true
@@ -132,7 +142,13 @@
 				headers: {
 					'Content-Type': 'application/json'
 				},
-				body: JSON.stringify(formData)
+				body: JSON.stringify({
+					name: MultiLangUtils.clean(formData.name),
+					description: MultiLangUtils.clean(formData.description),
+					color: formData.color,
+					category: formData.category,
+					isActive: formData.isActive
+				})
 			});
 
 			const responseData = await response.json().catch((e) => {
@@ -183,7 +199,13 @@
 				headers: {
 					'Content-Type': 'application/json'
 				},
-				body: JSON.stringify(formData)
+				body: JSON.stringify({
+					name: MultiLangUtils.clean(formData.name),
+					description: MultiLangUtils.clean(formData.description),
+					color: formData.color,
+					category: formData.category,
+					isActive: formData.isActive
+				})
 			});
 
 			const responseData = await response.json().catch((e) => {
@@ -256,6 +278,17 @@
 
 	function getCategoryLabel(category: string): string {
 		return TAG_CATEGORIES.find((c) => c.value === category)?.label || category;
+	}
+
+	function getTagName(tag: Tag): string {
+		if (typeof tag.name === 'string') return tag.name;
+		return MultiLangUtils.getTextValue(tag.name) || tag._id;
+	}
+
+	function getTagDescription(tag: Tag): string {
+		if (!tag.description) return '';
+		if (typeof tag.description === 'string') return tag.description;
+		return MultiLangUtils.getTextValue(tag.description) || '';
 	}
 </script>
 
@@ -376,7 +409,7 @@
 										class="w-4 h-4 rounded-full border border-gray-300"
 										style="background-color: {tag.color || '#3B82F6'}"
 									></div>
-									<h3 class="font-semibold text-gray-900">{tag.name}</h3>
+									<h3 class="font-semibold text-gray-900">{getTagName(tag)}</h3>
 								</div>
 
 								<div class="flex space-x-1">
@@ -411,8 +444,8 @@
 								</div>
 							</div>
 
-							{#if tag.description}
-								<p class="text-sm text-gray-600 mb-2">{tag.description}</p>
+							{#if getTagDescription(tag)}
+								<p class="text-sm text-gray-600 mb-2">{getTagDescription(tag)}</p>
 							{/if}
 
 							<div class="flex items-center justify-between mt-3">
@@ -450,12 +483,10 @@
 					<label class="block text-sm font-medium text-gray-700 mb-2">
 						Tag Name *
 					</label>
-					<input
-						type="text"
+					<MultiLangInput
 						bind:value={formData.name}
 						placeholder="e.g., Family, Vacation, Nature"
 						required
-						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 					/>
 				</div>
 
@@ -463,12 +494,10 @@
 					<label class="block text-sm font-medium text-gray-700 mb-2">
 						Description
 					</label>
-					<textarea
+					<MultiLangInput
 						bind:value={formData.description}
 						placeholder="Optional description..."
-						rows="3"
-						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-					></textarea>
+					/>
 				</div>
 
 				<div>
@@ -530,7 +559,7 @@
 					<button
 						type="button"
 						on:click={handleCreate}
-						disabled={saving || !formData.name.trim()}
+						disabled={saving || !MultiLangUtils.hasContent(formData.name)}
 						class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm font-medium"
 					>
 						{#if saving}
@@ -560,12 +589,10 @@
 					<label class="block text-sm font-medium text-gray-700 mb-2">
 						Tag Name *
 					</label>
-					<input
-						type="text"
+					<MultiLangInput
 						bind:value={formData.name}
 						placeholder="e.g., Family, Vacation, Nature"
 						required
-						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 					/>
 				</div>
 
@@ -573,12 +600,10 @@
 					<label class="block text-sm font-medium text-gray-700 mb-2">
 						Description
 					</label>
-					<textarea
+					<MultiLangInput
 						bind:value={formData.description}
 						placeholder="Optional description..."
-						rows="3"
-						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-					></textarea>
+					/>
 				</div>
 
 				<div>
@@ -657,7 +682,7 @@
 					<button
 						type="button"
 						on:click={handleEdit}
-						disabled={saving || !formData.name.trim()}
+						disabled={saving || !MultiLangUtils.hasContent(formData.name)}
 						class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm font-medium"
 					>
 						{#if saving}
