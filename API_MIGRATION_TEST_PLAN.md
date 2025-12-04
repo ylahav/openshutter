@@ -76,10 +76,54 @@ These routes are still used by public pages and should remain:
 - Admin routes show ALL data (no public filtering)
 - Response format: `{ success: true, data: [...] }` or `{ success: false, error: "..." }`
 - The admin routes we created are NEW - they never existed in Next.js format
+- Frontend pages have been updated to handle wrapped response format (`responseData.data || responseData`)
 
-## Next Steps
-1. Test all CRUD operations for tags, people, and locations
-2. Verify authentication works correctly
-3. Verify response formats match frontend expectations
-4. Once confirmed working, document completion
+## Important: No Old Routes to Remove!
+**The admin API routes (`/api/admin/tags`, `/api/admin/people`, `/api/admin/locations`) never existed in Next.js format.** They are brand new routes we created.
+
+**Public routes to keep:**
+- `/api/tags` - Used by public pages (with public filtering)
+- `/api/people` - Used by public pages (with public filtering)
+- `/api/locations` - Used by public pages (with public filtering)
+
+These public routes should remain as Next.js routes until the public pages are migrated.
+
+## Testing Instructions
+
+### Quick Test Checklist
+1. **Start the dev server**: `pnpm dev`
+2. **Login as admin**: Navigate to `/login` and login with admin credentials
+3. **Test Tags**:
+   - Go to `/admin/tags`
+   - Create a new tag
+   - Edit an existing tag
+   - Delete a tag
+   - Verify all operations work
+4. **Test People**:
+   - Go to `/admin/people`
+   - Create a new person (with multi-language fields)
+   - Edit an existing person
+   - Delete a person
+   - Verify tags association works
+   - Verify multi-language fields work
+5. **Test Locations**:
+   - Go to `/admin/locations`
+   - Create a new location
+   - Edit an existing location
+   - Delete a location
+   - Verify address fields work
+
+### Expected Behavior
+- All CRUD operations should work without errors
+- Response should be in format: `{ success: true, data: {...} }`
+- Error responses: `{ success: false, error: "..." }`
+- Admin authentication should be enforced (non-admins get 401)
+- All data should be visible (no public filtering)
+
+## Next Steps After Testing
+1. ✅ Verify all CRUD operations work
+2. ✅ Verify authentication works correctly
+3. ✅ Verify response formats match frontend expectations
+4. ✅ Document any issues found
+5. Once confirmed working, mark routes as production-ready
 
