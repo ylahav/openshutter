@@ -1,25 +1,22 @@
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { connectToDatabase } from '@/lib/mongodb'
 import { ObjectId } from 'mongodb'
 import { UserSession, AlbumAccessInfo } from './access-control'
 
 /**
  * Get current user session with proper typing (server-side only)
+ * 
+ * NOTE: This function is for Next.js API routes compatibility.
+ * In SvelteKit, use `locals.user` directly in your route handlers.
+ * 
+ * @deprecated Use `locals.user` in SvelteKit routes instead
  */
 export async function getCurrentUser(): Promise<UserSession | null> {
-  const session = await getServerSession(authOptions)
-  
-  if (!session?.user) {
-    return null
-  }
-
-  return {
-    id: (session.user as any).id,
-    email: session.user.email!,
-    name: session.user.name!,
-    role: (session.user as any).role || 'guest'
-  }
+  // This function is kept for backward compatibility with any remaining Next.js routes
+  // In SvelteKit, use locals.user directly
+  // For Next.js routes, this would need to be called from a context that has access to the request
+  // Since we're migrating away from Next.js, this is mainly a placeholder
+  console.warn('getCurrentUser() is deprecated. Use locals.user in SvelteKit routes instead.')
+  return null
 }
 
 /**

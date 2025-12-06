@@ -63,7 +63,7 @@
 - [x] `/albums/new` → `routes/albums/new/+page.svelte`
 - [x] `/login` → `routes/login/+page.svelte`
 
-### Phase 5: API Routes Migration ✅ (55 routes migrated)
+### Phase 5: API Routes Migration ✅ (58 routes migrated)
 - [x] `/api/admin/tags` - GET, POST
 - [x] `/api/admin/tags/[id]` - GET, PUT, DELETE
 - [x] `/api/admin/people` - GET, POST
@@ -114,8 +114,15 @@
 - [x] `/api/admin/face-recognition/bulk-detect` - POST
 - [x] `/api/admin/face-recognition/match` - POST
 - [x] `/api/admin/face-recognition/person-descriptor` - POST
+- [x] `/api/auth/profile` - GET, PUT
+- [x] `/api/auth/google/callback` - GET
+- [x] `/api/auth/google/token` - POST
 
 ### Phase 6: Cleanup ✅
+- [x] Removed `next-auth` package
+- [x] Removed `@auth/mongodb-adapter` package
+- [x] Deleted `lib/auth.ts` (NextAuth config)
+- [x] Deleted `app/api/auth/[...nextauth]/route.ts` (NextAuth handler)
 - [x] Removed Next.js config files (`next.config.js`, `next-env.d.ts`, `next.json`)
 - [x] Removed Next.js scripts from `package.json` (`dev:next`, `build:next`, `start:next`, `start:standalone`)
 - [x] Removed old frontend deployment scripts (replaced by root `scripts/`)
@@ -205,8 +212,8 @@
 
 - ✅ **Pages Migrated**: 21 pages
 - ✅ **Components Migrated**: 12+ components
-- ✅ **API Routes Migrated**: 55 routes
-- ⏳ **API Routes Remaining**: ~6 routes
+- ✅ **API Routes Migrated**: 58 routes
+- ⏳ **API Routes Remaining**: ~3 routes
 - ⏳ **Pages Remaining**: ~15 pages
 - ✅ **Cleanup**: Next.js config files removed, deployment scripts updated
 

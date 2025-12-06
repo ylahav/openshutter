@@ -142,6 +142,9 @@ Convert `app/api/**/route.ts` to `routes/api/**/+server.ts` format.
 - ✅ `/api/admin/face-recognition/bulk-detect` - POST
 - ✅ `/api/admin/face-recognition/match` - POST
 - ✅ `/api/admin/face-recognition/person-descriptor` - POST
+- ✅ `/api/auth/profile` - GET, PUT
+- ✅ `/api/auth/google/callback` - GET
+- ✅ `/api/auth/google/token` - POST
 
 **Remaining:**
 - `/api/photos` - GET (list)
