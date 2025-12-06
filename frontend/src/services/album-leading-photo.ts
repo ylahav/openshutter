@@ -1,4 +1,4 @@
-import { connectToDatabase } from '@/lib/mongodb'
+import { connectToDatabase } from '$lib/mongodb'
 import { Album, Photo } from '@/types'
 import { ObjectId } from 'mongodb'
 
