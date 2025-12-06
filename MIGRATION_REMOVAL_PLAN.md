@@ -107,6 +107,7 @@ Convert `app/api/**/route.ts` to `routes/api/**/+server.ts` format.
 - ✅ `/api/admin/blog-categories` - GET, POST
 - ✅ `/api/admin/blog-categories/[id]` - GET, PUT, DELETE
 - ✅ `/api/admin/site-config` - GET, PUT
+- ✅ `/api/admin/analytics` - GET
 
 **Remaining:**
 - `/api/admin/albums` - Various routes
