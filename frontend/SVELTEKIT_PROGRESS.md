@@ -93,8 +93,6 @@
 ### API Routes Migration (47 routes remaining)
 - [ ] `/api/admin/albums` - Various routes
 - [ ] `/api/admin/photos` - Various routes
-- [ ] `/api/admin/blog-categories` - GET, POST
-- [ ] `/api/admin/blog-categories/[id]` - GET, PUT, DELETE
 - [ ] `/api/admin/templates` - Various routes
 - [ ] `/api/admin/site-config` - GET, PUT
 - [ ] `/api/admin/deployment` - POST
