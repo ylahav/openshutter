@@ -111,11 +111,12 @@ Convert `app/api/**/route.ts` to `routes/api/**/+server.ts` format.
 - ✅ `/api/admin/templates` - GET, PUT
 - ✅ `/api/admin/languages` - GET
 - ✅ `/api/admin/audit-logs` - GET
+- ✅ `/api/admin/deployment/status` - GET
+- ✅ `/api/admin/deployment/prepare` - POST
 
 **Remaining:**
 - `/api/admin/albums` - Various routes
 - `/api/admin/photos` - Various routes
-- `/api/admin/deployment` - POST
 - `/api/admin/backup-restore` - Various routes
 - `/api/admin/analytics` - GET
 - `/api/admin/import-sync` - Various routes
