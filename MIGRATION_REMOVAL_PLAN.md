@@ -137,6 +137,11 @@ Convert `app/api/**/route.ts` to `routes/api/**/+server.ts` format.
 - ✅ `/api/admin/albums/[id]/re-read-exif` - POST
 - ✅ `/api/admin/albums/[id]/cover-photo` - PUT
 - ✅ `/api/admin/albums/reorder` - PUT
+- ✅ `/api/admin/face-recognition/detect` - POST
+- ✅ `/api/admin/face-recognition/assign` - POST
+- ✅ `/api/admin/face-recognition/bulk-detect` - POST
+- ✅ `/api/admin/face-recognition/match` - POST
+- ✅ `/api/admin/face-recognition/person-descriptor` - POST
 
 **Remaining:**
 - `/api/photos` - GET (list)
