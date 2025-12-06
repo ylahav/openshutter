@@ -109,6 +109,7 @@ Convert `app/api/**/route.ts` to `routes/api/**/+server.ts` format.
 - ✅ `/api/admin/site-config` - GET, PUT
 - ✅ `/api/admin/analytics` - GET
 - ✅ `/api/admin/templates` - GET, PUT
+- ✅ `/api/admin/languages` - GET
 
 **Remaining:**
 - `/api/admin/albums` - Various routes

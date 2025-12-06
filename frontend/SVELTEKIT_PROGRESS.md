@@ -63,7 +63,7 @@
 - [x] `/albums/new` → `routes/albums/new/+page.svelte`
 - [x] `/login` → `routes/login/+page.svelte`
 
-### Phase 5: API Routes Migration ✅ (18 routes migrated)
+### Phase 5: API Routes Migration ✅ (19 routes migrated)
 - [x] `/api/admin/tags` - GET, POST
 - [x] `/api/admin/tags/[id]` - GET, PUT, DELETE
 - [x] `/api/admin/people` - GET, POST
@@ -81,6 +81,7 @@
 - [x] `/api/admin/site-config` - GET, PUT
 - [x] `/api/admin/analytics` - GET
 - [x] `/api/admin/templates` - GET, PUT
+- [x] `/api/admin/languages` - GET
 
 ### Phase 6: Cleanup ✅
 - [x] Removed Next.js config files (`next.config.js`, `next-env.d.ts`, `next.json`)
@@ -93,7 +94,7 @@
 
 ## 🚧 In Progress
 
-### API Routes Migration (43 routes remaining)
+### API Routes Migration (42 routes remaining)
 - [ ] `/api/admin/albums` - Various routes
 - [ ] `/api/admin/photos` - Various routes
 - [ ] `/api/admin/deployment` - POST
@@ -169,8 +170,8 @@
 
 - ✅ **Pages Migrated**: 21 pages
 - ✅ **Components Migrated**: 12+ components
-- ✅ **API Routes Migrated**: 18 routes
-- ⏳ **API Routes Remaining**: ~43 routes
+- ✅ **API Routes Migrated**: 19 routes
+- ⏳ **API Routes Remaining**: ~42 routes
 - ⏳ **Pages Remaining**: ~15 pages
 - ✅ **Cleanup**: Next.js config files removed, deployment scripts updated
 
