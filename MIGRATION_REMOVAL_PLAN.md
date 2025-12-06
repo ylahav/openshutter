@@ -126,22 +126,26 @@ Convert `app/api/**/route.ts` to `routes/api/**/+server.ts` format.
 - ✅ `/api/tags` - GET, POST
 - ✅ `/api/people` - GET, POST
 - ✅ `/api/locations` - GET, POST
+- ✅ `/api/albums/by-alias/[alias]/photos` - GET
+- ✅ `/api/albums/by-alias/[alias]/photo-count` - GET
+- ✅ `/api/albums/[id]/photo-count` - GET
+- ✅ `/api/albums/[id]/cover-image` - GET
+- ✅ `/api/photos/gallery-leading` - GET
+- ✅ `/api/photos/bulk-update` - POST
+- ✅ `/api/admin/albums/[id]/photos` - GET
+- ✅ `/api/admin/albums/[id]/check-files` - POST
+- ✅ `/api/admin/albums/[id]/re-read-exif` - POST
+- ✅ `/api/admin/albums/[id]/cover-photo` - PUT
+- ✅ `/api/admin/albums/reorder` - PUT
 
 **Remaining:**
-- `/api/admin/albums/[id]/photos` - GET
-- `/api/admin/albums/[id]/check-files` - Various routes
-- `/api/admin/albums/[id]/re-read-exif` - Various routes
-- `/api/admin/albums/reorder` - POST
+- `/api/photos` - GET (list)
+- `/api/photos/upload` - POST
 - `/api/admin/photos` - Various routes
-- `/api/admin/analytics` - GET
 - `/api/admin/import-sync` - Various routes
 - `/api/admin/face-recognition` - Various routes
-- `/api/albums` - Various routes
-- `/api/photos` - Various routes
-- `/api/search` - GET
 - `/api/auth` - Various routes (partially migrated)
 - `/api/storage` - Various routes
-- Public routes: `/api/tags`, `/api/people`, `/api/locations` (keep for public access)
 
 ### Phase 4: Remove React Dependencies
 After all React code is removed:
