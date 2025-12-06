@@ -69,8 +69,8 @@ export const GET: RequestHandler = async ({ locals }) => {
 			}
 		}
 
-		const totalStorageMB = Math.round(totalStorageBytes / (1024 * 1024));
-		const totalStorageGB = Math.round((totalStorageMB / 1024) * 100) / 100;
+		const totalStorageMB = Math.round((totalStorageBytes / (1024 * 1024)) * 100) / 100;
+		const totalStorageGB = Math.round((totalStorageBytes / (1024 * 1024 * 1024)) * 100) / 100;
 
 		// Get recent activity (last 30 days)
 		const thirtyDaysAgo = new Date();
@@ -82,12 +82,33 @@ export const GET: RequestHandler = async ({ locals }) => {
 			db.collection('users').countDocuments({ createdAt: { $gte: thirtyDaysAgo } })
 		]);
 
-		// Get top albums by photo count
+		// Get top albums by photo count (using aggregation to count photos)
 		const albumsWithCounts = await db
 			.collection('albums')
-			.find({}, { projection: { name: 1, alias: 1, photoCount: 1, isPublic: 1 } })
-			.sort({ photoCount: -1 })
-			.limit(10)
+			.aggregate([
+				{
+					$lookup: {
+						from: 'photos',
+						localField: '_id',
+						foreignField: 'albumId',
+						as: 'photos'
+					}
+				},
+				{
+					$project: {
+						name: 1,
+						alias: 1,
+						photoCount: { $size: '$photos' },
+						isPublic: 1
+					}
+				},
+				{
+					$sort: { photoCount: -1 }
+				},
+				{
+					$limit: 10
+				}
+			])
 			.toArray();
 
 		// Get top tags by usage count
