@@ -102,14 +102,13 @@
 
 ## 🚧 In Progress
 
-### API Routes Migration (35 routes remaining)
+### API Routes Migration (34 routes remaining)
 - [ ] `/api/admin/albums` - Various routes
 - [ ] `/api/admin/photos` - Various routes
 - [ ] `/api/admin/import-sync` - Various routes
 - [ ] `/api/admin/face-recognition` - Various routes
 - [ ] `/api/albums` - Various routes
 - [ ] `/api/photos` - Various routes
-- [ ] `/api/search` - GET
 - [ ] `/api/auth` - Various routes (partially migrated)
 - [ ] `/api/storage` - Various routes
 - [ ] Public routes: `/api/tags`, `/api/people`, `/api/locations` (keep for public access)
