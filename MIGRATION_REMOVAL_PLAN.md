@@ -121,6 +121,7 @@ Convert `app/api/**/route.ts` to `routes/api/**/+server.ts` format.
 - ✅ `/api/albums/hierarchy` - GET
 - ✅ `/api/albums/cover-images` - POST
 - ✅ `/api/albums` - GET
+- ✅ `/api/albums/[idOrAlias]/data` - GET
 
 **Remaining:**
 - `/api/admin/albums/[id]/photos` - GET
