@@ -221,4 +221,3 @@ export const GET: RequestHandler = async ({ params, url, request, locals }) => {
 		return json({ success: false, error: `Failed to get photos: ${errorMessage}` }, { status: 500 });
 	}
 };
-

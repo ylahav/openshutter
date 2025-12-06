@@ -47,4 +47,3 @@ export const PUT: RequestHandler = async ({ request, locals }) => {
 		return json({ success: false, error: `Failed to reorder albums: ${errorMessage}` }, { status: 500 });
 	}
 };
-

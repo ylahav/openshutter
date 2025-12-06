@@ -138,4 +138,3 @@ export const GET: RequestHandler = async ({ locals }) => {
 		);
 	}
 };
-

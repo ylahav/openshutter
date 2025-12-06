@@ -137,4 +137,3 @@ export const PUT: RequestHandler = async ({ request, locals }) => {
 		return json({ success: false, error: `Failed to set template: ${errorMessage}` }, { status: 500 });
 	}
 };
-

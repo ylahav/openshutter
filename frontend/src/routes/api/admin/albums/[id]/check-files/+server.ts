@@ -111,4 +111,3 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
 		return json({ success: false, error: `Failed to check files: ${errorMessage}` }, { status: 500 });
 	}
 };
-

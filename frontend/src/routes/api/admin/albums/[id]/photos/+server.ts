@@ -232,4 +232,3 @@ export const GET: RequestHandler = async ({ params, url, locals }) => {
 		);
 	}
 };
-

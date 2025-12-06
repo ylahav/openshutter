@@ -202,4 +202,3 @@ export const GET: RequestHandler = async ({ locals }) => {
 		return json({ success: false, error: `Failed to get analytics: ${errorMessage}` }, { status: 500 });
 	}
 };
-

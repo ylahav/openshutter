@@ -579,4 +579,3 @@ export const GET: RequestHandler = async ({ url, locals }) => {
 		return json({ success: false, error: `Search failed: ${errorMessage}` }, { status: 500 });
 	}
 };
-
