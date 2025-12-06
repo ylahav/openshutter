@@ -169,8 +169,8 @@
 
 - ✅ **Pages Migrated**: 21 pages
 - ✅ **Components Migrated**: 12+ components
-- ✅ **API Routes Migrated**: 8 routes
-- ⏳ **API Routes Remaining**: ~53 routes
+- ✅ **API Routes Migrated**: 10 routes
+- ⏳ **API Routes Remaining**: ~51 routes
 - ⏳ **Pages Remaining**: ~15 pages
 - ✅ **Cleanup**: Next.js config files removed, deployment scripts updated
 

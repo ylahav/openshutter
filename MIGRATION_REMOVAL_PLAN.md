@@ -100,10 +100,10 @@ Convert `app/api/**/route.ts` to `routes/api/**/+server.ts` format.
 - ✅ `/api/admin/locations/[id]` - GET, PUT, DELETE
 - ✅ `/api/admin/users` - GET, POST
 - ✅ `/api/admin/users/[id]` - GET, PUT, DELETE
+- ✅ `/api/admin/groups` - GET, POST
+- ✅ `/api/admin/groups/[id]` - GET, PUT, DELETE
 
 **Remaining:**
-- `/api/admin/groups` - GET, POST
-- `/api/admin/groups/[id]` - GET, PUT, DELETE
 - `/api/admin/albums` - Various routes
 - `/api/admin/photos` - Various routes
 - `/api/admin/pages` - GET, POST
