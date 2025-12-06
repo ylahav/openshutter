@@ -150,6 +150,7 @@ Convert `app/api/**/route.ts` to `routes/api/**/+server.ts` format.
 - ✅ `/api/storage/backblaze/test` - GET
 - ✅ `/api/storage/google-drive/test` - GET
 - ✅ `/api/storage/wasabi/test` - GET
+- ✅ `/api/admin/import-sync/google-drive` - GET, POST (placeholder - disabled)
 
 **Remaining:**
 - `/api/photos` - GET (list)

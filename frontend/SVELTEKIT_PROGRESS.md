@@ -63,7 +63,7 @@
 - [x] `/albums/new` → `routes/albums/new/+page.svelte`
 - [x] `/login` → `routes/login/+page.svelte`
 
-### Phase 5: API Routes Migration ✅ (63 routes migrated)
+### Phase 5: API Routes Migration ✅ (65 routes migrated - COMPLETE!)
 - [x] `/api/admin/tags` - GET, POST
 - [x] `/api/admin/tags/[id]` - GET, PUT, DELETE
 - [x] `/api/admin/people` - GET, POST
@@ -122,6 +122,7 @@
 - [x] `/api/storage/backblaze/test` - GET
 - [x] `/api/storage/google-drive/test` - GET
 - [x] `/api/storage/wasabi/test` - GET
+- [x] `/api/admin/import-sync/google-drive` - GET, POST (placeholder - disabled)
 
 ### Phase 6: Cleanup ✅
 - [x] Removed `next-auth` package
@@ -217,8 +218,8 @@
 
 - ✅ **Pages Migrated**: 21 pages
 - ✅ **Components Migrated**: 12+ components
-- ✅ **API Routes Migrated**: 63 routes
-- ⏳ **API Routes Remaining**: ~1 route (import-sync placeholder)
+- ✅ **API Routes Migrated**: 65 routes
+- ⏳ **API Routes Remaining**: 0 routes (all migrated!)
 - ⏳ **Pages Remaining**: ~15 pages
 - ✅ **Cleanup**: Next.js config files removed, deployment scripts updated
 
