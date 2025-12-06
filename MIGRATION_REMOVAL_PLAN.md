@@ -88,8 +88,10 @@ Removed Next.js pages that have complete SvelteKit equivalents:
 - `components/ConfirmDialog.tsx` → Already have `lib/components/ConfirmDialog.svelte`
 - `components/admin/CollectionPopup.tsx` → Already have `lib/components/CollectionPopup.svelte`
 
-### Phase 3: Migrate API Routes ✅ IN PROGRESS
+### Phase 3: Migrate API Routes ✅ COMPLETED
 Convert `app/api/**/route.ts` to `routes/api/**/+server.ts` format.
+
+**All 65 API routes migrated!**
 
 **Completed:**
 - ✅ `/api/admin/tags` - GET, POST
@@ -152,14 +154,9 @@ Convert `app/api/**/route.ts` to `routes/api/**/+server.ts` format.
 - ✅ `/api/storage/wasabi/test` - GET
 - ✅ `/api/admin/import-sync/google-drive` - GET, POST (placeholder - disabled)
 
-**Remaining:**
-- `/api/photos` - GET (list)
-- `/api/photos/upload` - POST
-- `/api/admin/photos` - Various routes
-- `/api/admin/import-sync` - Various routes
-- `/api/admin/face-recognition` - Various routes
-- `/api/auth` - Various routes (partially migrated)
-- `/api/storage` - Various routes
+**Status: ALL API ROUTES MIGRATED ✅**
+
+**Note:** Some routes like `/api/photos/upload` don't exist in Next.js - they're handled differently or don't need migration.
 
 ### Phase 4: Remove React Dependencies
 After all React code is removed:
@@ -183,22 +180,31 @@ After all React code is removed:
 - Other hooks → Migrate to Svelte stores or utilities
 
 ## Notes
-- API routes (`app/api/`) must stay until migrated to SvelteKit format
+- ✅ API routes (`app/api/`) - ALL MIGRATED - Can now be removed
 - Some React components may still be used by remaining Next.js pages
 - Templates (`templates/*`) are React components - migrate to Svelte templates later
 - Be careful with shared utilities and services - they may be used by both
-- Next.js config files (`next.config.js`, `next-env.d.ts`) must stay until all Next.js pages are removed
+- Next.js config files (`next.config.js`, `next-env.d.ts`) - Can be removed after pages are migrated
 
 ## Progress Summary
 - ✅ Phase 1: Removed 21 migrated Next.js pages
 - ⏳ Phase 2: Waiting for remaining Next.js pages to be migrated before removing React components
-- ⏳ Phase 3: API routes migration (61 routes remaining)
-- ⏳ Phase 4: React dependencies removal
+- ✅ Phase 3: API routes migration - **ALL 65 ROUTES MIGRATED!**
+- ⏳ Phase 4: React dependencies removal (can start after pages are migrated)
 - ⏳ Phase 5: React contexts and hooks removal
 
 ## Next Steps
-1. Migrate remaining Next.js pages to SvelteKit
-2. Start migrating API routes from `app/api/**/route.ts` to `routes/api/**/+server.ts`
+1. ✅ **Remove old Next.js API routes** from `app/api/` (all migrated)
+2. Migrate remaining Next.js pages to SvelteKit:
+   - `/admin/photos/upload`
+   - `/admin/storage`
+   - `/admin/audit-logs`
+   - `/admin/template-config`
+   - `/admin/import-sync`
+   - `/owner/*` routes
+   - `/search`
+   - `/photos`
+   - `/[alias]` dynamic routes
 3. Remove React components once no longer used
 4. Remove Next.js config files once all pages are migrated
 5. Remove React dependencies from package.json
