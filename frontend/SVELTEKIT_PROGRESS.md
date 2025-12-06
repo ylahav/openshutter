@@ -90,6 +90,10 @@
 - [x] `/api/admin/backup/files` - POST
 - [x] `/api/admin/backup/restore-files` - POST
 - [x] `/api/admin/albums/[id]/cover-photo` - PUT
+- [x] `/api/albums/hierarchy` - GET
+- [x] `/api/albums/cover-images` - POST
+- [x] `/api/albums` - GET
+- [x] `/api/albums/[idOrAlias]/data` - GET
 
 ### Phase 6: Cleanup ✅
 - [x] Removed Next.js config files (`next.config.js`, `next-env.d.ts`, `next.json`)
@@ -107,7 +111,11 @@
 - [ ] `/api/admin/photos` - Various routes
 - [ ] `/api/admin/import-sync` - Various routes
 - [ ] `/api/admin/face-recognition` - Various routes
-- [ ] `/api/albums` - Various routes
+- [ ] `/api/albums/[idOrAlias]` - GET (by alias)
+- [ ] `/api/albums/[id]/photos` - GET
+- [ ] `/api/albums/[id]/photo-count` - GET
+- [ ] `/api/albums/by-alias/[alias]/photos` - GET
+- [ ] `/api/albums/by-alias/[alias]/photo-count` - GET
 - [ ] `/api/photos` - Various routes
 - [ ] `/api/auth` - Various routes (partially migrated)
 - [ ] `/api/storage` - Various routes
