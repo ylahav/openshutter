@@ -72,6 +72,8 @@
 - [x] `/api/admin/locations/[id]` - GET, PUT, DELETE
 - [x] `/api/admin/users` - GET, POST
 - [x] `/api/admin/users/[id]` - GET, PUT, DELETE
+- [x] `/api/admin/groups` - GET, POST
+- [x] `/api/admin/groups/[id]` - GET, PUT, DELETE
 
 ### Phase 6: Cleanup ✅
 - [x] Removed Next.js config files (`next.config.js`, `next-env.d.ts`, `next.json`)
