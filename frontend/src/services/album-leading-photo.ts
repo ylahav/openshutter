@@ -1,5 +1,5 @@
 import { connectToDatabase } from '$lib/mongodb'
-import { Album, Photo } from '@/types'
+import type { Album, Photo } from '$lib/types'
 import { ObjectId } from 'mongodb'
 
 export interface AlbumLeadingPhotoResult {
