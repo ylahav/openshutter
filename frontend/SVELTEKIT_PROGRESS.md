@@ -63,7 +63,7 @@
 - [x] `/albums/new` → `routes/albums/new/+page.svelte`
 - [x] `/login` → `routes/login/+page.svelte`
 
-### Phase 5: API Routes Migration ✅ (31 routes migrated)
+### Phase 5: API Routes Migration ✅ (32 routes migrated)
 - [x] `/api/admin/tags` - GET, POST
 - [x] `/api/admin/tags/[id]` - GET, PUT, DELETE
 - [x] `/api/admin/people` - GET, POST
@@ -94,6 +94,7 @@
 - [x] `/api/albums/cover-images` - POST
 - [x] `/api/albums` - GET
 - [x] `/api/albums/[idOrAlias]/data` - GET
+- [x] `/api/photos/[id]` - GET
 
 ### Phase 6: Cleanup ✅
 - [x] Removed Next.js config files (`next.config.js`, `next-env.d.ts`, `next.json`)
@@ -106,7 +107,7 @@
 
 ## 🚧 In Progress
 
-### API Routes Migration (30 routes remaining)
+### API Routes Migration (29 routes remaining)
 - [ ] `/api/admin/albums` - Various routes
 - [ ] `/api/admin/photos` - Various routes
 - [ ] `/api/admin/import-sync` - Various routes
@@ -116,7 +117,10 @@
 - [ ] `/api/albums/[id]/photo-count` - GET
 - [ ] `/api/albums/by-alias/[alias]/photos` - GET
 - [ ] `/api/albums/by-alias/[alias]/photo-count` - GET
-- [ ] `/api/photos` - Various routes
+- [ ] `/api/photos` - GET (list)
+- [ ] `/api/photos/gallery-leading` - GET
+- [ ] `/api/photos/upload` - POST
+- [ ] `/api/photos/bulk-update` - Various routes
 - [ ] `/api/auth` - Various routes (partially migrated)
 - [ ] `/api/storage` - Various routes
 - [ ] Public routes: `/api/tags`, `/api/people`, `/api/locations` (keep for public access)
@@ -182,8 +186,8 @@
 
 - ✅ **Pages Migrated**: 21 pages
 - ✅ **Components Migrated**: 12+ components
-- ✅ **API Routes Migrated**: 31 routes
-- ⏳ **API Routes Remaining**: ~30 routes
+- ✅ **API Routes Migrated**: 32 routes
+- ⏳ **API Routes Remaining**: ~29 routes
 - ⏳ **Pages Remaining**: ~15 pages
 - ✅ **Cleanup**: Next.js config files removed, deployment scripts updated
 
