@@ -145,6 +145,11 @@ Convert `app/api/**/route.ts` to `routes/api/**/+server.ts` format.
 - ✅ `/api/auth/profile` - GET, PUT
 - ✅ `/api/auth/google/callback` - GET
 - ✅ `/api/auth/google/token` - POST
+- ✅ `/api/storage/serve/[...path]` - GET
+- ✅ `/api/storage/local/[...path]` - GET
+- ✅ `/api/storage/backblaze/test` - GET
+- ✅ `/api/storage/google-drive/test` - GET
+- ✅ `/api/storage/wasabi/test` - GET
 
 **Remaining:**
 - `/api/photos` - GET (list)

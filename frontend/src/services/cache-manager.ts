@@ -1,5 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server'
-
 export interface CacheConfig {
   maxAge?: number
   sMaxAge?: number
@@ -129,13 +127,13 @@ export class CacheManager {
   }
 
   /**
-   * Apply cache headers to a Next.js response
+   * Apply cache headers to a Response (SvelteKit compatible)
    */
   static applyCacheHeaders(
-    response: NextResponse,
+    response: Response,
     contentType: string,
     customHeaders?: Record<string, string>
-  ): NextResponse {
+  ): Response {
     const cacheHeaders = this.getCacheHeaders(contentType)
     
     Object.entries(cacheHeaders).forEach(([key, value]) => {
@@ -154,7 +152,7 @@ export class CacheManager {
   /**
    * Check if a request should be served from cache
    */
-  static shouldServeFromCache(request: NextRequest, contentType: string): boolean {
+  static shouldServeFromCache(request: Request, contentType: string): boolean {
     const config = this.CACHE_CONFIGS[contentType] || this.CACHE_CONFIGS.api
     
     if (config.noCache || config.noStore) {
