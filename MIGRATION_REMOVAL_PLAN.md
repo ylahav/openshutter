@@ -123,6 +123,9 @@ Convert `app/api/**/route.ts` to `routes/api/**/+server.ts` format.
 - ✅ `/api/albums` - GET
 - ✅ `/api/albums/[idOrAlias]/data` - GET
 - ✅ `/api/photos/[id]` - GET
+- ✅ `/api/tags` - GET, POST
+- ✅ `/api/people` - GET, POST
+- ✅ `/api/locations` - GET, POST
 
 **Remaining:**
 - `/api/admin/albums/[id]/photos` - GET
