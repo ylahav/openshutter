@@ -193,4 +193,3 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
 		return json({ success: false, error: `Failed to delete user: ${errorMessage}` }, { status: 500 });
 	}
 };
-
