@@ -5,56 +5,47 @@ import { ObjectId } from 'mongodb';
 
 export const PUT: RequestHandler = async ({ params, request, locals }) => {
 	try {
-		// Require admin access
-		if (!locals.user || locals.user.role !== 'admin') {
-			return json({ success: false, error: 'Unauthorized' }, { status: 401 });
-		}
-
 		const { id } = await params;
 		const body = await request.json();
 		const { coverPhotoId } = body;
 
-		if (!id) {
-			return json({ success: false, error: 'Album ID is required' }, { status: 400 });
+		// Check if user is admin
+		const user = locals.user
+			? {
+					id: locals.user._id || locals.user.id,
+					email: locals.user.email,
+					name: locals.user.name,
+					role: locals.user.role || 'guest'
+				}
+			: null;
+
+		if (!user || user.role !== 'admin') {
+			return json({ success: false, error: 'Unauthorized' }, { status: 401 });
 		}
 
 		const { db } = await connectToDatabase();
 
 		// Get the album
-		let objectId: ObjectId;
-		try {
-			objectId = new ObjectId(id);
-		} catch (error) {
-			return json({ success: false, error: 'Invalid album ID format' }, { status: 400 });
-		}
-
-		const album = await db.collection('albums').findOne({ _id: objectId });
+		const album = await db.collection('albums').findOne({ _id: new ObjectId(id) });
 		if (!album) {
 			return json({ success: false, error: 'Album not found' }, { status: 404 });
 		}
 
 		// If coverPhotoId is provided, verify the photo exists
 		if (coverPhotoId) {
-			let photoObjectId: ObjectId;
-			try {
-				photoObjectId = new ObjectId(coverPhotoId);
-			} catch (error) {
-				return json({ success: false, error: 'Invalid photo ID format' }, { status: 400 });
-			}
-
 			const photo = await db.collection('photos').findOne({
-				_id: photoObjectId,
+				_id: new ObjectId(coverPhotoId),
 				isPublished: true
 			});
 
 			if (!photo) {
-				return json({ success: false, error: 'Photo not found or not published' }, { status: 404 });
+				return json({ success: false, error: 'Photo not found' }, { status: 404 });
 			}
 		}
 
 		// Update the album's cover photo
 		await db.collection('albums').updateOne(
-			{ _id: objectId },
+			{ _id: new ObjectId(id) },
 			{
 				$set: {
 					coverPhotoId: coverPhotoId ? new ObjectId(coverPhotoId) : null,
@@ -73,7 +64,7 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
 			// Unset isLeading for all other photos in this album
 			await db.collection('photos').updateMany(
 				{
-					albumId: objectId,
+					albumId: new ObjectId(id),
 					_id: { $ne: coverId }
 				},
 				{ $set: { isLeading: false } }
@@ -93,4 +84,3 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
 		);
 	}
 };
-

@@ -130,4 +130,3 @@ export const GET: RequestHandler = async ({ params }) => {
 		return json({ success: false, error: `Failed to get photo: ${errorMessage}` }, { status: 500 });
 	}
 };
-
