@@ -50,4 +50,3 @@ export const POST: RequestHandler = async ({ request }) => {
 		return json({ success: false, error: `Internal server error: ${errorMessage}` }, { status: 500 });
 	}
 };
-

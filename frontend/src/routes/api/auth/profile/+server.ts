@@ -147,4 +147,3 @@ export const PUT: RequestHandler = async ({ request, locals }) => {
 		return json({ error: `Internal server error: ${errorMessage}` }, { status: 500 });
 	}
 };
-

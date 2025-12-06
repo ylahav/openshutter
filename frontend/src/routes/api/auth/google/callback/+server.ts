@@ -80,4 +80,3 @@ export const GET: RequestHandler = async ({ url, request }) => {
 		return text(`Failed to process authorization callback: ${errorMessage}`, { status: 500 });
 	}
 };
-
