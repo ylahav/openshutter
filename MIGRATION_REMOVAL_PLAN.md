@@ -113,11 +113,14 @@ Convert `app/api/**/route.ts` to `routes/api/**/+server.ts` format.
 - ✅ `/api/admin/audit-logs` - GET
 - ✅ `/api/admin/deployment/status` - GET
 - ✅ `/api/admin/deployment/prepare` - POST
+- ✅ `/api/admin/backup/database` - POST
+- ✅ `/api/admin/backup/restore-database` - POST
+- ✅ `/api/admin/backup/files` - POST
+- ✅ `/api/admin/backup/restore-files` - POST
 
 **Remaining:**
 - `/api/admin/albums` - Various routes
 - `/api/admin/photos` - Various routes
-- `/api/admin/backup-restore` - Various routes
 - `/api/admin/analytics` - GET
 - `/api/admin/import-sync` - Various routes
 - `/api/admin/face-recognition` - Various routes
