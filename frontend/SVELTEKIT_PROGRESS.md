@@ -88,13 +88,9 @@
 
 ## 🚧 In Progress
 
-### API Routes Migration (53 routes remaining)
-- [ ] `/api/admin/groups` - GET, POST
-- [ ] `/api/admin/groups/[id]` - GET, PUT, DELETE
+### API Routes Migration (49 routes remaining)
 - [ ] `/api/admin/albums` - Various routes
 - [ ] `/api/admin/photos` - Various routes
-- [ ] `/api/admin/pages` - GET, POST
-- [ ] `/api/admin/pages/[id]` - GET, PUT, DELETE
 - [ ] `/api/admin/blog-categories` - GET, POST
 - [ ] `/api/admin/blog-categories/[id]` - GET, PUT, DELETE
 - [ ] `/api/admin/templates` - Various routes
