@@ -390,57 +390,79 @@
 										</h3>
 									{/if}
 									
-									<!-- Tags -->
-									{#if photo.tags && Array.isArray(photo.tags) && photo.tags.length > 0}
-										<div class="mb-2">
-											<div class="flex flex-wrap gap-1">
-												{#each photo.tags as tag}
-													{@const tagName = typeof tag === 'object' && tag.name ? (typeof tag.name === 'string' ? tag.name : tag.name[$currentLanguage] || tag.name.en || tag.name.he || '') : (typeof tag === 'string' ? tag : '')}
-													{#if tagName}
-														<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-															#{tagName}
-														</span>
-													{/if}
-												{/each}
-											</div>
-										</div>
-									{/if}
-									
-									<!-- People -->
-									{#if photo.people && Array.isArray(photo.people) && photo.people.length > 0}
-										<div class="mb-2">
-											<div class="flex flex-wrap gap-1 items-center">
-												{#each photo.people as person}
-													{@const personName = typeof person === 'object' && person.fullName ? (typeof person.fullName === 'string' ? person.fullName : person.fullName[$currentLanguage] || person.fullName.en || person.fullName.he || '') : (typeof person === 'object' && person.firstName ? (typeof person.firstName === 'string' ? person.firstName : person.firstName[$currentLanguage] || person.firstName.en || person.firstName.he || '') : (typeof person === 'string' ? person : ''))}
-													{#if personName}
-														<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-															{personName}
-														</span>
-													{/if}
-												{/each}
-											</div>
-										</div>
-									{/if}
-									
-									<!-- Location -->
-									{#if photo.location}
-										{@const locationName = typeof photo.location === 'object' && photo.location.name ? (typeof photo.location.name === 'string' ? photo.location.name : photo.location.name[$currentLanguage] || photo.location.name.en || photo.location.name.he || '') : (typeof photo.location === 'string' ? photo.location : '')}
-										{#if locationName}
-											<div class="mb-2">
-												<div class="flex items-center gap-1 text-xs text-gray-600">
-													<span>📍</span>
-													<span>{locationName}</span>
-												</div>
-											</div>
-										{/if}
-									{/if}
-									
 									<!-- Description -->
 									{#if photo.description}
-										<div class="mt-auto text-xs text-gray-600 line-clamp-2">
+										<div class="text-xs text-gray-600 line-clamp-2 mb-auto">
 											<MultiLangText value={photo.description} fallback="" />
 										</div>
 									{/if}
+									
+									<!-- Metadata at bottom -->
+									<div class="mt-auto pt-2 space-y-1 text-xs text-gray-600 border-t border-gray-100">
+										<!-- People -->
+										{#if photo.people && Array.isArray(photo.people) && photo.people.length > 0}
+											{@const peopleNames = photo.people.map((person) => {
+												// Handle different person data structures
+												if (typeof person === 'object' && person !== null) {
+													// Try fullName first (preferred)
+													if (person.fullName) {
+														if (typeof person.fullName === 'string') {
+															return person.fullName;
+														} else if (typeof person.fullName === 'object') {
+															// Multi-language object: try current language, then en, then he, then any value
+															const name = person.fullName[$currentLanguage] || person.fullName.en || person.fullName.he;
+															if (name) return name;
+															// If no language key matches, try to get first non-empty string value
+															const values = Object.values(person.fullName).filter(v => typeof v === 'string' && v.trim() !== '');
+															if (values.length > 0) return values[0] as string;
+														}
+													}
+													// Try firstName as fallback
+													if (person.firstName) {
+														if (typeof person.firstName === 'string') {
+															return person.firstName;
+														} else if (typeof person.firstName === 'object') {
+															const name = person.firstName[$currentLanguage] || person.firstName.en || person.firstName.he;
+															if (name) return name;
+															const values = Object.values(person.firstName).filter(v => typeof v === 'string' && v.trim() !== '');
+															if (values.length > 0) return values[0] as string;
+														}
+													}
+												} else if (typeof person === 'string') {
+													return person;
+												}
+												return '';
+											}).filter(name => name && name.trim() !== '')}
+											{#if peopleNames.length > 0}
+												<div>{peopleNames.join(', ')}</div>
+											{/if}
+										{/if}
+										
+										<!-- Location -->
+										{#if photo.location}
+											{@const locationName = typeof photo.location === 'object' && photo.location.name ? (typeof photo.location.name === 'string' ? photo.location.name : photo.location.name[$currentLanguage] || photo.location.name.en || photo.location.name.he || '') : (typeof photo.location === 'string' ? photo.location : '')}
+											{#if locationName}
+												<div>📍 {locationName}</div>
+											{/if}
+										{/if}
+										
+										<!-- Tags -->
+										{#if photo.tags && Array.isArray(photo.tags) && photo.tags.length > 0}
+											{@const tagNames = photo.tags.map((tag) => {
+												if (typeof tag === 'object' && tag.name) {
+													return typeof tag.name === 'string'
+														? tag.name
+														: tag.name[$currentLanguage] || tag.name.en || tag.name.he || '';
+												} else if (typeof tag === 'string') {
+													return tag;
+												}
+												return '';
+											}).filter(name => name)}
+											{#if tagNames.length > 0}
+												<div>{tagNames.join(', ')}</div>
+											{/if}
+										{/if}
+									</div>
 								</div>
 							</button>
 						{/each}

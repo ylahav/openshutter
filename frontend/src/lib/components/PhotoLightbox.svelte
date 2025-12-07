@@ -106,6 +106,7 @@
 	let playing = $state(autoPlay);
 	let showInfo = $state(false);
 	let showFaces = $state(false);
+	let selectedFaceIndex = $state<number | null>(null);
 	let faceData = $state<{
 		faces: Array<{
 			box: { x: number; y: number; width: number; height: number };
@@ -133,18 +134,52 @@
 	$effect(() => {
 		if (!isOpen) return;
 
+		// Reset selected face when photo changes
+		selectedFaceIndex = null;
+
 		const photo = photos[current];
 		if (!photo?._id) {
 			const faces = photo?.faceRecognition?.faces;
 			if (faces && Array.isArray(faces) && faces.length > 0) {
-				faceData = {
-					faces: faces.map((face: any) => ({
-						box: face.box,
-						matchedPersonId: face.matchedPersonId?.toString(),
-						confidence: face.confidence
-					})),
-					imageSize: { width: 0, height: 0 }
+				// Fetch person names for faces with matchedPersonId
+				const fetchFacesWithNames = async () => {
+					const facesWithNames = await Promise.all(
+						faces.map(async (face: any) => {
+							const baseFace = {
+								box: face.box,
+								matchedPersonId: face.matchedPersonId?.toString(),
+								confidence: face.confidence
+							};
+							
+							if (face.matchedPersonId) {
+								try {
+									const personResponse = await fetch(`/api/people/${face.matchedPersonId}`);
+									if (personResponse.ok) {
+										const personData = await personResponse.json();
+										const person = personData.success ? personData.data : personData;
+										const name =
+											person.fullName?.en ||
+											person.fullName?.he ||
+											person.firstName?.en ||
+											person.firstName?.he ||
+											null;
+										return { ...baseFace, personName: name };
+									}
+								} catch (err) {
+									console.debug('Could not fetch person name:', err);
+								}
+							}
+							return baseFace;
+						})
+					);
+					
+					faceData = {
+						faces: facesWithNames,
+						imageSize: { width: 0, height: 0 }
+					};
 				};
+				
+				fetchFacesWithNames();
 				return;
 			}
 			faceData = null;
@@ -160,21 +195,9 @@
 						const facesWithNames = await Promise.all(
 							photoData.faceRecognition.faces.map(async (face: any) => {
 								if (face.matchedPersonId) {
-									try {
-										const personResponse = await fetch(`/api/people/${face.matchedPersonId}`);
-										if (personResponse.ok) {
-											const personData = await personResponse.json();
-											const person = personData.success ? personData.data : personData;
-											const name =
-												person.fullName?.en ||
-												person.fullName?.he ||
-												person.firstName?.en ||
-												person.firstName?.he ||
-												'Unknown';
-											return { ...face, personName: name };
-										}
-									} catch (err) {
-										console.debug('Could not fetch person name:', err);
+									const personName = await fetchPersonName(face.matchedPersonId);
+									if (personName) {
+										return { ...face, personName };
 									}
 								}
 								return face;
@@ -200,6 +223,9 @@
 	// Draw faces on canvas (only matched faces)
 	$effect(() => {
 		if (!showFaces || matchedFaces.length === 0 || !imageRef || !canvasRef) return;
+		
+		// React to selectedFaceIndex changes
+		selectedFaceIndex;
 
 		const img = imageRef;
 		const canvas = canvasRef;
@@ -222,27 +248,44 @@
 			const scaleY = displayedHeight / imgNaturalHeight;
 
 			// Only draw matched faces
-			matchedFaces.forEach((face) => {
+			matchedFaces.forEach((face, index) => {
 				const x = face.box.x * scaleX;
 				const y = face.box.y * scaleY;
 				const width = face.box.width * scaleX;
 				const height = face.box.height * scaleY;
 
-				ctx.strokeStyle = '#10b981'; // Green for matched faces
-				ctx.lineWidth = 2;
+				// Use blue border for selected face, green for others
+				const isSelected = selectedFaceIndex === index;
+				ctx.strokeStyle = isSelected ? '#3b82f6' : '#10b981'; // Blue when selected, green otherwise
+				ctx.lineWidth = isSelected ? 3 : 2;
 				ctx.strokeRect(x, y, width, height);
 
-				if (face.personName) {
-					ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-					const labelText = face.personName;
-					ctx.font = '14px sans-serif';
+				// Show name above the border when face is selected
+				if (isSelected) {
+					// Get label text - prefer personName, fallback to matchedPersonId
+					const labelText = face.personName || (face.matchedPersonId ? `Person ${face.matchedPersonId.slice(-4)}` : 'Unknown');
+					
+					ctx.font = 'bold 16px sans-serif';
 					const textMetrics = ctx.measureText(labelText);
-					const labelWidth = textMetrics.width + 8;
-					const labelHeight = 20;
-					ctx.fillRect(x, y - labelHeight, labelWidth, labelHeight);
-
+					const labelWidth = textMetrics.width + 12;
+					const labelHeight = 24;
+					const labelX = x;
+					const labelY = Math.max(0, y - labelHeight); // Ensure label doesn't go above canvas
+					
+					// Draw rounded rectangle background
+					ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+					ctx.beginPath();
+					if (ctx.roundRect) {
+						ctx.roundRect(labelX, labelY, labelWidth, labelHeight, 4);
+					} else {
+						// Fallback for browsers that don't support roundRect
+						ctx.fillRect(labelX, labelY, labelWidth, labelHeight);
+					}
+					ctx.fill();
+					
+					// Draw text
 					ctx.fillStyle = '#ffffff';
-					ctx.fillText(labelText, x + 4, y - 6);
+					ctx.fillText(labelText, labelX + 6, labelY + 17);
 				}
 			});
 		};
@@ -363,6 +406,122 @@
 		}
 	}
 
+	async function fetchPersonName(personId: string): Promise<string | null> {
+		try {
+			// Try public route first
+			let personResponse = await fetch(`/api/people/${personId}`);
+			if (!personResponse.ok) {
+				// Fallback: try admin route (if user is authenticated)
+				personResponse = await fetch(`/api/admin/people/${personId}`);
+			}
+			
+			if (personResponse.ok) {
+				const personData = await personResponse.json();
+				let person = personData.success ? personData.data : personData;
+				
+				// Handle array response (from search)
+				if (Array.isArray(person) && person.length > 0) {
+					person = person.find((p: any) => p._id === personId || p._id?.toString() === personId) || person[0];
+				}
+				
+				// Extract name with better multi-language support
+				const extractName = (nameObj: any): string | null => {
+					if (!nameObj) return null;
+					if (typeof nameObj === 'string') return nameObj;
+					if (typeof nameObj === 'object') {
+						// Try en first, then he, then any string value
+						return nameObj.en || nameObj.he || Object.values(nameObj).find((v: any) => typeof v === 'string' && v.trim() !== '') as string || null;
+					}
+					return null;
+				};
+				
+				const name = extractName(person.fullName) || extractName(person.firstName);
+				if (name) {
+					console.log(`Fetched person name for ${personId}: ${name}`);
+				} else {
+					console.warn(`Person name not found for ${personId}, person data:`, person);
+				}
+				return name;
+			} else {
+				console.warn(`Failed to fetch person ${personId}: ${personResponse.status} ${personResponse.statusText}`);
+			}
+		} catch (err) {
+			console.error('Could not fetch person name:', err);
+		}
+		return null;
+	}
+
+	async function handleCanvasClick(e: MouseEvent) {
+		if (!canvasRef || !imageRef || !faceData || matchedFaces.length === 0) return;
+
+		const canvas = canvasRef;
+		const img = imageRef;
+		const rect = canvas.getBoundingClientRect();
+		
+		// Get click coordinates relative to canvas
+		const clickX = e.clientX - rect.left;
+		const clickY = e.clientY - rect.top;
+
+		// Calculate scale factors
+		const imgNaturalWidth = img.naturalWidth || faceData.imageSize.width;
+		const imgNaturalHeight = img.naturalHeight || faceData.imageSize.height;
+		if (!imgNaturalWidth || !imgNaturalHeight) return;
+
+		const displayedWidth = img.offsetWidth;
+		const displayedHeight = img.offsetHeight;
+		const scaleX = displayedWidth / imgNaturalWidth;
+		const scaleY = displayedHeight / imgNaturalHeight;
+
+		// Convert click coordinates to natural image coordinates
+		const naturalX = clickX / scaleX;
+		const naturalY = clickY / scaleY;
+
+		// Check if click is on any face (check in reverse order to get topmost face)
+		for (let i = matchedFaces.length - 1; i >= 0; i--) {
+			const face = matchedFaces[i];
+			const box = face.box;
+			if (
+				naturalX >= box.x &&
+				naturalX <= box.x + box.width &&
+				naturalY >= box.y &&
+				naturalY <= box.y + box.height
+			) {
+				// If face has matchedPersonId but no personName, fetch it
+				if (face.matchedPersonId && !face.personName && faceData) {
+					const personName = await fetchPersonName(face.matchedPersonId);
+					if (personName) {
+						// Find the corresponding face in faceData.faces by matching box coordinates
+						const updatedFaces = faceData.faces.map((f) => {
+							// Match by box coordinates (within small tolerance) or matchedPersonId
+							const boxMatch = Math.abs(f.box.x - box.x) < 1 && 
+							                 Math.abs(f.box.y - box.y) < 1 &&
+							                 Math.abs(f.box.width - box.width) < 1 &&
+							                 Math.abs(f.box.height - box.height) < 1;
+							const idMatch = f.matchedPersonId === face.matchedPersonId;
+							
+							if ((boxMatch || idMatch) && f.matchedPersonId === face.matchedPersonId) {
+								return { ...f, personName };
+							}
+							return f;
+						});
+						faceData = {
+							...faceData,
+							faces: updatedFaces
+						};
+					}
+				}
+				
+				// Toggle selection: if same face clicked, deselect; otherwise select new face
+				selectedFaceIndex = selectedFaceIndex === i ? null : i;
+				// The $effect will automatically redraw when selectedFaceIndex changes
+				return;
+			}
+		}
+
+		// Click was not on any face, deselect
+		selectedFaceIndex = null;
+	}
+
 	function formatDate(date: string | Date | undefined): string {
 		if (!date) return 'Unknown';
 		return new Date(date).toLocaleDateString('en-US', {
@@ -472,8 +631,9 @@
 					{#if showFaces && matchedFaces.length > 0}
 						<canvas
 							bind:this={canvasRef}
-							class="absolute top-0 left-0 pointer-events-none"
+							class="absolute top-0 left-0 cursor-pointer"
 							style="max-width: 100%; max-height: 100%;"
+							onclick={handleCanvasClick}
 						/>
 					{/if}
 				</div>

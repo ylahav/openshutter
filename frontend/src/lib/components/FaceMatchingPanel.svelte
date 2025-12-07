@@ -58,7 +58,7 @@
 	async function handleMatchFaces() {
 		isMatching = true;
 		try {
-			const response = await fetch('/api/admin/face-detection/match', {
+			const response = await fetch('/api/admin/face-recognition/match', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
@@ -83,7 +83,7 @@
 	async function handleAssignFace(faceIndex: number, personId: string | null) {
 		assigningFaceIndex = faceIndex;
 		try {
-			const response = await fetch('/api/admin/face-detection/assign', {
+			const response = await fetch('/api/admin/face-recognition/assign', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({

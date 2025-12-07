@@ -64,10 +64,21 @@
 		const ctx = canvas.getContext('2d');
 		if (!ctx) return;
 
-		canvas.width = image.naturalWidth;
-		canvas.height = image.naturalHeight;
+		// Get the displayed size of the image
+		const rect = image.getBoundingClientRect();
+		const displayWidth = rect.width;
+		const displayHeight = rect.height;
+		
+		// Set canvas to match displayed size
+		canvas.width = displayWidth;
+		canvas.height = displayHeight;
+		
+		// Calculate scale factors
+		const scaleX = displayWidth / image.naturalWidth;
+		const scaleY = displayHeight / image.naturalHeight;
 
-		ctx.drawImage(image, 0, 0);
+		// Clear canvas
+		ctx.clearRect(0, 0, canvas.width, canvas.height);
 
 		faces.forEach((face, index) => {
 			const { box } = face;
@@ -81,9 +92,17 @@
 				strokeColor = '#ff8800';
 			}
 
+			// Scale box coordinates to match displayed image
+			const scaledBox = {
+				x: box.x * scaleX,
+				y: box.y * scaleY,
+				width: box.width * scaleX,
+				height: box.height * scaleY,
+			};
+
 			ctx.strokeStyle = strokeColor;
 			ctx.lineWidth = isSelected ? 3 : 2;
-			ctx.strokeRect(box.x, box.y, box.width, box.height);
+			ctx.strokeRect(scaledBox.x, scaledBox.y, scaledBox.width, scaledBox.height);
 
 			if (face.landmarks) {
 				ctx.fillStyle = '#ff0000';
@@ -96,15 +115,15 @@
 
 				landmarks.forEach((landmark) => {
 					ctx.beginPath();
-					ctx.arc(landmark.x, landmark.y, 3, 0, 2 * Math.PI);
+					ctx.arc(landmark.x * scaleX, landmark.y * scaleY, 3, 0, 2 * Math.PI);
 					ctx.fill();
 				});
 			}
 
 			ctx.fillStyle = strokeColor;
-			ctx.font = '16px Arial';
+			ctx.font = `${Math.max(12, 16 * scaleX)}px Arial`;
 			const label = `Face ${index + 1}${isManual ? ' (Manual)' : ''}`;
-			ctx.fillText(label, box.x, box.y - 5);
+			ctx.fillText(label, scaledBox.x, scaledBox.y - 5);
 		});
 	}
 
@@ -141,7 +160,7 @@
 			});
 
 			// Save to backend
-			const response = await fetch('/api/admin/face-detection/detect', {
+			const response = await fetch('/api/admin/face-recognition/detect', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
@@ -173,13 +192,15 @@
 		if (!canvas || !image) return;
 
 		const rect = canvas.getBoundingClientRect();
+		// Calculate scale factors (natural size to displayed size)
 		const scaleX = image.naturalWidth / rect.width;
 		const scaleY = image.naturalHeight / rect.height;
 
+		// Convert click coordinates to natural image coordinates
 		const x = (e.clientX - rect.left) * scaleX;
 		const y = (e.clientY - rect.top) * scaleY;
 
-		// Check if clicking on a face
+		// Check if clicking on a face (using natural coordinates)
 		for (let i = faces.length - 1; i >= 0; i--) {
 			const face = faces[i];
 			if (
@@ -225,19 +246,23 @@
 		<div class="text-sm text-gray-500 mb-4">Loading face recognition models...</div>
 	{/if}
 
-	<div class="relative">
-		<img
-			bind:this={image}
-			src={imageUrl}
-			alt="Photo"
-			class="max-w-full"
-			on:load={handleImageLoad}
-		/>
-		<canvas
-			bind:this={canvas}
-			class="absolute top-0 left-0 cursor-pointer"
-			on:click={handleCanvasClick}
-		></canvas>
+	<div class="relative border-2 border-gray-300 rounded-lg overflow-hidden bg-gray-100" style="max-width: 100%;">
+		<div class="relative inline-block max-w-full">
+			<img
+				bind:this={image}
+				src={imageUrl}
+				alt="Photo"
+				class="max-w-full h-auto block"
+				style="max-height: 80vh;"
+				on:load={handleImageLoad}
+			/>
+			<canvas
+				bind:this={canvas}
+				class="absolute top-0 left-0 cursor-pointer"
+				style="pointer-events: auto;"
+				on:click={handleCanvasClick}
+			></canvas>
+		</div>
 	</div>
 
 	{#if faces.length > 0}

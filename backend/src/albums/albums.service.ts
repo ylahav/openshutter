@@ -12,6 +12,7 @@ export class AlbumsService {
   constructor(
     @InjectModel('Album') private albumModel: Model<IAlbum>,
     @InjectModel('Photo') private photoModel: Model<IPhoto>,
+    @InjectModel('Person') private personModel: Model<any>,
     @InjectConnection() private connection: Connection,
   ) {}
 
@@ -316,6 +317,42 @@ export class AlbumsService {
     const total = await this.photoModel.countDocuments(query);
     console.log(`findPhotosByAlbumId - Total photos: ${total}`);
 
+    // Manually populate people if they're just ObjectIds
+    // Collect all person IDs that need to be populated
+    const personIdsToFetch = new Set<string>();
+    photos.forEach((photo: any) => {
+      if (photo.people && Array.isArray(photo.people)) {
+        photo.people.forEach((person: any) => {
+          // If it's just an ObjectId (not populated), add it to the set
+          if (person && typeof person === 'object' && person._id) {
+            // Check if it's populated (has fullName or firstName)
+            if (!person.fullName && !person.firstName) {
+              personIdsToFetch.add(person._id.toString());
+            }
+          } else if (Types.ObjectId.isValid(person)) {
+            personIdsToFetch.add(person.toString());
+          } else if (typeof person === 'string' && Types.ObjectId.isValid(person)) {
+            personIdsToFetch.add(person);
+          }
+        });
+      }
+    });
+
+    // Fetch all people data at once
+    let peopleMap = new Map<string, any>();
+    if (personIdsToFetch.size > 0) {
+      const personObjectIds = Array.from(personIdsToFetch).map(id => new Types.ObjectId(id));
+      const people = await this.personModel
+        .find({ _id: { $in: personObjectIds } })
+        .lean()
+        .exec();
+      
+      people.forEach((person: any) => {
+        peopleMap.set(person._id.toString(), person);
+      });
+      console.log(`findPhotosByAlbumId - Manually fetched ${people.length} people for population`);
+    }
+
     // Ensure storage objects are properly serialized
     const serializedPhotos = photos.map((photo: any) => {
       const serialized: any = {
@@ -336,19 +373,43 @@ export class AlbumsService {
               return tag.toString();
             })
           : [],
-        // Preserve populated people data (fullName, firstName) or return ID if not populated
+        // Preserve populated people data (fullName, firstName) or manually populate if needed
         people: photo.people
           ? photo.people.map((person: any) => {
+              let personData: any = null;
+              
+              // Check if it's already populated
               if (person && typeof person === 'object' && person._id) {
-                // Populated person object
+                if (person.fullName || person.firstName) {
+                  // Already populated
+                  personData = person;
+                } else {
+                  // Has _id but not populated, try to fetch from map
+                  const personId = person._id.toString();
+                  personData = peopleMap.get(personId);
+                }
+              } else if (Types.ObjectId.isValid(person)) {
+                // Just an ObjectId, fetch from map
+                const personId = person.toString();
+                personData = peopleMap.get(personId);
+              } else if (typeof person === 'string' && Types.ObjectId.isValid(person)) {
+                // String ObjectId, fetch from map
+                personData = peopleMap.get(person);
+              }
+              
+              // Return populated data or fallback to ID
+              if (personData) {
                 return {
-                  _id: person._id.toString(),
-                  fullName: person.fullName || {},
-                  firstName: person.firstName || {}
+                  _id: personData._id.toString(),
+                  fullName: personData.fullName || {},
+                  firstName: personData.firstName || {}
                 };
               }
-              // Just an ID
-              return person.toString();
+              
+              // Fallback: return as string ID
+              return person && typeof person === 'object' && person._id 
+                ? person._id.toString() 
+                : person.toString();
             })
           : [],
         // Preserve populated location data (name) or return ID if not populated
