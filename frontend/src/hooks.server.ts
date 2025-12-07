@@ -11,6 +11,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 	event.locals.user = null;
 
 	const token = event.cookies.get('auth_token');
+	
 	if (token) {
 		try {
 			const { payload } = await jwtVerify(token, JWT_SECRET);
@@ -20,7 +21,8 @@ export const handle: Handle = async ({ event, resolve }) => {
 				name: String(payload.name),
 				role: (payload.role as 'admin' | 'owner' | 'guest') ?? 'owner'
 			};
-		} catch {
+		} catch (error) {
+			console.error('Token verification failed:', error);
 			// Invalid/expired token - clear it
 			event.cookies.delete('auth_token', { path: '/' });
 		}

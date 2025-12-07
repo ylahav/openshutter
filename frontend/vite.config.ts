@@ -14,9 +14,19 @@ export default defineConfig({
 			],
 		},
 		proxy: {
+			// Proxy API requests to backend, but exclude routes handled by SvelteKit
 			'/api': {
 				target: 'http://localhost:5000',
 				changeOrigin: true,
+				// Don't proxy routes that have SvelteKit handlers
+				bypass: (req) => {
+					// Let SvelteKit handle these routes
+					if (req.url?.startsWith('/api/auth/login')) {
+						return req.url;
+					}
+					// Proxy everything else to backend
+					return null;
+				},
 			},
 		},
 	},

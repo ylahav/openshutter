@@ -60,7 +60,10 @@
 					? '/owner'
 					: '/';
 			
-			window.location.href = redirectPath;
+			// Small delay to ensure cookie is set before redirect
+			setTimeout(() => {
+				window.location.href = redirectPath;
+			}, 100);
 		} catch (err) {
 			error = 'Login failed. Please try again.';
 			console.error('Login error:', err);
@@ -74,7 +77,7 @@
 	<title>Sign In - OpenShutter</title>
 </svelte:head>
 
-<div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+<div class="w-full min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
 	<div class="max-w-md w-full space-y-8">
 		<div>
 			<h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">Sign in to your account</h2>
@@ -87,7 +90,7 @@
 			</p>
 		</div>
 
-		<div class="mt-8 space-y-6">
+		<form class="mt-8 space-y-6" on:submit|preventDefault={handleSubmit}>
 			{#if error}
 				<div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded text-sm">
 					{error}
@@ -104,13 +107,7 @@
 						autocomplete="email"
 						required
 						bind:value={email}
-						on:keydown={(e) => {
-							if (e.key === 'Enter') {
-								e.preventDefault();
-								handleSubmit(e);
-							}
-						}}
-						class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
+						class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
 						placeholder="Email address"
 					/>
 				</div>
@@ -123,13 +120,7 @@
 						autocomplete="current-password"
 						required
 						bind:value={password}
-						on:keydown={(e) => {
-							if (e.key === 'Enter') {
-								e.preventDefault();
-								handleSubmit(e);
-							}
-						}}
-						class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
+						class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
 						placeholder="Password"
 					/>
 				</div>
@@ -137,10 +128,9 @@
 
 			<div>
 				<button
-					type="button"
+					type="submit"
 					disabled={loading}
-					on:click={handleSubmit}
-					class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
+					class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
 				>
 					{#if loading}
 						<span>Signing in...</span>
@@ -149,6 +139,6 @@
 					{/if}
 				</button>
 			</div>
-		</div>
+		</form>
 	</div>
 </div>

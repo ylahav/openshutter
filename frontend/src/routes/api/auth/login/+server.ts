@@ -20,7 +20,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 		}
 
 		// Call NestJS backend auth endpoint
-		const response = await fetch(`${BACKEND_URL}/api/auth/login`, {
+		const backendResponse = await fetch(`${BACKEND_URL}/api/auth/login`, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
@@ -28,12 +28,12 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			body: JSON.stringify({ email, password }),
 		});
 
-		if (!response.ok) {
-			const errorData = await response.json().catch(() => ({ error: 'Login failed' }));
-			return json({ error: errorData.error || 'Invalid credentials' }, { status: response.status });
+		if (!backendResponse.ok) {
+			const errorData = await backendResponse.json().catch(() => ({ error: 'Login failed' }));
+			return json({ error: errorData.error || 'Invalid credentials' }, { status: backendResponse.status });
 		}
 
-		const data = await response.json();
+		const data = await backendResponse.json();
 		const { user } = data;
 
 		// Create JWT token for SvelteKit session
@@ -48,15 +48,19 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			.setExpirationTime(`${JWT_TTL}s`)
 			.sign(JWT_SECRET);
 
+		// Set the cookie using SvelteKit's cookies API
+		// In development, don't use secure flag (allows http://localhost)
+		const isProduction = process.env.NODE_ENV === 'production';
+		
 		cookies.set('auth_token', jwt, {
 			httpOnly: true,
-			secure: process.env.NODE_ENV === 'production',
+			secure: isProduction,
 			path: '/',
 			maxAge: JWT_TTL,
 			sameSite: 'lax'
 		});
 
-		return json({ role: user.role, user });
+		return json({ role: user.role, user }, { status: 200 });
 	} catch (error) {
 		console.error('Login error:', error);
 		return json({ error: 'Login failed' }, { status: 500 });
