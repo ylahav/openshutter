@@ -35,4 +35,3 @@ export const GET: RequestHandler = async () => {
 		return json({ success: false, error: errorMessage }, { status: 500 });
 	}
 };
-

@@ -1,11 +1,8 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { connectToDatabase, connectMongoose } from '$lib/mongodb';
-import { GroupModel } from '$lib/models/Group';
-import { SUPPORTED_LANGUAGES } from '$lib/types/multi-lang';
-import { ObjectId } from 'mongodb';
+import { backendGet, backendPut, backendDelete, parseBackendResponse } from '$lib/utils/backend-api';
 
-export const GET: RequestHandler = async ({ params, locals }) => {
+export const GET: RequestHandler = async ({ params, locals, cookies }) => {
 	try {
 		// Require admin access
 		if (!locals.user || locals.user.role !== 'admin') {
@@ -13,32 +10,22 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 		}
 
 		const { id } = await params;
-		await connectMongoose();
-		const { db } = await connectToDatabase();
 
-		// Validate ObjectId
-		if (!ObjectId.isValid(id)) {
-			return json({ success: false, error: 'Invalid group ID' }, { status: 400 });
-		}
+		const response = await backendGet(`/admin/groups/${id}`, { cookies });
+		const group = await parseBackendResponse<any>(response);
 
-		const group = await GroupModel.findById(id).lean();
-
-		if (!group) {
-			return json({ success: false, error: 'Group not found' }, { status: 404 });
-		}
-
-		// Normalize _id to string
 		return json({
 			success: true,
-			data: { ...group, _id: String(group._id) }
+			data: group
 		});
 	} catch (error) {
 		console.error('Get group error:', error);
-		return json({ success: false, error: 'Failed to fetch group' }, { status: 500 });
+		const errorMessage = error instanceof Error ? error.message : String(error);
+		return json({ success: false, error: errorMessage || 'Failed to fetch group' }, { status: 500 });
 	}
 };
 
-export const PUT: RequestHandler = async ({ params, request, locals }) => {
+export const PUT: RequestHandler = async ({ params, request, locals, cookies }) => {
 	try {
 		// Require admin access
 		if (!locals.user || locals.user.role !== 'admin') {
@@ -46,65 +33,23 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
 		}
 
 		const { id } = await params;
-		await connectMongoose();
-		const { db } = await connectToDatabase();
-
-		// Validate ObjectId
-		if (!ObjectId.isValid(id)) {
-			return json({ success: false, error: 'Invalid group ID' }, { status: 400 });
-		}
-
 		const body = await request.json();
-		const { name } = body;
 
-		// Validate required fields
-		if (!name) {
-			return json({ success: false, error: 'name is required' }, { status: 400 });
-		}
+		const response = await backendPut(`/admin/groups/${id}`, body, { cookies });
+		const group = await parseBackendResponse<any>(response);
 
-		// Convert name to multi-language format if it's a string
-		// Filter out empty strings to keep only languages with actual content
-		const nameObj =
-			typeof name === 'string'
-				? { en: name.trim() }
-				: Object.fromEntries(
-						SUPPORTED_LANGUAGES.map((l) => {
-							const val = (name as any)?.[l.code];
-							return [l.code, typeof val === 'string' ? val.trim() : ''];
-						})
-							.filter(([_, value]) => value && typeof value === 'string' && value.trim().length > 0)
-					);
-
-		// Ensure nameObj is not empty
-		if (!nameObj || Object.keys(nameObj).length === 0) {
-			return json({ success: false, error: 'Group name is required in at least one language' }, { status: 400 });
-		}
-
-		// Update group
-		const _id = new ObjectId(id);
-		const result = await GroupModel.findByIdAndUpdate(
-			_id,
-			{ $set: { name: nameObj, updatedAt: new Date() } },
-			{ new: true }
-		).lean();
-
-		if (!result) {
-			return json({ success: false, error: 'Group not found' }, { status: 404 });
-		}
-
-		// Normalize _id to string
 		return json({
 			success: true,
-			data: { ...result, _id: String(result._id) }
+			data: group
 		});
 	} catch (error) {
 		console.error('Update group error:', error);
 		const errorMessage = error instanceof Error ? error.message : String(error);
-		return json({ success: false, error: `Failed to update group: ${errorMessage}` }, { status: 500 });
+		return json({ success: false, error: errorMessage || 'Failed to update group' }, { status: 500 });
 	}
 };
 
-export const DELETE: RequestHandler = async ({ params, locals }) => {
+export const DELETE: RequestHandler = async ({ params, locals, cookies }) => {
 	try {
 		// Require admin access
 		if (!locals.user || locals.user.role !== 'admin') {
@@ -112,28 +57,17 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
 		}
 
 		const { id } = await params;
-		await connectMongoose();
-		const { db } = await connectToDatabase();
 
-		// Validate ObjectId
-		if (!ObjectId.isValid(id)) {
-			return json({ success: false, error: 'Invalid group ID' }, { status: 400 });
-		}
+		const response = await backendDelete(`/admin/groups/${id}`, { cookies });
+		const result = await parseBackendResponse<{ success?: boolean; message?: string }>(response);
 
-		const _id = new ObjectId(id);
-
-		// Delete group
-		const result = await GroupModel.findByIdAndDelete(_id);
-
-		if (!result) {
-			return json({ success: false, error: 'Group not found' }, { status: 404 });
-		}
-
-		return json({ success: true });
+		return json({
+			success: result.success !== undefined ? result.success : true,
+			message: result.message
+		});
 	} catch (error) {
 		console.error('Delete group error:', error);
 		const errorMessage = error instanceof Error ? error.message : String(error);
-		return json({ success: false, error: `Failed to delete group: ${errorMessage}` }, { status: 500 });
+		return json({ success: false, error: errorMessage || 'Failed to delete group' }, { status: 500 });
 	}
 };
-

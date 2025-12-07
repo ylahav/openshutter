@@ -1,142 +1,70 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { connectToDatabase, connectMongoose } from '$lib/mongodb';
-import { UserModel } from '$lib/models/User';
-import { hashPassword } from '$lib/security/password';
-import { ObjectId } from 'mongodb';
+import { backendGet, backendPost, parseBackendResponse } from '$lib/utils/backend-api';
 
-export const GET: RequestHandler = async ({ url, locals }) => {
+export const GET: RequestHandler = async ({ url, locals, cookies }) => {
 	try {
 		// Require admin access
 		if (!locals.user || locals.user.role !== 'admin') {
 			return json({ success: false, error: 'Unauthorized' }, { status: 401 });
 		}
 
-		await connectMongoose();
-		const { db } = await connectToDatabase();
 		const searchParams = url.searchParams;
 
-		// Get query parameters
+		// Build query string
+		const queryParams = new URLSearchParams();
 		const search = searchParams.get('search');
-		const roleFilter = searchParams.get('role');
-		const blockedFilter = searchParams.get('blocked');
-		const page = parseInt(searchParams.get('page') || '1');
-		const limit = parseInt(searchParams.get('limit') || '100');
+		const role = searchParams.get('role');
+		const blocked = searchParams.get('blocked');
+		const page = searchParams.get('page') || '1';
+		const limit = searchParams.get('limit') || '100';
 
-		// Build query
-		const query: any = {};
+		if (search) queryParams.set('search', search);
+		if (role && role !== 'all') queryParams.set('role', role);
+		if (blocked !== null && blocked !== undefined) queryParams.set('blocked', blocked);
+		if (page) queryParams.set('page', page);
+		if (limit) queryParams.set('limit', limit);
 
-		if (search) {
-			// Search in username and name fields (name can be string or multi-language object)
-			const searchRegex = { $regex: search, $options: 'i' };
-			query.$or = [
-				{ username: searchRegex },
-				{ name: searchRegex },
-				// Multi-language name fields
-				{ 'name.en': searchRegex },
-				{ 'name.he': searchRegex }
-			];
-		}
-
-		if (roleFilter && roleFilter !== 'all') {
-			query.role = roleFilter;
-		}
-
-		if (blockedFilter !== null && blockedFilter !== undefined) {
-			query.blocked = blockedFilter === 'true';
-		}
-
-		// Get users with pagination
-		const skip = (page - 1) * limit;
-		const [users, total] = await Promise.all([
-			UserModel.find(query).sort({ username: 1 }).skip(skip).limit(limit).lean(),
-			UserModel.countDocuments(query)
-		]);
-
-		// Remove passwordHash from response
-		const data = users.map((user: any) => {
-			const { passwordHash, ...rest } = user;
-			return { ...rest, _id: String(user._id) };
-		});
+		const endpoint = `/admin/users${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+		const response = await backendGet(endpoint, { cookies });
+		const result = await parseBackendResponse<{ data: any[]; pagination: any }>(response);
 
 		return json({
 			success: true,
-			data,
-			pagination: {
-				page,
-				limit,
-				total,
-				pages: Math.ceil(total / limit)
+			data: result.data || result,
+			pagination: result.pagination || {
+				page: parseInt(page),
+				limit: parseInt(limit),
+				total: 0,
+				totalPages: 0
 			}
 		});
 	} catch (error) {
 		console.error('Admin Users API error:', error);
-		return json({ success: false, error: 'Failed to fetch users' }, { status: 500 });
+		const errorMessage = error instanceof Error ? error.message : String(error);
+		return json({ success: false, error: errorMessage || 'Failed to fetch users' }, { status: 500 });
 	}
 };
 
-export const POST: RequestHandler = async ({ request, locals }) => {
+export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 	try {
 		// Require admin access
 		if (!locals.user || locals.user.role !== 'admin') {
 			return json({ success: false, error: 'Unauthorized' }, { status: 401 });
 		}
 
-		await connectMongoose();
-		const { db } = await connectToDatabase();
 		const body = await request.json();
-		const { name, username, password, role, groupAliases, blocked, allowedStorageProviders } = body;
 
-		// Validate required fields
-		if (!name || !username || !password || !role) {
-			return json(
-				{ success: false, error: 'name, username, password, and role are required' },
-				{ status: 400 }
-			);
-		}
+		const response = await backendPost('/admin/users', body, { cookies });
+		const user = await parseBackendResponse<any>(response);
 
-		// Check if username already exists
-		const normalizedUsername = String(username).toLowerCase().trim();
-		const existingUser = await UserModel.findOne({ username: normalizedUsername });
-		if (existingUser) {
-			return json({ success: false, error: 'Username already exists' }, { status: 409 });
-		}
-
-		// Hash password
-		const passwordHash = await hashPassword(password);
-
-		// Create user document
-		const now = new Date();
-		const user = new UserModel({
-			name,
-			username: normalizedUsername,
-			passwordHash,
-			role,
-			groupAliases: Array.isArray(groupAliases) ? groupAliases : [],
-			blocked: Boolean(blocked),
-			allowedStorageProviders: Array.isArray(allowedStorageProviders)
-				? allowedStorageProviders
-				: ['local'],
-			createdAt: now,
-			updatedAt: now
+		return json({
+			success: true,
+			data: user
 		});
-
-		await user.save();
-
-		// Return user without passwordHash
-		const userObj = user.toObject();
-		const { passwordHash: _omit, ...rest } = userObj as any;
-
-		return json(
-			{
-				success: true,
-				data: { ...rest, _id: String(user._id) }
-			},
-			{ status: 201 }
-		);
 	} catch (error) {
 		console.error('Create user error:', error);
 		const errorMessage = error instanceof Error ? error.message : String(error);
-		return json({ success: false, error: `Failed to create user: ${errorMessage}` }, { status: 500 });
+		return json({ success: false, error: errorMessage || 'Failed to create user' }, { status: 500 });
 	}
 };

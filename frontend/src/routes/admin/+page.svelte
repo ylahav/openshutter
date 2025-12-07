@@ -3,7 +3,7 @@
 	import { logout } from '$lib/stores/auth';
 	import { goto } from '$app/navigation';
 
-	export let data: PageData;
+  export const data: PageData = undefined as any; // From +layout.server.ts, not used in this component
 
 	async function handleLogout() {
 		await logout();

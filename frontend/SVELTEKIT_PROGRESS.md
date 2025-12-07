@@ -39,7 +39,7 @@
 - [x] `AlbumsSection.svelte` - Albums display section
 - [x] `AlbumBreadcrumbs.svelte` - Breadcrumb navigation
 
-### Phase 4: Page Migration ✅ (21 pages)
+### Phase 4: Page Migration ✅ (42 pages migrated, 42 Next.js pages removed)
 - [x] `/admin` → `routes/admin/+page.svelte`
 - [x] `/admin/albums` → `routes/admin/albums/+page.svelte`
 - [x] `/admin/albums/[id]` → `routes/admin/albums/[id]/+page.svelte`
@@ -62,6 +62,26 @@
 - [x] `/albums/[alias]` → `routes/albums/[alias]/+page.svelte`
 - [x] `/albums/new` → `routes/albums/new/+page.svelte`
 - [x] `/login` → `routes/login/+page.svelte`
+- [x] `/admin/storage` → `routes/admin/storage/+page.svelte`
+- [x] `/admin/audit-logs` → `routes/admin/audit-logs/+page.svelte`
+- [x] `/admin/photos/upload` → `routes/admin/photos/upload/+page.svelte`
+- [x] `/admin/template-config` → `routes/admin/template-config/+page.svelte`
+- [x] `/admin/import-sync` → `routes/admin/import-sync/+page.svelte`
+- [x] `/search` → `routes/search/+page.svelte`
+- [x] `/photos` → `routes/photos/+page.svelte`
+- [x] `/[alias]` → `routes/[alias]/+page.svelte`
+- [x] `/owner` → `routes/owner/+page.svelte`
+- [x] `/owner/albums` → `routes/owner/albums/+page.svelte`
+- [x] `/owner/albums/[id]` → `routes/owner/albums/[id]/+page.svelte`
+- [x] `/owner/albums/[id]/edit` → `routes/owner/albums/[id]/edit/+page.svelte`
+- [x] `/owner/profile` → `routes/owner/profile/+page.svelte`
+- [x] `/owner/blog` → `routes/owner/blog/+page.svelte`
+- [x] `/owner/blog/new` → `routes/owner/blog/new/+page.svelte`
+- [x] `/page` → `routes/page/+page.svelte`
+- [x] `/photos/upload` → `routes/photos/upload/+page.svelte`
+- [x] `/mobile/search` → `routes/mobile/search/+page.svelte`
+- [x] `/admin/blog-categories/new` → `routes/admin/blog-categories/new/+page.svelte`
+- [x] `/admin/blog-categories/[id]/edit` → `routes/admin/blog-categories/[id]/edit/+page.svelte`
 
 ### Phase 5: API Routes Migration ✅ (65 routes migrated - COMPLETE!)
 - [x] `/api/admin/tags` - GET, POST

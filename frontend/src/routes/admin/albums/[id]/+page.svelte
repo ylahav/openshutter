@@ -7,7 +7,7 @@
 	import AlbumBreadcrumbs from '$lib/components/AlbumBreadcrumbs.svelte';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 
-	export let data; // From +layout.server.ts, contains user info
+  export const data = undefined as any; // From +layout.server.ts, not used in this component
 
 	interface Album {
 		_id: string;

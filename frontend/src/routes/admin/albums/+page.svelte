@@ -3,7 +3,7 @@
 	import { goto } from '$app/navigation';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 
-	export let data; // From +layout.server.ts, contains user info
+  export const data = undefined as any; // From +layout.server.ts, not used in this component
 
 	interface Album {
 		_id: string;
@@ -89,9 +89,6 @@
 		return album.name?.en || album.name?.he || '(No name)';
 	}
 
-	function getIndent(level: number): string {
-		return '  '.repeat(level);
-	}
 
 	function getFilteredAlbums(): Album[] {
 		if (!searchQuery.trim()) return albums;
@@ -334,10 +331,7 @@
 							{#each getFilteredAlbums() as album}
 								<tr class="hover:bg-gray-50">
 									<td class="px-6 py-4 whitespace-nowrap">
-										<div class="flex items-center">
-											<span class="text-gray-400 font-mono text-xs mr-2">
-												{getIndent(album.level)}
-											</span>
+										<div class="flex items-center" style="padding-left: {album.level * 1.5}rem;">
 											<div>
 												<div class="text-sm font-medium text-gray-900">{getAlbumName(album)}</div>
 												<div class="text-sm text-gray-500">{album.alias}</div>
@@ -426,7 +420,11 @@
 				<h3 class="text-lg font-medium text-gray-900">
 					Select Cover Photo - {coverPhotoModal.album ? getAlbumName(coverPhotoModal.album) : ''}
 				</h3>
-				<button on:click={closeCoverPhotoModal} class="text-gray-400 hover:text-gray-600">
+				<button 
+					on:click={closeCoverPhotoModal} 
+					class="text-gray-400 hover:text-gray-600"
+					aria-label="Close modal"
+				>
 					<svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
 					</svg>
@@ -454,11 +452,13 @@
 					<div class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3 mb-6">
 						{#each getPaginatedPhotos() as photo}
 							{@const isCurrentCover = coverPhotoModal.album?.coverPhotoId === photo._id}
-							<div
+							<button
+								type="button"
 								class="relative cursor-pointer group {isCurrentCover
 									? 'ring-4 ring-blue-500 ring-opacity-75'
 									: ''}"
 								on:click={() => setCoverPhoto(photo._id)}
+								aria-label="Set as cover photo"
 							>
 								<img
 									src={photo.storage?.thumbnailPath || photo.storage?.url || photo.url}
@@ -474,7 +474,7 @@
 										✓
 									</div>
 								{/if}
-							</div>
+							</button>
 						{/each}
 					</div>
 

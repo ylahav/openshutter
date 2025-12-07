@@ -1,11 +1,12 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
-	import '../app/globals.css';
+	import '$lib/styles/globals.css';
 	import { siteConfig } from '$stores/siteConfig';
 	import { loadSession } from '$lib/stores/auth';
 	import Header from '$components/Header.svelte';
 	import Footer from '$components/Footer.svelte';
+	import ThemeProvider from '$lib/components/ThemeProvider.svelte';
 
 	// Initialize site config and auth on mount (skip on login page)
 	onMount(() => {
@@ -33,10 +34,12 @@
 	});
 </script>
 
-<Header />
+<ThemeProvider defaultTheme="system" enableSystem={true} disableTransitionOnChange={false}>
+	<Header />
 
-<main class="min-h-screen bg-background text-foreground">
-	<slot />
-</main>
+	<main class="min-h-screen bg-background text-foreground">
+		<slot />
+	</main>
 
-<Footer />
+	<Footer />
+</ThemeProvider>

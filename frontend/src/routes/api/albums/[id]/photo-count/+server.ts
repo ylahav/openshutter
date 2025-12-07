@@ -1,37 +1,31 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { connectToDatabase } from '$lib/mongodb';
-import { AlbumPhotoCountService } from '$lib/services/album-photo-count';
-import { ObjectId } from 'mongodb';
+import { backendGet, parseBackendResponse } from '$lib/utils/backend-api';
 
 export const GET: RequestHandler = async ({ params }) => {
 	try {
 		const { id } = await params;
-		const { db } = await connectToDatabase();
 
 		if (!id) {
 			return json({ success: false, error: 'Album ID is required' }, { status: 400 });
 		}
 
-		let objectId;
-		try {
-			objectId = new ObjectId(id);
-		} catch (error) {
-			return json({ success: false, error: 'Invalid album ID format' }, { status: 400 });
-		}
-
-		// Verify album exists
-		const album = await db.collection('albums').findOne({ _id: objectId });
-		if (!album) {
+		// Get album data which includes photo count information
+		const albumDataResponse = await backendGet(`/albums/${id}/data?limit=1`);
+		if (!albumDataResponse.ok) {
 			return json({ success: false, error: 'Album not found' }, { status: 404 });
 		}
 
-		// Get total photo count including child albums
-		const photoCountResult = await AlbumPhotoCountService.getTotalPhotoCount(objectId);
-
+		const albumData = await parseBackendResponse<any>(albumDataResponse);
+		
+		// Return photo count information
 		return json({
 			success: true,
-			data: photoCountResult
+			data: {
+				directPhotoCount: albumData.photos?.length || 0,
+				totalPhotoCount: albumData.pagination?.total || 0,
+				childAlbumCount: albumData.subAlbums?.length || 0
+			}
 		});
 	} catch (error) {
 		console.error('Error getting album photo count:', error);

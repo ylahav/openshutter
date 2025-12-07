@@ -1,27 +1,16 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { AlbumLeadingPhotoService } from '$lib/services/album-leading-photo';
+import { backendPost, parseBackendResponse } from '$lib/utils/backend-api';
 
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async ({ request, cookies }) => {
 	try {
 		const body = await request.json();
-		const { albumIds } = body;
-
-		if (!Array.isArray(albumIds)) {
-			return json({ success: false, error: 'albumIds must be an array' }, { status: 400 });
-		}
-
-		const coverImages = await AlbumLeadingPhotoService.getMultipleAlbumCoverImageUrls(albumIds);
-
-		// Convert Map to object for JSON response
-		const result: Record<string, string> = {};
-		for (const [albumId, url] of coverImages) {
-			result[albumId] = url;
-		}
+		const response = await backendPost('/albums/cover-images', body, { cookies });
+		const result = await parseBackendResponse<any>(response);
 
 		return json({
 			success: true,
-			data: result
+			data: result.data || result
 		});
 	} catch (error) {
 		console.error('Error getting album cover images:', error);

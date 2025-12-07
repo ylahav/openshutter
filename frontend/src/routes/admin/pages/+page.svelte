@@ -4,7 +4,7 @@
 	import MultiLangHTMLEditor from '$lib/components/MultiLangHTMLEditor.svelte';
 	import type { MultiLangText, MultiLangHTML } from '$lib/types/multi-lang';
 
-	export let data; // From +layout.server.ts, contains user info
+  export const data = undefined as any; // From +layout.server.ts, not used in this component
 
 	interface Page {
 		_id: string;
@@ -393,6 +393,7 @@
 										type="button"
 										on:click={() => openEditDialog(page)}
 										class="p-1 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded"
+										aria-label="Edit page"
 									>
 										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 											<path
@@ -407,6 +408,7 @@
 										type="button"
 										on:click={() => openDeleteDialog(page)}
 										class="p-1 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded"
+										aria-label="Delete page"
 									>
 										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 											<path
@@ -742,4 +744,3 @@
 		</div>
 	</div>
 {/if}
-

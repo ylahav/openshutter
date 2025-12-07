@@ -3,7 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { siteConfigData, siteConfig } from '$stores/siteConfig';
 
-	export let data; // From +layout.server.ts, contains user info
+  export const data = undefined as any; // From +layout.server.ts, not used in this component
 
 	interface TemplateConfig {
 		templateName: string;
@@ -615,4 +615,3 @@
 		</div>
 	</div>
 </div>
-

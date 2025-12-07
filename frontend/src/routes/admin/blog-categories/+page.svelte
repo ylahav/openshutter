@@ -4,7 +4,7 @@
 	import MultiLangHTMLEditor from '$lib/components/MultiLangHTMLEditor.svelte';
 	import type { MultiLangText } from '$lib/types/multi-lang';
 
-	export let data; // From +layout.server.ts, contains user info
+  export const data = undefined as any; // From +layout.server.ts, not used in this component
 
 	interface BlogCategory {
 		_id: string;
@@ -407,6 +407,7 @@
 										type="button"
 										on:click={() => openEditDialog(category)}
 										class="p-1 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded"
+										aria-label="Edit category"
 									>
 										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 											<path
@@ -421,6 +422,7 @@
 										type="button"
 										on:click={() => openDeleteDialog(category)}
 										class="p-1 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded"
+										aria-label="Delete category"
 									>
 										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 											<path
@@ -468,18 +470,19 @@
 
 			<div class="space-y-4">
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
+					<span class="block text-sm font-medium text-gray-700 mb-2">
 						Title *
-					</label>
+					</span>
 					<MultiLangInput bind:value={formData.title} />
 				</div>
 
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
+					<label for="alias" class="block text-sm font-medium text-gray-700 mb-2">
 						Alias (optional - auto-generated if not provided)
 					</label>
 					<input
 						type="text"
+						id="alias"
 						bind:value={formData.alias}
 						placeholder="category-slug"
 						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -487,18 +490,19 @@
 				</div>
 
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
+					<span class="block text-sm font-medium text-gray-700 mb-2">
 						Description
-					</label>
+					</span>
 					<MultiLangHTMLEditor bind:value={formData.description} />
 				</div>
 
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
+					<label for="leading-image-url-create" class="block text-sm font-medium text-gray-700 mb-2">
 						Leading Image URL
 					</label>
 					<input
 						type="text"
+						id="leading-image-url-create"
 						bind:value={formData.leadingImage.url}
 						placeholder="https://..."
 						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -507,11 +511,12 @@
 
 				<div class="grid grid-cols-2 gap-4">
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-2">
+						<label for="sort-order-create" class="block text-sm font-medium text-gray-700 mb-2">
 							Sort Order
 						</label>
 						<input
 							type="number"
+							id="sort-order-create"
 							bind:value={formData.sortOrder}
 							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 						/>
@@ -575,18 +580,19 @@
 
 			<div class="space-y-4">
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
+					<span class="block text-sm font-medium text-gray-700 mb-2">
 						Title *
-					</label>
+					</span>
 					<MultiLangInput bind:value={formData.title} />
 				</div>
 
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
+					<label for="alias-edit" class="block text-sm font-medium text-gray-700 mb-2">
 						Alias
 					</label>
 					<input
 						type="text"
+						id="alias-edit"
 						bind:value={formData.alias}
 						placeholder="category-slug"
 						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -594,18 +600,19 @@
 				</div>
 
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
+					<span class="block text-sm font-medium text-gray-700 mb-2">
 						Description
-					</label>
+					</span>
 					<MultiLangHTMLEditor bind:value={formData.description} />
 				</div>
 
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
+					<label for="leading-image-url-edit" class="block text-sm font-medium text-gray-700 mb-2">
 						Leading Image URL
 					</label>
 					<input
 						type="text"
+						id="leading-image-url-edit"
 						bind:value={formData.leadingImage.url}
 						placeholder="https://..."
 						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -614,11 +621,12 @@
 
 				<div class="grid grid-cols-2 gap-4">
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-2">
+						<label for="sort-order-edit" class="block text-sm font-medium text-gray-700 mb-2">
 							Sort Order
 						</label>
 						<input
 							type="number"
+							id="sort-order-edit"
 							bind:value={formData.sortOrder}
 							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 						/>
@@ -719,4 +727,3 @@
 		</div>
 	</div>
 {/if}
-

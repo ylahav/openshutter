@@ -110,4 +110,3 @@ function getContentType(extension?: string): string {
 
 	return contentTypes[extension || ''] || 'application/octet-stream';
 }
-

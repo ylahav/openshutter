@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 
-	export let data; // From +layout.server.ts, contains user info
+  export const data = undefined as any; // From +layout.server.ts, not used in this component
 
 	interface AnalyticsData {
 		overview: {
@@ -371,4 +371,3 @@
 		{/if}
 	</div>
 </div>
-

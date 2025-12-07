@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document, Types } from 'mongoose'
-import { Album } from '@/types'
+import { Album } from '$lib/types'
 
 export interface IAlbum extends Omit<Album, '_id' | 'createdBy' | 'parentAlbumId' | 'coverPhotoId' | 'allowedUsers'>, Document {
   _id: Types.ObjectId

@@ -6,7 +6,7 @@
 	import MultiLangInput from '$lib/components/MultiLangInput.svelte';
 	import type { MultiLangText } from '$lib/types/multi-lang';
 
-	export let data; // From +layout.server.ts, contains user info
+  export const data = undefined as any; // From +layout.server.ts, not used in this component
 
 	interface Person {
 		_id: string;
@@ -438,6 +438,7 @@
 										type="button"
 										on:click={() => openEditDialog(person)}
 										class="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded"
+										aria-label="Edit person"
 									>
 										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 											<path
@@ -452,6 +453,7 @@
 										type="button"
 										on:click={() => openDeleteDialog(person)}
 										class="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded"
+										aria-label="Delete person"
 									>
 										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 											<path
@@ -517,9 +519,9 @@
 			<div class="space-y-4">
 				<div class="grid grid-cols-2 gap-4">
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-2">
+						<span class="block text-sm font-medium text-gray-700 mb-2">
 							First Name *
-						</label>
+						</span>
 						<MultiLangInput
 							value={formData.firstName}
 							onChange={(value) => (formData.firstName = value)}
@@ -529,9 +531,9 @@
 						/>
 					</div>
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-2">
+						<span class="block text-sm font-medium text-gray-700 mb-2">
 							Last Name *
-						</label>
+						</span>
 						<MultiLangInput
 							value={formData.lastName}
 							onChange={(value) => (formData.lastName = value)}
@@ -543,9 +545,9 @@
 				</div>
 
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
+					<span class="block text-sm font-medium text-gray-700 mb-2">
 						Nickname
-					</label>
+					</span>
 					<MultiLangInput
 						value={formData.nickname}
 						onChange={(value) => (formData.nickname = value)}
@@ -555,20 +557,21 @@
 				</div>
 
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
+					<label for="birth-date-create" class="block text-sm font-medium text-gray-700 mb-2">
 						Birth Date
 					</label>
 					<input
 						type="date"
+						id="birth-date-create"
 						bind:value={formData.birthDate}
 						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 					/>
 				</div>
 
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
+					<span class="block text-sm font-medium text-gray-700 mb-2">
 						Description
-					</label>
+					</span>
 					<MultiLangInput
 						value={formData.description}
 						onChange={(value) => (formData.description = value)}
@@ -580,11 +583,12 @@
 				</div>
 
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
+					<label for="tags-create" class="block text-sm font-medium text-gray-700 mb-2">
 						Tags (comma-separated)
 					</label>
 					<input
 						type="text"
+						id="tags-create"
 						bind:value={formData.tags}
 						placeholder="family, friend, colleague"
 						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -633,9 +637,9 @@
 			<div class="space-y-4">
 				<div class="grid grid-cols-2 gap-4">
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-2">
+						<span class="block text-sm font-medium text-gray-700 mb-2">
 							First Name *
-						</label>
+						</span>
 						<MultiLangInput
 							value={formData.firstName}
 							onChange={(value) => (formData.firstName = value)}
@@ -645,9 +649,9 @@
 						/>
 					</div>
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-2">
+						<span class="block text-sm font-medium text-gray-700 mb-2">
 							Last Name *
-						</label>
+						</span>
 						<MultiLangInput
 							value={formData.lastName}
 							onChange={(value) => (formData.lastName = value)}
@@ -659,9 +663,9 @@
 				</div>
 
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
+					<span class="block text-sm font-medium text-gray-700 mb-2">
 						Nickname
-					</label>
+					</span>
 					<MultiLangInput
 						value={formData.nickname}
 						onChange={(value) => (formData.nickname = value)}
@@ -671,20 +675,21 @@
 				</div>
 
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
+					<label for="birth-date-create" class="block text-sm font-medium text-gray-700 mb-2">
 						Birth Date
 					</label>
 					<input
 						type="date"
+						id="birth-date-create"
 						bind:value={formData.birthDate}
 						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 					/>
 				</div>
 
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
+					<span class="block text-sm font-medium text-gray-700 mb-2">
 						Description
-					</label>
+					</span>
 					<MultiLangInput
 						value={formData.description}
 						onChange={(value) => (formData.description = value)}
@@ -696,11 +701,12 @@
 				</div>
 
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
+					<label for="tags-create" class="block text-sm font-medium text-gray-700 mb-2">
 						Tags (comma-separated)
 					</label>
 					<input
 						type="text"
+						id="tags-create"
 						bind:value={formData.tags}
 						placeholder="family, friend, colleague"
 						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"

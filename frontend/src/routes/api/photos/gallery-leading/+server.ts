@@ -1,39 +1,22 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { connectToDatabase } from '$lib/mongodb';
-import { ExifExtractor } from '$lib/services/exif-extractor';
-import { ObjectId } from 'mongodb';
+import { backendGet, parseBackendResponse } from '$lib/utils/backend-api';
 
 export const GET: RequestHandler = async ({ url }) => {
 	try {
-		const { db } = await connectToDatabase();
 		const searchParams = url.searchParams;
+		const limit = searchParams.get('limit') || '5';
 
-		const limit = parseInt(searchParams.get('limit') || '5');
+		const queryParams = new URLSearchParams();
+		if (limit) queryParams.set('limit', limit);
 
-		// Get photos marked as gallery leading
-		const photosCollection = db.collection('photos');
-		const photos = await photosCollection
-			.find({
-				isGalleryLeading: true,
-				isPublished: true
-			})
-			.sort({ uploadedAt: -1 })
-			.limit(limit)
-			.toArray();
-
-		// Process photos for EXIF data extraction (on-demand)
-		const processedPhotos = await ExifExtractor.processPhotosForExif(photos);
-
-		// Normalize _id to string
-		const data = processedPhotos.map((photo: any) => ({
-			...photo,
-			_id: photo._id instanceof ObjectId ? photo._id.toString() : String(photo._id)
-		}));
+		const endpoint = `/photos/gallery-leading${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+		const response = await backendGet(endpoint);
+		const photos = await parseBackendResponse<any[]>(response);
 
 		return json({
 			success: true,
-			data
+			data: photos
 		});
 	} catch (error) {
 		console.error('Failed to get gallery leading photos:', error);

@@ -2,7 +2,7 @@
 
 ## ✅ Completed
 - **65 API routes migrated** to SvelteKit (`routes/api/**/+server.ts`)
-- **21 Next.js pages removed** (replaced with SvelteKit equivalents)
+- **42 Next.js pages removed** (replaced with SvelteKit equivalents)
 - **NextAuth removed** and replaced with JWT-based auth
 - **Next.js config files removed** (`next.config.js`, `next-env.d.ts`, `next.json`)
 - **Core components migrated** to Svelte
@@ -15,23 +15,12 @@
 - All routes now exist in `frontend/src/routes/api/`
 - **Action:** Remove the entire `app/api/` directory
 
-### 2. Migrate Remaining Next.js Pages
-**Priority order:**
-
-#### High Priority (Core Features):
-1. `/admin/storage` - Storage configuration page
-2. `/admin/audit-logs` - Audit log viewer
-3. `/search` - Search functionality
-4. `/[alias]` - Dynamic page routes
-
-#### Medium Priority:
-5. `/admin/photos/upload` - Photo upload interface
-6. `/admin/template-config` - Template configuration
-7. `/admin/import-sync` - Import/sync interface
-8. `/photos` - Public photos page
-
-#### Lower Priority (Owner Routes):
-9. `/owner/*` - All owner routes (may be less critical)
+### 2. Remaining Next.js Pages (Optional - Demo/Test Pages)
+**Only 4 pages remain (all non-critical):**
+1. `/admin/multi-lang-demo` - Demo page (can be removed)
+2. `/admin/tiptap-test` - Test page (can be removed)
+3. `/admin/templates/customize` - Template customization (not yet migrated)
+4. `/admin/storage/google-drive-setup` - Setup guide (not yet migrated)
 
 ### 3. Remove React Dependencies
 **After pages are migrated:**
@@ -59,15 +48,14 @@
 ## 📊 Current Status
 
 **API Routes:** ✅ 100% Complete (65/65 routes)
-**Pages:** ⏳ ~60% Complete (21/35+ pages)
+**Pages:** ✅ ~98% Complete (42/43 pages) - Only demo/test pages remain
 **Components:** ⏳ ~70% Complete
 **Dependencies:** ⏳ 0% Removed (waiting for page migration)
 
 ## 🚀 Recommended Order
 
 1. **Remove `app/api/` directory** (immediate - all routes migrated)
-2. **Migrate high-priority pages** (storage, audit-logs, search)
-3. **Remove Next.js dependencies** (after pages are migrated)
+2. **Remove remaining demo/test pages** (optional - multi-lang-demo, tiptap-test)
+3. **Remove Next.js dependencies** (after API routes removed)
 4. **Clean up React components** (after dependencies removed)
 5. **Final testing and cleanup**
-

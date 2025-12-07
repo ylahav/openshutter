@@ -1,56 +1,17 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { AlbumLeadingPhotoService } from '$lib/services/album-leading-photo';
-import { connectToDatabase } from '$lib/mongodb';
-import { ObjectId } from 'mongodb';
+import { backendGet, parseBackendResponse } from '$lib/utils/backend-api';
 
-export const GET: RequestHandler = async ({ params }) => {
+export const GET: RequestHandler = async ({ params, cookies }) => {
 	try {
 		const { id } = await params;
-
-		const result = await AlbumLeadingPhotoService.getAlbumLeadingPhoto(id);
-
-		if (result.photo && result.photo.storage?.url) {
-			return json({
-				success: true,
-				data: {
-					url: result.photo.storage.url,
-					source: result.source,
-					albumId: result.albumId,
-					photoId: result.photo._id instanceof ObjectId ? result.photo._id.toString() : String(result.photo._id)
-				}
-			});
-		}
-
-		// Try to get site logo as fallback
-		try {
-			const { db } = await connectToDatabase();
-			const siteConfig = await db.collection('site-configs').findOne({});
-
-			if (siteConfig && siteConfig.logo) {
-				return json({
-					success: true,
-					data: {
-						url: siteConfig.logo,
-						source: 'site-logo',
-						albumId: id,
-						photoId: null
-					}
-				});
-			}
-		} catch (error) {
-			console.error('Error fetching site logo:', error);
-		}
+		const endpoint = `/albums/${id}/cover-image`;
+		const response = await backendGet(endpoint, { cookies });
+		const result = await parseBackendResponse<any>(response);
 
 		return json({
-			success: false,
-			error: 'No cover image found',
-			data: {
-				url: '/api/placeholder/400/300',
-				source: 'placeholder',
-				albumId: id,
-				photoId: null
-			}
+			success: true,
+			data: result.data || result
 		});
 	} catch (error) {
 		console.error('Error getting album cover image:', error);

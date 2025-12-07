@@ -3,7 +3,7 @@
 	import MultiLangInput from '$lib/components/MultiLangInput.svelte';
 	import type { MultiLangText } from '$lib/types/multi-lang';
 
-	export let data; // From +layout.server.ts, contains user info
+  export const data = undefined as any; // From +layout.server.ts, not used in this component
 
 	interface Group {
 		_id: string;
@@ -949,4 +949,3 @@
 		</div>
 	</div>
 {/if}
-

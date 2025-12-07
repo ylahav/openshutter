@@ -3,7 +3,7 @@
 	import MultiLangInput from '$lib/components/MultiLangInput.svelte';
 	import MultiLangHTMLEditor from '$lib/components/MultiLangHTMLEditor.svelte';
 
-	export let data; // From +layout.server.ts, contains user info
+  export const data = undefined as any; // From +layout.server.ts, not used in this component
 
 	interface Location {
 		_id: string;
@@ -446,6 +446,7 @@
 										type="button"
 										on:click={() => openEditDialog(location)}
 										class="p-1 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded"
+										aria-label="Edit location"
 									>
 										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 											<path
@@ -460,6 +461,7 @@
 										type="button"
 										on:click={() => openDeleteDialog(location)}
 										class="p-1 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded"
+										aria-label="Delete location"
 									>
 										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 											<path
@@ -509,26 +511,27 @@
 
 			<div class="space-y-4">
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
+					<span class="block text-sm font-medium text-gray-700 mb-2">
 						Location Name *
-					</label>
+					</span>
 					<MultiLangInput bind:value={formData.name} />
 				</div>
 
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
+					<span class="block text-sm font-medium text-gray-700 mb-2">
 						Description
-					</label>
+					</span>
 					<MultiLangHTMLEditor bind:value={formData.description} />
 				</div>
 
 				<div class="grid grid-cols-2 gap-4">
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-2">
+						<label for="address-create" class="block text-sm font-medium text-gray-700 mb-2">
 							Address
 						</label>
 						<input
 							type="text"
+							id="address-create"
 							bind:value={formData.address}
 							placeholder="Street address"
 							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -536,11 +539,12 @@
 					</div>
 
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-2">
+						<label for="city-create" class="block text-sm font-medium text-gray-700 mb-2">
 							City
 						</label>
 						<input
 							type="text"
+							id="city-create"
 							bind:value={formData.city}
 							placeholder="City"
 							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -550,11 +554,12 @@
 
 				<div class="grid grid-cols-3 gap-4">
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-2">
+						<label for="state-create" class="block text-sm font-medium text-gray-700 mb-2">
 							State/Province
 						</label>
 						<input
 							type="text"
+							id="state-create"
 							bind:value={formData.state}
 							placeholder="State"
 							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -562,11 +567,12 @@
 					</div>
 
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-2">
+						<label for="country-create" class="block text-sm font-medium text-gray-700 mb-2">
 							Country
 						</label>
 						<input
 							type="text"
+							id="country-create"
 							bind:value={formData.country}
 							placeholder="Country"
 							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -574,11 +580,12 @@
 					</div>
 
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-2">
+						<label for="postal-create" class="block text-sm font-medium text-gray-700 mb-2">
 							Postal Code
 						</label>
 						<input
 							type="text"
+							id="postal-create"
 							bind:value={formData.postalCode}
 							placeholder="Postal code"
 							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -588,11 +595,12 @@
 
 				<div class="grid grid-cols-2 gap-4">
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-2">
+						<label for="lat-create" class="block text-sm font-medium text-gray-700 mb-2">
 							Latitude
 						</label>
 						<input
 							type="number"
+							id="lat-create"
 							step="any"
 							bind:value={formData.coordinates.latitude}
 							placeholder="-90 to 90"
@@ -601,11 +609,12 @@
 					</div>
 
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-2">
+						<label for="lng-create" class="block text-sm font-medium text-gray-700 mb-2">
 							Longitude
 						</label>
 						<input
 							type="number"
+							id="lng-create"
 							step="any"
 							bind:value={formData.coordinates.longitude}
 							placeholder="-180 to 180"
@@ -615,11 +624,12 @@
 				</div>
 
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
+					<label for="place-id-create" class="block text-sm font-medium text-gray-700 mb-2">
 						Place ID (Google Places)
 					</label>
 					<input
 						type="text"
+						id="place-id-create"
 						bind:value={formData.placeId}
 						placeholder="Optional Google Places ID"
 						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -627,10 +637,11 @@
 				</div>
 
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
+					<label for="category-create" class="block text-sm font-medium text-gray-700 mb-2">
 						Category
 					</label>
 					<select
+						id="category-create"
 						bind:value={formData.category}
 						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 					>
@@ -681,26 +692,27 @@
 
 			<div class="space-y-4">
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
+					<span class="block text-sm font-medium text-gray-700 mb-2">
 						Location Name *
-					</label>
+					</span>
 					<MultiLangInput bind:value={formData.name} />
 				</div>
 
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
+					<span class="block text-sm font-medium text-gray-700 mb-2">
 						Description
-					</label>
+					</span>
 					<MultiLangHTMLEditor bind:value={formData.description} />
 				</div>
 
 				<div class="grid grid-cols-2 gap-4">
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-2">
+						<label for="address-edit" class="block text-sm font-medium text-gray-700 mb-2">
 							Address
 						</label>
 						<input
 							type="text"
+							id="address-edit"
 							bind:value={formData.address}
 							placeholder="Street address"
 							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -708,11 +720,12 @@
 					</div>
 
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-2">
+						<label for="city-edit" class="block text-sm font-medium text-gray-700 mb-2">
 							City
 						</label>
 						<input
 							type="text"
+							id="city-edit"
 							bind:value={formData.city}
 							placeholder="City"
 							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -722,11 +735,12 @@
 
 				<div class="grid grid-cols-3 gap-4">
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-2">
+						<label for="state-edit" class="block text-sm font-medium text-gray-700 mb-2">
 							State/Province
 						</label>
 						<input
 							type="text"
+							id="state-edit"
 							bind:value={formData.state}
 							placeholder="State"
 							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -734,11 +748,12 @@
 					</div>
 
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-2">
+						<label for="country-edit" class="block text-sm font-medium text-gray-700 mb-2">
 							Country
 						</label>
 						<input
 							type="text"
+							id="country-edit"
 							bind:value={formData.country}
 							placeholder="Country"
 							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -746,11 +761,12 @@
 					</div>
 
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-2">
+						<label for="postal-edit" class="block text-sm font-medium text-gray-700 mb-2">
 							Postal Code
 						</label>
 						<input
 							type="text"
+							id="postal-edit"
 							bind:value={formData.postalCode}
 							placeholder="Postal code"
 							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -760,11 +776,12 @@
 
 				<div class="grid grid-cols-2 gap-4">
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-2">
+						<label for="lat-edit" class="block text-sm font-medium text-gray-700 mb-2">
 							Latitude
 						</label>
 						<input
 							type="number"
+							id="lat-edit"
 							step="any"
 							bind:value={formData.coordinates.latitude}
 							placeholder="-90 to 90"
@@ -773,11 +790,12 @@
 					</div>
 
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-2">
+						<label for="lng-edit" class="block text-sm font-medium text-gray-700 mb-2">
 							Longitude
 						</label>
 						<input
 							type="number"
+							id="lng-edit"
 							step="any"
 							bind:value={formData.coordinates.longitude}
 							placeholder="-180 to 180"
@@ -787,11 +805,12 @@
 				</div>
 
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
+					<label for="place-id-edit" class="block text-sm font-medium text-gray-700 mb-2">
 						Place ID (Google Places)
 					</label>
 					<input
 						type="text"
+						id="place-id-edit"
 						bind:value={formData.placeId}
 						placeholder="Optional Google Places ID"
 						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -799,10 +818,11 @@
 				</div>
 
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
+					<label for="category-edit" class="block text-sm font-medium text-gray-700 mb-2">
 						Category
 					</label>
 					<select
+						id="category-edit"
 						bind:value={formData.category}
 						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 					>

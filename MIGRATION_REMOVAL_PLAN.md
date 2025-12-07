@@ -29,28 +29,25 @@ This document tracks the removal of Next.js/React code as we complete the Svelte
 - `/albums/new` → `routes/albums/new/+page.svelte`
 - `/login` → `routes/login/+page.svelte`
 
-### ⚠️ Partially Migrated (Keep Next.js for now)
-- `/admin/photos/upload` - No SvelteKit equivalent yet
-- `/admin/storage` - No SvelteKit equivalent yet
-- `/admin/audit-logs` - No SvelteKit equivalent yet
-- `/admin/template-config` - No SvelteKit equivalent yet
-- `/admin/import-sync` - No SvelteKit equivalent yet
-- `/admin/multi-lang-demo` - No SvelteKit equivalent yet
-- `/admin/tiptap-test` - No SvelteKit equivalent yet
-- `/admin/templates/customize` - No SvelteKit equivalent yet
-- `/admin/blog-categories/[id]/edit` - No SvelteKit equivalent yet
-- `/admin/blog-categories/new` - No SvelteKit equivalent yet
-- `/owner/*` - All owner routes still Next.js
-- `/search` - Still Next.js
-- `/mobile/search` - Still Next.js
-- `/photos` - Still Next.js
-- `/photos/upload` - Still Next.js
-- `/page` - Still Next.js
-- `/[alias]` - Still Next.js
+### ✅ Fully Migrated to SvelteKit (Can Remove Next.js Pages) - UPDATED
+- `/admin/storage` → `routes/admin/storage/+page.svelte` ✅
+- `/admin/audit-logs` → `routes/admin/audit-logs/+page.svelte` ✅
+- `/admin/photos/upload` → `routes/admin/photos/upload/+page.svelte` ✅
+- `/admin/template-config` → `routes/admin/template-config/+page.svelte` ✅
+- `/admin/import-sync` → `routes/admin/import-sync/+page.svelte` ✅
+- `/search` → `routes/search/+page.svelte` ✅
+- `/photos` → `routes/photos/+page.svelte` ✅
+- `/[alias]` → `routes/[alias]/+page.svelte` ✅
 
-### 🔄 API Routes (Still Needed - Migrate Later)
-All API routes in `app/api/` are still being used by SvelteKit routes.
-These need to be migrated to SvelteKit format (`routes/api/**/+server.ts`) before removing Next.js.
+### ⚠️ Remaining Next.js Pages (Keep for now - Demo/Test or Not Yet Migrated)
+- `/admin/multi-lang-demo` - Demo page (can be removed later)
+- `/admin/tiptap-test` - Test page (can be removed later)
+- `/admin/templates/customize` - Not yet migrated
+- `/admin/storage/google-drive-setup` - Setup guide page (not yet migrated)
+
+### ✅ API Routes Migration - COMPLETED
+All API routes have been migrated from `app/api/**/route.ts` to `routes/api/**/+server.ts`.
+The old Next.js API routes in `app/api/` can now be removed (they are no longer used).
 
 ## Removal Strategy
 
@@ -79,7 +76,31 @@ Removed Next.js pages that have complete SvelteKit equivalents:
 - ✅ `app/albums/new/page.tsx` - REMOVED
 - ✅ `app/login/page.tsx` - REMOVED
 
-**Total: 21 pages removed**
+**Total: 42 pages migrated and removed (21 previously removed + 21 newly removed)**
+
+### Recently Removed (Latest Batch):
+- ✅ `app/admin/audit-logs/page.tsx` - REMOVED
+- ✅ `app/admin/blog-categories/new/page.tsx` - REMOVED
+- ✅ `app/admin/blog-categories/[id]/edit/page.tsx` - REMOVED
+- ✅ `app/admin/import-sync/page.tsx` - REMOVED
+- ✅ `app/admin/photos/upload/page.tsx` - REMOVED
+- ✅ `app/admin/storage/page.tsx` - REMOVED
+- ✅ `app/admin/template-config/page.tsx` - REMOVED
+- ✅ `app/mobile/search/page.tsx` - REMOVED
+- ✅ `app/owner/page.tsx` - REMOVED
+- ✅ `app/owner/albums/page.tsx` - REMOVED
+- ✅ `app/owner/albums/[id]/page.tsx` - REMOVED
+- ✅ `app/owner/albums/[id]/edit/page.tsx` - REMOVED
+- ✅ `app/owner/blog/page.tsx` - REMOVED
+- ✅ `app/owner/blog/new/page.tsx` - REMOVED
+- ✅ `app/owner/profile/page.tsx` - REMOVED
+- ✅ `app/page/page.tsx` - REMOVED
+- ✅ `app/page/[alias]/page.tsx` - REMOVED
+- ✅ `app/photos/page.tsx` - REMOVED
+- ✅ `app/photos/upload/page.tsx` - REMOVED
+- ✅ `app/search/page.tsx` - REMOVED
+- ✅ `app/[alias]/page.tsx` - REMOVED
+- ✅ `app/page.tsx` (root home page) - REMOVED
 
 ### Phase 2: Remove React Components with Svelte Equivalents
 - `components/MultiLangInput.tsx` → Already have `lib/components/MultiLangInput.svelte`

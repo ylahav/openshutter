@@ -1,11 +1,8 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { connectToDatabase, connectMongoose } from '$lib/mongodb';
-import { PageModel } from '$lib/models/Page';
-import { MultiLangUtils } from '$lib/utils/multiLang';
-import { ObjectId } from 'mongodb';
+import { backendGet, backendPut, backendDelete, parseBackendResponse } from '$lib/utils/backend-api';
 
-export const GET: RequestHandler = async ({ params, locals }) => {
+export const GET: RequestHandler = async ({ params, locals, cookies }) => {
 	try {
 		// Require admin access
 		if (!locals.user || locals.user.role !== 'admin') {
@@ -13,32 +10,22 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 		}
 
 		const { id } = await params;
-		await connectMongoose();
-		const { db } = await connectToDatabase();
 
-		// Validate ObjectId
-		if (!ObjectId.isValid(id)) {
-			return json({ success: false, error: 'Invalid page ID' }, { status: 400 });
-		}
+		const response = await backendGet(`/admin/pages/${id}`, { cookies });
+		const page = await parseBackendResponse<any>(response);
 
-		const page = await PageModel.findById(id).lean();
-
-		if (!page) {
-			return json({ success: false, error: 'Page not found' }, { status: 404 });
-		}
-
-		// Normalize _id to string
 		return json({
 			success: true,
-			data: { ...page, _id: String(page._id) }
+			data: page
 		});
 	} catch (error) {
 		console.error('Get page error:', error);
-		return json({ success: false, error: 'Failed to fetch page' }, { status: 500 });
+		const errorMessage = error instanceof Error ? error.message : String(error);
+		return json({ success: false, error: errorMessage || 'Failed to fetch page' }, { status: 500 });
 	}
 };
 
-export const PUT: RequestHandler = async ({ params, request, locals }) => {
+export const PUT: RequestHandler = async ({ params, request, locals, cookies }) => {
 	try {
 		// Require admin access
 		if (!locals.user || locals.user.role !== 'admin') {
@@ -46,94 +33,23 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
 		}
 
 		const { id } = await params;
-		await connectMongoose();
-		const { db } = await connectToDatabase();
-
-		// Validate ObjectId
-		if (!ObjectId.isValid(id)) {
-			return json({ success: false, error: 'Invalid page ID' }, { status: 400 });
-		}
-
 		const body = await request.json();
-		const { title, subtitle, alias, leadingImage, introText, content, category, isPublished } = body;
 
-		// Check if alias already exists (excluding current page)
-		if (alias) {
-			const existingPage = await PageModel.findOne({
-				alias: alias.trim(),
-				_id: { $ne: new ObjectId(id) }
-			});
-			if (existingPage) {
-				return json({ success: false, error: 'Page with this alias already exists' }, { status: 400 });
-			}
-		}
+		const response = await backendPut(`/admin/pages/${id}`, body, { cookies });
+		const page = await parseBackendResponse<any>(response);
 
-		// Build update object
-		const update: any = {
-			updatedAt: new Date(),
-			updatedBy: locals.user.id || String(locals.user._id)
-		};
-
-		if (title !== undefined) {
-			const cleanTitle = MultiLangUtils.clean(title);
-			if (!cleanTitle || Object.keys(cleanTitle).length === 0) {
-				return json(
-					{ success: false, error: 'Page title is required in at least one language' },
-					{ status: 400 }
-				);
-			}
-			update.title = cleanTitle;
-		}
-
-		if (subtitle !== undefined) {
-			update.subtitle = subtitle ? MultiLangUtils.clean(subtitle) : undefined;
-		}
-
-		if (alias !== undefined) {
-			update.alias = alias.trim();
-		}
-
-		if (leadingImage !== undefined) {
-			update.leadingImage = leadingImage || undefined;
-		}
-
-		if (introText !== undefined) {
-			update.introText = introText ? MultiLangUtils.clean(introText) : undefined;
-		}
-
-		if (content !== undefined) {
-			update.content = content ? MultiLangUtils.clean(content) : undefined;
-		}
-
-		if (category !== undefined) {
-			update.category = category;
-		}
-
-		if (isPublished !== undefined) {
-			update.isPublished = isPublished;
-		}
-
-		// Update page
-		const _id = new ObjectId(id);
-		const result = await PageModel.findByIdAndUpdate(_id, { $set: update }, { new: true }).lean();
-
-		if (!result) {
-			return json({ success: false, error: 'Page not found' }, { status: 404 });
-		}
-
-		// Normalize _id to string
 		return json({
 			success: true,
-			data: { ...result, _id: String(result._id) }
+			data: page
 		});
 	} catch (error) {
 		console.error('Update page error:', error);
 		const errorMessage = error instanceof Error ? error.message : String(error);
-		return json({ success: false, error: `Failed to update page: ${errorMessage}` }, { status: 500 });
+		return json({ success: false, error: errorMessage || 'Failed to update page' }, { status: 500 });
 	}
 };
 
-export const DELETE: RequestHandler = async ({ params, locals }) => {
+export const DELETE: RequestHandler = async ({ params, locals, cookies }) => {
 	try {
 		// Require admin access
 		if (!locals.user || locals.user.role !== 'admin') {
@@ -141,28 +57,17 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
 		}
 
 		const { id } = await params;
-		await connectMongoose();
-		const { db } = await connectToDatabase();
 
-		// Validate ObjectId
-		if (!ObjectId.isValid(id)) {
-			return json({ success: false, error: 'Invalid page ID' }, { status: 400 });
-		}
+		const response = await backendDelete(`/admin/pages/${id}`, { cookies });
+		const result = await parseBackendResponse<{ success?: boolean; message?: string }>(response);
 
-		const _id = new ObjectId(id);
-
-		// Delete page
-		const result = await PageModel.findByIdAndDelete(_id);
-
-		if (!result) {
-			return json({ success: false, error: 'Page not found' }, { status: 404 });
-		}
-
-		return json({ success: true, message: 'Page deleted successfully' });
+		return json({
+			success: result.success !== undefined ? result.success : true,
+			message: result.message || 'Page deleted successfully'
+		});
 	} catch (error) {
 		console.error('Delete page error:', error);
 		const errorMessage = error instanceof Error ? error.message : String(error);
-		return json({ success: false, error: `Failed to delete page: ${errorMessage}` }, { status: 500 });
+		return json({ success: false, error: errorMessage || 'Failed to delete page' }, { status: 500 });
 	}
 };
-

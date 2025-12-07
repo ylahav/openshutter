@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose'
-import { User as IUser } from '@/types'
+import { User as IUser } from '$lib/types'
 
 export interface IUserDocument extends Omit<IUser, '_id'>, Document {
   _id: any

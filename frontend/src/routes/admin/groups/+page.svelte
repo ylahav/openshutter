@@ -3,7 +3,7 @@
 	import MultiLangInput from '$lib/components/MultiLangInput.svelte';
 	import type { MultiLangText } from '$lib/types/multi-lang';
 
-	export let data; // From +layout.server.ts, contains user info
+  export const data = undefined as any; // From +layout.server.ts, not used in this component
 
 	interface Group {
 		_id: string;
@@ -254,11 +254,12 @@
 				<h2 class="text-lg font-semibold text-gray-900 mb-3">Create New Group</h2>
 				<div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-2">
+						<label for="alias-create" class="block text-sm font-medium text-gray-700 mb-2">
 							Alias *
 						</label>
 						<input
 							type="text"
+							id="alias-create"
 							bind:value={formData.alias}
 							placeholder="e.g., family, friends, team"
 							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -266,9 +267,9 @@
 						<p class="mt-1 text-xs text-gray-500">Unique identifier (lowercase, no spaces)</p>
 					</div>
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-2">
+						<span class="block text-sm font-medium text-gray-700 mb-2">
 							Name *
-						</label>
+						</span>
 						<MultiLangInput bind:value={formData.name} />
 					</div>
 					<div>
@@ -327,6 +328,7 @@
 										type="button"
 										on:click={() => openEditDialog(group)}
 										class="p-1 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded"
+										aria-label="Edit group"
 									>
 										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 											<path
@@ -341,6 +343,7 @@
 										type="button"
 										on:click={() => openDeleteDialog(group)}
 										class="p-1 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded"
+										aria-label="Delete group"
 									>
 										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 											<path
@@ -373,11 +376,12 @@
 
 			<div class="space-y-4">
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
+					<label for="alias-edit" class="block text-sm font-medium text-gray-700 mb-2">
 						Alias
 					</label>
 					<input
 						type="text"
+						id="alias-edit"
 						value={formData.alias}
 						disabled
 						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-100 text-gray-600"
@@ -386,9 +390,9 @@
 				</div>
 
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
+					<span class="block text-sm font-medium text-gray-700 mb-2">
 						Name *
-					</label>
+					</span>
 					<MultiLangInput bind:value={formData.name} />
 				</div>
 
@@ -470,4 +474,3 @@
 		</div>
 	</div>
 {/if}
-

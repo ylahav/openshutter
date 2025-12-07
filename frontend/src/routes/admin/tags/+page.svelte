@@ -5,7 +5,7 @@
 	import MultiLangInput from '$lib/components/MultiLangInput.svelte';
 	import type { MultiLangText } from '$lib/types/multi-lang';
 
-	export let data; // From +layout.server.ts, contains user info
+  export const data = undefined as any; // From +layout.server.ts, not used in this component
 
 	interface Tag {
 		_id: string;
@@ -417,6 +417,7 @@
 										type="button"
 										on:click={() => openEditDialog(tag)}
 										class="p-1 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded"
+										aria-label="Edit tag"
 									>
 										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 											<path
@@ -431,6 +432,7 @@
 										type="button"
 										on:click={() => openDeleteDialog(tag)}
 										class="p-1 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded"
+										aria-label="Delete tag"
 									>
 										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 											<path
@@ -540,6 +542,7 @@
 									? 'border-gray-800'
 									: 'border-gray-300'} hover:border-gray-500"
 								style="background-color: {preset}"
+								aria-label="Select color {preset}"
 							></button>
 						{/each}
 					</div>
@@ -646,6 +649,7 @@
 									? 'border-gray-800'
 									: 'border-gray-300'} hover:border-gray-500"
 								style="background-color: {preset}"
+								aria-label="Select color {preset}"
 							></button>
 						{/each}
 					</div>

@@ -1,11 +1,8 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { connectToDatabase, connectMongoose } from '$lib/mongodb';
-import { LocationModel } from '$lib/models/Location';
-import { SUPPORTED_LANGUAGES } from '$lib/types/multi-lang';
-import { ObjectId } from 'mongodb';
+import { backendGet, backendPut, backendDelete, parseBackendResponse } from '$lib/utils/backend-api';
 
-export const GET: RequestHandler = async ({ params, locals }) => {
+export const GET: RequestHandler = async ({ params, locals, cookies }) => {
 	try {
 		// Require admin access
 		if (!locals.user || locals.user.role !== 'admin') {
@@ -13,19 +10,9 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 		}
 
 		const { id } = await params;
-		const { db } = await connectToDatabase();
 
-		// Validate ObjectId
-		if (!ObjectId.isValid(id)) {
-			return json({ success: false, error: 'Invalid location ID' }, { status: 400 });
-		}
-
-		// Find location
-		const location = await LocationModel.findById(id).lean();
-
-		if (!location) {
-			return json({ success: false, error: 'Location not found' }, { status: 404 });
-		}
+		const response = await backendGet(`/admin/locations/${id}`, { cookies });
+		const location = await parseBackendResponse<any>(response);
 
 		return json({
 			success: true,
@@ -33,11 +20,12 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 		});
 	} catch (error) {
 		console.error('Get location error:', error);
-		return json({ success: false, error: 'Failed to fetch location' }, { status: 500 });
+		const errorMessage = error instanceof Error ? error.message : String(error);
+		return json({ success: false, error: errorMessage || 'Failed to fetch location' }, { status: 500 });
 	}
 };
 
-export const PUT: RequestHandler = async ({ params, request, locals }) => {
+export const PUT: RequestHandler = async ({ params, request, locals, cookies }) => {
 	try {
 		// Require admin access
 		if (!locals.user || locals.user.role !== 'admin') {
@@ -45,121 +33,23 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
 		}
 
 		const { id } = await params;
-		const { db } = await connectToDatabase();
 		const body = await request.json();
-		const {
-			name,
-			description,
-			address,
-			city,
-			state,
-			country,
-			postalCode,
-			coordinates,
-			placeId,
-			category,
-			isActive
-		} = body;
 
-		// Validate ObjectId
-		if (!ObjectId.isValid(id)) {
-			return json({ success: false, error: 'Invalid location ID' }, { status: 400 });
-		}
-
-		// Validate required fields
-		const hasAnyName =
-			typeof name === 'string'
-				? !!name.trim()
-				: Object.values((name as Record<string, string>) || {}).some((v) => (v || '').trim());
-		if (!hasAnyName) {
-			return json({ success: false, error: 'Location name is required' }, { status: 400 });
-		}
-
-		// Check if location exists
-		const existingLocation = await LocationModel.findById(id);
-		if (!existingLocation) {
-			return json({ success: false, error: 'Location not found' }, { status: 404 });
-		}
-
-		// Convert name to multi-language format if it's a string
-		const nameObj =
-			typeof name === 'string'
-				? { en: name.trim() }
-				: Object.fromEntries(
-						SUPPORTED_LANGUAGES.map((l) => [l.code, (name as any)[l.code]?.trim() || ''])
-					);
-
-		// Convert description to multi-language format if it's a string
-		const descriptionObj = description
-			? typeof description === 'string'
-				? { en: description.trim() }
-				: Object.fromEntries(
-						SUPPORTED_LANGUAGES.map((l) => [l.code, (description as any)[l.code]?.trim() || ''])
-					)
-			: {};
-
-		// Check for duplicate name and address
-		const nameConditions = SUPPORTED_LANGUAGES.map((l) => ({
-			[`name.${l.code}`]: (nameObj as any)[l.code]
-		})).filter((cond) => Object.values(cond)[0]);
-		const duplicateLocation =
-			nameConditions.length
-				? await LocationModel.findOne({
-						_id: { $ne: id },
-						$or: nameConditions,
-						city: city?.trim(),
-						country: country?.trim()
-					})
-				: null;
-
-		if (duplicateLocation) {
-			return json(
-				{ success: false, error: 'Location with this name and address already exists' },
-				{ status: 409 }
-			);
-		}
-
-		// Update location
-		const updateData: any = {
-			name: nameObj,
-			description: descriptionObj,
-			address: address?.trim(),
-			city: city?.trim(),
-			state: state?.trim(),
-			country: country?.trim(),
-			postalCode: postalCode?.trim(),
-			placeId: placeId?.trim(),
-			category: category || 'custom',
-			updatedAt: new Date()
-		};
-
-		if (coordinates) {
-			updateData.coordinates = {
-				latitude: coordinates.latitude,
-				longitude: coordinates.longitude
-			};
-		}
-
-		if (isActive !== undefined) {
-			updateData.isActive = isActive;
-		}
-
-		const updatedLocation = await LocationModel.findByIdAndUpdate(id, updateData, {
-			new: true,
-			runValidators: true
-		}).lean();
+		const response = await backendPut(`/admin/locations/${id}`, body, { cookies });
+		const location = await parseBackendResponse<any>(response);
 
 		return json({
 			success: true,
-			data: updatedLocation
+			data: location
 		});
 	} catch (error) {
 		console.error('Update location error:', error);
-		return json({ success: false, error: 'Failed to update location' }, { status: 500 });
+		const errorMessage = error instanceof Error ? error.message : String(error);
+		return json({ success: false, error: errorMessage || 'Failed to update location' }, { status: 500 });
 	}
 };
 
-export const DELETE: RequestHandler = async ({ params, locals }) => {
+export const DELETE: RequestHandler = async ({ params, locals, cookies }) => {
 	try {
 		// Require admin access
 		if (!locals.user || locals.user.role !== 'admin') {
@@ -167,43 +57,17 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
 		}
 
 		const { id } = await params;
-		const { db } = await connectToDatabase();
 
-		// Validate ObjectId
-		if (!ObjectId.isValid(id)) {
-			return json({ success: false, error: 'Invalid location ID' }, { status: 400 });
-		}
-
-		// Check if location exists
-		const location = await LocationModel.findById(id);
-		if (!location) {
-			return json({ success: false, error: 'Location not found' }, { status: 404 });
-		}
-
-		// Check if location is being used in photos
-		const photosUsingLocation = await db.collection('photos').countDocuments({
-			location: new ObjectId(id)
-		});
-
-		if (photosUsingLocation > 0) {
-			return json(
-				{
-					success: false,
-					error: `Cannot delete location. It is being used by ${photosUsingLocation} photo(s). Please remove the location from photos first.`
-				},
-				{ status: 409 }
-			);
-		}
-
-		// Delete location
-		await LocationModel.findByIdAndDelete(id);
+		const response = await backendDelete(`/admin/locations/${id}`, { cookies });
+		const result = await parseBackendResponse<{ success: boolean; message: string }>(response);
 
 		return json({
-			success: true,
-			message: 'Location deleted successfully'
+			success: result.success !== undefined ? result.success : true,
+			message: result.message || 'Location deleted successfully'
 		});
 	} catch (error) {
 		console.error('Delete location error:', error);
-		return json({ success: false, error: 'Failed to delete location' }, { status: 500 });
+		const errorMessage = error instanceof Error ? error.message : String(error);
+		return json({ success: false, error: errorMessage || 'Failed to delete location' }, { status: 500 });
 	}
 };

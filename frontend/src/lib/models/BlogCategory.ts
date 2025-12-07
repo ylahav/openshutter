@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose'
-import { MultiLangText } from '@/types/multi-lang'
+import { MultiLangText } from '$lib/types/multi-lang'
 
 // Simple schema for multi-language text
 const MultiLangTextSchema = new Schema({

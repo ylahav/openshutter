@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose'
-import { StorageProviderConfig } from '@/types/storage'
+import { StorageProviderConfig } from '$lib/types/storage'
 
 // Make _id optional to avoid conflict with Document interface
 export interface IStorageProviderConfig extends Omit<StorageProviderConfig, '_id'>, Document {}

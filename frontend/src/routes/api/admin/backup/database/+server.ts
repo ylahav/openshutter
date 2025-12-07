@@ -1,49 +1,27 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { connectToDatabase } from '$lib/mongodb';
+import { backendPost, parseBackendResponse } from '$lib/utils/backend-api';
 
-export const POST: RequestHandler = async ({ locals }) => {
+export const POST: RequestHandler = async ({ locals, cookies }) => {
 	try {
 		// Require admin access
 		if (!locals.user || locals.user.role !== 'admin') {
 			return json({ success: false, error: 'Unauthorized' }, { status: 401 });
 		}
 
-		const { db } = await connectToDatabase();
-
-		// Get all collections
-		const collections = await db.listCollections().toArray();
-		const backup: any = {
-			timestamp: new Date().toISOString(),
-			version: '1.0',
-			collections: {}
-		};
-
-		// Export each collection
-		for (const collectionInfo of collections) {
-			const collectionName = collectionInfo.name;
-			const collection = db.collection(collectionName);
-			const documents = await collection.find({}).toArray();
-
-			// Convert ObjectId to string for JSON serialization
-			const serializedDocuments = documents.map((doc: any) => ({
-				...doc,
-				_id: doc._id.toString()
-			}));
-
-			backup.collections[collectionName] = serializedDocuments;
-		}
+		const response = await backendPost('/admin/backup/database', {}, { cookies });
+		const result = await parseBackendResponse<{ success?: boolean; backup?: any; message?: string }>(response);
 
 		return json({
-			success: true,
-			backup,
-			message: `Backup created with ${Object.keys(backup.collections).length} collections`
+			success: result.success !== undefined ? result.success : true,
+			backup: result.backup,
+			message: result.message || 'Backup created successfully'
 		});
 	} catch (error) {
 		console.error('Database backup error:', error);
 		const errorMessage = error instanceof Error ? error.message : String(error);
 		return json(
-			{ success: false, error: `Failed to create database backup: ${errorMessage}` },
+			{ success: false, error: errorMessage || 'Failed to create database backup' },
 			{ status: 500 }
 		);
 	}

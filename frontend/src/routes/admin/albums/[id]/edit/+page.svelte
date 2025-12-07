@@ -217,9 +217,9 @@
 					<!-- Album Info -->
 					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-2">
+							<span class="block text-sm font-medium text-gray-700 mb-2">
 								Album Name
-							</label>
+							</span>
 							<MultiLangInput
 								value={formData.name}
 								onChange={(value) => {
@@ -247,9 +247,9 @@
 
 					<!-- Description -->
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-2">
+						<span class="block text-sm font-medium text-gray-700 mb-2">
 							Description
-						</label>
+						</span>
 						<MultiLangHTMLEditor
 							value={formData.description}
 							onChange={(value) => {
@@ -278,11 +278,12 @@
 						</div>
 
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="storage-provider" class="block text-sm font-medium text-gray-700 mb-2">
 								Storage Provider
 							</label>
 							<input
 								type="text"
+								id="storage-provider"
 								value={album.storageProvider}
 								class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
 								disabled
@@ -290,11 +291,12 @@
 						</div>
 
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="photo-count" class="block text-sm font-medium text-gray-700 mb-2">
 								Photo Count
 							</label>
 							<input
 								type="text"
+								id="photo-count"
 								value={album.photoCount}
 								class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
 								disabled

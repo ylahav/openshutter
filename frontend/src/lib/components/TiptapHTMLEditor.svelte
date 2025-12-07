@@ -1,5 +1,12 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
+	import { Editor } from '@tiptap/core';
+	import StarterKit from '@tiptap/starter-kit';
+	import TextAlign from '@tiptap/extension-text-align';
+	import Underline from '@tiptap/extension-underline';
+	import { TextStyle } from '@tiptap/extension-text-style';
+	import Color from '@tiptap/extension-color';
+	import Link from '@tiptap/extension-link';
 
 	export let value = '';
 	export let onChange: (value: string) => void;
@@ -8,45 +15,162 @@
 	export let isRTL = false;
 	export let className = '';
 
-	let editorDiv: HTMLDivElement;
-	let isUpdating = false;
+	let editor: Editor | null = null;
+	let editorElement: HTMLDivElement | null = null;
+	let editorDiv: HTMLDivElement | null = null; // Fallback contenteditable
+	let isInternalUpdate = false;
+	let useFallback = false;
 
 	onMount(() => {
-		if (editorDiv && value) {
-			editorDiv.innerHTML = value;
+		if (!editorElement) return;
+
+		try {
+			editor = new Editor({
+				element: editorElement,
+				extensions: [
+					StarterKit.configure({
+						heading: false,
+						bold: false,
+						italic: false,
+						strike: false,
+						code: false,
+						bulletList: false,
+						orderedList: false,
+						listItem: false,
+						hardBreak: false,
+						horizontalRule: false,
+						link: false,
+						underline: false
+					}),
+					TextStyle,
+					Color,
+					TextAlign.configure({
+						types: ['heading', 'paragraph'],
+						alignments: ['left', 'center', 'right']
+					}),
+					Link.configure({
+						openOnClick: false,
+						HTMLAttributes: {
+							class: 'text-blue-600 underline cursor-pointer hover:text-blue-800'
+						}
+					})
+				],
+				content: value || '',
+				onUpdate: ({ editor }) => {
+					if (!isInternalUpdate) {
+						onChange(editor.getHTML());
+					}
+				},
+				editorProps: {
+					attributes: {
+						class: `prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none ${isRTL
+							? 'rtl'
+							: 'ltr'} text-gray-900 bg-white`,
+						dir: isRTL ? 'rtl' : 'ltr',
+						style: `min-height: ${height}px; padding: 0.75rem;`,
+						'data-placeholder': placeholder
+					}
+				}
+			});
+		} catch (error) {
+			console.error('Failed to initialize Tiptap editor:', error);
+			useFallback = true;
+			// Fallback to contenteditable if Tiptap fails
+			if (editorDiv && value) {
+				editorDiv.innerHTML = value;
+			}
 		}
 	});
 
-	// Update content when value prop changes externally
-	$: {
-		if (editorDiv && value !== undefined && !isUpdating) {
-			const currentContent = editorDiv.innerHTML;
-			if (value !== currentContent && value.trim() !== currentContent.trim()) {
-				editorDiv.innerHTML = value;
+	onDestroy(() => {
+		editor?.destroy();
+	});
+
+	// Update editor content when value prop changes externally
+	$: if (editor && value !== undefined && !isInternalUpdate) {
+		const currentContent = editor.getHTML();
+		if (value !== currentContent && value.trim() !== currentContent.trim()) {
+			isInternalUpdate = true;
+			editor.commands.setContent(value, { emitUpdate: false });
+			setTimeout(() => {
+				isInternalUpdate = false;
+			}, 10);
+		}
+	}
+
+	// Update direction when isRTL changes
+	$: if (editor && editorElement) {
+		editorElement.setAttribute('dir', isRTL ? 'rtl' : 'ltr');
+	}
+
+	function execCommand(command: string, value?: string) {
+		if (editor && !useFallback) {
+			switch (command) {
+				case 'bold':
+					editor.chain().focus().toggleBold().run();
+					break;
+				case 'italic':
+					editor.chain().focus().toggleItalic().run();
+					break;
+				case 'underline':
+					editor.chain().focus().toggleUnderline().run();
+					break;
+				case 'strikeThrough':
+					editor.chain().focus().toggleStrike().run();
+					break;
+				case 'insertUnorderedList':
+					editor.chain().focus().toggleBulletList().run();
+					break;
+				case 'insertOrderedList':
+					editor.chain().focus().toggleOrderedList().run();
+					break;
+				case 'justifyLeft':
+					editor.chain().focus().setTextAlign('left').run();
+					break;
+				case 'justifyCenter':
+					editor.chain().focus().setTextAlign('center').run();
+					break;
+				case 'justifyRight':
+					editor.chain().focus().setTextAlign('right').run();
+					break;
+				case 'formatBlock':
+					if (value === 'p') {
+						editor.chain().focus().setParagraph().run();
+					} else if (value?.startsWith('h')) {
+						const level = parseInt(value.substring(1)) as 1 | 2 | 3 | 4 | 5 | 6;
+						editor.chain().focus().toggleHeading({ level }).run();
+					}
+					break;
 			}
+		} else if (editorDiv && useFallback) {
+			// Fallback to document.execCommand
+			document.execCommand(command, false, value);
+			editorDiv?.focus();
+			handleInput();
 		}
 	}
 
 	function handleInput() {
-		if (editorDiv && !isUpdating) {
-			isUpdating = true;
+		if (editorDiv && !isInternalUpdate) {
+			isInternalUpdate = true;
 			onChange(editorDiv.innerHTML);
 			setTimeout(() => {
-				isUpdating = false;
+				isInternalUpdate = false;
 			}, 0);
 		}
 	}
 
-	function execCommand(command: string, value?: string) {
-		document.execCommand(command, false, value);
-		editorDiv?.focus();
-		handleInput();
-	}
-
 	function insertLink() {
-		const url = window.prompt('Enter URL:');
-		if (url) {
-			execCommand('createLink', url);
+		if (editor && !useFallback) {
+			const url = window.prompt('Enter URL:');
+			if (url) {
+				editor.chain().focus().setLink({ href: url }).run();
+			}
+		} else if (editorDiv && useFallback) {
+			const url = window.prompt('Enter URL:');
+			if (url) {
+				execCommand('createLink', url);
+			}
 		}
 	}
 
@@ -229,22 +353,27 @@
 	</div>
 
 	<!-- Editor -->
-	<div
-		bind:this={editorDiv}
-		contenteditable="true"
-		on:input={handleInput}
-		on:paste={handleInput}
-		class="prose prose-sm max-w-none focus:outline-none text-gray-900 bg-white overflow-y-auto {isRTL
-			? 'rtl text-right'
-			: 'ltr text-left'}"
-		style={editorStyle}
-		dir={isRTL ? 'rtl' : 'ltr'}
-		data-placeholder={placeholder}
-	></div>
+	{#if editor}
+		<div bind:this={editorElement} class="overflow-y-auto"></div>
+	{:else}
+		<!-- Fallback to contenteditable if Tiptap fails to initialize -->
+		<div
+			bind:this={editorDiv}
+			contenteditable="true"
+			on:input={handleInput}
+			on:paste={handleInput}
+			class="prose prose-sm max-w-none focus:outline-none text-gray-900 bg-white overflow-y-auto {isRTL
+				? 'rtl text-right'
+				: 'ltr text-left'}"
+			style={editorStyle}
+			dir={isRTL ? 'rtl' : 'ltr'}
+			data-placeholder={placeholder}
+		></div>
+	{/if}
 </div>
 
 <style>
-	div[contenteditable='true']:empty:before {
+	:global([data-placeholder]:empty:before) {
 		content: attr(data-placeholder);
 		color: #9ca3af;
 		pointer-events: none;

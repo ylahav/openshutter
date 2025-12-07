@@ -1,29 +1,41 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { connectToDatabase } from '$lib/mongodb';
-import { AlbumPhotoCountService } from '$lib/services/album-photo-count';
+import { backendGet, parseBackendResponse } from '$lib/utils/backend-api';
 
 export const GET: RequestHandler = async ({ params }) => {
 	try {
 		const { alias } = await params;
-		const { db } = await connectToDatabase();
 
 		if (!alias) {
 			return json({ success: false, error: 'Album alias is required' }, { status: 400 });
 		}
 
-		// Find album by alias
-		const album = await db.collection('albums').findOne({ alias });
-		if (!album) {
+		// First, get the album by alias to get its ID
+		const albumResponse = await backendGet(`/albums/by-alias/${alias}`);
+		if (!albumResponse.ok) {
 			return json({ success: false, error: 'Album not found' }, { status: 404 });
 		}
 
-		// Get total photo count including child albums
-		const photoCountResult = await AlbumPhotoCountService.getTotalPhotoCount(album._id);
+		const album = await parseBackendResponse<any>(albumResponse);
+		
+		// Get photo count from the album data endpoint
+		// Note: The backend doesn't have a dedicated photo-count endpoint,
+		// so we'll use the album data endpoint which includes photo information
+		const albumDataResponse = await backendGet(`/albums/${album._id}/data?limit=1`);
+		if (!albumDataResponse.ok) {
+			return json({ success: false, error: 'Failed to get album data' }, { status: 500 });
+		}
 
+		const albumData = await parseBackendResponse<any>(albumDataResponse);
+		
+		// Return photo count information
 		return json({
 			success: true,
-			data: photoCountResult
+			data: {
+				directPhotoCount: albumData.photos?.length || 0,
+				totalPhotoCount: albumData.pagination?.total || 0,
+				childAlbumCount: albumData.subAlbums?.length || 0
+			}
 		});
 	} catch (error) {
 		console.error('Error getting album photo count:', error);
