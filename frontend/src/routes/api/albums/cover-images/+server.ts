@@ -9,11 +9,21 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 		const result = await parseBackendResponse<Record<string, string>>(response);
 
 		// Backend returns Record<string, string> directly (albumId -> coverImageUrl)
-		// parseBackendResponse already extracts the data if it's wrapped
-		return json({
+		// parseBackendResponse extracts the data if it's wrapped, or returns it directly
+		const coverImagesData = result && typeof result === 'object' ? result : {};
+		
+		const wrappedResponse = {
 			success: true,
-			data: result
+			data: coverImagesData
+		};
+		
+		console.log('Cover images API route - returning:', {
+			hasData: Object.keys(coverImagesData).length > 0,
+			albumCount: Object.keys(coverImagesData).length,
+			responseStructure: 'wrapped'
 		});
+		
+		return json(wrappedResponse);
 	} catch (error) {
 		console.error('Error getting album cover images:', error);
 		const errorMessage = error instanceof Error ? error.message : String(error);

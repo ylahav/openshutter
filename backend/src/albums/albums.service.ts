@@ -322,17 +322,42 @@ export class AlbumsService {
         ...photo,
         _id: photo._id.toString(),
         albumId: photo.albumId ? photo.albumId.toString() : null,
+        // Preserve populated tag data (name) or return ID if not populated
         tags: photo.tags
-          ? photo.tags.map((tag: any) => (tag._id ? tag._id.toString() : tag.toString()))
+          ? photo.tags.map((tag: any) => {
+              if (tag && typeof tag === 'object' && tag._id) {
+                // Populated tag object
+                return {
+                  _id: tag._id.toString(),
+                  name: tag.name || {}
+                };
+              }
+              // Just an ID
+              return tag.toString();
+            })
           : [],
+        // Preserve populated people data (fullName, firstName) or return ID if not populated
         people: photo.people
-          ? photo.people.map((person: any) =>
-              person._id ? person._id.toString() : person.toString()
-            )
+          ? photo.people.map((person: any) => {
+              if (person && typeof person === 'object' && person._id) {
+                // Populated person object
+                return {
+                  _id: person._id.toString(),
+                  fullName: person.fullName || {},
+                  firstName: person.firstName || {}
+                };
+              }
+              // Just an ID
+              return person.toString();
+            })
           : [],
+        // Preserve populated location data (name) or return ID if not populated
         location: photo.location
-          ? photo.location._id
-            ? photo.location._id.toString()
+          ? photo.location._id || (typeof photo.location === 'object' && photo.location._id)
+            ? {
+                _id: (photo.location._id || photo.location).toString(),
+                name: photo.location.name || {}
+              }
             : photo.location.toString()
           : null,
       };

@@ -33,10 +33,14 @@
 			if (response.ok) {
 				const result = await response.json();
 				console.log('Cover images API response:', result);
+				
+				// Handle both wrapped {success, data} and direct Record<string, string> formats
 				if (result.success && result.data) {
-					// result.data is a Record<string, string> mapping albumId -> coverImageUrl
+					// Wrapped format: {success: true, data: Record<string, string>}
 					coverImages = result.data;
-					console.log('Cover images set:', coverImages);
+				} else if (result && typeof result === 'object' && !result.success) {
+					// Direct format: Record<string, string> (albumId -> coverImageUrl)
+					coverImages = result;
 				} else {
 					console.warn('Unexpected response structure:', result);
 				}

@@ -85,6 +85,7 @@
 		autoPlay?: boolean;
 		intervalMs?: number;
 		onClose?: () => void;
+		showExifData?: boolean; // Whether to show EXIF data (defaults to true if not specified)
 	}
 
 	let {
@@ -94,7 +95,8 @@
 		isOpen = true,
 		autoPlay = false,
 		intervalMs = 4000,
-		onClose
+		onClose,
+		showExifData = true // Default to showing EXIF data if not specified
 	}: Props = $props();
 
 	// Support both initialIndex and startIndex for backward compatibility
@@ -195,9 +197,9 @@
 		fetchFaceData();
 	});
 
-	// Draw faces on canvas
+	// Draw faces on canvas (only matched faces)
 	$effect(() => {
-		if (!showFaces || !faceData || !imageRef || !canvasRef) return;
+		if (!showFaces || matchedFaces.length === 0 || !imageRef || !canvasRef) return;
 
 		const img = imageRef;
 		const canvas = canvasRef;
@@ -219,13 +221,14 @@
 			const scaleX = displayedWidth / imgNaturalWidth;
 			const scaleY = displayedHeight / imgNaturalHeight;
 
-			faceData.faces.forEach((face) => {
+			// Only draw matched faces
+			matchedFaces.forEach((face) => {
 				const x = face.box.x * scaleX;
 				const y = face.box.y * scaleY;
 				const width = face.box.width * scaleX;
 				const height = face.box.height * scaleY;
 
-				ctx.strokeStyle = face.matchedPersonId ? '#10b981' : '#f59e0b';
+				ctx.strokeStyle = '#10b981'; // Green for matched faces
 				ctx.lineWidth = 2;
 				ctx.strokeRect(x, y, width, height);
 
@@ -378,12 +381,19 @@
 			? photo.title 
 			: photo?.title?.en || photo?.title?.he || ''
 	);
+	
+	// Only show faces that are matched to a person (have matchedPersonId or personName)
+	let matchedFaces = $derived(
+		faceData && faceData.faces && Array.isArray(faceData.faces)
+			? faceData.faces.filter((face: any) => face.matchedPersonId || face.personName)
+			: []
+	);
 </script>
 
 {#if isOpen}
 	<div
 		bind:this={containerRef}
-		class="fixed inset-0 z-[1000] bg-black/95 text-white flex flex-col"
+		class="fixed inset-0 z-1000 bg-black/95 text-white flex flex-col"
 		role="dialog"
 		aria-modal="true"
 	>
@@ -391,12 +401,12 @@
 		<div class="flex items-center justify-between px-4 py-2 text-sm">
 			<div class="opacity-80">{current + 1} / {photos.length}</div>
 			<div class="flex items-center gap-2">
-				{#if faceData && faceData.faces.length > 0}
+				{#if matchedFaces.length > 0}
 					<button
 						onclick={() => (showFaces = !showFaces)}
 						class="px-2 py-1 rounded hover:bg-white/10"
 						aria-label="Toggle Face Detection"
-						title="{showFaces ? 'Hide' : 'Show'} detected faces"
+						title="{showFaces ? 'Hide' : 'Show'} detected people"
 					>
 						{showFaces ? '👤' : '👥'}
 					</button>
@@ -449,27 +459,29 @@
 			>
 				‹
 			</button>
-			<div class="max-h-[85vh] max-w-[92vw] relative">
-				<img
-					bind:this={imageRef}
-					src={photoUrl}
-					alt={photoTitle}
-					class="object-contain max-h-[85vh] max-w-[92vw]"
-					draggable="false"
-					onload={handleImageLoad}
-				/>
-				{#if showFaces && faceData && faceData.faces.length > 0}
-					<canvas
-						bind:this={canvasRef}
-						class="absolute top-0 left-0 pointer-events-none"
-						style="max-width: 100%; max-height: 100%;"
+			<div class="max-h-[85vh] max-w-[92vw] relative flex items-center">
+				<div class="relative flex-shrink-0">
+					<img
+						bind:this={imageRef}
+						src={photoUrl}
+						alt={photoTitle}
+						class="object-contain max-h-[85vh] max-w-[92vw]"
+						draggable="false"
+						onload={handleImageLoad}
 					/>
-				{/if}
+					{#if showFaces && matchedFaces.length > 0}
+						<canvas
+							bind:this={canvasRef}
+							class="absolute top-0 left-0 pointer-events-none"
+							style="max-width: 100%; max-height: 100%;"
+						/>
+					{/if}
+				</div>
 
 				<!-- Info Overlay -->
 				{#if showInfo}
 					<div
-						class="absolute top-0 right-0 bg-black/90 text-white p-4 rounded-l-lg max-w-[400px] max-h-[85vh] overflow-y-auto z-10"
+						class="ml-4 bg-black/90 text-white p-4 rounded-lg max-w-[400px] max-h-[85vh] overflow-y-auto z-10 flex-shrink-0"
 					>
 						<div class="space-y-3">
 							<!-- Photo Title -->
@@ -496,7 +508,7 @@
 							{/if}
 
 							<!-- EXIF Data -->
-							{#if photo.exif}
+							{#if showExifData && photo.exif}
 								<div class="space-y-3 border-t border-white/20 pt-2">
 									<div class="text-sm font-semibold opacity-80">EXIF Data</div>
 
@@ -635,17 +647,19 @@
 								</div>
 							{/if}
 
-							<!-- Face Recognition -->
-							{#if faceData && faceData.faces.length > 0}
+							<!-- Face Recognition (only show matched people) -->
+							{#if matchedFaces.length > 0}
 								<div class="space-y-1 border-t border-white/20 pt-2">
 									<div class="text-xs font-medium opacity-70">Detected People</div>
 									<div class="space-y-1">
-										{#each faceData.faces as face, idx}
+										{#each matchedFaces as face, idx}
 											<div class="text-sm">
 												{#if face.personName}
 													<span class="text-green-400">✓ {face.personName}</span>
+												{:else if face.matchedPersonId}
+													<span class="text-green-400">✓ Person (ID: {face.matchedPersonId})</span>
 												{:else}
-													<span class="opacity-60">Face {idx + 1} (unidentified)</span>
+													<span class="opacity-60">Matched Person {idx + 1}</span>
 												{/if}
 												{#if face.confidence && face.confidence < 1.0}
 													<span class="opacity-60 ml-2">

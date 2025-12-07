@@ -19,6 +19,7 @@
 			photoCount?: number;
 			coverPhotoId?: string;
 			parentAlbumId?: string;
+			showExifData?: boolean;
 		};
 		subAlbums: Array<{
 			_id: string;
@@ -42,6 +43,22 @@
 				thumbnails?: Record<string, string>;
 			};
 			exif?: any;
+			metadata?: {
+				width?: number;
+				height?: number;
+				fileSize?: number;
+				format?: string;
+			};
+			dimensions?: {
+				width?: number;
+				height?: number;
+			};
+			size?: number;
+			mimeType?: string;
+			faceRecognition?: any;
+			tags?: Array<string | { _id: string; name: any }>;
+			people?: Array<string | { _id: string; fullName?: any; firstName?: any }>;
+			location?: string | { _id: string; name: any };
 		}>;
 		pagination: {
 			page: number;
@@ -59,14 +76,15 @@
 	let lightboxIndex = 0;
 	let loadingMore = false;
 	let subAlbumCoverPhotos: Record<string, any> = {};
+	let subAlbumCoverImages: Record<string, string> = {};
 	let isInitialLoad = true;
 
 	// React to route parameter changes using afterNavigate (recommended for SvelteKit)
 	afterNavigate(({ to, from }) => {
 		if (!browser) return;
 		
-		const newAlias = to?.params.alias || to?.params.id;
-		const oldAlias = from?.params.alias || from?.params.id;
+		const newAlias = to?.params?.alias || to?.params?.id;
+		const oldAlias = from?.params?.alias || from?.params?.id;
 		
 		// Only fetch if the alias actually changed (not on initial load)
 		if (newAlias && newAlias !== oldAlias) {
@@ -164,6 +182,33 @@
 		}
 	}
 
+	async function fetchSubAlbumCoverImages(albumIds: string[]) {
+		if (albumIds.length === 0) return;
+
+		try {
+			const response = await fetch('/api/albums/cover-images', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({ albumIds }),
+			});
+
+			if (response.ok) {
+				const result = await response.json();
+				
+				// Handle both wrapped {success, data} and direct Record<string, string> formats
+				if (result.success && result.data) {
+					subAlbumCoverImages = result.data;
+				} else if (result && typeof result === 'object' && !result.success) {
+					subAlbumCoverImages = result;
+				}
+			}
+		} catch (error) {
+			console.error('Failed to fetch sub-album cover images:', error);
+		}
+	}
+
 	async function loadMorePhotos() {
 		if (!albumData || !albumData.pagination || loadingMore || !albumData.album) return;
 		const albumId = albumData.album._id;
@@ -212,13 +257,9 @@
 			albumData = await response.json();
 			console.log('Album data loaded:', albumData);
 
-			// Fetch cover photos for sub-albums
-			if (albumData && albumData.subAlbums) {
-				albumData.subAlbums.forEach((subAlbum) => {
-					if (subAlbum.coverPhotoId) {
-						fetchSubAlbumCoverPhoto(subAlbum._id, subAlbum.coverPhotoId);
-					}
-				});
+			// Fetch cover images for sub-albums using the batch API (hierarchical logic)
+			if (albumData && albumData.subAlbums && albumData.subAlbums.length > 0) {
+				fetchSubAlbumCoverImages(albumData.subAlbums.map((a: any) => a._id));
 			}
 		} catch (err) {
 			console.error('Failed to fetch album data:', err);
@@ -293,21 +334,18 @@
 				{#if albumData.subAlbums && albumData.subAlbums.length > 0}
 					<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
 						{#each albumData.subAlbums as subAlbum}
+							{@const coverImageUrl = subAlbumCoverImages[subAlbum._id]}
+							{@const isLogo = coverImageUrl && (coverImageUrl.includes('/logos/') || coverImageUrl.includes('logo') || (coverImageUrl.includes('/api/storage/serve/') && coverImageUrl.includes('logo')))}
 							<a href={`/albums/${subAlbum.alias}`} class="group">
 								<div class="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden">
 									<div class="aspect-4/3 bg-gray-100 flex items-center justify-center overflow-hidden">
-										{#if subAlbum.coverPhotoId && subAlbumCoverPhotos[subAlbum._id]}
+										{#if coverImageUrl}
 											<img
-												src={getPhotoUrl(subAlbumCoverPhotos[subAlbum._id])}
+												src={coverImageUrl}
 												alt=""
-												class="w-full h-full object-cover group-hover:scale-105 transition-transform"
-											/>
-										{:else if browser && $siteConfigData?.logo}
-											<!-- TODO: Replace with getLeadingPhoto API call when backend endpoint is ready -->
-											<img
-												src={$siteConfigData.logo}
-												alt=""
-												class="w-full h-full object-contain p-8 opacity-60 group-hover:opacity-80 transition-opacity"
+												class="w-full h-full {isLogo
+													? 'object-contain p-8 opacity-60 group-hover:opacity-80 transition-opacity'
+													: 'object-cover group-hover:scale-105 transition-transform'}"
 											/>
 										{:else}
 											<div class="text-4xl text-gray-400">📁</div>
@@ -336,22 +374,74 @@
 									lightboxIndex = i;
 									lightboxOpen = true;
 								}}
-								class="group bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden text-left"
+								class="group bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden text-left flex flex-col"
 							>
-								<div class="aspect-4/3 bg-gray-100 overflow-hidden">
+								<div class="aspect-4/3 bg-gray-100 overflow-hidden flex-shrink-0">
 									<img
 										src={getPhotoUrl(photo)}
 										alt=""
 										class="w-full h-full object-cover group-hover:scale-105 transition-transform"
 									/>
 								</div>
-								{#if photo.title}
-									<div class="p-3">
-										<h3 class="text-sm font-medium text-gray-900">
+								<div class="p-3 flex-1 flex flex-col">
+									{#if photo.title}
+										<h3 class="text-sm font-medium text-gray-900 mb-2">
 											<MultiLangText value={photo.title} fallback={`Photo ${i + 1}`} />
 										</h3>
-									</div>
-								{/if}
+									{/if}
+									
+									<!-- Tags -->
+									{#if photo.tags && Array.isArray(photo.tags) && photo.tags.length > 0}
+										<div class="mb-2">
+											<div class="flex flex-wrap gap-1">
+												{#each photo.tags as tag}
+													{@const tagName = typeof tag === 'object' && tag.name ? (typeof tag.name === 'string' ? tag.name : tag.name[$currentLanguage] || tag.name.en || tag.name.he || '') : (typeof tag === 'string' ? tag : '')}
+													{#if tagName}
+														<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+															#{tagName}
+														</span>
+													{/if}
+												{/each}
+											</div>
+										</div>
+									{/if}
+									
+									<!-- People -->
+									{#if photo.people && Array.isArray(photo.people) && photo.people.length > 0}
+										<div class="mb-2">
+											<div class="flex flex-wrap gap-1 items-center">
+												{#each photo.people as person}
+													{@const personName = typeof person === 'object' && person.fullName ? (typeof person.fullName === 'string' ? person.fullName : person.fullName[$currentLanguage] || person.fullName.en || person.fullName.he || '') : (typeof person === 'object' && person.firstName ? (typeof person.firstName === 'string' ? person.firstName : person.firstName[$currentLanguage] || person.firstName.en || person.firstName.he || '') : (typeof person === 'string' ? person : ''))}
+													{#if personName}
+														<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+															{personName}
+														</span>
+													{/if}
+												{/each}
+											</div>
+										</div>
+									{/if}
+									
+									<!-- Location -->
+									{#if photo.location}
+										{@const locationName = typeof photo.location === 'object' && photo.location.name ? (typeof photo.location.name === 'string' ? photo.location.name : photo.location.name[$currentLanguage] || photo.location.name.en || photo.location.name.he || '') : (typeof photo.location === 'string' ? photo.location : '')}
+										{#if locationName}
+											<div class="mb-2">
+												<div class="flex items-center gap-1 text-xs text-gray-600">
+													<span>📍</span>
+													<span>{locationName}</span>
+												</div>
+											</div>
+										{/if}
+									{/if}
+									
+									<!-- Description -->
+									{#if photo.description}
+										<div class="mt-auto text-xs text-gray-600 line-clamp-2">
+											<MultiLangText value={photo.description} fallback="" />
+										</div>
+									{/if}
+								</div>
 							</button>
 						{/each}
 					</div>
@@ -384,12 +474,22 @@
 				thumbnailUrl: getPhotoUrl(p),
 				title: typeof p.title === 'string' ? p.title : p.title?.[$currentLanguage] || p.title?.en || '',
 				takenAt: p.exif?.dateTimeOriginal,
+				exif: p.exif, // Include full EXIF data
+				metadata: p.metadata || (p.storage ? {
+					width: p.dimensions?.width,
+					height: p.dimensions?.height,
+					fileSize: p.size,
+					format: p.mimeType?.split('/')[1]?.toUpperCase()
+				} : undefined),
+				storage: p.storage,
+				faceRecognition: p.faceRecognition
 			}))}
 			startIndex={lightboxIndex}
 			isOpen={lightboxOpen}
 			onClose={() => (lightboxOpen = false)}
 			autoPlay={false}
 			intervalMs={4000}
+			showExifData={albumData.album.showExifData !== false}
 		/>
 	{/if}
 {/if}
