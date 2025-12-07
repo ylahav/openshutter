@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
-	import { goto } from '$app/navigation';
+	import { goto, afterNavigate } from '$app/navigation';
 	import { browser } from '$app/environment';
 	import { currentLanguage } from '$stores/language';
 	import { siteConfigData } from '$stores/siteConfig';
@@ -51,7 +51,7 @@
 		};
 	}
 
-	const alias = $page.params.alias || $page.params.id;
+	let alias = $page.params.alias || $page.params.id;
 	let albumData: AlbumData | null = null;
 	let loading = true;
 	let error: string | null = null;
@@ -59,6 +59,26 @@
 	let lightboxIndex = 0;
 	let loadingMore = false;
 	let subAlbumCoverPhotos: Record<string, any> = {};
+	let isInitialLoad = true;
+
+	// React to route parameter changes using afterNavigate (recommended for SvelteKit)
+	afterNavigate(({ to, from }) => {
+		if (!browser) return;
+		
+		const newAlias = to?.params.alias || to?.params.id;
+		const oldAlias = from?.params.alias || from?.params.id;
+		
+		// Only fetch if the alias actually changed (not on initial load)
+		if (newAlias && newAlias !== oldAlias) {
+			alias = newAlias;
+			fetchAlbumData();
+		} else if (isInitialLoad && newAlias) {
+			// Handle initial load
+			alias = newAlias;
+			fetchAlbumData();
+			isInitialLoad = false;
+		}
+	});
 
 	function getPhotoUrl(photo: any): string {
 		if (!photo.storage) {
@@ -178,6 +198,8 @@
 		try {
 			loading = true;
 			error = null;
+			// Clear previous sub-album cover photos when loading new album
+			subAlbumCoverPhotos = {};
 
 			const response = await fetch(`/api/albums/${encodeURIComponent(alias)}/data?page=1&limit=50&t=${Date.now()}`, {
 				cache: 'no-store',
@@ -206,9 +228,12 @@
 		}
 	}
 
+	// Initial load is handled by afterNavigate
+	// But we also need onMount as a fallback for cases where afterNavigate doesn't fire
 	onMount(() => {
-		if (browser) {
+		if (browser && alias && isInitialLoad) {
 			fetchAlbumData();
+			isInitialLoad = false;
 		}
 	});
 </script>

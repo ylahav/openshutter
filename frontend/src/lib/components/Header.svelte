@@ -55,7 +55,6 @@
 					<a href="/" class="text-xl font-bold text-gray-900 hover:text-primary-600 transition-colors">
 						{$title}
 					</a>
-					<span class="text-xs text-gray-500">SvelteKit migration preview · {year}</span>
 				</div>
 			</div>
 

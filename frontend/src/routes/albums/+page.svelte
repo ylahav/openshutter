@@ -43,7 +43,7 @@
 			}
 			const data = await response.json();
 			if (Array.isArray(data)) {
-				albums = data.sort((a: Album, b: Album) => (a.order || 0) - (b.order || 0));
+				albums = data.sort((a: Album, b: Album) => ((a as any).order || 0) - ((b as any).order || 0));
 				// Fetch cover images for albums
 				await fetchCoverImages();
 			} else {
@@ -60,9 +60,8 @@
 	}
 
 	async function fetchCoverImages() {
-		// Fetch cover images for albums that have coverPhotoId
-		const albumsWithCover = albums.filter((album) => album.coverPhotoId);
-		if (albumsWithCover.length === 0) return;
+		// Fetch cover images for ALL albums (not just those with coverPhotoId)
+		if (albums.length === 0) return;
 
 		try {
 			// Fetch cover images from the cover-images API
@@ -72,15 +71,21 @@
 					'Content-Type': 'application/json',
 				},
 				body: JSON.stringify({
-					albumIds: albumsWithCover.map((a) => a._id),
+					albumIds: albums.map((a) => a._id),
 				}),
 			});
 
 			if (response.ok) {
 				const result = await response.json();
+				console.log('Cover images API response:', result);
 				if (result.success && result.data) {
 					coverImages = result.data;
+					console.log('Cover images set:', coverImages);
+				} else {
+					console.warn('Unexpected response structure:', result);
 				}
+			} else {
+				console.error('Failed to fetch cover images, status:', response.status);
 			}
 		} catch (err) {
 			console.error('Failed to fetch cover images:', err);
@@ -147,18 +152,22 @@
 
 			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
 				{#each albums as album}
+					{@const coverImageUrl = coverImages[album._id]}
+					{@const isLogo = coverImageUrl && (coverImageUrl.includes('/logos/') || coverImageUrl.includes('logo') || coverImageUrl.includes('/api/storage/serve/') && coverImageUrl.includes('logo'))}
 					<div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 group">
 						<!-- Cover Image -->
-						<div class="aspect-[16/9] bg-gray-200 overflow-hidden">
-							{#if coverImages[album._id]}
+						<div class="aspect-video bg-gray-200 overflow-hidden">
+							{#if coverImageUrl}
 								<img
-									src={coverImages[album._id]}
+									src={coverImageUrl}
 									alt={getAlbumName(album)}
-									class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+									class="w-full h-full transition-transform duration-300 group-hover:scale-105 {isLogo
+										? 'object-contain p-4 bg-white'
+										: 'object-cover'}"
 								/>
 							{:else}
 								<div
-									class="w-full h-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center group-hover:scale-105 transition-transform duration-300"
+									class="w-full h-full bg-linear-to-br from-blue-100 to-blue-200 flex items-center justify-center group-hover:scale-105 transition-transform duration-300"
 								>
 									<svg class="w-16 h-16 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 										<path
@@ -211,5 +220,3 @@
 		</div>
 	</section>
 {/if}
-
-

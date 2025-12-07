@@ -8,20 +8,17 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AlbumLeadingPhotoService = void 0;
 const Album_1 = require("../models/Album");
 const Photo_1 = require("../models/Photo");
-const mongoose_1 = __importDefault(require("mongoose"));
+const site_config_1 = require("./site-config");
 class AlbumLeadingPhotoService {
     /**
      * Get the leading photo for an album using hierarchical selection:
-     * 1. If album has a 'album leading photo' set, use it
-     * 2. If not - use a random one from the album
-     * 3. If album has no photos (only child albums) - choose the first found leading photo from child albums
+     * 1. Find album's photo with isLeading === true and show it
+     * 2. If not found - go to all sub-albums (if exist) and try for each of them to find a leading photo... the first who found - show it
+     * 3. If not found - show site logo (handled by getAlbumCoverImageUrl)
      */
     static getAlbumLeadingPhoto(albumId) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -31,36 +28,20 @@ class AlbumLeadingPhotoService {
                 if (!album) {
                     return { photo: null, source: 'none', albumId };
                 }
-                // Step 1: Check if album has a specific leading photo set
-                if (album.coverPhotoId) {
-                    const leadingPhoto = yield Photo_1.PhotoModel.findOne({
-                        _id: album.coverPhotoId,
-                        isPublished: true
-                    });
-                    if (leadingPhoto) {
-                        return {
-                            photo: leadingPhoto,
-                            source: 'album-leading',
-                            albumId
-                        };
-                    }
-                }
-                // Step 2: Get a random photo from the album
-                const albumPhotos = yield Photo_1.PhotoModel.find({
+                // Step 1: Find album's photo with isLeading === true
+                const leadingPhoto = yield Photo_1.PhotoModel.findOne({
                     albumId: albumId,
+                    isLeading: true,
                     isPublished: true
                 });
-                if (albumPhotos.length > 0) {
-                    // Get a random photo from the album
-                    const randomIndex = Math.floor(Math.random() * albumPhotos.length);
-                    const randomPhoto = albumPhotos[randomIndex];
+                if (leadingPhoto) {
                     return {
-                        photo: randomPhoto,
-                        source: 'random',
+                        photo: leadingPhoto,
+                        source: 'is-leading',
                         albumId
                     };
                 }
-                // Step 3: Album has no photos, look for leading photos in child albums
+                // Step 2: If not found, go to all sub-albums and try to find a leading photo
                 const childAlbums = yield Album_1.AlbumModel.find({
                     parentAlbumId: albumId,
                     isPublic: true
@@ -68,36 +49,22 @@ class AlbumLeadingPhotoService {
                 if (childAlbums.length > 0) {
                     // Look for leading photos in child albums
                     for (const childAlbum of childAlbums) {
-                        // First check if child album has a specific leading photo
-                        if (childAlbum.coverPhotoId) {
-                            const childLeadingPhoto = yield Photo_1.PhotoModel.findOne({
-                                _id: childAlbum.coverPhotoId,
-                                isPublished: true
-                            });
-                            if (childLeadingPhoto) {
-                                return {
-                                    photo: childLeadingPhoto,
-                                    source: 'child-leading',
-                                    albumId: childAlbum._id.toString()
-                                };
-                            }
-                        }
-                        // If no specific leading photo, get any photo from child album
-                        const childPhotos = yield Photo_1.PhotoModel.find({
+                        // Find photos with isLeading === true in child album
+                        const childLeadingPhoto = yield Photo_1.PhotoModel.findOne({
                             albumId: childAlbum._id,
+                            isLeading: true,
                             isPublished: true
-                        })
-                            .limit(1);
-                        if (childPhotos.length > 0) {
+                        });
+                        if (childLeadingPhoto) {
                             return {
-                                photo: childPhotos[0],
+                                photo: childLeadingPhoto,
                                 source: 'child-leading',
                                 albumId: childAlbum._id.toString()
                             };
                         }
                     }
                 }
-                // No photos found anywhere
+                // No leading photos found anywhere
                 return { photo: null, source: 'none', albumId };
             }
             catch (error) {
@@ -123,6 +90,7 @@ class AlbumLeadingPhotoService {
     }
     /**
      * Get the cover image URL for an album (for use in templates)
+     * Returns the leading photo URL, or site logo if no leading photo found
      */
     static getAlbumCoverImageUrl(albumId) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -131,9 +99,9 @@ class AlbumLeadingPhotoService {
             if (result.photo && ((_a = result.photo.storage) === null || _a === void 0 ? void 0 : _a.url)) {
                 return result.photo.storage.url;
             }
-            // Fallback to site logo
+            // Step 3: Fallback to site logo
             try {
-                const siteConfig = yield mongoose_1.default.connection.collection('site-configs').findOne({});
+                const siteConfig = yield site_config_1.siteConfigService.getConfig();
                 if (siteConfig && siteConfig.logo) {
                     return siteConfig.logo;
                 }
@@ -164,7 +132,7 @@ class AlbumLeadingPhotoService {
                     // Fetch site logo only once
                     if (!hasFetchedLogo) {
                         try {
-                            const siteConfig = yield mongoose_1.default.connection.collection('site-configs').findOne({});
+                            const siteConfig = yield site_config_1.siteConfigService.getConfig();
                             siteLogo = (siteConfig === null || siteConfig === void 0 ? void 0 : siteConfig.logo) || null;
                             hasFetchedLogo = true;
                         }

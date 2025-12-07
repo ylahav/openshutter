@@ -20,7 +20,21 @@ export class StorageController {
   ) {
     try {
       const storageManager = StorageManager.getInstance();
-      const decodedPath = decodeURIComponent(filePath);
+      
+      // Decode the path - handle both single and double encoding
+      let decodedPath = filePath;
+      try {
+        decodedPath = decodeURIComponent(filePath);
+        // If decoding resulted in still having % encoded chars, decode again
+        if (decodedPath.includes('%')) {
+          decodedPath = decodeURIComponent(decodedPath);
+        }
+      } catch (e) {
+        // If decoding fails, use original path
+        console.warn('Failed to decode path, using original:', filePath);
+      }
+      
+      console.log(`Serving file - provider: ${provider}, original path: ${filePath}, decoded path: ${decodedPath}`);
       
       // For local storage, serve files directly
       if (provider === 'local') {
@@ -31,6 +45,8 @@ export class StorageController {
         const fullPath = isAbsolute(basePath)
           ? join(basePath, decodedPath)
           : join(process.cwd(), basePath, decodedPath);
+        
+        console.log(`Full file path: ${fullPath}`);
         
         try {
           const fileBuffer = await readFile(fullPath);
@@ -53,6 +69,14 @@ export class StorageController {
           res.send(fileBuffer);
         } catch (error) {
           console.error(`Failed to serve file ${fullPath}:`, error);
+          console.error(`Error details:`, {
+            originalPath: filePath,
+            decodedPath: decodedPath,
+            fullPath: fullPath,
+            basePath: basePath,
+            error: error instanceof Error ? error.message : String(error),
+            stack: error instanceof Error ? error.stack : undefined
+          });
           throw new NotFoundException(`File not found: ${decodedPath}`);
         }
       } else if (['wasabi', 'aws-s3', 'backblaze'].includes(provider)) {

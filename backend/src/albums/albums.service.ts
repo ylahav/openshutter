@@ -5,6 +5,7 @@ import { InjectConnection } from '@nestjs/mongoose';
 import { Connection } from 'mongoose';
 import { IAlbum } from '../models/Album';
 import { IPhoto } from '../models/Photo';
+import { AlbumLeadingPhotoService } from '../services/album-leading-photo';
 
 @Injectable()
 export class AlbumsService {
@@ -533,5 +534,36 @@ export class AlbumsService {
       photos: photosData.photos,
       pagination: photosData.pagination,
     };
+  }
+
+  /**
+   * Get album cover image
+   * Returns the leading photo URL or site logo
+   */
+  async getAlbumCoverImage(albumId: string) {
+    const result = await AlbumLeadingPhotoService.getAlbumLeadingPhoto(albumId);
+    const coverImageUrl = await AlbumLeadingPhotoService.getAlbumCoverImageUrl(albumId);
+    
+    return {
+      url: coverImageUrl,
+      source: result.source,
+      albumId: result.albumId,
+      photoId: result.photo?._id?.toString() || null
+    };
+  }
+
+  /**
+   * Get cover images for multiple albums
+   * Returns a map of albumId -> cover image URL
+   */
+  async getMultipleAlbumCoverImages(albumIds: string[]): Promise<Record<string, string>> {
+    const coverImageUrls = await AlbumLeadingPhotoService.getMultipleAlbumCoverImageUrls(albumIds);
+    const result: Record<string, string> = {};
+    
+    for (const [albumId, url] of coverImageUrls) {
+      result[albumId] = url;
+    }
+    
+    return result;
   }
 }

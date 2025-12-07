@@ -27,6 +27,7 @@ const mongoose_1 = require("@nestjs/mongoose");
 const mongoose_2 = require("mongoose");
 const mongoose_3 = require("@nestjs/mongoose");
 const mongoose_4 = require("mongoose");
+const album_leading_photo_1 = require("../services/album-leading-photo");
 let AlbumsService = class AlbumsService {
     constructor(albumModel, photoModel, connection) {
         this.albumModel = albumModel;
@@ -472,6 +473,37 @@ let AlbumsService = class AlbumsService {
                 photos: photosData.photos,
                 pagination: photosData.pagination,
             };
+        });
+    }
+    /**
+     * Get album cover image
+     * Returns the leading photo URL or site logo
+     */
+    getAlbumCoverImage(albumId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a, _b;
+            const result = yield album_leading_photo_1.AlbumLeadingPhotoService.getAlbumLeadingPhoto(albumId);
+            const coverImageUrl = yield album_leading_photo_1.AlbumLeadingPhotoService.getAlbumCoverImageUrl(albumId);
+            return {
+                url: coverImageUrl,
+                source: result.source,
+                albumId: result.albumId,
+                photoId: ((_b = (_a = result.photo) === null || _a === void 0 ? void 0 : _a._id) === null || _b === void 0 ? void 0 : _b.toString()) || null
+            };
+        });
+    }
+    /**
+     * Get cover images for multiple albums
+     * Returns a map of albumId -> cover image URL
+     */
+    getMultipleAlbumCoverImages(albumIds) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const coverImageUrls = yield album_leading_photo_1.AlbumLeadingPhotoService.getMultipleAlbumCoverImageUrls(albumIds);
+            const result = {};
+            for (const [albumId, url] of coverImageUrls) {
+                result[albumId] = url;
+            }
+            return result;
         });
     }
 };

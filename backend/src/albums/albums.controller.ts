@@ -1,8 +1,10 @@
 import {
   Controller,
   Get,
+  Post,
   Param,
   Query,
+  Body,
 } from '@nestjs/common';
 import { AlbumsService } from './albums.service';
 
@@ -32,6 +34,16 @@ export class AlbumsController {
     const pageNum = page ? parseInt(page, 10) || 1 : 1;
     const limitNum = limit ? parseInt(limit, 10) || 50 : 50;
     return this.albumsService.findPhotosByAlbumId(id, pageNum, limitNum);
+  }
+
+  @Post('cover-images')
+  async getCoverImages(@Body() body: { albumIds: string[] }) {
+    return this.albumsService.getMultipleAlbumCoverImages(body.albumIds || []);
+  }
+
+  @Get(':id/cover-image')
+  async getCoverImage(@Param('id') id: string) {
+    return this.albumsService.getAlbumCoverImage(id);
   }
 
   @Get(':idOrAlias/data')

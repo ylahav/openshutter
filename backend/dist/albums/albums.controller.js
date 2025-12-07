@@ -45,6 +45,16 @@ let AlbumsController = class AlbumsController {
             return this.albumsService.findPhotosByAlbumId(id, pageNum, limitNum);
         });
     }
+    getCoverImages(body) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return this.albumsService.getMultipleAlbumCoverImages(body.albumIds || []);
+        });
+    }
+    getCoverImage(id) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return this.albumsService.getAlbumCoverImage(id);
+        });
+    }
     getAlbumData(idOrAlias, page, limit) {
         return __awaiter(this, void 0, void 0, function* () {
             const pageNum = page ? parseInt(page, 10) || 1 : 1;
@@ -83,6 +93,20 @@ __decorate([
     __metadata("design:paramtypes", [String, String, String]),
     __metadata("design:returntype", Promise)
 ], AlbumsController.prototype, "findPhotos", null);
+__decorate([
+    (0, common_1.Post)('cover-images'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], AlbumsController.prototype, "getCoverImages", null);
+__decorate([
+    (0, common_1.Get)(':id/cover-image'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], AlbumsController.prototype, "getCoverImage", null);
 __decorate([
     (0, common_1.Get)(':idOrAlias/data'),
     __param(0, (0, common_1.Param)('idOrAlias')),
