@@ -460,7 +460,7 @@
 				‹
 			</button>
 			<div class="max-h-[85vh] max-w-[92vw] relative flex items-center">
-				<div class="relative flex-shrink-0">
+				<div class="relative shrink-0">
 					<img
 						bind:this={imageRef}
 						src={photoUrl}
@@ -481,7 +481,7 @@
 				<!-- Info Overlay -->
 				{#if showInfo}
 					<div
-						class="ml-4 bg-black/90 text-white p-4 rounded-lg max-w-[400px] max-h-[85vh] overflow-y-auto z-10 flex-shrink-0"
+						class="ml-4 bg-black/90 text-white p-4 rounded-lg max-w-[400px] max-h-[85vh] overflow-y-auto z-10 shrink-0"
 					>
 						<div class="space-y-3">
 							<!-- Photo Title -->

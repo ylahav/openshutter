@@ -376,7 +376,7 @@
 								}}
 								class="group bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden text-left flex flex-col"
 							>
-								<div class="aspect-4/3 bg-gray-100 overflow-hidden flex-shrink-0">
+								<div class="aspect-4/3 bg-gray-100 overflow-hidden shrink-0">
 									<img
 										src={getPhotoUrl(photo)}
 										alt=""
