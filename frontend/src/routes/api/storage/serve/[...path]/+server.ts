@@ -1,18 +1,21 @@
 import type { RequestHandler } from './$types';
-import { storageManager } from '$lib/services/storage/manager';
-import { CacheManager } from '$lib/services/cache-manager';
+import { env } from '$env/dynamic/private';
+
+// Backend API base URL
+const BACKEND_URL = env.BACKEND_URL || process.env.BACKEND_URL || 'http://localhost:5000';
 
 export const GET: RequestHandler = async ({ params, request }) => {
 	try {
-		const { path: pathSegments } = await params;
-		const filePath = pathSegments.join('/');
-		const decodedPath = decodeURIComponent(filePath);
+		const { path: pathSegments } = params;
+		// Ensure pathSegments is an array
+		const pathArray = Array.isArray(pathSegments) ? pathSegments : (typeof pathSegments === 'string' ? [pathSegments] : []);
+		const filePath = pathArray.join('/');
 
 		// Extract provider and file path from the URL
 		// Expected format: /api/storage/serve/{provider}/{filepath}
-		const pathParts = decodedPath.split('/').filter(Boolean); // Remove empty parts
+		const pathParts = filePath.split('/').filter(Boolean); // Remove empty parts
 		if (pathParts.length < 2) {
-			console.error('Storage API: Invalid path format', { decodedPath, pathParts });
+			console.error('Storage API: Invalid path format', { filePath, pathParts });
 			return new Response(
 				JSON.stringify({ error: 'Invalid path format. Expected: /api/storage/serve/{provider}/{filepath}' }),
 				{
@@ -22,68 +25,56 @@ export const GET: RequestHandler = async ({ params, request }) => {
 			);
 		}
 
-		const provider = pathParts[0] as 'local' | 'google-drive' | 'aws-s3' | 'backblaze' | 'wasabi';
+		const provider = pathParts[0];
 		const filePathParts = pathParts.slice(1);
 		const fullFilePath = filePathParts.join('/');
 
-		// Get file info from storage manager
-		const fileInfo = await storageManager.getPhotoInfo(fullFilePath, provider);
-		if (!fileInfo) {
-			console.error('Storage API: File not found', { fullFilePath, provider, decodedPath });
+		// Encode the file path for the backend URL
+		const encodedFilePath = encodeURIComponent(fullFilePath);
+		
+		// Proxy the request to the backend
+		const backendUrl = `${BACKEND_URL}/api/storage/serve/${provider}/${encodedFilePath}`;
+		
+		const backendResponse = await fetch(backendUrl, {
+			method: 'GET',
+			headers: {
+				// Forward any relevant headers from the original request
+				'Accept': request.headers.get('Accept') || '*/*',
+			}
+		});
+
+		if (!backendResponse.ok) {
+			console.error(`Backend storage API error: ${backendResponse.status} ${backendResponse.statusText}`);
 			return new Response(
-				JSON.stringify({ error: 'File not found', path: fullFilePath, provider }),
+				JSON.stringify({ error: `Failed to serve file: ${backendResponse.statusText}` }),
 				{
-					status: 404,
+					status: backendResponse.status,
 					headers: { 'Content-Type': 'application/json' }
 				}
 			);
 		}
 
-		console.log(`Storage API: Getting file buffer for provider: ${provider}, path: ${fullFilePath}`);
+		// Get the file buffer from the backend response
+		const fileBuffer = await backendResponse.arrayBuffer();
 
-		// Read file buffer from storage
-		const fileBuffer = await storageManager.getPhotoBuffer(provider, fullFilePath);
-		if (!fileBuffer) {
-			console.error(`Storage API: Failed to get file buffer for provider: ${provider}, path: ${fullFilePath}`);
-			return new Response(JSON.stringify({ error: 'Failed to read file' }), {
-				status: 500,
-				headers: { 'Content-Type': 'application/json' }
-			});
+		// Get content type from backend response or determine from extension
+		let contentType = backendResponse.headers.get('Content-Type') || 'application/octet-stream';
+		if (contentType === 'application/octet-stream') {
+			const ext = fullFilePath.split('.').pop()?.toLowerCase();
+			contentType = getContentType(ext);
 		}
 
-		console.log(`Storage API: Successfully got file buffer, size: ${fileBuffer.length} bytes`);
-
-		// Determine content type and cache strategy
-		const ext = fullFilePath.split('.').pop()?.toLowerCase();
-		const contentType = getContentType(ext);
-
-		// Determine if this is a thumbnail or full image
-		const isThumbnail =
-			fullFilePath.includes('/thumb/') ||
-			fullFilePath.includes('/micro/') ||
-			fullFilePath.includes('/small/') ||
-			fullFilePath.includes('/medium/') ||
-			fullFilePath.includes('/large/') ||
-			fullFilePath.includes('/hero/');
-
-		const cacheType = isThumbnail ? 'thumbnails' : 'images';
-
-		// Check if client has a valid cached version
-		if (CacheManager.shouldServeFromCache(request, cacheType)) {
-			return new Response(null, { status: 304 });
-		}
-
-		// Create response with advanced caching headers
+		// Create response with appropriate headers
 		const response = new Response(new Uint8Array(fileBuffer), {
 			headers: {
 				'Content-Type': contentType,
-				'Content-Length': fileBuffer.length.toString(),
-				'Last-Modified': new Date().toUTCString()
+				'Content-Length': fileBuffer.byteLength.toString(),
+				'Cache-Control': backendResponse.headers.get('Cache-Control') || 'public, max-age=31536000',
+				'Last-Modified': backendResponse.headers.get('Last-Modified') || new Date().toUTCString()
 			}
 		});
 
-		// Apply advanced cache headers
-		return CacheManager.applyCacheHeaders(response, cacheType);
+		return response;
 	} catch (error) {
 		console.error('Error serving file:', error);
 		const errorMessage = error instanceof Error ? error.message : String(error);
@@ -96,16 +87,16 @@ export const GET: RequestHandler = async ({ params, request }) => {
 
 function getContentType(extension?: string): string {
 	const contentTypes: Record<string, string> = {
-		'.jpg': 'image/jpeg',
-		'.jpeg': 'image/jpeg',
-		'.png': 'image/png',
-		'.gif': 'image/gif',
-		'.webp': 'image/webp',
-		'.svg': 'image/svg+xml',
-		'.ico': 'image/x-icon',
-		'.bmp': 'image/bmp',
-		'.tiff': 'image/tiff',
-		'.tif': 'image/tiff'
+		'jpg': 'image/jpeg',
+		'jpeg': 'image/jpeg',
+		'png': 'image/png',
+		'gif': 'image/gif',
+		'webp': 'image/webp',
+		'svg': 'image/svg+xml',
+		'ico': 'image/x-icon',
+		'bmp': 'image/bmp',
+		'tiff': 'image/tiff',
+		'tif': 'image/tiff'
 	};
 
 	return contentTypes[extension || ''] || 'application/octet-stream';

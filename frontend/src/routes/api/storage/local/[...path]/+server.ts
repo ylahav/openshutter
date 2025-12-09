@@ -5,8 +5,10 @@ import { storageConfigService } from '$lib/services/storage/config';
 
 export const GET: RequestHandler = async ({ params }) => {
 	try {
-		const { path: pathSegments } = await params;
-		const filePath = pathSegments.join('/');
+		const { path: pathSegments } = params;
+		// Ensure pathSegments is an array
+		const pathArray = Array.isArray(pathSegments) ? pathSegments : (typeof pathSegments === 'string' ? [pathSegments] : []);
+		const filePath = pathArray.join('/');
 		const decodedPath = decodeURIComponent(filePath);
 
 		// Get local storage configuration

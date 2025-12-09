@@ -4,7 +4,7 @@ import { backendGet, parseBackendResponse } from '$lib/utils/backend-api';
 
 export const GET: RequestHandler = async ({ params }) => {
 	try {
-		const { alias } = await params;
+		const { alias } = params;
 
 		if (!alias) {
 			return json({ success: false, error: 'Album alias is required' }, { status: 400 });

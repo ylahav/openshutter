@@ -4,7 +4,7 @@ import { backendGet, parseBackendResponse } from '$lib/utils/backend-api';
 
 export const GET: RequestHandler = async ({ params }) => {
 	try {
-		const { id } = await params;
+		const { id } = params;
 
 		if (!id) {
 			return json({ success: false, error: 'Album ID is required' }, { status: 400 });
