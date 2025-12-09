@@ -1,3 +1,12 @@
 packages:
-  - 'frontend'
-  - 'backend'
+  - frontend
+  - backend
+
+onlyBuiltDependencies:
+  - '@nestjs/core'
+  - '@parcel/watcher'
+  - canvas
+  - core-js
+  - esbuild
+  - sharp
+  - unrs-resolver
