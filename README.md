@@ -16,7 +16,7 @@ A comprehensive photo gallery management system with multi-storage support, adva
 - **Cover Photo Selection**: Admin interface for selecting album cover photos
 - **Batch Operations**: Upload and manage hundreds of photos efficiently
 - **Bulk Photo Management**: Apply tags, locations, and metadata to multiple photos
-- **Multi-Language Support**: Internationalization with RTL support
+- **Multi-Language Support**: Full internationalization (i18n) with RTL support, reactive translation system, and comprehensive language coverage
 - **Responsive Design**: Beautiful galleries for all devices with masonry layouts
 - **Mobile-First PWA**: Progressive Web App with offline capabilities and mobile optimization
 - **Touch-Optimized Interface**: Mobile navigation, photo upload, and search with gesture support
@@ -213,9 +213,10 @@ For detailed deployment instructions, see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.m
 │   │   │   └── auth/    # Authentication routes
 │   │   ├── lib/         # SvelteKit library code
 │   │   │   ├── components/  # Svelte components
-│   │   │   ├── stores/      # Svelte stores (language, siteConfig)
+│   │   │   ├── stores/      # Svelte stores (language, siteConfig, i18n)
 │   │   │   ├── types/       # TypeScript types
-│   │   │   └── utils/       # Utility functions
+│   │   │   ├── utils/       # Utility functions
+│   │   │   └── i18n/        # Translation files (en.json, he.json)
 │   │   ├── app/         # Next.js code (legacy, being migrated)
 │   │   │   ├── admin/   # Next.js admin pages (to be removed)
 │   │   │   └── components/  # React components (to be migrated)
@@ -417,6 +418,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [x] Rich text editor with link support (Tiptap)
 - [x] EXIF data extraction and processing
 - [x] Multi-language support with RTL
+- [x] **Comprehensive i18n System** - Reactive translation store, aligned translation files, and full UI translation coverage
 - [x] Template customization system
 - [x] **Advanced Access Control System** - Granular album permissions
 - [x] **Cover Photo Selection** - Admin interface for album covers
