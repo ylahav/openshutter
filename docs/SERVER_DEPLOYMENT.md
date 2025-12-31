@@ -234,7 +234,7 @@ cd ..
 
 # Start frontend (SvelteKit)
 cd frontend
-pm2 start build/index.js --name openshutter-frontend --env production
+pm2 start build --name openshutter-frontend --env production
 cd ..
 
 # Save PM2 configuration
@@ -264,7 +264,7 @@ PORT=5000 node dist/main.js
 
 # Terminal 2: Start frontend
 cd frontend
-PORT=4000 node build/index.js
+PORT=4000 node build
 ```
 
 ## Step 5: Verify Deployment
@@ -506,7 +506,7 @@ pnpm install --prod --frozen-lockfile
 cd backend && pnpm install --prod --frozen-lockfile && cd ..
 cd frontend && pnpm install --prod --frozen-lockfile && cd ..
 pm2 start backend/dist/main.js --name openshutter-backend
-pm2 start frontend/build/index.js --name openshutter-frontend
+pm2 start frontend/build --name openshutter-frontend
 pm2 save
 pm2 startup  # Follow instructions
 ```
