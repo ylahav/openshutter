@@ -101,7 +101,14 @@ if (Test-Path "backend\tsconfig.json") {
 
 Write-Host "  Copying frontend files..." -ForegroundColor Blue
 New-Item -ItemType Directory -Path (Join-Path $DEPLOY_DIR "frontend") -Force | Out-Null
-Copy-Item -Path "frontend\build" -Destination (Join-Path $DEPLOY_DIR "frontend\build") -Recurse -Force
+# SvelteKit uses .svelte-kit/output instead of build
+if (Test-Path "frontend\.svelte-kit\output") {
+    New-Item -ItemType Directory -Path (Join-Path $DEPLOY_DIR "frontend\.svelte-kit") -Force | Out-Null
+    Copy-Item -Path "frontend\.svelte-kit\output" -Destination (Join-Path $DEPLOY_DIR "frontend\.svelte-kit\output") -Recurse -Force
+}
+if (Test-Path "frontend\build") {
+    Copy-Item -Path "frontend\build" -Destination (Join-Path $DEPLOY_DIR "frontend\build") -Recurse -Force
+}
 Copy-Item -Path "frontend\package.json" -Destination (Join-Path $DEPLOY_DIR "frontend\package.json") -Force
 if (Test-Path "frontend\svelte.config.js") {
     Copy-Item -Path "frontend\svelte.config.js" -Destination (Join-Path $DEPLOY_DIR "frontend\svelte.config.js") -Force
@@ -175,23 +182,78 @@ wait `$BACKEND_PID `$FRONTEND_PID
 "@
 $START_SCRIPT | Out-File -FilePath (Join-Path $DEPLOY_DIR "start.sh") -Encoding utf8 -NoNewline
 
-# Create deployment package using tar (if available) or 7zip
+# Create deployment package using ZIP (preferred on Windows) or tar
 Write-Host "  Creating archive..." -ForegroundColor Blue
-if (Get-Command tar -ErrorAction SilentlyContinue) {
-    # Use tar if available (Windows 10+)
-    Set-Location $TEMP_DIR
-    tar -czf openshutter-deployment.tar.gz openshutter/
-    Move-Item -Path "openshutter-deployment.tar.gz" -Destination (Join-Path $PROJECT_ROOT "openshutter-deployment.tar.gz") -Force
-    Set-Location $PROJECT_ROOT
+$ZIP_PATH = Join-Path $PROJECT_ROOT "openshutter-deployment.zip"
+$TAR_PATH = Join-Path $PROJECT_ROOT "openshutter-deployment.tar.gz"
+
+# On Windows, prefer ZIP as it's more reliable
+if ($IsWindows -or $env:OS -like "*Windows*") {
+    Write-Host "  Using ZIP compression (Windows)" -ForegroundColor Blue
+    if (Test-Path $DEPLOY_DIR) {
+        Compress-Archive -Path $DEPLOY_DIR -DestinationPath $ZIP_PATH -Force
+        if (Test-Path $ZIP_PATH) {
+            $ZIP_SIZE = (Get-Item $ZIP_PATH).Length / 1MB
+            Write-Host "  ZIP archive created successfully: $ZIP_PATH ($([math]::Round($ZIP_SIZE, 2)) MB)" -ForegroundColor Green
+        } else {
+            Write-Host "ERROR: Failed to create ZIP archive" -ForegroundColor Red
+        }
+    } else {
+        Write-Host "ERROR: Deployment directory not found: $DEPLOY_DIR" -ForegroundColor Red
+    }
+} elseif (Get-Command tar -ErrorAction SilentlyContinue) {
+    # Use tar on Unix-like systems
+    Push-Location $TEMP_DIR
+    try {
+        if (Test-Path "openshutter") {
+            & tar -czf $TAR_PATH openshutter
+            if ($LASTEXITCODE -eq 0 -and (Test-Path $TAR_PATH)) {
+                $TAR_SIZE = (Get-Item $TAR_PATH).Length / 1MB
+                Write-Host "  TAR archive created successfully: $TAR_PATH ($([math]::Round($TAR_SIZE, 2)) MB)" -ForegroundColor Green
+            } else {
+                Write-Host "ERROR: tar command failed. Exit code: $LASTEXITCODE" -ForegroundColor Red
+                # Fallback to ZIP
+                Compress-Archive -Path "openshutter" -DestinationPath $ZIP_PATH -Force
+                if (Test-Path $ZIP_PATH) {
+                    $ZIP_SIZE = (Get-Item $ZIP_PATH).Length / 1MB
+                    Write-Host "  Created ZIP archive instead: $ZIP_PATH ($([math]::Round($ZIP_SIZE, 2)) MB)" -ForegroundColor Yellow
+                }
+            }
+        } else {
+            Write-Host "ERROR: openshutter directory not found in $TEMP_DIR" -ForegroundColor Red
+        }
+    } finally {
+        Pop-Location
+    }
 } elseif (Get-Command 7z -ErrorAction SilentlyContinue) {
     # Use 7zip as fallback
     Set-Location $TEMP_DIR
-    7z a -ttar -so openshutter | 7z a -si openshutter-deployment.tar.gz
-    Move-Item -Path "openshutter-deployment.tar.gz" -Destination (Join-Path $PROJECT_ROOT "openshutter-deployment.tar.gz") -Force
+    if (Test-Path "openshutter") {
+        7z a -ttar -so openshutter | 7z a -si $TAR_PATH
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "ERROR: 7zip command failed" -ForegroundColor Red
+            # Fallback to ZIP
+            Compress-Archive -Path "openshutter" -DestinationPath $ZIP_PATH -Force
+            if (Test-Path $ZIP_PATH) {
+                $ZIP_SIZE = (Get-Item $ZIP_PATH).Length / 1MB
+                Write-Host "  Created ZIP archive instead: $ZIP_PATH ($([math]::Round($ZIP_SIZE, 2)) MB)" -ForegroundColor Yellow
+            }
+        } else {
+            if (Test-Path $TAR_PATH) {
+                $TAR_SIZE = (Get-Item $TAR_PATH).Length / 1MB
+                Write-Host "  TAR archive created successfully: $TAR_PATH ($([math]::Round($TAR_SIZE, 2)) MB)" -ForegroundColor Green
+            }
+        }
+    }
     Set-Location $PROJECT_ROOT
 } else {
-    Write-Host "WARNING: tar or 7zip not found. Skipping archive creation." -ForegroundColor Yellow
-    Write-Host "   Deployment files are in: $DEPLOY_DIR" -ForegroundColor Yellow
+    Write-Host "WARNING: tar or 7zip not found. Creating ZIP archive instead..." -ForegroundColor Yellow
+    Compress-Archive -Path $DEPLOY_DIR -DestinationPath $ZIP_PATH -Force
+    if (Test-Path $ZIP_PATH) {
+        $ZIP_SIZE = (Get-Item $ZIP_PATH).Length / 1MB
+        Write-Host "   Deployment files archived as ZIP: openshutter-deployment.zip ($([math]::Round($ZIP_SIZE, 2)) MB)" -ForegroundColor Yellow
+    }
+    Write-Host "   Deployment files are also in: $DEPLOY_DIR" -ForegroundColor Yellow
 }
 
 # Clean up temp directory
@@ -224,15 +286,25 @@ Write-Host "Production build completed successfully!" -ForegroundColor Green
 Write-Host ""
 Write-Host "Files created:" -ForegroundColor Blue
 if (Test-Path "openshutter-deployment.tar.gz") {
-    Write-Host "  openshutter-deployment.tar.gz - Complete deployment package" -ForegroundColor Yellow
+    $TAR_SIZE = (Get-Item "openshutter-deployment.tar.gz").Length / 1MB
+    Write-Host "  openshutter-deployment.tar.gz - Complete deployment package ($([math]::Round($TAR_SIZE, 2)) MB)" -ForegroundColor Yellow
+}
+if (Test-Path "openshutter-deployment.zip") {
+    $ZIP_SIZE = (Get-Item "openshutter-deployment.zip").Length / 1MB
+    Write-Host "  openshutter-deployment.zip    - Complete deployment package (ZIP format) ($([math]::Round($ZIP_SIZE, 2)) MB)" -ForegroundColor Yellow
 }
 if (Test-Path "openshutter-image.tar") {
     Write-Host "  openshutter-image.tar        - Docker image" -ForegroundColor Yellow
 }
 Write-Host ""
 Write-Host "Next steps:" -ForegroundColor Blue
-Write-Host "  1. Copy openshutter-deployment.tar.gz to your server" -ForegroundColor White
-Write-Host "  2. Extract: tar -xzf openshutter-deployment.tar.gz" -ForegroundColor White
+if (Test-Path "openshutter-deployment.zip") {
+    Write-Host "  1. Copy openshutter-deployment.zip to your server" -ForegroundColor White
+    Write-Host "  2. Extract: unzip openshutter-deployment.zip" -ForegroundColor White
+} elseif (Test-Path "openshutter-deployment.tar.gz") {
+    Write-Host "  1. Copy openshutter-deployment.tar.gz to your server" -ForegroundColor White
+    Write-Host "  2. Extract: tar -xzf openshutter-deployment.tar.gz" -ForegroundColor White
+}
 Write-Host "  3. Configure .env.production with your MongoDB URI (external MongoDB required)" -ForegroundColor White
 Write-Host "     Example: MONGODB_URI=mongodb://your-mongodb-host:27017/openshutter" -ForegroundColor Gray
 Write-Host "  4. Install dependencies: cd openshutter; pnpm install --prod" -ForegroundColor White
