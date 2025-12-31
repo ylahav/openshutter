@@ -48,12 +48,21 @@ nano .env.production
 ### Required Environment Variables
 ```env
 # MongoDB Configuration
-# For external MongoDB on same server:
-MONGODB_URI=mongodb://localhost:27017/openshutter
-# For external MongoDB on different server:
-# MONGODB_URI=mongodb://your-mongodb-host:27017/openshutter
-# For MongoDB Atlas:
-# MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/openshutter
+# IMPORTANT: If MongoDB requires authentication, include username:password in URI
+# Format: mongodb://username:password@host:port/database
+
+# For MongoDB WITHOUT authentication (local development only):
+# MONGODB_URI=mongodb://localhost:27017/openshutter
+
+# For MongoDB WITH authentication (PRODUCTION - Recommended):
+MONGODB_URI=mongodb://openshutter_user:your_secure_password@localhost:27017/openshutter?authSource=admin
+
+# For external MongoDB on different server with authentication:
+# MONGODB_URI=mongodb://username:password@your-mongodb-host:27017/openshutter?authSource=admin
+
+# For MongoDB Atlas (cloud):
+# MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/openshutter?retryWrites=true&w=majority
+
 MONGODB_DB=openshutter
 
 # Authentication Configuration
@@ -76,7 +85,101 @@ GOOGLE_CLIENT_ID=your-google-client-id
 GOOGLE_CLIENT_SECRET=your-google-client-secret
 ```
 
-**⚠️ IMPORTANT**: Change all secrets and configure MongoDB URI before starting!
+**⚠️ IMPORTANT**: 
+- Change all secrets and configure MongoDB URI before starting!
+- If MongoDB requires authentication, you MUST include username:password in MONGODB_URI
+- See "MongoDB Authentication Setup" section below if you get authentication errors
+
+## Step 2.5: MongoDB Authentication Setup (If Required)
+
+If your MongoDB instance requires authentication (which is recommended for production), you need to create a database user.
+
+### Check if MongoDB Requires Authentication
+
+```bash
+# Try connecting without credentials
+mongosh "mongodb://localhost:27017/openshutter"
+
+# If you get "Command find requires authentication" error, authentication is enabled
+```
+
+### Create MongoDB User for OpenShutter
+
+```bash
+# Connect to MongoDB as admin
+mongosh "mongodb://localhost:27017/admin"
+# Or if admin requires auth:
+mongosh "mongodb://admin_user:admin_password@localhost:27017/admin"
+```
+
+### In MongoDB Shell, Create User:
+
+```javascript
+// Switch to openshutter database
+use openshutter
+
+// Create user with read/write permissions
+db.createUser({
+  user: "openshutter_user",
+  pwd: "your_secure_password_here",
+  roles: [
+    { role: "readWrite", db: "openshutter" }
+  ]
+})
+
+// Verify user was created
+db.getUsers()
+```
+
+### Alternative: Create User in Admin Database
+
+If your MongoDB setup requires users to be in the `admin` database:
+
+```javascript
+use admin
+
+db.createUser({
+  user: "openshutter_user",
+  pwd: "your_secure_password_here",
+  roles: [
+    { role: "readWrite", db: "openshutter" }
+  ]
+})
+```
+
+Then use this connection string:
+```env
+MONGODB_URI=mongodb://openshutter_user:your_secure_password@localhost:27017/openshutter?authSource=admin
+```
+
+### Test MongoDB Connection
+
+```bash
+# Test connection with credentials
+mongosh "mongodb://openshutter_user:your_secure_password@localhost:27017/openshutter?authSource=admin"
+
+# If connection succeeds, you should see MongoDB shell prompt
+# Try a simple query:
+db.albums.find().limit(1)
+```
+
+### Disable MongoDB Authentication (NOT RECOMMENDED for Production)
+
+If you want to disable authentication (only for development/testing):
+
+```bash
+# Edit MongoDB config
+sudo nano /etc/mongod.conf
+
+# Comment out or remove:
+# security:
+#   authorization: enabled
+
+# Restart MongoDB
+sudo systemctl restart mongod
+```
+
+**⚠️ WARNING**: Disabling authentication is a security risk. Only do this in isolated development environments.
 
 ## Step 3: Install Dependencies
 
@@ -318,6 +421,56 @@ mongosh "mongodb://localhost:27017/openshutter"
 # Check port availability
 netstat -tulpn | grep :4000
 netstat -tulpn | grep :5000
+```
+
+### MongoDB Authentication Error: "Command find requires authentication"
+
+This error means MongoDB requires authentication but your connection string doesn't include credentials.
+
+**Solution 1: Add credentials to MONGODB_URI**
+```bash
+# Edit .env.production
+nano .env.production
+
+# Update MONGODB_URI to include username:password
+MONGODB_URI=mongodb://username:password@localhost:27017/openshutter?authSource=admin
+
+# Restart application
+pm2 restart all
+```
+
+**Solution 2: Create MongoDB user (if user doesn't exist)**
+```bash
+# Connect to MongoDB
+mongosh "mongodb://localhost:27017/admin"
+
+# In MongoDB shell:
+use openshutter
+db.createUser({
+  user: "openshutter_user",
+  pwd: "your_secure_password",
+  roles: [{ role: "readWrite", db: "openshutter" }]
+})
+```
+
+**Solution 3: Verify user permissions**
+```bash
+# Connect with credentials
+mongosh "mongodb://username:password@localhost:27017/openshutter?authSource=admin"
+
+# Test query
+use openshutter
+db.albums.find().limit(1)
+
+# If this works, the credentials are correct
+```
+
+**Solution 4: Check MongoDB authentication status**
+```bash
+# Check if authentication is enabled
+sudo cat /etc/mongod.conf | grep -A 2 "security:"
+
+# If you see "authorization: enabled", authentication is required
 ```
 
 ### Permission Issues
