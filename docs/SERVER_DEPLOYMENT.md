@@ -65,14 +65,18 @@ MONGODB_URI=mongodb://openshutter_user:your_secure_password@localhost:27017/open
 
 MONGODB_DB=openshutter
 
-# Authentication Configuration
-JWT_SECRET=your-production-secret-key-change-this
-NEXTAUTH_SECRET=your-nextauth-secret-change-this
-NEXTAUTH_URL=https://your-domain.com
+# Authentication Configuration (SvelteKit)
+AUTH_JWT_SECRET=your-production-secret-key-change-this
+# Note: NEXTAUTH_SECRET is supported for backward compatibility but AUTH_JWT_SECRET is preferred
 
 # Application Configuration
 NODE_ENV=production
-NEXT_PUBLIC_APP_URL=https://your-domain.com
+BACKEND_URL=http://localhost:5000
+# For production with separate backend server:
+# BACKEND_URL=https://api.your-domain.com
+# Or if backend is on same server:
+# BACKEND_URL=http://localhost:5000
+
 PORT=4000
 BACKEND_PORT=5000
 
@@ -228,7 +232,7 @@ cd backend
 pm2 start dist/main.js --name openshutter-backend --env production
 cd ..
 
-# Start frontend (SvelteKit adapter-node)
+# Start frontend (SvelteKit)
 cd frontend
 pm2 start build/index.js --name openshutter-frontend --env production
 cd ..

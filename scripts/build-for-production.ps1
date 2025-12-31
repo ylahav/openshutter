@@ -170,11 +170,11 @@ BACKEND_PID=`$!
 # Wait for backend to start
 sleep 3
 
-# Start frontend
+# Start frontend (SvelteKit)
 echo "Starting frontend..."
 cd ../frontend
 pnpm install --prod --frozen-lockfile
-PORT=`${FRONTEND_PORT:-4000} node build &
+PORT=`${FRONTEND_PORT:-4000} node build/index.js &
 FRONTEND_PID=`$!
 
 # Wait for both processes
