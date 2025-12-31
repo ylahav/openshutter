@@ -89,7 +89,6 @@ export class StorageManager implements IStorageManager {
   ): Promise<StorageFolderResult> {
     try {
       const service = await this.getProvider(providerId)
-      const albumPath = parentPath ? `${parentPath}/${albumAlias}` : albumAlias
       
       return await service.createFolder(albumAlias, parentPath)
     } catch (error) {

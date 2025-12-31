@@ -23,7 +23,7 @@ export class AlbumsAdminController {
 			let objectId: Types.ObjectId;
 			try {
 				objectId = new Types.ObjectId(id);
-			} catch (error) {
+			} catch (_error) {
 				throw new Error('Invalid album ID format');
 			}
 
@@ -109,7 +109,7 @@ export class AlbumsAdminController {
 			let objectId: Types.ObjectId;
 			try {
 				objectId = new Types.ObjectId(id);
-			} catch (error) {
+			} catch (_error) {
 				throw new BadRequestException('Invalid album ID format');
 			}
 

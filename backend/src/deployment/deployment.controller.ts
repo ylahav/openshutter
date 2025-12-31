@@ -37,13 +37,13 @@ export class DeploymentController {
 			try {
 				const frontendPkg = JSON.parse(readFileSync(join(frontendRoot, 'package.json'), 'utf-8'));
 				frontendVersion = frontendPkg.version || 'unknown';
-			} catch (e) {
+			} catch (_e) {
 				// Ignore
 			}
 			try {
 				const backendPkg = JSON.parse(readFileSync(join(backendRoot, 'package.json'), 'utf-8'));
 				backendVersion = backendPkg.version || 'unknown';
-			} catch (e) {
+			} catch (_e) {
 				// Ignore
 			}
 
@@ -72,7 +72,7 @@ export class DeploymentController {
 			let nodeVersion = 'unknown';
 			try {
 				nodeVersion = execSync('node --version', { encoding: 'utf-8' }).trim();
-			} catch (e) {
+			} catch (_e) {
 				// Ignore
 			}
 
@@ -82,7 +82,7 @@ export class DeploymentController {
 			try {
 				dockerVersion = execSync('docker --version', { encoding: 'utf-8' }).trim();
 				dockerAvailable = true;
-			} catch (e) {
+			} catch (_e) {
 				// Docker not available
 			}
 
@@ -92,7 +92,7 @@ export class DeploymentController {
 			try {
 				pm2Version = execSync('pm2 --version', { encoding: 'utf-8' }).trim();
 				pm2Available = true;
-			} catch (e) {
+			} catch (_e) {
 				// PM2 not available
 			}
 

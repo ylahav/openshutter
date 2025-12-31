@@ -38,7 +38,7 @@ export class StorageAdminController {
     try {
       const config = await storageConfigService.getConfig(providerId as StorageProviderId);
       return config;
-    } catch (error) {
+    } catch (_error) {
       throw new BadRequestException(`Storage provider not found: ${providerId}`);
     }
   }

@@ -87,11 +87,13 @@ cp pnpm-workspace.yaml "$DEPLOY_DIR/" 2>/dev/null || true
 cp pnpm-lock.yaml "$DEPLOY_DIR/" 2>/dev/null || true
 
 # Copy Docker files if they exist
+# Note: Docker image does NOT include MongoDB - use external MongoDB
+if [ -f "docker-compose.external-mongodb.yml" ]; then
+    cp docker-compose.external-mongodb.yml "$DEPLOY_DIR/docker-compose.yml"
+    echo -e "${GREEN}  Using external MongoDB configuration (no MongoDB in image)${NC}"
+fi
 if [ -f "docker-compose.prod.yml" ]; then
     cp docker-compose.prod.yml "$DEPLOY_DIR/"
-fi
-if [ -f "docker-compose.external-mongodb.yml" ]; then
-    cp docker-compose.external-mongodb.yml "$DEPLOY_DIR/"
 fi
 if [ -f "Dockerfile" ]; then
     cp Dockerfile "$DEPLOY_DIR/"
@@ -177,9 +179,13 @@ if [ $? -eq 0 ]; then
     echo -e "${BLUE}Next steps:${NC}"
     echo -e "  1. Copy ${YELLOW}openshutter-deployment.tar.gz${NC} to your server"
     echo -e "  2. Extract: ${YELLOW}tar -xzf openshutter-deployment.tar.gz${NC}"
-    echo -e "  3. Configure ${YELLOW}.env.production${NC} with your settings"
+    echo -e "  3. Configure ${YELLOW}.env.production${NC} with your MongoDB URI (external MongoDB required)"
+    echo -e "     Example: ${YELLOW}MONGODB_URI=mongodb://your-mongodb-host:27017/openshutter${NC}"
     echo -e "  4. Install dependencies: ${YELLOW}cd openshutter && pnpm install --prod${NC}"
-    echo -e "  5. Start services: ${YELLOW}./start.sh${NC}"
+    echo -e "  5. Start with Docker: ${YELLOW}docker-compose up -d${NC}"
+    echo -e "     Or start manually: ${YELLOW}./start.sh${NC}"
+    echo ""
+    echo -e "${YELLOW}Note: Docker image does NOT include MongoDB. Use external MongoDB instance.${NC}"
     echo ""
     echo -e "${BLUE}Or use the deployment script:${NC}"
     echo -e "  ${YELLOW}./scripts/deploy-to-server.sh user@your-server${NC}"

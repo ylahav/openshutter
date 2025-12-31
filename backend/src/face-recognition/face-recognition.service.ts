@@ -29,7 +29,7 @@ export class FaceRecognitionService {
 	 * Note: This uses client-side face-api.js models
 	 * For server-side detection, we would need to use face-recognition-server service
 	 */
-	async detectFaces(imageUrl: string): Promise<FaceDetection[]> {
+	async detectFaces(_imageUrl: string): Promise<FaceDetection[]> {
 		// For now, this is a placeholder
 		// In a real implementation, we would either:
 		// 1. Use server-side face detection (requires face-api.js server-side setup)

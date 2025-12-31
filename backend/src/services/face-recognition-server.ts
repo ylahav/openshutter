@@ -10,7 +10,7 @@ import * as path from 'path'
 
 // Lazy load face-api.js to avoid monkeyPatch issues at module load time
 let faceapi: typeof import('face-api.js') | null = null
-let isPatched = false
+let _isPatched = false
 
 async function getFaceApi() {
   if (!faceapi) {
@@ -69,13 +69,13 @@ async function getFaceApi() {
             // Try setting to 'node' string
             env.setEnv('node')
             console.log('Set environment to "node" using setEnv()')
-          } catch (e) {
+          } catch (_e) {
             // If that fails, try with an object
             try {
               env.setEnv({ isNodejs: true, isBrowser: false })
               console.log('Set environment using object')
-            } catch (e2) {
-              console.warn('setEnv() failed:', e2)
+            } catch (_e2) {
+              console.warn('setEnv() failed:', _e2)
             }
           }
         }
@@ -105,7 +105,7 @@ async function getFaceApi() {
         // Step 6: Now monkey patch with Node.js canvas
         // The environment should be properly initialized now
         faceapi.env.monkeyPatch({ Canvas, Image, ImageData } as any)
-        isPatched = true
+        _isPatched = true
         console.log('Face-api.js monkeyPatch successful')
       } catch (error) {
         console.error('Failed to monkey patch face-api.js:', error)

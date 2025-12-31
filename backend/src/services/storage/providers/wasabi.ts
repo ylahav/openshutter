@@ -226,7 +226,7 @@ export class WasabiService implements IStorageService {
         Metadata: metadata || {}
       })
       
-      const result = await this.s3Client.send(command)
+      await this.s3Client.send(command)
       console.log(`WasabiService: Uploaded file '${filename}' with key: ${key}`)
       
       return {

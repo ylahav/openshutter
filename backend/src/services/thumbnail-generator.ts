@@ -99,7 +99,7 @@ export class ThumbnailGenerator {
       return { width: targetSize.width, height: targetSize.height }
     }
 
-    const { width: originalWidth, height: originalHeight, aspectRatio } = originalDimensions
+    const { width: originalWidth, height: originalHeight } = originalDimensions
     const { width: targetWidth, height: targetHeight } = targetSize
 
     // Calculate scale factor based on the larger dimension
@@ -118,7 +118,7 @@ export class ThumbnailGenerator {
    */
   static async generateAllThumbnails(
     imageBuffer: Buffer,
-    baseFilename: string
+    _baseFilename: string
   ): Promise<Record<string, Buffer>> {
     const thumbnails: Record<string, Buffer> = {}
     

@@ -1,6 +1,5 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
 import { AdminGuard } from '../common/guards/admin.guard';
-import { templateConfigService } from '../services/template-config';
 import type { TemplateConfig } from '../types/template';
 
 // Import static templates directly

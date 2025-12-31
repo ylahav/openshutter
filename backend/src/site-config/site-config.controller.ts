@@ -104,7 +104,6 @@ export class SiteConfigController {
       // Generate unique filename
       const fileExtension = file.originalname.split('.').pop() || 'png';
       const filename = `asset-${uuidv4()}.${fileExtension}`;
-      const storagePath = `site-assets/${filename}`;
 
       // Upload file using storage manager
       const storageManager = StorageManager.getInstance();

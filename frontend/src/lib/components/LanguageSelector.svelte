@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { get } from 'svelte/store';
 	import { SUPPORTED_LANGUAGES, type LanguageCode } from '$types/multi-lang';
 	import { currentLanguage, setLanguage } from '$stores/language';
 	import { siteConfigData } from '$stores/siteConfig';
@@ -12,12 +11,19 @@
 
 	let isOpen = false;
 
-	// Derived data
-	$: config = get(siteConfigData);
-	$: activeLanguages = config?.languages?.activeLanguages ?? ['en'];
+	// Derived data - use reactive $ prefix for proper reactivity
+	$: config = $siteConfigData;
+	$: activeLanguages = config?.languages?.activeLanguages ?? ['en', 'he'];
 	$: availableLanguages = SUPPORTED_LANGUAGES.filter((lang) => activeLanguages.includes(lang.code));
+	
+	// Debug: Log when languages change (can be removed in production)
+	$: if (typeof window !== 'undefined' && window.location.search.includes('debug=lang')) {
+		console.log('LanguageSelector - config:', config);
+		console.log('LanguageSelector - activeLanguages:', activeLanguages);
+		console.log('LanguageSelector - availableLanguages:', availableLanguages.map(l => l.code));
+	}
 
-	$: lang = get(currentLanguage);
+	$: lang = $currentLanguage;
 	$: currentLangConfig =
 		availableLanguages.find((l) => l.code === lang) ?? SUPPORTED_LANGUAGES.find((l) => l.code === lang);
 

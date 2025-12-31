@@ -30,7 +30,7 @@ export class PhotosAdminController {
 			let objectId: Types.ObjectId;
 			try {
 				objectId = new Types.ObjectId(id);
-			} catch (error) {
+			} catch (_error) {
 				throw new BadRequestException('Invalid photo ID format');
 			}
 
@@ -102,7 +102,7 @@ export class PhotosAdminController {
 			let objectId: Types.ObjectId;
 			try {
 				objectId = new Types.ObjectId(id);
-			} catch (error) {
+			} catch (_error) {
 				throw new BadRequestException('Invalid photo ID format');
 			}
 
@@ -270,7 +270,7 @@ export class PhotosAdminController {
 			let objectId: Types.ObjectId;
 			try {
 				objectId = new Types.ObjectId(id);
-			} catch (error) {
+			} catch (_error) {
 				throw new BadRequestException('Invalid photo ID format');
 			}
 

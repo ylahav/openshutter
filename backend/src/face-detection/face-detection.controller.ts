@@ -43,7 +43,7 @@ export class FaceDetectionController {
 			let objectId: Types.ObjectId;
 			try {
 				objectId = new Types.ObjectId(photoId);
-			} catch (error) {
+			} catch (_error) {
 				throw new BadRequestException('Invalid photo ID format');
 			}
 
@@ -144,7 +144,7 @@ export class FaceDetectionController {
 			let objectId: Types.ObjectId;
 			try {
 				objectId = new Types.ObjectId(photoId);
-			} catch (error) {
+			} catch (_error) {
 				throw new BadRequestException('Invalid photo ID format');
 			}
 
@@ -254,7 +254,7 @@ export class FaceDetectionController {
 			let objectId: Types.ObjectId;
 			try {
 				objectId = new Types.ObjectId(photoId);
-			} catch (error) {
+			} catch (_error) {
 				throw new BadRequestException('Invalid photo ID format');
 			}
 

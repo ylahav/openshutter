@@ -1,6 +1,6 @@
 import { connectDB } from '../config/db'
 import { SiteConfig, SiteConfigUpdate } from '../types/site-config'
-import { MultiLangText, MultiLangHTML, MultiLangUtils } from '../types/multi-lang'
+import { MultiLangUtils } from '../types/multi-lang'
 import mongoose from 'mongoose'
 
 export class SiteConfigService {
@@ -65,7 +65,7 @@ export class SiteConfigService {
       updatedAt: new Date()
     }
     
-    const result = await collection.updateOne(
+    await collection.updateOne(
       {}, // Update the first (and only) config document
       { $set: updateData },
       { upsert: true }
@@ -150,7 +150,7 @@ export class SiteConfigService {
       logo: '',
       favicon: '',
       languages: {
-        activeLanguages: ['en'],
+        activeLanguages: ['en', 'he'],
         defaultLanguage: 'en'
       },
       theme: {

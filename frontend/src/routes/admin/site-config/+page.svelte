@@ -5,6 +5,7 @@
 	import MultiLangInput from '$lib/components/MultiLangInput.svelte';
 	import MultiLangHTMLEditor from '$lib/components/MultiLangHTMLEditor.svelte';
 	import { SUPPORTED_LANGUAGES } from '$lib/types/multi-lang';
+	import { siteConfig } from '$stores/siteConfig';
 
 	let config: SiteConfig | null = null;
 	let loading = true;
@@ -111,6 +112,9 @@
 			const data = await response.json();
 			config = data;
 			message = 'successfully';
+
+			// Refresh the site config store so LanguageSelector picks up the changes
+			await siteConfig.load();
 
 			// Redirect after 2 seconds
 			setTimeout(() => {

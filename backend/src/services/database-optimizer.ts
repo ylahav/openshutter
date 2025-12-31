@@ -1,4 +1,3 @@
-import { connectDB } from '../config/db'
 import mongoose, { Types } from 'mongoose'
 import { QueryMonitor } from './query-monitor'
 

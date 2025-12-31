@@ -1,5 +1,4 @@
-import NextAuth from 'next-auth'
-
+// Type declarations for next-auth (import not needed for type-only declarations)
 declare module 'next-auth' {
   interface Session {
     user: {

@@ -1,7 +1,8 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { derived } from 'svelte/store';
 	import { currentLanguage } from '$stores/language';
-	import { siteConfigData } from '$stores/siteConfig';
+	import { siteConfigData, siteConfig } from '$stores/siteConfig';
 	import { auth, logout } from '$lib/stores/auth';
 	import { MultiLangUtils } from '$utils/multiLang';
 	import LanguageSelector from '$components/LanguageSelector.svelte';
@@ -15,6 +16,16 @@
 	);
 
 	const logo = derived(siteConfigData, ($config) => $config?.logo ?? '');
+
+	// Refresh site config when header mounts to ensure language selector has latest data
+	onMount(() => {
+		// Only refresh if config is not loading and we're not on login page
+		if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+			siteConfig.load().catch(() => {
+				// Silently fail - config refresh is not critical
+			});
+		}
+	});
 
 	async function handleLogout() {
 		await logout();

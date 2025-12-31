@@ -1,6 +1,6 @@
 import { AlbumModel } from '../models/Album'
 import { PhotoModel, IPhoto } from '../models/Photo'
-import mongoose, { Types } from 'mongoose'
+import mongoose from 'mongoose'
 import { siteConfigService } from './site-config'
 
 export interface AlbumLeadingPhotoResult {

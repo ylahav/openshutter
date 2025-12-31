@@ -1,16 +1,16 @@
 import mongoose, { Schema, Document, Types } from 'mongoose'
 
-// Simple schema for multi-language text
-const MultiLangTextSchema = new Schema({
-  en: { type: String, default: '' },
-  he: { type: String, default: '' },
-}, { _id: false });
+// Simple schema for multi-language text (unused but kept for potential future use)
+// const MultiLangTextSchema = new Schema({
+//   en: { type: String, default: '' },
+//   he: { type: String, default: '' },
+// }, { _id: false });
 
-// Simple schema for multi-language HTML
-const MultiLangHTMLSchema = new Schema({
-  en: { type: String, default: '' },
-  he: { type: String, default: '' },
-}, { _id: false });
+// Simple schema for multi-language HTML (unused but kept for potential future use)
+// const MultiLangHTMLSchema = new Schema({
+//   en: { type: String, default: '' },
+//   he: { type: String, default: '' },
+// }, { _id: false });
 
 // Define interfaces locally instead of importing from @/types
 export interface Album {

@@ -223,7 +223,7 @@ export class AwsS3Service implements IStorageService {
         Metadata: metadata || {}
       })
       
-      const result = await this.s3Client.send(command)
+      await this.s3Client.send(command)
       console.log(`AwsS3Service: Uploaded file '${filename}' with key: ${key}`)
       
       return {

@@ -4,9 +4,10 @@ import { storageManager } from './storage/manager'
 import mongoose, { Types } from 'mongoose'
 import { ThumbnailGenerator } from './thumbnail-generator'
 import { ImageCompressionService } from './image-compression'
-import { PhotoModel } from '../models/Photo'
-import { AlbumModel } from '../models/Album'
-import { UserModel } from '../models/User'
+// Models imported for type references but not directly used
+// import { PhotoModel } from '../models/Photo'
+// import { AlbumModel } from '../models/Album'
+// import { UserModel } from '../models/User'
 
 const { ObjectId } = Types;
 
@@ -73,7 +74,6 @@ export class PhotoUploadService {
 
       // Generate unique filename
       const timestamp = Date.now()
-      const extension = originalFilename.split('.').pop()
       const filename = `${timestamp}-${originalFilename}`
       
       // Use album path if it exists (folders should be created when album is created)

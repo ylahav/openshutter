@@ -25,7 +25,7 @@
 	$: isRTL = activeLanguage === 'he' || activeLanguage === 'ar' || activeLanguage === 'fa';
 
 	// Get active languages from site config
-	$: activeLanguages = config?.languages?.activeLanguages || ['en'];
+	$: activeLanguages = config?.languages?.activeLanguages || ['en', 'he'];
 	$: availableLanguages = SUPPORTED_LANGUAGES.filter((lang) =>
 		activeLanguages.includes(lang.code)
 	);

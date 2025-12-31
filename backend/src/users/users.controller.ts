@@ -53,7 +53,7 @@ export class UsersController {
 
       // Convert ObjectIds to strings and remove passwordHash
       const serializedUsers = users.map((user) => {
-        const { passwordHash, ...rest } = user;
+        const { passwordHash: _, ...rest } = user;
         return {
           ...rest,
           _id: user._id.toString(),
@@ -90,7 +90,7 @@ export class UsersController {
       }
 
       // Remove passwordHash and convert ObjectId to string
-      const { passwordHash, ...rest } = user;
+      const { passwordHash: _, ...rest } = user;
       return {
         ...rest,
         _id: user._id.toString(),
@@ -364,4 +364,3 @@ export class UsersController {
     }
   }
 }
-

@@ -1,9 +1,8 @@
-import { Controller, Post, Body, UseGuards, BadRequestException, UseInterceptors, UploadedFile, Res } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, BadRequestException, UseInterceptors, UploadedFile } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { connectDB } from '../config/db';
 import mongoose, { Types } from 'mongoose';
-import { Response } from 'express';
 
 @Controller('admin/backup')
 @UseGuards(AdminGuard)

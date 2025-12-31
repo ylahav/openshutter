@@ -29,7 +29,7 @@ export class StorageController {
         if (decodedPath.includes('%')) {
           decodedPath = decodeURIComponent(decodedPath);
         }
-      } catch (e) {
+      } catch (_e) {
         // If decoding fails, use original path
         console.warn('Failed to decode path, using original:', filePath);
       }
