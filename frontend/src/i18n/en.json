@@ -2,18 +2,22 @@
   "navigation": {
     "home": "Home",
     "albums": "Albums",
+    "search": "Search",
     "about": "About",
     "contact": "Contact",
     "admin": "Admin"
   },
   "header": {
-    "logout": "Logout"
+    "logout": "Logout",
+    "myGallery": "My Gallery"
   },
   "hero": {
     "defaultTitle": "OpenShutter Gallery",
     "defaultSubtitle": "Beautiful moments captured in time",
     "cta": "Explore Gallery",
     "browseAllAlbums": "Browse All Albums",
+    "browseAlbums": "Browse Albums",
+    "searchPhotos": "Search Photos",
     "scrollToExplore": "Scroll to explore"
   },
   "albums": {
@@ -21,6 +25,7 @@
     "noAlbumsText": "No public albums are available at the moment.",
     "galleryTitle": "Gallery",
     "gallerySubtitle": "Explore our photo collections",
+    "rootLevelAlbumsDescription": "Root-level public albums from your gallery.",
     "openAlbum": "Open Album",
     "reReadExifData": "Re-read EXIF Data",
     "reReadingExif": "Re-reading EXIF...",
@@ -37,7 +42,17 @@
     "deleteSuccessMessage": "Album \"{albumName}\" was deleted successfully.",
     "deleteError": "Failed to delete album",
     "deleteUnknownError": "An unknown error occurred while deleting the album",
-    "deleteTryAgain": "Please try again later"
+    "deleteTryAgain": "Please try again later",
+    "browsePhotoCollections": "Browse our photo collections",
+    "viewAlbum": "View Album",
+    "noDescriptionAvailable": "No description available",
+    "photos": "photos",
+    "subAlbums": "sub-albums",
+    "loadingAlbum": "Loading album...",
+    "backToAlbums": "Back to Albums",
+    "albumNotFound": "Album not found",
+    "emptyAlbum": "This album is empty.",
+    "remaining": "remaining"
   },
   "loading": {
     "loading": "Loading...",
@@ -92,7 +107,10 @@
     "retry": "Try Again",
     "loadMore": "Load More",
     "loading": "Loading...",
-    "view": "View"
+    "view": "View",
+    "photo": "photo",
+    "noImage": "No image",
+    "untitled": "Untitled"
   },
   "auth": {
     "signIn": "Sign in",
@@ -345,11 +363,9 @@
     "darkMode": "Dark Mode",
     "noTemplates": "No templates",
     "noTemplatesAvailable": "No templates are available.",
-    "browsePhotoCollections": "Browse our photo collections",
     "errorLoadingAlbums": "Error loading albums",
     "noAlbumsYet": "No albums yet",
     "noPublicAlbumsAvailable": "No public albums are available at the moment.",
-    "viewAlbum": "View Album",
     "photos": "photos",
     "emptyAlbum": "Empty album",
     "noCoverImage": "No cover image",

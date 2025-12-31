@@ -2,18 +2,22 @@
   "navigation": {
     "home": "בית",
     "albums": "אלבומים",
+    "search": "חיפוש",
     "about": "אודות",
     "contact": "צור קשר",
     "admin": "ניהול"
   },
   "header": {
-    "logout": "התנתק"
+    "logout": "התנתק",
+    "myGallery": "הגלריה שלי"
   },
   "hero": {
     "defaultTitle": "גלריית OpenShutter",
     "defaultSubtitle": "רגעים יפים שנתפסו בזמן",
     "cta": "חקור את הגלריה",
     "browseAllAlbums": "עיין בכל האלבומים",
+    "browseAlbums": "עיין באלבומים",
+    "searchPhotos": "חפש תמונות",
     "scrollToExplore": "גלול כדי לגלות"
   },
   "albums": {
@@ -21,6 +25,7 @@
     "noAlbumsText": "אין אלבומים ציבוריים זמינים כרגע.",
     "galleryTitle": "גלריה",
     "gallerySubtitle": "חקור את אוספי התמונות שלנו",
+    "rootLevelAlbumsDescription": "אלבומים ציבוריים ברמה הראשית מהגלריה שלך.",
     "openAlbum": "פתח אלבום",
     "reReadExifData": "קרא מחדש נתוני EXIF",
     "reReadingExif": "קורא מחדש נתוני EXIF...",
@@ -36,7 +41,17 @@
     "deleteSuccessMessage": "האלבום \"{albumName}\" נמחק בהצלחה.",
     "deleteError": "נכשל במחיקת האלבום",
     "deleteUnknownError": "אירעה שגיאה לא ידועה במהלך המחיקה",
-    "deleteTryAgain": "אנא נסה שוב מאוחר יותר"
+    "deleteTryAgain": "אנא נסה שוב מאוחר יותר",
+    "browsePhotoCollections": "עיין באוספי התמונות שלנו",
+    "viewAlbum": "צפה באלבום",
+    "noDescriptionAvailable": "אין תיאור זמין",
+    "photos": "תמונות",
+    "subAlbums": "תת-אלבומים",
+    "loadingAlbum": "טוען אלבום...",
+    "backToAlbums": "חזור לאלבומים",
+    "albumNotFound": "אלבום לא נמצא",
+    "emptyAlbum": "האלבום הזה ריק.",
+    "remaining": "נותרו"
   },
   "loading": {
     "loading": "טוען...",
@@ -91,7 +106,10 @@
     "retry": "נסה שוב",
     "loadMore": "טען עוד",
     "loading": "טוען...",
-    "view": "צפה"
+    "view": "צפה",
+    "photo": "תמונה",
+    "noImage": "אין תמונה",
+    "untitled": "ללא כותרת"
   },
   "auth": {
     "signIn": "התחבר",
@@ -344,11 +362,9 @@
     "darkMode": "מצב כהה",
     "noTemplates": "אין תבניות",
     "noTemplatesAvailable": "אין תבניות זמינות.",
-    "browsePhotoCollections": "עיין באוספי התמונות שלנו",
     "errorLoadingAlbums": "שגיאה בטעינת אלבומים",
     "noAlbumsYet": "אין אלבומים עדיין",
     "noPublicAlbumsAvailable": "אין אלבומים ציבוריים זמינים כרגע.",
-    "viewAlbum": "צפה באלבום",
     "photos": "תמונות",
     "emptyAlbum": "אלבום ריק",
     "noCoverImage": "אין תמונת כיסוי",
@@ -460,6 +476,17 @@
     "importWarning": "הודעה חשובה",
     "importWarningText": "תהליך הייבוא עלול לקחת זמן בהתאם למספר הקבצים. אל תסגור את הדפדפן במהלך הייבוא. ייבואים גדולים מעובדים בחלקים כדי למנוע פסקי זמן.",
     "manageImport": "נהל ייבוא",
+    "deploymentPreparation": "הכנת פריסה",
+    "deploymentConfiguration": "תצורת פריסה",
+    "domainName": "שם דומיין",
+    "port": "פורט",
+    "pm2AppName": "שם אפליקציית PM2",
+    "projectRoot": "שורש הפרויקט",
+    "deploymentPreview": "תצוגה מקדימה של פריסה",
+    "preparingDeployment": "מכין פריסה",
+    "prepareDeploymentPackage": "הכן חבילת פריסה",
+    "downloadDeploymentScript": "הורד סקריפט פריסה",
+    "deploymentInstructions": "הוראות פריסה",
     "blogCategories": "קטגוריות בלוג",
     "manageBlogCategories": "נהל קטגוריות בלוג",
     "createNewCategory": "צור קטגוריה חדשה",
@@ -665,5 +692,54 @@
     "deactivate": "השבת",
     "allStatuses": "כל הסטטוסים",
     "search": "חפש"
+  },
+  "mobile": {
+    "nav": {
+      "home": "בית",
+      "search": "חיפוש",
+      "albums": "אלבומים",
+      "upload": "העלאה",
+      "people": "אנשים",
+      "locations": "מיקומים",
+      "tags": "תגיות",
+      "dashboard": "לוח בקרה",
+      "menu": "תפריט",
+      "login": "התחבר",
+      "logout": "התנתק"
+    },
+    "upload": {
+      "selectFiles": "בחר קבצים",
+      "takePhoto": "צלם תמונה",
+      "dragDrop": "גרור ושחרר קבצים כאן, או לחץ כדי לבחור",
+      "maxFiles": "מקסימום {maxFiles} קבצים, 50MB כל אחד",
+      "selectedFiles": "קבצים שנבחרו",
+      "uploading": "מעלה...",
+      "uploadFiles": "העלה {count} קבצים",
+      "success": "העלאה הושלמה בהצלחה!",
+      "error": "העלאה נכשלה. אנא נסה שוב.",
+      "invalidFiles": "חלק מהקבצים דולגו עקב פורמט או גודל לא תקין"
+    },
+    "search": {
+      "placeholder": "חפש תמונות, אלבומים, אנשים...",
+      "searchType": "סוג חיפוש",
+      "all": "הכל",
+      "photos": "תמונות",
+      "albums": "אלבומים",
+      "people": "אנשים",
+      "locations": "מיקומים",
+      "dateRange": "טווח תאריכים",
+      "from": "מ-",
+      "to": "עד",
+      "location": "מיקום",
+      "locationPlaceholder": "הזן שם מיקום...",
+      "clear": "נקה הכל",
+      "apply": "החל מסננים"
+    },
+    "gallery": {
+      "previous": "הקודם",
+      "next": "הבא",
+      "people": "אנשים",
+      "location": "מיקום"
+    }
   }
 }

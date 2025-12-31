@@ -5,6 +5,7 @@
 	import { browser } from '$app/environment';
 	import { currentLanguage } from '$stores/language';
 	import { siteConfigData } from '$stores/siteConfig';
+	import { t } from '$stores/i18n';
 	import AlbumBreadcrumbs from '$lib/components/AlbumBreadcrumbs.svelte';
 	import PhotoLightbox from '$lib/components/PhotoLightbox.svelte';
 	import MultiLangText from '$lib/components/MultiLangText.svelte';
@@ -283,7 +284,7 @@
 	<div class="min-h-screen bg-gray-50 flex items-center justify-center">
 		<div class="text-center">
 			<div class="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-			<div class="text-gray-600">Loading album...</div>
+			<div class="text-gray-600">{$t('albums.loadingAlbum')}</div>
 		</div>
 	</div>
 {:else if error}
@@ -291,16 +292,16 @@
 		<div class="text-center">
 			<div class="text-gray-600 mb-4">{error}</div>
 			<button on:click={() => goto('/albums')} class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
-				Back to Albums
+				{$t('albums.backToAlbums')}
 			</button>
 		</div>
 	</div>
 {:else if !albumData || !albumData.album}
 	<div class="min-h-screen bg-gray-50 flex items-center justify-center">
 		<div class="text-center">
-			<div class="text-gray-600 mb-4">Album not found</div>
+			<div class="text-gray-600 mb-4">{$t('albums.albumNotFound')}</div>
 			<button on:click={() => goto('/albums')} class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
-				Back to Albums
+				{$t('albums.backToAlbums')}
 			</button>
 		</div>
 	</div>
@@ -324,9 +325,9 @@
 						</div>
 					{/if}
 					<div class="mt-4 text-sm text-gray-500">
-						{albumData.photos.length} photos
+						{albumData.photos.length} {albumData.photos.length === 1 ? $t('search.photo') : $t('albums.photos')}
 						{#if albumData.subAlbums && albumData.subAlbums.length > 0}
-							• {albumData.subAlbums.length} sub-albums
+							• {albumData.subAlbums.length} {$t('albums.subAlbums')}
 						{/if}
 					</div>
 				</div>
@@ -356,7 +357,7 @@
 											<MultiLangText value={subAlbum.name} fallback="Untitled Album" />
 										</h3>
 										<div class="text-sm text-gray-500 mt-1">
-											{subAlbum.photoCount || 0} photos
+											{subAlbum.photoCount || 0} {(subAlbum.photoCount || 0) === 1 ? $t('search.photo') : $t('albums.photos')}
 										</div>
 									</div>
 								</div>
@@ -475,13 +476,13 @@
 								disabled={loadingMore}
 								class="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
 							>
-								{loadingMore ? 'Loading...' : `Load More (${albumData.pagination.total - albumData.photos.length} remaining)`}
+								{loadingMore ? $t('search.loading') : `${$t('search.loadMore')} (${albumData.pagination.total - albumData.photos.length} ${$t('albums.remaining')})`}
 							</button>
 						</div>
 					{/if}
 				{:else if !albumData.subAlbums || albumData.subAlbums.length === 0}
 					<div class="text-center py-12">
-						<div class="text-gray-600">This album is empty.</div>
+						<div class="text-gray-600">{$t('albums.emptyAlbum')}</div>
 					</div>
 				{/if}
 			</div>

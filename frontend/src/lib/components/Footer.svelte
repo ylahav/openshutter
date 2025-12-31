@@ -8,10 +8,6 @@
 			<p class="text-gray-300">
 				© {year} OpenShutter. All rights reserved.
 			</p>
-			<p class="text-gray-400 text-sm">
-				SvelteKit migration preview — frontend is being migrated from Next.js to SvelteKit.
-			</p>
 		</div>
 	</div>
 </footer>
-

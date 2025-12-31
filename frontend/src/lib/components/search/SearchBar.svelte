@@ -1,9 +1,12 @@
 <script lang="ts">
 	import { createEventDispatcher } from 'svelte';
+	import { t } from '$stores/i18n';
 
 	export let query = '';
 	export let loading = false;
-	export let placeholder = 'Search photos and albums...';
+	export let placeholder = '';
+	
+	$: displayPlaceholder = placeholder || $t('search.placeholder');
 
 	const dispatch = createEventDispatcher();
 
@@ -45,7 +48,7 @@
 			on:focus={() => (isFocused = true)}
 			on:blur={() => (isFocused = false)}
 			on:keydown={handleKeyDown}
-			{placeholder}
+			placeholder={displayPlaceholder}
 			disabled={loading}
 			class="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm disabled:opacity-50"
 		/>

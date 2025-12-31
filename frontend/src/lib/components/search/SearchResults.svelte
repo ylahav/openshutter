@@ -3,6 +3,7 @@
 	import PhotoLightbox from '../PhotoLightbox.svelte';
 	import { currentLanguage } from '$stores/language';
 	import { MultiLangUtils } from '$utils/multiLang';
+	import { t } from '$stores/i18n';
 
 	export let results: {
 		photos: any[];
@@ -112,14 +113,14 @@
 						d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
 					/>
 				</svg>
-				<h3 class="text-lg font-semibold">Search Error</h3>
+				<h3 class="text-lg font-semibold">{$t('search.error')}</h3>
 				<p class="text-sm text-gray-600 mt-1">{error}</p>
 			</div>
 			<button
 				on:click={() => window.location.reload()}
 				class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
 			>
-				Try Again
+				{$t('search.retry')}
 			</button>
 		</div>
 	{:else if !query && !hasResults}
@@ -132,8 +133,8 @@
 					d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
 				/>
 			</svg>
-			<h3 class="text-lg font-semibold text-gray-900 mb-2">Start Searching</h3>
-			<p class="text-gray-600">Enter a search term or use filters to find photos and albums</p>
+			<h3 class="text-lg font-semibold text-gray-900 mb-2">{$t('search.startSearching')}</h3>
+			<p class="text-gray-600">{$t('search.startSearchingDescription')}</p>
 		</div>
 	{:else}
 		<!-- Results Header -->
@@ -141,9 +142,9 @@
 			<div class="bg-white rounded-lg shadow-sm border p-4">
 				<div class="flex items-center justify-between">
 					<div class="flex items-center space-x-4">
-						<h2 class="text-lg font-semibold text-gray-900">Search Results</h2>
+						<h2 class="text-lg font-semibold text-gray-900">{$t('search.results')}</h2>
 						<span class="text-sm text-gray-600">
-							{photoCount} {photoCount === 1 ? 'photo' : 'photos'}
+							{photoCount} {photoCount === 1 ? $t('search.photo') : $t('search.photos')}
 						</span>
 					</div>
 				</div>
@@ -151,7 +152,7 @@
 				{#if query}
 					<div class="mt-2">
 						<span class="text-sm text-gray-600">
-							Searching for: <strong>"{query}"</strong>
+							{$t('search.searchingFor')} <strong>"{query}"</strong>
 						</span>
 					</div>
 				{/if}
@@ -162,7 +163,7 @@
 		{#if loading}
 			<div class="bg-white rounded-lg shadow-sm border p-8 text-center">
 				<div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-				<p class="text-gray-600">Searching...</p>
+				<p class="text-gray-600">{$t('search.searching')}</p>
 			</div>
 		{:else}
 			<!-- Photos Grid -->
@@ -192,12 +193,12 @@
 								/>
 							{:else}
 								<div class="w-full h-48 bg-gray-200 flex items-center justify-center">
-									<span class="text-gray-400">No image</span>
+									<span class="text-gray-400">{$t('search.noImage')}</span>
 								</div>
 							{/if}
 							<div class="p-2">
 								<p class="text-sm text-gray-600 truncate">
-									{photo.filename || photo.title || 'Untitled'}
+									{photo.filename || photo.title || $t('search.untitled')}
 								</p>
 							</div>
 						</div>
@@ -213,7 +214,7 @@
 						disabled={loading}
 						class="px-8 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
 					>
-						{loading ? 'Loading...' : 'Load More'}
+						{loading ? $t('search.loading') : $t('search.loadMore')}
 					</button>
 				</div>
 			{/if}
@@ -229,8 +230,8 @@
 							d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
 						/>
 					</svg>
-					<h3 class="text-lg font-semibold text-gray-900 mb-2">No Results Found</h3>
-					<p class="text-gray-600">Try adjusting your search terms or filters</p>
+					<h3 class="text-lg font-semibold text-gray-900 mb-2">{$t('search.noResults')}</h3>
+					<p class="text-gray-600">{$t('search.noResultsDescription')}</p>
 				</div>
 			{/if}
 		{/if}

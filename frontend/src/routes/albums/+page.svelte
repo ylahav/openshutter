@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { currentLanguage } from '$stores/language';
 	import { MultiLangUtils } from '$utils/multiLang';
+	import { t } from '$stores/i18n';
 
 	interface Album {
 		_id: string;
@@ -21,15 +22,21 @@
 	let error = '';
 	let coverImages: Record<string, string> = {};
 
+	// Functions that use current language reactively
 	function getAlbumName(album: Album): string {
 		if (typeof album.name === 'string') return album.name;
-		return album.name?.en || album.name?.he || '(No name)';
+		// Use $currentLanguage to make it reactive - Svelte will track this dependency
+		const lang = $currentLanguage;
+		return MultiLangUtils.getTextValue(album.name, lang) || '(No name)';
 	}
 
 	function getAlbumDescription(album: Album): string {
 		if (!album.description) return '';
 		if (typeof album.description === 'string') return album.description;
-		return album.description?.en || album.description?.he || '';
+		// Use $currentLanguage to make it reactive - Svelte will track this dependency
+		// Use getHTMLValue since descriptions can contain HTML
+		const lang = $currentLanguage;
+		return MultiLangUtils.getHTMLValue(album.description, lang) || '';
 	}
 
 	async function fetchAlbums() {
@@ -111,7 +118,7 @@
 		<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 			<div class="text-center">
 				<div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-				<p class="mt-4 text-gray-600">Loading albums...</p>
+				<p class="mt-4 text-gray-600">{$t('loading.loadingGallery')}</p>
 			</div>
 		</div>
 	</section>
@@ -142,8 +149,8 @@
 						d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
 					/>
 				</svg>
-				<h3 class="mt-2 text-sm font-medium text-gray-900">No albums available</h3>
-				<p class="mt-1 text-sm text-gray-500">Check back later for new public albums</p>
+				<h3 class="mt-2 text-sm font-medium text-gray-900">{$t('albums.noAlbumsTitle')}</h3>
+				<p class="mt-1 text-sm text-gray-500">{$t('albums.noAlbumsText')}</p>
 			</div>
 		</div>
 	</section>
@@ -151,8 +158,8 @@
 	<section class="py-16 bg-gray-50">
 		<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 			<div class="mb-8">
-				<h1 class="text-3xl font-bold text-gray-900">Albums</h1>
-				<p class="mt-2 text-gray-600">Browse our photo collections</p>
+				<h1 class="text-3xl font-bold text-gray-900">{$t('navigation.albums')}</h1>
+				<p class="mt-2 text-gray-600">{$t('albums.browsePhotoCollections')}</p>
 			</div>
 
 			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -198,24 +205,22 @@
 									<span
 										class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800"
 									>
-										⭐ Featured
+										⭐ {$t('owner.featured')}
 									</span>
 								{/if}
 							</div>
 
 							{#if getAlbumDescription(album)}
-								<p class="text-gray-600 mb-4 line-clamp-2">{getAlbumDescription(album)}</p>
-							{:else}
-								<p class="text-gray-600 mb-4 line-clamp-2">No description available</p>
+								<div class="text-gray-600 mb-4 line-clamp-2">{@html getAlbumDescription(album)}</div>
 							{/if}
 
 							<div class="flex items-center justify-between">
-								<span class="text-sm text-gray-500">{album.photoCount || 0} photos</span>
+								<span class="text-sm text-gray-500">{album.photoCount || 0} {$t('albums.photos')}</span>
 								<a
 									href="/albums/{album.alias}"
 									class="text-blue-600 hover:text-blue-700 font-medium text-sm group-hover:underline"
 								>
-									View Album →
+									{$t('albums.viewAlbum')} →
 								</a>
 							</div>
 						</div>

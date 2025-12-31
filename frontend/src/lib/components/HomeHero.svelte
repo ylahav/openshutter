@@ -3,6 +3,7 @@
   import { MultiLangUtils } from '$utils/multiLang';
   import { siteConfigData } from '$stores/siteConfig';
   import { currentLanguage } from '$stores/language';
+  import { t } from '$stores/i18n';
 
   interface TemplatePhoto {
     _id: string;
@@ -98,13 +99,13 @@
           href="/albums"
           class="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm bg-white text-primary-600 hover:bg-blue-50"
         >
-          Browse Albums
+          {$t('hero.browseAlbums')}
         </a>
         <a
           href="/search"
           class="inline-flex items-center justify-center px-6 py-3 border border-white/40 text-base font-medium rounded-md text-white hover:bg-white/10"
         >
-          Search Photos
+          {$t('hero.searchPhotos')}
         </a>
       </div>
     </div>

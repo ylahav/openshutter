@@ -3,6 +3,7 @@
 	import { page } from '$app/stores';
 	import { currentLanguage } from '$stores/language';
 	import { MultiLangUtils } from '$utils/multiLang';
+	import { t } from '$stores/i18n';
 	import SearchBar from './SearchBar.svelte';
 	import SearchResults from './SearchResults.svelte';
 
@@ -155,10 +156,10 @@
 
 				currentPage = page;
 			} else {
-				error = data.error || 'Search failed';
+				error = data.error || $t('search.error');
 			}
 		} catch (err) {
-			error = 'Search failed';
+			error = $t('search.error');
 			console.error('Search error:', err);
 		} finally {
 			loading = false;
@@ -199,7 +200,7 @@
 			<div class="mb-4 flex flex-wrap gap-2">
 				{#if filters.albumId}
 					<span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
-						Album: {filters.albumId}
+						{$t('search.album')}: {filters.albumId}
 						<button
 							on:click={() => {
 								filters = { ...filters, albumId: null };
@@ -212,7 +213,7 @@
 				{/if}
 				{#each filters.tags as tagId}
 					<span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
-						Tag: {tagId}
+						{$t('search.tags')}: {tagId}
 						<button
 							on:click={() => {
 								filters = { ...filters, tags: filters.tags.filter((id) => id !== tagId) };
@@ -225,7 +226,7 @@
 				{/each}
 				{#each filters.people as personId}
 					<span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
-						Person: {personId}
+						{$t('search.people')}: {personId}
 						<button
 							on:click={() => {
 								filters = { ...filters, people: filters.people.filter((id) => id !== personId) };
@@ -238,7 +239,7 @@
 				{/each}
 				{#each filters.locationIds as locationId}
 					<span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
-						Location: {locationId}
+						{$t('search.locations')}: {locationId}
 						<button
 							on:click={() => {
 								filters = {

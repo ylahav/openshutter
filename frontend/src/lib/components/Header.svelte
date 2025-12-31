@@ -6,6 +6,7 @@
 	import { auth, logout } from '$lib/stores/auth';
 	import { MultiLangUtils } from '$utils/multiLang';
 	import LanguageSelector from '$components/LanguageSelector.svelte';
+	import { t } from '$stores/i18n';
 
 	const year = new Date().getFullYear();
 
@@ -71,15 +72,15 @@
 
 			<!-- Simple nav placeholder (we'll enhance later) -->
 			<nav class="hidden md:flex items-center gap-4 text-sm text-gray-600">
-				<a href="/" class="hover:text-gray-900">Home</a>
-				<a href="/albums" class="hover:text-gray-900">Albums</a>
-				<a href="/search" class="hover:text-gray-900">Search</a>
+				<a href="/" class="hover:text-gray-900">{$t('navigation.home')}</a>
+				<a href="/albums" class="hover:text-gray-900">{$t('navigation.albums')}</a>
+				<a href="/search" class="hover:text-gray-900">{$t('navigation.search')}</a>
 
 				{#if $auth.authenticated && $auth.user}
 					{#if $auth.user.role === 'admin'}
-						<a href="/admin" class="hover:text-gray-900 font-medium text-primary-600">Admin</a>
+						<a href="/admin" class="hover:text-gray-900 font-medium text-primary-600">{$t('navigation.admin')}</a>
 					{:else if $auth.user.role === 'owner'}
-						<a href="/owner" class="hover:text-gray-900 font-medium text-primary-600">My Gallery</a>
+						<a href="/owner" class="hover:text-gray-900 font-medium text-primary-600">{$t('header.myGallery')}</a>
 					{/if}
 					<span class="text-gray-400">|</span>
 					<span class="text-gray-500">{$auth.user.name || $auth.user.email}</span>
@@ -88,10 +89,10 @@
 						class="hover:text-gray-900 text-gray-600"
 						type="button"
 					>
-						Logout
+						{$t('header.logout')}
 					</button>
 				{:else}
-					<a href="/login" class="hover:text-gray-900">Sign In</a>
+					<a href="/login" class="hover:text-gray-900">{$t('auth.signIn')}</a>
 				{/if}
 
 				<!-- Language selector on the right -->

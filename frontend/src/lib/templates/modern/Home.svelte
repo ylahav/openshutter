@@ -3,6 +3,7 @@
 	import HomeHero from '$components/HomeHero.svelte';
 	import { currentLanguage } from '$stores/language';
 	import { MultiLangUtils } from '$utils/multiLang';
+	import { t } from '$stores/i18n';
 	import { onMount } from 'svelte';
 
 	export let data: PageData;
@@ -65,11 +66,11 @@
 	<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
 		<div class="flex items-center justify-between mb-6">
 			<div>
-				<h2 class="text-2xl font-semibold text-gray-900">Featured Albums</h2>
-				<p class="mt-1 text-sm text-gray-500">Root-level public albums from your gallery.</p>
+				<h2 class="text-2xl font-semibold text-gray-900">{$t('admin.featuredAlbums')}</h2>
+				<p class="mt-1 text-sm text-gray-500">{$t('albums.rootLevelAlbumsDescription')}</p>
 			</div>
 			<a href="/albums" class="text-sm font-medium text-primary-600 hover:text-primary-700">
-				View all
+				{$t('hero.browseAllAlbums')}
 			</a>
 		</div>
 
@@ -125,9 +126,10 @@
 								{/if}
 							</h3>
 							{#if album.description}
-								<p class="mt-1 text-xs text-gray-500 line-clamp-2">
-									{MultiLangUtils.getTextValue(album.description, $currentLanguage)}
-								</p>
+								{@const desc = MultiLangUtils.getHTMLValue(album.description, $currentLanguage)}
+								{#if desc}
+									<div class="mt-1 text-xs text-gray-500 line-clamp-2">{@html desc}</div>
+								{/if}
 							{/if}
 						</div>
 					</a>
