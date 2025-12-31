@@ -34,3 +34,6 @@ out/
 # Temporary files and build artifacts
 tmp/
 temp/
+
+# Backend build output
+backend/dist/
