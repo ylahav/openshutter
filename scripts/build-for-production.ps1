@@ -174,7 +174,7 @@ sleep 3
 echo "Starting frontend..."
 cd ../frontend
 pnpm install --prod --frozen-lockfile
-PORT=`${FRONTEND_PORT:-4000} node build/index.js &
+PORT=`${FRONTEND_PORT:-4000} node build &
 FRONTEND_PID=`$!
 
 # Wait for both processes
