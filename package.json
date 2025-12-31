@@ -16,7 +16,7 @@
     "start:backend": "pnpm --filter openshutter-backend start",
     "lint": "pnpm --filter openshutter lint && pnpm --filter openshutter-backend lint",
     "type-check": "pnpm --filter openshutter type-check",
-    "build:prod": "./scripts/build-for-production.sh",
+    "build:prod": "node -e \"const {execSync}=require('child_process');const cmd=process.platform==='win32'?'powershell -ExecutionPolicy Bypass -File scripts/build-for-production.ps1':'bash scripts/build-for-production.sh';execSync(cmd,{stdio:'inherit',cwd:process.cwd()})\"",
     "deploy": "./scripts/deploy-to-server.sh"
   },
   "devDependencies": {
