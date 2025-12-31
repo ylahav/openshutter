@@ -30,3 +30,7 @@ frontend/.svelte-kit/
 # Next.js build artifacts (legacy, during migration)
 .next/
 out/
+
+# Temporary files and build artifacts
+tmp/
+temp/

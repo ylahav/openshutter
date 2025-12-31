@@ -238,8 +238,15 @@ For detailed deployment instructions, see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.m
 │   │   └── main.ts      # NestJS application entry point
 │   └── package.json     # Backend dependencies
 │
-└── docker-compose.yml   # Orchestration for frontend, backend, and db
+├── scripts/             # Build and deployment scripts
+├── docs/                # Documentation files
+├── storage/             # Local storage directory (if using local storage)
+├── logs/                # Application logs
+├── docker-compose.yml   # Orchestration for frontend, backend, and db
+└── .gitignore           # Git ignore rules (excludes tmp/, build artifacts, etc.)
 ```
+
+**Note**: The `tmp/` folder (if present) contains temporary build artifacts and can be safely deleted. It is excluded from version control via `.gitignore`.
 
 **Migration Status**: The frontend is currently migrating from Next.js to SvelteKit. Most admin routes and core infrastructure have been migrated. See [SVELTEKIT_PROGRESS.md](frontend/SVELTEKIT_PROGRESS.md) for detailed migration status.
 
