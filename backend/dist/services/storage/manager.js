@@ -80,7 +80,6 @@ class StorageManager {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const service = yield this.getProvider(providerId);
-                const albumPath = parentPath ? `${parentPath}/${albumAlias}` : albumAlias;
                 return yield service.createFolder(albumAlias, parentPath);
             }
             catch (error) {

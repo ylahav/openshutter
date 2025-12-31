@@ -88,7 +88,7 @@ let FaceDetectionController = class FaceDetectionController {
                 try {
                     objectId = new mongoose_1.Types.ObjectId(photoId);
                 }
-                catch (error) {
+                catch (_error) {
                     throw new common_1.BadRequestException('Invalid photo ID format');
                 }
                 const photo = yield db.collection('photos').findOne({ _id: objectId });
@@ -175,7 +175,7 @@ let FaceDetectionController = class FaceDetectionController {
                 try {
                     objectId = new mongoose_1.Types.ObjectId(photoId);
                 }
-                catch (error) {
+                catch (_error) {
                     throw new common_1.BadRequestException('Invalid photo ID format');
                 }
                 const photo = yield db.collection('photos').findOne({ _id: objectId });
@@ -259,7 +259,7 @@ let FaceDetectionController = class FaceDetectionController {
                 try {
                     objectId = new mongoose_1.Types.ObjectId(photoId);
                 }
-                catch (error) {
+                catch (_error) {
                     throw new common_1.BadRequestException('Invalid photo ID format');
                 }
                 const photo = yield db.collection('photos').findOne({ _id: objectId });

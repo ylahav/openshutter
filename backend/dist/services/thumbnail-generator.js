@@ -49,7 +49,7 @@ class ThumbnailGenerator {
         if (!targetSize.maintainAspectRatio) {
             return { width: targetSize.width, height: targetSize.height };
         }
-        const { width: originalWidth, height: originalHeight, aspectRatio } = originalDimensions;
+        const { width: originalWidth, height: originalHeight } = originalDimensions;
         const { width: targetWidth, height: targetHeight } = targetSize;
         // Calculate scale factor based on the larger dimension
         const scaleX = targetWidth / originalWidth;
@@ -63,7 +63,7 @@ class ThumbnailGenerator {
     /**
      * Generate all thumbnail sizes for an image
      */
-    static generateAllThumbnails(imageBuffer, baseFilename) {
+    static generateAllThumbnails(imageBuffer, _baseFilename) {
         return __awaiter(this, void 0, void 0, function* () {
             const thumbnails = {};
             // Analyze the original image dimensions

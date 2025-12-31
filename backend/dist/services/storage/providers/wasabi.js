@@ -187,7 +187,7 @@ class WasabiService {
                     ContentType: mimeType,
                     Metadata: metadata || {}
                 });
-                const result = yield this.s3Client.send(command);
+                yield this.s3Client.send(command);
                 console.log(`WasabiService: Uploaded file '${filename}' with key: ${key}`);
                 return {
                     provider: this.providerId,

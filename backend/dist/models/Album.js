@@ -44,16 +44,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AlbumModel = exports.AlbumSchema = void 0;
 const mongoose_1 = __importStar(require("mongoose"));
-// Simple schema for multi-language text
-const MultiLangTextSchema = new mongoose_1.Schema({
-    en: { type: String, default: '' },
-    he: { type: String, default: '' },
-}, { _id: false });
-// Simple schema for multi-language HTML
-const MultiLangHTMLSchema = new mongoose_1.Schema({
-    en: { type: String, default: '' },
-    he: { type: String, default: '' },
-}, { _id: false });
 exports.AlbumSchema = new mongoose_1.Schema({
     name: {
         type: mongoose_1.Schema.Types.Mixed, // Allow both string and multilingual object

@@ -80,7 +80,7 @@ let AlbumsAdminController = class AlbumsAdminController {
                 try {
                     objectId = new mongoose_1.Types.ObjectId(id);
                 }
-                catch (error) {
+                catch (_error) {
                     throw new Error('Invalid album ID format');
                 }
                 // Get ALL photos for this album (including unpublished) - admin only
@@ -153,7 +153,7 @@ let AlbumsAdminController = class AlbumsAdminController {
                 try {
                     objectId = new mongoose_1.Types.ObjectId(id);
                 }
-                catch (error) {
+                catch (_error) {
                     throw new common_1.BadRequestException('Invalid album ID format');
                 }
                 // Check if album exists

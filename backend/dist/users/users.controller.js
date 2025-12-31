@@ -109,7 +109,7 @@ let UsersController = class UsersController {
                 const users = yield collection.find(query).sort({ username: 1 }).toArray();
                 // Convert ObjectIds to strings and remove passwordHash
                 const serializedUsers = users.map((user) => {
-                    const { passwordHash } = user, rest = __rest(user, ["passwordHash"]);
+                    const { passwordHash: _ } = user, rest = __rest(user, ["passwordHash"]);
                     return Object.assign(Object.assign({}, rest), { _id: user._id.toString() });
                 });
                 return {
@@ -139,7 +139,7 @@ let UsersController = class UsersController {
                     throw new common_1.NotFoundException(`User not found: ${id}`);
                 }
                 // Remove passwordHash and convert ObjectId to string
-                const { passwordHash } = user, rest = __rest(user, ["passwordHash"]);
+                const { passwordHash: _ } = user, rest = __rest(user, ["passwordHash"]);
                 return Object.assign(Object.assign({}, rest), { _id: user._id.toString() });
             }
             catch (error) {

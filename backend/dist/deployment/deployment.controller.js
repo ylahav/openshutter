@@ -52,14 +52,14 @@ let DeploymentController = class DeploymentController {
                     const frontendPkg = JSON.parse((0, fs_1.readFileSync)((0, path_1.join)(frontendRoot, 'package.json'), 'utf-8'));
                     frontendVersion = frontendPkg.version || 'unknown';
                 }
-                catch (e) {
+                catch (_e) {
                     // Ignore
                 }
                 try {
                     const backendPkg = JSON.parse((0, fs_1.readFileSync)((0, path_1.join)(backendRoot, 'package.json'), 'utf-8'));
                     backendVersion = backendPkg.version || 'unknown';
                 }
-                catch (e) {
+                catch (_e) {
                     // Ignore
                 }
                 // Check for deployment packages
@@ -86,7 +86,7 @@ let DeploymentController = class DeploymentController {
                 try {
                     nodeVersion = (0, child_process_1.execSync)('node --version', { encoding: 'utf-8' }).trim();
                 }
-                catch (e) {
+                catch (_e) {
                     // Ignore
                 }
                 // Check if Docker is available
@@ -96,7 +96,7 @@ let DeploymentController = class DeploymentController {
                     dockerVersion = (0, child_process_1.execSync)('docker --version', { encoding: 'utf-8' }).trim();
                     dockerAvailable = true;
                 }
-                catch (e) {
+                catch (_e) {
                     // Docker not available
                 }
                 // Check if PM2 is available
@@ -106,7 +106,7 @@ let DeploymentController = class DeploymentController {
                     pm2Version = (0, child_process_1.execSync)('pm2 --version', { encoding: 'utf-8' }).trim();
                     pm2Available = true;
                 }
-                catch (e) {
+                catch (_e) {
                     // PM2 not available
                 }
                 return {

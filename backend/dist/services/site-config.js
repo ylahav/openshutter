@@ -72,7 +72,7 @@ class SiteConfigService {
                 throw new Error('Database connection not established');
             const collection = db.collection('site_config');
             const updateData = Object.assign(Object.assign({}, updates), { updatedAt: new Date() });
-            const result = yield collection.updateOne({}, // Update the first (and only) config document
+            yield collection.updateOne({}, // Update the first (and only) config document
             { $set: updateData }, { upsert: true });
             // Invalidate cache
             this.invalidateCache();
@@ -151,7 +151,7 @@ class SiteConfigService {
             logo: '',
             favicon: '',
             languages: {
-                activeLanguages: ['en'],
+                activeLanguages: ['en', 'he'],
                 defaultLanguage: 'en'
             },
             theme: {

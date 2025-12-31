@@ -23,7 +23,7 @@ let FaceRecognitionService = class FaceRecognitionService {
      * Note: This uses client-side face-api.js models
      * For server-side detection, we would need to use face-recognition-server service
      */
-    detectFaces(imageUrl) {
+    detectFaces(_imageUrl) {
         return __awaiter(this, void 0, void 0, function* () {
             // For now, this is a placeholder
             // In a real implementation, we would either:

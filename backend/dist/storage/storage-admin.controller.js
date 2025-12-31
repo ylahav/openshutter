@@ -58,7 +58,7 @@ let StorageAdminController = class StorageAdminController {
                 const config = yield config_1.storageConfigService.getConfig(providerId);
                 return config;
             }
-            catch (error) {
+            catch (_error) {
                 throw new common_1.BadRequestException(`Storage provider not found: ${providerId}`);
             }
         });

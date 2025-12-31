@@ -75,7 +75,7 @@ let PhotosAdminController = class PhotosAdminController {
                 try {
                     objectId = new mongoose_1.Types.ObjectId(id);
                 }
-                catch (error) {
+                catch (_error) {
                     throw new common_1.BadRequestException('Invalid photo ID format');
                 }
                 const photo = yield db.collection('photos').findOne({ _id: objectId });
@@ -132,7 +132,7 @@ let PhotosAdminController = class PhotosAdminController {
                 try {
                     objectId = new mongoose_1.Types.ObjectId(id);
                 }
-                catch (error) {
+                catch (_error) {
                     throw new common_1.BadRequestException('Invalid photo ID format');
                 }
                 // Check if photo exists
@@ -271,7 +271,7 @@ let PhotosAdminController = class PhotosAdminController {
                 try {
                     objectId = new mongoose_1.Types.ObjectId(id);
                 }
-                catch (error) {
+                catch (_error) {
                     throw new common_1.BadRequestException('Invalid photo ID format');
                 }
                 const photo = yield db.collection('photos').findOne({ _id: objectId });

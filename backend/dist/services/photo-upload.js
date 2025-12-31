@@ -58,6 +58,10 @@ const manager_1 = require("./storage/manager");
 const mongoose_1 = __importStar(require("mongoose"));
 const thumbnail_generator_1 = require("./thumbnail-generator");
 const image_compression_1 = require("./image-compression");
+// Models imported for type references but not directly used
+// import { PhotoModel } from '../models/Photo'
+// import { AlbumModel } from '../models/Album'
+// import { UserModel } from '../models/User'
 const { ObjectId } = mongoose_1.Types;
 let PhotoUploadService = class PhotoUploadService {
     uploadPhoto(fileBuffer_1, originalFilename_1, mimeType_1) {
@@ -90,7 +94,6 @@ let PhotoUploadService = class PhotoUploadService {
                 console.log(`PhotoUploadService: Storage service obtained:`, storageService.constructor.name);
                 // Generate unique filename
                 const timestamp = Date.now();
-                const extension = originalFilename.split('.').pop();
                 const filename = `${timestamp}-${originalFilename}`;
                 // Use album path if it exists (folders should be created when album is created)
                 let albumPath = '';

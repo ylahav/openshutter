@@ -184,7 +184,7 @@ class AwsS3Service {
                     ContentType: mimeType,
                     Metadata: metadata || {}
                 });
-                const result = yield this.s3Client.send(command);
+                yield this.s3Client.send(command);
                 console.log(`AwsS3Service: Uploaded file '${filename}' with key: ${key}`);
                 return {
                     provider: this.providerId,
