@@ -153,17 +153,47 @@ if (Test-Path "docs\DEPLOYMENT.md") {
     Copy-Item -Path "docs\DEPLOYMENT.md" -Destination (Join-Path $DEPLOY_DIR "docs\DEPLOYMENT.md") -Force
 }
 
-# Create a start script
+# Create build script (installs dependencies)
+$BUILD_SCRIPT = @"
+#!/bin/bash
+# Production build script for OpenShutter
+# This script installs all production dependencies
+
+set -e
+
+echo "Installing dependencies for OpenShutter..."
+
+# Install root dependencies
+echo "Installing root dependencies..."
+pnpm install --prod --frozen-lockfile
+
+# Install backend dependencies
+echo "Installing backend dependencies..."
+cd backend
+pnpm install --prod --frozen-lockfile
+cd ..
+
+# Install frontend dependencies
+echo "Installing frontend dependencies..."
+cd frontend
+pnpm install --prod --frozen-lockfile
+cd ..
+
+echo "All dependencies installed successfully!"
+"@
+$BUILD_SCRIPT | Out-File -FilePath (Join-Path $DEPLOY_DIR "build.sh") -Encoding utf8 -NoNewline
+
+# Create start script (starts the application)
 $START_SCRIPT = @"
 #!/bin/bash
 # Production start script for OpenShutter
+# This script starts both backend and frontend services
 
 set -e
 
 # Start backend
 echo "Starting backend..."
 cd backend
-pnpm install --prod --frozen-lockfile
 PORT=`${PORT:-5000} node dist/main.js &
 BACKEND_PID=`$!
 
@@ -173,7 +203,6 @@ sleep 3
 # Start frontend (SvelteKit)
 echo "Starting frontend..."
 cd ../frontend
-pnpm install --prod --frozen-lockfile
 PORT=`${FRONTEND_PORT:-4000} node build &
 FRONTEND_PID=`$!
 
@@ -307,9 +336,7 @@ if (Test-Path "openshutter-deployment.zip") {
 }
 Write-Host "  3. Configure .env.production with your MongoDB URI (external MongoDB required)" -ForegroundColor White
 Write-Host "     Example: MONGODB_URI=mongodb://your-mongodb-host:27017/openshutter" -ForegroundColor Gray
-Write-Host "  4. Install dependencies: cd openshutter; pnpm install --prod" -ForegroundColor White
-Write-Host "  5. Start with Docker: docker-compose up -d" -ForegroundColor White
-Write-Host "     Or start manually: ./start.sh" -ForegroundColor White
-Write-Host ""
-Write-Host "Note: Docker image does NOT include MongoDB. Use external MongoDB instance." -ForegroundColor Yellow
+Write-Host "  4. Install dependencies: cd openshutter; chmod +x build.sh; ./build.sh" -ForegroundColor White
+Write-Host "  5. Start application: chmod +x start.sh; ./start.sh" -ForegroundColor White
+Write-Host "     Or use PM2 (recommended): See docs/SERVER_DEPLOYMENT.md" -ForegroundColor White
 Write-Host ""

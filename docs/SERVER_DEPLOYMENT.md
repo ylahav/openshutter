@@ -8,7 +8,7 @@ Before deploying, ensure your server has:
 - **Node.js 18+** installed
 - **pnpm** installed (`npm install -g pnpm`)
 - **MongoDB** running (external instance or local)
-- **Docker** and **Docker Compose** (optional, for containerized deployment)
+- **PM2** installed (`npm install -g pm2`) - Recommended for production process management
 
 ## Step 1: Transfer and Extract Deployment Package
 
@@ -205,23 +205,9 @@ cd ..
 
 ## Step 4: Start the Application
 
-### Option A: Using Docker Compose (Recommended)
+### Option A: Using PM2 (Recommended for Production)
 
-```bash
-# If docker-compose.yml exists
-docker-compose up -d
-
-# Or with specific compose file
-docker-compose -f docker-compose.prod.yml up -d
-
-# Check status
-docker-compose ps
-
-# View logs
-docker-compose logs -f
-```
-
-### Option B: Manual Start (Using PM2 - Recommended for Production)
+PM2 is a production process manager that keeps your application running, handles restarts, and provides logging.
 
 ```bash
 # Install PM2 globally (if not installed)
@@ -242,20 +228,45 @@ pm2 save
 
 # Setup PM2 to start on boot
 pm2 startup
-# Follow the instructions shown
+# Follow the instructions shown (usually involves running a sudo command)
 ```
 
-### Option C: Manual Start (Using start.sh script)
+**PM2 Management Commands:**
+```bash
+# View status
+pm2 status
+
+# View logs
+pm2 logs
+pm2 logs openshutter-backend
+pm2 logs openshutter-frontend
+
+# Restart services
+pm2 restart openshutter-backend
+pm2 restart openshutter-frontend
+pm2 restart all
+
+# Stop services
+pm2 stop all
+
+# Delete services
+pm2 delete openshutter-backend
+pm2 delete openshutter-frontend
+```
+
+### Option B: Using start.sh script (Simple, but not recommended for production)
+
+This script starts both services in the foreground. Use this for testing or development.
 
 ```bash
 # Make script executable
 chmod +x start.sh
 
-# Start application
+# Start application (runs in foreground - use Ctrl+C to stop)
 ./start.sh
 ```
 
-### Option D: Manual Start (Direct Node.js)
+### Option C: Manual Start (Direct Node.js)
 
 ```bash
 # Terminal 1: Start backend
@@ -357,34 +368,30 @@ sudo certbot --nginx -d your-domain.com
 
 ### View Logs
 ```bash
-# PM2 logs
+# PM2 logs (recommended)
 pm2 logs
+pm2 logs openshutter-backend
+pm2 logs openshutter-frontend
 
-# Docker logs
-docker-compose logs -f
-
-# Application logs
+# Application logs (if configured)
 tail -f /opt/openshutter/logs/*.log
 ```
 
 ### Restart Application
 ```bash
-# PM2
+# PM2 (recommended)
 pm2 restart openshutter-backend
 pm2 restart openshutter-frontend
+pm2 restart all
 
-# Docker
-docker-compose restart
-
-# Manual
-# Stop processes and restart using Step 4 commands
+# Manual restart
+# Stop processes (pm2 stop all) and restart using Step 4 commands
 ```
 
 ### Update Application
 ```bash
 # Stop services
 pm2 stop all
-# Or: docker-compose down
 
 # Extract new deployment package
 cd /opt/openshutter
@@ -392,11 +399,11 @@ unzip -o openshutter-deployment.zip
 
 # Install updated dependencies
 cd openshutter
-pnpm install --prod --frozen-lockfile
+chmod +x build.sh
+./build.sh
 
 # Restart services
 pm2 restart all
-# Or: docker-compose up -d
 ```
 
 ### Backup
@@ -414,7 +421,8 @@ tar -czf /backup/storage-$(date +%Y%m%d).tar.gz /opt/openshutter/storage
 ```bash
 # Check logs
 pm2 logs
-# Or: docker-compose logs
+pm2 logs openshutter-backend
+pm2 logs openshutter-frontend
 
 # Check environment variables
 cat .env.production
@@ -425,6 +433,11 @@ mongosh "mongodb://localhost:27017/openshutter"
 # Check port availability
 netstat -tulpn | grep :4000
 netstat -tulpn | grep :5000
+
+# Check PM2 status
+pm2 status
+pm2 info openshutter-backend
+pm2 info openshutter-frontend
 ```
 
 ### MongoDB Authentication Error: "Command find requires authentication"
@@ -502,9 +515,8 @@ cd /opt/openshutter
 unzip -o openshutter-deployment.zip
 cd openshutter
 nano .env.production  # Configure environment
-pnpm install --prod --frozen-lockfile
-cd backend && pnpm install --prod --frozen-lockfile && cd ..
-cd frontend && pnpm install --prod --frozen-lockfile && cd ..
+chmod +x build.sh start.sh
+./build.sh  # Install dependencies
 pm2 start backend/dist/main.js --name openshutter-backend
 pm2 start frontend/build --name openshutter-frontend
 pm2 save
