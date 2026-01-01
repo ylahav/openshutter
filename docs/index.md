@@ -10,9 +10,7 @@ Welcome to the OpenShutter documentation. This comprehensive guide covers all as
 - [Access Control System](./access-control.md) - Album permissions and user access management
 - [Owner Dashboard](./owner-dashboard.md) - Owner role dashboard and album management
 - [Storage Configuration](./STORAGE.md) - Storage providers setup and management
-- [Deployment Guide](./deploy.md) - Production deployment instructions
-- [Docker Deployment Guide](./docker-deployment.md) - Docker containerization and deployment
-- [PM2 Deployment Guide](./pm2-deployment.md) - PM2 process manager deployment
+- [Server Deployment Guide](./SERVER_DEPLOYMENT.md) - Production deployment instructions with PM2
 - [Admin Setup Guide](./ADMIN_SETUP.md) - Initial admin configuration
 - [Translation Guide](./translation-guide.md) - Multi-language support and translation keys
 
@@ -20,7 +18,7 @@ Welcome to the OpenShutter documentation. This comprehensive guide covers all as
 1. **Installation**: Follow the main [README.md](../README.md) for setup instructions
 2. **Admin Access**: Use the credentials in [ADMIN_SETUP.md](./ADMIN_SETUP.md)
 3. **Configuration**: Set up storage providers via the admin dashboard
-4. **Deployment**: Follow the [deployment guide](./deploy.md) for production setup, or use [Docker](./docker-deployment.md) or [PM2](./pm2-deployment.md) deployment options
+4. **Deployment**: Follow the [server deployment guide](./SERVER_DEPLOYMENT.md) for production setup with PM2
 
 ### Theming and Templates
 - [Creating a New Template](./templates.md) - How to build and register a custom template
@@ -125,7 +123,6 @@ pnpm type-check   # TypeScript checking
 
 - **Main README**: [../README.md](../README.md) - Complete setup and usage guide
 - **SvelteKit Migration**: [../frontend/SVELTEKIT_PROGRESS.md](../frontend/SVELTEKIT_PROGRESS.md) - Migration status and progress
-- **Component Migration**: [../COMPONENT_MIGRATION_STATUS.md](../COMPONENT_MIGRATION_STATUS.md) - Component migration status
 - **API Documentation**: Backend API available at `http://localhost:5000/api`
 - **Component Library**: Located in `src/lib/components/` (Svelte) and `src/components/ui/` (React, legacy)
 - **Type Definitions**: Available in `src/lib/types/`

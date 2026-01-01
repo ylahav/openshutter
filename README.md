@@ -70,35 +70,7 @@ A comprehensive photo gallery management system with multi-storage support, adva
 
 ## 🛠️ Installation
 
-### Option 1: Docker (Recommended)
-
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd openshutter
-   ```
-
-2. **Set up environment variables**
-   ```bash
-   cp env.example .env.local
-   # Edit .env.local with your configuration
-   ```
-
-3. **Test Docker setup**
-   ```bash
-   pnpm docker:test
-   ```
-
-4. **Start with Docker**
-   ```bash
-   # Development
-   pnpm docker:dev
-   
-   # Production
-   pnpm docker:prod
-   ```
-
-### Option 2: Local Development
+### Local Development
 
 1. **Clone the repository**
    ```bash
@@ -122,13 +94,12 @@ A comprehensive photo gallery management system with multi-storage support, adva
    MONGODB_URI=mongodb://localhost:27017/openshutter
    MONGODB_DB=openshutter
    
-   # NextAuth Configuration
-   NEXTAUTH_SECRET=your_nextauth_secret
-   NEXTAUTH_URL=http://localhost:4000
+   # Authentication Configuration (SvelteKit)
+   AUTH_JWT_SECRET=your_jwt_secret
    
    # Application Configuration
    NODE_ENV=development
-   NEXT_PUBLIC_APP_URL=http://localhost:4000
+   BACKEND_URL=http://localhost:5000
    ```
 
 4. **Set up MongoDB**
@@ -169,34 +140,39 @@ For detailed admin setup instructions, see [docs/ADMIN_SETUP.md](docs/ADMIN_SETU
 
 ## 🚀 Production Deployment
 
-### Docker Deployment (Recommended)
+For production deployment, see the comprehensive guide: [docs/SERVER_DEPLOYMENT.md](docs/SERVER_DEPLOYMENT.md)
 
-1. **Build and deploy automatically**
-   ```bash
-   pnpm deploy:prod user@your-server
-   ```
+### Quick Deployment Steps
 
-2. **Manual deployment**
+1. **Build production package**
    ```bash
-   # Build production package
    pnpm build:prod
-   
-   # Copy to server and deploy
-   scp openshutter-deployment.tar.gz user@your-server:/opt/openshutter/
-   ssh user@your-server "cd /opt/openshutter && tar -xzf openshutter-deployment.tar.gz && docker load < openshutter-image.tar && docker-compose -f docker-compose.prod.yml up -d"
    ```
 
-### Available Docker Commands
+2. **Deploy to server**
+   ```bash
+   # Copy to server
+   scp openshutter-deployment.zip user@your-server:/opt/openshutter/
+   
+   # On server: Extract, install dependencies, and start with PM2
+   ssh user@your-server
+   cd /opt/openshutter
+   unzip openshutter-deployment.zip
+   cd openshutter
+   chmod +x build.sh start.sh
+   ./build.sh
+   pm2 start backend/dist/main.js --name openshutter-backend
+   pm2 start frontend/build --name openshutter-frontend
+   pm2 save
+   ```
+
+### Available Commands
 
 ```bash
-pnpm docker:build    # Build Docker image
-pnpm docker:dev      # Start development environment
-pnpm docker:prod     # Start production environment
-pnpm docker:stop     # Stop all containers
-pnpm docker:logs     # View container logs
-pnpm docker:test     # Test Docker setup
 pnpm build:prod      # Build production package
-pnpm deploy:prod     # Deploy to production server
+pnpm dev             # Start development server
+pnpm build          # Build for production
+pnpm start          # Start production server
 ```
 
 For detailed deployment instructions, see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
@@ -243,7 +219,6 @@ For detailed deployment instructions, see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.m
 ├── docs/                # Documentation files
 ├── storage/             # Local storage directory (if using local storage)
 ├── logs/                # Application logs
-├── docker-compose.yml   # Orchestration for frontend, backend, and db
 └── .gitignore           # Git ignore rules (excludes tmp/, build artifacts, etc.)
 ```
 
@@ -369,8 +344,8 @@ OpenShutter supports multiple deployment options:
 ### PM2 Deployment (Recommended)
 Use PM2 to run the production server. See [docs/pm2-deployment.md](docs/pm2-deployment.md) for ZIP-based steps and PM2 commands.
 
-### Docker Deployment
-See [docs/docker-deployment.md](docs/docker-deployment.md) for containerized deployment.
+### Server Deployment
+See [docs/SERVER_DEPLOYMENT.md](docs/SERVER_DEPLOYMENT.md) for production deployment instructions using PM2.
 
 ### Vercel (Alternative)
 1. **Push to GitHub**

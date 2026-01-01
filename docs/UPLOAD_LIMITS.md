@@ -19,11 +19,10 @@ If using nginx as a reverse proxy, add to your nginx config:
 client_max_body_size 100M;
 ```
 
-#### Docker/Standalone
-If running in Docker or standalone mode, you may need to:
+#### Standalone/PM2
+If running in standalone mode or with PM2, you may need to:
 1. Configure the reverse proxy (nginx, etc.) to allow larger bodies
 2. Set environment variables in your deployment configuration
-3. Consider using a custom server wrapper (not recommended for standalone mode)
 
 ### Alternative Solutions
 
