@@ -162,7 +162,7 @@ For production deployment, see the comprehensive guide: [docs/SERVER_DEPLOYMENT.
    chmod +x build.sh start.sh
    ./build.sh
    pm2 start backend/dist/main.js --name openshutter-backend
-   pm2 start frontend/build --name openshutter-frontend
+   cd frontend && PORT=4000 pm2 start build/index.js --name openshutter-frontend --env production --update-env && cd ..
    pm2 save
    ```
 

@@ -8,7 +8,7 @@
     "dev": "vite dev --port 4000",
     "build": "vite build",
     "preview": "vite preview --port 4000",
-    "start": "node build",
+    "start": "node build/index.js",
     "lint": "eslint .",
     "type-check": "tsc --noEmit",
     "migrate:objectid": "node src/scripts/migrate-to-objectid-references.js",

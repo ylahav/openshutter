@@ -125,6 +125,10 @@ Write-Host "  Copying environment example files..." -ForegroundColor Blue
 if (Test-Path "frontend\env.production.example") {
     Copy-Item -Path "frontend\env.production.example" -Destination (Join-Path $DEPLOY_DIR "frontend\env.production.example") -Force
 }
+# Frontend PM2 ecosystem config example
+if (Test-Path "frontend\ecosystem.config.js.example") {
+    Copy-Item -Path "frontend\ecosystem.config.js.example" -Destination (Join-Path $DEPLOY_DIR "frontend\ecosystem.config.js.example") -Force
+}
 # Backend environment example
 if (Test-Path "backend\env.example") {
     Copy-Item -Path "backend\env.example" -Destination (Join-Path $DEPLOY_DIR "backend\env.example") -Force
@@ -187,7 +191,8 @@ sleep 3
 echo "Starting frontend..."
 cd ../frontend
 # PORT must be set as environment variable (adapter-node defaults to 3000 if not set)
-PORT=${FRONTEND_PORT:-4000} node build &
+# Use build/index.js (not just 'build') for ES module compatibility
+PORT=${FRONTEND_PORT:-4000} node build/index.js &
 FRONTEND_PID=$!
 
 # Wait for both processes

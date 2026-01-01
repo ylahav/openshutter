@@ -250,10 +250,19 @@ pm2 start dist/main.js --name openshutter-backend --env production
 cd ..
 
 # Start frontend (SvelteKit)
-# Note: PORT must be set as environment variable (defaults to 3000 if not set)
+# IMPORTANT: PORT must be set as environment variable (adapter-node defaults to 3000 if not set)
+# Use build/index.js (not just 'build') for ES module compatibility
+# Option 1: Set PORT as environment variable before command
 cd frontend
-pm2 start build --name openshutter-frontend --env production --update-env -- PORT=4000
+PORT=4000 pm2 start build/index.js --name openshutter-frontend --update-env
 cd ..
+
+# Option 2: Use ecosystem.config.js (recommended for production)
+# cd frontend
+# cp ecosystem.config.js.example ecosystem.config.js
+# nano ecosystem.config.js  # Edit PORT if needed
+# pm2 start ecosystem.config.js
+# cd ..
 
 # Save PM2 configuration
 pm2 save
@@ -261,6 +270,23 @@ pm2 save
 # Setup PM2 to start on boot
 pm2 startup
 # Follow the instructions shown (usually involves running a sudo command)
+```
+
+**⚠️ IMPORTANT - If frontend starts on port 3000 instead of 4000:**
+
+PM2 may have cached the old environment. Delete and restart the process:
+```bash
+# Delete the existing process
+pm2 delete openshutter-frontend
+
+# Restart with PORT set correctly (remove --env production flag)
+cd frontend
+PORT=4000 pm2 start build/index.js --name openshutter-frontend --update-env
+cd ..
+pm2 save
+
+# Verify it's running on port 4000
+pm2 logs openshutter-frontend | grep -i "listening"
 ```
 
 **PM2 Management Commands:**
@@ -307,9 +333,9 @@ PORT=5000 node dist/main.js
 
 # Terminal 2: Start frontend
 cd frontend
-PORT=4000 node build
+PORT=4000 node build/index.js
 # Or load from .env.production file:
-# export $(cat .env.production | xargs) && node build
+# export $(cat .env.production | xargs) && node build/index.js
 ```
 
 ## Step 5: Verify Deployment
@@ -567,7 +593,7 @@ cd backend && cp env.example .env && nano .env && cd ..
 chmod +x build.sh start.sh
 ./build.sh  # Install dependencies
 pm2 start backend/dist/main.js --name openshutter-backend
-pm2 start build --name openshutter-frontend --cwd frontend --update-env -- PORT=4000
+cd frontend && PORT=4000 pm2 start build/index.js --name openshutter-frontend --env production --update-env && cd ..
 pm2 save
 pm2 startup  # Follow instructions
 ```

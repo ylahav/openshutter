@@ -1,0 +1,33 @@
+// PM2 Ecosystem Configuration for OpenShutter Frontend
+// Copy this file to ecosystem.config.js and customize as needed
+
+module.exports = {
+  apps: [{
+    name: 'openshutter-frontend',
+    script: 'build/index.js',
+    cwd: __dirname,
+    instances: 1,
+    exec_mode: 'fork',
+    env: {
+      NODE_ENV: 'production',
+      PORT: 4000
+    },
+    // Auto restart settings
+    watch: false,
+    max_memory_restart: '1G',
+    restart_delay: 4000,
+    
+    // Health monitoring
+    min_uptime: '10s',
+    max_restarts: 10,
+    
+    // Process management
+    kill_timeout: 5000,
+    wait_ready: true,
+    listen_timeout: 10000,
+    
+    // Logging
+    log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+    merge_logs: true
+  }]
+};

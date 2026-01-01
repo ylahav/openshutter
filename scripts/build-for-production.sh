@@ -105,6 +105,10 @@ echo -e "${BLUE}  Copying environment example files...${NC}"
 if [ -f "frontend/env.production.example" ]; then
     cp frontend/env.production.example "$DEPLOY_DIR/frontend/env.production.example"
 fi
+# Frontend PM2 ecosystem config example
+if [ -f "frontend/ecosystem.config.js.example" ]; then
+    cp frontend/ecosystem.config.js.example "$DEPLOY_DIR/frontend/ecosystem.config.js.example"
+fi
 # Backend environment example
 if [ -f "backend/env.example" ]; then
     cp backend/env.example "$DEPLOY_DIR/backend/env.example"
@@ -137,7 +141,8 @@ sleep 3
 echo "Starting frontend..."
 cd ../frontend
 pnpm install --prod --frozen-lockfile
-PORT=${FRONTEND_PORT:-4000} node build &
+# Use build/index.js (not just 'build') for ES module compatibility
+PORT=${FRONTEND_PORT:-4000} node build/index.js &
 FRONTEND_PID=$!
 
 # Wait for both processes

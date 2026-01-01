@@ -98,7 +98,7 @@ if [ $? -eq 0 ]; then
     echo -e "  ${YELLOW}ssh $SERVER 'cd $DEPLOY_PATH/openshutter && ./start.sh'${NC} - Start services"
     echo -e "  ${YELLOW}ssh $SERVER 'tail -f $DEPLOY_PATH/openshutter.log'${NC} - View logs"
     echo -e "  ${YELLOW}ssh $SERVER 'pkill -f \"node dist/main.js\"'${NC} - Stop backend"
-    echo -e "  ${YELLOW}ssh $SERVER 'pkill -f \"node build\"'${NC} - Stop frontend"
+    echo -e "  ${YELLOW}ssh $SERVER 'pkill -f \"node build/index.js\"'${NC} - Stop frontend"
 else
     echo -e "${RED}❌ Deployment failed${NC}"
     exit 1
