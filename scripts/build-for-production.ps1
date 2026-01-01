@@ -1,5 +1,5 @@
 # Build OpenShutter monorepo for production deployment (Windows PowerShell)
-# This script builds both backend and frontend, then creates a deployment package and Docker image
+# This script builds both backend and frontend, then creates a deployment package
 
 $ErrorActionPreference = "Stop"
 
@@ -16,14 +16,6 @@ if (-not (Get-Command pnpm -ErrorAction SilentlyContinue)) {
     exit 1
 }
 
-# Check if Docker is running (for Docker-based deployment)
-$DOCKER_AVAILABLE = $false
-try {
-    docker info | Out-Null
-    $DOCKER_AVAILABLE = $true
-} catch {
-    Write-Host "WARNING: Docker is not running. Docker-based deployment will be skipped." -ForegroundColor Yellow
-}
 
 # Install dependencies
 Write-Host "Installing dependencies..." -ForegroundColor Blue
@@ -126,25 +118,16 @@ if (Test-Path "pnpm-lock.yaml") {
     Copy-Item -Path "pnpm-lock.yaml" -Destination (Join-Path $DEPLOY_DIR "pnpm-lock.yaml") -Force
 }
 
-# Copy Docker files if they exist
-# Note: Docker image does NOT include MongoDB - use external MongoDB
-if (Test-Path "docker-compose.external-mongodb.yml") {
-    Copy-Item -Path "docker-compose.external-mongodb.yml" -Destination (Join-Path $DEPLOY_DIR "docker-compose.yml") -Force
-    Write-Host "  Using external MongoDB configuration (no MongoDB in image)" -ForegroundColor Green
-}
-if (Test-Path "docker-compose.prod.yml") {
-    Copy-Item -Path "docker-compose.prod.yml" -Destination (Join-Path $DEPLOY_DIR "docker-compose.prod.yml") -Force
-}
-if (Test-Path "Dockerfile") {
-    Copy-Item -Path "Dockerfile" -Destination (Join-Path $DEPLOY_DIR "Dockerfile") -Force
-}
 
-# Copy environment example if production env doesn't exist
-if (Test-Path ".env.production") {
-    Copy-Item -Path ".env.production" -Destination (Join-Path $DEPLOY_DIR ".env.production") -Force
-} elseif (Test-Path ".env.example") {
-    Copy-Item -Path ".env.example" -Destination (Join-Path $DEPLOY_DIR ".env.production.example") -Force
-    Write-Host "WARNING: Created .env.production.example - please configure it on the server" -ForegroundColor Yellow
+# Copy environment example files
+Write-Host "  Copying environment example files..." -ForegroundColor Blue
+# Frontend environment example
+if (Test-Path "frontend\env.production.example") {
+    Copy-Item -Path "frontend\env.production.example" -Destination (Join-Path $DEPLOY_DIR "frontend\env.production.example") -Force
+}
+# Backend environment example
+if (Test-Path "backend\env.example") {
+    Copy-Item -Path "backend\env.example" -Destination (Join-Path $DEPLOY_DIR "backend\env.example") -Force
 }
 
 # Copy deployment documentation
@@ -203,8 +186,9 @@ sleep 3
 # Start frontend (SvelteKit)
 echo "Starting frontend..."
 cd ../frontend
-PORT=`${FRONTEND_PORT:-4000} node build &
-FRONTEND_PID=`$!
+# PORT must be set as environment variable (adapter-node defaults to 3000 if not set)
+PORT=${FRONTEND_PORT:-4000} node build &
+FRONTEND_PID=$!
 
 # Wait for both processes
 wait `$BACKEND_PID `$FRONTEND_PID
@@ -216,19 +200,36 @@ Write-Host "  Creating archive..." -ForegroundColor Blue
 $ZIP_PATH = Join-Path $PROJECT_ROOT "openshutter-deployment.zip"
 $TAR_PATH = Join-Path $PROJECT_ROOT "openshutter-deployment.tar.gz"
 
+# Detect Windows (works for both PowerShell 5.1 and PowerShell Core)
+$isWindowsOS = $false
+if ($IsWindows) {
+    $isWindowsOS = $true
+} elseif ($env:OS -like "*Windows*") {
+    $isWindowsOS = $true
+} elseif ($PSVersionTable.Platform -eq "Win32NT") {
+    $isWindowsOS = $true
+}
+
 # On Windows, prefer ZIP as it's more reliable
-if ($IsWindows -or $env:OS -like "*Windows*") {
+if ($isWindowsOS) {
     Write-Host "  Using ZIP compression (Windows)" -ForegroundColor Blue
     if (Test-Path $DEPLOY_DIR) {
-        Compress-Archive -Path $DEPLOY_DIR -DestinationPath $ZIP_PATH -Force
-        if (Test-Path $ZIP_PATH) {
-            $ZIP_SIZE = (Get-Item $ZIP_PATH).Length / 1MB
-            Write-Host "  ZIP archive created successfully: $ZIP_PATH ($([math]::Round($ZIP_SIZE, 2)) MB)" -ForegroundColor Green
-        } else {
-            Write-Host "ERROR: Failed to create ZIP archive" -ForegroundColor Red
+        try {
+            Compress-Archive -Path $DEPLOY_DIR -DestinationPath $ZIP_PATH -Force
+            if (Test-Path $ZIP_PATH) {
+                $ZIP_SIZE = (Get-Item $ZIP_PATH).Length / 1MB
+                Write-Host "  ZIP archive created successfully: $ZIP_PATH ($([math]::Round($ZIP_SIZE, 2)) MB)" -ForegroundColor Green
+            } else {
+                Write-Host "ERROR: Failed to create ZIP archive - file not found after creation" -ForegroundColor Red
+                exit 1
+            }
+        } catch {
+            Write-Host "ERROR: Failed to create ZIP archive: $($_.Exception.Message)" -ForegroundColor Red
+            exit 1
         }
     } else {
         Write-Host "ERROR: Deployment directory not found: $DEPLOY_DIR" -ForegroundColor Red
+        exit 1
     }
 } elseif (Get-Command tar -ErrorAction SilentlyContinue) {
     # Use tar on Unix-like systems
@@ -288,29 +289,14 @@ if ($IsWindows -or $env:OS -like "*Windows*") {
 # Clean up temp directory
 Remove-Item -Path $TEMP_DIR -Recurse -Force
 
-# Docker build
-if ($DOCKER_AVAILABLE) {
-    Write-Host "Building Docker image..." -ForegroundColor Blue
-    docker build -t openshutter:latest .
-    $DOCKER_BUILD_EXIT = $LASTEXITCODE
-    
-    if ($DOCKER_BUILD_EXIT -eq 0) {
-        # Check if image was created
-        $IMAGE_EXISTS = docker images openshutter:latest --format '{{.Repository}}' 2>$null
-        if ($IMAGE_EXISTS -and $IMAGE_EXISTS.Trim() -eq "openshutter") {
-            Write-Host "Exporting Docker image..." -ForegroundColor Blue
-            docker save openshutter:latest -o openshutter-image.tar
-            $DOCKER_SAVE_EXIT = $LASTEXITCODE
-            if ($DOCKER_SAVE_EXIT -eq 0) {
-                Write-Host "Docker image exported to openshutter-image.tar" -ForegroundColor Green
-            }
-        }
-    } else {
-        Write-Host "Docker build failed or Dockerfile not found" -ForegroundColor Yellow
-    }
+Write-Host ""
+# Verify ZIP was created
+if (-not (Test-Path $ZIP_PATH)) {
+    Write-Host "ERROR: Deployment package was not created!" -ForegroundColor Red
+    Write-Host "Expected file: $ZIP_PATH" -ForegroundColor Red
+    exit 1
 }
 
-Write-Host ""
 Write-Host "Production build completed successfully!" -ForegroundColor Green
 Write-Host ""
 Write-Host "Files created:" -ForegroundColor Blue
@@ -320,10 +306,10 @@ if (Test-Path "openshutter-deployment.tar.gz") {
 }
 if (Test-Path "openshutter-deployment.zip") {
     $ZIP_SIZE = (Get-Item "openshutter-deployment.zip").Length / 1MB
-    Write-Host "  openshutter-deployment.zip    - Complete deployment package (ZIP format) ($([math]::Round($ZIP_SIZE, 2)) MB)" -ForegroundColor Yellow
-}
-if (Test-Path "openshutter-image.tar") {
-    Write-Host "  openshutter-image.tar        - Docker image" -ForegroundColor Yellow
+    Write-Host "  openshutter-deployment.zip    - Complete deployment package (ZIP format) ($([math]::Round($ZIP_SIZE, 2)) MB)" -ForegroundColor Green
+} else {
+    Write-Host "ERROR: openshutter-deployment.zip was not created!" -ForegroundColor Red
+    exit 1
 }
 Write-Host ""
 Write-Host "Next steps:" -ForegroundColor Blue

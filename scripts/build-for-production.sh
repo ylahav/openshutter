@@ -99,12 +99,15 @@ if [ -f "Dockerfile" ]; then
     cp Dockerfile "$DEPLOY_DIR/"
 fi
 
-# Copy environment example if production env doesn't exist
-if [ -f ".env.production" ]; then
-    cp .env.production "$DEPLOY_DIR/"
-elif [ -f ".env.example" ]; then
-    cp .env.example "$DEPLOY_DIR/.env.production.example"
-    echo -e "${YELLOW}⚠️  Created .env.production.example - please configure it on the server${NC}"
+# Copy environment example files
+echo -e "${BLUE}  Copying environment example files...${NC}"
+# Frontend environment example
+if [ -f "frontend/env.production.example" ]; then
+    cp frontend/env.production.example "$DEPLOY_DIR/frontend/env.production.example"
+fi
+# Backend environment example
+if [ -f "backend/env.example" ]; then
+    cp backend/env.example "$DEPLOY_DIR/backend/env.example"
 fi
 
 # Copy deployment documentation

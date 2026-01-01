@@ -39,21 +39,62 @@ cd openshutter
 
 ## Step 2: Configure Environment Variables
 
-### Create Production Environment File
+### Create Production Environment Files
+
+The deployment package includes example files. Simply copy them and update with your values:
+
 ```bash
-# Create .env.production file
-nano .env.production
+# Create frontend .env.production from example
+cd frontend
+cp env.production.example .env.production
+nano .env.production  # Edit with your production values
+cd ..
+
+# Create backend .env from example
+cd backend
+cp env.example .env
+nano .env  # Edit with your production values
+cd ..
 ```
 
-### Required Environment Variables
+**Note**: 
+- **Frontend** uses `.env.production` (SvelteKit convention)
+- **Backend** uses `.env` (NestJS convention)
+
+### Frontend Environment Variables (`frontend/.env.production`)
+
+The frontend does NOT connect directly to MongoDB - it uses the backend API. Only these variables are needed:
+
+```env
+# Authentication Configuration (SvelteKit)
+AUTH_JWT_SECRET=your-production-secret-key-change-this
+
+# Application Configuration
+NODE_ENV=production
+BACKEND_URL=http://localhost:5000
+# For production with separate backend server:
+# BACKEND_URL=https://api.your-domain.com
+# Or if backend is on same server:
+# BACKEND_URL=http://localhost:5000
+
+PORT=4000
+```
+
+### Backend Environment Variables (`backend/.env`)
+
+The backend connects directly to MongoDB and needs these variables:
+
 ```env
 # MongoDB Configuration
 # IMPORTANT: If MongoDB requires authentication, include username:password in URI
 # Format: mongodb://username:password@host:port/database
-
-# For MongoDB WITHOUT authentication (local development only):
-# MONGODB_URI=mongodb://localhost:27017/openshutter
-
+#
+# ⚠️ SPECIAL CHARACTERS IN PASSWORD:
+# If your password contains special characters (!, @, #, $, %, &, etc.), 
+# you MUST URL-encode them in the connection string:
+#   ! = %21, @ = %40, # = %23, $ = %24, % = %25, & = %26, / = %2F, : = %3A
+# Example: If password is "mypass!123", use "mypass%21123"
+#
 # For MongoDB WITH authentication (PRODUCTION - Recommended):
 MONGODB_URI=mongodb://openshutter_user:your_secure_password@localhost:27017/openshutter?authSource=admin
 
@@ -65,33 +106,23 @@ MONGODB_URI=mongodb://openshutter_user:your_secure_password@localhost:27017/open
 
 MONGODB_DB=openshutter
 
-# Authentication Configuration (SvelteKit)
+# Authentication Configuration
 AUTH_JWT_SECRET=your-production-secret-key-change-this
-# Note: NEXTAUTH_SECRET is supported for backward compatibility but AUTH_JWT_SECRET is preferred
 
 # Application Configuration
 NODE_ENV=production
-BACKEND_URL=http://localhost:5000
-# For production with separate backend server:
-# BACKEND_URL=https://api.your-domain.com
-# Or if backend is on same server:
-# BACKEND_URL=http://localhost:5000
+PORT=5000
 
-PORT=4000
-BACKEND_PORT=5000
-
-# Storage Configuration (if using local storage)
-LOCAL_STORAGE_PATH=/opt/openshutter/storage
-STORAGE_PROVIDER=local
-
-# Google OAuth (if using Google Drive storage)
-GOOGLE_CLIENT_ID=your-google-client-id
-GOOGLE_CLIENT_SECRET=your-google-client-secret
+# CORS Configuration (optional)
+# Comma-separated list of allowed frontend URLs
+# FRONTEND_URL=http://localhost:4000,https://your-domain.com
 ```
 
 **⚠️ IMPORTANT**: 
-- Change all secrets and configure MongoDB URI before starting!
-- If MongoDB requires authentication, you MUST include username:password in MONGODB_URI
+- **Frontend**: Only needs `AUTH_JWT_SECRET` and `BACKEND_URL` - no MongoDB connection needed
+- **Backend**: Needs MongoDB configuration - see backend environment variables below
+- Change all secrets before starting!
+- If MongoDB requires authentication, you MUST include username:password in backend MONGODB_URI
 - See "MongoDB Authentication Setup" section below if you get authentication errors
 
 ## Step 2.5: MongoDB Authentication Setup (If Required)
@@ -219,8 +250,9 @@ pm2 start dist/main.js --name openshutter-backend --env production
 cd ..
 
 # Start frontend (SvelteKit)
+# Note: PORT must be set as environment variable (defaults to 3000 if not set)
 cd frontend
-pm2 start build --name openshutter-frontend --env production
+pm2 start build --name openshutter-frontend --env production --update-env -- PORT=4000
 cd ..
 
 # Save PM2 configuration
@@ -276,6 +308,8 @@ PORT=5000 node dist/main.js
 # Terminal 2: Start frontend
 cd frontend
 PORT=4000 node build
+# Or load from .env.production file:
+# export $(cat .env.production | xargs) && node build
 ```
 
 ## Step 5: Verify Deployment
@@ -425,7 +459,8 @@ pm2 logs openshutter-backend
 pm2 logs openshutter-frontend
 
 # Check environment variables
-cat .env.production
+cat frontend/.env.production
+cat backend/.env
 
 # Check MongoDB connection
 mongosh "mongodb://localhost:27017/openshutter"
@@ -446,10 +481,22 @@ This error means MongoDB requires authentication but your connection string does
 
 **Solution 1: Add credentials to MONGODB_URI**
 ```bash
-# Edit .env.production
+# Copy and edit frontend .env.production
+cd frontend
+cp env.production.example .env.production
 nano .env.production
+cd ..
 
-# Update MONGODB_URI to include username:password
+# Copy and edit backend .env
+cd backend
+cp env.example .env
+nano .env
+cd ..
+
+# Update MONGODB_URI to include username:password in backend/.env
+# ⚠️ If password contains special characters (!, @, #, etc.), URL-encode them:
+#    ! = %21, @ = %40, # = %23, $ = %24, % = %25, & = %26
+# Example: password "mypass!123" becomes "mypass%21123"
 MONGODB_URI=mongodb://username:password@localhost:27017/openshutter?authSource=admin
 
 # Restart application
@@ -514,11 +561,13 @@ kill -9 <PID>
 cd /opt/openshutter
 unzip -o openshutter-deployment.zip
 cd openshutter
-nano .env.production  # Configure environment
+# Configure environment files
+cd frontend && cp env.production.example .env.production && nano .env.production && cd ..
+cd backend && cp env.example .env && nano .env && cd ..
 chmod +x build.sh start.sh
 ./build.sh  # Install dependencies
 pm2 start backend/dist/main.js --name openshutter-backend
-pm2 start frontend/build --name openshutter-frontend
+pm2 start build --name openshutter-frontend --cwd frontend --update-env -- PORT=4000
 pm2 save
 pm2 startup  # Follow instructions
 ```

@@ -49,9 +49,9 @@ Location: `.env.local`
 MONGODB_URI=mongodb://localhost:27017/openshutter
 MONGODB_DB=openshutter
 
-# NextAuth Configuration
-NEXTAUTH_SECRET=your_nextauth_secret
-NEXTAUTH_URL=http://localhost:4000
+# Authentication Configuration (SvelteKit)
+AUTH_JWT_SECRET=your_jwt_secret
+BACKEND_URL=http://localhost:5000
 ```
 
 ## 🛡️ Security Considerations

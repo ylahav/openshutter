@@ -4,7 +4,7 @@ import { SignJWT } from 'jose';
 import { env } from '$env/dynamic/private';
 
 const JWT_SECRET = new TextEncoder().encode(
-	env.AUTH_JWT_SECRET || env.NEXTAUTH_SECRET || process.env.AUTH_JWT_SECRET || process.env.NEXTAUTH_SECRET || 'dev-secret-change-me-in-production'
+	env.AUTH_JWT_SECRET || process.env.AUTH_JWT_SECRET || 'dev-secret-change-me-in-production'
 );
 const JWT_TTL = 60 * 60 * 24 * 7; // 7 days
 

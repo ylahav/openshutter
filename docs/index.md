@@ -88,7 +88,8 @@ frontend/src/
 ### Environment Variables
 Key configuration options in `.env.local`:
 - `MONGODB_URI`: Database connection string
-- `NEXTAUTH_SECRET`: Authentication secret
+- `AUTH_JWT_SECRET`: Authentication secret (JWT)
+- `BACKEND_URL`: Backend API URL (default: http://localhost:5000)
 - `GOOGLE_CLIENT_ID/SECRET`: Google Drive integration
 - `AWS_ACCESS_KEY_ID/SECRET`: AWS S3 integration
 

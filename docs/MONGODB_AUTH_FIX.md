@@ -32,8 +32,24 @@ MONGODB_URI=mongodb://username:password@localhost:27017/openshutter?authSource=a
 
 **Replace:**
 - `username` - Your MongoDB username
-- `password` - Your MongoDB password
+- `password` - Your MongoDB password (see special characters note below)
 - `admin` - The authentication database (usually `admin`)
+
+**⚠️ IMPORTANT - Special Characters in Password:**
+If your password contains special characters, you MUST URL-encode them:
+- `!` = `%21`
+- `@` = `%40`
+- `#` = `%23`
+- `$` = `%24`
+- `%` = `%25`
+- `&` = `%26`
+- `/` = `%2F`
+- `:` = `%3A`
+
+**Example:** If your password is `mypass!123`, use `mypass%21123` in the connection string:
+```env
+MONGODB_URI=mongodb://user:mypass%21123@localhost:27017/openshutter?authSource=admin
+```
 
 ### Step 3: If You Don't Have MongoDB User Yet
 

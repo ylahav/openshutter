@@ -17,7 +17,6 @@ export class AdminGuard implements CanActivate {
     try {
       const JWT_SECRET = new TextEncoder().encode(
         this.configService.get<string>('AUTH_JWT_SECRET') ||
-          this.configService.get<string>('NEXTAUTH_SECRET') ||
           'dev-secret-change-me-in-production',
       );
 

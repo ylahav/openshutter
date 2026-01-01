@@ -35,7 +35,6 @@ let AdminGuard = class AdminGuard {
             }
             try {
                 const JWT_SECRET = new TextEncoder().encode(this.configService.get('AUTH_JWT_SECRET') ||
-                    this.configService.get('NEXTAUTH_SECRET') ||
                     'dev-secret-change-me-in-production');
                 const { payload } = yield (0, jose_1.jwtVerify)(token, JWT_SECRET);
                 // Check if user has admin role
