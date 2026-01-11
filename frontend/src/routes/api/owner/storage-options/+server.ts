@@ -16,61 +16,34 @@ export const GET: RequestHandler = async ({ locals, cookies }) => {
 		const response = await backendGet('/admin/storage', { cookies });
 		const configs = await parseBackendResponse<any[]>(response);
 
-		console.log('[storage-options] ===== STORAGE CONFIG DEBUG =====');
-		console.log('[storage-options] All configs from backend:', JSON.stringify(configs, null, 2));
-		console.log('[storage-options] Configs count:', configs?.length || 0);
-		console.log('[storage-options] User allowed providers:', allowedProviders);
-		
-		// Log each config in detail
-		if (Array.isArray(configs)) {
-			configs.forEach((config, index) => {
-				console.log(`[storage-options] Config ${index + 1} (${config.providerId}):`, {
-					providerId: config.providerId,
-					name: config.name,
-					isEnabled: config.isEnabled,
-					isEnabledType: typeof config.isEnabled,
-					configObject: config.config,
-					configIsEnabled: config.config?.isEnabled,
-					fullConfig: config
-				});
-			});
-		}
-		console.log('[storage-options] ===== END STORAGE CONFIG DEBUG =====');
-
 		// Filter to only enabled providers that the user has access to
+		// Check both top-level isEnabled and config.isEnabled (for backward compatibility)
 		const storageOptions = configs
 			.filter((config) => {
-				// Must be enabled - check both top level and config level (for backward compatibility)
+				// Must be enabled - check both top level and config level
 				const topLevelEnabled = config.isEnabled === true;
 				const configLevelEnabled = config.config?.isEnabled === true;
 				const isEnabled = topLevelEnabled || configLevelEnabled;
 				
 				if (!isEnabled) {
-					console.log(`[storage-options] ${config.providerId}: disabled (topLevel=${topLevelEnabled}, configLevel=${configLevelEnabled}), skipping`);
 					return false;
 				}
 				// Must be in user's allowed providers (or user is admin)
 				if (locals.user.role === 'admin') {
-					console.log(`[storage-options] ${config.providerId}: admin user, allowing`);
 					return true;
 				}
-				const hasAccess = allowedProviders.includes(config.providerId);
-				console.log(`[storage-options] ${config.providerId}: hasAccess=${hasAccess}`);
-				return hasAccess;
+				return allowedProviders.includes(config.providerId);
 			})
 			.map((config) => ({
 				id: config.providerId,
 				name: config.name,
 				type: config.providerId,
-				isEnabled: config.isEnabled
+				isEnabled: true
 			}));
-
-		console.log('[storage-options] Filtered storage options:', JSON.stringify(storageOptions, null, 2));
 
 		// If no providers are enabled, at least include local storage as a fallback
 		// Local storage should always be available
 		if (storageOptions.length === 0) {
-			console.warn('[storage-options] No enabled providers found, adding local storage as fallback');
 			storageOptions.push({
 				id: 'local',
 				name: 'Local Storage',

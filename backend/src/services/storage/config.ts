@@ -86,20 +86,12 @@ export class StorageConfigService {
       updateData.createdAt = new Date()
     }
     
-    console.log(`[StorageConfigService] Updating config for ${providerId}:`, JSON.stringify(updateData, null, 2))
-    
     // Use upsert to create if it doesn't exist
-    const result = await collection.updateOne(
+    await collection.updateOne(
       { providerId },
       { $set: updateData },
       { upsert: true }
     )
-    
-    console.log(`[StorageConfigService] Update result for ${providerId}:`, {
-      matchedCount: result.matchedCount,
-      modifiedCount: result.modifiedCount,
-      upsertedCount: result.upsertedCount
-    })
     
     // Invalidate cache
     this.invalidateCache()

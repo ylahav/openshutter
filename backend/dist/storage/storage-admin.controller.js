@@ -94,7 +94,6 @@ let StorageAdminController = class StorageAdminController {
                     }
                     catch (secondError) {
                         // If config still doesn't exist after initialization, create a minimal one
-                        console.warn(`Config for ${providerId} not found after initialization, creating minimal config`);
                         const providerNames = {
                             'google-drive': 'Google Drive',
                             'aws-s3': 'Amazon S3',

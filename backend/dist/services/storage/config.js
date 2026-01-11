@@ -95,14 +95,8 @@ class StorageConfigService {
             if (!existing && !updateData.createdAt) {
                 updateData.createdAt = new Date();
             }
-            console.log(`[StorageConfigService] Updating config for ${providerId}:`, JSON.stringify(updateData, null, 2));
             // Use upsert to create if it doesn't exist
-            const result = yield collection.updateOne({ providerId }, { $set: updateData }, { upsert: true });
-            console.log(`[StorageConfigService] Update result for ${providerId}:`, {
-                matchedCount: result.matchedCount,
-                modifiedCount: result.modifiedCount,
-                upsertedCount: result.upsertedCount
-            });
+            yield collection.updateOne({ providerId }, { $set: updateData }, { upsert: true });
             // Invalidate cache
             this.invalidateCache();
         });

@@ -108,21 +108,16 @@
 			const apiEndpoint =
 				userRole === 'owner' ? '/api/owner/storage-options' : '/api/admin/storage-options';
 
-			console.log('[loadStorageOptions] Fetching from:', apiEndpoint);
 			const response = await fetch(apiEndpoint);
 			const result = await response.json();
 
-			console.log('[loadStorageOptions] Response:', result);
-
 			if (result.success && result.data) {
 				storageOptions = result.data;
-				console.log('[loadStorageOptions] Loaded storage options:', storageOptions);
 				// Set default storage provider to first available option
 				if (result.data.length > 0) {
 					formData.storageProvider = result.data[0].id;
 					storageOptionsError = '';
 				} else {
-					console.warn('[loadStorageOptions] No storage providers returned from API - user must enable at least one provider in admin panel');
 					storageOptions = [];
 					storageOptionsError = 'No storage providers are enabled. Please configure and enable at least one storage provider in the admin panel.';
 				}
