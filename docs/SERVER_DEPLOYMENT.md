@@ -2,6 +2,29 @@
 
 This guide provides step-by-step commands to execute on your deployed server after extracting the deployment package.
 
+## Quick Reference
+
+### First Time Installation
+1. Transfer and extract deployment package
+2. Run `./build.sh` (interactive setup)
+3. Start with PM2: `pm2 start ecosystem.config.js`
+
+### Updating Existing Installation
+1. **Backup** your `.env` files and database
+2. **Stop** services: `pm2 stop all`
+3. **Extract** new package: `unzip -o openshutter-deployment.zip`
+4. **Install dependencies**: Run `./build.sh` and answer `y` when asked "Is this an update?"
+   - The script will install dependencies only (root, backend, and frontend)
+   - All existing configuration files (`.env`, `ecosystem.config.js`) will be preserved
+   - No prompts for ports/database/credentials
+5. **Restart**: `pm2 restart all`
+
+**⚠️ Important**: 
+- The deployment package includes **pre-built files** (`backend/dist/` and `frontend/build/`)
+- You **MUST install dependencies** using `pnpm install --prod --frozen-lockfile` (new packages may have been added)
+- You typically **DON'T need to rebuild** unless updating from source code
+- `build.sh` in update mode installs dependencies only and preserves all configuration
+
 ## Prerequisites
 
 Before deploying, ensure your server has:
@@ -96,15 +119,19 @@ The backend connects directly to MongoDB and needs these variables:
 # Example: If password is "mypass!123", use "mypass%21123"
 #
 # For MongoDB WITH authentication (PRODUCTION - Recommended):
+# ⚠️ IMPORTANT: The database name is specified in the URI path (after the port, before the ?)
+# Format: mongodb://username:password@host:port/DATABASE_NAME?authSource=admin
+# Example for database named "openshutter":
 MONGODB_URI=mongodb://openshutter_user:your_secure_password@localhost:27017/openshutter?authSource=admin
 
 # For external MongoDB on different server with authentication:
-# MONGODB_URI=mongodb://username:password@your-mongodb-host:27017/openshutter?authSource=admin
+# MONGODB_URI=mongodb://username:password@your-mongodb-host:27017/your_database_name?authSource=admin
 
 # For MongoDB Atlas (cloud):
-# MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/openshutter?retryWrites=true&w=majority
+# MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/your_database_name?retryWrites=true&w=majority
 
-MONGODB_DB=openshutter
+# Note: MONGODB_DB is NOT used by the application - the database name is in MONGODB_URI
+# MONGODB_DB=openshutter  # This is for reference only, not used by code
 
 # Authentication Configuration
 AUTH_JWT_SECRET=your-production-secret-key-change-this
@@ -216,9 +243,45 @@ sudo systemctl restart mongod
 
 **⚠️ WARNING**: Disabling authentication is a security risk. Only do this in isolated development environments.
 
-## Step 3: Install Dependencies
+## Step 3: Install Dependencies and Configure Environment
 
-### Install Production Dependencies
+### Option A: Using build.sh (Recommended - Interactive Setup)
+
+The `build.sh` script will guide you through the setup process and create all necessary environment files:
+
+```bash
+# Make script executable
+chmod +x build.sh
+
+# Run the interactive setup script
+./build.sh
+```
+
+The script will prompt you for:
+1. **Backend port** (default: 5000)
+2. **Frontend port** (default: 4000)
+3. **MongoDB host** (default: localhost:27017)
+4. **Database name** (default: openshutter)
+5. **MongoDB authentication** (y/n)
+   - If yes, you'll be prompted for:
+     - MongoDB username
+     - MongoDB password (hidden input)
+     - MongoDB auth source (default: admin)
+
+The script will:
+- Install all production dependencies
+- Create `backend/.env` with your configuration (including `PORT`)
+- Create `frontend/.env.production` with your configuration (including `PORT` and `BACKEND_URL`)
+- Create `frontend/ecosystem.config.js` for PM2 with your configured ports
+- Generate a secure JWT secret (same for both frontend and backend)
+- URL-encode special characters in MongoDB passwords automatically
+
+**Note**: The generated `ecosystem.config.js` will automatically load environment variables from `.env.production`, so you don't need to manually edit it unless you want to customize PM2 settings.
+
+### Option B: Manual Installation
+
+If you prefer to configure manually:
+
 ```bash
 # Install root dependencies
 pnpm install --prod --frozen-lockfile
@@ -232,9 +295,13 @@ cd ..
 cd frontend
 pnpm install --prod --frozen-lockfile
 cd ..
+
+# Then manually create .env files (see Step 2)
 ```
 
 ## Step 4: Start the Application
+
+**Before starting**, ensure your MongoDB connection is properly configured in `backend/.env` (see Step 2).
 
 ### Option A: Using PM2 (Recommended for Production)
 
@@ -250,18 +317,16 @@ pm2 start dist/main.js --name openshutter-backend --env production
 cd ..
 
 # Start frontend (SvelteKit)
-# IMPORTANT: PORT must be set as environment variable (adapter-node defaults to 3000 if not set)
-# Use build/index.js (not just 'build') for ES module compatibility
-# Option 1: Set PORT as environment variable before command
+# Option 1: Use ecosystem.config.js (Recommended - auto-generated by build.sh)
 cd frontend
-PORT=4000 pm2 start build/index.js --name openshutter-frontend --update-env
+pm2 start ecosystem.config.js
 cd ..
 
-# Option 2: Use ecosystem.config.js (recommended for production)
+# Option 2: Manual start with environment variables
+# IMPORTANT: PORT must be set as environment variable (adapter-node defaults to 3000 if not set)
+# Use build/index.js (not just 'build') for ES module compatibility
 # cd frontend
-# cp ecosystem.config.js.example ecosystem.config.js
-# nano ecosystem.config.js  # Edit PORT if needed
-# pm2 start ecosystem.config.js
+# PORT=4000 BACKEND_URL=http://localhost:5000 pm2 start build/index.js --name openshutter-frontend --update-env
 # cd ..
 
 # Save PM2 configuration
@@ -272,22 +337,35 @@ pm2 startup
 # Follow the instructions shown (usually involves running a sudo command)
 ```
 
-**⚠️ IMPORTANT - If frontend starts on port 3000 instead of 4000:**
+**⚠️ IMPORTANT - If frontend starts on wrong port:**
 
-PM2 may have cached the old environment. Delete and restart the process:
-```bash
-# Delete the existing process
-pm2 delete openshutter-frontend
+If you're using `ecosystem.config.js` (recommended), the ports are automatically loaded from your `.env.production` file. If the port is incorrect:
 
-# Restart with PORT set correctly (remove --env production flag)
-cd frontend
-PORT=4000 pm2 start build/index.js --name openshutter-frontend --update-env
-cd ..
-pm2 save
+1. **Check your `.env.production` file**:
+   ```bash
+   cd frontend
+   cat .env.production | grep PORT
+   ```
 
-# Verify it's running on port 4000
-pm2 logs openshutter-frontend | grep -i "listening"
-```
+2. **If using ecosystem.config.js**, restart PM2:
+   ```bash
+   pm2 restart ecosystem.config.js
+   # Or delete and restart:
+   pm2 delete openshutter-frontend
+   pm2 start ecosystem.config.js
+   ```
+
+3. **If using manual PM2 start**, ensure environment variables are set:
+   ```bash
+   cd frontend
+   export $(grep -v '^#' .env.production | grep -v '^$' | xargs)
+   pm2 restart openshutter-frontend
+   ```
+
+4. **Verify it's running on the correct port**:
+   ```bash
+   pm2 logs openshutter-frontend | grep -i "listening"
+   ```
 
 **PM2 Management Commands:**
 ```bash
@@ -314,15 +392,20 @@ pm2 delete openshutter-frontend
 
 ### Option B: Using start.sh script (Simple, but not recommended for production)
 
-This script starts both services in the foreground. Use this for testing or development.
+This script starts both services in the foreground. It automatically reads ports from the environment files created by `build.sh`.
 
 ```bash
 # Make script executable
 chmod +x start.sh
 
 # Start application (runs in foreground - use Ctrl+C to stop)
+# The script will automatically load ports from:
+#   - backend/.env (for backend PORT)
+#   - frontend/.env.production (for frontend PORT)
 ./start.sh
 ```
+
+**Note**: The `start.sh` script reads ports from the environment files, so make sure you've run `build.sh` first or manually created the `.env` files.
 
 ### Option C: Manual Start (Direct Node.js)
 
@@ -343,7 +426,10 @@ PORT=4000 node build/index.js
 ### Check Application Status
 ```bash
 # Check if services are running
+# Through frontend (proxies to backend)
 curl http://localhost:4000/api/health
+
+# Direct backend access
 curl http://localhost:5000/api/health
 
 # Or check with PM2
@@ -353,6 +439,10 @@ pm2 status
 pm2 logs openshutter-backend
 pm2 logs openshutter-frontend
 ```
+
+**Note**: The `/api/health` endpoint is available both:
+- Through the frontend at `http://localhost:4000/api/health` (proxies to backend)
+- Directly on the backend at `http://localhost:5000/api/health`
 
 ### Test Application
 ```bash
@@ -424,6 +514,108 @@ sudo certbot --nginx -d your-domain.com
 # Auto-renewal is set up automatically
 ```
 
+## Running Multiple Installations on the Same Server
+
+If you need to run multiple OpenShutter installations on the same server (e.g., different domains), you must configure each installation with **different ports** and **different databases**.
+
+### Example: Two Installations
+
+**Installation 1: openshutter.org**
+- Backend port: `5000`
+- Frontend port: `4000`
+- Database: `openshutter`
+- Backend `.env`:
+  ```env
+  PORT=5000
+  MONGODB_URI=mongodb://user:pass@localhost:27017/openshutter?authSource=admin
+  ```
+- Frontend `.env.production`:
+  ```env
+  PORT=4000
+  BACKEND_URL=http://localhost:5000
+  ```
+
+**Installation 2: yairl.com**
+- Backend port: `5001` (different!)
+- Frontend port: `4001` (different!)
+- Database: `ygallery` (different!)
+- Backend `.env`:
+  ```env
+  PORT=5001
+  MONGODB_URI=mongodb://user:pass@localhost:27017/ygallery?authSource=admin
+  ```
+- Frontend `.env.production`:
+  ```env
+  PORT=4001
+  BACKEND_URL=http://localhost:5001
+  ```
+
+### PM2 Configuration for Multiple Installations
+
+When using PM2, use different process names. The easiest way is to use the auto-generated `ecosystem.config.js` from each installation:
+
+```bash
+# Installation 1 (openshutter.org)
+cd /path/to/openshutter.org/openshutter/backend
+pm2 start dist/main.js --name openshutter-backend --env production
+
+cd /path/to/openshutter.org/openshutter/frontend
+pm2 start ecosystem.config.js  # Uses ports from .env.production
+
+# Installation 2 (yairl.com)
+cd /path/to/yairl.com/openshutter/backend
+pm2 start dist/main.js --name yairl-backend --env production
+
+cd /path/to/yairl.com/openshutter/frontend
+pm2 start ecosystem.config.js  # Uses ports from .env.production
+```
+
+**Note**: Each installation's `ecosystem.config.js` is generated by `build.sh` with the correct ports for that installation. The config file automatically loads additional environment variables from `.env.production`.
+
+### Nginx Configuration for Multiple Domains
+
+Configure Nginx to route each domain to its respective frontend port:
+
+```nginx
+# openshutter.org
+server {
+    listen 80;
+    server_name openshutter.org;
+
+    location / {
+        proxy_pass http://localhost:4000;
+        # ... other proxy settings
+    }
+
+    location /api {
+        proxy_pass http://localhost:5000;
+        # ... other proxy settings
+    }
+}
+
+# yairl.com
+server {
+    listen 80;
+    server_name yairl.com;
+
+    location / {
+        proxy_pass http://localhost:4001;
+        # ... other proxy settings
+    }
+
+    location /api {
+        proxy_pass http://localhost:5001;
+        # ... other proxy settings
+    }
+}
+```
+
+**⚠️ CRITICAL**: 
+- Each installation **MUST** use different ports (backend and frontend)
+- Each installation **MUST** use a different database name in `MONGODB_URI`
+- Each frontend **MUST** point to its own backend port in `BACKEND_URL`
+- If both installations use the same ports, they will conflict and share the same backend/database
+
 ## Maintenance Commands
 
 ### View Logs
@@ -448,23 +640,204 @@ pm2 restart all
 # Stop processes (pm2 stop all) and restart using Step 4 commands
 ```
 
-### Update Application
+## Updating an Existing Installation
+
+When updating to a new version of OpenShutter, follow these steps:
+
+### Step 1: Backup Current Installation
+
+**⚠️ IMPORTANT**: Always backup before updating!
+
 ```bash
-# Stop services
+# Backup MongoDB database
+mongodump --uri="mongodb://localhost:27017/your_database_name" --out=/backup/openshutter-$(date +%Y%m%d)
+
+# Backup environment files (they contain your configuration)
+cd /opt/openshutter/openshutter
+cp backend/.env /backup/backend.env.$(date +%Y%m%d)
+cp frontend/.env.production /backup/frontend.env.production.$(date +%Y%m%d)
+cp frontend/ecosystem.config.js /backup/ecosystem.config.js.$(date +%Y%m%d) 2>/dev/null || true
+
+# Backup storage files (if using local storage)
+tar -czf /backup/storage-$(date +%Y%m%d).tar.gz /opt/openshutter/storage 2>/dev/null || true
+```
+
+### Step 2: Stop Running Services
+
+```bash
+# Stop PM2 processes
 pm2 stop all
 
-# Extract new deployment package
+# Or stop individual services
+pm2 stop openshutter-backend
+pm2 stop openshutter-frontend
+```
+
+### Step 3: Extract New Deployment Package
+
+```bash
+# Navigate to deployment directory
 cd /opt/openshutter
+
+# Extract new deployment package (overwrites existing files)
 unzip -o openshutter-deployment.zip
 
-# Install updated dependencies
+# Navigate into extracted directory
 cd openshutter
-chmod +x build.sh
-./build.sh
+```
 
-# Restart services
+**Note**: The `-o` flag overwrites existing files. Your `.env` files will be preserved if they exist, but it's safer to backup them first (see Step 1).
+
+### Step 4: Install Dependencies
+
+**Important**: The deployment package includes **pre-built** files (`backend/dist/` and `frontend/build/`), but you still need to install dependencies as new packages may have been added.
+
+**Use the `build.sh` script** - it will ask if this is an update or first installation:
+
+```bash
+# Make build script executable
+chmod +x build.sh
+
+# Run build script
+./build.sh
+```
+
+When prompted:
+- **For updates**: Answer `y` to "Is this an update to an existing installation?"
+  - The script will install dependencies only
+  - All existing `.env` files and `ecosystem.config.js` will be preserved
+  - No configuration prompts will be shown
+  
+- **For first installation**: Answer `n` (or press Enter)
+  - The script will prompt for all configuration (ports, database, MongoDB credentials)
+  - It will create `.env` files and `ecosystem.config.js`
+
+**What `build.sh` does:**
+- **Update mode**: Installs dependencies using `pnpm install --prod --frozen-lockfile` (for root, backend, and frontend) and preserves all existing configuration
+- **First installation mode**: Installs dependencies, prompts for configuration, creates `.env` files, and generates `ecosystem.config.js`
+
+**Note**: The deployment package already includes built files (`backend/dist/` and `frontend/build/`), so `build.sh` does NOT rebuild the code - it only installs dependencies and configures environment.
+
+#### Manual Install (Alternative, if you prefer)
+
+If you prefer to install dependencies manually without using `build.sh`:
+
+```bash
+# Install/update dependencies (production only, no dev dependencies)
+# IMPORTANT: Install dependencies at root, backend, AND frontend
+pnpm install --prod --frozen-lockfile
+cd backend && pnpm install --prod --frozen-lockfile && cd ..
+cd frontend && pnpm install --prod --frozen-lockfile && cd ..
+```
+
+**Note**: 
+- `--prod` flag installs only production dependencies (no dev dependencies)
+- `--frozen-lockfile` ensures exact versions from lockfile (important for consistency)
+- Must run in **all three locations**: root, backend, and frontend
+- This preserves all your existing `.env` files and `ecosystem.config.js` unchanged
+- **No rebuild needed** - The deployment package already includes built files (`backend/dist/` and `frontend/build/`)
+
+**Recommendation**: Use `build.sh` instead - it's simpler and handles both update and first installation scenarios automatically.
+
+### Step 5: Restart Services
+
+```bash
+# Option 1: Using PM2 (Recommended)
+pm2 restart openshutter-backend
+pm2 restart openshutter-frontend
+# Or restart all
+pm2 restart all
+
+# Option 2: Using start.sh (if not using PM2)
+# Note: start.sh reads ports from .env files automatically
+chmod +x start.sh
+./start.sh
+```
+
+### Step 6: Verify Update
+
+```bash
+# Check PM2 status
+pm2 status
+
+# Check logs for errors
+pm2 logs openshutter-backend --lines 50
+pm2 logs openshutter-frontend --lines 50
+
+# Test backend health
+curl http://localhost:5000/api/health
+
+# Test frontend (replace with your port)
+curl http://localhost:4000/api/health
+```
+
+### Quick Update Summary
+
+For quick reference, here's the minimal update process:
+
+```bash
+# 1. Backup
+pm2 stop all
+cp backend/.env backend/.env.backup
+cp frontend/.env.production frontend/.env.production.backup
+
+# 2. Extract (deployment package includes pre-built files)
+cd /opt/openshutter
+unzip -o openshutter-deployment.zip
+cd openshutter
+
+# 3. Install dependencies (deployment package has built files, just need dependencies)
+./build.sh  # Answer 'y' when asked "Is this an update?"
+
+# 4. Restore config if needed (only if using manual install)
+# cp backend/.env.backup backend/.env
+# cp frontend/.env.production.backup frontend/.env.production
+
+# 5. Restart
 pm2 restart all
 ```
+
+**Key Points**:
+- Deployment package includes **pre-built** `backend/dist/` and `frontend/build/` directories
+- You only need to **install dependencies** with `pnpm install --prod --frozen-lockfile`
+- **No rebuild needed** unless updating from source code
+- `build.sh` installs dependencies and configures environment (doesn't rebuild code)
+
+### Troubleshooting Updates
+
+**If services won't start after update:**
+
+1. **Check environment variables are correct:**
+   ```bash
+   cat backend/.env | grep -E "PORT|MONGODB_URI"
+   cat frontend/.env.production | grep -E "PORT|BACKEND_URL"
+   ```
+
+2. **Check PM2 processes:**
+   ```bash
+   pm2 list
+   pm2 logs --err
+   ```
+
+3. **Verify build directories exist:**
+   ```bash
+   ls -la backend/dist/main.js
+   ls -la frontend/build/index.js
+   ```
+
+4. **If build directories are missing, rebuild:**
+   ```bash
+   cd backend && pnpm build && cd ..
+   cd frontend && pnpm build && cd ..
+   ```
+
+5. **Restore from backup if needed:**
+   ```bash
+   pm2 stop all
+   cp backend/.env.backup backend/.env
+   cp frontend/.env.production.backup frontend/.env.production
+   pm2 restart all
+   ```
 
 ### Backup
 ```bash

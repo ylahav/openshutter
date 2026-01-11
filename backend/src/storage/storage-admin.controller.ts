@@ -53,10 +53,64 @@ export class StorageAdminController {
     @Body() updates: any,
   ) {
     try {
-      await storageConfigService.updateConfig(providerId as StorageProviderId, updates);
+      // Get existing config or initialize defaults if it doesn't exist
+      let existingConfig;
+      try {
+        existingConfig = await storageConfigService.getConfig(providerId as StorageProviderId);
+      } catch (error) {
+        // Config doesn't exist, initialize defaults first
+        await storageConfigService.initializeDefaultConfigs();
+        try {
+          existingConfig = await storageConfigService.getConfig(providerId as StorageProviderId);
+        } catch (secondError) {
+          // If config still doesn't exist after initialization, create a minimal one
+          console.warn(`Config for ${providerId} not found after initialization, creating minimal config`);
+          const providerNames: Record<string, string> = {
+            'google-drive': 'Google Drive',
+            'aws-s3': 'Amazon S3',
+            'backblaze': 'Backblaze B2',
+            'wasabi': 'Wasabi',
+            'local': 'Local Storage'
+          };
+          existingConfig = {
+            providerId: providerId as StorageProviderId,
+            name: providerNames[providerId] || providerId,
+            isEnabled: false,
+            config: {},
+            createdAt: new Date(),
+            updatedAt: new Date()
+          };
+        }
+      }
+
+      // The frontend sends config fields directly (e.g., { clientId, clientSecret, isEnabled })
+      // We need to structure it properly: { isEnabled, config: { clientId, clientSecret, ... } }
+      const structuredUpdates: any = {
+        providerId: providerId as StorageProviderId,
+        name: existingConfig.name, // Preserve existing name
+      };
+
+      // Extract isEnabled if provided (can be at top level or in config)
+      if (updates.isEnabled !== undefined) {
+        structuredUpdates.isEnabled = updates.isEnabled;
+      } else if (existingConfig.isEnabled !== undefined) {
+        structuredUpdates.isEnabled = existingConfig.isEnabled;
+      }
+
+      // Build the config object - merge existing config with updates
+      // Exclude isEnabled from config object (it's at top level)
+      const { isEnabled: _, ...configUpdates } = updates;
+      structuredUpdates.config = {
+        ...existingConfig.config,
+        ...configUpdates,
+      };
+
+      // Update the configuration
+      await storageConfigService.updateConfig(providerId as StorageProviderId, structuredUpdates);
       const updatedConfig = await storageConfigService.getConfig(providerId as StorageProviderId);
       return updatedConfig;
     } catch (error) {
+      console.error('Error updating storage config:', error);
       throw new BadRequestException(
         `Failed to update storage configuration: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );

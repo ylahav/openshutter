@@ -1,7 +1,10 @@
 import type { PageLoad } from './$types';
 import type { TemplateAlbum } from '$types';
 
-export const load: PageLoad = async ({ fetch }) => {
+export const load: PageLoad = async ({ fetch, parent }) => {
+  // Get data from parent (server load)
+  await parent();
+
   try {
     // Fetch root albums (no parent) - API handles access control.
     // Use the frontend API route which will proxy to backend

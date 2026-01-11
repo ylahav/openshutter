@@ -10,6 +10,9 @@ exports.DatabaseModule = void 0;
 const common_1 = require("@nestjs/common");
 const mongoose_1 = require("@nestjs/mongoose");
 const config_1 = require("@nestjs/config");
+const User_1 = require("../models/User");
+const database_init_service_1 = require("./database-init.service");
+const database_init_controller_1 = require("./database-init.controller");
 let DatabaseModule = class DatabaseModule {
 };
 exports.DatabaseModule = DatabaseModule;
@@ -22,6 +25,12 @@ exports.DatabaseModule = DatabaseModule = __decorate([
                     uri: configService.get('mongodb.uri'),
                 }),
             }),
+            mongoose_1.MongooseModule.forFeature([
+                { name: 'User', schema: User_1.UserSchema },
+            ]),
         ],
+        providers: [database_init_service_1.DatabaseInitService],
+        controllers: [database_init_controller_1.DatabaseInitController],
+        exports: [database_init_service_1.DatabaseInitService],
     })
 ], DatabaseModule);

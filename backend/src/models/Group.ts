@@ -37,7 +37,6 @@ GroupSchema.pre('save', function() {
 });
 
 // Indexes for performance
-GroupSchema.index({ alias: 1 });
+// Note: alias index is automatically created by unique: true, so we don't need to add it again
 
 export const GroupModel = mongoose.models.Group || mongoose.model<IGroup>('Group', GroupSchema);
-

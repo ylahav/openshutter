@@ -45,9 +45,16 @@ class SiteConfigService {
     getConfig() {
         return __awaiter(this, void 0, void 0, function* () {
             var _a;
-            yield this.refreshCacheIfNeeded();
+            try {
+                yield this.refreshCacheIfNeeded();
+            }
+            catch (error) {
+                // If MongoDB access fails (e.g., authentication error), use default config
+                console.warn('Failed to refresh site config cache, using defaults:', error instanceof Error ? error.message : 'Unknown error');
+                this.configCache = null;
+            }
             if (!this.configCache) {
-                // Return default config if none exists
+                // Return default config if none exists or if cache refresh failed
                 return this.getDefaultConfig();
             }
             // Merge with default config to ensure all fields exist
@@ -211,29 +218,42 @@ class SiteConfigService {
     refreshCache() {
         return __awaiter(this, void 0, void 0, function* () {
             var _a;
-            yield (0, db_1.connectDB)();
-            const db = mongoose_1.default.connection.db;
-            if (!db)
-                throw new Error('Database connection not established');
-            const collection = db.collection('site_config');
-            const config = yield collection.findOne({});
-            if (config) {
-                // Migrate to multi-language format if needed
-                const migratedConfig = this.migrateToMultiLang(config);
-                // Merge with default config to ensure all fields exist
-                const defaultConfig = this.getDefaultConfig();
-                this.configCache = Object.assign(Object.assign(Object.assign({}, defaultConfig), migratedConfig), { 
-                    // Ensure languages field exists
-                    languages: migratedConfig.languages || defaultConfig.languages, 
-                    // Handle backward compatibility for title and description
-                    title: migratedConfig.title || defaultConfig.title, description: migratedConfig.description || defaultConfig.description, 
-                    // Ensure contact.socialMedia object is properly structured
-                    contact: Object.assign(Object.assign(Object.assign({}, defaultConfig.contact), migratedConfig.contact), { socialMedia: Object.assign(Object.assign({}, defaultConfig.contact.socialMedia), (((_a = migratedConfig.contact) === null || _a === void 0 ? void 0 : _a.socialMedia) || {})) }) });
+            try {
+                yield (0, db_1.connectDB)();
+                const db = mongoose_1.default.connection.db;
+                if (!db) {
+                    console.warn('Database connection not established, skipping cache refresh');
+                    this.configCache = null;
+                    this.lastCacheUpdate = Date.now();
+                    return;
+                }
+                const collection = db.collection('site_config');
+                const config = yield collection.findOne({});
+                if (config) {
+                    // Migrate to multi-language format if needed
+                    const migratedConfig = this.migrateToMultiLang(config);
+                    // Merge with default config to ensure all fields exist
+                    const defaultConfig = this.getDefaultConfig();
+                    this.configCache = Object.assign(Object.assign(Object.assign({}, defaultConfig), migratedConfig), { 
+                        // Ensure languages field exists
+                        languages: migratedConfig.languages || defaultConfig.languages, 
+                        // Handle backward compatibility for title and description
+                        title: migratedConfig.title || defaultConfig.title, description: migratedConfig.description || defaultConfig.description, 
+                        // Ensure contact.socialMedia object is properly structured
+                        contact: Object.assign(Object.assign(Object.assign({}, defaultConfig.contact), migratedConfig.contact), { socialMedia: Object.assign(Object.assign({}, defaultConfig.contact.socialMedia), (((_a = migratedConfig.contact) === null || _a === void 0 ? void 0 : _a.socialMedia) || {})) }) });
+                }
+                else {
+                    this.configCache = null;
+                }
+                this.lastCacheUpdate = Date.now();
             }
-            else {
+            catch (error) {
+                // If MongoDB access fails (e.g., authentication error), clear cache and use defaults
+                console.warn('Failed to refresh site config cache:', error instanceof Error ? error.message : 'Unknown error');
                 this.configCache = null;
+                this.lastCacheUpdate = Date.now();
+                // Don't throw - allow getConfig() to return default config
             }
-            this.lastCacheUpdate = Date.now();
         });
     }
     /**

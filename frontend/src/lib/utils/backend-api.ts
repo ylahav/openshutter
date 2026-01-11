@@ -8,9 +8,34 @@
 import { env } from '$env/dynamic/private';
 import type { Cookies } from '@sveltejs/kit';
 
+// Note: Environment variables should be loaded by start.sh or PM2 before starting the app
+// SvelteKit's $env/dynamic/private works during request handling, but for module-level access
+// we rely on process.env which should be set by the startup script or PM2 ecosystem.config.js
+
 // Backend API base URL
 const BACKEND_URL = env.BACKEND_URL || process.env.BACKEND_URL || 'http://localhost:5000';
 const API_BASE = `${BACKEND_URL}/api`;
+
+// Log backend connection info (only once when module loads)
+// This helps identify which backend the frontend is connecting to, especially useful for multiple installations
+if (typeof process !== 'undefined') {
+	try {
+		const url = new URL(BACKEND_URL);
+		const port = url.port || (url.protocol === 'https:' ? '443' : url.protocol === 'http:' ? '80' : 'unknown');
+		// Show where the BACKEND_URL came from
+		const source = env.BACKEND_URL ? 'env.BACKEND_URL' : process.env.BACKEND_URL ? 'process.env.BACKEND_URL' : 'default';
+		console.log(`🔗 Frontend connecting to backend: ${BACKEND_URL} (port: ${port}) [source: ${source}]`);
+		
+		// Warn if using default value
+		if (source === 'default') {
+			console.warn(`⚠️  WARNING: Using default backend URL. Set BACKEND_URL in frontend/.env.production to match your backend port!`);
+		}
+	} catch (e) {
+		// If URL parsing fails, just log the raw value
+		const source = env.BACKEND_URL ? 'env.BACKEND_URL' : process.env.BACKEND_URL ? 'process.env.BACKEND_URL' : 'default';
+		console.log(`🔗 Frontend connecting to backend: ${BACKEND_URL} [source: ${source}]`);
+	}
+}
 
 export interface BackendRequestOptions extends RequestInit {
 	// Additional options can be added here

@@ -75,14 +75,31 @@ export class StorageConfigService {
       updatedAt: new Date()
     }
     
+    // Ensure providerId is set
+    if (!updateData.providerId) {
+      updateData.providerId = providerId
+    }
+    
+    // Set createdAt if this is a new document
+    const existing = await collection.findOne({ providerId })
+    if (!existing && !updateData.createdAt) {
+      updateData.createdAt = new Date()
+    }
+    
+    console.log(`[StorageConfigService] Updating config for ${providerId}:`, JSON.stringify(updateData, null, 2))
+    
+    // Use upsert to create if it doesn't exist
     const result = await collection.updateOne(
       { providerId },
-      { $set: updateData }
+      { $set: updateData },
+      { upsert: true }
     )
     
-    if (result.matchedCount === 0) {
-      throw new StorageConfigError(`Provider configuration not found: ${providerId}`, providerId)
-    }
+    console.log(`[StorageConfigService] Update result for ${providerId}:`, {
+      matchedCount: result.matchedCount,
+      modifiedCount: result.modifiedCount,
+      upsertedCount: result.upsertedCount
+    })
     
     // Invalidate cache
     this.invalidateCache()
@@ -149,6 +166,36 @@ export class StorageConfigService {
           secretAccessKey: '',
           region: 'us-east-1',
           bucketName: '',
+          isEnabled: false
+        },
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        providerId: 'backblaze' as StorageProviderId,
+        name: 'Backblaze B2',
+        isEnabled: false,
+        config: {
+          applicationKeyId: '',
+          applicationKey: '',
+          bucketName: '',
+          region: 'us-west-2',
+          endpoint: '',
+          isEnabled: false
+        },
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        providerId: 'wasabi' as StorageProviderId,
+        name: 'Wasabi',
+        isEnabled: false,
+        config: {
+          accessKeyId: '',
+          secretAccessKey: '',
+          bucketName: '',
+          region: 'us-east-1',
+          endpoint: '',
           isEnabled: false
         },
         createdAt: new Date(),

@@ -83,7 +83,7 @@ PageSchema.pre('save', function() {
 });
 
 // Indexes for performance
-PageSchema.index({ alias: 1 });
+// Note: alias index is automatically created by unique: true, so we don't need to add it again
 PageSchema.index({ category: 1 });
 PageSchema.index({ isPublished: 1 });
 

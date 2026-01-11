@@ -98,7 +98,7 @@ exports.PageSchema.pre('save', function () {
     this.updatedAt = new Date();
 });
 // Indexes for performance
-exports.PageSchema.index({ alias: 1 });
+// Note: alias index is automatically created by unique: true, so we don't need to add it again
 exports.PageSchema.index({ category: 1 });
 exports.PageSchema.index({ isPublished: 1 });
 exports.PageModel = mongoose_1.default.models.Page || mongoose_1.default.model('Page', exports.PageSchema);

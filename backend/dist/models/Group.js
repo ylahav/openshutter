@@ -63,5 +63,5 @@ exports.GroupSchema.pre('save', function () {
     this.updatedAt = new Date();
 });
 // Indexes for performance
-exports.GroupSchema.index({ alias: 1 });
+// Note: alias index is automatically created by unique: true, so we don't need to add it again
 exports.GroupModel = mongoose_1.default.models.Group || mongoose_1.default.model('Group', exports.GroupSchema);

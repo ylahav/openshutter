@@ -35,12 +35,27 @@ try {
     exit 1
 }
 
+# Clean previous builds
+Write-Host "Cleaning previous builds..." -ForegroundColor Blue
+if (Test-Path "backend\dist") {
+    Remove-Item -Path "backend\dist" -Recurse -Force -ErrorAction SilentlyContinue
+}
+if (Test-Path "frontend\build") {
+    Remove-Item -Path "frontend\build" -Recurse -Force -ErrorAction SilentlyContinue
+}
+if (Test-Path "frontend\.svelte-kit") {
+    Remove-Item -Path "frontend\.svelte-kit" -Recurse -Force -ErrorAction SilentlyContinue
+}
+
 # Build backend
 Write-Host "Building backend..." -ForegroundColor Blue
 try {
     pnpm --filter openshutter-backend build
     if ($LASTEXITCODE -ne 0 -and $LASTEXITCODE -ne $null) {
         throw "Backend build failed with exit code $LASTEXITCODE"
+    }
+    if (-not (Test-Path "backend\dist")) {
+        throw "Backend dist directory was not created"
     }
     Write-Host "Backend built successfully" -ForegroundColor Green
 } catch {
@@ -55,6 +70,9 @@ try {
     pnpm --filter openshutter build
     if ($LASTEXITCODE -ne 0 -and $LASTEXITCODE -ne $null) {
         throw "Frontend build failed with exit code $LASTEXITCODE"
+    }
+    if (-not (Test-Path "frontend\build") -and -not (Test-Path "frontend\.svelte-kit\output")) {
+        throw "Frontend build directory was not created"
     }
     Write-Host "Frontend built successfully" -ForegroundColor Green
 } catch {
@@ -93,13 +111,19 @@ if (Test-Path "backend\tsconfig.json") {
 
 Write-Host "  Copying frontend files..." -ForegroundColor Blue
 New-Item -ItemType Directory -Path (Join-Path $DEPLOY_DIR "frontend") -Force | Out-Null
-# SvelteKit uses .svelte-kit/output instead of build
-if (Test-Path "frontend\.svelte-kit\output") {
-    New-Item -ItemType Directory -Path (Join-Path $DEPLOY_DIR "frontend\.svelte-kit") -Force | Out-Null
-    Copy-Item -Path "frontend\.svelte-kit\output" -Destination (Join-Path $DEPLOY_DIR "frontend\.svelte-kit\output") -Recurse -Force
-}
+# SvelteKit with adapter-node outputs to build/ directory
 if (Test-Path "frontend\build") {
     Copy-Item -Path "frontend\build" -Destination (Join-Path $DEPLOY_DIR "frontend\build") -Recurse -Force
+    Write-Host "    Copied frontend/build directory" -ForegroundColor Green
+} elseif (Test-Path "frontend\.svelte-kit\output") {
+    # Fallback for other adapters
+    New-Item -ItemType Directory -Path (Join-Path $DEPLOY_DIR "frontend\.svelte-kit") -Force | Out-Null
+    Copy-Item -Path "frontend\.svelte-kit\output" -Destination (Join-Path $DEPLOY_DIR "frontend\.svelte-kit\output") -Recurse -Force
+    Write-Host "    Copied frontend/.svelte-kit/output directory" -ForegroundColor Yellow
+} else {
+    Write-Host "ERROR: Frontend build directory not found!" -ForegroundColor Red
+    Write-Host "Expected: frontend\build or frontend\.svelte-kit\output" -ForegroundColor Red
+    exit 1
 }
 Copy-Item -Path "frontend\package.json" -Destination (Join-Path $DEPLOY_DIR "frontend\package.json") -Force
 if (Test-Path "frontend\svelte.config.js") {
@@ -140,15 +164,113 @@ if (Test-Path "docs\DEPLOYMENT.md") {
     Copy-Item -Path "docs\DEPLOYMENT.md" -Destination (Join-Path $DEPLOY_DIR "docs\DEPLOYMENT.md") -Force
 }
 
-# Create build script (installs dependencies)
-$BUILD_SCRIPT = @"
+# Create build script (installs dependencies and configures environment)
+# Use single-quoted here-string to prevent PowerShell variable expansion
+$BUILD_SCRIPT = @'
 #!/bin/bash
 # Production build script for OpenShutter
-# This script installs all production dependencies
+# This script installs all production dependencies and configures environment variables
 
 set -e
 
-echo "Installing dependencies for OpenShutter..."
+echo "=========================================="
+echo "OpenShutter Production Setup"
+echo "=========================================="
+echo ""
+
+# Ask if this is an update or first installation
+read -p "Is this an update to an existing installation? (y/n) [n]: " IS_UPDATE
+IS_UPDATE=${IS_UPDATE:-n}
+
+if [[ "$IS_UPDATE" =~ ^[Yy]$ ]]; then
+    echo ""
+    echo "=========================================="
+    echo "Update Mode: Installing dependencies only"
+    echo "=========================================="
+    echo ""
+    echo "Existing configuration files will be preserved."
+    echo ""
+    
+    # Install dependencies only (preserves existing .env files)
+    echo "Installing root dependencies..."
+    pnpm install --prod --frozen-lockfile
+    
+    echo "Installing backend dependencies..."
+    cd backend
+    pnpm install --prod --frozen-lockfile
+    cd ..
+    
+    echo "Installing frontend dependencies..."
+    cd frontend
+    pnpm install --prod --frozen-lockfile
+    cd ..
+    
+    echo ""
+    echo "=========================================="
+    echo "✅ Update completed successfully!"
+    echo "=========================================="
+    echo ""
+    echo "Dependencies have been updated."
+    echo "Your existing configuration files (.env, ecosystem.config.js) have been preserved."
+    echo ""
+    echo "Next steps:"
+    echo "  1. Restart services: pm2 restart all"
+    echo "  2. Verify: pm2 status"
+    echo ""
+    exit 0
+fi
+
+# First installation - prompt for configuration
+echo "First Installation Mode: Full setup"
+echo ""
+echo "Please provide the following configuration:"
+echo ""
+
+# Backend port
+read -p "Backend port [5000]: " BACKEND_PORT
+BACKEND_PORT=${BACKEND_PORT:-5000}
+
+# Frontend port
+read -p "Frontend port [4000]: " FRONTEND_PORT
+FRONTEND_PORT=${FRONTEND_PORT:-4000}
+
+# MongoDB configuration
+echo ""
+echo "MongoDB Configuration:"
+read -p "MongoDB host [localhost:27017]: " MONGODB_HOST
+MONGODB_HOST=${MONGODB_HOST:-localhost:27017}
+
+read -p "Database name [openshutter]: " MONGODB_DB
+MONGODB_DB=${MONGODB_DB:-openshutter}
+
+read -p "Does MongoDB require authentication? (y/n) [n]: " MONGODB_AUTH_REQUIRED
+MONGODB_AUTH_REQUIRED=${MONGODB_AUTH_REQUIRED:-n}
+
+MONGODB_USER=""
+MONGODB_PASSWORD=""
+MONGODB_AUTH_SOURCE="admin"
+
+if [[ "$MONGODB_AUTH_REQUIRED" =~ ^[Yy]$ ]]; then
+    read -p "MongoDB username: " MONGODB_USER
+    read -sp "MongoDB password: " MONGODB_PASSWORD
+    echo ""
+    read -p "MongoDB auth source [admin]: " MONGODB_AUTH_SOURCE
+    MONGODB_AUTH_SOURCE=${MONGODB_AUTH_SOURCE:-admin}
+fi
+
+# Build MongoDB URI
+if [[ "$MONGODB_AUTH_REQUIRED" =~ ^[Yy]$ ]]; then
+    # URL encode special characters in password
+    MONGODB_PASSWORD_ENCODED=$(echo -n "$MONGODB_PASSWORD" | sed 's/!/%21/g; s/@/%40/g; s/#/%23/g; s/\$/%24/g; s/%/%25/g; s/&/%26/g; s/\//%2F/g; s/:/%3A/g')
+    MONGODB_URI="mongodb://${MONGODB_USER}:${MONGODB_PASSWORD_ENCODED}@${MONGODB_HOST}/${MONGODB_DB}?authSource=${MONGODB_AUTH_SOURCE}"
+else
+    MONGODB_URI="mongodb://${MONGODB_HOST}/${MONGODB_DB}"
+fi
+
+echo ""
+echo "=========================================="
+echo "Installing dependencies..."
+echo "=========================================="
 
 # Install root dependencies
 echo "Installing root dependencies..."
@@ -166,39 +288,194 @@ cd frontend
 pnpm install --prod --frozen-lockfile
 cd ..
 
-echo "All dependencies installed successfully!"
-"@
-$BUILD_SCRIPT | Out-File -FilePath (Join-Path $DEPLOY_DIR "build.sh") -Encoding utf8 -NoNewline
+echo ""
+echo "=========================================="
+echo "Creating environment files..."
+echo "=========================================="
+
+# Generate JWT secret (same for both frontend and backend)
+JWT_SECRET=$(openssl rand -base64 32 2>/dev/null || head -c 32 /dev/urandom | base64)
+
+# Create backend .env file
+echo "Creating backend/.env..."
+cat > backend/.env << EOF
+# MongoDB Configuration
+MONGODB_URI=${MONGODB_URI}
+MONGODB_DB=${MONGODB_DB}
+
+# Authentication Configuration
+AUTH_JWT_SECRET=${JWT_SECRET}
+
+# Application Configuration
+NODE_ENV=production
+PORT=${BACKEND_PORT}
+
+# CORS Configuration
+FRONTEND_URL=http://localhost:${FRONTEND_PORT}
+EOF
+
+# Create frontend .env.production file
+echo "Creating frontend/.env.production..."
+cat > frontend/.env.production << EOF
+# Authentication Configuration (SvelteKit)
+AUTH_JWT_SECRET=${JWT_SECRET}
+
+# Application Configuration
+NODE_ENV=production
+BACKEND_URL=http://localhost:${BACKEND_PORT}
+PORT=${FRONTEND_PORT}
+EOF
+
+echo ""
+echo "=========================================="
+echo "✅ Setup completed successfully!"
+echo "=========================================="
+echo ""
+echo "Configuration summary:"
+echo "  Backend port: ${BACKEND_PORT}"
+echo "  Frontend port: ${FRONTEND_PORT}"
+echo "  MongoDB URI: ${MONGODB_URI}"
+echo ""
+echo "Environment files created:"
+echo "  - backend/.env"
+echo "  - frontend/.env.production"
+echo ""
+
+# Create PM2 ecosystem.config.js for frontend
+echo "Creating frontend/ecosystem.config.js..."
+cat > frontend/ecosystem.config.js << ECFGEOF
+// PM2 Ecosystem Configuration for OpenShutter Frontend
+// Auto-generated by build.sh - do not edit manually
+
+// Load environment variables from .env.production
+const fs = require('fs');
+const path = require('path');
+const envPath = path.join(__dirname, '.env.production');
+let envVars = {};
+
+if (fs.existsSync(envPath)) {
+  const envFile = fs.readFileSync(envPath, 'utf8');
+  envFile.split('\\n').forEach(line => {
+    const trimmed = line.trim();
+    if (trimmed && !trimmed.startsWith('#')) {
+      const [key, ...valueParts] = trimmed.split('=');
+      if (key && valueParts.length > 0) {
+        envVars[key.trim()] = valueParts.join('=').trim();
+      }
+    }
+  });
+}
+
+module.exports = {
+  apps: [{
+    name: 'openshutter-frontend',
+    script: 'build/index.js',
+    cwd: __dirname,
+    instances: 1,
+    exec_mode: 'fork',
+    env: {
+      NODE_ENV: 'production',
+      PORT: ${FRONTEND_PORT},
+      BACKEND_URL: 'http://localhost:${BACKEND_PORT}',
+      AUTH_JWT_SECRET: '${JWT_SECRET}',
+      ...envVars  // Include all other variables from .env.production
+    },
+    // Auto restart settings
+    watch: false,
+    max_memory_restart: '1G',
+    restart_delay: 4000,
+    
+    // Health monitoring
+    min_uptime: '10s',
+    max_restarts: 10,
+    
+    // Process management
+    kill_timeout: 5000,
+    wait_ready: true,
+    listen_timeout: 10000,
+    
+    // Logging
+    log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+    merge_logs: true
+  }]
+};
+ECFGEOF
+
+echo "  - frontend/ecosystem.config.js"
+echo ""
+echo "⚠️  IMPORTANT: The AUTH_JWT_SECRET has been set to the same value in both files."
+echo ""
+'@
+# Write build.sh with LF line endings (Unix format)
+$buildScriptPath = Join-Path $DEPLOY_DIR "build.sh"
+$buildScriptContent = $BUILD_SCRIPT -replace "`r`n", "`n" -replace "`r", "`n"
+[System.IO.File]::WriteAllText($buildScriptPath, $buildScriptContent, [System.Text.UTF8Encoding]::new($false))
 
 # Create start script (starts the application)
-$START_SCRIPT = @"
+# Use single-quoted here-string to prevent PowerShell variable expansion
+$START_SCRIPT = @'
 #!/bin/bash
 # Production start script for OpenShutter
 # This script starts both backend and frontend services
+# Ports are read from environment files created by build.sh
 
 set -e
 
+# Load backend port from backend/.env file
+if [ -f "backend/.env" ]; then
+    export $(grep -v '^#' backend/.env | grep -E '^PORT=' | xargs)
+    BACKEND_PORT=${PORT:-5000}
+    echo "📋 Loaded backend port from backend/.env: ${BACKEND_PORT}"
+else
+    BACKEND_PORT=${PORT:-5000}
+    echo "⚠️  backend/.env not found, using default port: ${BACKEND_PORT}"
+fi
+
+# Load frontend port from frontend/.env.production file
+if [ -f "frontend/.env.production" ]; then
+    export $(grep -v '^#' frontend/.env.production | grep -E '^PORT=' | xargs)
+    FRONTEND_PORT=${PORT:-4000}
+    echo "📋 Loaded frontend port from frontend/.env.production: ${FRONTEND_PORT}"
+else
+    FRONTEND_PORT=${PORT:-4000}
+    echo "⚠️  frontend/.env.production not found, using default port: ${FRONTEND_PORT}"
+fi
+
+echo ""
+echo "🚀 Starting OpenShutter services..."
+echo "   Backend port: ${BACKEND_PORT}"
+echo "   Frontend port: ${FRONTEND_PORT}"
+echo ""
+
 # Start backend
-echo "Starting backend..."
+echo "Starting backend on port ${BACKEND_PORT}..."
 cd backend
-PORT=`${PORT:-5000} node dist/main.js &
-BACKEND_PID=`$!
+PORT=${BACKEND_PORT} node dist/main.js &
+BACKEND_PID=$!
 
 # Wait for backend to start
 sleep 3
 
 # Start frontend (SvelteKit)
-echo "Starting frontend..."
+echo "Starting frontend on port ${FRONTEND_PORT}..."
 cd ../frontend
+# Load environment variables from .env.production if it exists
+if [ -f ".env.production" ]; then
+    export $(grep -v '^#' .env.production | grep -v '^$' | xargs)
+    echo "📋 Loaded environment variables from .env.production"
+fi
 # PORT must be set as environment variable (adapter-node defaults to 3000 if not set)
 # Use build/index.js (not just 'build') for ES module compatibility
-PORT=${FRONTEND_PORT:-4000} node build/index.js &
+PORT=${FRONTEND_PORT} node build/index.js &
 FRONTEND_PID=$!
 
 # Wait for both processes
-wait `$BACKEND_PID `$FRONTEND_PID
-"@
-$START_SCRIPT | Out-File -FilePath (Join-Path $DEPLOY_DIR "start.sh") -Encoding utf8 -NoNewline
+wait $BACKEND_PID $FRONTEND_PID
+'@
+# Write start.sh with LF line endings (Unix format)
+$startScriptPath = Join-Path $DEPLOY_DIR "start.sh"
+$startScriptContent = $START_SCRIPT -replace "`r`n", "`n" -replace "`r", "`n"
+[System.IO.File]::WriteAllText($startScriptPath, $startScriptContent, [System.Text.UTF8Encoding]::new($false))
 
 # Create deployment package using ZIP (preferred on Windows) or tar
 Write-Host "  Creating archive..." -ForegroundColor Blue

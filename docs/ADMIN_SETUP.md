@@ -1,45 +1,79 @@
 # OpenShutter Admin Setup Guide
 
-## 🔐 Initial Admin Credentials
+## 🚀 First Time Setup
 
-**⚠️ IMPORTANT: Change these credentials after first login in production!**
+When you first deploy OpenShutter, the system will automatically detect that it's a fresh installation and guide you through the initial setup process.
 
-### Default Admin Login:
-- **Email**: `admin@openshutter.com`
+### Initial Setup Wizard
+
+On a fresh installation, visiting the root URL (`http://localhost:4000` or your production domain) will automatically redirect you to the **Initial Setup** page (`/setup`).
+
+#### Setup Form Fields
+
+The setup form allows you to configure:
+
+1. **Admin Account** (Required)
+   - **Username/Email**: Set your admin account email address
+   - **Password**: Create a secure password (minimum 6 characters)
+   - **Confirm Password**: Re-enter your password for verification
+
+2. **Site Configuration**
+   - **Site Title** (Required): The name of your photo gallery
+   - **Site Description** (Optional): A brief description of your gallery
+   - **Logo** (Optional): Upload a logo image for your site (PNG, JPG, GIF, or WebP, max 5MB)
+
+#### Completing Setup
+
+1. Fill in the required fields (Username, Password, Confirm Password, Site Title)
+2. Optionally add a site description and upload a logo
+3. Click **"Complete Setup"**
+4. You will be automatically redirected to the login page
+5. Log in with the credentials you just created
+
+### Default Admin Credentials (Fallback)
+
+If the setup wizard doesn't appear (e.g., if the database was already initialized), you can use these default credentials:
+
+- **Email**: `admin@openshutter.org`
 - **Password**: `admin123!`
 - **Role**: System Administrator
 
-## 🚀 First Time Setup
+**⚠️ IMPORTANT**: These default credentials should only be used if the setup wizard is not available. Always change them immediately after first login in production!
 
-### 1. Access the System
-1. Navigate to `http://localhost:4000/login`
-2. Use the initial admin credentials above
-3. You will be redirected to the admin dashboard
+### After Initial Setup
 
-### 2. Change Default Password
-**CRITICAL**: After first login, immediately change the default password:
-1. Go to System Settings in the dashboard
-2. Update admin credentials
-3. Remove or update the hardcoded credentials in `src/lib/initial-admin.ts`
+Once you've completed the setup and logged in:
 
-### 3. Create Additional Admin Users
-1. Use the User Management section in the dashboard
-2. Create new admin accounts with proper credentials
-3. Disable or remove the initial admin account if desired
+1. **Change Your Password** (if you used default credentials)
+   - Go to your profile settings
+   - Update your password to something secure
+
+2. **Create Additional Admin Users**
+   - Navigate to Admin Panel → Users
+   - Create new admin accounts with proper credentials
+   - You can disable or remove the initial admin account if desired
+
+3. **Configure Site Settings**
+   - Go to Admin Panel → Site Config
+   - Update site title, description, logo, and other settings
+   - Configure languages, themes, and SEO settings
 
 ## 🔧 Configuration Files
 
 ### Initial Admin Settings
-Location: `src/lib/initial-admin.ts`
 
-```typescript
-export const INITIAL_ADMIN_CREDENTIALS = {
-  email: 'admin@openshutter.com',    // Change this
-  password: 'admin123!',             // Change this
-  name: 'System Administrator',
-  role: 'admin'
-}
-```
+The initial admin user is automatically created by the database initialization service. The default credentials are:
+
+- **Email**: `admin@openshutter.org`
+- **Password**: `admin123!`
+- **Name**: System Administrator
+- **Role**: admin
+
+These are defined in `backend/src/database/database-init.service.ts` and are only used when:
+- No admin user exists in the database
+- The setup wizard hasn't been completed yet
+
+**Note**: The setup wizard allows you to change these credentials during initial setup, so you may never need to use the defaults.
 
 ### Environment Variables
 Location: `.env.local`

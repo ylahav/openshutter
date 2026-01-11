@@ -24,7 +24,15 @@
 			if (!response.ok) {
 				throw new Error('Failed to load configuration');
 			}
-			const data = await response.json();
+			const result = await response.json();
+			
+			// Handle the response format: { success: true, data: config } or direct config
+			const data = result.success ? result.data : result;
+			
+			if (!data) {
+				throw new Error('No configuration data received');
+			}
+			
 			// Ensure socialMedia object is properly initialized
 			if (data.contact && (!data.contact.socialMedia || typeof data.contact.socialMedia !== 'object')) {
 				data.contact.socialMedia = {

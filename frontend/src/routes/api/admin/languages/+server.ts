@@ -35,29 +35,35 @@ export const GET: RequestHandler = async ({ locals }) => {
 			return json({ success: false, error: 'Unauthorized' }, { status: 401 });
 		}
 
-		// Read the i18n directory to get available language files
-		const i18nPath = join(process.cwd(), 'src', 'i18n');
-
-		// Check if i18n directory exists
-		if (!existsSync(i18nPath)) {
-			console.warn(`i18n directory not found: ${i18nPath}`);
-			// Return default languages from metadata
-			const defaultLanguages = Object.keys(languageMetadata).map((code) => ({
-				code,
-				name: languageMetadata[code].name,
-				flag: languageMetadata[code].flag
-			}));
-			defaultLanguages.sort((a, b) => a.name.localeCompare(b.name));
-			return json({
-				success: true,
-				data: defaultLanguages
-			});
+		// In production, i18n files are bundled, so we can't read them from disk
+		// Instead, we'll check multiple possible locations and fall back to metadata
+		let languageFiles: string[] = [];
+		
+		// Try to find i18n directory in different locations
+		const possiblePaths = [
+			join(process.cwd(), 'src', 'i18n'),  // Development
+			join(process.cwd(), 'build', 'server', 'chunks', 'i18n'),  // Production (if copied)
+			join(process.cwd(), '..', 'src', 'i18n'),  // Alternative location
+		];
+		
+		for (const i18nPath of possiblePaths) {
+			if (existsSync(i18nPath)) {
+				try {
+					const files = await readdir(i18nPath);
+					languageFiles = files.filter((file) => file.endsWith('.json')).map((file) => file.replace('.json', ''));
+					break; // Found it, stop looking
+				} catch (error) {
+					// Continue to next path
+					continue;
+				}
+			}
 		}
-
-		const files = await readdir(i18nPath);
-
-		// Filter for .json files and extract language codes
-		const languageFiles = files.filter((file) => file.endsWith('.json')).map((file) => file.replace('.json', ''));
+		
+		// If no files found, use known languages from metadata (en, he are always available)
+		if (languageFiles.length === 0) {
+			// Return languages that we know exist (from imports in i18n.ts)
+			languageFiles = ['en', 'he']; // These are imported in frontend/src/lib/stores/i18n.ts
+		}
 
 		// Map language codes to their metadata
 		const availableLanguages = languageFiles.map((code) => {

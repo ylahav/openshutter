@@ -84,22 +84,43 @@ A comprehensive photo gallery management system with multi-storage support, adva
    ```
 
 3. **Set up environment variables**
+   
+   **Backend** (`backend/.env`):
    ```bash
-   cp env.example .env.local
+   cd backend
+   cp env.example .env
    ```
    
-   Edit `.env.local` with your configuration:
+   Edit `backend/.env` with your configuration:
    ```env
    # MongoDB Configuration
    MONGODB_URI=mongodb://localhost:27017/openshutter
    MONGODB_DB=openshutter
    
+   # Authentication Configuration
+   AUTH_JWT_SECRET=your_jwt_secret
+   
+   # Application Configuration
+   NODE_ENV=development
+   PORT=5000
+   FRONTEND_URL=http://localhost:4000
+   ```
+   
+   **Frontend** (`frontend/.env.production` or `frontend/.env.development`):
+   ```bash
+   cd frontend
+   cp env.development.example .env.development
+   ```
+   
+   Edit `frontend/.env.development` with your configuration:
+   ```env
    # Authentication Configuration (SvelteKit)
    AUTH_JWT_SECRET=your_jwt_secret
    
    # Application Configuration
    NODE_ENV=development
    BACKEND_URL=http://localhost:5000
+   PORT=4000
    ```
 
 4. **Set up MongoDB**
@@ -109,11 +130,21 @@ A comprehensive photo gallery management system with multi-storage support, adva
 
 ## 🔐 Initial Admin Access
 
-**⚠️ IMPORTANT: Change these credentials after first login!**
+On a fresh installation, you'll be guided through an **Initial Setup Wizard** that allows you to:
 
-- **Email**: `admin@openshutter.com`
+- Set your admin username/email
+- Create a secure password
+- Configure your site title (required)
+- Optionally add a site description
+- Optionally upload a logo
+
+The setup wizard automatically appears when you first visit the site. After completing setup, you'll be redirected to the login page.
+
+**Default Credentials (Fallback)**: If the setup wizard doesn't appear, you can use:
+- **Email**: `admin@openshutter.org`
 - **Password**: `admin123!`
-- **Role**: System Administrator
+
+**⚠️ IMPORTANT**: Always change default credentials immediately after first login!
 
 For detailed admin setup instructions, see [docs/ADMIN_SETUP.md](docs/ADMIN_SETUP.md).
 
@@ -140,7 +171,7 @@ For detailed admin setup instructions, see [docs/ADMIN_SETUP.md](docs/ADMIN_SETU
 
 ## 🚀 Production Deployment
 
-For production deployment, see the comprehensive guide: [docs/SERVER_DEPLOYMENT.md](docs/SERVER_DEPLOYMENT.md)
+> **📖 Full Deployment Guide**: For complete instructions including environment setup, MongoDB configuration, PM2 management, Nginx, and SSL, see **[docs/SERVER_DEPLOYMENT.md](docs/SERVER_DEPLOYMENT.md)**
 
 ### Quick Deployment Steps
 
@@ -160,9 +191,14 @@ For production deployment, see the comprehensive guide: [docs/SERVER_DEPLOYMENT.
    unzip openshutter-deployment.zip
    cd openshutter
    chmod +x build.sh start.sh
-   ./build.sh
-   pm2 start backend/dist/main.js --name openshutter-backend
-   cd frontend && PORT=4000 pm2 start build/index.js --name openshutter-frontend --env production --update-env && cd ..
+   ./build.sh  # Interactive setup - configures ports, database, and creates ecosystem.config.js
+   
+   # Start backend
+   cd backend && pm2 start dist/main.js --name openshutter-backend --env production && cd ..
+   
+   # Start frontend using auto-generated ecosystem.config.js (recommended)
+   cd frontend && pm2 start ecosystem.config.js && cd ..
+   
    pm2 save
    ```
 
@@ -175,7 +211,7 @@ pnpm build          # Build for production
 pnpm start          # Start production server
 ```
 
-For detailed deployment instructions, see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+For detailed deployment instructions, see [docs/SERVER_DEPLOYMENT.md](docs/SERVER_DEPLOYMENT.md).
 
 ## 📁 Project Structure
 
@@ -331,34 +367,17 @@ pnpm type-check
 pnpm lint
 ```
 
-## 📦 Deployment
+## 📦 Additional Deployment Information
 
-OpenShutter supports multiple deployment options:
+For comprehensive deployment instructions including:
+- Environment variable configuration
+- MongoDB setup and authentication
+- PM2 process management
+- Nginx reverse proxy configuration
+- SSL/HTTPS setup
+- Troubleshooting common issues
 
-### ZIP-based (build-for-deployment.js)
-- Create the ZIP locally:
-  - Non-standalone: `pnpm run build:deploy`
-  - Standalone: `STANDALONE=true pnpm run build:deploy`
-- Then follow [docs/deploy.md](docs/deploy.md) for server steps.
-
-### PM2 Deployment (Recommended)
-Use PM2 to run the production server. See [docs/pm2-deployment.md](docs/pm2-deployment.md) for ZIP-based steps and PM2 commands.
-
-### Server Deployment
-See [docs/SERVER_DEPLOYMENT.md](docs/SERVER_DEPLOYMENT.md) for production deployment instructions using PM2.
-
-### Vercel (Alternative)
-1. **Push to GitHub**
-   ```bash
-   git add .
-   git commit -m "Initial commit"
-   git push origin main
-   ```
-
-2. **Deploy on Vercel**
-   - Connect your GitHub repository
-   - Add environment variables
-   - Deploy automatically
+See the complete guide: **[docs/SERVER_DEPLOYMENT.md](docs/SERVER_DEPLOYMENT.md)**
 
 ## 🤝 Contributing
 

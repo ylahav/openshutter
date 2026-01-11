@@ -46,6 +46,7 @@
 	let isLoading = false;
 	let error = '';
 	let success = '';
+	let storageOptionsError = '';
 
 	onMount(async () => {
 		await loadParentAlbums();
@@ -107,38 +108,33 @@
 			const apiEndpoint =
 				userRole === 'owner' ? '/api/owner/storage-options' : '/api/admin/storage-options';
 
+			console.log('[loadStorageOptions] Fetching from:', apiEndpoint);
 			const response = await fetch(apiEndpoint);
 			const result = await response.json();
 
-			if (result.success) {
+			console.log('[loadStorageOptions] Response:', result);
+
+			if (result.success && result.data) {
 				storageOptions = result.data;
+				console.log('[loadStorageOptions] Loaded storage options:', storageOptions);
 				// Set default storage provider to first available option
 				if (result.data.length > 0) {
 					formData.storageProvider = result.data[0].id;
+					storageOptionsError = '';
+				} else {
+					console.warn('[loadStorageOptions] No storage providers returned from API - user must enable at least one provider in admin panel');
+					storageOptions = [];
+					storageOptionsError = 'No storage providers are enabled. Please configure and enable at least one storage provider in the admin panel.';
 				}
 			} else {
 				console.error('Failed to load storage options:', result.error);
-				// Fallback to local storage
-				storageOptions = [
-					{
-						id: 'local',
-						name: 'Local Storage',
-						type: 'local',
-						isEnabled: true,
-					},
-				];
+				storageOptions = [];
+				storageOptionsError = 'Failed to load storage options. Please check your configuration.';
 			}
 		} catch (err) {
 			console.error('Error loading storage options:', err);
-			// Fallback to local storage
-			storageOptions = [
-				{
-					id: 'local',
-					name: 'Local Storage',
-					type: 'local',
-					isEnabled: true,
-				},
-			];
+			storageOptions = [];
+			storageOptionsError = 'Error loading storage options. Please check your configuration.';
 		} finally {
 			loadingStorageOptions = false;
 		}
@@ -370,6 +366,21 @@
 									</svg>
 									Loading storage options...
 								</div>
+							{:else if storageOptions.length === 0}
+								<div
+									class="w-full px-3 py-2 border border-yellow-300 rounded-md bg-yellow-50 text-yellow-800"
+								>
+									<p class="text-sm font-medium">No storage providers available</p>
+									<p class="text-xs mt-1">
+										{storageOptionsError || 'Please configure and enable at least one storage provider in the admin panel.'}
+									</p>
+									<a
+										href="/admin/storage"
+										class="text-xs text-yellow-700 underline hover:text-yellow-900 mt-2 inline-block"
+									>
+										Go to Storage Settings →
+									</a>
+								</div>
 							{:else}
 								<select
 									id="storageProvider"
@@ -382,7 +393,9 @@
 									{/each}
 								</select>
 							{/if}
-							<p class="mt-1 text-xs text-gray-500">Where photos will be stored</p>
+							{#if storageOptions.length > 0}
+								<p class="mt-1 text-xs text-gray-500">Where photos will be stored</p>
+							{/if}
 						</div>
 						<div>
 							<label for="parentAlbumId" class="block text-sm font-medium text-gray-700 mb-2">

@@ -20,6 +20,17 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __rest = (this && this.__rest) || function (s, e) {
+    var t = {};
+    for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
+        t[p] = s[p];
+    if (s != null && typeof Object.getOwnPropertySymbols === "function")
+        for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+            if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
+                t[p[i]] = s[p[i]];
+        }
+    return t;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.StorageAdminController = void 0;
 const common_1 = require("@nestjs/common");
@@ -70,11 +81,61 @@ let StorageAdminController = class StorageAdminController {
     updateConfig(providerId, updates) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                yield config_1.storageConfigService.updateConfig(providerId, updates);
+                // Get existing config or initialize defaults if it doesn't exist
+                let existingConfig;
+                try {
+                    existingConfig = yield config_1.storageConfigService.getConfig(providerId);
+                }
+                catch (error) {
+                    // Config doesn't exist, initialize defaults first
+                    yield config_1.storageConfigService.initializeDefaultConfigs();
+                    try {
+                        existingConfig = yield config_1.storageConfigService.getConfig(providerId);
+                    }
+                    catch (secondError) {
+                        // If config still doesn't exist after initialization, create a minimal one
+                        console.warn(`Config for ${providerId} not found after initialization, creating minimal config`);
+                        const providerNames = {
+                            'google-drive': 'Google Drive',
+                            'aws-s3': 'Amazon S3',
+                            'backblaze': 'Backblaze B2',
+                            'wasabi': 'Wasabi',
+                            'local': 'Local Storage'
+                        };
+                        existingConfig = {
+                            providerId: providerId,
+                            name: providerNames[providerId] || providerId,
+                            isEnabled: false,
+                            config: {},
+                            createdAt: new Date(),
+                            updatedAt: new Date()
+                        };
+                    }
+                }
+                // The frontend sends config fields directly (e.g., { clientId, clientSecret, isEnabled })
+                // We need to structure it properly: { isEnabled, config: { clientId, clientSecret, ... } }
+                const structuredUpdates = {
+                    providerId: providerId,
+                    name: existingConfig.name, // Preserve existing name
+                };
+                // Extract isEnabled if provided (can be at top level or in config)
+                if (updates.isEnabled !== undefined) {
+                    structuredUpdates.isEnabled = updates.isEnabled;
+                }
+                else if (existingConfig.isEnabled !== undefined) {
+                    structuredUpdates.isEnabled = existingConfig.isEnabled;
+                }
+                // Build the config object - merge existing config with updates
+                // Exclude isEnabled from config object (it's at top level)
+                const { isEnabled: _ } = updates, configUpdates = __rest(updates, ["isEnabled"]);
+                structuredUpdates.config = Object.assign(Object.assign({}, existingConfig.config), configUpdates);
+                // Update the configuration
+                yield config_1.storageConfigService.updateConfig(providerId, structuredUpdates);
                 const updatedConfig = yield config_1.storageConfigService.getConfig(providerId);
                 return updatedConfig;
             }
             catch (error) {
+                console.error('Error updating storage config:', error);
                 throw new common_1.BadRequestException(`Failed to update storage configuration: ${error instanceof Error ? error.message : 'Unknown error'}`);
             }
         });

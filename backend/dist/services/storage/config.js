@@ -86,10 +86,23 @@ class StorageConfigService {
                 throw new Error('Database connection not established');
             const collection = db.collection('storage_configs');
             const updateData = Object.assign(Object.assign({}, updates), { updatedAt: new Date() });
-            const result = yield collection.updateOne({ providerId }, { $set: updateData });
-            if (result.matchedCount === 0) {
-                throw new types_1.StorageConfigError(`Provider configuration not found: ${providerId}`, providerId);
+            // Ensure providerId is set
+            if (!updateData.providerId) {
+                updateData.providerId = providerId;
             }
+            // Set createdAt if this is a new document
+            const existing = yield collection.findOne({ providerId });
+            if (!existing && !updateData.createdAt) {
+                updateData.createdAt = new Date();
+            }
+            console.log(`[StorageConfigService] Updating config for ${providerId}:`, JSON.stringify(updateData, null, 2));
+            // Use upsert to create if it doesn't exist
+            const result = yield collection.updateOne({ providerId }, { $set: updateData }, { upsert: true });
+            console.log(`[StorageConfigService] Update result for ${providerId}:`, {
+                matchedCount: result.matchedCount,
+                modifiedCount: result.modifiedCount,
+                upsertedCount: result.upsertedCount
+            });
             // Invalidate cache
             this.invalidateCache();
         });
@@ -152,6 +165,36 @@ class StorageConfigService {
                         secretAccessKey: '',
                         region: 'us-east-1',
                         bucketName: '',
+                        isEnabled: false
+                    },
+                    createdAt: new Date(),
+                    updatedAt: new Date()
+                },
+                {
+                    providerId: 'backblaze',
+                    name: 'Backblaze B2',
+                    isEnabled: false,
+                    config: {
+                        applicationKeyId: '',
+                        applicationKey: '',
+                        bucketName: '',
+                        region: 'us-west-2',
+                        endpoint: '',
+                        isEnabled: false
+                    },
+                    createdAt: new Date(),
+                    updatedAt: new Date()
+                },
+                {
+                    providerId: 'wasabi',
+                    name: 'Wasabi',
+                    isEnabled: false,
+                    config: {
+                        accessKeyId: '',
+                        secretAccessKey: '',
+                        bucketName: '',
+                        region: 'us-east-1',
+                        endpoint: '',
                         isEnabled: false
                     },
                     createdAt: new Date(),

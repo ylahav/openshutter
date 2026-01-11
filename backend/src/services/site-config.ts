@@ -22,10 +22,16 @@ export class SiteConfigService {
    * Get site configuration
    */
   async getConfig(): Promise<SiteConfig> {
-    await this.refreshCacheIfNeeded()
+    try {
+      await this.refreshCacheIfNeeded()
+    } catch (error) {
+      // If MongoDB access fails (e.g., authentication error), use default config
+      console.warn('Failed to refresh site config cache, using defaults:', error instanceof Error ? error.message : 'Unknown error');
+      this.configCache = null;
+    }
     
     if (!this.configCache) {
-      // Return default config if none exists
+      // Return default config if none exists or if cache refresh failed
       return this.getDefaultConfig()
     }
     
@@ -208,40 +214,54 @@ export class SiteConfigService {
    * Refresh configuration cache
    */
   private async refreshCache(): Promise<void> {
+    try {
       await connectDB()
       const db = mongoose.connection.db
-      if (!db) throw new Error('Database connection not established')
-    const collection = db.collection('site_config')
-    
-    const config = await collection.findOne({})
-    if (config) {
-      // Migrate to multi-language format if needed
-      const migratedConfig = this.migrateToMultiLang(config)
+      if (!db) {
+        console.warn('Database connection not established, skipping cache refresh');
+        this.configCache = null;
+        this.lastCacheUpdate = Date.now();
+        return;
+      }
       
-      // Merge with default config to ensure all fields exist
-      const defaultConfig = this.getDefaultConfig()
-      this.configCache = {
-        ...defaultConfig,
-        ...migratedConfig,
-        // Ensure languages field exists
-        languages: migratedConfig.languages || defaultConfig.languages,
-        // Handle backward compatibility for title and description
-        title: migratedConfig.title || defaultConfig.title,
-        description: migratedConfig.description || defaultConfig.description,
-        // Ensure contact.socialMedia object is properly structured
-        contact: {
-          ...defaultConfig.contact,
-          ...migratedConfig.contact,
-          socialMedia: {
-            ...defaultConfig.contact.socialMedia,
-            ...(migratedConfig.contact?.socialMedia || {})
+      const collection = db.collection('site_config')
+      
+      const config = await collection.findOne({})
+      if (config) {
+        // Migrate to multi-language format if needed
+        const migratedConfig = this.migrateToMultiLang(config)
+        
+        // Merge with default config to ensure all fields exist
+        const defaultConfig = this.getDefaultConfig()
+        this.configCache = {
+          ...defaultConfig,
+          ...migratedConfig,
+          // Ensure languages field exists
+          languages: migratedConfig.languages || defaultConfig.languages,
+          // Handle backward compatibility for title and description
+          title: migratedConfig.title || defaultConfig.title,
+          description: migratedConfig.description || defaultConfig.description,
+          // Ensure contact.socialMedia object is properly structured
+          contact: {
+            ...defaultConfig.contact,
+            ...migratedConfig.contact,
+            socialMedia: {
+              ...defaultConfig.contact.socialMedia,
+              ...(migratedConfig.contact?.socialMedia || {})
+            }
           }
-        }
-      } as unknown as SiteConfig
-    } else {
-      this.configCache = null
+        } as unknown as SiteConfig
+      } else {
+        this.configCache = null
+      }
+      this.lastCacheUpdate = Date.now()
+    } catch (error) {
+      // If MongoDB access fails (e.g., authentication error), clear cache and use defaults
+      console.warn('Failed to refresh site config cache:', error instanceof Error ? error.message : 'Unknown error');
+      this.configCache = null;
+      this.lastCacheUpdate = Date.now();
+      // Don't throw - allow getConfig() to return default config
     }
-    this.lastCacheUpdate = Date.now()
   }
 
   /**
