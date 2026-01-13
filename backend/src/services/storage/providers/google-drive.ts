@@ -65,6 +65,17 @@ export class GoogleDriveService implements IStorageService {
 
   async validateConnection(): Promise<boolean> {
     try {
+      // Check if required config is present
+      if (!this.config.clientId) {
+        throw new Error('Google Drive Client ID is not configured')
+      }
+      if (!this.config.clientSecret) {
+        throw new Error('Google Drive Client Secret is not configured')
+      }
+      if (!this.config.refreshToken && !this.config.accessToken) {
+        throw new Error('Google Drive authentication tokens are missing. Please authorize the application.')
+      }
+
       // Ensure we have a valid access token
       if (!this.config.accessToken || (this.config.tokenExpiry && new Date() >= this.config.tokenExpiry)) {
         await this.refreshAccessToken()
@@ -73,9 +84,54 @@ export class GoogleDriveService implements IStorageService {
       // Test connection by getting user info (more reliable than folder access)
       await this.drive.about.get({ fields: 'user' })
       return true
-    } catch (error) {
+    } catch (error: any) {
       console.error('Google Drive connection validation failed:', error)
-      return false
+      
+      // Extract detailed error information
+      let errorMessage = 'Unknown error occurred'
+      let errorCode: string | undefined
+      let errorDetails: any = {}
+
+      if (error instanceof Error) {
+        errorMessage = error.message
+        errorDetails.message = error.message
+        errorDetails.stack = error.stack
+      }
+
+      // Check for Google API specific errors
+      if (error?.response?.data) {
+        errorCode = error.response.data.error?.code || error.response.status?.toString()
+        errorMessage = error.response.data.error?.message || errorMessage
+        errorDetails.googleApiError = {
+          code: error.response.data.error?.code,
+          message: error.response.data.error?.message,
+          status: error.response.status,
+          errors: error.response.data.error?.errors
+        }
+      } else if (error?.code) {
+        errorCode = error.code.toString()
+        errorDetails.code = error.code
+      }
+
+      // Check for authentication errors
+      if (errorMessage.includes('invalid_grant') || errorMessage.includes('invalid_token') || errorMessage.includes('unauthorized')) {
+        errorMessage = `Authentication failed: ${errorMessage}. Please re-authorize the application.`
+        errorDetails.authError = true
+      }
+
+      // Check for network errors
+      if (error?.code === 'ENOTFOUND' || error?.code === 'ECONNREFUSED' || error?.code === 'ETIMEDOUT') {
+        errorMessage = `Network error: ${errorMessage}. Please check your internet connection and firewall settings.`
+        errorDetails.networkError = true
+      }
+
+      // Create a detailed error object
+      const detailedError: any = new Error(errorMessage)
+      detailedError.code = errorCode
+      detailedError.details = errorDetails
+      detailedError.originalError = error
+      
+      throw detailedError
     }
   }
 

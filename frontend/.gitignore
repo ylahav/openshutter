@@ -54,3 +54,7 @@ openshutter-deployment.tar.gz
 # Storage and logs
 storage/
 logs/
+
+# Server start timestamp and PID (development only)
+.server-start-time
+.server-pid

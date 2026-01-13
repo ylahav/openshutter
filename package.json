@@ -10,14 +10,15 @@
     "dev:backend": "pnpm --filter openshutter-backend dev",
     "build": "pnpm --filter openshutter-backend build && pnpm --filter openshutter build",
     "build:frontend": "pnpm --filter openshutter build",
-    "build:backend": "pnpm --filter openshutter-backend build",
+    "build:backend": "NODE_OPTIONS=--max-old-space-size=4096 pnpm --filter openshutter-backend build",
     "start": "concurrently --kill-others-on-fail --kill-others --delay 3000 \"pnpm --filter openshutter-backend start\" \"pnpm --filter openshutter preview\"",
     "start:frontend": "pnpm --filter openshutter preview",
     "start:backend": "pnpm --filter openshutter-backend start",
     "lint": "pnpm --filter openshutter lint && pnpm --filter openshutter-backend lint",
     "type-check": "pnpm --filter openshutter type-check",
     "build:prod": "node -e \"const {execSync}=require('child_process');const cmd=process.platform==='win32'?'powershell -ExecutionPolicy Bypass -File scripts/build-for-production.ps1':'bash scripts/build-for-production.sh';execSync(cmd,{stdio:'inherit',cwd:process.cwd()})\"",
-    "deploy": "./scripts/deploy-to-server.sh"
+    "deploy": "./scripts/deploy-to-server.sh",
+    "cleanup-storage-configs": "node scripts/cleanup-storage-configs.cjs"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"
@@ -34,7 +35,7 @@
   ],
   "author": "OpenShutter Team",
   "license": "MIT",
-  "packageManager": "pnpm@10.24.0",
+  "packageManager": "pnpm@10.28.0+sha512.05df71d1421f21399e053fde567cea34d446fa02c76571441bfc1c7956e98e363088982d940465fd34480d4d90a0668bc12362f8aa88000a64e83d0b0e47be48",
   "engines": {
     "node": ">=18.0.0",
     "pnpm": ">=8.0.0"

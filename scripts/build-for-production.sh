@@ -120,6 +120,18 @@ if [ -f "docs/DEPLOYMENT.md" ]; then
     cp docs/DEPLOYMENT.md "$DEPLOY_DIR/docs/"
 fi
 
+# Copy utility scripts
+echo -e "${BLUE}  Copying utility scripts...${NC}"
+mkdir -p "$DEPLOY_DIR/scripts"
+if [ -f "scripts/cleanup-storage-configs.cjs" ]; then
+    cp scripts/cleanup-storage-configs.cjs "$DEPLOY_DIR/scripts/"
+    chmod +x "$DEPLOY_DIR/scripts/cleanup-storage-configs.cjs"
+fi
+if [ -f "scripts/cleanup-storage-configs.sh" ]; then
+    cp scripts/cleanup-storage-configs.sh "$DEPLOY_DIR/scripts/"
+    chmod +x "$DEPLOY_DIR/scripts/cleanup-storage-configs.sh"
+fi
+
 # Create build script (installs dependencies and configures environment)
 cat > "$DEPLOY_DIR/build.sh" << 'BUILD_SCRIPT_EOF'
 #!/bin/bash

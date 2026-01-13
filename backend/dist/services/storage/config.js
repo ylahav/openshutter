@@ -8,6 +8,17 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __rest = (this && this.__rest) || function (s, e) {
+    var t = {};
+    for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
+        t[p] = s[p];
+    if (s != null && typeof Object.getOwnPropertySymbols === "function")
+        for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+            if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
+                t[p[i]] = s[p[i]];
+        }
+    return t;
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -85,18 +96,60 @@ class StorageConfigService {
             if (!db)
                 throw new Error('Database connection not established');
             const collection = db.collection('storage_configs');
-            const updateData = Object.assign(Object.assign({}, updates), { updatedAt: new Date() });
-            // Ensure providerId is set
-            if (!updateData.providerId) {
-                updateData.providerId = providerId;
-            }
+            // Build clean update data - only include fields that should be at top level
+            const updateData = {
+                providerId: providerId,
+                updatedAt: new Date()
+            };
+            // Only include top-level fields that belong there
+            if (updates.name !== undefined)
+                updateData.name = updates.name;
+            if (updates.isEnabled !== undefined)
+                updateData.isEnabled = updates.isEnabled;
+            if (updates.config !== undefined)
+                updateData.config = updates.config;
+            if (updates.createdAt !== undefined)
+                updateData.createdAt = updates.createdAt;
             // Set createdAt if this is a new document
             const existing = yield collection.findOne({ providerId });
             if (!existing && !updateData.createdAt) {
                 updateData.createdAt = new Date();
             }
-            // Use upsert to create if it doesn't exist
-            yield collection.updateOne({ providerId }, { $set: updateData }, { upsert: true });
+            // Ensure isEnabled is NOT in the config object (it should only be at root level)
+            if (updateData.config && updateData.config.isEnabled !== undefined) {
+                delete updateData.config.isEnabled;
+            }
+            // Use $set to update only specified fields, and $unset to remove any duplicate top-level fields
+            // that shouldn't be there (they belong in config object)
+            // NOTE: We cannot use $unset on nested fields (like 'config.isEnabled') when also using $set on the parent ('config')
+            // So we ensure isEnabled is removed from updateData.config before saving
+            const fieldsToUnset = ['clientId', 'clientSecret', 'refreshToken', 'folderId',
+                'accessKeyId', 'secretAccessKey', 'bucketName', 'region', 'endpoint',
+                'applicationKeyId', 'applicationKey', 'basePath', 'maxFileSize'];
+            const unsetFields = {};
+            fieldsToUnset.forEach(field => {
+                unsetFields[field] = '';
+            });
+            // If we're updating the config object, we need to use a separate update to remove config.isEnabled
+            // to avoid MongoDB conflict. We'll do this in two steps if config is being updated.
+            if (updateData.config) {
+                // First, update with $set (which will replace the entire config object, removing isEnabled)
+                yield collection.updateOne({ providerId }, {
+                    $set: updateData,
+                    $unset: unsetFields
+                }, { upsert: true });
+                // Then, if config.isEnabled exists in the DB, remove it separately
+                // This avoids the conflict since we're not setting config in the same operation
+                yield collection.updateOne({ providerId, 'config.isEnabled': { $exists: true } }, { $unset: { 'config.isEnabled': '' } });
+            }
+            else {
+                // If we're not updating config, we can safely unset config.isEnabled in the same operation
+                unsetFields['config.isEnabled'] = '';
+                yield collection.updateOne({ providerId }, {
+                    $set: updateData,
+                    $unset: unsetFields
+                }, { upsert: true });
+            }
             // Invalidate cache
             this.invalidateCache();
         });
@@ -144,8 +197,8 @@ class StorageConfigService {
                         clientId: '',
                         clientSecret: '',
                         refreshToken: '',
-                        folderId: '',
-                        isEnabled: false
+                        folderId: ''
+                        // isEnabled should NOT be in config object - it's only at root level
                     },
                     createdAt: new Date(),
                     updatedAt: new Date()
@@ -158,8 +211,8 @@ class StorageConfigService {
                         accessKeyId: '',
                         secretAccessKey: '',
                         region: 'us-east-1',
-                        bucketName: '',
-                        isEnabled: false
+                        bucketName: ''
+                        // isEnabled should NOT be in config object - it's only at root level
                     },
                     createdAt: new Date(),
                     updatedAt: new Date()
@@ -173,8 +226,8 @@ class StorageConfigService {
                         applicationKey: '',
                         bucketName: '',
                         region: 'us-west-2',
-                        endpoint: '',
-                        isEnabled: false
+                        endpoint: ''
+                        // isEnabled should NOT be in config object - it's only at root level
                     },
                     createdAt: new Date(),
                     updatedAt: new Date()
@@ -188,8 +241,8 @@ class StorageConfigService {
                         secretAccessKey: '',
                         bucketName: '',
                         region: 'us-east-1',
-                        endpoint: '',
-                        isEnabled: false
+                        endpoint: ''
+                        // isEnabled should NOT be in config object - it's only at root level
                     },
                     createdAt: new Date(),
                     updatedAt: new Date()
@@ -200,8 +253,8 @@ class StorageConfigService {
                     isEnabled: false,
                     config: {
                         basePath: process.env.LOCAL_STORAGE_PATH || '/app/public/albums',
-                        maxFileSize: '100MB',
-                        isEnabled: false
+                        maxFileSize: '100MB'
+                        // isEnabled should NOT be in config object - it's only at root level
                     },
                     createdAt: new Date(),
                     updatedAt: new Date()
@@ -215,6 +268,87 @@ class StorageConfigService {
                 yield collection.insertMany(configsToInsert);
                 this.invalidateCache();
             }
+            // Clean up existing records: remove isEnabled from config objects and duplicate top-level fields
+            yield this.cleanupExistingConfigs();
+        });
+    }
+    /**
+     * Clean up existing configs: remove isEnabled from config objects and duplicate top-level fields
+     * This is a one-time migration to fix data structure issues
+     */
+    cleanupExistingConfigs() {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield (0, db_1.connectDB)();
+            const db = mongoose_1.default.connection.db;
+            if (!db)
+                throw new Error('Database connection not established');
+            const collection = db.collection('storage_configs');
+            // Find all configs that have isEnabled in config object or duplicate top-level fields
+            const configsToClean = yield collection.find({
+                $or: [
+                    { 'config.isEnabled': { $exists: true } },
+                    { clientId: { $exists: true } },
+                    { clientSecret: { $exists: true } },
+                    { refreshToken: { $exists: true } },
+                    { folderId: { $exists: true } },
+                    { accessKeyId: { $exists: true } },
+                    { secretAccessKey: { $exists: true } },
+                    { bucketName: { $exists: true } },
+                    { region: { $exists: true } },
+                    { endpoint: { $exists: true } },
+                    { applicationKeyId: { $exists: true } },
+                    { applicationKey: { $exists: true } },
+                    { basePath: { $exists: true } },
+                    { maxFileSize: { $exists: true } }
+                ]
+            }).toArray();
+            if (configsToClean.length === 0) {
+                console.log('[StorageConfigService] No configs need cleanup');
+                return;
+            }
+            console.log(`[StorageConfigService] Cleaning up ${configsToClean.length} config(s)`);
+            for (const config of configsToClean) {
+                // Remove isEnabled from config object if it exists
+                if (config.config && config.config.isEnabled !== undefined) {
+                    const _a = config.config, { isEnabled: _ } = _a, cleanConfig = __rest(_a, ["isEnabled"]);
+                    config.config = cleanConfig;
+                }
+                // Build unset object for duplicate top-level fields
+                const unsetFields = {};
+                const fieldsToRemove = ['clientId', 'clientSecret', 'refreshToken', 'folderId',
+                    'accessKeyId', 'secretAccessKey', 'bucketName', 'region', 'endpoint',
+                    'applicationKeyId', 'applicationKey', 'basePath', 'maxFileSize'];
+                fieldsToRemove.forEach(field => {
+                    if (config[field] !== undefined) {
+                        unsetFields[field] = '';
+                    }
+                });
+                // Update the document in separate operations to avoid MongoDB conflicts
+                // We can't use $set on 'config' and $unset on 'config.isEnabled' in the same operation
+                let needsUpdate = false;
+                // Step 1: Update config object (removing isEnabled if it was there)
+                if (config.config) {
+                    yield collection.updateOne({ _id: config._id }, { $set: { config: config.config } });
+                    needsUpdate = true;
+                }
+                // Step 2: Unset config.isEnabled separately (if it exists in DB)
+                const hasConfigIsEnabled = yield collection.findOne({ _id: config._id, 'config.isEnabled': { $exists: true } });
+                if (hasConfigIsEnabled) {
+                    yield collection.updateOne({ _id: config._id }, { $unset: { 'config.isEnabled': '' } });
+                    needsUpdate = true;
+                }
+                // Step 3: Unset duplicate top-level fields
+                if (Object.keys(unsetFields).length > 0) {
+                    yield collection.updateOne({ _id: config._id }, { $unset: unsetFields });
+                    needsUpdate = true;
+                }
+                if (needsUpdate) {
+                    console.log(`[StorageConfigService] Cleaned up config: ${config.providerId}`);
+                }
+            }
+            // Invalidate cache after cleanup
+            this.invalidateCache();
+            console.log('[StorageConfigService] Cleanup completed');
         });
     }
     /**
@@ -286,11 +420,44 @@ class StorageConfigService {
                 throw new Error('Database connection not established');
             const collection = db.collection('storage_configs');
             const configs = yield collection.find({}).toArray();
+            console.log('[StorageConfigService] Loading configs from DB:', configs.length, 'configs found');
             this.configCache.clear();
-            configs.forEach(config => {
-                this.configCache.set(config.providerId, config);
+            configs.forEach(rawConfig => {
+                console.log(`[StorageConfigService] Loading config for ${rawConfig.providerId}:`, {
+                    hasConfig: !!rawConfig.config,
+                    configKeys: rawConfig.config ? Object.keys(rawConfig.config) : [],
+                    isEnabled: rawConfig.isEnabled
+                });
+                // Clean the config: remove duplicate top-level fields that should only be in config object
+                // Also remove isEnabled from config object (it should only be at root level)
+                const rawConfigObj = rawConfig.config || {};
+                const { isEnabled: _ } = rawConfigObj, cleanConfigObj = __rest(rawConfigObj, ["isEnabled"]);
+                const cleanedConfig = {
+                    providerId: rawConfig.providerId,
+                    name: rawConfig.name,
+                    isEnabled: rawConfig.isEnabled !== undefined ? rawConfig.isEnabled : false,
+                    config: cleanConfigObj, // Config object without isEnabled
+                    createdAt: rawConfig.createdAt,
+                    updatedAt: rawConfig.updatedAt
+                };
+                // Remove any duplicate top-level fields that are also in config
+                // These shouldn't be at the top level - they belong in config object
+                const fieldsToRemove = ['clientId', 'clientSecret', 'refreshToken', 'folderId',
+                    'accessKeyId', 'secretAccessKey', 'bucketName', 'region', 'endpoint',
+                    'applicationKeyId', 'applicationKey', 'basePath', 'maxFileSize'];
+                // Log if we detect duplicates in the raw data
+                const duplicateFields = fieldsToRemove.filter(field => rawConfig[field] !== undefined && rawConfig[field] !== '');
+                if (duplicateFields.length > 0) {
+                    console.warn(`[StorageConfigService] Found duplicate top-level fields in ${rawConfig.providerId}:`, duplicateFields);
+                }
+                // Log if isEnabled was found in config object (shouldn't be there)
+                if (rawConfigObj.isEnabled !== undefined) {
+                    console.warn(`[StorageConfigService] Found isEnabled in config object for ${rawConfig.providerId}, removing it (should only be at root level)`);
+                }
+                this.configCache.set(cleanedConfig.providerId, cleanedConfig);
             });
             this.lastCacheUpdate = Date.now();
+            console.log('[StorageConfigService] Cache refreshed, providers:', Array.from(this.configCache.keys()));
         });
     }
     /**

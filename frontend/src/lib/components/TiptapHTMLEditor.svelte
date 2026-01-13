@@ -42,6 +42,7 @@
 						link: false,
 						underline: false
 					}),
+					Underline,
 					TextStyle,
 					Color,
 					TextAlign.configure({

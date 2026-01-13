@@ -164,6 +164,16 @@ if (Test-Path "docs\DEPLOYMENT.md") {
     Copy-Item -Path "docs\DEPLOYMENT.md" -Destination (Join-Path $DEPLOY_DIR "docs\DEPLOYMENT.md") -Force
 }
 
+# Copy utility scripts
+Write-Host "  Copying utility scripts..." -ForegroundColor Blue
+New-Item -ItemType Directory -Path (Join-Path $DEPLOY_DIR "scripts") -Force | Out-Null
+if (Test-Path "scripts\cleanup-storage-configs.cjs") {
+    Copy-Item -Path "scripts\cleanup-storage-configs.cjs" -Destination (Join-Path $DEPLOY_DIR "scripts\cleanup-storage-configs.cjs") -Force
+}
+if (Test-Path "scripts\cleanup-storage-configs.sh") {
+    Copy-Item -Path "scripts\cleanup-storage-configs.sh" -Destination (Join-Path $DEPLOY_DIR "scripts\cleanup-storage-configs.sh") -Force
+}
+
 # Create build script (installs dependencies and configures environment)
 # Use single-quoted here-string to prevent PowerShell variable expansion
 $BUILD_SCRIPT = @'

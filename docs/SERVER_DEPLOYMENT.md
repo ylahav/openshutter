@@ -24,6 +24,7 @@ This guide provides step-by-step commands to execute on your deployed server aft
 - You **MUST install dependencies** using `pnpm install --prod --frozen-lockfile` (new packages may have been added)
 - You typically **DON'T need to rebuild** unless updating from source code
 - `build.sh` in update mode installs dependencies only and preserves all configuration
+- **Building from source**: If building on the server, backend build requires increased Node.js memory (4GB+). The build script automatically sets `NODE_OPTIONS=--max-old-space-size=4096`
 
 ## Prerequisites
 
@@ -61,6 +62,22 @@ cd openshutter
 ```
 
 ## Step 2: Configure Environment Variables
+
+### Critical Configuration: CORS and JWT Secret
+
+Before starting the services, ensure these are configured correctly:
+
+1. **CORS Configuration** (Backend `.env`):
+   - Set `FRONTEND_URL` to your frontend domain(s)
+   - Example: `FRONTEND_URL=https://demo.openshutter.org,http://demo.openshutter.org`
+   - This allows the backend to accept requests from your frontend
+   - Without this, you'll get "Not allowed by CORS" errors
+
+2. **JWT Secret** (Both Frontend and Backend):
+   - Both `frontend/.env.production` and `backend/.env` must have the **same** `AUTH_JWT_SECRET`
+   - Generate a secure secret: `openssl rand -base64 32`
+   - Copy the same value to both files
+   - This is critical for authentication to work
 
 ### Create Production Environment Files
 
@@ -140,9 +157,12 @@ AUTH_JWT_SECRET=your-production-secret-key-change-this
 NODE_ENV=production
 PORT=5000
 
-# CORS Configuration (optional)
-# Comma-separated list of allowed frontend URLs
-# FRONTEND_URL=http://localhost:4000,https://your-domain.com
+# CORS Configuration (REQUIRED for production)
+# Set this to your frontend domain(s) - comma-separated for multiple domains
+# Both http and https versions should be included if you use both
+FRONTEND_URL=https://demo.openshutter.org,http://demo.openshutter.org
+# Or for localhost development:
+# FRONTEND_URL=http://localhost:4000
 ```
 
 **⚠️ IMPORTANT**: 
@@ -770,6 +790,26 @@ curl http://localhost:5000/api/health
 # Test frontend (replace with your port)
 curl http://localhost:4000/api/health
 ```
+
+### Storage Config Cleanup (After Update)
+
+If you're updating from a version that had storage configuration issues (duplicate fields, `isEnabled` in wrong location), run the cleanup script:
+
+```bash
+# Make sure backend is built (it should be in the deployment package)
+# Run the cleanup script
+node scripts/cleanup-storage-configs.cjs
+
+# Or using pnpm
+pnpm run cleanup-storage-configs
+```
+
+This script will:
+- Remove `isEnabled` from inside `config` objects (it should only be at root level)
+- Remove duplicate top-level fields (`clientId`, `clientSecret`, etc.)
+- Fix any data structure issues in your storage configurations
+
+**When to run**: After updating to a version that includes the cleanup code, especially if you notice storage configs not displaying correctly in the admin panel.
 
 ### Quick Update Summary
 

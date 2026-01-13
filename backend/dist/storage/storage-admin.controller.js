@@ -45,13 +45,57 @@ let StorageAdminController = class StorageAdminController {
     getAllConfigs() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                // Initialize defaults if no configs exist
+                // Force cache refresh to ensure we have the latest data
+                // This is especially important after saves
                 const configs = yield config_1.storageConfigService.getAllConfigs();
+                // Initialize defaults if no configs exist
                 if (!configs || configs.length === 0) {
                     yield config_1.storageConfigService.initializeDefaultConfigs();
                     return yield config_1.storageConfigService.getAllConfigs();
                 }
-                return configs;
+                // Ensure all configs have the proper structure and remove any duplicate top-level fields
+                const normalizedConfigs = configs.map(config => {
+                    // Create a clean config object with only the fields we want
+                    // Remove isEnabled from config object if it exists (it should only be at root level)
+                    const rawConfigObj = config.config || {};
+                    const { isEnabled: _ } = rawConfigObj, cleanConfigObj = __rest(rawConfigObj, ["isEnabled"]);
+                    const cleanConfig = {
+                        providerId: config.providerId,
+                        name: config.name,
+                        isEnabled: config.isEnabled !== undefined ? config.isEnabled : false,
+                        config: cleanConfigObj, // Config object without isEnabled
+                        createdAt: config.createdAt,
+                        updatedAt: config.updatedAt
+                    };
+                    // Log if we detect duplicate fields (for debugging)
+                    const duplicateFields = ['clientId', 'clientSecret', 'refreshToken', 'folderId',
+                        'accessKeyId', 'secretAccessKey', 'bucketName', 'region', 'endpoint',
+                        'applicationKeyId', 'applicationKey', 'basePath', 'maxFileSize']
+                        .filter(field => config[field] !== undefined && config[field] !== '');
+                    if (duplicateFields.length > 0) {
+                        console.warn(`[getAllConfigs] Found duplicate top-level fields in ${config.providerId}:`, duplicateFields);
+                    }
+                    // Log if isEnabled was found in config object (shouldn't be there)
+                    if (rawConfigObj.isEnabled !== undefined) {
+                        console.warn(`[getAllConfigs] Found isEnabled in config object for ${config.providerId}, removing it (should only be at root level)`);
+                    }
+                    return cleanConfig;
+                });
+                console.log('[getAllConfigs] Returning configs:', JSON.stringify(normalizedConfigs.map(c => {
+                    var _a, _b, _c;
+                    return ({
+                        providerId: c.providerId,
+                        isEnabled: c.isEnabled,
+                        hasConfig: !!c.config,
+                        configKeys: c.config ? Object.keys(c.config) : [],
+                        sampleConfigValue: c.providerId === 'google-drive' ? {
+                            clientId: ((_a = c.config) === null || _a === void 0 ? void 0 : _a.clientId) ? `${c.config.clientId.substring(0, 20)}...` : 'missing',
+                            hasRefreshToken: !!((_b = c.config) === null || _b === void 0 ? void 0 : _b.refreshToken),
+                            hasFolderId: !!((_c = c.config) === null || _c === void 0 ? void 0 : _c.folderId)
+                        } : undefined
+                    });
+                }), null, 2));
+                return normalizedConfigs;
             }
             catch (error) {
                 console.error('Error getting storage configs:', error);
@@ -125,12 +169,36 @@ let StorageAdminController = class StorageAdminController {
                     structuredUpdates.isEnabled = existingConfig.isEnabled;
                 }
                 // Build the config object - merge existing config with updates
-                // Exclude isEnabled from config object (it's at top level)
+                // Exclude isEnabled from config object (it's at top level, not in config)
                 const { isEnabled: _ } = updates, configUpdates = __rest(updates, ["isEnabled"]);
-                structuredUpdates.config = Object.assign(Object.assign({}, existingConfig.config), configUpdates);
+                // Clean configUpdates to remove any undefined or null values (but keep empty strings for now)
+                const cleanedConfigUpdates = {};
+                Object.keys(configUpdates).forEach(key => {
+                    if (configUpdates[key] !== undefined && configUpdates[key] !== null) {
+                        cleanedConfigUpdates[key] = configUpdates[key];
+                    }
+                });
+                // Build clean config object - explicitly remove isEnabled if it exists in existing config
+                const existingConfigObj = existingConfig.config || {};
+                const { isEnabled: __ } = existingConfigObj, cleanExistingConfig = __rest(existingConfigObj, ["isEnabled"]);
+                structuredUpdates.config = Object.assign(Object.assign({}, cleanExistingConfig), cleanedConfigUpdates);
+                // Ensure isEnabled is NOT in the config object (it should only be at root level)
+                if (structuredUpdates.config.isEnabled !== undefined) {
+                    delete structuredUpdates.config.isEnabled;
+                }
                 // Update the configuration
+                // Note: updateConfig will use $set which should only update specified fields
+                // But we need to ensure we don't accidentally set empty top-level fields
                 yield config_1.storageConfigService.updateConfig(providerId, structuredUpdates);
+                // Force cache refresh to ensure we return the latest data
+                // The updateConfig already invalidates cache, but we need to ensure it's refreshed
                 const updatedConfig = yield config_1.storageConfigService.getConfig(providerId);
+                console.log(`[updateConfig] Updated config for ${providerId}:`, {
+                    providerId: updatedConfig.providerId,
+                    isEnabled: updatedConfig.isEnabled,
+                    hasConfig: !!updatedConfig.config,
+                    configKeys: updatedConfig.config ? Object.keys(updatedConfig.config) : []
+                });
                 return updatedConfig;
             }
             catch (error) {
@@ -145,12 +213,17 @@ let StorageAdminController = class StorageAdminController {
      */
     testConnection(providerId) {
         return __awaiter(this, void 0, void 0, function* () {
+            var _a, _b;
             try {
                 const config = yield config_1.storageConfigService.getConfig(providerId);
                 if (!config.isEnabled) {
                     return {
                         success: false,
                         error: 'Storage provider is not enabled',
+                        details: {
+                            providerId,
+                            isEnabled: config.isEnabled
+                        }
                     };
                 }
                 const storageManager = manager_1.StorageManager.getInstance();
@@ -164,16 +237,81 @@ let StorageAdminController = class StorageAdminController {
                     };
                 }
                 catch (error) {
-                    return {
+                    // Build detailed error information
+                    let errorMessage = 'Unknown error occurred';
+                    let errorCode;
+                    let errorDetails = {};
+                    let suggestions = [];
+                    if (error instanceof Error) {
+                        errorMessage = error.message;
+                        errorDetails.message = error.message;
+                        if (error.stack) {
+                            errorDetails.stack = error.stack;
+                        }
+                    }
+                    // Extract error code and details if available
+                    if (error === null || error === void 0 ? void 0 : error.code) {
+                        errorCode = error.code.toString();
+                        errorDetails.code = error.code;
+                    }
+                    // Extract nested details
+                    if (error === null || error === void 0 ? void 0 : error.details) {
+                        errorDetails = Object.assign(Object.assign({}, errorDetails), error.details);
+                    }
+                    // Extract Google API specific errors
+                    if ((_a = error === null || error === void 0 ? void 0 : error.details) === null || _a === void 0 ? void 0 : _a.googleApiError) {
+                        const apiError = error.details.googleApiError;
+                        errorCode = apiError.code || errorCode;
+                        errorMessage = apiError.message || errorMessage;
+                        errorDetails.googleApiError = apiError;
+                        // Add suggestions based on error code
+                        if (apiError.code === 401 || apiError.status === 401) {
+                            suggestions.push('The access token may have expired. Try re-authorizing the application.');
+                            suggestions.push('Check that the Client ID and Client Secret are correct.');
+                        }
+                        else if (apiError.code === 403 || apiError.status === 403) {
+                            suggestions.push('The application may not have the required permissions.');
+                            suggestions.push('Verify that the OAuth scopes include the necessary Drive permissions.');
+                        }
+                    }
+                    // Add suggestions for authentication errors
+                    if (((_b = error === null || error === void 0 ? void 0 : error.details) === null || _b === void 0 ? void 0 : _b.authError) || errorMessage.toLowerCase().includes('auth') || errorMessage.toLowerCase().includes('token')) {
+                        suggestions.push('Re-authorize the application by generating a new refresh token.');
+                        suggestions.push('Verify that all authentication credentials are correct.');
+                    }
+                    // Build the response
+                    const response = {
                         success: false,
-                        error: `Connection test failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                        error: `Connection test failed: ${errorMessage}`,
+                        details: errorDetails
                     };
+                    if (errorCode) {
+                        response.errorCode = errorCode;
+                    }
+                    if (suggestions.length > 0) {
+                        response.suggestions = suggestions;
+                    }
+                    return response;
                 }
             }
             catch (error) {
+                // Build detailed error information for outer catch
+                let errorMessage = 'Unknown error occurred';
+                let errorDetails = {};
+                if (error instanceof Error) {
+                    errorMessage = error.message;
+                    errorDetails.message = error.message;
+                    if (error.stack) {
+                        errorDetails.stack = error.stack;
+                    }
+                }
+                if (error === null || error === void 0 ? void 0 : error.code) {
+                    errorDetails.code = error.code;
+                }
                 return {
                     success: false,
-                    error: `Failed to test connection: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                    error: `Failed to test connection: ${errorMessage}`,
+                    details: errorDetails
                 };
             }
         });
@@ -181,6 +319,10 @@ let StorageAdminController = class StorageAdminController {
     /**
      * Initialize default storage configurations
      * Path: POST /api/admin/storage/initialize
+     *
+     * This will:
+     * - Create default configs if they don't exist
+     * - Clean up existing configs (remove isEnabled from config objects, remove duplicate top-level fields)
      */
     initializeDefaults() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -189,12 +331,38 @@ let StorageAdminController = class StorageAdminController {
                 const configs = yield config_1.storageConfigService.getAllConfigs();
                 return {
                     success: true,
-                    message: 'Default storage configurations initialized',
+                    message: 'Default storage configurations initialized and cleaned up',
                     configs,
                 };
             }
             catch (error) {
                 throw new common_1.BadRequestException(`Failed to initialize storage configurations: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            }
+        });
+    }
+    /**
+     * Clean up existing storage configurations
+     * Path: POST /api/admin/storage/cleanup
+     *
+     * This will:
+     * - Remove isEnabled from config objects (it should only be at root level)
+     * - Remove duplicate top-level fields (clientId, clientSecret, etc.)
+     *
+     * Useful for fixing data structure issues in existing deployments.
+     */
+    cleanupConfigs() {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                yield config_1.storageConfigService.cleanupExistingConfigs();
+                const configs = yield config_1.storageConfigService.getAllConfigs();
+                return {
+                    success: true,
+                    message: 'Storage configurations cleaned up successfully',
+                    configs,
+                };
+            }
+            catch (error) {
+                throw new common_1.BadRequestException(`Failed to cleanup storage configurations: ${error instanceof Error ? error.message : 'Unknown error'}`);
             }
         });
     }
@@ -234,6 +402,12 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
 ], StorageAdminController.prototype, "initializeDefaults", null);
+__decorate([
+    (0, common_1.Post)('cleanup'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], StorageAdminController.prototype, "cleanupConfigs", null);
 exports.StorageAdminController = StorageAdminController = __decorate([
     (0, common_1.Controller)('admin/storage'),
     (0, common_1.UseGuards)(admin_guard_1.AdminGuard)

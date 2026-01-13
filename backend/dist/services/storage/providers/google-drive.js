@@ -54,7 +54,18 @@ class GoogleDriveService {
     }
     validateConnection() {
         return __awaiter(this, void 0, void 0, function* () {
+            var _a, _b, _c, _d, _e, _f, _g;
             try {
+                // Check if required config is present
+                if (!this.config.clientId) {
+                    throw new Error('Google Drive Client ID is not configured');
+                }
+                if (!this.config.clientSecret) {
+                    throw new Error('Google Drive Client Secret is not configured');
+                }
+                if (!this.config.refreshToken && !this.config.accessToken) {
+                    throw new Error('Google Drive authentication tokens are missing. Please authorize the application.');
+                }
                 // Ensure we have a valid access token
                 if (!this.config.accessToken || (this.config.tokenExpiry && new Date() >= this.config.tokenExpiry)) {
                     yield this.refreshAccessToken();
@@ -65,7 +76,46 @@ class GoogleDriveService {
             }
             catch (error) {
                 console.error('Google Drive connection validation failed:', error);
-                return false;
+                // Extract detailed error information
+                let errorMessage = 'Unknown error occurred';
+                let errorCode;
+                let errorDetails = {};
+                if (error instanceof Error) {
+                    errorMessage = error.message;
+                    errorDetails.message = error.message;
+                    errorDetails.stack = error.stack;
+                }
+                // Check for Google API specific errors
+                if ((_a = error === null || error === void 0 ? void 0 : error.response) === null || _a === void 0 ? void 0 : _a.data) {
+                    errorCode = ((_b = error.response.data.error) === null || _b === void 0 ? void 0 : _b.code) || ((_c = error.response.status) === null || _c === void 0 ? void 0 : _c.toString());
+                    errorMessage = ((_d = error.response.data.error) === null || _d === void 0 ? void 0 : _d.message) || errorMessage;
+                    errorDetails.googleApiError = {
+                        code: (_e = error.response.data.error) === null || _e === void 0 ? void 0 : _e.code,
+                        message: (_f = error.response.data.error) === null || _f === void 0 ? void 0 : _f.message,
+                        status: error.response.status,
+                        errors: (_g = error.response.data.error) === null || _g === void 0 ? void 0 : _g.errors
+                    };
+                }
+                else if (error === null || error === void 0 ? void 0 : error.code) {
+                    errorCode = error.code.toString();
+                    errorDetails.code = error.code;
+                }
+                // Check for authentication errors
+                if (errorMessage.includes('invalid_grant') || errorMessage.includes('invalid_token') || errorMessage.includes('unauthorized')) {
+                    errorMessage = `Authentication failed: ${errorMessage}. Please re-authorize the application.`;
+                    errorDetails.authError = true;
+                }
+                // Check for network errors
+                if ((error === null || error === void 0 ? void 0 : error.code) === 'ENOTFOUND' || (error === null || error === void 0 ? void 0 : error.code) === 'ECONNREFUSED' || (error === null || error === void 0 ? void 0 : error.code) === 'ETIMEDOUT') {
+                    errorMessage = `Network error: ${errorMessage}. Please check your internet connection and firewall settings.`;
+                    errorDetails.networkError = true;
+                }
+                // Create a detailed error object
+                const detailedError = new Error(errorMessage);
+                detailedError.code = errorCode;
+                detailedError.details = errorDetails;
+                detailedError.originalError = error;
+                throw detailedError;
             }
         });
     }

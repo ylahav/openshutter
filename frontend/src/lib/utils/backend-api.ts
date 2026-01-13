@@ -83,13 +83,36 @@ export async function backendRequest(
 		defaultHeaders['Cookie'] = cookieHeader.join('; ');
 	}
 
+	const finalHeaders = {
+		...defaultHeaders,
+		...options.headers,
+	};
+
+	// Debug logging in production to help diagnose auth issues
+	if (process.env.NODE_ENV === 'production') {
+		console.log('[Backend API] Request:', {
+			url,
+			hasAuthToken: !!authToken,
+			hasCookieHeader: !!finalHeaders['Cookie'],
+			method: options.method || 'GET'
+		});
+	}
+
 	const response = await fetch(url, {
 		...options,
-		headers: {
-			...defaultHeaders,
-			...options.headers,
-		},
+		headers: finalHeaders,
 	});
+
+	// Log response status in production for debugging
+	if (process.env.NODE_ENV === 'production' && !response.ok) {
+		const errorText = await response.clone().text().catch(() => 'Unable to read error');
+		console.error('[Backend API] Error response:', {
+			url,
+			status: response.status,
+			statusText: response.statusText,
+			error: errorText.substring(0, 500)
+		});
+	}
 
 	return response;
 }

@@ -38,3 +38,9 @@ temp/
 
 # Backend build output
 backend/dist/
+
+# Server start timestamp and PID (development only)
+.server-start-time
+.server-pid
+backend/.server-pid
+frontend/.server-pid
