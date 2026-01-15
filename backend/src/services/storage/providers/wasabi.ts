@@ -19,20 +19,69 @@ export class WasabiService implements IStorageService {
   constructor(config: Record<string, any>) {
     this.config = config
     console.log('WasabiService constructor - config:', JSON.stringify(config, null, 2))
-    this.initializeS3Client()
+    // Don't initialize S3Client here - wait until we have validated config
+    // This prevents issues with undefined values
   }
 
   private initializeS3Client() {
+    // Validate that we have the required config before initializing
+    // Check for both undefined/null and empty strings
+    const endpoint = this.config.endpoint?.trim()
+    const accessKeyId = this.config.accessKeyId?.trim()
+    const secretAccessKey = this.config.secretAccessKey?.trim()
+    
+    if (!endpoint || endpoint === '') {
+      throw new StorageConnectionError(
+        'Missing endpoint. Cannot initialize S3 client without endpoint. Please provide a Wasabi endpoint URL (e.g., https://s3.wasabisys.com).',
+        this.providerId,
+        new Error('Missing endpoint')
+      )
+    }
+    
+    if (!accessKeyId || accessKeyId === '' || !secretAccessKey || secretAccessKey === '') {
+      throw new StorageConnectionError(
+        'Missing credentials. Cannot initialize S3 client without access credentials. Please provide both Access Key ID and Secret Access Key.',
+        this.providerId,
+        new Error('Missing credentials')
+      )
+    }
+
+    // Normalize endpoint - remove trailing slash if present
+    let normalizedEndpoint = endpoint.replace(/\/$/, '')
+    
+    // Auto-add https:// if protocol is missing
+    if (!normalizedEndpoint.startsWith('http://') && !normalizedEndpoint.startsWith('https://')) {
+      console.log(`WasabiService: Endpoint missing protocol, adding https://: ${normalizedEndpoint}`)
+      normalizedEndpoint = `https://${normalizedEndpoint}`
+    }
+    
+    console.log('WasabiService: Initializing S3Client')
+    console.log('WasabiService: Endpoint:', normalizedEndpoint)
+    console.log('WasabiService: Region:', this.config.region || 'us-east-1')
+    console.log('WasabiService: Bucket:', this.config.bucketName)
+    console.log('WasabiService: AccessKeyId length:', accessKeyId.length)
+    console.log('WasabiService: SecretAccessKey length:', secretAccessKey.length)
+    
     // Wasabi uses S3-compatible API with custom endpoint
-    this.s3Client = new S3Client({
-      region: this.config.region || 'us-east-1',
-      endpoint: this.config.endpoint,
-      credentials: {
-        accessKeyId: this.config.accessKeyId,
-        secretAccessKey: this.config.secretAccessKey
-      },
-      forcePathStyle: true // Wasabi requires path-style URLs
-    })
+    try {
+      this.s3Client = new S3Client({
+        region: this.config.region || 'us-east-1',
+        endpoint: normalizedEndpoint,
+        credentials: {
+          accessKeyId: accessKeyId,
+          secretAccessKey: secretAccessKey
+        },
+        forcePathStyle: true // Wasabi requires path-style URLs
+      })
+      console.log('WasabiService: S3Client initialized successfully')
+    } catch (error: any) {
+      console.error('WasabiService: Failed to create S3Client:', error)
+      throw new StorageConnectionError(
+        `Failed to initialize S3 client: ${error.message || 'Unknown error'}`,
+        this.providerId,
+        error instanceof Error ? error : undefined
+      )
+    }
   }
 
   getProviderId(): StorageProviderId {
@@ -43,27 +92,178 @@ export class WasabiService implements IStorageService {
     return this.config
   }
 
+  /**
+   * Ensure S3Client is initialized before use
+   * This is called by methods that need the client but might be called before validateConnection
+   */
+  private ensureS3ClientInitialized() {
+    if (!this.s3Client) {
+      this.initializeS3Client()
+    }
+  }
+
   async validateConnection(): Promise<boolean> {
     try {
       console.log('WasabiService: Validating connection to bucket:', this.config.bucketName)
+      console.log('WasabiService: Full config keys:', Object.keys(this.config))
+      console.log('WasabiService: Config values:', {
+        hasAccessKeyId: !!this.config.accessKeyId,
+        hasSecretAccessKey: !!this.config.secretAccessKey,
+        bucketName: this.config.bucketName,
+        endpoint: this.config.endpoint,
+        region: this.config.region
+      })
+      
+      // Validate required configuration (check for both undefined/null and empty strings)
+      const accessKeyId = this.config.accessKeyId?.trim()
+      const secretAccessKey = this.config.secretAccessKey?.trim()
+      const bucketName = this.config.bucketName?.trim()
+      const endpoint = this.config.endpoint?.trim()
+      
+      if (!accessKeyId || accessKeyId === '' || !secretAccessKey || secretAccessKey === '') {
+        throw new StorageConnectionError(
+          'Missing access credentials. Please provide Access Key ID and Secret Access Key.',
+          this.providerId,
+          new Error('Missing credentials')
+        )
+      }
+      
+      if (!bucketName || bucketName === '') {
+        throw new StorageConnectionError(
+          'Missing bucket name. Please provide a bucket name.',
+          this.providerId,
+          new Error('Missing bucket name')
+        )
+      }
+      
+      if (!endpoint || endpoint === '') {
+        throw new StorageConnectionError(
+          'Missing endpoint. Please provide a Wasabi endpoint URL (e.g., https://s3.wasabisys.com).',
+          this.providerId,
+          new Error('Missing endpoint')
+        )
+      }
+      
+      // Initialize or re-initialize S3Client with validated config
+      // This ensures the client is properly configured even if constructor was called with incomplete config
+      try {
+        this.initializeS3Client()
+      } catch (initError: any) {
+        console.error('WasabiService: Failed to initialize S3Client:', initError)
+        if (initError instanceof StorageConnectionError) {
+          throw initError
+        }
+        throw new StorageConnectionError(
+          `Failed to initialize S3 client: ${initError.message || 'Unknown error'}`,
+          this.providerId,
+          initError instanceof Error ? initError : undefined
+        )
+      }
       
       // Test connection by listing objects in the bucket
       const command = new ListObjectsV2Command({
-        Bucket: this.config.bucketName,
+        Bucket: bucketName,
         MaxKeys: 1
       })
       
-      await this.s3Client.send(command)
+      console.log('WasabiService: Sending ListObjectsV2Command to bucket:', bucketName)
+      const response = await this.s3Client.send(command)
+      console.log('WasabiService: ListObjectsV2Command response:', {
+        hasContents: !!response.Contents,
+        keyCount: response.KeyCount,
+        isTruncated: response.IsTruncated
+      })
       console.log('WasabiService: Connection validated successfully')
       return true
-    } catch (error) {
+    } catch (error: any) {
       console.error('WasabiService: Connection validation failed:', error)
-      return false
+      
+      // If it's already a StorageConnectionError, re-throw it
+      if (error instanceof StorageConnectionError) {
+        throw error
+      }
+      
+      // Build detailed error information
+      let errorMessage = 'Connection validation failed'
+      let errorCode: string | undefined
+      let errorDetails: any = {}
+      let suggestions: string[] = []
+      
+      // Extract AWS SDK error information
+      if (error?.name) {
+        errorCode = error.name
+        errorDetails.name = error.name
+      }
+      
+      if (error?.$metadata) {
+        errorDetails.metadata = error.$metadata
+        if (error.$metadata.httpStatusCode) {
+          errorCode = error.$metadata.httpStatusCode.toString()
+        }
+      }
+      
+      if (error?.message) {
+        errorMessage = error.message
+        errorDetails.message = error.message
+      }
+      
+      // Check for specific error types
+      if (error?.name === 'NoSuchBucket' || errorMessage.includes('NoSuchBucket')) {
+        errorMessage = `Bucket "${this.config.bucketName}" does not exist or is not accessible.`
+        suggestions.push('Verify that the bucket name is correct.')
+        suggestions.push('Check that the bucket exists in your Wasabi account.')
+        suggestions.push('Ensure the access key has permissions to access this bucket.')
+      } else if (error?.name === 'InvalidAccessKeyId' || errorMessage.includes('InvalidAccessKeyId')) {
+        errorMessage = 'Invalid Access Key ID. Please check your credentials.'
+        suggestions.push('Verify that the Access Key ID is correct.')
+        suggestions.push('Check that the access key is active in your Wasabi account.')
+      } else if (error?.name === 'SignatureDoesNotMatch' || errorMessage.includes('SignatureDoesNotMatch')) {
+        errorMessage = 'Invalid Secret Access Key. Please check your credentials.'
+        suggestions.push('Verify that the Secret Access Key is correct.')
+        suggestions.push('Ensure there are no extra spaces or characters in the secret key.')
+      } else if (error?.name === 'Forbidden' || error?.name === 'AccessDenied' || errorMessage.includes('Forbidden') || errorMessage.includes('AccessDenied')) {
+        errorMessage = 'Access denied. The credentials do not have permission to access this bucket.'
+        suggestions.push('Verify that the access key has the necessary permissions.')
+        suggestions.push('Check the bucket policy and IAM permissions in Wasabi.')
+      } else if (error?.code === 'ENOTFOUND' || error?.code === 'ECONNREFUSED' || error?.code === 'ETIMEDOUT') {
+        errorMessage = `Network error: Cannot connect to Wasabi endpoint "${this.config.endpoint}".`
+        suggestions.push('Verify that the endpoint URL is correct (e.g., https://s3.wasabisys.com).')
+        suggestions.push('Check your network connection and firewall settings.')
+        suggestions.push('Ensure the endpoint matches your Wasabi region.')
+      } else if (errorMessage.includes('endpoint')) {
+        suggestions.push('Verify that the endpoint URL is correct and includes the protocol (https://).')
+        suggestions.push('Check that the endpoint matches your Wasabi region.')
+      }
+      
+      // Add general suggestions if none were added
+      if (suggestions.length === 0) {
+        suggestions.push('Verify that all configuration fields are correct.')
+        suggestions.push('Check that the bucket exists and is accessible.')
+        suggestions.push('Ensure the access key has the necessary permissions.')
+      }
+      
+      // Create detailed error
+      const detailedError = new StorageConnectionError(errorMessage, this.providerId, error)
+      ;(detailedError as any).code = errorCode
+      ;(detailedError as any).details = {
+        ...errorDetails,
+        bucketName: this.config.bucketName,
+        endpoint: this.config.endpoint,
+        region: this.config.region,
+        hasAccessKey: !!this.config.accessKeyId,
+        hasSecretKey: !!this.config.secretAccessKey,
+        suggestions
+      }
+      
+      throw detailedError
     }
   }
 
   async createFolder(name: string, parentPath?: string): Promise<StorageFolderResult> {
     try {
+      // Ensure S3Client is initialized before use
+      this.ensureS3ClientInitialized()
+      
       console.log(`WasabiService: Creating folder '${name}' in path: ${parentPath || 'root'}`)
       
       // In S3-compatible storage, folders are logical constructs - we create an empty object with a trailing slash
@@ -99,6 +299,9 @@ export class WasabiService implements IStorageService {
 
   async deleteFolder(folderPath: string): Promise<void> {
     try {
+      // Ensure S3Client is initialized before use
+      this.ensureS3ClientInitialized()
+      
       console.log(`WasabiService: Deleting folder: ${folderPath}`)
       
       // List all objects in the folder
@@ -135,6 +338,9 @@ export class WasabiService implements IStorageService {
 
   async getFolderInfo(folderPath: string): Promise<StorageFolderInfo> {
     try {
+      // Ensure S3Client is initialized before use
+      this.ensureS3ClientInitialized()
+      
       // List objects in the folder to get info
       const command = new ListObjectsV2Command({
         Bucket: this.config.bucketName,
@@ -167,6 +373,9 @@ export class WasabiService implements IStorageService {
 
   async listFolders(parentPath?: string): Promise<StorageFolderInfo[]> {
     try {
+      // Ensure S3Client is initialized before use
+      this.ensureS3ClientInitialized()
+      
       const command = new ListObjectsV2Command({
         Bucket: this.config.bucketName,
         Prefix: parentPath,
@@ -196,7 +405,17 @@ export class WasabiService implements IStorageService {
       }
       
       return folders
-    } catch (error) {
+    } catch (error: any) {
+      // If it's a connection/auth error, throw StorageConnectionError for better error handling
+      if (error?.name === 'InvalidAccessKeyId' || error?.name === 'SignatureDoesNotMatch' || 
+          error?.name === 'NoSuchBucket' || error?.name === 'Forbidden' || error?.name === 'AccessDenied') {
+        throw new StorageConnectionError(
+          `Failed to list folders: ${error.message || 'Connection error'}`,
+          this.providerId,
+          error instanceof Error ? error : undefined
+        )
+      }
+      
       throw new StorageOperationError(
         `Failed to list folders in ${parentPath || 'root'}`,
         this.providerId,
@@ -214,6 +433,9 @@ export class WasabiService implements IStorageService {
     metadata?: Record<string, any>
   ): Promise<StorageUploadResult> {
     try {
+      // Ensure S3Client is initialized before use
+      this.ensureS3ClientInitialized()
+      
       console.log(`WasabiService: Uploading file '${filename}' to path: ${folderPath || 'root'}`)
       
       const key = folderPath ? `${folderPath}/${filename}` : filename
@@ -252,6 +474,9 @@ export class WasabiService implements IStorageService {
 
   async deleteFile(filePath: string): Promise<void> {
     try {
+      // Ensure S3Client is initialized before use
+      this.ensureS3ClientInitialized()
+      
       console.log(`WasabiService: Deleting file: ${filePath}`)
       
       const command = new DeleteObjectCommand({
@@ -274,6 +499,9 @@ export class WasabiService implements IStorageService {
 
   async getFileInfo(filePath: string): Promise<StorageFileInfo> {
     try {
+      // Ensure S3Client is initialized before use
+      this.ensureS3ClientInitialized()
+      
       const command = new HeadObjectCommand({
         Bucket: this.config.bucketName,
         Key: filePath
@@ -306,6 +534,9 @@ export class WasabiService implements IStorageService {
 
   async listFiles(folderPath?: string, pageSize?: number): Promise<StorageFileInfo[]> {
     try {
+      // Ensure S3Client is initialized before use
+      this.ensureS3ClientInitialized()
+      
       console.log(`WasabiService: Listing files in folder: ${folderPath || 'root'}`)
       
       const command = new ListObjectsV2Command({
@@ -353,6 +584,9 @@ export class WasabiService implements IStorageService {
 
   async updateFileMetadata(filePath: string, metadata: Record<string, any>): Promise<void> {
     try {
+      // Ensure S3Client is initialized before use
+      this.ensureS3ClientInitialized()
+      
       // Get the current object
       const headCommand = new HeadObjectCommand({
         Bucket: this.config.bucketName,
@@ -383,6 +617,9 @@ export class WasabiService implements IStorageService {
 
   async fileExists(filePath: string): Promise<boolean> {
     try {
+      // Ensure S3Client is initialized before use
+      this.ensureS3ClientInitialized()
+      
       const command = new HeadObjectCommand({
         Bucket: this.config.bucketName,
         Key: filePath
@@ -397,6 +634,9 @@ export class WasabiService implements IStorageService {
 
   async folderExists(folderPath: string): Promise<boolean> {
     try {
+      // Ensure S3Client is initialized before use
+      this.ensureS3ClientInitialized()
+      
       const command = new ListObjectsV2Command({
         Bucket: this.config.bucketName,
         Prefix: folderPath,
@@ -420,6 +660,9 @@ export class WasabiService implements IStorageService {
 
   async getFileBuffer(filePath: string): Promise<Buffer | null> {
     try {
+      // Ensure S3Client is initialized before use
+      this.ensureS3ClientInitialized()
+      
       console.log(`WasabiService: Getting file buffer for path: ${filePath}`)
       
       const command = new GetObjectCommand({

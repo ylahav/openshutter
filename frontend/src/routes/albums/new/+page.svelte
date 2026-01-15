@@ -63,26 +63,27 @@
 			const response = await fetch('/api/albums/hierarchy?includePrivate=true');
 			if (response.ok) {
 				const result = await response.json();
-				if (result.success) {
-					const userRole = data?.user?.role || 'guest';
-					const userId = data?.user?.id;
+				console.log('[loadParentAlbums] Response:', result);
+				// Handle both formats: {success: true, data: [...]} or {data: [...]}
+				const albumsData = result.success ? result.data : (result.data || result);
+				if (albumsData && Array.isArray(albumsData)) {
+					console.log('[loadParentAlbums] Albums from API:', albumsData);
 
 					// Flatten the tree to get all albums for parent selection
+					// If user can create albums (admin/owner), they should see all albums as potential parents
 					const flattenAlbums = (albums: any[]): AlbumOption[] => {
 						let result: AlbumOption[] = [];
 						for (const album of albums) {
-							// For owners, only include albums they created
-							// For admins, include all albums
-							if (userRole === 'admin' || (userRole === 'owner' && album.createdBy === userId)) {
-								result.push({
-									_id: album._id,
-									name: album.name,
-									alias: album.alias,
-									level: album.level,
-									storagePath: album.storagePath,
-								});
-							}
+							// Include all albums - users creating albums should be able to select any existing album as parent
+							result.push({
+								_id: album._id,
+								name: album.name,
+								alias: album.alias,
+								level: album.level,
+								storagePath: album.storagePath,
+							});
 
+							// Recursively process children
 							if (album.children && album.children.length > 0) {
 								result = result.concat(flattenAlbums(album.children));
 							}
@@ -90,8 +91,13 @@
 						return result;
 					};
 
-					parentAlbums = flattenAlbums(result.data);
+					parentAlbums = flattenAlbums(albumsData);
+					console.log('[loadParentAlbums] Final parentAlbums count:', parentAlbums.length, parentAlbums);
+				} else {
+					console.error('[loadParentAlbums] No albums data found in response:', result);
 				}
+			} else {
+				console.error('[loadParentAlbums] API response not OK:', response.status, response.statusText);
 			}
 		} catch (err) {
 			console.error('Failed to load parent albums:', err);
@@ -186,24 +192,31 @@
 				body: JSON.stringify(formData),
 			});
 
+			console.log('[handleSubmit] Response status:', response.status, response.ok);
 			if (response.ok) {
 				const result = await response.json();
-				if (result.success) {
+				console.log('[handleSubmit] Response data:', result);
+				console.log('[handleSubmit] result.success:', result.success);
+				console.log('[handleSubmit] result.data:', result.data);
+				
+				if (result.success && result.data) {
 					success = 'Album created successfully!';
 					setTimeout(() => {
 						const role = data?.user?.role || 'guest';
 						const dest =
 							role === 'admin'
-								? `/admin/albums/${result.data._id}/edit`
+								? `/admin/albums`
 								: '/owner/albums';
 						goto(dest);
 					}, 1500);
 				} else {
-					error = result.error || 'Failed to create album';
+					console.error('[handleSubmit] Response missing success or data:', result);
+					error = result.error || 'Failed to create album - invalid response format';
 				}
 			} else {
 				const errorData = await response.json().catch(() => ({}));
-				error = errorData.error || 'Failed to create album';
+				console.error('[handleSubmit] Response not OK:', response.status, errorData);
+				error = errorData.error || errorData.message || `Failed to create album (HTTP ${response.status})`;
 			}
 		} catch (err) {
 			console.error('Failed to create album:', err);

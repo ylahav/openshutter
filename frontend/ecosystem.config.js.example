@@ -32,6 +32,7 @@ module.exports = {
       PORT: envVars.PORT || 4000,
       BACKEND_URL: envVars.BACKEND_URL || 'http://localhost:5000',
       AUTH_JWT_SECRET: envVars.AUTH_JWT_SECRET || '',
+      ORIGIN: envVars.ORIGIN || 'http://localhost:4000', // Required for CSRF protection
       ...envVars  // Include all other variables from .env.production
     },
     // Auto restart settings

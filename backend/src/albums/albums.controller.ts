@@ -25,6 +25,11 @@ export class AlbumsController {
     return this.albumsService.findByAlias(alias);
   }
 
+  @Get('hierarchy')
+  async getHierarchy(@Query('includePrivate') includePrivate?: string) {
+    return this.albumsService.getHierarchy(includePrivate === 'true');
+  }
+
   @Get(':id/photos')
   async findPhotos(
     @Param('id') id: string,

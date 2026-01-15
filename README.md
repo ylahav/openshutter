@@ -25,6 +25,7 @@ A comprehensive photo gallery management system with multi-storage support, adva
 - **Storage Management**: Configure and manage multiple storage providers through admin interface
 - **Profile Management**: Users can edit their profiles and change passwords
 - **Template Customization**: Customizable gallery templates and themes
+- **About Page**: Dedicated landing page that introduces openShutter and highlights key features
 - **Blog Categories Management**: Create and manage blog categories with multi-language support
 - **Content Protection**: Advanced right-click and developer tools protection with smart exceptions
 - **Security Features**: Multi-layer content protection with customizable warnings

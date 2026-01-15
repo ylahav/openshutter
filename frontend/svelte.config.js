@@ -6,7 +6,11 @@ const config = {
 	preprocess: vitePreprocess(),
 
 	kit: {
-		adapter: adapter(),
+		adapter: adapter({
+			// Allow all hosts in production (for reverse proxy setups)
+			// In production, set ORIGIN environment variable for CSRF protection
+			// ORIGIN should match your domain (e.g., https://demo.openshutter.org)
+		}),
 		alias: {
 			$components: 'src/lib/components',
 			$stores: 'src/lib/stores',

@@ -59,10 +59,17 @@ export default defineConfig({
 				bypass: (req) => {
 					// Let SvelteKit handle these routes
 					const url = req.url || '';
+					const method = req.method || 'GET';
+					
 					if (
 						url.startsWith('/api/auth/login') ||
 						url.startsWith('/api/admin/storage-options') ||
-						url.startsWith('/api/owner/storage-options')
+						url.startsWith('/api/owner/storage-options') ||
+						(url.startsWith('/api/albums') && method === 'POST') ||
+						url.startsWith('/api/albums/hierarchy') ||
+						url.startsWith('/api/storage/wasabi/test') ||
+						url.startsWith('/api/storage/backblaze/test') ||
+						url.startsWith('/api/storage/google-drive/test')
 					) {
 						return req.url;
 					}

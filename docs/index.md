@@ -37,6 +37,7 @@ Welcome to the OpenShutter documentation. This comprehensive guide covers all as
 - **Admin Dashboard**: Comprehensive administrative interface
 - **Profile Management**: User profile editing and password changes
 - **Role-Based Access**: Admin, Owner, and Guest roles with different capabilities
+- **About Page**: Dedicated landing page that introduces openShutter and its key features
 
 ### Advanced Features
 - **EXIF Data Extraction**: Automatic photo metadata processing

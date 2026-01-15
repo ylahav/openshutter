@@ -18,9 +18,17 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 		const response = await backendGet(endpoint, { cookies });
 		const result = await parseBackendResponse<any>(response);
 
+		console.log('[hierarchy endpoint] Backend response:', result);
+		
+		// Backend returns {data: [...]}, parseBackendResponse extracts it
+		// Handle both cases: result is already the data array, or result.data is the array
+		const albumsData = Array.isArray(result) ? result : (result?.data || []);
+		
+		console.log('[hierarchy endpoint] Albums data:', albumsData);
+		
 		return json({
 			success: true,
-			data: result.data || result
+			data: albumsData
 		});
 	} catch (error) {
 		console.error('Failed to get album hierarchy:', error);

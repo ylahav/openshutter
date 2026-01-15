@@ -2,6 +2,9 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
+	import AlbumTree from '$lib/components/AlbumTree.svelte';
+	import { MultiLangUtils } from '$lib/utils/multiLang';
+	import { currentLanguage } from '$lib/stores/language';
 
   export const data = undefined as any; // From +layout.server.ts, not used in this component
 
@@ -59,29 +62,89 @@
 
 	onMount(async () => {
 		await loadAlbums();
+		
+		// Set up event delegation for action buttons in AlbumTree
+		const handleActionClick = (e: MouseEvent) => {
+			const target = e.target as HTMLElement;
+			const button = target.closest('[data-action]') as HTMLElement;
+			if (!button) return;
+			
+			const actionsContainer = button.closest('.album-actions') as HTMLElement;
+			if (!actionsContainer) return;
+			
+			const albumId = actionsContainer.getAttribute('data-album-id');
+			if (!albumId) return;
+			
+			const album = albums.find(a => a._id === albumId);
+			if (!album) return;
+			
+			const action = button.getAttribute('data-action');
+			if (action === 'cover-photo') {
+				e.stopPropagation();
+				openCoverPhotoModal(album);
+			} else if (action === 'delete') {
+				e.stopPropagation();
+				openDeleteDialog(album);
+			}
+		};
+		
+		document.addEventListener('click', handleActionClick);
+		return () => {
+			document.removeEventListener('click', handleActionClick);
+		};
 	});
 
 	async function loadAlbums() {
 		loading = true;
 		error = '';
 		try {
-			const response = await fetch('/api/albums');
+			// Use admin endpoint to get ALL albums (including private ones)
+			const response = await fetch('/api/admin/albums');
 			if (!response.ok) {
 				throw new Error('Failed to fetch albums');
 			}
 			const result = await response.json();
 			albums = Array.isArray(result) ? result : result.data || [];
-			// Sort by level and order
-			albums.sort((a, b) => {
-				if (a.level !== b.level) return a.level - b.level;
-				return a.order - b.order;
-			});
 		} catch (err) {
 			console.error('Error loading albums:', err);
 			error = `Failed to load albums: ${err instanceof Error ? err.message : 'Unknown error'}`;
 		} finally {
 			loading = false;
 		}
+	}
+
+	function renderAlbumActions(node: any): string {
+		const albumName = getAlbumName(node).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+		return `
+			<div class="flex items-center gap-2 album-actions" data-album-id="${node._id}">
+				<button
+					data-action="cover-photo"
+					class="text-purple-600 hover:text-purple-900 p-1.5 rounded hover:bg-purple-50"
+					title="Set Cover Photo"
+				>
+					🖼️
+				</button>
+				<a
+					href="/albums/${node.alias}"
+					target="_blank"
+					class="text-gray-600 hover:text-gray-900 p-1.5 rounded hover:bg-gray-100"
+					title="View"
+				>
+					👁️
+				</a>
+				<button
+					data-action="delete"
+					class="text-red-600 hover:text-red-900 p-1.5 rounded hover:bg-red-50"
+					title="Delete"
+				>
+					🗑️
+				</button>
+			</div>
+		`;
+	}
+
+	function handleOpen(node: any) {
+		goto(`/admin/albums/${node._id}`);
 	}
 
 	function getAlbumName(album: Album): string {
@@ -98,6 +161,23 @@
 				getAlbumName(album).toLowerCase().includes(query) ||
 				album.alias.toLowerCase().includes(query),
 		);
+	}
+
+	async function handleReorder(
+		updates: Array<{ id: string; parentAlbumId: string | null; order: number }>
+	) {
+		try {
+			const response = await fetch('/api/admin/albums/reorder', {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ updates })
+			});
+			if (response.ok) {
+				await loadAlbums();
+			}
+		} catch (err) {
+			console.error('Failed to reorder albums:', err);
+		}
 	}
 
 	async function openCoverPhotoModal(album: Album) {
@@ -305,108 +385,27 @@
 				{/if}
 			</div>
 		{:else}
-			<div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-				<div class="overflow-x-auto">
-					<table class="min-w-full divide-y divide-gray-200">
-						<thead class="bg-gray-50">
-							<tr>
-								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-									Album
-								</th>
-								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-									Status
-								</th>
-								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-									Photos
-								</th>
-								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-									Level
-								</th>
-								<th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-									Actions
-								</th>
-							</tr>
-						</thead>
-						<tbody class="bg-white divide-y divide-gray-200">
-							{#each getFilteredAlbums() as album}
-								<tr class="hover:bg-gray-50">
-									<td class="px-6 py-4 whitespace-nowrap">
-										<div class="flex items-center" style="padding-left: {album.level * 1.5}rem;">
-											<div>
-												<div class="text-sm font-medium text-gray-900">{getAlbumName(album)}</div>
-												<div class="text-sm text-gray-500">{album.alias}</div>
-											</div>
-										</div>
-									</td>
-									<td class="px-6 py-4 whitespace-nowrap">
-										<div class="flex gap-1">
-											{#if album.isFeatured}
-												<span
-													class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800"
-													title="Featured"
-												>
-													⭐
-												</span>
-											{/if}
-											{#if album.isPublic}
-												<span
-													class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800"
-													title="Public"
-												>
-													🌐
-												</span>
-											{:else}
-												<span
-													class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800"
-													title="Private"
-												>
-													🔒
-												</span>
-											{/if}
-										</div>
-									</td>
-									<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-										{album.photoCount || 0}
-									</td>
-									<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{album.level}</td>
-									<td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-										<div class="flex items-center justify-end gap-2">
-											<button
-												on:click={() => goto(`/admin/albums/${album._id}`)}
-												class="text-blue-600 hover:text-blue-900"
-												title="Manage"
-											>
-												Manage
-											</button>
-											<button
-												on:click={() => openCoverPhotoModal(album)}
-												class="text-purple-600 hover:text-purple-900"
-												title="Set Cover Photo"
-											>
-												🖼️
-											</button>
-											<a
-												href="/albums/{album.alias}"
-												target="_blank"
-												class="text-gray-600 hover:text-gray-900"
-												title="View"
-											>
-												👁️
-											</a>
-											<button
-												on:click={() => openDeleteDialog(album)}
-												class="text-red-600 hover:text-red-900"
-												title="Delete"
-											>
-												🗑️
-											</button>
-										</div>
-									</td>
-								</tr>
-							{/each}
-						</tbody>
-					</table>
-				</div>
+			<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+				<AlbumTree
+					albums={getFilteredAlbums().map((a) => ({
+						_id: a._id,
+						name:
+							typeof a.name === 'string'
+								? a.name
+								: MultiLangUtils.getTextValue(a.name, $currentLanguage) || '(No name)',
+						alias: a.alias,
+						parentAlbumId: a.parentAlbumId ?? null,
+						level: a.level,
+						order: a.order,
+						photoCount: a.photoCount,
+						isPublic: a.isPublic,
+						isFeatured: a.isFeatured
+					}))}
+					onReorder={handleReorder}
+					onOpen={handleOpen}
+					renderActions={renderAlbumActions}
+					showAccordion={true}
+				/>
 			</div>
 		{/if}
 	</div>

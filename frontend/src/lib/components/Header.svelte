@@ -74,6 +74,7 @@
 			<nav class="hidden md:flex items-center gap-4 text-sm text-gray-600">
 				<a href="/" class="hover:text-gray-900">{$t('navigation.home')}</a>
 				<a href="/albums" class="hover:text-gray-900">{$t('navigation.albums')}</a>
+				<a href="/about" class="hover:text-gray-900">About</a>
 				<a href="/search" class="hover:text-gray-900">{$t('navigation.search')}</a>
 
 				{#if $auth.authenticated && $auth.user}

@@ -652,4 +652,66 @@ export class AlbumsService {
     
     return result;
   }
+
+  /**
+   * Get albums hierarchy (tree structure)
+   * Returns albums organized in a tree with children nested
+   */
+  async getHierarchy(includePrivate: boolean = false) {
+    const query: any = {};
+    
+    // If not including private albums, filter by isPublic
+    if (!includePrivate) {
+      query.isPublic = true;
+    }
+
+    console.log(`AlbumsService.getHierarchy: includePrivate=${includePrivate}, query:`, query);
+
+    // Get all albums
+    const allAlbums = await this.albumModel
+      .find(query)
+      .sort({ level: 1, order: 1, createdAt: -1 })
+      .lean()
+      .exec();
+
+    console.log(`AlbumsService.getHierarchy: Found ${allAlbums.length} albums`);
+
+    // Build a map of albums by ID for quick lookup
+    const albumMap = new Map<string, any>();
+    const rootAlbums: any[] = [];
+
+    // First pass: create album objects and map them
+    for (const album of allAlbums) {
+      const albumData: any = {
+        ...album,
+        _id: album._id.toString(),
+        parentAlbumId: album.parentAlbumId ? album.parentAlbumId.toString() : null,
+        coverPhotoId: album.coverPhotoId ? (album.coverPhotoId._id ? album.coverPhotoId._id.toString() : album.coverPhotoId.toString()) : null,
+        createdBy: album.createdBy ? album.createdBy.toString() : null,
+        children: []
+      };
+      
+      albumMap.set(albumData._id, albumData);
+    }
+
+    // Second pass: build the tree structure
+    for (const album of albumMap.values()) {
+      if (album.parentAlbumId && albumMap.has(album.parentAlbumId)) {
+        // Add to parent's children
+        const parent = albumMap.get(album.parentAlbumId);
+        if (parent) {
+          parent.children.push(album);
+        }
+      } else {
+        // Root level album
+        rootAlbums.push(album);
+      }
+    }
+
+    console.log(`AlbumsService.getHierarchy: Returning ${rootAlbums.length} root albums with nested children`);
+
+    return {
+      data: rootAlbums
+    };
+  }
 }
