@@ -4,6 +4,7 @@ import {
   Post,
   Param,
   Query,
+  Body,
   UseInterceptors,
   UploadedFile,
   BadRequestException,
@@ -62,9 +63,28 @@ export class PhotosController {
     @Query('title') title?: string,
     @Query('description') description?: string,
     @Query('tags') tags?: string,
+    @Body('albumId') bodyAlbumId?: string,
+    @Body('title') bodyTitle?: string,
+    @Body('description') bodyDescription?: string,
+    @Body('tags') bodyTags?: string | string[],
   ) {
     if (!file) {
       throw new BadRequestException('No file provided');
+    }
+
+    const resolvedAlbumId = albumId || bodyAlbumId;
+    const resolvedTitle = title || bodyTitle;
+    const resolvedDescription = description || bodyDescription;
+    const rawTags = tags || bodyTags;
+    let parsedTags: string[] = [];
+    if (Array.isArray(rawTags)) {
+      parsedTags = rawTags;
+    } else if (typeof rawTags === 'string' && rawTags.length > 0) {
+      try {
+        parsedTags = JSON.parse(rawTags);
+      } catch {
+        parsedTags = rawTags.split(',').map((value) => value.trim()).filter(Boolean);
+      }
     }
 
     const result = await this.photoUploadService.uploadPhoto(
@@ -72,10 +92,10 @@ export class PhotosController {
       file.originalname,
       file.mimetype,
       {
-        albumId,
-        title,
-        description,
-        tags: tags ? JSON.parse(tags) : [],
+        albumId: resolvedAlbumId,
+        title: resolvedTitle,
+        description: resolvedDescription,
+        tags: parsedTags,
       },
     );
 

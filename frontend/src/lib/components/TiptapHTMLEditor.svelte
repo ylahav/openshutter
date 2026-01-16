@@ -20,6 +20,24 @@
 	let editorDiv: HTMLDivElement | null = null; // Fallback contenteditable
 	let isInternalUpdate = false;
 	let useFallback = false;
+	let lastEmittedValue = value;
+	let lastExternalValue = value;
+
+	function normalizeTrailingSpace(currentEditor: Editor, html: string) {
+		const textContent = currentEditor.state.doc.textBetween(
+			0,
+			currentEditor.state.doc.content.size,
+			'\n',
+			'\n'
+		);
+
+		if (!textContent.endsWith(' ') || !html.endsWith('</p>')) {
+			return html;
+		}
+
+		// Preserve a trailing space at the end of the last paragraph.
+		return html.replace(/<\/p>\s*$/, '&nbsp;</p>');
+	}
 
 	onMount(() => {
 		if (!editorElement) return;
@@ -59,7 +77,12 @@
 				content: value || '',
 				onUpdate: ({ editor }) => {
 					if (!isInternalUpdate) {
-						onChange(editor.getHTML());
+						const rawHtml = editor.getHTML();
+						const normalizedHtml = normalizeTrailingSpace(editor, rawHtml);
+						if (normalizedHtml !== lastEmittedValue) {
+							lastEmittedValue = normalizedHtml;
+							onChange(normalizedHtml);
+						}
 					}
 				},
 				editorProps: {
@@ -88,14 +111,21 @@
 	});
 
 	// Update editor content when value prop changes externally
-	$: if (editor && value !== undefined && !isInternalUpdate) {
-		const currentContent = editor.getHTML();
-		if (value !== currentContent && value.trim() !== currentContent.trim()) {
-			isInternalUpdate = true;
-			editor.commands.setContent(value, { emitUpdate: false });
-			setTimeout(() => {
-				isInternalUpdate = false;
-			}, 10);
+	$: if (editor && value !== undefined && !isInternalUpdate && value !== lastExternalValue) {
+		const nextValue = value || '';
+		isInternalUpdate = true;
+		editor.commands.setContent(nextValue, { emitUpdate: false });
+		setTimeout(() => {
+			isInternalUpdate = false;
+		}, 10);
+		lastExternalValue = value;
+		lastEmittedValue = nextValue;
+	}
+	
+	// Keep fallback editor in sync with value
+	$: if (useFallback && editorDiv && value !== undefined && !isInternalUpdate) {
+		if (editorDiv.innerHTML !== value) {
+			editorDiv.innerHTML = value || '';
 		}
 	}
 
@@ -354,9 +384,7 @@
 	</div>
 
 	<!-- Editor -->
-	{#if editor}
-		<div bind:this={editorElement} class="overflow-y-auto"></div>
-	{:else}
+	{#if useFallback}
 		<!-- Fallback to contenteditable if Tiptap fails to initialize -->
 		<div
 			bind:this={editorDiv}
@@ -370,6 +398,8 @@
 			dir={isRTL ? 'rtl' : 'ltr'}
 			data-placeholder={placeholder}
 		></div>
+	{:else}
+		<div bind:this={editorElement} class="overflow-y-auto"></div>
 	{/if}
 </div>
 

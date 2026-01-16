@@ -228,13 +228,30 @@ let StorageAdminController = class StorageAdminController {
                 }
                 const storageManager = manager_1.StorageManager.getInstance();
                 const provider = yield storageManager.getProvider(providerId);
-                // Try to list folders or perform a simple operation
+                // Use validateConnection for testing (more reliable than listFolders)
                 try {
-                    yield provider.listFolders('');
-                    return {
-                        success: true,
-                        message: 'Connection test successful',
-                    };
+                    const isValid = yield provider.validateConnection();
+                    if (isValid) {
+                        return {
+                            success: true,
+                            message: 'Connection test successful',
+                        };
+                    }
+                    else {
+                        return {
+                            success: false,
+                            error: 'Connection validation returned false',
+                            details: {
+                                providerId,
+                                message: 'The storage provider validation failed without throwing an error'
+                            },
+                            suggestions: [
+                                'Check that all configuration fields are correct',
+                                'Verify that the credentials have the necessary permissions',
+                                'Ensure the bucket/service is accessible'
+                            ]
+                        };
+                    }
                 }
                 catch (error) {
                     // Build detailed error information
@@ -242,7 +259,22 @@ let StorageAdminController = class StorageAdminController {
                     let errorCode;
                     let errorDetails = {};
                     let suggestions = [];
-                    if (error instanceof Error) {
+                    // Check if it's a StorageConnectionError (from Wasabi, AWS S3, Backblaze, etc.)
+                    if ((error === null || error === void 0 ? void 0 : error.name) === 'StorageConnectionError' || error instanceof Error && error.constructor.name === 'StorageConnectionError') {
+                        errorMessage = error.message;
+                        if (error.details) {
+                            errorDetails = Object.assign(Object.assign({}, errorDetails), error.details);
+                            // Extract suggestions from details if available
+                            if (error.details.suggestions && Array.isArray(error.details.suggestions)) {
+                                suggestions.push(...error.details.suggestions);
+                            }
+                        }
+                        if (error.code) {
+                            errorCode = error.code.toString();
+                            errorDetails.code = error.code;
+                        }
+                    }
+                    else if (error instanceof Error) {
                         errorMessage = error.message;
                         errorDetails.message = error.message;
                         if (error.stack) {
@@ -250,12 +282,12 @@ let StorageAdminController = class StorageAdminController {
                         }
                     }
                     // Extract error code and details if available
-                    if (error === null || error === void 0 ? void 0 : error.code) {
+                    if ((error === null || error === void 0 ? void 0 : error.code) && !errorCode) {
                         errorCode = error.code.toString();
                         errorDetails.code = error.code;
                     }
                     // Extract nested details
-                    if (error === null || error === void 0 ? void 0 : error.details) {
+                    if ((error === null || error === void 0 ? void 0 : error.details) && !errorDetails.suggestions) {
                         errorDetails = Object.assign(Object.assign({}, errorDetails), error.details);
                     }
                     // Extract Google API specific errors
@@ -274,6 +306,8 @@ let StorageAdminController = class StorageAdminController {
                             suggestions.push('Verify that the OAuth scopes include the necessary Drive permissions.');
                         }
                     }
+                    // Extract S3-compatible provider errors (Wasabi, AWS S3, Backblaze)
+                    // Suggestions are already extracted above if it's a StorageConnectionError
                     // Add suggestions for authentication errors
                     if (((_b = error === null || error === void 0 ? void 0 : error.details) === null || _b === void 0 ? void 0 : _b.authError) || errorMessage.toLowerCase().includes('auth') || errorMessage.toLowerCase().includes('token')) {
                         suggestions.push('Re-authorize the application by generating a new refresh token.');

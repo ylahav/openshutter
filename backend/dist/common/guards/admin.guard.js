@@ -69,12 +69,14 @@ let AdminGuard = class AdminGuard {
         const combinedSecret = `${baseSecret}:${serverStartTime}`;
         const hash = (0, crypto_1.createHash)('sha256').update(combinedSecret).digest();
         const secret = new TextEncoder().encode(Buffer.from(hash).toString('base64'));
-        // Debug logging (only in development or when explicitly enabled)
-        if (process.env.DEBUG_JWT_SECRET === 'true') {
+        // Debug logging (always log in production to help diagnose issues)
+        if (process.env.NODE_ENV === 'production' || process.env.DEBUG_JWT_SECRET === 'true') {
             console.log('[AdminGuard] JWT Secret derived:', {
                 serverStartTime,
+                baseSecretLength: baseSecret.length,
+                baseSecretPreview: baseSecret.substring(0, 10) + '...',
                 secretLength: secret.length,
-                secretPreview: Buffer.from(secret).toString('base64').substring(0, 20) + '...'
+                secretHash: Buffer.from(hash).toString('hex').substring(0, 16) + '...'
             });
         }
         return secret;

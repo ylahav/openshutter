@@ -93,7 +93,7 @@
 
 			// Handle upload completion
 			xhr.addEventListener('load', () => {
-				if (xhr.status === 200) {
+				if (xhr.status >= 200 && xhr.status < 300) {
 					const response = JSON.parse(xhr.responseText);
 					if (response.success || response._id) {
 						uploads = uploads.map((upload, index) =>

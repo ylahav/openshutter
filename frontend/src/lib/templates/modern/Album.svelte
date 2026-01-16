@@ -394,7 +394,7 @@
 									<!-- Description -->
 									{#if photo.description}
 										<div class="text-xs text-gray-600 line-clamp-2 mb-auto">
-											<MultiLangText value={photo.description} fallback="" />
+											<MultiLangHTML value={photo.description} />
 										</div>
 									{/if}
 									

@@ -26,32 +26,20 @@
 	$: availableLanguages = SUPPORTED_LANGUAGES.filter((lang) =>
 		activeLanguages.includes(lang.code)
 	);
-
+	// Normalize value to support string inputs
+	$: normalizedValue =
+		typeof value === 'string' ? { [defaultLanguage || 'en']: value } : value || {};
+	// Track deep changes to value (object mutations)
+	$: valueSnapshot = JSON.stringify(normalizedValue);
 	// Update editor value when active language or value changes externally
-	// Only update if we're not in the middle of an internal update
-	// and if the incoming value is different from what we last sent
-	$: if (activeLanguage && !isInternalUpdate && value) {
-		const newEditorValue = value[activeLanguage] || '';
-		
-		// Check if this is a different value than what we last sent
-		const lastSentEditorValue = lastSentValue[activeLanguage] || '';
-		
-		// Only update if:
-		// 1. The new value is different from current editor value
-		// 2. The new value is different from what we last sent (to avoid overwriting our own updates)
-		if (newEditorValue !== editorValue && newEditorValue !== lastSentEditorValue) {
-			// Temporarily set flag to prevent recursive updates
-			isInternalUpdate = true;
+	// Ensure initial value is reflected in the editor
+	$: if (activeLanguage && !isInternalUpdate && valueSnapshot) {
+		const newEditorValue = normalizedValue[activeLanguage] || '';
+		if (newEditorValue !== editorValue) {
 			editorValue = newEditorValue;
-			// Update lastSentValue to match current state
-			lastSentValue = { ...(value || {}), [activeLanguage]: newEditorValue };
-			// Reset flag after a brief delay
-			setTimeout(() => {
-				isInternalUpdate = false;
-			}, 10);
+			lastSentValue = { ...normalizedValue, [activeLanguage]: newEditorValue };
 		}
 	}
-
 	// Sync active language when defaultLanguage prop changes
 	// BUT only if we haven't manually changed it (don't override user selection)
 	// Only sync on initial mount or if defaultLanguage changes externally
@@ -66,7 +54,7 @@
 
 		// Update the multi-language object - preserve ALL existing languages
 		const updatedValue = {
-			...(value || {}), // Start with all existing languages
+			...normalizedValue, // Start with all existing languages
 			[activeLanguage]: newValue // Update the current language
 		};
 		
@@ -105,7 +93,7 @@
 		// Use the CURRENT activeLanguage (before switch)
 		const currentLang = activeLanguage;
 		const updatedValue = {
-			...(value || {}), // Start with all existing languages
+			...normalizedValue, // Start with all existing languages
 			[currentLang]: editorValue // Update current language with current editor value
 		};
 		
@@ -117,7 +105,7 @@
 		activeLanguage = language;
 		
 		// Get the value for the new language - check updatedValue first (includes unsaved changes), then value prop
-		const newValue = updatedValue[language] || value[language] || '';
+		const newValue = updatedValue[language] || normalizedValue[language] || '';
 		editorValue = typeof newValue === 'string' ? newValue : '';
 		
 		// Update lastSentValue to include the new language's value
@@ -144,7 +132,7 @@
 			// Force a check by reading from value prop again in case parent updated it
 			// Make sure we're still on the correct language
 			if (activeLanguage === language) {
-				const latestValue = value[language] || '';
+				const latestValue = normalizedValue[language] || '';
 				if (latestValue && typeof latestValue === 'string' && latestValue !== editorValue) {
 					editorValue = latestValue;
 					lastSentValue = { ...(value || {}), [language]: latestValue };

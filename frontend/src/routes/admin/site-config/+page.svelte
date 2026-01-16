@@ -8,6 +8,7 @@
 	import { siteConfig } from '$stores/siteConfig';
 
 	let config: SiteConfig | null = null;
+	let descriptionValue: any = {};
 	let loading = true;
 	let saving = false;
 	let message = '';
@@ -43,6 +44,7 @@
 				};
 			}
 			config = data;
+			descriptionValue = data.description || {};
 		} catch (error) {
 			console.error('Error loading site config:', error);
 			message = 'Failed to load configuration';
@@ -100,7 +102,7 @@
 				},
 				body: JSON.stringify({
 					title: config.title,
-					description: config.description,
+					description: descriptionValue,
 					logo: config.logo,
 					favicon: config.favicon,
 					languages: config.languages,
@@ -117,8 +119,10 @@
 				throw new Error('Failed to save configuration');
 			}
 
-			const data = await response.json();
+			const result = await response.json();
+			const data = result?.success ? result.data : result;
 			config = data;
+			descriptionValue = data?.description || {};
 			message = 'successfully';
 
 			// Refresh the site config store so LanguageSelector picks up the changes
@@ -378,8 +382,10 @@
 									Site Description
 								</label>
 								<MultiLangHTMLEditor
-									value={config.description || {}}
-									onChange={(value) => updateConfig('description', value)}
+									value={descriptionValue}
+									onChange={(value) => {
+										descriptionValue = value;
+									}}
 									placeholder="Enter site description..."
 									height={150}
 									showLanguageTabs={true}

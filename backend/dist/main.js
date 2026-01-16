@@ -128,19 +128,64 @@ function bootstrap() {
         const allowedOrigins = process.env.FRONTEND_URL
             ? process.env.FRONTEND_URL.split(',').map(url => url.trim())
             : ['http://localhost:4000', 'http://localhost:3000', 'http://0.0.0.0:3000'];
+        // Log allowed origins for debugging
+        console.log('🌐 CORS allowed origins:', allowedOrigins);
         app.enableCors({
             origin: (origin, callback) => {
                 // Allow requests with no origin (like mobile apps or curl requests)
-                if (!origin)
+                if (!origin) {
                     return callback(null, true);
-                // Check if origin is in allowed list
-                if (allowedOrigins.some(allowed => origin.startsWith(allowed))) {
+                }
+                // Normalize origin for comparison (remove trailing slash, handle http/https)
+                const normalizeOrigin = (url) => {
+                    try {
+                        const urlObj = new URL(url);
+                        return `${urlObj.protocol}//${urlObj.host}`;
+                    }
+                    catch (_a) {
+                        return url.replace(/\/$/, ''); // Remove trailing slash if URL parsing fails
+                    }
+                };
+                const normalizedOrigin = normalizeOrigin(origin);
+                // Check if origin matches any allowed origin (exact match or starts with)
+                const isAllowed = allowedOrigins.some(allowed => {
+                    const normalizedAllowed = normalizeOrigin(allowed);
+                    // Exact match
+                    if (normalizedOrigin === normalizedAllowed)
+                        return true;
+                    // Starts with match (for cases like http://localhost:4000 matching http://localhost:4000/)
+                    if (normalizedOrigin.startsWith(normalizedAllowed) || normalizedAllowed.startsWith(normalizedOrigin)) {
+                        return true;
+                    }
+                    // Check if hostname matches (for http vs https)
+                    try {
+                        const originUrl = new URL(origin);
+                        const allowedUrl = new URL(allowed);
+                        if (originUrl.hostname === allowedUrl.hostname)
+                            return true;
+                    }
+                    catch (_a) {
+                        // Ignore URL parsing errors
+                    }
+                    return false;
+                });
+                if (isAllowed) {
                     return callback(null, true);
                 }
                 // For development, allow localhost on any port
-                if (process.env.NODE_ENV !== 'production' && origin.startsWith('http://localhost:')) {
-                    return callback(null, true);
+                if (process.env.NODE_ENV !== 'production') {
+                    try {
+                        const originUrl = new URL(origin);
+                        if (originUrl.hostname === 'localhost' || originUrl.hostname === '127.0.0.1') {
+                            return callback(null, true);
+                        }
+                    }
+                    catch (_a) {
+                        // Ignore URL parsing errors
+                    }
                 }
+                // Log blocked origin for debugging
+                console.warn('🚫 CORS blocked origin:', origin, 'Allowed origins:', allowedOrigins);
                 callback(new Error('Not allowed by CORS'));
             },
             credentials: true,

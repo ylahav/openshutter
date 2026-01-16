@@ -115,6 +115,7 @@
 		people: [] as string[],
 		location: null as string | null,
 	};
+	let descriptionLanguage = 'en';
 
 	function getPhotoUrl(photo: Photo, preferFullSize: boolean = false): string {
 		if (!photo.storage) {
@@ -314,6 +315,28 @@
 					typeof photo.description === 'string'
 						? { en: photo.description }
 						: photo.description || {};
+				// Ensure the editor shows content even if current language is missing
+				const descriptionEntries = Object.entries(formData.description || {}).filter(
+					([, value]) => typeof value === 'string' && value.trim().length > 0
+				);
+				const firstAvailableLanguage = descriptionEntries.length > 0 ? descriptionEntries[0][0] : 'en';
+				const preferredLanguage =
+					($currentLanguage && formData.description?.[$currentLanguage]?.trim())
+						? $currentLanguage
+						: (formData.description?.en?.trim() ? 'en' : firstAvailableLanguage);
+
+				descriptionLanguage = preferredLanguage || $currentLanguage || 'en';
+				if (
+					$currentLanguage &&
+					formData.description &&
+					!formData.description[$currentLanguage] &&
+					formData.description[descriptionLanguage]
+				) {
+					formData.description = {
+						...formData.description,
+						[$currentLanguage]: formData.description[descriptionLanguage]
+					};
+				}
 				formData.isPublished = photo.isPublished || false;
 				formData.isLeading = photo.isLeading || false;
 				formData.isGalleryLeading = photo.isGalleryLeading || false;
@@ -331,6 +354,8 @@
 							? photo.location
 							: (photo.location as any)._id?.toString() || String(photo.location)
 						: null;
+				// Trigger reactivity after mutating formData fields
+				formData = { ...formData };
 			}
 		} catch (err) {
 			console.error('[loadPhoto] Failed to fetch photo:', err);
@@ -604,16 +629,14 @@
 						<div class="block text-sm font-medium text-gray-700 mb-2">
 							Description
 						</div>
-						<MultiLangHTMLEditor
-							value={formData.description}
-							onChange={(value) => {
-								// Merge with existing to preserve all languages
-								formData.description = { ...formData.description, ...value };
-								formData = formData; // Trigger reactivity
-							}}
-							placeholder="Enter photo description..."
-							height={240}
-						/>
+						{#key `${photoId}-${descriptionLanguage}`}
+							<MultiLangHTMLEditor
+								bind:value={formData.description}
+								placeholder="Enter photo description..."
+								height={240}
+								defaultLanguage={descriptionLanguage}
+							/>
+						{/key}
 					</div>
 
 					<!-- Status Toggles -->

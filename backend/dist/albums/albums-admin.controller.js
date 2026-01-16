@@ -60,9 +60,182 @@ const admin_guard_1 = require("../common/guards/admin.guard");
 const albums_service_1 = require("./albums.service");
 const db_1 = require("../config/db");
 const mongoose_1 = __importStar(require("mongoose"));
+const manager_1 = require("../services/storage/manager");
 let AlbumsAdminController = class AlbumsAdminController {
     constructor(albumsService) {
         this.albumsService = albumsService;
+    }
+    /**
+     * Create a new album
+     * Path: POST /api/admin/albums
+     */
+    createAlbum(req, createData) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a, _b, _c, _d;
+            try {
+                yield (0, db_1.connectDB)();
+                const db = mongoose_1.default.connection.db;
+                if (!db)
+                    throw new Error('Database connection not established');
+                // Get user from request (set by AdminGuard)
+                const user = req.user;
+                if (!user || !user.id) {
+                    throw new common_1.BadRequestException('User not authenticated');
+                }
+                // Validate required fields
+                if (!createData.name || !createData.alias) {
+                    throw new common_1.BadRequestException('Name and alias are required');
+                }
+                if (!createData.storageProvider) {
+                    throw new common_1.BadRequestException('Storage provider is required');
+                }
+                // Validate storage provider
+                const validProviders = ['google-drive', 'aws-s3', 'local', 'backblaze', 'wasabi'];
+                if (!validProviders.includes(createData.storageProvider)) {
+                    throw new common_1.BadRequestException(`Invalid storage provider: ${createData.storageProvider}`);
+                }
+                // Get parent album info if parentAlbumId is provided
+                let parentAlbum = null;
+                let parentPath = '';
+                let level = 0;
+                if (createData.parentAlbumId && createData.parentAlbumId !== '' && createData.parentAlbumId !== 'null') {
+                    try {
+                        const parentObjectId = new mongoose_1.Types.ObjectId(createData.parentAlbumId);
+                        parentAlbum = yield db.collection('albums').findOne({ _id: parentObjectId });
+                        if (!parentAlbum) {
+                            throw new common_1.NotFoundException(`Parent album not found: ${createData.parentAlbumId}`);
+                        }
+                        parentPath = parentAlbum.storagePath || '';
+                        level = (parentAlbum.level || 0) + 1;
+                    }
+                    catch (error) {
+                        if (error instanceof common_1.NotFoundException) {
+                            throw error;
+                        }
+                        throw new common_1.BadRequestException(`Invalid parent album ID: ${createData.parentAlbumId}`);
+                    }
+                }
+                // Generate storage path
+                const storagePath = parentPath ? `${parentPath}/${createData.alias}` : `/${createData.alias}`;
+                // Check if alias already exists
+                const existingAlbum = yield db.collection('albums').findOne({ alias: createData.alias.toLowerCase() });
+                if (existingAlbum) {
+                    throw new common_1.BadRequestException(`Album with alias "${createData.alias}" already exists`);
+                }
+                // Create folder in storage provider
+                const storageManager = manager_1.StorageManager.getInstance();
+                let storageFolderResult;
+                try {
+                    storageFolderResult = yield storageManager.createAlbum(createData.name, createData.alias, createData.storageProvider, parentPath || undefined);
+                    console.log('Storage folder created:', storageFolderResult);
+                }
+                catch (storageError) {
+                    console.error('Failed to create storage folder:', storageError);
+                    throw new common_1.BadRequestException(`Failed to create storage folder: ${storageError.message || 'Unknown error'}`);
+                }
+                // Get the maximum order value for siblings (albums with same parent)
+                const parentIdForQuery = parentAlbum ? parentAlbum._id : null;
+                const maxOrderResult = yield db
+                    .collection('albums')
+                    .find({ parentAlbumId: parentIdForQuery })
+                    .sort({ order: -1 })
+                    .limit(1)
+                    .toArray();
+                const maxOrder = maxOrderResult.length > 0 ? (maxOrderResult[0].order || 0) + 1 : 0;
+                // Create album record
+                const albumData = {
+                    name: createData.name,
+                    alias: createData.alias.toLowerCase().trim(),
+                    description: createData.description || '',
+                    isPublic: createData.isPublic !== undefined ? createData.isPublic : false,
+                    isFeatured: createData.isFeatured !== undefined ? createData.isFeatured : false,
+                    storageProvider: createData.storageProvider,
+                    storagePath: storagePath,
+                    parentAlbumId: parentAlbum ? parentAlbum._id : null,
+                    parentPath: parentPath,
+                    level: level,
+                    order: maxOrder,
+                    photoCount: 0,
+                    createdBy: new mongoose_1.Types.ObjectId(user.id),
+                    createdAt: new Date(),
+                    updatedAt: new Date(),
+                    tags: [],
+                    allowedGroups: [],
+                    allowedUsers: [],
+                };
+                const result = yield db.collection('albums').insertOne(albumData);
+                if (!result.insertedId) {
+                    throw new Error('Failed to create album');
+                }
+                // Fetch the created album
+                const createdAlbum = yield db.collection('albums').findOne({ _id: result.insertedId });
+                if (!createdAlbum) {
+                    throw new Error('Album was created but could not be retrieved');
+                }
+                // Serialize ObjectIds
+                const serialized = Object.assign(Object.assign({}, createdAlbum), { _id: createdAlbum._id.toString(), createdBy: ((_a = createdAlbum.createdBy) === null || _a === void 0 ? void 0 : _a.toString()) || null, parentAlbumId: ((_b = createdAlbum.parentAlbumId) === null || _b === void 0 ? void 0 : _b.toString()) || null, coverPhotoId: ((_c = createdAlbum.coverPhotoId) === null || _c === void 0 ? void 0 : _c.toString()) || null, tags: ((_d = createdAlbum.tags) === null || _d === void 0 ? void 0 : _d.map((tag) => (tag._id ? tag._id.toString() : tag.toString()))) || [] });
+                return {
+                    success: true,
+                    data: serialized,
+                };
+            }
+            catch (error) {
+                console.error('Failed to create album:', error);
+                if (error instanceof common_1.BadRequestException || error instanceof common_1.NotFoundException) {
+                    throw error;
+                }
+                throw new common_1.BadRequestException(`Failed to create album: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            }
+        });
+    }
+    /**
+     * Get all albums (admin only - includes private albums)
+     * Path: GET /api/admin/albums
+     */
+    findAll(parentId, level) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                yield (0, db_1.connectDB)();
+                const db = mongoose_1.default.connection.db;
+                if (!db)
+                    throw new Error('Database connection not established');
+                const query = {};
+                // Handle parentId filter (admin can see all, no isPublic filter)
+                if (parentId === 'root' || parentId === 'null') {
+                    query.parentAlbumId = null;
+                }
+                else if (parentId) {
+                    if (!mongoose_1.Types.ObjectId.isValid(parentId)) {
+                        console.warn(`Invalid parentId format: ${parentId}`);
+                        return [];
+                    }
+                    query.parentAlbumId = new mongoose_1.Types.ObjectId(parentId);
+                }
+                // Support level filter
+                if (level !== undefined) {
+                    const levelNum = parseInt(level, 10);
+                    if (!isNaN(levelNum)) {
+                        query.level = levelNum;
+                    }
+                }
+                // Get ALL albums (no isPublic filter for admin)
+                const albums = yield db
+                    .collection('albums')
+                    .find(query)
+                    .sort({ order: 1, createdAt: -1 })
+                    .toArray();
+                // Serialize ObjectIds
+                const serialized = albums.map((album) => {
+                    var _a, _b, _c;
+                    return (Object.assign(Object.assign({}, album), { _id: album._id.toString(), parentAlbumId: ((_a = album.parentAlbumId) === null || _a === void 0 ? void 0 : _a.toString()) || null, coverPhotoId: ((_b = album.coverPhotoId) === null || _b === void 0 ? void 0 : _b.toString()) || null, createdBy: ((_c = album.createdBy) === null || _c === void 0 ? void 0 : _c.toString()) || null }));
+                });
+                return serialized;
+            }
+            catch (error) {
+                console.error('Failed to get admin albums:', error);
+                throw new Error(`Failed to get admin albums: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            }
+        });
     }
     /**
      * Get all photos for an album (admin only - includes unpublished)
@@ -259,6 +432,22 @@ let AlbumsAdminController = class AlbumsAdminController {
     }
 };
 exports.AlbumsAdminController = AlbumsAdminController;
+__decorate([
+    (0, common_1.Post)(),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], AlbumsAdminController.prototype, "createAlbum", null);
+__decorate([
+    (0, common_1.Get)(),
+    __param(0, (0, common_1.Query)('parentId')),
+    __param(1, (0, common_1.Query)('level')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", Promise)
+], AlbumsAdminController.prototype, "findAll", null);
 __decorate([
     (0, common_1.Get)(':id/photos'),
     __param(0, (0, common_1.Param)('id')),

@@ -51,16 +51,32 @@ let PhotosController = class PhotosController {
             return this.photosService.findOne(id);
         });
     }
-    upload(file, albumId, title, description, tags) {
+    upload(file, albumId, title, description, tags, bodyAlbumId, bodyTitle, bodyDescription, bodyTags) {
         return __awaiter(this, void 0, void 0, function* () {
             if (!file) {
                 throw new common_1.BadRequestException('No file provided');
             }
+            const resolvedAlbumId = albumId || bodyAlbumId;
+            const resolvedTitle = title || bodyTitle;
+            const resolvedDescription = description || bodyDescription;
+            const rawTags = tags || bodyTags;
+            let parsedTags = [];
+            if (Array.isArray(rawTags)) {
+                parsedTags = rawTags;
+            }
+            else if (typeof rawTags === 'string' && rawTags.length > 0) {
+                try {
+                    parsedTags = JSON.parse(rawTags);
+                }
+                catch (_a) {
+                    parsedTags = rawTags.split(',').map((value) => value.trim()).filter(Boolean);
+                }
+            }
             const result = yield this.photoUploadService.uploadPhoto(file.buffer, file.originalname, file.mimetype, {
-                albumId,
-                title,
-                description,
-                tags: tags ? JSON.parse(tags) : [],
+                albumId: resolvedAlbumId,
+                title: resolvedTitle,
+                description: resolvedDescription,
+                tags: parsedTags,
             });
             if (!result.success) {
                 throw new common_1.BadRequestException(result.error || 'Upload failed');
@@ -105,8 +121,12 @@ __decorate([
     __param(2, (0, common_1.Query)('title')),
     __param(3, (0, common_1.Query)('description')),
     __param(4, (0, common_1.Query)('tags')),
+    __param(5, (0, common_1.Body)('albumId')),
+    __param(6, (0, common_1.Body)('title')),
+    __param(7, (0, common_1.Body)('description')),
+    __param(8, (0, common_1.Body)('tags')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, String, String, String, String]),
+    __metadata("design:paramtypes", [Object, String, String, String, String, String, String, String, Object]),
     __metadata("design:returntype", Promise)
 ], PhotosController.prototype, "upload", null);
 exports.PhotosController = PhotosController = __decorate([

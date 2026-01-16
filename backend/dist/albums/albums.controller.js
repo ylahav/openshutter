@@ -38,6 +38,11 @@ let AlbumsController = class AlbumsController {
             return this.albumsService.findByAlias(alias);
         });
     }
+    getHierarchy(includePrivate) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return this.albumsService.getHierarchy(includePrivate === 'true');
+        });
+    }
     findPhotos(id, page, limit) {
         return __awaiter(this, void 0, void 0, function* () {
             const pageNum = page ? parseInt(page, 10) || 1 : 1;
@@ -84,6 +89,13 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], AlbumsController.prototype, "findByAlias", null);
+__decorate([
+    (0, common_1.Get)('hierarchy'),
+    __param(0, (0, common_1.Query)('includePrivate')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], AlbumsController.prototype, "getHierarchy", null);
 __decorate([
     (0, common_1.Get)(':id/photos'),
     __param(0, (0, common_1.Param)('id')),
