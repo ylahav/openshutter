@@ -25,6 +25,12 @@ A comprehensive photo gallery management system with multi-storage support, adva
 - **Storage Management**: Configure and manage multiple storage providers through admin interface
 - **Profile Management**: Users can edit their profiles and change passwords
 - **Template Customization**: Customizable gallery templates and themes
+- **Page Builder**: Flexible row/column-based page builder with module system
+  - Create custom pages with drag-and-drop row/column layouts
+  - Module types: Hero, Rich Text, Feature Grid, Albums Grid, Call-to-Action
+  - Form-based module configuration with icon selector and rich text editing
+  - Multi-language support for page titles, subtitles, and module content
+  - Visual row reordering with immediate feedback
 - **About Page**: Dedicated landing page that introduces openShutter and highlights key features
 - **Blog Categories Management**: Create and manage blog categories with multi-language support
 - **Content Protection**: Advanced right-click and developer tools protection with smart exceptions
@@ -342,6 +348,7 @@ Access the storage configuration at `/admin/storage` (admin only):
 - **Google Drive**: Configure OAuth credentials, folder ID, and connection testing
 - **AWS S3**: Set up access keys, region, and bucket configuration  
 - **Local Storage**: Configure storage path and file size limits
+- **Asset Uploads**: Logo/favicon uploads require at least one enabled storage provider (enable Local Storage if your default provider is disabled)
 - **Provider Status**: Enable/disable storage providers
 - **Connection Testing**: Test storage provider connectivity
 - **Usage Monitoring**: View storage quotas and usage statistics

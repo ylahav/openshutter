@@ -1,5 +1,56 @@
 ## [Unreleased]
 
+### Added
+- **Page Builder - Row/Column Layout System**: Enhanced page builder with flexible row/column-based layout
+  - Add rows with custom column proportions (e.g., 1,2,3 for 1/6, 1/3, 1/2 widths)
+  - Assign modules to individual columns within rows
+  - Reorder rows with up/down controls for immediate visual feedback
+  - Support for both new row/column and legacy zone-based layouts
+- **Module-Specific Forms**: Replaced JSON editing with intuitive forms for module configuration
+  - **Feature Grid Module**: Form-based editor with icon selector, title, subtitle, and feature items (icon, title, rich text description)
+  - **Rich Text Module**: Form-based editor with title, body (rich text), and background color selection
+  - **Albums Grid Module**: Form-based editor with title, description (rich text), and multi-select album picker
+    - Checkbox-based album selection from hierarchical list
+    - Display only selected albums in the grid
+    - Support for selecting multiple albums from any level in the hierarchy
+    - Cover images properly displayed for all selected albums
+- **Icon Management System**: Comprehensive icon system for page builder modules
+  - Icon selector dropdown with visual icon previews next to names
+  - Sorted icon list (alphabetically)
+  - Support for SVG icons, emojis, and custom text
+  - IconRenderer component for consistent icon display across modules
+  - Easy icon addition process (add to list + add SVG definition)
+- **Page Title/Subtitle Display**: Page titles and subtitles now prominently displayed on public pages
+  - Title and subtitle rendered before dynamically rendered modules
+  - Multi-language support for page titles and subtitles
+
+### Changed
+- **Page Builder UI**: Improved user experience for page management
+  - Removed hard-coded `introText` and `content` fields from page administration
+  - Module-based content replaces static page fields
+- **Albums Grid Module**: Renamed from "Album Gallery" to "Albums Grid" and enhanced functionality
+  - Changed from single root album selection to multiple album selection
+  - Removed "include root" flag (now shows only explicitly selected albums)
+  - Multi-select interface with checkboxes for easier album selection
+  - Visual row/column layout builder with drag-and-drop reordering
+- **Module Editing**: Streamlined module editing workflow
+  - Module-specific forms replace generic JSON editor
+  - Better validation and error handling
+  - Immediate visual feedback for row reordering
+- **Icon System**: Refactored icon management
+  - Removed React-specific icon library (lucide-react) dependency
+  - Created Svelte-compatible icon system with SVG definitions
+  - Icon selector component with visual previews
+
+### Fixed
+- **Svelte Reactivity**: Fixed Map reactivity issues in row/column layout builder
+- **Icon Display**: Fixed icon rendering to show actual SVG icons instead of text names
+- **Page Rendering**: Fixed page title and subtitle not displaying on public pages
+- **Row Reordering**: Fixed row reordering to provide immediate visual feedback without page reload
+- **Albums Grid Cover Images**: Fixed cover photos not displaying in albums grid module
+  - Now properly fetches cover image URLs using the cover-images API endpoint
+  - Cover images display correctly for all selected albums in the grid
+
 ### Architecture
 - **Backend Migration to NestJS**: Migrated backend from Express.js to NestJS framework
   - **NestJS Framework**: Complete migration to NestJS for better structure, dependency injection, and maintainability

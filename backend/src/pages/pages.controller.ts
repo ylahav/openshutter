@@ -112,7 +112,7 @@ export class PagesController {
       if (!db) throw new Error('Database connection not established');
       const collection = db.collection('pages');
 
-      const { title, subtitle, alias, leadingImage, introText, content, category, isPublished } = body;
+      const { title, subtitle, alias, slug, leadingImage, introText, content, category, isPublished, layout } = body;
 
       // Validate required fields
       if (!title || !alias) {
@@ -191,10 +191,14 @@ export class PagesController {
         }
       }
 
-      // Normalize alias
+      // Normalize alias/slug
       const normalizedAlias = String(alias).trim().toLowerCase();
       if (!normalizedAlias) {
         throw new BadRequestException('Alias cannot be empty');
+      }
+      const normalizedSlug = String(slug || alias).trim().toLowerCase();
+      if (!normalizedSlug) {
+        throw new BadRequestException('Slug cannot be empty');
       }
 
       // Validate category
@@ -206,12 +210,21 @@ export class PagesController {
       if (existingPage) {
         throw new BadRequestException('Page with this alias already exists');
       }
+      const existingSlug = await collection.findOne({ slug: normalizedSlug });
+      if (existingSlug) {
+        throw new BadRequestException('Page with this slug already exists');
+      }
+
+      const layoutZones = Array.isArray(layout?.zones)
+        ? layout.zones.map((zone: string) => String(zone).trim()).filter(Boolean)
+        : undefined;
 
       // Create page
       const now = new Date();
       const pageData: any = {
         title: normalizedTitle,
         alias: normalizedAlias,
+        slug: normalizedSlug,
         category: pageCategory,
         isPublished: Boolean(isPublished),
         createdBy: new Types.ObjectId(), // TODO: Get from auth context
@@ -224,6 +237,7 @@ export class PagesController {
       if (leadingImage?.trim()) pageData.leadingImage = leadingImage.trim();
       if (normalizedIntroText) pageData.introText = normalizedIntroText;
       if (normalizedContent) pageData.content = normalizedContent;
+      if (layoutZones && layoutZones.length > 0) pageData.layout = { zones: layoutZones };
 
       const result = await collection.insertOne(pageData);
       const page = await collection.findOne({ _id: result.insertedId });
@@ -267,7 +281,7 @@ export class PagesController {
         throw new NotFoundException(`Page not found: ${id}`);
       }
 
-      const { title, subtitle, alias, leadingImage, introText, content, category, isPublished } = body;
+      const { title, subtitle, alias, slug, leadingImage, introText, content, category, isPublished, layout } = body;
 
       // Normalize title object if provided
       let normalizedTitle: Record<string, string> | undefined;
@@ -359,6 +373,17 @@ export class PagesController {
           throw new BadRequestException('Page with this alias already exists');
         }
       }
+      if (slug && slug.trim().toLowerCase() !== page.slug) {
+        const normalizedSlug = slug.trim().toLowerCase();
+        const existingSlug = await collection.findOne({ slug: normalizedSlug });
+        if (existingSlug) {
+          throw new BadRequestException('Page with this slug already exists');
+        }
+      }
+
+      const layoutZones = Array.isArray(layout?.zones)
+        ? layout.zones.map((zone: string) => String(zone).trim()).filter(Boolean)
+        : undefined;
 
       // Validate category
       const validCategories = ['system', 'site'];
@@ -373,11 +398,13 @@ export class PagesController {
       if (normalizedTitle !== undefined) updateData.title = normalizedTitle;
       if (normalizedSubtitle !== undefined) updateData.subtitle = normalizedSubtitle;
       if (alias !== undefined) updateData.alias = alias.trim().toLowerCase();
+      if (slug !== undefined) updateData.slug = slug.trim().toLowerCase();
       if (leadingImage !== undefined) updateData.leadingImage = leadingImage?.trim() || null;
       if (normalizedIntroText !== undefined) updateData.introText = normalizedIntroText;
       if (normalizedContent !== undefined) updateData.content = normalizedContent;
       if (category !== undefined) updateData.category = pageCategory;
       if (isPublished !== undefined) updateData.isPublished = Boolean(isPublished);
+      if (layoutZones !== undefined) updateData.layout = { zones: layoutZones };
 
       await collection.updateOne({ _id: new Types.ObjectId(id) }, { $set: updateData });
       const updatedPage = await collection.findOne({ _id: new Types.ObjectId(id) });
@@ -400,6 +427,227 @@ export class PagesController {
       console.error('Error updating page:', error);
       throw new BadRequestException(
         `Failed to update page: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+    }
+  }
+
+  /**
+   * Get modules for a page
+   * Path: GET /api/admin/pages/:id/modules
+   */
+  @Get(':id/modules')
+  async getPageModules(@Param('id') id: string) {
+    try {
+      await connectDB();
+      const db = mongoose.connection.db;
+      if (!db) throw new Error('Database connection not established');
+      const pagesCollection = db.collection('pages');
+      const modulesCollection = db.collection('page_modules');
+
+      const page = await pagesCollection.findOne({ _id: new Types.ObjectId(id) });
+      if (!page) {
+        throw new NotFoundException(`Page not found: ${id}`);
+      }
+
+      const modules = await modulesCollection
+        .find({ pageId: page._id })
+        .sort({ rowOrder: 1, columnIndex: 1, zone: 1, order: 1, createdAt: 1 })
+        .toArray();
+
+      const serialized = modules.map((module) => ({
+        ...module,
+        _id: module._id.toString(),
+        pageId: module.pageId?.toString() || module.pageId,
+      }));
+
+      return { data: serialized };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      console.error('Error fetching page modules:', error);
+      throw new BadRequestException(
+        `Failed to fetch page modules: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+    }
+  }
+
+  /**
+   * Create a module for a page
+   * Path: POST /api/admin/pages/:id/modules
+   */
+  @Post(':id/modules')
+  async createPageModule(@Param('id') id: string, @Body() body: any) {
+    try {
+      await connectDB();
+      const db = mongoose.connection.db;
+      if (!db) throw new Error('Database connection not established');
+      const pagesCollection = db.collection('pages');
+      const modulesCollection = db.collection('page_modules');
+
+      const page = await pagesCollection.findOne({ _id: new Types.ObjectId(id) });
+      if (!page) {
+        throw new NotFoundException(`Page not found: ${id}`);
+      }
+
+      const { type, props, zone, order, rowOrder, columnIndex, columnProportion } = body;
+      
+      // Support both old (zone/order) and new (row/column) structure
+      const hasRowColumn = rowOrder !== undefined && columnIndex !== undefined && columnProportion !== undefined;
+      const hasZoneOrder = zone !== undefined;
+      
+      if (!type) {
+        throw new BadRequestException('Module type is required');
+      }
+      
+      if (!hasRowColumn && !hasZoneOrder) {
+        throw new BadRequestException('Either (rowOrder, columnIndex, columnProportion) or (zone) is required');
+      }
+
+      const moduleData: any = {
+        pageId: page._id,
+        type: String(type).trim(),
+        props: props && typeof props === 'object' ? props : {},
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      
+      if (hasRowColumn) {
+        moduleData.rowOrder = typeof rowOrder === 'number' ? rowOrder : parseInt(rowOrder, 10);
+        moduleData.columnIndex = typeof columnIndex === 'number' ? columnIndex : parseInt(columnIndex, 10);
+        moduleData.columnProportion = typeof columnProportion === 'number' ? columnProportion : parseInt(columnProportion, 10);
+      } else {
+        moduleData.zone = String(zone).trim();
+        moduleData.order = typeof order === 'number' ? order : parseInt(order, 10) || 0;
+      }
+
+      const result = await modulesCollection.insertOne(moduleData);
+      const module = await modulesCollection.findOne({ _id: result.insertedId });
+      if (!module) {
+        throw new BadRequestException('Failed to retrieve created module');
+      }
+
+      return {
+        ...module,
+        _id: module._id.toString(),
+        pageId: module.pageId?.toString() || module.pageId,
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException || error instanceof NotFoundException) {
+        throw error;
+      }
+      console.error('Error creating page module:', error);
+      throw new BadRequestException(
+        `Failed to create page module: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+    }
+  }
+
+  /**
+   * Update a module for a page
+   * Path: PUT /api/admin/pages/:id/modules/:moduleId
+   */
+  @Put(':id/modules/:moduleId')
+  async updatePageModule(
+    @Param('id') id: string,
+    @Param('moduleId') moduleId: string,
+    @Body() body: any,
+  ) {
+    try {
+      await connectDB();
+      const db = mongoose.connection.db;
+      if (!db) throw new Error('Database connection not established');
+      const pagesCollection = db.collection('pages');
+      const modulesCollection = db.collection('page_modules');
+
+      const page = await pagesCollection.findOne({ _id: new Types.ObjectId(id) });
+      if (!page) {
+        throw new NotFoundException(`Page not found: ${id}`);
+      }
+
+      const module = await modulesCollection.findOne({ _id: new Types.ObjectId(moduleId), pageId: page._id });
+      if (!module) {
+        throw new NotFoundException(`Module not found: ${moduleId}`);
+      }
+
+      const { type, props, zone, order, rowOrder, columnIndex, columnProportion } = body;
+      const updateData: any = { updatedAt: new Date() };
+
+      if (type !== undefined) updateData.type = String(type).trim();
+      if (props !== undefined) updateData.props = props && typeof props === 'object' ? props : {};
+      
+      // Support both old and new structure
+      if (rowOrder !== undefined) {
+        updateData.rowOrder = typeof rowOrder === 'number' ? rowOrder : parseInt(rowOrder, 10);
+      }
+      if (columnIndex !== undefined) {
+        updateData.columnIndex = typeof columnIndex === 'number' ? columnIndex : parseInt(columnIndex, 10);
+      }
+      if (columnProportion !== undefined) {
+        updateData.columnProportion = typeof columnProportion === 'number' ? columnProportion : parseInt(columnProportion, 10);
+      }
+      if (zone !== undefined) updateData.zone = String(zone).trim();
+      if (order !== undefined) {
+        updateData.order = typeof order === 'number' ? order : parseInt(order, 10) || 0;
+      }
+
+      await modulesCollection.updateOne(
+        { _id: new Types.ObjectId(moduleId) },
+        { $set: updateData },
+      );
+      const updatedModule = await modulesCollection.findOne({ _id: new Types.ObjectId(moduleId) });
+      if (!updatedModule) {
+        throw new NotFoundException(`Module not found after update: ${moduleId}`);
+      }
+
+      return {
+        ...updatedModule,
+        _id: updatedModule._id.toString(),
+        pageId: updatedModule.pageId?.toString() || updatedModule.pageId,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+        throw error;
+      }
+      console.error('Error updating page module:', error);
+      throw new BadRequestException(
+        `Failed to update page module: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+    }
+  }
+
+  /**
+   * Delete a module for a page
+   * Path: DELETE /api/admin/pages/:id/modules/:moduleId
+   */
+  @Delete(':id/modules/:moduleId')
+  async deletePageModule(@Param('id') id: string, @Param('moduleId') moduleId: string) {
+    try {
+      await connectDB();
+      const db = mongoose.connection.db;
+      if (!db) throw new Error('Database connection not established');
+      const pagesCollection = db.collection('pages');
+      const modulesCollection = db.collection('page_modules');
+
+      const page = await pagesCollection.findOne({ _id: new Types.ObjectId(id) });
+      if (!page) {
+        throw new NotFoundException(`Page not found: ${id}`);
+      }
+
+      const module = await modulesCollection.findOne({ _id: new Types.ObjectId(moduleId), pageId: page._id });
+      if (!module) {
+        throw new NotFoundException(`Module not found: ${moduleId}`);
+      }
+
+      await modulesCollection.deleteOne({ _id: new Types.ObjectId(moduleId) });
+      return { success: true, message: 'Module deleted successfully' };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      console.error('Error deleting page module:', error);
+      throw new BadRequestException(
+        `Failed to delete page module: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
     }
   }

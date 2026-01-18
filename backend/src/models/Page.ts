@@ -17,9 +17,13 @@ export interface IPage extends Document {
   title: MultiLangText;
   subtitle?: MultiLangText;
   alias: string;
+  slug: string;
   leadingImage?: string;
   introText?: MultiLangHTML;
   content?: MultiLangHTML;
+  layout?: {
+    zones: string[];
+  };
   category: 'system' | 'site';
   isPublished: boolean;
   createdAt: Date;
@@ -43,6 +47,13 @@ export const PageSchema = new Schema<IPage>({
     trim: true,
     lowercase: true,
   },
+  slug: {
+    type: String,
+    required: true,
+    unique: true,
+    trim: true,
+    lowercase: true,
+  },
   leadingImage: {
     type: String,
     trim: true,
@@ -52,6 +63,12 @@ export const PageSchema = new Schema<IPage>({
   },
   content: {
     type: MultiLangHTMLSchema,
+  },
+  layout: {
+    zones: {
+      type: [String],
+      default: ['main'],
+    },
   },
   category: {
     type: String,
@@ -86,5 +103,6 @@ PageSchema.pre('save', function() {
 // Note: alias index is automatically created by unique: true, so we don't need to add it again
 PageSchema.index({ category: 1 });
 PageSchema.index({ isPublished: 1 });
+PageSchema.index({ slug: 1 });
 
 export const PageModel = mongoose.models.Page || mongoose.model<IPage>('Page', PageSchema);

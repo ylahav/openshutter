@@ -3,6 +3,8 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { siteConfigService } from '../services/site-config';
 import { SiteConfigUpdate } from '../types/site-config';
 import { StorageManager } from '../services/storage/manager';
+import { storageConfigService } from '../services/storage/config';
+import { StorageError, StorageProviderId } from '../services/storage/types';
 import { v4 as uuidv4 } from 'uuid';
 
 @Controller()
@@ -100,32 +102,52 @@ export class SiteConfigController {
       throw new BadRequestException(`File type ${file.mimetype} is not allowed. Allowed types: images only`);
     }
 
-    try {
-      // Generate unique filename
-      const fileExtension = file.originalname.split('.').pop() || 'png';
-      const filename = `asset-${uuidv4()}.${fileExtension}`;
+    // Generate unique filename
+    const fileExtension = file.originalname.split('.').pop() || 'png';
+    const filename = `asset-${uuidv4()}.${fileExtension}`;
+    const filePath = `site-assets/${filename}`;
 
-      // Upload file using storage manager
-      const storageManager = StorageManager.getInstance();
-      const defaultProvider = (process.env.STORAGE_PROVIDER || 'local') as any;
-      const filePath = `site-assets/${filename}`;
-      const uploadResult = await storageManager.uploadBuffer(
-        file.buffer,
-        filePath,
-        defaultProvider,
-        file.mimetype
-      );
+    const storageManager = StorageManager.getInstance();
+    const defaultProvider = (process.env.STORAGE_PROVIDER || 'local') as StorageProviderId;
+    const providersToTry: StorageProviderId[] = Array.from(
+      new Set([defaultProvider, 'local'])
+    );
 
-      // Return the URL
-      return {
-        url: `/api/storage/serve/${uploadResult.provider}/${encodeURIComponent(uploadResult.path)}`,
-        path: uploadResult.path,
-        filename: filename
-      };
-    } catch (error) {
-      console.error('Asset upload failed:', error);
-      throw new BadRequestException(`Failed to upload asset: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    const errors: string[] = [];
+
+    for (const provider of providersToTry) {
+      const isEnabled = await storageConfigService.isProviderEnabled(provider);
+      if (!isEnabled) {
+        errors.push(`${provider} (disabled)`);
+        continue;
+      }
+
+      try {
+        const uploadResult = await storageManager.uploadBuffer(
+          file.buffer,
+          filePath,
+          provider,
+          file.mimetype
+        );
+
+        return {
+          url: `/api/storage/serve/${uploadResult.provider}/${encodeURIComponent(uploadResult.path)}`,
+          path: uploadResult.path,
+          filename
+        };
+      } catch (error) {
+        const message =
+          error instanceof StorageError && error.originalError
+            ? `${error.message}: ${error.originalError.message}`
+            : error instanceof Error
+              ? error.message
+              : String(error);
+        errors.push(`${provider} (${message})`);
+      }
     }
+
+    const errorSummary = errors.length > 0 ? ` Providers tried: ${errors.join(', ')}` : '';
+    throw new BadRequestException(`Failed to upload asset.${errorSummary}`);
   }
 
   /**

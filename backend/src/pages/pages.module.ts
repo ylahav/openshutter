@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { PagesController } from './pages.controller';
+import { PagesPublicController } from './pages-public.controller';
 import { PageSchema } from '../models/Page';
 
 @Module({
@@ -9,7 +10,7 @@ import { PageSchema } from '../models/Page';
       { name: 'Page', schema: PageSchema },
     ]),
   ],
-  controllers: [PagesController],
+  controllers: [PagesController, PagesPublicController],
   providers: [],
   exports: [],
 })
