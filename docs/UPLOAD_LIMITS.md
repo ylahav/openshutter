@@ -14,10 +14,24 @@ For local development, the default limits should be sufficient. If you need to i
 For production deployments, configure the limit at the deployment level:
 
 #### Nginx Configuration
-If using nginx as a reverse proxy, add to your nginx config:
+If using nginx as a reverse proxy, you **must** configure `client_max_body_size` to allow large file uploads.
+
+**Quick Fix**: Add this to your nginx server block:
 ```nginx
 client_max_body_size 100M;
 ```
+
+**Complete Configuration**: See `docs/nginx-openshutter.conf` for a complete nginx configuration that includes:
+- `client_max_body_size 100M;` - Allows 100MB uploads (matches backend limit)
+- Increased timeouts for large file uploads
+- Proper proxy configuration for API routes to backend (port 5000)
+- Disabled buffering for file uploads to improve performance
+
+**To apply the fix on your server:**
+1. Edit your nginx config: `sudo nano /etc/nginx/sites-available/openshutter` (or your config file)
+2. Add `client_max_body_size 100M;` inside the `server { }` block
+3. Test configuration: `sudo nginx -t`
+4. Reload nginx: `sudo systemctl reload nginx`
 
 #### Standalone/PM2
 If running in standalone mode or with PM2, you may need to:
