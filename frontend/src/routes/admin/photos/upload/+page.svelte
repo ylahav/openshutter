@@ -94,40 +94,105 @@
 			// Handle upload completion
 			xhr.addEventListener('load', () => {
 				if (xhr.status >= 200 && xhr.status < 300) {
-					const response = JSON.parse(xhr.responseText);
-					if (response.success || response._id) {
+					try {
+						const response = JSON.parse(xhr.responseText);
+						if (response.success || response._id) {
+							uploads = uploads.map((upload, index) =>
+								index === uploadIndex ? { ...upload, status: 'success', progress: 100 } : upload
+							);
+						} else {
+							const errorMsg = response.error || response.message || 'Upload failed';
+							console.error(`[Photo Upload] Upload failed for ${file.name}:`, {
+								status: xhr.status,
+								response: response
+							});
+							uploads = uploads.map((upload, index) =>
+								index === uploadIndex
+									? { ...upload, status: 'error', error: errorMsg }
+									: upload
+							);
+						}
+					} catch (parseError) {
+						console.error(`[Photo Upload] Failed to parse response for ${file.name}:`, parseError);
 						uploads = uploads.map((upload, index) =>
-							index === uploadIndex ? { ...upload, status: 'success', progress: 100 } : upload
-						);
-					} else {
-						uploads = uploads.map((upload, index) =>
-							index === uploadIndex
-								? { ...upload, status: 'error', error: response.error || 'Upload failed' }
-								: upload
+							index === uploadIndex ? { ...upload, status: 'error', error: 'Invalid server response' } : upload
 						);
 					}
 				} else {
+					// Non-2xx status code
+					let errorMsg = `Upload failed (${xhr.status})`;
+					
+					// Handle 413 Request Entity Too Large
+					if (xhr.status === 413) {
+						// Check if it's a SvelteKit body size limit error
+						const responseText = xhr.responseText || '';
+						if (responseText.includes('Content-length') || responseText.includes('exceeds limit')) {
+							errorMsg = 'File too large: SvelteKit body size limit exceeded. Set BODY_SIZE_LIMIT=100M environment variable and restart the server.';
+						} else {
+							errorMsg = 'File too large: The file exceeds the server\'s upload size limit. Configure nginx with `client_max_body_size 100M;` and set `BODY_SIZE_LIMIT=100M` environment variable.';
+						}
+					} else {
+						try {
+							const errorResponse = JSON.parse(xhr.responseText);
+							errorMsg = errorResponse.error || errorResponse.message || errorResponse.statusCode || errorMsg;
+						} catch {
+							// If response isn't JSON, check if it's HTML (nginx error page)
+							const responseText = xhr.responseText || xhr.statusText || 'Unknown error';
+							if (responseText.includes('413') || responseText.includes('Request Entity Too Large') || responseText.includes('<html>')) {
+								errorMsg = 'File too large: The file exceeds the server\'s upload size limit. Configure nginx with `client_max_body_size 100M;` and set `BODY_SIZE_LIMIT=100M` environment variable.';
+							} else if (responseText.includes('Content-length') || responseText.includes('exceeds limit')) {
+								errorMsg = 'File too large: SvelteKit body size limit exceeded. Set BODY_SIZE_LIMIT=100M environment variable and restart the server.';
+							} else {
+								errorMsg = responseText.length > 200 ? responseText.substring(0, 200) : responseText;
+							}
+						}
+					}
+					
+					console.error(`[Photo Upload] Upload failed for ${file.name}:`, {
+						status: xhr.status,
+						statusText: xhr.statusText,
+						responseText: xhr.responseText?.substring(0, 500),
+						url: xhr.responseURL || '/api/photos/upload'
+					});
 					uploads = uploads.map((upload, index) =>
-						index === uploadIndex ? { ...upload, status: 'error', error: 'Upload failed' } : upload
+						index === uploadIndex ? { ...upload, status: 'error', error: errorMsg } : upload
 					);
 				}
 				checkAllComplete();
 			});
 
-			// Handle upload error
-			xhr.addEventListener('error', () => {
+			// Handle upload error (network errors, CORS, etc.)
+			xhr.addEventListener('error', (event) => {
+				console.error(`[Photo Upload] Network error for ${file.name}:`, {
+					event: event,
+					readyState: xhr.readyState,
+					status: xhr.status,
+					statusText: xhr.statusText,
+					url: xhr.responseURL || '/api/photos/upload'
+				});
 				uploads = uploads.map((upload, index) =>
-					index === uploadIndex ? { ...upload, status: 'error', error: 'Network error' } : upload
+					index === uploadIndex ? { ...upload, status: 'error', error: 'Network error - check console for details' } : upload
+				);
+				checkAllComplete();
+			});
+
+			// Handle upload abort
+			xhr.addEventListener('abort', () => {
+				console.warn(`[Photo Upload] Upload aborted for ${file.name}`);
+				uploads = uploads.map((upload, index) =>
+					index === uploadIndex ? { ...upload, status: 'error', error: 'Upload cancelled' } : upload
 				);
 				checkAllComplete();
 			});
 
 			xhr.open('POST', '/api/photos/upload');
+			console.log(`[Photo Upload] Starting upload for ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB) to album ${albumId}`);
 			xhr.send(formData);
 		} catch (error) {
-			console.error('Upload error:', error);
+			console.error(`[Photo Upload] Exception during upload setup for ${file.name}:`, error);
+			const errorMessage = error instanceof Error ? error.message : String(error);
 			uploads = uploads.map((upload, index) =>
-				index === uploadIndex ? { ...upload, status: 'error', error: 'Upload failed' } : upload
+				index === uploadIndex ? { ...upload, status: 'error', error: `Upload failed: ${errorMessage}` } : upload
 			);
 			checkAllComplete();
 		}
@@ -311,6 +376,11 @@
 								<p class="text-xs text-gray-500">
 									{(upload.file.size / 1024 / 1024).toFixed(2)} MB
 								</p>
+								{#if upload.status === 'error' && upload.error}
+									<p class="text-xs text-red-600 mt-1 truncate" title={upload.error}>
+										{upload.error}
+									</p>
+								{/if}
 							</div>
 
 							<div class="flex-shrink-0 w-24">

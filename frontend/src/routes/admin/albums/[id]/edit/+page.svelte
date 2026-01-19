@@ -30,7 +30,7 @@
 		location?: string | null;
 	}
 
-	let albumId: string = $page.params.id;
+	const albumId: string = $page.params.id;
 	let album: Album | null = null;
 	let loading = true;
 	let saving = false;
@@ -53,14 +53,14 @@
 		try {
 			loading = true;
 			error = '';
-			const response = await fetch(`/api/albums/${albumId}?t=${Date.now()}`, {
+			const response = await fetch(`/api/admin/albums/${albumId}?t=${Date.now()}`, {
 				cache: 'no-store',
 			});
 			if (!response.ok) {
 				throw new Error('Failed to fetch album');
 			}
-			const data = await response.json();
-			album = data;
+			const result = await response.json();
+			album = result.data || result;
 			console.log('Album loaded:', album);
 
 			// Initialize form data
@@ -88,7 +88,7 @@
 					album.location
 						? typeof album.location === 'string'
 							? album.location
-							: album.location._id?.toString() || album.location.toString()
+							: (album.location as any)?._id?.toString() || String(album.location)
 						: null;
 			}
 		} catch (err) {

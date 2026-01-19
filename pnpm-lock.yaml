@@ -53,6 +53,9 @@ importers:
       cookie-parser:
         specifier: ^1.4.7
         version: 1.4.7
+      exif-parser:
+        specifier: ^0.1.12
+        version: 0.1.12
       express:
         specifier: ^5.2.1
         version: 5.2.1

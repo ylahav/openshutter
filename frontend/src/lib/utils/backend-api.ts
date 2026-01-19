@@ -165,11 +165,36 @@ export async function parseBackendResponse<T>(response: Response): Promise<T> {
 		throw new Error(errorData.error || errorData.message || `HTTP ${response.status}: ${response.statusText}`);
 	}
 
-	const data = await response.json();
+	// Check if response has content
+	const contentType = response.headers.get('content-type');
+	if (!contentType || !contentType.includes('application/json')) {
+		// Empty response - return empty object or throw based on context
+		// For DELETE requests, empty response usually means success
+		return {} as T;
+	}
+
+	const text = await response.text();
+	if (!text || !text.trim()) {
+		return {} as T;
+	}
+
+	let data: any;
+	try {
+		data = JSON.parse(text);
+	} catch (parseError) {
+		console.warn('Failed to parse backend response as JSON:', parseError);
+		return {} as T;
+	}
 	
 	// Handle both formats: direct data or {success, data} wrapper
-	if (data.success !== undefined) {
+	if (data.success !== undefined && data.data !== undefined) {
 		return data.data as T;
+	}
+	
+	// If success is defined but data is not, return the whole object
+	// (e.g., { success: true, message: '...' })
+	if (data.success !== undefined) {
+		return data as T;
 	}
 	
 	return data as T;

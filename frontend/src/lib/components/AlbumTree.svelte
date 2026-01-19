@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { currentLanguage } from '$stores/language';
 	import { MultiLangUtils } from '$utils/multiLang';
 	import { goto } from '$app/navigation';
@@ -28,17 +29,49 @@
 	export let renderActions: ((node: AlbumTreeNode) => any) | undefined = undefined;
 	export let onOpen: ((node: AlbumTreeNode) => void) | undefined = undefined;
 	export let showAccordion = true;
+	export let expandAllByDefault = false; // Option to expand all nodes by default
 
 	let expandedNodes: Set<string> = new Set();
 	let localAlbums = albums;
+	let albumsInitialized = false;
+	let flatItems: AlbumTreeNode[] = [];
+
+	// Initialize expanded nodes if expandAllByDefault is true
+	function initializeExpandedNodes() {
+		if (expandAllByDefault && albums.length > 0) {
+			const allNodeIds = new Set<string>();
+			const collectIds = (nodes: AlbumTreeNode[]) => {
+				nodes.forEach(node => {
+					if (node.children.length > 0) {
+						allNodeIds.add(node._id);
+						collectIds(node.children);
+					}
+				});
+			};
+			const initialTree = buildTree(albums);
+			collectIds(initialTree);
+			expandedNodes = allNodeIds;
+		}
+	}
+
+	// Initialize expanded nodes when albums first load
+	$: if (albums.length > 0 && !albumsInitialized && expandAllByDefault) {
+		initializeExpandedNodes();
+		albumsInitialized = true;
+	}
+
+	// Reset flag if albums are cleared
+	$: if (albums.length === 0) {
+		albumsInitialized = false;
+	}
 
 	// Flatten tree for drag and drop
-	function flatten(nodes: AlbumTreeNode[]): AlbumTreeNode[] {
+	function flatten(nodes: AlbumTreeNode[], expanded: Set<string>): AlbumTreeNode[] {
 		const out: AlbumTreeNode[] = [];
 		const walk = (arr: AlbumTreeNode[]) => {
 			for (const n of arr) {
 				out.push(n);
-				if (n.children.length && (n.level < 1 || expandedNodes.has(n._id))) {
+				if (n.children.length && (n.level < 1 || expanded.has(n._id))) {
 					walk(n.children);
 				}
 			}
@@ -82,12 +115,14 @@
 	}
 
 	function toggleNode(nodeId: string) {
-		expandedNodes = new Set(expandedNodes);
-		if (expandedNodes.has(nodeId)) {
-			expandedNodes.delete(nodeId);
+		// Create a new Set to trigger reactivity
+		const newExpandedNodes = new Set(expandedNodes);
+		if (newExpandedNodes.has(nodeId)) {
+			newExpandedNodes.delete(nodeId);
 		} else {
-			expandedNodes.add(nodeId);
+			newExpandedNodes.add(nodeId);
 		}
+		expandedNodes = newExpandedNodes;
 	}
 
 	function handleNodeClick(node: AlbumTreeNode) {
@@ -110,7 +145,7 @@
 
 		if (fromIndex === toIndex) return;
 
-		const flat = flatten(tree);
+		const flat = flatten(tree, expandedNodes);
 		const activeNode = flat[fromIndex];
 		const overNode = flat[toIndex];
 
@@ -240,7 +275,17 @@
 	}
 
 	$: tree = buildTree(localAlbums);
-	$: flatItems = flatten(tree);
+	// Make flatItems reactive to both tree and expandedNodes changes
+	// Convert Set to Array to ensure Svelte tracks changes properly
+	// This ensures that when expandedNodes changes, this reactive statement re-runs
+	$: expandedNodesArray = Array.from(expandedNodes).sort();
+	// flatItems depends on both tree and expandedNodesArray to ensure reactivity
+	// We reference expandedNodesArray to ensure Svelte tracks changes to expandedNodes
+	$: {
+		// Reference expandedNodesArray to ensure reactivity
+		const _ = expandedNodesArray;
+		flatItems = flatten(tree, expandedNodes);
+	}
 </script>
 
 <div class="album-tree">

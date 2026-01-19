@@ -27,6 +27,7 @@ Welcome to the OpenShutter documentation. This comprehensive guide covers all as
 
 ### Core Functionality
 - **Multi-Storage Support**: Google Drive, AWS S3, Backblaze B2, Wasabi, and local storage
+- **Storage Management**: Admin dashboard for configuring storage providers with visual tree browsing
 - **Album Management**: Hierarchical albums with advanced privacy controls
 - **Advanced Access Control**: Granular permissions for albums (public, private, user/group-specific)
 - **Owner Dashboard**: Focused interface for album owners to manage their collections

@@ -117,12 +117,19 @@ async function bootstrap() {
   
   // Enable CORS with proper configuration
   // Support multiple origins for development and production
-  const allowedOrigins = process.env.FRONTEND_URL 
-    ? process.env.FRONTEND_URL.split(',').map(url => url.trim())
-    : ['http://localhost:4000', 'http://localhost:3000', 'http://0.0.0.0:3000'];
+  // Check both FRONTEND_URL and CORS_ORIGINS environment variables
+  const frontendUrl = process.env.FRONTEND_URL || process.env.CORS_ORIGINS || '';
+  const defaultOrigins = ['http://localhost:4000', 'http://localhost:3000', 'http://0.0.0.0:3000'];
+  
+  const allowedOrigins = frontendUrl
+    ? [...frontendUrl.split(',').map(url => url.trim()).filter(Boolean), ...defaultOrigins]
+    : defaultOrigins;
+  
+  // Remove duplicates
+  const uniqueOrigins = [...new Set(allowedOrigins)];
   
   // Log allowed origins for debugging
-  console.log('🌐 CORS allowed origins:', allowedOrigins);
+  console.log('🌐 CORS allowed origins:', uniqueOrigins);
   
   app.enableCors({
     origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
@@ -144,7 +151,7 @@ async function bootstrap() {
       const normalizedOrigin = normalizeOrigin(origin);
       
       // Check if origin matches any allowed origin (exact match or starts with)
-      const isAllowed = allowedOrigins.some(allowed => {
+      const isAllowed = uniqueOrigins.some(allowed => {
         const normalizedAllowed = normalizeOrigin(allowed);
         // Exact match
         if (normalizedOrigin === normalizedAllowed) return true;
@@ -180,7 +187,9 @@ async function bootstrap() {
       }
       
       // Log blocked origin for debugging
-      console.warn('🚫 CORS blocked origin:', origin, 'Allowed origins:', allowedOrigins);
+      console.warn('🚫 CORS blocked origin:', origin, 'Allowed origins:', uniqueOrigins);
+      console.warn('💡 To fix: Set FRONTEND_URL or CORS_ORIGINS environment variable in backend/.env');
+      console.warn('   Example: FRONTEND_URL=https://yairl.com,http://localhost:3021');
       callback(new Error('Not allowed by CORS'));
     },
     credentials: true,

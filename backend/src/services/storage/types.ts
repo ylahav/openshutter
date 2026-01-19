@@ -132,6 +132,9 @@ export interface IStorageService {
   getFileUrl(filePath: string): string
   getFolderUrl(folderPath: string): string
   getFileBuffer(filePath: string): Promise<Buffer | null>
+  
+  // Tree Operations (optional - may not be supported by all providers)
+  getFolderTree?(parentPath?: string, maxDepth?: number): Promise<any>
 }
 
 // Storage Manager Interface

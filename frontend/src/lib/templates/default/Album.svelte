@@ -79,7 +79,7 @@
 				{MultiLangUtils.getTextValue(albumData.album.name, $currentLanguage)}
 			</h1>
 			{#if albumData.album.description}
-				<div class="prose max-w-none mb-6">
+				<div class="prose prose-lg max-w-4xl mx-auto mb-6">
 					{@html MultiLangUtils.getHTMLValue(albumData.album.description, $currentLanguage)}
 				</div>
 			{/if}
@@ -99,7 +99,15 @@
 								{MultiLangUtils.getTextValue(subAlbum.name, $currentLanguage)}
 							</h3>
 							<p class="text-sm text-gray-600">
-								{subAlbum.photoCount || 0} photos
+								{#if subAlbum.photoCount && subAlbum.photoCount > 0}
+									{subAlbum.photoCount} photos
+								{/if}
+								{#if subAlbum.photoCount && subAlbum.photoCount > 0 && subAlbum.childAlbumCount && subAlbum.childAlbumCount > 0}
+									• 
+								{/if}
+								{#if subAlbum.childAlbumCount && subAlbum.childAlbumCount > 0}
+									{subAlbum.childAlbumCount} {subAlbum.childAlbumCount === 1 ? 'album' : 'albums'}
+								{/if}
 							</p>
 						</a>
 					{/each}

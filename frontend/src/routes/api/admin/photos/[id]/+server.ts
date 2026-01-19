@@ -59,12 +59,42 @@ export const DELETE: RequestHandler = async ({ params, locals, cookies }) => {
 		const { id } = await params;
 
 		const response = await backendDelete(`/admin/photos/${id}`, { cookies });
-		const result = await parseBackendResponse<{ success?: boolean; message?: string }>(response);
+		
+		// Handle error responses
+		if (!response.ok) {
+			const errorText = await response.text().catch(() => 'Unknown error');
+			let errorData: any = {};
+			try {
+				errorData = JSON.parse(errorText);
+			} catch {
+				errorData = { error: errorText || `HTTP ${response.status}: ${response.statusText}` };
+			}
+			return json({ 
+				success: false, 
+				error: errorData.error || errorData.message || `Failed to delete photo (${response.status})` 
+			}, { status: response.status });
+		}
 
-		return json({
-			success: result.success !== undefined ? result.success : true,
-			message: result.message
-		});
+		// Parse successful response
+		let result: any = {};
+		try {
+			result = await parseBackendResponse<{ success?: boolean; message?: string }>(response);
+		} catch (parseError) {
+			console.warn('Failed to parse DELETE response:', parseError);
+			// If parsing fails but status is OK, assume success
+			return json({ success: true, message: 'Photo deleted successfully' });
+		}
+
+		// Handle response - result could be the full object or just data
+		if (result && typeof result === 'object') {
+			// If result has success property, use it; otherwise assume success
+			const success = result.success !== undefined ? result.success : true;
+			const message = result.message || 'Photo deleted successfully';
+			return json({ success, message });
+		}
+
+		// Default success response if result is empty or unexpected format
+		return json({ success: true, message: 'Photo deleted successfully' });
 	} catch (error) {
 		console.error('Delete photo error:', error);
 		const errorMessage = error instanceof Error ? error.message : String(error);

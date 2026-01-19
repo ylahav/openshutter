@@ -507,7 +507,56 @@ if ($isWindowsOS) {
     Write-Host "  Using ZIP compression (Windows)" -ForegroundColor Blue
     if (Test-Path $DEPLOY_DIR) {
         try {
-            Compress-Archive -Path $DEPLOY_DIR -DestinationPath $ZIP_PATH -Force
+            # Remove existing ZIP if it exists
+            if (Test-Path $ZIP_PATH) {
+                Remove-Item $ZIP_PATH -Force
+            }
+            
+            # Create ZIP with contents at root level (not inside 'openshutter' folder)
+            # Use .NET compression API (compatible with PowerShell 5.1+)
+            try {
+                Add-Type -AssemblyName System.IO.Compression.FileSystem
+            } catch {
+                Write-Host "WARNING: Could not load compression assembly, using fallback method" -ForegroundColor Yellow
+            }
+            
+            # Try using .NET ZipFile API if available
+            if ([System.IO.Compression.ZipFile]::Open) {
+                $zip = [System.IO.Compression.ZipFile]::Open($ZIP_PATH, [System.IO.Compression.ZipArchiveMode]::Create)
+                try {
+                    # Get all files recursively from the openshutter directory
+                    # $DEPLOY_DIR already points to the 'openshutter' folder, so files are directly inside it
+                    $files = Get-ChildItem -Path $DEPLOY_DIR -Recurse -File
+                    foreach ($file in $files) {
+                        # Calculate relative path from DEPLOY_DIR (which is the 'openshutter' folder)
+                        # This gives us paths like "backend/...", "frontend/...", etc. directly at root
+                        $relativePath = $file.FullName.Substring($DEPLOY_DIR.Length + 1)
+                        # Use forward slashes for ZIP file paths (ZIP standard)
+                        $entryName = $relativePath.Replace('\', '/')
+                        [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, $file.FullName, $entryName) | Out-Null
+                    }
+                } finally {
+                    $zip.Dispose()
+                }
+            } else {
+                # Fallback: Create a temporary directory structure and compress it
+                Write-Host "  Using fallback ZIP method..." -ForegroundColor Yellow
+                $tempZipDir = Join-Path ([System.IO.Path]::GetTempPath()) ([System.IO.Path]::GetRandomFileName())
+                New-Item -ItemType Directory -Path $tempZipDir -Force | Out-Null
+                
+                # Copy contents of openshutter folder to temp directory root
+                $items = Get-ChildItem -Path $DEPLOY_DIR
+                foreach ($item in $items) {
+                    Copy-Item -Path $item.FullName -Destination (Join-Path $tempZipDir $item.Name) -Recurse -Force
+                }
+                
+                # Create ZIP from temp directory
+                Compress-Archive -Path "$tempZipDir\*" -DestinationPath $ZIP_PATH -Force
+                
+                # Clean up temp directory
+                Remove-Item -Path $tempZipDir -Recurse -Force
+            }
+            
             if (Test-Path $ZIP_PATH) {
                 $ZIP_SIZE = (Get-Item $ZIP_PATH).Length / 1MB
                 Write-Host "  ZIP archive created successfully: $ZIP_PATH ($([math]::Round($ZIP_SIZE, 2)) MB)" -ForegroundColor Green
@@ -534,8 +583,19 @@ if ($isWindowsOS) {
                 Write-Host "  TAR archive created successfully: $TAR_PATH ($([math]::Round($TAR_SIZE, 2)) MB)" -ForegroundColor Green
             } else {
                 Write-Host "ERROR: tar command failed. Exit code: $LASTEXITCODE" -ForegroundColor Red
-                # Fallback to ZIP
-                Compress-Archive -Path "openshutter" -DestinationPath $ZIP_PATH -Force
+                # Fallback to ZIP with contents at root level
+                if (Test-Path $ZIP_PATH) {
+                    Remove-Item $ZIP_PATH -Force
+                }
+                # Create temp directory and copy contents
+                $tempZipDir = Join-Path ([System.IO.Path]::GetTempPath()) ([System.IO.Path]::GetRandomFileName())
+                New-Item -ItemType Directory -Path $tempZipDir -Force | Out-Null
+                $items = Get-ChildItem -Path "openshutter"
+                foreach ($item in $items) {
+                    Copy-Item -Path $item.FullName -Destination (Join-Path $tempZipDir $item.Name) -Recurse -Force
+                }
+                Compress-Archive -Path "$tempZipDir\*" -DestinationPath $ZIP_PATH -Force
+                Remove-Item -Path $tempZipDir -Recurse -Force
                 if (Test-Path $ZIP_PATH) {
                     $ZIP_SIZE = (Get-Item $ZIP_PATH).Length / 1MB
                     Write-Host "  Created ZIP archive instead: $ZIP_PATH ($([math]::Round($ZIP_SIZE, 2)) MB)" -ForegroundColor Yellow
@@ -554,8 +614,19 @@ if ($isWindowsOS) {
         7z a -ttar -so openshutter | 7z a -si $TAR_PATH
         if ($LASTEXITCODE -ne 0) {
             Write-Host "ERROR: 7zip command failed" -ForegroundColor Red
-            # Fallback to ZIP
-            Compress-Archive -Path "openshutter" -DestinationPath $ZIP_PATH -Force
+            # Fallback to ZIP with contents at root level
+            if (Test-Path $ZIP_PATH) {
+                Remove-Item $ZIP_PATH -Force
+            }
+            # Create temp directory and copy contents
+            $tempZipDir = Join-Path ([System.IO.Path]::GetTempPath()) ([System.IO.Path]::GetRandomFileName())
+            New-Item -ItemType Directory -Path $tempZipDir -Force | Out-Null
+            $items = Get-ChildItem -Path "openshutter"
+            foreach ($item in $items) {
+                Copy-Item -Path $item.FullName -Destination (Join-Path $tempZipDir $item.Name) -Recurse -Force
+            }
+            Compress-Archive -Path "$tempZipDir\*" -DestinationPath $ZIP_PATH -Force
+            Remove-Item -Path $tempZipDir -Recurse -Force
             if (Test-Path $ZIP_PATH) {
                 $ZIP_SIZE = (Get-Item $ZIP_PATH).Length / 1MB
                 Write-Host "  Created ZIP archive instead: $ZIP_PATH ($([math]::Round($ZIP_SIZE, 2)) MB)" -ForegroundColor Yellow
@@ -570,7 +641,19 @@ if ($isWindowsOS) {
     Set-Location $PROJECT_ROOT
 } else {
     Write-Host "WARNING: tar or 7zip not found. Creating ZIP archive instead..." -ForegroundColor Yellow
-    Compress-Archive -Path $DEPLOY_DIR -DestinationPath $ZIP_PATH -Force
+    # Create ZIP with contents at root level (not inside 'openshutter' folder)
+    if (Test-Path $ZIP_PATH) {
+        Remove-Item $ZIP_PATH -Force
+    }
+    # Create temp directory and copy contents
+    $tempZipDir = Join-Path ([System.IO.Path]::GetTempPath()) ([System.IO.Path]::GetRandomFileName())
+    New-Item -ItemType Directory -Path $tempZipDir -Force | Out-Null
+    $items = Get-ChildItem -Path $DEPLOY_DIR
+    foreach ($item in $items) {
+        Copy-Item -Path $item.FullName -Destination (Join-Path $tempZipDir $item.Name) -Recurse -Force
+    }
+    Compress-Archive -Path "$tempZipDir\*" -DestinationPath $ZIP_PATH -Force
+    Remove-Item -Path $tempZipDir -Recurse -Force
     if (Test-Path $ZIP_PATH) {
         $ZIP_SIZE = (Get-Item $ZIP_PATH).Length / 1MB
         Write-Host "   Deployment files archived as ZIP: openshutter-deployment.zip ($([math]::Round($ZIP_SIZE, 2)) MB)" -ForegroundColor Yellow

@@ -10,7 +10,9 @@ import {
   BadRequestException,
   HttpCode,
   HttpStatus,
+  Req,
 } from '@nestjs/common';
+import { Request } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { PhotosService } from './photos.service';
 import { PhotoUploadService } from '../services/photo-upload';
@@ -67,15 +69,30 @@ export class PhotosController {
     @Body('title') bodyTitle?: string,
     @Body('description') bodyDescription?: string,
     @Body('tags') bodyTags?: string | string[],
+    @Req() request?: Request,
   ) {
     if (!file) {
       throw new BadRequestException('No file provided');
     }
 
-    const resolvedAlbumId = albumId || bodyAlbumId;
+    // Also try to get albumId from request.body (multer stores FormData fields there)
+    const requestBodyAlbumId = request?.body?.albumId;
+    const resolvedAlbumId = albumId || bodyAlbumId || requestBodyAlbumId;
     const resolvedTitle = title || bodyTitle;
     const resolvedDescription = description || bodyDescription;
     const rawTags = tags || bodyTags;
+    
+    console.log('[Photo Upload Controller] Upload parameters:', {
+      queryAlbumId: albumId,
+      bodyAlbumId: bodyAlbumId,
+      requestBodyAlbumId: requestBodyAlbumId,
+      resolvedAlbumId: resolvedAlbumId,
+      title: resolvedTitle,
+      filename: file.originalname,
+      size: file.size,
+      requestBodyKeys: request?.body ? Object.keys(request.body) : []
+    });
+    
     let parsedTags: string[] = [];
     if (Array.isArray(rawTags)) {
       parsedTags = rawTags;

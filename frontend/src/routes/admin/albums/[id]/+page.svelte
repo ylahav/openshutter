@@ -43,8 +43,19 @@
 	let photos: Photo[] = [];
 	let loading = true;
 	let error = '';
-	let deletingPhoto: string | null = null;
+	let successMessage = '';
 	let showDeleteDialog = false;
+	let photoDeleteDialog: {
+		isOpen: boolean;
+		photoId: string | null;
+		photoTitle: string;
+		isDeleting: boolean;
+	} = {
+		isOpen: false,
+		photoId: null,
+		photoTitle: '',
+		isDeleting: false,
+	};
 
 	function getAlbumName(album: Album | null): string {
 		if (!album) return '';
@@ -130,13 +141,14 @@
 		try {
 			loading = true;
 			error = '';
-			const response = await fetch(`/api/albums/${albumId}?t=${Date.now()}`, {
+			const response = await fetch(`/api/admin/albums/${albumId}?t=${Date.now()}`, {
 				cache: 'no-store',
 			});
 			if (!response.ok) {
 				throw new Error('Failed to fetch album');
 			}
-			album = await response.json();
+			const result = await response.json();
+			album = result.data || result;
 		} catch (err) {
 			console.error('Failed to fetch album:', err);
 			error = `Failed to load album: ${err instanceof Error ? err.message : 'Unknown error'}`;
@@ -183,36 +195,126 @@
 		}
 	}
 
-	async function deletePhoto(photoId: string) {
-		if (!confirm('Are you sure you want to delete this photo?')) return;
+	function openPhotoDeleteDialog(photo: Photo) {
+		photoDeleteDialog = {
+			isOpen: true,
+			photoId: photo._id,
+			photoTitle: getPhotoTitle(photo),
+			isDeleting: false,
+		};
+	}
+
+	function closePhotoDeleteDialog() {
+		// Create a new object to ensure reactivity
+		photoDeleteDialog = {
+			isOpen: false,
+			photoId: null,
+			photoTitle: '',
+			isDeleting: false,
+		};
+	}
+
+	async function confirmDeletePhoto() {
+		if (!photoDeleteDialog.photoId || photoDeleteDialog.isDeleting) return;
+
+		// Save values before any async operations
+		const deletedPhotoId = photoDeleteDialog.photoId;
+		const photoTitle = photoDeleteDialog.photoTitle;
+
+		// Update isDeleting by creating a new object to ensure reactivity
+		photoDeleteDialog = {
+			...photoDeleteDialog,
+			isDeleting: true,
+		};
+		error = '';
+		successMessage = '';
 
 		try {
-			deletingPhoto = photoId;
-			const response = await fetch(`/api/photos/${photoId}`, { method: 'DELETE' });
-			if (response.ok) {
-				photos = photos.filter((p) => p._id !== photoId);
+			console.log('[confirmDeletePhoto] Deleting photo:', deletedPhotoId);
+			const response = await fetch(`/api/admin/photos/${deletedPhotoId}`, {
+				method: 'DELETE',
+			});
+
+			console.log('[confirmDeletePhoto] Response status:', response.status, response.statusText);
+
+			let result: any = {};
+			try {
+				result = await response.json();
+				console.log('[confirmDeletePhoto] Response data:', result);
+			} catch (parseError) {
+				console.warn('[confirmDeletePhoto] Failed to parse JSON response:', parseError);
+			}
+
+			if (response.ok && (result.success !== false)) {
+				// Photo deleted successfully
+				console.log('[confirmDeletePhoto] Photo deleted successfully, closing dialog');
+				
+				// Close dialog immediately
+				closePhotoDeleteDialog();
+				
+				// Remove photo from local array immediately for better UX
+				photos = photos.filter((p) => p._id !== deletedPhotoId);
+				
+				// Show success message
+				successMessage = `Photo "${photoTitle}" deleted successfully`;
+				
+				// Clear success message after 3 seconds
+				setTimeout(() => {
+					successMessage = '';
+				}, 3000);
+				
+				// Reload album and photos to update counts
+				await Promise.all([loadAlbum(), loadPhotos()]);
 			} else {
-				error = 'Failed to delete photo';
+				const errorMsg = result.error || result.message || `Failed to delete photo (${response.status})`;
+				error = errorMsg;
+				// Update isDeleting by creating a new object
+				photoDeleteDialog = {
+					...photoDeleteDialog,
+					isDeleting: false,
+				};
+				console.error('[confirmDeletePhoto] Delete failed:', errorMsg);
 			}
 		} catch (err) {
-			console.error('Failed to delete photo:', err);
+			console.error('[confirmDeletePhoto] Exception during delete:', err);
 			error = `Failed to delete photo: ${err instanceof Error ? err.message : 'Unknown error'}`;
-		} finally {
-			deletingPhoto = null;
+			// Update isDeleting by creating a new object
+			photoDeleteDialog = {
+				...photoDeleteDialog,
+				isDeleting: false,
+			};
 		}
 	}
 
 	async function deleteAlbum() {
 		showDeleteDialog = false;
+		error = '';
+		
+		const deleteUrl = `/api/admin/albums/${albumId}`;
+		console.log('[deleteAlbum] Deleting album:', albumId, 'URL:', deleteUrl);
+		
 		try {
-			const response = await fetch(`/api/albums/${albumId}`, { method: 'DELETE' });
+			const response = await fetch(deleteUrl, { method: 'DELETE' });
+			console.log('[deleteAlbum] Response status:', response.status, response.statusText);
+			
 			if (response.ok) {
+				console.log('[deleteAlbum] Album deleted successfully, redirecting...');
 				goto('/admin/albums');
 			} else {
-				error = 'Failed to delete album';
+				const errorText = await response.text();
+				console.error('[deleteAlbum] Delete failed:', response.status, errorText);
+				
+				let errorData: any = {};
+				try {
+					errorData = JSON.parse(errorText);
+				} catch (parseError) {
+					console.warn('[deleteAlbum] Failed to parse error response as JSON');
+				}
+				
+				error = errorData.error || errorData.message || `Failed to delete album (${response.status} ${response.statusText})`;
 			}
 		} catch (err) {
-			console.error('Failed to delete album:', err);
+			console.error('[deleteAlbum] Exception during delete:', err);
 			error = `Failed to delete album: ${err instanceof Error ? err.message : 'Unknown error'}`;
 		}
 	}
@@ -293,6 +395,10 @@
 				<div class="mb-4 p-4 rounded-md bg-red-50 text-red-700 text-sm">{error}</div>
 			{/if}
 
+			{#if successMessage}
+				<div class="mb-4 p-4 rounded-md bg-green-50 text-green-700 text-sm">{successMessage}</div>
+			{/if}
+
 			<!-- Album Description -->
 			{#if album.description}
 				<div class="mb-6 p-4 bg-white rounded-lg shadow-sm border border-gray-200">
@@ -352,7 +458,8 @@
 											class="w-full h-full object-cover"
 											on:error={(e) => {
 												console.error('Image failed to load:', photoUrl, photo);
-												e.currentTarget.style.display = 'none';
+												const target = e.currentTarget as HTMLImageElement;
+												target.style.display = 'none';
 											}}
 											on:load={() => {
 												console.log('Image loaded successfully:', photoUrl);
@@ -382,11 +489,11 @@
 											Edit
 										</a>
 										<button
-											on:click={() => deletePhoto(photo._id)}
-											disabled={deletingPhoto === photo._id}
+											on:click={() => openPhotoDeleteDialog(photo)}
+											disabled={photoDeleteDialog.isDeleting}
 											class="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 disabled:opacity-50"
 										>
-											{deletingPhoto === photo._id ? 'Deleting...' : 'Delete'}
+											Delete
 										</button>
 									</div>
 								</div>
@@ -421,3 +528,16 @@
 		on:cancel={() => (showDeleteDialog = false)}
 	/>
 {/if}
+
+<!-- Delete Photo Confirmation Dialog -->
+<ConfirmDialog
+	isOpen={photoDeleteDialog.isOpen}
+	title="Delete Photo"
+	message="Are you sure you want to delete &quot;{photoDeleteDialog.photoTitle}&quot;? This action cannot be undone."
+	confirmText={photoDeleteDialog.isDeleting ? 'Deleting...' : 'Delete'}
+	cancelText="Cancel"
+	variant="danger"
+	disabled={photoDeleteDialog.isDeleting}
+	on:confirm={confirmDeletePhoto}
+	on:cancel={closePhotoDeleteDialog}
+/>

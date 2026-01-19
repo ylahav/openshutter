@@ -79,6 +79,64 @@ export class StorageController {
           });
           throw new NotFoundException(`File not found: ${decodedPath}`);
         }
+      } else if (provider === 'google-drive') {
+        // For Google Drive, use getFileBuffer
+        try {
+          const storageService = await storageManager.getProvider('google-drive');
+          
+          // Check if the service has getFileBuffer method
+          if (typeof (storageService as any).getFileBuffer === 'function') {
+            console.log(`GoogleDrive: Attempting to get file buffer for path: ${decodedPath}`);
+            const fileBuffer = await (storageService as any).getFileBuffer(decodedPath);
+            
+            if (!fileBuffer) {
+              console.error(`GoogleDrive: File buffer is null for path: ${decodedPath}`);
+              throw new NotFoundException(`File not found: ${decodedPath}`);
+            }
+            
+            console.log(`GoogleDrive: Successfully retrieved file buffer, size: ${fileBuffer.length} bytes`);
+            
+            // Get file info to determine content type
+            let contentType = 'application/octet-stream';
+            try {
+              const fileInfo = await storageService.getFileInfo(decodedPath);
+              contentType = fileInfo.mimeType || contentType;
+              console.log(`GoogleDrive: File info retrieved, content type: ${contentType}`);
+            } catch (error) {
+              console.warn(`GoogleDrive: Failed to get file info, using extension-based content type:`, error);
+              // Fallback to extension-based content type if getFileInfo fails
+              const ext = decodedPath.split('.').pop()?.toLowerCase();
+              const contentTypeMap: Record<string, string> = {
+                'jpg': 'image/jpeg',
+                'jpeg': 'image/jpeg',
+                'png': 'image/png',
+                'gif': 'image/gif',
+                'webp': 'image/webp',
+                'ico': 'image/x-icon',
+                'svg': 'image/svg+xml',
+              };
+              contentType = contentTypeMap[ext || ''] || contentType;
+            }
+            
+            res.setHeader('Content-Type', contentType);
+            res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
+            res.send(fileBuffer);
+          } else {
+            throw new NotFoundException(`Google Drive storage provider does not support file serving`);
+          }
+        } catch (error) {
+          console.error(`Failed to serve file from Google Drive:`, error);
+          console.error(`Error details:`, {
+            provider,
+            decodedPath,
+            error: error instanceof Error ? error.message : String(error),
+            stack: error instanceof Error ? error.stack : undefined
+          });
+          if (error instanceof NotFoundException) {
+            throw error;
+          }
+          throw new NotFoundException(`File not found: ${decodedPath}`);
+        }
       } else if (['wasabi', 'aws-s3', 'backblaze'].includes(provider)) {
         // For S3-compatible providers (Wasabi, AWS S3, Backblaze), use getFileBuffer
         // Handle case where photos have 'aws-s3' but system uses 'wasabi' (S3-compatible)

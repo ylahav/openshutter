@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { createEventDispatcher } from 'svelte';
+	import { currentLanguage } from '$stores/language';
+	import { MultiLangUtils } from '$utils/multiLang';
 
 	const dispatch = createEventDispatcher();
 
@@ -8,6 +10,7 @@
 		url?: string;
 		thumbnailUrl?: string;
 		title?: string | any; // Can be string or multi-language object
+		description?: string | any; // Can be string or multi-language HTML object
 		takenAt?: string | Date;
 		storage?: {
 			url?: string;
@@ -540,6 +543,13 @@
 			? photo.title 
 			: photo?.title?.en || photo?.title?.he || ''
 	);
+	let photoDescription = $derived(
+		photo?.description
+			? typeof photo.description === 'string'
+				? photo.description
+				: MultiLangUtils.getHTMLValue(photo.description, $currentLanguage) || ''
+			: ''
+	);
 	
 	// Only show faces that are matched to a person (have matchedPersonId or personName)
 	let matchedFaces = $derived(
@@ -647,6 +657,13 @@
 							<!-- Photo Title -->
 							{#if photoTitle}
 								<div class="text-lg font-semibold border-b border-white/20 pb-2">{photoTitle}</div>
+							{/if}
+
+							<!-- Photo Description -->
+							{#if photoDescription}
+								<div class="text-sm text-white/90 prose prose-invert prose-sm max-w-none" style="--tw-prose-body: rgba(255, 255, 255, 0.9);">
+									{@html photoDescription}
+								</div>
 							{/if}
 
 							<!-- Basic Info -->

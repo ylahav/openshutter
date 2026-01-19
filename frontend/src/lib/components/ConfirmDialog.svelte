@@ -9,6 +9,7 @@
 	export let cancelText = 'Cancel';
 	export let variant: 'default' | 'danger' = 'default';
 	export let showDeleteFromStorage = false;
+	export let disabled = false;
 
 	const dispatch = createEventDispatcher();
 
@@ -23,13 +24,15 @@
 	});
 
 	function handleConfirm() {
+		if (disabled) return;
 		dispatch('confirm', { deleteFromStorage });
-		isOpen = false;
+		// Don't set isOpen here - let the parent handle it via the event
 	}
 
 	function handleCancel() {
+		if (disabled) return;
 		dispatch('cancel');
-		isOpen = false;
+		// Don't set isOpen here - let the parent handle it via the event
 	}
 
 	function handleEscape(e: KeyboardEvent) {
@@ -83,7 +86,7 @@
 
 {#if mounted && isOpen}
 	<div
-		class="fixed inset-0 z-50 overflow-y-auto"
+		class="fixed inset-0 z-[9999] overflow-y-auto"
 		on:click={handleBackdropClick}
 		on:keydown={(e) => {
 			if (e.key === 'Escape') {
@@ -96,16 +99,26 @@
 		aria-describedby="dialog-description"
 		tabindex="-1"
 	>
-		<div class="fixed inset-0 bg-black bg-opacity-50" />
+		<div class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm" />
 		<div class="flex min-h-full items-center justify-center p-4" on:click|stopPropagation role="none">
 			<div
-				class="w-full max-w-md rounded-lg bg-white shadow-xl animate-scale-in relative z-50"
-				transition:scale={{ duration: 200 }}
+				class="w-full max-w-md rounded-lg bg-white shadow-2xl animate-scale-in relative z-[10000] border border-gray-200"
 				role="document"
 			>
 				<div class="p-6">
-					<h3 id="dialog-title" class="text-lg font-semibold text-gray-900">{title}</h3>
-					<p id="dialog-description" class="mt-2 text-sm text-gray-600">{message}</p>
+					<div class="flex items-start">
+						{#if variant === 'danger'}
+							<div class="flex-shrink-0 mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+								<svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+								</svg>
+							</div>
+						{/if}
+						<div class="flex-1 {variant === 'danger' ? 'text-center' : ''}">
+							<h3 id="dialog-title" class="text-lg font-semibold text-gray-900">{title}</h3>
+							<p id="dialog-description" class="mt-2 text-sm text-gray-600">{message}</p>
+						</div>
+					</div>
 
 					{#if showDeleteFromStorage}
 						<div class="mt-4">
@@ -125,16 +138,18 @@
 					<div class="mt-6 flex justify-end gap-3">
 						<button
 							type="button"
-							class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+							class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
 							on:click={handleCancel}
+							disabled={disabled}
 						>
 							{cancelText}
 						</button>
 						<button
 							type="button"
-							class="px-4 py-2 text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 {confirmBtnClasses}"
+							class="px-4 py-2 text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed {confirmBtnClasses}"
 							on:click={handleConfirm}
 							bind:this={confirmButton}
+							disabled={disabled}
 						>
 							{confirmText}
 						</button>

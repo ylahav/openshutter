@@ -1,4 +1,4 @@
-import { Controller, Get, Put, Post, Body, Param, UseGuards, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Put, Post, Body, Param, Query, UseGuards, BadRequestException } from '@nestjs/common';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { storageConfigService } from '../services/storage/config';
 import { StorageManager } from '../services/storage/manager';
@@ -399,6 +399,54 @@ export class StorageAdminController {
     } catch (error) {
       throw new BadRequestException(
         `Failed to cleanup storage configurations: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+    }
+  }
+
+  /**
+   * Get folder/file tree from storage provider (directly from storage, not from database)
+   * Path: GET /api/admin/storage/:providerId/tree?path=...
+   */
+  @Get(':providerId/tree')
+  async getStorageTree(
+    @Param('providerId') providerId: string,
+    @Query('path') path?: string,
+    @Query('maxDepth') maxDepth?: string
+  ) {
+    try {
+      const config = await storageConfigService.getConfig(providerId as StorageProviderId);
+      
+      if (!config.isEnabled) {
+        throw new BadRequestException(`${providerId} storage provider is not enabled`);
+      }
+
+      const storageManager = StorageManager.getInstance();
+      const provider = await storageManager.getProvider(providerId as StorageProviderId);
+      
+      // Check if the provider has the getFolderTree method
+      if (typeof (provider as any).getFolderTree !== 'function') {
+        throw new BadRequestException(`Folder tree listing is not supported for ${providerId} provider`);
+      }
+
+      const depth = maxDepth ? parseInt(maxDepth, 10) : 10;
+      if (isNaN(depth) || depth < 1 || depth > 20) {
+        throw new BadRequestException('maxDepth must be between 1 and 20');
+      }
+
+      const tree = await (provider as any).getFolderTree(path, depth);
+      
+      return {
+        success: true,
+        providerId,
+        data: tree,
+      };
+    } catch (error: any) {
+      console.error(`Error getting ${providerId} tree:`, error);
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException(
+        `Failed to get ${providerId} tree: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
     }
   }

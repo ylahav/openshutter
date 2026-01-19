@@ -126,7 +126,11 @@ BACKEND_URL=http://localhost:5000
 - System monitoring
 
 ### Content Management
-- Album management
+- **Album Management**
+  - Create, edit, and delete albums
+  - Recursive album deletion (deletes sub-albums and photos)
+  - Delete albums from the albums list page or individual album pages
+  - Album deletion removes photos from storage providers (Google Drive, Wasabi, AWS S3, Backblaze, Local)
 - Photo organization
 - Tag management
 - Content moderation
@@ -150,6 +154,12 @@ BACKEND_URL=http://localhost:5000
 2. Check AdminGuard component
 3. Ensure proper authentication flow
 3. Check browser console for errors
+
+### Album Deletion Issues
+1. **404 Error when deleting album**: Ensure the frontend server-side route `/api/admin/albums/[id]/+server.ts` has a DELETE handler
+2. **Delete button not working in albums list**: Check browser console for event delegation errors
+3. **Photos not deleted from storage**: Verify storage provider configuration and permissions
+4. **Sub-albums not deleted**: Ensure recursive deletion is implemented in the backend
 
 
 ## 📞 Support

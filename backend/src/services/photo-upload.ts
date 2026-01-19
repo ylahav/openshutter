@@ -56,15 +56,20 @@ export class PhotoUploadService {
       let storageProvider = options.storageProvider || 'local'
       
       if (options.albumId) {
+        console.log(`PhotoUploadService: Looking up album with ID: ${options.albumId}`)
         try {
           const objectId = new ObjectId(options.albumId)
           album = await db.collection('albums').findOne({ _id: objectId })
-        } catch {
+          console.log(`PhotoUploadService: Album lookup result:`, album ? { _id: album._id?.toString(), alias: album.alias, name: album.name } : 'not found')
+        } catch (error) {
+          console.error(`PhotoUploadService: Error looking up album:`, error)
           album = null
         }
         if (album && album.storageProvider) {
           storageProvider = album.storageProvider
         }
+      } else {
+        console.log('PhotoUploadService: No albumId provided, using default storage provider')
       }
 
       // Get storage service from the new storage manager
@@ -200,8 +205,18 @@ export class PhotoUploadService {
 
       // Save to database (native driver)
       const photosCollection = db.collection('photos')
+      console.log('PhotoUploadService: Saving photo to database:', {
+        albumId: photoData.albumId?.toString() || null,
+        filename: photoData.filename,
+        isPublished: photoData.isPublished,
+        storageProvider: photoData.storage.provider
+      })
       const insertResult = await photosCollection.insertOne(photoData)
       const savedPhoto = { _id: insertResult.insertedId, ...photoData }
+      console.log('PhotoUploadService: Photo saved successfully:', {
+        photoId: savedPhoto._id.toString(),
+        albumId: savedPhoto.albumId?.toString() || null
+      })
 
       // Update album photo count if album exists
       if (options.albumId) {

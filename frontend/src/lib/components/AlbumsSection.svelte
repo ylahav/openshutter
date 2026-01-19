@@ -11,6 +11,7 @@
     level?: number;
     isFeatured?: boolean;
     photoCount?: number;
+    childAlbumCount?: number;
   }
 
   let albums: TemplateAlbum[] = [];
@@ -135,7 +136,15 @@
 
                 <div class="flex items-center justify-between">
                   <span class="text-sm text-gray-500">
-                    {album.photoCount || 0} photos
+                    {#if album.photoCount && album.photoCount > 0}
+                      {album.photoCount} photos
+                    {/if}
+                    {#if album.photoCount && album.photoCount > 0 && album.childAlbumCount && album.childAlbumCount > 0}
+                      • 
+                    {/if}
+                    {#if album.childAlbumCount && album.childAlbumCount > 0}
+                      {album.childAlbumCount} {album.childAlbumCount === 1 ? 'album' : 'albums'}
+                    {/if}
                   </span>
                   <a
                     href={`/albums/${album.alias ?? album._id}`}

@@ -13,6 +13,7 @@
 		isFeatured: boolean;
 		isPublic: boolean;
 		photoCount: number;
+		childAlbumCount?: number;
 		coverPhotoId?: string;
 		coverPhoto?: any;
 	}
@@ -215,7 +216,17 @@
 							{/if}
 
 							<div class="flex items-center justify-between">
-								<span class="text-sm text-gray-500">{album.photoCount || 0} {$t('albums.photos')}</span>
+								<span class="text-sm text-gray-500">
+									{#if album.photoCount && album.photoCount > 0}
+										{album.photoCount} {$t('albums.photos')}
+									{/if}
+									{#if album.photoCount && album.photoCount > 0 && album.childAlbumCount && album.childAlbumCount > 0}
+										• 
+									{/if}
+									{#if album.childAlbumCount && album.childAlbumCount > 0}
+										{album.childAlbumCount} {album.childAlbumCount === 1 ? $t('albums.subAlbum') : $t('albums.subAlbums')}
+									{/if}
+								</span>
 								<a
 									href="/albums/{album.alias}"
 									class="text-blue-600 hover:text-blue-700 font-medium text-sm group-hover:underline"

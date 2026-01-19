@@ -33,6 +33,7 @@ module.exports = {
       BACKEND_URL: envVars.BACKEND_URL || 'http://localhost:5000',
       AUTH_JWT_SECRET: envVars.AUTH_JWT_SECRET || '',
       ORIGIN: envVars.ORIGIN || 'http://localhost:4000', // Required for CSRF protection
+      BODY_SIZE_LIMIT: envVars.BODY_SIZE_LIMIT || '100M', // Allow 100MB uploads (default is 512KB)
       ...envVars  // Include all other variables from .env.production
     },
     // Auto restart settings

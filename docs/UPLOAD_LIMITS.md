@@ -1,7 +1,19 @@
 # File Upload Size Limits
 
 ## Current Configuration
-File uploads are handled by the NestJS backend API (port 5000). The photo upload API endpoint (`/api/photos/upload`) is configured to accept files up to **100MB**. SvelteKit routes proxy directly to the NestJS backend.
+File uploads are handled through a two-tier architecture:
+
+1. **SvelteKit Frontend Route**: `POST /api/photos/upload` (port 4000)
+   - This route proxies uploads to the backend
+   - Requires admin authentication
+   - Handles SvelteKit body size limits
+
+2. **NestJS Backend API**: `POST /api/photos/upload` (port 5000)
+   - The actual upload handler
+   - Configured to accept files up to **100MB**
+   - Processes the file and stores it via the configured storage provider
+
+The SvelteKit route (`frontend/src/routes/api/photos/upload/+server.ts`) acts as a proxy, forwarding the FormData to the backend while handling authentication and error messages.
 
 ## Solutions
 
@@ -11,9 +23,38 @@ For local development, the default limits should be sufficient. If you need to i
 
 ### Production Mode
 
-For production deployments, configure the limit at the deployment level:
+For production deployments, you need to configure limits at **two levels**:
 
-#### Nginx Configuration
+#### 1. SvelteKit BODY_SIZE_LIMIT (Required)
+
+SvelteKit has a default body size limit of **512KB**. You **must** set the `BODY_SIZE_LIMIT` environment variable to allow larger uploads.
+
+**Option A: PM2 Ecosystem Config**
+Add to your `ecosystem.config.js`:
+```javascript
+env: {
+  BODY_SIZE_LIMIT: '100M',
+  // ... other env vars
+}
+```
+
+**Option B: Environment Variable**
+Set before starting the server:
+```bash
+export BODY_SIZE_LIMIT=100M
+node build
+```
+
+**Option C: .env File**
+Add to your `.env` or `.env.production` file:
+```bash
+BODY_SIZE_LIMIT=100M
+```
+
+**Important**: You must restart your SvelteKit server after setting this variable.
+
+#### 2. Nginx Configuration (Required)
+
 If using nginx as a reverse proxy, you **must** configure `client_max_body_size` to allow large file uploads.
 
 **Quick Fix**: Add this to your nginx server block:
@@ -33,11 +74,6 @@ client_max_body_size 100M;
 3. Test configuration: `sudo nginx -t`
 4. Reload nginx: `sudo systemctl reload nginx`
 
-#### Standalone/PM2
-If running in standalone mode or with PM2, you may need to:
-1. Configure the reverse proxy (nginx, etc.) to allow larger bodies
-2. Set environment variables in your deployment configuration
-
 ### Alternative Solutions
 
 1. **Chunked Uploads**: Implement chunked file uploads to bypass the body size limit
@@ -47,7 +83,8 @@ If running in standalone mode or with PM2, you may need to:
 ## Current Status
 
 - **Backend API limit**: **100MB** (configured in NestJS backend)
-- **SvelteKit proxy limit**: Configured in `vite.config.ts` (defaults to higher limits)
+- **SvelteKit body size limit**: **512KB default** (must set `BODY_SIZE_LIMIT=100M` environment variable)
+- **Nginx limit**: **1MB default** (must set `client_max_body_size 100M;` in config)
 - **Frontend limit**: **100MB** (configured in upload components)
 
 ## Testing
@@ -57,9 +94,17 @@ To test upload limits:
 2. Check the browser console and server logs for error messages
 3. Verify the file is successfully uploaded and stored
 
+## Common Errors
+
+### "Content-length of X exceeds limit of 524288 bytes"
+This means SvelteKit's `BODY_SIZE_LIMIT` is too low. Set `BODY_SIZE_LIMIT=100M` environment variable and restart the server.
+
+### "413 Request Entity Too Large" (from nginx)
+This means nginx's `client_max_body_size` is too low. Add `client_max_body_size 100M;` to your nginx server block and reload nginx.
+
 ## Notes
 
 - SvelteKit routes proxy directly to NestJS backend
-- Error messages may indicate "Request entity too large" or similar
-- The NestJS backend handles uploads directly and has higher limits configured
-- For production, configure nginx or your reverse proxy to allow larger bodies
+- Error messages may indicate "Request entity too large" or "Content-length exceeds limit"
+- The NestJS backend handles uploads directly and has higher limits configured (100MB)
+- For production, you must configure **both** SvelteKit (`BODY_SIZE_LIMIT`) and nginx (`client_max_body_size`)

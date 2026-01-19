@@ -12,6 +12,7 @@ import {
 import { AdminGuard } from '../common/guards/admin.guard';
 import { connectDB } from '../config/db';
 import mongoose, { Types } from 'mongoose';
+import { StorageManager } from '../services/storage/manager';
 
 @Controller('admin/photos')
 @UseGuards(AdminGuard)
@@ -279,7 +280,93 @@ export class PhotosAdminController {
 				throw new NotFoundException('Photo not found');
 			}
 
-			// Delete the photo
+			// Delete the photo file from storage if storage info exists
+			if (photo.storage && photo.storage.provider && photo.storage.path) {
+				try {
+					const storageManager = StorageManager.getInstance();
+					const provider = photo.storage.provider as any;
+					console.log(`Deleting photo file from storage: provider=${provider}, path=${photo.storage.path}`);
+					
+					// Helper function to extract path from URL
+					const extractPathFromUrl = (url: string): string | null => {
+						if (!url || typeof url !== 'string') return null;
+						// URL format: /api/storage/serve/{provider}/{path}
+						const urlMatch = url.match(/\/api\/storage\/serve\/[^/]+\/(.+)$/);
+						if (urlMatch && urlMatch[1]) {
+							try {
+								return decodeURIComponent(urlMatch[1]);
+							} catch {
+								return urlMatch[1]; // Return as-is if decoding fails
+							}
+						}
+						// If it's already a path (not a URL), return as-is
+						if (!url.startsWith('/api/storage/serve/')) {
+							return url;
+						}
+						return null;
+					};
+					
+					// Delete main photo file
+					await storageManager.deletePhoto(photo.storage.path, provider);
+					console.log(`Successfully deleted main photo file: ${photo.storage.path}`);
+					
+					// Delete thumbnails if they exist
+					if (photo.storage.thumbnails && typeof photo.storage.thumbnails === 'object') {
+						for (const [size, thumbnailUrl] of Object.entries(photo.storage.thumbnails)) {
+							try {
+								const thumbnailPath = extractPathFromUrl(thumbnailUrl as string);
+								if (thumbnailPath && thumbnailPath !== photo.storage.path) {
+									console.log(`Deleting ${size} thumbnail: ${thumbnailPath}`);
+									await storageManager.deletePhoto(thumbnailPath, provider);
+									console.log(`Successfully deleted ${size} thumbnail`);
+								}
+							} catch (thumbError) {
+								console.warn(`Failed to delete ${size} thumbnail:`, thumbError);
+								// Continue with other thumbnails even if one fails
+							}
+						}
+					}
+					
+					// Also try to delete thumbnailPath if it's different from main path
+					if (photo.storage.thumbnailPath) {
+						try {
+							const thumbPath = extractPathFromUrl(photo.storage.thumbnailPath);
+							if (thumbPath && thumbPath !== photo.storage.path) {
+								// Check if we already deleted this path (might be in thumbnails object)
+								const alreadyDeleted = photo.storage.thumbnails && 
+									Object.values(photo.storage.thumbnails).some(url => {
+										const path = extractPathFromUrl(url as string);
+										return path === thumbPath;
+									});
+								
+								if (!alreadyDeleted) {
+									console.log(`Deleting thumbnail path: ${thumbPath}`);
+									await storageManager.deletePhoto(thumbPath, provider);
+									console.log(`Successfully deleted thumbnail path`);
+								}
+							}
+						} catch (thumbError) {
+							console.warn(`Failed to delete thumbnail path:`, thumbError);
+							// Continue even if thumbnail deletion fails
+						}
+					}
+					
+					console.log(`Successfully deleted all photo files from ${provider}`);
+				} catch (storageError) {
+					console.error('Failed to delete photo from storage:', storageError);
+					console.error('Storage error details:', {
+						provider: photo.storage?.provider,
+						path: photo.storage?.path,
+						error: storageError instanceof Error ? storageError.message : String(storageError)
+					});
+					// Log error but continue with database deletion
+					// This ensures the database stays consistent even if storage deletion fails
+				}
+			} else {
+				console.warn('Photo has no storage information, skipping storage deletion');
+			}
+
+			// Delete the photo from database
 			const result = await db.collection('photos').deleteOne({ _id: objectId });
 
 			if (result.deletedCount === 0) {

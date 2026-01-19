@@ -54,6 +54,15 @@ export class BackblazeService implements IStorageService {
     })
   }
 
+  /**
+   * Ensure S3Client is initialized before use
+   */
+  private ensureS3ClientInitialized() {
+    if (!this.s3Client) {
+      this.initializeS3Client()
+    }
+  }
+
   getProviderId(): StorageProviderId {
     return this.providerId
   }
@@ -431,6 +440,89 @@ export class BackblazeService implements IStorageService {
 
   getFileUrl(filePath: string): string {
     return `/api/storage/serve/backblaze/${encodeURIComponent(filePath)}`
+  }
+
+  /**
+   * Get a recursive tree structure of folders and files from Backblaze B2
+   */
+  async getFolderTree(parentPath?: string, maxDepth: number = 10): Promise<any> {
+    try {
+      this.ensureS3ClientInitialized()
+      
+      const buildTree = async (folderPath: string | undefined, depth: number): Promise<any> => {
+        if (depth > maxDepth) {
+          return null
+        }
+
+        const prefix = folderPath || ''
+        const command = new ListObjectsV2Command({
+          Bucket: this.config.bucketName,
+          Prefix: prefix,
+          Delimiter: '/'
+        })
+        
+        const response = await this.s3Client.send(command)
+        
+        // Get folders (common prefixes)
+        const folders: any[] = []
+        if (response.CommonPrefixes) {
+          for (const commonPrefix of response.CommonPrefixes) {
+            if (commonPrefix.Prefix) {
+              const folderName = commonPrefix.Prefix.replace(prefix, '').replace(/\/$/, '')
+              const subFolderPath = commonPrefix.Prefix
+              const subTree = await buildTree(subFolderPath, depth + 1)
+              if (subTree) {
+                folders.push(subTree)
+              }
+            }
+          }
+        }
+        
+        // Get files (contents that don't end with /)
+        const files: any[] = []
+        if (response.Contents) {
+          for (const obj of response.Contents) {
+            if (obj.Key && !obj.Key.endsWith('/')) {
+              files.push({
+                id: obj.Key,
+                name: obj.Key.split('/').pop() || obj.Key,
+                path: obj.Key,
+                size: obj.Size || 0,
+                mimeType: 'application/octet-stream',
+                createdAt: obj.LastModified || new Date(),
+                updatedAt: obj.LastModified || new Date(),
+              })
+            }
+          }
+        }
+        
+        // Calculate totals
+        let totalFiles = files.length
+        let totalFolders = folders.length
+        for (const folder of folders) {
+          totalFiles += folder.totalFiles || 0
+          totalFolders += folder.totalFolders || 0
+        }
+        
+        return {
+          path: prefix || '/',
+          folderId: prefix,
+          folders,
+          files,
+          totalFiles,
+          totalFolders
+        }
+      }
+      
+      return await buildTree(parentPath, 0)
+    } catch (error) {
+      throw new StorageOperationError(
+        `Failed to get folder tree from ${parentPath || 'root'}`,
+        this.providerId,
+        'getFolderTree',
+        error instanceof Error ? error : undefined
+      )
+    }
   }
 
   getFolderUrl(folderPath: string): string {

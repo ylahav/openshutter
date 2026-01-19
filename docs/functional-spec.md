@@ -132,10 +132,12 @@
 - Groups: admin GET/POST `/api/admin/groups`, GET/PUT/DELETE `/api/admin/groups/:id`
 - Users: admin GET/POST `/api/admin/users`, GET/PUT/DELETE `/api/admin/users/:id`
 - Photos: GET/PUT/DELETE `/api/photos/:id`
+  - POST `/api/photos/upload` - upload photo (admin only, proxied through SvelteKit to backend)
 - Albums: public GETs for listings/details with access control
   - GET `/api/albums` - lists albums with user access filtering
   - GET `/api/albums/by-alias/[alias]` - album details with access control
   - GET `/api/albums/by-alias/[alias]/photos` - album photos with access control
+  - GET `/api/admin/albums` - admin: get all albums with optional parentId/level filters
   - GET `/api/admin/albums/[id]/photos` - admin: get photos for cover selection
   - PUT `/api/admin/albums/[id]/cover-photo` - admin: set album cover photo
 - Search: GET `/api/search` - comprehensive search across photos, albums, people, locations

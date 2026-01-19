@@ -10,7 +10,7 @@
     "dev:backend": "pnpm --filter openshutter-backend dev",
     "build": "pnpm --filter openshutter-backend build && pnpm --filter openshutter build",
     "build:frontend": "pnpm --filter openshutter build",
-    "build:backend": "NODE_OPTIONS=--max-old-space-size=4096 pnpm --filter openshutter-backend build",
+    "build:backend": "pnpm --filter openshutter-backend build",
     "start": "concurrently --kill-others-on-fail --kill-others --delay 3000 \"pnpm --filter openshutter-backend start\" \"pnpm --filter openshutter preview\"",
     "start:frontend": "pnpm --filter openshutter preview",
     "start:backend": "pnpm --filter openshutter-backend start",

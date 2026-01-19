@@ -284,6 +284,78 @@ export class LocalStorageService implements IStorageService {
     return `/api/storage/serve/local/${encodedPath}`
   }
 
+  /**
+   * Get a recursive tree structure of folders and files from local storage
+   */
+  async getFolderTree(parentPath?: string, maxDepth: number = 10): Promise<any> {
+    try {
+      const buildTree = async (folderPath: string | undefined, depth: number): Promise<any> => {
+        if (depth > maxDepth) {
+          return null
+        }
+
+        const fullPath = this.getFullPath(folderPath || '')
+        const items = await fs.readdir(fullPath, { withFileTypes: true })
+        
+        const folders: any[] = []
+        const files: any[] = []
+        
+        for (const item of items) {
+          const itemPath = folderPath ? `${folderPath}/${item.name}` : item.name
+          
+          if (item.isDirectory()) {
+            const subTree = await buildTree(itemPath, depth + 1)
+            if (subTree) {
+              folders.push(subTree)
+            }
+          } else if (item.isFile()) {
+            try {
+              const fileInfo = await this.getFileInfo(itemPath)
+              files.push({
+                id: fileInfo.fileId,
+                name: fileInfo.name,
+                path: fileInfo.path,
+                size: fileInfo.size,
+                mimeType: fileInfo.mimeType,
+                createdAt: fileInfo.createdAt,
+                updatedAt: fileInfo.updatedAt,
+              })
+            } catch (error) {
+              // Skip files that can't be read
+              console.warn(`Skipping file ${itemPath}:`, error)
+            }
+          }
+        }
+        
+        // Calculate totals
+        let totalFiles = files.length
+        let totalFolders = folders.length
+        for (const folder of folders) {
+          totalFiles += folder.totalFiles || 0
+          totalFolders += folder.totalFolders || 0
+        }
+        
+        return {
+          path: folderPath || '/',
+          folderId: folderPath || '/',
+          folders,
+          files,
+          totalFiles,
+          totalFolders
+        }
+      }
+      
+      return await buildTree(parentPath, 0)
+    } catch (error) {
+      throw new StorageOperationError(
+        `Failed to get folder tree from ${parentPath || 'root'}`,
+        this.providerId,
+        'getFolderTree',
+        error instanceof Error ? error : undefined
+      )
+    }
+  }
+
   getFolderUrl(folderPath: string): string {
     const encodedPath = folderPath.split('/').map(segment => encodeURIComponent(segment)).join('/')
     return `/api/storage/serve/local/${encodedPath}`

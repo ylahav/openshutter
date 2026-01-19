@@ -37,6 +37,22 @@ export const POST: RequestHandler = async ({ request }) => {
 			);
 		}
 
+		// Validate that refresh token was returned
+		if (!tokenData.refresh_token) {
+			console.error('Google OAuth token exchange: No refresh token returned', {
+				hasAccessToken: !!tokenData.access_token,
+				expiresIn: tokenData.expires_in,
+				responseKeys: Object.keys(tokenData)
+			});
+			return json(
+				{
+					success: false,
+					error: 'No refresh token returned. Make sure you are using access_type=offline and prompt=consent in the authorization URL. If you have already authorized this app, you may need to revoke access first and re-authorize.'
+				},
+				{ status: 400 }
+			);
+		}
+
 		// Return the refresh token
 		return json({
 			success: true,

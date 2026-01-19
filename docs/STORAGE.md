@@ -33,6 +33,10 @@ OpenShutter supports multiple storage providers for photo and album storage. Thi
 
 ### Accessing Storage Settings
 
+**Primary Method: Admin Dashboard (Recommended)**
+
+All storage providers are configured through the admin dashboard at `/admin/storage` (admin access required). This is the recommended method as it stores configurations securely in the database and provides a user-friendly interface.
+
 1. **Login as Admin**: Navigate to `http://localhost:4000/login`
 2. **Go to Storage**: Click "Storage" in the admin dashboard
 3. **Select Provider**: Choose the storage provider tab you want to configure
@@ -40,52 +44,54 @@ OpenShutter supports multiple storage providers for photo and album storage. Thi
 5. **Test Connection**: Use the "Test Connection" button to verify settings
 6. **Save Configuration**: Click "Save" to store the configuration
 
+**Storage configurations are stored in MongoDB** and encrypted at rest. The admin dashboard provides:
+- Visual storage tree browsing (for supported providers)
+- Connection testing
+- Provider enable/disable toggles
+- Usage monitoring
+- Configuration validation
+
 ### Provider-Specific Configuration
 
+**Note**: While environment variables can be used for initial setup, the admin dashboard is the primary configuration method. All settings configured via the dashboard are stored in the database.
+
 #### Local Storage
-```env
-# Base path for local storage
-LOCAL_STORAGE_PATH=/app/public/albums
-MAX_FILE_SIZE=100MB
-```
+- **Base Path**: Storage directory path (default: `/app/public/albums`)
+- **Max File Size**: Maximum file size limit (default: 100MB)
+- Configure via admin dashboard at `/admin/storage`
 
 #### Google Drive
-```env
-# Google Drive OAuth2 credentials
-GOOGLE_DRIVE_CLIENT_ID=your_client_id
-GOOGLE_DRIVE_CLIENT_SECRET=your_client_secret
-GOOGLE_DRIVE_REFRESH_TOKEN=your_refresh_token
-GOOGLE_DRIVE_FOLDER_ID=your_folder_id
-```
+- **Client ID**: OAuth 2.0 Client ID from Google Cloud Console
+- **Client Secret**: OAuth 2.0 Client Secret
+- **Refresh Token**: OAuth refresh token (obtained through OAuth flow)
+- **Folder ID**: Google Drive folder ID where files will be stored
+- Configure via admin dashboard at `/admin/storage`
 
 #### Amazon S3
-```env
-# AWS S3 credentials
-AWS_ACCESS_KEY_ID=your_access_key
-AWS_SECRET_ACCESS_KEY=your_secret_key
-AWS_REGION=us-east-1
-AWS_S3_BUCKET=your_bucket_name
-```
+- **Access Key ID**: AWS access key ID
+- **Secret Access Key**: AWS secret access key
+- **Region**: AWS region (e.g., `us-east-1`)
+- **Bucket Name**: S3 bucket name
+- **Endpoint**: (Optional) Custom endpoint URL
+- **Path-Style Addressing**: Toggle for path-style vs virtual-hosted-style URLs
+- Configure via admin dashboard at `/admin/storage`
 
 #### Backblaze B2
-```env
-# Backblaze B2 credentials
-BACKBLAZE_APPLICATION_KEY_ID=your_application_key_id
-BACKBLAZE_APPLICATION_KEY=your_application_key
-BACKBLAZE_BUCKET_NAME=your_bucket_name
-BACKBLAZE_REGION=us-west-2
-BACKBLAZE_ENDPOINT=https://s3.us-west-2.backblazeb2.com
-```
+- **Application Key ID**: 24-character application key ID (starts with "K")
+- **Application Key**: 32-character application key
+- **Bucket Name**: B2 bucket name
+- **Region**: B2 region (e.g., `us-west-2`)
+- **Endpoint**: S3-compatible endpoint URL (e.g., `https://s3.us-west-2.backblazeb2.com`)
+- Configure via admin dashboard at `/admin/storage`
 
 #### Wasabi
-```env
-# Wasabi credentials
-WASABI_ACCESS_KEY_ID=your_access_key
-WASABI_SECRET_ACCESS_KEY=your_secret_key
-WASABI_BUCKET_NAME=your_bucket_name
-WASABI_REGION=us-east-1
-WASABI_ENDPOINT=https://s3.wasabisys.com
-```
+- **Access Key ID**: Wasabi access key ID
+- **Secret Access Key**: Wasabi secret access key
+- **Bucket Name**: Wasabi bucket name
+- **Region**: Wasabi region (e.g., `us-east-1`)
+- **Endpoint**: S3-compatible endpoint URL (e.g., `https://s3.wasabisys.com`)
+- **Path-Style Addressing**: Toggle for path-style vs virtual-hosted-style URLs
+- Configure via admin dashboard at `/admin/storage`
 
 ## Storage Provider Setup Guides
 

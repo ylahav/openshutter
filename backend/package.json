@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node dist/main.js",
     "dev": "nest start --watch",
-    "build": "NODE_OPTIONS=--max-old-space-size=4096 nest build",
+    "build": "nest build",
+    "build:prod": "node --max-old-space-size=4096 node_modules/@nestjs/cli/bin/nest.js build",
     "lint": "eslint src/**/*.ts"
   },
   "dependencies": {

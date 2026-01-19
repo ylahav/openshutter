@@ -54,43 +54,70 @@
 		isOpen: boolean;
 		albumId: string | null;
 		albumName: string;
+		isDeleting: boolean;
 	} = {
 		isOpen: false,
 		albumId: null,
 		albumName: '',
+		isDeleting: false,
 	};
 
 	onMount(async () => {
-		await loadAlbums();
+		console.log('[onMount] Starting album load...');
+		try {
+			await loadAlbums();
+			console.log('[onMount] Album load completed. Albums count:', albums.length, 'Loading:', loading);
+		} catch (err) {
+			console.error('[onMount] Failed to load albums on mount:', err);
+			loading = false; // Ensure loading is set to false even if loadAlbums fails unexpectedly
+			error = 'Failed to load albums';
+			albums = []; // Ensure albums is always an array
+		}
 		
 		// Set up event delegation for action buttons in AlbumTree
 		const handleActionClick = (e: MouseEvent) => {
 			const target = e.target as HTMLElement;
+			
+			// Check if the click is on a button or its child (emoji)
 			const button = target.closest('[data-action]') as HTMLElement;
 			if (!button) return;
 			
+			// Prevent default behavior
+			e.preventDefault();
+			e.stopPropagation();
+			
 			const actionsContainer = button.closest('.album-actions') as HTMLElement;
-			if (!actionsContainer) return;
+			if (!actionsContainer) {
+				console.warn('[handleActionClick] No album-actions container found');
+				return;
+			}
 			
 			const albumId = actionsContainer.getAttribute('data-album-id');
-			if (!albumId) return;
+			if (!albumId) {
+				console.warn('[handleActionClick] No album ID found');
+				return;
+			}
 			
 			const album = albums.find(a => a._id === albumId);
-			if (!album) return;
+			if (!album) {
+				console.warn('[handleActionClick] Album not found:', albumId);
+				return;
+			}
 			
 			const action = button.getAttribute('data-action');
+			console.log('[handleActionClick] Action clicked:', action, 'for album:', albumId);
+			
 			if (action === 'cover-photo') {
-				e.stopPropagation();
 				openCoverPhotoModal(album);
 			} else if (action === 'delete') {
-				e.stopPropagation();
 				openDeleteDialog(album);
 			}
 		};
 		
-		document.addEventListener('click', handleActionClick);
+		// Use capture phase to ensure we catch the event early
+		document.addEventListener('click', handleActionClick, true);
 		return () => {
-			document.removeEventListener('click', handleActionClick);
+			document.removeEventListener('click', handleActionClick, true);
 		};
 	});
 
@@ -100,16 +127,70 @@
 		try {
 			// Use admin endpoint to get ALL albums (including private ones)
 			const response = await fetch('/api/admin/albums');
+			
 			if (!response.ok) {
-				throw new Error('Failed to fetch albums');
+				const errorText = await response.text().catch(() => 'Failed to fetch albums');
+				let errorMessage = 'Failed to fetch albums';
+				try {
+					const errorJson = JSON.parse(errorText);
+					errorMessage = errorJson.error || errorJson.message || errorMessage;
+				} catch {
+					errorMessage = errorText || `HTTP ${response.status}: ${response.statusText}`;
+				}
+				throw new Error(errorMessage);
 			}
-			const result = await response.json();
-			albums = Array.isArray(result) ? result : result.data || [];
+			
+			let result;
+			try {
+				const responseText = await response.text();
+				console.log('[loadAlbums] Raw response text length:', responseText.length);
+				result = JSON.parse(responseText);
+			} catch (parseError) {
+				console.error('Failed to parse JSON response:', parseError);
+				throw new Error('Invalid response format from server');
+			}
+			
+			console.log('[loadAlbums] Response received:', { 
+				isArray: Array.isArray(result), 
+				type: typeof result,
+				hasData: result?.data !== undefined,
+				hasSuccess: result?.success !== undefined,
+				resultPreview: Array.isArray(result) 
+					? `Array(${result.length})` 
+					: typeof result === 'object' 
+						? JSON.stringify(result).substring(0, 200)
+						: String(result)
+			});
+			
+			// Handle both array and object responses
+			if (Array.isArray(result)) {
+				albums = result;
+				console.log(`[loadAlbums] Loaded ${result.length} albums (direct array)`);
+			} else if (result && Array.isArray(result.data)) {
+				albums = result.data;
+				console.log(`[loadAlbums] Loaded ${result.data.length} albums from result.data`);
+			} else if (result && typeof result === 'object') {
+				// Check if it's an error object
+				if (result.error || result.success === false) {
+					throw new Error(result.error || result.message || 'Failed to fetch albums');
+				}
+				// If result is an object but not an error, try to extract albums
+				console.warn('[loadAlbums] Unexpected response format:', result);
+				albums = [];
+			} else {
+				console.warn('[loadAlbums] No albums found in response:', result);
+				albums = [];
+			}
+			
+			// Force reactivity update
+			albums = [...albums];
 		} catch (err) {
 			console.error('Error loading albums:', err);
 			error = `Failed to load albums: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			albums = []; // Ensure albums is always an array
 		} finally {
 			loading = false;
+			console.log('[loadAlbums] Loading complete. Albums count:', albums.length);
 		}
 	}
 
@@ -118,6 +199,7 @@
 		return `
 			<div class="flex items-center gap-2 album-actions" data-album-id="${node._id}">
 				<button
+					type="button"
 					data-action="cover-photo"
 					class="text-purple-600 hover:text-purple-900 p-1.5 rounded hover:bg-purple-50"
 					title="Set Cover Photo"
@@ -133,6 +215,7 @@
 					👁️
 				</a>
 				<button
+					type="button"
 					data-action="delete"
 					class="text-red-600 hover:text-red-900 p-1.5 rounded hover:bg-red-50"
 					title="Delete"
@@ -249,30 +332,55 @@
 	}
 
 	function closeDeleteDialog() {
+		// Create a new object to ensure reactivity
 		deleteDialog = {
 			isOpen: false,
 			albumId: null,
 			albumName: '',
+			isDeleting: false,
 		};
 	}
 
 	async function confirmDelete() {
-		if (!deleteDialog.albumId) return;
+		if (!deleteDialog.albumId || deleteDialog.isDeleting) return;
+
+		// Save album ID before async operations
+		const albumIdToDelete = deleteDialog.albumId;
+
+		// Update isDeleting by creating a new object to ensure reactivity
+		deleteDialog = {
+			...deleteDialog,
+			isDeleting: true,
+		};
+		error = '';
 
 		try {
-			const response = await fetch(`/api/albums/${deleteDialog.albumId}`, {
+			const response = await fetch(`/api/admin/albums/${albumIdToDelete}`, {
 				method: 'DELETE',
 			});
 
 			if (response.ok) {
-				await loadAlbums();
+				// Close dialog immediately
 				closeDeleteDialog();
+				// Then reload albums
+				await loadAlbums();
 			} else {
-				error = 'Failed to delete album';
+				const errorData = await response.json().catch(() => ({ error: 'Failed to delete album' }));
+				error = errorData.error || errorData.message || 'Failed to delete album';
+				// Update isDeleting by creating a new object
+				deleteDialog = {
+					...deleteDialog,
+					isDeleting: false,
+				};
 			}
 		} catch (err) {
 			console.error('Failed to delete album:', err);
 			error = `Failed to delete album: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			// Update isDeleting by creating a new object
+			deleteDialog = {
+				...deleteDialog,
+				isDeleting: false,
+			};
 		}
 	}
 
@@ -405,6 +513,7 @@
 					onOpen={handleOpen}
 					renderActions={renderAlbumActions}
 					showAccordion={true}
+					expandAllByDefault={true}
 				/>
 			</div>
 		{/if}
@@ -517,10 +626,11 @@
 <ConfirmDialog
 	isOpen={deleteDialog.isOpen}
 	title="Delete Album"
-	message="Are you sure you want to delete &quot;{deleteDialog.albumName}&quot;? This action cannot be undone."
-	confirmText="Delete"
+	message="Are you sure you want to delete &quot;{deleteDialog.albumName}&quot;? This will delete all photos and sub-albums. This action cannot be undone."
+	confirmText={deleteDialog.isDeleting ? 'Deleting...' : 'Delete'}
 	cancelText="Cancel"
 	variant="danger"
+	disabled={deleteDialog.isDeleting}
 	on:confirm={confirmDelete}
 	on:cancel={closeDeleteDialog}
 />

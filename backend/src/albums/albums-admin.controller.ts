@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Param, Query, Body, UseGuards, BadRequestException, NotFoundException, Request } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Param, Query, Body, UseGuards, BadRequestException, NotFoundException, Request } from '@nestjs/common';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { AlbumsService } from './albums.service';
 import { connectDB } from '../config/db';
@@ -202,14 +202,22 @@ export class AlbumsAdminController {
 				.sort({ order: 1, createdAt: -1 })
 				.toArray();
 
-			// Serialize ObjectIds
-			const serialized = albums.map((album: any) => ({
-				...album,
-				_id: album._id.toString(),
-				parentAlbumId: album.parentAlbumId?.toString() || null,
-				coverPhotoId: album.coverPhotoId?.toString() || null,
-				createdBy: album.createdBy?.toString() || null,
-			}));
+			// Calculate childAlbumCount for each album and serialize ObjectIds
+			const serialized = await Promise.all(
+				albums.map(async (album: any) => {
+					const childCount = await db.collection('albums').countDocuments({
+						parentAlbumId: album._id,
+					});
+					return {
+						...album,
+						_id: album._id.toString(),
+						parentAlbumId: album.parentAlbumId?.toString() || null,
+						coverPhotoId: album.coverPhotoId?.toString() || null,
+						createdBy: album.createdBy?.toString() || null,
+						childAlbumCount: childCount,
+					};
+				})
+			);
 
 		return serialized;
 	} catch (error) {
@@ -221,6 +229,7 @@ export class AlbumsAdminController {
 	/**
 	 * Get all photos for an album (admin only - includes unpublished)
 	 * Path: GET /api/admin/albums/:id/photos
+	 * NOTE: This route must come before @Get(':id') to avoid route conflicts
 	 */
 	@Get(':id/photos')
 	async getAlbumPhotos(@Param('id') id: string) {
@@ -301,6 +310,51 @@ export class AlbumsAdminController {
 			throw new Error(
 				`Failed to get admin album photos: ${error instanceof Error ? error.message : 'Unknown error'}`,
 			);
+		}
+	}
+
+	/**
+	 * Get a single album by ID (admin only - includes private albums)
+	 * Path: GET /api/admin/albums/:id
+	 * NOTE: This route must come AFTER @Get(':id/photos') to avoid route conflicts
+	 */
+	@Get(':id')
+	async findOne(@Param('id') id: string) {
+		try {
+			await connectDB();
+			const db = mongoose.connection.db;
+			if (!db) throw new Error('Database connection not established');
+
+			let objectId: Types.ObjectId;
+			try {
+				objectId = new Types.ObjectId(id);
+			} catch (_error) {
+				throw new BadRequestException('Invalid album ID format');
+			}
+
+			const album = await db.collection('albums').findOne({ _id: objectId });
+
+			if (!album) {
+				throw new NotFoundException(`Album not found: ${id}`);
+			}
+
+			// Serialize ObjectIds
+			const serialized: any = {
+				...album,
+				_id: album._id.toString(),
+				parentAlbumId: album.parentAlbumId?.toString() || null,
+				coverPhotoId: album.coverPhotoId?.toString() || null,
+				createdBy: album.createdBy?.toString() || null,
+				tags: album.tags?.map((tag: any) => (tag._id ? tag._id.toString() : tag.toString())) || [],
+			};
+
+			return serialized;
+		} catch (error) {
+			console.error('Failed to get admin album:', error);
+			if (error instanceof BadRequestException || error instanceof NotFoundException) {
+				throw error;
+			}
+			throw new Error(`Failed to get admin album: ${error instanceof Error ? error.message : 'Unknown error'}`);
 		}
 	}
 
@@ -440,5 +494,199 @@ export class AlbumsAdminController {
 			}
 			throw new Error(`Failed to update album: ${error instanceof Error ? error.message : 'Unknown error'}`);
 		}
+	}
+
+	/**
+	 * Delete an album (admin only)
+	 * Recursively deletes all sub-albums and their photos
+	 * Path: DELETE /api/admin/albums/:id
+	 */
+	@Delete(':id')
+	async deleteAlbum(@Param('id') id: string) {
+		try {
+			await connectDB();
+			const db = mongoose.connection.db;
+			if (!db) throw new Error('Database connection not established');
+
+			let objectId: Types.ObjectId;
+			try {
+				objectId = new Types.ObjectId(id);
+			} catch (_error) {
+				throw new BadRequestException('Invalid album ID format');
+			}
+
+			const album = await db.collection('albums').findOne({ _id: objectId });
+			if (!album) {
+				throw new NotFoundException('Album not found');
+			}
+
+			console.log(`Starting deletion of album: ${album.alias} (${id})`);
+
+			// Recursively delete all sub-albums, their photos, folders, and DB records
+			// This will also delete the current album's photos, folder, and DB record
+			await this.deleteAlbumRecursive(db, objectId, album.storageProvider);
+
+			// Verify the album was deleted (the recursive function should have deleted it)
+			const verifyAlbum = await db.collection('albums').findOne({ _id: objectId });
+			if (verifyAlbum) {
+				console.warn(`Album ${album.alias} still exists after recursive deletion, attempting direct deletion`);
+				// Fallback: try to delete the album folder and DB record directly
+				if (album.storagePath && album.storageProvider) {
+					try {
+						const storageManager = StorageManager.getInstance();
+						await storageManager.deleteAlbum(album.storagePath, album.storageProvider as any);
+					} catch (storageError) {
+						console.error('Failed to delete album folder from storage:', storageError);
+					}
+				}
+				await db.collection('albums').deleteOne({ _id: objectId });
+			}
+
+			console.log(`Successfully deleted album: ${album.alias}`);
+
+			return { success: true, message: 'Album deleted successfully' };
+		} catch (error) {
+			console.error('Failed to delete album:', error);
+			if (error instanceof NotFoundException || error instanceof BadRequestException) {
+				throw error;
+			}
+			throw new Error(`Failed to delete album: ${error instanceof Error ? error.message : 'Unknown error'}`);
+		}
+	}
+
+	/**
+	 * Recursively delete an album and all its sub-albums and photos
+	 */
+	private async deleteAlbumRecursive(
+		db: any,
+		albumId: Types.ObjectId,
+		storageProvider: string
+	): Promise<void> {
+		console.log(`Deleting album recursively: ${albumId.toString()}`);
+
+		// Get the current album data before deletion
+		const album = await db.collection('albums').findOne({ _id: albumId });
+		if (!album) {
+			console.warn(`Album ${albumId.toString()} not found, skipping`);
+			return;
+		}
+
+		// Get all sub-albums
+		const subAlbums = await db
+			.collection('albums')
+			.find({ parentAlbumId: albumId })
+			.toArray();
+
+		console.log(`Found ${subAlbums.length} sub-albums`);
+
+		// Recursively delete each sub-album (this will delete their photos, folders, and DB records)
+		for (const subAlbum of subAlbums) {
+			await this.deleteAlbumRecursive(db, subAlbum._id, subAlbum.storageProvider || storageProvider);
+		}
+
+		// Get all photos in this album
+		const photos = await db
+			.collection('photos')
+			.find({
+				$or: [{ albumId: albumId }, { albumId: albumId.toString() }],
+			})
+			.toArray();
+
+		console.log(`Found ${photos.length} photos in album ${albumId.toString()}`);
+
+		// Delete each photo from storage and database
+		const storageManager = StorageManager.getInstance();
+
+		// Helper function to extract path from URL
+		const extractPathFromUrl = (url: string): string | null => {
+			if (!url || typeof url !== 'string') return null;
+			const urlMatch = url.match(/\/api\/storage\/serve\/[^/]+\/(.+)$/);
+			if (urlMatch && urlMatch[1]) {
+				try {
+					return decodeURIComponent(urlMatch[1]);
+				} catch {
+					return urlMatch[1];
+				}
+			}
+			if (!url.startsWith('/api/storage/serve/')) {
+				return url;
+			}
+			return null;
+		};
+
+		for (const photo of photos) {
+			try {
+				// Delete photo files from storage
+				if (photo.storage && photo.storage.provider && photo.storage.path) {
+					const provider = photo.storage.provider as any;
+					console.log(`Deleting photo file: provider=${provider}, path=${photo.storage.path}`);
+
+					try {
+						// Delete main photo file
+						await storageManager.deletePhoto(photo.storage.path, provider);
+
+						// Delete thumbnails
+						if (photo.storage.thumbnails && typeof photo.storage.thumbnails === 'object') {
+							for (const [size, thumbnailUrl] of Object.entries(photo.storage.thumbnails)) {
+								try {
+									const thumbnailPath = extractPathFromUrl(thumbnailUrl as string);
+									if (thumbnailPath && thumbnailPath !== photo.storage.path) {
+										await storageManager.deletePhoto(thumbnailPath, provider);
+									}
+								} catch (thumbError) {
+									console.warn(`Failed to delete ${size} thumbnail:`, thumbError);
+								}
+							}
+						}
+
+						// Delete thumbnailPath if different
+						if (photo.storage.thumbnailPath) {
+							const thumbPath = extractPathFromUrl(photo.storage.thumbnailPath);
+							if (thumbPath && thumbPath !== photo.storage.path) {
+								const alreadyDeleted =
+									photo.storage.thumbnails &&
+									Object.values(photo.storage.thumbnails).some((url) => {
+										const path = extractPathFromUrl(url as string);
+										return path === thumbPath;
+									});
+
+								if (!alreadyDeleted) {
+									await storageManager.deletePhoto(thumbPath, provider);
+								}
+							}
+						}
+					} catch (storageError) {
+						console.error(`Failed to delete photo files from storage:`, storageError);
+						// Continue with database deletion
+					}
+				}
+
+				// Delete photo from database
+				await db.collection('photos').deleteOne({ _id: photo._id });
+				console.log(`Deleted photo: ${photo._id.toString()}`);
+			} catch (photoError) {
+				console.error(`Failed to delete photo ${photo._id.toString()}:`, photoError);
+				// Continue with other photos
+			}
+		}
+
+		// Delete the current album's folder from storage
+		if (album.storagePath && album.storageProvider) {
+			try {
+				const storageManager = StorageManager.getInstance();
+				console.log(
+					`Deleting album folder from storage: provider=${album.storageProvider}, path=${album.storagePath}`
+				);
+				await storageManager.deleteAlbum(album.storagePath, album.storageProvider as any);
+				console.log(`Successfully deleted album folder: ${album.storagePath}`);
+			} catch (storageError) {
+				console.error(`Failed to delete album folder from storage:`, storageError);
+				// Continue with database deletion even if storage deletion fails
+			}
+		}
+
+		// Delete the current album from database
+		await db.collection('albums').deleteOne({ _id: albumId });
+		console.log(`Deleted album: ${album.alias} (${albumId.toString()})`);
 	}
 }

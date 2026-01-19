@@ -163,10 +163,28 @@ export class AlbumsService {
         ]
       };
       const countWithOr = await this.albumModel.countDocuments(orQuery);
-      console.log(`Count with $or query (ObjectId, string, $eq ObjectId): ${countWithOr} albums`);
+      console.log(`Count with $or query (ObjectId, string, $eq ObjectId): ${countWithOr} albums`      );
     }
-
-    return albums;
+    
+    // Calculate childAlbumCount for each album
+    const albumsWithChildCount = await Promise.all(
+      albums.map(async (album) => {
+        const childCount = await this.albumModel.countDocuments({
+          parentAlbumId: album._id,
+          isPublic: true,
+        });
+        const albumObj = album.toObject ? album.toObject() : (album as any);
+        return {
+          ...albumObj,
+          _id: albumObj._id?.toString(),
+          parentAlbumId: albumObj.parentAlbumId?.toString() || null,
+          coverPhotoId: albumObj.coverPhotoId?._id?.toString() || albumObj.coverPhotoId?.toString() || null,
+          childAlbumCount: childCount,
+        };
+      })
+    );
+    
+    return albumsWithChildCount;
   }
 
   async findOneByIdOrAlias(idOrAlias: string) {

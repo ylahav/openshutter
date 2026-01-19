@@ -28,6 +28,7 @@
 			description?: any;
 			alias: string;
 			photoCount?: number;
+			childAlbumCount?: number;
 			coverPhotoId?: string;
 		}>;
 		photos: Array<{
@@ -320,7 +321,7 @@
 						<MultiLangText value={albumData.album.name} fallback="Untitled Album" />
 					</h1>
 					{#if albumData.album.description}
-						<div class="text-lg text-gray-600">
+						<div class="text-lg text-gray-600 max-w-4xl mx-auto prose prose-lg">
 							<MultiLangHTML value={albumData.album.description} />
 						</div>
 					{/if}
@@ -357,7 +358,15 @@
 											<MultiLangText value={subAlbum.name} fallback="Untitled Album" />
 										</h3>
 										<div class="text-sm text-gray-500 mt-1">
-											{subAlbum.photoCount || 0} {(subAlbum.photoCount || 0) === 1 ? $t('search.photo') : $t('albums.photos')}
+											{#if subAlbum.photoCount && subAlbum.photoCount > 0}
+												{subAlbum.photoCount} {(subAlbum.photoCount === 1 ? $t('search.photo') : $t('albums.photos'))}
+											{/if}
+											{#if subAlbum.photoCount && subAlbum.photoCount > 0 && subAlbum.childAlbumCount && subAlbum.childAlbumCount > 0}
+												• 
+											{/if}
+											{#if subAlbum.childAlbumCount && subAlbum.childAlbumCount > 0}
+												{subAlbum.childAlbumCount} {subAlbum.childAlbumCount === 1 ? $t('albums.subAlbum') : $t('albums.subAlbums')}
+											{/if}
 										</div>
 									</div>
 								</div>
@@ -393,7 +402,7 @@
 									
 									<!-- Description -->
 									{#if photo.description}
-										<div class="text-xs text-gray-600 line-clamp-2 mb-auto">
+										<div class="text-sm text-gray-600 line-clamp-4 mb-auto prose prose-sm max-w-none">
 											<MultiLangHTML value={photo.description} />
 										</div>
 									{/if}
@@ -496,6 +505,7 @@
 				url: getPhotoFullUrl(p),
 				thumbnailUrl: getPhotoUrl(p),
 				title: typeof p.title === 'string' ? p.title : p.title?.[$currentLanguage] || p.title?.en || '',
+				description: p.description,
 				takenAt: p.exif?.dateTimeOriginal,
 				exif: p.exif, // Include full EXIF data
 				metadata: p.metadata || (p.storage ? {
