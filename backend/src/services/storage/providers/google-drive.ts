@@ -31,13 +31,32 @@ export class GoogleDriveService implements IStorageService {
   }
 
   /**
-   * Get the root folder ID for AppData storage
-   * AppData uses a special folder ID that's only accessible to the app
+   * Get the root folder ID based on storage type
+   * - AppData: Hidden folder accessible only with drive.appdata scope
+   * - Visible: User's Drive folder (root or specified folderId)
    */
   private getRootFolderId(): string {
-    // AppData folder is a special folder ID provided by Google Drive
-    // It's only accessible with the drive.appdata scope
+    // Check if storageType is set to 'visible'
+    const storageType = this.config.storageType || 'appdata'
+    
+    if (storageType === 'visible') {
+      // Use folderId from config if provided, otherwise use root
+      if (this.config.folderId && this.config.folderId !== 'appDataFolder') {
+        return this.config.folderId
+      }
+      return 'root'
+    }
+    
+    // Default: Use AppData folder (hidden)
     return 'appDataFolder'
+  }
+
+  /**
+   * Check if using AppData storage (hidden)
+   */
+  private isAppDataStorage(): boolean {
+    const storageType = this.config.storageType || 'appdata'
+    return storageType === 'appdata'
   }
 
   private initializeAuth() {
@@ -172,14 +191,37 @@ If the issue persists, verify your Client ID and Client Secret match your Google
         await this.refreshAccessToken()
       }
 
-      // Test connection by listing AppData folder (validates AppData scope access)
-      // AppData scope doesn't allow about.get, so we test by listing the AppData folder
-      await this.drive.files.list({
-        q: `'${this.getRootFolderId()}' in parents and trashed=false`,
-        spaces: 'appDataFolder',
-        fields: 'files(id)',
-        pageSize: 1
-      })
+      // Test connection based on storage type
+      const storageType = this.config.storageType || 'appdata'
+      
+      if (storageType === 'visible') {
+        // For visible storage, test by getting root folder info
+        // This validates drive.file or drive scope
+        try {
+          await this.drive.files.get({
+            fileId: 'root',
+            fields: 'id,name'
+          })
+        } catch (error: any) {
+          // If root access fails, try listing root folder
+          const listParams: any = {
+            q: `'root' in parents and trashed=false`,
+            fields: 'files(id)',
+            pageSize: 1
+          }
+          await this.drive.files.list(listParams)
+        }
+      } else {
+        // For AppData storage, test by listing AppData folder
+        // This validates drive.appdata scope
+        const listParams: any = {
+          q: `'${this.getRootFolderId()}' in parents and trashed=false`,
+          spaces: 'appDataFolder',
+          fields: 'files(id)',
+          pageSize: 1
+        }
+        await this.drive.files.list(listParams)
+      }
       return true
     } catch (error: any) {
       console.error('Google Drive connection validation failed:', error)
@@ -294,12 +336,18 @@ If the issue persists, verify your Client ID and Client Secret match your Google
       }
       
       // Check if folder already exists
-      const existingResponse = await this.drive.files.list({
+      const listParams: any = {
         q: `'${parentFolderId}' in parents and name='${name}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
-        spaces: 'appDataFolder',
         fields: 'files(id,name)',
         pageSize: 1
-      })
+      }
+      
+      // Only add spaces parameter for AppData storage
+      if (this.isAppDataStorage()) {
+        listParams.spaces = 'appDataFolder'
+      }
+      
+      const existingResponse = await this.drive.files.list(listParams)
 
       if (existingResponse.data.files && existingResponse.data.files.length > 0) {
         // Folder already exists, return existing folder info
@@ -370,9 +418,13 @@ If the issue persists, verify your Client ID and Client Secret match your Google
         const query = `'${folderId}' in parents and trashed=false`
         const listParams: any = {
           q: query,
-          spaces: 'appDataFolder',
           fields: 'nextPageToken, files(id, name, mimeType)',
           pageSize: 1000
+        }
+        
+        // Only add spaces parameter for AppData storage
+        if (this.isAppDataStorage()) {
+          listParams.spaces = 'appDataFolder'
         }
         
         if (pageToken) {
@@ -435,12 +487,18 @@ If the issue persists, verify your Client ID and Client Secret match your Google
       })
 
       // Get file count
-      const filesResponse = await this.drive.files.list({
+      const listParams: any = {
         q: `'${folderId}' in parents and trashed=false`,
-        spaces: 'appDataFolder',
         fields: 'files(id)',
         pageSize: 1000
-      })
+      }
+      
+      // Only add spaces parameter for AppData storage
+      if (this.isAppDataStorage()) {
+        listParams.spaces = 'appDataFolder'
+      }
+      
+      const filesResponse = await this.drive.files.list(listParams)
 
       return {
         provider: this.providerId,
@@ -471,12 +529,18 @@ If the issue persists, verify your Client ID and Client Secret match your Google
 
       const parentFolderId = parentPath ? await this.getFolderIdByPath(parentPath) || this.getRootFolderId() : this.getRootFolderId()
       
-      const response = await this.drive.files.list({
+      const listParams: any = {
         q: `'${parentFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
-        spaces: 'appDataFolder',
         fields: 'files(id,name,createdTime,modifiedTime)',
         pageSize: 1000
-      })
+      }
+      
+      // Only add spaces parameter for AppData storage
+      if (this.isAppDataStorage()) {
+        listParams.spaces = 'appDataFolder'
+      }
+      
+      const response = await this.drive.files.list(listParams)
 
       return response.data.files?.map((file: any) => ({
         provider: this.providerId,
@@ -527,12 +591,18 @@ If the issue persists, verify your Client ID and Client Secret match your Google
         
         console.log(`GoogleDriveService: Looking for folder "${folderName}" in parent ${currentFolderId}`)
         
-        const response = await this.drive.files.list({
+        const listParams: any = {
           q: query,
-          spaces: 'appDataFolder',
           fields: 'files(id,name)',
           pageSize: 1
-        })
+        }
+        
+        // Only add spaces parameter for AppData storage
+        if (this.isAppDataStorage()) {
+          listParams.spaces = 'appDataFolder'
+        }
+        
+        const response = await this.drive.files.list(listParams)
 
         if (response.data.files && response.data.files.length > 0) {
           currentFolderId = response.data.files[0].id
@@ -588,12 +658,18 @@ If the issue persists, verify your Client ID and Client Secret match your Google
             for (const folderName of pathParts) {
               // Check if folder exists
               const checkQuery = `'${currentParentId}' in parents and name='${folderName.replace(/'/g, "\\'")}' and mimeType='application/vnd.google-apps.folder' and trashed=false`
-              const checkResponse = await this.drive.files.list({
+              const checkListParams: any = {
                 q: checkQuery,
-                spaces: 'appDataFolder',
                 fields: 'files(id,name)',
                 pageSize: 1
-              })
+              }
+              
+              // Only add spaces parameter for AppData storage
+              if (this.isAppDataStorage()) {
+                checkListParams.spaces = 'appDataFolder'
+              }
+              
+              const checkResponse = await this.drive.files.list(checkListParams)
               
               if (checkResponse.data.files && checkResponse.data.files.length > 0) {
                 currentParentId = checkResponse.data.files[0].id
@@ -747,12 +823,18 @@ If the issue persists, verify your Client ID and Client Secret match your Google
 
       const parentFolderId = folderPath ? await this.getFolderIdByPath(folderPath) || this.getRootFolderId() : this.getRootFolderId()
       
-      const response = await this.drive.files.list({
+      const listParams: any = {
         q: `'${parentFolderId}' in parents and mimeType!='application/vnd.google-apps.folder' and trashed=false`,
-        spaces: 'appDataFolder',
         fields: 'files(id,name,size,mimeType,webViewLink,createdTime,modifiedTime)',
         pageSize: pageSize || 1000
-      })
+      }
+      
+      // Only add spaces parameter for AppData storage
+      if (this.isAppDataStorage()) {
+        listParams.spaces = 'appDataFolder'
+      }
+      
+      const response = await this.drive.files.list(listParams)
 
       return response.data.files?.map((file: any) => ({
         provider: this.providerId,
@@ -803,12 +885,18 @@ If the issue persists, verify your Client ID and Client Secret match your Google
       const query = `'${parentFolderId}' in parents and name='${escapedFileName}' and mimeType!='application/vnd.google-apps.folder' and trashed=false`
       console.log(`GoogleDriveService: Searching with query: ${query}`)
 
-      const response = await this.drive.files.list({
+      const listParams: any = {
         q: query,
-        spaces: 'appDataFolder',
         fields: 'files(id,name)',
         pageSize: 1
-      })
+      }
+      
+      // Only add spaces parameter for AppData storage
+      if (this.isAppDataStorage()) {
+        listParams.spaces = 'appDataFolder'
+      }
+      
+      const response = await this.drive.files.list(listParams)
       
       if (response.data.files && response.data.files.length > 0) {
         console.log(`GoogleDriveService: Found file "${response.data.files[0].name}" with ID: ${response.data.files[0].id}`)
@@ -900,10 +988,14 @@ If the issue persists, verify your Client ID and Client Secret match your Google
         while (hasMore) {
           const listParams: any = {
             q: `'${folderId}' in parents and trashed=false`,
-            spaces: 'appDataFolder',
             fields: 'nextPageToken, files(id, name, mimeType, size, createdTime, modifiedTime)',
             pageSize: 1000,
             orderBy: 'name'
+          }
+          
+          // Only add spaces parameter for AppData storage
+          if (this.isAppDataStorage()) {
+            listParams.spaces = 'appDataFolder'
           }
           
           if (pageToken) {

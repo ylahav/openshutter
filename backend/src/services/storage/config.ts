@@ -89,8 +89,47 @@ export class StorageConfigService {
     }
     
     // Ensure isEnabled is NOT in the config object (it should only be at root level)
-    if (updateData.config && updateData.config.isEnabled !== undefined) {
-      delete updateData.config.isEnabled
+    // Also flatten any nested config.config structures
+    if (updateData.config) {
+      // Remove isEnabled from config
+      if (updateData.config.isEnabled !== undefined) {
+        delete updateData.config.isEnabled
+      }
+      
+      // Recursively flatten any nested config.config structures
+      const flattenConfig = (obj: any, depth = 0): any => {
+        if (depth > 5) {
+          console.error(`[StorageConfigService] Maximum recursion depth reached while flattening config for ${providerId}`);
+          return {}
+        }
+        
+        const flattened: any = {}
+        
+        Object.keys(obj).forEach(key => {
+          if (key === 'isEnabled') {
+            // Skip isEnabled (should be at root level)
+            return
+          } else if (key === 'config' && typeof obj[key] === 'object' && obj[key] !== null) {
+            // If there's a nested config, recursively flatten it and merge
+            console.warn(`[StorageConfigService] Found nested config.config at depth ${depth} in ${providerId}, flattening...`)
+            const nestedFlattened = flattenConfig(obj[key], depth + 1)
+            Object.assign(flattened, nestedFlattened)
+          } else if (obj[key] !== undefined && obj[key] !== null) {
+            flattened[key] = obj[key]
+          }
+        })
+        
+        return flattened
+      }
+      
+      updateData.config = flattenConfig(updateData.config)
+      
+      // Final safety check
+      if (updateData.config.config !== undefined) {
+        console.error(`[StorageConfigService] ERROR: Config still contains nested "config" property for ${providerId}! Removing it.`)
+        const { config: _, ...finalClean } = updateData.config
+        updateData.config = finalClean
+      }
     }
     
     // Use $set to update only specified fields, and $unset to remove any duplicate top-level fields
@@ -188,7 +227,8 @@ export class StorageConfigService {
           clientId: '',
           clientSecret: '',
           refreshToken: '',
-          folderId: ''
+          folderId: '',
+          storageType: 'appdata' // 'appdata' (hidden) or 'visible' (user sees files)
           // isEnabled should NOT be in config object - it's only at root level
         },
         createdAt: new Date(),
@@ -424,6 +464,38 @@ export class StorageConfigService {
   }
 
   /**
+   * Flatten nested config structures (config.config.config...)
+   */
+  private flattenConfig(obj: any, depth = 0): any {
+    if (depth > 5) {
+      console.error(`[StorageConfigService] Maximum recursion depth reached while flattening config`);
+      return {};
+    }
+    
+    if (!obj || typeof obj !== 'object') {
+      return obj;
+    }
+    
+    const flattened: any = {};
+    
+    Object.keys(obj).forEach(key => {
+      if (key === 'isEnabled') {
+        // Skip isEnabled (should be at root level, not in config)
+        return;
+      } else if (key === 'config' && typeof obj[key] === 'object' && obj[key] !== null) {
+        // If there's a nested config, recursively flatten it and merge
+        console.warn(`[StorageConfigService] Found nested config.config at depth ${depth}, flattening...`);
+        const nestedFlattened = this.flattenConfig(obj[key], depth + 1);
+        Object.assign(flattened, nestedFlattened);
+      } else if (obj[key] !== undefined && obj[key] !== null) {
+        flattened[key] = obj[key];
+      }
+    });
+    
+    return flattened;
+  }
+
+  /**
    * Refresh configuration cache
    */
   private async refreshCache(): Promise<void> {
@@ -446,14 +518,21 @@ export class StorageConfigService {
       
       // Clean the config: remove duplicate top-level fields that should only be in config object
       // Also remove isEnabled from config object (it should only be at root level)
+      // Flatten any nested config.config structures
       const rawConfigObj = rawConfig.config || {}
-      const { isEnabled: _, ...cleanConfigObj } = rawConfigObj
+      const flattenedConfigObj = this.flattenConfig(rawConfigObj)
+      const { isEnabled: _, ...cleanConfigObj } = flattenedConfigObj
+      
+      // Check if we flattened any nested structures
+      if (rawConfigObj.config !== undefined && flattenedConfigObj !== rawConfigObj) {
+        console.warn(`[StorageConfigService] Flattened nested config for ${rawConfig.providerId} during cache refresh`)
+      }
       
       const cleanedConfig: BaseStorageConfig = {
         providerId: rawConfig.providerId,
         name: rawConfig.name,
         isEnabled: rawConfig.isEnabled !== undefined ? rawConfig.isEnabled : false,
-        config: cleanConfigObj, // Config object without isEnabled
+        config: cleanConfigObj, // Config object without isEnabled, flattened
         createdAt: rawConfig.createdAt,
         updatedAt: rawConfig.updatedAt
       }

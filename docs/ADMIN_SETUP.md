@@ -48,6 +48,14 @@ Once you've completed the setup and logged in:
    - Go to your profile settings
    - Update your password to something secure
 
+2. **Configure Storage Providers** (Optional but Recommended)
+   - Navigate to `/admin/storage` in the admin dashboard
+   - Configure at least one storage provider (Google Drive, AWS S3, Backblaze, Wasabi, or Local Storage)
+   - For Google Drive:
+     - Choose between "Hidden (AppData Folder)" or "Visible in User's Drive" storage type
+     - Enter OAuth credentials and generate a refresh token
+     - See [Storage Configuration Guide](./STORAGE.md) for detailed instructions
+
 2. **Create Additional Admin Users**
    - Navigate to Admin Panel → Users
    - Create new admin accounts with proper credentials

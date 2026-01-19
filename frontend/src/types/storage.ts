@@ -13,6 +13,7 @@ export interface GoogleDriveConfig {
   clientSecret: string
   refreshToken: string
   folderId: string
+  storageType?: 'appdata' | 'visible'  // 'appdata' = hidden, 'visible' = user sees files
   isEnabled: boolean
 }
 

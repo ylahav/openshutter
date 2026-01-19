@@ -147,25 +147,80 @@ export class StorageAdminController {
       }
 
       // Build the config object - merge existing config with updates
+      // The frontend sends config fields at the top level (e.g., { clientId, clientSecret, storageType, isEnabled })
+      // We need to structure it properly: { isEnabled, config: { clientId, clientSecret, storageType, ... } }
+      
       // Exclude isEnabled from config object (it's at top level, not in config)
-      const { isEnabled: _, ...configUpdates } = updates;
+      // Also exclude any nested "config" property that shouldn't be there
+      const { isEnabled: _, config: __, ...configUpdates } = updates;
       
       // Clean configUpdates to remove any undefined or null values (but keep empty strings for now)
+      // Also explicitly exclude "config" property to prevent nested config.config structure
       const cleanedConfigUpdates: Record<string, any> = {};
       Object.keys(configUpdates).forEach(key => {
-        if (configUpdates[key] !== undefined && configUpdates[key] !== null) {
+        if (key !== 'config' && configUpdates[key] !== undefined && configUpdates[key] !== null) {
           cleanedConfigUpdates[key] = configUpdates[key];
         }
       });
       
+      // Log warning if we detect a nested config property
+      if (updates.config !== undefined) {
+        console.warn(`[updateConfig] Received nested "config" property for ${providerId}, ignoring it. This should not happen.`);
+      }
+      
       // Build clean config object - explicitly remove isEnabled if it exists in existing config
+      // Also handle case where existing config might have nested "config" property (bad data)
       const existingConfigObj = existingConfig.config || {};
-      const { isEnabled: __, ...cleanExistingConfig } = existingConfigObj;
+      
+      // Recursively flatten any nested config structures (handle config.config.config...)
+      const flattenConfig = (obj: any, depth = 0): any => {
+        if (depth > 5) {
+          console.error(`[updateConfig] Maximum recursion depth reached while flattening config for ${providerId}`);
+          return {};
+        }
+        
+        const flattened: any = {};
+        
+        // Remove isEnabled and config properties
+        Object.keys(obj).forEach(key => {
+          if (key === 'isEnabled') {
+            // Skip isEnabled (should be at root level)
+            return;
+          } else if (key === 'config' && typeof obj[key] === 'object') {
+            // If there's a nested config, recursively flatten it and merge
+            console.warn(`[updateConfig] Found nested config.config at depth ${depth} in ${providerId}, flattening...`);
+            const nestedFlattened = flattenConfig(obj[key], depth + 1);
+            Object.assign(flattened, nestedFlattened);
+          } else if (obj[key] !== undefined && obj[key] !== null) {
+            flattened[key] = obj[key];
+          }
+        });
+        
+        return flattened;
+      };
+      
+      const cleanExistingConfig = flattenConfig(existingConfigObj);
       
       structuredUpdates.config = {
         ...cleanExistingConfig,
         ...cleanedConfigUpdates,
       };
+      
+      // Final safety check: ensure no nested config in the final structure
+      if (structuredUpdates.config.config !== undefined) {
+        console.error(`[updateConfig] ERROR: Final config still contains nested "config" property for ${providerId}! Removing it.`);
+        const { config: ____, ...finalClean } = structuredUpdates.config;
+        structuredUpdates.config = finalClean;
+      }
+      
+      // Debug: log storageType specifically for Google Drive
+      if (providerId === 'google-drive') {
+        console.log(`[updateConfig] Google Drive storageType update:`, {
+          incoming: cleanedConfigUpdates.storageType,
+          existing: cleanExistingConfig.storageType,
+          final: structuredUpdates.config.storageType
+        });
+      }
       
       // Ensure isEnabled is NOT in the config object (it should only be at root level)
       if (structuredUpdates.config.isEnabled !== undefined) {
@@ -185,7 +240,8 @@ export class StorageAdminController {
         providerId: updatedConfig.providerId,
         isEnabled: updatedConfig.isEnabled,
         hasConfig: !!updatedConfig.config,
-        configKeys: updatedConfig.config ? Object.keys(updatedConfig.config) : []
+        configKeys: updatedConfig.config ? Object.keys(updatedConfig.config) : [],
+        storageType: updatedConfig.config?.storageType || 'not set'
       });
       
       return updatedConfig;
@@ -383,6 +439,7 @@ export class StorageAdminController {
    * This will:
    * - Remove isEnabled from config objects (it should only be at root level)
    * - Remove duplicate top-level fields (clientId, clientSecret, etc.)
+   * - Flatten nested config.config structures
    * 
    * Useful for fixing data structure issues in existing deployments.
    */
@@ -390,11 +447,40 @@ export class StorageAdminController {
   async cleanupConfigs() {
     try {
       await storageConfigService.cleanupExistingConfigs();
+      
+      // Also fix nested config structures
       const configs = await storageConfigService.getAllConfigs();
+      for (const config of configs) {
+        if (config.config && config.config.config) {
+          console.log(`[cleanup] Fixing nested config for ${config.providerId}`);
+          // Flatten the nested config
+          const flattenConfig = (obj: any, depth = 0): any => {
+            if (depth > 5) return {};
+            const flattened: any = {};
+            Object.keys(obj).forEach(key => {
+              if (key === 'isEnabled') return;
+              if (key === 'config' && typeof obj[key] === 'object') {
+                const nested = flattenConfig(obj[key], depth + 1);
+                Object.assign(flattened, nested);
+              } else if (obj[key] !== undefined && obj[key] !== null) {
+                flattened[key] = obj[key];
+              }
+            });
+            return flattened;
+          };
+          
+          const flattened = flattenConfig(config.config);
+          await storageConfigService.updateConfig(config.providerId, {
+            config: flattened
+          });
+        }
+      }
+      
+      const cleanedConfigs = await storageConfigService.getAllConfigs();
       return {
         success: true,
-        message: 'Storage configurations cleaned up successfully',
-        configs,
+        message: 'Storage configurations cleaned up successfully (including nested config structures)',
+        configs: cleanedConfigs,
       };
     } catch (error) {
       throw new BadRequestException(
@@ -448,6 +534,57 @@ export class StorageAdminController {
       throw new BadRequestException(
         `Failed to get ${providerId} tree: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
+    }
+  }
+
+  /**
+   * Generate Google OAuth authorization URL
+   * Path: GET /api/admin/storage/google-drive/auth-url
+   */
+  @Get('google-drive/auth-url')
+  async getGoogleAuthUrl(
+    @Query('clientId') clientId: string,
+    @Query('redirectUri') redirectUri: string,
+    @Query('storageType') storageType?: string
+  ) {
+    try {
+      if (!clientId || !redirectUri) {
+        throw new BadRequestException('clientId and redirectUri are required');
+      }
+
+      // Determine scope based on storage type
+      // Default to 'appdata' for backward compatibility
+      const storageTypeValue = storageType || 'appdata'
+      const scope = storageTypeValue === 'visible'
+        ? 'https://www.googleapis.com/auth/drive.file'  // For visible files
+        : 'https://www.googleapis.com/auth/drive.appdata'  // For hidden AppData
+
+      // Generate OAuth URL
+      const { google } = require('googleapis')
+      const oauth2Client = new google.auth.OAuth2(
+        clientId,
+        '', // Client secret not needed for URL generation
+        redirectUri
+      )
+
+      const authUrl = oauth2Client.generateAuthUrl({
+        access_type: 'offline',
+        prompt: 'consent', // Force consent to get refresh token
+        scope: [scope],
+        redirect_uri: redirectUri
+      })
+
+      return {
+        success: true,
+        authUrl,
+        scope,
+        storageType: storageTypeValue
+      }
+    } catch (error) {
+      console.error('Error generating Google OAuth URL:', error)
+      throw new BadRequestException(
+        `Failed to generate OAuth URL: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      )
     }
   }
 }

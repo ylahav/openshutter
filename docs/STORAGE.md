@@ -64,8 +64,23 @@ All storage providers are configured through the admin dashboard at `/admin/stor
 - **Client ID**: OAuth 2.0 Client ID from Google Cloud Console
 - **Client Secret**: OAuth 2.0 Client Secret
 - **Refresh Token**: OAuth refresh token (obtained through OAuth flow)
-- **Folder ID**: Google Drive folder ID where files will be stored
+- **Folder ID**: Google Drive folder ID where files will be stored (optional, defaults to root for visible storage)
+- **Storage Type**: Choose between:
+  - `appdata` (default): Files are hidden from users in AppData folder
+  - `visible`: Files are visible in user's Google Drive
 - Configure via admin dashboard at `/admin/storage`
+
+**Note**: When using `visible` storage type, users will see files in their Google Drive. When using `appdata`, files are hidden and only accessible through the application.
+
+**OAuth Setup Process**:
+1. Enter your Client ID and Client Secret from Google Cloud Console
+2. Select your preferred Storage Type (Hidden or Visible)
+3. Click "Generate New Token" button
+4. Complete the OAuth authorization in the popup window
+5. The refresh token will be automatically saved
+6. Test the connection to verify everything works
+
+**Important**: When switching storage types, you must generate a new refresh token because the OAuth scopes are different (`drive.appdata` for hidden vs `drive.file` for visible).
 
 #### Amazon S3
 - **Access Key ID**: AWS access key ID
