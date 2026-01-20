@@ -36,6 +36,17 @@ export class AdminGuard implements CanActivate {
     const token = this.extractTokenFromRequest(request);
 
     if (!token) {
+      // Enhanced logging to help diagnose token extraction issues
+      console.error('[AdminGuard] No token found in request:', {
+        hasCookies: !!request.cookies,
+        cookieKeys: request.cookies ? Object.keys(request.cookies) : [],
+        hasCookieHeader: !!request.headers.cookie,
+        cookieHeaderPreview: request.headers.cookie ? request.headers.cookie.substring(0, 50) + '...' : null,
+        hasAuthHeader: !!request.headers.authorization,
+        authHeaderPreview: request.headers.authorization ? request.headers.authorization.substring(0, 30) + '...' : null,
+        url: request.url,
+        method: request.method
+      });
       throw new UnauthorizedException('Authentication required');
     }
 
@@ -93,9 +104,25 @@ export class AdminGuard implements CanActivate {
   }
 
   private extractTokenFromRequest(request: any): string | null {
-    // Try to get token from cookie first
+    // Try to get token from cookie first (works for browser requests)
     if (request.cookies && request.cookies.auth_token) {
       return request.cookies.auth_token;
+    }
+
+    // Try to parse cookie from Cookie header (for server-to-server requests)
+    const cookieHeader = request.headers.cookie;
+    if (cookieHeader) {
+      const cookies = cookieHeader.split(';').reduce((acc: Record<string, string>, cookie: string) => {
+        const [key, value] = cookie.trim().split('=');
+        if (key && value) {
+          acc[key] = decodeURIComponent(value);
+        }
+        return acc;
+      }, {});
+      
+      if (cookies.auth_token) {
+        return cookies.auth_token;
+      }
     }
 
     // Fallback to Authorization header
