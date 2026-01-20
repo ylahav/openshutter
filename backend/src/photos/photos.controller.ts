@@ -117,9 +117,54 @@ export class PhotosController {
     );
 
     if (!result.success) {
+      if (result.skipped) {
+        // Return 200 with skipped status instead of error
+        return {
+          skipped: true,
+          reason: result.reason,
+          message: result.reason || 'Photo already exists'
+        };
+      }
       throw new BadRequestException(result.error || 'Upload failed');
     }
 
     return result.photo;
+  }
+
+  @Post('upload-from-folder')
+  @HttpCode(HttpStatus.OK)
+  async uploadFromFolder(
+    @Body('folderPath') folderPath: string,
+    @Body('albumId') albumId?: string,
+    @Body('title') title?: string,
+    @Body('description') description?: string,
+    @Body('tags') tags?: string | string[],
+  ) {
+    if (!folderPath) {
+      throw new BadRequestException('folderPath is required');
+    }
+
+    let parsedTags: string[] = [];
+    if (Array.isArray(tags)) {
+      parsedTags = tags;
+    } else if (typeof tags === 'string' && tags.length > 0) {
+      try {
+        parsedTags = JSON.parse(tags);
+      } catch {
+        parsedTags = tags.split(',').map((value) => value.trim()).filter(Boolean);
+      }
+    }
+
+    const report = await this.photoUploadService.uploadFromFolder(
+      folderPath,
+      {
+        albumId,
+        title,
+        description,
+        tags: parsedTags,
+      }
+    );
+
+    return report;
   }
 }

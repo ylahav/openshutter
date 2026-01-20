@@ -14,6 +14,7 @@ Welcome to the OpenShutter documentation. This comprehensive guide covers all as
 - [Server Deployment Guide](./SERVER_DEPLOYMENT.md) - Production deployment instructions with PM2
 - [Admin Setup Guide](./ADMIN_SETUP.md) - Initial admin configuration
 - [Translation Guide](./translation-guide.md) - Multi-language support and translation keys
+- [Photo Upload Guide](./PHOTO_UPLOAD.md) - Photo upload features, duplicate detection, and bulk upload
 
 ### Quick Start
 1. **Installation**: Follow the main [README.md](../README.md) for setup instructions
@@ -34,6 +35,7 @@ Welcome to the OpenShutter documentation. This comprehensive guide covers all as
 - **Owner Dashboard**: Focused interface for album owners to manage their collections
 - **Cover Photo Selection**: Admin interface for selecting album cover photos
 - **Photo Management**: Upload, organize, and display photos with metadata
+- **Advanced Photo Upload**: Duplicate detection, bulk folder upload, and detailed upload reports
 - **Multi-Language Support**: Internationalization with RTL support
 - **Template System**: Customizable gallery templates
 - **Admin Dashboard**: Comprehensive administrative interface

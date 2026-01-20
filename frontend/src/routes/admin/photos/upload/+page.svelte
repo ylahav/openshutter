@@ -4,14 +4,17 @@
 	import { goto } from '$app/navigation';
 	import { MultiLangUtils } from '$lib/utils/multiLang';
 	import { currentLanguage } from '$stores/language';
+	import type { UploadReport } from '$types';
 
   export const data = undefined as any; // From +layout.server.ts, not used in this component
 
 	interface UploadProgress {
 		file: File;
 		progress: number;
-		status: 'uploading' | 'success' | 'error';
+		status: 'uploading' | 'success' | 'error' | 'skipped';
 		error?: string;
+		reason?: string;
+		photoId?: string;
 	}
 
 	let albumId: string | null = null;
@@ -21,6 +24,14 @@
 	let error: string | null = null;
 	let isDragActive = false;
 	let fileInput: HTMLInputElement | null = null;
+	let fileUploadReport: UploadReport | null = null;
+	
+	// Folder upload state
+	let uploadMode: 'files' | 'folder' = 'files';
+	let folderPath = '';
+	let folderUploadReport: UploadReport | null = null;
+	let isUploadingFolder = false;
+	let folderError: string | null = null;
 
 	onMount(() => {
 		albumId = $page.url.searchParams.get('albumId');
@@ -63,6 +74,7 @@
 		uploads = [...uploads, ...newUploads];
 		isUploading = true;
 		error = null;
+		fileUploadReport = null; // Reset report
 
 		Array.from(files).forEach((file, index) => {
 			uploadFile(file, uploads.length - files.length + index);
@@ -94,9 +106,28 @@
 				if (xhr.status >= 200 && xhr.status < 300) {
 					try {
 						const response = JSON.parse(xhr.responseText);
-						if (response.success || response._id) {
+						// Check if photo was skipped (duplicate)
+						if (response.skipped) {
 							uploads = uploads.map((upload, index) =>
-								index === uploadIndex ? { ...upload, status: 'success', progress: 100 } : upload
+								index === uploadIndex
+									? {
+											...upload,
+											status: 'skipped',
+											progress: 100,
+											reason: response.reason || response.message || 'Photo already exists'
+										}
+									: upload
+							);
+						} else if (response.success || response._id) {
+							uploads = uploads.map((upload, index) =>
+								index === uploadIndex
+									? {
+											...upload,
+											status: 'success',
+											progress: 100,
+											photoId: response._id || response.photo?._id
+										}
+									: upload
 							);
 						} else {
 							const errorMsg = response.error || response.message || 'Upload failed';
@@ -200,7 +231,39 @@
 		const allComplete = uploads.length > 0 && uploads.every((upload) => upload.status !== 'uploading');
 		if (allComplete) {
 			isUploading = false;
+			generateFileUploadReport();
 		}
+	}
+
+	function generateFileUploadReport() {
+		if (uploads.length === 0) {
+			fileUploadReport = null;
+			return;
+		}
+
+		const successes = uploads.filter((u) => u.status === 'success');
+		const skipped = uploads.filter((u) => u.status === 'skipped');
+		const failures = uploads.filter((u) => u.status === 'error');
+
+		fileUploadReport = {
+			total: uploads.length,
+			successful: successes.length,
+			skipped: skipped.length,
+			failed: failures.length,
+			successes: successes.map((u) => ({
+				filename: u.file.name,
+				photoId: u.photoId,
+				message: 'Uploaded successfully'
+			})),
+			skippedItems: skipped.map((u) => ({
+				filename: u.file.name,
+				reason: u.reason || 'Photo already exists'
+			})),
+			failures: failures.map((u) => ({
+				filename: u.file.name,
+				error: u.error || 'Upload failed'
+			}))
+		};
 	}
 
 	function handleDragOver(e: DragEvent) {
@@ -236,6 +299,47 @@
 
 	const allUploadsComplete = uploads.length > 0 && uploads.every((upload) => upload.status !== 'uploading');
 	const hasErrors = uploads.some((upload) => upload.status === 'error');
+
+	async function uploadFromFolder() {
+		if (!folderPath.trim()) {
+			folderError = 'Please enter a folder path';
+			return;
+		}
+		if (!albumId) {
+			folderError = 'Please select an album first';
+			return;
+		}
+
+		isUploadingFolder = true;
+		folderError = null;
+		folderUploadReport = null;
+
+		try {
+			const response = await fetch('/api/photos/upload-from-folder', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					folderPath: folderPath.trim(),
+					albumId: albumId
+				})
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({ error: 'Upload failed' }));
+				throw new Error(errorData.error || `Upload failed: ${response.statusText}`);
+			}
+
+			const report: UploadReport = await response.json();
+			folderUploadReport = report;
+		} catch (err) {
+			folderError = err instanceof Error ? err.message : 'Failed to upload from folder';
+			console.error('Folder upload error:', err);
+		} finally {
+			isUploadingFolder = false;
+		}
+	}
 </script>
 
 <svelte:head>
@@ -270,7 +374,159 @@
 			</div>
 		{/if}
 
-		<!-- Upload Area -->
+		<!-- Upload Mode Tabs -->
+		<div class="mb-6 bg-white rounded-lg shadow-sm border border-gray-200 p-1">
+			<div class="flex space-x-1">
+				<button
+					on:click={() => uploadMode = 'files'}
+					class="flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors {uploadMode === 'files'
+						? 'bg-blue-600 text-white'
+						: 'text-gray-700 hover:bg-gray-100'}"
+				>
+					Upload Files
+				</button>
+				<button
+					on:click={() => uploadMode = 'folder'}
+					class="flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors {uploadMode === 'folder'
+						? 'bg-blue-600 text-white'
+						: 'text-gray-700 hover:bg-gray-100'}"
+				>
+					Upload from Server Folder
+				</button>
+			</div>
+		</div>
+
+		<!-- Folder Upload Section -->
+		{#if uploadMode === 'folder'}
+			<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-8 mb-8">
+				<h2 class="text-xl font-semibold text-gray-900 mb-4">Upload from Server Folder</h2>
+				<p class="text-sm text-gray-600 mb-6">
+					Enter the server-side folder path containing images to upload. The system will automatically detect duplicates and skip them.
+				</p>
+
+				<div class="space-y-4">
+					<div>
+						<label for="folderPath" class="block text-sm font-medium text-gray-700 mb-2">
+							Server Folder Path
+						</label>
+						<input
+							id="folderPath"
+							type="text"
+							bind:value={folderPath}
+							placeholder="/path/to/photos or C:\path\to\photos"
+							class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+							disabled={isUploadingFolder}
+						/>
+						<p class="mt-1 text-xs text-gray-500">
+							Example: /var/www/photos or C:\Users\YourName\Pictures\Album
+						</p>
+					</div>
+
+					{#if folderError}
+						<div class="bg-red-50 border border-red-200 rounded-md p-4">
+							<p class="text-sm text-red-600">{folderError}</p>
+						</div>
+					{/if}
+
+					<button
+						on:click={uploadFromFolder}
+						disabled={isUploadingFolder || !folderPath.trim() || !albumId}
+						class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+					>
+						{isUploadingFolder ? 'Uploading...' : 'Upload from Folder'}
+					</button>
+				</div>
+
+				<!-- Upload Report -->
+				{#if folderUploadReport}
+					<div class="mt-8 border-t border-gray-200 pt-6">
+						<h3 class="text-lg font-semibold text-gray-900 mb-4">Upload Report</h3>
+						
+						<!-- Summary -->
+						<div class="grid grid-cols-4 gap-4 mb-6">
+							<div class="bg-gray-50 rounded-lg p-4">
+								<div class="text-2xl font-bold text-gray-900">{folderUploadReport.total}</div>
+								<div class="text-sm text-gray-600">Total Files</div>
+							</div>
+							<div class="bg-green-50 rounded-lg p-4">
+								<div class="text-2xl font-bold text-green-600">{folderUploadReport.successful}</div>
+								<div class="text-sm text-green-600">Successful</div>
+							</div>
+							<div class="bg-yellow-50 rounded-lg p-4">
+								<div class="text-2xl font-bold text-yellow-600">{folderUploadReport.skipped}</div>
+								<div class="text-sm text-yellow-600">Skipped</div>
+							</div>
+							<div class="bg-red-50 rounded-lg p-4">
+								<div class="text-2xl font-bold text-red-600">{folderUploadReport.failed}</div>
+								<div class="text-sm text-red-600">Failed</div>
+							</div>
+						</div>
+
+						<!-- Successful Uploads -->
+						{#if folderUploadReport.successes.length > 0}
+							<div class="mb-6">
+								<h4 class="text-sm font-semibold text-gray-900 mb-2 text-green-600">
+									✓ Successful ({folderUploadReport.successes.length})
+								</h4>
+								<div class="bg-green-50 border border-green-200 rounded-md p-4 max-h-48 overflow-y-auto">
+									<ul class="space-y-1">
+										{#each folderUploadReport.successes as item}
+											<li class="text-sm text-green-800">
+												{item.filename}
+												{#if item.photoId}
+													<span class="text-green-600"> (ID: {item.photoId.substring(0, 8)}...)</span>
+												{/if}
+											</li>
+										{/each}
+									</ul>
+								</div>
+							</div>
+						{/if}
+
+						<!-- Skipped Files -->
+						{#if folderUploadReport.skippedItems.length > 0}
+							<div class="mb-6">
+								<h4 class="text-sm font-semibold text-gray-900 mb-2 text-yellow-600">
+									⊘ Skipped ({folderUploadReport.skippedItems.length})
+								</h4>
+								<div class="bg-yellow-50 border border-yellow-200 rounded-md p-4 max-h-48 overflow-y-auto">
+									<ul class="space-y-1">
+										{#each folderUploadReport.skippedItems as item}
+											<li class="text-sm text-yellow-800">
+												{item.filename}
+												<span class="text-yellow-600"> - {item.reason}</span>
+											</li>
+										{/each}
+									</ul>
+								</div>
+							</div>
+						{/if}
+
+						<!-- Failed Uploads -->
+						{#if folderUploadReport.failures.length > 0}
+							<div class="mb-6">
+								<h4 class="text-sm font-semibold text-gray-900 mb-2 text-red-600">
+									✗ Failed ({folderUploadReport.failures.length})
+								</h4>
+								<div class="bg-red-50 border border-red-200 rounded-md p-4 max-h-48 overflow-y-auto">
+									<ul class="space-y-1">
+										{#each folderUploadReport.failures as item}
+											<li class="text-sm text-red-800">
+												{item.filename}
+												<span class="text-red-600"> - {item.error}</span>
+											</li>
+										{/each}
+									</ul>
+								</div>
+							</div>
+						{/if}
+					</div>
+				{/if}
+			</div>
+		{/if}
+
+		<!-- File Upload Area -->
+		{#if uploadMode === 'files'}
 		<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
 			<div
 				role="button"
@@ -340,6 +596,15 @@
 											d="M5 13l4 4L19 7"
 										/>
 									</svg>
+								{:else if upload.status === 'skipped'}
+									<svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+										/>
+									</svg>
 								{:else if upload.status === 'error'}
 									<svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 										<path
@@ -371,7 +636,11 @@
 								<p class="text-xs text-gray-500">
 									{(upload.file.size / 1024 / 1024).toFixed(2)} MB
 								</p>
-								{#if upload.status === 'error' && upload.error}
+								{#if upload.status === 'skipped' && upload.reason}
+									<p class="text-xs text-yellow-600 mt-1 truncate" title={upload.reason}>
+										{upload.reason}
+									</p>
+								{:else if upload.status === 'error' && upload.error}
 									<p class="text-xs text-red-600 mt-1 truncate" title={upload.error}>
 										{upload.error}
 									</p>
@@ -381,8 +650,10 @@
 							<div class="flex-shrink-0 w-24">
 								<div class="w-full bg-gray-200 rounded-full h-2">
 									<div
-										class="h-2 rounded-full transition-all duration-300 {upload.status === 'success'
-											? 'bg-green-600'
+									class="h-2 rounded-full transition-all duration-300 {upload.status === 'success'
+										? 'bg-green-600'
+										: upload.status === 'skipped'
+											? 'bg-yellow-600'
 											: upload.status === 'error'
 												? 'bg-red-600'
 												: 'bg-blue-600'}"
@@ -395,15 +666,19 @@
 								<span
 									class="text-xs font-medium {upload.status === 'success'
 										? 'text-green-600'
-										: upload.status === 'error'
-											? 'text-red-600'
-											: 'text-blue-600'}"
+										: upload.status === 'skipped'
+											? 'text-yellow-600'
+											: upload.status === 'error'
+												? 'text-red-600'
+												: 'text-blue-600'}"
 								>
 									{upload.status === 'success'
 										? 'Done'
-										: upload.status === 'error'
-											? 'Error'
-											: `${upload.progress}%`}
+										: upload.status === 'skipped'
+											? 'Skipped'
+											: upload.status === 'error'
+												? 'Error'
+												: `${upload.progress}%`}
 								</span>
 							</div>
 						</div>
@@ -416,6 +691,93 @@
 					</div>
 				{/if}
 			</div>
+		{/if}
+
+		<!-- File Upload Report -->
+		{#if fileUploadReport && allUploadsComplete}
+			<div class="mt-8 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+				<h3 class="text-lg font-semibold text-gray-900 mb-4">Upload Report</h3>
+				
+				<!-- Summary -->
+				<div class="grid grid-cols-4 gap-4 mb-6">
+					<div class="bg-gray-50 rounded-lg p-4">
+						<div class="text-2xl font-bold text-gray-900">{fileUploadReport.total}</div>
+						<div class="text-sm text-gray-600">Total Files</div>
+					</div>
+					<div class="bg-green-50 rounded-lg p-4">
+						<div class="text-2xl font-bold text-green-600">{fileUploadReport.successful}</div>
+						<div class="text-sm text-green-600">Successful</div>
+					</div>
+					<div class="bg-yellow-50 rounded-lg p-4">
+						<div class="text-2xl font-bold text-yellow-600">{fileUploadReport.skipped}</div>
+						<div class="text-sm text-yellow-600">Skipped</div>
+					</div>
+					<div class="bg-red-50 rounded-lg p-4">
+						<div class="text-2xl font-bold text-red-600">{fileUploadReport.failed}</div>
+						<div class="text-sm text-red-600">Failed</div>
+					</div>
+				</div>
+
+				<!-- Successful Uploads -->
+				{#if fileUploadReport.successes.length > 0}
+					<div class="mb-6">
+						<h4 class="text-sm font-semibold mb-2 text-green-600">
+							✓ Successful ({fileUploadReport.successes.length})
+						</h4>
+						<div class="bg-green-50 border border-green-200 rounded-md p-4 max-h-48 overflow-y-auto">
+							<ul class="space-y-1">
+								{#each fileUploadReport.successes as item}
+									<li class="text-sm text-green-800">
+										{item.filename}
+										{#if item.photoId}
+											<span class="text-green-600"> (ID: {item.photoId.substring(0, 8)}...)</span>
+										{/if}
+									</li>
+								{/each}
+							</ul>
+						</div>
+					</div>
+				{/if}
+
+				<!-- Skipped Files -->
+				{#if fileUploadReport.skippedItems.length > 0}
+					<div class="mb-6">
+						<h4 class="text-sm font-semibold mb-2 text-yellow-600">
+							⊘ Skipped ({fileUploadReport.skippedItems.length})
+						</h4>
+						<div class="bg-yellow-50 border border-yellow-200 rounded-md p-4 max-h-48 overflow-y-auto">
+							<ul class="space-y-1">
+								{#each fileUploadReport.skippedItems as item}
+									<li class="text-sm text-yellow-800">
+										{item.filename}
+										<span class="text-yellow-600"> - {item.reason}</span>
+									</li>
+								{/each}
+							</ul>
+						</div>
+					</div>
+				{/if}
+
+				<!-- Failed Uploads -->
+				{#if fileUploadReport.failures.length > 0}
+					<div class="mb-6">
+						<h4 class="text-sm font-semibold mb-2 text-red-600">
+							✗ Failed ({fileUploadReport.failures.length})
+						</h4>
+						<div class="bg-red-50 border border-red-200 rounded-md p-4 max-h-48 overflow-y-auto">
+							<ul class="space-y-1">
+								{#each fileUploadReport.failures as item}
+									<li class="text-sm text-red-800">
+										{item.filename}
+										<span class="text-red-600"> - {item.error}</span>
+									</li>
+								{/each}
+							</ul>
+						</div>
+					</div>
+				{/if}
+			</div>
+		{/if}
 		{/if}
 
 		<!-- Action Buttons -->

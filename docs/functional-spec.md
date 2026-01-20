@@ -70,6 +70,12 @@
     - Visual indicator for currently selected cover photo
     - API: GET `/api/admin/albums/[id]/photos`, PUT `/api/admin/albums/[id]/cover-photo`
 - Photos admin: edit form uses `MultiLangInput`, `MultiLangHTMLEditor`, `PhotoMetadataEditor`
+- **Photo Upload**: Advanced upload features with duplicate detection and bulk upload
+  - Single file upload: drag & drop, multiple file selection, real-time progress
+  - Bulk folder upload: upload from server-side folder paths
+  - Duplicate detection: SHA-256 hash-based and filename+size fallback
+  - Upload reports: detailed success/skipped/failure lists with statistics
+  - API: POST `/api/photos/upload`, POST `/api/photos/upload-from-folder`
 - **People Management:** Create and manage people with multi-language support
   - Person creation: firstName (ml text), lastName (ml text), nickname (ml text), description (ml text), profileImage
   - Person listing: search, filter by status, pagination support
@@ -132,7 +138,8 @@
 - Groups: admin GET/POST `/api/admin/groups`, GET/PUT/DELETE `/api/admin/groups/:id`
 - Users: admin GET/POST `/api/admin/users`, GET/PUT/DELETE `/api/admin/users/:id`
 - Photos: GET/PUT/DELETE `/api/photos/:id`
-  - POST `/api/photos/upload` - upload photo (admin only, proxied through SvelteKit to backend)
+  - POST `/api/photos/upload` - upload single photo (admin only, proxied through SvelteKit to backend)
+  - POST `/api/photos/upload-from-folder` - bulk upload from server folder (admin only)
 - Albums: public GETs for listings/details with access control
   - GET `/api/albums` - lists albums with user access filtering
   - GET `/api/albums/by-alias/[alias]` - album details with access control

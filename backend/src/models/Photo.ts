@@ -7,6 +7,7 @@ export interface IPhoto extends Document {
   originalFilename: string
   mimeType: string
   size: number
+  hash?: string // SHA-256 hash for duplicate detection
   dimensions: {
     width: number
     height: number
@@ -103,6 +104,10 @@ export const PhotoSchema = new Schema<IPhoto>({
   size: {
     type: Number,
     required: true
+  },
+  hash: {
+    type: String,
+    index: true
   },
   dimensions: {
     width: { type: Number, required: true },
@@ -215,6 +220,8 @@ PhotoSchema.index({ tags: 1 })
 PhotoSchema.index({ location: 1 })
 PhotoSchema.index({ isPublished: 1 })
 PhotoSchema.index({ uploadedAt: -1 })
+PhotoSchema.index({ hash: 1 })
+PhotoSchema.index({ originalFilename: 1, size: 1 }) // For duplicate detection by filename + size
 // filename index is already defined as unique: true in the schema
 
 

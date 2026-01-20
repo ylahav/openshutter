@@ -182,6 +182,7 @@ export interface Photo {
   originalFilename: string
   mimeType: string
   size: number
+  hash?: string // SHA-256 hash for duplicate detection
   originalSize?: number
   compressionRatio?: number
   dimensions: {
@@ -288,6 +289,39 @@ export interface BatchUploadRequest {
   albumId?: string
   tags?: string[]
   storageProviderId: string
+}
+
+// Photo Upload Types
+export interface PhotoUploadResult {
+  success: boolean
+  photo?: any
+  error?: string
+  thumbnailPath?: string
+  thumbnails?: Record<string, string>
+  blurDataURL?: string
+  exifData?: any
+  skipped?: boolean
+  reason?: string
+}
+
+export interface UploadReport {
+  total: number
+  successful: number
+  skipped: number
+  failed: number
+  successes: Array<{
+    filename: string
+    photoId?: string
+    message?: string
+  }>
+  skippedItems: Array<{
+    filename: string
+    reason: string
+  }>
+  failures: Array<{
+    filename: string
+    error: string
+  }>
 }
 
 // Blog Article Types

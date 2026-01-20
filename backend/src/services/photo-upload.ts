@@ -4,6 +4,9 @@ import { storageManager } from './storage/manager'
 import mongoose, { Types } from 'mongoose'
 import { ThumbnailGenerator } from './thumbnail-generator'
 import { ImageCompressionService } from './image-compression'
+import { createHash } from 'crypto'
+import * as fs from 'fs/promises'
+import * as path from 'path'
 // Models imported for type references but not directly used
 // import { PhotoModel } from '../models/Photo'
 // import { AlbumModel } from '../models/Album'
@@ -27,6 +30,28 @@ export interface PhotoUploadResult {
   thumbnails?: Record<string, string>
   blurDataURL?: string
   exifData?: any
+  skipped?: boolean
+  reason?: string
+}
+
+export interface UploadReport {
+  total: number
+  successful: number
+  skipped: number
+  failed: number
+  successes: Array<{
+    filename: string
+    photoId?: string
+    message?: string
+  }>
+  skippedItems: Array<{
+    filename: string
+    reason: string
+  }>
+  failures: Array<{
+    filename: string
+    error: string
+  }>
 }
 
 @Injectable()
@@ -34,6 +59,78 @@ export class PhotoUploadService {
   private static readonly THUMBNAIL_WIDTH = 300
   private static readonly THUMBNAIL_HEIGHT = 300
   private static readonly THUMBNAIL_QUALITY = 80
+
+  /**
+   * Calculate SHA-256 hash of file buffer
+   */
+  private calculateHash(fileBuffer: Buffer): string {
+    return createHash('sha256').update(fileBuffer).digest('hex')
+  }
+
+  /**
+   * Check if photo already exists by hash or filename+size
+   */
+  async checkPhotoExists(
+    fileBuffer: Buffer,
+    originalFilename: string,
+    albumId?: string
+  ): Promise<{ exists: boolean; existingPhoto?: any; reason?: string }> {
+    try {
+      const db = mongoose.connection.db
+      if (!db) {
+        return { exists: false }
+      }
+
+      const photosCollection = db.collection('photos')
+      const hash = this.calculateHash(fileBuffer)
+      const fileSize = fileBuffer.length
+
+      // Check by hash first (most reliable)
+      const existingByHash = await photosCollection.findOne({ hash })
+      if (existingByHash) {
+        return {
+          exists: true,
+          existingPhoto: existingByHash,
+          reason: 'Photo with same hash already exists'
+        }
+      }
+
+      // Check by originalFilename + size (fallback)
+      const existingByFilename = await photosCollection.findOne({
+        originalFilename,
+        size: fileSize
+      })
+      if (existingByFilename) {
+        return {
+          exists: true,
+          existingPhoto: existingByFilename,
+          reason: 'Photo with same filename and size already exists'
+        }
+      }
+
+      // Optionally check within the same album
+      if (albumId) {
+        const existingInAlbum = await photosCollection.findOne({
+          albumId: new ObjectId(albumId),
+          originalFilename,
+          size: fileSize
+        })
+        if (existingInAlbum) {
+          return {
+            exists: true,
+            existingPhoto: existingInAlbum,
+            reason: 'Photo already exists in this album'
+          }
+        }
+      }
+
+      return { exists: false }
+    } catch (error) {
+      console.error('Error checking photo existence:', error)
+      // On error, assume it doesn't exist to allow upload attempt
+      return { exists: false }
+    }
+  }
 
   async uploadPhoto(
     fileBuffer: Buffer,
@@ -50,6 +147,21 @@ export class PhotoUploadService {
 
       // Ensure photos collection exists and indexes are created
       await this.ensurePhotosCollection(db)
+
+      // Check if photo already exists
+      const existenceCheck = await this.checkPhotoExists(
+        fileBuffer,
+        originalFilename,
+        options.albumId
+      )
+      if (existenceCheck.exists) {
+        return {
+          success: false,
+          skipped: true,
+          reason: existenceCheck.reason || 'Photo already exists',
+          error: existenceCheck.reason || 'Photo already exists'
+        }
+      }
 
       // Get album information if albumId is provided
       let album: any = null
@@ -210,6 +322,9 @@ export class PhotoUploadService {
         height: imageInfo.height || 0
       }
 
+      // Calculate file hash for duplicate detection
+      const hash = this.calculateHash(fileBuffer)
+
       // Resolve uploader ObjectId (fallback to real system user if not provided)
       let uploaderObjectId: Types.ObjectId
       if (options.uploadedBy) {
@@ -233,6 +348,7 @@ export class PhotoUploadService {
         size: compressionResult.compressed.length,
         originalSize: fileBuffer.length,
         compressionRatio: compressionResult.compressionRatio,
+        hash,
         dimensions,
         storage: {
           provider: storageProvider,
@@ -368,6 +484,116 @@ export class PhotoUploadService {
 
   // Folder creation is handled when albums are created, not during photo upload
 
+  /**
+   * Upload photos from a local folder
+   */
+  async uploadFromFolder(
+    folderPath: string,
+    options: PhotoUploadOptions & { uploadedBy?: string } = {}
+  ): Promise<UploadReport> {
+    const report: UploadReport = {
+      total: 0,
+      successful: 0,
+      skipped: 0,
+      failed: 0,
+      successes: [],
+      skippedItems: [],
+      failures: []
+    }
+
+    try {
+      // Check if folder exists
+      const stats = await fs.stat(folderPath)
+      if (!stats.isDirectory()) {
+        report.failures.push({
+          filename: folderPath,
+          error: 'Path is not a directory'
+        })
+        report.failed = 1
+        report.total = 1
+        return report
+      }
+
+      // Read all files from folder
+      const files = await fs.readdir(folderPath)
+      const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.tiff', '.tif']
+      
+      const imageFiles = files.filter(file => {
+        const ext = path.extname(file).toLowerCase()
+        return imageExtensions.includes(ext)
+      })
+
+      report.total = imageFiles.length
+
+      // Process each image file
+      for (const file of imageFiles) {
+        const filePath = path.join(folderPath, file)
+        try {
+          // Read file
+          const fileBuffer = await fs.readFile(filePath)
+          
+          // Determine MIME type from extension
+          const ext = path.extname(file).toLowerCase()
+          const mimeTypes: Record<string, string> = {
+            '.jpg': 'image/jpeg',
+            '.jpeg': 'image/jpeg',
+            '.png': 'image/png',
+            '.gif': 'image/gif',
+            '.bmp': 'image/bmp',
+            '.webp': 'image/webp',
+            '.tiff': 'image/tiff',
+            '.tif': 'image/tiff'
+          }
+          const mimeType = mimeTypes[ext] || 'image/jpeg'
+
+          // Upload photo
+          const result = await this.uploadPhoto(
+            fileBuffer,
+            file,
+            mimeType,
+            options
+          )
+
+          if (result.success) {
+            report.successful++
+            report.successes.push({
+              filename: file,
+              photoId: result.photo?._id?.toString(),
+              message: 'Uploaded successfully'
+            })
+          } else if (result.skipped) {
+            report.skipped++
+            report.skippedItems.push({
+              filename: file,
+              reason: result.reason || 'Already exists'
+            })
+          } else {
+            report.failed++
+            report.failures.push({
+              filename: file,
+              error: result.error || 'Upload failed'
+            })
+          }
+        } catch (error) {
+          report.failed++
+          report.failures.push({
+            filename: file,
+            error: error instanceof Error ? error.message : 'Unknown error'
+          })
+        }
+      }
+    } catch (error) {
+      report.failures.push({
+        filename: folderPath,
+        error: error instanceof Error ? error.message : 'Failed to read folder'
+      })
+      report.failed++
+      report.total = 1
+    }
+
+    return report
+  }
+
   private async ensurePhotosCollection(db: any): Promise<void> {
     try {
       const existing = await db.listCollections({ name: 'photos' }).toArray()
@@ -380,6 +606,8 @@ export class PhotoUploadService {
           await db.collection('photos').createIndex({ tags: 1 })
           await db.collection('photos').createIndex({ uploadedAt: -1 })
           await db.collection('photos').createIndex({ filename: 1 }, { unique: true })
+          await db.collection('photos').createIndex({ hash: 1 })
+          await db.collection('photos').createIndex({ originalFilename: 1, size: 1 })
         } catch (e) {
           console.warn('Index creation warning:', e)
         }
