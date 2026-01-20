@@ -64,6 +64,7 @@ export default defineConfig({
 					if (
 						url.startsWith('/api/auth/login') ||
 						url.startsWith('/api/auth/google/') ||
+						url.startsWith('/api/admin/storage') ||
 						url.startsWith('/api/admin/storage-options') ||
 						url.startsWith('/api/owner/storage-options') ||
 						(url.startsWith('/api/albums') && method === 'POST') ||
