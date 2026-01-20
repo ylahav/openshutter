@@ -437,7 +437,7 @@
 											value={getEffectiveColor(colorType)}
 											on:input={(e) => updateColor(colorType, e.target.value)}
 											placeholder="#000000"
-											class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+											class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 										/>
 									</div>
 									<p class="mt-1 text-xs text-gray-500">
@@ -460,7 +460,7 @@
 									value={getEffectiveFont('heading')}
 									on:input={(e) => updateFont('heading', e.target.value)}
 									placeholder="Inter"
-									class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+									class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 								/>
 								<p class="mt-1 text-xs text-gray-500">Default: {activeTemplate.fonts.heading}</p>
 							</div>
@@ -473,7 +473,7 @@
 									value={getEffectiveFont('body')}
 									on:input={(e) => updateFont('body', e.target.value)}
 									placeholder="Inter"
-									class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+									class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 								/>
 								<p class="mt-1 text-xs text-gray-500">Default: {activeTemplate.fonts.body}</p>
 							</div>
@@ -492,7 +492,7 @@
 									value={getEffectiveLayout('maxWidth')}
 									on:input={(e) => updateLayout('maxWidth', e.target.value)}
 									placeholder="1200px"
-									class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+									class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 								/>
 								<p class="mt-1 text-xs text-gray-500">Default: {activeTemplate.layout.maxWidth}</p>
 							</div>
@@ -505,7 +505,7 @@
 									value={getEffectiveLayout('containerPadding')}
 									on:input={(e) => updateLayout('containerPadding', e.target.value)}
 									placeholder="1rem"
-									class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+									class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 								/>
 								<p class="mt-1 text-xs text-gray-500">
 									Default: {activeTemplate.layout.containerPadding}
@@ -520,7 +520,7 @@
 									value={getEffectiveLayout('gridGap')}
 									on:input={(e) => updateLayout('gridGap', e.target.value)}
 									placeholder="1.5rem"
-									class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+									class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 								/>
 								<p class="mt-1 text-xs text-gray-500">Default: {activeTemplate.layout.gridGap}</p>
 							</div>

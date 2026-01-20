@@ -86,15 +86,15 @@ html.dark {
   }
   
   .input {
-    @apply block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm;
+    @apply block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 text-gray-900 bg-white focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm;
   }
   
   .form-input {
-    @apply block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm;
+    @apply block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 text-gray-900 bg-white focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm;
   }
   
   .form-textarea {
-    @apply block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm;
+    @apply block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 text-gray-900 bg-white focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm;
   }
   
   .form-checkbox {
@@ -201,6 +201,32 @@ input, textarea, [contenteditable], .ProseMirror, .ql-editor, .tiptap-editor {
   -ms-user-select: text;
   user-select: text;
   pointer-events: auto;
+}
+
+/* Ensure form elements have proper text colors when they have white/light backgrounds */
+/* This fixes visibility issues when elegant/modern templates apply white text globally */
+/* Target form inputs with standard border-gray-300 styling (typical form inputs) */
+/* Only apply when element doesn't already have explicit text color class */
+input[type="text"][class*="border-gray-300"]:not([class*="text-white"]):not([class*="text-gray-900"]):not([class*="text-black"]),
+input[type="email"][class*="border-gray-300"]:not([class*="text-white"]):not([class*="text-gray-900"]):not([class*="text-black"]),
+input[type="password"][class*="border-gray-300"]:not([class*="text-white"]):not([class*="text-gray-900"]):not([class*="text-black"]),
+input[type="number"][class*="border-gray-300"]:not([class*="text-white"]):not([class*="text-gray-900"]):not([class*="text-black"]),
+input[type="tel"][class*="border-gray-300"]:not([class*="text-white"]):not([class*="text-gray-900"]):not([class*="text-black"]),
+input[type="url"][class*="border-gray-300"]:not([class*="text-white"]):not([class*="text-gray-900"]):not([class*="text-black"]),
+input[type="search"][class*="border-gray-300"]:not([class*="text-white"]):not([class*="text-gray-900"]):not([class*="text-black"]),
+input[type="date"][class*="border-gray-300"]:not([class*="text-white"]):not([class*="text-gray-900"]):not([class*="text-black"]),
+input[type="time"][class*="border-gray-300"]:not([class*="text-white"]):not([class*="text-gray-900"]):not([class*="text-black"]),
+input[type="datetime-local"][class*="border-gray-300"]:not([class*="text-white"]):not([class*="text-gray-900"]):not([class*="text-black"]),
+textarea[class*="border-gray-300"]:not([class*="text-white"]):not([class*="text-gray-900"]):not([class*="text-black"]),
+select[class*="border-gray-300"]:not([class*="text-white"]):not([class*="text-gray-900"]):not([class*="text-black"]) {
+  color: rgb(17 24 39) !important; /* text-gray-900 - override template's text-white */
+  background-color: rgb(255 255 255) !important; /* bg-white */
+}
+
+/* Also ensure option elements in selects have proper colors */
+select[class*="border-gray-300"] option {
+  color: rgb(17 24 39); /* text-gray-900 */
+  background-color: rgb(255 255 255); /* bg-white */
 }
 
 /* Ensure text editors can have context menus */
