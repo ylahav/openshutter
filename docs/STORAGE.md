@@ -38,14 +38,15 @@ OpenShutter supports multiple storage providers for photo and album storage. Thi
 All storage providers are configured through the admin dashboard at `/admin/storage` (admin access required). This is the recommended method as it stores configurations securely in the database and provides a user-friendly interface.
 
 1. **Login as Admin**: Navigate to `http://localhost:4000/login`
-2. **Go to Storage**: Click "Storage" in the admin dashboard
+2. **Go to Storage**: Click "Storage" in the admin dashboard or navigate to `/admin/storage`
 3. **Select Provider**: Choose the storage provider tab you want to configure
 4. **Configure Settings**: Fill in the required credentials and settings
 5. **Test Connection**: Use the "Test Connection" button to verify settings
-6. **Save Configuration**: Click "Save" to store the configuration
+6. **View Tree**: Use the "View Tree" button to browse the folder structure (available for all providers)
+7. **Save Configuration**: Click "Save Configuration" to store the settings
 
 **Storage configurations are stored in MongoDB** and encrypted at rest. The admin dashboard provides:
-- Visual storage tree browsing (for supported providers)
+- Visual storage tree browsing for all providers (Google Drive, AWS S3, Backblaze B2, Wasabi, Local Storage)
 - Connection testing
 - Provider enable/disable toggles
 - Usage monitoring
