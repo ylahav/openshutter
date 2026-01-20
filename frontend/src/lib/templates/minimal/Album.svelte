@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
+	import { afterNavigate } from '$app/navigation';
+	import { browser } from '$app/environment';
 	import { currentLanguage } from '$stores/language';
 	import { MultiLangUtils } from '$utils/multiLang';
 	import AlbumBreadcrumbs from '$lib/components/AlbumBreadcrumbs.svelte';
@@ -18,30 +20,58 @@
 		photos: any[];
 	}
 
+	let alias = $page.params.alias || $page.params.id;
 	let albumData: AlbumData | null = null;
 	let loading = true;
 	let error: string | null = null;
 	let lightboxOpen = false;
 	let lightboxIndex = 0;
+	let isInitialLoad = true;
 
-	$: alias = $page.params.alias || $page.params.id;
+	// React to route parameter changes
+	afterNavigate(({ to, from }) => {
+		if (!browser) return;
+		
+		const newAlias = to?.params?.alias || to?.params?.id;
+		const oldAlias = from?.params?.alias || from?.params?.id;
+		
+		// Only fetch if the alias actually changed (not on initial load)
+		if (newAlias && newAlias !== oldAlias) {
+			alias = newAlias;
+			fetchAlbumData();
+		} else if (isInitialLoad && newAlias) {
+			// Handle initial load
+			alias = newAlias;
+			fetchAlbumData();
+			isInitialLoad = false;
+		}
+	});
 
 	onMount(async () => {
-		if (alias) {
+		if (alias && isInitialLoad) {
 			await fetchAlbumData();
+			isInitialLoad = false;
 		}
 	});
 
 	async function fetchAlbumData() {
-		if (!alias) return;
+		if (!alias || !browser) return;
 		try {
 			loading = true;
-			const res = await fetch(`/api/albums/by-alias/${alias}/data`);
-			if (!res.ok) throw new Error('Album not found');
+			error = null;
+			const res = await fetch(`/api/albums/${encodeURIComponent(alias)}/data?page=1&limit=50&t=${Date.now()}`, {
+				cache: 'no-store'
+			});
+			if (!res.ok) {
+				const errorData = await res.json().catch(() => ({ error: 'Album not found' }));
+				throw new Error(errorData.error || 'Album not found');
+			}
 			const data = await res.json();
 			albumData = data;
+			console.log('Album data loaded:', albumData);
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to fetch album';
+			albumData = null;
 		} finally {
 			loading = false;
 		}
