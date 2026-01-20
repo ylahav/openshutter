@@ -202,11 +202,25 @@
 				if (result.success && result.data) {
 					success = 'Album created successfully!';
 					setTimeout(() => {
-						const role = data?.user?.role || 'guest';
-						const dest =
-							role === 'admin'
-								? `/admin/albums`
-								: '/owner/albums';
+						// Determine redirect destination based on user role
+						const userRole = data?.user?.role;
+						
+						console.log('[handleSubmit] User data:', { 
+							role: userRole, 
+							user: data?.user,
+							fullData: data
+						});
+						
+						// Default to owner albums, but check for admin role explicitly
+						let dest = '/owner/albums';
+						if (userRole === 'admin') {
+							dest = '/admin/albums';
+							console.log('[handleSubmit] Admin user detected, redirecting to admin albums');
+						} else {
+							console.log('[handleSubmit] Non-admin user, redirecting to owner albums');
+						}
+						
+						console.log('[handleSubmit] Redirecting to:', dest);
 						goto(dest);
 					}, 1500);
 				} else {

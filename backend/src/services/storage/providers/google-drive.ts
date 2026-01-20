@@ -605,10 +605,14 @@ If the issue persists, verify your Client ID and Client Secret match your Google
         const response = await this.drive.files.list(listParams)
 
         if (response.data.files && response.data.files.length > 0) {
+          // If multiple folders with same name exist, use the first one
+          // (Google Drive allows multiple folders with the same name in the same parent)
           currentFolderId = response.data.files[0].id
-          console.log(`GoogleDriveService: Found folder "${folderName}" with ID: ${currentFolderId}`)
+          console.log(`GoogleDriveService: Found folder "${folderName}" with ID: ${currentFolderId} (found ${response.data.files.length} folder(s) with this name)`)
         } else {
           console.warn(`GoogleDriveService: Folder "${folderName}" not found in parent ${currentFolderId} (path part ${i + 1}/${pathParts.length})`)
+          console.warn(`GoogleDriveService: Query used: ${query}`)
+          console.warn(`GoogleDriveService: List params:`, JSON.stringify(listParams, null, 2))
           return null
         }
       }
@@ -656,57 +660,147 @@ If the issue persists, verify your Client ID and Client Secret match your Google
             
             let currentParentId = this.getRootFolderId()
             for (const folderName of pathParts) {
-              // Check if folder exists
-              const checkQuery = `'${currentParentId}' in parents and name='${folderName.replace(/'/g, "\\'")}' and mimeType='application/vnd.google-apps.folder' and trashed=false`
-              const checkListParams: any = {
-                q: checkQuery,
-                fields: 'files(id,name)',
-                pageSize: 1
-              }
+              // Check if folder exists - retry logic to handle race conditions
+              let folderFound = false
+              let retries = 0
+              const maxRetries = 3
               
-              // Only add spaces parameter for AppData storage
-              if (this.isAppDataStorage()) {
-                checkListParams.spaces = 'appDataFolder'
-              }
-              
-              const checkResponse = await this.drive.files.list(checkListParams)
-              
-              if (checkResponse.data.files && checkResponse.data.files.length > 0) {
-                currentParentId = checkResponse.data.files[0].id
-                console.log(`GoogleDriveService: Folder "${folderName}" already exists with ID: ${currentParentId}`)
-              } else {
-                // Create folder
-                console.log(`GoogleDriveService: Creating missing folder "${folderName}" in parent ${currentParentId}`)
-                const folderMetadata = {
-                  name: folderName,
-                  mimeType: 'application/vnd.google-apps.folder',
-                  parents: [currentParentId]
+              while (!folderFound && retries < maxRetries) {
+                const checkQuery = `'${currentParentId}' in parents and name='${folderName.replace(/'/g, "\\'")}' and mimeType='application/vnd.google-apps.folder' and trashed=false`
+                const checkListParams: any = {
+                  q: checkQuery,
+                  fields: 'files(id,name)',
+                  pageSize: 1
                 }
-                const createResponse = await this.drive.files.create({
-                  requestBody: folderMetadata,
-                  fields: 'id,name'
-                })
-                currentParentId = createResponse.data.id
-                console.log(`GoogleDriveService: Created folder "${folderName}" with ID: ${currentParentId}`)
+                
+                // Only add spaces parameter for AppData storage
+                if (this.isAppDataStorage()) {
+                  checkListParams.spaces = 'appDataFolder'
+                }
+                
+                const checkResponse = await this.drive.files.list(checkListParams)
+                
+                if (checkResponse.data.files && checkResponse.data.files.length > 0) {
+                  currentParentId = checkResponse.data.files[0].id
+                  console.log(`GoogleDriveService: Folder "${folderName}" found with ID: ${currentParentId}`)
+                  folderFound = true
+                } else {
+                  // Folder doesn't exist, try to create it
+                  if (retries === 0) {
+                    console.log(`GoogleDriveService: Folder "${folderName}" not found, creating...`)
+                  }
+                  
+                  try {
+                    const folderMetadata = {
+                      name: folderName,
+                      mimeType: 'application/vnd.google-apps.folder',
+                      parents: [currentParentId]
+                    }
+                    const createResponse = await this.drive.files.create({
+                      requestBody: folderMetadata,
+                      fields: 'id,name'
+                    })
+                    currentParentId = createResponse.data.id
+                    console.log(`GoogleDriveService: Created folder "${folderName}" with ID: ${currentParentId}`)
+                    folderFound = true
+                  } catch (createError: any) {
+                    // If folder creation fails, it might have been created by another request
+                    // Wait a bit and retry the check
+                    if (createError.code === 409 || createError.status === 409 || 
+                        (createError.message && (createError.message.includes('duplicate') || createError.message.includes('already exists')))) {
+                      console.log(`GoogleDriveService: Folder "${folderName}" may have been created concurrently, retrying check (attempt ${retries + 1}/${maxRetries})...`)
+                      retries++
+                      if (retries < maxRetries) {
+                        // Wait a short time before retrying (exponential backoff)
+                        await new Promise(resolve => setTimeout(resolve, 100 * retries))
+                        continue
+                      }
+                    }
+                    
+                    // If we've exhausted retries or it's a different error, log and handle
+                    console.error(`GoogleDriveService: Failed to create/find folder "${folderName}" in parent ${currentParentId}:`, createError)
+                    console.error(`GoogleDriveService: Create error details:`, {
+                      message: createError.message,
+                      code: createError.code,
+                      status: createError.status,
+                      response: createError.response?.data,
+                      parentId: currentParentId,
+                      folderName: folderName,
+                      storageType: this.config.storageType || 'appdata',
+                      isAppData: this.isAppDataStorage()
+                    })
+                    
+                    // On final retry, try one more check in case folder was created
+                    if (retries >= maxRetries - 1) {
+                      const finalCheck = await this.drive.files.list(checkListParams)
+                      if (finalCheck.data.files && finalCheck.data.files.length > 0) {
+                        currentParentId = finalCheck.data.files[0].id
+                        console.log(`GoogleDriveService: Found folder "${folderName}" on final check with ID: ${currentParentId}`)
+                        folderFound = true
+                        break
+                      }
+                    }
+                    
+                    throw createError // Re-throw to be caught by outer catch
+                  }
+                }
+                
+                retries++
+              }
+              
+              if (!folderFound) {
+                throw new Error(`Failed to create or find folder "${folderName}" after ${maxRetries} attempts`)
               }
             }
             parentFolderId = currentParentId
             console.log(`GoogleDriveService: Successfully created/resolved folder path "${folderPath}" to folder ID: ${parentFolderId}`)
           } catch (createError) {
             console.error(`GoogleDriveService: Failed to create missing folders for path "${folderPath}":`, createError)
-            console.warn(`GoogleDriveService: Falling back to root folder (appDataFolder)`)
-            parentFolderId = this.getRootFolderId()
+            const rootFolderId = this.getRootFolderId()
+            const rootFolderName = this.isAppDataStorage() ? 'appDataFolder' : (rootFolderId === 'root' ? 'root' : `folder ${rootFolderId}`)
+            console.warn(`GoogleDriveService: Falling back to root folder (${rootFolderName})`)
+            parentFolderId = rootFolderId
           }
         }
       } else {
-        console.log(`GoogleDriveService: No folder path provided, using root folder (appDataFolder)`)
+        const rootFolderId = this.getRootFolderId()
+        const rootFolderName = this.isAppDataStorage() ? 'appDataFolder' : (rootFolderId === 'root' ? 'root' : `folder ${rootFolderId}`)
+        console.log(`GoogleDriveService: No folder path provided, using root folder (${rootFolderName})`)
       }
       
-      const fileMetadata = {
+      // Google Drive API has specific fields - filter out custom metadata that conflicts
+      // Store custom metadata in appProperties instead
+      const googleDriveReservedFields = ['name', 'parents', 'size', 'mimeType', 'description', 'starred', 'trashed', 'viewedByMe', 'viewersCanCopyContent', 'writersCanShare']
+      const customMetadata: Record<string, any> = {}
+      const fileMetadata: any = {
         name: filename,
-        parents: [parentFolderId],
-        ...metadata
+        parents: [parentFolderId]
       }
+      
+      // Separate custom metadata from Google Drive reserved fields
+      if (metadata) {
+        for (const [key, value] of Object.entries(metadata)) {
+          if (googleDriveReservedFields.includes(key)) {
+            // Skip reserved fields - they can't be set via metadata
+            console.log(`GoogleDriveService: Skipping reserved field "${key}" from metadata`)
+          } else {
+            // Store custom metadata in appProperties (Google Drive's way to store custom data)
+            customMetadata[key] = value
+          }
+        }
+        
+        // Add custom metadata as appProperties if any exists
+        if (Object.keys(customMetadata).length > 0) {
+          fileMetadata.appProperties = customMetadata
+        }
+      }
+
+      console.log(`GoogleDriveService: Uploading file "${filename}" to parent folder ID: ${parentFolderId}`, {
+        storageType: this.config.storageType || 'appdata',
+        isAppData: this.isAppDataStorage(),
+        fileSize: file.length,
+        mimeType: mimeType
+      })
 
       // Convert Buffer to readable stream for Google Drive API
       const { Readable } = require('stream')
@@ -722,6 +816,8 @@ If the issue persists, verify your Client ID and Client Secret match your Google
         media: media,
         fields: 'id,name,size,webViewLink,webContentLink,createdTime,modifiedTime'
       })
+      
+      console.log(`GoogleDriveService: Successfully uploaded file "${filename}" with ID: ${response.data.id}`)
 
       return {
         provider: this.providerId,
@@ -740,11 +836,26 @@ If the issue persists, verify your Client ID and Client Secret match your Google
         stack: error instanceof Error ? error.stack : undefined,
         code: error.code,
         status: error.status,
-        response: error.response?.data
+        statusText: error.statusText,
+        response: error.response?.data,
+        folderPath: folderPath,
+        storageType: this.config.storageType || 'appdata',
+        isAppData: this.isAppDataStorage(),
+        rootFolderId: this.getRootFolderId()
       })
       
+      // Provide more detailed error message
+      let errorMessage = `Failed to upload file ${filename}`
+      if (error.code === 403 || error.status === 403) {
+        errorMessage += '. Permission denied - check OAuth scopes and folder permissions'
+      } else if (error.code === 404 || error.status === 404) {
+        errorMessage += '. Folder not found - check if the album folder exists'
+      } else if (error.message) {
+        errorMessage += `: ${error.message}`
+      }
+      
       throw new StorageOperationError(
-        `Failed to upload file ${filename}`,
+        errorMessage,
         this.providerId,
         'uploadFile',
         error instanceof Error ? error : undefined
@@ -973,12 +1084,36 @@ If the issue persists, verify your Client ID and Client Secret match your Google
         await this.refreshAccessToken()
       }
 
-      const parentFolderId = parentPath ? await this.getFolderIdByPath(parentPath) || this.getRootFolderId() : this.getRootFolderId()
+      const rootFolderId = this.getRootFolderId()
+      let parentFolderId: string
+      
+      if (parentPath) {
+        // Try to resolve the provided path
+        const resolvedId = await this.getFolderIdByPath(parentPath)
+        parentFolderId = resolvedId || rootFolderId
+        console.log(`GoogleDriveService: Resolved parentPath "${parentPath}" to folder ID: ${parentFolderId}`)
+      } else {
+        // No path provided, use root folder
+        parentFolderId = rootFolderId
+        console.log(`GoogleDriveService: No parentPath provided, using root folder ID: ${parentFolderId}`)
+      }
+      
+      console.log(`GoogleDriveService: Building folder tree`, {
+        parentPath: parentPath || 'root',
+        parentFolderId,
+        rootFolderId,
+        storageType: this.config.storageType || 'appdata',
+        isAppData: this.isAppDataStorage(),
+        configuredFolderId: this.config.folderId,
+        maxDepth
+      })
       
       const buildTree = async (folderId: string, folderPath: string, depth: number): Promise<any> => {
         if (depth > maxDepth) {
           return null // Prevent infinite recursion
         }
+
+        console.log(`GoogleDriveService: Building tree for folder ID: ${folderId}, path: ${folderPath}, depth: ${depth}`)
 
         // List all items in this folder (both files and subfolders)
         let hasMore = true
@@ -994,6 +1129,7 @@ If the issue persists, verify your Client ID and Client Secret match your Google
           }
           
           // Only add spaces parameter for AppData storage
+          // For visible storage, don't add spaces parameter - it will search all of Drive
           if (this.isAppDataStorage()) {
             listParams.spaces = 'appDataFolder'
           }
@@ -1002,7 +1138,23 @@ If the issue persists, verify your Client ID and Client Secret match your Google
             listParams.pageToken = pageToken
           }
 
+          console.log(`GoogleDriveService: Listing files in folder ${folderId}`, {
+            query: listParams.q,
+            hasSpaces: !!listParams.spaces,
+            isAppData: this.isAppDataStorage(),
+            storageType: this.config.storageType || 'appdata',
+            pageToken: pageToken || 'none',
+            folderId: folderId,
+            folderPath: folderPath
+          })
+
           const listResponse = await this.drive.files.list(listParams)
+          
+          console.log(`GoogleDriveService: List response`, {
+            fileCount: listResponse.data.files?.length || 0,
+            hasNextPage: !!listResponse.data.nextPageToken,
+            files: listResponse.data.files?.slice(0, 5).map((f: any) => ({ id: f.id, name: f.name, mimeType: f.mimeType })) || []
+          })
           
           if (listResponse.data.files && listResponse.data.files.length > 0) {
             items.push(...listResponse.data.files)
@@ -1011,6 +1163,11 @@ If the issue persists, verify your Client ID and Client Secret match your Google
           pageToken = listResponse.data.nextPageToken
           hasMore = !!pageToken
         }
+        
+        console.log(`GoogleDriveService: Collected ${items.length} items from folder ${folderId}`, {
+          folders: items.filter(item => item.mimeType === 'application/vnd.google-apps.folder').length,
+          files: items.filter(item => item.mimeType !== 'application/vnd.google-apps.folder').length
+        })
 
         // Separate folders and files
         const folders = items.filter(item => item.mimeType === 'application/vnd.google-apps.folder')
@@ -1027,12 +1184,22 @@ If the issue persists, verify your Client ID and Client Secret match your Google
             path: `${folderPath || ''}/${file.name}`.replace(/^\//, ''),
             size: parseInt(file.size || '0'),
             mimeType: file.mimeType,
-            createdAt: file.createdTime ? new Date(file.createdTime) : null,
-            updatedAt: file.modifiedTime ? new Date(file.modifiedTime) : null,
+            createdAt: file.createdTime ? file.createdTime : null,
+            updatedAt: file.modifiedTime ? file.modifiedTime : null,
           })),
           totalFiles: files.length,
           totalFolders: folders.length
         }
+        
+        // Log tree structure for debugging
+        console.log(`GoogleDriveService: Tree structure built`, {
+          path: tree.path,
+          folderId: tree.folderId,
+          foldersCount: tree.folders.length,
+          filesCount: tree.files.length,
+          totalFolders: tree.totalFolders,
+          totalFiles: tree.totalFiles
+        })
 
         // Recursively build subfolder trees
         for (const folder of folders) {
@@ -1048,8 +1215,42 @@ If the issue persists, verify your Client ID and Client Secret match your Google
         return tree
       }
 
-      return await buildTree(parentFolderId, parentPath || '/', 0)
+      const result = await buildTree(parentFolderId, parentPath || '/', 0)
+      
+      // Ensure we always return a valid tree structure, even if empty
+      if (!result) {
+        console.warn(`GoogleDriveService: buildTree returned null, creating empty tree structure`)
+        return {
+          path: parentPath || '/',
+          folderId: parentFolderId,
+          folders: [],
+          files: [],
+          totalFiles: 0,
+          totalFolders: 0
+        }
+      }
+      
+      console.log(`GoogleDriveService: Folder tree built successfully`, {
+        path: result?.path,
+        folderId: result?.folderId,
+        foldersCount: result?.folders?.length || 0,
+        filesCount: result?.files?.length || 0,
+        folderCount: result?.totalFolders || 0,
+        fileCount: result?.totalFiles || 0
+      })
+      return result
     } catch (error) {
+      console.error(`GoogleDriveService: Failed to get folder tree:`, error)
+      console.error(`GoogleDriveService: Error details:`, {
+        parentPath: parentPath || 'root',
+        storageType: this.config.storageType || 'appdata',
+        isAppData: this.isAppDataStorage(),
+        error: error instanceof Error ? {
+          message: error.message,
+          stack: error.stack,
+          name: error.name
+        } : error
+      })
       throw new StorageOperationError(
         `Failed to get folder tree from ${parentPath || 'root'}`,
         this.providerId,

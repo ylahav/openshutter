@@ -521,6 +521,32 @@ export class StorageAdminController {
 
       const tree = await (provider as any).getFolderTree(path, depth);
       
+      console.log(`StorageAdminController: Tree result for ${providerId}`, {
+        hasTree: !!tree,
+        path: tree?.path,
+        foldersCount: tree?.folders?.length || 0,
+        filesCount: tree?.files?.length || 0,
+        totalFolders: tree?.totalFolders || 0,
+        totalFiles: tree?.totalFiles || 0
+      });
+      
+      // Ensure we always return a valid structure
+      if (!tree) {
+        console.warn(`StorageAdminController: getFolderTree returned null/undefined for ${providerId}`);
+        return {
+          success: true,
+          providerId,
+          data: {
+            path: path || '/',
+            folderId: null,
+            folders: [],
+            files: [],
+            totalFiles: 0,
+            totalFolders: 0
+          },
+        };
+      }
+      
       return {
         success: true,
         providerId,

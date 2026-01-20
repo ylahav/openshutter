@@ -86,6 +86,38 @@ export class AlbumsAdminController {
 					parentPath || undefined
 				);
 				console.log('Storage folder created:', storageFolderResult);
+				
+				// Create thumbnail subfolders (hero, large, medium, small, micro) for the album
+				// This ensures all photos in the album share the same thumbnail folders
+				// Only create these for Google Drive to avoid duplicate folder issues
+				if (createData.storageProvider === 'google-drive' && storagePath) {
+					try {
+						const { ThumbnailGenerator } = await import('../services/thumbnail-generator');
+						const storageService = await storageManager.getProvider(createData.storageProvider as any);
+						const thumbnailSizes = ['hero', 'large', 'medium', 'small', 'micro'];
+						
+						for (const sizeName of thumbnailSizes) {
+							try {
+								const sizeConfig = ThumbnailGenerator.getThumbnailSize(sizeName as any);
+								// Create thumbnail folder inside the album folder
+								await storageService.createFolder(sizeConfig.folder, storagePath);
+								console.log(`Created thumbnail folder: ${storagePath}/${sizeConfig.folder}`);
+							} catch (folderError: any) {
+								// If folder already exists, that's fine - log and continue
+								if (folderError.message && folderError.message.includes('already exists')) {
+									console.log(`Thumbnail folder ${sizeName} already exists, skipping creation`);
+								} else {
+									// Log but don't fail album creation if thumbnail folder creation fails
+									// The folders will be created automatically during photo upload if needed
+									console.warn(`Failed to create thumbnail folder ${sizeName}:`, folderError.message);
+								}
+							}
+						}
+					} catch (thumbnailError: any) {
+						// Don't fail album creation if thumbnail folder setup fails
+						console.warn('Failed to create thumbnail folders (will be created on first photo upload):', thumbnailError.message);
+					}
+				}
 			} catch (storageError: any) {
 				console.error('Failed to create storage folder:', storageError);
 				throw new BadRequestException(

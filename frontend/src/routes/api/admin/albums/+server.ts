@@ -11,7 +11,7 @@ export const GET: RequestHandler = async ({ url, locals, cookies }) => {
 
 		const searchParams = url.searchParams;
 
-		// Build query string
+		// Build query string (ignore cache-busting parameter 't')
 		const queryParams = new URLSearchParams();
 		const parentId = searchParams.get('parentId');
 		const level = searchParams.get('level');

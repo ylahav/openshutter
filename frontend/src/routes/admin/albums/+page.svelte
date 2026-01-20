@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { afterNavigate } from '$app/navigation';
+	import { page } from '$app/stores';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 	import AlbumTree from '$lib/components/AlbumTree.svelte';
 	import { MultiLangUtils } from '$lib/utils/multiLang';
@@ -61,6 +63,15 @@
 		albumName: '',
 		isDeleting: false,
 	};
+
+	// Reload albums when navigating to this page (handles both initial mount and navigation)
+	afterNavigate(async () => {
+		// Only reload if we're on the admin albums page
+		if ($page.url.pathname === '/admin/albums') {
+			console.log('[afterNavigate] Navigating to admin albums page, reloading albums...');
+			await loadAlbums();
+		}
+	});
 
 	onMount(async () => {
 		console.log('[onMount] Starting album load...');
@@ -126,7 +137,14 @@
 		error = '';
 		try {
 			// Use admin endpoint to get ALL albums (including private ones)
-			const response = await fetch('/api/admin/albums');
+			// Add cache-busting timestamp to ensure fresh data
+			const cacheBuster = new Date().getTime();
+			const response = await fetch(`/api/admin/albums?t=${cacheBuster}`, {
+				cache: 'no-store',
+				headers: {
+					'Cache-Control': 'no-cache'
+				}
+			});
 			
 			if (!response.ok) {
 				const errorText = await response.text().catch(() => 'Failed to fetch albums');

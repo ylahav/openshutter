@@ -85,6 +85,24 @@ export class PhotoUploadService {
       let albumPath = ''
       if (album && album.storagePath) {
         albumPath = album.storagePath
+        console.log(`PhotoUploadService: Using album path: ${albumPath} for provider: ${storageProvider}`)
+        
+        // Verify album folder exists (especially important for visible storage)
+        if (storageProvider === 'google-drive') {
+          try {
+            const folderExists = await storageService.folderExists(albumPath)
+            if (!folderExists) {
+              console.warn(`PhotoUploadService: Album folder does not exist at path: ${albumPath}, uploadFile will attempt to create it`)
+            } else {
+              console.log(`PhotoUploadService: Album folder verified at path: ${albumPath}`)
+            }
+          } catch (error) {
+            console.warn(`PhotoUploadService: Could not verify album folder existence:`, error instanceof Error ? error.message : String(error))
+            // Continue anyway - uploadFile will handle folder creation
+          }
+        }
+      } else {
+        console.log(`PhotoUploadService: No album path, uploading to root`)
       }
 
       // Compress original image for web delivery
@@ -112,33 +130,66 @@ export class PhotoUploadService {
       
       // Upload each thumbnail size
       for (const [sizeName, buffer] of Object.entries(thumbnailBuffers)) {
+        // Declare variables outside try block so they're accessible in catch
+        const sizeConfig = ThumbnailGenerator.getThumbnailSize(sizeName as any)
+        const thumbnailFilename = `${sizeName}-${filename}`
+        
+        // Build size-specific folder path
+        // Use the album path + thumbnail folder name (e.g., /album-name/hero)
+        // These folders should already exist (created when album was created)
+        const sizeFolderPath = albumPath ? `${albumPath}/${sizeConfig.folder}` : sizeConfig.folder
+        
         try {
-          const sizeConfig = ThumbnailGenerator.getThumbnailSize(sizeName as any)
-          const thumbnailFilename = `${sizeName}-${filename}`
-          
-          // Create size-specific folder
-          let sizeFolderPath = albumPath
-          if (albumPath) {
+          // Verify the thumbnail folder exists before uploading (especially for Google Drive)
+          // This ensures we're using the correct existing folder, not creating duplicates
+          if (storageProvider === 'google-drive' && albumPath) {
             try {
-              await storageService.createFolder(sizeConfig.folder, albumPath)
-              sizeFolderPath = `${albumPath}/${sizeConfig.folder}`
-            } catch (error) {
-              console.warn(`PhotoUploadService: Failed to create ${sizeConfig.folder} folder:`, error)
+              const folderExists = await storageService.folderExists(sizeFolderPath)
+              if (!folderExists) {
+                console.warn(`PhotoUploadService: Thumbnail folder ${sizeFolderPath} does not exist, uploadFile will create it`)
+              } else {
+                console.log(`PhotoUploadService: Thumbnail folder ${sizeFolderPath} verified`)
+              }
+            } catch (checkError) {
+              console.warn(`PhotoUploadService: Could not verify thumbnail folder existence:`, checkError instanceof Error ? checkError.message : String(checkError))
+              // Continue - uploadFile will handle folder creation if needed
             }
           }
           
-          // Upload thumbnail
+          // Upload thumbnail - uploadFile will use existing folder or create if missing
+          // Note: Don't pass 'size' in metadata as it conflicts with Google Drive API's reserved 'size' field
+          console.log(`PhotoUploadService: Uploading ${sizeName} thumbnail (${(buffer.length / 1024).toFixed(2)}KB) to path: ${sizeFolderPath || 'root'}`)
           const thumbnailResult = await storageService.uploadFile(
             buffer,
             thumbnailFilename,
             'image/jpeg',
             sizeFolderPath,
-            { originalFile: filename, size: sizeName }
+            { 
+              originalFile: filename, 
+              thumbnailSize: sizeName  // Use 'thumbnailSize' instead of 'size' to avoid conflict
+            }
           )
           
+          console.log(`PhotoUploadService: Successfully uploaded ${sizeName} thumbnail:`, thumbnailResult.path)
           thumbnails[sizeName] = `/api/storage/serve/${storageProvider}/${encodeURIComponent(thumbnailResult.path)}`
         } catch (error) {
-          console.warn(`PhotoUploadService: Failed to upload ${sizeName} thumbnail:`, error)
+          console.error(`PhotoUploadService: Failed to upload ${sizeName} thumbnail:`, error)
+          console.error(`PhotoUploadService: Error details:`, {
+            sizeName,
+            thumbnailFilename,
+            sizeFolderPath,
+            albumPath,
+            storageProvider,
+            error: error instanceof Error ? {
+              message: error.message,
+              stack: error.stack,
+              name: error.name,
+              // Check if it's a StorageOperationError with more details
+              ...(error as any).details ? { details: (error as any).details } : {}
+            } : error
+          })
+          // Continue with other thumbnails even if one fails
+          // This allows the photo to be uploaded even if some thumbnails fail
         }
       }
       

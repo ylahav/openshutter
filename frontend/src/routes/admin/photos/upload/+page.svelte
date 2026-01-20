@@ -2,8 +2,6 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import Header from '$lib/components/Header.svelte';
-	import Footer from '$lib/components/Footer.svelte';
 	import { MultiLangUtils } from '$lib/utils/multiLang';
 	import { currentLanguage } from '$stores/language';
 
@@ -244,10 +242,7 @@
 	<title>Upload Photos - Admin</title>
 </svelte:head>
 
-<div class="min-h-screen bg-gray-50">
-	<Header />
-
-	<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 		<!-- Header -->
 		<div class="flex items-center justify-between mb-8">
 			<div>
@@ -441,6 +436,3 @@
 			</div>
 		{/if}
 	</div>
-
-	<Footer />
-</div>
