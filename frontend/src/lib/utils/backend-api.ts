@@ -98,13 +98,36 @@ export async function backendRequest(
 		});
 	}
 
-	const response = await fetch(url, {
-		...options,
-		headers: finalHeaders,
-	});
+	let response: Response;
+	try {
+		response = await fetch(url, {
+			...options,
+			headers: finalHeaders,
+		});
+	} catch (fetchError: any) {
+		// Handle network errors (connection refused, timeout, etc.)
+		const errorMessage = fetchError?.message || String(fetchError);
+		console.error('[Backend API] Network error:', {
+			url,
+			error: errorMessage
+		});
+		
+		// Create a mock error response for network errors
+		const errorResponse = new Response(
+			JSON.stringify({ 
+				error: `Network error: ${errorMessage}. Check if backend is running on ${BACKEND_URL}` 
+			}),
+			{ 
+				status: 503,
+				statusText: 'Service Unavailable',
+				headers: { 'Content-Type': 'application/json' }
+			}
+		);
+		return errorResponse;
+	}
 
-	// Log response status in production for debugging
-	if (process.env.NODE_ENV === 'production' && !response.ok) {
+	// Log response status for debugging (both dev and production)
+	if (!response.ok) {
 		const errorText = await response.clone().text().catch(() => 'Unable to read error');
 		console.error('[Backend API] Error response:', {
 			url,

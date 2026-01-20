@@ -46,20 +46,36 @@
 		error = '';
 		try {
 			const response = await fetch('/api/admin/templates');
-			if (!response.ok) {
-				const errorData = await response.json().catch(() => ({}));
-				throw new Error(errorData.error || 'Failed to load templates');
-			}
 			const result = await response.json();
+			
+			if (!response.ok) {
+				// Handle error response
+				const errorMsg = result.error || result.message || `HTTP ${response.status}: ${response.statusText}`;
+				throw new Error(errorMsg);
+			}
+			
 			// Handle both wrapped {success, data} and direct array formats
 			let loadedTemplates: TemplateConfig[] = [];
-			if (result.success && Array.isArray(result.data)) {
-				loadedTemplates = result.data;
+			if (result.success !== undefined) {
+				// Wrapped format: {success: true, data: [...]}
+				if (result.success && Array.isArray(result.data)) {
+					loadedTemplates = result.data;
+				} else if (!result.success) {
+					throw new Error(result.error || result.message || 'Failed to load templates');
+				}
 			} else if (Array.isArray(result)) {
+				// Direct array format
 				loadedTemplates = result;
+			} else {
+				throw new Error('Invalid response format from server');
 			}
+			
 			// Filter out 'default' template as it's a duplicate of 'minimal'
 			templates = loadedTemplates.filter((t) => t.templateName !== 'default');
+			
+			if (templates.length === 0) {
+				error = 'No templates found. Please check backend configuration.';
+			}
 		} catch (err) {
 			console.error('Error loading templates:', err);
 			error = `Failed to load templates: ${err instanceof Error ? err.message : 'Unknown error'}`;
