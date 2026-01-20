@@ -46,11 +46,14 @@ export interface SiteConfig {
     headerConfig?: {
       showLogo?: boolean
       showSiteTitle?: boolean
+      showMenu?: boolean
       menu?: { labelKey?: string; label?: string; href: string }[]
       enableThemeToggle?: boolean
       enableLanguageSelector?: boolean
+      showLanguageSelector?: boolean
       showGreeting?: boolean
       showAuthButtons?: boolean
+      showTemplateSelector?: boolean
     }
   }
   seo: {

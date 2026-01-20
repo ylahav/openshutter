@@ -279,6 +279,66 @@ OpenShutter includes three demo templates:
 
 ---
 
+## Header Configuration
+
+The header component supports flexible configuration through `siteConfig.template.headerConfig`. You can control the visibility of header elements:
+
+### Configuration Options
+
+```typescript
+headerConfig?: {
+  showLogo?: boolean              // Show/hide logo (default: true)
+  showSiteTitle?: boolean         // Show/hide site title (default: true)
+  showMenu?: boolean              // Show/hide navigation menu (default: true)
+  showTemplateSelector?: boolean  // Show/hide template selector (default: true)
+  showLanguageSelector?: boolean  // Show/hide language selector (default: true)
+  enableLanguageSelector?: boolean // Legacy alias for showLanguageSelector
+  menu?: {                        // Custom menu items (optional)
+    labelKey?: string
+    label?: string
+    href: string
+  }[]
+  enableThemeToggle?: boolean     // Theme toggle (future feature)
+  showGreeting?: boolean          // User greeting (future feature)
+  showAuthButtons?: boolean       // Auth buttons visibility (future feature)
+}
+```
+
+### Default Behavior
+
+- All elements are **shown by default** (`true`) if not specified
+- Set any flag to `false` to hide that element
+- The configuration applies to all template headers (default, modern, minimal, elegant)
+- Header gracefully handles undefined configurations (defaults to showing all elements)
+
+### Example Configuration
+
+```json
+{
+  "template": {
+    "headerConfig": {
+      "showLogo": true,
+      "showSiteTitle": true,
+      "showMenu": false,
+      "showTemplateSelector": true,
+      "showLanguageSelector": true
+    }
+  }
+}
+```
+
+This configuration would:
+- Show logo and site title
+- Hide the navigation menu
+- Show template and language selectors
+
+### Implementation Notes
+
+- Header components use reactive statements to respect configuration changes
+- Configuration is loaded from `siteConfigData` store
+- All header components (main and template-specific) respect these settings
+- The header handles undefined configurations gracefully by defaulting to showing elements
+
 ## Template Updates
 
 ### January 2025
@@ -291,5 +351,6 @@ OpenShutter includes three demo templates:
 - **Template switcher components**: Added `HeaderTemplateSwitcher`, `FooterTemplateSwitcher`, and `BodyTemplateWrapper` for dynamic template loading
 - **Enhanced visual differences**: Each template now has distinct styling across all page elements
 - **Fixed dropdown z-index issues**: Language and template selector dropdowns now properly display above content in all templates
+- **Flexible Header Configuration**: Added configurable header visibility controls for logo, site title, menu, template selector, and language selector
 
 Last updated: January 2025

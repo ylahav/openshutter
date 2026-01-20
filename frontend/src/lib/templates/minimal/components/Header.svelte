@@ -11,7 +11,13 @@
 
 	const year = new Date().getFullYear();
 
-	$: showTemplateSelector = $siteConfigData?.template?.headerConfig?.showTemplateSelector !== false;
+	const headerConfig = derived(siteConfigData, ($config) => $config?.template?.headerConfig ?? {});
+	
+	$: showLogo = ($headerConfig?.showLogo ?? true) !== false;
+	$: showSiteTitle = ($headerConfig?.showSiteTitle ?? true) !== false;
+	$: showMenu = ($headerConfig?.showMenu ?? true) !== false;
+	$: showTemplateSelector = ($headerConfig?.showTemplateSelector ?? true) !== false;
+	$: showLanguageSelector = (($headerConfig?.showLanguageSelector ?? $headerConfig?.enableLanguageSelector) ?? true) !== false;
 
 	const title = derived(
 		[siteConfigData, currentLanguage],
@@ -37,76 +43,86 @@
 		<div class="flex justify-between items-center h-16">
 			<!-- Logo and title -->
 			<div class="flex items-center space-x-3">
-				{#if $logo}
-					<img
-						src={$logo}
-						alt={$title}
-						class="w-10 h-10 object-contain shrink-0"
-					/>
-				{:else}
-					<div class="w-10 h-10 bg-black rounded flex items-center justify-center shrink-0">
-						<svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="1.5"
-								d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
-							/>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="1.5"
-								d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
-							/>
-						</svg>
-					</div>
+				{#if showLogo}
+					{#if $logo}
+						<img
+							src={$logo}
+							alt={$title}
+							class="w-10 h-10 object-contain shrink-0"
+						/>
+					{:else}
+						<div class="w-10 h-10 bg-black rounded flex items-center justify-center shrink-0">
+							<svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="1.5"
+									d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
+								/>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="1.5"
+									d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
+								/>
+							</svg>
+						</div>
+					{/if}
 				{/if}
 
-				<div class="flex flex-col">
-					<a href="/" class="text-xl font-light text-black hover:text-gray-600 transition-colors tracking-tight">
-						{$title}
-					</a>
-				</div>
+				{#if showSiteTitle}
+					<div class="flex flex-col">
+						<a href="/" class="text-xl font-light text-black hover:text-gray-600 transition-colors tracking-tight">
+							{$title}
+						</a>
+					</div>
+				{/if}
 			</div>
 
 			<!-- Navigation -->
-			<nav class="hidden md:flex items-center gap-6 text-sm text-black">
-				<a href="/" class="hover:text-gray-600 font-light">{$t('navigation.home')}</a>
-				<a href="/albums" class="hover:text-gray-600 font-light">{$t('navigation.albums')}</a>
-				<a href="/about" class="hover:text-gray-600 font-light">About</a>
-				<a href="/search" class="hover:text-gray-600 font-light">{$t('navigation.search')}</a>
+			{#if showMenu || showTemplateSelector || showLanguageSelector}
+				<nav class="hidden md:flex items-center gap-6 text-sm text-black">
+					{#if showMenu}
+						<a href="/" class="hover:text-gray-600 font-light">{$t('navigation.home')}</a>
+						<a href="/albums" class="hover:text-gray-600 font-light">{$t('navigation.albums')}</a>
+						<a href="/about" class="hover:text-gray-600 font-light">About</a>
+						<a href="/search" class="hover:text-gray-600 font-light">{$t('navigation.search')}</a>
 
-				{#if $auth.authenticated && $auth.user}
-					{#if $auth.user.role === 'admin'}
-						<a href="/admin" class="hover:text-gray-600 font-light">{$t('navigation.admin')}</a>
-					{:else if $auth.user.role === 'owner'}
-						<a href="/owner" class="hover:text-gray-600 font-light">{$t('header.myGallery')}</a>
+						{#if $auth.authenticated && $auth.user}
+							{#if $auth.user.role === 'admin'}
+								<a href="/admin" class="hover:text-gray-600 font-light">{$t('navigation.admin')}</a>
+							{:else if $auth.user.role === 'owner'}
+								<a href="/owner" class="hover:text-gray-600 font-light">{$t('header.myGallery')}</a>
+							{/if}
+							<span class="text-gray-400">|</span>
+							<span class="text-gray-600 font-light">{$auth.user.name || $auth.user.email}</span>
+							<button
+								on:click={handleLogout}
+								class="hover:text-gray-600 text-black font-light"
+								type="button"
+							>
+								{$t('header.logout')}
+							</button>
+						{:else}
+							<a href="/login" class="hover:text-gray-600 font-light">{$t('auth.signIn')}</a>
+						{/if}
 					{/if}
-					<span class="text-gray-400">|</span>
-					<span class="text-gray-600 font-light">{$auth.user.name || $auth.user.email}</span>
-					<button
-						on:click={handleLogout}
-						class="hover:text-gray-600 text-black font-light"
-						type="button"
-					>
-						{$t('header.logout')}
-					</button>
-				{:else}
-					<a href="/login" class="hover:text-gray-600 font-light">{$t('auth.signIn')}</a>
-				{/if}
 
-				<!-- Template selector (if enabled) -->
-				{#if showTemplateSelector}
-					<div class="ml-4">
-						<TemplateSelector compact={true} />
-					</div>
-				{/if}
+					<!-- Template selector (if enabled) -->
+					{#if showTemplateSelector}
+						<div class="ml-4">
+							<TemplateSelector compact={true} />
+						</div>
+					{/if}
 
-				<!-- Language selector -->
-				<div class="ml-6">
-					<LanguageSelector compact={true} />
-				</div>
-			</nav>
+					<!-- Language selector (if enabled) -->
+					{#if showLanguageSelector}
+						<div class="ml-6">
+							<LanguageSelector compact={true} />
+						</div>
+					{/if}
+				</nav>
+			{/if}
 		</div>
 	</div>
 </header>
