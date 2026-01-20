@@ -21,13 +21,9 @@
 
 	const logo = derived(siteConfigData, ($config) => $config?.logo ?? '');
 
-	// Refresh site config when header mounts to ensure language selector has latest data
 	onMount(() => {
-		// Only refresh if config is not loading and we're not on login page
 		if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
-			siteConfig.load().catch(() => {
-				// Silently fail - config refresh is not critical
-			});
+			siteConfig.load().catch(() => {});
 		}
 	});
 
@@ -36,7 +32,7 @@
 	}
 </script>
 
-<header class="bg-white shadow-sm border-b border-gray-200">
+<header class="bg-white border-b border-black sticky top-0 z-50">
 	<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 		<div class="flex justify-between items-center h-16">
 			<!-- Logo and title -->
@@ -48,18 +44,18 @@
 						class="w-10 h-10 object-contain shrink-0"
 					/>
 				{:else}
-					<div class="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center shrink-0">
+					<div class="w-10 h-10 bg-black rounded flex items-center justify-center shrink-0">
 						<svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path
 								stroke-linecap="round"
 								stroke-linejoin="round"
-								stroke-width="2"
+								stroke-width="1.5"
 								d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
 							/>
 							<path
 								stroke-linecap="round"
 								stroke-linejoin="round"
-								stroke-width="2"
+								stroke-width="1.5"
 								d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
 							/>
 						</svg>
@@ -67,36 +63,36 @@
 				{/if}
 
 				<div class="flex flex-col">
-					<a href="/" class="text-xl font-bold text-gray-900 hover:text-primary-600 transition-colors">
+					<a href="/" class="text-xl font-light text-black hover:text-gray-600 transition-colors tracking-tight">
 						{$title}
 					</a>
 				</div>
 			</div>
 
-			<!-- Simple nav placeholder (we'll enhance later) -->
-			<nav class="hidden md:flex items-center gap-4 text-sm text-gray-600">
-				<a href="/" class="hover:text-gray-900">{$t('navigation.home')}</a>
-				<a href="/albums" class="hover:text-gray-900">{$t('navigation.albums')}</a>
-				<a href="/about" class="hover:text-gray-900">About</a>
-				<a href="/search" class="hover:text-gray-900">{$t('navigation.search')}</a>
+			<!-- Navigation -->
+			<nav class="hidden md:flex items-center gap-6 text-sm text-black">
+				<a href="/" class="hover:text-gray-600 font-light">{$t('navigation.home')}</a>
+				<a href="/albums" class="hover:text-gray-600 font-light">{$t('navigation.albums')}</a>
+				<a href="/about" class="hover:text-gray-600 font-light">About</a>
+				<a href="/search" class="hover:text-gray-600 font-light">{$t('navigation.search')}</a>
 
 				{#if $auth.authenticated && $auth.user}
 					{#if $auth.user.role === 'admin'}
-						<a href="/admin" class="hover:text-gray-900 font-medium text-primary-600">{$t('navigation.admin')}</a>
+						<a href="/admin" class="hover:text-gray-600 font-light">{$t('navigation.admin')}</a>
 					{:else if $auth.user.role === 'owner'}
-						<a href="/owner" class="hover:text-gray-900 font-medium text-primary-600">{$t('header.myGallery')}</a>
+						<a href="/owner" class="hover:text-gray-600 font-light">{$t('header.myGallery')}</a>
 					{/if}
 					<span class="text-gray-400">|</span>
-					<span class="text-gray-500">{$auth.user.name || $auth.user.email}</span>
+					<span class="text-gray-600 font-light">{$auth.user.name || $auth.user.email}</span>
 					<button
 						on:click={handleLogout}
-						class="hover:text-gray-900 text-gray-600"
+						class="hover:text-gray-600 text-black font-light"
 						type="button"
 					>
 						{$t('header.logout')}
 					</button>
 				{:else}
-					<a href="/login" class="hover:text-gray-900">{$t('auth.signIn')}</a>
+					<a href="/login" class="hover:text-gray-600 font-light">{$t('auth.signIn')}</a>
 				{/if}
 
 				<!-- Template selector (if enabled) -->
@@ -106,7 +102,7 @@
 					</div>
 				{/if}
 
-				<!-- Language selector on the right -->
+				<!-- Language selector -->
 				<div class="ml-6">
 					<LanguageSelector compact={true} />
 				</div>

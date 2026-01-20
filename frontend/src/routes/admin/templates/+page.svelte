@@ -47,10 +47,19 @@
 		try {
 			const response = await fetch('/api/admin/templates');
 			if (!response.ok) {
-				throw new Error('Failed to load templates');
+				const errorData = await response.json().catch(() => ({}));
+				throw new Error(errorData.error || 'Failed to load templates');
 			}
-			const data = await response.json();
-			templates = Array.isArray(data) ? data : [];
+			const result = await response.json();
+			// Handle both wrapped {success, data} and direct array formats
+			let loadedTemplates: TemplateConfig[] = [];
+			if (result.success && Array.isArray(result.data)) {
+				loadedTemplates = result.data;
+			} else if (Array.isArray(result)) {
+				loadedTemplates = result;
+			}
+			// Filter out 'default' template as it's a duplicate of 'minimal'
+			templates = loadedTemplates.filter((t) => t.templateName !== 'default');
 		} catch (err) {
 			console.error('Error loading templates:', err);
 			error = `Failed to load templates: ${err instanceof Error ? err.message : 'Unknown error'}`;

@@ -51,6 +51,7 @@ export interface SiteConfig {
       enableLanguageSelector?: boolean
       showGreeting?: boolean
       showAuthButtons?: boolean
+      showTemplateSelector?: boolean
     }
   }
   seo: {

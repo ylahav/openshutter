@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { SUPPORTED_LANGUAGES, type LanguageCode } from '$types/multi-lang';
 	import { currentLanguage, setLanguage } from '$stores/language';
 	import { siteConfigData } from '$stores/siteConfig';
@@ -10,6 +10,8 @@
 	export let compact = false;
 
 	let isOpen = false;
+	let buttonElement: HTMLButtonElement | null = null;
+	let dropdownStyle = '';
 
 	// Derived data - use reactive $ prefix for proper reactivity
 	$: config = $siteConfigData;
@@ -34,16 +36,59 @@
 
 	function toggle() {
 		isOpen = !isOpen;
+		if (isOpen && buttonElement) {
+			updateDropdownPosition();
+		}
 	}
 
 	function close() {
 		isOpen = false;
 	}
+
+	function updateDropdownPosition() {
+		if (!buttonElement) return;
+		const rect = buttonElement.getBoundingClientRect();
+		const dropdownWidth = 192; // w-48 = 12rem = 192px
+		const dropdownHeight = 200; // approximate height
+		const right = window.innerWidth - rect.right;
+		let top = rect.bottom + 4; // mt-1 = 4px
+		
+		// If dropdown would go off bottom of screen, position it above the button
+		if (top + dropdownHeight > window.innerHeight && rect.top > dropdownHeight) {
+			top = rect.top - dropdownHeight - 4;
+		}
+		
+		dropdownStyle = `position: fixed; top: ${top}px; right: ${right}px; width: ${dropdownWidth}px; z-index: 9999;`;
+	}
+
+	$: if (isOpen) {
+		updateDropdownPosition();
+	}
+
+	let resizeHandler: (() => void) | null = null;
+
+	onMount(() => {
+		resizeHandler = () => {
+			if (isOpen) {
+				updateDropdownPosition();
+			}
+		};
+		window.addEventListener('resize', resizeHandler);
+		window.addEventListener('scroll', resizeHandler, true);
+	});
+
+	onDestroy(() => {
+		if (resizeHandler) {
+			window.removeEventListener('resize', resizeHandler);
+			window.removeEventListener('scroll', resizeHandler, true);
+		}
+	});
 </script>
 
 <div class={`relative ${className}`}>
 	<!-- Current Language Display -->
 	<button
+		bind:this={buttonElement}
 		type="button"
 		on:click={toggle}
 		class={`
@@ -87,7 +132,8 @@
 	{#if isOpen}
 		<!-- Backdrop -->
 		<div
-			class="fixed inset-0 z-10"
+			class="fixed inset-0"
+			style="z-index: 9998;"
 			role="button"
 			tabindex="-1"
 			on:click={close}
@@ -95,7 +141,7 @@
 		></div>
 
 		<!-- Dropdown Menu -->
-		<div class="absolute right-0 mt-1 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-20">
+		<div class="bg-white border border-gray-200 rounded-md shadow-lg" style={dropdownStyle}>
 			<ul class="py-1">
 				{#each availableLanguages as language}
 					{@const isSelected = language.code === lang}

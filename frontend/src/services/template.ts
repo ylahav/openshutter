@@ -238,13 +238,13 @@ export class TemplateService {
         visibility: { hero: true, languageSelector: true, authButtons: true, footerMenu: true },
         pages: { home: 'pages/Home.tsx', gallery: 'pages/Gallery.tsx', album: 'pages/Album.tsx', search: 'pages/Search.tsx' },
       },
-      'fancy': {
-        templateName: 'fancy',
-        displayName: 'Fancy',
+      'elegant': {
+        templateName: 'elegant',
+        displayName: 'Elegant',
         description: 'Elegant and sophisticated design',
         version: '1.0.0',
         author: 'OpenShutter',
-        thumbnail: '/templates/fancy/thumbnail.jpg',
+        thumbnail: '/templates/elegant/thumbnail.jpg',
         category: 'elegant',
         features: { responsive: true, darkMode: true, animations: true, seoOptimized: true },
         colors: { primary: '#8b5cf6', secondary: '#a78bfa', accent: '#f59e0b', background: '#ffffff', text: '#1f2937', muted: '#6b7280' },

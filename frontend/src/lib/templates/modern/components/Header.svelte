@@ -21,13 +21,9 @@
 
 	const logo = derived(siteConfigData, ($config) => $config?.logo ?? '');
 
-	// Refresh site config when header mounts to ensure language selector has latest data
 	onMount(() => {
-		// Only refresh if config is not loading and we're not on login page
 		if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
-			siteConfig.load().catch(() => {
-				// Silently fail - config refresh is not critical
-			});
+			siteConfig.load().catch(() => {});
 		}
 	});
 
@@ -36,7 +32,7 @@
 	}
 </script>
 
-<header class="bg-white shadow-sm border-b border-gray-200">
+<header class="bg-gradient-to-r from-slate-900 via-purple-900 to-slate-900 shadow-lg sticky top-0 z-50 backdrop-blur-sm bg-opacity-95 border-b border-purple-500/20">
 	<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 		<div class="flex justify-between items-center h-16">
 			<!-- Logo and title -->
@@ -48,7 +44,7 @@
 						class="w-10 h-10 object-contain shrink-0"
 					/>
 				{:else}
-					<div class="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center shrink-0">
+					<div class="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center shrink-0 shadow-lg">
 						<svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path
 								stroke-linecap="round"
@@ -67,36 +63,36 @@
 				{/if}
 
 				<div class="flex flex-col">
-					<a href="/" class="text-xl font-bold text-gray-900 hover:text-primary-600 transition-colors">
+					<a href="/" class="text-xl font-bold text-white hover:text-blue-300 transition-colors">
 						{$title}
 					</a>
 				</div>
 			</div>
 
-			<!-- Simple nav placeholder (we'll enhance later) -->
-			<nav class="hidden md:flex items-center gap-4 text-sm text-gray-600">
-				<a href="/" class="hover:text-gray-900">{$t('navigation.home')}</a>
-				<a href="/albums" class="hover:text-gray-900">{$t('navigation.albums')}</a>
-				<a href="/about" class="hover:text-gray-900">About</a>
-				<a href="/search" class="hover:text-gray-900">{$t('navigation.search')}</a>
+			<!-- Navigation -->
+			<nav class="hidden md:flex items-center gap-4 text-sm text-white">
+				<a href="/" class="hover:text-blue-300 transition-colors">{$t('navigation.home')}</a>
+				<a href="/albums" class="hover:text-blue-300 transition-colors">{$t('navigation.albums')}</a>
+				<a href="/about" class="hover:text-blue-300 transition-colors">About</a>
+				<a href="/search" class="hover:text-blue-300 transition-colors">{$t('navigation.search')}</a>
 
 				{#if $auth.authenticated && $auth.user}
 					{#if $auth.user.role === 'admin'}
-						<a href="/admin" class="hover:text-gray-900 font-medium text-primary-600">{$t('navigation.admin')}</a>
+						<a href="/admin" class="hover:text-blue-300 font-medium text-blue-300">{$t('navigation.admin')}</a>
 					{:else if $auth.user.role === 'owner'}
-						<a href="/owner" class="hover:text-gray-900 font-medium text-primary-600">{$t('header.myGallery')}</a>
+						<a href="/owner" class="hover:text-blue-300 font-medium text-blue-300">{$t('header.myGallery')}</a>
 					{/if}
-					<span class="text-gray-400">|</span>
-					<span class="text-gray-500">{$auth.user.name || $auth.user.email}</span>
+					<span class="text-blue-400">|</span>
+					<span class="text-blue-200">{$auth.user.name || $auth.user.email}</span>
 					<button
 						on:click={handleLogout}
-						class="hover:text-gray-900 text-gray-600"
+						class="hover:text-blue-300 text-white transition-colors"
 						type="button"
 					>
 						{$t('header.logout')}
 					</button>
 				{:else}
-					<a href="/login" class="hover:text-gray-900">{$t('auth.signIn')}</a>
+					<a href="/login" class="hover:text-blue-300 transition-colors">{$t('auth.signIn')}</a>
 				{/if}
 
 				<!-- Template selector (if enabled) -->
@@ -106,7 +102,7 @@
 					</div>
 				{/if}
 
-				<!-- Language selector on the right -->
+				<!-- Language selector -->
 				<div class="ml-6">
 					<LanguageSelector compact={true} />
 				</div>

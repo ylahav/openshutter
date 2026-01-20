@@ -4,8 +4,9 @@
 	import '$lib/styles/globals.css';
 	import { siteConfig } from '$stores/siteConfig';
 	import { loadSession } from '$lib/stores/auth';
-	import Header from '$components/Header.svelte';
-	import Footer from '$components/Footer.svelte';
+	import HeaderTemplateSwitcher from '$lib/components/HeaderTemplateSwitcher.svelte';
+	import FooterTemplateSwitcher from '$lib/components/FooterTemplateSwitcher.svelte';
+	import BodyTemplateWrapper from '$lib/components/BodyTemplateWrapper.svelte';
 	import ThemeProvider from '$lib/components/ThemeProvider.svelte';
 
 	// Initialize site config and auth on mount (skip on login page)
@@ -35,11 +36,11 @@
 </script>
 
 <ThemeProvider defaultTheme="system" enableSystem={true} disableTransitionOnChange={false}>
-	<Header />
+	<HeaderTemplateSwitcher />
 
-	<main class="min-h-screen bg-background text-foreground">
+	<BodyTemplateWrapper>
 		<slot />
-	</main>
+	</BodyTemplateWrapper>
 
-	<Footer />
+	<FooterTemplateSwitcher />
 </ThemeProvider>

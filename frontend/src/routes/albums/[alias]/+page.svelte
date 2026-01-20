@@ -1,5 +1,5 @@
 <script lang="ts">
-	import AlbumTemplate from '$lib/templates/modern/Album.svelte';
+	import AlbumTemplateSwitcher from '$lib/components/AlbumTemplateSwitcher.svelte';
 </script>
 
-<AlbumTemplate />
+<AlbumTemplateSwitcher />

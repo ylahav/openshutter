@@ -21,13 +21,9 @@
 
 	const logo = derived(siteConfigData, ($config) => $config?.logo ?? '');
 
-	// Refresh site config when header mounts to ensure language selector has latest data
 	onMount(() => {
-		// Only refresh if config is not loading and we're not on login page
 		if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
-			siteConfig.load().catch(() => {
-				// Silently fail - config refresh is not critical
-			});
+			siteConfig.load().catch(() => {});
 		}
 	});
 
@@ -73,7 +69,7 @@
 				</div>
 			</div>
 
-			<!-- Simple nav placeholder (we'll enhance later) -->
+			<!-- Navigation -->
 			<nav class="hidden md:flex items-center gap-4 text-sm text-gray-600">
 				<a href="/" class="hover:text-gray-900">{$t('navigation.home')}</a>
 				<a href="/albums" class="hover:text-gray-900">{$t('navigation.albums')}</a>
@@ -106,7 +102,7 @@
 					</div>
 				{/if}
 
-				<!-- Language selector on the right -->
+				<!-- Language selector -->
 				<div class="ml-6">
 					<LanguageSelector compact={true} />
 				</div>

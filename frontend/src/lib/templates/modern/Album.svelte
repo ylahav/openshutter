@@ -282,32 +282,32 @@
 </script>
 
 {#if loading}
-	<div class="min-h-screen bg-gray-50 flex items-center justify-center">
+	<div class="min-h-screen flex items-center justify-center">
 		<div class="text-center">
-			<div class="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-			<div class="text-gray-600">{$t('albums.loadingAlbum')}</div>
+			<div class="w-16 h-16 border-4 border-purple-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+			<div class="text-white">{$t('albums.loadingAlbum')}</div>
 		</div>
 	</div>
 {:else if error}
-	<div class="min-h-screen bg-gray-50 flex items-center justify-center">
+	<div class="min-h-screen flex items-center justify-center">
 		<div class="text-center">
-			<div class="text-gray-600 mb-4">{error}</div>
-			<button on:click={() => goto('/albums')} class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+			<div class="text-red-300 mb-4">{error}</div>
+			<button on:click={() => goto('/albums')} class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
 				{$t('albums.backToAlbums')}
 			</button>
 		</div>
 	</div>
 {:else if !albumData || !albumData.album}
-	<div class="min-h-screen bg-gray-50 flex items-center justify-center">
+	<div class="min-h-screen flex items-center justify-center">
 		<div class="text-center">
-			<div class="text-gray-600 mb-4">{$t('albums.albumNotFound')}</div>
-			<button on:click={() => goto('/albums')} class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+			<div class="text-purple-200 mb-4">{$t('albums.albumNotFound')}</div>
+			<button on:click={() => goto('/albums')} class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
 				{$t('albums.backToAlbums')}
 			</button>
 		</div>
 	</div>
 {:else}
-	<div class="flex-1 min-h-screen bg-gray-50">
+	<div class="flex-1 min-h-screen">
 		{#if albumData.album}
 			<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-1">
 				<AlbumBreadcrumbs album={albumData.album} role="public" />
@@ -316,16 +316,16 @@
 
 		<section class="py-8">
 			<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-				<div class="text-center mb-8">
-					<h1 class="text-4xl font-bold text-gray-900 mb-4">
+				<div class="text-center mb-12">
+					<h1 class="text-5xl font-bold text-white mb-6 tracking-tight">
 						<MultiLangText value={albumData.album.name} fallback="Untitled Album" />
 					</h1>
 					{#if albumData.album.description}
-						<div class="text-lg text-gray-600 max-w-4xl mx-auto prose prose-lg">
+						<div class="text-lg text-purple-200 max-w-4xl mx-auto prose prose-lg prose-invert">
 							<MultiLangHTML value={albumData.album.description} />
 						</div>
 					{/if}
-					<div class="mt-4 text-sm text-gray-500">
+					<div class="mt-6 text-sm text-purple-300">
 						{albumData.photos.length} {albumData.photos.length === 1 ? $t('search.photo') : $t('albums.photos')}
 						{#if albumData.subAlbums && albumData.subAlbums.length > 0}
 							• {albumData.subAlbums.length} {$t('albums.subAlbums')}
@@ -335,29 +335,33 @@
 
 				{#if albumData.subAlbums && albumData.subAlbums.length > 0}
 					<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-						{#each albumData.subAlbums as subAlbum}
+						{#each albumData.subAlbums as subAlbum, idx}
 							{@const coverImageUrl = subAlbumCoverImages[subAlbum._id]}
 							{@const isLogo = coverImageUrl && (coverImageUrl.includes('/logos/') || coverImageUrl.includes('logo') || (coverImageUrl.includes('/api/storage/serve/') && coverImageUrl.includes('logo')))}
-							<a href={`/albums/${subAlbum.alias}`} class="group">
-								<div class="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden">
-									<div class="aspect-4/3 bg-gray-100 flex items-center justify-center overflow-hidden">
-										{#if coverImageUrl}
-											<img
-												src={coverImageUrl}
-												alt=""
-												class="w-full h-full {isLogo
-													? 'object-contain p-8 opacity-60 group-hover:opacity-80 transition-opacity'
-													: 'object-cover group-hover:scale-105 transition-transform'}"
-											/>
-										{:else}
-											<div class="text-4xl text-gray-400">📁</div>
-										{/if}
-									</div>
-									<div class="p-4">
-										<h3 class="text-lg font-semibold text-gray-900 group-hover:text-blue-600">
+							<a href={`/albums/${subAlbum.alias}`} class="group relative overflow-hidden rounded-2xl cursor-pointer transform transition-all duration-500 hover:scale-105 hover:z-10">
+								<div class="aspect-square bg-gradient-to-br from-purple-600 to-blue-600 relative overflow-hidden rounded-2xl">
+									{#if coverImageUrl}
+										<img
+											src={coverImageUrl}
+											alt=""
+											class="w-full h-full {isLogo
+												? 'object-contain p-8 opacity-60 group-hover:opacity-80 transition-opacity bg-white'
+												: 'object-cover group-hover:scale-110 transition-transform duration-500'}"
+										/>
+									{:else}
+										<div class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-purple-600 to-blue-600">
+											<svg class="w-16 h-16 text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 5a2 2 0 012-2h4a2 2 0 012 2v2H8V5z" />
+											</svg>
+										</div>
+									{/if}
+									<div class="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-all duration-300"></div>
+									<div class="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 to-transparent translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+										<h3 class="text-white font-semibold text-lg mb-1">
 											<MultiLangText value={subAlbum.name} fallback="Untitled Album" />
 										</h3>
-										<div class="text-sm text-gray-500 mt-1">
+										<p class="text-white/70 text-sm">
 											{#if subAlbum.photoCount && subAlbum.photoCount > 0}
 												{subAlbum.photoCount} {(subAlbum.photoCount === 1 ? $t('search.photo') : $t('albums.photos'))}
 											{/if}
@@ -367,7 +371,7 @@
 											{#if subAlbum.childAlbumCount && subAlbum.childAlbumCount > 0}
 												{subAlbum.childAlbumCount} {subAlbum.childAlbumCount === 1 ? $t('albums.subAlbum') : $t('albums.subAlbums')}
 											{/if}
-										</div>
+										</p>
 									</div>
 								</div>
 							</a>
@@ -384,95 +388,29 @@
 									lightboxIndex = i;
 									lightboxOpen = true;
 								}}
-								class="group bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden text-left flex flex-col"
+								class="group relative overflow-hidden rounded-2xl cursor-pointer transform transition-all duration-500 hover:scale-105 hover:z-10"
 							>
-								<div class="aspect-4/3 bg-gray-100 overflow-hidden shrink-0">
+								<div class="aspect-square bg-gradient-to-br from-purple-600 to-blue-600 relative overflow-hidden rounded-2xl">
 									<img
 										src={getPhotoUrl(photo)}
 										alt=""
-										class="w-full h-full object-cover group-hover:scale-105 transition-transform"
+										class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
 									/>
-								</div>
-								<div class="p-3 flex-1 flex flex-col">
-									{#if photo.title}
-										<h3 class="text-sm font-medium text-gray-900 mb-2">
-											<MultiLangText value={photo.title} fallback={`Photo ${i + 1}`} />
-										</h3>
-									{/if}
-									
-									<!-- Description -->
-									{#if photo.description}
-										<div class="text-sm text-gray-600 line-clamp-4 mb-auto prose prose-sm max-w-none">
-											<MultiLangHTML value={photo.description} />
+									<div class="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-all duration-300"></div>
+									{#if photo.title || photo.description}
+										<div class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+											{#if photo.title}
+												<h3 class="text-white font-semibold text-sm mb-1">
+													<MultiLangText value={photo.title} fallback={`Photo ${i + 1}`} />
+												</h3>
+											{/if}
+											{#if photo.description}
+												<p class="text-white/70 text-xs line-clamp-2">
+													{@html (typeof photo.description === 'string' ? photo.description : (photo.description as any)?.[$currentLanguage] || (photo.description as any)?.en || '').replace(/<[^>]*>/g, '')}
+												</p>
+											{/if}
 										</div>
 									{/if}
-									
-									<!-- Metadata at bottom -->
-									<div class="mt-auto pt-2 space-y-1 text-xs text-gray-600 border-t border-gray-100">
-										<!-- People -->
-										{#if photo.people && Array.isArray(photo.people) && photo.people.length > 0}
-											{@const peopleNames = photo.people.map((person) => {
-												// Handle different person data structures
-												if (typeof person === 'object' && person !== null) {
-													// Try fullName first (preferred)
-													if (person.fullName) {
-														if (typeof person.fullName === 'string') {
-															return person.fullName;
-														} else if (typeof person.fullName === 'object') {
-															// Multi-language object: try current language, then en, then he, then any value
-															const name = person.fullName[$currentLanguage] || person.fullName.en || person.fullName.he;
-															if (name) return name;
-															// If no language key matches, try to get first non-empty string value
-															const values = Object.values(person.fullName).filter(v => typeof v === 'string' && v.trim() !== '');
-															if (values.length > 0) return values[0] as string;
-														}
-													}
-													// Try firstName as fallback
-													if (person.firstName) {
-														if (typeof person.firstName === 'string') {
-															return person.firstName;
-														} else if (typeof person.firstName === 'object') {
-															const name = person.firstName[$currentLanguage] || person.firstName.en || person.firstName.he;
-															if (name) return name;
-															const values = Object.values(person.firstName).filter(v => typeof v === 'string' && v.trim() !== '');
-															if (values.length > 0) return values[0] as string;
-														}
-													}
-												} else if (typeof person === 'string') {
-													return person;
-												}
-												return '';
-											}).filter(name => name && name.trim() !== '')}
-											{#if peopleNames.length > 0}
-												<div>{peopleNames.join(', ')}</div>
-											{/if}
-										{/if}
-										
-										<!-- Location -->
-										{#if photo.location}
-											{@const locationName = typeof photo.location === 'object' && photo.location.name ? (typeof photo.location.name === 'string' ? photo.location.name : photo.location.name[$currentLanguage] || photo.location.name.en || photo.location.name.he || '') : (typeof photo.location === 'string' ? photo.location : '')}
-											{#if locationName}
-												<div>📍 {locationName}</div>
-											{/if}
-										{/if}
-										
-										<!-- Tags -->
-										{#if photo.tags && Array.isArray(photo.tags) && photo.tags.length > 0}
-											{@const tagNames = photo.tags.map((tag) => {
-												if (typeof tag === 'object' && tag.name) {
-													return typeof tag.name === 'string'
-														? tag.name
-														: tag.name[$currentLanguage] || tag.name.en || tag.name.he || '';
-												} else if (typeof tag === 'string') {
-													return tag;
-												}
-												return '';
-											}).filter(name => name)}
-											{#if tagNames.length > 0}
-												<div>{tagNames.join(', ')}</div>
-											{/if}
-										{/if}
-									</div>
 								</div>
 							</button>
 						{/each}
@@ -483,15 +421,15 @@
 							<button
 								on:click={loadMorePhotos}
 								disabled={loadingMore}
-								class="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+								class="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
 							>
 								{loadingMore ? $t('search.loading') : `${$t('search.loadMore')} (${albumData.pagination.total - albumData.photos.length} ${$t('albums.remaining')})`}
 							</button>
 						</div>
 					{/if}
-				{:else if !albumData.subAlbums || albumData.subAlbums.length === 0}
+				{:else if (!albumData.photos || albumData.photos.length === 0) && (!albumData.subAlbums || albumData.subAlbums.length === 0)}
 					<div class="text-center py-12">
-						<div class="text-gray-600">{$t('albums.emptyAlbum')}</div>
+						<div class="text-purple-200">{$t('albums.emptyAlbum')}</div>
 					</div>
 				{/if}
 			</div>

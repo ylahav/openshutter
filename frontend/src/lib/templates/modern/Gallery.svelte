@@ -2,8 +2,6 @@
 	import { onMount } from 'svelte';
 	import { currentLanguage } from '$stores/language';
 	import { MultiLangUtils } from '$utils/multiLang';
-	import Header from '$components/Header.svelte';
-	import Footer from '$components/Footer.svelte';
 
 	interface TemplateAlbum {
 		_id: string;
@@ -72,28 +70,26 @@
 	});
 </script>
 
-<Header />
-
 {#if loading}
-	<div class="min-h-screen bg-gray-50 flex items-center justify-center">
+	<div class="min-h-screen flex items-center justify-center">
 		<div class="text-center">
-			<div class="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-			<div class="text-gray-600">Loading gallery...</div>
+			<div class="w-16 h-16 border-4 border-purple-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+			<div class="text-white">Loading gallery...</div>
 		</div>
 	</div>
 {:else}
-	<main class="flex-1 min-h-screen bg-gray-50">
+	<div class="min-h-screen">
 		{#if error}
 			<section class="py-8">
 				<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-					<div class="text-gray-600 mb-4">{error}</div>
+					<div class="text-red-300 mb-4">{error}</div>
 				</div>
 			</section>
 		{:else if albums.length === 0}
 			<section class="py-12">
 				<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-					<div class="text-gray-600 mb-4">No albums found. Create your first album to get started!</div>
-					<a href="/albums/new" class="inline-block px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+					<div class="text-purple-200 mb-4">No albums found. Create your first album to get started!</div>
+					<a href="/albums/new" class="inline-block px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
 						Create New Album
 					</a>
 				</div>
@@ -102,46 +98,40 @@
 			<section class="py-8">
 				<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
 					<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-						{#each albums as album}
-							<a href={`/albums/${album.alias}`} class="group">
-								<div class="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden h-full flex flex-col">
-									<div class="aspect-[4/3] bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
-										{#if album.coverPhotoId && coverPhotos[album._id]}
-											<img
-												src={coverPhotos[album._id].storage?.thumbnailPath ||
-													coverPhotos[album._id].url ||
-													'/placeholder.jpg'}
-												alt={MultiLangUtils.getTextValue(album.name, $currentLanguage)}
-												class="w-full h-full object-cover group-hover:scale-105 transition-transform"
-											/>
-										{:else}
-											<div class="text-4xl text-gray-400">📷</div>
-										{/if}
-									</div>
-									<div class="p-4 flex flex-col flex-grow">
-										<h3 class="text-lg font-semibold text-gray-900 group-hover:text-blue-600 mb-2">
+						{#each albums as album, idx}
+							<a href={`/albums/${album.alias}`} class="group relative overflow-hidden rounded-2xl cursor-pointer transform transition-all duration-500 hover:scale-105 hover:z-10">
+								<div class="aspect-square bg-gradient-to-br from-purple-600 to-blue-600 relative overflow-hidden rounded-2xl">
+									{#if album.coverPhotoId && coverPhotos[album._id]}
+										<img
+											src={coverPhotos[album._id].storage?.thumbnailPath ||
+												coverPhotos[album._id].url ||
+												'/placeholder.jpg'}
+											alt={MultiLangUtils.getTextValue(album.name, $currentLanguage)}
+											class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+										/>
+									{:else}
+										<div class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-purple-600 to-blue-600">
+											<svg class="w-16 h-16 text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+											</svg>
+										</div>
+									{/if}
+									<div class="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-all duration-300"></div>
+									<div class="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 to-transparent translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+										<h3 class="text-white font-semibold text-lg mb-1">
 											{MultiLangUtils.getTextValue(album.name, $currentLanguage) || album.alias || 'Untitled Album'}
 										</h3>
-										<div class="text-sm text-gray-500 mb-2">
+										<p class="text-white/70 text-sm">
 											{#if album.photoCount && album.photoCount > 0}
 												{album.photoCount} photos
 											{/if}
 											{#if album.photoCount && album.photoCount > 0 && album.childAlbumCount && album.childAlbumCount > 0}
-												•
+												• 
 											{/if}
 											{#if album.childAlbumCount && album.childAlbumCount > 0}
 												{album.childAlbumCount} sub-albums
 											{/if}
-											{#if (!album.photoCount || album.photoCount === 0) && (!album.childAlbumCount || album.childAlbumCount === 0)}
-												Empty album
-											{/if}
-										</div>
-										{#if album.description}
-											<div
-												class="text-sm text-gray-600 flex-grow line-clamp-2"
-												{@html MultiLangUtils.getHTMLValue(album.description, $currentLanguage) || ''}
-											></div>
-										{/if}
+										</p>
 									</div>
 								</div>
 							</a>
@@ -150,7 +140,5 @@
 				</div>
 			</section>
 		{/if}
-	</main>
+	</div>
 {/if}
-
-<Footer />
