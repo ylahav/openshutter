@@ -73,13 +73,19 @@
 	});
 
 	function initializeLocalOverrides() {
+		// Initialize from site config, ensuring we preserve false values
 		localOverrides = {
-			customColors: { ...siteTemplateOverrides.customColors },
-			customFonts: { ...siteTemplateOverrides.customFonts },
-			customLayout: { ...siteTemplateOverrides.customLayout },
-			componentVisibility: { ...siteTemplateOverrides.componentVisibility },
-			headerConfig: { ...siteTemplateOverrides.headerConfig }
+			customColors: siteTemplateOverrides.customColors ? { ...siteTemplateOverrides.customColors } : {},
+			customFonts: siteTemplateOverrides.customFonts ? { ...siteTemplateOverrides.customFonts } : {},
+			customLayout: siteTemplateOverrides.customLayout ? { ...siteTemplateOverrides.customLayout } : {},
+			componentVisibility: siteTemplateOverrides.componentVisibility ? { ...siteTemplateOverrides.componentVisibility } : {},
+			headerConfig: siteTemplateOverrides.headerConfig ? { ...siteTemplateOverrides.headerConfig } : {}
 		};
+		
+		console.log('[Overrides] Initialized local overrides:', {
+			headerConfig: localOverrides.headerConfig,
+			siteTemplateOverrides: siteTemplateOverrides
+		});
 	}
 
 	async function loadTemplates() {
@@ -186,16 +192,42 @@
 		error = '';
 
 		try {
+			// Build the template object, ensuring false values are explicitly included
+			const templateData: any = {
+				activeTemplate: currentTemplateName
+			};
+
+			// Include all override sections, preserving false values
+			if (localOverrides.customColors) {
+				templateData.customColors = localOverrides.customColors;
+			}
+			if (localOverrides.customFonts) {
+				templateData.customFonts = localOverrides.customFonts;
+			}
+			if (localOverrides.customLayout) {
+				templateData.customLayout = localOverrides.customLayout;
+			}
+			if (localOverrides.componentVisibility) {
+				templateData.componentVisibility = localOverrides.componentVisibility;
+			}
+			// Always include headerConfig if it exists, even if empty (to clear overrides)
+			// Explicitly include all values, including false, to ensure overrides are respected
+			if (localOverrides.headerConfig !== undefined) {
+				templateData.headerConfig = { ...localOverrides.headerConfig };
+			}
+
+			console.log('[Overrides] Saving template overrides:', {
+				templateData,
+				headerConfig: templateData.headerConfig
+			});
+
 			const response = await fetch('/api/admin/site-config', {
 				method: 'PUT',
 				headers: {
 					'Content-Type': 'application/json'
 				},
 				body: JSON.stringify({
-					template: {
-						activeTemplate: currentTemplateName,
-						...localOverrides
-					}
+					template: templateData
 				})
 			});
 
@@ -204,9 +236,19 @@
 				throw new Error(errorData.message || 'Failed to save overrides');
 			}
 
+			const result = await response.json();
+			console.log('[Overrides] Save response:', result);
+
 			message = 'Template overrides saved successfully!';
 			hasChanges = false;
-			siteConfig.load(); // Refresh site config store
+			
+			// Force reload site config to get latest values
+			await siteConfig.load();
+			
+			// Also reload the page to ensure headers pick up the changes
+			setTimeout(() => {
+				window.location.reload();
+			}, 500);
 
 			setTimeout(() => {
 				message = '';
@@ -574,9 +616,19 @@
 									desc: 'Display the site title in the header'
 								},
 								{
+									key: 'showMenu',
+									label: 'Show Menu',
+									desc: 'Display the navigation menu in the header'
+								},
+								{
+									key: 'showTemplateSelector',
+									label: 'Show Template Selector',
+									desc: 'Display the template selector dropdown in the header'
+								},
+								{
 									key: 'enableThemeToggle',
-									label: 'Enable Theme Toggle',
-									desc: 'Show dark/light mode toggle button'
+									label: 'Show Theme Toggle',
+									desc: 'Display the theme toggle button in the header'
 								},
 								{
 									key: 'enableLanguageSelector',

@@ -52,6 +52,13 @@
 				user: data.user
 			});
 
+			// Verify cookie was set by checking if we can read it
+			// Note: httpOnly cookies can't be read from JavaScript, so we rely on the server setting it correctly
+			console.log('[Login] Login successful, redirecting...', {
+				userRole: data.user?.role,
+				redirectTo
+			});
+			
 			// Use window.location.href instead of goto() to ensure cookie is available
 			// This forces a full page reload which ensures hooks.server.ts sees the cookie
 			const redirectPath = data.user?.role === 'admin' 
@@ -60,10 +67,17 @@
 					? '/owner'
 					: '/';
 			
-			// Small delay to ensure cookie is set before redirect
+			// Set flag in URL parameter instead of sessionStorage (more reliable across redirects)
+			// Also set in sessionStorage as backup
+			const redirectUrl = redirectPath + (redirectPath.includes('?') ? '&' : '?') + 'just_logged_in=true';
+			sessionStorage.setItem('just_logged_in', 'true');
+			
+			// Longer delay to ensure cookie is fully set and available before redirect
+			// The cookie is set server-side, but we need to wait for it to be available in the browser
 			setTimeout(() => {
-				window.location.href = redirectPath;
-			}, 100);
+				console.log('[Login] Redirecting to:', redirectUrl);
+				window.location.href = redirectUrl;
+			}, 300);
 		} catch (err) {
 			error = 'Login failed. Please try again.';
 			console.error('Login error:', err);

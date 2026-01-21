@@ -7,17 +7,24 @@
 	import { MultiLangUtils } from '$utils/multiLang';
 	import LanguageSelector from '$components/LanguageSelector.svelte';
 	import TemplateSelector from '$components/TemplateSelector.svelte';
+	import ThemeToggle from '$components/ThemeToggle.svelte';
 	import { t } from '$stores/i18n';
 
 	const year = new Date().getFullYear();
 
 	const headerConfig = derived(siteConfigData, ($config) => $config?.template?.headerConfig ?? {});
 	
-	$: showLogo = ($headerConfig?.showLogo ?? true) !== false;
-	$: showSiteTitle = ($headerConfig?.showSiteTitle ?? true) !== false;
-	$: showMenu = ($headerConfig?.showMenu ?? true) !== false;
-	$: showTemplateSelector = ($headerConfig?.showTemplateSelector ?? true) !== false;
-	$: showLanguageSelector = (($headerConfig?.showLanguageSelector ?? $headerConfig?.enableLanguageSelector) ?? true) !== false;
+	// Check headerConfig values - explicitly check for false to respect overrides
+	$: showLogo = $headerConfig?.showLogo !== undefined ? $headerConfig.showLogo : true;
+	$: showSiteTitle = $headerConfig?.showSiteTitle !== undefined ? $headerConfig.showSiteTitle : true;
+	$: showMenu = $headerConfig?.showMenu !== undefined ? $headerConfig.showMenu : true;
+	$: showTemplateSelector = $headerConfig?.showTemplateSelector !== undefined ? $headerConfig.showTemplateSelector : true;
+	$: showLanguageSelector = ($headerConfig?.showLanguageSelector ?? $headerConfig?.enableLanguageSelector) !== undefined 
+		? ($headerConfig.showLanguageSelector ?? $headerConfig.enableLanguageSelector) 
+		: true;
+	$: showThemeToggle = $headerConfig?.enableThemeToggle !== undefined ? $headerConfig.enableThemeToggle : true;
+	$: showAuthButtons = $headerConfig?.showAuthButtons !== undefined ? $headerConfig.showAuthButtons : true;
+	$: showGreeting = $headerConfig?.showGreeting !== undefined ? $headerConfig.showGreeting : true;
 
 	const title = derived(
 		[siteConfigData, currentLanguage],
@@ -80,7 +87,7 @@
 			</div>
 
 			<!-- Navigation -->
-			{#if showMenu || showTemplateSelector || showLanguageSelector}
+			{#if showMenu || showTemplateSelector || showLanguageSelector || showThemeToggle}
 				<nav class="hidden md:flex items-center gap-6 text-sm text-black">
 					{#if showMenu}
 						<a href="/" class="hover:text-gray-600 font-light">{$t('navigation.home')}</a>
@@ -88,23 +95,27 @@
 						<a href="/about" class="hover:text-gray-600 font-light">About</a>
 						<a href="/search" class="hover:text-gray-600 font-light">{$t('navigation.search')}</a>
 
-						{#if $auth.authenticated && $auth.user}
-							{#if $auth.user.role === 'admin'}
-								<a href="/admin" class="hover:text-gray-600 font-light">{$t('navigation.admin')}</a>
-							{:else if $auth.user.role === 'owner'}
-								<a href="/owner" class="hover:text-gray-600 font-light">{$t('header.myGallery')}</a>
+						{#if showAuthButtons}
+							{#if $auth.authenticated && $auth.user}
+								{#if $auth.user.role === 'admin'}
+									<a href="/admin" class="hover:text-gray-600 font-light">{$t('navigation.admin')}</a>
+								{:else if $auth.user.role === 'owner'}
+									<a href="/owner" class="hover:text-gray-600 font-light">{$t('header.myGallery')}</a>
+								{/if}
+								<span class="text-gray-400">|</span>
+								{#if showGreeting}
+									<span class="text-gray-600 font-light">{$auth.user.name || $auth.user.email}</span>
+								{/if}
+								<button
+									on:click={handleLogout}
+									class="hover:text-gray-600 text-black font-light"
+									type="button"
+								>
+									{$t('header.logout')}
+								</button>
+							{:else}
+								<a href="/login" class="hover:text-gray-600 font-light">{$t('auth.signIn')}</a>
 							{/if}
-							<span class="text-gray-400">|</span>
-							<span class="text-gray-600 font-light">{$auth.user.name || $auth.user.email}</span>
-							<button
-								on:click={handleLogout}
-								class="hover:text-gray-600 text-black font-light"
-								type="button"
-							>
-								{$t('header.logout')}
-							</button>
-						{:else}
-							<a href="/login" class="hover:text-gray-600 font-light">{$t('auth.signIn')}</a>
 						{/if}
 					{/if}
 
@@ -119,6 +130,13 @@
 					{#if showLanguageSelector}
 						<div class="ml-6">
 							<LanguageSelector compact={true} />
+						</div>
+					{/if}
+
+					<!-- Theme toggle (if enabled) -->
+					{#if showThemeToggle}
+						<div class="ml-6">
+							<ThemeToggle />
 						</div>
 					{/if}
 				</nav>

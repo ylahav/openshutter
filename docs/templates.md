@@ -290,17 +290,17 @@ headerConfig?: {
   showLogo?: boolean              // Show/hide logo (default: true)
   showSiteTitle?: boolean         // Show/hide site title (default: true)
   showMenu?: boolean              // Show/hide navigation menu (default: true)
-  showTemplateSelector?: boolean  // Show/hide template selector (default: true)
+  showTemplateSelector?: boolean  // Show/hide template selector dropdown (default: true)
   showLanguageSelector?: boolean  // Show/hide language selector (default: true)
   enableLanguageSelector?: boolean // Legacy alias for showLanguageSelector
+  enableThemeToggle?: boolean     // Show/hide theme toggle (dark/light mode) (default: true)
+  showAuthButtons?: boolean       // Show/hide login/logout buttons and user info (default: true)
+  showGreeting?: boolean          // Show/hide username/email greeting for logged-in users (default: true)
   menu?: {                        // Custom menu items (optional)
     labelKey?: string
     label?: string
     href: string
   }[]
-  enableThemeToggle?: boolean     // Theme toggle (future feature)
-  showGreeting?: boolean          // User greeting (future feature)
-  showAuthButtons?: boolean       // Auth buttons visibility (future feature)
 }
 ```
 
@@ -320,8 +320,11 @@ headerConfig?: {
       "showLogo": true,
       "showSiteTitle": true,
       "showMenu": false,
-      "showTemplateSelector": true,
-      "showLanguageSelector": true
+      "showTemplateSelector": false,
+      "showLanguageSelector": false,
+      "enableThemeToggle": false,
+      "showAuthButtons": true,
+      "showGreeting": false
     }
   }
 }
@@ -330,7 +333,8 @@ headerConfig?: {
 This configuration would:
 - Show logo and site title
 - Hide the navigation menu
-- Show template and language selectors
+- Hide template selector, language selector, and theme toggle
+- Show auth buttons (login/logout) but hide the user greeting
 
 ### Implementation Notes
 
@@ -351,6 +355,9 @@ This configuration would:
 - **Template switcher components**: Added `HeaderTemplateSwitcher`, `FooterTemplateSwitcher`, and `BodyTemplateWrapper` for dynamic template loading
 - **Enhanced visual differences**: Each template now has distinct styling across all page elements
 - **Fixed dropdown z-index issues**: Language and template selector dropdowns now properly display above content in all templates
-- **Flexible Header Configuration**: Added configurable header visibility controls for logo, site title, menu, template selector, and language selector
+- **Flexible Header Configuration**: Added configurable header visibility controls for logo, site title, menu, template selector, language selector, theme toggle, auth buttons, and user greeting
+- **Header Override UI**: Admin can now configure all header visibility options through `/admin/templates/overrides` interface
+- **Theme Toggle Implementation**: Dark/light mode toggle is now fully implemented and can be hidden via header config
+- **Auth Buttons & Greeting Controls**: Username display and logout button visibility can now be controlled independently
 
 Last updated: January 2025

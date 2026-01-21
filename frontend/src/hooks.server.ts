@@ -108,7 +108,18 @@ function getJWTSecret(): Uint8Array {
 	const baseSecret = env.AUTH_JWT_SECRET || process.env.AUTH_JWT_SECRET || 'dev-secret-change-me-in-production';
 	const combinedSecret = `${baseSecret}:${SERVER_START_TIME}`;
 	const hash = createHash('sha256').update(combinedSecret).digest();
-	return new TextEncoder().encode(Buffer.from(hash).toString('base64'));
+	const secret = new TextEncoder().encode(Buffer.from(hash).toString('base64'));
+	
+	// Always log secret derivation for debugging authentication issues
+	console.log('[hooks.server.ts] JWT Secret derived:', {
+		serverStartTime: SERVER_START_TIME,
+		baseSecretLength: baseSecret.length,
+		baseSecretPreview: baseSecret.substring(0, 10) + '...',
+		secretLength: secret.length,
+		secretHash: Buffer.from(hash).toString('hex').substring(0, 16) + '...'
+	});
+	
+	return secret;
 }
 
 const JWT_SECRET = getJWTSecret();
@@ -134,13 +145,33 @@ export const handle: Handle = async ({ event, resolve }) => {
 				name: String(payload.name),
 				role: (payload.role as 'admin' | 'owner' | 'guest') ?? 'owner'
 			};
-		} catch (error: any) {
-			// Only log unexpected errors - signature verification failures are expected after server restart
-			if (error?.code !== 'ERR_JWS_SIGNATURE_VERIFICATION_FAILED') {
-				console.error('Token verification failed:', error);
+			
+			// Log successful token verification for admin routes (for debugging)
+			if (event.url.pathname.startsWith('/admin') || event.url.pathname.startsWith('/api/admin')) {
+				console.log('[hooks.server.ts] Token verified successfully:', {
+					email: event.locals.user.email,
+					role: event.locals.user.role,
+					path: event.url.pathname
+				});
 			}
+		} catch (error: any) {
+			// Log all token verification failures for debugging
+			console.error('[hooks.server.ts] Token verification failed:', {
+				path: event.url.pathname,
+				errorCode: error?.code,
+				errorMessage: error?.message,
+				tokenLength: token.length,
+				tokenPreview: token.substring(0, 30) + '...',
+				serverStartTime: SERVER_START_TIME
+			});
+			
 			// Invalid/expired token - clear it
 			event.cookies.delete('auth_token', { path: '/' });
+		}
+	} else {
+		// Log when no token is present for admin routes
+		if (event.url.pathname.startsWith('/admin') || event.url.pathname.startsWith('/api/admin')) {
+			console.warn('[hooks.server.ts] No auth token found for admin route:', event.url.pathname);
 		}
 	}
 

@@ -66,21 +66,70 @@ export async function backendRequest(
 		'Content-Type': 'application/json',
 	};
 
-	// Add Authorization header if token is available
+	// Add Authorization header if token is available (backend checks this too)
 	if (authToken) {
 		defaultHeaders['Authorization'] = `Bearer ${authToken}`;
+		console.log('[Backend API] Setting Authorization header:', {
+			hasToken: !!authToken,
+			tokenLength: authToken?.length || 0,
+			tokenPreview: authToken ? authToken.substring(0, 30) + '...' : null,
+			endpoint
+		});
+	} else {
+		console.warn('[Backend API] No auth token available for Authorization header:', {
+			hasOptionsAuthToken: !!options.authToken,
+			hasCookies: !!options.cookies,
+			endpoint
+		});
 	}
 
 	// Forward cookies for server-to-server requests
+	// IMPORTANT: We need to forward the auth_token cookie so the backend can authenticate the request
 	const cookieHeader: string[] = [];
 	if (options.cookies) {
 		const authCookie = options.cookies.get('auth_token');
 		if (authCookie) {
 			cookieHeader.push(`auth_token=${authCookie}`);
+			// Log cookie forwarding for debugging
+			console.log('[Backend API] Forwarding auth_token cookie:', {
+				tokenLength: authCookie.length,
+				tokenPreview: authCookie.substring(0, 30) + '...',
+				endpoint
+			});
+		} else {
+			// Log all available cookies to help debug
+			const allCookies = options.cookies.getAll();
+			console.warn('[Backend API] No auth_token cookie found in cookies object:', {
+				hasCookies: !!options.cookies,
+				allCookieNames: allCookies.map(c => c.name),
+				endpoint
+			});
 		}
+	} else {
+		console.warn('[Backend API] No cookies object provided:', { endpoint });
 	}
+	
+	// Always set Cookie header if we have auth token (even if empty, to ensure proper header format)
 	if (cookieHeader.length > 0) {
 		defaultHeaders['Cookie'] = cookieHeader.join('; ');
+		console.log('[Backend API] Cookie header set:', {
+			cookieHeaderLength: defaultHeaders['Cookie'].length,
+			cookieHeaderPreview: defaultHeaders['Cookie'].substring(0, 80) + '...',
+			endpoint
+		});
+	} else if (authToken) {
+		// If we have authToken but no cookie, we're using Authorization header instead
+		// This is fine - backend should check Authorization header too
+		console.log('[Backend API] Using Authorization header instead of Cookie:', {
+			hasAuthToken: !!authToken,
+			endpoint
+		});
+	} else {
+		console.error('[Backend API] No authentication method available - neither cookie nor Authorization header:', { 
+			endpoint,
+			hasCookies: !!options.cookies,
+			hasAuthToken: !!authToken
+		});
 	}
 
 	const finalHeaders = {
@@ -88,15 +137,17 @@ export async function backendRequest(
 		...options.headers,
 	};
 
-	// Debug logging in production to help diagnose auth issues
-	if (process.env.NODE_ENV === 'production') {
-		console.log('[Backend API] Request:', {
-			url,
-			hasAuthToken: !!authToken,
-			hasCookieHeader: !!finalHeaders['Cookie'],
-			method: options.method || 'GET'
-		});
-	}
+	// Always log request details to help diagnose auth issues
+	console.log('[Backend API] Making request:', {
+		url,
+		hasAuthToken: !!authToken,
+		hasCookieHeader: !!finalHeaders['Cookie'],
+		cookieHeaderPreview: finalHeaders['Cookie'] ? finalHeaders['Cookie'].substring(0, 100) + '...' : null,
+		hasAuthorizationHeader: !!finalHeaders['Authorization'],
+		authorizationPreview: finalHeaders['Authorization'] ? finalHeaders['Authorization'].substring(0, 50) + '...' : null,
+		method: options.method || 'GET',
+		allHeaderKeys: Object.keys(finalHeaders)
+	});
 
 	let response: Response;
 	try {

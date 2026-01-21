@@ -97,15 +97,14 @@ function getJWTSecret(): Uint8Array {
 	const hash = createHash('sha256').update(combinedSecret).digest();
 	const secret = new TextEncoder().encode(Buffer.from(hash).toString('base64'));
 	
-	// Log secret derivation for debugging (only in production or when explicitly enabled)
-	if (process.env.NODE_ENV === 'production' || process.env.DEBUG_JWT_SECRET === 'true') {
-		console.log('[Login API] JWT Secret derived:', {
-			serverStartTime: SERVER_START_TIME,
-			baseSecretLength: baseSecret.length,
-			baseSecretPreview: baseSecret.substring(0, 10) + '...',
-			secretLength: secret.length
-		});
-	}
+	// Always log secret derivation for debugging authentication issues
+	console.log('[Login API] JWT Secret derived:', {
+		serverStartTime: SERVER_START_TIME,
+		baseSecretLength: baseSecret.length,
+		baseSecretPreview: baseSecret.substring(0, 10) + '...',
+		secretLength: secret.length,
+		secretHash: Buffer.from(hash).toString('hex').substring(0, 16) + '...'
+	});
 	
 	return secret;
 }
@@ -153,16 +152,15 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			.setExpirationTime(`${JWT_TTL}s`)
 			.sign(JWT_SECRET);
 		
-		// Log token creation for debugging
-		if (process.env.NODE_ENV === 'production' || process.env.DEBUG_JWT_SECRET === 'true') {
-			console.log('[Login API] Token created:', {
-				email: user.email,
-				role: user.role,
-				serverStartTime: SERVER_START_TIME,
-				tokenLength: jwt.length,
-				tokenPreview: jwt.substring(0, 30) + '...'
-			});
-		}
+		// Log token creation for debugging (always log in dev, conditional in prod)
+		console.log('[Login API] Token created:', {
+			email: user.email,
+			role: user.role,
+			serverStartTime: SERVER_START_TIME,
+			tokenLength: jwt.length,
+			tokenPreview: jwt.substring(0, 30) + '...',
+			baseSecretLength: (env.AUTH_JWT_SECRET || process.env.AUTH_JWT_SECRET || 'dev-secret-change-me-in-production').length
+		});
 
 		// Set the cookie using SvelteKit's cookies API
 		// In development, don't use secure flag (allows http://localhost)

@@ -12,6 +12,7 @@ This error occurs when the frontend SvelteKit server route tries to call the bac
    - Backend uses it in `AdminGuard` to verify tokens
    - If they don't match, tokens will be invalid
    - **Important**: Both servers also use a shared timestamp file (`.server-start-time`) to derive the JWT secret, ensuring sessions are invalidated on restart
+   - **Note**: The backend now reads the timestamp file dynamically on each request (not cached), so both servers will always use the same timestamp even if one starts before the other
 
 2. **Cookie Not Being Forwarded**
    - Cookies might not be forwarded correctly from browser → SvelteKit → Backend
@@ -46,17 +47,35 @@ This error occurs when the frontend SvelteKit server route tries to call the bac
 
    Should point to your backend (e.g., `http://localhost:5000` or your backend domain).
 
-3. **Check Logs**
+3. **Check Timestamp File**
+
+   Both frontend and backend should use the same `.server-start-time` file:
+   
+   ```bash
+   # Check if timestamp file exists
+   cat .server-start-time
+   
+   # Verify both servers can read it
+   # Frontend logs should show: [hooks.server.ts] JWT Secret derived
+   # Backend logs should show: [AdminGuard] JWT Secret derived
+   # Both should have the same serverStartTime value
+   ```
+
+4. **Check Logs**
 
    After deploying with the updated logging, check PM2 logs:
 
    ```bash
    pm2 logs openshutter-frontend --lines 50
+   pm2 logs openshutter-backend --lines 50
    ```
 
    Look for:
-   - `[Storage API]` log entries showing token status
+   - `[hooks.server.ts] JWT Secret derived` - shows frontend timestamp
+   - `[AdminGuard] JWT Secret derived` - shows backend timestamp (should match frontend)
+   - `[Login API] Token created` - shows when token was created and with which timestamp
    - `[Backend API]` log entries showing request details
+   - `[AdminGuard] Token signature verification failed` - indicates timestamp mismatch
    - Any errors about missing tokens or secrets
 
 4. **Verify Cookie is Set**
@@ -85,10 +104,22 @@ This error occurs when the frontend SvelteKit server route tries to call the bac
    AUTH_JWT_SECRET=your-generated-secret-here
    ```
 
-4. Restart services:
+4. Ensure timestamp file exists and is accessible:
+   ```bash
+   # The .server-start-time file should exist at project root
+   # Both frontend and backend read from this file
+   ls -la .server-start-time
+   ```
+
+5. Restart services:
    ```bash
    pm2 restart all
    ```
+
+6. After restart, verify both servers are using the same timestamp:
+   - Check frontend logs for `[hooks.server.ts] JWT Secret derived` with `serverStartTime`
+   - Check backend logs for `[AdminGuard] JWT Secret derived` with `serverStartTime`
+   - Both should show the same timestamp value
 
 **Option 2: Use Environment Variable**
 
@@ -133,14 +164,30 @@ If cookies aren't being set correctly, check:
 
 If issue persists, enable verbose logging:
 
-1. Check if token exists in SvelteKit:
-   - Look for `[Storage API]` logs showing `hasToken: true/false`
+1. **Check Timestamp Mismatch**:
+   - Look for `[AdminGuard] Token signature verification failed` in backend logs
+   - Compare the `serverStartTime` in the error with the timestamp file:
+     ```bash
+     cat .server-start-time
+     ```
+   - If they differ, the backend is using a cached timestamp - restart the backend
+   - The backend now reads the timestamp file dynamically, so this should not happen
 
-2. Check if backend receives token:
-   - Backend logs should show token validation attempts
+2. **Check if token exists in SvelteKit**:
+   - Look for `[Templates API]` or `[Storage API]` logs showing `hasToken: true/false`
+   - Check `[hooks.server.ts] Token verified successfully` for successful verification
+
+3. **Check if backend receives token**:
+   - Backend logs should show `[AdminGuard] JWT Secret derived` on each request
+   - Look for `[AdminGuard] No token found in request` if token isn't being forwarded
    - Check backend logs: `pm2 logs openshutter-backend`
 
-3. Test backend directly:
+4. **Check cookie forwarding**:
+   - Look for `[Backend API] Forwarding auth_token cookie` in frontend logs
+   - Check `[Backend API] Cookie header set` to verify cookie is being sent
+   - Backend logs should show `hasCookieHeader: true` in `[AdminGuard] No token found` errors
+
+5. **Test backend directly**:
    ```bash
    # Get your auth token from browser cookies
    curl -H "Authorization: Bearer YOUR_TOKEN_HERE" \
@@ -148,3 +195,19 @@ If issue persists, enable verbose logging:
    ```
 
    If this works but SvelteKit route doesn't, it's a cookie forwarding issue.
+
+### Common Issues and Solutions
+
+**Issue: "Token signature verification failed" with timestamp mismatch**
+
+- **Cause**: Frontend and backend are using different timestamps from `.server-start-time`
+- **Solution**: 
+  1. Check that `.server-start-time` exists at project root
+  2. Verify both servers can read the file (check file permissions)
+  3. Restart both servers to ensure they pick up the latest timestamp
+  4. Check logs to verify both are using the same `serverStartTime` value
+
+**Issue: Token works after login but fails on refresh**
+
+- **Cause**: Backend was using cached timestamp, frontend updated the file
+- **Solution**: This is now fixed - backend reads timestamp file dynamically. If you still see this, restart the backend server.

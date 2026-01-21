@@ -2,6 +2,8 @@ import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from
 import { ConfigService } from '@nestjs/config';
 import { jwtVerify } from 'jose';
 import { createHash } from 'crypto';
+import { readFileSync, existsSync } from 'fs';
+import { join } from 'path';
 
 @Injectable()
 export class AdminGuard implements CanActivate {
@@ -9,24 +11,43 @@ export class AdminGuard implements CanActivate {
 
   // Derive JWT secret from base secret + server start time
   // Both frontend and backend use the same shared timestamp file, ensuring they use the same secret
+  // IMPORTANT: Read from file each time to ensure we use the latest timestamp (in case frontend updated it)
+  private getServerStartTime(): string {
+    const ROOT_DIR = join(process.cwd(), '..');
+    const TIMESTAMP_FILE = join(ROOT_DIR, '.server-start-time');
+    
+    // Try to read from file first (most up-to-date)
+    if (existsSync(TIMESTAMP_FILE)) {
+      try {
+        const timestamp = readFileSync(TIMESTAMP_FILE, 'utf8').trim();
+        return timestamp;
+      } catch (error) {
+        console.warn('[AdminGuard] Failed to read timestamp file, using global:', error);
+      }
+    }
+    
+    // Fallback to global (set at startup)
+    return (global as any).SERVER_START_TIME || Date.now().toString();
+  }
+
   private getJWTSecret(): Uint8Array {
     const baseSecret = this.configService.get<string>('AUTH_JWT_SECRET') ||
       'dev-secret-change-me-in-production';
-    const serverStartTime = (global as any).SERVER_START_TIME || Date.now().toString();
+    const serverStartTime = this.getServerStartTime();
     const combinedSecret = `${baseSecret}:${serverStartTime}`;
     const hash = createHash('sha256').update(combinedSecret).digest();
     const secret = new TextEncoder().encode(Buffer.from(hash).toString('base64'));
     
-    // Debug logging (always log in production to help diagnose issues)
-    if (process.env.NODE_ENV === 'production' || process.env.DEBUG_JWT_SECRET === 'true') {
-      console.log('[AdminGuard] JWT Secret derived:', {
-        serverStartTime,
-        baseSecretLength: baseSecret.length,
-        baseSecretPreview: baseSecret.substring(0, 10) + '...',
-        secretLength: secret.length,
-        secretHash: Buffer.from(hash).toString('hex').substring(0, 16) + '...'
-      });
-    }
+    // Always log secret derivation to help diagnose authentication issues
+    console.log('[AdminGuard] JWT Secret derived:', {
+      serverStartTime,
+      baseSecretLength: baseSecret.length,
+      baseSecretPreview: baseSecret.substring(0, 10) + '...',
+      secretLength: secret.length,
+      secretHash: Buffer.from(hash).toString('hex').substring(0, 16) + '...',
+      globalServerStartTime: (global as any).SERVER_START_TIME || 'NOT SET',
+      timestampFileExists: existsSync(join(process.cwd(), '..', '.server-start-time'))
+    });
     
     return secret;
   }
