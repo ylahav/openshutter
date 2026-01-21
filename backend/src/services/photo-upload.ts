@@ -20,6 +20,7 @@ export interface PhotoUploadOptions {
   description?: string
   tags?: string[]
   storageProvider?: string
+  replaceIfExists?: boolean // If true, replace existing photo instead of skipping
 }
 
 export interface PhotoUploadResult {
@@ -148,6 +149,9 @@ export class PhotoUploadService {
       // Ensure photos collection exists and indexes are created
       await this.ensurePhotosCollection(db)
 
+      // Track existing photo ID if we're replacing
+      let existingPhotoId: Types.ObjectId | null = null
+
       // Check if photo already exists
       const existenceCheck = await this.checkPhotoExists(
         fileBuffer,
@@ -155,11 +159,86 @@ export class PhotoUploadService {
         options.albumId
       )
       if (existenceCheck.exists) {
-        return {
-          success: false,
-          skipped: true,
-          reason: existenceCheck.reason || 'Photo already exists',
-          error: existenceCheck.reason || 'Photo already exists'
+        // If replaceIfExists is true, delete old files and update the existing record
+        if (options.replaceIfExists && existenceCheck.existingPhoto) {
+          console.log(`PhotoUploadService: Photo exists, replacing files as requested: ${existenceCheck.existingPhoto._id}`)
+          
+          const existingPhoto = existenceCheck.existingPhoto
+          existingPhotoId = existingPhoto._id
+          
+          // Delete old photo files from storage (but keep the database record)
+          if (existingPhoto.storage && existingPhoto.storage.provider && existingPhoto.storage.path) {
+            try {
+              const storageService = await storageManager.getProvider(existingPhoto.storage.provider as any)
+              
+              // Helper function to extract path from URL
+              const extractPathFromUrl = (url: string): string | null => {
+                if (!url || typeof url !== 'string') return null
+                const urlMatch = url.match(/\/api\/storage\/serve\/[^/]+\/(.+)$/)
+                if (urlMatch && urlMatch[1]) {
+                  try {
+                    return decodeURIComponent(urlMatch[1])
+                  } catch {
+                    return urlMatch[1]
+                  }
+                }
+                if (!url.startsWith('/api/storage/serve/')) {
+                  return url
+                }
+                return null
+              }
+              
+              // Delete main photo file
+              await storageService.deleteFile(existingPhoto.storage.path)
+              console.log(`PhotoUploadService: Deleted old main photo file: ${existingPhoto.storage.path}`)
+              
+              // Delete thumbnails
+              if (existingPhoto.storage.thumbnails && typeof existingPhoto.storage.thumbnails === 'object') {
+                for (const [size, thumbnailUrl] of Object.entries(existingPhoto.storage.thumbnails)) {
+                  try {
+                    const thumbnailPath = extractPathFromUrl(thumbnailUrl as string)
+                    if (thumbnailPath && thumbnailPath !== existingPhoto.storage.path) {
+                      await storageService.deleteFile(thumbnailPath)
+                      console.log(`PhotoUploadService: Deleted old ${size} thumbnail: ${thumbnailPath}`)
+                    }
+                  } catch (thumbError) {
+                    console.warn(`PhotoUploadService: Failed to delete ${size} thumbnail:`, thumbError)
+                  }
+                }
+              }
+              
+              // Delete thumbnailPath if different
+              if (existingPhoto.storage.thumbnailPath) {
+                const thumbPath = extractPathFromUrl(existingPhoto.storage.thumbnailPath)
+                if (thumbPath && thumbPath !== existingPhoto.storage.path) {
+                  const alreadyDeleted = existingPhoto.storage.thumbnails &&
+                    Object.values(existingPhoto.storage.thumbnails).some((url) => {
+                      const path = extractPathFromUrl(url as string)
+                      return path === thumbPath
+                    })
+                  
+                  if (!alreadyDeleted) {
+                    await storageService.deleteFile(thumbPath)
+                    console.log(`PhotoUploadService: Deleted old thumbnailPath: ${thumbPath}`)
+                  }
+                }
+              }
+            } catch (storageError) {
+              console.error(`PhotoUploadService: Failed to delete old photo files from storage:`, storageError)
+              // Continue with upload anyway - new files will overwrite references
+            }
+          }
+          
+          // Note: We keep the database record and will update it with new file references
+          // Don't delete the record or decrement album count
+        } else {
+          // Skip upload if replaceIfExists is false or not set
+          return {
+            success: false,
+            skipped: true,
+            reason: existenceCheck.reason || 'Photo already exists',
+            error: existenceCheck.reason || 'Photo already exists'
+          }
         }
       }
 
@@ -217,13 +296,14 @@ export class PhotoUploadService {
         console.log(`PhotoUploadService: No album path, uploading to root`)
       }
 
-      // Compress original image for web delivery
+      // Compress original image for web delivery (used for serving, not storage)
       const compressionResult = await ImageCompressionService.compressImage(fileBuffer, 'gallery')
       
-      // Upload compressed original file
-      console.log(`PhotoUploadService: Uploading file ${filename} to path: ${albumPath}`)
+      // Upload ORIGINAL file to storage (not compressed version)
+      // This preserves the full quality and size of the original image
+      console.log(`PhotoUploadService: Uploading ORIGINAL file ${filename} (${(fileBuffer.length / 1024 / 1024).toFixed(2)}MB) to path: ${albumPath}`)
       const uploadResult = await storageService.uploadFile(
-        compressionResult.compressed,
+        fileBuffer, // Upload original file, not compressed version
         filename,
         mimeType,
         albumPath,
@@ -339,9 +419,15 @@ export class PhotoUploadService {
       }
 
       // Prepare photo data for database
+      // If updating existing photo, preserve existing metadata (title, description, tags, uploadedBy, uploadedAt)
+      let existingPhoto: any = null
+      if (existingPhotoId) {
+        existingPhoto = await db.collection('photos').findOne({ _id: existingPhotoId })
+      }
+      
       const photoData = {
-        title: { en: options.title || originalFilename },
-        description: { en: options.description || '' },
+        title: existingPhoto?.title || { en: options.title || originalFilename },
+        description: existingPhoto?.description || { en: options.description || '' },
         filename,
         originalFilename,
         mimeType,
@@ -361,39 +447,90 @@ export class PhotoUploadService {
           folderId: uploadResult.folderId
         },
         albumId: options.albumId ? new ObjectId(options.albumId) : null,
-        tags: options.tags || [],
-        isPublished: true,
-        isLeading: false,
-        uploadedBy: uploaderObjectId,
-        uploadedAt: new Date(),
+        tags: existingPhoto?.tags || options.tags || [],
+        isPublished: existingPhoto?.isPublished !== undefined ? existingPhoto.isPublished : true,
+        isLeading: existingPhoto?.isLeading !== undefined ? existingPhoto.isLeading : false,
+        uploadedBy: existingPhoto?.uploadedBy || uploaderObjectId,
+        uploadedAt: existingPhoto?.uploadedAt || new Date(),
         updatedAt: new Date(),
         exif: exifData
       }
 
-      // Save to database (native driver)
+      // Save or update photo in database (native driver)
       const photosCollection = db.collection('photos')
-      console.log('PhotoUploadService: Saving photo to database:', {
-        albumId: photoData.albumId?.toString() || null,
-        filename: photoData.filename,
-        isPublished: photoData.isPublished,
-        storageProvider: photoData.storage.provider
-      })
-      const insertResult = await photosCollection.insertOne(photoData)
-      const savedPhoto = { _id: insertResult.insertedId, ...photoData }
-      console.log('PhotoUploadService: Photo saved successfully:', {
-        photoId: savedPhoto._id.toString(),
-        albumId: savedPhoto.albumId?.toString() || null
-      })
+      let savedPhoto: any
+      
+      if (existingPhotoId) {
+        // Update existing record with new file references (preserve metadata)
+        console.log('PhotoUploadService: Updating existing photo record with new file references:', {
+          photoId: existingPhotoId.toString(),
+          albumId: photoData.albumId?.toString() || null,
+          filename: photoData.filename,
+          storageProvider: photoData.storage.provider
+        })
+        
+        // Update only file-related fields, preserve other metadata (title, description, tags, uploadedBy, uploadedAt, etc.)
+        const updateResult = await photosCollection.updateOne(
+          { _id: existingPhotoId },
+          {
+            $set: {
+              filename: photoData.filename,
+              originalFilename: photoData.originalFilename,
+              mimeType: photoData.mimeType,
+              size: photoData.size,
+              originalSize: photoData.originalSize,
+              compressionRatio: photoData.compressionRatio,
+              hash: photoData.hash,
+              dimensions: photoData.dimensions,
+              storage: photoData.storage,
+              updatedAt: new Date(),
+              exif: photoData.exif
+              // Preserve: title, description, tags, uploadedBy, uploadedAt, isPublished, isLeading, albumId
+            }
+          }
+        )
+        
+        if (updateResult.matchedCount === 0) {
+          throw new Error(`Failed to update photo record: ${existingPhotoId}`)
+        }
+        
+        // Fetch the updated photo
+        savedPhoto = await photosCollection.findOne({ _id: existingPhotoId })
+        if (!savedPhoto) {
+          throw new Error(`Failed to retrieve updated photo: ${existingPhotoId}`)
+        }
+        
+        console.log('PhotoUploadService: Photo record updated successfully:', {
+          photoId: savedPhoto._id.toString(),
+          albumId: savedPhoto.albumId?.toString() || null
+        })
+        
+        // Don't increment album count - it's the same photo, just with new files
+      } else {
+        // Insert new record
+        console.log('PhotoUploadService: Saving new photo to database:', {
+          albumId: photoData.albumId?.toString() || null,
+          filename: photoData.filename,
+          isPublished: photoData.isPublished,
+          storageProvider: photoData.storage.provider
+        })
+        const insertResult = await photosCollection.insertOne(photoData)
+        savedPhoto = { _id: insertResult.insertedId, ...photoData }
+        console.log('PhotoUploadService: Photo saved successfully:', {
+          photoId: savedPhoto._id.toString(),
+          albumId: savedPhoto.albumId?.toString() || null
+        })
 
-      // Update album photo count if album exists
-      if (options.albumId) {
-        try {
-          await db.collection('albums').updateOne(
-            { _id: new ObjectId(options.albumId) },
-            { $inc: { photoCount: 1 } }
-          )
-        } catch (e) {
-          console.warn('Failed to update album photo count:', e)
+        // Update album photo count if album exists (only for new photos)
+        if (options.albumId) {
+          try {
+            await db.collection('albums').updateOne(
+              { _id: new ObjectId(options.albumId) },
+              { $inc: { photoCount: 1 } }
+            )
+          } catch (e) {
+            console.warn('Failed to update album photo count:', e)
+          }
         }
       }
 

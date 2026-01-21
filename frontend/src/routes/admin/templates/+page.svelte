@@ -49,44 +49,44 @@
 		loading = true;
 		error = '';
 		try {
-			// Check if we just logged in - if so, wait a bit longer for cookie to be available
-			const urlParams = new URLSearchParams(window.location.search);
-			const justLoggedIn = sessionStorage.getItem('just_logged_in') || urlParams.get('just_logged_in') === 'true';
-			
-			if (justLoggedIn) {
-				// Clean up URL parameter
-				if (urlParams.get('just_logged_in')) {
-					const cleanParams = new URLSearchParams(urlParams);
-					cleanParams.delete('just_logged_in');
-					const newUrl = window.location.pathname + (cleanParams.toString() ? '?' + cleanParams.toString() : '');
-					window.history.replaceState({}, '', newUrl);
-				}
-				// Wait longer after login to ensure cookie is fully available
-				console.log('[Templates] Just logged in, waiting for cookie to be available...');
-				await new Promise(resolve => setTimeout(resolve, 500));
-			}
-			
 			const response = await fetch('/api/admin/templates', {
 				credentials: 'include',
 				headers: {
 					'Cache-Control': 'no-cache'
 				}
 			});
-			const result = await response.json();
 			
 			if (!response.ok) {
-				// Check for authentication errors
-				if (response.status === 401 || response.status === 403 || result.authError) {
-					const errorMsg = result.error || result.message || 'Invalid or expired token';
+				// Clone response to read it multiple times if needed
+				const responseClone = response.clone();
+				let errorData: any = {};
+				
+				try {
+					errorData = await response.json();
+				} catch {
+					// If JSON parsing fails, try text
+					try {
+						const errorText = await responseClone.text();
+						errorData = { error: errorText || `HTTP ${response.status}: ${response.statusText}` };
+					} catch {
+						errorData = { error: `HTTP ${response.status}: ${response.statusText}` };
+					}
+				}
+				
+				// Check for authentication errors and redirect
+				if (response.status === 401 || response.status === 403 || errorData.authError) {
+					const errorMsg = errorData.error || errorData.message || 'Invalid or expired token';
 					if (handleAuthError({ error: errorMsg, status: response.status }, $page.url.pathname)) {
 						return; // Redirecting to login
 					}
 				}
 				
 				// Handle error response
-				const errorMsg = result.error || result.message || `HTTP ${response.status}: ${response.statusText}`;
+				const errorMsg = errorData.error || errorData.message || `HTTP ${response.status}: ${response.statusText}`;
 				throw new Error(errorMsg);
 			}
+			
+			const result = await response.json();
 			
 			// Handle both wrapped {success, data} and direct array formats
 			let loadedTemplates: TemplateConfig[] = [];
@@ -106,11 +106,6 @@
 			
 			// Filter out 'default' template as it's a duplicate of 'minimal'
 			templates = loadedTemplates.filter((t) => t.templateName !== 'default');
-			
-			// Clear the "just logged in" flag after successful API call
-			if (sessionStorage.getItem('just_logged_in')) {
-				sessionStorage.removeItem('just_logged_in');
-			}
 			
 			if (templates.length === 0) {
 				error = 'No templates found. Please check backend configuration.';
@@ -178,11 +173,6 @@
 			const areaLabel = area === 'admin' ? 'admin area' : 'frontend';
 			message = `Template "${templateName}" activated successfully for ${areaLabel}!`;
 			siteConfig.load(); // Refresh site config store
-
-			// Clear the "just logged in" flag after successful API call
-			if (sessionStorage.getItem('just_logged_in')) {
-				sessionStorage.removeItem('just_logged_in');
-			}
 
 			setTimeout(() => {
 				message = '';

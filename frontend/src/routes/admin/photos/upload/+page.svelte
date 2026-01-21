@@ -5,6 +5,7 @@
 	import { MultiLangUtils } from '$lib/utils/multiLang';
 	import { currentLanguage } from '$stores/language';
 	import type { UploadReport } from '$types';
+	import AlertModal from '$lib/components/AlertModal.svelte';
 
 	function setWebkitDirectory(node: HTMLInputElement) {
 		(node as any).webkitdirectory = true;
@@ -32,6 +33,7 @@
 	let isDragActive = false;
 	let fileInput: HTMLInputElement | null = null;
 	let fileUploadReport: UploadReport | null = null;
+	let replaceIfExists = false; // Option to replace existing files
 	
 	// Folder upload state
 	let uploadMode: 'files' | 'folder' = 'files';
@@ -40,6 +42,9 @@
 	let folderUploadReport: UploadReport | null = null;
 	let isUploadingFolder = false;
 	let folderError: string | null = null;
+	let showErrorModal = false;
+	let errorModalTitle = '';
+	let errorModalMessage = '';
 
 	onMount(() => {
 		albumId = $page.url.searchParams.get('albumId');
@@ -68,10 +73,16 @@
 		}
 	}
 
+	function showError(title: string, message: string) {
+		errorModalTitle = title;
+		errorModalMessage = message;
+		showErrorModal = true;
+	}
+
 	function handleFilesSelected(files: FileList | null) {
 		if (!files || files.length === 0) return;
 		if (!albumId) {
-			error = 'No album selected for upload';
+			showError('No Album Selected', 'Please select an album first before uploading photos.');
 			return;
 		}
 
@@ -97,6 +108,9 @@
 		const formData = new FormData();
 		formData.append('file', file);
 		formData.append('albumId', albumId);
+		if (replaceIfExists) {
+			formData.append('replaceIfExists', 'true');
+		}
 
 		try {
 			const xhr = new XMLHttpRequest();
@@ -330,7 +344,7 @@
 		}
 		
 		if (!albumId) {
-			folderError = 'Please select an album first';
+			showError('No Album Selected', 'Please select an album first before uploading photos from a folder.');
 			return;
 		}
 
@@ -343,7 +357,7 @@
 		});
 
 		if (imageFiles.length === 0) {
-			folderError = 'No image files found in the selected folder';
+			showError('No Image Files Found', 'The selected folder does not contain any valid image files. Please select a folder with images (JPEG, PNG, GIF, BMP, WebP, or TIFF).');
 			return;
 		}
 
@@ -440,12 +454,18 @@
 			</div>
 		</div>
 
-		<!-- Error Message -->
-		{#if error}
-			<div class="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
-				<p class="text-sm text-red-600">{error}</p>
-			</div>
-		{/if}
+		<!-- Error Modal -->
+		<AlertModal
+			isOpen={showErrorModal}
+			title={errorModalTitle}
+			message={errorModalMessage}
+			variant="error"
+			onClose={() => {
+				showErrorModal = false;
+				error = null;
+				folderError = null;
+			}}
+		/>
 
 		<!-- Upload Mode Tabs -->
 		<div class="mb-6 bg-white rounded-lg shadow-sm border border-gray-200 p-1">
@@ -467,6 +487,23 @@
 					Upload from Folder
 				</button>
 			</div>
+		</div>
+
+		<!-- Replace Existing Files Option -->
+		<div class="mb-6 bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+			<label class="flex items-center space-x-3 cursor-pointer">
+				<input
+					type="checkbox"
+					bind:checked={replaceIfExists}
+					class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+				/>
+				<div>
+					<span class="text-sm font-medium text-gray-900">Replace existing files</span>
+					<p class="text-xs text-gray-500 mt-1">
+						If a file with the same name or hash already exists, it will be replaced instead of skipped.
+					</p>
+				</div>
+			</label>
 		</div>
 
 		<!-- Folder Upload Section -->
@@ -513,11 +550,6 @@
 						</p>
 					</div>
 
-					{#if folderError}
-						<div class="bg-red-50 border border-red-200 rounded-md p-4">
-							<p class="text-sm text-red-600">{folderError}</p>
-						</div>
-					{/if}
 				</div>
 
 				<!-- Upload Progress (shown during upload) -->

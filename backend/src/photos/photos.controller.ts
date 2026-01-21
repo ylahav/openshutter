@@ -65,10 +65,12 @@ export class PhotosController {
     @Query('title') title?: string,
     @Query('description') description?: string,
     @Query('tags') tags?: string,
+    @Query('replaceIfExists') replaceIfExists?: string,
     @Body('albumId') bodyAlbumId?: string,
     @Body('title') bodyTitle?: string,
     @Body('description') bodyDescription?: string,
     @Body('tags') bodyTags?: string | string[],
+    @Body('replaceIfExists') bodyReplaceIfExists?: boolean | string,
     @Req() request?: Request,
   ) {
     if (!file) {
@@ -104,6 +106,16 @@ export class PhotosController {
       }
     }
 
+    // Parse replaceIfExists flag (can come from query, body, or request.body)
+    const requestBodyReplaceIfExists = request?.body?.replaceIfExists;
+    const replaceIfExistsValue = bodyReplaceIfExists !== undefined 
+      ? bodyReplaceIfExists 
+      : requestBodyReplaceIfExists !== undefined
+        ? requestBodyReplaceIfExists === 'true' || requestBodyReplaceIfExists === true || requestBodyReplaceIfExists === '1'
+        : replaceIfExists !== undefined 
+          ? replaceIfExists === 'true' || replaceIfExists === '1'
+          : false;
+    
     const result = await this.photoUploadService.uploadPhoto(
       file.buffer,
       file.originalname,
@@ -113,6 +125,7 @@ export class PhotosController {
         title: resolvedTitle,
         description: resolvedDescription,
         tags: parsedTags,
+        replaceIfExists: replaceIfExistsValue === true || replaceIfExistsValue === 'true' || replaceIfExistsValue === '1',
       },
     );
 

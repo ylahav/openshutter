@@ -51,21 +51,6 @@ export function handleAuthError(error: any, currentPath?: string): boolean {
 		return false;
 	}
 
-	// Check if we just logged in (prevent immediate redirect after login)
-	// Check both URL parameter and sessionStorage (URL param survives page reloads)
-	const urlParams = new URLSearchParams(window.location.search);
-	const justLoggedInUrl = urlParams.get('just_logged_in') === 'true';
-	const justLoggedInStorage = sessionStorage.getItem('just_logged_in');
-	
-	if (justLoggedInUrl || justLoggedInStorage) {
-		console.warn('[Auth Error Handler] Just logged in, skipping redirect to prevent loop', {
-			fromUrl: justLoggedInUrl,
-			fromStorage: !!justLoggedInStorage
-		});
-		// Don't clear the flag here - let the page component handle it after successful API call
-		return false;
-	}
-
 	let errorMessage = '';
 	let status: number | undefined;
 

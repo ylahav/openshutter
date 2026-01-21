@@ -58,6 +58,32 @@ export class SiteConfigService {
   }
 
   /**
+   * Deep merge helper function for nested objects
+   */
+  private deepMerge(target: any, source: any): any {
+    const output = { ...target }
+    
+    if (this.isObject(target) && this.isObject(source)) {
+      Object.keys(source).forEach(key => {
+        if (this.isObject(source[key]) && this.isObject(target[key])) {
+          output[key] = this.deepMerge(target[key], source[key])
+        } else {
+          output[key] = source[key]
+        }
+      })
+    }
+    
+    return output
+  }
+
+  /**
+   * Check if value is a plain object (not array, null, etc.)
+   */
+  private isObject(item: any): boolean {
+    return item && typeof item === 'object' && !Array.isArray(item) && item !== null
+  }
+
+  /**
    * Update site configuration
    */
   async updateConfig(updates: SiteConfigUpdate): Promise<SiteConfig> {
@@ -66,14 +92,18 @@ export class SiteConfigService {
       if (!db) throw new Error('Database connection not established')
     const collection = db.collection('site_config')
     
-    const updateData = {
-      ...updates,
-      updatedAt: new Date()
-    }
+    // Get current config to merge with updates
+    const currentConfig = await this.getConfig()
+    
+    // Deep merge updates with current config to preserve nested objects
+    const mergedConfig = this.deepMerge(currentConfig, updates)
+    
+    // Add updatedAt timestamp
+    mergedConfig.updatedAt = new Date()
     
     await collection.updateOne(
       {}, // Update the first (and only) config document
-      { $set: updateData },
+      { $set: mergedConfig },
       { upsert: true }
     )
     

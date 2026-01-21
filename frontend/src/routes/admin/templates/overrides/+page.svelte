@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { siteConfigData, siteConfig } from '$stores/siteConfig';
+	import { handleAuthError } from '$lib/utils/auth-error-handler';
 
   export const data = undefined as any; // From +layout.server.ts, not used in this component
 
@@ -64,10 +65,36 @@
 		headerConfig?: Record<string, any>;
 	} = {};
 
-	$: currentTemplateName = $siteConfigData?.template?.activeTemplate || 'modern';
+	$: currentTemplateName = $siteConfigData?.template?.frontendTemplate || 
+		$siteConfigData?.template?.activeTemplate || 
+		'modern';
 	$: siteTemplateOverrides = $siteConfigData?.template || {};
+	
+	// Reactive: Update activeTemplate when templates or currentTemplateName changes
+	$: if (templates.length > 0 && currentTemplateName) {
+		const found = templates.find((t) => t.templateName === currentTemplateName);
+		if (found && found !== activeTemplate) {
+			activeTemplate = found;
+			console.log('[Overrides] Active template updated:', {
+				templateName: currentTemplateName,
+				found: !!found,
+				activeTemplate: activeTemplate?.templateName
+			});
+		} else if (!found && activeTemplate) {
+			// Template name changed but template not found - try to find by displayName or use first
+			const foundByDisplay = templates.find((t) => 
+				t.displayName?.toLowerCase() === currentTemplateName.toLowerCase()
+			);
+			activeTemplate = foundByDisplay || templates[0] || null;
+			if (!activeTemplate) {
+				console.warn('[Overrides] No template found for:', currentTemplateName);
+			}
+		}
+	}
 
 	onMount(async () => {
+		// Ensure site config is loaded first
+		await siteConfig.load();
 		await loadTemplates();
 		initializeLocalOverrides();
 	});
@@ -92,16 +119,117 @@
 		loading = true;
 		error = '';
 		try {
-			const response = await fetch('/api/admin/templates');
+			const response = await fetch('/api/admin/templates', {
+				credentials: 'include',
+				headers: {
+					'Cache-Control': 'no-cache'
+				}
+			});
+			
 			if (!response.ok) {
-				throw new Error('Failed to load templates');
+				// Clone response to read it multiple times if needed
+				const responseClone = response.clone();
+				let errorData: any = {};
+				
+				try {
+					errorData = await response.json();
+				} catch {
+					// If JSON parsing fails, try text
+					try {
+						const errorText = await responseClone.text();
+						errorData = { error: errorText || `HTTP ${response.status}: ${response.statusText}` };
+					} catch {
+						errorData = { error: `HTTP ${response.status}: ${response.statusText}` };
+					}
+				}
+				
+				// Check for auth errors and redirect
+				if (response.status === 401 || response.status === 403 || errorData.authError) {
+					const errorMsg = errorData.error || errorData.message || 'Invalid or expired token';
+					console.warn('[Overrides] Auth error detected:', errorMsg);
+					if (handleAuthError({ error: errorMsg, status: response.status }, window.location.pathname)) {
+						return; // Redirected to login
+					}
+				}
+				
+				// If not redirected, throw error
+				throw new Error(errorData.error || errorData.message || `Failed to load templates: ${response.status}`);
 			}
 			const data = await response.json();
-			templates = Array.isArray(data) ? data : [];
-			activeTemplate = templates.find((t) => t.templateName === currentTemplateName) || templates[0] || null;
+			console.log('[Overrides] Templates API response:', {
+				hasSuccess: 'success' in data,
+				hasData: 'data' in data,
+				isArray: Array.isArray(data),
+				dataKeys: Object.keys(data),
+				dataType: typeof data
+			});
+			
+			// Handle both wrapped {success, data} and direct array formats
+			let templatesArray: any[] = [];
+			if (data.success && data.data) {
+				// Wrapped format: { success: true, data: [...] }
+				templatesArray = Array.isArray(data.data) ? data.data : [];
+			} else if (Array.isArray(data)) {
+				// Direct array format
+				templatesArray = data;
+			} else if (data.templates && Array.isArray(data.templates)) {
+				// Alternative wrapped format: { templates: [...] }
+				templatesArray = data.templates;
+			}
+			
+			templates = templatesArray;
+			
+			if (templates.length === 0) {
+				error = 'No templates available. Please check server configuration.';
+				activeTemplate = null;
+				return;
+			}
+			
+			// Get current template name from site config (may have been updated)
+			const templateName = $siteConfigData?.template?.frontendTemplate || 
+				$siteConfigData?.template?.activeTemplate || 
+				'modern';
+			
+			console.log('[Overrides] Loading templates:', {
+				templatesCount: templates.length,
+				templateNames: templates.map(t => t.templateName),
+				currentTemplateName: templateName,
+				siteConfigData: $siteConfigData?.template,
+				hasSiteConfig: !!$siteConfigData
+			});
+			
+			// Find active template by name (reactive statement will also handle this)
+			const found = templates.find((t) => t.templateName === templateName);
+			if (found) {
+				activeTemplate = found;
+			} else {
+				// If not found, try to find by displayName or use first template
+				const foundByDisplay = templates.find((t) => 
+					t.displayName?.toLowerCase() === templateName.toLowerCase()
+				);
+				activeTemplate = foundByDisplay || templates[0] || null;
+				
+				if (!activeTemplate) {
+					console.warn('[Overrides] No active template found:', {
+						templateName,
+						availableTemplates: templates.map(t => t.templateName)
+					});
+					error = `Template "${templateName}" not found. Available templates: ${templates.map(t => t.templateName).join(', ')}`;
+				} else {
+					console.log('[Overrides] Using fallback template:', activeTemplate.templateName);
+				}
+			}
 		} catch (err) {
 			console.error('Error loading templates:', err);
-			error = `Failed to load templates: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+			
+			// Check if it's an auth error and redirect
+			if (handleAuthError(err, window.location.pathname)) {
+				return; // Redirecting, don't set error message
+			}
+			
+			error = `Failed to load templates: ${errorMessage}`;
+			activeTemplate = null;
 		} finally {
 			loading = false;
 		}
