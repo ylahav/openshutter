@@ -7,8 +7,9 @@ OpenShutter supports multiple languages with full RTL (Right-to-Left) support. T
 ## Language Files
 
 ### Location
-- `src/i18n/en.json` - English translations
-- `src/i18n/he.json` - Hebrew translations
+- `frontend/src/i18n/en.json` - English translations
+- `frontend/src/i18n/he.json` - Hebrew translations
+- Additional language files can be created through the admin interface
 
 ### Structure
 Each language file contains nested objects for different sections:
@@ -20,6 +21,66 @@ Each language file contains nested objects for different sections:
 - `pagination` - Pagination controls
 - `loading` - Loading states
 - `errors` - Error messages
+
+## Admin Language Management
+
+OpenShutter provides a comprehensive admin interface for managing languages and translations at `/admin/translations`.
+
+### Features
+
+#### 1. **View Available Languages**
+- See all configured languages with their flags and codes
+- Click on a language to view and edit its translations
+
+#### 2. **Add New Languages**
+- Click the "+ Add Language" button
+- Select from predefined language codes (e.g., `es`, `fr`, `de`, `ar`, etc.)
+- Or enter a custom language code
+- Provide a display name and flag emoji
+- The system will create a new translation file based on the English template
+
+#### 3. **Edit Translations**
+- Select a language from the list
+- Browse translations organized by category (navigation, admin, albums, etc.)
+- Click on any translation key to edit its value
+- Use the search box to quickly find specific keys
+- Expand/collapse categories for easier navigation
+
+#### 4. **Auto-Translate Missing Translations**
+- When editing a non-English language, use the "Auto-Translate Missing" button
+- The system will automatically translate all missing keys from English
+- Progress is shown during translation
+- Note: Auto-translation uses machine translation and may require manual review
+
+#### 5. **Delete Languages**
+- Delete any language except English (which is the default fallback)
+- Deleting a language removes its translation file permanently
+- A confirmation dialog prevents accidental deletion
+
+### Accessing Language Management
+
+1. Navigate to `/admin` in your OpenShutter installation
+2. Click on "Translations" in the admin menu
+3. Or go directly to `/admin/translations`
+
+### Supported Languages
+
+The system supports adding any language, with predefined metadata for:
+- English (en) 🇺🇸 - Default, cannot be deleted
+- Hebrew (he) 🇮🇱
+- Arabic (ar) 🇸🇦
+- Spanish (es) 🇪🇸
+- French (fr) 🇫🇷
+- German (de) 🇩🇪
+- Italian (it) 🇮🇹
+- Portuguese (pt) 🇵🇹
+- Russian (ru) 🇷🇺
+- Japanese (ja) 🇯🇵
+- Korean (ko) 🇰🇷
+- Chinese (zh) 🇨🇳
+- And many more...
+
+Custom language codes can also be added if needed.
 
 ## Admin Translation Keys
 
@@ -130,10 +191,18 @@ The following keys were added for the blog categories feature:
 
 ## Adding New Translations
 
-### 1. Add to Language Files
-1. Open the appropriate language file (`en.json` or `he.json`)
+### Method 1: Using Admin Interface (Recommended)
+1. Navigate to `/admin/translations`
+2. Select the language you want to edit
+3. Browse or search for the translation key
+4. Click on the key to edit its value
+5. Save changes
+
+### Method 2: Manual File Editing
+1. Open the appropriate language file (`frontend/src/i18n/en.json` or `frontend/src/i18n/he.json`)
 2. Add the new key-value pair in the correct section
 3. Ensure proper JSON formatting (no trailing commas)
+4. The changes will be reflected after the frontend rebuilds
 
 ### 2. Use in Components
 ```typescript
@@ -193,5 +262,44 @@ If you get JSON parse errors:
 2. Check for trailing commas
 3. Ensure proper quote escaping
 4. Remove any comments (JSON doesn't support comments)
+
+## Language File Management
+
+### Backend Storage
+- Language files are stored in `backend/src/i18n/` directory
+- The admin interface reads from and writes to these files
+- Changes made through the admin interface are immediately saved to disk
+
+### File Structure
+Each language file follows this structure:
+```json
+{
+  "navigation": {
+    "home": "Home",
+    "albums": "Albums"
+  },
+  "admin": {
+    "dashboard": "Dashboard",
+    "settings": "Settings"
+  }
+}
+```
+
+### Adding a New Language via Admin
+1. Go to `/admin/translations`
+2. Click "+ Add Language"
+3. Enter language code (e.g., `es` for Spanish)
+4. Enter display name (e.g., "Spanish")
+5. Select or enter flag emoji (e.g., 🇪🇸)
+6. Click "Create"
+7. The system creates a new file `backend/src/i18n/es.json` based on English template
+8. Edit translations as needed
+
+### Best Practices for Language Management
+1. **Always start with English**: English is the fallback language, so ensure all keys exist in English first
+2. **Use consistent keys**: Keep translation keys consistent across all languages
+3. **Test thoroughly**: After adding a new language, test the UI to ensure all translations appear correctly
+4. **Review auto-translations**: If using auto-translate, review and correct machine translations for accuracy
+5. **Backup before deletion**: Before deleting a language, ensure you have backups if needed
 
 *Last updated: January 2025*

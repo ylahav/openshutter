@@ -88,6 +88,33 @@
 				</a>
 			</div>
 
+			<!-- Translation Management -->
+			<div class="bg-white rounded-lg shadow-md p-6">
+				<div class="flex items-center mb-4">
+					<div class="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
+						<svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"
+							/>
+						</svg>
+					</div>
+					<h2 class="text-xl font-semibold text-gray-900 ml-3">Translation Management</h2>
+				</div>
+				<p class="text-gray-600 mb-4">Add new languages and manage translations</p>
+				<a
+					href="/admin/translations"
+					class="inline-flex items-center px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2"
+				>
+					Manage Translations
+					<svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+					</svg>
+				</a>
+			</div>
+
 			<!-- Storage Management -->
 			<div class="bg-white rounded-lg shadow-md p-6">
 				<div class="flex items-center mb-4">
