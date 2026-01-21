@@ -22,6 +22,8 @@ import { DeploymentModule } from './deployment/deployment.module';
 import { AdminGuard } from './common/guards/admin.guard';
 import { PhotosAdminController } from './photos/photos-admin.controller';
 import { FaceDetectionModule } from './face-detection/face-detection.module';
+import { TranslationsModule } from './translations/translations.module';
+import { TemplateBuilderModule } from './template-builder/template-builder.module';
 import configuration from './config/configuration';
 
 @Module({
@@ -46,6 +48,8 @@ import configuration from './config/configuration';
     AnalyticsModule,
     DeploymentModule,
     FaceDetectionModule,
+    TranslationsModule,
+    TemplateBuilderModule,
   ],
   controllers: [HealthController, SiteConfigController, StorageController, StorageAdminController, TemplatesController, PhotosAdminController],
   providers: [AdminGuard],

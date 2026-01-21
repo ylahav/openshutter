@@ -66,6 +66,8 @@ export default defineConfig({
 						url.startsWith('/api/auth/google/') ||
 						url.startsWith('/api/admin/storage') ||
 						url.startsWith('/api/admin/storage-options') ||
+						url.startsWith('/api/admin/translations') ||
+						url.startsWith('/api/admin/template-builder') ||
 						url.startsWith('/api/owner/storage-options') ||
 						(url.startsWith('/api/albums') && method === 'POST') ||
 						url.startsWith('/api/albums/hierarchy') ||
