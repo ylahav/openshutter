@@ -35,7 +35,7 @@ Welcome to the OpenShutter documentation. This comprehensive guide covers all as
 - **Owner Dashboard**: Focused interface for album owners to manage their collections
 - **Cover Photo Selection**: Admin interface for selecting album cover photos
 - **Photo Management**: Upload, organize, and display photos with metadata
-- **Advanced Photo Upload**: Duplicate detection, bulk folder upload, and detailed upload reports
+- **Advanced Photo Upload**: Duplicate detection, bulk local folder upload, and detailed upload reports
 - **Multi-Language Support**: Internationalization with RTL support
 - **Template System**: Customizable gallery templates
 - **Admin Dashboard**: Comprehensive administrative interface

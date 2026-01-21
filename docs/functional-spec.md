@@ -72,7 +72,7 @@
 - Photos admin: edit form uses `MultiLangInput`, `MultiLangHTMLEditor`, `PhotoMetadataEditor`
 - **Photo Upload**: Advanced upload features with duplicate detection and bulk upload
   - Single file upload: drag & drop, multiple file selection, real-time progress
-  - Bulk folder upload: upload from server-side folder paths
+  - Bulk folder upload: upload from local (client-side) folders
   - Duplicate detection: SHA-256 hash-based and filename+size fallback
   - Upload reports: detailed success/skipped/failure lists with statistics
   - API: POST `/api/photos/upload`, POST `/api/photos/upload-from-folder`

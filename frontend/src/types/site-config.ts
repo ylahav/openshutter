@@ -17,7 +17,9 @@ export interface SiteConfig {
     textColor: string
   }
   template?: {
-    activeTemplate: string
+    activeTemplate?: string // Deprecated: use frontendTemplate instead, kept for backward compatibility
+    frontendTemplate?: string // Template for public-facing frontend pages
+    adminTemplate?: string // Template for admin area pages
     customColors?: {
       primary?: string
       secondary?: string

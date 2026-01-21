@@ -193,7 +193,9 @@ export class SiteConfigService {
         maxUploadSize: '10MB'
       },
       template: {
-        activeTemplate: 'modern'
+        frontendTemplate: 'modern',
+        adminTemplate: 'default',
+        activeTemplate: 'modern' // Kept for backward compatibility
       },
       createdAt: new Date(),
       updatedAt: new Date()

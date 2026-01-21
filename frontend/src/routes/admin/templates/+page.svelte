@@ -35,7 +35,9 @@
 	let message = '';
 	let error = '';
 
-	$: activeTemplate = $siteConfigData?.template?.activeTemplate || 'modern';
+	// Get active templates for both frontend and admin areas
+	$: frontendTemplate = $siteConfigData?.template?.frontendTemplate || $siteConfigData?.template?.activeTemplate || 'modern';
+	$: adminTemplate = $siteConfigData?.template?.adminTemplate || $siteConfigData?.template?.activeTemplate || 'default';
 
 	onMount(async () => {
 		await loadTemplates();
@@ -84,8 +86,9 @@
 		}
 	}
 
-	async function setActiveTemplate(templateName: string) {
-		if (templateName === activeTemplate) {
+	async function setActiveTemplate(templateName: string, area: 'frontend' | 'admin') {
+		const currentTemplate = area === 'admin' ? adminTemplate : frontendTemplate;
+		if (templateName === currentTemplate) {
 			return;
 		}
 
@@ -94,17 +97,23 @@
 		error = '';
 
 		try {
-			// Update site config with new active template
+			// Update site config with new active template for the specified area
+			const updateData: any = {
+				template: {}
+			};
+			
+			if (area === 'admin') {
+				updateData.template.adminTemplate = templateName;
+			} else {
+				updateData.template.frontendTemplate = templateName;
+			}
+
 			const response = await fetch('/api/admin/site-config', {
 				method: 'PUT',
 				headers: {
 					'Content-Type': 'application/json'
 				},
-				body: JSON.stringify({
-					template: {
-						activeTemplate: templateName
-					}
-				})
+				body: JSON.stringify(updateData)
 			});
 
 			if (!response.ok) {
@@ -112,7 +121,8 @@
 				throw new Error(errorData.message || 'Failed to update template');
 			}
 
-			message = `Template "${templateName}" activated successfully!`;
+			const areaLabel = area === 'admin' ? 'admin area' : 'frontend';
+			message = `Template "${templateName}" activated successfully for ${areaLabel}!`;
 			siteConfig.load(); // Refresh site config store
 
 			setTimeout(() => {
@@ -149,7 +159,7 @@
 			<div class="flex items-center justify-between mb-6">
 				<div>
 					<h1 class="text-2xl font-bold text-gray-900">Template Management</h1>
-					<p class="text-gray-600 mt-2">Choose and manage your gallery templates</p>
+					<p class="text-gray-600 mt-2">Choose and manage templates for frontend and admin areas</p>
 				</div>
 				<a
 					href="/admin"
@@ -157,6 +167,28 @@
 				>
 					← Back to Admin
 				</a>
+			</div>
+
+			<!-- Current Active Templates Info -->
+			<div class="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+				<div class="p-4 bg-blue-50 rounded-lg border border-blue-200">
+					<h2 class="text-lg font-semibold text-gray-900 mb-2">Frontend Template</h2>
+					<p class="text-gray-700">
+						Currently using: <strong>{frontendTemplate}</strong>
+					</p>
+					<p class="text-sm text-gray-600 mt-1">
+						Used for public-facing pages (home, albums, gallery, etc.)
+					</p>
+				</div>
+				<div class="p-4 bg-purple-50 rounded-lg border border-purple-200">
+					<h2 class="text-lg font-semibold text-gray-900 mb-2">Admin Template</h2>
+					<p class="text-gray-700">
+						Currently using: <strong>{adminTemplate}</strong>
+					</p>
+					<p class="text-sm text-gray-600 mt-1">
+						Used for admin area pages (/admin/*)
+					</p>
+				</div>
 			</div>
 
 			{#if message}
@@ -179,7 +211,9 @@
 			{:else}
 				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 					{#each templates as template}
-						{@const isActive = template.templateName === activeTemplate}
+						{@const isFrontendActive = template.templateName === frontendTemplate}
+						{@const isAdminActive = template.templateName === adminTemplate}
+						{@const isActive = isFrontendActive || isAdminActive}
 						{@const categoryColor = getCategoryColor(template.category)}
 						<div
 							class="bg-white border-2 rounded-lg overflow-hidden transition-all hover:shadow-lg {isActive
@@ -198,10 +232,21 @@
 									<div class="text-white text-4xl font-bold">{template.displayName}</div>
 								{/if}
 								{#if isActive}
-									<div
-										class="absolute top-2 right-2 bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-semibold"
-									>
-										Active
+									<div class="absolute top-2 right-2 flex flex-col gap-1">
+										{#if isFrontendActive}
+											<div
+												class="bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-semibold"
+											>
+												Frontend
+											</div>
+										{/if}
+										{#if isAdminActive}
+											<div
+												class="bg-purple-600 text-white px-3 py-1 rounded-full text-xs font-semibold"
+											>
+												Admin
+											</div>
+										{/if}
 									</div>
 								{/if}
 							</div>
@@ -267,26 +312,78 @@
 								</div>
 
 								<!-- Actions -->
-								<div class="flex gap-2">
-									{#if isActive}
+								<div class="flex flex-col gap-2">
+									{#if isFrontendActive && isAdminActive}
 										<button
 											type="button"
 											disabled
-											class="flex-1 px-4 py-2 bg-gray-200 text-gray-600 rounded-md cursor-not-allowed text-sm font-medium"
+											class="w-full px-4 py-2 bg-gray-200 text-gray-600 rounded-md cursor-not-allowed text-sm font-medium"
 										>
-											Currently Active
+											Active (Both Areas)
 										</button>
-									{:else}
+									{:else if isFrontendActive}
 										<button
 											type="button"
-											on:click={() => setActiveTemplate(template.templateName)}
+											disabled
+											class="w-full px-4 py-2 bg-blue-200 text-blue-800 rounded-md cursor-not-allowed text-sm font-medium"
+										>
+											Active (Frontend)
+										</button>
+										<button
+											type="button"
+											on:click={() => setActiveTemplate(template.templateName, 'admin')}
 											disabled={saving}
-											class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+											class="w-full px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
 										>
 											{#if saving}
 												Activating...
 											{:else}
-												Activate Template
+												Use for Admin
+											{/if}
+										</button>
+									{:else if isAdminActive}
+										<button
+											type="button"
+											disabled
+											class="w-full px-4 py-2 bg-purple-200 text-purple-800 rounded-md cursor-not-allowed text-sm font-medium"
+										>
+											Active (Admin)
+										</button>
+										<button
+											type="button"
+											on:click={() => setActiveTemplate(template.templateName, 'frontend')}
+											disabled={saving}
+											class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+										>
+											{#if saving}
+												Activating...
+											{:else}
+												Use for Frontend
+											{/if}
+										</button>
+									{:else}
+										<button
+											type="button"
+											on:click={() => setActiveTemplate(template.templateName, 'frontend')}
+											disabled={saving}
+											class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+										>
+											{#if saving}
+												Activating...
+											{:else}
+												Use for Frontend
+											{/if}
+										</button>
+										<button
+											type="button"
+											on:click={() => setActiveTemplate(template.templateName, 'admin')}
+											disabled={saving}
+											class="w-full px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+										>
+											{#if saving}
+												Activating...
+											{:else}
+												Use for Admin
 											{/if}
 										</button>
 									{/if}
@@ -296,16 +393,6 @@
 					{/each}
 				</div>
 
-				<!-- Current Active Template Info -->
-				<div class="mt-8 p-4 bg-blue-50 rounded-lg border border-blue-200">
-					<h2 class="text-lg font-semibold text-gray-900 mb-2">Current Active Template</h2>
-					<p class="text-gray-700">
-						The <strong>{activeTemplate}</strong> template is currently active and being used for your gallery.
-					</p>
-					<p class="text-sm text-gray-600 mt-2">
-						To change the template, click "Activate Template" on any template card above.
-					</p>
-				</div>
 			{/if}
 		</div>
 	</div>

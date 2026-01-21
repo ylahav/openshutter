@@ -6,6 +6,13 @@
 	import { currentLanguage } from '$stores/language';
 	import type { UploadReport } from '$types';
 
+	function setWebkitDirectory(node: HTMLInputElement) {
+		(node as any).webkitdirectory = true;
+		return {
+			destroy() {}
+		};
+	}
+
   export const data = undefined as any; // From +layout.server.ts, not used in this component
 
 	interface UploadProgress {
@@ -28,7 +35,8 @@
 	
 	// Folder upload state
 	let uploadMode: 'files' | 'folder' = 'files';
-	let folderPath = '';
+	let folderInput: HTMLInputElement | null = null;
+	let selectedFolderName = '';
 	let folderUploadReport: UploadReport | null = null;
 	let isUploadingFolder = false;
 	let folderError: string | null = null;
@@ -43,9 +51,11 @@
 	async function fetchAlbumName() {
 		if (!albumId) return;
 		try {
-			const response = await fetch(`/api/albums/${albumId}`);
+			const response = await fetch(`/api/admin/albums/${albumId}`);
 			if (response.ok) {
-				const album = await response.json();
+				const result = await response.json();
+				// Handle both wrapped {success, data} and direct album formats
+				const album = result.data || result;
 				const name = album.name;
 				const nameText =
 					typeof name === 'string'
@@ -232,6 +242,10 @@
 		if (allComplete) {
 			isUploading = false;
 			generateFileUploadReport();
+			// If we're in folder mode and uploading, generate folder report too
+			if (uploadMode === 'folder' && isUploadingFolder) {
+				handleFolderUploadComplete();
+			}
 		}
 	}
 
@@ -300,61 +314,120 @@
 	const allUploadsComplete = uploads.length > 0 && uploads.every((upload) => upload.status !== 'uploading');
 	const hasErrors = uploads.some((upload) => upload.status === 'error');
 
-	async function uploadFromFolder() {
-		if (!folderPath.trim()) {
-			folderError = 'Please enter a folder path';
+	function handleFolderSelected(files: FileList | null) {
+		if (!files || files.length === 0) {
+			selectedFolderName = '';
 			return;
 		}
+		
+		// Get folder name from the first file's path
+		if (files.length > 0) {
+			const firstFile = files[0];
+			// Extract folder name from webkitRelativePath (e.g., "folder/file.jpg" -> "folder")
+			const webkitPath = (firstFile as any).webkitRelativePath || '';
+			const pathParts = webkitPath.split('/');
+			selectedFolderName = pathParts.length > 1 ? pathParts[0] : 'Selected Folder';
+		}
+		
 		if (!albumId) {
 			folderError = 'Please select an album first';
 			return;
 		}
 
-		isUploadingFolder = true;
+		// Filter to only image files
+		const imageFiles = Array.from(files).filter(file => {
+			const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/bmp', 'image/webp', 'image/tiff'];
+			const ext = file.name.toLowerCase().split('.').pop();
+			const validExts = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'tiff', 'tif'];
+			return validTypes.includes(file.type) || (ext && validExts.includes(ext));
+		});
+
+		if (imageFiles.length === 0) {
+			folderError = 'No image files found in the selected folder';
+			return;
+		}
+
 		folderError = null;
 		folderUploadReport = null;
+		isUploadingFolder = true;
 
-		try {
-			const response = await fetch('/api/photos/upload-from-folder', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({
-					folderPath: folderPath.trim(),
-					albumId: albumId
-				})
-			});
+		// Create upload progress entries for all files
+		const newUploads: UploadProgress[] = imageFiles.map((file) => ({
+			file,
+			progress: 0,
+			status: 'uploading' as const
+		}));
 
-			if (!response.ok) {
-				const errorData = await response.json().catch(() => ({ error: 'Upload failed' }));
-				throw new Error(errorData.error || `Upload failed: ${response.statusText}`);
+		uploads = [...uploads, ...newUploads];
+		isUploading = true;
+		error = null;
+		fileUploadReport = null;
+
+		// Upload each file
+		imageFiles.forEach((file, index) => {
+			uploadFile(file, uploads.length - imageFiles.length + index);
+		});
+	}
+
+	function handleFolderUploadComplete() {
+		isUploadingFolder = false;
+		// Generate folder upload report from the uploads
+		if (uploads.length > 0) {
+		const folderUploads = uploads.filter(u => {
+			// Check if this upload is from the folder (has webkitRelativePath)
+			const webkitPath = (u.file as any).webkitRelativePath || '';
+			return webkitPath && webkitPath.includes(selectedFolderName);
+		});
+
+			if (folderUploads.length > 0) {
+				const successes = folderUploads.filter((u) => u.status === 'success');
+				const skipped = folderUploads.filter((u) => u.status === 'skipped');
+				const failures = folderUploads.filter((u) => u.status === 'error');
+
+				folderUploadReport = {
+					total: folderUploads.length,
+					successful: successes.length,
+					skipped: skipped.length,
+					failed: failures.length,
+					successes: successes.map((u) => ({
+						filename: u.file.name,
+						photoId: u.photoId,
+						message: 'Uploaded successfully'
+					})),
+					skippedItems: skipped.map((u) => ({
+						filename: u.file.name,
+						reason: u.reason || 'Photo already exists'
+					})),
+					failures: failures.map((u) => ({
+						filename: u.file.name,
+						error: u.error || 'Upload failed'
+					}))
+				};
 			}
-
-			const report: UploadReport = await response.json();
-			folderUploadReport = report;
-		} catch (err) {
-			folderError = err instanceof Error ? err.message : 'Failed to upload from folder';
-			console.error('Folder upload error:', err);
-		} finally {
-			isUploadingFolder = false;
 		}
 	}
 </script>
 
 <svelte:head>
-	<title>Upload Photos - Admin</title>
+	<title>{albumName ? `Upload Photos - ${albumName}` : 'Upload Photos'} - Admin</title>
 </svelte:head>
 
 <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 		<!-- Header -->
 		<div class="flex items-center justify-between mb-8">
 			<div>
-				<h1 class="text-3xl font-bold text-gray-900">Upload Photos</h1>
+				<h1 class="text-3xl font-bold text-gray-900">
+					Upload Photos
+					{#if albumName}
+						<span class="text-2xl font-semibold text-gray-700"> - {albumName}</span>
+					{/if}
+				</h1>
 				{#if albumName}
 					<p class="mt-2 text-gray-600">
 						Uploading to album: <span class="font-medium">{albumName}</span>
 					</p>
+				{:else if albumId}
+					<p class="mt-2 text-sm text-gray-500">Loading album information...</p>
 				{/if}
 			</div>
 			<div class="flex space-x-3">
@@ -391,7 +464,7 @@
 						? 'bg-blue-600 text-white'
 						: 'text-gray-700 hover:bg-gray-100'}"
 				>
-					Upload from Server Folder
+					Upload from Folder
 				</button>
 			</div>
 		</div>
@@ -399,26 +472,44 @@
 		<!-- Folder Upload Section -->
 		{#if uploadMode === 'folder'}
 			<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-8 mb-8">
-				<h2 class="text-xl font-semibold text-gray-900 mb-4">Upload from Server Folder</h2>
+				<h2 class="text-xl font-semibold text-gray-900 mb-4">Upload from Local Folder</h2>
 				<p class="text-sm text-gray-600 mb-6">
-					Enter the server-side folder path containing images to upload. The system will automatically detect duplicates and skip them.
+					Select a folder from your computer containing images to upload. The system will automatically detect duplicates and skip them.
 				</p>
 
 				<div class="space-y-4">
 					<div>
-						<label for="folderPath" class="block text-sm font-medium text-gray-700 mb-2">
-							Server Folder Path
+						<label for="folderInput" class="block text-sm font-medium text-gray-700 mb-2">
+							Select Folder
 						</label>
 						<input
-							id="folderPath"
-							type="text"
-							bind:value={folderPath}
-							placeholder="/path/to/photos or C:\path\to\photos"
-							class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
-							disabled={isUploadingFolder}
+							bind:this={folderInput}
+							id="folderInput"
+							type="file"
+							multiple
+							accept="image/*"
+							class="hidden"
+							use:setWebkitDirectory
+							on:change={(e) => handleFolderSelected((e.currentTarget as HTMLInputElement).files)}
 						/>
-						<p class="mt-1 text-xs text-gray-500">
-							Example: /var/www/photos or C:\Users\YourName\Pictures\Album
+						<button
+							type="button"
+							on:click={() => folderInput?.click()}
+							disabled={isUploadingFolder || !albumId}
+							class="w-full px-4 py-3 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+						>
+							<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+							</svg>
+							{selectedFolderName ? `Selected: ${selectedFolderName}` : 'Choose Folder'}
+						</button>
+						{#if selectedFolderName}
+							<p class="mt-2 text-sm text-gray-600">
+								Folder: <span class="font-medium">{selectedFolderName}</span>
+							</p>
+						{/if}
+						<p class="mt-2 text-xs text-gray-500">
+							Click the button above to select a folder from your computer. All images in the folder will be uploaded.
 						</p>
 					</div>
 
@@ -427,15 +518,84 @@
 							<p class="text-sm text-red-600">{folderError}</p>
 						</div>
 					{/if}
-
-					<button
-						on:click={uploadFromFolder}
-						disabled={isUploadingFolder || !folderPath.trim() || !albumId}
-						class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-					>
-						{isUploadingFolder ? 'Uploading...' : 'Upload from Folder'}
-					</button>
 				</div>
+
+				<!-- Upload Progress (shown during upload) -->
+				{#if isUploadingFolder && uploads.length > 0}
+					<div class="mt-8 border-t border-gray-200 pt-6">
+						<h3 class="text-lg font-semibold text-gray-900 mb-4">Upload Progress</h3>
+						<div class="space-y-4">
+							{#each uploads.filter(u => {
+								const webkitPath = (u.file as any).webkitRelativePath || '';
+								return webkitPath && webkitPath.includes(selectedFolderName);
+							}) as upload, index}
+								<div class="flex items-center space-x-4">
+									<div class="flex-shrink-0 w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
+										{#if upload.status === 'success'}
+											<svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+											</svg>
+										{:else if upload.status === 'skipped'}
+											<svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+											</svg>
+										{:else if upload.status === 'error'}
+											<svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+											</svg>
+										{:else}
+											<svg class="w-6 h-6 text-blue-600 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+											</svg>
+										{/if}
+									</div>
+									<div class="flex-1 min-w-0">
+										<p class="text-sm font-medium text-gray-900 truncate">{upload.file.name}</p>
+										<p class="text-xs text-gray-500">{(upload.file.size / 1024 / 1024).toFixed(2)} MB</p>
+										{#if upload.status === 'skipped' && upload.reason}
+											<p class="text-xs text-yellow-600 mt-1 truncate" title={upload.reason}>{upload.reason}</p>
+										{:else if upload.status === 'error' && upload.error}
+											<p class="text-xs text-red-600 mt-1 truncate" title={upload.error}>{upload.error}</p>
+										{/if}
+									</div>
+									<div class="flex-shrink-0 w-24">
+										<div class="w-full bg-gray-200 rounded-full h-2">
+											<div
+												class="h-2 rounded-full transition-all duration-300 {upload.status === 'success'
+													? 'bg-green-600'
+													: upload.status === 'skipped'
+														? 'bg-yellow-600'
+														: upload.status === 'error'
+															? 'bg-red-600'
+															: 'bg-blue-600'}"
+												style="width: {upload.progress}%"
+											></div>
+										</div>
+									</div>
+									<div class="flex-shrink-0 w-16 text-right">
+										<span
+											class="text-xs font-medium {upload.status === 'success'
+												? 'text-green-600'
+												: upload.status === 'skipped'
+													? 'text-yellow-600'
+													: upload.status === 'error'
+														? 'text-red-600'
+														: 'text-blue-600'}"
+										>
+											{upload.status === 'success'
+												? 'Done'
+												: upload.status === 'skipped'
+													? 'Skipped'
+													: upload.status === 'error'
+														? 'Error'
+														: `${upload.progress}%`}
+										</span>
+									</div>
+								</div>
+							{/each}
+						</div>
+					</div>
+				{/if}
 
 				<!-- Upload Report -->
 				{#if folderUploadReport}

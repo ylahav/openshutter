@@ -54,8 +54,12 @@ export class TemplateService {
 
   // Note: Reading template config files from the filesystem is disabled in client builds
 
-  async getActiveTemplate(): Promise<TemplateConfig | null> {
-    console.log('getActiveTemplate', this.activeTemplate)
+  /**
+   * Get the active template for the specified area
+   * @param area 'frontend' or 'admin'. If not provided, defaults to 'frontend'
+   */
+  async getActiveTemplate(area: 'frontend' | 'admin' = 'frontend'): Promise<TemplateConfig | null> {
+    console.log('getActiveTemplate', this.activeTemplate, area)
     if (this.activeTemplate) {
       return this.activeTemplate
     }
@@ -67,7 +71,13 @@ export class TemplateService {
         const result = await response.json()
         console.log('getActiveTemplate result', result)
         if (result.success) {
-          const templateName = result.data.template?.activeTemplate || 'default'
+          // Determine which template to use based on area
+          let templateName: string
+          if (area === 'admin') {
+            templateName = result.data.template?.adminTemplate || result.data.template?.activeTemplate || 'default'
+          } else {
+            templateName = result.data.template?.frontendTemplate || result.data.template?.activeTemplate || 'modern'
+          }
           const template = await this.loadTemplate(templateName)
           if (template) {
             this.activeTemplate = template

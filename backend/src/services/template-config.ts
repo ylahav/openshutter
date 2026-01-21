@@ -127,9 +127,17 @@ export class TemplateConfigService {
   /**
    * Get the effective component visibility settings for the current template
    * This merges template defaults with site-specific overrides
+   * @param siteConfig The site configuration
+   * @param area Optional: 'frontend' or 'admin'. Defaults to 'frontend'
    */
-  async getComponentVisibility(siteConfig: SiteConfig): Promise<TemplateComponentVisibility> {
-    const activeTemplate = siteConfig.template?.activeTemplate || 'default'
+  async getComponentVisibility(siteConfig: SiteConfig, area: 'frontend' | 'admin' = 'frontend'): Promise<TemplateComponentVisibility> {
+    // Determine which template to use based on area
+    let activeTemplate: string
+    if (area === 'admin') {
+      activeTemplate = siteConfig.template?.adminTemplate || siteConfig.template?.activeTemplate || 'default'
+    } else {
+      activeTemplate = siteConfig.template?.frontendTemplate || siteConfig.template?.activeTemplate || 'default'
+    }
     const templateConfig = this.getTemplateConfig(activeTemplate)
     
     if (!templateConfig) {
@@ -225,9 +233,17 @@ export class TemplateConfigService {
 
   /**
    * Reset component visibility to template defaults
+   * @param siteConfig The site configuration
+   * @param area Optional: 'frontend' or 'admin'. Defaults to 'frontend'
    */
-  async resetToTemplateDefaults(siteConfig: SiteConfig): Promise<SiteConfig> {
-    const activeTemplate = siteConfig.template?.activeTemplate || 'default'
+  async resetToTemplateDefaults(siteConfig: SiteConfig, area: 'frontend' | 'admin' = 'frontend'): Promise<SiteConfig> {
+    // Determine which template to use based on area
+    let activeTemplate: string
+    if (area === 'admin') {
+      activeTemplate = siteConfig.template?.adminTemplate || siteConfig.template?.activeTemplate || 'default'
+    } else {
+      activeTemplate = siteConfig.template?.frontendTemplate || siteConfig.template?.activeTemplate || 'default'
+    }
     const templateConfig = this.getTemplateConfig(activeTemplate)
     
     if (!templateConfig) {

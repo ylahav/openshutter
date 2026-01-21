@@ -1,6 +1,6 @@
 # Photo Upload Features
 
-OpenShutter provides comprehensive photo upload capabilities with duplicate detection, bulk upload from server folders, and detailed upload reporting.
+OpenShutter provides comprehensive photo upload capabilities with duplicate detection, bulk upload from local folders, and detailed upload reporting.
 
 ## Upload Methods
 
@@ -27,15 +27,16 @@ Upload individual or multiple photos through the web interface.
 
 **File Size Limit**: 100MB per file
 
-### 2. Bulk Upload from Server Folder
+### 2. Bulk Upload from Local Folder
 
-Upload all photos from a server-side folder path in a single operation.
+Upload all photos from a local folder on your computer in a single operation.
 
-**Access**: `/admin/photos/upload` → "Upload from Server Folder" tab
+**Access**: `/admin/photos/upload` → "Upload from Folder" tab
 
 **Features**:
+- Browser-based folder selection
 - Automatic image detection
-- Batch processing
+- Batch processing with individual file progress
 - Duplicate detection and skipping
 - Comprehensive upload reports
 - Error handling and recovery
@@ -43,12 +44,12 @@ Upload all photos from a server-side folder path in a single operation.
 **Usage**:
 1. Navigate to `/admin/photos/upload`
 2. Select an album (required)
-3. Switch to "Upload from Server Folder" tab
-4. Enter server folder path (e.g., `/var/www/photos` or `C:\Users\YourName\Pictures`)
-5. Click "Upload from Folder"
-6. Review the upload report
+3. Switch to "Upload from Folder" tab
+4. Click "Choose Folder" and select a folder from your computer
+5. All images in the folder will be automatically uploaded
+6. Review the upload report with progress for each file
 
-**API Endpoint**: `POST /api/photos/upload-from-folder`
+**Note**: This uses client-side folder selection. Files are uploaded individually through the standard upload endpoint. For server-side folder uploads, use the API endpoint directly.
 
 **Request Body**:
 ```json
@@ -158,10 +159,12 @@ Both upload methods provide detailed reports with:
 - Skipped: Object with `skipped: true` and `reason`
 - Error: Error object with `error` message
 
-### Bulk Folder Upload
+### Bulk Folder Upload (Server-Side)
 **Endpoint**: `POST /api/photos/upload-from-folder`
 
 **Method**: JSON
+
+**Note**: This endpoint is for server-side folder uploads. The web interface uses client-side folder selection which uploads files individually.
 
 **Request Body**:
 ```json
@@ -199,9 +202,10 @@ Both upload methods provide detailed reports with:
 1. **Use Album Selection**: Always select an album before uploading to organize photos properly
 2. **Check Reports**: Review upload reports to identify any issues
 3. **Handle Duplicates**: Duplicate detection prevents accidental re-uploads
-4. **Server Folder Paths**: Use absolute paths for server folder uploads
+4. **Local Folder Upload**: Use the "Upload from Folder" tab to select a folder from your computer
 5. **File Formats**: Stick to supported image formats for best compatibility
 6. **File Sizes**: Keep files under 100MB for optimal performance
+7. **Server Folder Uploads**: For server-side folder uploads, use the API endpoint directly with absolute paths
 
 ## Troubleshooting
 
@@ -215,10 +219,10 @@ Both upload methods provide detailed reports with:
 - Check database indexes are created
 - Verify hash field is being populated
 
-### Folder Upload Returns "Path is not a directory"
-- Verify the path exists on the server
-- Check file system permissions
-- Use absolute paths, not relative paths
+### Folder Upload Issues
+- **Client-side folder selection**: Ensure you're selecting a folder from your computer, not entering a server path
+- **No files selected**: Make sure the folder contains image files (JPEG, PNG, GIF, BMP, WebP, TIFF)
+- **Server-side folder upload**: If using the API endpoint directly, verify the path exists on the server, check file system permissions, and use absolute paths
 
 ### Some Photos Skipped Unexpectedly
 - Check the upload report for specific reasons
@@ -228,7 +232,8 @@ Both upload methods provide detailed reports with:
 ## Security Considerations
 
 - **Admin Only**: All upload endpoints require admin authentication
-- **Path Validation**: Server folder paths should be validated to prevent directory traversal
+- **Client-Side Upload**: Local folder selection is secure as files are uploaded directly from the user's browser
+- **Path Validation**: Server folder paths (API endpoint) should be validated to prevent directory traversal
 - **File Type Validation**: Only image files are processed
 - **Size Limits**: File size limits prevent DoS attacks
 
