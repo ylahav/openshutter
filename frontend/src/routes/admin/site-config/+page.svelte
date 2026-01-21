@@ -14,6 +14,16 @@
 	let message = '';
 	let activeTab = 'basic';
 	let availableLanguages: Array<{ code: string; name: string; flag: string }> = [];
+	
+	// Menu items state
+	interface MenuItem {
+		labelKey?: string;
+		label?: string;
+		href: string;
+		external?: boolean;
+		roles?: string[]; // Array of allowed roles: 'admin', 'owner', 'guest'
+	}
+	let menuItems: MenuItem[] = [];
 
 	onMount(async () => {
 		await Promise.all([loadConfig(), loadAvailableLanguages()]);
@@ -45,6 +55,9 @@
 			}
 			config = data;
 			descriptionValue = data.description || {};
+			
+			// Initialize menu items from config
+			menuItems = data.template?.headerConfig?.menu || [];
 		} catch (error) {
 			console.error('Error loading site config:', error);
 			message = 'Failed to load configuration';
@@ -111,7 +124,13 @@
 					contact: config.contact,
 					homePage: config.homePage,
 					features: config.features,
-					template: config.template
+					template: {
+						...(config.template || {}),
+						headerConfig: {
+							...(config.template?.headerConfig || {}),
+							menu: menuItems.length > 0 ? menuItems : []
+						}
+					}
 				})
 			});
 
@@ -122,16 +141,21 @@
 			const result = await response.json();
 			const data = result?.success ? result.data : result;
 			config = data;
-			descriptionValue = data?.description || {};
+			descriptionValue = data.description || {};
+			// Reload menu items from saved config
+			menuItems = data.template?.headerConfig?.menu || [];
 			message = 'successfully';
 
-			// Refresh the site config store so LanguageSelector picks up the changes
+			// Refresh the site config store so Header and Menu components pick up the changes
 			await siteConfig.load();
-
-			// Redirect after 2 seconds
+			
+			// Give the store a moment to update, then reload to ensure all components pick up changes
+			// The reload ensures Header components on other pages also get the updated config
 			setTimeout(() => {
-				goto('/admin');
-			}, 2000);
+				if (typeof window !== 'undefined') {
+					window.location.reload();
+				}
+			}, 500);
 		} catch (error) {
 			console.error('Error saving site config:', error);
 			message = 'Failed to save configuration';
@@ -355,6 +379,15 @@
 								on:click={() => (activeTab = 'home')}
 							>
 								Services
+							</button>
+							<button
+								type="button"
+								class="py-4 px-1 border-b-2 font-medium text-sm {activeTab === 'navigation'
+									? 'border-blue-500 text-blue-600'
+									: 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}"
+								on:click={() => (activeTab = 'navigation')}
+							>
+								Navigation
 							</button>
 						</nav>
 					</div>
@@ -1227,6 +1260,223 @@
 										</button>
 									</div>
 								{/if}
+							</div>
+						</div>
+					{:else if activeTab === 'navigation'}
+						<div class="space-y-6">
+							<div>
+								<h3 class="text-lg font-semibold text-gray-900 mb-2">Navigation Menu</h3>
+								<p class="text-sm text-gray-600 mb-4">
+									Configure your site's navigation menu. You can use translation keys (e.g., 'navigation.home') or direct labels.
+								</p>
+							</div>
+
+							{#if menuItems.length > 0}
+								<div class="space-y-3">
+									{#each menuItems as item, index}
+										<div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
+											<div class="flex items-start justify-between mb-3">
+												<span class="text-sm font-medium text-gray-700">Menu Item #{index + 1}</span>
+												<div class="flex gap-2">
+													{#if index > 0}
+														<button
+															type="button"
+															on:click={() => {
+																const newItems = [...menuItems];
+																[newItems[index], newItems[index - 1]] = [newItems[index - 1], newItems[index]];
+																menuItems = newItems;
+															}}
+															class="text-gray-600 hover:text-gray-900 text-sm"
+															title="Move up"
+														>
+															↑
+														</button>
+													{/if}
+													{#if index < menuItems.length - 1}
+														<button
+															type="button"
+															on:click={() => {
+																const newItems = [...menuItems];
+																[newItems[index], newItems[index + 1]] = [newItems[index + 1], newItems[index]];
+																menuItems = newItems;
+															}}
+															class="text-gray-600 hover:text-gray-900 text-sm"
+															title="Move down"
+														>
+															↓
+														</button>
+													{/if}
+													<button
+														type="button"
+														on:click={() => {
+															menuItems = menuItems.filter((_, i) => i !== index);
+														}}
+														class="text-red-600 hover:text-red-800 text-sm font-medium"
+													>
+														Remove
+													</button>
+												</div>
+											</div>
+											
+											<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+												<div>
+													<label class="block text-sm font-medium text-gray-700 mb-1">
+														Translation Key (optional)
+													</label>
+													<input
+														type="text"
+														value={item.labelKey || ''}
+														on:input={(e) => {
+															menuItems[index] = { ...menuItems[index], labelKey: e.currentTarget.value || undefined };
+															menuItems = [...menuItems];
+														}}
+														placeholder="navigation.home"
+														class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+													/>
+													<p class="mt-1 text-xs text-gray-500">
+														Use translation key (e.g., 'navigation.home') for i18n support
+													</p>
+												</div>
+												
+												<div>
+													<label class="block text-sm font-medium text-gray-700 mb-1">
+														Direct Label (optional)
+													</label>
+													<input
+														type="text"
+														value={item.label || ''}
+														on:input={(e) => {
+															menuItems[index] = { ...menuItems[index], label: e.currentTarget.value || undefined };
+															menuItems = [...menuItems];
+														}}
+														placeholder="About"
+														class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+													/>
+													<p class="mt-1 text-xs text-gray-500">
+														Direct text label (used if translation key is not provided)
+													</p>
+												</div>
+												
+												<div>
+													<label class="block text-sm font-medium text-gray-700 mb-1">
+														Link URL <span class="text-red-500">*</span>
+													</label>
+													<input
+														type="text"
+														value={item.href}
+														on:input={(e) => {
+															menuItems[index] = { ...menuItems[index], href: e.currentTarget.value };
+															menuItems = [...menuItems];
+														}}
+														placeholder="/about"
+														required
+														class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+													/>
+													<p class="mt-1 text-xs text-gray-500">
+														Page URL or external link (e.g., '/about' or 'https://example.com')
+													</p>
+												</div>
+												
+												<div>
+													<label class="block text-sm font-medium text-gray-700 mb-1">
+														Visible To Roles (optional)
+													</label>
+													<div class="flex flex-wrap gap-2">
+														{#each ['admin', 'owner', 'guest'] as role}
+															{@const isSelected = item.roles?.includes(role) || false}
+															<label class="flex items-center space-x-1 cursor-pointer">
+																<input
+																	type="checkbox"
+																	checked={isSelected}
+																	on:change={(e) => {
+																		const currentRoles = item.roles || [];
+																		const newRoles = e.currentTarget.checked
+																			? [...currentRoles, role]
+																			: currentRoles.filter((r: string) => r !== role);
+																		menuItems[index] = { 
+																			...menuItems[index], 
+																			roles: newRoles.length > 0 ? newRoles : undefined 
+																		};
+																		menuItems = [...menuItems];
+																	}}
+																	class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+																/>
+																<span class="text-sm text-gray-700 capitalize">{role}</span>
+															</label>
+														{/each}
+													</div>
+													<p class="mt-1 text-xs text-gray-500">
+														Leave unchecked to show to everyone. Check roles to restrict visibility.
+													</p>
+												</div>
+												
+												<div class="flex items-end">
+													<label class="flex items-center space-x-2 cursor-pointer">
+														<input
+															type="checkbox"
+															checked={item.external || false}
+															on:change={(e) => {
+																menuItems[index] = { ...menuItems[index], external: e.currentTarget.checked || undefined };
+																menuItems = [...menuItems];
+															}}
+															class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+														/>
+														<span class="text-sm text-gray-700">Open in new tab (external link)</span>
+													</label>
+												</div>
+											</div>
+										</div>
+									{/each}
+								</div>
+							{:else}
+								<div class="text-center py-8 border border-gray-200 rounded-lg bg-gray-50">
+									<p class="text-gray-500 mb-4">No menu items configured yet.</p>
+									<p class="text-sm text-gray-400 mb-4">
+										If no menu items are configured, default menu items will be used.
+									</p>
+								</div>
+							{/if}
+
+							<div class="flex justify-between items-center pt-4 border-t border-gray-200">
+								<button
+									type="button"
+									on:click={() => {
+										menuItems = [
+											...menuItems,
+											{ href: '', label: '' }
+										];
+									}}
+									class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+								>
+									+ Add Menu Item
+								</button>
+								
+								{#if menuItems.length > 0}
+									<button
+										type="button"
+										on:click={() => {
+											if (confirm('Are you sure you want to clear all menu items? Default menu will be used.')) {
+												menuItems = [];
+											}
+										}}
+										class="px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+									>
+										Clear All
+									</button>
+								{/if}
+							</div>
+
+							<div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+								<h4 class="text-sm font-semibold text-blue-900 mb-2">Tips:</h4>
+								<ul class="text-xs text-blue-800 space-y-1 list-disc list-inside">
+									<li>Use <strong>Translation Key</strong> for multilingual support (e.g., 'navigation.home')</li>
+									<li>Use <strong>Direct Label</strong> for simple text labels (e.g., 'About')</li>
+									<li>If both are provided, Translation Key takes precedence</li>
+									<li>If neither is provided, the URL will be displayed</li>
+									<li>Check <strong>roles</strong> to restrict menu visibility (e.g., check 'admin' to show only to admins)</li>
+									<li>Leave roles unchecked to show the menu item to everyone</li>
+									<li>Check "Open in new tab" for external links</li>
+								</ul>
 							</div>
 						</div>
 					{/if}

@@ -297,9 +297,11 @@ headerConfig?: {
   showAuthButtons?: boolean       // Show/hide login/logout buttons and user info (default: true)
   showGreeting?: boolean          // Show/hide username/email greeting for logged-in users (default: true)
   menu?: {                        // Custom menu items (optional)
-    labelKey?: string
-    label?: string
-    href: string
+    labelKey?: string             // Translation key (e.g., 'navigation.home')
+    label?: string                // Direct label text (fallback if labelKey not provided)
+    href: string                  // Link URL (required)
+    external?: boolean            // Open link in new tab
+    roles?: string[]              // Restrict visibility to specific roles: 'admin', 'owner', 'guest'
   }[]
 }
 ```
@@ -336,12 +338,92 @@ This configuration would:
 - Hide template selector, language selector, and theme toggle
 - Show auth buttons (login/logout) but hide the user greeting
 
+### Menu Configuration
+
+The navigation menu can be fully customized through the admin interface at `/admin/site-config` → Navigation tab.
+
+#### Menu Item Properties
+
+- **labelKey**: Translation key for i18n support (e.g., `'navigation.home'`)
+- **label**: Direct text label (used if labelKey is not provided)
+- **href**: Link URL (required) - can be internal (`/about`) or external (`https://example.com`)
+- **external**: Boolean - if `true`, link opens in a new tab
+- **roles**: Array of allowed roles (`'admin'`, `'owner'`, `'guest'`) - restricts visibility to specific user roles
+
+#### Menu Configuration Examples
+
+**Basic Menu:**
+```json
+{
+  "template": {
+    "headerConfig": {
+      "menu": [
+        { "labelKey": "navigation.home", "href": "/" },
+        { "label": "About", "href": "/about" },
+        { "labelKey": "navigation.albums", "href": "/albums" }
+      ]
+    }
+  }
+}
+```
+
+**Menu with Role Restrictions:**
+```json
+{
+  "template": {
+    "headerConfig": {
+      "menu": [
+        { "labelKey": "navigation.home", "href": "/" },
+        { "label": "Admin Panel", "href": "/admin", "roles": ["admin"] },
+        { "label": "My Gallery", "href": "/owner", "roles": ["owner"] }
+      ]
+    }
+  }
+}
+```
+
+**Menu with External Links:**
+```json
+{
+  "template": {
+    "headerConfig": {
+      "menu": [
+        { "labelKey": "navigation.home", "href": "/" },
+        { "label": "Documentation", "href": "https://docs.example.com", "external": true }
+      ]
+    }
+  }
+}
+```
+
+#### Default Menu Behavior
+
+- If no menu is configured, default menu items are used: Home, Albums, About, Search
+- Auth-related items (Admin, Login) are automatically added if `showAuthButtons` is enabled
+- Duplicate links are automatically prevented (e.g., if Admin is in config, it won't be added twice)
+
+#### Configuring Menu via Admin Interface
+
+1. Navigate to `/admin/site-config`
+2. Click the **Navigation** tab
+3. Click **"+ Add Menu Item"** to add new items
+4. Configure each item:
+   - Translation Key (optional) - for multilingual support
+   - Direct Label (optional) - for simple text labels
+   - Link URL (required) - page URL or external link
+   - Visible To Roles (optional) - check roles to restrict visibility
+   - External Link checkbox - opens in new tab
+5. Use ↑/↓ buttons to reorder items
+6. Click **"Save Configuration"** to apply changes
+
 ### Implementation Notes
 
 - Header components use reactive statements to respect configuration changes
 - Configuration is loaded from `siteConfigData` store
 - All header components (main and template-specific) respect these settings
 - The header handles undefined configurations gracefully by defaulting to showing elements
+- Menu component automatically handles role-based filtering and duplicate prevention
+- Menu items support both translation keys and direct labels for flexibility
 
 ## Template Updates
 

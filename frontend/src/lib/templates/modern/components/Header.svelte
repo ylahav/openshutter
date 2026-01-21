@@ -8,6 +8,7 @@
 	import LanguageSelector from '$components/LanguageSelector.svelte';
 	import TemplateSelector from '$components/TemplateSelector.svelte';
 	import ThemeToggle from '$components/ThemeToggle.svelte';
+	import Menu from '$components/Menu.svelte';
 	import { t } from '$stores/i18n';
 
 	const year = new Date().getFullYear();
@@ -89,34 +90,29 @@
 
 			<!-- Navigation -->
 			{#if showMenu || showTemplateSelector || showLanguageSelector || showThemeToggle}
-				<nav class="hidden md:flex items-center gap-4 text-sm text-white">
+				<div class="hidden md:flex items-center gap-4 text-sm text-white">
 					{#if showMenu}
-						<a href="/" class="hover:text-blue-300 transition-colors">{$t('navigation.home')}</a>
-						<a href="/albums" class="hover:text-blue-300 transition-colors">{$t('navigation.albums')}</a>
-						<a href="/about" class="hover:text-blue-300 transition-colors">About</a>
-						<a href="/search" class="hover:text-blue-300 transition-colors">{$t('navigation.search')}</a>
+						<Menu
+							config={$headerConfig}
+							itemClass="hover:text-blue-300 transition-colors"
+							activeItemClass="text-blue-300 font-medium"
+							containerClass="flex items-center gap-4"
+							showActiveIndicator={true}
+							showAuthButtons={showAuthButtons}
+						/>
 
-						{#if showAuthButtons}
-							{#if $auth.authenticated && $auth.user}
-								{#if $auth.user.role === 'admin'}
-									<a href="/admin" class="hover:text-blue-300 font-medium text-blue-300">{$t('navigation.admin')}</a>
-								{:else if $auth.user.role === 'owner'}
-									<a href="/owner" class="hover:text-blue-300 font-medium text-blue-300">{$t('header.myGallery')}</a>
-								{/if}
-								<span class="text-blue-400">|</span>
-								{#if showGreeting}
-									<span class="text-blue-200">{$auth.user.name || $auth.user.email}</span>
-								{/if}
-								<button
-									on:click={handleLogout}
-									class="hover:text-blue-300 text-white transition-colors"
-									type="button"
-								>
-									{$t('header.logout')}
-								</button>
-							{:else}
-								<a href="/login" class="hover:text-blue-300 transition-colors">{$t('auth.signIn')}</a>
+						{#if showAuthButtons && $auth.authenticated && $auth.user}
+							<span class="text-blue-400">|</span>
+							{#if showGreeting}
+								<span class="text-blue-200">{$auth.user.name || $auth.user.email}</span>
 							{/if}
+							<button
+								on:click={handleLogout}
+								class="hover:text-blue-300 text-white transition-colors"
+								type="button"
+							>
+								{$t('header.logout')}
+							</button>
 						{/if}
 					{/if}
 
@@ -140,7 +136,7 @@
 							<ThemeToggle />
 						</div>
 					{/if}
-				</nav>
+				</div>
 			{/if}
 		</div>
 	</div>

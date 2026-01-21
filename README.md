@@ -2,6 +2,8 @@
 
 A comprehensive photo gallery management system with multi-storage support, advanced organization features, and beautiful presentations.
 
+🌐 **Live Demo**: [demo.openshutter.org](https://demo.openshutter.org)
+
 ## ✨ Features
 
 - **Multi-Storage Support**: Google Drive, AWS S3, Backblaze B2, Wasabi, and local storage
