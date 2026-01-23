@@ -30,7 +30,7 @@
 		location?: string | null;
 	}
 
-	const albumId: string = $page.params.id;
+	const albumId: string = $page.params.id || '';
 	let album: Album | null = null;
 	let loading = true;
 	let saving = false;
@@ -208,6 +208,17 @@
 					<p class="mt-2 text-gray-600">
 						{MultiLangUtils.getTextValue(album.name, $currentLanguage)}
 					</p>
+				</div>
+				<div>
+					<a
+						href="/albums/new?parentAlbumId={albumId}"
+						class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm font-medium inline-flex items-center gap-2"
+					>
+						<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+						</svg>
+						Create Sub-Album
+					</a>
 				</div>
 			</div>
 

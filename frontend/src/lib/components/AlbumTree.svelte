@@ -35,6 +35,7 @@
 	let localAlbums = albums;
 	let albumsInitialized = false;
 	let flatItems: AlbumTreeNode[] = [];
+	let isDragging = false;
 
 	// Initialize expanded nodes if expandAllByDefault is true
 	function initializeExpandedNodes() {
@@ -133,27 +134,49 @@
 		}
 	}
 
-	// Handle drag end
+	// Handle drag consider (during drag, for visual feedback)
+	function handleDndConsider(event: CustomEvent) {
+		const { detail } = event;
+		const { items } = detail;
+		// Update flatItems with the reordered items from dndzone for visual feedback
+		isDragging = true;
+		flatItems = items;
+	}
+
+	// Handle drag end (when drag is complete)
 	async function handleDndEnd(event: CustomEvent) {
+		isDragging = false;
 		const { detail } = event;
 		const { items, info } = detail;
 
-		if (!info) return;
+		if (!info) {
+			// Reset flatItems from tree if no info
+			flatItems = flatten(tree, expandedNodes);
+			return;
+		}
 
 		const fromIndex = info.initialIndex;
 		const toIndex = info.finalIndex;
 
-		if (fromIndex === toIndex) return;
+		if (fromIndex === toIndex) {
+			// No change, reset flatItems from tree
+			flatItems = flatten(tree, expandedNodes);
+			return;
+		}
 
-		const flat = flatten(tree, expandedNodes);
-		const activeNode = flat[fromIndex];
-		const overNode = flat[toIndex];
+		// Get the original flat list to find the nodes
+		const originalFlat = flatten(tree, expandedNodes);
+		const activeNode = originalFlat[fromIndex];
+		const overNode = originalFlat[toIndex];
 
-		if (!activeNode || !overNode) return;
+		if (!activeNode || !overNode) {
+			flatItems = flatten(tree, expandedNodes);
+			return;
+		}
 
 		// Prevent moving an album into its own descendant
 		const isDescendant = (parentId: string, childId: string): boolean => {
-			const child = flat.find((n) => n._id === childId);
+			const child = originalFlat.find((n: AlbumTreeNode) => n._id === childId);
 			if (!child) return false;
 			if (child.parentAlbumId === parentId) return true;
 			if (!child.parentAlbumId) return false;
@@ -175,7 +198,10 @@
 			const ids = siblings.map((s) => s._id);
 			const from = ids.indexOf(activeNode._id);
 			const to = ids.indexOf(overNode._id);
-			if (from === -1 || to === -1) return;
+			if (from === -1 || to === -1) {
+				flatItems = flatten(tree, expandedNodes);
+				return;
+			}
 			// Simple array move
 			const newIds = [...ids];
 			const [moved] = newIds.splice(from, 1);
@@ -241,7 +267,10 @@
 			});
 		}
 
-		if (updates.length === 0) return;
+		if (updates.length === 0) {
+			flatItems = flatten(tree, expandedNodes);
+			return;
+		}
 
 		// Optimistically update local state
 		localAlbums = localAlbums.map((a) => {
@@ -256,6 +285,10 @@
 			return a;
 		});
 
+		// Update flatItems from the new tree structure
+		const newTree = buildTree(localAlbums);
+		flatItems = flatten(newTree, expandedNodes);
+
 		// Save to server
 		if (onReorder) {
 			try {
@@ -264,6 +297,7 @@
 				console.error('Failed to reorder albums:', error);
 				// Revert on error
 				localAlbums = albums;
+				flatItems = flatten(tree, expandedNodes);
 				throw error;
 			}
 		}
@@ -281,10 +315,13 @@
 	$: expandedNodesArray = Array.from(expandedNodes).sort();
 	// flatItems depends on both tree and expandedNodesArray to ensure reactivity
 	// We reference expandedNodesArray to ensure Svelte tracks changes to expandedNodes
+	// Only update flatItems from tree if we're not currently dragging
 	$: {
 		// Reference expandedNodesArray to ensure reactivity
 		const _ = expandedNodesArray;
-		flatItems = flatten(tree, expandedNodes);
+		if (!isDragging) {
+			flatItems = flatten(tree, expandedNodes);
+		}
 	}
 </script>
 
@@ -295,7 +332,6 @@
 			type: 'album-tree',
 			dragDisabled: false,
 			dropFromOthersDisabled: true,
-			dragHandleSelector: '.drag-handle',
 			dropTargetStyle: {
 				outline: '2px dashed rgba(59, 130, 246, 0.5)',
 				backgroundColor: 'rgba(59, 130, 246, 0.1)'
@@ -305,7 +341,7 @@
 				cursor: 'not-allowed'
 			}
 		}}
-		on:consider={handleDndEnd}
+		on:consider={handleDndConsider}
 		on:finalize={handleDndEnd}
 	>
 		{#each flatItems as node (node._id)}
@@ -316,6 +352,7 @@
 							type="button"
 							on:click|stopPropagation={() => toggleNode(node._id)}
 							class="flex-shrink-0 w-6 h-6 flex items-center justify-center text-gray-400 hover:text-gray-600"
+							aria-label={expandedNodes.has(node._id) ? 'Collapse' : 'Expand'}
 						>
 							<svg
 								class="w-4 h-4 transition-transform {expandedNodes.has(node._id) ? 'rotate-90' : ''}"

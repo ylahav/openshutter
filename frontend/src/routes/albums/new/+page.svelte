@@ -49,6 +49,12 @@
 	let storageOptionsError = '';
 
 	onMount(async () => {
+		// Check for parentAlbumId in query params
+		const parentAlbumId = $page.url.searchParams.get('parentAlbumId');
+		if (parentAlbumId) {
+			formData.parentAlbumId = parentAlbumId;
+		}
+		
 		await loadParentAlbums();
 		await loadStorageOptions();
 	});
