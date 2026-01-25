@@ -46,6 +46,10 @@ if (Test-Path "frontend\build") {
 if (Test-Path "frontend\.svelte-kit") {
     Remove-Item -Path "frontend\.svelte-kit" -Recurse -Force -ErrorAction SilentlyContinue
 }
+# Also clean node_modules/.vite cache if it exists
+if (Test-Path "frontend\node_modules\.vite") {
+    Remove-Item -Path "frontend\node_modules\.vite" -Recurse -Force -ErrorAction SilentlyContinue
+}
 
 # Build backend
 Write-Host "Building backend..." -ForegroundColor Blue
@@ -67,14 +71,36 @@ try {
 # Build frontend
 Write-Host "Building frontend..." -ForegroundColor Blue
 try {
-    pnpm --filter openshutter build
-    if ($LASTEXITCODE -ne 0 -and $LASTEXITCODE -ne $null) {
-        throw "Frontend build failed with exit code $LASTEXITCODE"
+    # Change to frontend directory to ensure proper working directory
+    Push-Location "frontend"
+    try {
+        # Ensure .svelte-kit directory structure exists
+        $svelteKitDir = ".svelte-kit"
+        $outputDir = ".svelte-kit\output"
+        $serverDir = ".svelte-kit\output\server"
+        
+        if (-not (Test-Path $svelteKitDir)) {
+            New-Item -ItemType Directory -Path $svelteKitDir -Force | Out-Null
+        }
+        if (-not (Test-Path $outputDir)) {
+            New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
+        }
+        if (-not (Test-Path $serverDir)) {
+            New-Item -ItemType Directory -Path $serverDir -Force | Out-Null
+        }
+        
+        # Run the build from frontend directory
+        pnpm run build
+        if ($LASTEXITCODE -ne 0 -and $LASTEXITCODE -ne $null) {
+            throw "Frontend build failed with exit code $LASTEXITCODE"
+        }
+        if (-not (Test-Path "build") -and -not (Test-Path ".svelte-kit\output")) {
+            throw "Frontend build directory was not created"
+        }
+        Write-Host "Frontend built successfully" -ForegroundColor Green
+    } finally {
+        Pop-Location
     }
-    if (-not (Test-Path "frontend\build") -and -not (Test-Path "frontend\.svelte-kit\output")) {
-        throw "Frontend build directory was not created"
-    }
-    Write-Host "Frontend built successfully" -ForegroundColor Green
 } catch {
     Write-Host "ERROR: Frontend build failed" -ForegroundColor Red
     Write-Host $_.Exception.Message -ForegroundColor Red

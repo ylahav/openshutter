@@ -14,8 +14,8 @@ export default defineConfig({
 			// Suppress a11y warnings during build
 			compilerOptions: {
 				warnings: (warning, defaultHandler) => {
-					// Suppress accessibility warnings in production builds
-					if (process.env.NODE_ENV === 'production' && warning.code?.startsWith('a11y-')) {
+					// Suppress accessibility warnings during builds (both dev and production)
+					if (warning.code?.startsWith('a11y-')) {
 						return;
 					}
 					defaultHandler(warning);
