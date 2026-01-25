@@ -4,9 +4,9 @@ import { env } from '$env/dynamic/private';
 // Backend API base URL
 const BACKEND_URL = env.BACKEND_URL || process.env.BACKEND_URL || 'http://localhost:5000';
 
-export const GET: RequestHandler = async ({ params, request }) => {
+export const GET: RequestHandler = async ({ params, request, cookies }) => {
 	try {
-		const { path: pathSegments } = params;
+		const { path: pathSegments } = await params;
 		// Ensure pathSegments is an array
 		const pathArray = Array.isArray(pathSegments) ? pathSegments : (typeof pathSegments === 'string' ? [pathSegments] : []);
 		const filePath = pathArray.join('/');
@@ -35,18 +35,44 @@ export const GET: RequestHandler = async ({ params, request }) => {
 		// Proxy the request to the backend
 		const backendUrl = `${BACKEND_URL}/api/storage/serve/${provider}/${encodedFilePath}`;
 		
+		// Forward cookies for authentication (if needed)
+		const cookieHeader: string[] = [];
+		const authCookie = cookies.get('auth_token');
+		if (authCookie) {
+			cookieHeader.push(`auth_token=${authCookie}`);
+		}
+		
+		const headers: HeadersInit = {
+			// Forward any relevant headers from the original request
+			'Accept': request.headers.get('Accept') || '*/*',
+		};
+		
+		if (cookieHeader.length > 0) {
+			headers['Cookie'] = cookieHeader.join('; ');
+		}
+		
+		console.log(`[Storage Serve] Proxying request: ${backendUrl}`, {
+			provider,
+			filePath: fullFilePath,
+			hasAuthCookie: !!authCookie,
+			backendUrl: BACKEND_URL
+		});
+		
 		const backendResponse = await fetch(backendUrl, {
 			method: 'GET',
-			headers: {
-				// Forward any relevant headers from the original request
-				'Accept': request.headers.get('Accept') || '*/*',
-			}
+			headers
 		});
 
 		if (!backendResponse.ok) {
-			console.error(`Backend storage API error: ${backendResponse.status} ${backendResponse.statusText}`);
+			const errorText = await backendResponse.text().catch(() => 'Unable to read error');
+			console.error(`[Storage Serve] Backend storage API error: ${backendResponse.status} ${backendResponse.statusText}`, {
+				backendUrl,
+				provider,
+				filePath: fullFilePath,
+				error: errorText.substring(0, 200)
+			});
 			return new Response(
-				JSON.stringify({ error: `Failed to serve file: ${backendResponse.statusText}` }),
+				JSON.stringify({ error: `Failed to serve file: ${backendResponse.statusText}`, details: errorText.substring(0, 200) }),
 				{
 					status: backendResponse.status,
 					headers: { 'Content-Type': 'application/json' }
@@ -76,9 +102,19 @@ export const GET: RequestHandler = async ({ params, request }) => {
 
 		return response;
 	} catch (error) {
-		console.error('Error serving file:', error);
+		console.error('[Storage Serve] Error serving file:', error);
 		const errorMessage = error instanceof Error ? error.message : String(error);
-		return new Response(JSON.stringify({ error: `Internal server error: ${errorMessage}` }), {
+		const errorStack = error instanceof Error ? error.stack : undefined;
+		console.error('[Storage Serve] Error details:', {
+			message: errorMessage,
+			stack: errorStack,
+			backendUrl: BACKEND_URL,
+			filePath: pathArray?.join('/') || 'unknown'
+		});
+		return new Response(JSON.stringify({ 
+			error: `Internal server error: ${errorMessage}`,
+			backendUrl: BACKEND_URL 
+		}), {
 			status: 500,
 			headers: { 'Content-Type': 'application/json' }
 		});
