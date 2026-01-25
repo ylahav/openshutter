@@ -64,11 +64,28 @@ export class ThumbnailGenerator {
 
   /**
    * Analyze image dimensions and orientation
+   * Note: Sharp auto-rotates based on EXIF, so we need to get dimensions after rotation
    */
   static async analyzeImageDimensions(imageBuffer: Buffer): Promise<ImageDimensions> {
+    // Get metadata first to check orientation
     const metadata = await sharp(imageBuffer).metadata()
-    const width = metadata.width || 0
-    const height = metadata.height || 0
+    
+    // Sharp auto-rotates images based on EXIF orientation when processing
+    // To get the correct dimensions after rotation, we need to process the image
+    // For portrait images with EXIF rotation, width/height may be swapped in metadata
+    let width = metadata.width || 0
+    let height = metadata.height || 0
+    
+    // If there's an orientation tag that requires rotation, swap dimensions
+    // Orientation values: 1=normal, 3=180°, 6=90°CW, 8=90°CCW
+    // For 6 and 8, width and height are swapped
+    if (metadata.orientation) {
+      if (metadata.orientation === 6 || metadata.orientation === 8) {
+        // Swap width and height for 90° rotations
+        [width, height] = [height, width]
+      }
+    }
+    
     const aspectRatio = width / height
 
     let orientation: 'landscape' | 'portrait' | 'square'
@@ -162,13 +179,18 @@ export class ThumbnailGenerator {
       resizeOptions.height = size.height
     }
 
+    // Sharp auto-rotates based on EXIF orientation by default
+    // Explicitly ensure auto-rotation is enabled and strip EXIF orientation after rotation
+    // This ensures the image is physically rotated and won't be rotated again by browsers
     return await sharp(imageBuffer)
+      .rotate() // Auto-rotate based on EXIF orientation (default behavior, but explicit)
       .resize(resizeOptions)
       .jpeg({ 
         quality: size.quality,
         progressive: true,
         mozjpeg: true
       })
+      .withMetadata({ orientation: 1 }) // Strip EXIF orientation after rotation (1 = normal orientation)
       .toBuffer()
   }
 
@@ -193,10 +215,12 @@ export class ThumbnailGenerator {
       })
 
       const blurBuffer = await sharp(imageBuffer)
+        .rotate() // Auto-rotate based on EXIF orientation
         .resize(optimalDimensions.width, optimalDimensions.height, {
           fit: 'cover'
         })
         .jpeg({ quality: 20 })
+        .withMetadata({ orientation: 1 }) // Strip EXIF orientation after rotation
         .toBuffer()
 
       return `data:image/jpeg;base64,${blurBuffer.toString('base64')}`

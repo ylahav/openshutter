@@ -395,11 +395,25 @@ export class PhotoUploadService {
       const { ExifExtractor } = await import('./exif-extractor')
       const exifData = await ExifExtractor.extractExifData(fileBuffer)
 
-      // Get image dimensions
+      // Get image dimensions (after EXIF auto-rotation)
+      // Sharp auto-rotates based on EXIF, so we need to account for orientation
       const imageInfo = await sharp(fileBuffer).metadata()
+      let width = imageInfo.width || 0
+      let height = imageInfo.height || 0
+      
+      // If there's an orientation tag that requires rotation, swap dimensions
+      // Orientation values: 1=normal, 3=180°, 6=90°CW, 8=90°CCW
+      // For 6 and 8, width and height are swapped in metadata
+      if (imageInfo.orientation) {
+        if (imageInfo.orientation === 6 || imageInfo.orientation === 8) {
+          // Swap width and height for 90° rotations
+          [width, height] = [height, width]
+        }
+      }
+      
       const dimensions = {
-        width: imageInfo.width || 0,
-        height: imageInfo.height || 0
+        width,
+        height
       }
 
       // Calculate file hash for duplicate detection

@@ -721,4 +721,89 @@ export class AlbumsAdminController {
 		await db.collection('albums').deleteOne({ _id: albumId });
 		console.log(`Deleted album: ${album.alias} (${albumId.toString()})`);
 	}
+
+	/**
+	 * Reorder albums
+	 * Path: PUT /api/admin/albums/reorder
+	 */
+	@Put('reorder')
+	async reorderAlbums(@Body() body: { updates: Array<{ id: string; parentAlbumId: string | null; order: number }> }) {
+		try {
+			await connectDB();
+			const db = mongoose.connection.db;
+			if (!db) throw new Error('Database connection not established');
+
+			const { updates } = body;
+
+			if (!Array.isArray(updates) || updates.length === 0) {
+				throw new BadRequestException('Updates array is required and must not be empty');
+			}
+
+			// Validate all updates
+			for (const update of updates) {
+				if (!update.id || typeof update.order !== 'number') {
+					throw new BadRequestException('Each update must have id and order');
+				}
+			}
+
+			// Update each album
+			const updatePromises = updates.map(async (update) => {
+				try {
+					const albumId = new Types.ObjectId(update.id);
+					const updateData: any = {
+						order: update.order,
+						updatedAt: new Date()
+					};
+
+					// Update parentAlbumId if provided
+					if (update.parentAlbumId !== null && update.parentAlbumId !== undefined) {
+						if (update.parentAlbumId === '') {
+							updateData.parentAlbumId = null;
+							updateData.level = 0;
+						} else {
+							const parentId = new Types.ObjectId(update.parentAlbumId);
+							// Get parent album to calculate level
+							const parentAlbum = await db.collection('albums').findOne({ _id: parentId });
+							if (parentAlbum) {
+								updateData.parentAlbumId = parentId;
+								updateData.level = (parentAlbum.level || 0) + 1;
+							} else {
+								console.warn(`Parent album not found: ${update.parentAlbumId}`);
+							}
+						}
+					}
+
+					const result = await db.collection('albums').updateOne(
+						{ _id: albumId },
+						{ $set: updateData }
+					);
+
+					if (result.matchedCount === 0) {
+						console.warn(`Album not found for reorder: ${update.id}`);
+					}
+
+					return result;
+				} catch (error) {
+					console.error(`Failed to update album ${update.id}:`, error);
+					throw error;
+				}
+			});
+
+			await Promise.all(updatePromises);
+
+			// Return success response
+			return {
+				success: true,
+				message: `Successfully reordered ${updates.length} album(s)`
+			};
+		} catch (error) {
+			console.error('Failed to reorder albums:', error);
+			if (error instanceof BadRequestException) {
+				throw error;
+			}
+			throw new Error(
+				`Failed to reorder albums: ${error instanceof Error ? error.message : 'Unknown error'}`
+			);
+		}
+	}
 }

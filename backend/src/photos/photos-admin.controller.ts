@@ -2,6 +2,7 @@ import {
 	Controller,
 	Get,
 	Put,
+	Post,
 	Delete,
 	Param,
 	Body,
@@ -13,6 +14,7 @@ import { AdminGuard } from '../common/guards/admin.guard';
 import { connectDB } from '../config/db';
 import mongoose, { Types } from 'mongoose';
 import { StorageManager } from '../services/storage/manager';
+import { ThumbnailGenerator } from '../services/thumbnail-generator';
 
 @Controller('admin/photos')
 @UseGuards(AdminGuard)
@@ -389,6 +391,259 @@ export class PhotosAdminController {
 			}
 			throw new Error(
 				`Failed to delete photo: ${error instanceof Error ? error.message : 'Unknown error'}`
+			);
+		}
+	}
+
+	/**
+	 * Bulk update photos (admin only)
+	 * Path: POST /api/admin/photos/bulk-update
+	 */
+	@Post('bulk-update')
+	async bulkUpdatePhotos(@Body() body: { photoIds: string[]; updates: any }) {
+		try {
+			await connectDB();
+			const db = mongoose.connection.db;
+			if (!db) throw new Error('Database connection not established');
+
+			const { photoIds, updates } = body;
+
+			if (!Array.isArray(photoIds) || photoIds.length === 0) {
+				throw new BadRequestException('photoIds must be a non-empty array');
+			}
+
+			// Validate all photo IDs
+			const objectIds = photoIds.map((id) => {
+				if (!Types.ObjectId.isValid(id)) {
+					throw new BadRequestException(`Invalid photo ID format: ${id}`);
+				}
+				return new Types.ObjectId(id);
+			});
+
+			// Prepare update object
+			const update: any = {
+				updatedAt: new Date(),
+			};
+
+			// Update isPublished if provided
+			if (updates.isPublished !== undefined) {
+				update.isPublished = updates.isPublished;
+			}
+
+			// Update location if provided
+			if (updates.location !== undefined) {
+				if (updates.location === null || updates.location === '') {
+					update.location = null;
+				} else if (Types.ObjectId.isValid(updates.location)) {
+					update.location = new Types.ObjectId(updates.location);
+				} else if (
+					typeof updates.location === 'object' &&
+					updates.location._id
+				) {
+					update.location = new Types.ObjectId(updates.location._id);
+				}
+			}
+
+			// Perform bulk update
+			const result = await db
+				.collection('photos')
+				.updateMany({ _id: { $in: objectIds } }, { $set: update });
+
+			return {
+				success: true,
+				matchedCount: result.matchedCount,
+				modifiedCount: result.modifiedCount,
+				message: `Updated ${result.modifiedCount} photo(s)`,
+			};
+		} catch (error) {
+			console.error('Failed to bulk update photos:', error);
+			if (error instanceof BadRequestException) {
+				throw error;
+			}
+			throw new Error(
+				`Failed to bulk update photos: ${error instanceof Error ? error.message : 'Unknown error'}`
+			);
+		}
+	}
+
+	/**
+	 * Regenerate thumbnails for a photo
+	 * Path: POST /api/admin/photos/:id/regenerate-thumbnails
+	 */
+	@Post(':id/regenerate-thumbnails')
+	async regenerateThumbnails(@Param('id') id: string) {
+		try {
+			await connectDB();
+			const db = mongoose.connection.db;
+			if (!db) throw new Error('Database connection not established');
+
+			let objectId: Types.ObjectId;
+			try {
+				objectId = new Types.ObjectId(id);
+			} catch (_error) {
+				throw new BadRequestException('Invalid photo ID format');
+			}
+
+			const photo = await db.collection('photos').findOne({ _id: objectId });
+
+			if (!photo) {
+				throw new NotFoundException('Photo not found');
+			}
+
+			if (!photo.storage || !photo.storage.path || !photo.storage.provider) {
+				throw new BadRequestException('Photo does not have valid storage information');
+			}
+
+			const storageManager = StorageManager.getInstance();
+			const provider = photo.storage.provider as any;
+			const filePath = photo.storage.path;
+
+			// Get the original image file buffer
+			const storageService = await storageManager.getProvider(provider);
+			const fileBuffer = await storageService.getFileBuffer(filePath);
+
+			if (!fileBuffer) {
+				throw new Error('Failed to download original image from storage');
+			}
+
+			// Get album path for thumbnail folder structure
+			let albumPath = '';
+			if (photo.albumId) {
+				const album = await db.collection('albums').findOne({ _id: photo.albumId });
+				if (album && album.storagePath) {
+					albumPath = album.storagePath;
+				}
+			}
+
+			// Generate new thumbnails with correct orientation
+			const thumbnailBuffers = await ThumbnailGenerator.generateAllThumbnails(fileBuffer, photo.filename);
+			const thumbnails: Record<string, string> = {};
+
+			// Delete old thumbnails first
+			const extractPathFromUrl = (url: string): string | null => {
+				if (!url) return null;
+				if (url.startsWith('/api/storage/serve/')) {
+					const match = url.match(/\/serve\/[^/]+\/(.+)$/);
+					return match ? decodeURIComponent(match[1]) : null;
+				}
+				return url;
+			};
+
+			if (photo.storage.thumbnails && typeof photo.storage.thumbnails === 'object') {
+				for (const [size, thumbnailUrl] of Object.entries(photo.storage.thumbnails)) {
+					try {
+						const thumbnailPath = extractPathFromUrl(thumbnailUrl as string);
+						if (thumbnailPath && thumbnailPath !== photo.storage.path) {
+							console.log(`Deleting old ${size} thumbnail: ${thumbnailPath}`);
+							await storageManager.deletePhoto(thumbnailPath, provider);
+						}
+					} catch (thumbError) {
+						console.warn(`Failed to delete ${size} thumbnail:`, thumbError);
+					}
+				}
+			}
+
+			// Upload new thumbnails
+			for (const [sizeName, buffer] of Object.entries(thumbnailBuffers)) {
+				try {
+					const sizeConfig = ThumbnailGenerator.getThumbnailSize(sizeName as any);
+					const thumbnailFilename = `${sizeName}-${photo.filename}`;
+					const sizeFolderPath = albumPath ? `${albumPath}/${sizeConfig.folder}` : sizeConfig.folder;
+
+					const thumbnailResult = await storageService.uploadFile(
+						buffer,
+						thumbnailFilename,
+						'image/jpeg',
+						sizeFolderPath,
+						{
+							originalFile: photo.filename,
+							thumbnailSize: sizeName
+						}
+					);
+
+					thumbnails[sizeName] = `/api/storage/serve/${provider}/${encodeURIComponent(thumbnailResult.path)}`;
+					console.log(`Successfully regenerated ${sizeName} thumbnail`);
+				} catch (error) {
+					console.error(`Failed to upload ${sizeName} thumbnail:`, error);
+				}
+			}
+
+			// Generate new blur placeholder
+			const blurDataURL = await ThumbnailGenerator.generateBlurPlaceholder(fileBuffer);
+			const mediumThumbnail = thumbnails.medium || thumbnails.small || Object.values(thumbnails)[0];
+
+			// Update photo document with new thumbnails
+			const updateResult = await db.collection('photos').updateOne(
+				{ _id: objectId },
+				{
+					$set: {
+						'storage.thumbnails': thumbnails,
+						'storage.thumbnailPath': mediumThumbnail,
+						'storage.blurDataURL': blurDataURL,
+						updatedAt: new Date()
+					}
+				}
+			);
+
+			if (updateResult.modifiedCount === 0) {
+				throw new Error('Failed to update photo with new thumbnails');
+			}
+
+			// Fetch updated photo
+			const updatedPhoto = await db.collection('photos').findOne({ _id: objectId });
+
+			if (!updatedPhoto) {
+				throw new NotFoundException('Photo not found after thumbnail regeneration');
+			}
+
+			// Serialize ObjectIds
+			const serialized: any = {
+				...updatedPhoto,
+				_id: updatedPhoto._id.toString(),
+				albumId: updatedPhoto.albumId ? updatedPhoto.albumId.toString() : null,
+				tags: updatedPhoto.tags
+					? updatedPhoto.tags.map((tag: any) => (tag._id ? tag._id.toString() : tag.toString()))
+					: [],
+				people: updatedPhoto.people
+					? updatedPhoto.people.map((person: any) =>
+							person._id ? person._id.toString() : person.toString()
+						)
+					: [],
+				location: updatedPhoto.location
+					? updatedPhoto.location._id
+						? updatedPhoto.location._id.toString()
+						: updatedPhoto.location.toString()
+					: null,
+				uploadedBy: updatedPhoto.uploadedBy ? updatedPhoto.uploadedBy.toString() : null,
+			};
+
+			// Ensure storage object is properly preserved
+			if (updatedPhoto.storage) {
+				serialized.storage = {
+					provider: updatedPhoto.storage.provider || 'local',
+					fileId: updatedPhoto.storage.fileId || '',
+					url: updatedPhoto.storage.url || '',
+					path: updatedPhoto.storage.path || '',
+					thumbnailPath: updatedPhoto.storage.thumbnailPath || updatedPhoto.storage.url || '',
+					thumbnails: updatedPhoto.storage.thumbnails || {},
+					blurDataURL: updatedPhoto.storage.blurDataURL,
+					bucket: updatedPhoto.storage.bucket,
+					folderId: updatedPhoto.storage.folderId,
+				};
+			}
+
+			return {
+				success: true,
+				message: 'Thumbnails regenerated successfully',
+				data: serialized
+			};
+		} catch (error) {
+			console.error('Failed to regenerate thumbnails:', error);
+			if (error instanceof NotFoundException || error instanceof BadRequestException) {
+				throw error;
+			}
+			throw new Error(
+				`Failed to regenerate thumbnails: ${error instanceof Error ? error.message : 'Unknown error'}`
 			);
 		}
 	}
