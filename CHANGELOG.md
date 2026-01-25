@@ -1,6 +1,12 @@
 ## [Unreleased]
 
 ### Added
+- **Album Reordering**: Drag-and-drop album reordering in admin albums management
+  - Drag handle (⋮⋮) on each album for easy reordering
+  - Reorder albums within the same parent or move to different parents
+  - Accordion navigation starts collapsed (only root albums visible by default)
+  - Click arrow icon to expand/collapse album hierarchies
+  - Changes persist to database and survive page reloads
 - **Page Builder - Row/Column Layout System**: Enhanced page builder with flexible row/column-based layout
   - Add rows with custom column proportions (e.g., 1,2,3 for 1/6, 1/3, 1/2 widths)
   - Assign modules to individual columns within rows

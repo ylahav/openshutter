@@ -12,7 +12,7 @@ A comprehensive photo gallery management system with multi-storage support, adva
 - **People Management**: Tag and organize photos by people with multi-language support
 - **Face Recognition**: Detect faces in photos, match them to known people, and auto-tag photos
 - **Location Management**: Geospatial location tracking with coordinates and categories
-- **Album Management**: Hierarchical albums with advanced privacy controls
+- **Album Management**: Hierarchical albums with advanced privacy controls, drag-and-drop reordering, and accordion navigation
 - **Advanced Access Control**: Granular permissions for albums (public, private, user/group-specific)
 - **Owner Dashboard**: Dedicated interface for album owners to manage their collections
 - **Cover Photo Selection**: Admin interface for selecting album cover photos
@@ -440,6 +440,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [x] **Face Recognition System** - AI-powered face detection, matching, and auto-tagging
 - [x] **Photo Metadata Display** - Tags, people, and location shown in photo cards
 - [x] **Popup Dialogs** - Replaced browser alerts with styled confirmation and notification dialogs
+- [x] **Album Reordering** - Drag-and-drop album reordering with accordion navigation (collapsed by default)
 
 ### Phase 2 (Next 6 months) *
 - [ ] Advanced search and filtering
