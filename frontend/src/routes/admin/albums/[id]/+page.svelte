@@ -56,6 +56,14 @@
 		photoTitle: '',
 		isDeleting: false,
 	};
+	
+	// Bulk operations
+	let selectedPhotoIds = new Set<string>();
+	let showBulkActions = false;
+	let showLocationDialog = false;
+	let locations: any[] = [];
+	let selectedLocationId: string | null = null;
+	let isBulkUpdating = false;
 
 	function getAlbumName(album: Album | null): string {
 		if (!album) return '';
@@ -319,6 +327,94 @@
 		}
 	}
 
+	function togglePhotoSelection(photoId: string) {
+		if (selectedPhotoIds.has(photoId)) {
+			selectedPhotoIds.delete(photoId);
+		} else {
+			selectedPhotoIds.add(photoId);
+		}
+		selectedPhotoIds = selectedPhotoIds; // Trigger reactivity
+		showBulkActions = selectedPhotoIds.size > 0;
+	}
+
+	function toggleSelectAll() {
+		if (selectedPhotoIds.size === photos.length) {
+			selectedPhotoIds.clear();
+		} else {
+			selectedPhotoIds = new Set(photos.map(p => p._id));
+		}
+		selectedPhotoIds = selectedPhotoIds; // Trigger reactivity
+		showBulkActions = selectedPhotoIds.size > 0;
+	}
+
+	async function loadLocations() {
+		try {
+			const response = await fetch('/api/admin/locations?limit=1000');
+			if (response.ok) {
+				const result = await response.json();
+				locations = Array.isArray(result.data) ? result.data : [];
+			}
+		} catch (err) {
+			console.error('Failed to load locations:', err);
+		}
+	}
+
+	async function bulkUpdatePhotos(updates: { isPublished?: boolean; location?: string | null }) {
+		if (selectedPhotoIds.size === 0 || isBulkUpdating) return;
+
+		isBulkUpdating = true;
+		error = '';
+		successMessage = '';
+
+		try {
+			const response = await fetch('/api/admin/photos/bulk-update', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					photoIds: Array.from(selectedPhotoIds),
+					updates
+				})
+			});
+
+			const result = await response.json();
+
+			if (result.success) {
+				successMessage = result.data?.message || `Updated ${selectedPhotoIds.size} photo(s)`;
+				selectedPhotoIds.clear();
+				showBulkActions = false;
+				showLocationDialog = false;
+				selectedLocationId = null;
+				
+				// Reload photos to reflect changes
+				await loadPhotos();
+				
+				setTimeout(() => {
+					successMessage = '';
+				}, 3000);
+			} else {
+				error = result.error || 'Failed to update photos';
+			}
+		} catch (err) {
+			console.error('Bulk update failed:', err);
+			error = `Failed to update photos: ${err instanceof Error ? err.message : 'Unknown error'}`;
+		} finally {
+			isBulkUpdating = false;
+		}
+	}
+
+	function openLocationDialog() {
+		showLocationDialog = true;
+		if (locations.length === 0) {
+			loadLocations();
+		}
+	}
+
+	function applyLocation() {
+		if (selectedLocationId !== null) {
+			bulkUpdatePhotos({ location: selectedLocationId });
+		}
+	}
+
 	onMount(async () => {
 		await Promise.all([loadAlbum(), loadPhotos()]);
 	});
@@ -350,7 +446,7 @@
 		<div class="max-w-7xl mx-auto px-4">
 			<!-- Breadcrumbs -->
 			{#if album}
-				<AlbumBreadcrumbs album={album} />
+				<AlbumBreadcrumbs album={album} role="admin" />
 			{/if}
 
 			<!-- Header -->
@@ -417,7 +513,56 @@
 							</span>
 						{/if})
 					</h2>
+					{#if photos.length > 0}
+						<div class="flex items-center gap-2">
+							<button
+								on:click={toggleSelectAll}
+								class="px-3 py-1 text-sm text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+							>
+								{selectedPhotoIds.size === photos.length ? 'Deselect All' : 'Select All'}
+							</button>
+						</div>
+					{/if}
 				</div>
+
+				{#if showBulkActions}
+					<div class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+						<div class="flex items-center justify-between">
+							<span class="text-sm font-medium text-blue-900">
+								{selectedPhotoIds.size} photo{selectedPhotoIds.size === 1 ? '' : 's'} selected
+							</span>
+							<div class="flex gap-2">
+								<button
+									on:click={() => bulkUpdatePhotos({ isPublished: true })}
+									disabled={isBulkUpdating}
+									class="px-3 py-1 text-sm bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
+								>
+									Publish
+								</button>
+								<button
+									on:click={() => bulkUpdatePhotos({ isPublished: false })}
+									disabled={isBulkUpdating}
+									class="px-3 py-1 text-sm bg-yellow-600 text-white rounded-md hover:bg-yellow-700 disabled:opacity-50"
+								>
+									Unpublish
+								</button>
+								<button
+									on:click={openLocationDialog}
+									disabled={isBulkUpdating}
+									class="px-3 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+								>
+									Set Location
+								</button>
+								<button
+									on:click={() => { selectedPhotoIds.clear(); showBulkActions = false; }}
+									class="px-3 py-1 text-sm bg-gray-600 text-white rounded-md hover:bg-gray-700"
+								>
+									Cancel
+								</button>
+							</div>
+						</div>
+					</div>
+				{/if}
 
 				{#if photos.length === 0}
 					<div class="text-center py-12">
@@ -449,13 +594,25 @@
 					<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
 						{#each photos as photo}
 							{@const photoUrl = getPhotoUrl(photo)}
+							{@const isSelected = selectedPhotoIds.has(photo._id)}
 							<div class="relative group">
-								<div class="aspect-square bg-gray-200 rounded-lg overflow-hidden">
+								{#if showBulkActions}
+									<div class="absolute top-2 left-2 z-10">
+										<input
+											type="checkbox"
+											checked={isSelected}
+											on:change={() => togglePhotoSelection(photo._id)}
+											class="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+										/>
+									</div>
+								{/if}
+								<div class="aspect-square bg-gray-200 rounded-lg overflow-hidden {isSelected ? 'ring-4 ring-blue-500' : ''}">
 									{#if photoUrl}
 										<img
 											src={photoUrl}
 											alt={getPhotoTitle(photo)}
 											class="w-full h-full object-cover"
+											style="image-orientation: from-image;"
 											on:error={(e) => {
 												console.error('Image failed to load:', photoUrl, photo);
 												const target = e.currentTarget as HTMLImageElement;
@@ -541,3 +698,46 @@
 	on:confirm={confirmDeletePhoto}
 	on:cancel={closePhotoDeleteDialog}
 />
+
+<!-- Location Selection Dialog -->
+{#if showLocationDialog}
+	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+		<div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+			<h3 class="text-lg font-semibold mb-4">Set Location for {selectedPhotoIds.size} Photo{selectedPhotoIds.size === 1 ? '' : 's'}</h3>
+			<div class="mb-4">
+				<label for="location-select" class="block text-sm font-medium text-gray-700 mb-2">
+					Select Location
+				</label>
+				<select
+					id="location-select"
+					bind:value={selectedLocationId}
+					class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+				>
+					<option value="">No Location</option>
+					{#each locations as location}
+						<option value={location._id}>
+							{typeof location.name === 'string' 
+								? location.name 
+								: MultiLangUtils.getTextValue(location.name, $currentLanguage) || location.address || 'Unnamed Location'}
+						</option>
+					{/each}
+				</select>
+			</div>
+			<div class="flex justify-end gap-2">
+				<button
+					on:click={() => { showLocationDialog = false; selectedLocationId = null; }}
+					class="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+				>
+					Cancel
+				</button>
+				<button
+					on:click={applyLocation}
+					disabled={isBulkUpdating}
+					class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+				>
+					{isBulkUpdating ? 'Applying...' : 'Apply'}
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}

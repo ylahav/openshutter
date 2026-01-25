@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { MultiLangUtils } from '$lib/utils/multiLang';
@@ -73,9 +73,11 @@
 		}
 	}
 
-	function showError(title: string, message: string) {
+	async function showError(title: string, message: string) {
 		errorModalTitle = title;
 		errorModalMessage = message;
+		showErrorModal = false; // Reset first to ensure reactivity
+		await tick(); // Wait for reactivity
 		showErrorModal = true;
 	}
 
@@ -554,77 +556,47 @@
 
 				<!-- Upload Progress (shown during upload) -->
 				{#if isUploadingFolder && uploads.length > 0}
+					{@const folderUploads = uploads.filter(u => {
+						const webkitPath = (u.file as any).webkitRelativePath || '';
+						return webkitPath && webkitPath.includes(selectedFolderName);
+					})}
+					{@const totalFiles = folderUploads.length}
+					{@const completedFiles = folderUploads.filter(u => u.status === 'success' || u.status === 'skipped' || u.status === 'error').length}
+					{@const uploadingFiles = folderUploads.filter(u => u.status === 'uploading').length}
+					{@const overallProgress = totalFiles > 0 ? Math.round((completedFiles / totalFiles) * 100) : 0}
+					{@const currentFileIndex = completedFiles + 1}
+					
 					<div class="mt-8 border-t border-gray-200 pt-6">
 						<h3 class="text-lg font-semibold text-gray-900 mb-4">Upload Progress</h3>
-						<div class="space-y-4">
-							{#each uploads.filter(u => {
-								const webkitPath = (u.file as any).webkitRelativePath || '';
-								return webkitPath && webkitPath.includes(selectedFolderName);
-							}) as upload, index}
-								<div class="flex items-center space-x-4">
-									<div class="flex-shrink-0 w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
-										{#if upload.status === 'success'}
-											<svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-											</svg>
-										{:else if upload.status === 'skipped'}
-											<svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-											</svg>
-										{:else if upload.status === 'error'}
-											<svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-											</svg>
-										{:else}
-											<svg class="w-6 h-6 text-blue-600 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-											</svg>
-										{/if}
-									</div>
-									<div class="flex-1 min-w-0">
-										<p class="text-sm font-medium text-gray-900 truncate">{upload.file.name}</p>
-										<p class="text-xs text-gray-500">{(upload.file.size / 1024 / 1024).toFixed(2)} MB</p>
-										{#if upload.status === 'skipped' && upload.reason}
-											<p class="text-xs text-yellow-600 mt-1 truncate" title={upload.reason}>{upload.reason}</p>
-										{:else if upload.status === 'error' && upload.error}
-											<p class="text-xs text-red-600 mt-1 truncate" title={upload.error}>{upload.error}</p>
-										{/if}
-									</div>
-									<div class="flex-shrink-0 w-24">
-										<div class="w-full bg-gray-200 rounded-full h-2">
-											<div
-												class="h-2 rounded-full transition-all duration-300 {upload.status === 'success'
-													? 'bg-green-600'
-													: upload.status === 'skipped'
-														? 'bg-yellow-600'
-														: upload.status === 'error'
-															? 'bg-red-600'
-															: 'bg-blue-600'}"
-												style="width: {upload.progress}%"
-											></div>
-										</div>
-									</div>
-									<div class="flex-shrink-0 w-16 text-right">
-										<span
-											class="text-xs font-medium {upload.status === 'success'
-												? 'text-green-600'
-												: upload.status === 'skipped'
-													? 'text-yellow-600'
-													: upload.status === 'error'
-														? 'text-red-600'
-														: 'text-blue-600'}"
-										>
-											{upload.status === 'success'
-												? 'Done'
-												: upload.status === 'skipped'
-													? 'Skipped'
-													: upload.status === 'error'
-														? 'Error'
-														: `${upload.progress}%`}
-										</span>
+						<div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+							<div class="flex items-center justify-between mb-4">
+								<div class="flex items-center gap-3">
+									<svg class="w-6 h-6 text-blue-600 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+									</svg>
+									<div>
+										<p class="text-sm font-medium text-gray-900">
+											{#if uploadingFiles > 0}
+												Uploading {currentFileIndex} of {totalFiles} photos
+											{:else}
+												Processing {completedFiles} of {totalFiles} photos
+											{/if}
+										</p>
+										<p class="text-sm text-gray-600 mt-1">
+											Uploaded {completedFiles} of {totalFiles} photos ({overallProgress}%)
+										</p>
 									</div>
 								</div>
-							{/each}
+								<div class="text-right">
+									<span class="text-2xl font-bold text-blue-600">{overallProgress}%</span>
+								</div>
+							</div>
+							<div class="w-full bg-gray-200 rounded-full h-3">
+								<div
+									class="h-3 rounded-full bg-blue-600 transition-all duration-300"
+									style="width: {overallProgress}%"
+								></div>
+							</div>
 						</div>
 					</div>
 				{/if}
@@ -771,110 +743,44 @@
 		</div>
 
 		<!-- Upload Progress -->
-		{#if uploads.length > 0}
+		{#if uploads.length > 0 && !isUploadingFolder}
+			{@const totalFiles = uploads.length}
+			{@const completedFiles = uploads.filter(u => u.status === 'success' || u.status === 'skipped' || u.status === 'error').length}
+			{@const uploadingFiles = uploads.filter(u => u.status === 'uploading').length}
+			{@const overallProgress = totalFiles > 0 ? Math.round((completedFiles / totalFiles) * 100) : 0}
+			{@const currentFileIndex = completedFiles + 1}
+			
 			<div class="mt-8 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
 				<h3 class="text-lg font-semibold text-gray-900 mb-4">Upload Progress</h3>
-
-				<div class="space-y-4">
-					{#each uploads as upload, index}
-						<div class="flex items-center space-x-4">
-							<div class="flex-shrink-0 w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
-								{#if upload.status === 'success'}
-									<svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path
-											stroke-linecap="round"
-											stroke-linejoin="round"
-											stroke-width="2"
-											d="M5 13l4 4L19 7"
-										/>
-									</svg>
-								{:else if upload.status === 'skipped'}
-									<svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path
-											stroke-linecap="round"
-											stroke-linejoin="round"
-											stroke-width="2"
-											d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-										/>
-									</svg>
-								{:else if upload.status === 'error'}
-									<svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path
-											stroke-linecap="round"
-											stroke-linejoin="round"
-											stroke-width="2"
-											d="M6 18L18 6M6 6l12 12"
-										/>
-									</svg>
-								{:else}
-									<svg
-										class="w-6 h-6 text-blue-600 animate-spin"
-										fill="none"
-										stroke="currentColor"
-										viewBox="0 0 24 24"
-									>
-										<path
-											stroke-linecap="round"
-											stroke-linejoin="round"
-											stroke-width="2"
-											d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-										/>
-									</svg>
-								{/if}
-							</div>
-
-							<div class="flex-1 min-w-0">
-								<p class="text-sm font-medium text-gray-900 truncate">{upload.file.name}</p>
-								<p class="text-xs text-gray-500">
-									{(upload.file.size / 1024 / 1024).toFixed(2)} MB
+				<div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+					<div class="flex items-center justify-between mb-4">
+						<div class="flex items-center gap-3">
+							<svg class="w-6 h-6 text-blue-600 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+							</svg>
+							<div>
+								<p class="text-sm font-medium text-gray-900">
+									{#if uploadingFiles > 0}
+										Uploading {currentFileIndex} of {totalFiles} photos
+									{:else}
+										Processing {completedFiles} of {totalFiles} photos
+									{/if}
 								</p>
-								{#if upload.status === 'skipped' && upload.reason}
-									<p class="text-xs text-yellow-600 mt-1 truncate" title={upload.reason}>
-										{upload.reason}
-									</p>
-								{:else if upload.status === 'error' && upload.error}
-									<p class="text-xs text-red-600 mt-1 truncate" title={upload.error}>
-										{upload.error}
-									</p>
-								{/if}
-							</div>
-
-							<div class="flex-shrink-0 w-24">
-								<div class="w-full bg-gray-200 rounded-full h-2">
-									<div
-									class="h-2 rounded-full transition-all duration-300 {upload.status === 'success'
-										? 'bg-green-600'
-										: upload.status === 'skipped'
-											? 'bg-yellow-600'
-											: upload.status === 'error'
-												? 'bg-red-600'
-												: 'bg-blue-600'}"
-										style="width: {upload.progress}%"
-									></div>
-								</div>
-							</div>
-
-							<div class="flex-shrink-0 w-16 text-right">
-								<span
-									class="text-xs font-medium {upload.status === 'success'
-										? 'text-green-600'
-										: upload.status === 'skipped'
-											? 'text-yellow-600'
-											: upload.status === 'error'
-												? 'text-red-600'
-												: 'text-blue-600'}"
-								>
-									{upload.status === 'success'
-										? 'Done'
-										: upload.status === 'skipped'
-											? 'Skipped'
-											: upload.status === 'error'
-												? 'Error'
-												: `${upload.progress}%`}
-								</span>
+								<p class="text-sm text-gray-600 mt-1">
+									Uploaded {completedFiles} of {totalFiles} photos ({overallProgress}%)
+								</p>
 							</div>
 						</div>
-					{/each}
+						<div class="text-right">
+							<span class="text-2xl font-bold text-blue-600">{overallProgress}%</span>
+						</div>
+					</div>
+					<div class="w-full bg-gray-200 rounded-full h-3">
+						<div
+							class="h-3 rounded-full bg-blue-600 transition-all duration-300"
+							style="width: {overallProgress}%"
+						></div>
+					</div>
 				</div>
 
 				{#if hasErrors}

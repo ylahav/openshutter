@@ -1,10 +1,11 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { fly, fade } from 'svelte/transition';
 	import { MultiLangUtils } from '$lib/utils/multiLang';
 	import { currentLanguage } from '$stores/language';
+	import AlertModal from '$lib/components/AlertModal.svelte';
 
 	interface TemplateAlbum {
 		_id: string;
@@ -30,6 +31,11 @@
 	let tags = '';
 	let isDragActive = false;
 	let fileInput: HTMLInputElement | null = null;
+	
+	// Alert modal state
+	let showErrorModal = false;
+	let errorModalTitle = '';
+	let errorModalMessage = '';
 
 	// Preselect album from query param
 	onMount(() => {
@@ -204,6 +210,14 @@
 		return true;
 	}
 
+	async function showError(title: string, message: string) {
+		errorModalTitle = title;
+		errorModalMessage = message;
+		showErrorModal = false; // Reset first to ensure reactivity
+		await tick(); // Wait for reactivity
+		showErrorModal = true;
+	}
+
 	function handleFileInputChange(e: Event) {
 		const target = e.currentTarget as HTMLInputElement;
 		const files = target.files;
@@ -211,7 +225,7 @@
 			// Filter valid files
 			const validFiles = Array.from(files).filter(validateFile);
 			if (validFiles.length !== files.length) {
-				alert('Some files were rejected. Only image files under 100MB are allowed.');
+				showError('Some Files Rejected', 'Some files were rejected. Only image files under 100MB are allowed.');
 			}
 			if (validFiles.length > 0) {
 				// Create a FileList-like object
@@ -432,4 +446,15 @@
 			{/if}
 		</div>
 	</div>
+	
+	<!-- Error Modal -->
+	<AlertModal
+		isOpen={showErrorModal}
+		title={errorModalTitle}
+		message={errorModalMessage}
+		variant="warning"
+		onClose={() => {
+			showErrorModal = false;
+		}}
+	/>
 </div>

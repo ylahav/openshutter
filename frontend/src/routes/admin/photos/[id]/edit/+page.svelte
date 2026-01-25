@@ -65,6 +65,7 @@
 	let photo: Photo | null = null;
 	let loading = true;
 	let saving = false;
+	let regeneratingThumbnails = false;
 	let error = '';
 	let notification = { show: false, message: '', type: 'success' as 'success' | 'error' };
 	
@@ -291,10 +292,20 @@
 					throw new Error(`Failed to fetch photo: ${response.status} ${response.statusText}`);
 				}
 				
-				const data = await response.json();
+				const responseData = await response.json();
 				loading = false;
-				photo = data;
+				// Extract photo data from response (API returns { success: true, data: {...} })
+				photo = responseData.data || responseData;
 				lastLoadedPhotoId = photoId; // Mark this photo as loaded
+				
+				// Debug: Log storage information
+				console.log('[loadPhoto] Photo loaded:', {
+					photoId,
+					hasStorage: !!photo?.storage,
+					storage: photo?.storage,
+					photoUrl: photo ? getPhotoUrl(photo) : 'N/A',
+					responseStructure: { hasData: !!responseData.data, hasSuccess: !!responseData.success }
+				});
 			} catch (fetchError: any) {
 				// Clear timeout on error
 				if (timeoutId) {
@@ -433,6 +444,61 @@
 		}
 	}
 
+	async function handleRegenerateThumbnails() {
+		if (!photo || regeneratingThumbnails) return;
+
+		try {
+			regeneratingThumbnails = true;
+			error = '';
+
+			const response = await fetch(`/api/admin/photos/${photoId}/regenerate-thumbnails`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				throw new Error(errorData.error || errorData.message || `Failed to regenerate thumbnails: ${response.statusText}`);
+			}
+
+			const result = await response.json();
+			const updatedPhotoData = result.data || result;
+
+			// Update the photo object with new thumbnail data
+			if (updatedPhotoData && updatedPhotoData.storage) {
+				photo = {
+					...photo,
+					storage: updatedPhotoData.storage
+				};
+			}
+
+			notification = {
+				show: true,
+				message: result.message || 'Thumbnails regenerated successfully',
+				type: 'success',
+			};
+
+			// Reload the page after a short delay to show updated thumbnails
+			setTimeout(() => {
+				loadPhotoCalled = false;
+				lastLoadedPhotoId = null;
+				loadPhoto();
+			}, 1000);
+		} catch (err) {
+			console.error('Failed to regenerate thumbnails:', err);
+			error = `Failed to regenerate thumbnails: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			notification = {
+				show: true,
+				message: error,
+				type: 'error',
+			};
+		} finally {
+			regeneratingThumbnails = false;
+		}
+	}
+
 	function handleInputChange(e: Event) {
 		const target = e.target as HTMLInputElement;
 		const { name, type } = target;
@@ -552,10 +618,14 @@
 			<!-- Header -->
 			<div class="flex items-center justify-between mb-8">
 				<div>
-					<h1 class="text-3xl font-bold text-gray-900">Edit Photo</h1>
-					<p class="mt-2 text-gray-600">
-						{MultiLangUtils.getTextValue(photo.title, $currentLanguage) || photo.filename}
-					</p>
+					<h1 class="text-3xl font-bold text-gray-900">
+						{MultiLangUtils.getTextValue(photo.title, $currentLanguage) || photo.filename || 'Edit Photo'}
+					</h1>
+					{#if photo.title || photo.filename}
+						<p class="mt-2 text-gray-600">
+							{photo.filename}
+						</p>
+					{/if}
 				</div>
 				{#if photo.albumId}
 					<a
@@ -577,9 +647,18 @@
 								src={photoUrl}
 								alt={MultiLangUtils.getTextValue(photo.title, $currentLanguage) || photo.filename}
 								class="max-w-full max-h-96 object-contain rounded-lg"
+								style="image-orientation: from-image;"
 								on:error={(e) => {
 									const target = e.currentTarget as HTMLImageElement;
+									console.error('[Photo Edit] Image load error:', {
+										src: target.src,
+										photoId,
+										storage: photo.storage
+									});
 									if (target) target.style.display = 'none';
+								}}
+								on:load={() => {
+									console.log('[Photo Edit] Image loaded successfully:', photoUrl);
 								}}
 							/>
 						{:else}
@@ -594,6 +673,8 @@
 								</svg>
 								<p class="text-sm text-gray-500 mt-2">No image URL available</p>
 								<p class="text-xs text-gray-400 mt-1">Storage: {JSON.stringify(photo.storage)}</p>
+								<p class="text-xs text-gray-400 mt-1">Photo ID: {photo._id}</p>
+								<p class="text-xs text-gray-400 mt-1">Filename: {photo.filename}</p>
 							</div>
 						{/if}
 					</div>
@@ -602,6 +683,19 @@
 							{photo.dimensions.width} × {photo.dimensions.height} pixels
 						</p>
 					{/if}
+					<div class="mt-4 text-center">
+						<button
+							type="button"
+							on:click={handleRegenerateThumbnails}
+							disabled={regeneratingThumbnails}
+							class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+						>
+							{regeneratingThumbnails ? 'Regenerating...' : 'Rebuild Thumbnails'}
+						</button>
+						<p class="text-xs text-gray-500 mt-2">
+							Regenerate thumbnails with correct orientation
+						</p>
+					</div>
 				</div>
 			{/if}
 

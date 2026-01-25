@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { backendGet, backendPut, backendDelete, parseBackendResponse } from '$lib/utils/backend-api';
+import { backendGet, backendPut, backendDelete, backendPost, parseBackendResponse } from '$lib/utils/backend-api';
 
 export const GET: RequestHandler = async ({ params, locals, cookies }) => {
 	try {

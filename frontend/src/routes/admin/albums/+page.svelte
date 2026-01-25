@@ -531,7 +531,7 @@
 					onOpen={handleOpen}
 					renderActions={renderAlbumActions}
 					showAccordion={true}
-					expandAllByDefault={true}
+					expandAllByDefault={false}
 				/>
 			</div>
 		{/if}
@@ -592,6 +592,7 @@
 									class="w-full h-20 object-cover rounded-lg hover:opacity-75 transition-opacity {isCurrentCover
 										? 'ring-2 ring-blue-500'
 										: ''}"
+									style="image-orientation: from-image;"
 								/>
 								{#if isCurrentCover}
 									<div

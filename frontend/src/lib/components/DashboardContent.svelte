@@ -1,5 +1,20 @@
 <script lang="ts">
+	import { tick } from 'svelte';
 	import { goto } from '$app/navigation';
+	import AlertModal from '$lib/components/AlertModal.svelte';
+	
+	// Alert modal state
+	let showInfoModal = false;
+	let infoModalTitle = '';
+	let infoModalMessage = '';
+	
+	async function showInfo(title: string, message: string) {
+		infoModalTitle = title;
+		infoModalMessage = message;
+		showInfoModal = false; // Reset first to ensure reactivity
+		await tick(); // Wait for reactivity
+		showInfoModal = true;
+	}
 </script>
 
 <div class="min-h-screen bg-gray-50">
@@ -187,7 +202,7 @@
 							Share your gallery with others and manage access permissions.
 						</p>
 						<button
-							on:click={() => alert('Share functionality coming soon')}
+							on:click={() => showInfo('Coming Soon', 'Share functionality coming soon')}
 							class="btn-secondary w-full"
 							type="button"
 						>
@@ -227,4 +242,15 @@
 			</div>
 		</div>
 	</main>
+	
+	<!-- Info Modal -->
+	<AlertModal
+		isOpen={showInfoModal}
+		title={infoModalTitle}
+		message={infoModalMessage}
+		variant="info"
+		onClose={() => {
+			showInfoModal = false;
+		}}
+	/>
 </div>

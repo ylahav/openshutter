@@ -16,12 +16,14 @@
     href: string;
   }
 
-  export let album: TemplateAlbum;
+  export let album: TemplateAlbum | undefined = undefined;
+  export let albumId: string | undefined = undefined;
   export let role: 'admin' | 'owner' | 'public' = 'public';
   export let currentPage: 'view' | 'edit' | undefined = undefined;
 
   let breadcrumbs: BreadcrumbItem[] = [];
   let loading = true;
+  let currentAlbum: TemplateAlbum | null = null;
 
   function getBasePathAndRootName() {
     if (role === 'admin') {
@@ -33,9 +35,35 @@
     return { basePath: '/albums', rootName: 'Albums' };
   }
 
+  async function loadAlbum() {
+    if (album) {
+      currentAlbum = album;
+      return;
+    }
+    
+    if (albumId) {
+      try {
+        const res = await fetch(`/api/albums/${albumId}`);
+        if (res.ok) {
+          const data = await res.json();
+          currentAlbum = data;
+        }
+      } catch (err) {
+        console.error('Failed to fetch album:', err);
+      }
+    }
+  }
+
   async function buildBreadcrumbs() {
     try {
       loading = true;
+      await loadAlbum();
+      
+      if (!currentAlbum) {
+        breadcrumbs = [];
+        return;
+      }
+
       const items: BreadcrumbItem[] = [];
 
       const { basePath, rootName } = getBasePathAndRootName();
@@ -47,9 +75,9 @@
         href: basePath,
       });
 
-      // Parent chain
+      // Parent chain - build full path
       const parentChain: TemplateAlbum[] = [];
-      let currentParentId = (album as any).parentAlbumId;
+      let currentParentId = currentAlbum.parentAlbumId;
 
       while (currentParentId) {
         try {
@@ -58,18 +86,19 @@
           const parent = await res.json();
           if (!parent) break;
           parentChain.push(parent);
-          currentParentId = (parent as any).parentAlbumId;
+          currentParentId = parent.parentAlbumId;
         } catch (err) {
           console.error('Failed to fetch parent album:', err);
           break;
         }
       }
 
+      // Add all parents in order (root -> ... -> parent -> current)
       parentChain
         .reverse()
         .forEach((parent) => {
           const parentHref =
-            role === 'public' ? `${basePath}/${parent.alias}` : `${basePath}/${parent._id}`;
+            role === 'public' ? `${basePath}/${parent.alias || parent._id}` : `${basePath}/${parent._id}`;
           items.push({
             _id: parent._id,
             name: parent.name,
@@ -80,12 +109,12 @@
       // Current album
       const currentHref =
         role === 'public'
-          ? `${basePath}/${album.alias}`
-          : `${basePath}/${album._id}${currentPage === 'edit' ? '/edit' : ''}`;
+          ? `${basePath}/${currentAlbum.alias || currentAlbum._id}`
+          : `${basePath}/${currentAlbum._id}${currentPage === 'edit' ? '/edit' : ''}`;
 
       items.push({
-        _id: album._id,
-        name: album.name,
+        _id: currentAlbum._id,
+        name: currentAlbum.name,
         href: currentHref,
       });
 
@@ -93,23 +122,28 @@
     } catch (err) {
       console.error('Failed to build breadcrumbs:', err);
       const { basePath, rootName } = getBasePathAndRootName();
-      const currentHref =
-        role === 'public'
-          ? `${basePath}/${album.alias}`
-          : `${basePath}/${album._id}${currentPage === 'edit' ? '/edit' : ''}`;
+      
+      if (currentAlbum) {
+        const currentHref =
+          role === 'public'
+            ? `${basePath}/${currentAlbum.alias || currentAlbum._id}`
+            : `${basePath}/${currentAlbum._id}${currentPage === 'edit' ? '/edit' : ''}`;
 
-      breadcrumbs = [
-        {
-          _id: 'root',
-          name: rootName,
-          href: basePath,
-        },
-        {
-          _id: album._id,
-          name: album.name,
-          href: currentHref,
-        },
-      ];
+        breadcrumbs = [
+          {
+            _id: 'root',
+            name: rootName,
+            href: basePath,
+          },
+          {
+            _id: currentAlbum._id,
+            name: currentAlbum.name,
+            href: currentHref,
+          },
+        ];
+      } else {
+        breadcrumbs = [];
+      }
     } finally {
       loading = false;
     }
@@ -136,7 +170,7 @@
       <div class="flex items-center space-x-2">
         {#if index > 0}
           <svg
-            class="w-4 h-4 text-gray-400 flex-shrink-0"
+            class="w-4 h-4 text-gray-400 shrink-0"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -164,4 +198,3 @@
     {/each}
   </nav>
 {/if}
-

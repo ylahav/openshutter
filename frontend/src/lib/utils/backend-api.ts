@@ -228,13 +228,30 @@ export async function backendDelete(endpoint: string, options: BackendRequestOpt
 }
 
 /**
+ * Custom error class for authentication failures
+ */
+export class AuthenticationError extends Error {
+	constructor(message: string, public statusCode: number = 401) {
+		super(message);
+		this.name = 'AuthenticationError';
+	}
+}
+
+/**
  * Parse backend response and handle errors
  * 
  * NestJS returns data directly (not wrapped in {success, data}),
  * but some endpoints may still use the old format.
+ * 
+ * Throws AuthenticationError for 401 responses (caller should redirect to login)
  */
 export async function parseBackendResponse<T>(response: Response): Promise<T> {
 	if (!response.ok) {
+		// Handle 401 Unauthorized - backend is telling us to redirect to login
+		if (response.status === 401) {
+			throw new AuthenticationError('Authentication required', 401);
+		}
+		
 		const errorData = await response.json().catch(() => ({ error: 'Request failed' }));
 		throw new Error(errorData.error || errorData.message || `HTTP ${response.status}: ${response.statusText}`);
 	}

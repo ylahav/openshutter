@@ -9,10 +9,9 @@ export const GET: RequestHandler = async ({ params, cookies }) => {
 		const response = await backendGet(endpoint, { cookies });
 		const result = await parseBackendResponse<any>(response);
 
-		return json({
-			success: true,
-			data: result.data || result
-		});
+		// Return the data directly with url property for album cards
+		const data = result.data || result;
+		return json(data);
 	} catch (error) {
 		console.error('Error getting album cover image:', error);
 		const errorMessage = error instanceof Error ? error.message : String(error);

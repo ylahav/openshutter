@@ -6,6 +6,10 @@
 	export let message = '';
 	export let variant: 'error' | 'warning' | 'info' | 'success' = 'info';
 	export let onClose: () => void = () => {};
+	export let showCancel = false;
+	export let onConfirm: (() => void) | null = null;
+	export let confirmText = 'OK';
+	export let cancelText = 'Cancel';
 
 	let mounted = false;
 	let previousOverflow = '';
@@ -132,14 +136,36 @@
 							<p id="alert-message" class="mt-2 text-sm text-gray-600">{message}</p>
 						</div>
 					</div>
-					<div class="mt-6 flex justify-end">
-						<button
-							type="button"
-							class="px-4 py-2 text-sm font-medium text-white rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 {buttonColor}"
-							on:click={handleClose}
-						>
-							OK
-						</button>
+					<div class="mt-6 flex justify-end gap-3">
+						{#if showCancel && onConfirm}
+							<button
+								type="button"
+								class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+								on:click={handleClose}
+							>
+								{cancelText}
+							</button>
+							<button
+								type="button"
+								class="px-4 py-2 text-sm font-medium text-white rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 {buttonColor}"
+								on:click={() => {
+									if (onConfirm) {
+										onConfirm();
+									}
+									handleClose();
+								}}
+							>
+								{confirmText}
+							</button>
+						{:else}
+							<button
+								type="button"
+								class="px-4 py-2 text-sm font-medium text-white rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 {buttonColor}"
+								on:click={handleClose}
+							>
+								{confirmText}
+							</button>
+						{/if}
 					</div>
 				</div>
 			</div>
