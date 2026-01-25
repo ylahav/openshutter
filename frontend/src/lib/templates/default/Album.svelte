@@ -130,6 +130,7 @@
 									src={photo.storage?.thumbnailPath || photo.storage?.url || photo.url}
 									alt={MultiLangUtils.getTextValue(photo.title, $currentLanguage) || 'Photo'}
 									class="w-full h-full object-cover"
+									style="image-orientation: from-image;"
 								/>
 							{/if}
 						</button>

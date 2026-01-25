@@ -1,5 +1,7 @@
 <script lang="ts">
+	import { tick } from 'svelte';
 	import type { PageModuleData } from '$lib/types/page-builder';
+	import AlertModal from '$lib/components/AlertModal.svelte';
 
 	export let modules: PageModuleData[] = [];
 	export let rowStructure: Map<number, number[]> = new Map(); // rowOrder -> proportions[]
@@ -23,6 +25,11 @@
 	let showAddRowDialog = false;
 	let newRowColumns = '1,1,1';
 	let addingRow = false;
+	
+	// Alert modal state
+	let showErrorModal = false;
+	let errorModalTitle = '';
+	let errorModalMessage = '';
 
 	$: rows = buildRows(modules, rowStructure);
 
@@ -87,10 +94,18 @@
 			.filter((n) => !isNaN(n) && n > 0);
 	}
 
+	async function showError(title: string, message: string) {
+		errorModalTitle = title;
+		errorModalMessage = message;
+		showErrorModal = false; // Reset first to ensure reactivity
+		await tick(); // Wait for reactivity
+		showErrorModal = true;
+	}
+
 	async function handleAddRow() {
 		const proportions = parseProportions(newRowColumns);
 		if (proportions.length === 0) {
-			alert('Please enter valid proportions (e.g., 1,2,3)');
+			await showError('Invalid Proportions', 'Please enter valid proportions (e.g., 1,2,3)');
 			return;
 		}
 		addingRow = true;
@@ -279,3 +294,14 @@
 		</div>
 	</div>
 {/if}
+
+<!-- Error Modal -->
+<AlertModal
+	isOpen={showErrorModal}
+	title={errorModalTitle}
+	message={errorModalMessage}
+	variant="warning"
+	onClose={() => {
+		showErrorModal = false;
+	}}
+/>

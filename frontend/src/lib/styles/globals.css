@@ -192,6 +192,8 @@ img[class*="cursor-pointer"] {
 [class*="photo"] img {
   pointer-events: auto;
   cursor: pointer;
+  /* Ensure images respect EXIF orientation */
+  image-orientation: from-image;
 }
 
 /* Allow right-click context menus in text editors and input fields */

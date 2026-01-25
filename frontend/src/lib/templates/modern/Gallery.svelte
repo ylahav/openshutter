@@ -108,6 +108,7 @@
 												'/placeholder.jpg'}
 											alt={MultiLangUtils.getTextValue(album.name, $currentLanguage)}
 											class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+											style="image-orientation: from-image;"
 										/>
 									{:else}
 										<div class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-purple-600 to-blue-600">

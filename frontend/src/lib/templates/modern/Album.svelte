@@ -395,6 +395,7 @@
 										src={getPhotoUrl(photo)}
 										alt=""
 										class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+										style="image-orientation: from-image;"
 									/>
 									<div class="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-all duration-300"></div>
 									{#if photo.title || photo.description}
