@@ -380,40 +380,121 @@
 				{/if}
 
 				{#if albumData.photos && albumData.photos.length > 0}
-					<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+					<div class="columns-1 sm:columns-2 lg:columns-3 gap-4">
 						{#each albumData.photos as photo, i}
-							<button
-								type="button"
-								on:click={() => {
-									lightboxIndex = i;
-									lightboxOpen = true;
-								}}
-								class="group relative overflow-hidden rounded-2xl cursor-pointer transform transition-all duration-500 hover:scale-105 hover:z-10"
+							{@const photoWidth = photo.dimensions?.width || photo.metadata?.width}
+							{@const photoHeight = photo.dimensions?.height || photo.metadata?.height}
+							{@const hasDimensions = photoWidth && photoHeight && photoWidth > 0 && photoHeight > 0}
+							{@const aspectRatio = hasDimensions ? photoWidth / photoHeight : 1}
+							{@const isLandscape = aspectRatio >= 1}
+							<div
+								class="group bg-white/5 backdrop-blur-sm rounded-2xl p-4 shadow-lg hover:shadow-xl transition-all duration-500 hover:scale-105 hover:z-10 border border-white/10 mb-4 break-inside-avoid"
 							>
-								<div class="aspect-square bg-gradient-to-br from-purple-600 to-blue-600 relative overflow-hidden rounded-2xl">
-									<img
-										src={getPhotoUrl(photo)}
-										alt=""
-										class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-										style="image-orientation: from-image;"
-									/>
-									<div class="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-all duration-300"></div>
-									{#if photo.title || photo.description}
-										<div class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent translate-y-full group-hover:translate-y-0 transition-transform duration-300">
-											{#if photo.title}
-												<h3 class="text-white font-semibold text-sm mb-1">
-													<MultiLangText value={photo.title} fallback={`Photo ${i + 1}`} />
-												</h3>
+								<button
+									type="button"
+									on:click={() => {
+										lightboxIndex = i;
+										lightboxOpen = true;
+									}}
+									class="w-full"
+								>
+									<div class="bg-linear-to-br from-purple-600 to-blue-600 relative overflow-hidden rounded-xl mb-3"
+										style={hasDimensions && aspectRatio < 1
+											? `width: 100%; max-height: 600px; aspect-ratio: ${aspectRatio};` 
+											: hasDimensions
+											? `width: 100%; padding-bottom: ${(1 / aspectRatio) * 100}%;`
+											: 'width: 100%; padding-bottom: 100%;'}
+									>
+										<img
+											src={getPhotoUrl(photo)}
+											alt=""
+											class={hasDimensions && aspectRatio < 1 
+												? "w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+												: "absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"}
+											style="image-orientation: from-image;"
+										/>
+										<div class="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-all duration-300"></div>
+									</div>
+								</button>
+								
+								<!-- Photo metadata below the image -->
+								<div class="px-1">
+									{#if photo.title}
+										<h3 class="text-white font-semibold text-sm mb-1">
+											<MultiLangText value={photo.title} fallback={`Photo ${i + 1}`} />
+										</h3>
+									{/if}
+									{#if photo.description}
+										<p class="text-purple-200 text-xs mb-2 line-clamp-2">
+											{@html (typeof photo.description === 'string' ? photo.description : (photo.description as any)?.[$currentLanguage] || (photo.description as any)?.en || '').replace(/<[^>]*>/g, '')}
+										</p>
+									{/if}
+									
+									{#if photo.location || (photo.tags && photo.tags.length > 0) || (photo.people && photo.people.length > 0)}
+										<div class="flex flex-wrap gap-2 text-xs text-purple-300">
+											{#if photo.location}
+												<span class="flex items-center gap-1">
+													<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+														<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+														<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+													</svg>
+													{#if typeof photo.location === 'string'}
+														{photo.location}
+													{:else}
+														<MultiLangText value={(photo.location as { _id: string; name: any }).name} />
+													{/if}
+												</span>
 											{/if}
-											{#if photo.description}
-												<p class="text-white/70 text-xs line-clamp-2">
-													{@html (typeof photo.description === 'string' ? photo.description : (photo.description as any)?.[$currentLanguage] || (photo.description as any)?.en || '').replace(/<[^>]*>/g, '')}
-												</p>
+											
+											{#if photo.tags && photo.tags.length > 0}
+												<span class="flex items-center gap-1 flex-wrap">
+													<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+														<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+													</svg>
+													{#each photo.tags.slice(0, 3) as tag}
+														<span>
+															{#if typeof tag === 'string'}
+																{tag}
+															{:else}
+																<MultiLangText value={tag.name} />
+															{/if}
+														</span>
+														{#if tag !== photo.tags[photo.tags.length - 1] && photo.tags.indexOf(tag) < 2}
+															<span>,</span>
+														{/if}
+													{/each}
+													{#if photo.tags.length > 3}
+														<span>+{photo.tags.length - 3}</span>
+													{/if}
+												</span>
+											{/if}
+											
+											{#if photo.people && photo.people.length > 0}
+												<span class="flex items-center gap-1 flex-wrap">
+													<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+														<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+													</svg>
+													{#each photo.people.slice(0, 2) as person}
+														<span>
+															{#if typeof person === 'string'}
+																{person}
+															{:else}
+																<MultiLangText value={(person as { _id: string; fullName?: any; firstName?: any }).fullName || (person as { _id: string; fullName?: any; firstName?: any }).firstName} />
+															{/if}
+														</span>
+														{#if person !== photo.people[photo.people.length - 1] && photo.people.indexOf(person) < 1}
+															<span>,</span>
+														{/if}
+													{/each}
+													{#if photo.people.length > 2}
+														<span>+{photo.people.length - 2}</span>
+													{/if}
+												</span>
 											{/if}
 										</div>
 									{/if}
 								</div>
-							</button>
+							</div>
 						{/each}
 					</div>
 
