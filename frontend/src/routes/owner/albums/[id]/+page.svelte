@@ -4,6 +4,7 @@
 	import { goto } from '$app/navigation';
 	import { MultiLangUtils } from '$lib/utils/multiLang';
 	import { currentLanguage } from '$lib/stores/language';
+	import { getAlbumName, getAlbumDescription } from '$lib/utils/albumUtils';
 
 	export let data; // From +layout.server.ts, contains user info
 
@@ -68,17 +69,7 @@
 		}
 	}
 
-	function getAlbumName(album: Album | null): string {
-		if (!album) return '';
-		if (typeof album.name === 'string') return album.name;
-		return MultiLangUtils.getTextValue(album.name, $currentLanguage) || '(No name)';
-	}
-
-	function getAlbumDescription(album: Album | null): string {
-		if (!album || !album.description) return '';
-		if (typeof album.description === 'string') return album.description;
-		return MultiLangUtils.getHTMLValue(album.description, $currentLanguage) || '';
-	}
+	// Album utility functions are now imported from shared utilities
 </script>
 
 <svelte:head>
@@ -128,6 +119,12 @@
 						class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
 					>
 						Upload Photos
+					</button>
+					<button
+						on:click={() => goto(`/albums/new?parentAlbumId=${albumId}`)}
+						class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
+					>
+						Create Sub-Album
 					</button>
 				</div>
 			</div>

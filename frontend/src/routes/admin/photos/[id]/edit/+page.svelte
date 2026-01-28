@@ -11,6 +11,7 @@
 	import FaceDetectionViewer from '$lib/components/FaceDetectionViewer.svelte';
 	import FaceMatchingPanel from '$lib/components/FaceMatchingPanel.svelte';
 	import CollectionPopup from '$lib/components/CollectionPopup.svelte';
+	import { getPhotoUrl, getPhotoFullUrl } from '$lib/utils/photoUrl';
 
 	interface Photo {
 		_id: string;
@@ -118,136 +119,13 @@
 	};
 	let descriptionLanguage = 'en';
 
-	function getPhotoUrl(photo: Photo, preferFullSize: boolean = false): string {
-		if (!photo.storage) {
-			return '';
-		}
-		
-		// If we need full size (e.g., for face detection), prioritize full image paths
+	// Photo URL helper - uses shared utility
+	// Wrapper maintains backward compatibility with preferFullSize parameter
+	function getPhotoUrlLocal(photo: Photo, preferFullSize: boolean = false): string {
 		if (preferFullSize) {
-			// Helper function to convert thumbnail path to full image path
-			const getFullImagePath = (thumbnailPath: string): string => {
-				// Remove thumbnail folder structure: .../medium/medium-... or .../small/small-...
-				let fullPath = thumbnailPath;
-				
-				// Remove /medium/medium- prefix
-				fullPath = fullPath.replace(/\/medium\/medium-/, '/');
-				// Remove /small/small- prefix
-				fullPath = fullPath.replace(/\/small\/small-/, '/');
-				// Remove /thumb/thumb- prefix
-				fullPath = fullPath.replace(/\/thumb\/thumb-/, '/');
-				// Remove /medium/ prefix entirely if it's just a folder
-				fullPath = fullPath.replace(/\/medium\//, '/');
-				// Remove /small/ prefix entirely if it's just a folder
-				fullPath = fullPath.replace(/\/small\//, '/');
-				// Remove /thumb/ prefix entirely if it's just a folder
-				fullPath = fullPath.replace(/\/thumb\//, '/');
-				
-				return fullPath;
-			};
-			
-			// First try the main path (full image)
-			if (photo.storage.path) {
-				const provider = photo.storage.provider || 'local';
-				let cleanPath = photo.storage.path.startsWith('/') 
-					? photo.storage.path.slice(1) 
-					: photo.storage.path;
-				
-				// If it's a thumbnail path, convert to full image path
-				if (cleanPath.includes('/medium/') || cleanPath.includes('/small/') || cleanPath.includes('/thumb/')) {
-					cleanPath = getFullImagePath(cleanPath);
-				}
-				
-				const constructed = `/api/storage/serve/${provider}/${encodeURIComponent(cleanPath)}`;
-				return constructed;
-			}
-			
-			// Try url (full image)
-			if (photo.storage.url) {
-				if (photo.storage.url.startsWith('/api/storage/serve/') || photo.storage.url.startsWith('http')) {
-					// If it's a thumbnail URL, try to extract and convert the path
-					if (photo.storage.url.includes('/medium/') || photo.storage.url.includes('/small/') || photo.storage.url.includes('/thumb/')) {
-						// Extract path from URL and convert
-						const urlMatch = photo.storage.url.match(/\/serve\/[^/]+\/(.+)$/);
-						if (urlMatch) {
-							const extractedPath = decodeURIComponent(urlMatch[1]);
-							const fullPath = getFullImagePath(extractedPath);
-							const provider = photo.storage.provider || 'local';
-							const constructed = `/api/storage/serve/${provider}/${encodeURIComponent(fullPath)}`;
-							return constructed;
-						}
-					} else {
-						return photo.storage.url;
-					}
-				} else {
-					const provider = photo.storage.provider || 'local';
-					let cleanPath = photo.storage.url.startsWith('/') 
-						? photo.storage.url.slice(1) 
-						: photo.storage.url;
-					
-					// If it's a thumbnail path, convert to full image path
-					if (cleanPath.includes('/medium/') || cleanPath.includes('/small/') || cleanPath.includes('/thumb/')) {
-						cleanPath = getFullImagePath(cleanPath);
-					}
-					
-					const constructed = `/api/storage/serve/${provider}/${encodeURIComponent(cleanPath)}`;
-					return constructed;
-				}
-			}
+			return getPhotoFullUrl(photo, '');
 		}
-		
-		// For thumbnails/preview, check thumbnails first
-		if (photo.storage.thumbnails && typeof photo.storage.thumbnails === 'object') {
-			const thumbnails = photo.storage.thumbnails as Record<string, string>;
-			const thumbnailUrl = thumbnails.medium || thumbnails.small || Object.values(thumbnails)[0];
-			if (thumbnailUrl) {
-				if (thumbnailUrl.startsWith('/api/storage/serve/') || thumbnailUrl.startsWith('http')) {
-					return thumbnailUrl;
-				}
-				const provider = photo.storage.provider || 'local';
-				const cleanPath = thumbnailUrl.startsWith('/') ? thumbnailUrl.slice(1) : thumbnailUrl;
-				const constructed = `/api/storage/serve/${provider}/${encodeURIComponent(cleanPath)}`;
-				return constructed;
-			}
-		}
-		
-		// Check thumbnailPath
-		if (photo.storage.thumbnailPath) {
-			if (photo.storage.thumbnailPath.startsWith('/api/storage/serve/') || photo.storage.thumbnailPath.startsWith('http')) {
-				return photo.storage.thumbnailPath;
-			}
-			const provider = photo.storage.provider || 'local';
-			const cleanPath = photo.storage.thumbnailPath.startsWith('/') 
-				? photo.storage.thumbnailPath.slice(1) 
-				: photo.storage.thumbnailPath;
-			const constructed = `/api/storage/serve/${provider}/${encodeURIComponent(cleanPath)}`;
-			return constructed;
-		}
-		
-		// Fallback to url
-		if (photo.storage.url) {
-			if (photo.storage.url.startsWith('/api/storage/serve/') || photo.storage.url.startsWith('http')) {
-				return photo.storage.url;
-			}
-			const provider = photo.storage.provider || 'local';
-			const cleanPath = photo.storage.url.startsWith('/') 
-				? photo.storage.url.slice(1) 
-				: photo.storage.url;
-			const constructed = `/api/storage/serve/${provider}/${encodeURIComponent(cleanPath)}`;
-			return constructed;
-		}
-		
-		// Fallback to path
-		if (photo.storage.path) {
-			const provider = photo.storage.provider || 'local';
-			const cleanPath = photo.storage.path.startsWith('/') 
-				? photo.storage.path.slice(1) 
-				: photo.storage.path;
-			const constructed = `/api/storage/serve/${provider}/${encodeURIComponent(cleanPath)}`;
-			return constructed;
-		}
-		
-		return '';
+		return getPhotoUrl(photo, { fallback: '' });
 	}
 
 	async function loadPhoto() {
@@ -303,7 +181,7 @@
 					photoId,
 					hasStorage: !!photo?.storage,
 					storage: photo?.storage,
-					photoUrl: photo ? getPhotoUrl(photo) : 'N/A',
+					photoUrl: photo ? getPhotoUrlLocal(photo) : 'N/A',
 					responseStructure: { hasData: !!responseData.data, hasSuccess: !!responseData.success }
 				});
 			} catch (fetchError: any) {
@@ -639,7 +517,7 @@
 
 			<!-- Photo Preview -->
 			{#if photo}
-				{@const photoUrl = getPhotoUrl(photo)}
+				{@const photoUrl = getPhotoUrlLocal(photo)}
 				<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
 					<div class="flex items-center justify-center">
 						{#if photoUrl}
@@ -928,7 +806,7 @@
 
 					<!-- Face Detection Section -->
 					{#if photo && browser}
-						{@const photoUrlForFaceRec = getPhotoUrl(photo, true)}
+						{@const photoUrlForFaceRec = getPhotoUrlLocal(photo, true)}
 						{#if photo.storage && photoUrlForFaceRec}
 							<div class="space-y-6">
 								<FaceDetectionViewer

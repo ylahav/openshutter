@@ -6,6 +6,7 @@
 	import MultiLangText from '$lib/components/MultiLangText.svelte';
 	import AlbumBreadcrumbs from '$lib/components/AlbumBreadcrumbs.svelte';
 	import PhotoLightbox from '$lib/components/PhotoLightbox.svelte';
+	import { getPhotoUrl } from '$lib/utils/photoUrl';
 
 	interface AlbumData {
 		album: {
@@ -53,32 +54,7 @@
 		lightboxOpen = true;
 	}
 
-	function getPhotoUrl(photo: any): string {
-		if (!photo.storage) {
-			return photo.url || '/placeholder.jpg';
-		}
-		if (photo.storage.thumbnailPath) {
-			if (photo.storage.thumbnailPath.startsWith('/api/storage/serve/') || photo.storage.thumbnailPath.startsWith('http')) {
-				return photo.storage.thumbnailPath;
-			}
-			const provider = photo.storage.provider || 'local';
-			const cleanPath = photo.storage.thumbnailPath.startsWith('/') 
-				? photo.storage.thumbnailPath.slice(1) 
-				: photo.storage.thumbnailPath;
-			return `/api/storage/serve/${provider}/${encodeURIComponent(cleanPath)}`;
-		}
-		if (photo.storage.url) {
-			if (photo.storage.url.startsWith('/api/storage/serve/') || photo.storage.url.startsWith('http')) {
-				return photo.storage.url;
-			}
-			const provider = photo.storage.provider || 'local';
-			const cleanPath = photo.storage.url.startsWith('/') 
-				? photo.storage.url.slice(1) 
-				: photo.storage.url;
-			return `/api/storage/serve/${provider}/${encodeURIComponent(cleanPath)}`;
-		}
-		return photo.url || '/placeholder.jpg';
-	}
+	// Photo URL function is now imported from shared utility
 </script>
 
 {#if loading}

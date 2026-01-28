@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { page } from '$app/stores';
 	import StorageTreeItem from '$lib/components/StorageTreeItem.svelte';
 
 	interface StorageConfig {
@@ -23,6 +24,14 @@
 	let treeError = '';
 	let showTreeView = false;
 
+	// Google OAuth popup + messages
+	let oauthWindow: Window | null = null;
+
+	type StatusMessage = { type: 'success' | 'error'; text: string };
+	let googleDriveMessage: StatusMessage | null = null;
+	let tokenInvalid = false;
+	let checkingToken = false;
+
 	// Form data for each provider
 	let formData: Record<string, any> = {};
 	
@@ -31,7 +40,40 @@
 
 	onMount(async () => {
 		await loadConfigs();
+		setupGoogleOAuthListener();
+		// Auto-check Google Drive token validity if enabled
+		const googleDriveConfig = configs.find(c => c.providerId === 'google-drive');
+		if (googleDriveConfig?.isEnabled) {
+			await checkGoogleDriveTokenValidity();
+			// If token is invalid and user came from notification, auto-start renewal
+			if (tokenInvalid && $page.url.searchParams.get('renew') === 'true') {
+				setTimeout(() => {
+					startGoogleOAuth();
+				}, 500);
+			}
+		}
 	});
+
+	function setupGoogleOAuthListener() {
+		if (typeof window === 'undefined') return;
+
+		window.addEventListener('message', async (event: MessageEvent) => {
+			// Security: only accept messages from same origin
+			if (event.origin !== window.location.origin) return;
+
+			if (event.data?.type === 'GOOGLE_OAUTH_CODE') {
+				const code = event.data.code as string | undefined;
+				if (!code) return;
+				await handleGoogleOAuthCode(code);
+			} else if (event.data?.type === 'GOOGLE_OAUTH_ERROR') {
+				const error = event.data.error || 'Authorization failed';
+				googleDriveMessage = { type: 'error', text: String(error) };
+				if (oauthWindow && !oauthWindow.closed) {
+					oauthWindow.close();
+				}
+			}
+		});
+	}
 
 	async function loadConfigs() {
 		try {
@@ -94,6 +136,11 @@
 			
 			// Reload configs to get updated data
 			await loadConfigs();
+			
+			// Re-check token validity after saving Google Drive config
+			if (providerId === 'google-drive') {
+				await checkGoogleDriveTokenValidity();
+			}
 		} catch (err) {
 			console.error('Failed to save config:', err);
 			saveError = err instanceof Error ? err.message : 'Failed to save configuration';
@@ -116,8 +163,28 @@
 			
 			if (result.success) {
 				testResult = 'success';
+				// If Google Drive test succeeds, token is valid
+				if (providerId === 'google-drive') {
+					tokenInvalid = false;
+				}
 			} else {
 				testResult = 'error';
+				
+				// Check if Google Drive test failed due to invalid token
+				if (providerId === 'google-drive') {
+					const errorMsg = (result.error || result.message || '').toLowerCase();
+					const errorDetails = result.details || {};
+					if (
+						errorMsg.includes('invalid_grant') ||
+						errorMsg.includes('invalid or expired') ||
+						errorMsg.includes('refresh token') ||
+						errorDetails.authError ||
+						errorDetails.googleApiError?.error === 'invalid_grant'
+					) {
+						tokenInvalid = true;
+					}
+				}
+				
 				throw new Error(result.error || 'Connection test failed');
 			}
 		} catch (err) {
@@ -126,6 +193,173 @@
 			testResult = err instanceof Error ? err.message : 'Connection test failed';
 		} finally {
 			testingConnection = false;
+		}
+	}
+
+	async function startGoogleOAuth() {
+		try {
+			googleDriveMessage = null;
+
+			const clientId = currentFormData.clientId as string | undefined;
+			const clientSecret = currentFormData.clientSecret as string | undefined;
+			const storageType = (currentFormData.storageType as string | undefined) || 'appdata';
+
+			if (!clientId || !clientSecret) {
+				googleDriveMessage = {
+					type: 'error',
+					text: 'Please enter and save Client ID and Client Secret first.'
+				};
+				return;
+			}
+
+			const redirectUri = `${window.location.origin}/api/auth/google/callback`;
+
+			// Ask backend for the Google OAuth URL
+			const authUrlResponse = await fetch(
+				`/api/admin/storage/google-drive/auth-url?clientId=${encodeURIComponent(
+					clientId
+				)}&redirectUri=${encodeURIComponent(redirectUri)}&storageType=${storageType}`,
+				{ credentials: 'include' }
+			);
+
+			if (!authUrlResponse.ok) {
+				const errorData = await authUrlResponse.json().catch(() => ({}));
+				throw new Error(errorData.error || errorData.message || 'Failed to generate OAuth URL');
+			}
+
+			const authUrlData = await authUrlResponse.json();
+			if (!authUrlData?.success || !authUrlData?.authUrl) {
+				throw new Error('Server returned an invalid OAuth URL response');
+			}
+
+			// Open popup for Google OAuth
+			oauthWindow = window.open(
+				authUrlData.authUrl,
+				'google-drive-oauth',
+				'width=600,height=700,scrollbars=yes,resizable=yes'
+			);
+
+			if (!oauthWindow) {
+				throw new Error('Popup blocked. Please allow popups for this site and try again.');
+			}
+
+			googleDriveMessage = {
+				type: 'success',
+				text: 'Authorization window opened. Complete the Google consent screen to continue.'
+			};
+		} catch (err) {
+			console.error('Failed to start Google OAuth flow:', err);
+			googleDriveMessage = {
+				type: 'error',
+				text:
+					err instanceof Error
+						? err.message
+						: 'Failed to start Google authorization flow.'
+			};
+		}
+	}
+
+	async function handleGoogleOAuthCode(code: string) {
+		try {
+			const clientId = currentFormData.clientId as string | undefined;
+			const clientSecret = currentFormData.clientSecret as string | undefined;
+
+			if (!clientId || !clientSecret) {
+				googleDriveMessage = {
+					type: 'error',
+					text: 'Client ID / Secret are missing. Please save them and try again.'
+				};
+				return;
+			}
+
+			const redirectUri = `${window.location.origin}/api/auth/google/callback`;
+
+			// Exchange code for tokens via frontend API
+			const tokenResponse = await fetch('/api/auth/google/token', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ code, clientId, clientSecret, redirectUri })
+			});
+
+			const tokenData = await tokenResponse.json().catch(() => ({}));
+
+			if (!tokenResponse.ok || !tokenData?.success || !tokenData?.refreshToken) {
+				const msg =
+					tokenData?.error ||
+					'Failed to exchange authorization code for tokens. Please try again.';
+				throw new Error(msg);
+			}
+
+			// Update form data with new refresh token and save config
+			updateFormData('refreshToken', tokenData.refreshToken);
+
+			await saveConfig('google-drive');
+
+			// Reset invalid token flag since we just renewed it
+			tokenInvalid = false;
+
+			googleDriveMessage = {
+				type: 'success',
+				text: 'New refresh token generated and saved successfully.'
+			};
+		} catch (err) {
+			console.error('Failed to handle Google OAuth code:', err);
+			googleDriveMessage = {
+				type: 'error',
+				text:
+					err instanceof Error
+						? err.message
+						: 'Failed to complete Google authorization. Please try again.'
+			};
+		} finally {
+			if (oauthWindow && !oauthWindow.closed) {
+				oauthWindow.close();
+			}
+			oauthWindow = null;
+		}
+	}
+
+	async function checkGoogleDriveTokenValidity() {
+		const googleDriveConfig = configs.find(c => c.providerId === 'google-drive');
+		if (!googleDriveConfig?.isEnabled || !googleDriveConfig.config.refreshToken) {
+			tokenInvalid = false;
+			return;
+		}
+
+		try {
+			checkingToken = true;
+			const response = await fetch('/api/admin/storage/google-drive/test', {
+				method: 'POST',
+				credentials: 'include'
+			});
+
+			const result = await response.json().catch(() => ({}));
+
+			// Check if error indicates invalid token
+			if (!result.success) {
+				const errorMsg = (result.error || result.message || '').toLowerCase();
+				const errorDetails = result.details || {};
+				
+				// Check for invalid_grant or auth errors
+				if (
+					errorMsg.includes('invalid_grant') ||
+					errorMsg.includes('invalid or expired') ||
+					errorMsg.includes('refresh token') ||
+					errorDetails.authError ||
+					errorDetails.googleApiError?.error === 'invalid_grant'
+				) {
+					tokenInvalid = true;
+					return;
+				}
+			}
+
+			// Token is valid
+			tokenInvalid = false;
+		} catch (err) {
+			console.error('Failed to check Google Drive token validity:', err);
+			// Don't set tokenInvalid on network errors - only on confirmed auth errors
+		} finally {
+			checkingToken = false;
 		}
 	}
 
@@ -248,6 +482,10 @@
 									};
 									formData = { ...formData };
 								}
+								// Auto-check Google Drive token when switching to that tab
+								if (config.providerId === 'google-drive' && config.isEnabled) {
+									checkGoogleDriveTokenValidity();
+								}
 							}}
 								class="py-4 px-1 border-b-2 font-medium text-sm {activeTab === config.providerId
 									? 'border-blue-500 text-blue-600'
@@ -271,6 +509,68 @@
 						<div class="space-y-6">
 							<div>
 								<h2 class="text-xl font-semibold text-gray-900 mb-4">Google Drive Configuration</h2>
+								
+								<!-- Token Invalid Warning Banner -->
+								{#if tokenInvalid}
+									<div class="bg-red-50 border-l-4 border-red-500 p-4 mb-4">
+										<div class="flex items-start">
+											<div class="flex-shrink-0">
+												<svg
+													class="h-5 w-5 text-red-400"
+													fill="currentColor"
+													viewBox="0 0 20 20"
+												>
+													<path
+														fill-rule="evenodd"
+														d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+														clip-rule="evenodd"
+													/>
+												</svg>
+											</div>
+											<div class="ml-3 flex-1">
+												<h3 class="text-sm font-medium text-red-800">
+													Google Drive Token Expired or Invalid
+												</h3>
+												<div class="mt-2 text-sm text-red-700">
+													<p>
+														Your Google Drive refresh token is no longer valid. Photos stored on
+														Google Drive may not be accessible until you renew the token.
+													</p>
+												</div>
+												<div class="mt-4">
+													<button
+														type="button"
+														on:click={startGoogleOAuth}
+														class="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+													>
+														<svg
+															class="-ml-1 mr-2 h-4 w-4"
+															fill="none"
+															stroke="currentColor"
+															viewBox="0 0 24 24"
+														>
+															<path
+																stroke-linecap="round"
+																stroke-linejoin="round"
+																stroke-width="2"
+																d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+															/>
+														</svg>
+														Renew Token Now
+													</button>
+													<button
+														type="button"
+														on:click={checkGoogleDriveTokenValidity}
+														disabled={checkingToken}
+														class="ml-3 inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+													>
+														{checkingToken ? 'Checking...' : 'Re-check'}
+													</button>
+												</div>
+											</div>
+										</div>
+									</div>
+								{/if}
 								
 								{#if saveSuccess}
 									<div class="bg-green-50 border border-green-200 rounded-md p-4 mb-4">
@@ -330,16 +630,26 @@
 										<label for="gd-refresh-token" class="block text-sm font-medium text-gray-700 mb-2">
 											Refresh Token
 										</label>
-										<input
-											type="text"
-											id="gd-refresh-token"
-											value={currentFormData.refreshToken || ''}
-											on:input={(e) => updateFormData('refreshToken', e.currentTarget.value)}
-											class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-											placeholder="Enter OAuth Refresh Token"
-										/>
+										<div class="flex gap-3">
+											<input
+												type="text"
+												id="gd-refresh-token"
+												value={currentFormData.refreshToken || ''}
+												on:input={(e) => updateFormData('refreshToken', e.currentTarget.value)}
+												class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+												placeholder="Enter OAuth Refresh Token (or click Renew Token)"
+											/>
+											<button
+												type="button"
+												on:click={startGoogleOAuth}
+												class="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+											>
+												Renew Token
+											</button>
+										</div>
 										<p class="mt-1 text-xs text-gray-500">
-											Get this by completing the OAuth flow after saving Client ID and Secret
+											Click <strong>Renew Token</strong> to open Google's authorization window and
+											automatically save a new refresh token.
 										</p>
 									</div>
 
@@ -364,6 +674,16 @@
 											{/if}
 										</p>
 									</div>
+
+									{#if googleDriveMessage}
+										<div
+											class="mt-2 rounded-md p-3 text-sm {googleDriveMessage.type === 'success'
+												? 'bg-green-50 text-green-800'
+												: 'bg-red-50 text-red-800'}"
+										>
+											{googleDriveMessage.text}
+										</div>
+									{/if}
 
 									{#if (currentFormData.storageType || 'appdata') === 'visible'}
 										<div>

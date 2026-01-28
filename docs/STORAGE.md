@@ -76,12 +76,44 @@ All storage providers are configured through the admin dashboard at `/admin/stor
 **OAuth Setup Process**:
 1. Enter your Client ID and Client Secret from Google Cloud Console
 2. Select your preferred Storage Type (Hidden or Visible)
-3. Click "Generate New Token" button
+3. Click "Renew Token" button (or "Generate New Token" if no token exists)
 4. Complete the OAuth authorization in the popup window
 5. The refresh token will be automatically saved
 6. Test the connection to verify everything works
 
 **Important**: When switching storage types, you must generate a new refresh token because the OAuth scopes are different (`drive.appdata` for hidden vs `drive.file` for visible).
+
+### Automatic Token Renewal Detection
+
+OpenShutter automatically detects when Google Drive tokens expire or become invalid:
+
+**Automatic Detection**:
+- When photos fail to load due to invalid tokens, admins see a notification banner at the top of the page
+- The notification includes a "Renew Token Now" button that redirects to the storage settings page
+- Token validity is automatically checked when:
+  - Loading the storage settings page
+  - Switching to the Google Drive tab
+  - Testing the connection
+  - After saving configuration
+
+**Token Renewal Flow**:
+1. Admin views an album with Google Drive photos
+2. If token is invalid, a red notification banner appears: "Google Drive authentication token is invalid or expired"
+3. Admin clicks "Renew Token Now"
+4. Redirects to `/admin/storage` with auto-triggered OAuth popup
+5. Admin completes OAuth authorization
+6. New token is automatically saved
+7. Notification disappears and photos load correctly
+
+**Error Throttling**:
+- The backend throttles invalid token error retries (5-minute cooldown) to prevent log spam
+- Token renewal notifications are throttled (once per minute) to avoid repeated prompts
+- Access tokens are automatically persisted to the database after refresh
+
+**For Visitors**:
+- Visitors see broken images when tokens are invalid
+- Only admins/owners see the renewal notification (since they can fix it)
+- Once an admin renews the token, photos become accessible to all visitors
 
 #### Amazon S3
 - **Access Key ID**: AWS access key ID

@@ -7,6 +7,7 @@
 	import AlbumTree from '$lib/components/AlbumTree.svelte';
 	import { MultiLangUtils } from '$lib/utils/multiLang';
 	import { currentLanguage } from '$lib/stores/language';
+	import { getAlbumName } from '$lib/utils/albumUtils';
 
   export const data = undefined as any; // From +layout.server.ts, not used in this component
 
@@ -248,10 +249,7 @@
 		goto(`/admin/albums/${node._id}`);
 	}
 
-	function getAlbumName(album: Album): string {
-		if (typeof album.name === 'string') return album.name;
-		return album.name?.en || album.name?.he || '(No name)';
-	}
+	// Album name function is now imported from shared utility
 
 
 	function getFilteredAlbums(): Album[] {

@@ -8,6 +8,7 @@
 	import FooterTemplateSwitcher from '$lib/components/FooterTemplateSwitcher.svelte';
 	import BodyTemplateWrapper from '$lib/components/BodyTemplateWrapper.svelte';
 	import ThemeProvider from '$lib/components/ThemeProvider.svelte';
+	import TokenRenewalNotification from '$lib/components/TokenRenewalNotification.svelte';
 
 	// Initialize site config and auth on mount (skip on login page)
 	onMount(() => {
@@ -36,6 +37,7 @@
 </script>
 
 <ThemeProvider defaultTheme="system" enableSystem={true} disableTransitionOnChange={false}>
+	<TokenRenewalNotification />
 	<HeaderTemplateSwitcher />
 
 	<BodyTemplateWrapper>

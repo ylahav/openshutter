@@ -132,6 +132,30 @@ export class StorageController {
             error: error instanceof Error ? error.message : String(error),
             stack: error instanceof Error ? error.stack : undefined
           });
+          
+          // Check for invalid_grant error (token expired/revoked)
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          const errorCode = (error as any)?.code;
+          const errorDetails = (error as any)?.details || {};
+          
+          if (
+            errorCode === 'invalid_grant' ||
+            errorMessage.includes('invalid_grant') ||
+            errorMessage.includes('invalid or expired') ||
+            errorMessage.includes('refresh token') ||
+            errorDetails.authError ||
+            errorDetails.googleApiError?.error === 'invalid_grant'
+          ) {
+            // Return 401 with specific error code to trigger token renewal notification
+            res.status(401).json({
+              error: 'GOOGLE_DRIVE_TOKEN_INVALID',
+              message: 'Google Drive authentication token is invalid or expired',
+              requiresRenewal: true,
+              provider: 'google-drive'
+            });
+            return;
+          }
+          
           if (error instanceof NotFoundException) {
             throw error;
           }

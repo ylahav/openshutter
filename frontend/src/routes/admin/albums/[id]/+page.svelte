@@ -6,6 +6,11 @@
 	import { MultiLangUtils } from '$utils/multiLang';
 	import AlbumBreadcrumbs from '$lib/components/AlbumBreadcrumbs.svelte';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
+	import { getPhotoUrl } from '$lib/utils/photoUrl';
+	import { getAlbumName } from '$lib/utils/albumUtils';
+	import { getPhotoTitle } from '$lib/utils/photoUtils';
+	import { logger } from '$lib/utils/logger';
+	import { handleError, ApiError } from '$lib/utils/errorHandler';
 
   export const data = undefined as any; // From +layout.server.ts, not used in this component
 
@@ -65,85 +70,10 @@
 	let selectedLocationId: string | null = null;
 	let isBulkUpdating = false;
 
-	function getAlbumName(album: Album | null): string {
-		if (!album) return '';
-		if (typeof album.name === 'string') return album.name;
-		return album.name?.en || album.name?.he || '(No name)';
-	}
+	// Album and photo utility functions are now imported from shared utilities
 
-	function getPhotoTitle(photo: Photo): string {
-		if (photo.title) {
-			if (typeof photo.title === 'string') return photo.title;
-			return photo.title?.en || photo.title?.he || photo.filename;
-		}
-		return photo.filename;
-	}
-
-	function getPhotoUrl(photo: Photo): string {
-		if (!photo.storage) {
-			console.log('Photo has no storage:', photo._id, photo.filename);
-			return photo.url || '';
-		}
-		
-		// Check thumbnails object first (for multiple sizes)
-		if (photo.storage.thumbnails && typeof photo.storage.thumbnails === 'object') {
-			const thumbnails = photo.storage.thumbnails as Record<string, string>;
-			// Prefer medium, then small, then any available
-			const thumbnailUrl = thumbnails.medium || thumbnails.small || Object.values(thumbnails)[0];
-			if (thumbnailUrl) {
-				if (thumbnailUrl.startsWith('/api/storage/serve/') || thumbnailUrl.startsWith('http')) {
-					return thumbnailUrl;
-				}
-				const provider = photo.storage.provider || 'local';
-				// Remove leading slash if present, as encodeURIComponent will handle it
-				const cleanPath = thumbnailUrl.startsWith('/') ? thumbnailUrl.slice(1) : thumbnailUrl;
-				return `/api/storage/serve/${provider}/${encodeURIComponent(cleanPath)}`;
-			}
-		}
-		
-		// If thumbnailPath exists, use it
-		if (photo.storage.thumbnailPath) {
-			// If it's already a full URL, use it as-is
-			if (photo.storage.thumbnailPath.startsWith('/api/storage/serve/') || photo.storage.thumbnailPath.startsWith('http')) {
-				return photo.storage.thumbnailPath;
-			}
-			// Otherwise construct the URL
-			const provider = photo.storage.provider || 'local';
-			// Remove leading slash if present
-			const cleanPath = photo.storage.thumbnailPath.startsWith('/') 
-				? photo.storage.thumbnailPath.slice(1) 
-				: photo.storage.thumbnailPath;
-			const constructed = `/api/storage/serve/${provider}/${encodeURIComponent(cleanPath)}`;
-			console.log('Constructed thumbnail URL:', constructed, 'from:', photo.storage.thumbnailPath);
-			return constructed;
-		}
-		
-		// Fallback to url if available
-		if (photo.storage.url) {
-			if (photo.storage.url.startsWith('/api/storage/serve/') || photo.storage.url.startsWith('http')) {
-				return photo.storage.url;
-			}
-			const provider = photo.storage.provider || 'local';
-			// Remove leading slash if present
-			const cleanPath = photo.storage.url.startsWith('/') 
-				? photo.storage.url.slice(1) 
-				: photo.storage.url;
-			return `/api/storage/serve/${provider}/${encodeURIComponent(cleanPath)}`;
-		}
-		
-		// Fallback to path if available
-		if (photo.storage.path) {
-			const provider = photo.storage.provider || 'local';
-			// Remove leading slash if present
-			const cleanPath = photo.storage.path.startsWith('/') 
-				? photo.storage.path.slice(1) 
-				: photo.storage.path;
-			return `/api/storage/serve/${provider}/${encodeURIComponent(cleanPath)}`;
-		}
-		
-		console.log('No valid photo URL found for:', photo._id, photo.filename, photo.storage);
-		return photo.url || '';
-	}
+	// Photo URL function is now imported from shared utility
+	// Using empty string fallback for admin pages (as per original implementation)
 
 	async function loadAlbum() {
 		try {
@@ -158,8 +88,8 @@
 			const result = await response.json();
 			album = result.data || result;
 		} catch (err) {
-			console.error('Failed to fetch album:', err);
-			error = `Failed to load album: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			logger.error('Failed to fetch album:', err);
+			error = handleError(err, 'Failed to load album');
 		} finally {
 			loading = false;
 		}
@@ -170,36 +100,36 @@
 			const response = await fetch(`/api/admin/albums/${albumId}/photos?t=${Date.now()}`, {
 				cache: 'no-store',
 			});
-			console.log('Photos API response status:', response.status);
+			logger.debug('Photos API response status:', response.status);
 			if (response.ok) {
 				const result = await response.json();
-				console.log('Photos API result:', result);
+				logger.debug('Photos API result:', result);
 				if (result.success) {
 					photos = result.data || [];
-					console.log(`Loaded ${photos.length} photos`);
+					logger.debug(`Loaded ${photos.length} photos`);
 					if (photos.length > 0) {
-						console.log('Sample photo:', {
+						logger.debug('Sample photo:', {
 							_id: photos[0]._id,
 							filename: photos[0].filename,
 							hasStorage: !!photos[0].storage,
 							storage: photos[0].storage,
 							thumbnailPath: photos[0].storage?.thumbnailPath,
 							url: photos[0].storage?.url,
-							constructedUrl: getPhotoUrl(photos[0]),
+							constructedUrl: getPhotoUrl(photos[0], { fallback: '' }),
 						});
 					}
 				} else {
-					console.error('Photos API returned error:', result.error);
+					logger.error('Photos API returned error:', result.error);
 					error = result.error || 'Failed to load photos';
 				}
 			} else {
 				const errorText = await response.text();
-				console.error('Photos API error response:', response.status, errorText);
+				logger.error('Photos API error response:', response.status, errorText);
 				error = `Failed to load photos: ${response.status} ${response.statusText}`;
 			}
 		} catch (err) {
-			console.error('Failed to fetch photos:', err);
-			error = `Failed to fetch photos: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			logger.error('Failed to fetch photos:', err);
+			error = handleError(err, 'Failed to fetch photos');
 		}
 	}
 
@@ -238,24 +168,24 @@
 		successMessage = '';
 
 		try {
-			console.log('[confirmDeletePhoto] Deleting photo:', deletedPhotoId);
+			logger.debug('[confirmDeletePhoto] Deleting photo:', deletedPhotoId);
 			const response = await fetch(`/api/admin/photos/${deletedPhotoId}`, {
 				method: 'DELETE',
 			});
 
-			console.log('[confirmDeletePhoto] Response status:', response.status, response.statusText);
+			logger.debug('[confirmDeletePhoto] Response status:', response.status, response.statusText);
 
 			let result: any = {};
 			try {
 				result = await response.json();
-				console.log('[confirmDeletePhoto] Response data:', result);
+				logger.debug('[confirmDeletePhoto] Response data:', result);
 			} catch (parseError) {
-				console.warn('[confirmDeletePhoto] Failed to parse JSON response:', parseError);
+				logger.warn('[confirmDeletePhoto] Failed to parse JSON response:', parseError);
 			}
 
 			if (response.ok && (result.success !== false)) {
 				// Photo deleted successfully
-				console.log('[confirmDeletePhoto] Photo deleted successfully, closing dialog');
+				logger.debug('[confirmDeletePhoto] Photo deleted successfully, closing dialog');
 				
 				// Close dialog immediately
 				closePhotoDeleteDialog();
@@ -281,11 +211,11 @@
 					...photoDeleteDialog,
 					isDeleting: false,
 				};
-				console.error('[confirmDeletePhoto] Delete failed:', errorMsg);
+				logger.error('[confirmDeletePhoto] Delete failed:', errorMsg);
 			}
 		} catch (err) {
-			console.error('[confirmDeletePhoto] Exception during delete:', err);
-			error = `Failed to delete photo: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			logger.error('[confirmDeletePhoto] Exception during delete:', err);
+			error = handleError(err, 'Failed to delete photo');
 			// Update isDeleting by creating a new object
 			photoDeleteDialog = {
 				...photoDeleteDialog,
@@ -299,31 +229,31 @@
 		error = '';
 		
 		const deleteUrl = `/api/admin/albums/${albumId}`;
-		console.log('[deleteAlbum] Deleting album:', albumId, 'URL:', deleteUrl);
+		logger.debug('[deleteAlbum] Deleting album:', albumId, 'URL:', deleteUrl);
 		
 		try {
 			const response = await fetch(deleteUrl, { method: 'DELETE' });
-			console.log('[deleteAlbum] Response status:', response.status, response.statusText);
+			logger.debug('[deleteAlbum] Response status:', response.status, response.statusText);
 			
 			if (response.ok) {
-				console.log('[deleteAlbum] Album deleted successfully, redirecting...');
+				logger.debug('[deleteAlbum] Album deleted successfully, redirecting...');
 				goto('/admin/albums');
 			} else {
 				const errorText = await response.text();
-				console.error('[deleteAlbum] Delete failed:', response.status, errorText);
+				logger.error('[deleteAlbum] Delete failed:', response.status, errorText);
 				
 				let errorData: any = {};
 				try {
 					errorData = JSON.parse(errorText);
 				} catch (parseError) {
-					console.warn('[deleteAlbum] Failed to parse error response as JSON');
+					logger.warn('[deleteAlbum] Failed to parse error response as JSON');
 				}
 				
 				error = errorData.error || errorData.message || `Failed to delete album (${response.status} ${response.statusText})`;
 			}
 		} catch (err) {
-			console.error('[deleteAlbum] Exception during delete:', err);
-			error = `Failed to delete album: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			logger.error('[deleteAlbum] Exception during delete:', err);
+			error = handleError(err, 'Failed to delete album');
 		}
 	}
 
@@ -355,7 +285,7 @@
 				locations = Array.isArray(result.data) ? result.data : [];
 			}
 		} catch (err) {
-			console.error('Failed to load locations:', err);
+			logger.error('Failed to load locations:', err);
 		}
 	}
 
@@ -467,6 +397,12 @@
 							class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
 						>
 							Upload Photos
+						</a>
+						<a
+							href="/albums/new?parentAlbumId={albumId}"
+							class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+						>
+							Create Sub-Album
 						</a>
 						<a
 							href="/admin/albums/{albumId}/edit"
@@ -593,7 +529,7 @@
 				{:else}
 					<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
 						{#each photos as photo}
-							{@const photoUrl = getPhotoUrl(photo)}
+							{@const photoUrl = getPhotoUrl(photo, { fallback: '' })}
 							{@const isSelected = selectedPhotoIds.has(photo._id)}
 							<div class="relative group">
 								{#if showBulkActions}
@@ -614,12 +550,12 @@
 											class="w-full h-full object-cover"
 											style="image-orientation: from-image;"
 											on:error={(e) => {
-												console.error('Image failed to load:', photoUrl, photo);
+												logger.debug('Image failed to load:', photoUrl, photo);
 												const target = e.currentTarget as HTMLImageElement;
 												target.style.display = 'none';
 											}}
 											on:load={() => {
-												console.log('Image loaded successfully:', photoUrl);
+												logger.debug('Image loaded successfully:', photoUrl);
 											}}
 										/>
 									{:else}

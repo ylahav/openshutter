@@ -4,6 +4,7 @@
 	import { MultiLangUtils } from '$utils/multiLang';
 	import { goto } from '$app/navigation';
 	import { dndzone } from 'svelte-dnd-action';
+	import { getAlbumName } from '$lib/utils/albumUtils';
 
 	interface Album {
 		_id: string;
@@ -110,10 +111,7 @@
 		return roots;
 	}
 
-	function getAlbumName(album: Album): string {
-		if (typeof album.name === 'string') return album.name;
-		return MultiLangUtils.getTextValue(album.name, $currentLanguage) || '(No name)';
-	}
+	// Album name function is now imported from shared utility
 
 	function toggleNode(nodeId: string) {
 		// Create a new Set to trigger reactivity

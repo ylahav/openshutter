@@ -3,6 +3,7 @@
 	import { currentLanguage } from '$stores/language';
 	import { MultiLangUtils } from '$utils/multiLang';
 	import { t } from '$stores/i18n';
+	import { getAlbumName, getAlbumDescription } from '$lib/utils/albumUtils';
 
 	interface Album {
 		_id: string;
@@ -23,22 +24,7 @@
 	let error = '';
 	let coverImages: Record<string, string> = {};
 
-	// Functions that use current language reactively
-	function getAlbumName(album: Album): string {
-		if (typeof album.name === 'string') return album.name;
-		// Use $currentLanguage to make it reactive - Svelte will track this dependency
-		const lang = $currentLanguage;
-		return MultiLangUtils.getTextValue(album.name, lang) || '(No name)';
-	}
-
-	function getAlbumDescription(album: Album): string {
-		if (!album.description) return '';
-		if (typeof album.description === 'string') return album.description;
-		// Use $currentLanguage to make it reactive - Svelte will track this dependency
-		// Use getHTMLValue since descriptions can contain HTML
-		const lang = $currentLanguage;
-		return MultiLangUtils.getHTMLValue(album.description, lang) || '';
-	}
+	// Album utility functions are now imported from shared utilities
 
 	async function fetchAlbums() {
 		try {

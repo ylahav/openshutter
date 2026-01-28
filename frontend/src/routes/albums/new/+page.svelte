@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
+	import { getAlbumName } from '$lib/utils/albumUtils';
 
 	export let data; // From +layout.server.ts, contains user info
 
@@ -57,12 +58,15 @@
 		
 		await loadParentAlbums();
 		await loadStorageOptions();
+		
+		// If parentAlbumId is provided, load parent album to get its storage provider
+		// This should run after loadStorageOptions to ensure storage options are available
+		if (parentAlbumId) {
+			await loadParentAlbumStorageProvider(parentAlbumId);
+		}
 	});
 
-	function getAlbumName(album: AlbumOption): string {
-		if (typeof album.name === 'string') return album.name;
-		return album.name?.en || album.name?.he || '(No name)';
-	}
+	// Album name function is now imported from shared utility
 
 	async function loadParentAlbums() {
 		try {
@@ -126,8 +130,13 @@
 			if (result.success && result.data) {
 				storageOptions = result.data;
 				// Set default storage provider to first available option
+				// (will be overridden by parent album's storage provider if parentAlbumId is provided)
 				if (result.data.length > 0) {
-					formData.storageProvider = result.data[0].id;
+					// Only set default if no parent album is being loaded
+					const parentAlbumId = $page.url.searchParams.get('parentAlbumId');
+					if (!parentAlbumId) {
+						formData.storageProvider = result.data[0].id;
+					}
 					storageOptionsError = '';
 				} else {
 					storageOptions = [];
@@ -144,6 +153,42 @@
 			storageOptionsError = 'Error loading storage options. Please check your configuration.';
 		} finally {
 			loadingStorageOptions = false;
+		}
+	}
+
+	async function loadParentAlbumStorageProvider(parentAlbumId: string) {
+		try {
+			const userRole = data?.user?.role || 'guest';
+			
+			// Use admin endpoint for admins, regular endpoint for others
+			const apiEndpoint = userRole === 'admin' 
+				? `/api/admin/albums/${parentAlbumId}`
+				: `/api/albums/${parentAlbumId}`;
+			
+			const response = await fetch(apiEndpoint);
+			if (response.ok) {
+				const result = await response.json();
+				const parentAlbum = result.data || result;
+				
+				// Set storage provider to match parent album
+				if (parentAlbum.storageProvider) {
+					// Verify the storage provider is available in storage options
+					const isProviderAvailable = storageOptions.some(
+						(option) => option.id === parentAlbum.storageProvider
+					);
+					
+					if (isProviderAvailable) {
+						formData.storageProvider = parentAlbum.storageProvider;
+						console.log('[loadParentAlbumStorageProvider] Set storage provider to:', parentAlbum.storageProvider);
+					} else {
+						console.warn('[loadParentAlbumStorageProvider] Parent storage provider not available:', parentAlbum.storageProvider);
+					}
+				}
+			} else {
+				console.error('[loadParentAlbumStorageProvider] Failed to load parent album:', response.status);
+			}
+		} catch (err) {
+			console.error('[loadParentAlbumStorageProvider] Error loading parent album:', err);
 		}
 	}
 

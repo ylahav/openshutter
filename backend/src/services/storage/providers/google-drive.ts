@@ -9,12 +9,17 @@ import {
   StorageConnectionError,
   StorageOperationError
 } from '../types'
+import { storageConfigService } from '../config'
 
 export class GoogleDriveService implements IStorageService {
   private providerId: StorageProviderId = 'google-drive'
   private config: Record<string, any>
   protected drive: any
   private auth: any
+  private lastTokenSave: number = 0
+  private readonly TOKEN_SAVE_THROTTLE = 5000 // Save token max once per 5 seconds
+  private lastInvalidGrantError: number = 0
+  private readonly INVALID_GRANT_THROTTLE = 5 * 60 * 1000 // Don't retry invalid_grant for 5 minutes
 
   constructor(config: Record<string, any>) {
     this.config = config
@@ -88,16 +93,40 @@ export class GoogleDriveService implements IStorageService {
         throw new Error('Refresh token is missing')
       }
       
+      // Check if we recently got an invalid_grant error - throttle retries to prevent endless loops
+      const now = Date.now()
+      const timeSinceLastError = now - this.lastInvalidGrantError
+      if (this.lastInvalidGrantError > 0 && timeSinceLastError < this.INVALID_GRANT_THROTTLE) {
+        const minutesRemaining = Math.ceil((this.INVALID_GRANT_THROTTLE - timeSinceLastError) / 60000)
+        const error: any = new Error(
+          `Refresh token is invalid or expired. Please generate a new token in the admin panel. Retry throttled for ${minutesRemaining} more minute(s) to prevent excessive error logging.`
+        )
+        error.code = 'invalid_grant'
+        error.details = {
+          authError: true,
+          throttled: true,
+          retryAfter: new Date(now + this.INVALID_GRANT_THROTTLE - timeSinceLastError),
+          minutesRemaining
+        }
+        throw error
+      }
+      
       // Log token refresh attempt for debugging (without exposing sensitive data)
-      console.log('Attempting to refresh Google Drive access token', {
-        hasRefreshToken: !!this.config.refreshToken,
-        refreshTokenLength: this.config.refreshToken?.length,
-        refreshTokenPreview: this.config.refreshToken?.substring(0, 20) + '...',
-        clientId: this.config.clientId ? `${this.config.clientId.substring(0, 20)}...` : 'missing',
-        hasClientSecret: !!this.config.clientSecret
-      })
+      // Only log if we haven't recently failed (to reduce noise)
+      if (timeSinceLastError >= this.INVALID_GRANT_THROTTLE || this.lastInvalidGrantError === 0) {
+        console.log('Attempting to refresh Google Drive access token', {
+          hasRefreshToken: !!this.config.refreshToken,
+          refreshTokenLength: this.config.refreshToken?.length,
+          refreshTokenPreview: this.config.refreshToken?.substring(0, 20) + '...',
+          clientId: this.config.clientId ? `${this.config.clientId.substring(0, 20)}...` : 'missing',
+          hasClientSecret: !!this.config.clientSecret
+        })
+      }
       
       const { credentials } = await this.auth.refreshAccessToken()
+      
+      // Reset invalid_grant error tracking on successful refresh
+      this.lastInvalidGrantError = 0
       this.config.accessToken = credentials.access_token
       this.config.tokenExpiry = credentials.expiry_date ? new Date(credentials.expiry_date) : undefined
       
@@ -108,20 +137,21 @@ export class GoogleDriveService implements IStorageService {
         hasAccessToken: !!credentials.access_token,
         expiryDate: credentials.expiry_date
       })
+      
+      // Persist the new access token to database (throttled to avoid too many writes)
+      await this.saveAccessTokenToDatabase(credentials.access_token, credentials.expiry_date)
     } catch (error: any) {
       console.error('Failed to refresh Google Drive access token:', error)
       
       // Check for invalid_grant error specifically
       const responseData = error?.response?.data
       if (responseData?.error === 'invalid_grant') {
+        // Record the time of this error to throttle future retries
+        this.lastInvalidGrantError = Date.now()
+        
         // Create a detailed error that preserves the Google API error structure
         const detailedError: any = new Error(
-          `Authentication failed: The refresh token is invalid or expired. To fix this:
-1. Click "Generate New Token" button in the Google Drive configuration
-2. Complete the OAuth authorization flow
-3. The new refresh token will be automatically saved
-
-If the issue persists, verify your Client ID and Client Secret match your Google Cloud Console OAuth app credentials.`
+          `Authentication failed: The refresh token is invalid or expired. Please generate a new token in the admin storage settings.`
         )
         detailedError.code = 'invalid_grant'
         detailedError.details = {
@@ -136,14 +166,21 @@ If the issue persists, verify your Client ID and Client Secret match your Google
             status: error.response?.status
           },
           suggestions: [
-            'Click "Generate New Token" to create a fresh refresh token with your current Client ID and Secret',
-            'Verify your Client ID and Client Secret in the config match your Google Cloud Console OAuth app',
-            'Check if access was revoked at https://myaccount.google.com/permissions and re-authorize if needed',
-            'Ensure your OAuth app redirect URI matches: [your-domain]/api/auth/google/callback',
-            'In Google Cloud Console, verify the OAuth app is in "Testing" or "Published" status'
+            'Go to Admin → Storage Settings → Google Drive → Click "Generate New Token"',
+            'Complete the OAuth authorization flow',
+            'The new refresh token will be automatically saved',
+            'Verify your Client ID and Client Secret match your Google Cloud Console OAuth app',
+            'Check if access was revoked at https://myaccount.google.com/permissions'
           ]
         }
         detailedError.originalError = error
+        
+        // Only log the error once per throttle period to reduce noise
+        const timeSinceLastLog = Date.now() - this.lastInvalidGrantError
+        if (timeSinceLastLog === 0 || timeSinceLastLog >= this.INVALID_GRANT_THROTTLE) {
+          console.error('GoogleDriveService: Invalid refresh token detected. Please generate a new token in admin storage settings.')
+        }
+        
         throw detailedError
       }
       
@@ -158,6 +195,36 @@ If the issue persists, verify your Client ID and Client Secret match your Google
       }
       detailedError.originalError = error
       throw detailedError
+    }
+  }
+
+  /**
+   * Save access token to database (throttled to avoid excessive writes)
+   */
+  private async saveAccessTokenToDatabase(accessToken: string, expiryDate?: number): Promise<void> {
+    const now = Date.now()
+    
+    // Throttle: Only save if enough time has passed since last save
+    if (now - this.lastTokenSave < this.TOKEN_SAVE_THROTTLE) {
+      return
+    }
+    
+    try {
+      this.lastTokenSave = now
+      
+      // Update only the accessToken and tokenExpiry in the config
+      await storageConfigService.updateConfig(this.providerId, {
+        config: {
+          ...this.config,
+          accessToken: accessToken,
+          tokenExpiry: expiryDate ? new Date(expiryDate) : undefined
+        }
+      })
+      
+      console.log('Successfully saved Google Drive access token to database')
+    } catch (error) {
+      // Don't throw - token refresh succeeded, saving is just optimization
+      console.warn('Failed to save Google Drive access token to database (non-critical):', error)
     }
   }
 

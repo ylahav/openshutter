@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { currentLanguage } from '$stores/language';
 	import { MultiLangUtils } from '$lib/utils/multiLang';
+	import { getAlbumName } from '$lib/utils/albumUtils';
 
 	export let title: string | Record<string, string> = '';
 	export let description: string | Record<string, string> | undefined;
@@ -125,10 +126,7 @@
 		}
 	}
 
-	function getAlbumName(album: any): string {
-		if (typeof album.name === 'string') return album.name;
-		return MultiLangUtils.getTextValue(album.name, $currentLanguage) || '(No name)';
-	}
+	// Album name function is now imported from shared utility
 
 	$: titleText = MultiLangUtils.getTextValue(title, $currentLanguage) || '';
 	$: descriptionHTML = description ? MultiLangUtils.getHTMLValue(description, $currentLanguage) : '';

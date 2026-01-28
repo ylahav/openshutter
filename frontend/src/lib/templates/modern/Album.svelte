@@ -10,6 +10,8 @@
 	import PhotoLightbox from '$lib/components/PhotoLightbox.svelte';
 	import MultiLangText from '$lib/components/MultiLangText.svelte';
 	import MultiLangHTML from '$lib/components/MultiLangHTML.svelte';
+	import { getPhotoUrl, getPhotoFullUrl } from '$lib/utils/photoUrl';
+	import { handleImageLoadError } from '$lib/utils/imageErrorHandler';
 
 	interface AlbumData {
 		album: {
@@ -100,75 +102,7 @@
 		}
 	});
 
-	function getPhotoUrl(photo: any): string {
-		if (!photo.storage) {
-			return photo.url || '/placeholder.jpg';
-		}
-
-		// Check thumbnails object first
-		if (photo.storage.thumbnails && typeof photo.storage.thumbnails === 'object') {
-			const thumbnails = photo.storage.thumbnails as Record<string, string>;
-			const thumbnailUrl = thumbnails.medium || thumbnails.small || Object.values(thumbnails)[0];
-			if (thumbnailUrl) {
-				if (thumbnailUrl.startsWith('/api/storage/serve/') || thumbnailUrl.startsWith('http')) {
-					return thumbnailUrl;
-				}
-				const provider = photo.storage.provider || 'local';
-				const cleanPath = thumbnailUrl.startsWith('/') ? thumbnailUrl.slice(1) : thumbnailUrl;
-				return `/api/storage/serve/${provider}/${encodeURIComponent(cleanPath)}`;
-			}
-		}
-
-		// Check thumbnailPath
-		if (photo.storage.thumbnailPath) {
-			if (photo.storage.thumbnailPath.startsWith('/api/storage/serve/') || photo.storage.thumbnailPath.startsWith('http')) {
-				return photo.storage.thumbnailPath;
-			}
-			const provider = photo.storage.provider || 'local';
-			const cleanPath = photo.storage.thumbnailPath.startsWith('/') 
-				? photo.storage.thumbnailPath.slice(1) 
-				: photo.storage.thumbnailPath;
-			return `/api/storage/serve/${provider}/${encodeURIComponent(cleanPath)}`;
-		}
-
-		// Fallback to url
-		if (photo.storage.url) {
-			if (photo.storage.url.startsWith('/api/storage/serve/') || photo.storage.url.startsWith('http')) {
-				return photo.storage.url;
-			}
-			const provider = photo.storage.provider || 'local';
-			const cleanPath = photo.storage.url.startsWith('/') 
-				? photo.storage.url.slice(1) 
-				: photo.storage.url;
-			return `/api/storage/serve/${provider}/${encodeURIComponent(cleanPath)}`;
-		}
-
-		return photo.url || '/placeholder.jpg';
-	}
-
-	function getPhotoFullUrl(photo: any): string {
-		if (!photo.storage) {
-			return photo.url || '/placeholder.jpg';
-		}
-
-		// For full image, prefer url or path over thumbnailPath
-		if (photo.storage.url) {
-			if (photo.storage.url.startsWith('/api/storage/serve/') || photo.storage.url.startsWith('http')) {
-				return photo.storage.url;
-			}
-			const provider = photo.storage.provider || 'local';
-			const cleanPath = photo.storage.url.startsWith('/') 
-				? photo.storage.url.slice(1) 
-				: photo.storage.url;
-			// Skip thumbnail paths
-			if (!cleanPath.includes('/medium/') && !cleanPath.includes('/small/') && !cleanPath.includes('/thumb/')) {
-				return `/api/storage/serve/${provider}/${encodeURIComponent(cleanPath)}`;
-			}
-		}
-
-		// Fallback to thumbnailPath if no url
-		return getPhotoUrl(photo);
-	}
+	// Photo URL functions are now imported from shared utility
 
 	async function fetchSubAlbumCoverPhoto(albumId: string, coverPhotoId: string) {
 		try {
@@ -258,6 +192,17 @@
 
 			albumData = await response.json();
 			console.log('Album data loaded:', albumData);
+			
+			// Debug: Log photo URLs for first few photos
+			if (albumData && albumData.photos && albumData.photos.length > 0) {
+				console.log('[DEBUG] Sample photo URLs:', albumData.photos.slice(0, 3).map((p: any) => ({
+					id: p._id,
+					filename: p.filename,
+					storage: p.storage,
+					thumbnailUrl: getPhotoUrl(p),
+					fullImageUrl: getPhotoFullUrl(p)
+				})));
+			}
 
 			// Fetch cover images for sub-albums using the batch API (hierarchical logic)
 			if (albumData && albumData.subAlbums && albumData.subAlbums.length > 0) {
@@ -387,6 +332,8 @@
 							{@const hasDimensions = photoWidth && photoHeight && photoWidth > 0 && photoHeight > 0}
 							{@const aspectRatio = hasDimensions ? photoWidth / photoHeight : 1}
 							{@const isLandscape = aspectRatio >= 1}
+							{@const thumbnailUrl = getPhotoUrl(photo)}
+							{@const fullImageUrl = getPhotoFullUrl(photo)}
 							<div
 								class="group bg-white/5 backdrop-blur-sm rounded-2xl p-4 shadow-lg hover:shadow-xl transition-all duration-500 hover:scale-105 hover:z-10 border border-white/10 mb-4 break-inside-avoid"
 							>
@@ -406,12 +353,47 @@
 											: 'width: 100%; padding-bottom: 100%;'}
 									>
 										<img
-											src={getPhotoUrl(photo)}
+											src={thumbnailUrl}
 											alt=""
 											class={hasDimensions && aspectRatio < 1 
 												? "w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
 												: "absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"}
 											style="image-orientation: from-image;"
+											on:error={async (e) => {
+												// Check for token renewal errors first
+												await handleImageLoadError(e);
+												
+												// Fallback to full image if thumbnail fails to load
+												const target = e.currentTarget as HTMLImageElement;
+												const currentSrc = target.src;
+												
+												console.log('[Photo] Image load error:', {
+													currentSrc,
+													thumbnailUrl,
+													fullImageUrl,
+													photoId: photo._id,
+													storage: photo.storage
+												});
+												
+												// Only fallback if we haven't already tried the full image
+												if (currentSrc !== fullImageUrl && fullImageUrl && fullImageUrl !== thumbnailUrl) {
+													console.log('[Photo] Attempting fallback to full image:', fullImageUrl);
+													target.src = fullImageUrl;
+												} else {
+													// If full image also fails or already tried, show placeholder instead of hiding
+													console.error('[Photo] All image URLs failed, showing placeholder:', {
+														thumbnail: thumbnailUrl,
+														fullImage: fullImageUrl,
+														currentSrc
+													});
+													// Show placeholder instead of hiding
+													target.src = '/placeholder.jpg';
+													target.onerror = null; // Prevent infinite loop
+												}
+											}}
+											on:load={() => {
+												console.log('[Photo] Image loaded successfully:', thumbnailUrl);
+											}}
 										/>
 										<div class="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-all duration-300"></div>
 									</div>

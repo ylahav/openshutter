@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { getAlbumName } from '$lib/utils/albumUtils';
 
   export const data = undefined as any; // From +layout.server.ts, not used in this component
 
@@ -68,11 +69,7 @@
 		}
 	}
 
-	function getAlbumName(album: { name: string | { en?: string; he?: string } }): string {
-		const nameField = typeof album.name === 'string' ? album.name : album.name;
-		if (typeof nameField === 'string') return nameField;
-		return nameField?.en || nameField?.he || '(No name)';
-	}
+	// Album name function is now imported from shared utility
 </script>
 
 <svelte:head>
