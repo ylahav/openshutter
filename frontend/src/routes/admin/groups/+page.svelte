@@ -2,8 +2,12 @@
 	import { onMount } from 'svelte';
 	import MultiLangInput from '$lib/components/MultiLangInput.svelte';
 	import type { MultiLangText } from '$lib/types/multi-lang';
-	import { logger } from '$lib/utils/logger';
-	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
+	import { useCrudLoader } from '$lib/composables/useCrudLoader';
+	import { useCrudOperations } from '$lib/composables/useCrudOperations';
+	import { useDialogManager } from '$lib/composables/useDialogManager';
+	import { normalizeMultiLangText } from '$lib/utils/multiLangHelpers';
+	import { MultiLangUtils } from '$lib/utils/multiLang';
+	import { currentLanguage } from '$lib/stores/language';
 	import type { PageData } from './$types';
 
 	// svelte-ignore export_let_unused - Required by SvelteKit page component
@@ -17,17 +21,70 @@
 		updatedAt?: string;
 	}
 
+	// Use CRUD composables
+	const crudLoader = useCrudLoader<Group>('/api/admin/groups');
+	const crudOps = useCrudOperations<Group>('/api/admin/groups', {
+		createSuccessMessage: 'Group created successfully!',
+		updateSuccessMessage: 'Group updated successfully!',
+		deleteSuccessMessage: 'Group deleted successfully!',
+		onCreateSuccess: (newGroup) => {
+			crudLoader.items.update(items => [...items, newGroup]);
+			dialogs.closeAll();
+			resetForm();
+		},
+		onUpdateSuccess: (updatedGroup) => {
+			const currentEditingGroup = editingGroup;
+			if (currentEditingGroup) {
+				crudLoader.items.update(items => 
+					items.map(g => g._id === currentEditingGroup._id ? updatedGroup : g)
+				);
+			}
+			dialogs.closeAll();
+			editingGroup = null;
+			resetForm();
+		},
+		onDeleteSuccess: () => {
+			const currentGroupToDelete = groupToDelete;
+			if (currentGroupToDelete) {
+				crudLoader.items.update(items => 
+					items.filter(g => g._id !== currentGroupToDelete._id)
+				);
+			}
+			dialogs.closeAll();
+			groupToDelete = null;
+		}
+	});
+	const dialogs = useDialogManager();
+
+	// Reactive stores from composables
 	let groups: Group[] = [];
-	let loading = true;
+	let loading = false;
 	let saving = false;
-	let deleting = false;
 	let message = '';
 	let error = '';
 	let showCreateDialog = false;
 	let showEditDialog = false;
 	let showDeleteDialog = false;
+
+	// Subscribe to stores
+	crudLoader.items.subscribe(value => groups = value);
+	crudLoader.loading.subscribe(value => loading = value);
+	crudLoader.error.subscribe(value => {
+		if (value) error = value;
+	});
+	crudOps.saving.subscribe(value => saving = value);
+	crudOps.error.subscribe(value => {
+		if (value) error = value;
+	});
+	crudOps.message.subscribe(value => message = value);
+	dialogs.showCreate.subscribe(value => showCreateDialog = value);
+	dialogs.showEdit.subscribe(value => showEditDialog = value);
+	dialogs.showDelete.subscribe(value => showDeleteDialog = value);
+
+	// Local state
 	let editingGroup: Group | null = null;
 	let groupToDelete: Group | null = null;
+	let deleting = false;
 
 	// Form state
 	let formData = {
@@ -36,26 +93,8 @@
 	};
 
 	onMount(async () => {
-		await loadGroups();
+		await crudLoader.loadItems();
 	});
-
-	async function loadGroups() {
-		loading = true;
-		error = '';
-		try {
-			const response = await fetch('/api/admin/groups');
-			if (!response.ok) {
-				throw new Error('Failed to load groups');
-			}
-			const result = await response.json();
-			groups = Array.isArray(result.data) ? result.data : (Array.isArray(result) ? result : []);
-		} catch (err) {
-			logger.error('Error loading groups:', err);
-			error = handleError(err, 'Failed to load groups');
-		} finally {
-			loading = false;
-		}
-	}
 
 	function resetForm() {
 		formData = {
@@ -66,24 +105,24 @@
 
 	function openCreateDialog() {
 		resetForm();
-		showCreateDialog = true;
-		error = '';
+		dialogs.openCreate();
+		crudOps.error.set('');
 	}
 
 	function openEditDialog(group: Group) {
 		editingGroup = group;
-		const nameField = typeof group.name === 'string' ? { en: group.name, he: '' } : group.name || { en: '', he: '' };
 		formData = {
 			alias: group.alias,
-			name: nameField
+			name: normalizeMultiLangText(group.name)
 		};
-		showEditDialog = true;
-		error = '';
+		dialogs.openEdit();
+		crudOps.error.set('');
 	}
 
 	function openDeleteDialog(group: Group) {
 		groupToDelete = group;
-		showDeleteDialog = true;
+		dialogs.openDelete();
+		crudOps.error.set('');
 	}
 
 	function getGroupName(group: Group): string {
@@ -93,130 +132,30 @@
 	}
 
 	async function handleCreate() {
-		saving = true;
-		error = '';
-		message = '';
-
-		try {
-			logger.debug('Creating group with data:', formData);
-			const response = await fetch('/api/admin/groups', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify(formData)
-			});
-
-			if (!response.ok) {
-				await handleApiErrorResponse(response);
-			}
-
-			const responseData = await response.json();
-			logger.debug('Response status:', response.status, 'Response data:', responseData);
-
-			if (!responseData) {
-				throw new Error('No data returned from server');
-			}
-
-			const newGroup = responseData.data || responseData;
-			groups = [...groups, newGroup];
-			message = 'Group created successfully!';
-			showCreateDialog = false;
-			resetForm();
-
-			setTimeout(() => {
-				message = '';
-			}, 3000);
-		} catch (err) {
-			logger.error('Error creating group:', err);
-			error = handleError(err, 'Failed to create group');
-		} finally {
-			saving = false;
+		const newGroup = await crudOps.create(formData);
+		if (newGroup) {
+			// Success handled by onCreateSuccess callback
 		}
 	}
 
 	async function handleEdit() {
 		if (!editingGroup) return;
-
-		saving = true;
-		error = '';
-		message = '';
-
-		try {
-			logger.debug('Updating group:', editingGroup._id, 'with data:', formData);
-			const response = await fetch(`/api/admin/groups/${editingGroup._id}`, {
-				method: 'PUT',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({
-					name: formData.name
-					// Note: alias is immutable, so we don't send it
-				})
-			});
-
-			if (!response.ok) {
-				await handleApiErrorResponse(response);
-			}
-
-			const responseData = await response.json();
-			logger.debug('Response status:', response.status, 'Response data:', responseData);
-
-			if (!responseData) {
-				throw new Error('No data returned from server');
-			}
-
-			const updatedGroup = responseData.data || responseData;
-			if (editingGroup) {
-				groups = groups.map((g) => (g._id === editingGroup._id ? updatedGroup : g));
-			}
-			message = 'Group updated successfully!';
-			showEditDialog = false;
-			editingGroup = null;
-			resetForm();
-
-			setTimeout(() => {
-				message = '';
-			}, 3000);
-		} catch (err) {
-			logger.error('Error updating group:', err);
-			error = handleError(err, 'Failed to update group');
-		} finally {
-			saving = false;
+		const currentEditingGroup = editingGroup;
+		const updatedGroup = await crudOps.update(currentEditingGroup._id, {
+			name: formData.name
+			// Note: alias is immutable, so we don't send it
+		});
+		if (updatedGroup) {
+			// Success handled by onUpdateSuccess callback
 		}
 	}
 
 	async function handleDelete() {
 		if (!groupToDelete) return;
-
-		deleting = true;
-		error = '';
-		message = '';
-
-		try {
-			const response = await fetch(`/api/admin/groups/${groupToDelete._id}`, {
-				method: 'DELETE'
-			});
-
-			if (!response.ok) {
-				await handleApiErrorResponse(response);
-			}
-
-			if (groupToDelete) {
-				groups = groups.filter((g) => g._id !== groupToDelete._id);
-			}
-			message = 'Group deleted successfully!';
-			showDeleteDialog = false;
-			groupToDelete = null;
-
-			setTimeout(() => {
-				message = '';
-			}, 3000);
-		} catch (err) {
-			logger.error('Error deleting group:', err);
-			error = handleError(err, 'Failed to delete group');
-		} finally {
-			deleting = false;
+		const currentGroupToDelete = groupToDelete;
+		const success = await crudOps.remove(currentGroupToDelete._id);
+		if (success) {
+			// Success handled by onDeleteSuccess callback
 		}
 	}
 </script>
@@ -397,7 +336,7 @@
 					<button
 						type="button"
 						on:click={() => {
-							showEditDialog = false;
+							dialogs.closeAll();
 							editingGroup = null;
 							resetForm();
 						}}
@@ -447,7 +386,7 @@
 					<button
 						type="button"
 						on:click={() => {
-							showDeleteDialog = false;
+							dialogs.closeAll();
 							groupToDelete = null;
 						}}
 						class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm font-medium"
@@ -457,10 +396,10 @@
 					<button
 						type="button"
 						on:click={handleDelete}
-						disabled={deleting}
+						disabled={saving}
 						class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 text-sm font-medium"
 					>
-						{#if deleting}
+						{#if saving}
 							Deleting...
 						{:else}
 							Delete Group

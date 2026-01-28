@@ -119,12 +119,12 @@
 
 	function openEditDialog(location: Location) {
 		editingLocation = location;
-		const nameField = typeof location.name === 'string' 
+		const nameField: { en: string; he: string } = typeof location.name === 'string' 
 			? { en: location.name, he: '' } 
 			: (location.name && typeof location.name === 'object' 
 				? { en: location.name.en || '', he: location.name.he || '' }
 				: { en: '', he: '' });
-		const descField = typeof location.description === 'string'
+		const descField: { en: string; he: string } = typeof location.description === 'string'
 			? { en: location.description, he: '' }
 			: (location.description && typeof location.description === 'object'
 				? { en: location.description.en || '', he: location.description.he || '' }
@@ -269,9 +269,10 @@
 			}
 
 			const updatedLocation = responseData.data || responseData;
-			if (editingLocation) {
-				locations = locations.map((l) => (l._id === editingLocation._id ? updatedLocation : l));
+			if (!editingLocation) {
+				throw new Error('Editing location is null');
 			}
+			locations = locations.map((l) => (l._id === editingLocation._id ? updatedLocation : l));
 			message = 'Location updated successfully!';
 			showEditDialog = false;
 			editingLocation = null;
@@ -294,6 +295,10 @@
 		deleting = true;
 		error = '';
 		message = '';
+
+		if (!locationToDelete) {
+			return;
+		}
 
 		try {
 			const response = await fetch(`/api/admin/locations/${locationToDelete._id}`, {
