@@ -325,7 +325,7 @@
 				error = result.error || 'Failed to update photos';
 			}
 		} catch (err) {
-			console.error('Bulk update failed:', err);
+			logger.error('Bulk update failed:', err);
 			error = `Failed to update photos: ${err instanceof Error ? err.message : 'Unknown error'}`;
 		} finally {
 			isBulkUpdating = false;

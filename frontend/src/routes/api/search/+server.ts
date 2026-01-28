@@ -1,6 +1,8 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { backendGet, parseBackendResponse } from '$lib/utils/backend-api';
+import { logger } from '$lib/utils/logger';
+import { parseError } from '$lib/utils/errorHandler';
 
 export const GET: RequestHandler = async ({ url, cookies }) => {
 	try {
@@ -23,8 +25,11 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 			data: result.data || result
 		});
 	} catch (error) {
-		console.error('Search API error:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
-		return json({ success: false, error: `Search failed: ${errorMessage}` }, { status: 500 });
+		logger.error('Search API error:', error);
+		const parsed = parseError(error);
+		return json({ 
+			success: false, 
+			error: parsed.userMessage || `Search failed: ${parsed.message}` 
+		}, { status: parsed.status || 500 });
 	}
 };

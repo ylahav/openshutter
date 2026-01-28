@@ -3,6 +3,8 @@ import type { RequestHandler } from './$types';
 import { readdir } from 'fs/promises';
 import { join } from 'path';
 import { existsSync } from 'fs';
+import { logger } from '$lib/utils/logger';
+import { parseError } from '$lib/utils/errorHandler';
 
 // Language metadata mapping
 const languageMetadata: Record<string, { name: string; flag: string }> = {
@@ -86,11 +88,11 @@ export const GET: RequestHandler = async ({ locals }) => {
 			data: availableLanguages
 		});
 	} catch (error) {
-		console.error('Error reading language files:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
+		logger.error('Error reading language files:', error);
+		const parsed = parseError(error);
 		return json(
-			{ success: false, error: `Failed to load available languages: ${errorMessage}` },
-			{ status: 500 }
+			{ success: false, error: parsed.userMessage || `Failed to load available languages: ${parsed.message}` },
+			{ status: parsed.status || 500 }
 		);
 	}
 };

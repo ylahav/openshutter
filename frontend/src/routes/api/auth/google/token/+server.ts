@@ -1,5 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
+import { logger } from '$lib/utils/logger';
+import { parseError } from '$lib/utils/errorHandler';
 
 export const POST: RequestHandler = async ({ request }) => {
 	try {
@@ -27,7 +29,7 @@ export const POST: RequestHandler = async ({ request }) => {
 		const tokenData = await tokenResponse.json();
 
 		if (!tokenResponse.ok) {
-			console.error('Google OAuth token exchange failed:', tokenData);
+			logger.error('Google OAuth token exchange failed:', tokenData);
 			return json(
 				{
 					success: false,
@@ -39,7 +41,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
 		// Validate that refresh token was returned
 		if (!tokenData.refresh_token) {
-			console.error('Google OAuth token exchange: No refresh token returned', {
+			logger.error('Google OAuth token exchange: No refresh token returned', {
 				hasAccessToken: !!tokenData.access_token,
 				expiresIn: tokenData.expires_in,
 				responseKeys: Object.keys(tokenData)
@@ -61,8 +63,11 @@ export const POST: RequestHandler = async ({ request }) => {
 			expiresIn: tokenData.expires_in
 		});
 	} catch (error) {
-		console.error('Error exchanging authorization code for tokens:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
-		return json({ success: false, error: `Internal server error: ${errorMessage}` }, { status: 500 });
+		logger.error('Error exchanging authorization code for tokens:', error);
+		const parsed = parseError(error);
+		return json({ 
+			success: false, 
+			error: parsed.userMessage || `Internal server error: ${parsed.message}` 
+		}, { status: parsed.status || 500 });
 	}
 };

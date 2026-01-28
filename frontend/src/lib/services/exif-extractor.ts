@@ -1,5 +1,6 @@
 import { connectToDatabase } from '$lib/mongodb'
 import { storageManager } from './storage/manager'
+import { logger } from '../utils/logger'
 
 export interface ExifData {
   // Basic Camera Information
@@ -73,7 +74,7 @@ export class ExifExtractor {
   private static parseExifDate(dateValue: any): Date | null {
     try {
       if (!dateValue) return null
-      console.log(`Parsing EXIF date: "${dateValue}" (type: ${typeof dateValue})`)
+      logger.debug(`Parsing EXIF date: "${dateValue}" (type: ${typeof dateValue})`)
       
       let date: Date
       
@@ -83,28 +84,28 @@ export class ExifExtractor {
         const timestamp = typeof dateValue === 'string' ? parseInt(dateValue, 10) : dateValue
         const timestampMs = timestamp < 10000000000 ? timestamp * 1000 : timestamp // Convert seconds to milliseconds if needed
         date = new Date(timestampMs)
-        console.log(`Parsed as Unix timestamp: ${timestamp} -> ${date.toISOString()}`)
+        logger.debug(`Parsed as Unix timestamp: ${timestamp} -> ${date.toISOString()}`)
       } else if (typeof dateValue === 'string') {
         // EXIF date format: "2025:07:18 05:13:46"
         // Convert to ISO format: "2025-07-18T05:13:46"
         const isoString = dateValue.replace(':', '-').replace(':', '-').replace(' ', 'T')
-        console.log(`Converted to ISO: "${isoString}"`)
+        logger.debug(`Converted to ISO: "${isoString}"`)
         date = new Date(isoString)
-        console.log(`Parsed as EXIF string: ${date.toISOString()}`)
+        logger.debug(`Parsed as EXIF string: ${date.toISOString()}`)
       } else {
-        console.warn(`Unsupported date format: ${dateValue} (type: ${typeof dateValue})`)
+        logger.warn(`Unsupported date format: ${dateValue} (type: ${typeof dateValue})`)
         return null
       }
       
       // Validate the date
       if (isNaN(date.getTime())) {
-        console.warn(`Invalid date: ${dateValue}`)
+        logger.warn(`Invalid date: ${dateValue}`)
         return null
       }
       
       return date
     } catch (error) {
-      console.warn(`Failed to parse EXIF date: ${dateValue}`, error)
+      logger.warn(`Failed to parse EXIF date: ${dateValue}`, error)
       return null
     }
   }
@@ -123,9 +124,9 @@ export class ExifExtractor {
       }
 
       // Debug: Log all available EXIF tags
-      console.log('🔍 Available EXIF tags:')
+      logger.debug('🔍 Available EXIF tags:')
       Object.keys(result.tags).forEach(key => {
-        console.log(`   ${key}: "${result.tags[key]}" (type: ${typeof result.tags[key]})`)
+        logger.debug(`   ${key}: "${result.tags[key]}" (type: ${typeof result.tags[key]})`)
       })
 
       // Extract comprehensive EXIF data
@@ -137,23 +138,23 @@ export class ExifExtractor {
       if (result.tags.SerialNumber) exifData.serialNumber = result.tags.SerialNumber
       
       // Date and Time - Parse EXIF date format (YYYY:MM:DD HH:mm:ss)
-      console.log('📅 Checking date fields...')
-      console.log(`   DateTime exists: ${!!result.tags.DateTime}`)
-      console.log(`   DateTimeOriginal exists: ${!!result.tags.DateTimeOriginal}`)
-      console.log(`   DateTimeDigitized exists: ${!!result.tags.DateTimeDigitized}`)
+      logger.debug('📅 Checking date fields...')
+      logger.debug(`   DateTime exists: ${!!result.tags.DateTime}`)
+      logger.debug(`   DateTimeOriginal exists: ${!!result.tags.DateTimeOriginal}`)
+      logger.debug(`   DateTimeDigitized exists: ${!!result.tags.DateTimeDigitized}`)
       
       if (result.tags.DateTime) {
-        console.log(`Raw DateTime: "${result.tags.DateTime}"`)
+        logger.debug(`Raw DateTime: "${result.tags.DateTime}"`)
         const parsedDate = this.parseExifDate(result.tags.DateTime)
         if (parsedDate) exifData.dateTime = parsedDate
       }
       if (result.tags.DateTimeOriginal) {
-        console.log(`Raw DateTimeOriginal: "${result.tags.DateTimeOriginal}"`)
+        logger.debug(`Raw DateTimeOriginal: "${result.tags.DateTimeOriginal}"`)
         const parsedDate = this.parseExifDate(result.tags.DateTimeOriginal)
         if (parsedDate) exifData.dateTimeOriginal = parsedDate
       }
       if (result.tags.DateTimeDigitized) {
-        console.log(`Raw DateTimeDigitized: "${result.tags.DateTimeDigitized}"`)
+        logger.debug(`Raw DateTimeDigitized: "${result.tags.DateTimeDigitized}"`)
         const parsedDate = this.parseExifDate(result.tags.DateTimeDigitized)
         if (parsedDate) exifData.dateTimeDigitized = parsedDate
       }
@@ -215,12 +216,12 @@ export class ExifExtractor {
         }
       }
       
-      console.log('📊 Final extracted EXIF data:')
-      console.log(JSON.stringify(exifData, null, 2))
+      logger.debug('📊 Final extracted EXIF data:')
+      logger.debug(JSON.stringify(exifData, null, 2))
       
       return Object.keys(exifData).length > 0 ? exifData : null
     } catch (error) {
-      console.warn('Failed to extract EXIF data:', error)
+      logger.warn('Failed to extract EXIF data:', error)
       return null
     }
   }
@@ -238,9 +239,9 @@ export class ExifExtractor {
         }
       }
 
-      console.log(`🔍 Extracting EXIF data for photo: ${photo.filename}`)
-      console.log(`   Storage provider: ${photo.storage?.provider}`)
-      console.log(`   Storage path: ${photo.storage?.path}`)
+      logger.debug(`🔍 Extracting EXIF data for photo: ${photo.filename}`)
+      logger.debug(`   Storage provider: ${photo.storage?.provider}`)
+      logger.debug(`   Storage path: ${photo.storage?.path}`)
 
       // Get the storage provider
       const storageProvider = photo.storage?.provider || 'local'
@@ -251,18 +252,18 @@ export class ExifExtractor {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const cfg = (storageService as any).getConfig?.()
         if (cfg && cfg.basePath) {
-          console.log(`   Storage basePath: ${cfg.basePath}`)
+          logger.debug(`   Storage basePath: ${cfg.basePath}`)
         }
       } catch {}
 
-      console.log(`   Storage service type: ${storageService.constructor.name}`)
-      console.log(`   Available methods: ${Object.getOwnPropertyNames(Object.getPrototypeOf(storageService)).filter(name => name !== 'constructor')}`)
+      logger.debug(`   Storage service type: ${storageService.constructor.name}`)
+      logger.debug(`   Available methods: ${Object.getOwnPropertyNames(Object.getPrototypeOf(storageService)).filter(name => name !== 'constructor')}`)
 
       // Download the original file
       const fileBuffer = await storageService.getFileBuffer(photo.storage.path)
       
       if (!fileBuffer) {
-        console.warn(`Could not download file for EXIF extraction: ${photo.storage.path}`)
+        logger.warn(`Could not download file for EXIF extraction: ${photo.storage.path}`)
         return photo
       }
 
@@ -284,15 +285,15 @@ export class ExifExtractor {
       const updatedPhoto = { ...photo, exif: exifData ?? photo.exif ?? null }
       
       if (exifData) {
-        console.log(`✅ Extracted EXIF data for ${photo.filename}:`, Object.keys(exifData))
+        logger.debug(`✅ Extracted EXIF data for ${photo.filename}:`, Object.keys(exifData))
       } else {
-        console.log(`ℹ️  No EXIF data found for ${photo.filename}`)
+        logger.debug(`ℹ️  No EXIF data found for ${photo.filename}`)
       }
 
       return updatedPhoto
 
     } catch (error) {
-      console.error(`Failed to extract EXIF data for ${photo.filename}:`, error)
+      logger.error(`Failed to extract EXIF data for ${photo.filename}:`, error)
       return photo // Return original photo if extraction fails
     }
   }
@@ -308,7 +309,7 @@ export class ExifExtractor {
         const processedPhoto = await this.extractAndUpdateExif(photo)
         processedPhotos.push(processedPhoto)
       } catch (error) {
-        console.error(`Failed to process photo ${photo.filename}:`, error)
+        logger.error(`Failed to process photo ${photo.filename}:`, error)
         processedPhotos.push(photo) // Add original photo if processing fails
       }
     }

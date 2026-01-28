@@ -6,6 +6,8 @@
 	import { currentLanguage } from '$stores/language';
 	import type { UploadReport } from '$types';
 	import AlertModal from '$lib/components/AlertModal.svelte';
+	import { logger } from '$lib/utils/logger';
+	import { handleError } from '$lib/utils/errorHandler';
 
 	function setWebkitDirectory(node: HTMLInputElement) {
 		(node as any).webkitdirectory = true;
@@ -70,7 +72,7 @@
 				albumName = nameText;
 			}
 		} catch (error) {
-			console.error('Failed to fetch album name:', error);
+			logger.error('Failed to fetch album name:', error);
 		}
 	}
 
@@ -146,7 +148,7 @@
 						completionTimeout = setTimeout(() => {
 							const currentUpload = uploads[uploadIndex];
 							if (currentUpload && currentUpload.status === 'uploading') {
-								console.warn(`[Photo Upload] Timeout fallback for ${file.name} - checking XHR state:`, {
+								logger.warn(`[Photo Upload] Timeout fallback for ${file.name} - checking XHR state:`, {
 									readyState: xhr.readyState,
 									status: xhr.status,
 									statusText: xhr.statusText
@@ -178,11 +180,11 @@
 												}
 											}
 										} catch (e) {
-											console.error(`[Photo Upload] Timeout fallback parse error for ${file.name}:`, e);
+											logger.error(`[Photo Upload] Timeout fallback parse error for ${file.name}:`, e);
 										}
 									}
 									// If we can't parse or it's an error, mark as success anyway (upload completed)
-									console.warn(`[Photo Upload] Timeout fallback: marking ${file.name} as success (upload completed)`);
+									logger.warn(`[Photo Upload] Timeout fallback: marking ${file.name} as success (upload completed)`);
 									uploads = uploads.map((upload, idx) =>
 										idx === uploadIndex
 											? { ...upload, status: 'success', progress: 100 }
@@ -192,7 +194,7 @@
 									checkAllComplete();
 								} else {
 									// Request not done yet, wait a bit more
-									console.log(`[Photo Upload] ${file.name} still processing (readyState: ${xhr.readyState}), waiting...`);
+									logger.debug(`[Photo Upload] ${file.name} still processing (readyState: ${xhr.readyState}), waiting...`);
 								}
 							}
 						}, 5000); // 5 second timeout after 100% progress
@@ -210,7 +212,7 @@
 				
 				// Prevent duplicate processing - but allow load event to always process (it's the primary handler)
 				if (hasCompleted) {
-					console.log(`[Photo Upload] Load event for ${file.name} already processed by readystatechange, but processing anyway to ensure completion`);
+					logger.debug(`[Photo Upload] Load event for ${file.name} already processed by readystatechange, but processing anyway to ensure completion`);
 					// Don't return - process anyway to ensure status is set correctly
 				}
 				hasCompleted = true;
@@ -219,7 +221,7 @@
 					try {
 						// Handle empty response
 						if (!xhr.responseText || xhr.responseText.trim() === '') {
-							console.warn(`[Photo Upload] Empty response for ${file.name}, treating as success (status ${xhr.status})`);
+							logger.warn(`[Photo Upload] Empty response for ${file.name}, treating as success (status ${xhr.status})`);
 							uploads = uploads.map((upload, index) =>
 								index === uploadIndex
 									? {
@@ -234,7 +236,7 @@
 						}
 
 						const response = JSON.parse(xhr.responseText);
-						console.log(`[Photo Upload] Response for ${file.name}:`, {
+						logger.debug(`[Photo Upload] Response for ${file.name}:`, {
 							status: xhr.status,
 							hasSuccess: !!response.success,
 							hasId: !!response._id,
@@ -244,7 +246,7 @@
 
 						// Check if photo was skipped (duplicate)
 						if (response.skipped) {
-							console.log(`[Photo Upload] Marking ${file.name} as skipped`);
+							logger.debug(`[Photo Upload] Marking ${file.name} as skipped`);
 							const updatedUploads = uploads.map((upload, index) =>
 								index === uploadIndex
 									? {
@@ -256,11 +258,11 @@
 									: upload
 							);
 							uploads = updatedUploads;
-							console.log(`[Photo Upload] Status updated. Upload ${uploadIndex} status:`, updatedUploads[uploadIndex]?.status);
+							logger.debug(`[Photo Upload] Status updated. Upload ${uploadIndex} status:`, updatedUploads[uploadIndex]?.status);
 							checkAllComplete();
 						} else if (response.success || response._id || response.photo?._id) {
 							// Success: response has success flag, _id at root, or _id nested in photo
-							console.log(`[Photo Upload] Marking ${file.name} as success`);
+							logger.debug(`[Photo Upload] Marking ${file.name} as success`);
 							const updatedUploads = uploads.map((upload, index) =>
 								index === uploadIndex
 									? {
@@ -272,12 +274,12 @@
 									: upload
 							);
 							uploads = updatedUploads;
-							console.log(`[Photo Upload] Status updated. Upload ${uploadIndex} status:`, updatedUploads[uploadIndex]?.status);
+							logger.debug(`[Photo Upload] Status updated. Upload ${uploadIndex} status:`, updatedUploads[uploadIndex]?.status);
 							checkAllComplete();
 						} else {
 							// If we got a 2xx response but no clear success indicator, check if it's an error
 							const errorMsg = response.error || response.message || 'Upload completed but response format unexpected';
-							console.warn(`[Photo Upload] Unexpected response format for ${file.name}:`, response);
+							logger.warn(`[Photo Upload] Unexpected response format for ${file.name}:`, response);
 							
 							// If there's an explicit error, mark as error; otherwise treat as success (2xx = success)
 							if (response.error) {
@@ -288,7 +290,7 @@
 								);
 							} else {
 								// 2xx status without error - treat as success
-								console.log(`[Photo Upload] Treating 2xx response as success for ${file.name}`);
+								logger.debug(`[Photo Upload] Treating 2xx response as success for ${file.name}`);
 								uploads = uploads.map((upload, index) =>
 									index === uploadIndex
 										? {
@@ -301,14 +303,14 @@
 							}
 						}
 					} catch (parseError) {
-						console.error(`[Photo Upload] Failed to parse response for ${file.name}:`, {
+						logger.error(`[Photo Upload] Failed to parse response for ${file.name}:`, {
 							error: parseError,
 							status: xhr.status,
 							responseText: xhr.responseText?.substring(0, 200)
 						});
 						// If we got a 2xx status but can't parse, treat as success (upload likely completed)
 						if (xhr.status >= 200 && xhr.status < 300) {
-							console.warn(`[Photo Upload] 2xx status with unparseable response for ${file.name}, treating as success`);
+							logger.warn(`[Photo Upload] 2xx status with unparseable response for ${file.name}, treating as success`);
 							uploads = uploads.map((upload, index) =>
 								index === uploadIndex
 									? { ...upload, status: 'success', progress: 100 }
@@ -352,7 +354,7 @@
 						}
 					}
 					
-					console.error(`[Photo Upload] Upload failed for ${file.name}:`, {
+					logger.error(`[Photo Upload] Upload failed for ${file.name}:`, {
 						status: xhr.status,
 						statusText: xhr.statusText,
 						responseText: xhr.responseText?.substring(0, 500),
@@ -374,7 +376,7 @@
 				}
 				hasCompleted = true;
 				
-				console.error(`[Photo Upload] Network error for ${file.name}:`, {
+				logger.error(`[Photo Upload] Network error for ${file.name}:`, {
 					event: event,
 					readyState: xhr.readyState,
 					status: xhr.status,
@@ -396,7 +398,7 @@
 				}
 				hasCompleted = true;
 				
-				console.warn(`[Photo Upload] Upload aborted for ${file.name}`);
+				logger.warn(`[Photo Upload] Upload aborted for ${file.name}`);
 				uploads = uploads.map((upload, index) =>
 					index === uploadIndex ? { ...upload, status: 'error', error: 'Upload cancelled', progress: 100 } : upload
 				);
@@ -413,7 +415,7 @@
 						if (!hasCompleted && !readystatechangeProcessed) {
 							readystatechangeProcessed = true;
 							// Request is complete, but load event hasn't fired
-							console.warn(`[Photo Upload] readystatechange fallback for ${file.name} (status: ${xhr.status})`);
+							logger.warn(`[Photo Upload] readystatechange fallback for ${file.name} (status: ${xhr.status})`);
 							
 							// Clear timeout
 							if (completionTimeout) {
@@ -428,7 +430,7 @@
 									if (responseText) {
 										const response = JSON.parse(responseText);
 										if (response.skipped) {
-											console.log(`[Photo Upload] readystatechange: Marking ${file.name} as skipped`);
+											logger.debug(`[Photo Upload] readystatechange: Marking ${file.name} as skipped`);
 											uploads = uploads.map((upload, idx) =>
 												idx === uploadIndex
 													? {
@@ -441,7 +443,7 @@
 											);
 											checkAllComplete();
 										} else if (response.success || response._id || response.photo?._id || !response.error) {
-											console.log(`[Photo Upload] readystatechange: Marking ${file.name} as success`);
+											logger.debug(`[Photo Upload] readystatechange: Marking ${file.name} as success`);
 											uploads = uploads.map((upload, idx) =>
 												idx === uploadIndex
 													? {
@@ -470,7 +472,7 @@
 									}
 								} catch (e) {
 									// Parse error but 2xx status - treat as success
-									console.warn(`[Photo Upload] readystatechange fallback: parse error for ${file.name}, treating as success`);
+									logger.warn(`[Photo Upload] readystatechange fallback: parse error for ${file.name}, treating as success`);
 									uploads = uploads.map((upload, idx) =>
 										idx === uploadIndex
 											? { ...upload, status: 'success', progress: 100 }
@@ -492,10 +494,10 @@
 			});
 
 			xhr.open('POST', '/api/photos/upload');
-			console.log(`[Photo Upload] Starting upload for ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB) to album ${albumId}`);
+			logger.debug(`[Photo Upload] Starting upload for ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB) to album ${albumId}`);
 			xhr.send(formData);
 		} catch (error) {
-			console.error(`[Photo Upload] Exception during upload setup for ${file.name}:`, error);
+			logger.error(`[Photo Upload] Exception during upload setup for ${file.name}:`, error);
 			const errorMessage = error instanceof Error ? error.message : String(error);
 			uploads = uploads.map((upload, index) =>
 				index === uploadIndex ? { ...upload, status: 'error', error: `Upload failed: ${errorMessage}` } : upload
@@ -505,7 +507,7 @@
 	}
 
 	function checkAllComplete() {
-		console.log(`[Photo Upload] checkAllComplete called. Uploads:`, uploads.map(u => ({ name: u.file.name, status: u.status, progress: u.progress })));
+		logger.debug(`[Photo Upload] checkAllComplete called. Uploads:`, uploads.map(u => ({ name: u.file.name, status: u.status, progress: u.progress })));
 		
 		// Check for stuck uploads (100% progress but still 'uploading' status for > 10 seconds)
 		const now = Date.now();
@@ -514,7 +516,7 @@
 			if (upload.status === 'uploading' && upload.progress >= 100 && upload.progress100Timestamp) {
 				const stuckDuration = now - upload.progress100Timestamp;
 				if (stuckDuration > 10000) { // 10 seconds
-					console.warn(`[Photo Upload] Detected stuck upload: ${upload.file.name} (stuck for ${stuckDuration}ms), marking as success`);
+					logger.warn(`[Photo Upload] Detected stuck upload: ${upload.file.name} (stuck for ${stuckDuration}ms), marking as success`);
 					hasStuckUploads = true;
 					return { ...upload, status: 'success' as const };
 				}
@@ -524,15 +526,15 @@
 		
 		const allComplete = uploads.length > 0 && uploads.every((upload) => upload.status !== 'uploading');
 		const allCompleteReactive = uploads.length > 0 && uploads.every((upload) => upload.status !== 'uploading');
-		console.log(`[Photo Upload] checkAllComplete: allComplete=${allComplete}, uploads.length=${uploads.length}, allCompleteReactive=${allCompleteReactive}`);
-		console.log(`[Photo Upload] Upload statuses:`, uploads.map(u => ({ name: u.file.name, status: u.status })));
+		logger.debug(`[Photo Upload] checkAllComplete: allComplete=${allComplete}, uploads.length=${uploads.length}, allCompleteReactive=${allCompleteReactive}`);
+		logger.debug(`[Photo Upload] Upload statuses:`, uploads.map(u => ({ name: u.file.name, status: u.status })));
 		
 		if (allComplete) {
-			console.log(`[Photo Upload] All uploads complete! Setting isUploading=false and generating report`);
+			logger.debug(`[Photo Upload] All uploads complete! Setting isUploading=false and generating report`);
 			isUploading = false;
 			generateFileUploadReport();
-			console.log(`[Photo Upload] After generateFileUploadReport: fileUploadReport=`, fileUploadReport);
-			console.log(`[Photo Upload] allUploadsComplete reactive value:`, allUploadsComplete);
+			logger.debug(`[Photo Upload] After generateFileUploadReport: fileUploadReport=`, fileUploadReport);
+			logger.debug(`[Photo Upload] allUploadsComplete reactive value:`, allUploadsComplete);
 			// If we're in folder mode and uploading, generate folder report too
 			if (uploadMode === 'folder' && isUploadingFolder) {
 				handleFolderUploadComplete();
@@ -544,10 +546,10 @@
 	}
 
 	function generateFileUploadReport() {
-		console.log(`[Photo Upload] generateFileUploadReport called. uploads.length=${uploads.length}`);
+		logger.debug(`[Photo Upload] generateFileUploadReport called. uploads.length=${uploads.length}`);
 		if (uploads.length === 0) {
 			fileUploadReport = null;
-			console.log(`[Photo Upload] No uploads, setting report to null`);
+			logger.debug(`[Photo Upload] No uploads, setting report to null`);
 			return;
 		}
 
@@ -555,7 +557,7 @@
 		const skipped = uploads.filter((u) => u.status === 'skipped');
 		const failures = uploads.filter((u) => u.status === 'error');
 
-		console.log(`[Photo Upload] Report stats: successes=${successes.length}, skipped=${skipped.length}, failures=${failures.length}`);
+		logger.debug(`[Photo Upload] Report stats: successes=${successes.length}, skipped=${skipped.length}, failures=${failures.length}`);
 
 		fileUploadReport = {
 			total: uploads.length,
@@ -576,7 +578,7 @@
 				error: u.error || 'Upload failed'
 			}))
 		};
-		console.log(`[Photo Upload] Report generated:`, fileUploadReport);
+		logger.debug(`[Photo Upload] Report generated:`, fileUploadReport);
 	}
 
 	function handleDragOver(e: DragEvent) {

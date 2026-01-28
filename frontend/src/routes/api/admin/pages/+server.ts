@@ -1,6 +1,8 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { backendGet, backendPost, parseBackendResponse } from '$lib/utils/backend-api';
+import { logger } from '$lib/utils/logger';
+import { parseError } from '$lib/utils/errorHandler';
 
 export const GET: RequestHandler = async ({ url, locals, cookies }) => {
 	try {
@@ -40,9 +42,12 @@ export const GET: RequestHandler = async ({ url, locals, cookies }) => {
 			}
 		});
 	} catch (error) {
-		console.error('Admin Pages API error:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
-		return json({ success: false, error: errorMessage || 'Failed to fetch pages' }, { status: 500 });
+		logger.error('Admin Pages API error:', error);
+		const parsed = parseError(error);
+		return json({ 
+			success: false, 
+			error: parsed.userMessage || 'Failed to fetch pages' 
+		}, { status: parsed.status || 500 });
 	}
 };
 
@@ -63,8 +68,11 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 			data: page
 		});
 	} catch (error) {
-		console.error('Create page error:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
-		return json({ success: false, error: errorMessage || 'Failed to create page' }, { status: 500 });
+		logger.error('Create page error:', error);
+		const parsed = parseError(error);
+		return json({ 
+			success: false, 
+			error: parsed.userMessage || 'Failed to create page' 
+		}, { status: parsed.status || 500 });
 	}
 };

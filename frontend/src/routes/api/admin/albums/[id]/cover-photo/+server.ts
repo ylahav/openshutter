@@ -1,6 +1,8 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { backendPut, parseBackendResponse } from '$lib/utils/backend-api';
+import { logger } from '$lib/utils/logger';
+import { parseError } from '$lib/utils/errorHandler';
 
 export const PUT: RequestHandler = async ({ params, request, locals, cookies }) => {
 	try {
@@ -20,11 +22,11 @@ export const PUT: RequestHandler = async ({ params, request, locals, cookies }) 
 			data: result.data || result
 		});
 	} catch (error) {
-		console.error('Error updating album cover photo:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
+		logger.error('Error updating album cover photo:', error);
+		const parsed = parseError(error);
 		return json(
-			{ success: false, error: `Failed to update cover photo: ${errorMessage}` },
-			{ status: 500 }
+			{ success: false, error: parsed.userMessage || `Failed to update cover photo: ${parsed.message}` },
+			{ status: parsed.status || 500 }
 		);
 	}
 };

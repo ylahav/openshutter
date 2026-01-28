@@ -1,3 +1,5 @@
+import { logger } from '@/lib/utils/logger'
+
 export interface PerformanceMetrics {
   pageLoadTime: number
   imageLoadTime: number
@@ -80,7 +82,7 @@ export class PerformanceMonitor {
     const responseTime = performance.now() - startTime
     this.metrics.apiResponseTime = responseTime
     
-    console.log(`API ${endpoint} responded in ${responseTime.toFixed(2)}ms`)
+    logger.debug(`API ${endpoint} responded in ${responseTime.toFixed(2)}ms`)
   }
 
   /**
@@ -96,7 +98,7 @@ export class PerformanceMonitor {
     this.metrics.compressionRatio = compressionRatio
     this.metrics.bandwidthSaved += bandwidthSaved
     
-    console.log(`Image compressed: ${originalSize} → ${compressedSize} bytes (${((1 - compressionRatio) * 100).toFixed(1)}% reduction)`)
+    logger.debug(`Image compressed: ${originalSize} → ${compressedSize} bytes (${((1 - compressionRatio) * 100).toFixed(1)}% reduction)`)
   }
 
   /**
@@ -187,6 +189,6 @@ export class PerformanceMonitor {
    * Log performance metrics to console
    */
   static logMetrics(): void {
-    console.log(this.generateReport())
+    logger.info(this.generateReport())
   }
 }

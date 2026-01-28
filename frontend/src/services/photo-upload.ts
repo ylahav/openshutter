@@ -4,6 +4,7 @@ import { storageManager } from './storage/manager'
 import { ObjectId } from 'mongodb'
 import { ThumbnailGenerator } from './thumbnail-generator'
 import { ImageCompressionService } from './image-compression'
+import { logger } from '@/lib/utils/logger'
 
 export interface PhotoUploadOptions {
   albumId?: string
@@ -58,9 +59,9 @@ export class PhotoUploadService {
       }
 
       // Get storage service from the new storage manager
-      console.log(`PhotoUploadService: Getting storage service for provider: ${storageProvider}`)
+      logger.debug(`PhotoUploadService: Getting storage service for provider: ${storageProvider}`)
       const storageService = await storageManager.getProvider(storageProvider as 'local' | 'google-drive' | 'aws-s3' | 'backblaze' | 'wasabi')
-      console.log(`PhotoUploadService: Storage service obtained:`, storageService.constructor.name)
+      logger.debug(`PhotoUploadService: Storage service obtained:`, storageService.constructor.name)
 
       // Generate unique filename
       const timestamp = Date.now()
@@ -77,7 +78,7 @@ export class PhotoUploadService {
       const compressionResult = await ImageCompressionService.compressImage(fileBuffer, 'gallery')
       
       // Upload compressed original file
-      console.log(`PhotoUploadService: Uploading file ${filename} to path: ${albumPath}`)
+      logger.debug(`PhotoUploadService: Uploading file ${filename} to path: ${albumPath}`)
       const uploadResult = await storageService.uploadFile(
         compressionResult.compressed,
         filename,
@@ -90,7 +91,7 @@ export class PhotoUploadService {
           description: options.description || ''
         }
       )
-      console.log(`PhotoUploadService: Upload result:`, uploadResult)
+      logger.debug(`PhotoUploadService: Upload result:`, uploadResult)
 
       // Generate multiple thumbnails
       const thumbnailBuffers = await ThumbnailGenerator.generateAllThumbnails(fileBuffer, filename)
@@ -109,7 +110,7 @@ export class PhotoUploadService {
               await storageService.createFolder(sizeConfig.folder, albumPath)
               sizeFolderPath = `${albumPath}/${sizeConfig.folder}`
             } catch (error) {
-              console.warn(`PhotoUploadService: Failed to create ${sizeConfig.folder} folder:`, error)
+              logger.warn(`PhotoUploadService: Failed to create ${sizeConfig.folder} folder:`, error)
             }
           }
           
@@ -124,7 +125,7 @@ export class PhotoUploadService {
           
           thumbnails[sizeName] = `/api/storage/serve/${storageProvider}/${encodeURIComponent(thumbnailResult.path)}`
         } catch (error) {
-          console.warn(`PhotoUploadService: Failed to upload ${sizeName} thumbnail:`, error)
+          logger.warn(`PhotoUploadService: Failed to upload ${sizeName} thumbnail:`, error)
         }
       }
       
@@ -202,7 +203,7 @@ export class PhotoUploadService {
             { $inc: { photoCount: 1 } }
           )
         } catch (e) {
-          console.warn('Failed to update album photo count:', e)
+          logger.warn('Failed to update album photo count:', e)
         }
       }
 
@@ -216,7 +217,7 @@ export class PhotoUploadService {
       }
 
     } catch (error) {
-      console.error('Photo upload failed:', error)
+      logger.error('Photo upload failed:', error)
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Upload failed'
@@ -234,7 +235,7 @@ export class PhotoUploadService {
         .jpeg({ quality: this.THUMBNAIL_QUALITY })
         .toBuffer()
     } catch (error) {
-      console.error('Thumbnail generation failed:', error)
+      logger.error('Thumbnail generation failed:', error)
       throw new Error('Failed to generate thumbnail')
     }
   }
@@ -284,7 +285,7 @@ export class PhotoUploadService {
       
       return Object.keys(exifData).length > 0 ? exifData : null
     } catch (error) {
-      console.warn('Failed to extract EXIF data:', error)
+      logger.warn('Failed to extract EXIF data:', error)
       return null
     }
   }
@@ -306,11 +307,11 @@ export class PhotoUploadService {
           await db.collection('photos').createIndex({ uploadedAt: -1 })
           await db.collection('photos').createIndex({ filename: 1 }, { unique: true })
         } catch (e) {
-          console.warn('Index creation warning:', e)
+          logger.warn('Index creation warning:', e)
         }
       }
     } catch (e) {
-      console.warn('Failed to ensure photos collection:', e)
+      logger.warn('Failed to ensure photos collection:', e)
     }
   }
 }

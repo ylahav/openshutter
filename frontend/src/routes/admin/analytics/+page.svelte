@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { getAlbumName } from '$lib/utils/albumUtils';
+	import { logger } from '$lib/utils/logger';
+	import { handleError } from '$lib/utils/errorHandler';
 
   export const data = undefined as any; // From +layout.server.ts, not used in this component
 
@@ -62,8 +64,8 @@
 			const result = await response.json();
 			analytics = result.data || result;
 		} catch (err) {
-			console.error('Error loading analytics:', err);
-			error = `Failed to load analytics: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			logger.error('Error loading analytics:', err);
+			error = handleError(err, 'Failed to load analytics');
 		} finally {
 			loading = false;
 		}

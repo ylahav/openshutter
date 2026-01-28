@@ -1,6 +1,8 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { backendPut, backendDelete, parseBackendResponse } from '$lib/utils/backend-api';
+import { logger } from '$lib/utils/logger';
+import { parseError } from '$lib/utils/errorHandler';
 
 export const PUT: RequestHandler = async ({ params, request, locals, cookies }) => {
 	try {
@@ -18,9 +20,12 @@ export const PUT: RequestHandler = async ({ params, request, locals, cookies }) 
 			data: moduleData
 		});
 	} catch (error) {
-		console.error('Admin page modules PUT error:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
-		return json({ success: false, error: errorMessage || 'Failed to update module' }, { status: 500 });
+		logger.error('Admin page modules PUT error:', error);
+		const parsed = parseError(error);
+		return json({ 
+			success: false, 
+			error: parsed.userMessage || 'Failed to update module' 
+		}, { status: parsed.status || 500 });
 	}
 };
 
@@ -39,8 +44,11 @@ export const DELETE: RequestHandler = async ({ params, locals, cookies }) => {
 			message: result.message || 'Module deleted successfully'
 		});
 	} catch (error) {
-		console.error('Admin page modules DELETE error:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
-		return json({ success: false, error: errorMessage || 'Failed to delete module' }, { status: 500 });
+		logger.error('Admin page modules DELETE error:', error);
+		const parsed = parseError(error);
+		return json({ 
+			success: false, 
+			error: parsed.userMessage || 'Failed to delete module' 
+		}, { status: parsed.status || 500 });
 	}
 };

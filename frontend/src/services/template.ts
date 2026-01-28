@@ -1,6 +1,7 @@
 import { TemplateConfig, SiteTemplateConfig } from '@/types/template'
 import { TemplateOverridesService, TemplateWithOverrides } from './template-overrides'
 import { SiteConfig } from '@/types/site-config'
+import { logger } from '@/lib/utils/logger'
 
 export class TemplateService {
   private static instance: TemplateService
@@ -27,7 +28,7 @@ export class TemplateService {
         }
       }
     } catch (error) {
-      console.error('Error loading templates:', error)
+      logger.error('Error loading templates:', error)
     }
     return []
   }
@@ -46,7 +47,7 @@ export class TemplateService {
         return template
       }
     } catch (error) {
-      console.error(`Error loading template ${templateName}:`, error)
+      logger.error(`Error loading template ${templateName}:`, error)
     }
 
     return null
@@ -59,7 +60,7 @@ export class TemplateService {
    * @param area 'frontend' or 'admin'. If not provided, defaults to 'frontend'
    */
   async getActiveTemplate(area: 'frontend' | 'admin' = 'frontend'): Promise<TemplateConfig | null> {
-    console.log('getActiveTemplate', this.activeTemplate, area)
+    logger.debug('getActiveTemplate', this.activeTemplate, area)
     if (this.activeTemplate) {
       return this.activeTemplate
     }
@@ -69,7 +70,7 @@ export class TemplateService {
       const response = await fetch('/api/site-config')
       if (response.ok) {
         const result = await response.json()
-        console.log('getActiveTemplate result', result)
+        logger.debug('getActiveTemplate result', result)
         if (result.success) {
           // Determine which template to use based on area
           let templateName: string
@@ -86,7 +87,7 @@ export class TemplateService {
         }
       }
     } catch (error) {
-      console.error('Error loading active template:', error)
+      logger.error('Error loading active template:', error)
     }
 
     // Fallback to default template
@@ -106,7 +107,7 @@ export class TemplateService {
       this.templateCache.clear() // Clear cache to force reload
       return true
     } catch (error) {
-      console.error('Error setting active template:', error)
+      logger.error('Error setting active template:', error)
       return false
     }
   }
@@ -137,7 +138,7 @@ export class TemplateService {
       }
       return null
     } catch (error) {
-      console.error(`Error loading template component ${componentName}:`, error)
+      logger.error(`Error loading template component ${componentName}:`, error)
       return null
     }
   }
@@ -165,7 +166,7 @@ export class TemplateService {
 
   async getTemplatePage(templateName: string, pageName: string): Promise<any> {
     try {
-      console.log(`getTemplatePage: Loading ${pageName} for template ${templateName}`)
+      logger.debug(`getTemplatePage: Loading ${pageName} for template ${templateName}`)
       if (!this.pageLoaders) {
         this.pageLoaders = this.buildPageLoaders()
       }
@@ -187,10 +188,10 @@ export class TemplateService {
         return mod.default || mod
       }
 
-      console.error(`getTemplatePage: No page loader found for ${pageName}`)
+      logger.error(`getTemplatePage: No page loader found for ${pageName}`)
       return null
     } catch (error) {
-      console.error(`Error loading template page ${pageName}:`, error)
+      logger.error(`Error loading template page ${pageName}:`, error)
       return null
     }
   }

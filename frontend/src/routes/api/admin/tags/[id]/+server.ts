@@ -1,6 +1,8 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { backendGet, backendPut, backendDelete, parseBackendResponse } from '$lib/utils/backend-api';
+import { logger } from '$lib/utils/logger';
+import { parseError } from '$lib/utils/errorHandler';
 
 export const GET: RequestHandler = async ({ params, locals, cookies }) => {
 	try {
@@ -19,9 +21,12 @@ export const GET: RequestHandler = async ({ params, locals, cookies }) => {
 			data: tag
 		});
 	} catch (error) {
-		console.error('Get tag error:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
-		return json({ success: false, error: errorMessage || 'Failed to fetch tag' }, { status: 500 });
+		logger.error('Get tag error:', error);
+		const parsed = parseError(error);
+		return json({ 
+			success: false, 
+			error: parsed.userMessage || 'Failed to fetch tag' 
+		}, { status: parsed.status || 500 });
 	}
 };
 
@@ -43,9 +48,12 @@ export const PUT: RequestHandler = async ({ params, request, locals, cookies }) 
 			data: tag
 		});
 	} catch (error) {
-		console.error('Update tag error:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
-		return json({ success: false, error: errorMessage || 'Failed to update tag' }, { status: 500 });
+		logger.error('Update tag error:', error);
+		const parsed = parseError(error);
+		return json({ 
+			success: false, 
+			error: parsed.userMessage || 'Failed to update tag' 
+		}, { status: parsed.status || 500 });
 	}
 };
 
@@ -66,8 +74,11 @@ export const DELETE: RequestHandler = async ({ params, locals, cookies }) => {
 			message: result.message || 'Tag deleted successfully'
 		});
 	} catch (error) {
-		console.error('Delete tag error:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
-		return json({ success: false, error: errorMessage || 'Failed to delete tag' }, { status: 500 });
+		logger.error('Delete tag error:', error);
+		const parsed = parseError(error);
+		return json({ 
+			success: false, 
+			error: parsed.userMessage || 'Failed to delete tag' 
+		}, { status: parsed.status || 500 });
 	}
 };

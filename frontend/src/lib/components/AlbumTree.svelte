@@ -5,6 +5,7 @@
 	import { goto } from '$app/navigation';
 	import { dndzone } from 'svelte-dnd-action';
 	import { getAlbumName } from '$lib/utils/albumUtils';
+	import { logger } from '$lib/utils/logger';
 
 	interface Album {
 		_id: string;
@@ -182,7 +183,7 @@
 		};
 
 		if (isDescendant(activeNode._id, overNode._id)) {
-			console.warn('Cannot move album into its own descendant');
+			logger.warn('Cannot move album into its own descendant');
 			return;
 		}
 
@@ -292,7 +293,7 @@
 			try {
 				await onReorder(updates);
 			} catch (error) {
-				console.error('Failed to reorder albums:', error);
+				logger.error('Failed to reorder albums:', error);
 				// Revert on error
 				localAlbums = albums;
 				flatItems = flatten(tree, expandedNodes);

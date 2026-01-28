@@ -3,6 +3,8 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { getAlbumName } from '$lib/utils/albumUtils';
+	import { logger } from '$lib/utils/logger';
+	import { handleError } from '$lib/utils/errorHandler';
 
 	export let data; // From +layout.server.ts, contains user info
 
@@ -73,11 +75,11 @@
 			const response = await fetch('/api/albums/hierarchy?includePrivate=true');
 			if (response.ok) {
 				const result = await response.json();
-				console.log('[loadParentAlbums] Response:', result);
+				logger.debug('[loadParentAlbums] Response:', result);
 				// Handle both formats: {success: true, data: [...]} or {data: [...]}
 				const albumsData = result.success ? result.data : (result.data || result);
 				if (albumsData && Array.isArray(albumsData)) {
-					console.log('[loadParentAlbums] Albums from API:', albumsData);
+					logger.debug('[loadParentAlbums] Albums from API:', albumsData);
 
 					// Flatten the tree to get all albums for parent selection
 					// If user can create albums (admin/owner), they should see all albums as potential parents
@@ -102,15 +104,15 @@
 					};
 
 					parentAlbums = flattenAlbums(albumsData);
-					console.log('[loadParentAlbums] Final parentAlbums count:', parentAlbums.length, parentAlbums);
+					logger.debug('[loadParentAlbums] Final parentAlbums count:', parentAlbums.length, parentAlbums);
 				} else {
-					console.error('[loadParentAlbums] No albums data found in response:', result);
+					logger.error('[loadParentAlbums] No albums data found in response:', result);
 				}
 			} else {
-				console.error('[loadParentAlbums] API response not OK:', response.status, response.statusText);
+				logger.error('[loadParentAlbums] API response not OK:', response.status, response.statusText);
 			}
 		} catch (err) {
-			console.error('Failed to load parent albums:', err);
+			logger.error('Failed to load parent albums:', err);
 		}
 	}
 
@@ -143,14 +145,14 @@
 					storageOptionsError = 'No storage providers are enabled. Please configure and enable at least one storage provider in the admin panel.';
 				}
 			} else {
-				console.error('Failed to load storage options:', result.error);
+				logger.error('Failed to load storage options:', result.error);
 				storageOptions = [];
-				storageOptionsError = 'Failed to load storage options. Please check your configuration.';
+				storageOptionsError = handleError(result.error, 'Failed to load storage options. Please check your configuration.');
 			}
 		} catch (err) {
-			console.error('Error loading storage options:', err);
+			logger.error('Error loading storage options:', err);
 			storageOptions = [];
-			storageOptionsError = 'Error loading storage options. Please check your configuration.';
+			storageOptionsError = handleError(err, 'Error loading storage options. Please check your configuration.');
 		} finally {
 			loadingStorageOptions = false;
 		}
@@ -179,16 +181,16 @@
 					
 					if (isProviderAvailable) {
 						formData.storageProvider = parentAlbum.storageProvider;
-						console.log('[loadParentAlbumStorageProvider] Set storage provider to:', parentAlbum.storageProvider);
+						logger.debug('[loadParentAlbumStorageProvider] Set storage provider to:', parentAlbum.storageProvider);
 					} else {
-						console.warn('[loadParentAlbumStorageProvider] Parent storage provider not available:', parentAlbum.storageProvider);
+						logger.warn('[loadParentAlbumStorageProvider] Parent storage provider not available:', parentAlbum.storageProvider);
 					}
 				}
 			} else {
-				console.error('[loadParentAlbumStorageProvider] Failed to load parent album:', response.status);
+				logger.error('[loadParentAlbumStorageProvider] Failed to load parent album:', response.status);
 			}
 		} catch (err) {
-			console.error('[loadParentAlbumStorageProvider] Error loading parent album:', err);
+			logger.error('[loadParentAlbumStorageProvider] Error loading parent album:', err);
 		}
 	}
 
@@ -243,12 +245,12 @@
 				body: JSON.stringify(formData),
 			});
 
-			console.log('[handleSubmit] Response status:', response.status, response.ok);
+			logger.debug('[handleSubmit] Response status:', response.status, response.ok);
 			if (response.ok) {
 				const result = await response.json();
-				console.log('[handleSubmit] Response data:', result);
-				console.log('[handleSubmit] result.success:', result.success);
-				console.log('[handleSubmit] result.data:', result.data);
+				logger.debug('[handleSubmit] Response data:', result);
+				logger.debug('[handleSubmit] result.success:', result.success);
+				logger.debug('[handleSubmit] result.data:', result.data);
 				
 				if (result.success && result.data) {
 					success = 'Album created successfully!';
@@ -256,7 +258,7 @@
 						// Determine redirect destination based on user role
 						const userRole = data?.user?.role;
 						
-						console.log('[handleSubmit] User data:', { 
+						logger.debug('[handleSubmit] User data:', { 
 							role: userRole, 
 							user: data?.user,
 							fullData: data
@@ -266,25 +268,25 @@
 						let dest = '/owner/albums';
 						if (userRole === 'admin') {
 							dest = '/admin/albums';
-							console.log('[handleSubmit] Admin user detected, redirecting to admin albums');
+							logger.debug('[handleSubmit] Admin user detected, redirecting to admin albums');
 						} else {
-							console.log('[handleSubmit] Non-admin user, redirecting to owner albums');
+							logger.debug('[handleSubmit] Non-admin user, redirecting to owner albums');
 						}
 						
-						console.log('[handleSubmit] Redirecting to:', dest);
+						logger.debug('[handleSubmit] Redirecting to:', dest);
 						goto(dest);
 					}, 1500);
 				} else {
-					console.error('[handleSubmit] Response missing success or data:', result);
+					logger.error('[handleSubmit] Response missing success or data:', result);
 					error = result.error || 'Failed to create album - invalid response format';
 				}
 			} else {
 				const errorData = await response.json().catch(() => ({}));
-				console.error('[handleSubmit] Response not OK:', response.status, errorData);
-				error = errorData.error || errorData.message || `Failed to create album (HTTP ${response.status})`;
+				logger.error('[handleSubmit] Response not OK:', response.status, errorData);
+				error = handleError(errorData, `Failed to create album (HTTP ${response.status})`);
 			}
 		} catch (err) {
-			console.error('Failed to create album:', err);
+			logger.error('Failed to create album:', err);
 			error = `Failed to create album: ${err instanceof Error ? err.message : 'Unknown error'}`;
 		} finally {
 			isLoading = false;

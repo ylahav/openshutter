@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { backendPut, parseBackendResponse } from '$lib/utils/backend-api';
+import { logger } from '$lib/utils/logger';
 
 export const PUT: RequestHandler = async ({ request, locals, cookies }) => {
 	try {
@@ -18,8 +19,11 @@ export const PUT: RequestHandler = async ({ request, locals, cookies }) => {
 			data: result
 		});
 	} catch (error) {
-		console.error('Reorder albums error:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
-		return json({ success: false, error: errorMessage || 'Failed to reorder albums' }, { status: 500 });
+		logger.error('Reorder albums error:', error);
+		const parsed = parseError(error);
+		return json({ 
+			success: false, 
+			error: parsed.userMessage || 'Failed to reorder albums' 
+		}, { status: parsed.status || 500 });
 	}
 };

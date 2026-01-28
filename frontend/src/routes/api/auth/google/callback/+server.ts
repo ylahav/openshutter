@@ -1,5 +1,6 @@
 import { text } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
+import { logger } from '$lib/utils/logger';
 
 export const GET: RequestHandler = async ({ url, request }) => {
 	try {
@@ -144,8 +145,9 @@ export const GET: RequestHandler = async ({ url, request }) => {
 			}
 		});
 	} catch (error) {
-		console.error('Google OAuth callback error:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
+		logger.error('Google OAuth callback error:', error);
+		const parsed = parseError(error);
+		const errorMessage = parsed.userMessage || parsed.message;
 		const errorHtml = `
 			<!DOCTYPE html>
 			<html>

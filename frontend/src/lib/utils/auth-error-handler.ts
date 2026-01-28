@@ -5,6 +5,7 @@
  */
 
 import { browser } from '$app/environment';
+import { logger } from './logger';
 
 /**
  * Check if an error message indicates an authentication error
@@ -47,7 +48,7 @@ export function handleAuthError(error: any, currentPath?: string): boolean {
 	// Don't redirect if we're already on the login page (prevents redirect loops)
 	const currentPathname = currentPath || window.location.pathname;
 	if (currentPathname.startsWith('/login') || currentPathname.startsWith('/auth/login')) {
-		console.warn('[Auth Error Handler] Already on login page, skipping redirect to prevent loop');
+		logger.warn('[Auth Error Handler] Already on login page, skipping redirect to prevent loop');
 		return false;
 	}
 
@@ -71,7 +72,7 @@ export function handleAuthError(error: any, currentPath?: string): boolean {
 		const redirectPath = currentPathname;
 		const loginUrl = `/login?redirect=${encodeURIComponent(redirectPath)}`;
 		
-		console.warn('[Auth Error Handler] Authentication error detected, redirecting to login:', {
+		logger.warn('[Auth Error Handler] Authentication error detected, redirecting to login:', {
 			error: errorMessage,
 			status,
 			redirectPath

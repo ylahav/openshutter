@@ -5,6 +5,8 @@ import { join } from 'path';
 import { pipeline } from 'stream';
 import { promisify } from 'util';
 import yauzl from 'yauzl';
+import { logger } from '$lib/utils/logger';
+import { parseError } from '$lib/utils/errorHandler';
 
 const pipelineAsync = promisify(pipeline);
 
@@ -30,7 +32,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		return new Promise((resolve) => {
 			yauzl.fromBuffer(buffer, { lazyEntries: true }, (err, zipfile) => {
 				if (err) {
-					console.error('Zip extraction error:', err);
+					logger.error('Zip extraction error:', err);
 					resolve(
 						json(
 							{ success: false, error: 'Failed to extract backup file' },
@@ -56,7 +58,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 						// File entry
 						zipfile.openReadStream(entry, (err, readStream) => {
 							if (err) {
-								console.error('Error reading file from zip:', err);
+								logger.error('Error reading file from zip:', err);
 								zipfile.readEntry();
 								return;
 							}
@@ -82,12 +84,12 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 										zipfile.readEntry();
 									});
 									writeStream.on('error', (err) => {
-										console.error('Error writing file:', err);
+										logger.error('Error writing file:', err);
 										zipfile.readEntry();
 									});
 								})
 								.catch((err) => {
-									console.error('Error creating directory:', err);
+									logger.error('Error creating directory:', err);
 									zipfile.readEntry();
 								});
 						});
@@ -105,7 +107,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 				});
 
 				zipfile.on('error', (err) => {
-					console.error('Zip file error:', err);
+					logger.error('Zip file error:', err);
 					resolve(
 						json(
 							{ success: false, error: 'Failed to process backup file' },
@@ -116,11 +118,11 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			});
 		});
 	} catch (error) {
-		console.error('Files restore error:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
+		logger.error('Files restore error:', error);
+		const parsed = parseError(error);
 		return json(
-			{ success: false, error: `Failed to restore files: ${errorMessage}` },
-			{ status: 500 }
+			{ success: false, error: parsed.userMessage || `Failed to restore files: ${parsed.message}` },
+			{ status: parsed.status || 500 }
 		);
 	}
 };

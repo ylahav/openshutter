@@ -1,6 +1,8 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { backendGet, parseBackendResponse } from '$lib/utils/backend-api';
+import { logger } from '$lib/utils/logger';
+import { parseError } from '$lib/utils/errorHandler';
 
 export const GET: RequestHandler = async ({ locals, cookies }) => {
 	try {
@@ -17,11 +19,11 @@ export const GET: RequestHandler = async ({ locals, cookies }) => {
 			data: status
 		});
 	} catch (error) {
-		console.error('Error getting deployment status:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
+		logger.error('Error getting deployment status:', error);
+		const parsed = parseError(error);
 		return json(
-			{ success: false, error: errorMessage || 'Failed to get deployment status' },
-			{ status: 500 }
+			{ success: false, error: parsed.userMessage || 'Failed to get deployment status' },
+			{ status: parsed.status || 500 }
 		);
 	}
 };

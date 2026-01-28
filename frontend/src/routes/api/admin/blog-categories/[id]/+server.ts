@@ -1,6 +1,8 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { backendGet, backendPut, backendDelete, parseBackendResponse } from '$lib/utils/backend-api';
+import { logger } from '$lib/utils/logger';
+import { parseError } from '$lib/utils/errorHandler';
 
 export const GET: RequestHandler = async ({ params, locals, cookies }) => {
 	try {
@@ -19,9 +21,12 @@ export const GET: RequestHandler = async ({ params, locals, cookies }) => {
 			data: category
 		});
 	} catch (error) {
-		console.error('Get blog category error:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
-		return json({ success: false, error: errorMessage || 'Failed to fetch blog category' }, { status: 500 });
+		logger.error('Get blog category error:', error);
+		const parsed = parseError(error);
+		return json({ 
+			success: false, 
+			error: parsed.userMessage || 'Failed to fetch blog category' 
+		}, { status: parsed.status || 500 });
 	}
 };
 
@@ -44,9 +49,12 @@ export const PUT: RequestHandler = async ({ params, request, locals, cookies }) 
 			message: 'Blog category updated successfully'
 		});
 	} catch (error) {
-		console.error('Update blog category error:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
-		return json({ success: false, error: errorMessage || 'Failed to update blog category' }, { status: 500 });
+		logger.error('Update blog category error:', error);
+		const parsed = parseError(error);
+		return json({ 
+			success: false, 
+			error: parsed.userMessage || 'Failed to update blog category' 
+		}, { status: parsed.status || 500 });
 	}
 };
 
@@ -67,8 +75,11 @@ export const DELETE: RequestHandler = async ({ params, locals, cookies }) => {
 			message: result.message || 'Blog category deleted successfully'
 		});
 	} catch (error) {
-		console.error('Delete blog category error:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
-		return json({ success: false, error: errorMessage || 'Failed to delete blog category' }, { status: 500 });
+		logger.error('Delete blog category error:', error);
+		const parsed = parseError(error);
+		return json({ 
+			success: false, 
+			error: parsed.userMessage || 'Failed to delete blog category' 
+		}, { status: parsed.status || 500 });
 	}
 };

@@ -12,6 +12,7 @@
 	import MultiLangHTML from '$lib/components/MultiLangHTML.svelte';
 	import { getPhotoUrl, getPhotoFullUrl } from '$lib/utils/photoUrl';
 	import { handleImageLoadError } from '$lib/utils/imageErrorHandler';
+	import { logger } from '$lib/utils/logger';
 
 	interface AlbumData {
 		album: {
@@ -114,7 +115,7 @@
 				subAlbumCoverPhotos = { ...subAlbumCoverPhotos, [albumId]: photo };
 			}
 		} catch (error) {
-			console.error(`Failed to fetch cover photo for sub-album ${albumId}:`, error);
+			logger.error(`Failed to fetch cover photo for sub-album ${albumId}:`, error);
 		}
 	}
 
@@ -141,7 +142,7 @@
 				}
 			}
 		} catch (error) {
-			console.error('Failed to fetch sub-album cover images:', error);
+			logger.error('Failed to fetch sub-album cover images:', error);
 		}
 	}
 
@@ -167,7 +168,7 @@
 				}
 			}
 		} catch (error) {
-			console.error('Failed to load more photos:', error);
+			logger.error('Failed to load more photos:', error);
 		} finally {
 			loadingMore = false;
 		}
@@ -191,11 +192,11 @@
 			}
 
 			albumData = await response.json();
-			console.log('Album data loaded:', albumData);
+			logger.debug('Album data loaded:', albumData);
 			
 			// Debug: Log photo URLs for first few photos
 			if (albumData && albumData.photos && albumData.photos.length > 0) {
-				console.log('[DEBUG] Sample photo URLs:', albumData.photos.slice(0, 3).map((p: any) => ({
+				logger.debug('[DEBUG] Sample photo URLs:', albumData.photos.slice(0, 3).map((p: any) => ({
 					id: p._id,
 					filename: p.filename,
 					storage: p.storage,
@@ -209,7 +210,7 @@
 				fetchSubAlbumCoverImages(albumData.subAlbums.map((a: any) => a._id));
 			}
 		} catch (err) {
-			console.error('Failed to fetch album data:', err);
+			logger.error('Failed to fetch album data:', err);
 			error = err instanceof Error ? err.message : 'Failed to fetch album';
 		} finally {
 			loading = false;
@@ -367,7 +368,7 @@
 												const target = e.currentTarget as HTMLImageElement;
 												const currentSrc = target.src;
 												
-												console.log('[Photo] Image load error:', {
+												logger.debug('[Photo] Image load error:', {
 													currentSrc,
 													thumbnailUrl,
 													fullImageUrl,
@@ -377,11 +378,11 @@
 												
 												// Only fallback if we haven't already tried the full image
 												if (currentSrc !== fullImageUrl && fullImageUrl && fullImageUrl !== thumbnailUrl) {
-													console.log('[Photo] Attempting fallback to full image:', fullImageUrl);
+													logger.debug('[Photo] Attempting fallback to full image:', fullImageUrl);
 													target.src = fullImageUrl;
 												} else {
 													// If full image also fails or already tried, show placeholder instead of hiding
-													console.error('[Photo] All image URLs failed, showing placeholder:', {
+													logger.error('[Photo] All image URLs failed, showing placeholder:', {
 														thumbnail: thumbnailUrl,
 														fullImage: fullImageUrl,
 														currentSrc
@@ -392,7 +393,7 @@
 												}
 											}}
 											on:load={() => {
-												console.log('[Photo] Image loaded successfully:', thumbnailUrl);
+												logger.debug('[Photo] Image loaded successfully:', thumbnailUrl);
 											}}
 										/>
 										<div class="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-all duration-300"></div>

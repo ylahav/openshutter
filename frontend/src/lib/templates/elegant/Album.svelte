@@ -9,6 +9,7 @@
 	import AlbumBreadcrumbs from '$lib/components/AlbumBreadcrumbs.svelte';
 	import PhotoLightbox from '$lib/components/PhotoLightbox.svelte';
 	import { getPhotoUrl } from '$lib/utils/photoUrl';
+	import { logger } from '$lib/utils/logger';
 
 	interface AlbumData {
 		album: {
@@ -70,7 +71,7 @@
 			}
 			const data = await res.json();
 			albumData = data;
-			console.log('Album data loaded:', albumData);
+			logger.debug('Album data loaded:', albumData);
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to fetch album';
 			albumData = null;

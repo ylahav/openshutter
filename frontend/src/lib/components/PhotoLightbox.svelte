@@ -2,6 +2,7 @@
 	import { createEventDispatcher } from 'svelte';
 	import { currentLanguage } from '$stores/language';
 	import { MultiLangUtils } from '$utils/multiLang';
+	import { logger } from '$lib/utils/logger';
 
 	const dispatch = createEventDispatcher();
 
@@ -215,7 +216,7 @@
 					}
 				}
 			} catch (error) {
-				console.error('Failed to fetch face data:', error);
+				logger.error('Failed to fetch face data:', error);
 				faceData = null;
 			}
 		};
@@ -440,16 +441,16 @@
 				
 				const name = extractName(person.fullName) || extractName(person.firstName);
 				if (name) {
-					console.log(`Fetched person name for ${personId}: ${name}`);
+					logger.debug(`Fetched person name for ${personId}: ${name}`);
 				} else {
-					console.warn(`Person name not found for ${personId}, person data:`, person);
+					logger.warn(`Person name not found for ${personId}, person data:`, person);
 				}
 				return name;
 			} else {
-				console.warn(`Failed to fetch person ${personId}: ${personResponse.status} ${personResponse.statusText}`);
+				logger.warn(`Failed to fetch person ${personId}: ${personResponse.status} ${personResponse.statusText}`);
 			}
 		} catch (err) {
-			console.error('Could not fetch person name:', err);
+			logger.error('Could not fetch person name:', err);
 		}
 		return null;
 	}

@@ -1,6 +1,8 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { env } from '$env/dynamic/private';
+import { logger } from '$lib/utils/logger';
+import { parseError } from '$lib/utils/errorHandler';
 
 const BACKEND_URL = env.BACKEND_URL || process.env.BACKEND_URL || 'http://localhost:5000';
 const API_BASE = `${BACKEND_URL}/api`;
@@ -20,7 +22,7 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 			return json({ success: false, error: 'folderPath is required' }, { status: 400 });
 		}
 
-		console.log(`[Photo Upload From Folder API] Received request:`, {
+		logger.debug(`[Photo Upload From Folder API] Received request:`, {
 			folderPath,
 			albumId,
 			hasTitle: !!title,
@@ -30,7 +32,7 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 
 		// Extract auth token from cookies
 		const authToken = cookies.get('auth_token');
-
+		
 		// Build headers for backend request
 		const headers: HeadersInit = {
 			'Content-Type': 'application/json'
@@ -42,7 +44,7 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 
 		// Forward request to backend
 		const backendUrl = `${API_BASE}/photos/upload-from-folder`;
-		console.log(`[Photo Upload From Folder API] Proxying request to backend: ${backendUrl}`);
+		logger.debug(`[Photo Upload From Folder API] Proxying request to backend: ${backendUrl}`);
 
 		const backendResponse = await fetch(backendUrl, {
 			method: 'POST',
@@ -64,7 +66,7 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 
 		// Forward the backend response
 		if (!backendResponse.ok) {
-			console.error('[Photo Upload From Folder API] Backend error:', {
+			logger.error('[Photo Upload From Folder API] Backend error:', {
 				status: backendResponse.status,
 				statusText: backendResponse.statusText,
 				error: responseData
@@ -78,11 +80,14 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 			);
 		}
 
-		console.log('[Photo Upload From Folder API] Upload successful');
+		logger.debug('[Photo Upload From Folder API] Upload successful');
 		return json(responseData, { status: backendResponse.status });
 	} catch (error) {
-		console.error('[Photo Upload From Folder API] Error proxying request:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
-		return json({ success: false, error: errorMessage || 'Failed to upload from folder' }, { status: 500 });
+		logger.error('[Photo Upload From Folder API] Error proxying request:', error);
+		const parsed = parseError(error);
+		return json({ 
+			success: false, 
+			error: parsed.userMessage || 'Failed to upload from folder' 
+		}, { status: parsed.status || 500 });
 	}
 };

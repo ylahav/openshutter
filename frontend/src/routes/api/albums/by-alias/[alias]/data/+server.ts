@@ -1,6 +1,8 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { backendGet, parseBackendResponse } from '$lib/utils/backend-api';
+import { logger } from '$lib/utils/logger';
+import { parseError } from '$lib/utils/errorHandler';
 
 export const GET: RequestHandler = async ({ params, url }) => {
 	try {
@@ -23,17 +25,17 @@ export const GET: RequestHandler = async ({ params, url }) => {
 		// The backend endpoint /albums/:idOrAlias/data handles both IDs and aliases
 		// It uses findOneByIdOrAlias which checks both ID and alias
 		const endpoint = `/albums/${alias}/data?${queryParams.toString()}`;
-		console.log(`[API] Fetching album data for alias: ${alias} from endpoint: ${endpoint}`);
+		logger.debug(`[API] Fetching album data for alias: ${alias} from endpoint: ${endpoint}`);
 		const response = await backendGet(endpoint);
 		
 		if (!response.ok) {
-			console.error(`[API] Backend returned error for alias ${alias}:`, response.status, response.statusText);
+			logger.error(`[API] Backend returned error for alias ${alias}:`, response.status, response.statusText);
 			
 			// Try to get more details about the error
 			let errorMessage = 'Album not found';
 			try {
 				const errorText = await response.text();
-				console.error(`[API] Error response body:`, errorText);
+				logger.error(`[API] Error response body:`, errorText);
 				const errorData = JSON.parse(errorText);
 				errorMessage = errorData.error || errorData.message || errorMessage;
 			} catch (e) {
@@ -49,11 +51,11 @@ export const GET: RequestHandler = async ({ params, url }) => {
 		const albumData = await parseBackendResponse<any>(response);
 		return json(albumData);
 	} catch (error) {
-		console.error('API: Error getting album data by alias:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
+		logger.error('API: Error getting album data by alias:', error);
+		const parsed = parseError(error);
 		return json(
-			{ success: false, error: `Failed to get album data: ${errorMessage}` },
-			{ status: 500 }
+			{ success: false, error: parsed.userMessage || `Failed to get album data: ${parsed.message}` },
+			{ status: parsed.status || 500 }
 		);
 	}
 };

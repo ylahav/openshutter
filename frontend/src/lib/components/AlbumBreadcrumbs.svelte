@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { currentLanguage } from '$stores/language';
   import { MultiLangUtils } from '$utils/multiLang';
+  import { logger } from '$lib/utils/logger';
 
   interface TemplateAlbum {
     _id: string;
@@ -49,7 +50,7 @@
           currentAlbum = data;
         }
       } catch (err) {
-        console.error('Failed to fetch album:', err);
+        logger.error('Failed to fetch album:', err);
       }
     }
   }
@@ -88,7 +89,7 @@
           parentChain.push(parent);
           currentParentId = parent.parentAlbumId;
         } catch (err) {
-          console.error('Failed to fetch parent album:', err);
+          logger.error('Failed to fetch parent album:', err);
           break;
         }
       }
@@ -120,7 +121,7 @@
 
       breadcrumbs = items;
     } catch (err) {
-      console.error('Failed to build breadcrumbs:', err);
+      logger.error('Failed to build breadcrumbs:', err);
       const { basePath, rootName } = getBasePathAndRootName();
       
       if (currentAlbum) {

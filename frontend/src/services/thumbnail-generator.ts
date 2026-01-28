@@ -1,4 +1,5 @@
 import sharp from 'sharp'
+import { logger } from '@/lib/utils/logger'
 
 export interface ThumbnailSize {
   name: string
@@ -130,7 +131,7 @@ export class ThumbnailGenerator {
         const thumbnail = await this.generateThumbnail(imageBuffer, size, imageDimensions)
         thumbnails[size.name] = thumbnail
       } catch (error) {
-        console.error(`Failed to generate ${size.name} thumbnail:`, error)
+        logger.error(`Failed to generate ${size.name} thumbnail:`, error)
         // Continue with other sizes even if one fails
       }
     }
@@ -201,7 +202,7 @@ export class ThumbnailGenerator {
 
       return `data:image/jpeg;base64,${blurBuffer.toString('base64')}`
     } catch (error) {
-      console.error('Failed to generate blur placeholder:', error)
+      logger.error('Failed to generate blur placeholder:', error)
       // Return a simple gradient as fallback
       return this.generateFallbackBlurDataURL(width, height)
     }

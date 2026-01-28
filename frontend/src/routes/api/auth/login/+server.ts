@@ -2,6 +2,7 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { SignJWT } from 'jose';
 import { env } from '$env/dynamic/private';
+import { logger } from '$lib/utils/logger';
 
 // Simple static JWT secret - backend handles all authentication
 function getJWTSecret(): Uint8Array {
@@ -54,7 +55,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			.sign(JWT_SECRET);
 		
 		// Log token creation for debugging
-		console.log('[Login API] Token created:', {
+		logger.debug('[Login API] Token created:', {
 			email: user.email,
 			role: user.role,
 			tokenLength: jwt.length
@@ -74,7 +75,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 
 		return json({ role: user.role, user }, { status: 200 });
 	} catch (error) {
-		console.error('Login error:', error);
+		logger.error('Login error:', error);
 		return json({ error: 'Login failed' }, { status: 500 });
 	}
 };

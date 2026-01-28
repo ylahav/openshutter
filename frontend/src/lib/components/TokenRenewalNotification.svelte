@@ -2,6 +2,7 @@
 	import { tokenRenewalNotification } from '$lib/stores/tokenRenewal';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
+	import { logger } from '$lib/utils/logger';
 
 	let oauthWindow: Window | null = null;
 	let renewing = false;
@@ -18,7 +19,7 @@
 			// Hide notification - user will see the renewal banner on storage page
 			tokenRenewalNotification.hide();
 		} catch (err) {
-			console.error('Failed to navigate to storage page:', err);
+			logger.error('Failed to navigate to storage page:', err);
 		} finally {
 			renewing = false;
 		}

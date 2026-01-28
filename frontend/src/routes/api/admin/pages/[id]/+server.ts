@@ -1,6 +1,8 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { backendGet, backendPut, backendDelete, parseBackendResponse } from '$lib/utils/backend-api';
+import { logger } from '$lib/utils/logger';
+import { parseError } from '$lib/utils/errorHandler';
 
 export const GET: RequestHandler = async ({ params, locals, cookies }) => {
 	try {
@@ -19,9 +21,12 @@ export const GET: RequestHandler = async ({ params, locals, cookies }) => {
 			data: page
 		});
 	} catch (error) {
-		console.error('Get page error:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
-		return json({ success: false, error: errorMessage || 'Failed to fetch page' }, { status: 500 });
+		logger.error('Get page error:', error);
+		const parsed = parseError(error);
+		return json({ 
+			success: false, 
+			error: parsed.userMessage || 'Failed to fetch page' 
+		}, { status: parsed.status || 500 });
 	}
 };
 
@@ -43,9 +48,12 @@ export const PUT: RequestHandler = async ({ params, request, locals, cookies }) 
 			data: page
 		});
 	} catch (error) {
-		console.error('Update page error:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
-		return json({ success: false, error: errorMessage || 'Failed to update page' }, { status: 500 });
+		logger.error('Update page error:', error);
+		const parsed = parseError(error);
+		return json({ 
+			success: false, 
+			error: parsed.userMessage || 'Failed to update page' 
+		}, { status: parsed.status || 500 });
 	}
 };
 
@@ -66,8 +74,11 @@ export const DELETE: RequestHandler = async ({ params, locals, cookies }) => {
 			message: result.message || 'Page deleted successfully'
 		});
 	} catch (error) {
-		console.error('Delete page error:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
-		return json({ success: false, error: errorMessage || 'Failed to delete page' }, { status: 500 });
+		logger.error('Delete page error:', error);
+		const parsed = parseError(error);
+		return json({ 
+			success: false, 
+			error: parsed.userMessage || 'Failed to delete page' 
+		}, { status: parsed.status || 500 });
 	}
 };

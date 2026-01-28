@@ -1,6 +1,8 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { backendGet, parseBackendResponse } from '$lib/utils/backend-api';
+import { logger } from '$lib/utils/logger';
+import { parseError } from '$lib/utils/errorHandler';
 
 export const GET: RequestHandler = async ({ params }) => {
 	try {
@@ -38,11 +40,11 @@ export const GET: RequestHandler = async ({ params }) => {
 			}
 		});
 	} catch (error) {
-		console.error('Error getting album photo count:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
+		logger.error('Error getting album photo count:', error);
+		const parsed = parseError(error);
 		return json(
-			{ success: false, error: `Failed to get album photo count: ${errorMessage}` },
-			{ status: 500 }
+			{ success: false, error: parsed.userMessage || `Failed to get album photo count: ${parsed.message}` },
+			{ status: parsed.status || 500 }
 		);
 	}
 };

@@ -12,6 +12,8 @@
 	import FaceMatchingPanel from '$lib/components/FaceMatchingPanel.svelte';
 	import CollectionPopup from '$lib/components/CollectionPopup.svelte';
 	import { getPhotoUrl, getPhotoFullUrl } from '$lib/utils/photoUrl';
+	import { logger } from '$lib/utils/logger';
+	import { handleError } from '$lib/utils/errorHandler';
 
 	interface Photo {
 		_id: string;
@@ -99,8 +101,8 @@
 	// Only trigger once per photoId change
 	$: if (browser && photoId && !loadPhotoCalled && photoId !== lastLoadedPhotoId) {
 		loadPhoto().catch((err) => {
-			console.error('[Reactive] loadPhoto error:', err);
-			error = `Failed to load photo: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			logger.error('[Reactive] loadPhoto error:', err);
+			error = handleError(err, 'Failed to load photo');
 			loading = false;
 			loadPhotoCalled = false; // Reset on error so it can retry
 			lastLoadedPhotoId = null; // Reset on error
@@ -166,7 +168,7 @@
 				
 				if (!response.ok) {
 					const errorText = await response.text();
-					console.error('[loadPhoto] Response not OK:', response.status, errorText);
+					logger.error('[loadPhoto] Response not OK:', response.status, errorText);
 					throw new Error(`Failed to fetch photo: ${response.status} ${response.statusText}`);
 				}
 				
@@ -177,7 +179,7 @@
 				lastLoadedPhotoId = photoId; // Mark this photo as loaded
 				
 				// Debug: Log storage information
-				console.log('[loadPhoto] Photo loaded:', {
+				logger.debug('[loadPhoto] Photo loaded:', {
 					photoId,
 					hasStorage: !!photo?.storage,
 					storage: photo?.storage,
@@ -247,8 +249,8 @@
 				formData = { ...formData };
 			}
 		} catch (err) {
-			console.error('[loadPhoto] Failed to fetch photo:', err);
-			error = `Failed to load photo: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			logger.error('[loadPhoto] Failed to fetch photo:', err);
+			error = handleError(err, 'Failed to load photo');
 			photo = null;
 		} finally {
 			// Always clear timeout in finally block to ensure it's cleared
@@ -310,8 +312,8 @@
 				}
 			}, 1000);
 		} catch (err) {
-			console.error('Failed to update photo:', err);
-			error = `Failed to update photo: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			logger.error('Failed to update photo:', err);
+			error = handleError(err, 'Failed to update photo');
 			notification = {
 				show: true,
 				message: error,
@@ -365,8 +367,8 @@
 				loadPhoto();
 			}, 1000);
 		} catch (err) {
-			console.error('Failed to regenerate thumbnails:', err);
-			error = `Failed to regenerate thumbnails: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			logger.error('Failed to regenerate thumbnails:', err);
+			error = handleError(err, 'Failed to regenerate thumbnails');
 			notification = {
 				show: true,
 				message: error,
@@ -419,7 +421,7 @@
 				}));
 			}
 		} catch (error) {
-			console.error('Failed to load options:', error);
+			logger.error('Failed to load options:', error);
 		} finally {
 			loadingOptions = false;
 		}
@@ -455,8 +457,8 @@
 		// Load photo and options
 		if (photoId) {
 			loadPhoto().catch((err) => {
-				console.error('[onMount] loadPhoto error:', err);
-				error = `Failed to load photo: ${err instanceof Error ? err.message : 'Unknown error'}`;
+				logger.error('[onMount] loadPhoto error:', err);
+				error = handleError(err, 'Failed to load photo');
 				loading = false;
 			});
 		} else {
@@ -465,7 +467,7 @@
 		}
 		
 		loadOptions().catch((err) => {
-			console.error('[onMount] loadOptions error:', err);
+			logger.error('[onMount] loadOptions error:', err);
 		});
 	});
 </script>
@@ -528,7 +530,7 @@
 								style="image-orientation: from-image;"
 								on:error={(e) => {
 									const target = e.currentTarget as HTMLImageElement;
-									console.error('[Photo Edit] Image load error:', {
+									logger.error('[Photo Edit] Image load error:', {
 										src: target.src,
 										photoId,
 										storage: photo.storage
@@ -536,7 +538,7 @@
 									if (target) target.style.display = 'none';
 								}}
 								on:load={() => {
-									console.log('[Photo Edit] Image loaded successfully:', photoUrl);
+									logger.debug('[Photo Edit] Image loaded successfully:', photoUrl);
 								}}
 							/>
 						{:else}

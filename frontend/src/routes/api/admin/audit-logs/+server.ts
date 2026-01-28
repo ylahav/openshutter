@@ -1,6 +1,8 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { backendGet, parseBackendResponse } from '$lib/utils/backend-api';
+import { logger } from '$lib/utils/logger';
+import { parseError } from '$lib/utils/errorHandler';
 
 export const GET: RequestHandler = async ({ url, locals, cookies }) => {
 	try {
@@ -26,11 +28,11 @@ export const GET: RequestHandler = async ({ url, locals, cookies }) => {
 			data: result.data || result
 		});
 	} catch (error) {
-		console.error('API: Error fetching audit logs:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
+		logger.error('API: Error fetching audit logs:', error);
+		const parsed = parseError(error);
 		return json(
-			{ success: false, error: `Failed to fetch audit logs: ${errorMessage}` },
-			{ status: 500 }
+			{ success: false, error: parsed.userMessage || `Failed to fetch audit logs: ${parsed.message}` },
+			{ status: parsed.status || 500 }
 		);
 	}
 };

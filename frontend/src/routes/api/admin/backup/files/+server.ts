@@ -3,6 +3,8 @@ import { promises as fs } from 'fs';
 import { join } from 'path';
 import { existsSync } from 'fs';
 import archiver from 'archiver';
+import { logger } from '$lib/utils/logger';
+import { parseError } from '$lib/utils/errorHandler';
 
 export const POST: RequestHandler = async ({ locals }) => {
 	try {
@@ -37,7 +39,7 @@ export const POST: RequestHandler = async ({ locals }) => {
 				});
 
 				archive.on('error', (err: Error) => {
-					console.error('Archive error:', err);
+					logger.error('Archive error:', err);
 					controller.error(err);
 				});
 			}
@@ -72,12 +74,12 @@ export const POST: RequestHandler = async ({ locals }) => {
 			}
 		});
 	} catch (error) {
-		console.error('Files backup error:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
+		logger.error('Files backup error:', error);
+		const parsed = parseError(error);
 		return new Response(
-			JSON.stringify({ success: false, error: `Failed to create files backup: ${errorMessage}` }),
+			JSON.stringify({ success: false, error: parsed.userMessage || `Failed to create files backup: ${parsed.message}` }),
 			{
-				status: 500,
+				status: parsed.status || 500,
 				headers: { 'Content-Type': 'application/json' }
 			}
 		);

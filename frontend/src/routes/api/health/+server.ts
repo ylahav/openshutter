@@ -1,6 +1,8 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { env } from '$env/dynamic/private';
+import { logger } from '$lib/utils/logger';
+import { parseError } from '$lib/utils/errorHandler';
 
 export const GET: RequestHandler = async () => {
 	try {
@@ -17,11 +19,11 @@ export const GET: RequestHandler = async () => {
 		const data = await response.json();
 		return json(data);
 	} catch (error) {
-		console.error('Health check failed:', error);
-		const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+		logger.error('Health check failed:', error);
+		const parsed = parseError(error);
 		return json(
-			{ status: 'error', message: `Backend unreachable: ${errorMessage}` },
-			{ status: 503 }
+			{ status: 'error', message: parsed.userMessage || `Backend unreachable: ${parsed.message}` },
+			{ status: parsed.status || 503 }
 		);
 	}
 };

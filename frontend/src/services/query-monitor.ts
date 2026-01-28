@@ -1,3 +1,5 @@
+import { logger } from '@/lib/utils/logger'
+
 export interface QueryMetrics {
   queryName: string
   executionTime: number
@@ -43,17 +45,17 @@ export class QueryMonitor {
       
       // Log slow queries
       if (executionTime > this.thresholds.slowQueryThreshold) {
-        console.warn(`🐌 Slow query detected: ${queryName} took ${executionTime.toFixed(2)}ms`)
+        logger.warn(`🐌 Slow query detected: ${queryName} took ${executionTime.toFixed(2)}ms`)
       }
       
       // Log large result sets
       if (resultCount > this.thresholds.maxResultCount) {
-        console.warn(`📊 Large result set: ${queryName} returned ${resultCount} results`)
+        logger.warn(`📊 Large result set: ${queryName} returned ${resultCount} results`)
       }
       
       // Log errors
       if (error) {
-        console.error(`❌ Query error: ${queryName} - ${error}`)
+        logger.error(`❌ Query error: ${queryName} - ${error}`)
       }
     }
   }

@@ -1,6 +1,8 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { backendPost, parseBackendResponse } from '$lib/utils/backend-api';
+import { logger } from '$lib/utils/logger';
+import { parseError } from '$lib/utils/errorHandler';
 
 export const POST: RequestHandler = async ({ params, request, locals, cookies }) => {
 	try {
@@ -20,15 +22,15 @@ export const POST: RequestHandler = async ({ params, request, locals, cookies })
 			data: result.data || result
 		});
 	} catch (error) {
-		console.error('Failed to re-read EXIF data:', error);
-		const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+		logger.error('Failed to re-read EXIF data:', error);
+		const parsed = parseError(error);
 		return json(
 			{
 				success: false,
-				error: 'Failed to re-read EXIF data',
-				details: errorMessage
+				error: parsed.userMessage || 'Failed to re-read EXIF data',
+				details: parsed.message
 			},
-			{ status: 500 }
+			{ status: parsed.status || 500 }
 		);
 	}
 };

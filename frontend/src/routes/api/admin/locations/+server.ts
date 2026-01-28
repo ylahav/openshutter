@@ -1,6 +1,8 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { backendGet, backendPost, parseBackendResponse } from '$lib/utils/backend-api';
+import { logger } from '$lib/utils/logger';
+import { parseError } from '$lib/utils/errorHandler';
 
 export const GET: RequestHandler = async ({ url, locals, cookies }) => {
 	try {
@@ -40,9 +42,12 @@ export const GET: RequestHandler = async ({ url, locals, cookies }) => {
 			}
 		});
 	} catch (error) {
-		console.error('Admin Locations API error:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
-		return json({ success: false, error: errorMessage || 'Failed to fetch locations' }, { status: 500 });
+		logger.error('Admin Locations API error:', error);
+		const parsed = parseError(error);
+		return json({ 
+			success: false, 
+			error: parsed.userMessage || 'Failed to fetch locations' 
+		}, { status: parsed.status || 500 });
 	}
 };
 
@@ -63,8 +68,11 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 			data: location
 		});
 	} catch (error) {
-		console.error('Create location error:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
-		return json({ success: false, error: errorMessage || 'Failed to create location' }, { status: 500 });
+		logger.error('Create location error:', error);
+		const parsed = parseError(error);
+		return json({ 
+			success: false, 
+			error: parsed.userMessage || 'Failed to create location' 
+		}, { status: parsed.status || 500 });
 	}
 };

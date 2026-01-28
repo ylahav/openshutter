@@ -1,6 +1,8 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { backendPost, parseBackendResponse } from '$lib/utils/backend-api';
+import { logger } from '$lib/utils/logger';
+import { parseError } from '$lib/utils/errorHandler';
 
 export const POST: RequestHandler = async ({ request, cookies }) => {
 	try {
@@ -17,7 +19,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			data: coverImagesData
 		};
 		
-		console.log('Cover images API route - returning:', {
+		logger.debug('Cover images API route - returning:', {
 			hasData: Object.keys(coverImagesData).length > 0,
 			albumCount: Object.keys(coverImagesData).length,
 			responseStructure: 'wrapped'
@@ -25,11 +27,11 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 		
 		return json(wrappedResponse);
 	} catch (error) {
-		console.error('Error getting album cover images:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
+		logger.error('Error getting album cover images:', error);
+		const parsed = parseError(error);
 		return json(
-			{ success: false, error: `Failed to get album cover images: ${errorMessage}` },
-			{ status: 500 }
+			{ success: false, error: parsed.userMessage || `Failed to get album cover images: ${parsed.message}` },
+			{ status: parsed.status || 500 }
 		);
 	}
 };

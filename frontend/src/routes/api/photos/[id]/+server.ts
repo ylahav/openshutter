@@ -1,6 +1,8 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { backendGet, parseBackendResponse } from '$lib/utils/backend-api';
+import { logger } from '$lib/utils/logger';
+import { parseError } from '$lib/utils/errorHandler';
 
 export const GET: RequestHandler = async ({ params }) => {
 	try {
@@ -15,8 +17,11 @@ export const GET: RequestHandler = async ({ params }) => {
 
 		return json(photo);
 	} catch (error) {
-		console.error('Failed to get photo:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
-		return json({ success: false, error: `Failed to get photo: ${errorMessage}` }, { status: 500 });
+		logger.error('Failed to get photo:', error);
+		const parsed = parseError(error);
+		return json({ 
+			success: false, 
+			error: parsed.userMessage || `Failed to get photo: ${parsed.message}` 
+		}, { status: parsed.status || 500 });
 	}
 };

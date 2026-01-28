@@ -1,6 +1,8 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { backendGet, parseBackendResponse } from '$lib/utils/backend-api';
+import { logger } from '$lib/utils/logger';
+import { parseError } from '$lib/utils/errorHandler';
 
 export const GET: RequestHandler = async ({ url, locals, cookies }) => {
 	try {
@@ -22,11 +24,11 @@ export const GET: RequestHandler = async ({ url, locals, cookies }) => {
 		const endpoint = `/admin/albums${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
 		const response = await backendGet(endpoint, { cookies });
 		
-		console.log('[Admin Albums API] Backend response status:', response.status, response.statusText);
+		logger.debug('[Admin Albums API] Backend response status:', response.status, response.statusText);
 		
 		const result = await parseBackendResponse(response);
 		
-		console.log('[Admin Albums API] Parsed result:', {
+		logger.debug('[Admin Albums API] Parsed result:', {
 			isArray: Array.isArray(result),
 			type: typeof result,
 			count: Array.isArray(result) ? result.length : 'N/A'
@@ -35,8 +37,11 @@ export const GET: RequestHandler = async ({ url, locals, cookies }) => {
 		// Return the result directly (should be an array)
 		return json(result);
 	} catch (error) {
-		console.error('Admin Albums API error:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
-		return json({ success: false, error: errorMessage || 'Failed to fetch albums' }, { status: 500 });
+		logger.error('Admin Albums API error:', error);
+		const parsed = parseError(error);
+		return json({ 
+			success: false, 
+			error: parsed.userMessage || 'Failed to fetch albums' 
+		}, { status: parsed.status || 500 });
 	}
 };

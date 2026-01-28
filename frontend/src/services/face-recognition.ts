@@ -5,6 +5,8 @@
  * Client-side only (browser) - must not be executed during SSR
  */
 
+import { logger } from '@/lib/utils/logger'
+
 // Dynamic import to avoid SSR issues
 let faceapi: typeof import('face-api.js') | null = null;
 
@@ -81,14 +83,14 @@ export class FaceRecognitionService {
         ])
 
         this.modelsLoaded = true
-        console.log('Face detection models loaded successfully')
+        logger.info('Face detection models loaded successfully')
       } catch (error) {
-        console.error('Failed to load face detection models:', error)
-        console.error('Model base URL:', '/models/face-api')
-        console.error('Expected structure:')
-        console.error('  /models/face-api/tiny_face_detector/tiny_face_detector_model-weights_manifest.json')
-        console.error('  /models/face-api/face_landmark_68/face_landmark_68_model-weights_manifest.json')
-        console.error('  /models/face-api/face_recognition/face_recognition_model-weights_manifest.json')
+        logger.error('Failed to load face detection models:', error)
+        logger.error('Model base URL:', '/models/face-api')
+        logger.error('Expected structure:')
+        logger.error('  /models/face-api/tiny_face_detector/tiny_face_detector_model-weights_manifest.json')
+        logger.error('  /models/face-api/face_landmark_68/face_landmark_68_model-weights_manifest.json')
+        logger.error('  /models/face-api/face_recognition/face_recognition_model-weights_manifest.json')
         throw new Error('Failed to load face detection models. Please ensure models are available at /models/face-api with subdirectories: tiny_face_detector, face_landmark_68, face_recognition')
       }
     })()

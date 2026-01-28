@@ -1,12 +1,14 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { backendGet, backendPut, parseBackendResponse } from '$lib/utils/backend-api';
+import { logger } from '$lib/utils/logger';
+import { parseError } from '$lib/utils/errorHandler';
 
 export const GET: RequestHandler = async ({ locals, cookies, request }) => {
 	try {
 		// Log for debugging authentication issues
 		const token = cookies.get('auth_token');
-		console.log('[Templates API] Request received:', {
+		logger.debug('[Templates API] Request received:', {
 			hasUser: !!locals.user,
 			userRole: locals.user?.role,
 			hasCookie: !!token,
@@ -18,7 +20,7 @@ export const GET: RequestHandler = async ({ locals, cookies, request }) => {
 		// Require admin access
 		if (!locals.user || locals.user.role !== 'admin') {
 			// Log for debugging
-			console.warn('[Templates API] Unauthorized access attempt:', {
+			logger.warn('[Templates API] Unauthorized access attempt:', {
 				hasUser: !!locals.user,
 				userRole: locals.user?.role,
 				hasCookie: !!token,
@@ -33,7 +35,7 @@ export const GET: RequestHandler = async ({ locals, cookies, request }) => {
 		}
 
 		// Log before making backend request
-		console.log('[Templates API] Making backend request with cookies:', {
+		logger.debug('[Templates API] Making backend request with cookies:', {
 			hasCookies: !!cookies,
 			authTokenPresent: !!cookies.get('auth_token'),
 			tokenLength: cookies.get('auth_token')?.length || 0
@@ -72,24 +74,27 @@ export const GET: RequestHandler = async ({ locals, cookies, request }) => {
 
 		// Validate templates array
 		if (!Array.isArray(templates)) {
-			console.error('Invalid templates response:', templates);
+			logger.error('Invalid templates response:', templates);
 			throw new Error('Invalid response format: expected array of templates');
 		}
 
 		return json({ success: true, data: templates });
 	} catch (error) {
-		console.error('API: Error getting templates:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
+		logger.error('API: Error getting templates:', error);
+		const parsed = parseError(error);
 		
 		// Check for network/connection errors
-		if (errorMessage.includes('fetch') || errorMessage.includes('ECONNREFUSED') || errorMessage.includes('network')) {
+		if (parsed.message.includes('fetch') || parsed.message.includes('ECONNREFUSED') || parsed.message.includes('network')) {
 			return json({ 
 				success: false, 
 				error: 'Cannot connect to backend server. Please ensure the backend is running on port 5000.' 
 			}, { status: 503 });
 		}
 		
-		return json({ success: false, error: errorMessage || 'Failed to get templates' }, { status: 500 });
+		return json({ 
+			success: false, 
+			error: parsed.userMessage || 'Failed to get templates' 
+		}, { status: parsed.status || 500 });
 	}
 };
 
@@ -116,8 +121,11 @@ export const PUT: RequestHandler = async ({ request, locals, cookies }) => {
 			message: result.message || 'Template updated successfully'
 		});
 	} catch (error) {
-		console.error('API: Error setting template:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
-		return json({ success: false, error: errorMessage || 'Failed to set template' }, { status: 500 });
+		logger.error('API: Error setting template:', error);
+		const parsed = parseError(error);
+		return json({ 
+			success: false, 
+			error: parsed.userMessage || 'Failed to set template' 
+		}, { status: parsed.status || 500 });
 	}
 };

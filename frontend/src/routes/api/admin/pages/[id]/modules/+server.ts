@@ -1,6 +1,8 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { backendGet, backendPost, parseBackendResponse } from '$lib/utils/backend-api';
+import { logger } from '$lib/utils/logger';
+import { parseError } from '$lib/utils/errorHandler';
 
 export const GET: RequestHandler = async ({ params, locals, cookies }) => {
 	try {
@@ -17,9 +19,12 @@ export const GET: RequestHandler = async ({ params, locals, cookies }) => {
 			data: result.data || result
 		});
 	} catch (error) {
-		console.error('Admin page modules GET error:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
-		return json({ success: false, error: errorMessage || 'Failed to fetch modules' }, { status: 500 });
+		logger.error('Admin page modules GET error:', error);
+		const parsed = parseError(error);
+		return json({ 
+			success: false, 
+			error: parsed.userMessage || 'Failed to fetch modules' 
+		}, { status: parsed.status || 500 });
 	}
 };
 
@@ -39,8 +44,11 @@ export const POST: RequestHandler = async ({ params, request, locals, cookies })
 			data: moduleData
 		});
 	} catch (error) {
-		console.error('Admin page modules POST error:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
-		return json({ success: false, error: errorMessage || 'Failed to create module' }, { status: 500 });
+		logger.error('Admin page modules POST error:', error);
+		const parsed = parseError(error);
+		return json({ 
+			success: false, 
+			error: parsed.userMessage || 'Failed to create module' 
+		}, { status: parsed.status || 500 });
 	}
 };

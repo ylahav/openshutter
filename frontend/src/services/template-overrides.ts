@@ -1,5 +1,6 @@
 import { TemplateConfig } from '@/types/template'
 import { SiteConfig } from '@/types/site-config'
+import { logger } from '@/lib/utils/logger'
 
 export interface TemplateWithOverrides extends TemplateConfig {
   // Mark that this template has been processed with overrides
@@ -97,7 +98,7 @@ export class TemplateOverridesService {
       // Apply overrides from site config
       return this.mergeTemplateWithOverrides(baseTemplate as TemplateConfig, siteConfig)
     } catch (error) {
-      console.error('Error loading template with overrides:', error)
+      logger.error('Error loading template with overrides:', error)
       return null
     }
   }

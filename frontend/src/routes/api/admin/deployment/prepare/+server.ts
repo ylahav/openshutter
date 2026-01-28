@@ -1,6 +1,8 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { backendPost, parseBackendResponse } from '$lib/utils/backend-api';
+import { logger } from '$lib/utils/logger';
+import { parseError } from '$lib/utils/errorHandler';
 
 export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 	try {
@@ -42,11 +44,11 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 			downloadUrl: result.downloadUrl
 		});
 	} catch (error) {
-		console.error('Deployment preparation error:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
+		logger.error('Deployment preparation error:', error);
+		const parsed = parseError(error);
 		return json(
-			{ success: false, error: errorMessage || 'Failed to prepare deployment' },
-			{ status: 500 }
+			{ success: false, error: parsed.userMessage || 'Failed to prepare deployment' },
+			{ status: parsed.status || 500 }
 		);
 	}
 };

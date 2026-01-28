@@ -1,6 +1,8 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { backendGet, parseBackendResponse } from '$lib/utils/backend-api';
+import { logger } from '$lib/utils/logger';
+import { parseError } from '$lib/utils/errorHandler';
 
 export const GET: RequestHandler = async ({ params, cookies }) => {
 	try {
@@ -13,11 +15,11 @@ export const GET: RequestHandler = async ({ params, cookies }) => {
 		const data = result.data || result;
 		return json(data);
 	} catch (error) {
-		console.error('Error getting album cover image:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
+		logger.error('Error getting album cover image:', error);
+		const parsed = parseError(error);
 		return json(
-			{ success: false, error: `Failed to get album cover image: ${errorMessage}` },
-			{ status: 500 }
+			{ success: false, error: parsed.userMessage || `Failed to get album cover image: ${parsed.message}` },
+			{ status: parsed.status || 500 }
 		);
 	}
 };

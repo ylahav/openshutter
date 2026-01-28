@@ -1,6 +1,8 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { backendGet, parseBackendResponse } from '$lib/utils/backend-api';
+import { logger } from '$lib/utils/logger';
+import { parseError } from '$lib/utils/errorHandler';
 
 export const GET: RequestHandler = async ({ params, url }) => {
 	try {
@@ -48,8 +50,11 @@ export const GET: RequestHandler = async ({ params, url }) => {
 			}
 		});
 	} catch (error) {
-		console.error('API: Error getting photos by album alias:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
-		return json({ success: false, error: `Failed to get photos: ${errorMessage}` }, { status: 500 });
+		logger.error('API: Error getting photos by album alias:', error);
+		const parsed = parseError(error);
+		return json({ 
+			success: false, 
+			error: parsed.userMessage || `Failed to get photos: ${parsed.message}` 
+		}, { status: parsed.status || 500 });
 	}
 };

@@ -1,6 +1,8 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { backendGet, parseBackendResponse } from '$lib/utils/backend-api';
+import { logger } from '$lib/utils/logger';
+import { parseError } from '$lib/utils/errorHandler';
 
 export const GET: RequestHandler = async ({ cookies }) => {
 	try {
@@ -10,8 +12,10 @@ export const GET: RequestHandler = async ({ cookies }) => {
 
 		return json(config);
 	} catch (error) {
-		console.error('Failed to get site config:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
-		return json({ error: `Failed to get site configuration: ${errorMessage}` }, { status: 500 });
+		logger.error('Failed to get site config:', error);
+		const parsed = parseError(error);
+		return json({ 
+			error: parsed.userMessage || `Failed to get site configuration: ${parsed.message}` 
+		}, { status: parsed.status || 500 });
 	}
 };

@@ -1,6 +1,8 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { backendGet, parseBackendResponse } from '$lib/utils/backend-api';
+import { logger } from '$lib/utils/logger';
+import { parseError } from '$lib/utils/errorHandler';
 
 export const GET: RequestHandler = async ({ params, url }) => {
 	try {
@@ -22,11 +24,11 @@ export const GET: RequestHandler = async ({ params, url }) => {
 
 		return json(albumData);
 	} catch (error) {
-		console.error('API: Error getting album data:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
+		logger.error('API: Error getting album data:', error);
+		const parsed = parseError(error);
 		return json(
-			{ success: false, error: `Failed to get album data: ${errorMessage}` },
-			{ status: 500 }
+			{ success: false, error: parsed.userMessage || `Failed to get album data: ${parsed.message}` },
+			{ status: parsed.status || 500 }
 		);
 	}
 };

@@ -8,6 +8,8 @@
 	import MultiLangHTMLEditor from '$lib/components/MultiLangHTMLEditor.svelte';
 	import AlbumBreadcrumbs from '$lib/components/AlbumBreadcrumbs.svelte';
 	import NotificationDialog from '$lib/components/NotificationDialog.svelte';
+	import { logger } from '$lib/utils/logger';
+	import { handleError } from '$lib/utils/errorHandler';
 
 	interface Album {
 		_id: string;
@@ -61,7 +63,7 @@
 			}
 			const result = await response.json();
 			album = result.data || result;
-			console.log('Album loaded:', album);
+			logger.debug('Album loaded:', album);
 
 			// Initialize form data
 			if (album) {
@@ -92,8 +94,8 @@
 						: null;
 			}
 		} catch (err) {
-			console.error('Failed to fetch album:', err);
-			error = `Failed to load album: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			logger.error('Failed to fetch album:', err);
+			error = handleError(err, 'Failed to load album');
 		} finally {
 			loading = false;
 		}
@@ -133,7 +135,7 @@
 			}
 
 			const updatedAlbum = await response.json();
-			console.log('Album updated:', updatedAlbum);
+			logger.debug('Album updated:', updatedAlbum);
 
 			notification = {
 				show: true,
@@ -146,8 +148,8 @@
 				goto(`/admin/albums/${albumId}`);
 			}, 1000);
 		} catch (err) {
-			console.error('Failed to update album:', err);
-			error = `Failed to update album: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			logger.error('Failed to update album:', err);
+			error = handleError(err, 'Failed to update album');
 			notification = {
 				show: true,
 				message: error,

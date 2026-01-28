@@ -1,6 +1,8 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { backendGet, backendPost, backendPut, backendDelete, parseBackendResponse } from '$lib/utils/backend-api';
+import { logger } from '$lib/utils/logger';
+import { parseError } from '$lib/utils/errorHandler';
 
 // Translations API route handler
 export const GET: RequestHandler = async ({ locals, cookies, url }) => {
@@ -18,12 +20,12 @@ export const GET: RequestHandler = async ({ locals, cookies, url }) => {
 			? `/admin/translations/${languageCode}`
 			: '/admin/translations/languages';
 
-		console.log('[Translations API] Calling backend endpoint:', endpoint);
+		logger.debug('[Translations API] Calling backend endpoint:', endpoint);
 		
 		const response = await backendGet(endpoint, { cookies });
 		const data = await parseBackendResponse<any>(response);
 
-		console.log('[Translations API] Backend response parsed:', {
+		logger.debug('[Translations API] Backend response parsed:', {
 			dataType: typeof data,
 			isArray: Array.isArray(data),
 			keys: data && typeof data === 'object' ? Object.keys(data) : [],
@@ -35,9 +37,12 @@ export const GET: RequestHandler = async ({ locals, cookies, url }) => {
 			data
 		});
 	} catch (error) {
-		console.error('[Translations API] Failed to get translations:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
-		return json({ success: false, error: errorMessage || 'Failed to get translations' }, { status: 500 });
+		logger.error('[Translations API] Failed to get translations:', error);
+		const parsed = parseError(error);
+		return json({ 
+			success: false, 
+			error: parsed.userMessage || 'Failed to get translations' 
+		}, { status: parsed.status || 500 });
 	}
 };
 
@@ -79,9 +84,12 @@ export const POST: RequestHandler = async ({ request, locals, cookies, url }) =>
 			data
 		});
 	} catch (error) {
-		console.error('API: Failed to process request:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
-		return json({ success: false, error: errorMessage || 'Failed to process request' }, { status: 500 });
+		logger.error('API: Failed to process request:', error);
+		const parsed = parseError(error);
+		return json({ 
+			success: false, 
+			error: parsed.userMessage || 'Failed to process request' 
+		}, { status: parsed.status || 500 });
 	}
 };
 
@@ -106,9 +114,12 @@ export const PUT: RequestHandler = async ({ request, locals, cookies, url }) => 
 			data
 		});
 	} catch (error) {
-		console.error('API: Failed to update translations:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
-		return json({ success: false, error: errorMessage || 'Failed to update translations' }, { status: 500 });
+		logger.error('API: Failed to update translations:', error);
+		const parsed = parseError(error);
+		return json({ 
+			success: false, 
+			error: parsed.userMessage || 'Failed to update translations' 
+		}, { status: parsed.status || 500 });
 	}
 };
 
@@ -132,9 +143,11 @@ export const DELETE: RequestHandler = async ({ locals, cookies, url }) => {
 			data
 		});
 	} catch (error) {
-		console.error('API: Failed to delete language:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
-		return json({ success: false, error: errorMessage || 'Failed to delete language' }, { status: 500 });
+		logger.error('API: Failed to delete language:', error);
+		const parsed = parseError(error);
+		return json({ 
+			success: false, 
+			error: parsed.userMessage || 'Failed to delete language' 
+		}, { status: parsed.status || 500 });
 	}
 };
-

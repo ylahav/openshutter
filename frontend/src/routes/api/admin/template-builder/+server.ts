@@ -1,6 +1,8 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { backendGet, backendPost, backendPut, backendDelete, parseBackendResponse } from '$lib/utils/backend-api';
+import { logger } from '$lib/utils/logger';
+import { parseError } from '$lib/utils/errorHandler';
 
 export const GET: RequestHandler = async ({ locals, cookies, url }) => {
 	try {
@@ -22,9 +24,12 @@ export const GET: RequestHandler = async ({ locals, cookies, url }) => {
 			data: Array.isArray(data) ? data : [data]
 		});
 	} catch (error) {
-		console.error('API: Failed to get template builder:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
-		return json({ success: false, error: errorMessage || 'Failed to get template builder' }, { status: 500 });
+		logger.error('API: Failed to get template builder:', error);
+		const parsed = parseError(error);
+		return json({ 
+			success: false, 
+			error: parsed.userMessage || 'Failed to get template builder' 
+		}, { status: parsed.status || 500 });
 	}
 };
 
@@ -71,9 +76,12 @@ export const POST: RequestHandler = async ({ request, locals, cookies, url }) =>
 			return json({ success: true, data });
 		}
 	} catch (error) {
-		console.error('API: Failed to create template builder item:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
-		return json({ success: false, error: errorMessage || 'Failed to create template builder item' }, { status: 500 });
+		logger.error('API: Failed to create template builder item:', error);
+		const parsed = parseError(error);
+		return json({ 
+			success: false, 
+			error: parsed.userMessage || 'Failed to create template builder item' 
+		}, { status: parsed.status || 500 });
 	}
 };
 
@@ -130,9 +138,12 @@ export const PUT: RequestHandler = async ({ request, locals, cookies, url }) => 
 			return json({ success: true, data });
 		}
 	} catch (error) {
-		console.error('API: Failed to update template builder item:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
-		return json({ success: false, error: errorMessage || 'Failed to update template builder item' }, { status: 500 });
+		logger.error('API: Failed to update template builder item:', error);
+		const parsed = parseError(error);
+		return json({ 
+			success: false, 
+			error: parsed.userMessage || 'Failed to update template builder item' 
+		}, { status: parsed.status || 500 });
 	}
 };
 
@@ -201,8 +212,11 @@ export const DELETE: RequestHandler = async ({ locals, cookies, url }) => {
 			return json({ success: true, data });
 		}
 	} catch (error) {
-		console.error('API: Failed to delete template builder item:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
-		return json({ success: false, error: errorMessage || 'Failed to delete template builder item' }, { status: 500 });
+		logger.error('API: Failed to delete template builder item:', error);
+		const parsed = parseError(error);
+		return json({ 
+			success: false, 
+			error: parsed.userMessage || 'Failed to delete template builder item' 
+		}, { status: parsed.status || 500 });
 	}
 };

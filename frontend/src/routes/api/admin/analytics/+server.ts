@@ -1,6 +1,8 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { backendGet, parseBackendResponse } from '$lib/utils/backend-api';
+import { logger } from '$lib/utils/logger';
+import { parseError } from '$lib/utils/errorHandler';
 
 export const GET: RequestHandler = async ({ locals, cookies }) => {
 	try {
@@ -17,8 +19,11 @@ export const GET: RequestHandler = async ({ locals, cookies }) => {
 			data: analyticsData
 		});
 	} catch (error) {
-		console.error('Failed to get analytics:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
-		return json({ success: false, error: errorMessage || 'Failed to get analytics' }, { status: 500 });
+		logger.error('Failed to get analytics:', error);
+		const parsed = parseError(error);
+		return json({ 
+			success: false, 
+			error: parsed.userMessage || 'Failed to get analytics' 
+		}, { status: parsed.status || 500 });
 	}
 };

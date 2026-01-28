@@ -1,6 +1,8 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { backendGet, backendPut, parseBackendResponse } from '$lib/utils/backend-api';
+import { logger } from '$lib/utils/logger';
+import { parseError } from '$lib/utils/errorHandler';
 
 export const GET: RequestHandler = async ({ locals, cookies }) => {
 	try {
@@ -13,9 +15,11 @@ export const GET: RequestHandler = async ({ locals, cookies }) => {
 
 		return json(result);
 	} catch (error) {
-		console.error('Error fetching profile:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
-		return json({ error: `Internal server error: ${errorMessage}` }, { status: 500 });
+		logger.error('Error fetching profile:', error);
+		const parsed = parseError(error);
+		return json({ 
+			error: parsed.userMessage || `Internal server error: ${parsed.message}` 
+		}, { status: parsed.status || 500 });
 	}
 };
 
@@ -31,8 +35,10 @@ export const PUT: RequestHandler = async ({ request, locals, cookies }) => {
 
 		return json(result);
 	} catch (error) {
-		console.error('Error updating profile:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
-		return json({ error: `Internal server error: ${errorMessage}` }, { status: 500 });
+		logger.error('Error updating profile:', error);
+		const parsed = parseError(error);
+		return json({ 
+			error: parsed.userMessage || `Internal server error: ${parsed.message}` 
+		}, { status: parsed.status || 500 });
 	}
 };

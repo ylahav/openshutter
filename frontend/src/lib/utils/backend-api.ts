@@ -7,6 +7,7 @@
 
 import { env } from '$env/dynamic/private';
 import type { Cookies } from '@sveltejs/kit';
+import { logger } from './logger';
 
 // Note: Environment variables should be loaded by start.sh or PM2 before starting the app
 // SvelteKit's $env/dynamic/private works during request handling, but for module-level access
@@ -24,16 +25,16 @@ if (typeof process !== 'undefined') {
 		const port = url.port || (url.protocol === 'https:' ? '443' : url.protocol === 'http:' ? '80' : 'unknown');
 		// Show where the BACKEND_URL came from
 		const source = env.BACKEND_URL ? 'env.BACKEND_URL' : process.env.BACKEND_URL ? 'process.env.BACKEND_URL' : 'default';
-		console.log(`🔗 Frontend connecting to backend: ${BACKEND_URL} (port: ${port}) [source: ${source}]`);
+		logger.info(`🔗 Frontend connecting to backend: ${BACKEND_URL} (port: ${port}) [source: ${source}]`);
 		
 		// Warn if using default value
 		if (source === 'default') {
-			console.warn(`⚠️  WARNING: Using default backend URL. Set BACKEND_URL in frontend/.env.production to match your backend port!`);
+			logger.warn(`⚠️  WARNING: Using default backend URL. Set BACKEND_URL in frontend/.env.production to match your backend port!`);
 		}
 	} catch (e) {
 		// If URL parsing fails, just log the raw value
 		const source = env.BACKEND_URL ? 'env.BACKEND_URL' : process.env.BACKEND_URL ? 'process.env.BACKEND_URL' : 'default';
-		console.log(`🔗 Frontend connecting to backend: ${BACKEND_URL} [source: ${source}]`);
+		logger.info(`🔗 Frontend connecting to backend: ${BACKEND_URL} [source: ${source}]`);
 	}
 }
 
@@ -69,14 +70,14 @@ export async function backendRequest(
 	// Add Authorization header if token is available (backend checks this too)
 	if (authToken) {
 		defaultHeaders['Authorization'] = `Bearer ${authToken}`;
-		console.log('[Backend API] Setting Authorization header:', {
+		logger.debug('[Backend API] Setting Authorization header:', {
 			hasToken: !!authToken,
 			tokenLength: authToken?.length || 0,
 			tokenPreview: authToken ? authToken.substring(0, 30) + '...' : null,
 			endpoint
 		});
 	} else {
-		console.warn('[Backend API] No auth token available for Authorization header:', {
+		logger.warn('[Backend API] No auth token available for Authorization header:', {
 			hasOptionsAuthToken: !!options.authToken,
 			hasCookies: !!options.cookies,
 			endpoint
@@ -91,7 +92,7 @@ export async function backendRequest(
 		if (authCookie) {
 			cookieHeader.push(`auth_token=${authCookie}`);
 			// Log cookie forwarding for debugging
-			console.log('[Backend API] Forwarding auth_token cookie:', {
+			logger.debug('[Backend API] Forwarding auth_token cookie:', {
 				tokenLength: authCookie.length,
 				tokenPreview: authCookie.substring(0, 30) + '...',
 				endpoint
@@ -99,20 +100,20 @@ export async function backendRequest(
 		} else {
 			// Log all available cookies to help debug
 			const allCookies = options.cookies.getAll();
-			console.warn('[Backend API] No auth_token cookie found in cookies object:', {
+			logger.warn('[Backend API] No auth_token cookie found in cookies object:', {
 				hasCookies: !!options.cookies,
 				allCookieNames: allCookies.map(c => c.name),
 				endpoint
 			});
 		}
 	} else {
-		console.warn('[Backend API] No cookies object provided:', { endpoint });
+		logger.warn('[Backend API] No cookies object provided:', { endpoint });
 	}
 	
 	// Always set Cookie header if we have auth token (even if empty, to ensure proper header format)
 	if (cookieHeader.length > 0) {
 		defaultHeaders['Cookie'] = cookieHeader.join('; ');
-		console.log('[Backend API] Cookie header set:', {
+		logger.debug('[Backend API] Cookie header set:', {
 			cookieHeaderLength: defaultHeaders['Cookie'].length,
 			cookieHeaderPreview: defaultHeaders['Cookie'].substring(0, 80) + '...',
 			endpoint
@@ -120,12 +121,12 @@ export async function backendRequest(
 	} else if (authToken) {
 		// If we have authToken but no cookie, we're using Authorization header instead
 		// This is fine - backend should check Authorization header too
-		console.log('[Backend API] Using Authorization header instead of Cookie:', {
+		logger.debug('[Backend API] Using Authorization header instead of Cookie:', {
 			hasAuthToken: !!authToken,
 			endpoint
 		});
 	} else {
-		console.error('[Backend API] No authentication method available - neither cookie nor Authorization header:', { 
+		logger.error('[Backend API] No authentication method available - neither cookie nor Authorization header:', { 
 			endpoint,
 			hasCookies: !!options.cookies,
 			hasAuthToken: !!authToken
@@ -138,7 +139,7 @@ export async function backendRequest(
 	};
 
 	// Always log request details to help diagnose auth issues
-	console.log('[Backend API] Making request:', {
+	logger.debug('[Backend API] Making request:', {
 		url,
 		hasAuthToken: !!authToken,
 		hasCookieHeader: !!finalHeaders['Cookie'],
@@ -158,7 +159,7 @@ export async function backendRequest(
 	} catch (fetchError: any) {
 		// Handle network errors (connection refused, timeout, etc.)
 		const errorMessage = fetchError?.message || String(fetchError);
-		console.error('[Backend API] Network error:', {
+		logger.error('[Backend API] Network error:', {
 			url,
 			error: errorMessage
 		});
@@ -180,7 +181,7 @@ export async function backendRequest(
 	// Log response status for debugging (both dev and production)
 	if (!response.ok) {
 		const errorText = await response.clone().text().catch(() => 'Unable to read error');
-		console.error('[Backend API] Error response:', {
+		logger.error('[Backend API] Error response:', {
 			url,
 			status: response.status,
 			statusText: response.statusText,
@@ -273,7 +274,7 @@ export async function parseBackendResponse<T>(response: Response): Promise<T> {
 	try {
 		data = JSON.parse(text);
 	} catch (parseError) {
-		console.warn('Failed to parse backend response as JSON:', parseError);
+		logger.warn('Failed to parse backend response as JSON:', parseError);
 		return {} as T;
 	}
 	

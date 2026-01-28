@@ -1,6 +1,8 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { backendGet, backendPut, backendDelete, backendPost, parseBackendResponse } from '$lib/utils/backend-api';
+import { logger } from '$lib/utils/logger';
+import { parseError } from '$lib/utils/errorHandler';
 
 export const GET: RequestHandler = async ({ params, locals, cookies }) => {
 	try {
@@ -19,9 +21,12 @@ export const GET: RequestHandler = async ({ params, locals, cookies }) => {
 			data: photo
 		});
 	} catch (error) {
-		console.error('Get photo error:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
-		return json({ success: false, error: errorMessage || 'Failed to fetch photo' }, { status: 500 });
+		logger.error('Get photo error:', error);
+		const parsed = parseError(error);
+		return json({ 
+			success: false, 
+			error: parsed.userMessage || 'Failed to fetch photo' 
+		}, { status: parsed.status || 500 });
 	}
 };
 
@@ -43,9 +48,12 @@ export const PUT: RequestHandler = async ({ params, request, locals, cookies }) 
 			data: photo
 		});
 	} catch (error) {
-		console.error('Update photo error:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
-		return json({ success: false, error: errorMessage || 'Failed to update photo' }, { status: 500 });
+		logger.error('Update photo error:', error);
+		const parsed = parseError(error);
+		return json({ 
+			success: false, 
+			error: parsed.userMessage || 'Failed to update photo' 
+		}, { status: parsed.status || 500 });
 	}
 };
 
@@ -80,7 +88,7 @@ export const DELETE: RequestHandler = async ({ params, locals, cookies }) => {
 		try {
 			result = await parseBackendResponse<{ success?: boolean; message?: string }>(response);
 		} catch (parseError) {
-			console.warn('Failed to parse DELETE response:', parseError);
+			logger.warn('Failed to parse DELETE response:', parseError);
 			// If parsing fails but status is OK, assume success
 			return json({ success: true, message: 'Photo deleted successfully' });
 		}
@@ -96,8 +104,11 @@ export const DELETE: RequestHandler = async ({ params, locals, cookies }) => {
 		// Default success response if result is empty or unexpected format
 		return json({ success: true, message: 'Photo deleted successfully' });
 	} catch (error) {
-		console.error('Delete photo error:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
-		return json({ success: false, error: errorMessage || 'Failed to delete photo' }, { status: 500 });
+		logger.error('Delete photo error:', error);
+		const parsed = parseError(error);
+		return json({ 
+			success: false, 
+			error: parsed.userMessage || 'Failed to delete photo' 
+		}, { status: parsed.status || 500 });
 	}
 };

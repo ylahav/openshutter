@@ -1,6 +1,8 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { backendGet, backendPut, backendDelete, parseBackendResponse } from '$lib/utils/backend-api';
+import { logger } from '$lib/utils/logger';
+import { parseError } from '$lib/utils/errorHandler';
 
 export const GET: RequestHandler = async ({ params, locals, cookies }) => {
 	try {
@@ -18,9 +20,12 @@ export const GET: RequestHandler = async ({ params, locals, cookies }) => {
 			data: album
 		});
 	} catch (error) {
-		console.error('Get album error:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
-		return json({ success: false, error: errorMessage || 'Failed to fetch album' }, { status: 500 });
+		logger.error('Get album error:', error);
+		const parsed = parseError(error);
+		return json({ 
+			success: false, 
+			error: parsed.userMessage || 'Failed to fetch album' 
+		}, { status: parsed.status || 500 });
 	}
 };
 
@@ -42,9 +47,12 @@ export const PUT: RequestHandler = async ({ params, request, locals, cookies }) 
 			data: album
 		});
 	} catch (error) {
-		console.error('Update album error:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
-		return json({ success: false, error: errorMessage || 'Failed to update album' }, { status: 500 });
+		logger.error('Update album error:', error);
+		const parsed = parseError(error);
+		return json({ 
+			success: false, 
+			error: parsed.userMessage || 'Failed to update album' 
+		}, { status: parsed.status || 500 });
 	}
 };
 
@@ -56,7 +64,7 @@ export const DELETE: RequestHandler = async ({ params, locals, cookies }) => {
 		}
 
 		const { id } = await params;
-		console.log('[DELETE /api/admin/albums/[id]] Deleting album:', id);
+		logger.debug('[DELETE /api/admin/albums/[id]] Deleting album:', id);
 		
 		const response = await backendDelete(`/admin/albums/${id}`, { cookies });
 		
@@ -86,12 +94,15 @@ export const DELETE: RequestHandler = async ({ params, locals, cookies }) => {
 			}
 			
 			const errorMessage = errorData.error || errorData.message || errorText || 'Failed to delete album';
-			console.error('[DELETE /api/admin/albums/[id]] Delete failed:', response.status, errorMessage);
+			logger.error('[DELETE /api/admin/albums/[id]] Delete failed:', response.status, errorMessage);
 			return json({ success: false, error: errorMessage }, { status: response.status });
 		}
 	} catch (error) {
-		console.error('Delete album error:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
-		return json({ success: false, error: errorMessage || 'Failed to delete album' }, { status: 500 });
+		logger.error('Delete album error:', error);
+		const parsed = parseError(error);
+		return json({ 
+			success: false, 
+			error: parsed.userMessage || 'Failed to delete album' 
+		}, { status: parsed.status || 500 });
 	}
 };

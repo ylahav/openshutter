@@ -1,6 +1,8 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { backendGet, backendPut, backendDelete, parseBackendResponse } from '$lib/utils/backend-api';
+import { logger } from '$lib/utils/logger';
+import { parseError } from '$lib/utils/errorHandler';
 
 export const GET: RequestHandler = async ({ params, locals, cookies }) => {
 	try {
@@ -19,9 +21,12 @@ export const GET: RequestHandler = async ({ params, locals, cookies }) => {
 			data: location
 		});
 	} catch (error) {
-		console.error('Get location error:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
-		return json({ success: false, error: errorMessage || 'Failed to fetch location' }, { status: 500 });
+		logger.error('Get location error:', error);
+		const parsed = parseError(error);
+		return json({ 
+			success: false, 
+			error: parsed.userMessage || 'Failed to fetch location' 
+		}, { status: parsed.status || 500 });
 	}
 };
 
@@ -43,9 +48,12 @@ export const PUT: RequestHandler = async ({ params, request, locals, cookies }) 
 			data: location
 		});
 	} catch (error) {
-		console.error('Update location error:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
-		return json({ success: false, error: errorMessage || 'Failed to update location' }, { status: 500 });
+		logger.error('Update location error:', error);
+		const parsed = parseError(error);
+		return json({ 
+			success: false, 
+			error: parsed.userMessage || 'Failed to update location' 
+		}, { status: parsed.status || 500 });
 	}
 };
 
@@ -66,8 +74,11 @@ export const DELETE: RequestHandler = async ({ params, locals, cookies }) => {
 			message: result.message || 'Location deleted successfully'
 		});
 	} catch (error) {
-		console.error('Delete location error:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
-		return json({ success: false, error: errorMessage || 'Failed to delete location' }, { status: 500 });
+		logger.error('Delete location error:', error);
+		const parsed = parseError(error);
+		return json({ 
+			success: false, 
+			error: parsed.userMessage || 'Failed to delete location' 
+		}, { status: parsed.status || 500 });
 	}
 };

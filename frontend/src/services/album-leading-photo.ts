@@ -1,6 +1,7 @@
 import { connectToDatabase } from '$lib/mongodb'
 import type { Album, Photo } from '$lib/types'
 import { ObjectId } from 'mongodb'
+import { logger } from '$lib/utils/logger'
 
 export interface AlbumLeadingPhotoResult {
   photo: Photo | null
@@ -116,7 +117,7 @@ export class AlbumLeadingPhotoService {
       // No photos found anywhere
       return { photo: null, source: 'none', albumId }
     } catch (error) {
-      console.error('Error getting album leading photo:', error)
+      logger.error('Error getting album leading photo:', error)
       return { photo: null, source: 'none', albumId }
     }
   }
@@ -156,7 +157,7 @@ export class AlbumLeadingPhotoService {
         return siteConfig.logo
       }
     } catch (error) {
-      console.error('Error fetching site logo:', error)
+      logger.error('Error fetching site logo:', error)
     }
     
     // Final fallback to placeholder
@@ -186,7 +187,7 @@ export class AlbumLeadingPhotoService {
             siteLogo = siteConfig?.logo || null
             hasFetchedLogo = true
           } catch (error) {
-            console.error('Error fetching site logo:', error)
+            logger.error('Error fetching site logo:', error)
             hasFetchedLogo = true
           }
         }

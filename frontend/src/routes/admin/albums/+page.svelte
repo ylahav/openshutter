@@ -8,6 +8,8 @@
 	import { MultiLangUtils } from '$lib/utils/multiLang';
 	import { currentLanguage } from '$lib/stores/language';
 	import { getAlbumName } from '$lib/utils/albumUtils';
+	import { logger } from '$lib/utils/logger';
+	import { handleError } from '$lib/utils/errorHandler';
 
   export const data = undefined as any; // From +layout.server.ts, not used in this component
 
@@ -69,20 +71,20 @@
 	afterNavigate(async () => {
 		// Only reload if we're on the admin albums page
 		if ($page.url.pathname === '/admin/albums') {
-			console.log('[afterNavigate] Navigating to admin albums page, reloading albums...');
+			logger.debug('[afterNavigate] Navigating to admin albums page, reloading albums...');
 			await loadAlbums();
 		}
 	});
 
 	onMount(async () => {
-		console.log('[onMount] Starting album load...');
+		logger.debug('[onMount] Starting album load...');
 		try {
 			await loadAlbums();
-			console.log('[onMount] Album load completed. Albums count:', albums.length, 'Loading:', loading);
+			logger.debug('[onMount] Album load completed. Albums count:', albums.length, 'Loading:', loading);
 		} catch (err) {
-			console.error('[onMount] Failed to load albums on mount:', err);
+			logger.error('[onMount] Failed to load albums on mount:', err);
 			loading = false; // Ensure loading is set to false even if loadAlbums fails unexpectedly
-			error = 'Failed to load albums';
+			error = handleError(err, 'Failed to load albums');
 			albums = []; // Ensure albums is always an array
 		}
 		
@@ -100,24 +102,24 @@
 			
 			const actionsContainer = button.closest('.album-actions') as HTMLElement;
 			if (!actionsContainer) {
-				console.warn('[handleActionClick] No album-actions container found');
+				logger.warn('[handleActionClick] No album-actions container found');
 				return;
 			}
 			
 			const albumId = actionsContainer.getAttribute('data-album-id');
 			if (!albumId) {
-				console.warn('[handleActionClick] No album ID found');
+				logger.warn('[handleActionClick] No album ID found');
 				return;
 			}
 			
 			const album = albums.find(a => a._id === albumId);
 			if (!album) {
-				console.warn('[handleActionClick] Album not found:', albumId);
+				logger.warn('[handleActionClick] Album not found:', albumId);
 				return;
 			}
 			
 			const action = button.getAttribute('data-action');
-			console.log('[handleActionClick] Action clicked:', action, 'for album:', albumId);
+			logger.debug('[handleActionClick] Action clicked:', action, 'for album:', albumId);
 			
 			if (action === 'cover-photo') {
 				openCoverPhotoModal(album);
@@ -162,14 +164,14 @@
 			let result;
 			try {
 				const responseText = await response.text();
-				console.log('[loadAlbums] Raw response text length:', responseText.length);
+				logger.debug('[loadAlbums] Raw response text length:', responseText.length);
 				result = JSON.parse(responseText);
 			} catch (parseError) {
-				console.error('Failed to parse JSON response:', parseError);
+				logger.error('Failed to parse JSON response:', parseError);
 				throw new Error('Invalid response format from server');
 			}
 			
-			console.log('[loadAlbums] Response received:', { 
+			logger.debug('[loadAlbums] Response received:', { 
 				isArray: Array.isArray(result), 
 				type: typeof result,
 				hasData: result?.data !== undefined,
@@ -184,32 +186,32 @@
 			// Handle both array and object responses
 			if (Array.isArray(result)) {
 				albums = result;
-				console.log(`[loadAlbums] Loaded ${result.length} albums (direct array)`);
+				logger.debug(`[loadAlbums] Loaded ${result.length} albums (direct array)`);
 			} else if (result && Array.isArray(result.data)) {
 				albums = result.data;
-				console.log(`[loadAlbums] Loaded ${result.data.length} albums from result.data`);
+				logger.debug(`[loadAlbums] Loaded ${result.data.length} albums from result.data`);
 			} else if (result && typeof result === 'object') {
 				// Check if it's an error object
 				if (result.error || result.success === false) {
 					throw new Error(result.error || result.message || 'Failed to fetch albums');
 				}
 				// If result is an object but not an error, try to extract albums
-				console.warn('[loadAlbums] Unexpected response format:', result);
+				logger.warn('[loadAlbums] Unexpected response format:', result);
 				albums = [];
 			} else {
-				console.warn('[loadAlbums] No albums found in response:', result);
+				logger.warn('[loadAlbums] No albums found in response:', result);
 				albums = [];
 			}
 			
 			// Force reactivity update
 			albums = [...albums];
 		} catch (err) {
-			console.error('Error loading albums:', err);
-			error = `Failed to load albums: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			logger.error('Error loading albums:', err);
+			error = handleError(err, 'Failed to load albums');
 			albums = []; // Ensure albums is always an array
 		} finally {
 			loading = false;
-			console.log('[loadAlbums] Loading complete. Albums count:', albums.length);
+			logger.debug('[loadAlbums] Loading complete. Albums count:', albums.length);
 		}
 	}
 
@@ -275,7 +277,8 @@
 				await loadAlbums();
 			}
 		} catch (err) {
-			console.error('Failed to reorder albums:', err);
+			logger.error('Failed to reorder albums:', err);
+			error = handleError(err, 'Failed to reorder albums');
 		}
 	}
 
@@ -300,7 +303,7 @@
 				}
 			}
 		} catch (err) {
-			console.error('Failed to fetch photos:', err);
+			logger.error('Failed to fetch photos:', err);
 		} finally {
 			coverPhotoModal.loading = false;
 		}
@@ -335,7 +338,8 @@
 				closeCoverPhotoModal();
 			}
 		} catch (err) {
-			console.error('Failed to set cover photo:', err);
+			logger.error('Failed to set cover photo:', err);
+			error = handleError(err, 'Failed to set cover photo');
 		}
 	}
 
@@ -390,8 +394,8 @@
 				};
 			}
 		} catch (err) {
-			console.error('Failed to delete album:', err);
-			error = `Failed to delete album: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			logger.error('Failed to delete album:', err);
+			error = handleError(err, 'Failed to delete album');
 			// Update isDeleting by creating a new object
 			deleteDialog = {
 				...deleteDialog,

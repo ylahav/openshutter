@@ -1,6 +1,8 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { env } from '$env/dynamic/private';
+import { logger } from '$lib/utils/logger';
+import { parseError } from '$lib/utils/errorHandler';
 
 const BACKEND_URL = env.BACKEND_URL || process.env.BACKEND_URL || 'http://localhost:5000';
 const API_BASE = `${BACKEND_URL}/api`;
@@ -18,7 +20,7 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 		// Extract albumId for logging
 		const albumId = formData.get('albumId');
 		const file = formData.get('file');
-		console.log(`[Photo Upload API] Received upload request:`, {
+		logger.debug(`[Photo Upload API] Received upload request:`, {
 			albumId: albumId?.toString(),
 			fileName: file instanceof File ? file.name : 'not a file',
 			fileSize: file instanceof File ? file.size : 'unknown'
@@ -36,7 +38,7 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 
 		// Forward FormData to backend
 		const backendUrl = `${API_BASE}/photos/upload`;
-		console.log(`[Photo Upload API] Proxying upload to backend: ${backendUrl}`);
+		logger.debug(`[Photo Upload API] Proxying upload to backend: ${backendUrl}`);
 
 		const backendResponse = await fetch(backendUrl, {
 			method: 'POST',
@@ -47,7 +49,7 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 		// Handle 413 Request Entity Too Large (usually nginx blocking)
 		if (backendResponse.status === 413) {
 			const errorText = await backendResponse.text().catch(() => 'Request Entity Too Large');
-			console.error('[Photo Upload API] 413 Error - File too large (likely nginx limit):', {
+			logger.error('[Photo Upload API] 413 Error - File too large (likely nginx limit):', {
 				status: 413,
 				statusText: backendResponse.statusText,
 				responseText: errorText.substring(0, 500)
@@ -69,7 +71,7 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 
 		// Forward the backend response
 		if (!backendResponse.ok) {
-			console.error('[Photo Upload API] Backend error:', {
+			logger.error('[Photo Upload API] Backend error:', {
 				status: backendResponse.status,
 				statusText: backendResponse.statusText,
 				error: responseData
@@ -83,14 +85,14 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 			);
 		}
 
-		console.log('[Photo Upload API] Upload successful');
+		logger.debug('[Photo Upload API] Upload successful');
 		return json(responseData, { status: backendResponse.status });
 	} catch (error) {
-		console.error('[Photo Upload API] Error proxying upload:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
+		logger.error('[Photo Upload API] Error proxying upload:', error);
+		const parsed = parseError(error);
 		
 		// Check if it's a size-related error
-		if (errorMessage.includes('too large') || errorMessage.includes('413') || errorMessage.includes('Request Entity Too Large') || errorMessage.includes('Content-length') || errorMessage.includes('exceeds limit')) {
+		if (parsed.message.includes('too large') || parsed.message.includes('413') || parsed.message.includes('Request Entity Too Large') || parsed.message.includes('Content-length') || parsed.message.includes('exceeds limit')) {
 			return json(
 				{ 
 					success: false, 
@@ -101,8 +103,8 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 		}
 		
 		return json(
-			{ success: false, error: `Failed to upload photo: ${errorMessage}` },
-			{ status: 500 }
+			{ success: false, error: parsed.userMessage || `Failed to upload photo: ${parsed.message}` },
+			{ status: parsed.status || 500 }
 		);
 	}
 };

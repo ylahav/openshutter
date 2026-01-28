@@ -1,6 +1,8 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { backendPost, parseBackendResponse } from '$lib/utils/backend-api';
+import { logger } from '$lib/utils/logger';
+import { parseError } from '$lib/utils/errorHandler';
 
 export const POST: RequestHandler = async ({ locals, cookies }) => {
 	try {
@@ -18,11 +20,11 @@ export const POST: RequestHandler = async ({ locals, cookies }) => {
 			message: result.message || 'Backup created successfully'
 		});
 	} catch (error) {
-		console.error('Database backup error:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
+		logger.error('Database backup error:', error);
+		const parsed = parseError(error);
 		return json(
-			{ success: false, error: errorMessage || 'Failed to create database backup' },
-			{ status: 500 }
+			{ success: false, error: parsed.userMessage || 'Failed to create database backup' },
+			{ status: parsed.status || 500 }
 		);
 	}
 };

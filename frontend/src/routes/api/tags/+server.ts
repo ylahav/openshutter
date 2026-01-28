@@ -1,6 +1,8 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { backendGet, backendPost, parseBackendResponse } from '$lib/utils/backend-api';
+import { logger } from '$lib/utils/logger';
+import { parseError } from '$lib/utils/errorHandler';
 
 export const GET: RequestHandler = async ({ url, cookies }) => {
 	try {
@@ -39,9 +41,12 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 			}
 		});
 	} catch (error) {
-		console.error('Tags API error:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
-		return json({ success: false, error: `Failed to fetch tags: ${errorMessage}` }, { status: 500 });
+		logger.error('Tags API error:', error);
+		const parsed = parseError(error);
+		return json({ 
+			success: false, 
+			error: parsed.userMessage || `Failed to fetch tags: ${parsed.message}` 
+		}, { status: parsed.status || 500 });
 	}
 };
 
@@ -60,8 +65,11 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 			data: result
 		});
 	} catch (error) {
-		console.error('Create tag error:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
-		return json({ success: false, error: `Failed to create tag: ${errorMessage}` }, { status: 500 });
+		logger.error('Create tag error:', error);
+		const parsed = parseError(error);
+		return json({ 
+			success: false, 
+			error: parsed.userMessage || `Failed to create tag: ${parsed.message}` 
+		}, { status: parsed.status || 500 });
 	}
 };

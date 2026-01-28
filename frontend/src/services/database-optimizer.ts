@@ -1,6 +1,7 @@
 import { connectToDatabase } from '@/lib/mongodb'
 import { ObjectId } from 'mongodb'
 import { QueryMonitor } from './query-monitor'
+import { logger } from '@/lib/utils/logger'
 
 export interface QueryOptimizationOptions {
   useAggregation?: boolean
@@ -452,7 +453,7 @@ export class DatabaseOptimizer {
       { key: { title: 'text', content: 'text' } } // Text search index
     ])
 
-    console.log('✅ Optimized database indexes created successfully')
+    logger.info('✅ Optimized database indexes created successfully')
   }
 
   /**
@@ -477,7 +478,7 @@ export class DatabaseOptimizer {
             totalIndexSize: collStats.totalIndexSize || 0
           }
         } catch (error) {
-          console.warn(`Failed to get stats for collection ${collection.name}:`, error)
+          logger.warn(`Failed to get stats for collection ${collection.name}:`, error)
           return {
             name: collection.name,
             count: 0,

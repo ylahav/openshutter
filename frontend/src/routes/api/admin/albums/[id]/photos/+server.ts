@@ -1,6 +1,8 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { backendGet, parseBackendResponse } from '$lib/utils/backend-api';
+import { logger } from '$lib/utils/logger';
+import { parseError } from '$lib/utils/errorHandler';
 
 export const GET: RequestHandler = async ({ params, locals, cookies }) => {
 	try {
@@ -23,8 +25,11 @@ export const GET: RequestHandler = async ({ params, locals, cookies }) => {
 			data: result.data || result
 		});
 	} catch (error) {
-		console.error('Admin Photos API error:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
-		return json({ success: false, error: errorMessage || 'Failed to fetch photos' }, { status: 500 });
+		logger.error('Admin Photos API error:', error);
+		const parsed = parseError(error);
+		return json({ 
+			success: false, 
+			error: parsed.userMessage || 'Failed to fetch photos' 
+		}, { status: parsed.status || 500 });
 	}
 };

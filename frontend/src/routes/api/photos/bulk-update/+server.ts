@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { backendPost, parseBackendResponse } from '$lib/utils/backend-api';
+import { logger } from '$lib/utils/logger';
 
 export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 	try {
@@ -18,14 +19,14 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 			data: result.data || result
 		});
 	} catch (error) {
-		console.error('Bulk update error:', error);
-		const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+		logger.error('Bulk update error:', error);
+		const parsed = parseError(error);
 		return json(
 			{
 				success: false,
-				error: `Failed to update photos: ${errorMessage}`
+				error: parsed.userMessage || `Failed to update photos: ${parsed.message}`
 			},
-			{ status: 500 }
+			{ status: parsed.status || 500 }
 		);
 	}
 };

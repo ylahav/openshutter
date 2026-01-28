@@ -1,6 +1,8 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { backendGet, parseBackendResponse } from '$lib/utils/backend-api';
+import { logger } from '$lib/utils/logger';
+import { parseError } from '$lib/utils/errorHandler';
 
 export const GET: RequestHandler = async ({ locals, cookies }) => {
 	try {
@@ -43,11 +45,11 @@ export const GET: RequestHandler = async ({ locals, cookies }) => {
 			data: storageOptions
 		});
 	} catch (error) {
-		console.error('[storage-options] Failed to get storage options:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
+		logger.error('[storage-options] Failed to get storage options:', error);
+		const parsed = parseError(error);
 		return json({ 
 			success: false, 
-			error: errorMessage || 'Failed to get storage options'
-		}, { status: 500 });
+			error: parsed.userMessage || 'Failed to get storage options'
+		}, { status: parsed.status || 500 });
 	}
 };
