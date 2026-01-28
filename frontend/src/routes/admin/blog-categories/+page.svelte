@@ -3,10 +3,13 @@
 	import MultiLangInput from '$lib/components/MultiLangInput.svelte';
 	import MultiLangHTMLEditor from '$lib/components/MultiLangHTMLEditor.svelte';
 	import type { MultiLangText } from '$lib/types/multi-lang';
-	import { logger } from '$lib/utils/logger';
-	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
+	import { useCrudLoader } from '$lib/composables/useCrudLoader';
+	import { useCrudOperations } from '$lib/composables/useCrudOperations';
+	import { useDialogManager } from '$lib/composables/useDialogManager';
+	import { normalizeMultiLangText } from '$lib/utils/multiLangHelpers';
 	import type { PageData } from './$types';
 
+	// svelte-ignore export_let_unused - Required by SvelteKit page component
 	export let data: PageData;
 
 	interface BlogCategory {
@@ -26,10 +29,57 @@
 		updatedAt?: string;
 	}
 
+	// Use CRUD composables
+	const crudLoader = useCrudLoader<BlogCategory>('/api/admin/blog-categories', {
+		searchParam: 'q',
+		searchValue: () => searchTerm,
+		filterParams: {
+			isActive: () => activeFilter
+		}
+	});
+	const crudOps = useCrudOperations<BlogCategory>('/api/admin/blog-categories', {
+		createSuccessMessage: 'Blog category created successfully!',
+		updateSuccessMessage: 'Blog category updated successfully!',
+		deleteSuccessMessage: 'Blog category deleted successfully!',
+		transformPayload: (data: any) => {
+			// This is called for both create and update
+			// For create, we use the data as-is
+			// For update, handleEdit will transform it before calling update
+			return data;
+		},
+		onCreateSuccess: (newCategory) => {
+			crudLoader.items.update(items => [...items, newCategory]);
+			dialogs.closeAll();
+			resetForm();
+		},
+		onUpdateSuccess: (updatedCategory) => {
+			const currentEditingCategory = editingCategory;
+			if (currentEditingCategory) {
+				crudLoader.items.update(items => 
+					items.map(c => c._id === currentEditingCategory._id ? updatedCategory : c)
+				);
+			}
+			dialogs.closeAll();
+			editingCategory = null;
+			resetForm();
+		},
+		onDeleteSuccess: () => {
+			const currentCategoryToDelete = categoryToDelete;
+			if (currentCategoryToDelete) {
+				crudLoader.items.update(items => 
+					items.filter(c => c._id !== currentCategoryToDelete._id)
+				);
+			}
+			dialogs.closeAll();
+			categoryToDelete = null;
+		}
+	});
+	const dialogs = useDialogManager();
+
+	// Reactive stores from composables
 	let categories: BlogCategory[] = [];
-	let loading = true;
+	let loading = false;
 	let saving = false;
-	let deleting = false;
 	let message = '';
 	let error = '';
 	let searchTerm = '';
@@ -39,6 +89,21 @@
 	let showDeleteDialog = false;
 	let editingCategory: BlogCategory | null = null;
 	let categoryToDelete: BlogCategory | null = null;
+
+	// Subscribe to stores
+	crudLoader.items.subscribe(value => categories = value);
+	crudLoader.loading.subscribe(value => loading = value);
+	crudLoader.error.subscribe(value => {
+		if (value) error = value;
+	});
+	crudOps.saving.subscribe(value => saving = value);
+	crudOps.error.subscribe(value => {
+		if (value) error = value;
+	});
+	crudOps.message.subscribe(value => message = value);
+	dialogs.showCreate.subscribe(value => showCreateDialog = value);
+	dialogs.showEdit.subscribe(value => showEditDialog = value);
+	dialogs.showDelete.subscribe(value => showDeleteDialog = value);
 
 	// Form state
 	let formData = {
@@ -56,30 +121,8 @@
 	};
 
 	onMount(async () => {
-		await loadCategories();
+		await crudLoader.loadItems();
 	});
-
-	async function loadCategories() {
-		loading = true;
-		error = '';
-		try {
-			const params = new URLSearchParams();
-			if (searchTerm) params.append('q', searchTerm);
-			if (activeFilter !== 'all') params.append('isActive', activeFilter);
-
-			const response = await fetch(`/api/admin/blog-categories?${params.toString()}`);
-			if (!response.ok) {
-				await handleApiErrorResponse(response);
-			}
-			const result = await response.json();
-			categories = Array.isArray(result.data) ? result.data : (Array.isArray(result) ? result : []);
-		} catch (err) {
-			logger.error('Error loading blog categories:', err);
-			error = handleError(err, 'Failed to load blog categories');
-		} finally {
-			loading = false;
-		}
-	}
 
 	function resetForm() {
 		formData = {
@@ -99,20 +142,16 @@
 
 	function openCreateDialog() {
 		resetForm();
-		showCreateDialog = true;
-		error = '';
+		dialogs.openCreate();
+		crudOps.error.set('');
 	}
 
 	function openEditDialog(category: BlogCategory) {
 		editingCategory = category;
-		const titleField = typeof category.title === 'string' ? { en: category.title, he: '' } : category.title || { en: '', he: '' };
-		const descField = typeof category.description === 'string'
-			? { en: category.description, he: '' }
-			: category.description || { en: '', he: '' };
 		formData = {
 			alias: category.alias || '',
-			title: titleField,
-			description: descField,
+			title: normalizeMultiLangText(category.title),
+			description: normalizeMultiLangText(category.description),
 			leadingImage: category.leadingImage || {
 				url: '',
 				alt: { en: '', he: '' },
@@ -122,13 +161,14 @@
 			isActive: category.isActive !== undefined ? category.isActive : true,
 			sortOrder: category.sortOrder || 0
 		};
-		showEditDialog = true;
-		error = '';
+		dialogs.openEdit();
+		crudOps.error.set('');
 	}
 
 	function openDeleteDialog(category: BlogCategory) {
 		categoryToDelete = category;
-		showDeleteDialog = true;
+		dialogs.openDelete();
+		crudOps.error.set('');
 	}
 
 	function getCategoryTitle(category: BlogCategory): string {
@@ -138,145 +178,51 @@
 	}
 
 	async function handleCreate() {
-		saving = true;
-		error = '';
-		message = '';
-
-		try {
-			const payload: any = {
-				title: formData.title,
-				description: formData.description,
-				isActive: formData.isActive,
-				sortOrder: formData.sortOrder
-			};
-			if (formData.alias.trim()) payload.alias = formData.alias.trim();
-			if (formData.leadingImage.url.trim()) {
-				payload.leadingImage = formData.leadingImage;
-			}
-
-			const response = await fetch('/api/admin/blog-categories', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify(payload)
-			});
-
-			if (!response.ok) {
-				await handleApiErrorResponse(response);
-			}
-
-			const responseData = await response.json();
-
-			if (!responseData) {
-				throw new Error('No data returned from server');
-			}
-
-			const newCategory = responseData.data || responseData;
-			categories = [...categories, newCategory];
-			message = 'Blog category created successfully!';
-			showCreateDialog = false;
-			resetForm();
-
-			setTimeout(() => {
-				message = '';
-			}, 3000);
-		} catch (err) {
-			logger.error('Error creating blog category:', err);
-			error = handleError(err, 'Failed to create blog category');
-		} finally {
-			saving = false;
+		const payload: any = {
+			title: formData.title,
+			description: formData.description,
+			isActive: formData.isActive,
+			sortOrder: formData.sortOrder
+		};
+		if (formData.alias.trim()) payload.alias = formData.alias.trim();
+		if (formData.leadingImage.url.trim()) {
+			payload.leadingImage = formData.leadingImage;
+		}
+		const newCategory = await crudOps.create(payload);
+		if (newCategory) {
+			// Success handled by onCreateSuccess callback
 		}
 	}
 
 	async function handleEdit() {
 		if (!editingCategory) return;
-
-		saving = true;
-		error = '';
-		message = '';
-
-		try {
-			const payload: any = {
-				title: formData.title,
-				description: formData.description,
-				isActive: formData.isActive,
-				sortOrder: formData.sortOrder
-			};
-			if (formData.alias.trim() && formData.alias !== editingCategory.alias) {
-				payload.alias = formData.alias.trim();
-			}
-			if (formData.leadingImage.url.trim()) {
-				payload.leadingImage = formData.leadingImage;
-			} else {
-				payload.leadingImage = null;
-			}
-
-			const response = await fetch(`/api/admin/blog-categories/${editingCategory._id}`, {
-				method: 'PUT',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify(payload)
-			});
-
-			if (!response.ok) {
-				await handleApiErrorResponse(response);
-			}
-
-			const responseData = await response.json();
-
-			if (!responseData) {
-				throw new Error('No data returned from server');
-			}
-
-			const updatedCategory = responseData.data || responseData;
-			categories = categories.map((c) => (c._id === editingCategory._id ? updatedCategory : c));
-			message = 'Blog category updated successfully!';
-			showEditDialog = false;
-			editingCategory = null;
-			resetForm();
-
-			setTimeout(() => {
-				message = '';
-			}, 3000);
-		} catch (err) {
-			logger.error('Error updating blog category:', err);
-			error = handleError(err, 'Failed to update blog category');
-		} finally {
-			saving = false;
+		const currentEditingCategory = editingCategory;
+		const payload: any = {
+			title: formData.title,
+			description: formData.description,
+			isActive: formData.isActive,
+			sortOrder: formData.sortOrder
+		};
+		if (formData.alias.trim() && formData.alias !== currentEditingCategory.alias) {
+			payload.alias = formData.alias.trim();
+		}
+		if (formData.leadingImage.url.trim()) {
+			payload.leadingImage = formData.leadingImage;
+		} else {
+			payload.leadingImage = null;
+		}
+		const updatedCategory = await crudOps.update(currentEditingCategory._id, payload);
+		if (updatedCategory) {
+			// Success handled by onUpdateSuccess callback
 		}
 	}
 
 	async function handleDelete() {
 		if (!categoryToDelete) return;
-
-		deleting = true;
-		error = '';
-		message = '';
-
-		try {
-			const response = await fetch(`/api/admin/blog-categories/${categoryToDelete._id}`, {
-				method: 'DELETE'
-			});
-
-			if (!response.ok) {
-				await handleApiErrorResponse(response);
-			}
-
-			categories = categories.filter((c) => c._id !== categoryToDelete._id);
-			message = 'Blog category deleted successfully!';
-			showDeleteDialog = false;
-			categoryToDelete = null;
-
-			setTimeout(() => {
-				message = '';
-			}, 3000);
-		} catch (err) {
-			logger.error('Error deleting blog category:', err);
-			error = handleError(err, 'Failed to delete blog category');
-		} finally {
-			deleting = false;
+		const currentCategoryToDelete = categoryToDelete;
+		const success = await crudOps.remove(currentCategoryToDelete._id);
+		if (success) {
+			// Success handled by onDeleteSuccess callback
 		}
 	}
 </script>
@@ -314,7 +260,7 @@
 							type="text"
 							placeholder="Search categories..."
 							bind:value={searchTerm}
-							on:input={() => loadCategories()}
+							on:input={() => crudLoader.loadItems()}
 							class="pl-10 pr-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-64"
 						/>
 						<svg
@@ -334,7 +280,7 @@
 
 					<select
 						bind:value={activeFilter}
-						on:change={() => loadCategories()}
+						on:change={() => crudLoader.loadItems()}
 						class="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 					>
 						<option value="all">All Status</option>
@@ -537,7 +483,7 @@
 					<button
 						type="button"
 						on:click={() => {
-							showCreateDialog = false;
+							dialogs.closeAll();
 							resetForm();
 						}}
 						class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm font-medium"
@@ -647,7 +593,7 @@
 					<button
 						type="button"
 						on:click={() => {
-							showEditDialog = false;
+							dialogs.closeAll();
 							editingCategory = null;
 							resetForm();
 						}}
@@ -697,7 +643,7 @@
 					<button
 						type="button"
 						on:click={() => {
-							showDeleteDialog = false;
+							dialogs.closeAll();
 							categoryToDelete = null;
 						}}
 						class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm font-medium"
@@ -707,10 +653,10 @@
 					<button
 						type="button"
 						on:click={handleDelete}
-						disabled={deleting}
+						disabled={saving}
 						class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 text-sm font-medium"
 					>
-						{#if deleting}
+						{#if saving}
 							Deleting...
 						{:else}
 							Delete Category

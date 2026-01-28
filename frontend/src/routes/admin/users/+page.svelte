@@ -2,10 +2,15 @@
 	import { onMount } from 'svelte';
 	import MultiLangInput from '$lib/components/MultiLangInput.svelte';
 	import type { MultiLangText } from '$lib/types/multi-lang';
+	import { useCrudLoader } from '$lib/composables/useCrudLoader';
+	import { useCrudOperations } from '$lib/composables/useCrudOperations';
+	import { useDialogManager } from '$lib/composables/useDialogManager';
+	import { normalizeMultiLangText } from '$lib/utils/multiLangHelpers';
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 	import type { PageData } from './$types';
 
+	// svelte-ignore export_let_unused - Required by SvelteKit page component
 	export let data: PageData;
 
 	interface Group {
@@ -40,12 +45,62 @@
 		{ id: 'wasabi', name: 'Wasabi' }
 	];
 
+	// Use CRUD composables for users
+	const crudLoader = useCrudLoader<User>('/api/admin/users', {
+		searchParam: 'search',
+		searchValue: () => searchTerm,
+		filterParams: {
+			role: () => roleFilter,
+			blocked: () => blockedFilter
+		}
+	});
+	const crudOps = useCrudOperations<User>('/api/admin/users', {
+		createSuccessMessage: 'User created successfully!',
+		updateSuccessMessage: 'User updated successfully!',
+		deleteSuccessMessage: 'User deleted successfully!',
+		transformPayload: (data: any) => {
+			const payload: any = { ...data };
+			// Only include password if it's been set (for updates)
+			if (payload.password && payload.password.trim() === '') {
+				delete payload.password;
+			}
+			return payload;
+		},
+		onCreateSuccess: (newUser) => {
+			crudLoader.items.update(items => [...items, newUser]);
+			dialogs.closeAll();
+			resetForm();
+		},
+		onUpdateSuccess: (updatedUser) => {
+			const currentEditingUser = editingUser;
+			if (currentEditingUser) {
+				crudLoader.items.update(items => 
+					items.map(u => u._id === currentEditingUser._id ? updatedUser : u)
+				);
+			}
+			dialogs.closeAll();
+			editingUser = null;
+			resetForm();
+		},
+		onDeleteSuccess: () => {
+			const currentUserToDelete = userToDelete;
+			if (currentUserToDelete) {
+				crudLoader.items.update(items => 
+					items.filter(u => u._id !== currentUserToDelete._id)
+				);
+			}
+			dialogs.closeAll();
+			userToDelete = null;
+		}
+	});
+	const dialogs = useDialogManager();
+
+	// Reactive stores from composables
 	let users: User[] = [];
 	let groups: Group[] = [];
-	let loading = true;
+	let loading = false;
 	let loadingGroups = false;
 	let saving = false;
-	let deleting = false;
 	let message = '';
 	let error = '';
 	let searchTerm = '';
@@ -56,6 +111,21 @@
 	let showDeleteDialog = false;
 	let editingUser: User | null = null;
 	let userToDelete: User | null = null;
+
+	// Subscribe to stores
+	crudLoader.items.subscribe(value => users = value);
+	crudLoader.loading.subscribe(value => loading = value);
+	crudLoader.error.subscribe(value => {
+		if (value) error = value;
+	});
+	crudOps.saving.subscribe(value => saving = value);
+	crudOps.error.subscribe(value => {
+		if (value) error = value;
+	});
+	crudOps.message.subscribe(value => message = value);
+	dialogs.showCreate.subscribe(value => showCreateDialog = value);
+	dialogs.showEdit.subscribe(value => showEditDialog = value);
+	dialogs.showDelete.subscribe(value => showDeleteDialog = value);
 
 	// Form state
 	let formData = {
@@ -71,31 +141,8 @@
 	let showPassword = false;
 
 	onMount(async () => {
-		await Promise.all([loadUsers(), loadGroups()]);
+		await Promise.all([crudLoader.loadItems(), loadGroups()]);
 	});
-
-	async function loadUsers() {
-		loading = true;
-		error = '';
-		try {
-			const params = new URLSearchParams();
-			if (searchTerm) params.append('search', searchTerm);
-			if (roleFilter !== 'all') params.append('role', roleFilter);
-			if (blockedFilter !== 'all') params.append('blocked', blockedFilter);
-
-			const response = await fetch(`/api/admin/users?${params.toString()}`);
-			if (!response.ok) {
-				await handleApiErrorResponse(response);
-			}
-			const result = await response.json();
-			users = Array.isArray(result.data) ? result.data : (Array.isArray(result) ? result : []);
-		} catch (err) {
-			logger.error('Error loading users:', err);
-			error = handleError(err, 'Failed to load users');
-		} finally {
-			loading = false;
-		}
-	}
 
 	async function loadGroups() {
 		loadingGroups = true;
@@ -128,15 +175,14 @@
 
 	function openCreateDialog() {
 		resetForm();
-		showCreateDialog = true;
-		error = '';
+		dialogs.openCreate();
+		crudOps.error.set('');
 	}
 
 	function openEditDialog(user: User) {
 		editingUser = user;
-		const nameField = typeof user.name === 'string' ? { en: user.name, he: '' } : user.name || { en: '', he: '' };
 		formData = {
-			name: nameField,
+			name: normalizeMultiLangText(user.name),
 			username: user.username || '',
 			password: '', // Don't populate password
 			role: user.role || 'guest',
@@ -145,13 +191,14 @@
 			allowedStorageProviders: user.allowedStorageProviders || ['local']
 		};
 		showPassword = false;
-		showEditDialog = true;
-		error = '';
+		dialogs.openEdit();
+		crudOps.error.set('');
 	}
 
 	function openDeleteDialog(user: User) {
 		userToDelete = user;
-		showDeleteDialog = true;
+		dialogs.openDelete();
+		crudOps.error.set('');
 	}
 
 	function getUserName(user: User): string {
@@ -187,129 +234,27 @@
 	}
 
 	async function handleCreate() {
-		saving = true;
-		error = '';
-		message = '';
-
-		try {
-			logger.debug('Creating user with data:', { ...formData, password: '***' });
-			const response = await fetch('/api/admin/users', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify(formData)
-			});
-
-			if (!response.ok) {
-				await handleApiErrorResponse(response);
-			}
-
-			const responseData = await response.json();
-			logger.debug('Response status:', response.status, 'Response data:', responseData);
-
-			if (!responseData) {
-				throw new Error('No data returned from server');
-			}
-
-			const newUser = responseData.data || responseData;
-			users = [...users, newUser];
-			message = 'User created successfully!';
-			showCreateDialog = false;
-			resetForm();
-
-			setTimeout(() => {
-				message = '';
-			}, 3000);
-		} catch (err) {
-			logger.error('Error creating user:', err);
-			error = handleError(err, 'Failed to create user');
-		} finally {
-			saving = false;
+		const newUser = await crudOps.create(formData);
+		if (newUser) {
+			// Success handled by onCreateSuccess callback
 		}
 	}
 
 	async function handleEdit() {
 		if (!editingUser) return;
-
-		saving = true;
-		error = '';
-		message = '';
-
-		try {
-			logger.debug('Updating user:', editingUser._id, 'with data:', { ...formData, password: formData.password ? '***' : '(unchanged)' });
-			const payload: any = { ...formData };
-			// Only include password if it's been set
-			if (!payload.password || payload.password.trim() === '') {
-				delete payload.password;
-			}
-
-			const response = await fetch(`/api/admin/users/${editingUser._id}`, {
-				method: 'PUT',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify(payload)
-			});
-
-			if (!response.ok) {
-				await handleApiErrorResponse(response);
-			}
-
-			const responseData = await response.json();
-			logger.debug('Response status:', response.status, 'Response data:', responseData);
-
-			if (!responseData) {
-				throw new Error('No data returned from server');
-			}
-
-			const updatedUser = responseData.data || responseData;
-			users = users.map((u) => (u._id === editingUser._id ? updatedUser : u));
-			message = 'User updated successfully!';
-			showEditDialog = false;
-			editingUser = null;
-			resetForm();
-
-			setTimeout(() => {
-				message = '';
-			}, 3000);
-		} catch (err) {
-			logger.error('Error updating user:', err);
-			error = handleError(err, 'Failed to update user');
-		} finally {
-			saving = false;
+		const currentEditingUser = editingUser;
+		const updatedUser = await crudOps.update(currentEditingUser._id, formData);
+		if (updatedUser) {
+			// Success handled by onUpdateSuccess callback
 		}
 	}
 
 	async function handleDelete() {
 		if (!userToDelete) return;
-
-		deleting = true;
-		error = '';
-		message = '';
-
-		try {
-			const response = await fetch(`/api/admin/users/${userToDelete._id}`, {
-				method: 'DELETE'
-			});
-
-			if (!response.ok) {
-				await handleApiErrorResponse(response);
-			}
-
-			users = users.filter((u) => u._id !== userToDelete._id);
-			message = 'User deleted successfully!';
-			showDeleteDialog = false;
-			userToDelete = null;
-
-			setTimeout(() => {
-				message = '';
-			}, 3000);
-		} catch (err) {
-			logger.error('Error deleting user:', err);
-			error = handleError(err, 'Failed to delete user');
-		} finally {
-			deleting = false;
+		const currentUserToDelete = userToDelete;
+		const success = await crudOps.remove(currentUserToDelete._id);
+		if (success) {
+			// Success handled by onDeleteSuccess callback
 		}
 	}
 </script>
@@ -347,7 +292,7 @@
 							type="text"
 							placeholder="Search users..."
 							bind:value={searchTerm}
-							on:input={() => loadUsers()}
+							on:input={() => crudLoader.loadItems()}
 							class="pl-10 pr-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-64"
 						/>
 						<svg
@@ -367,7 +312,7 @@
 
 					<select
 						bind:value={roleFilter}
-						on:change={() => loadUsers()}
+						on:change={() => crudLoader.loadItems()}
 						class="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 					>
 						<option value="all">All Roles</option>
@@ -378,7 +323,7 @@
 
 					<select
 						bind:value={blockedFilter}
-						on:change={() => loadUsers()}
+						on:change={() => crudLoader.loadItems()}
 						class="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 					>
 						<option value="all">All Status</option>
@@ -681,7 +626,7 @@
 					<button
 						type="button"
 						on:click={() => {
-							showCreateDialog = false;
+							dialogs.closeAll();
 							resetForm();
 						}}
 						class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm font-medium"
@@ -865,7 +810,7 @@
 					<button
 						type="button"
 						on:click={() => {
-							showEditDialog = false;
+							dialogs.closeAll();
 							editingUser = null;
 							resetForm();
 						}}
@@ -917,7 +862,7 @@
 					<button
 						type="button"
 						on:click={() => {
-							showDeleteDialog = false;
+							dialogs.closeAll();
 							userToDelete = null;
 						}}
 						class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm font-medium"
@@ -927,10 +872,10 @@
 					<button
 						type="button"
 						on:click={handleDelete}
-						disabled={deleting}
+						disabled={saving}
 						class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 text-sm font-medium"
 					>
-						{#if deleting}
+						{#if saving}
 							Deleting...
 						{:else}
 							Delete User
