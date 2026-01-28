@@ -5,10 +5,13 @@
 	import { MultiLangUtils } from '$utils/multiLang';
 	import MultiLangInput from '$lib/components/MultiLangInput.svelte';
 	import type { MultiLangText } from '$lib/types/multi-lang';
-	import { logger } from '$lib/utils/logger';
-	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
+	import { useCrudLoader } from '$lib/composables/useCrudLoader';
+	import { useCrudOperations } from '$lib/composables/useCrudOperations';
+	import { useDialogManager } from '$lib/composables/useDialogManager';
+	import { normalizeMultiLangText } from '$lib/utils/multiLangHelpers';
 	import type { PageData } from './$types';
 
+	// svelte-ignore export_let_unused - Required by SvelteKit page component
 	export let data: PageData;
 
 	interface Person {
@@ -33,10 +36,64 @@
 		};
 	}
 
+	// Use CRUD composables
+	const crudLoader = useCrudLoader<Person>('/api/admin/people', {
+		searchParam: 'search',
+		searchValue: () => searchTerm
+	});
+	const crudOps = useCrudOperations<Person>('/api/admin/people', {
+		createSuccessMessage: 'Person created successfully!',
+		updateSuccessMessage: 'Person updated successfully!',
+		deleteSuccessMessage: 'Person deleted successfully!',
+		transformPayload: (data: any) => {
+			const tagsArray = data.tags
+				? (typeof data.tags === 'string'
+					? data.tags.split(',').map((tag: string) => tag.trim()).filter(Boolean)
+					: data.tags)
+				: [];
+			return {
+				firstName: MultiLangUtils.clean(data.firstName),
+				lastName: MultiLangUtils.clean(data.lastName),
+				nickname: MultiLangUtils.clean(data.nickname),
+				birthDate: data.birthDate || undefined,
+				description: MultiLangUtils.clean(data.description),
+				tags: tagsArray,
+				isActive: data.isActive
+			};
+		},
+		onCreateSuccess: (newPerson) => {
+			crudLoader.items.update(items => [...items, newPerson]);
+			dialogs.closeAll();
+			resetForm();
+		},
+		onUpdateSuccess: (updatedPerson) => {
+			const currentEditingPerson = editingPerson;
+			if (currentEditingPerson) {
+				crudLoader.items.update(items => 
+					items.map(p => p._id === currentEditingPerson._id ? updatedPerson : p)
+				);
+			}
+			dialogs.closeAll();
+			editingPerson = null;
+			resetForm();
+		},
+		onDeleteSuccess: () => {
+			const currentPersonToDelete = personToDelete;
+			if (currentPersonToDelete) {
+				crudLoader.items.update(items => 
+					items.filter(p => p._id !== currentPersonToDelete._id)
+				);
+			}
+			dialogs.closeAll();
+			personToDelete = null;
+		}
+	});
+	const dialogs = useDialogManager();
+
+	// Reactive stores from composables
 	let people: Person[] = [];
-	let loading = true;
+	let loading = false;
 	let saving = false;
-	let deleting = false;
 	let message = '';
 	let error = '';
 	let searchTerm = '';
@@ -45,6 +102,21 @@
 	let showDeleteDialog = false;
 	let editingPerson: Person | null = null;
 	let personToDelete: Person | null = null;
+
+	// Subscribe to stores
+	crudLoader.items.subscribe(value => people = value);
+	crudLoader.loading.subscribe(value => loading = value);
+	crudLoader.error.subscribe(value => {
+		if (value) error = value;
+	});
+	crudOps.saving.subscribe(value => saving = value);
+	crudOps.error.subscribe(value => {
+		if (value) error = value;
+	});
+	crudOps.message.subscribe(value => message = value);
+	dialogs.showCreate.subscribe(value => showCreateDialog = value);
+	dialogs.showEdit.subscribe(value => showEditDialog = value);
+	dialogs.showDelete.subscribe(value => showDeleteDialog = value);
 
 	// Form state
 	let formData = {
@@ -60,30 +132,8 @@
 	$: defaultLang = $currentLanguage;
 
 	onMount(async () => {
-		await loadPeople();
+		await crudLoader.loadItems();
 	});
-
-	async function loadPeople() {
-		loading = true;
-		error = '';
-		try {
-			const params = new URLSearchParams();
-			if (searchTerm) params.append('search', searchTerm);
-
-			const response = await fetch(`/api/admin/people?${params.toString()}`);
-			if (!response.ok) {
-				await handleApiErrorResponse(response);
-			}
-			const result = await response.json();
-			// Handle both { data: [...], pagination: {...} } and direct array formats
-			people = Array.isArray(result.data) ? result.data : (Array.isArray(result) ? result : []);
-		} catch (err) {
-			logger.error('Error loading people:', err);
-			error = handleError(err, 'Failed to load people');
-		} finally {
-			loading = false;
-		}
-	}
 
 	function resetForm() {
 		formData = {
@@ -99,176 +149,57 @@
 
 	function openCreateDialog() {
 		resetForm();
-		showCreateDialog = true;
-		error = '';
+		dialogs.openCreate();
+		crudOps.error.set('');
 	}
 
 	function openEditDialog(person: Person) {
 		editingPerson = person;
 		formData = {
-			firstName: person.firstName || {},
-			lastName: person.lastName || {},
-			nickname: person.nickname || {},
+			firstName: normalizeMultiLangText(person.firstName),
+			lastName: normalizeMultiLangText(person.lastName),
+			nickname: normalizeMultiLangText(person.nickname),
 			birthDate: person.birthDate
 				? new Date(person.birthDate).toISOString().split('T')[0]
 				: '',
-			description: person.description || {},
+			description: normalizeMultiLangText(person.description),
 			tags: Array.isArray(person.tags)
 				? person.tags.map((tag) => (typeof tag === 'string' ? tag : tag.name)).join(', ')
 				: '',
 			isActive: person.isActive !== undefined ? person.isActive : true
 		};
-		showEditDialog = true;
-		error = '';
+		dialogs.openEdit();
+		crudOps.error.set('');
 	}
 
 	function openDeleteDialog(person: Person) {
 		personToDelete = person;
-		showDeleteDialog = true;
+		dialogs.openDelete();
+		crudOps.error.set('');
 	}
 
 	async function handleCreate() {
-		saving = true;
-		error = '';
-		message = '';
-
-		try {
-			const tagsArray = formData.tags
-				.split(',')
-				.map((tag) => tag.trim())
-				.filter(Boolean);
-
-			const response = await fetch('/api/admin/people', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({
-					firstName: MultiLangUtils.clean(formData.firstName),
-					lastName: MultiLangUtils.clean(formData.lastName),
-					nickname: MultiLangUtils.clean(formData.nickname),
-					birthDate: formData.birthDate || undefined,
-					description: MultiLangUtils.clean(formData.description),
-					tags: tagsArray,
-					isActive: formData.isActive
-				})
-			});
-
-			if (!response.ok) {
-				await handleApiErrorResponse(response);
-			}
-
-			const responseData = await response.json();
-
-			if (!responseData) {
-				throw new Error('No data returned from server');
-			}
-
-			// Handle both direct person object and wrapped response
-			const newPerson = responseData.data || responseData;
-			people = [...people, newPerson];
-			message = 'Person created successfully!';
-			showCreateDialog = false;
-			resetForm();
-
-			setTimeout(() => {
-				message = '';
-			}, 3000);
-		} catch (err) {
-			logger.error('Error creating person:', err);
-			error = handleError(err, 'Failed to create person');
-		} finally {
-			saving = false;
+		const newPerson = await crudOps.create(formData);
+		if (newPerson) {
+			// Success handled by onCreateSuccess callback
 		}
 	}
 
 	async function handleEdit() {
 		if (!editingPerson) return;
-
-		saving = true;
-		error = '';
-		message = '';
-
-		try {
-			const tagsArray = formData.tags
-				.split(',')
-				.map((tag) => tag.trim())
-				.filter(Boolean);
-
-			const response = await fetch(`/api/admin/people/${editingPerson._id}`, {
-				method: 'PUT',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({
-					firstName: MultiLangUtils.clean(formData.firstName),
-					lastName: MultiLangUtils.clean(formData.lastName),
-					nickname: MultiLangUtils.clean(formData.nickname),
-					birthDate: formData.birthDate || undefined,
-					description: MultiLangUtils.clean(formData.description),
-					tags: tagsArray,
-					isActive: formData.isActive
-				})
-			});
-
-			if (!response.ok) {
-				await handleApiErrorResponse(response);
-			}
-
-			const responseData = await response.json();
-
-			if (!responseData) {
-				throw new Error('No data returned from server');
-			}
-
-			// Handle both direct person object and wrapped response
-			const updatedPerson = responseData.data || responseData;
-			people = people.map((p) => (p._id === editingPerson._id ? updatedPerson : p));
-			message = 'Person updated successfully!';
-			showEditDialog = false;
-			editingPerson = null;
-			resetForm();
-
-			setTimeout(() => {
-				message = '';
-			}, 3000);
-		} catch (err) {
-			logger.error('Error updating person:', err);
-			error = handleError(err, 'Failed to update person');
-		} finally {
-			saving = false;
+		const currentEditingPerson = editingPerson;
+		const updatedPerson = await crudOps.update(currentEditingPerson._id, formData);
+		if (updatedPerson) {
+			// Success handled by onUpdateSuccess callback
 		}
 	}
 
 	async function handleDelete() {
 		if (!personToDelete) return;
-
-		deleting = true;
-		error = '';
-		message = '';
-
-		try {
-			const response = await fetch(`/api/admin/people/${personToDelete._id}`, {
-				method: 'DELETE'
-			});
-
-			if (!response.ok) {
-				await handleApiErrorResponse(response);
-			}
-
-			people = people.filter((p) => p._id !== personToDelete._id);
-			message = 'Person deleted successfully!';
-			showDeleteDialog = false;
-			personToDelete = null;
-
-			setTimeout(() => {
-				message = '';
-			}, 3000);
-		} catch (err) {
-			logger.error('Error deleting person:', err);
-			error = handleError(err, 'Failed to delete person');
-		} finally {
-			deleting = false;
+		const currentPersonToDelete = personToDelete;
+		const success = await crudOps.remove(currentPersonToDelete._id);
+		if (success) {
+			// Success handled by onDeleteSuccess callback
 		}
 	}
 
@@ -326,7 +257,7 @@
 							type="text"
 							placeholder="Search people..."
 							bind:value={searchTerm}
-							on:input={() => loadPeople()}
+							on:input={() => crudLoader.loadItems()}
 							class="pl-10 pr-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-64"
 						/>
 						<svg
@@ -593,7 +524,7 @@
 					<button
 						type="button"
 						on:click={() => {
-							showCreateDialog = false;
+							dialogs.closeAll();
 							resetForm();
 						}}
 						class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm font-medium"
@@ -711,7 +642,7 @@
 					<button
 						type="button"
 						on:click={() => {
-							showEditDialog = false;
+							dialogs.closeAll();
 							editingPerson = null;
 							resetForm();
 						}}
@@ -756,7 +687,7 @@
 					<button
 						type="button"
 						on:click={() => {
-							showDeleteDialog = false;
+							dialogs.closeAll();
 							personToDelete = null;
 						}}
 						class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm font-medium"
@@ -766,10 +697,10 @@
 					<button
 						type="button"
 						on:click={handleDelete}
-						disabled={deleting}
+						disabled={saving}
 						class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 text-sm font-medium"
 					>
-						{#if deleting}
+						{#if saving}
 							Deleting...
 						{:else}
 							Delete Person
