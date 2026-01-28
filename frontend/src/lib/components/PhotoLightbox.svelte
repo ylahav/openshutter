@@ -148,7 +148,7 @@
 				// Fetch person names for faces with matchedPersonId
 				const fetchFacesWithNames = async () => {
 					const facesWithNames = await Promise.all(
-						faces.map(async (face: any) => {
+						faces.map(async (face: { box: { x: number; y: number; width: number; height: number }; matchedPersonId?: string; confidence?: number }) => {
 							const baseFace = {
 								box: face.box,
 								matchedPersonId: face.matchedPersonId?.toString(),
@@ -196,8 +196,8 @@
 				if (response.ok) {
 					const photoData = await response.json();
 					if (photoData?.faceRecognition?.faces?.length > 0) {
-						const facesWithNames = await Promise.all(
-							photoData.faceRecognition.faces.map(async (face: any) => {
+					const facesWithNames = await Promise.all(
+						photoData.faceRecognition.faces.map(async (face: { box: { x: number; y: number; width: number; height: number }; matchedPersonId?: string; confidence?: number }) => {
 								if (face.matchedPersonId) {
 									const personName = await fetchPersonName(face.matchedPersonId);
 									if (personName) {

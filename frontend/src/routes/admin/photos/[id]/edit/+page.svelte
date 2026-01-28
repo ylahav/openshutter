@@ -17,8 +17,8 @@
 
 	interface Photo {
 		_id: string;
-		title?: any;
-		description?: any;
+		title?: string | { en?: string; he?: string };
+		description?: string | { en?: string; he?: string };
 		filename: string;
 		storage?: {
 			provider?: string;
@@ -55,13 +55,13 @@
 
 	interface Person {
 		_id: string;
-		fullName?: any;
-		firstName?: any;
+		fullName?: string | { en?: string; he?: string };
+		firstName?: string | { en?: string; he?: string };
 	}
 
 	interface Location {
 		_id: string;
-		name: any;
+		name: string | { en?: string; he?: string };
 	}
 
 	let photoId: string = '';
