@@ -4,6 +4,8 @@
 	import { MultiLangUtils } from '$lib/utils/multiLang';
 	import MultiLangInput from '$lib/components/MultiLangInput.svelte';
 	import type { MultiLangText } from '$lib/types/multi-lang';
+	import { logger } from '$lib/utils/logger';
+	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 
   export const data = undefined as any; // From +layout.server.ts, not used in this component
 
@@ -77,13 +79,13 @@
 
 			const response = await fetch(`/api/admin/tags?${params.toString()}`);
 			if (!response.ok) {
-				throw new Error('Failed to load tags');
+				await handleApiErrorResponse(response);
 			}
 			const result = await response.json();
 			tags = Array.isArray(result.data) ? result.data : (Array.isArray(result) ? result : []);
 		} catch (err) {
-			console.error('Error loading tags:', err);
-			error = `Failed to load tags: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			logger.error('Error loading tags:', err);
+			error = handleError(err, 'Failed to load tags');
 		} finally {
 			loading = false;
 		}
@@ -136,7 +138,7 @@
 		message = '';
 
 		try {
-			console.log('Creating tag with data:', formData);
+			logger.debug('Creating tag with data:', formData);
 			const response = await fetch('/api/admin/tags', {
 				method: 'POST',
 				headers: {
@@ -151,17 +153,12 @@
 				})
 			});
 
-			const responseData = await response.json().catch((e) => {
-				console.error('Failed to parse response:', e);
-				return null;
-			});
-
-			console.log('Response status:', response.status, 'Response data:', responseData);
-
 			if (!response.ok) {
-				const errorMessage = responseData?.message || `HTTP ${response.status}: Failed to create tag`;
-				throw new Error(errorMessage);
+				await handleApiErrorResponse(response);
 			}
+
+			const responseData = await response.json();
+			logger.debug('Response status:', response.status, 'Response data:', responseData);
 
 			if (!responseData) {
 				throw new Error('No data returned from server');
@@ -178,8 +175,8 @@
 				message = '';
 			}, 3000);
 		} catch (err) {
-			console.error('Error creating tag:', err);
-			error = `Failed to create tag: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			logger.error('Error creating tag:', err);
+			error = handleError(err, 'Failed to create tag');
 		} finally {
 			saving = false;
 		}
@@ -193,7 +190,7 @@
 		message = '';
 
 		try {
-			console.log('Updating tag:', editingTag._id, 'with data:', formData);
+			logger.debug('Updating tag:', editingTag._id, 'with data:', formData);
 			const response = await fetch(`/api/admin/tags/${editingTag._id}`, {
 				method: 'PUT',
 				headers: {
@@ -208,17 +205,12 @@
 				})
 			});
 
-			const responseData = await response.json().catch((e) => {
-				console.error('Failed to parse response:', e);
-				return null;
-			});
-
-			console.log('Response status:', response.status, 'Response data:', responseData);
-
 			if (!response.ok) {
-				const errorMessage = responseData?.message || `HTTP ${response.status}: Failed to update tag`;
-				throw new Error(errorMessage);
+				await handleApiErrorResponse(response);
 			}
+
+			const responseData = await response.json();
+			logger.debug('Response status:', response.status, 'Response data:', responseData);
 
 			if (!responseData) {
 				throw new Error('No data returned from server');
@@ -236,8 +228,8 @@
 				message = '';
 			}, 3000);
 		} catch (err) {
-			console.error('Error updating tag:', err);
-			error = `Failed to update tag: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			logger.error('Error updating tag:', err);
+			error = handleError(err, 'Failed to update tag');
 		} finally {
 			saving = false;
 		}
@@ -256,8 +248,7 @@
 			});
 
 			if (!response.ok) {
-				const errorData = await response.json().catch(() => ({}));
-				throw new Error(errorData.message || 'Failed to delete tag');
+				await handleApiErrorResponse(response);
 			}
 
 			tags = tags.filter((t) => t._id !== tagToDelete._id);
@@ -269,8 +260,8 @@
 				message = '';
 			}, 3000);
 		} catch (err) {
-			console.error('Error deleting tag:', err);
-			error = `Failed to delete tag: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			logger.error('Error deleting tag:', err);
+			error = handleError(err, 'Failed to delete tag');
 		} finally {
 			deleting = false;
 		}

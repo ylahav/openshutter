@@ -5,6 +5,8 @@
 	import { MultiLangUtils } from '$utils/multiLang';
 	import MultiLangInput from '$lib/components/MultiLangInput.svelte';
 	import type { MultiLangText } from '$lib/types/multi-lang';
+	import { logger } from '$lib/utils/logger';
+	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 
   export const data = undefined as any; // From +layout.server.ts, not used in this component
 
@@ -69,14 +71,14 @@
 
 			const response = await fetch(`/api/admin/people?${params.toString()}`);
 			if (!response.ok) {
-				throw new Error('Failed to load people');
+				await handleApiErrorResponse(response);
 			}
 			const result = await response.json();
 			// Handle both { data: [...], pagination: {...} } and direct array formats
 			people = Array.isArray(result.data) ? result.data : (Array.isArray(result) ? result : []);
 		} catch (err) {
-			console.error('Error loading people:', err);
-			error = `Failed to load people: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			logger.error('Error loading people:', err);
+			error = handleError(err, 'Failed to load people');
 		} finally {
 			loading = false;
 		}
@@ -151,15 +153,11 @@
 				})
 			});
 
-			const responseData = await response.json().catch((e) => {
-				console.error('Failed to parse response:', e);
-				return null;
-			});
-
 			if (!response.ok) {
-				const errorMessage = responseData?.error || responseData?.message || `HTTP ${response.status}: Failed to create person`;
-				throw new Error(errorMessage);
+				await handleApiErrorResponse(response);
 			}
+
+			const responseData = await response.json();
 
 			if (!responseData) {
 				throw new Error('No data returned from server');
@@ -176,8 +174,8 @@
 				message = '';
 			}, 3000);
 		} catch (err) {
-			console.error('Error creating person:', err);
-			error = `Failed to create person: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			logger.error('Error creating person:', err);
+			error = handleError(err, 'Failed to create person');
 		} finally {
 			saving = false;
 		}
@@ -212,15 +210,11 @@
 				})
 			});
 
-			const responseData = await response.json().catch((e) => {
-				console.error('Failed to parse response:', e);
-				return null;
-			});
-
 			if (!response.ok) {
-				const errorMessage = responseData?.error || responseData?.message || `HTTP ${response.status}: Failed to update person`;
-				throw new Error(errorMessage);
+				await handleApiErrorResponse(response);
 			}
+
+			const responseData = await response.json();
 
 			if (!responseData) {
 				throw new Error('No data returned from server');
@@ -238,8 +232,8 @@
 				message = '';
 			}, 3000);
 		} catch (err) {
-			console.error('Error updating person:', err);
-			error = `Failed to update person: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			logger.error('Error updating person:', err);
+			error = handleError(err, 'Failed to update person');
 		} finally {
 			saving = false;
 		}
@@ -258,8 +252,7 @@
 			});
 
 			if (!response.ok) {
-				const errorData = await response.json().catch(() => ({}));
-				throw new Error(errorData.message || 'Failed to delete person');
+				await handleApiErrorResponse(response);
 			}
 
 			people = people.filter((p) => p._id !== personToDelete._id);
@@ -271,8 +264,8 @@
 				message = '';
 			}, 3000);
 		} catch (err) {
-			console.error('Error deleting person:', err);
-			error = `Failed to delete person: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			logger.error('Error deleting person:', err);
+			error = handleError(err, 'Failed to delete person');
 		} finally {
 			deleting = false;
 		}

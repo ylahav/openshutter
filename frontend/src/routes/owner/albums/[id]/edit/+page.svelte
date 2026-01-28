@@ -6,6 +6,8 @@
 	import MultiLangHTMLEditor from '$lib/components/MultiLangHTMLEditor.svelte';
 	import { MultiLangUtils } from '$lib/utils/multiLang';
 	import { canEditAlbum } from '$lib/access-control';
+	import { logger } from '$lib/utils/logger';
+	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 
 	export let data; // From +layout.server.ts, contains user info
 
@@ -43,7 +45,9 @@
 		try {
 			loading = true;
 			const res = await fetch(`/api/albums/${albumId}`);
-			if (!res.ok) throw new Error('Failed to fetch album');
+			if (!res.ok) {
+				await handleApiErrorResponse(res);
+			}
 			const result = await res.json();
 			const a = result.data || result;
 			if (!canEditAlbum(a, data.user)) {
@@ -64,7 +68,8 @@
 				order: a.order || 0
 			};
 		} catch (e) {
-			error = e instanceof Error ? e.message : 'Failed to fetch album';
+			logger.error('Failed to fetch album:', e);
+			error = handleError(e, 'Failed to fetch album');
 		} finally {
 			loading = false;
 		}
@@ -84,12 +89,15 @@
 					description: MultiLangUtils.clean(formData.description)
 				})
 			});
-			if (!res.ok) throw new Error('Failed to update album');
+			if (!res.ok) {
+				await handleApiErrorResponse(res);
+			}
 			const result = await res.json();
 			if (!result.success) throw new Error(result.error || 'Failed to update album');
 			goto('/owner/albums');
 		} catch (e) {
-			error = e instanceof Error ? e.message : 'Failed to update album';
+			logger.error('Failed to update album:', e);
+			error = handleError(e, 'Failed to update album');
 		} finally {
 			saving = false;
 		}

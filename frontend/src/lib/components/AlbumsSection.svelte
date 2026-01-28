@@ -2,6 +2,8 @@
   import { onMount } from 'svelte';
   import { currentLanguage } from '$stores/language';
   import { MultiLangUtils } from '$utils/multiLang';
+  import { logger } from '$lib/utils/logger';
+  import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 
   interface TemplateAlbum {
     _id: string;
@@ -28,18 +30,18 @@
       // Fetch only root albums (level 0)
       const res = await fetch('/api/albums?level=0');
       if (!res.ok) {
-        throw new Error('Failed to fetch albums');
+        await handleApiErrorResponse(res);
       }
       const data = await res.json();
       if (Array.isArray(data)) {
         const rootAlbums = data.filter((album: TemplateAlbum) => album.level === 0);
         albums = rootAlbums;
       } else {
-        console.error('API returned unexpected format:', data);
+        logger.error('API returned unexpected format:', data);
         albums = [];
       }
     } catch (err) {
-      console.error('Failed to fetch albums:', err);
+      logger.error('Failed to fetch albums:', err);
       albums = [];
     } finally {
       isLoading = false;
@@ -161,4 +163,3 @@
     </div>
   </section>
 {/if}
-

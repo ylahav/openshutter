@@ -20,9 +20,9 @@
 	
 	// Debug: Log when languages change (can be removed in production)
 	$: if (typeof window !== 'undefined' && window.location.search.includes('debug=lang')) {
-		console.log('LanguageSelector - config:', config);
-		console.log('LanguageSelector - activeLanguages:', activeLanguages);
-		console.log('LanguageSelector - availableLanguages:', availableLanguages.map(l => l.code));
+		logger.debug('LanguageSelector - config:', config);
+		logger.debug('LanguageSelector - activeLanguages:', activeLanguages);
+		logger.debug('LanguageSelector - availableLanguages:', availableLanguages.map(l => l.code));
 	}
 
 	$: lang = $currentLanguage;

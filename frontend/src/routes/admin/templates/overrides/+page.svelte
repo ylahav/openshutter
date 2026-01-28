@@ -3,6 +3,8 @@
 	import { goto } from '$app/navigation';
 	import { siteConfigData, siteConfig } from '$stores/siteConfig';
 	import { handleAuthError } from '$lib/utils/auth-error-handler';
+	import { logger } from '$lib/utils/logger';
+	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 
   export const data = undefined as any; // From +layout.server.ts, not used in this component
 
@@ -75,7 +77,7 @@
 		const found = templates.find((t) => t.templateName === currentTemplateName);
 		if (found && found !== activeTemplate) {
 			activeTemplate = found;
-			console.log('[Overrides] Active template updated:', {
+			logger.debug('[Overrides] Active template updated:', {
 				templateName: currentTemplateName,
 				found: !!found,
 				activeTemplate: activeTemplate?.templateName
@@ -87,7 +89,7 @@
 			);
 			activeTemplate = foundByDisplay || templates[0] || null;
 			if (!activeTemplate) {
-				console.warn('[Overrides] No template found for:', currentTemplateName);
+				logger.warn('[Overrides] No template found for:', currentTemplateName);
 			}
 		}
 	}
@@ -109,7 +111,7 @@
 			headerConfig: siteTemplateOverrides.headerConfig ? { ...siteTemplateOverrides.headerConfig } : {}
 		};
 		
-		console.log('[Overrides] Initialized local overrides:', {
+		logger.debug('[Overrides] Initialized local overrides:', {
 			headerConfig: localOverrides.headerConfig,
 			siteTemplateOverrides: siteTemplateOverrides
 		});
@@ -146,7 +148,7 @@
 				// Check for auth errors and redirect
 				if (response.status === 401 || response.status === 403 || errorData.authError) {
 					const errorMsg = errorData.error || errorData.message || 'Invalid or expired token';
-					console.warn('[Overrides] Auth error detected:', errorMsg);
+					logger.warn('[Overrides] Auth error detected:', errorMsg);
 					if (handleAuthError({ error: errorMsg, status: response.status }, window.location.pathname)) {
 						return; // Redirected to login
 					}
@@ -156,7 +158,7 @@
 				throw new Error(errorData.error || errorData.message || `Failed to load templates: ${response.status}`);
 			}
 			const data = await response.json();
-			console.log('[Overrides] Templates API response:', {
+			logger.debug('[Overrides] Templates API response:', {
 				hasSuccess: 'success' in data,
 				hasData: 'data' in data,
 				isArray: Array.isArray(data),
@@ -190,7 +192,7 @@
 				$siteConfigData?.template?.activeTemplate || 
 				'modern';
 			
-			console.log('[Overrides] Loading templates:', {
+			logger.debug('[Overrides] Loading templates:', {
 				templatesCount: templates.length,
 				templateNames: templates.map(t => t.templateName),
 				currentTemplateName: templateName,
@@ -210,25 +212,24 @@
 				activeTemplate = foundByDisplay || templates[0] || null;
 				
 				if (!activeTemplate) {
-					console.warn('[Overrides] No active template found:', {
+					logger.warn('[Overrides] No active template found:', {
 						templateName,
 						availableTemplates: templates.map(t => t.templateName)
 					});
 					error = `Template "${templateName}" not found. Available templates: ${templates.map(t => t.templateName).join(', ')}`;
 				} else {
-					console.log('[Overrides] Using fallback template:', activeTemplate.templateName);
+					logger.debug('[Overrides] Using fallback template:', activeTemplate.templateName);
 				}
 			}
 		} catch (err) {
-			console.error('Error loading templates:', err);
-			const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+			logger.error('Error loading templates:', err);
 			
 			// Check if it's an auth error and redirect
 			if (handleAuthError(err, window.location.pathname)) {
 				return; // Redirecting, don't set error message
 			}
 			
-			error = `Failed to load templates: ${errorMessage}`;
+			error = handleError(err, 'Failed to load templates');
 			activeTemplate = null;
 		} finally {
 			loading = false;
@@ -344,7 +345,7 @@
 				templateData.headerConfig = { ...localOverrides.headerConfig };
 			}
 
-			console.log('[Overrides] Saving template overrides:', {
+			logger.debug('[Overrides] Saving template overrides:', {
 				templateData,
 				headerConfig: templateData.headerConfig
 			});
@@ -360,12 +361,11 @@
 			});
 
 			if (!response.ok) {
-				const errorData = await response.json().catch(() => ({}));
-				throw new Error(errorData.message || 'Failed to save overrides');
+				await handleApiErrorResponse(response);
 			}
 
 			const result = await response.json();
-			console.log('[Overrides] Save response:', result);
+			logger.debug('[Overrides] Save response:', result);
 
 			message = 'Template overrides saved successfully!';
 			hasChanges = false;
@@ -382,8 +382,8 @@
 				message = '';
 			}, 3000);
 		} catch (err) {
-			console.error('Error saving overrides:', err);
-			error = `Failed to save overrides: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			logger.error('Error saving overrides:', err);
+			error = handleError(err, 'Failed to save overrides');
 		} finally {
 			saving = false;
 		}
@@ -417,8 +417,7 @@
 			});
 
 			if (!response.ok) {
-				const errorData = await response.json().catch(() => ({}));
-				throw new Error(errorData.message || 'Failed to reset overrides');
+				await handleApiErrorResponse(response);
 			}
 
 			message = 'Template overrides reset to default!';
@@ -430,8 +429,8 @@
 				message = '';
 			}, 3000);
 		} catch (err) {
-			console.error('Error resetting overrides:', err);
-			error = `Failed to reset overrides: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			logger.error('Error resetting overrides:', err);
+			error = handleError(err, 'Failed to reset overrides');
 		} finally {
 			resetting = false;
 		}

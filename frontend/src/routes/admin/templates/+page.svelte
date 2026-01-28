@@ -4,6 +4,8 @@
 	import { page } from '$app/stores';
 	import { siteConfigData, siteConfig } from '$stores/siteConfig';
 	import { handleAuthError } from '$lib/utils/auth-error-handler';
+	import { logger } from '$lib/utils/logger';
+	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 
   export const data = undefined as any; // From +layout.server.ts, not used in this component
 
@@ -111,15 +113,14 @@
 				error = 'No templates found. Please check backend configuration.';
 			}
 		} catch (err) {
-			console.error('Error loading templates:', err);
-			const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+			logger.error('Error loading templates:', err);
 			
 			// Check if it's an auth error and redirect
 			if (handleAuthError(err, $page.url.pathname)) {
 				return; // Redirecting, don't set error message
 			}
 			
-			error = `Failed to load templates: ${errorMessage}`;
+			error = handleError(err, 'Failed to load templates');
 		} finally {
 			loading = false;
 		}
@@ -157,7 +158,7 @@
 			});
 
 			if (!response.ok) {
-				// Check for authentication errors
+				// Check for authentication errors first
 				if (response.status === 401 || response.status === 403) {
 					const errorData = await response.json().catch(() => ({}));
 					const errorMsg = errorData.error || errorData.message || 'Invalid or expired token';
@@ -166,8 +167,7 @@
 					}
 				}
 				
-				const errorData = await response.json().catch(() => ({}));
-				throw new Error(errorData.message || 'Failed to update template');
+				await handleApiErrorResponse(response);
 			}
 
 			const areaLabel = area === 'admin' ? 'admin area' : 'frontend';
@@ -178,15 +178,14 @@
 				message = '';
 			}, 3000);
 		} catch (err) {
-			console.error('Error setting active template:', err);
-			const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+			logger.error('Error setting active template:', err);
 			
 			// Check if it's an auth error and redirect
 			if (handleAuthError(err, $page.url.pathname)) {
 				return; // Redirecting, don't set error message
 			}
 			
-			error = `Failed to set active template: ${errorMessage}`;
+			error = handleError(err, 'Failed to set active template');
 		} finally {
 			saving = false;
 		}

@@ -5,6 +5,8 @@
 	import { MultiLangUtils } from '$lib/utils/multiLang';
 	import { currentLanguage } from '$lib/stores/language';
 	import { canCreateAlbums } from '$lib/access-control';
+	import { logger } from '$lib/utils/logger';
+	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 
 	export let data; // From +layout.server.ts, contains user info
 
@@ -37,12 +39,13 @@
 			loading = true;
 			const response = await fetch('/api/albums?mine=true');
 			if (!response.ok) {
-				throw new Error('Failed to fetch albums');
+				await handleApiErrorResponse(response);
 			}
 			const result = await response.json();
 			albums = result.data || [];
 		} catch (err) {
-			error = err instanceof Error ? err.message : 'An error occurred';
+			logger.error('Failed to fetch albums:', err);
+			error = handleError(err, 'Failed to fetch albums');
 		} finally {
 			loading = false;
 		}
@@ -52,14 +55,17 @@
 		updates: Array<{ id: string; parentAlbumId: string | null; order: number }>
 	) {
 		try {
-			await fetch('/api/admin/albums/reorder', {
+			const response = await fetch('/api/admin/albums/reorder', {
 				method: 'PUT',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ updates })
 			});
+			if (!response.ok) {
+				await handleApiErrorResponse(response);
+			}
 			await fetchAlbums();
 		} catch (err) {
-			console.error('Failed to reorder albums:', err);
+			logger.error('Failed to reorder albums:', err);
 		}
 	}
 

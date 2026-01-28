@@ -5,6 +5,8 @@
 	import MultiLangHTMLEditor from '$lib/components/MultiLangHTMLEditor.svelte';
 	import { MultiLangUtils } from '$lib/utils/multiLang';
 	import { currentLanguage } from '$lib/stores/language';
+	import { logger } from '$lib/utils/logger';
+	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 
 	export let data; // From +layout.server.ts, contains user info
 
@@ -48,7 +50,7 @@
 			loading = true;
 			const response = await fetch('/api/auth/profile');
 			if (!response.ok) {
-				throw new Error('Failed to fetch profile');
+				await handleApiErrorResponse(response);
 			}
 			const result = await response.json();
 			profile = result.user || result;
@@ -63,7 +65,8 @@
 				confirmPassword: ''
 			};
 		} catch (err) {
-			error = err instanceof Error ? err.message : 'An error occurred';
+			logger.error('Failed to fetch profile:', err);
+			error = handleError(err, 'Failed to fetch profile');
 		} finally {
 			loading = false;
 		}
@@ -108,8 +111,7 @@
 			});
 
 			if (!response.ok) {
-				const errorData = await response.json();
-				throw new Error(errorData.message || 'Failed to update profile');
+				await handleApiErrorResponse(response);
 			}
 
 			const result = await response.json();
@@ -124,7 +126,8 @@
 				confirmPassword: ''
 			};
 		} catch (err) {
-			error = err instanceof Error ? err.message : 'Failed to update profile';
+			logger.error('Failed to update profile:', err);
+			error = handleError(err, 'Failed to update profile');
 		} finally {
 			saving = false;
 		}

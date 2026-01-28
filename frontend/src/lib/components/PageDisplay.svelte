@@ -5,6 +5,8 @@
 	import { MultiLangUtils } from '$utils/multiLang';
 	import Header from '$lib/components/Header.svelte';
 	import Footer from '$lib/components/Footer.svelte';
+	import { logger } from '$lib/utils/logger';
+	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 
 	interface Page {
 		_id: string;
@@ -50,8 +52,8 @@
 				error = 'Failed to load page';
 			}
 		} catch (err) {
-			console.error('Error fetching page:', err);
-			error = 'Failed to load page';
+			logger.error('Error fetching page:', err);
+			error = handleError(err, 'Failed to load page');
 		} finally {
 			loading = false;
 		}

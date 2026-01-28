@@ -6,6 +6,8 @@
 	import Footer from '$lib/components/Footer.svelte';
 	import { MultiLangUtils } from '$lib/utils/multiLang';
 	import { currentLanguage } from '$lib/stores/language';
+	import { logger } from '$lib/utils/logger';
+	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 
 	interface PageData {
 		_id: string;
@@ -48,7 +50,7 @@
 			error = null;
 			const response = await fetch(`/api/pages/${alias}`);
 			if (!response.ok) {
-				throw new Error('Failed to load page');
+				await handleApiErrorResponse(response);
 			}
 			const result = await response.json();
 			if (result.success) {
@@ -60,7 +62,8 @@
 				throw new Error(result.error || 'Page not found');
 			}
 		} catch (err) {
-			error = err instanceof Error ? err.message : 'Failed to load page';
+			logger.error('Failed to load page:', err);
+			error = handleError(err, 'Failed to load page');
 		} finally {
 			loading = false;
 		}

@@ -6,6 +6,7 @@
 	import { t } from '$stores/i18n';
 	import SearchBar from './SearchBar.svelte';
 	import SearchResults from './SearchResults.svelte';
+	import { logger } from '$lib/utils/logger';
 
 	export let initialQuery = '';
 
@@ -160,7 +161,7 @@
 			}
 		} catch (err) {
 			error = $t('search.error');
-			console.error('Search error:', err);
+			logger.error('Search error:', err);
 		} finally {
 			loading = false;
 		}

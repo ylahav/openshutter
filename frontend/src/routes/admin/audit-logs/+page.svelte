@@ -2,6 +2,8 @@
 	import { onMount } from 'svelte';
 	import Header from '$lib/components/Header.svelte';
 	import Footer from '$lib/components/Footer.svelte';
+	import { logger } from '$lib/utils/logger';
+	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 
   export const data = undefined as any; // From +layout.server.ts, not used in this component
 
@@ -33,7 +35,7 @@
 		try {
 			const response = await fetch('/api/admin/audit-logs?limit=100');
 			if (!response.ok) {
-				throw new Error('Failed to load audit logs');
+				await handleApiErrorResponse(response);
 			}
 			const result = await response.json();
 			if (result.success) {
@@ -42,8 +44,8 @@
 				throw new Error(result.error || 'Failed to load audit logs');
 			}
 		} catch (err) {
-			console.error('Error loading audit logs:', err);
-			error = `Failed to load audit logs: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			logger.error('Error loading audit logs:', err);
+			error = handleError(err, 'Failed to load audit logs');
 		} finally {
 			loading = false;
 		}

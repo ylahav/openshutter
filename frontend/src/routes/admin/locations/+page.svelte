@@ -2,6 +2,8 @@
 	import { onMount } from 'svelte';
 	import MultiLangInput from '$lib/components/MultiLangInput.svelte';
 	import MultiLangHTMLEditor from '$lib/components/MultiLangHTMLEditor.svelte';
+	import { logger } from '$lib/utils/logger';
+	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 
   export const data = undefined as any; // From +layout.server.ts, not used in this component
 
@@ -79,13 +81,13 @@
 
 			const response = await fetch(`/api/admin/locations?${params.toString()}`);
 			if (!response.ok) {
-				throw new Error('Failed to load locations');
+				await handleApiErrorResponse(response);
 			}
 			const result = await response.json();
 			locations = Array.isArray(result.data) ? result.data : (Array.isArray(result) ? result : []);
 		} catch (err) {
-			console.error('Error loading locations:', err);
-			error = `Failed to load locations: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			logger.error('Error loading locations:', err);
+			error = handleError(err, 'Failed to load locations');
 		} finally {
 			loading = false;
 		}
@@ -160,8 +162,8 @@
 		message = '';
 
 		try {
-			console.log('Creating location with data:', formData);
-			console.log('Description field:', formData.description);
+			logger.debug('Creating location with data:', formData);
+			logger.debug('Description field:', formData.description);
 			const payload: any = {
 				...formData,
 				coordinates:
@@ -174,7 +176,7 @@
 			};
 			// Remove empty coordinate fields
 			if (!payload.coordinates) delete payload.coordinates;
-			console.log('Payload being sent:', JSON.stringify(payload, null, 2));
+			logger.debug('Payload being sent:', JSON.stringify(payload, null, 2));
 
 			const response = await fetch('/api/admin/locations', {
 				method: 'POST',
@@ -184,17 +186,12 @@
 				body: JSON.stringify(payload)
 			});
 
-			const responseData = await response.json().catch((e) => {
-				console.error('Failed to parse response:', e);
-				return null;
-			});
-
-			console.log('Response status:', response.status, 'Response data:', responseData);
-
 			if (!response.ok) {
-				const errorMessage = responseData?.message || `HTTP ${response.status}: Failed to create location`;
-				throw new Error(errorMessage);
+				await handleApiErrorResponse(response);
 			}
+
+			const responseData = await response.json();
+			logger.debug('Response status:', response.status, 'Response data:', responseData);
 
 			if (!responseData) {
 				throw new Error('No data returned from server');
@@ -210,8 +207,8 @@
 				message = '';
 			}, 3000);
 		} catch (err) {
-			console.error('Error creating location:', err);
-			error = `Failed to create location: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			logger.error('Error creating location:', err);
+			error = handleError(err, 'Failed to create location');
 		} finally {
 			saving = false;
 		}
@@ -294,8 +291,7 @@
 			});
 
 			if (!response.ok) {
-				const errorData = await response.json().catch(() => ({}));
-				throw new Error(errorData.message || 'Failed to delete location');
+				await handleApiErrorResponse(response);
 			}
 
 			locations = locations.filter((l) => l._id !== locationToDelete._id);
@@ -307,8 +303,8 @@
 				message = '';
 			}, 3000);
 		} catch (err) {
-			console.error('Error deleting location:', err);
-			error = `Failed to delete location: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			logger.error('Error deleting location:', err);
+			error = handleError(err, 'Failed to delete location');
 		} finally {
 			deleting = false;
 		}

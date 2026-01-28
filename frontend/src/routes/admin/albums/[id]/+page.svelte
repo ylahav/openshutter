@@ -10,7 +10,7 @@
 	import { getAlbumName } from '$lib/utils/albumUtils';
 	import { getPhotoTitle } from '$lib/utils/photoUtils';
 	import { logger } from '$lib/utils/logger';
-	import { handleError, ApiError } from '$lib/utils/errorHandler';
+	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 
   export const data = undefined as any; // From +layout.server.ts, not used in this component
 
@@ -83,7 +83,7 @@
 				cache: 'no-store',
 			});
 			if (!response.ok) {
-				throw new Error('Failed to fetch album');
+				await handleApiErrorResponse(response);
 			}
 			const result = await response.json();
 			album = result.data || result;
@@ -101,31 +101,29 @@
 				cache: 'no-store',
 			});
 			logger.debug('Photos API response status:', response.status);
-			if (response.ok) {
-				const result = await response.json();
-				logger.debug('Photos API result:', result);
-				if (result.success) {
-					photos = result.data || [];
-					logger.debug(`Loaded ${photos.length} photos`);
-					if (photos.length > 0) {
-						logger.debug('Sample photo:', {
-							_id: photos[0]._id,
-							filename: photos[0].filename,
-							hasStorage: !!photos[0].storage,
-							storage: photos[0].storage,
-							thumbnailPath: photos[0].storage?.thumbnailPath,
-							url: photos[0].storage?.url,
-							constructedUrl: getPhotoUrl(photos[0], { fallback: '' }),
-						});
-					}
-				} else {
-					logger.error('Photos API returned error:', result.error);
-					error = result.error || 'Failed to load photos';
+			
+			if (!response.ok) {
+				await handleApiErrorResponse(response);
+			}
+			
+			const result = await response.json();
+			logger.debug('Photos API result:', result);
+			if (result.success) {
+				photos = result.data || [];
+				logger.debug(`Loaded ${photos.length} photos`);
+				if (photos.length > 0) {
+					logger.debug('Sample photo:', {
+						_id: photos[0]._id,
+						filename: photos[0].filename,
+						hasStorage: !!photos[0].storage,
+						storage: photos[0].storage,
+						thumbnailPath: photos[0].storage?.thumbnailPath,
+						url: photos[0].storage?.url,
+						constructedUrl: getPhotoUrl(photos[0], { fallback: '' }),
+					});
 				}
 			} else {
-				const errorText = await response.text();
-				logger.error('Photos API error response:', response.status, errorText);
-				error = `Failed to load photos: ${response.status} ${response.statusText}`;
+				throw new Error(result.error || 'Failed to load photos');
 			}
 		} catch (err) {
 			logger.error('Failed to fetch photos:', err);

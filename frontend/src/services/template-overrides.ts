@@ -1,6 +1,7 @@
 import { TemplateConfig } from '@/types/template'
 import { SiteConfig } from '@/types/site-config'
 import { logger } from '@/lib/utils/logger'
+import { handleApiErrorResponse } from '@/lib/utils/errorHandler'
 
 export interface TemplateWithOverrides extends TemplateConfig {
   // Mark that this template has been processed with overrides
@@ -82,7 +83,7 @@ export class TemplateOverridesService {
       // Load base template configuration
       const response = await fetch('/api/admin/templates', { cache: 'no-store' })
       if (!response.ok) {
-        throw new Error('Failed to fetch templates')
+        await handleApiErrorResponse(response)
       }
 
       const result = await response.json()

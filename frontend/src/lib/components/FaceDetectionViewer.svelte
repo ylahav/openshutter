@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import { FaceRecognitionService, type FaceDetection } from '../../services/face-recognition';
+	import { logger } from '$lib/utils/logger';
+	import { handleError } from '$lib/utils/errorHandler';
 
 	export let imageUrl: string;
 	export let photoId: string;
@@ -41,7 +43,7 @@
 			await FaceRecognitionService.loadModels();
 			modelsLoaded = true;
 		} catch (error) {
-			console.error('Failed to load face detection models:', error);
+			logger.error('Failed to load face detection models:', error);
 		}
 	});
 
@@ -181,8 +183,8 @@
 				onError?.(error.error || 'Failed to save face detection');
 			}
 		} catch (error) {
-			console.error('Face detection failed:', error);
-			onError?.(error instanceof Error ? error.message : 'Face detection failed');
+			logger.error('Face detection failed:', error);
+			onError?.(handleError(error, 'Face detection failed'));
 		} finally {
 			isDetecting = false;
 		}

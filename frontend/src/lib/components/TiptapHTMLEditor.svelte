@@ -7,6 +7,7 @@
 	import { TextStyle } from '@tiptap/extension-text-style';
 	import Color from '@tiptap/extension-color';
 	import Link from '@tiptap/extension-link';
+	import { logger } from '$lib/utils/logger';
 
 	export let value = '';
 	export let onChange: (value: string) => void;
@@ -97,7 +98,7 @@
 				}
 			});
 		} catch (error) {
-			console.error('Failed to initialize Tiptap editor:', error);
+			logger.error('Failed to initialize Tiptap editor:', error);
 			useFallback = true;
 			// Fallback to contenteditable if Tiptap fails
 			if (editorDiv && value) {

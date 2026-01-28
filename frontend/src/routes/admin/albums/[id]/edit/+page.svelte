@@ -9,7 +9,7 @@
 	import AlbumBreadcrumbs from '$lib/components/AlbumBreadcrumbs.svelte';
 	import NotificationDialog from '$lib/components/NotificationDialog.svelte';
 	import { logger } from '$lib/utils/logger';
-	import { handleError } from '$lib/utils/errorHandler';
+	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 
 	interface Album {
 		_id: string;
@@ -59,7 +59,7 @@
 				cache: 'no-store',
 			});
 			if (!response.ok) {
-				throw new Error('Failed to fetch album');
+				await handleApiErrorResponse(response);
 			}
 			const result = await response.json();
 			album = result.data || result;
@@ -130,8 +130,7 @@
 			});
 
 			if (!response.ok) {
-				const errorData = await response.json().catch(() => ({}));
-				throw new Error(errorData.message || `Failed to update album: ${response.statusText}`);
+				await handleApiErrorResponse(response);
 			}
 
 			const updatedAlbum = await response.json();

@@ -6,6 +6,8 @@
 	import { MultiLangUtils } from '$lib/utils/multiLang';
 	import { currentLanguage } from '$stores/language';
 	import AlertModal from '$lib/components/AlertModal.svelte';
+	import { logger } from '$lib/utils/logger';
+	import { handleError } from '$lib/utils/errorHandler';
 
 	interface TemplateAlbum {
 		_id: string;
@@ -136,13 +138,13 @@
 				xhr.open('POST', '/api/photos/upload');
 				xhr.send(formData);
 			} catch (error) {
-				console.error(`Upload failed for ${file.name}:`, error);
+				logger.error(`Upload failed for ${file.name}:`, error);
 				uploads = uploads.map((upload, index) =>
 					index === uploadIndex
 						? {
 								...upload,
 								status: 'error',
-								error: error instanceof Error ? error.message : 'Unknown error'
+								error: handleError(error, 'Upload failed')
 							}
 						: upload
 				);

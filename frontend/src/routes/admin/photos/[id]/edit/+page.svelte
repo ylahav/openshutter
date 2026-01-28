@@ -13,7 +13,7 @@
 	import CollectionPopup from '$lib/components/CollectionPopup.svelte';
 	import { getPhotoUrl, getPhotoFullUrl } from '$lib/utils/photoUrl';
 	import { logger } from '$lib/utils/logger';
-	import { handleError } from '$lib/utils/errorHandler';
+	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 
 	interface Photo {
 		_id: string;
@@ -167,9 +167,7 @@
 				}
 				
 				if (!response.ok) {
-					const errorText = await response.text();
-					logger.error('[loadPhoto] Response not OK:', response.status, errorText);
-					throw new Error(`Failed to fetch photo: ${response.status} ${response.statusText}`);
+					await handleApiErrorResponse(response);
 				}
 				
 				const responseData = await response.json();
@@ -339,8 +337,7 @@
 			});
 
 			if (!response.ok) {
-				const errorData = await response.json().catch(() => ({}));
-				throw new Error(errorData.error || errorData.message || `Failed to regenerate thumbnails: ${response.statusText}`);
+				await handleApiErrorResponse(response);
 			}
 
 			const result = await response.json();

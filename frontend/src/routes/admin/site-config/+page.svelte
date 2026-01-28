@@ -6,6 +6,8 @@
 	import MultiLangHTMLEditor from '$lib/components/MultiLangHTMLEditor.svelte';
 	import { SUPPORTED_LANGUAGES } from '$lib/types/multi-lang';
 	import { siteConfig } from '$stores/siteConfig';
+	import { logger } from '$lib/utils/logger';
+	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 
 	let config: SiteConfig | null = null;
 	let descriptionValue: any = {};
@@ -90,7 +92,7 @@
 				}));
 			}
 		} catch (error) {
-			console.error('Error loading available languages:', error);
+			logger.error('Error loading available languages:', error);
 			// Fallback to default languages
 			availableLanguages = SUPPORTED_LANGUAGES.map((lang) => ({
 				code: lang.code,
@@ -135,7 +137,7 @@
 			});
 
 			if (!response.ok) {
-				throw new Error('Failed to save configuration');
+				await handleApiErrorResponse(response);
 			}
 
 			const result = await response.json();
@@ -157,8 +159,8 @@
 				}
 			}, 500);
 		} catch (error) {
-			console.error('Error saving site config:', error);
-			message = 'Failed to save configuration';
+			logger.error('Error saving site config:', error);
+			message = handleError(error, 'Failed to save configuration');
 		} finally {
 			saving = false;
 		}
@@ -213,8 +215,7 @@
 			});
 
 			if (!response.ok) {
-				const errorData = await response.json();
-				throw new Error(errorData.message || 'Upload failed');
+				await handleApiErrorResponse(response);
 			}
 
 			const result = await response.json();
@@ -231,8 +232,8 @@
 				message = '';
 			}, 3000);
 		} catch (error) {
-			console.error(`Failed to upload ${type}:`, error);
-			message = `Failed to upload ${type}: ${error instanceof Error ? error.message : 'Unknown error'}`;
+			logger.error(`Failed to upload ${type}:`, error);
+			message = handleError(error, `Failed to upload ${type}`);
 		}
 	}
 </script>

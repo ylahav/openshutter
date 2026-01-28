@@ -9,7 +9,7 @@
 	import { currentLanguage } from '$lib/stores/language';
 	import { getAlbumName } from '$lib/utils/albumUtils';
 	import { logger } from '$lib/utils/logger';
-	import { handleError } from '$lib/utils/errorHandler';
+	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 
   export const data = undefined as any; // From +layout.server.ts, not used in this component
 
@@ -150,15 +150,7 @@
 			});
 			
 			if (!response.ok) {
-				const errorText = await response.text().catch(() => 'Failed to fetch albums');
-				let errorMessage = 'Failed to fetch albums';
-				try {
-					const errorJson = JSON.parse(errorText);
-					errorMessage = errorJson.error || errorJson.message || errorMessage;
-				} catch {
-					errorMessage = errorText || `HTTP ${response.status}: ${response.statusText}`;
-				}
-				throw new Error(errorMessage);
+				await handleApiErrorResponse(response);
 			}
 			
 			let result;

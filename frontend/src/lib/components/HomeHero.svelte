@@ -4,6 +4,7 @@
   import { siteConfigData } from '$stores/siteConfig';
   import { currentLanguage } from '$stores/language';
   import { t } from '$stores/i18n';
+  import { logger } from '$lib/utils/logger';
 
   interface TemplatePhoto {
     _id: string;
@@ -35,7 +36,7 @@
         }
       }
     } catch (err) {
-      console.error('Failed to fetch gallery-leading photos:', err);
+      logger.error('Failed to fetch gallery-leading photos:', err);
     } finally {
       loading = false;
     }

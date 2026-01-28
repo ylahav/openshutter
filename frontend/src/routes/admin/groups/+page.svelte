@@ -2,6 +2,8 @@
 	import { onMount } from 'svelte';
 	import MultiLangInput from '$lib/components/MultiLangInput.svelte';
 	import type { MultiLangText } from '$lib/types/multi-lang';
+	import { logger } from '$lib/utils/logger';
+	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 
   export const data = undefined as any; // From +layout.server.ts, not used in this component
 
@@ -94,7 +96,7 @@
 		message = '';
 
 		try {
-			console.log('Creating group with data:', formData);
+			logger.debug('Creating group with data:', formData);
 			const response = await fetch('/api/admin/groups', {
 				method: 'POST',
 				headers: {
@@ -103,17 +105,12 @@
 				body: JSON.stringify(formData)
 			});
 
-			const responseData = await response.json().catch((e) => {
-				console.error('Failed to parse response:', e);
-				return null;
-			});
-
-			console.log('Response status:', response.status, 'Response data:', responseData);
-
 			if (!response.ok) {
-				const errorMessage = responseData?.message || `HTTP ${response.status}: Failed to create group`;
-				throw new Error(errorMessage);
+				await handleApiErrorResponse(response);
 			}
+
+			const responseData = await response.json();
+			logger.debug('Response status:', response.status, 'Response data:', responseData);
 
 			if (!responseData) {
 				throw new Error('No data returned from server');
@@ -129,8 +126,8 @@
 				message = '';
 			}, 3000);
 		} catch (err) {
-			console.error('Error creating group:', err);
-			error = `Failed to create group: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			logger.error('Error creating group:', err);
+			error = handleError(err, 'Failed to create group');
 		} finally {
 			saving = false;
 		}
@@ -144,7 +141,7 @@
 		message = '';
 
 		try {
-			console.log('Updating group:', editingGroup._id, 'with data:', formData);
+			logger.debug('Updating group:', editingGroup._id, 'with data:', formData);
 			const response = await fetch(`/api/admin/groups/${editingGroup._id}`, {
 				method: 'PUT',
 				headers: {
@@ -156,17 +153,12 @@
 				})
 			});
 
-			const responseData = await response.json().catch((e) => {
-				console.error('Failed to parse response:', e);
-				return null;
-			});
-
-			console.log('Response status:', response.status, 'Response data:', responseData);
-
 			if (!response.ok) {
-				const errorMessage = responseData?.message || `HTTP ${response.status}: Failed to update group`;
-				throw new Error(errorMessage);
+				await handleApiErrorResponse(response);
 			}
+
+			const responseData = await response.json();
+			logger.debug('Response status:', response.status, 'Response data:', responseData);
 
 			if (!responseData) {
 				throw new Error('No data returned from server');
@@ -183,8 +175,8 @@
 				message = '';
 			}, 3000);
 		} catch (err) {
-			console.error('Error updating group:', err);
-			error = `Failed to update group: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			logger.error('Error updating group:', err);
+			error = handleError(err, 'Failed to update group');
 		} finally {
 			saving = false;
 		}
@@ -203,8 +195,7 @@
 			});
 
 			if (!response.ok) {
-				const errorData = await response.json().catch(() => ({}));
-				throw new Error(errorData.message || 'Failed to delete group');
+				await handleApiErrorResponse(response);
 			}
 
 			groups = groups.filter((g) => g._id !== groupToDelete._id);
@@ -216,8 +207,8 @@
 				message = '';
 			}, 3000);
 		} catch (err) {
-			console.error('Error deleting group:', err);
-			error = `Failed to delete group: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			logger.error('Error deleting group:', err);
+			error = handleError(err, 'Failed to delete group');
 		} finally {
 			deleting = false;
 		}

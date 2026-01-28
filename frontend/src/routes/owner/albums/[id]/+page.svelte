@@ -5,6 +5,8 @@
 	import { MultiLangUtils } from '$lib/utils/multiLang';
 	import { currentLanguage } from '$lib/stores/language';
 	import { getAlbumName, getAlbumDescription } from '$lib/utils/albumUtils';
+	import { logger } from '$lib/utils/logger';
+	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 
 	export let data; // From +layout.server.ts, contains user info
 
@@ -54,16 +56,21 @@
 			]);
 
 			if (!albumRes.ok) {
-				throw new Error('Failed to load album');
+				await handleApiErrorResponse(albumRes);
 			}
 
 			const albumData = await albumRes.json();
 			album = albumData.data || albumData;
 
-			const photosData = await photosRes.json().catch(() => ({ success: true, data: [] }));
-			photos = photosData.data || [];
+			if (!photosRes.ok) {
+				logger.warn('Failed to load photos, continuing without photos');
+			} else {
+				const photosData = await photosRes.json();
+				photos = photosData.data || [];
+			}
 		} catch (err) {
-			error = err instanceof Error ? err.message : 'Failed to load album';
+			logger.error('Failed to load album:', err);
+			error = handleError(err, 'Failed to load album');
 		} finally {
 			loading = false;
 		}

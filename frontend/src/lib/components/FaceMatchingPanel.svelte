@@ -2,6 +2,8 @@
 	import { onMount } from 'svelte';
 	import { currentLanguage } from '$stores/language';
 	import { MultiLangUtils } from '$utils/multiLang';
+	import { logger } from '$lib/utils/logger';
+	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 
 	export let photoId: string;
 	export let faces: Array<{
@@ -44,14 +46,13 @@
 						profileImage: person.profileImage,
 					}));
 				} else {
-					console.error('Unexpected response format:', result);
+					logger.error('Unexpected response format:', result);
 				}
 			} else {
-				const error = await response.json();
-				console.error('Failed to fetch people:', error);
+				await handleApiErrorResponse(response);
 			}
 		} catch (error) {
-			console.error('Failed to fetch people:', error);
+			logger.error('Failed to fetch people:', error);
 		}
 	}
 
@@ -67,14 +68,15 @@
 				}),
 			});
 
-			if (response.ok) {
-				const result = await response.json();
-				if (result.success) {
-					onMatchComplete?.();
-				}
+			if (!response.ok) {
+				await handleApiErrorResponse(response);
+			}
+			const result = await response.json();
+			if (result.success) {
+				onMatchComplete?.();
 			}
 		} catch (error) {
-			console.error('Face matching failed:', error);
+			logger.error('Face matching failed:', error);
 		} finally {
 			isMatching = false;
 		}
@@ -93,18 +95,16 @@
 				}),
 			});
 
-			if (response.ok) {
-				const result = await response.json();
-				if (result.success || result.data) {
-					// Call onMatchComplete to notify parent to reload photo
-					onMatchComplete?.();
-				}
-			} else {
-				const error = await response.json();
-				console.error('Face assignment failed:', error);
+			if (!response.ok) {
+				await handleApiErrorResponse(response);
+			}
+			const result = await response.json();
+			if (result.success || result.data) {
+				// Call onMatchComplete to notify parent to reload photo
+				onMatchComplete?.();
 			}
 		} catch (error) {
-			console.error('Face assignment failed:', error);
+			logger.error('Face assignment failed:', error);
 		} finally {
 			assigningFaceIndex = null;
 		}

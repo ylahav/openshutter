@@ -4,6 +4,8 @@
 	import { goto } from '$app/navigation';
 	import { MultiLangUtils } from '$lib/utils/multiLang';
 	import { currentLanguage } from '$lib/stores/language';
+	import { logger } from '$lib/utils/logger';
+	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 
 	interface SearchResult {
 		_id: string;
@@ -51,6 +53,9 @@
 			});
 
 			const response = await fetch(`/api/search?${searchParams}`);
+			if (!response.ok) {
+				await handleApiErrorResponse(response);
+			}
 			const data = await response.json();
 
 			if (data.success) {
@@ -64,8 +69,8 @@
 				error = data.error || 'Search failed';
 			}
 		} catch (err) {
-			error = 'Search failed';
-			console.error('Search error:', err);
+			logger.error('Search error:', err);
+			error = handleError(err, 'Search failed');
 		} finally {
 			loading = false;
 		}
@@ -250,4 +255,3 @@
 		{/if}
 	</main>
 </div>
-

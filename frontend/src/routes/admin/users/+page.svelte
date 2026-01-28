@@ -2,6 +2,8 @@
 	import { onMount } from 'svelte';
 	import MultiLangInput from '$lib/components/MultiLangInput.svelte';
 	import type { MultiLangText } from '$lib/types/multi-lang';
+	import { logger } from '$lib/utils/logger';
+	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 
   export const data = undefined as any; // From +layout.server.ts, not used in this component
 
@@ -82,13 +84,13 @@
 
 			const response = await fetch(`/api/admin/users?${params.toString()}`);
 			if (!response.ok) {
-				throw new Error('Failed to load users');
+				await handleApiErrorResponse(response);
 			}
 			const result = await response.json();
 			users = Array.isArray(result.data) ? result.data : (Array.isArray(result) ? result : []);
 		} catch (err) {
-			console.error('Error loading users:', err);
-			error = `Failed to load users: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			logger.error('Error loading users:', err);
+			error = handleError(err, 'Failed to load users');
 		} finally {
 			loading = false;
 		}
@@ -99,12 +101,12 @@
 		try {
 			const response = await fetch('/api/admin/groups');
 			if (!response.ok) {
-				throw new Error('Failed to load groups');
+				await handleApiErrorResponse(response);
 			}
 			const result = await response.json();
 			groups = Array.isArray(result.data) ? result.data : (Array.isArray(result) ? result : []);
 		} catch (err) {
-			console.error('Error loading groups:', err);
+			logger.error('Error loading groups:', err);
 		} finally {
 			loadingGroups = false;
 		}
@@ -189,7 +191,7 @@
 		message = '';
 
 		try {
-			console.log('Creating user with data:', { ...formData, password: '***' });
+			logger.debug('Creating user with data:', { ...formData, password: '***' });
 			const response = await fetch('/api/admin/users', {
 				method: 'POST',
 				headers: {
@@ -198,17 +200,12 @@
 				body: JSON.stringify(formData)
 			});
 
-			const responseData = await response.json().catch((e) => {
-				console.error('Failed to parse response:', e);
-				return null;
-			});
-
-			console.log('Response status:', response.status, 'Response data:', responseData);
-
 			if (!response.ok) {
-				const errorMessage = responseData?.message || `HTTP ${response.status}: Failed to create user`;
-				throw new Error(errorMessage);
+				await handleApiErrorResponse(response);
 			}
+
+			const responseData = await response.json();
+			logger.debug('Response status:', response.status, 'Response data:', responseData);
 
 			if (!responseData) {
 				throw new Error('No data returned from server');
@@ -224,8 +221,8 @@
 				message = '';
 			}, 3000);
 		} catch (err) {
-			console.error('Error creating user:', err);
-			error = `Failed to create user: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			logger.error('Error creating user:', err);
+			error = handleError(err, 'Failed to create user');
 		} finally {
 			saving = false;
 		}
@@ -239,7 +236,7 @@
 		message = '';
 
 		try {
-			console.log('Updating user:', editingUser._id, 'with data:', { ...formData, password: formData.password ? '***' : '(unchanged)' });
+			logger.debug('Updating user:', editingUser._id, 'with data:', { ...formData, password: formData.password ? '***' : '(unchanged)' });
 			const payload: any = { ...formData };
 			// Only include password if it's been set
 			if (!payload.password || payload.password.trim() === '') {
@@ -254,17 +251,12 @@
 				body: JSON.stringify(payload)
 			});
 
-			const responseData = await response.json().catch((e) => {
-				console.error('Failed to parse response:', e);
-				return null;
-			});
-
-			console.log('Response status:', response.status, 'Response data:', responseData);
-
 			if (!response.ok) {
-				const errorMessage = responseData?.message || `HTTP ${response.status}: Failed to update user`;
-				throw new Error(errorMessage);
+				await handleApiErrorResponse(response);
 			}
+
+			const responseData = await response.json();
+			logger.debug('Response status:', response.status, 'Response data:', responseData);
 
 			if (!responseData) {
 				throw new Error('No data returned from server');
@@ -281,8 +273,8 @@
 				message = '';
 			}, 3000);
 		} catch (err) {
-			console.error('Error updating user:', err);
-			error = `Failed to update user: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			logger.error('Error updating user:', err);
+			error = handleError(err, 'Failed to update user');
 		} finally {
 			saving = false;
 		}
@@ -301,8 +293,7 @@
 			});
 
 			if (!response.ok) {
-				const errorData = await response.json().catch(() => ({}));
-				throw new Error(errorData.message || 'Failed to delete user');
+				await handleApiErrorResponse(response);
 			}
 
 			users = users.filter((u) => u._id !== userToDelete._id);
@@ -314,8 +305,8 @@
 				message = '';
 			}, 3000);
 		} catch (err) {
-			console.error('Error deleting user:', err);
-			error = `Failed to delete user: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			logger.error('Error deleting user:', err);
+			error = handleError(err, 'Failed to delete user');
 		} finally {
 			deleting = false;
 		}

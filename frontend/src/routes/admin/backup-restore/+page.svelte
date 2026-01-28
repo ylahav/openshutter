@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { logger } from '$lib/utils/logger';
+	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 
   export const data = undefined as any; // From +layout.server.ts, not used in this component
 
@@ -15,15 +17,11 @@
 				method: 'POST'
 			});
 
-			const data = await response.json().catch((e) => {
-				console.error('Failed to parse response:', e);
-				return null;
-			});
-
 			if (!response.ok) {
-				const errorMessage = data?.message || `HTTP ${response.status}: Failed to create database backup`;
-				throw new Error(errorMessage);
+				await handleApiErrorResponse(response);
 			}
+
+			const data = await response.json();
 
 			if (!data || !data.backup) {
 				throw new Error('No backup data returned from server');
@@ -49,8 +47,8 @@
 				message = '';
 			}, 5000);
 		} catch (err) {
-			console.error('Error creating database backup:', err);
-			message = `Failed to create database backup: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			logger.error('Error creating database backup:', err);
+			message = handleError(err, 'Failed to create database backup');
 			messageType = 'error';
 		} finally {
 			loading = false;
@@ -91,16 +89,11 @@
 				body: JSON.stringify({ backup: backupData })
 			});
 
-			const data = await response.json().catch((e) => {
-				console.error('Failed to parse response:', e);
-				return null;
-			});
-
 			if (!response.ok) {
-				const errorMessage = data?.message || `HTTP ${response.status}: Failed to restore database`;
-				throw new Error(errorMessage);
+				await handleApiErrorResponse(response);
 			}
 
+			const data = await response.json();
 			message = data?.message || 'Database restored successfully!';
 			messageType = 'success';
 
@@ -108,8 +101,8 @@
 				message = '';
 			}, 5000);
 		} catch (err) {
-			console.error('Error restoring database:', err);
-			message = `Failed to restore database: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			logger.error('Error restoring database:', err);
+			message = handleError(err, 'Failed to restore database');
 			messageType = 'error';
 		} finally {
 			loading = false;
@@ -126,14 +119,8 @@
 				method: 'POST'
 			});
 
-			const data = await response.json().catch((e) => {
-				console.error('Failed to parse response:', e);
-				return null;
-			});
-
 			if (!response.ok) {
-				const errorMessage = data?.message || `HTTP ${response.status}: Failed to create files backup`;
-				throw new Error(errorMessage);
+				await handleApiErrorResponse(response);
 			}
 
 			if (response.headers.get('content-type')?.includes('application/zip')) {
@@ -152,6 +139,7 @@
 				messageType = 'success';
 			} else {
 				// Handle JSON response (not implemented message)
+				const data = await response.json();
 				message = data?.message || 'Files backup feature requires additional setup.';
 				messageType = 'error';
 			}
@@ -160,8 +148,8 @@
 				message = '';
 			}, 5000);
 		} catch (err) {
-			console.error('Error creating files backup:', err);
-			message = `Failed to create files backup: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			logger.error('Error creating files backup:', err);
+			message = handleError(err, 'Failed to create files backup');
 			messageType = 'error';
 		} finally {
 			loading = false;
@@ -185,16 +173,11 @@
 				body: formData
 			});
 
-			const data = await response.json().catch((e) => {
-				console.error('Failed to parse response:', e);
-				return null;
-			});
-
 			if (!response.ok) {
-				const errorMessage = data?.message || `HTTP ${response.status}: Failed to restore files`;
-				throw new Error(errorMessage);
+				await handleApiErrorResponse(response);
 			}
 
+			const data = await response.json();
 			message = data?.message || 'Files restored successfully!';
 			messageType = 'success';
 
@@ -202,8 +185,8 @@
 				message = '';
 			}, 5000);
 		} catch (err) {
-			console.error('Error restoring files:', err);
-			message = `Failed to restore files: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			logger.error('Error restoring files:', err);
+			message = handleError(err, 'Failed to restore files');
 			messageType = 'error';
 		} finally {
 			loading = false;

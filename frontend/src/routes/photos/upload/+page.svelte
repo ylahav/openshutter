@@ -4,6 +4,8 @@
 	import { goto } from '$app/navigation';
 	import Header from '$lib/components/Header.svelte';
 	import Footer from '$lib/components/Footer.svelte';
+	import { logger } from '$lib/utils/logger';
+	import { handleError } from '$lib/utils/errorHandler';
 
 	export let data; // From +layout.server.ts, contains user info
 
@@ -92,9 +94,9 @@
 			xhr.open('POST', '/api/photos/upload');
 			xhr.send(formData);
 		} catch (error) {
-			console.error('Upload error:', error);
+			logger.error('Upload error:', error);
 			uploads = uploads.map((upload, index) =>
-				index === uploadIndex ? { ...upload, status: 'error', error: 'Upload failed' } : upload
+				index === uploadIndex ? { ...upload, status: 'error', error: handleError(error, 'Upload failed') } : upload
 			);
 			checkAllComplete();
 		}
@@ -303,4 +305,3 @@
 
 	<Footer />
 </div>
-

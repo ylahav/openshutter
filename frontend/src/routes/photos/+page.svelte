@@ -3,6 +3,8 @@
 	import { goto } from '$app/navigation';
 	import Header from '$lib/components/Header.svelte';
 	import Footer from '$lib/components/Footer.svelte';
+	import { logger } from '$lib/utils/logger';
+	import { handleError } from '$lib/utils/errorHandler';
 
 	interface Photo {
 		_id: string;
@@ -31,8 +33,8 @@
 			// For now, this is a placeholder
 			photos = [];
 		} catch (err) {
-			console.error('Failed to load photos:', err);
-			error = 'Failed to load photos';
+			logger.error('Failed to load photos:', err);
+			error = handleError(err, 'Failed to load photos');
 		} finally {
 			loading = false;
 		}

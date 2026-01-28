@@ -3,6 +3,8 @@
 	import { browser } from '$app/environment';
 	import type { TemplateBuilderConfig, TemplateLocation, TemplateModule, TemplateModuleAssignment, TemplatePageConfig } from '$lib/types/template-builder';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
+	import { logger } from '$lib/utils/logger';
+	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 
 	let templates: TemplateBuilderConfig[] = [];
 	let selectedTemplate: TemplateBuilderConfig | null = null;
@@ -130,7 +132,7 @@
 				availablePages = Array.isArray(result.data) ? result.data : [];
 			}
 		} catch (err) {
-			console.error('Error loading pages:', err);
+			logger.error('Error loading pages:', err);
 		} finally {
 			pagesLoading = false;
 		}
@@ -155,7 +157,7 @@
 			error = '';
 			const response = await fetch('/api/admin/template-builder');
 			if (!response.ok) {
-				throw new Error('Failed to load templates');
+				await handleApiErrorResponse(response);
 			}
 			const result = await response.json();
 			if (result.success) {
@@ -173,8 +175,8 @@
 				throw new Error(result.error || 'Failed to load templates');
 			}
 		} catch (err) {
-			console.error('Error loading templates:', err);
-			error = err instanceof Error ? err.message : 'Failed to load templates';
+			logger.error('Error loading templates:', err);
+			error = handleError(err, 'Failed to load templates');
 		} finally {
 			loading = false;
 		}
@@ -196,8 +198,7 @@
 			});
 
 			if (!response.ok) {
-				const result = await response.json();
-				throw new Error(result.error || 'Failed to create template');
+				await handleApiErrorResponse(response);
 			}
 
 			const result = await response.json();
@@ -214,8 +215,8 @@
 				throw new Error(result.error || 'Failed to create template');
 			}
 		} catch (err) {
-			console.error('Error creating template:', err);
-			error = err instanceof Error ? err.message : 'Failed to create template';
+			logger.error('Error creating template:', err);
+			error = handleError(err, 'Failed to create template');
 		} finally {
 			saving = false;
 		}
@@ -245,8 +246,7 @@
 			});
 
 			if (!response.ok) {
-				const result = await response.json();
-				throw new Error(result.error || 'Failed to delete template');
+				await handleApiErrorResponse(response);
 			}
 
 			const result = await response.json();
@@ -268,8 +268,8 @@
 				throw new Error(result.error || 'Failed to delete template');
 			}
 		} catch (err) {
-			console.error('Error deleting template:', err);
-			error = err instanceof Error ? err.message : 'Failed to delete template';
+			logger.error('Error deleting template:', err);
+			error = handleError(err, 'Failed to delete template');
 		} finally {
 			deleting = false;
 		}
@@ -427,8 +427,7 @@
 			});
 
 			if (!response.ok) {
-				const result = await response.json();
-				throw new Error(result.error || 'Failed to add location');
+				await handleApiErrorResponse(response);
 			}
 
 			const result = await response.json();
@@ -451,8 +450,8 @@
 				throw new Error(result.error || 'Failed to save location');
 			}
 		} catch (err) {
-			console.error('Error saving location:', err);
-			error = err instanceof Error ? err.message : 'Failed to save location';
+			logger.error('Error saving location:', err);
+			error = handleError(err, 'Failed to save location');
 		} finally {
 			saving = false;
 		}
@@ -476,8 +475,7 @@
 			});
 
 			if (!response.ok) {
-				const result = await response.json();
-				throw new Error(result.error || 'Failed to update grid');
+				await handleApiErrorResponse(response);
 			}
 
 			const result = await response.json();
@@ -490,8 +488,8 @@
 				throw new Error(result.error || 'Failed to update grid');
 			}
 		} catch (err) {
-			console.error('Error updating grid:', err);
-			error = err instanceof Error ? err.message : 'Failed to update grid';
+			logger.error('Error updating grid:', err);
+			error = handleError(err, 'Failed to update grid');
 		} finally {
 			saving = false;
 		}
@@ -517,8 +515,7 @@
 			});
 
 			if (!response.ok) {
-				const result = await response.json();
-				throw new Error(result.error || 'Failed to add location');
+				await handleApiErrorResponse(response);
 			}
 
 			const result = await response.json();
@@ -535,8 +532,8 @@
 				throw new Error(result.error || 'Failed to add location');
 			}
 		} catch (err) {
-			console.error('Error adding location:', err);
-			error = err instanceof Error ? err.message : 'Failed to add location';
+			logger.error('Error adding location:', err);
+			error = handleError(err, 'Failed to add location');
 		} finally {
 			saving = false;
 		}
@@ -567,8 +564,7 @@
 			});
 
 			if (!response.ok) {
-				const result = await response.json();
-				throw new Error(result.error || 'Failed to delete location');
+				await handleApiErrorResponse(response);
 			}
 
 			const result = await response.json();
@@ -583,8 +579,8 @@
 				throw new Error(result.error || 'Failed to delete location');
 			}
 		} catch (err) {
-			console.error('Error deleting location:', err);
-			error = err instanceof Error ? err.message : 'Failed to delete location';
+			logger.error('Error deleting location:', err);
+			error = handleError(err, 'Failed to delete location');
 		} finally {
 			deleting = false;
 		}
@@ -612,8 +608,7 @@
 			});
 
 			if (!response.ok) {
-				const result = await response.json();
-				throw new Error(result.error || 'Failed to add module');
+				await handleApiErrorResponse(response);
 			}
 
 			const result = await response.json();
@@ -631,8 +626,8 @@
 				throw new Error(result.error || 'Failed to add module');
 			}
 		} catch (err) {
-			console.error('Error adding module:', err);
-			error = err instanceof Error ? err.message : 'Failed to add module';
+			logger.error('Error adding module:', err);
+			error = handleError(err, 'Failed to add module');
 		} finally {
 			saving = false;
 		}
@@ -660,8 +655,7 @@
 			});
 
 			if (!response.ok) {
-				const result = await response.json();
-				throw new Error(result.error || 'Failed to duplicate module');
+				await handleApiErrorResponse(response);
 			}
 
 			const result = await response.json();
@@ -674,8 +668,8 @@
 				throw new Error(result.error || 'Failed to duplicate module');
 			}
 		} catch (err) {
-			console.error('Error duplicating module:', err);
-			error = err instanceof Error ? err.message : 'Failed to duplicate module';
+			logger.error('Error duplicating module:', err);
+			error = handleError(err, 'Failed to duplicate module');
 		} finally {
 			saving = false;
 		}
@@ -706,8 +700,7 @@
 			});
 
 			if (!response.ok) {
-				const result = await response.json();
-				throw new Error(result.error || 'Failed to delete module');
+				await handleApiErrorResponse(response);
 			}
 
 			const result = await response.json();
@@ -720,8 +713,8 @@
 				throw new Error(result.error || 'Failed to delete module');
 			}
 		} catch (err) {
-			console.error('Error deleting module:', err);
-			error = err instanceof Error ? err.message : 'Failed to delete module';
+			logger.error('Error deleting module:', err);
+			error = handleError(err, 'Failed to delete module');
 		} finally {
 			deleting = false;
 		}
@@ -753,8 +746,7 @@
 			});
 
 			if (!response.ok) {
-				const result = await response.json();
-				throw new Error(result.error || 'Failed to assign module');
+				await handleApiErrorResponse(response);
 			}
 
 			const result = await response.json();
@@ -767,8 +759,8 @@
 				throw new Error(result.error || 'Failed to assign module');
 			}
 		} catch (err) {
-			console.error('Error assigning module:', err);
-			error = err instanceof Error ? err.message : 'Failed to assign module';
+			logger.error('Error assigning module:', err);
+			error = handleError(err, 'Failed to assign module');
 		} finally {
 			saving = false;
 		}
@@ -785,8 +777,7 @@
 			});
 
 			if (!response.ok) {
-				const result = await response.json();
-				throw new Error(result.error || 'Failed to unassign module');
+				await handleApiErrorResponse(response);
 			}
 
 			const result = await response.json();
@@ -799,8 +790,8 @@
 				throw new Error(result.error || 'Failed to unassign module');
 			}
 		} catch (err) {
-			console.error('Error unassigning module:', err);
-			error = err instanceof Error ? err.message : 'Failed to unassign module';
+			logger.error('Error unassigning module:', err);
+			error = handleError(err, 'Failed to unassign module');
 		} finally {
 			saving = false;
 		}
@@ -886,8 +877,7 @@
 			});
 
 			if (!response.ok) {
-				const result = await response.json();
-				throw new Error(result.error || 'Failed to add page');
+				await handleApiErrorResponse(response);
 			}
 
 			const result = await response.json();
@@ -899,8 +889,8 @@
 				throw new Error(result.error || 'Failed to add page');
 			}
 		} catch (err) {
-			console.error('Error adding page:', err);
-			error = err instanceof Error ? err.message : 'Failed to add page';
+			logger.error('Error adding page:', err);
+			error = handleError(err, 'Failed to add page');
 		} finally {
 			saving = false;
 		}
@@ -917,8 +907,7 @@
 			});
 
 			if (!response.ok) {
-				const result = await response.json();
-				throw new Error(result.error || 'Failed to delete page');
+				await handleApiErrorResponse(response);
 			}
 
 			const result = await response.json();
@@ -933,8 +922,8 @@
 				throw new Error(result.error || 'Failed to delete page');
 			}
 		} catch (err) {
-			console.error('Error deleting page:', err);
-			error = err instanceof Error ? err.message : 'Failed to delete page';
+			logger.error('Error deleting page:', err);
+			error = handleError(err, 'Failed to delete page');
 		} finally {
 			saving = false;
 		}
@@ -994,8 +983,7 @@
 			});
 
 			if (!assignResponse.ok) {
-				const result = await assignResponse.json();
-				throw new Error(result.error || 'Failed to assign module to page');
+				await handleApiErrorResponse(assignResponse);
 			}
 
 			const assignResult = await assignResponse.json();
@@ -1052,8 +1040,7 @@
 			});
 
 			if (!response.ok) {
-				const result = await response.json();
-				throw new Error(result.error || 'Failed to assign module to page');
+				await handleApiErrorResponse(response);
 			}
 
 			const result = await response.json();
@@ -1068,8 +1055,8 @@
 				throw new Error(result.error || 'Failed to assign module to page');
 			}
 		} catch (err) {
-			console.error('Error assigning module to page:', err);
-			error = err instanceof Error ? err.message : 'Failed to assign module to page';
+			logger.error('Error assigning module to page:', err);
+			error = handleError(err, 'Failed to assign module to page');
 		} finally {
 			saving = false;
 		}
@@ -1086,8 +1073,7 @@
 			});
 
 			if (!response.ok) {
-				const result = await response.json();
-				throw new Error(result.error || 'Failed to unassign module from page');
+				await handleApiErrorResponse(response);
 			}
 
 			const result = await response.json();
@@ -1102,8 +1088,8 @@
 				throw new Error(result.error || 'Failed to unassign module from page');
 			}
 		} catch (err) {
-			console.error('Error unassigning module from page:', err);
-			error = err instanceof Error ? err.message : 'Failed to unassign module from page';
+			logger.error('Error unassigning module from page:', err);
+			error = handleError(err, 'Failed to unassign module from page');
 		} finally {
 			saving = false;
 		}
@@ -1519,8 +1505,8 @@
 																	throw new Error(result.error || 'Failed to update location');
 																}
 																							} catch (err) {
-																								console.error('Error updating location:', err);
-																								error = err instanceof Error ? err.message : 'Failed to update location';
+																								logger.error('Error updating location:', err);
+																								error = handleError(err, 'Failed to update location');
 																							} finally {
 																								saving = false;
 																							}

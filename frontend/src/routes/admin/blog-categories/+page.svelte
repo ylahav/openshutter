@@ -3,6 +3,8 @@
 	import MultiLangInput from '$lib/components/MultiLangInput.svelte';
 	import MultiLangHTMLEditor from '$lib/components/MultiLangHTMLEditor.svelte';
 	import type { MultiLangText } from '$lib/types/multi-lang';
+	import { logger } from '$lib/utils/logger';
+	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 
   export const data = undefined as any; // From +layout.server.ts, not used in this component
 
@@ -66,13 +68,13 @@
 
 			const response = await fetch(`/api/admin/blog-categories?${params.toString()}`);
 			if (!response.ok) {
-				throw new Error('Failed to load blog categories');
+				await handleApiErrorResponse(response);
 			}
 			const result = await response.json();
 			categories = Array.isArray(result.data) ? result.data : (Array.isArray(result) ? result : []);
 		} catch (err) {
-			console.error('Error loading blog categories:', err);
-			error = `Failed to load blog categories: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			logger.error('Error loading blog categories:', err);
+			error = handleError(err, 'Failed to load blog categories');
 		} finally {
 			loading = false;
 		}
@@ -159,15 +161,11 @@
 				body: JSON.stringify(payload)
 			});
 
-			const responseData = await response.json().catch((e) => {
-				console.error('Failed to parse response:', e);
-				return null;
-			});
-
 			if (!response.ok) {
-				const errorMessage = responseData?.message || `HTTP ${response.status}: Failed to create blog category`;
-				throw new Error(errorMessage);
+				await handleApiErrorResponse(response);
 			}
+
+			const responseData = await response.json();
 
 			if (!responseData) {
 				throw new Error('No data returned from server');
@@ -183,8 +181,8 @@
 				message = '';
 			}, 3000);
 		} catch (err) {
-			console.error('Error creating blog category:', err);
-			error = `Failed to create blog category: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			logger.error('Error creating blog category:', err);
+			error = handleError(err, 'Failed to create blog category');
 		} finally {
 			saving = false;
 		}
@@ -221,15 +219,11 @@
 				body: JSON.stringify(payload)
 			});
 
-			const responseData = await response.json().catch((e) => {
-				console.error('Failed to parse response:', e);
-				return null;
-			});
-
 			if (!response.ok) {
-				const errorMessage = responseData?.message || `HTTP ${response.status}: Failed to update blog category`;
-				throw new Error(errorMessage);
+				await handleApiErrorResponse(response);
 			}
+
+			const responseData = await response.json();
 
 			if (!responseData) {
 				throw new Error('No data returned from server');
@@ -246,8 +240,8 @@
 				message = '';
 			}, 3000);
 		} catch (err) {
-			console.error('Error updating blog category:', err);
-			error = `Failed to update blog category: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			logger.error('Error updating blog category:', err);
+			error = handleError(err, 'Failed to update blog category');
 		} finally {
 			saving = false;
 		}
@@ -266,8 +260,7 @@
 			});
 
 			if (!response.ok) {
-				const errorData = await response.json().catch(() => ({}));
-				throw new Error(errorData.message || 'Failed to delete blog category');
+				await handleApiErrorResponse(response);
 			}
 
 			categories = categories.filter((c) => c._id !== categoryToDelete._id);
@@ -279,8 +272,8 @@
 				message = '';
 			}, 3000);
 		} catch (err) {
-			console.error('Error deleting blog category:', err);
-			error = `Failed to delete blog category: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			logger.error('Error deleting blog category:', err);
+			error = handleError(err, 'Failed to delete blog category');
 		} finally {
 			deleting = false;
 		}

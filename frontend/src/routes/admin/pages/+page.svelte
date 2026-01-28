@@ -6,6 +6,8 @@
 	import IconSelector from '$lib/components/IconSelector.svelte';
 	import type { MultiLangText, MultiLangHTML } from '$lib/types/multi-lang';
 	import { AVAILABLE_ICON_NAMES } from '$lib/icons';
+	import { logger } from '$lib/utils/logger';
+	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 
 	// Available icon names from icons.ts (sorted)
 	const AVAILABLE_ICONS = [...AVAILABLE_ICON_NAMES].sort();
@@ -153,7 +155,7 @@
 				availableAlbums = flattenAlbums(rootAlbums);
 			}
 		} catch (err) {
-			console.error('Error loading albums:', err);
+			logger.error('Error loading albums:', err);
 		} finally {
 			albumsLoading = false;
 		}
@@ -178,13 +180,13 @@
 
 			const response = await fetch(`/api/admin/pages?${params.toString()}`);
 			if (!response.ok) {
-				throw new Error('Failed to load pages');
+				await handleApiErrorResponse(response);
 			}
 			const result = await response.json();
 			pages = Array.isArray(result.data) ? result.data : (Array.isArray(result) ? result : []);
 		} catch (err) {
-			console.error('Error loading pages:', err);
-			error = `Failed to load pages: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			logger.error('Error loading pages:', err);
+			error = handleError(err, 'Failed to load pages');
 		} finally {
 			loading = false;
 		}
@@ -257,7 +259,7 @@
 		try {
 			const response = await fetch(`/api/admin/pages/${pageId}/modules`);
 			if (!response.ok) {
-				throw new Error('Failed to load modules');
+				await handleApiErrorResponse(response);
 			}
 			const result = await response.json();
 			modules = Array.isArray(result.data) ? result.data : [];
@@ -284,8 +286,8 @@
 			});
 			rowStructure = newStructure;
 		} catch (err) {
-			console.error('Error loading modules:', err);
-			modulesError = `Failed to load modules: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			logger.error('Error loading modules:', err);
+			modulesError = handleError(err, 'Failed to load modules');
 		} finally {
 			modulesLoading = false;
 		}
@@ -476,11 +478,11 @@
 				body: JSON.stringify(payload)
 			});
 
-			const result = await response.json();
 			if (!response.ok) {
-				throw new Error(result?.error || 'Failed to update module');
+				await handleApiErrorResponse(response);
 			}
 
+			const result = await response.json();
 			const moduleData = result.data || result;
 			modules = modules.map((m) => (m._id === editingModule!._id ? moduleData : m));
 			showModuleEditDialog = false;
@@ -488,8 +490,8 @@
 			resetModuleForm();
 			await loadModules(editingPage._id);
 		} catch (err) {
-			console.error('Error updating module:', err);
-			modulesError = `Failed to update module: ${err instanceof Error ? err.message : 'Invalid JSON'}`;
+			logger.error('Error updating module:', err);
+			modulesError = handleError(err, 'Failed to update module');
 		}
 	}
 
@@ -541,10 +543,10 @@
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify(payload)
 			});
-			const result = await response.json();
 			if (!response.ok) {
-				throw new Error(result?.error || 'Failed to save module');
+				await handleApiErrorResponse(response);
 			}
+			const result = await response.json();
 			const moduleData = result.data || result;
 			if (moduleForm.id) {
 				modules = modules.map((m) => (m._id === moduleForm.id ? moduleData : m));
@@ -553,8 +555,8 @@
 			}
 			resetModuleForm();
 		} catch (err) {
-			console.error('Error saving module:', err);
-			modulesError = `Failed to save module: ${err instanceof Error ? err.message : 'Invalid JSON'}`;
+			logger.error('Error saving module:', err);
+			modulesError = handleError(err, 'Failed to save module');
 		}
 	}
 
@@ -565,14 +567,14 @@
 			const response = await fetch(`/api/admin/pages/${editingPage._id}/modules/${moduleId}`, {
 				method: 'DELETE'
 			});
-			const result = await response.json();
 			if (!response.ok) {
-				throw new Error(result?.error || 'Failed to delete module');
+				await handleApiErrorResponse(response);
 			}
+			const result = await response.json();
 			modules = modules.filter((m) => m._id !== moduleId);
 		} catch (err) {
-			console.error('Error deleting module:', err);
-			modulesError = `Failed to delete module: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			logger.error('Error deleting module:', err);
+			modulesError = handleError(err, 'Failed to delete module');
 		}
 	}
 
@@ -607,8 +609,7 @@
 				});
 
 				if (!response.ok) {
-					const result = await response.json();
-					throw new Error(result?.error || 'Failed to create column');
+					await handleApiErrorResponse(response);
 				}
 			}
 
@@ -620,8 +621,8 @@
 			// Reload modules to show the new row
 			await loadModules(editingPage._id);
 		} catch (err) {
-			console.error('Error adding row:', err);
-			modulesError = `Failed to add row: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			logger.error('Error adding row:', err);
+			modulesError = handleError(err, 'Failed to add row');
 		}
 	}
 
@@ -641,8 +642,8 @@
 			// Reload to get updated list
 			await loadModules(editingPage._id);
 		} catch (err) {
-			console.error('Error deleting row:', err);
-			modulesError = `Failed to delete row: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			logger.error('Error deleting row:', err);
+			modulesError = handleError(err, 'Failed to delete row');
 		}
 	}
 
@@ -745,8 +746,8 @@
 			// Reload modules to sync with backend
 			await loadModules(editingPage._id);
 		} catch (err) {
-			console.error('Error reordering row:', err);
-			modulesError = `Failed to reorder row: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			logger.error('Error reordering row:', err);
+			modulesError = handleError(err, 'Failed to reorder row');
 		}
 	}
 
@@ -786,10 +787,10 @@
 					body: JSON.stringify(payload)
 				});
 
-				const result = await response.json();
 				if (!response.ok) {
-					throw new Error(result?.error || 'Failed to update module');
+					await handleApiErrorResponse(response);
 				}
+				const result = await response.json();
 
 				const moduleData = result.data || result;
 				modules = modules.map((m) => (m._id === existingModule._id ? moduleData : m));
@@ -809,19 +810,18 @@
 					body: JSON.stringify(payload)
 				});
 
-				const result = await response.json();
 				if (!response.ok) {
-					throw new Error(result?.error || 'Failed to create module');
+					await handleApiErrorResponse(response);
 				}
-
+				const result = await response.json();
 				const moduleData = result.data || result;
 				modules = [...modules, moduleData];
 			}
 
 			await loadModules(editingPage._id);
 		} catch (err) {
-			console.error('Error assigning module:', err);
-			modulesError = `Failed to assign module: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			logger.error('Error assigning module:', err);
+			modulesError = handleError(err, 'Failed to assign module');
 		}
 	}
 
@@ -843,15 +843,11 @@
 				})
 			});
 
-			const responseData = await response.json().catch((e) => {
-				console.error('Failed to parse response:', e);
-				return null;
-			});
-
 			if (!response.ok) {
-				const errorMessage = responseData?.message || `HTTP ${response.status}: Failed to create page`;
-				throw new Error(errorMessage);
+				await handleApiErrorResponse(response);
 			}
+
+			const responseData = await response.json();
 
 			if (!responseData) {
 				throw new Error('No data returned from server');
@@ -867,8 +863,8 @@
 				message = '';
 			}, 3000);
 		} catch (err) {
-			console.error('Error creating page:', err);
-			error = `Failed to create page: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			logger.error('Error creating page:', err);
+			error = handleError(err, 'Failed to create page');
 		} finally {
 			saving = false;
 		}
@@ -895,15 +891,11 @@
 				})
 			});
 
-			const responseData = await response.json().catch((e) => {
-				console.error('Failed to parse response:', e);
-				return null;
-			});
-
 			if (!response.ok) {
-				const errorMessage = responseData?.message || `HTTP ${response.status}: Failed to update page`;
-				throw new Error(errorMessage);
+				await handleApiErrorResponse(response);
 			}
+
+			const responseData = await response.json();
 
 			if (!responseData) {
 				throw new Error('No data returned from server');
@@ -920,8 +912,8 @@
 				message = '';
 			}, 3000);
 		} catch (err) {
-			console.error('Error updating page:', err);
-			error = `Failed to update page: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			logger.error('Error updating page:', err);
+			error = handleError(err, 'Failed to update page');
 		} finally {
 			saving = false;
 		}
@@ -941,8 +933,7 @@
 			});
 
 			if (!response.ok) {
-				const errorData = await response.json().catch(() => ({}));
-				throw new Error(errorData.message || 'Failed to delete page');
+				await handleApiErrorResponse(response);
 			}
 
 			pages = pages.filter((p) => p._id !== deleteId);
@@ -954,8 +945,8 @@
 				message = '';
 			}, 3000);
 		} catch (err) {
-			console.error('Error deleting page:', err);
-			error = `Failed to delete page: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			logger.error('Error deleting page:', err);
+			error = handleError(err, 'Failed to delete page');
 		} finally {
 			deleting = false;
 		}

@@ -2,6 +2,8 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { currentLanguage } from '$stores/language';
 	import { MultiLangUtils } from '$utils/multiLang';
+	import { logger } from '$lib/utils/logger';
+	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 
 	export let isOpen = false;
 	export let onClose: () => void;
@@ -43,7 +45,7 @@
 			const response = await fetch(endpoint);
 			
 			if (!response.ok) {
-				throw new Error(`Failed to fetch ${collectionType}`);
+				await handleApiErrorResponse(response);
 			}
 			
 			const result = await response.json();
@@ -53,8 +55,8 @@
 				items = result || [];
 			}
 		} catch (err) {
-			console.error(`Error fetching ${collectionType}:`, err);
-			error = err instanceof Error ? err.message : 'An error occurred';
+			logger.error(`Error fetching ${collectionType}:`, err);
+			error = handleError(err, `Failed to fetch ${collectionType}`);
 		} finally {
 			loading = false;
 		}
@@ -104,7 +106,7 @@
 			});
 
 			if (!response.ok) {
-				throw new Error(`Failed to create ${collectionType.slice(0, -1)}`);
+				await handleApiErrorResponse(response);
 			}
 
 			const result = await response.json();
@@ -120,8 +122,8 @@
 				throw new Error(result.error || `Failed to create ${collectionType.slice(0, -1)}`);
 			}
 		} catch (err) {
-			console.error(`Error creating ${collectionType.slice(0, -1)}:`, err);
-			error = err instanceof Error ? err.message : 'An error occurred';
+			logger.error(`Error creating ${collectionType.slice(0, -1)}:`, err);
+			error = handleError(err, `Failed to create ${collectionType.slice(0, -1)}`);
 		} finally {
 			isCreating = false;
 		}

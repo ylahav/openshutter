@@ -4,7 +4,7 @@
 	import { page } from '$app/stores';
 	import { getAlbumName } from '$lib/utils/albumUtils';
 	import { logger } from '$lib/utils/logger';
-	import { handleError } from '$lib/utils/errorHandler';
+	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 
 	export let data; // From +layout.server.ts, contains user info
 
@@ -246,48 +246,46 @@
 			});
 
 			logger.debug('[handleSubmit] Response status:', response.status, response.ok);
-			if (response.ok) {
-				const result = await response.json();
-				logger.debug('[handleSubmit] Response data:', result);
-				logger.debug('[handleSubmit] result.success:', result.success);
-				logger.debug('[handleSubmit] result.data:', result.data);
-				
-				if (result.success && result.data) {
-					success = 'Album created successfully!';
-					setTimeout(() => {
-						// Determine redirect destination based on user role
-						const userRole = data?.user?.role;
-						
-						logger.debug('[handleSubmit] User data:', { 
-							role: userRole, 
-							user: data?.user,
-							fullData: data
-						});
-						
-						// Default to owner albums, but check for admin role explicitly
-						let dest = '/owner/albums';
-						if (userRole === 'admin') {
-							dest = '/admin/albums';
-							logger.debug('[handleSubmit] Admin user detected, redirecting to admin albums');
-						} else {
-							logger.debug('[handleSubmit] Non-admin user, redirecting to owner albums');
-						}
-						
-						logger.debug('[handleSubmit] Redirecting to:', dest);
-						goto(dest);
-					}, 1500);
-				} else {
-					logger.error('[handleSubmit] Response missing success or data:', result);
-					error = result.error || 'Failed to create album - invalid response format';
-				}
+			if (!response.ok) {
+				await handleApiErrorResponse(response);
+			}
+			
+			const result = await response.json();
+			logger.debug('[handleSubmit] Response data:', result);
+			logger.debug('[handleSubmit] result.success:', result.success);
+			logger.debug('[handleSubmit] result.data:', result.data);
+			
+			if (result.success && result.data) {
+				success = 'Album created successfully!';
+				setTimeout(() => {
+					// Determine redirect destination based on user role
+					const userRole = data?.user?.role;
+					
+					logger.debug('[handleSubmit] User data:', { 
+						role: userRole, 
+						user: data?.user,
+						fullData: data
+					});
+					
+					// Default to owner albums, but check for admin role explicitly
+					let dest = '/owner/albums';
+					if (userRole === 'admin') {
+						dest = '/admin/albums';
+						logger.debug('[handleSubmit] Admin user detected, redirecting to admin albums');
+					} else {
+						logger.debug('[handleSubmit] Non-admin user, redirecting to owner albums');
+					}
+					
+					logger.debug('[handleSubmit] Redirecting to:', dest);
+					goto(dest);
+				}, 1500);
 			} else {
-				const errorData = await response.json().catch(() => ({}));
-				logger.error('[handleSubmit] Response not OK:', response.status, errorData);
-				error = handleError(errorData, `Failed to create album (HTTP ${response.status})`);
+				logger.error('[handleSubmit] Response missing success or data:', result);
+				error = result.error || 'Failed to create album - invalid response format';
 			}
 		} catch (err) {
 			logger.error('Failed to create album:', err);
-			error = `Failed to create album: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			error = handleError(err, 'Failed to create album');
 		} finally {
 			isLoading = false;
 		}

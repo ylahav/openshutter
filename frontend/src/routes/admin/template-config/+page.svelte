@@ -3,6 +3,8 @@
 	import { goto } from '$app/navigation';
 	import Header from '$lib/components/Header.svelte';
 	import Footer from '$lib/components/Footer.svelte';
+	import { logger } from '$lib/utils/logger';
+	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 
   export const data = undefined as any; // From +layout.server.ts, not used in this component
 
@@ -66,8 +68,8 @@
 				}
 			}
 		} catch (err) {
-			console.error('Failed to load config:', err);
-			error = 'Failed to load template configuration';
+			logger.error('Failed to load config:', err);
+			error = handleError(err, 'Failed to load template configuration');
 		} finally {
 			loading = false;
 		}
@@ -100,7 +102,7 @@
 			});
 
 			if (!response.ok) {
-				throw new Error('Failed to save template configuration');
+				await handleApiErrorResponse(response);
 			}
 
 			const result = await response.json();
@@ -137,7 +139,7 @@
 			});
 
 			if (!response.ok) {
-				throw new Error('Failed to reset template configuration');
+				await handleApiErrorResponse(response);
 			}
 
 			const result = await response.json();
@@ -155,8 +157,8 @@
 				throw new Error(result.error || 'Failed to reset template configuration');
 			}
 		} catch (err) {
-			console.error('Error resetting template configuration:', err);
-			error = 'Failed to reset template configuration';
+			logger.error('Error resetting template configuration:', err);
+			error = handleError(err, 'Failed to reset template configuration');
 		} finally {
 			saving = false;
 		}

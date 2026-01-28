@@ -4,6 +4,8 @@
 	import MultiLangInput from '$lib/components/MultiLangInput.svelte';
 	import { MultiLangUtils } from '$lib/utils/multiLang';
 	import { currentLanguage } from '$lib/stores/language';
+	import { logger } from '$lib/utils/logger';
+	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 
   export const data = undefined as any; // From +layout.server.ts, not used in this component
 
@@ -57,8 +59,7 @@
 			});
 
 			if (!response.ok) {
-				const errorData = await response.json();
-				throw new Error(errorData.error || 'Failed to create category');
+				await handleApiErrorResponse(response);
 			}
 
 			success = 'Category created successfully!';
@@ -66,7 +67,8 @@
 				goto('/admin/blog-categories');
 			}, 1500);
 		} catch (err) {
-			error = err instanceof Error ? err.message : 'Failed to create category';
+			logger.error('Failed to create category:', err);
+			error = handleError(err, 'Failed to create category');
 		} finally {
 			saving = false;
 		}

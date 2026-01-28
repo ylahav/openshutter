@@ -2,6 +2,8 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
+	import { logger } from '$lib/utils/logger';
+	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 
 	interface Language {
 		code: string;
@@ -76,7 +78,7 @@
 			error = '';
 			const response = await fetch('/api/admin/translations');
 			if (!response.ok) {
-				throw new Error('Failed to load languages');
+				await handleApiErrorResponse(response);
 			}
 			const result = await response.json();
 			if (result.success) {
@@ -85,8 +87,8 @@
 				throw new Error(result.error || 'Failed to load languages');
 			}
 		} catch (err) {
-			console.error('Error loading languages:', err);
-			error = err instanceof Error ? err.message : 'Failed to load languages';
+			logger.error('Error loading languages:', err);
+			error = handleError(err, 'Failed to load languages');
 		} finally {
 			loading = false;
 		}
@@ -100,10 +102,10 @@
 			const cacheBuster = forceReload ? `&_t=${Date.now()}` : '';
 			const response = await fetch(`/api/admin/translations?languageCode=${languageCode}${cacheBuster}`);
 			if (!response.ok) {
-				throw new Error('Failed to load translations');
+				await handleApiErrorResponse(response);
 			}
 			const result = await response.json();
-			console.log(`[Translations] API response for ${languageCode}:`, {
+			logger.debug(`[Translations] API response for ${languageCode}:`, {
 				success: result.success,
 				hasData: !!result.data,
 				dataType: typeof result.data,
@@ -123,15 +125,15 @@
 				
 				// Force categories update by triggering reactivity
 				categories = getCategories();
-				console.log(`[Translations] Explicitly set categories, found ${categories.length} categories:`, categories);
+				logger.debug(`[Translations] Explicitly set categories, found ${categories.length} categories:`, categories);
 				
 				// Expand all categories by default
 				categories.forEach(key => expandedCategories.add(key));
 				
-				console.log(`[Translations] Loaded ${categories.length} categories for ${languageCode}`);
+				logger.debug(`[Translations] Loaded ${categories.length} categories for ${languageCode}`);
 				
 				if (categories.length === 0) {
-					console.error(`[Translations] ERROR: No categories found for ${languageCode}!`, {
+					logger.error(`[Translations] ERROR: No categories found for ${languageCode}!`, {
 						translationsKeys: Object.keys(translations),
 						translationsType: typeof translations,
 						sampleKey: Object.keys(translations)[0],
@@ -153,15 +155,15 @@
 							}
 						}
 					} catch (e) {
-						console.warn('Could not load English translations for reference:', e);
+						logger.warn('Could not load English translations for reference:', e);
 					}
 				}
 			} else {
 				throw new Error(result.error || 'Failed to load translations');
 			}
 		} catch (err) {
-			console.error('Error loading translations:', err);
-			error = err instanceof Error ? err.message : 'Failed to load translations';
+			logger.error('Error loading translations:', err);
+			error = handleError(err, 'Failed to load translations');
 		} finally {
 			loading = false;
 		}
@@ -305,7 +307,7 @@
 					translations = {};
 					englishTranslations = {};
 					
-					console.log(`[Translations] Force reloading translations for ${langCode}...`);
+					logger.debug(`[Translations] Force reloading translations for ${langCode}...`);
 					await loadTranslations(langCode, true); // Force reload with cache busting
 					
 					// Wait a bit more and verify

@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { logger } from '$lib/utils/logger';
+	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 
   export const data = undefined as any; // From +layout.server.ts, not used in this component
 
@@ -45,13 +47,13 @@
 		try {
 			const response = await fetch('/api/admin/deployment/status');
 			if (!response.ok) {
-				throw new Error('Failed to load deployment status');
+				await handleApiErrorResponse(response);
 			}
 			const result = await response.json();
 			status = result.data || result;
 		} catch (err) {
-			console.error('Error loading deployment status:', err);
-			error = `Failed to load deployment status: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			logger.error('Error loading deployment status:', err);
+			error = handleError(err, 'Failed to load deployment status');
 		} finally {
 			loading = false;
 		}
@@ -76,8 +78,7 @@
 			});
 
 			if (!response.ok) {
-				const errorData = await response.json();
-				throw new Error(errorData.message || 'Failed to prepare deployment package');
+				await handleApiErrorResponse(response);
 			}
 
 			// Download the ZIP file
@@ -94,8 +95,8 @@
 			// Reload status to show new package
 			await loadStatus();
 		} catch (err) {
-			console.error('Error preparing deployment:', err);
-			prepareError = `Failed to prepare deployment: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			logger.error('Error preparing deployment:', err);
+			prepareError = handleError(err, 'Failed to prepare deployment');
 		} finally {
 			preparing = false;
 		}

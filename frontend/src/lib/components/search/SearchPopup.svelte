@@ -5,6 +5,7 @@
 	// Using inline SVG icons
 	import { currentLanguage } from '$stores/language';
 	import { MultiLangUtils } from '$utils/multiLang';
+	import { logger } from '$lib/utils/logger';
 
 	export let isOpen = false;
 
@@ -85,7 +86,7 @@
 					: locationsData.data || [];
 			}
 		} catch (err) {
-			console.error('Failed to load filter data:', err);
+			logger.error('Failed to load filter data:', err);
 		}
 	}
 

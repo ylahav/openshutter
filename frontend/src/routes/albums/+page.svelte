@@ -4,6 +4,8 @@
 	import { MultiLangUtils } from '$utils/multiLang';
 	import { t } from '$stores/i18n';
 	import { getAlbumName, getAlbumDescription } from '$lib/utils/albumUtils';
+	import { logger } from '$lib/utils/logger';
+	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 
 	interface Album {
 		_id: string;
@@ -33,7 +35,7 @@
 			// Fetch root albums (no parent) - API handles access control
 			const response = await fetch('/api/albums?parentId=root');
 			if (!response.ok) {
-				throw new Error('Failed to fetch albums');
+				await handleApiErrorResponse(response);
 			}
 			const data = await response.json();
 			if (Array.isArray(data)) {
@@ -41,12 +43,12 @@
 				// Fetch cover images for albums
 				await fetchCoverImages();
 			} else {
-				console.error('API returned unexpected format:', data);
+				logger.error('API returned unexpected format:', data);
 				albums = [];
 			}
 		} catch (err) {
-			console.error('Failed to fetch albums:', err);
-			error = `Failed to load albums: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			logger.error('Failed to fetch albums:', err);
+			error = handleError(err, 'Failed to load albums');
 			albums = [];
 		} finally {
 			isLoading = false;
@@ -69,25 +71,25 @@
 				}),
 			});
 
-			if (response.ok) {
-				const result = await response.json();
-				console.log('Cover images API response:', result);
-				
-				// Handle both wrapped {success, data} and direct Record<string, string> formats
-				if (result.success && result.data) {
-					// Wrapped format: {success: true, data: Record<string, string>}
-					coverImages = result.data;
-				} else if (result && typeof result === 'object' && !result.success) {
-					// Direct format: Record<string, string> (albumId -> coverImageUrl)
-					coverImages = result;
-				} else {
-					console.warn('Unexpected response structure:', result);
-				}
+			if (!response.ok) {
+				logger.warn('Failed to fetch cover images, status:', response.status);
+				return;
+			}
+			const result = await response.json();
+			logger.debug('Cover images API response:', result);
+			
+			// Handle both wrapped {success, data} and direct Record<string, string> formats
+			if (result.success && result.data) {
+				// Wrapped format: {success: true, data: Record<string, string>}
+				coverImages = result.data;
+			} else if (result && typeof result === 'object' && !result.success) {
+				// Direct format: Record<string, string> (albumId -> coverImageUrl)
+				coverImages = result;
 			} else {
-				console.error('Failed to fetch cover images, status:', response.status);
+				logger.warn('Unexpected response structure:', result);
 			}
 		} catch (err) {
-			console.error('Failed to fetch cover images:', err);
+			logger.error('Failed to fetch cover images:', err);
 		}
 	}
 

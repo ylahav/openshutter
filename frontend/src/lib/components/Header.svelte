@@ -10,6 +10,7 @@
 	import ThemeToggle from '$components/ThemeToggle.svelte';
 	import Menu from '$components/Menu.svelte';
 	import { t } from '$stores/i18n';
+	import { logger } from '$lib/utils/logger';
 
 	const year = new Date().getFullYear();
 
@@ -51,10 +52,10 @@
 
 	// Debug logging - always log to help diagnose
 	$: if (typeof window !== 'undefined') {
-		console.log('[Header] Header config:', $headerConfig);
-		console.log('[Header] Config menu:', $headerConfig?.menu);
-		console.log('[Header] Menu array length:', $headerConfig?.menu?.length);
-		console.log('[Header] Site config template:', $siteConfigData?.template);
+		logger.debug('[Header] Header config:', $headerConfig);
+		logger.debug('[Header] Config menu:', $headerConfig?.menu);
+		logger.debug('[Header] Menu array length:', $headerConfig?.menu?.length);
+		logger.debug('[Header] Site config template:', $siteConfigData?.template);
 	}
 </script>
 

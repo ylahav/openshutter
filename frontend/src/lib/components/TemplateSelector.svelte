@@ -62,7 +62,7 @@
 					// Reload page to apply new template
 					window.location.reload();
 				} else {
-					console.error('Failed to update template');
+					await handleApiErrorResponse(response);
 					isSwitching = false;
 				}
 			} else {
@@ -72,7 +72,7 @@
 				window.location.reload();
 			}
 		} catch (err) {
-			console.error('Error switching template:', err);
+			logger.error('Error switching template:', err);
 			isSwitching = false;
 		}
 	}

@@ -3,6 +3,8 @@
 	import { goto } from '$app/navigation';
 	import { MultiLangUtils } from '$lib/utils/multiLang';
 	import { currentLanguage } from '$lib/stores/language';
+	import { logger } from '$lib/utils/logger';
+	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 
   export const data = undefined as any; // From +layout.server.ts, not used in this component
 
@@ -41,7 +43,7 @@
 
 			const response = await fetch(`/api/owner/blog?${params.toString()}`);
 			if (!response.ok) {
-				throw new Error('Failed to fetch articles');
+				await handleApiErrorResponse(response);
 			}
 
 			const result = await response.json();
@@ -53,7 +55,8 @@
 				categories = uniqueCategories;
 			}
 		} catch (err) {
-			error = err instanceof Error ? err.message : 'An error occurred';
+			logger.error('Failed to fetch articles:', err);
+			error = handleError(err, 'Failed to fetch articles');
 		} finally {
 			loading = false;
 		}
@@ -68,12 +71,13 @@
 			});
 
 			if (!response.ok) {
-				throw new Error('Failed to delete article');
+				await handleApiErrorResponse(response);
 			}
 
 			articles = articles.filter((article) => article._id !== articleId);
 		} catch (err) {
-			error = err instanceof Error ? err.message : 'Failed to delete article';
+			logger.error('Failed to delete article:', err);
+			error = handleError(err, 'Failed to delete article');
 		}
 	}
 

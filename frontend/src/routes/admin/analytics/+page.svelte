@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { getAlbumName } from '$lib/utils/albumUtils';
 	import { logger } from '$lib/utils/logger';
-	import { handleError } from '$lib/utils/errorHandler';
+	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 
   export const data = undefined as any; // From +layout.server.ts, not used in this component
 
@@ -59,7 +59,7 @@
 		try {
 			const response = await fetch('/api/admin/analytics');
 			if (!response.ok) {
-				throw new Error('Failed to load analytics');
+				await handleApiErrorResponse(response);
 			}
 			const result = await response.json();
 			analytics = result.data || result;
