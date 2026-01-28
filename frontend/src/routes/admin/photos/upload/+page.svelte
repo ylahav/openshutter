@@ -8,6 +8,7 @@
 	import AlertModal from '$lib/components/AlertModal.svelte';
 	import { logger } from '$lib/utils/logger';
 	import { handleError } from '$lib/utils/errorHandler';
+	import type { PageData } from './$types';
 
 	function setWebkitDirectory(node: HTMLInputElement) {
 		(node as any).webkitdirectory = true;
@@ -16,7 +17,7 @@
 		};
 	}
 
-  export const data = undefined as any; // From +layout.server.ts, not used in this component
+	export let data: PageData;
 
 	interface UploadProgress {
 		file: File;

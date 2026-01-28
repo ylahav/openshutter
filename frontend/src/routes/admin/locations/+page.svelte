@@ -4,8 +4,9 @@
 	import MultiLangHTMLEditor from '$lib/components/MultiLangHTMLEditor.svelte';
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
+	import type { PageData } from './$types';
 
-  export const data = undefined as any; // From +layout.server.ts, not used in this component
+	export let data: PageData;
 
 	interface Location {
 		_id: string;

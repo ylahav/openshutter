@@ -8,11 +8,14 @@
 	import { AVAILABLE_ICON_NAMES } from '$lib/icons';
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
+	import type { PageData } from './$types';
+	import type { PageModuleData } from '$lib/types/page-builder';
 
 	// Available icon names from icons.ts (sorted)
-	const AVAILABLE_ICONS = [...AVAILABLE_ICON_NAMES].sort();
+	const AVAILABLE_ICONS: string[] = [...AVAILABLE_ICON_NAMES].sort();
 
-  export const data = undefined as any; // From +layout.server.ts, not used in this component
+	// svelte-ignore export_let_unused - Required by SvelteKit page component
+	export let data: PageData;
 
 	interface Page {
 		_id: string;
@@ -36,8 +39,11 @@
 		_id: string;
 		pageId: string;
 		type: string;
-		zone: string;
-		order: number;
+		zone?: string; // Legacy support
+		order?: number; // Legacy support
+		rowOrder?: number; // Row index (0-based) - new layout system
+		columnIndex?: number; // Column index within row (0-based) - new layout system
+		columnProportion?: number; // Proportion value (e.g., 1, 2, 3) - new layout system
 		props: Record<string, any>;
 		createdAt?: string;
 		updatedAt?: string;
@@ -329,8 +335,8 @@
 	let availableAlbums: Array<{ _id: string; name: string | MultiLangText; alias: string; level?: number }> = [];
 	let albumsLoading = false;
 
-	function editModule(module: PageModule) {
-		editingModule = module;
+	function editModule(module: PageModule | PageModuleData) {
+		editingModule = module as PageModule;
 		moduleForm = {
 			id: module._id,
 			type: module.type,
@@ -1480,10 +1486,10 @@
 															bind:value={item.icon}
 															placeholder="Select an icon..."
 															on:change={(e) => {
-																item.icon = e.detail.value;
+																item.icon = e.detail.value as string;
 															}}
 														/>
-														{#if item.icon === 'custom' || (item.icon && !AVAILABLE_ICONS.includes(item.icon))}
+														{#if item.icon === 'custom' || (item.icon && !AVAILABLE_ICONS.includes(item.icon as any))}
 															<input
 																type="text"
 																bind:value={item.icon}
@@ -1730,14 +1736,14 @@
 						<p class="text-sm text-gray-500">Loading layout...</p>
 					{:else}
 						<RowColumnLayoutBuilder
-							{modules}
+							modules={modules as PageModuleData[]}
 							rowStructure={rowStructure}
 							onAddRow={handleAddRow}
 							onDeleteRow={handleDeleteRow}
 							onReorderRow={handleReorderRow}
 							onAssignModule={handleAssignModule}
 							onRemoveModule={deleteModule}
-							onEditModule={editModule}
+							onEditModule={editModule as (module: PageModuleData) => void}
 							availableModuleTypes={MODULE_TYPES}
 						/>
 					{/if}
@@ -1874,10 +1880,10 @@
 															bind:value={item.icon}
 															placeholder="Select an icon..."
 															on:change={(e) => {
-																item.icon = e.detail.value;
+																item.icon = e.detail.value as string;
 															}}
 														/>
-														{#if item.icon === 'custom' || (item.icon && !AVAILABLE_ICONS.includes(item.icon))}
+														{#if item.icon === 'custom' || (item.icon && !AVAILABLE_ICONS.includes(item.icon as any))}
 															<input
 																type="text"
 																bind:value={item.icon}
@@ -2176,10 +2182,10 @@
 															bind:value={item.icon}
 															placeholder="Select an icon..."
 															on:change={(e) => {
-																item.icon = e.detail.value;
+																item.icon = e.detail.value as string;
 															}}
 														/>
-														{#if item.icon === 'custom' || (item.icon && !AVAILABLE_ICONS.includes(item.icon))}
+														{#if item.icon === 'custom' || (item.icon && !AVAILABLE_ICONS.includes(item.icon as any))}
 															<input
 																type="text"
 																bind:value={item.icon}

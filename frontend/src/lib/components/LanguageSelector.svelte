@@ -3,6 +3,7 @@
 	import { SUPPORTED_LANGUAGES, type LanguageCode } from '$types/multi-lang';
 	import { currentLanguage, setLanguage } from '$stores/language';
 	import { siteConfigData } from '$stores/siteConfig';
+	import { logger } from '$lib/utils/logger';
 
 	export let className = '';
 	export let showFlags = true;

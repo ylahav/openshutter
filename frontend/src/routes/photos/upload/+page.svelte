@@ -6,8 +6,9 @@
 	import Footer from '$lib/components/Footer.svelte';
 	import { logger } from '$lib/utils/logger';
 	import { handleError } from '$lib/utils/errorHandler';
+	import type { PageData } from './$types';
 
-	export let data; // From +layout.server.ts, contains user info
+	export let data: PageData;
 
 	let albumId: string | null = null;
 	let uploads: Array<{

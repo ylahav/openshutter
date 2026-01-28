@@ -2,8 +2,9 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import NotificationDialog from '$lib/components/NotificationDialog.svelte';
+	import type { PageData } from './$types';
 
-  export const data = undefined as any; // From +layout.server.ts, not used in this component
+	export let data: PageData;
 
 	interface TemplateSummary {
 		templateName: string;

@@ -2,8 +2,9 @@
 	import { goto } from '$app/navigation';
 	import Header from '$lib/components/Header.svelte';
 	import Footer from '$lib/components/Footer.svelte';
+	import type { PageData } from './$types';
 
-  export const data = undefined as any; // From +layout.server.ts, not used in this component
+	export let data: PageData;
 </script>
 
 <svelte:head>

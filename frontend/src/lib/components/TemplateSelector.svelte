@@ -3,6 +3,8 @@
 	import { activeTemplate } from '$stores/template';
 	import { siteConfigData, siteConfig } from '$stores/siteConfig';
 	import { auth } from '$lib/stores/auth';
+	import { logger } from '$lib/utils/logger';
+	import { handleApiErrorResponse } from '$lib/utils/errorHandler';
 
 	interface TemplateConfig {
 		templateName: string;

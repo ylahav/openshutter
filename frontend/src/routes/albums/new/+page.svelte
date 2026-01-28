@@ -5,8 +5,9 @@
 	import { getAlbumName } from '$lib/utils/albumUtils';
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
+	import type { PageData } from './$types';
 
-	export let data; // From +layout.server.ts, contains user info
+	export let data: PageData;
 
 	interface AlbumFormData {
 		name: string;
