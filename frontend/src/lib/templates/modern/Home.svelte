@@ -5,6 +5,7 @@
 	import { MultiLangUtils } from '$utils/multiLang';
 	import { t } from '$stores/i18n';
 	import { onMount } from 'svelte';
+	import { logger } from '$lib/utils/logger';
 
 	export let data: PageData;
 
@@ -33,7 +34,7 @@
 
 			if (response.ok) {
 				const result = await response.json();
-				console.log('Cover images API response:', result);
+				logger.debug('Cover images API response:', result);
 				
 				// Handle both wrapped {success, data} and direct Record<string, string> formats
 				if (result.success && result.data) {
@@ -43,13 +44,13 @@
 					// Direct format: Record<string, string> (albumId -> coverImageUrl)
 					coverImages = result;
 				} else {
-					console.warn('Unexpected response structure:', result);
+					logger.warn('Unexpected response structure:', result);
 				}
 			} else {
-				console.error('Failed to fetch cover images, status:', response.status);
+				logger.error('Failed to fetch cover images, status:', response.status);
 			}
 		} catch (err) {
-			console.error('Failed to fetch cover images:', err);
+			logger.error('Failed to fetch cover images:', err);
 		} finally {
 			// Mark all albums as no longer loading
 			data.rootAlbums.forEach((album) => {

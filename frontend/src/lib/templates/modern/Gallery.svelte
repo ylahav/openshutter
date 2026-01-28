@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { currentLanguage } from '$stores/language';
 	import { MultiLangUtils } from '$utils/multiLang';
+	import { logger } from '$lib/utils/logger';
 
 	interface TemplateAlbum {
 		_id: string;
@@ -35,7 +36,7 @@
 				coverPhotos = { ...coverPhotos, [albumId]: photo };
 			}
 		} catch (error) {
-			console.error(`Failed to fetch cover photo for album ${albumId}:`, error);
+			logger.error(`Failed to fetch cover photo for album ${albumId}:`, error);
 		}
 	}
 
@@ -58,7 +59,7 @@
 				error = 'Failed to fetch albums';
 			}
 		} catch (err) {
-			console.error('Failed to fetch albums:', err);
+			logger.error('Failed to fetch albums:', err);
 			error = 'Failed to fetch albums';
 		} finally {
 			loading = false;

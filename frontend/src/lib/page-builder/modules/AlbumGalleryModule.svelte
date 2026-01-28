@@ -3,6 +3,7 @@
 	import { currentLanguage } from '$stores/language';
 	import { MultiLangUtils } from '$lib/utils/multiLang';
 	import { getAlbumName } from '$lib/utils/albumUtils';
+	import { logger } from '$lib/utils/logger';
 
 	export let title: string | Record<string, string> = '';
 	export let description: string | Record<string, string> | undefined;
@@ -42,7 +43,7 @@
 							return await response.json();
 						}
 					} catch (err) {
-						console.error(`Failed to fetch album ${albumId}:`, err);
+						logger.error(`Failed to fetch album ${albumId}:`, err);
 					}
 					return null;
 				});
@@ -86,7 +87,7 @@
 				}
 			}
 		} catch (err) {
-			console.error('Failed to load albums:', err);
+			logger.error('Failed to load albums:', err);
 			albums = [];
 		} finally {
 			loading = false;
@@ -121,7 +122,7 @@
 				}
 			}
 		} catch (err) {
-			console.error('Failed to fetch cover images:', err);
+			logger.error('Failed to fetch cover images:', err);
 			coverImages = {};
 		}
 	}

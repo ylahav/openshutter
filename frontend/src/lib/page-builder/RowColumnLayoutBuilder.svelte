@@ -2,6 +2,7 @@
 	import { tick } from 'svelte';
 	import type { PageModuleData } from '$lib/types/page-builder';
 	import AlertModal from '$lib/components/AlertModal.svelte';
+	import { logger } from '$lib/utils/logger';
 
 	export let modules: PageModuleData[] = [];
 	export let rowStructure: Map<number, number[]> = new Map(); // rowOrder -> proportions[]
@@ -114,7 +115,7 @@
 			showAddRowDialog = false;
 			newRowColumns = '1,1,1';
 		} catch (err) {
-			console.error('Failed to add row:', err);
+			logger.error('Failed to add row:', err);
 		} finally {
 			addingRow = false;
 		}
