@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useSiteConfig } from './useSiteConfig'
 import { templateService } from '@/services/template'
 import { TemplateWithOverrides } from '@/services/template-overrides'
+import { logger } from '$lib/utils/logger'
 
 export function useTemplateOverrides() {
   const { config, loading: configLoading } = useSiteConfig()
@@ -30,7 +31,7 @@ export function useTemplateOverrides() {
           setError('Template not found')
         }
       } catch (err) {
-        console.error('Error loading template with overrides:', err)
+        logger.error('Error loading template with overrides:', err)
         setError('Failed to load template with overrides')
       } finally {
         setLoading(false)
@@ -77,7 +78,7 @@ export function useTemplateOverrides() {
         throw new Error(result.error || 'Failed to update template overrides')
       }
     } catch (err) {
-      console.error('Error updating template overrides:', err)
+      logger.error('Error updating template overrides:', err)
       setError('Failed to update template overrides')
       throw err
     }
@@ -106,7 +107,7 @@ export function useTemplateOverrides() {
         throw new Error(result.error || 'Failed to reset template overrides')
       }
     } catch (err) {
-      console.error('Error resetting template overrides:', err)
+      logger.error('Error resetting template overrides:', err)
       setError('Failed to reset template overrides')
       throw err
     }

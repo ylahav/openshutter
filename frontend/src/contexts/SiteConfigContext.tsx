@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { SiteConfig } from '@/types/site-config'
+import { logger } from '$lib/utils/logger'
 
 interface SiteConfigContextType {
   config: SiteConfig | null
@@ -36,7 +37,7 @@ export function SiteConfigProvider({ children }: SiteConfigProviderProps) {
       }
     } catch (err) {
       setError('Failed to load site configuration')
-      console.error('Error loading site config:', err)
+      logger.error('Error loading site config:', err)
     } finally {
       setLoading(false)
     }

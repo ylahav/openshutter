@@ -4,6 +4,7 @@
 	import { currentLanguage } from '$stores/language';
 	import { MultiLangUtils } from '$utils/multiLang';
 	import { siteConfigData } from '$stores/siteConfig';
+	import { logger } from '$lib/utils/logger';
 	import Hero from './components/Hero.svelte';
 	import AlbumList from './components/AlbumList.svelte';
 
@@ -31,7 +32,7 @@
 				error = 'Failed to fetch albums';
 			}
 		} catch (err) {
-			console.error('Failed to fetch albums:', err);
+			logger.error('Failed to fetch albums:', err);
 			error = err instanceof Error ? err.message : 'Failed to fetch albums';
 		} finally {
 			loading = false;

@@ -17,7 +17,7 @@ export const GET: RequestHandler = async ({ locals, cookies }) => {
 
 		// Ensure configs is an array
 		if (!Array.isArray(configs)) {
-			console.error('[storage-options] Backend did not return an array:', configs);
+			logger.error('[storage-options] Backend did not return an array:', configs);
 			return json({
 				success: true,
 				data: []

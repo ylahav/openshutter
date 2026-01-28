@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { currentLanguage } from '$stores/language';
 	import { MultiLangUtils } from '$utils/multiLang';
+	import { logger } from '$lib/utils/logger';
 
 	interface TemplateAlbum {
 		_id: string;
@@ -30,7 +31,7 @@
 				coverImageUrl = data.url || null;
 			}
 		} catch (err) {
-			console.error('Failed to fetch cover image:', err);
+			logger.error('Failed to fetch cover image:', err);
 		} finally {
 			coverImageLoading = false;
 		}

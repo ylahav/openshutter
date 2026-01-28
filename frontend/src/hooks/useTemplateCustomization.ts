@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { logger } from '$lib/utils/logger'
 
 export interface TemplateCustomization {
   colors: {
@@ -69,7 +70,7 @@ export function useTemplateCustomization() {
           }
         }
       } catch (error) {
-        console.error('Failed to fetch template customization:', error)
+        logger.error('Failed to fetch template customization:', error)
       } finally {
         setLoading(false)
       }

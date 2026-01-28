@@ -25,7 +25,7 @@ export const load: PageLoad = async ({ fetch, parent }) => {
       };
     }
 
-    console.error('Unexpected albums response format:', albums);
+    logger.error('Unexpected albums response format:', albums);
     return { rootAlbums: [], albumsError: 'Failed to fetch albums' };
   } catch (err) {
     logger.error('Error fetching root albums:', err);

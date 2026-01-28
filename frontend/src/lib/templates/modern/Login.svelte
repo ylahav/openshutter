@@ -4,6 +4,7 @@
 	import { page } from '$app/stores';
 	import Header from '$components/Header.svelte';
 	import Footer from '$components/Footer.svelte';
+	import { logger } from '$lib/utils/logger';
 
 	let formData = {
 		email: '',
@@ -42,7 +43,7 @@
 				error = result.message || 'Login failed';
 			}
 		} catch (err) {
-			console.error('Login error:', err);
+			logger.error('Login error:', err);
 			error = 'An error occurred during login';
 		} finally {
 			isSubmitting = false;
@@ -106,4 +107,3 @@
 </main>
 
 <Footer />
-

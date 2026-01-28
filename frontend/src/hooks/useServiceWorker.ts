@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { logger } from '$lib/utils/logger'
 
 interface ServiceWorkerState {
   isSupported: boolean
@@ -23,7 +24,7 @@ export function useServiceWorker() {
 
     // Check if service workers are supported
     if (!('serviceWorker' in navigator)) {
-      console.log('Service workers not supported')
+      logger.debug('Service workers not supported')
       return
     }
 
@@ -36,7 +37,7 @@ export function useServiceWorker() {
           scope: '/'
         })
 
-        console.log('Service Worker registered successfully:', registration)
+        logger.debug('Service Worker registered successfully:', registration)
 
         setState(prev => ({
           ...prev,
@@ -51,7 +52,7 @@ export function useServiceWorker() {
             newWorker.addEventListener('statechange', () => {
               if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                 // New content is available, notify user
-                console.log('New content available! Please refresh.')
+                logger.info('New content available! Please refresh.')
                 // You could show a notification here
               }
             })
@@ -59,7 +60,7 @@ export function useServiceWorker() {
         })
 
       } catch (error) {
-        console.error('Service Worker registration failed:', error)
+        logger.error('Service Worker registration failed:', error)
       }
     }
 

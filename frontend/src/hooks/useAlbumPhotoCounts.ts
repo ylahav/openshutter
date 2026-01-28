@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Album } from '@/types'
+import { logger } from '$lib/utils/logger'
 
 interface AlbumPhotoCounts {
   [albumId: string]: number
@@ -32,7 +33,7 @@ export function useAlbumPhotoCounts(albums: Album[]) {
                 }
               }
             } catch (error) {
-              console.error(`Failed to fetch photo count for album ${album._id}:`, error)
+              logger.error(`Failed to fetch photo count for album ${album._id}:`, error)
               // Fallback to stored photoCount
               counts[album._id!] = album.photoCount || 0
             }
@@ -41,7 +42,7 @@ export function useAlbumPhotoCounts(albums: Album[]) {
         
         setPhotoCounts(counts)
       } catch (error) {
-        console.error('Failed to fetch photo counts:', error)
+        logger.error('Failed to fetch photo counts:', error)
       } finally {
         setLoading(false)
       }

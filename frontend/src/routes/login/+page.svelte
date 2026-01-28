@@ -53,7 +53,7 @@
 				user: data.user
 			});
 
-			console.log('[Login] Login successful, redirecting...', {
+			logger.debug('[Login] Login successful, redirecting...', {
 				userRole: data.user?.role,
 				redirectTo
 			});

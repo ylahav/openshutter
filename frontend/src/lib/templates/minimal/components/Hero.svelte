@@ -3,6 +3,7 @@
 	import { currentLanguage } from '$stores/language';
 	import { siteConfigData } from '$stores/siteConfig';
 	import { MultiLangUtils } from '$utils/multiLang';
+	import { logger } from '$lib/utils/logger';
 
 	interface TemplatePhoto {
 		_id: string;
@@ -34,7 +35,7 @@
 				}
 			}
 		} catch (err) {
-			console.error('Failed to fetch gallery photos:', err);
+			logger.error('Failed to fetch gallery photos:', err);
 		} finally {
 			loading = false;
 		}

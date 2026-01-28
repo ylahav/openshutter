@@ -3,6 +3,7 @@ import { TemplateConfig } from '@/types/template'
 import { templateService } from '@/services/template'
 import { useSiteConfig } from './useSiteConfig'
 import { TemplateWithOverrides } from '@/services/template-overrides'
+import { logger } from '$lib/utils/logger'
 
 export function useTemplate(templateName?: string) {
   const [template, setTemplate] = useState<TemplateConfig | null>(null)
@@ -24,7 +25,7 @@ export function useTemplate(templateName?: string) {
           setError(`Template '${templateToLoad}' not found`)
         }
       } catch (err) {
-        console.error('Error loading template:', err)
+        logger.error('Error loading template:', err)
         setError('Failed to load template')
       } finally {
         setLoading(false)
@@ -46,24 +47,24 @@ export function useActiveTemplate() {
   useEffect(() => {
     const loadActiveTemplate = async () => {
       try {
-        console.log('useActiveTemplate: Starting to load active template...')
+        logger.debug('useActiveTemplate: Starting to load active template...')
         setLoading(true)
         setError(null)
         
         // For public pages, use basic template without overrides to avoid admin API calls
         const activeTemplate = await templateService.getActiveTemplate()
-        console.log('useActiveTemplate: Got active template:', activeTemplate)
+        logger.debug('useActiveTemplate: Got active template:', activeTemplate)
         if (activeTemplate) {
           setTemplate(activeTemplate as TemplateWithOverrides)
         } else {
-          console.error('useActiveTemplate: No active template found')
+          logger.error('useActiveTemplate: No active template found')
           setError('No active template found')
         }
       } catch (err) {
-        console.error('Error loading active template:', err)
+        logger.error('Error loading active template:', err)
         setError('Failed to load active template')
       } finally {
-        console.log('useActiveTemplate: Finished loading, setting loading to false')
+        logger.debug('useActiveTemplate: Finished loading, setting loading to false')
         setLoading(false)
       }
     }
@@ -93,7 +94,7 @@ export function useTemplateComponent(templateName: string, componentName: string
           setError(`Component '${componentName}' not found in template '${templateName}'`)
         }
       } catch (err) {
-        console.error('Error loading template component:', err)
+        logger.error('Error loading template component:', err)
         setError('Failed to load template component')
       } finally {
         setLoading(false)
@@ -125,7 +126,7 @@ export function useTemplatePage(templateName: string, pageName: string) {
           setError(`Page '${pageName}' not found in template '${templateName}'`)
         }
       } catch (err) {
-        console.error('Error loading template page:', err)
+        logger.error('Error loading template page:', err)
         setError('Failed to load template page')
       } finally {
         setLoading(false)

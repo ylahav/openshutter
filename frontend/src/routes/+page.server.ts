@@ -1,6 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { env } from '$env/dynamic/private';
+import { logger } from '$lib/utils/logger';
 
 export const load: PageServerLoad = async ({ fetch, url }) => {
   // Skip redirect check if already on setup page or other special routes
@@ -27,7 +28,7 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
       throw err;
     }
     // Otherwise, continue with normal page load
-    console.warn('Failed to check setup status, continuing with normal load:', err);
+    logger.warn('Failed to check setup status, continuing with normal load:', err);
   }
 
   // Return empty object to let client-side load handle the rest

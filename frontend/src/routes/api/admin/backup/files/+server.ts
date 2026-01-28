@@ -58,7 +58,7 @@ export const POST: RequestHandler = async ({ locals }) => {
 				}
 			} catch (error) {
 				// Directory doesn't exist, skip it
-				console.log(`Directory ${dir} doesn't exist, skipping...`);
+				logger.debug(`Directory ${dir} doesn't exist, skipping...`);
 			}
 		}
 

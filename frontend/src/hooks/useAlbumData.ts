@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { TemplateAlbum, TemplatePhoto } from '@/types'
+import { logger } from '$lib/utils/logger'
 
 export interface UseAlbumDataResult {
   album: TemplateAlbum | null
@@ -34,7 +35,7 @@ export function useAlbumData(alias: string | undefined): UseAlbumDataResult {
         }))
       }
     } catch (error) {
-      console.error(`Failed to fetch cover photo for sub-album ${albumId}:`, error)
+      logger.error(`Failed to fetch cover photo for sub-album ${albumId}:`, error)
     }
   }
 
@@ -79,7 +80,7 @@ export function useAlbumData(alias: string | undefined): UseAlbumDataResult {
           })
         }
       } catch (err) {
-        console.error('Failed to fetch album data:', err)
+        logger.error('Failed to fetch album data:', err)
         setError(err instanceof Error ? err.message : 'Failed to fetch album')
       } finally {
         setLoading(false)

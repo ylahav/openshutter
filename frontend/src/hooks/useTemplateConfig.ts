@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useSiteConfig } from './useSiteConfig'
 import { templateConfigService, TemplateComponentVisibility } from '@/services/template-config'
+import { logger } from '$lib/utils/logger'
 
 export function useTemplateConfig() {
   const { config, loading: configLoading } = useSiteConfig()
@@ -19,7 +20,7 @@ export function useTemplateConfig() {
         const componentVisibility = await templateConfigService.getComponentVisibility(config)
         setVisibility(componentVisibility)
       } catch (err) {
-        console.error('Error loading template component visibility:', err)
+        logger.error('Error loading template component visibility:', err)
         setError('Failed to load template configuration')
       } finally {
         setLoading(false)
@@ -55,7 +56,7 @@ export function useTemplateConfig() {
       
       return updatedConfig
     } catch (err) {
-      console.error('Error updating template component visibility:', err)
+      logger.error('Error updating template component visibility:', err)
       setError('Failed to update template configuration')
       throw err
     }
@@ -75,7 +76,7 @@ export function useTemplateConfig() {
       
       return updatedConfig
     } catch (err) {
-      console.error('Error resetting template configuration:', err)
+      logger.error('Error resetting template configuration:', err)
       setError('Failed to reset template configuration')
       throw err
     }
