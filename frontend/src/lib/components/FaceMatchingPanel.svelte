@@ -16,8 +16,8 @@
 
 	interface Person {
 		_id: string;
-		fullName?: any;
-		firstName?: any;
+		fullName?: string | { en?: string; he?: string };
+		firstName?: string | { en?: string; he?: string };
 		profileImage?: {
 			url: string;
 		};
@@ -39,7 +39,7 @@
 				// Backend returns { data: [...], pagination: {...} }
 				if (result.data && Array.isArray(result.data)) {
 					// Serialize ObjectIds to strings
-					people = result.data.map((person: any) => ({
+					people = result.data.map((person: Person) => ({
 						_id: person._id?.toString() || person._id,
 						fullName: person.fullName,
 						firstName: person.firstName,

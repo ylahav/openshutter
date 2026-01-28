@@ -13,8 +13,29 @@
 	export let onSelectionChange: (items: string[]) => void;
 	export let searchPlaceholder = 'Search...';
 
+	interface TagItem {
+		_id: string;
+		name: string;
+		color?: string;
+	}
+
+	interface PersonItem {
+		_id: string;
+		fullName?: string | { en?: string; he?: string };
+		firstName?: string | { en?: string; he?: string };
+		lastName?: string | { en?: string; he?: string };
+	}
+
+	interface LocationItem {
+		_id: string;
+		name: string | { en?: string; he?: string };
+		address?: string;
+	}
+
+	type CollectionItem = TagItem | PersonItem | LocationItem;
+
 	let searchQuery = '';
-	let items: any[] = [];
+	let items: CollectionItem[] = [];
 	let loading = false;
 	let error: string | null = null;
 	let newItemName = '';
@@ -158,7 +179,7 @@
 		}
 	}
 
-	function getItemName(item: any): string {
+	function getItemName(item: CollectionItem): string {
 		if (collectionType === 'tags') {
 			return typeof item.name === 'string' ? item.name : '';
 		} else if (collectionType === 'people') {
@@ -169,7 +190,7 @@
 		return 'Unknown';
 	}
 
-	function isSelected(item: any): boolean {
+	function isSelected(item: CollectionItem): boolean {
 		const itemId = item._id?.toString() || item._id;
 		if (!itemId) return false;
 		// Explicitly check if the itemId is in selectedItems

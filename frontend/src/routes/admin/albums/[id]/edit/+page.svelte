@@ -13,9 +13,9 @@
 
 	interface Album {
 		_id: string;
-		name: any;
+		name: string | { en?: string; he?: string };
 		alias: string;
-		description?: any;
+		description?: string | { en?: string; he?: string };
 		isPublic: boolean;
 		isFeatured: boolean;
 		showExifData?: boolean;
@@ -79,11 +79,11 @@
 				formData.order = album.order || 0;
 				// Convert ObjectIds to strings if needed
 				formData.tags =
-					album.tags?.map((tag: any) =>
+					album.tags?.map((tag: string | { _id?: { toString(): string }; toString(): string }) =>
 						typeof tag === 'string' ? tag : tag._id?.toString() || tag.toString()
 					) || [];
 				formData.people =
-					album.people?.map((person: any) =>
+					album.people?.map((person: string | { _id?: { toString(): string }; toString(): string }) =>
 						typeof person === 'string' ? person : person._id?.toString() || person.toString()
 					) || [];
 				formData.location =
