@@ -49,6 +49,22 @@
 		updatedAt?: string;
 	}
 
+	interface AlbumHierarchyNode {
+		_id: string;
+		name: string | { en?: string; he?: string };
+		alias: string;
+		parentAlbumId: string | null;
+		level: number;
+		children: AlbumHierarchyNode[];
+	}
+
+	interface AlbumDropdownItem {
+		_id: string;
+		name: string | { en?: string; he?: string };
+		alias: string;
+		level: number;
+	}
+
 	const CATEGORIES = [
 		{ value: 'site', label: 'Site Page' },
 		{ value: 'system', label: 'System Page' }
@@ -112,12 +128,12 @@
 				const albumsData = Array.isArray(result) ? result : (result.data || []);
 				
 				// Build hierarchy from flat list
-				const albumMap = new Map<string, any>();
-				const rootAlbums: any[] = [];
+				const albumMap = new Map<string, AlbumHierarchyNode>();
+				const rootAlbums: AlbumHierarchyNode[] = [];
 				
 				// First pass: create album objects and map them
 				for (const album of albumsData) {
-					const albumObj = {
+					const albumObj: AlbumHierarchyNode = {
 						_id: album._id,
 						name: album.name,
 						alias: album.alias,
@@ -143,8 +159,8 @@
 				}
 				
 				// Flatten albums hierarchy for dropdown with proper levels
-				const flattenAlbums = (items: any[], level = 0): any[] => {
-					let result: any[] = [];
+				const flattenAlbums = (items: AlbumHierarchyNode[], level = 0): AlbumDropdownItem[] => {
+					let result: AlbumDropdownItem[] = [];
 					for (const album of items) {
 						result.push({
 							_id: album._id,
@@ -354,7 +370,7 @@
 			featureGridSubtitle = typeof props.subtitle === 'string'
 				? { en: props.subtitle, he: '' }
 				: (props.subtitle || { en: '', he: '' });
-			featureGridItems = (props.features || []).map((f: any) => ({
+			featureGridItems = (props.features || []).map((f: Partial<FeatureGridItem> & { icon?: string; title?: string | MultiLangText; description?: string | MultiLangHTML }) => ({
 				icon: f.icon || '',
 				title: typeof f.title === 'string' ? { en: f.title, he: '' } : (f.title || { en: '', he: '' }),
 				description: typeof f.description === 'string' ? { en: f.description, he: '' } : (f.description || { en: '', he: '' })

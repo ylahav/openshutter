@@ -13,6 +13,7 @@
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 	import type { PageData } from './$types';
 
+	// svelte-ignore export_let_unused - Required by SvelteKit page component
 	export let data: PageData;
 
 	interface Album {
@@ -44,6 +45,15 @@
 		isPublished: boolean;
 	}
 
+	interface Location {
+		_id: string;
+		name: string | { en?: string; he?: string };
+		alias?: string;
+		address?: string;
+		category?: string;
+		isActive?: boolean;
+	}
+
 	const albumId = $page.params.id;
 	let album: Album | null = null;
 	let photos: Photo[] = [];
@@ -67,7 +77,7 @@
 	let selectedPhotoIds = new Set<string>();
 	let showBulkActions = false;
 	let showLocationDialog = false;
-	let locations: any[] = [];
+	let locations: Location[] = [];
 	let selectedLocationId: string | null = null;
 	let isBulkUpdating = false;
 

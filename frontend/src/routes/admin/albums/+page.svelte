@@ -8,10 +8,12 @@
 	import { MultiLangUtils } from '$lib/utils/multiLang';
 	import { currentLanguage } from '$lib/stores/language';
 	import { getAlbumName } from '$lib/utils/albumUtils';
+	import { getPhotoTitle } from '$lib/utils/photoUtils';
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 	import type { PageData } from './$types';
 
+	// svelte-ignore export_let_unused - Required by SvelteKit page component
 	export let data: PageData;
 
 	interface Album {
@@ -26,9 +28,28 @@
 		order: number;
 		parentAlbumId?: string;
 		coverPhotoId?: string;
-		coverPhoto?: any;
+		coverPhoto?: {
+			_id: string;
+			url?: string;
+			thumbnailUrl?: string;
+		};
 		createdAt: string;
 		updatedAt: string;
+	}
+
+	interface Photo {
+		_id: string;
+		filename: string;
+		title?: string | { en?: string; he?: string };
+		url?: string;
+		thumbnailUrl?: string;
+		storage?: {
+			provider?: string;
+			url?: string;
+			path?: string;
+			thumbnailPath?: string;
+		};
+		isPublished?: boolean;
 	}
 
 	let albums: Album[] = [];
@@ -40,7 +61,7 @@
 	let coverPhotoModal: {
 		isOpen: boolean;
 		album: Album | null;
-		photos: any[];
+		photos: Photo[];
 		loading: boolean;
 		currentPage: number;
 		photosPerPage: number;
@@ -69,25 +90,30 @@
 	};
 
 	// Reload albums when navigating to this page (handles both initial mount and navigation)
-	afterNavigate(async () => {
+	afterNavigate(() => {
 		// Only reload if we're on the admin albums page
 		if ($page.url.pathname === '/admin/albums') {
 			logger.debug('[afterNavigate] Navigating to admin albums page, reloading albums...');
-			await loadAlbums();
+			loadAlbums().catch((err) => {
+				logger.error('Error reloading albums after navigation:', err);
+			});
 		}
 	});
 
-	onMount(async () => {
-		logger.debug('[onMount] Starting album load...');
-		try {
-			await loadAlbums();
-			logger.debug('[onMount] Album load completed. Albums count:', albums.length, 'Loading:', loading);
-		} catch (err) {
-			logger.error('[onMount] Failed to load albums on mount:', err);
-			loading = false; // Ensure loading is set to false even if loadAlbums fails unexpectedly
-			error = handleError(err, 'Failed to load albums');
-			albums = []; // Ensure albums is always an array
-		}
+	onMount(() => {
+		// Load albums asynchronously
+		(async () => {
+			logger.debug('[onMount] Starting album load...');
+			try {
+				await loadAlbums();
+				logger.debug('[onMount] Album load completed. Albums count:', albums.length, 'Loading:', loading);
+			} catch (err) {
+				logger.error('[onMount] Failed to load albums on mount:', err);
+				loading = false; // Ensure loading is set to false even if loadAlbums fails unexpectedly
+				error = handleError(err, 'Failed to load albums');
+				albums = []; // Ensure albums is always an array
+			}
+		})();
 		
 		// Set up event delegation for action buttons in AlbumTree
 		const handleActionClick = (e: MouseEvent) => {
@@ -341,6 +367,7 @@
 			isOpen: true,
 			albumId: album._id,
 			albumName: getAlbumName(album),
+			isDeleting: false
 		};
 	}
 
@@ -583,7 +610,7 @@
 							>
 								<img
 									src={photo.storage?.thumbnailPath || photo.storage?.url || photo.url}
-									alt={photo.title || photo.filename || 'Photo'}
+									alt={getPhotoTitle(photo) || photo.filename || 'Photo'}
 									class="w-full h-20 object-cover rounded-lg hover:opacity-75 transition-opacity {isCurrentCover
 										? 'ring-2 ring-blue-500'
 										: ''}"
