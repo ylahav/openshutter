@@ -113,7 +113,7 @@
 				throw new Error(result.error || 'Failed to save template configuration');
 			}
 		} catch (err) {
-			console.error('Error saving template configuration:', err);
+			logger.error('Error saving template configuration:', err);
 			error = 'Failed to save template configuration';
 		} finally {
 			saving = false;

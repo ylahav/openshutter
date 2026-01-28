@@ -1,5 +1,6 @@
 import { writable } from 'svelte/store';
 import { browser } from '$app/environment';
+import { logger } from '../utils/logger';
 
 export interface AuthUser {
 	id: string;
@@ -36,7 +37,7 @@ export async function logout() {
 		auth.set({ authenticated: false });
 		window.location.href = '/login';
 	} catch (error) {
-		console.error('Failed to logout:', error);
+		logger.error('Failed to logout:', error);
 	}
 }
 

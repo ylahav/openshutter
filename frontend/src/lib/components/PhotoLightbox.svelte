@@ -170,7 +170,7 @@
 										return { ...baseFace, personName: name };
 									}
 								} catch (err) {
-									console.debug('Could not fetch person name:', err);
+									logger.debug('Could not fetch person name:', err);
 								}
 							}
 							return baseFace;

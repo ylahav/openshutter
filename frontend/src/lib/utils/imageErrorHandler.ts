@@ -2,6 +2,7 @@ import { tokenRenewalNotification } from '$lib/stores/tokenRenewal';
 import { browser } from '$app/environment';
 import { get } from 'svelte/store';
 import { page } from '$app/stores';
+import { logger } from './logger';
 
 /**
  * Check if an image URL failed due to invalid Google Drive token
@@ -56,7 +57,7 @@ export async function handleImageError(imageUrl: string): Promise<boolean> {
 		}
 	} catch (err) {
 		// Network errors or other issues - don't show notification
-		console.debug('Image error check failed:', err);
+		logger.debug('Image error check failed:', err);
 	}
 
 	return false;

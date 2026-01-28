@@ -6,6 +6,7 @@
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 	import type { PageData } from './$types';
 
+	// svelte-ignore export_let_unused - Required by SvelteKit page component
 	export let data: PageData;
 
 	interface Location {
@@ -118,10 +119,16 @@
 
 	function openEditDialog(location: Location) {
 		editingLocation = location;
-		const nameField = typeof location.name === 'string' ? { en: location.name, he: '' } : location.name || { en: '', he: '' };
+		const nameField = typeof location.name === 'string' 
+			? { en: location.name, he: '' } 
+			: (location.name && typeof location.name === 'object' 
+				? { en: location.name.en || '', he: location.name.he || '' }
+				: { en: '', he: '' });
 		const descField = typeof location.description === 'string'
 			? { en: location.description, he: '' }
-			: location.description || { en: '', he: '' };
+			: (location.description && typeof location.description === 'object'
+				? { en: location.description.en || '', he: location.description.he || '' }
+				: { en: '', he: '' });
 		formData = {
 			name: nameField,
 			description: descField,
@@ -223,7 +230,7 @@
 		message = '';
 
 		try {
-			console.log('Updating location:', editingLocation._id, 'with data:', formData);
+			logger.debug('Updating location:', editingLocation._id, 'with data:', formData);
 			const payload: any = {
 				...formData,
 				coordinates:
@@ -262,7 +269,9 @@
 			}
 
 			const updatedLocation = responseData.data || responseData;
-			locations = locations.map((l) => (l._id === editingLocation._id ? updatedLocation : l));
+			if (editingLocation) {
+				locations = locations.map((l) => (l._id === editingLocation._id ? updatedLocation : l));
+			}
 			message = 'Location updated successfully!';
 			showEditDialog = false;
 			editingLocation = null;
@@ -272,8 +281,8 @@
 				message = '';
 			}, 3000);
 		} catch (err) {
-			console.error('Error updating location:', err);
-			error = `Failed to update location: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			logger.error('Error updating location:', err);
+			error = handleError(err, 'Failed to update location');
 		} finally {
 			saving = false;
 		}
@@ -295,7 +304,9 @@
 				await handleApiErrorResponse(response);
 			}
 
-			locations = locations.filter((l) => l._id !== locationToDelete._id);
+			if (locationToDelete) {
+				locations = locations.filter((l) => l._id !== locationToDelete._id);
+			}
 			message = 'Location deleted successfully!';
 			showDeleteDialog = false;
 			locationToDelete = null;

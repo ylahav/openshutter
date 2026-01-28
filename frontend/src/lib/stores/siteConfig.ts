@@ -1,5 +1,6 @@
 import { writable, derived } from 'svelte/store';
 import type { SiteConfig } from '../types/site-config';
+import { logger } from '../utils/logger';
 
 interface SiteConfigState {
 	config: SiteConfig | null;
@@ -60,7 +61,7 @@ function createSiteConfigStore() {
 				}));
 				// Only log if it's not a network/connection error
 				if (!errorMessage.includes('ECONNREFUSED') && !errorMessage.includes('Failed to fetch') && !errorMessage.includes('aborted')) {
-					console.error('Error loading site config:', err);
+					logger.error('Error loading site config:', err);
 				}
 			}
 		},

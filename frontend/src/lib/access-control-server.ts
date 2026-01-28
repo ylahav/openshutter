@@ -1,6 +1,7 @@
 import { connectToDatabase } from '$lib/mongodb'
 import { ObjectId } from 'mongodb'
 import { UserSession, AlbumAccessInfo } from './access-control'
+import { logger } from './utils/logger'
 
 /**
  * Get current user session with proper typing (server-side only)
@@ -15,7 +16,7 @@ export async function getCurrentUser(): Promise<UserSession | null> {
   // In SvelteKit, use locals.user directly
   // For Next.js routes, this would need to be called from a context that has access to the request
   // Since we're migrating away from Next.js, this is mainly a placeholder
-  console.warn('getCurrentUser() is deprecated. Use locals.user in SvelteKit routes instead.')
+  logger.warn('getCurrentUser() is deprecated. Use locals.user in SvelteKit routes instead.')
   return null
 }
 

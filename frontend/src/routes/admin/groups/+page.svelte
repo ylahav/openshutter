@@ -6,6 +6,7 @@
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 	import type { PageData } from './$types';
 
+	// svelte-ignore export_let_unused - Required by SvelteKit page component
 	export let data: PageData;
 
 	interface Group {
@@ -49,8 +50,8 @@
 			const result = await response.json();
 			groups = Array.isArray(result.data) ? result.data : (Array.isArray(result) ? result : []);
 		} catch (err) {
-			console.error('Error loading groups:', err);
-			error = `Failed to load groups: ${err instanceof Error ? err.message : 'Unknown error'}`;
+			logger.error('Error loading groups:', err);
+			error = handleError(err, 'Failed to load groups');
 		} finally {
 			loading = false;
 		}
@@ -166,7 +167,9 @@
 			}
 
 			const updatedGroup = responseData.data || responseData;
-			groups = groups.map((g) => (g._id === editingGroup._id ? updatedGroup : g));
+			if (editingGroup) {
+				groups = groups.map((g) => (g._id === editingGroup._id ? updatedGroup : g));
+			}
 			message = 'Group updated successfully!';
 			showEditDialog = false;
 			editingGroup = null;
@@ -199,7 +202,9 @@
 				await handleApiErrorResponse(response);
 			}
 
-			groups = groups.filter((g) => g._id !== groupToDelete._id);
+			if (groupToDelete) {
+				groups = groups.filter((g) => g._id !== groupToDelete._id);
+			}
 			message = 'Group deleted successfully!';
 			showDeleteDialog = false;
 			groupToDelete = null;
