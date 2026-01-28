@@ -2,8 +2,10 @@
 	import { onMount } from 'svelte';
 	import MultiLangInput from '$lib/components/MultiLangInput.svelte';
 	import MultiLangHTMLEditor from '$lib/components/MultiLangHTMLEditor.svelte';
-	import { logger } from '$lib/utils/logger';
-	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
+	import { useCrudLoader } from '$lib/composables/useCrudLoader';
+	import { useCrudOperations } from '$lib/composables/useCrudOperations';
+	import { useDialogManager } from '$lib/composables/useDialogManager';
+	import { normalizeMultiLangText } from '$lib/utils/multiLangHelpers';
 	import type { PageData } from './$types';
 
 	// svelte-ignore export_let_unused - Required by SvelteKit page component
@@ -40,10 +42,68 @@
 		{ value: 'custom', label: 'Custom' }
 	];
 
+	// Use CRUD composables
+	const crudLoader = useCrudLoader<Location>('/api/admin/locations', {
+		searchParam: 'search',
+		searchValue: () => searchTerm,
+		filterParams: {
+			category: () => categoryFilter
+		}
+	});
+	const crudOps = useCrudOperations<Location>('/api/admin/locations', {
+		createSuccessMessage: 'Location created successfully!',
+		updateSuccessMessage: 'Location updated successfully!',
+		deleteSuccessMessage: 'Location deleted successfully!',
+		transformPayload: (data: any) => {
+			// Transform coordinates from string to number if provided
+			const payload: any = { ...data };
+			if (payload.coordinates?.latitude && payload.coordinates?.longitude) {
+				payload.coordinates = {
+					latitude: typeof payload.coordinates.latitude === 'string' 
+						? parseFloat(payload.coordinates.latitude) 
+						: payload.coordinates.latitude,
+					longitude: typeof payload.coordinates.longitude === 'string'
+						? parseFloat(payload.coordinates.longitude)
+						: payload.coordinates.longitude
+				};
+			} else {
+				delete payload.coordinates;
+			}
+			return payload;
+		},
+		onCreateSuccess: (newLocation) => {
+			crudLoader.items.update(items => [...items, newLocation]);
+			dialogs.closeAll();
+			resetForm();
+		},
+		onUpdateSuccess: (updatedLocation) => {
+			const currentEditingLocation = editingLocation;
+			if (currentEditingLocation) {
+				crudLoader.items.update(items => 
+					items.map(l => l._id === currentEditingLocation._id ? updatedLocation : l)
+				);
+			}
+			dialogs.closeAll();
+			editingLocation = null;
+			resetForm();
+		},
+		onDeleteSuccess: () => {
+			const currentLocationToDelete = locationToDelete;
+			if (currentLocationToDelete) {
+				crudLoader.items.update(items => 
+					items.filter(l => l._id !== currentLocationToDelete._id)
+				);
+			}
+			dialogs.closeAll();
+			locationToDelete = null;
+		}
+	});
+	const dialogs = useDialogManager();
+
+	// Reactive stores from composables
 	let locations: Location[] = [];
-	let loading = true;
+	let loading = false;
 	let saving = false;
-	let deleting = false;
 	let message = '';
 	let error = '';
 	let searchTerm = '';
@@ -53,6 +113,21 @@
 	let showDeleteDialog = false;
 	let editingLocation: Location | null = null;
 	let locationToDelete: Location | null = null;
+
+	// Subscribe to stores
+	crudLoader.items.subscribe(value => locations = value);
+	crudLoader.loading.subscribe(value => loading = value);
+	crudLoader.error.subscribe(value => {
+		if (value) error = value;
+	});
+	crudOps.saving.subscribe(value => saving = value);
+	crudOps.error.subscribe(value => {
+		if (value) error = value;
+	});
+	crudOps.message.subscribe(value => message = value);
+	dialogs.showCreate.subscribe(value => showCreateDialog = value);
+	dialogs.showEdit.subscribe(value => showEditDialog = value);
+	dialogs.showDelete.subscribe(value => showDeleteDialog = value);
 
 	// Form state
 	let formData = {
@@ -70,30 +145,8 @@
 	};
 
 	onMount(async () => {
-		await loadLocations();
+		await crudLoader.loadItems();
 	});
-
-	async function loadLocations() {
-		loading = true;
-		error = '';
-		try {
-			const params = new URLSearchParams();
-			if (searchTerm) params.append('search', searchTerm);
-			if (categoryFilter !== 'all') params.append('category', categoryFilter);
-
-			const response = await fetch(`/api/admin/locations?${params.toString()}`);
-			if (!response.ok) {
-				await handleApiErrorResponse(response);
-			}
-			const result = await response.json();
-			locations = Array.isArray(result.data) ? result.data : (Array.isArray(result) ? result : []);
-		} catch (err) {
-			logger.error('Error loading locations:', err);
-			error = handleError(err, 'Failed to load locations');
-		} finally {
-			loading = false;
-		}
-	}
 
 	function resetForm() {
 		formData = {
@@ -113,25 +166,15 @@
 
 	function openCreateDialog() {
 		resetForm();
-		showCreateDialog = true;
-		error = '';
+		dialogs.openCreate();
+		crudOps.error.set('');
 	}
 
 	function openEditDialog(location: Location) {
 		editingLocation = location;
-		const nameField: { en: string; he: string } = typeof location.name === 'string' 
-			? { en: location.name, he: '' } 
-			: (location.name && typeof location.name === 'object' 
-				? { en: location.name.en || '', he: location.name.he || '' }
-				: { en: '', he: '' });
-		const descField: { en: string; he: string } = typeof location.description === 'string'
-			? { en: location.description, he: '' }
-			: (location.description && typeof location.description === 'object'
-				? { en: location.description.en || '', he: location.description.he || '' }
-				: { en: '', he: '' });
 		formData = {
-			name: nameField,
-			description: descField,
+			name: normalizeMultiLangText(location.name),
+			description: normalizeMultiLangText(location.description),
 			address: location.address || '',
 			city: location.city || '',
 			state: location.state || '',
@@ -145,13 +188,14 @@
 			category: location.category || 'custom',
 			isActive: location.isActive !== undefined ? location.isActive : true
 		};
-		showEditDialog = true;
-		error = '';
+		dialogs.openEdit();
+		crudOps.error.set('');
 	}
 
 	function openDeleteDialog(location: Location) {
 		locationToDelete = location;
-		showDeleteDialog = true;
+		dialogs.openDelete();
+		crudOps.error.set('');
 	}
 
 	function getLocationName(location: Location): string {
@@ -165,165 +209,27 @@
 	}
 
 	async function handleCreate() {
-		saving = true;
-		error = '';
-		message = '';
-
-		try {
-			logger.debug('Creating location with data:', formData);
-			logger.debug('Description field:', formData.description);
-			const payload: any = {
-				...formData,
-				coordinates:
-					formData.coordinates.latitude && formData.coordinates.longitude
-						? {
-								latitude: formData.coordinates.latitude,
-								longitude: formData.coordinates.longitude
-							}
-						: undefined
-			};
-			// Remove empty coordinate fields
-			if (!payload.coordinates) delete payload.coordinates;
-			logger.debug('Payload being sent:', JSON.stringify(payload, null, 2));
-
-			const response = await fetch('/api/admin/locations', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify(payload)
-			});
-
-			if (!response.ok) {
-				await handleApiErrorResponse(response);
-			}
-
-			const responseData = await response.json();
-			logger.debug('Response status:', response.status, 'Response data:', responseData);
-
-			if (!responseData) {
-				throw new Error('No data returned from server');
-			}
-
-			const newLocation = responseData.data || responseData;
-			locations = [...locations, newLocation];
-			message = 'Location created successfully!';
-			showCreateDialog = false;
-			resetForm();
-
-			setTimeout(() => {
-				message = '';
-			}, 3000);
-		} catch (err) {
-			logger.error('Error creating location:', err);
-			error = handleError(err, 'Failed to create location');
-		} finally {
-			saving = false;
+		const newLocation = await crudOps.create(formData);
+		if (newLocation) {
+			// Success handled by onCreateSuccess callback
 		}
 	}
 
 	async function handleEdit() {
 		if (!editingLocation) return;
-
-		saving = true;
-		error = '';
-		message = '';
-
-		try {
-			logger.debug('Updating location:', editingLocation._id, 'with data:', formData);
-			const payload: any = {
-				...formData,
-				coordinates:
-					formData.coordinates.latitude && formData.coordinates.longitude
-						? {
-								latitude: formData.coordinates.latitude,
-								longitude: formData.coordinates.longitude
-							}
-						: undefined
-			};
-			// Remove empty coordinate fields
-			if (!payload.coordinates) delete payload.coordinates;
-
-			const response = await fetch(`/api/admin/locations/${editingLocation._id}`, {
-				method: 'PUT',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify(payload)
-			});
-
-			const responseData = await response.json().catch((e) => {
-				console.error('Failed to parse response:', e);
-				return null;
-			});
-
-			console.log('Response status:', response.status, 'Response data:', responseData);
-
-			if (!response.ok) {
-				const errorMessage = responseData?.message || `HTTP ${response.status}: Failed to update location`;
-				throw new Error(errorMessage);
-			}
-
-			if (!responseData) {
-				throw new Error('No data returned from server');
-			}
-
-			const updatedLocation = responseData.data || responseData;
-			if (!editingLocation) {
-				throw new Error('Editing location is null');
-			}
-			locations = locations.map((l) => (l._id === editingLocation._id ? updatedLocation : l));
-			message = 'Location updated successfully!';
-			showEditDialog = false;
-			editingLocation = null;
-			resetForm();
-
-			setTimeout(() => {
-				message = '';
-			}, 3000);
-		} catch (err) {
-			logger.error('Error updating location:', err);
-			error = handleError(err, 'Failed to update location');
-		} finally {
-			saving = false;
+		const currentEditingLocation = editingLocation;
+		const updatedLocation = await crudOps.update(currentEditingLocation._id, formData);
+		if (updatedLocation) {
+			// Success handled by onUpdateSuccess callback
 		}
 	}
 
 	async function handleDelete() {
 		if (!locationToDelete) return;
-
-		deleting = true;
-		error = '';
-		message = '';
-
-		if (!locationToDelete) {
-			return;
-		}
-
-		try {
-			const response = await fetch(`/api/admin/locations/${locationToDelete._id}`, {
-				method: 'DELETE'
-			});
-
-			if (!response.ok) {
-				await handleApiErrorResponse(response);
-			}
-
-			if (locationToDelete) {
-				locations = locations.filter((l) => l._id !== locationToDelete._id);
-			}
-			message = 'Location deleted successfully!';
-			showDeleteDialog = false;
-			locationToDelete = null;
-
-			setTimeout(() => {
-				message = '';
-			}, 3000);
-		} catch (err) {
-			logger.error('Error deleting location:', err);
-			error = handleError(err, 'Failed to delete location');
-		} finally {
-			deleting = false;
+		const currentLocationToDelete = locationToDelete;
+		const success = await crudOps.remove(currentLocationToDelete._id);
+		if (success) {
+			// Success handled by onDeleteSuccess callback
 		}
 	}
 </script>
@@ -361,7 +267,7 @@
 							type="text"
 							placeholder="Search locations..."
 							bind:value={searchTerm}
-							on:input={() => loadLocations()}
+							on:input={() => crudLoader.loadItems()}
 							class="pl-10 pr-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-64"
 						/>
 						<svg
@@ -381,7 +287,7 @@
 
 					<select
 						bind:value={categoryFilter}
-						on:change={() => loadLocations()}
+						on:change={() => crudLoader.loadItems()}
 						class="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 					>
 						<option value="all">All Categories</option>
@@ -668,7 +574,7 @@
 					<button
 						type="button"
 						on:click={() => {
-							showCreateDialog = false;
+							dialogs.closeAll();
 							resetForm();
 						}}
 						class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm font-medium"
@@ -865,7 +771,7 @@
 					<button
 						type="button"
 						on:click={() => {
-							showEditDialog = false;
+							dialogs.closeAll();
 							editingLocation = null;
 							resetForm();
 						}}
@@ -919,7 +825,7 @@
 					<button
 						type="button"
 						on:click={() => {
-							showDeleteDialog = false;
+							dialogs.closeAll();
 							locationToDelete = null;
 						}}
 						class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm font-medium"
@@ -929,10 +835,10 @@
 					<button
 						type="button"
 						on:click={handleDelete}
-						disabled={deleting}
+						disabled={saving}
 						class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 text-sm font-medium"
 					>
-						{#if deleting}
+						{#if saving}
 							Deleting...
 						{:else}
 							Delete Location

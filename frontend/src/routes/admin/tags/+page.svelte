@@ -4,10 +4,13 @@
 	import { MultiLangUtils } from '$lib/utils/multiLang';
 	import MultiLangInput from '$lib/components/MultiLangInput.svelte';
 	import type { MultiLangText } from '$lib/types/multi-lang';
-	import { logger } from '$lib/utils/logger';
-	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
+	import { useCrudLoader } from '$lib/composables/useCrudLoader';
+	import { useCrudOperations } from '$lib/composables/useCrudOperations';
+	import { useDialogManager } from '$lib/composables/useDialogManager';
+	import { normalizeMultiLangText } from '$lib/utils/multiLangHelpers';
 	import type { PageData } from './$types';
 
+	// svelte-ignore export_let_unused - Required by SvelteKit page component
 	export let data: PageData;
 
 	interface Tag {
@@ -43,10 +46,58 @@
 		'#6366F1'
 	];
 
+	// Use CRUD composables
+	const crudLoader = useCrudLoader<Tag>('/api/admin/tags', {
+		searchParam: 'search',
+		searchValue: () => searchTerm,
+		filterParams: {
+			category: () => categoryFilter
+		}
+	});
+	const crudOps = useCrudOperations<Tag>('/api/admin/tags', {
+		createSuccessMessage: 'Tag created successfully!',
+		updateSuccessMessage: 'Tag updated successfully!',
+		deleteSuccessMessage: 'Tag deleted successfully!',
+		transformPayload: (data: any) => ({
+			name: MultiLangUtils.clean(data.name),
+			description: MultiLangUtils.clean(data.description),
+			color: data.color,
+			category: data.category,
+			isActive: data.isActive
+		}),
+		onCreateSuccess: (newTag) => {
+			crudLoader.items.update(items => [...items, newTag]);
+			dialogs.closeAll();
+			resetForm();
+		},
+		onUpdateSuccess: (updatedTag) => {
+			const currentEditingTag = editingTag;
+			if (currentEditingTag) {
+				crudLoader.items.update(items => 
+					items.map(t => t._id === currentEditingTag._id ? updatedTag : t)
+				);
+			}
+			dialogs.closeAll();
+			editingTag = null;
+			resetForm();
+		},
+		onDeleteSuccess: () => {
+			const currentTagToDelete = tagToDelete;
+			if (currentTagToDelete) {
+				crudLoader.items.update(items => 
+					items.filter(t => t._id !== currentTagToDelete._id)
+				);
+			}
+			dialogs.closeAll();
+			tagToDelete = null;
+		}
+	});
+	const dialogs = useDialogManager();
+
+	// Reactive stores from composables
 	let tags: Tag[] = [];
-	let loading = true;
+	let loading = false;
 	let saving = false;
-	let deleting = false;
 	let message = '';
 	let error = '';
 	let searchTerm = '';
@@ -56,6 +107,21 @@
 	let showDeleteDialog = false;
 	let editingTag: Tag | null = null;
 	let tagToDelete: Tag | null = null;
+
+	// Subscribe to stores
+	crudLoader.items.subscribe(value => tags = value);
+	crudLoader.loading.subscribe(value => loading = value);
+	crudLoader.error.subscribe(value => {
+		if (value) error = value;
+	});
+	crudOps.saving.subscribe(value => saving = value);
+	crudOps.error.subscribe(value => {
+		if (value) error = value;
+	});
+	crudOps.message.subscribe(value => message = value);
+	dialogs.showCreate.subscribe(value => showCreateDialog = value);
+	dialogs.showEdit.subscribe(value => showEditDialog = value);
+	dialogs.showDelete.subscribe(value => showDeleteDialog = value);
 
 	// Form state
 	let formData = {
@@ -67,30 +133,8 @@
 	};
 
 	onMount(async () => {
-		await loadTags();
+		await crudLoader.loadItems();
 	});
-
-	async function loadTags() {
-		loading = true;
-		error = '';
-		try {
-			const params = new URLSearchParams();
-			if (searchTerm) params.append('search', searchTerm);
-			if (categoryFilter !== 'all') params.append('category', categoryFilter);
-
-			const response = await fetch(`/api/admin/tags?${params.toString()}`);
-			if (!response.ok) {
-				await handleApiErrorResponse(response);
-			}
-			const result = await response.json();
-			tags = Array.isArray(result.data) ? result.data : (Array.isArray(result) ? result : []);
-		} catch (err) {
-			logger.error('Error loading tags:', err);
-			error = handleError(err, 'Failed to load tags');
-		} finally {
-			loading = false;
-		}
-	}
 
 	function resetForm() {
 		formData = {
@@ -104,167 +148,51 @@
 
 	function openCreateDialog() {
 		resetForm();
-		showCreateDialog = true;
-		error = '';
+		dialogs.openCreate();
+		crudOps.error.set('');
 	}
 
 	function openEditDialog(tag: Tag) {
 		editingTag = tag;
-		// Convert string to MultiLangText if needed (backward compatibility)
-		const nameField =
-			typeof tag.name === 'string' ? { en: tag.name, he: '' } : tag.name || { en: '', he: '' };
-		const descriptionField =
-			typeof tag.description === 'string'
-				? { en: tag.description, he: '' }
-				: tag.description || { en: '', he: '' };
 		formData = {
-			name: nameField,
-			description: descriptionField,
+			name: normalizeMultiLangText(tag.name),
+			description: normalizeMultiLangText(tag.description),
 			color: tag.color || '#3B82F6',
 			category: tag.category || 'general',
 			isActive: tag.isActive !== undefined ? tag.isActive : true
 		};
-		showEditDialog = true;
-		error = '';
+		dialogs.openEdit();
+		crudOps.error.set('');
 	}
 
 	function openDeleteDialog(tag: Tag) {
 		tagToDelete = tag;
-		showDeleteDialog = true;
+		dialogs.openDelete();
+		crudOps.error.set('');
 	}
 
 	async function handleCreate() {
-		saving = true;
-		error = '';
-		message = '';
-
-		try {
-			logger.debug('Creating tag with data:', formData);
-			const response = await fetch('/api/admin/tags', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({
-					name: MultiLangUtils.clean(formData.name),
-					description: MultiLangUtils.clean(formData.description),
-					color: formData.color,
-					category: formData.category,
-					isActive: formData.isActive
-				})
-			});
-
-			if (!response.ok) {
-				await handleApiErrorResponse(response);
-			}
-
-			const responseData = await response.json();
-			logger.debug('Response status:', response.status, 'Response data:', responseData);
-
-			if (!responseData) {
-				throw new Error('No data returned from server');
-			}
-
-			// Handle both direct tag object and wrapped response
-			const newTag = responseData.data || responseData;
-			tags = [...tags, newTag];
-			message = 'Tag created successfully!';
-			showCreateDialog = false;
-			resetForm();
-
-			setTimeout(() => {
-				message = '';
-			}, 3000);
-		} catch (err) {
-			logger.error('Error creating tag:', err);
-			error = handleError(err, 'Failed to create tag');
-		} finally {
-			saving = false;
+		const newTag = await crudOps.create(formData);
+		if (newTag) {
+			// Success handled by onCreateSuccess callback
 		}
 	}
 
 	async function handleEdit() {
 		if (!editingTag) return;
-
-		saving = true;
-		error = '';
-		message = '';
-
-		try {
-			logger.debug('Updating tag:', editingTag._id, 'with data:', formData);
-			const response = await fetch(`/api/admin/tags/${editingTag._id}`, {
-				method: 'PUT',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({
-					name: MultiLangUtils.clean(formData.name),
-					description: MultiLangUtils.clean(formData.description),
-					color: formData.color,
-					category: formData.category,
-					isActive: formData.isActive
-				})
-			});
-
-			if (!response.ok) {
-				await handleApiErrorResponse(response);
-			}
-
-			const responseData = await response.json();
-			logger.debug('Response status:', response.status, 'Response data:', responseData);
-
-			if (!responseData) {
-				throw new Error('No data returned from server');
-			}
-
-			// Handle both direct tag object and wrapped response
-			const updatedTag = responseData.data || responseData;
-			tags = tags.map((t) => (t._id === editingTag._id ? updatedTag : t));
-			message = 'Tag updated successfully!';
-			showEditDialog = false;
-			editingTag = null;
-			resetForm();
-
-			setTimeout(() => {
-				message = '';
-			}, 3000);
-		} catch (err) {
-			logger.error('Error updating tag:', err);
-			error = handleError(err, 'Failed to update tag');
-		} finally {
-			saving = false;
+		const currentEditingTag = editingTag;
+		const updatedTag = await crudOps.update(currentEditingTag._id, formData);
+		if (updatedTag) {
+			// Success handled by onUpdateSuccess callback
 		}
 	}
 
 	async function handleDelete() {
 		if (!tagToDelete) return;
-
-		deleting = true;
-		error = '';
-		message = '';
-
-		try {
-			const response = await fetch(`/api/admin/tags/${tagToDelete._id}`, {
-				method: 'DELETE'
-			});
-
-			if (!response.ok) {
-				await handleApiErrorResponse(response);
-			}
-
-			tags = tags.filter((t) => t._id !== tagToDelete._id);
-			message = 'Tag deleted successfully!';
-			showDeleteDialog = false;
-			tagToDelete = null;
-
-			setTimeout(() => {
-				message = '';
-			}, 3000);
-		} catch (err) {
-			logger.error('Error deleting tag:', err);
-			error = handleError(err, 'Failed to delete tag');
-		} finally {
-			deleting = false;
+		const currentTagToDelete = tagToDelete;
+		const success = await crudOps.remove(currentTagToDelete._id);
+		if (success) {
+			// Success handled by onDeleteSuccess callback
 		}
 	}
 
@@ -320,7 +248,7 @@
 							type="text"
 							placeholder="Search tags..."
 							bind:value={searchTerm}
-							on:input={() => loadTags()}
+							on:input={() => crudLoader.loadItems()}
 							class="pl-10 pr-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-64"
 						/>
 						<svg
@@ -340,7 +268,7 @@
 
 					<select
 						bind:value={categoryFilter}
-						on:change={() => loadTags()}
+						on:change={() => crudLoader.loadItems()}
 						class="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 					>
 						<option value="all">All Categories</option>
@@ -544,7 +472,7 @@
 					<button
 						type="button"
 						on:click={() => {
-							showCreateDialog = false;
+							dialogs.closeAll();
 							resetForm();
 						}}
 						class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm font-medium"
@@ -667,7 +595,7 @@
 					<button
 						type="button"
 						on:click={() => {
-							showEditDialog = false;
+							dialogs.closeAll();
 							editingTag = null;
 							resetForm();
 						}}
@@ -721,7 +649,7 @@
 					<button
 						type="button"
 						on:click={() => {
-							showDeleteDialog = false;
+							dialogs.closeAll();
 							tagToDelete = null;
 						}}
 						class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm font-medium"
@@ -731,10 +659,10 @@
 					<button
 						type="button"
 						on:click={handleDelete}
-						disabled={deleting}
+						disabled={saving}
 						class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 text-sm font-medium"
 					>
-						{#if deleting}
+						{#if saving}
 							Deleting...
 						{:else}
 							Delete Tag
