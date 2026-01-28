@@ -8,6 +8,10 @@
 	import { AVAILABLE_ICON_NAMES } from '$lib/icons';
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
+	import { useCrudLoader } from '$lib/composables/useCrudLoader';
+	import { useCrudOperations } from '$lib/composables/useCrudOperations';
+	import { useDialogManager } from '$lib/composables/useDialogManager';
+	import { normalizeMultiLangText } from '$lib/utils/multiLangHelpers';
 	import type { PageData } from './$types';
 	import type { PageModuleData } from '$lib/types/page-builder';
 
@@ -78,10 +82,57 @@
 		{ value: 'cta', label: 'Call To Action' }
 	];
 
+	// Use CRUD composables
+	const crudLoader = useCrudLoader<Page>('/api/admin/pages', {
+		searchParam: 'search',
+		searchValue: () => searchTerm,
+		filterParams: {
+			category: () => categoryFilter,
+			published: () => publishedFilter
+		}
+	});
+	const crudOps = useCrudOperations<Page>('/api/admin/pages', {
+		createSuccessMessage: 'Page created successfully!',
+		updateSuccessMessage: 'Page updated successfully!',
+		deleteSuccessMessage: 'Page deleted successfully!',
+		transformPayload: (data: any) => ({
+			...data,
+			slug: data.alias,
+			layout: { zones: parseZones(data.layoutZones) }
+		}),
+		onCreateSuccess: (newPage) => {
+			crudLoader.items.update(items => [...items, newPage]);
+			dialogs.closeAll();
+			resetForm();
+		},
+		onUpdateSuccess: (updatedPage) => {
+			const currentEditingPage = editingPage;
+			if (currentEditingPage) {
+				crudLoader.items.update(items => 
+					items.map(p => p._id === currentEditingPage._id ? updatedPage : p)
+				);
+			}
+			dialogs.closeAll();
+			editingPage = null;
+			resetForm();
+		},
+		onDeleteSuccess: () => {
+			const currentPageToDelete = pageToDelete;
+			if (currentPageToDelete) {
+				crudLoader.items.update(items => 
+					items.filter(p => p._id !== currentPageToDelete._id)
+				);
+			}
+			dialogs.closeAll();
+			pageToDelete = null;
+		}
+	});
+	const dialogs = useDialogManager();
+
+	// Reactive stores from composables
 	let pages: Page[] = [];
-	let loading = true;
+	let loading = false;
 	let saving = false;
-	let deleting = false;
 	let message = '';
 	let error = '';
 	let searchTerm = '';
@@ -92,6 +143,21 @@
 	let showDeleteDialog = false;
 	let editingPage: Page | null = null;
 	let pageToDelete: Page | null = null;
+
+	// Subscribe to stores
+	crudLoader.items.subscribe(value => pages = value);
+	crudLoader.loading.subscribe(value => loading = value);
+	crudLoader.error.subscribe(value => {
+		if (value) error = value;
+	});
+	crudOps.saving.subscribe(value => saving = value);
+	crudOps.error.subscribe(value => {
+		if (value) error = value;
+	});
+	crudOps.message.subscribe(value => message = value);
+	dialogs.showCreate.subscribe(value => showCreateDialog = value);
+	dialogs.showEdit.subscribe(value => showEditDialog = value);
+	dialogs.showDelete.subscribe(value => showDeleteDialog = value);
 	let modules: PageModule[] = [];
 	let modulesLoading = false;
 	let modulesError = '';
@@ -115,8 +181,7 @@
 	};
 
 	onMount(async () => {
-		await loadPages();
-		await loadAlbums();
+		await Promise.all([crudLoader.loadItems(), loadAlbums()]);
 	});
 
 	async function loadAlbums() {
@@ -191,28 +256,6 @@
 		return name.en || name.he || album.alias || '(No name)';
 	}
 
-	async function loadPages() {
-		loading = true;
-		error = '';
-		try {
-			const params = new URLSearchParams();
-			if (categoryFilter !== 'all') params.append('category', categoryFilter);
-			if (publishedFilter !== 'all') params.append('published', publishedFilter);
-			if (searchTerm) params.append('search', searchTerm);
-
-			const response = await fetch(`/api/admin/pages?${params.toString()}`);
-			if (!response.ok) {
-				await handleApiErrorResponse(response);
-			}
-			const result = await response.json();
-			pages = Array.isArray(result.data) ? result.data : (Array.isArray(result) ? result : []);
-		} catch (err) {
-			logger.error('Error loading pages:', err);
-			error = handleError(err, 'Failed to load pages');
-		} finally {
-			loading = false;
-		}
-	}
 
 	function resetForm() {
 		formData = {
@@ -228,8 +271,8 @@
 
 	function openCreateDialog() {
 		resetForm();
-		showCreateDialog = true;
-		error = '';
+		dialogs.openCreate();
+		crudOps.error.set('');
 		modules = [];
 		modulesError = '';
 	}
@@ -251,15 +294,16 @@
 				? page.layout.zones.join(', ')
 				: 'main'
 		};
-		showEditDialog = true;
-		error = '';
+		dialogs.openEdit();
+		crudOps.error.set('');
 		loadModules(page._id);
 		resetModuleForm();
 	}
 
 	function openDeleteDialog(page: Page) {
 		pageToDelete = page;
-		showDeleteDialog = true;
+		dialogs.openDelete();
+		crudOps.error.set('');
 	}
 
 	function getPageTitle(page: Page): string {
@@ -848,130 +892,17 @@
 	}
 
 	async function handleCreate() {
-		saving = true;
-		error = '';
-		message = '';
-
-		try {
-			const response = await fetch('/api/admin/pages', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({
-					...formData,
-					slug: formData.alias,
-					layout: { zones: parseZones(formData.layoutZones) }
-				})
-			});
-
-			if (!response.ok) {
-				await handleApiErrorResponse(response);
-			}
-
-			const responseData = await response.json();
-
-			if (!responseData) {
-				throw new Error('No data returned from server');
-			}
-
-			const newPage = responseData.data || responseData;
-			pages = [...pages, newPage];
-			message = 'Page created successfully!';
-			showCreateDialog = false;
-			resetForm();
-
-			setTimeout(() => {
-				message = '';
-			}, 3000);
-		} catch (err) {
-			logger.error('Error creating page:', err);
-			error = handleError(err, 'Failed to create page');
-		} finally {
-			saving = false;
-		}
+		await crudOps.create(formData);
 	}
 
 	async function handleEdit() {
 		if (!editingPage) return;
-
-		const editingId = editingPage._id;
-		saving = true;
-		error = '';
-		message = '';
-
-		try {
-			const response = await fetch(`/api/admin/pages/${editingPage._id}`, {
-				method: 'PUT',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({
-					...formData,
-					slug: formData.alias,
-					layout: { zones: parseZones(formData.layoutZones) }
-				})
-			});
-
-			if (!response.ok) {
-				await handleApiErrorResponse(response);
-			}
-
-			const responseData = await response.json();
-
-			if (!responseData) {
-				throw new Error('No data returned from server');
-			}
-
-			const updatedPage = responseData.data || responseData;
-			pages = pages.map((p) => (p._id === editingId ? updatedPage : p));
-			message = 'Page updated successfully!';
-			showEditDialog = false;
-			editingPage = null;
-			resetForm();
-
-			setTimeout(() => {
-				message = '';
-			}, 3000);
-		} catch (err) {
-			logger.error('Error updating page:', err);
-			error = handleError(err, 'Failed to update page');
-		} finally {
-			saving = false;
-		}
+		await crudOps.update(editingPage._id, formData);
 	}
 
 	async function handleDelete() {
 		if (!pageToDelete) return;
-
-		const deleteId = pageToDelete._id;
-		deleting = true;
-		error = '';
-		message = '';
-
-		try {
-			const response = await fetch(`/api/admin/pages/${pageToDelete._id}`, {
-				method: 'DELETE'
-			});
-
-			if (!response.ok) {
-				await handleApiErrorResponse(response);
-			}
-
-			pages = pages.filter((p) => p._id !== deleteId);
-			message = 'Page deleted successfully!';
-			showDeleteDialog = false;
-			pageToDelete = null;
-
-			setTimeout(() => {
-				message = '';
-			}, 3000);
-		} catch (err) {
-			logger.error('Error deleting page:', err);
-			error = handleError(err, 'Failed to delete page');
-		} finally {
-			deleting = false;
-		}
+		await crudOps.remove(pageToDelete._id);
 	}
 </script>
 
@@ -1008,7 +939,7 @@
 							type="text"
 							placeholder="Search pages..."
 							bind:value={searchTerm}
-							on:input={() => loadPages()}
+							on:input={() => crudLoader.loadItems()}
 							class="pl-10 pr-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-64"
 						/>
 						<svg
@@ -1028,7 +959,7 @@
 
 					<select
 						bind:value={categoryFilter}
-						on:change={() => loadPages()}
+						on:change={() => crudLoader.loadItems()}
 						class="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 					>
 						<option value="all">All Categories</option>
@@ -1039,7 +970,7 @@
 
 					<select
 						bind:value={publishedFilter}
-						on:change={() => loadPages()}
+						on:change={() => crudLoader.loadItems()}
 						class="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 					>
 						<option value="all">All Status</option>
@@ -2098,10 +2029,10 @@
 					<button
 						type="button"
 						on:click={handleDelete}
-						disabled={deleting}
+						disabled={saving}
 						class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 text-sm font-medium"
 					>
-						{#if deleting}
+						{#if saving}
 							Deleting...
 						{:else}
 							Delete Page
