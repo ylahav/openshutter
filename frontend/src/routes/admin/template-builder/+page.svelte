@@ -1004,7 +1004,7 @@
 				throw new Error(assignResult.error || 'Failed to assign module to page');
 			}
 		} catch (err) {
-			console.error('Error saving module to page:', err);
+			logger.error('Error saving module to page:', err);
 			error = err instanceof Error ? err.message : 'Failed to save module to page';
 		} finally {
 			saving = false;

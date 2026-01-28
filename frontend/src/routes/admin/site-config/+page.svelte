@@ -61,7 +61,7 @@
 			// Initialize menu items from config
 			menuItems = data.template?.headerConfig?.menu || [];
 		} catch (error) {
-			console.error('Error loading site config:', error);
+			logger.error('Error loading site config:', error);
 			message = 'Failed to load configuration';
 		} finally {
 			loading = false;

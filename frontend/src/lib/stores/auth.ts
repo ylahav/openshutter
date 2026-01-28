@@ -24,7 +24,7 @@ export async function loadSession() {
 		const data = await res.json();
 		auth.set(data);
 	} catch (error) {
-		console.error('Failed to load session:', error);
+		logger.error('Failed to load session:', error);
 		auth.set({ authenticated: false });
 	}
 }

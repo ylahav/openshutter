@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { logger } from '$lib/utils/logger';
 
 	let loading = true;
 	let showLandingPage = false;
@@ -28,7 +29,7 @@
 				window.location.href = '/';
 			}
 		} catch (err) {
-			console.error('Failed to check setup status:', err);
+			logger.error('Failed to check setup status:', err);
 			error = 'Failed to check setup status';
 		} finally {
 			loading = false;
@@ -121,7 +122,7 @@
 			// Success - redirect to login
 			window.location.href = '/login?redirect=/admin';
 		} catch (err) {
-			console.error('Setup error:', err);
+			logger.error('Setup error:', err);
 			error = 'An error occurred during setup. Please try again.';
 			submitting = false;
 		}

@@ -1,5 +1,6 @@
 import type { PageLoad } from './$types';
 import type { TemplateAlbum } from '$types';
+import { logger } from '$lib/utils/logger';
 
 export const load: PageLoad = async ({ fetch, parent }) => {
   // Get data from parent (server load)
@@ -11,7 +12,7 @@ export const load: PageLoad = async ({ fetch, parent }) => {
     const res = await fetch('/api/albums?parentId=root');
 
     if (!res.ok) {
-      console.error('Failed to fetch root albums:', res.status, res.statusText);
+      logger.error('Failed to fetch root albums:', res.status, res.statusText);
       return { rootAlbums: [], albumsError: 'Failed to fetch albums' };
     }
 
@@ -27,7 +28,7 @@ export const load: PageLoad = async ({ fetch, parent }) => {
     console.error('Unexpected albums response format:', albums);
     return { rootAlbums: [], albumsError: 'Failed to fetch albums' };
   } catch (err) {
-    console.error('Error fetching root albums:', err);
+    logger.error('Error fetching root albums:', err);
     return { rootAlbums: [], albumsError: 'Failed to fetch albums' };
   }
 };

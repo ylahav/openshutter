@@ -317,7 +317,7 @@
 					const missingAfter = countMissingTranslations();
 					const totalKeys = getAllKeys(translations).length;
 					
-					console.log(`[Translations] After reload: ${totalKeys} total keys, ${missingAfter} missing`);
+					logger.debug(`[Translations] After reload: ${totalKeys} total keys, ${missingAfter} missing`);
 					
 					if (missingAfter < totalMissing) {
 						message = `Success! Translated ${translatedCount} keys. ${missingAfter} keys still missing.`;
@@ -328,11 +328,11 @@
 						if (sampleValue && typeof sampleValue === 'string' && sampleValue.trim() !== '') {
 							message = `Translations loaded successfully! Check the editor to verify.`;
 						} else {
-							console.warn('[Translations] Translations reloaded but appear empty. File may not have been saved correctly.');
+							logger.warn('[Translations] Translations reloaded but appear empty. File may not have been saved correctly.');
 							message = `Translation completed but reload failed. Please refresh the page manually.`;
 						}
 					} else {
-						console.warn('[Translations] No translations loaded after reload. File may not exist or be empty.');
+						logger.warn('[Translations] No translations loaded after reload. File may not exist or be empty.');
 						message = `Translation completed but failed to reload. Please refresh the page manually.`;
 					}
 				}
@@ -346,7 +346,7 @@
 				throw new Error(result.error || 'Failed to auto-translate');
 			}
 		} catch (err) {
-			console.error('Error auto-translating:', err);
+			logger.error('Error auto-translating:', err);
 			error = err instanceof Error ? err.message : 'Failed to auto-translate';
 			translationProgress = { current: 0, total: 0, currentKey: '' };
 		} finally {
@@ -388,7 +388,7 @@
 				throw new Error(result.error || 'Failed to save translations');
 			}
 		} catch (err) {
-			console.error('Error saving translations:', err);
+			logger.error('Error saving translations:', err);
 			error = err instanceof Error ? err.message : 'Failed to save translations';
 		} finally {
 			saving = false;
@@ -436,7 +436,7 @@
 				throw new Error(result.error || 'Failed to create language');
 			}
 		} catch (err) {
-			console.error('Error creating language:', err);
+			logger.error('Error creating language:', err);
 			error = err instanceof Error ? err.message : 'Failed to create language';
 		} finally {
 			saving = false;
@@ -490,7 +490,7 @@
 				throw new Error(result.error || 'Failed to delete language');
 			}
 		} catch (err) {
-			console.error('Error deleting language:', err);
+			logger.error('Error deleting language:', err);
 			error = err instanceof Error ? err.message : 'Failed to delete language';
 		} finally {
 			deleting = false;
@@ -584,7 +584,7 @@
 			return [];
 		}
 		
-		console.log('[Translations] getCategories called with:', {
+		logger.debug('[Translations] getCategories called with:', {
 			keysCount: keys.length,
 			keys: keys.slice(0, 5),
 			translationsType: typeof translations,
@@ -600,7 +600,7 @@
 			const isArray = Array.isArray(value);
 			const isObject = valueType === 'object' && !isNull && !isArray;
 			
-			console.log(`[Translations] Checking key "${key}":`, {
+			logger.debug(`[Translations] Checking key "${key}":`, {
 				valueType,
 				isNull,
 				isUndefined,
@@ -614,7 +614,7 @@
 			}
 		}
 		
-		console.log('[Translations] getCategories result:', {
+		logger.debug('[Translations] getCategories result:', {
 			categoriesCount: categories.length,
 			categories: categories
 		});

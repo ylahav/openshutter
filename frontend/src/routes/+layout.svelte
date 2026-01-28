@@ -9,6 +9,7 @@
 	import BodyTemplateWrapper from '$lib/components/BodyTemplateWrapper.svelte';
 	import ThemeProvider from '$lib/components/ThemeProvider.svelte';
 	import TokenRenewalNotification from '$lib/components/TokenRenewalNotification.svelte';
+	import { logger } from '$lib/utils/logger';
 
 	// Initialize site config and auth on mount (skip on login page)
 	onMount(() => {
@@ -16,7 +17,7 @@
 		if ($page.url.pathname !== '/login') {
 			siteConfig.load().catch((err) => {
 				// Silently fail - site config is not critical for login page
-				console.warn('Failed to load site config:', err);
+				logger.warn('Failed to load site config:', err);
 			});
 		}
 		loadSession();
@@ -27,7 +28,7 @@
 				for (const registration of registrations) {
 					registration.unregister().then((success) => {
 						if (success) {
-							console.log('Service worker unregistered');
+							logger.debug('Service worker unregistered');
 						}
 					});
 				}

@@ -3,6 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { auth, loadSession } from '$lib/stores/auth';
+	import { logger } from '$lib/utils/logger';
 
 	let email = '';
 	let password = '';
@@ -70,7 +71,7 @@
 			window.location.href = redirectPath;
 		} catch (err) {
 			error = 'Login failed. Please try again.';
-			console.error('Login error:', err);
+			logger.error('Login error:', err);
 		} finally {
 			loading = false;
 		}
