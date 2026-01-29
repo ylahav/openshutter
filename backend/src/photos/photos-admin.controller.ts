@@ -10,6 +10,7 @@ import {
 	BadRequestException,
 	NotFoundException,
 	Logger,
+	InternalServerErrorException,
 } from '@nestjs/common';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { connectDB } from '../config/db';
@@ -30,7 +31,7 @@ export class PhotosAdminController {
 		try {
 			await connectDB();
 			const db = mongoose.connection.db;
-			if (!db) throw new Error('Database connection not established');
+			if (!db) throw new InternalServerErrorException('Database connection not established');
 
 			let objectId: Types.ObjectId;
 			try {
@@ -87,7 +88,7 @@ export class PhotosAdminController {
 			if (error instanceof NotFoundException || error instanceof BadRequestException) {
 				throw error;
 			}
-			throw new Error(
+			throw new InternalServerErrorException(
 				`Failed to get photo: ${error instanceof Error ? error.message : 'Unknown error'}`
 			);
 		}
@@ -102,7 +103,7 @@ export class PhotosAdminController {
 		try {
 			await connectDB();
 			const db = mongoose.connection.db;
-			if (!db) throw new Error('Database connection not established');
+			if (!db) throw new InternalServerErrorException('Database connection not established');
 
 			let objectId: Types.ObjectId;
 			try {
@@ -255,7 +256,7 @@ export class PhotosAdminController {
 			if (error instanceof NotFoundException || error instanceof BadRequestException) {
 				throw error;
 			}
-			throw new Error(
+			throw new InternalServerErrorException(
 				`Failed to update photo: ${error instanceof Error ? error.message : 'Unknown error'}`
 			);
 		}
@@ -270,7 +271,7 @@ export class PhotosAdminController {
 		try {
 			await connectDB();
 			const db = mongoose.connection.db;
-			if (!db) throw new Error('Database connection not established');
+			if (!db) throw new InternalServerErrorException('Database connection not established');
 
 			let objectId: Types.ObjectId;
 			try {
@@ -391,7 +392,7 @@ export class PhotosAdminController {
 			if (error instanceof NotFoundException || error instanceof BadRequestException) {
 				throw error;
 			}
-			throw new Error(
+			throw new InternalServerErrorException(
 				`Failed to delete photo: ${error instanceof Error ? error.message : 'Unknown error'}`
 			);
 		}
@@ -406,7 +407,7 @@ export class PhotosAdminController {
 		try {
 			await connectDB();
 			const db = mongoose.connection.db;
-			if (!db) throw new Error('Database connection not established');
+			if (!db) throw new InternalServerErrorException('Database connection not established');
 
 			const { photoIds, updates } = body;
 
@@ -462,7 +463,7 @@ export class PhotosAdminController {
 			if (error instanceof BadRequestException) {
 				throw error;
 			}
-			throw new Error(
+			throw new InternalServerErrorException(
 				`Failed to bulk update photos: ${error instanceof Error ? error.message : 'Unknown error'}`
 			);
 		}
@@ -477,7 +478,7 @@ export class PhotosAdminController {
 		try {
 			await connectDB();
 			const db = mongoose.connection.db;
-			if (!db) throw new Error('Database connection not established');
+			if (!db) throw new InternalServerErrorException('Database connection not established');
 
 			let objectId: Types.ObjectId;
 			try {
@@ -505,7 +506,7 @@ export class PhotosAdminController {
 			const fileBuffer = await storageService.getFileBuffer(filePath);
 
 			if (!fileBuffer) {
-				throw new Error('Failed to download original image from storage');
+				throw new InternalServerErrorException('Failed to download original image from storage');
 			}
 
 			// Get album path for thumbnail folder structure
@@ -588,7 +589,7 @@ export class PhotosAdminController {
 			);
 
 			if (updateResult.modifiedCount === 0) {
-				throw new Error('Failed to update photo with new thumbnails');
+				throw new InternalServerErrorException('Failed to update photo with new thumbnails');
 			}
 
 			// Fetch updated photo
@@ -644,10 +645,9 @@ export class PhotosAdminController {
 			if (error instanceof NotFoundException || error instanceof BadRequestException) {
 				throw error;
 			}
-			throw new Error(
+			throw new InternalServerErrorException(
 				`Failed to regenerate thumbnails: ${error instanceof Error ? error.message : 'Unknown error'}`
 			);
 		}
 	}
 }
-

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, BadRequestException, NotFoundException, Logger, InternalServerErrorException } from '@nestjs/common';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { connectDB } from '../config/db';
 import mongoose, { Types } from 'mongoose';
@@ -21,7 +21,7 @@ export class PagesController {
     try {
       await connectDB();
       const db = mongoose.connection.db;
-      if (!db) throw new Error('Database connection not established');
+      if (!db) throw new InternalServerErrorException('Database connection not established');
       const collection = db.collection('pages');
 
       // Build query
@@ -74,7 +74,7 @@ export class PagesController {
     try {
       await connectDB();
       const db = mongoose.connection.db;
-      if (!db) throw new Error('Database connection not established');
+      if (!db) throw new InternalServerErrorException('Database connection not established');
       const collection = db.collection('pages');
 
       const page = await collection.findOne({ _id: new Types.ObjectId(id) });
@@ -110,7 +110,7 @@ export class PagesController {
     try {
       await connectDB();
       const db = mongoose.connection.db;
-      if (!db) throw new Error('Database connection not established');
+      if (!db) throw new InternalServerErrorException('Database connection not established');
       const collection = db.collection('pages');
 
       const { title, subtitle, alias, slug, leadingImage, introText, content, category, isPublished, layout } = body;
@@ -274,7 +274,7 @@ export class PagesController {
     try {
       await connectDB();
       const db = mongoose.connection.db;
-      if (!db) throw new Error('Database connection not established');
+      if (!db) throw new InternalServerErrorException('Database connection not established');
       const collection = db.collection('pages');
 
       const page = await collection.findOne({ _id: new Types.ObjectId(id) });
@@ -441,7 +441,7 @@ export class PagesController {
     try {
       await connectDB();
       const db = mongoose.connection.db;
-      if (!db) throw new Error('Database connection not established');
+      if (!db) throw new InternalServerErrorException('Database connection not established');
       const pagesCollection = db.collection('pages');
       const modulesCollection = db.collection('page_modules');
 
@@ -482,7 +482,7 @@ export class PagesController {
     try {
       await connectDB();
       const db = mongoose.connection.db;
-      if (!db) throw new Error('Database connection not established');
+      if (!db) throw new InternalServerErrorException('Database connection not established');
       const pagesCollection = db.collection('pages');
       const modulesCollection = db.collection('page_modules');
 
@@ -557,7 +557,7 @@ export class PagesController {
     try {
       await connectDB();
       const db = mongoose.connection.db;
-      if (!db) throw new Error('Database connection not established');
+      if (!db) throw new InternalServerErrorException('Database connection not established');
       const pagesCollection = db.collection('pages');
       const modulesCollection = db.collection('page_modules');
 
@@ -626,7 +626,7 @@ export class PagesController {
     try {
       await connectDB();
       const db = mongoose.connection.db;
-      if (!db) throw new Error('Database connection not established');
+      if (!db) throw new InternalServerErrorException('Database connection not established');
       const pagesCollection = db.collection('pages');
       const modulesCollection = db.collection('page_modules');
 
@@ -662,7 +662,7 @@ export class PagesController {
     try {
       await connectDB();
       const db = mongoose.connection.db;
-      if (!db) throw new Error('Database connection not established');
+      if (!db) throw new InternalServerErrorException('Database connection not established');
       const collection = db.collection('pages');
 
       const page = await collection.findOne({ _id: new Types.ObjectId(id) });
@@ -684,4 +684,3 @@ export class PagesController {
     }
   }
 }
-

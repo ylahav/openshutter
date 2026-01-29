@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, BadRequestException, NotFoundException, Logger, InternalServerErrorException } from '@nestjs/common';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { connectDB } from '../config/db';
 import mongoose, { Types } from 'mongoose';
@@ -22,7 +22,7 @@ export class BlogCategoriesController {
     try {
       await connectDB();
       const db = mongoose.connection.db;
-      if (!db) throw new Error('Database connection not established');
+      if (!db) throw new InternalServerErrorException('Database connection not established');
       const collection = db.collection('blogcategories');
 
       // Build query
@@ -83,7 +83,7 @@ export class BlogCategoriesController {
     try {
       await connectDB();
       const db = mongoose.connection.db;
-      if (!db) throw new Error('Database connection not established');
+      if (!db) throw new InternalServerErrorException('Database connection not established');
       const collection = db.collection('blogcategories');
 
       const category = await collection.findOne({ _id: new Types.ObjectId(id) });
@@ -117,7 +117,7 @@ export class BlogCategoriesController {
     try {
       await connectDB();
       const db = mongoose.connection.db;
-      if (!db) throw new Error('Database connection not established');
+      if (!db) throw new InternalServerErrorException('Database connection not established');
       const collection = db.collection('blogcategories');
 
       const { title, description, leadingImage, isActive, sortOrder, alias } = body;
@@ -229,7 +229,7 @@ export class BlogCategoriesController {
     try {
       await connectDB();
       const db = mongoose.connection.db;
-      if (!db) throw new Error('Database connection not established');
+      if (!db) throw new InternalServerErrorException('Database connection not established');
       const collection = db.collection('blogcategories');
 
       const category = await collection.findOne({ _id: new Types.ObjectId(id) });
@@ -332,7 +332,7 @@ export class BlogCategoriesController {
     try {
       await connectDB();
       const db = mongoose.connection.db;
-      if (!db) throw new Error('Database connection not established');
+      if (!db) throw new InternalServerErrorException('Database connection not established');
       const collection = db.collection('blogcategories');
 
       const category = await collection.findOne({ _id: new Types.ObjectId(id) });
@@ -366,4 +366,3 @@ export class BlogCategoriesController {
     }
   }
 }
-

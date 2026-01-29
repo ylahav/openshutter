@@ -6,6 +6,7 @@ import {
 	BadRequestException,
 	NotFoundException,
 	Logger,
+	InternalServerErrorException,
 } from '@nestjs/common';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { FaceDetectionService } from './face-detection.service';
@@ -40,7 +41,7 @@ export class FaceDetectionController {
 
 			await connectDB();
 			const db = mongoose.connection.db;
-			if (!db) throw new Error('Database connection not established');
+			if (!db) throw new InternalServerErrorException('Database connection not established');
 
 			let objectId: Types.ObjectId;
 			try {
@@ -120,7 +121,7 @@ export class FaceDetectionController {
 			if (error instanceof BadRequestException || error instanceof NotFoundException) {
 				throw error;
 			}
-			throw new Error(
+			throw new InternalServerErrorException(
 				`Failed to detect faces: ${error instanceof Error ? error.message : 'Unknown error'}`
 			);
 		}
@@ -141,7 +142,7 @@ export class FaceDetectionController {
 
 			await connectDB();
 			const db = mongoose.connection.db;
-			if (!db) throw new Error('Database connection not established');
+			if (!db) throw new InternalServerErrorException('Database connection not established');
 
 			let objectId: Types.ObjectId;
 			try {
@@ -224,7 +225,7 @@ export class FaceDetectionController {
 			if (error instanceof BadRequestException || error instanceof NotFoundException) {
 				throw error;
 			}
-			throw new Error(
+			throw new InternalServerErrorException(
 				`Failed to match faces: ${error instanceof Error ? error.message : 'Unknown error'}`
 			);
 		}
@@ -251,7 +252,7 @@ export class FaceDetectionController {
 
 			await connectDB();
 			const db = mongoose.connection.db;
-			if (!db) throw new Error('Database connection not established');
+			if (!db) throw new InternalServerErrorException('Database connection not established');
 
 			let objectId: Types.ObjectId;
 			try {
@@ -337,7 +338,7 @@ export class FaceDetectionController {
 			if (error instanceof BadRequestException || error instanceof NotFoundException) {
 				throw error;
 			}
-			throw new Error(
+			throw new InternalServerErrorException(
 				`Failed to assign face: ${error instanceof Error ? error.message : 'Unknown error'}`
 			);
 		}

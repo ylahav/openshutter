@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards, Logger } from '@nestjs/common';
+import { Controller, Get, UseGuards, Logger, InternalServerErrorException } from '@nestjs/common';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { connectDB } from '../config/db';
 import mongoose from 'mongoose';
@@ -16,7 +16,7 @@ export class AnalyticsController {
     try {
       await connectDB();
       const db = mongoose.connection.db;
-      if (!db) throw new Error('Database connection not established');
+      if (!db) throw new InternalServerErrorException('Database connection not established');
 
       // Get counts for all collections
       const [
@@ -191,7 +191,7 @@ export class AnalyticsController {
       };
     } catch (error) {
       this.logger.error(`Error fetching analytics: ${error instanceof Error ? error.message : String(error)}`);
-      throw new Error(
+      throw new InternalServerErrorException(
         `Failed to fetch analytics: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
     }

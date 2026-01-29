@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, BadRequestException, NotFoundException, Logger, InternalServerErrorException } from '@nestjs/common';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { connectDB } from '../config/db';
 import mongoose, { Types } from 'mongoose';
@@ -22,7 +22,7 @@ export class TagsController {
     try {
       await connectDB();
       const db = mongoose.connection.db;
-      if (!db) throw new Error('Database connection not established');
+      if (!db) throw new InternalServerErrorException('Database connection not established');
       const collection = db.collection('tags');
 
       // Build query
@@ -89,7 +89,7 @@ export class TagsController {
     try {
       await connectDB();
       const db = mongoose.connection.db;
-      if (!db) throw new Error('Database connection not established');
+      if (!db) throw new InternalServerErrorException('Database connection not established');
       const collection = db.collection('tags');
 
       const tag = await collection.findOne({ _id: new Types.ObjectId(id) });
@@ -124,7 +124,7 @@ export class TagsController {
     try {
       await connectDB();
       const db = mongoose.connection.db;
-      if (!db) throw new Error('Database connection not established');
+      if (!db) throw new InternalServerErrorException('Database connection not established');
       const collection = db.collection('tags');
 
       const { name, description, color, category } = body;
@@ -242,7 +242,7 @@ export class TagsController {
     try {
       await connectDB();
       const db = mongoose.connection.db;
-      if (!db) throw new Error('Database connection not established');
+      if (!db) throw new InternalServerErrorException('Database connection not established');
       const collection = db.collection('tags');
 
       const tag = await collection.findOne({ _id: new Types.ObjectId(id) });
@@ -362,7 +362,7 @@ export class TagsController {
     try {
       await connectDB();
       const db = mongoose.connection.db;
-      if (!db) throw new Error('Database connection not established');
+      if (!db) throw new InternalServerErrorException('Database connection not established');
       const collection = db.collection('tags');
 
       const tag = await collection.findOne({ _id: new Types.ObjectId(id) });

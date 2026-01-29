@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Param, Query, Body, UseGuards, BadRequestException, NotFoundException, Request, Logger } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Param, Query, Body, UseGuards, BadRequestException, NotFoundException, Request, Logger, InternalServerErrorException } from '@nestjs/common';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { AlbumsService } from './albums.service';
 import { connectDB } from '../config/db';
@@ -21,7 +21,7 @@ export class AlbumsAdminController {
 		try {
 			await connectDB();
 			const db = mongoose.connection.db;
-			if (!db) throw new Error('Database connection not established');
+			if (!db) throw new InternalServerErrorException('Database connection not established');
 
 			// Get user from request (set by AdminGuard)
 			const user = req.user;
@@ -162,14 +162,14 @@ export class AlbumsAdminController {
 			const result = await db.collection('albums').insertOne(albumData);
 
 			if (!result.insertedId) {
-				throw new Error('Failed to create album');
+				throw new InternalServerErrorException('Failed to create album');
 			}
 
 			// Fetch the created album
 			const createdAlbum = await db.collection('albums').findOne({ _id: result.insertedId });
 
 			if (!createdAlbum) {
-				throw new Error('Album was created but could not be retrieved');
+				throw new InternalServerErrorException('Album was created but could not be retrieved');
 			}
 
 			// Serialize ObjectIds
@@ -206,7 +206,7 @@ export class AlbumsAdminController {
 		try {
 			await connectDB();
 			const db = mongoose.connection.db;
-			if (!db) throw new Error('Database connection not established');
+			if (!db) throw new InternalServerErrorException('Database connection not established');
 
 			const query: any = {};
 
@@ -256,7 +256,7 @@ export class AlbumsAdminController {
 		return serialized;
 	} catch (error) {
 		this.logger.error('Failed to get admin albums:', error);
-		throw new Error(`Failed to get admin albums: ${error instanceof Error ? error.message : 'Unknown error'}`);
+		throw new InternalServerErrorException(`Failed to get admin albums: ${error instanceof Error ? error.message : 'Unknown error'}`);
 	}
 }
 
@@ -270,13 +270,13 @@ export class AlbumsAdminController {
 		try {
 			await connectDB();
 			const db = mongoose.connection.db;
-			if (!db) throw new Error('Database connection not established');
+			if (!db) throw new InternalServerErrorException('Database connection not established');
 
 			let objectId: Types.ObjectId;
 			try {
 				objectId = new Types.ObjectId(id);
 			} catch (_error) {
-				throw new Error('Invalid album ID format');
+				throw new BadRequestException('Invalid album ID format');
 			}
 
 			// Get ALL photos for this album (including unpublished) - admin only
@@ -341,7 +341,7 @@ export class AlbumsAdminController {
 			};
 		} catch (error) {
 			this.logger.error('Failed to get admin album photos:', error);
-			throw new Error(
+			throw new InternalServerErrorException(
 				`Failed to get admin album photos: ${error instanceof Error ? error.message : 'Unknown error'}`,
 			);
 		}
@@ -357,7 +357,7 @@ export class AlbumsAdminController {
 		try {
 			await connectDB();
 			const db = mongoose.connection.db;
-			if (!db) throw new Error('Database connection not established');
+			if (!db) throw new InternalServerErrorException('Database connection not established');
 
 			let objectId: Types.ObjectId;
 			try {
@@ -388,7 +388,7 @@ export class AlbumsAdminController {
 			if (error instanceof BadRequestException || error instanceof NotFoundException) {
 				throw error;
 			}
-			throw new Error(`Failed to get admin album: ${error instanceof Error ? error.message : 'Unknown error'}`);
+			throw new InternalServerErrorException(`Failed to get admin album: ${error instanceof Error ? error.message : 'Unknown error'}`);
 		}
 	}
 
@@ -401,7 +401,7 @@ export class AlbumsAdminController {
 		try {
 			await connectDB();
 			const db = mongoose.connection.db;
-			if (!db) throw new Error('Database connection not established');
+			if (!db) throw new InternalServerErrorException('Database connection not established');
 
 			let objectId: Types.ObjectId;
 			try {
@@ -526,7 +526,7 @@ export class AlbumsAdminController {
 			if (error instanceof NotFoundException || error instanceof BadRequestException) {
 				throw error;
 			}
-			throw new Error(`Failed to update album: ${error instanceof Error ? error.message : 'Unknown error'}`);
+			throw new InternalServerErrorException(`Failed to update album: ${error instanceof Error ? error.message : 'Unknown error'}`);
 		}
 	}
 
@@ -540,7 +540,7 @@ export class AlbumsAdminController {
 		try {
 			await connectDB();
 			const db = mongoose.connection.db;
-			if (!db) throw new Error('Database connection not established');
+			if (!db) throw new InternalServerErrorException('Database connection not established');
 
 			let objectId: Types.ObjectId;
 			try {
@@ -584,7 +584,7 @@ export class AlbumsAdminController {
 			if (error instanceof NotFoundException || error instanceof BadRequestException) {
 				throw error;
 			}
-			throw new Error(`Failed to delete album: ${error instanceof Error ? error.message : 'Unknown error'}`);
+			throw new InternalServerErrorException(`Failed to delete album: ${error instanceof Error ? error.message : 'Unknown error'}`);
 		}
 	}
 
@@ -733,7 +733,7 @@ export class AlbumsAdminController {
 		try {
 			await connectDB();
 			const db = mongoose.connection.db;
-			if (!db) throw new Error('Database connection not established');
+			if (!db) throw new InternalServerErrorException('Database connection not established');
 
 			const { updates } = body;
 
@@ -803,7 +803,7 @@ export class AlbumsAdminController {
 			if (error instanceof BadRequestException) {
 				throw error;
 			}
-			throw new Error(
+			throw new InternalServerErrorException(
 				`Failed to reorder albums: ${error instanceof Error ? error.message : 'Unknown error'}`
 			);
 		}

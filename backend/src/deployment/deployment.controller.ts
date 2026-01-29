@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseGuards, BadRequestException, Res, Logger } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, BadRequestException, Res, Logger, InternalServerErrorException } from '@nestjs/common';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { execSync } from 'child_process';
 import { existsSync, readFileSync, statSync, writeFileSync, unlinkSync, createWriteStream } from 'fs';
@@ -125,7 +125,7 @@ export class DeploymentController {
 			};
 		} catch (error) {
 			this.logger.error(`Error getting deployment status: ${error instanceof Error ? error.message : String(error)}`);
-			throw new Error(
+			throw new InternalServerErrorException(
 				`Failed to get deployment status: ${error instanceof Error ? error.message : 'Unknown error'}`,
 			);
 		}

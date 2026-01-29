@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards, BadRequestException, UseInterceptors, UploadedFile, Logger } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, BadRequestException, UseInterceptors, UploadedFile, Logger, InternalServerErrorException } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { connectDB } from '../config/db';
@@ -17,7 +17,7 @@ export class BackupController {
     try {
       await connectDB();
       const db = mongoose.connection.db;
-      if (!db) throw new Error('Database connection not established');
+      if (!db) throw new InternalServerErrorException('Database connection not established');
 
       // Get all collections
       const collections = await db.listCollections().toArray();
@@ -70,7 +70,7 @@ export class BackupController {
 
       await connectDB();
       const db = mongoose.connection.db;
-      if (!db) throw new Error('Database connection not established');
+      if (!db) throw new InternalServerErrorException('Database connection not established');
 
       // Clear existing collections
       const existingCollections = await db.listCollections().toArray();

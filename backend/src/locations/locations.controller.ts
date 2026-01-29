@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, BadRequestException, NotFoundException, Logger, InternalServerErrorException } from '@nestjs/common';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { connectDB } from '../config/db';
 import mongoose, { Types } from 'mongoose';
@@ -22,7 +22,7 @@ export class LocationsController {
     try {
       await connectDB();
       const db = mongoose.connection.db;
-      if (!db) throw new Error('Database connection not established');
+      if (!db) throw new InternalServerErrorException('Database connection not established');
       const collection = db.collection('locations');
 
       // Build query
@@ -87,7 +87,7 @@ export class LocationsController {
     try {
       await connectDB();
       const db = mongoose.connection.db;
-      if (!db) throw new Error('Database connection not established');
+      if (!db) throw new InternalServerErrorException('Database connection not established');
       const collection = db.collection('locations');
 
       const location = await collection.findOne({ _id: new Types.ObjectId(id) });
@@ -122,7 +122,7 @@ export class LocationsController {
     try {
       await connectDB();
       const db = mongoose.connection.db;
-      if (!db) throw new Error('Database connection not established');
+      if (!db) throw new InternalServerErrorException('Database connection not established');
       const collection = db.collection('locations');
 
       const {
@@ -287,7 +287,7 @@ export class LocationsController {
     try {
       await connectDB();
       const db = mongoose.connection.db;
-      if (!db) throw new Error('Database connection not established');
+      if (!db) throw new InternalServerErrorException('Database connection not established');
       const collection = db.collection('locations');
 
       const location = await collection.findOne({ _id: new Types.ObjectId(id) });
@@ -456,7 +456,7 @@ export class LocationsController {
     try {
       await connectDB();
       const db = mongoose.connection.db;
-      if (!db) throw new Error('Database connection not established');
+      if (!db) throw new InternalServerErrorException('Database connection not established');
       const collection = db.collection('locations');
 
       const location = await collection.findOne({ _id: new Types.ObjectId(id) });
