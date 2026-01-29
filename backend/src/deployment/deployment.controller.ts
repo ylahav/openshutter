@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseGuards, BadRequestException, Res } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, BadRequestException, Res, Logger } from '@nestjs/common';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { execSync } from 'child_process';
 import { existsSync, readFileSync, statSync, writeFileSync, unlinkSync, createWriteStream } from 'fs';
@@ -16,6 +16,7 @@ interface DeploymentConfig {
 @Controller('admin/deployment')
 @UseGuards(AdminGuard)
 export class DeploymentController {
+	private readonly logger = new Logger(DeploymentController.name);
 	/**
 	 * Get deployment status and information
 	 * Path: GET /api/admin/deployment/status
@@ -123,7 +124,7 @@ export class DeploymentController {
 				deploymentPackages,
 			};
 		} catch (error) {
-			console.error('Error getting deployment status:', error);
+			this.logger.error(`Error getting deployment status: ${error instanceof Error ? error.message : String(error)}`);
 			throw new Error(
 				`Failed to get deployment status: ${error instanceof Error ? error.message : 'Unknown error'}`,
 			);
@@ -222,7 +223,7 @@ export class DeploymentController {
 					try {
 						unlinkSync(ecosystemPath);
 					} catch (e) {
-						console.warn('Could not delete temporary ecosystem.config.js:', e);
+						this.logger.warn(`Could not delete temporary ecosystem.config.js: ${e instanceof Error ? e.message : String(e)}`);
 					}
 
 					res.setHeader('Content-Type', 'application/zip');
@@ -238,7 +239,7 @@ export class DeploymentController {
 						try {
 							unlinkSync(zipPath);
 						} catch (e) {
-							console.warn('Could not delete temporary zip file:', e);
+							this.logger.warn(`Could not delete temporary zip file: ${e instanceof Error ? e.message : String(e)}`);
 						}
 					}, 1000);
 
@@ -246,7 +247,7 @@ export class DeploymentController {
 				});
 
 				archive.on('error', (err: Error) => {
-					console.error('Error creating deployment package:', err);
+					this.logger.error(`Error creating deployment package: ${err instanceof Error ? err.message : String(err)}`);
 					reject(new BadRequestException('Failed to create deployment package'));
 				});
 
@@ -274,7 +275,7 @@ export class DeploymentController {
 								archive.file(filePath, { name: file.name });
 							}
 						} catch (error) {
-							console.error(`Error adding ${file.path} to archive:`, error);
+							this.logger.error(`Error adding ${file.path} to archive: ${error instanceof Error ? error.message : String(error)}`);
 						}
 					}
 				});
@@ -282,7 +283,7 @@ export class DeploymentController {
 				archive.finalize();
 			});
 		} catch (error) {
-			console.error('Deployment preparation error:', error);
+			this.logger.error(`Deployment preparation error: ${error instanceof Error ? error.message : String(error)}`);
 			if (error instanceof BadRequestException) {
 				throw error;
 			}

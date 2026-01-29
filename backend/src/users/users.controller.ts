@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { connectDB } from '../config/db';
 import mongoose, { Types } from 'mongoose';
@@ -14,6 +14,7 @@ async function hashPassword(plain: string): Promise<string> {
 @Controller('admin/users')
 @UseGuards(AdminGuard)
 export class UsersController {
+  private readonly logger = new Logger(UsersController.name);
   /**
    * Get all users
    * Path: GET /api/admin/users
@@ -64,7 +65,7 @@ export class UsersController {
         data: serializedUsers,
       };
     } catch (error) {
-      console.error('Error fetching users:', error);
+      this.logger.error('Error fetching users:', error);
       throw new BadRequestException(
         `Failed to fetch users: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -99,7 +100,7 @@ export class UsersController {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      console.error('Error fetching user:', error);
+      this.logger.error('Error fetching user:', error);
       throw new BadRequestException(
         `Failed to fetch user: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -203,7 +204,7 @@ export class UsersController {
       if (error instanceof BadRequestException) {
         throw error;
       }
-      console.error('Error creating user:', error);
+      this.logger.error('Error creating user:', error);
       throw new BadRequestException(
         `Failed to create user: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -313,7 +314,7 @@ export class UsersController {
       if (error instanceof NotFoundException || error instanceof BadRequestException) {
         throw error;
       }
-      console.error('Error updating user:', error);
+      this.logger.error('Error updating user:', error);
       throw new BadRequestException(
         `Failed to update user: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -357,7 +358,7 @@ export class UsersController {
       if (error instanceof NotFoundException || error instanceof BadRequestException) {
         throw error;
       }
-      console.error('Error deleting user:', error);
+      this.logger.error('Error deleting user:', error);
       throw new BadRequestException(
         `Failed to delete user: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );

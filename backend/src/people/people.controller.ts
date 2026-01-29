@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { connectDB } from '../config/db';
 import mongoose, { Types } from 'mongoose';
@@ -7,6 +7,7 @@ import { SUPPORTED_LANGUAGES } from '../types/multi-lang';
 @Controller('admin/people')
 @UseGuards(AdminGuard)
 export class PeopleController {
+  private readonly logger = new Logger(PeopleController.name);
 
   /**
    * Get all people with optional search and pagination
@@ -70,7 +71,7 @@ export class PeopleController {
         },
       };
     } catch (error) {
-      console.error('Error fetching people:', error);
+      this.logger.error('Error fetching people:', error);
       throw new BadRequestException(
         `Failed to fetch people: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -100,7 +101,7 @@ export class PeopleController {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      console.error('Error fetching person:', error);
+      this.logger.error('Error fetching person:', error);
       throw new BadRequestException(
         `Failed to fetch person: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -197,7 +198,7 @@ export class PeopleController {
       if (error instanceof BadRequestException) {
         throw error;
       }
-      console.error('Error creating person:', error);
+      this.logger.error('Error creating person:', error);
       throw new BadRequestException(
         `Failed to create person: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -284,7 +285,7 @@ export class PeopleController {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      console.error('Error updating person:', error);
+      this.logger.error('Error updating person:', error);
       throw new BadRequestException(
         `Failed to update person: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -315,7 +316,7 @@ export class PeopleController {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      console.error('Error deleting person:', error);
+      this.logger.error('Error deleting person:', error);
       throw new BadRequestException(
         `Failed to delete person: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );

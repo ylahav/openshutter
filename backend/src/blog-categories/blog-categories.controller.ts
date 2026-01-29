@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { connectDB } from '../config/db';
 import mongoose, { Types } from 'mongoose';
@@ -7,6 +7,7 @@ import { SUPPORTED_LANGUAGES } from '../types/multi-lang';
 @Controller('admin/blog-categories')
 @UseGuards(AdminGuard)
 export class BlogCategoriesController {
+  private readonly logger = new Logger(BlogCategoriesController.name);
   /**
    * Get all blog categories with optional filters
    * Path: GET /api/admin/blog-categories
@@ -66,7 +67,7 @@ export class BlogCategoriesController {
         },
       };
     } catch (error) {
-      console.error('Error fetching blog categories:', error);
+      this.logger.error('Error fetching blog categories:', error);
       throw new BadRequestException(
         `Failed to fetch blog categories: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -100,7 +101,7 @@ export class BlogCategoriesController {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      console.error('Error fetching blog category:', error);
+      this.logger.error('Error fetching blog category:', error);
       throw new BadRequestException(
         `Failed to fetch blog category: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -212,7 +213,7 @@ export class BlogCategoriesController {
       if (error instanceof BadRequestException) {
         throw error;
       }
-      console.error('Error creating blog category:', error);
+      this.logger.error('Error creating blog category:', error);
       throw new BadRequestException(
         `Failed to create blog category: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -315,7 +316,7 @@ export class BlogCategoriesController {
       if (error instanceof NotFoundException || error instanceof BadRequestException) {
         throw error;
       }
-      console.error('Error updating blog category:', error);
+      this.logger.error('Error updating blog category:', error);
       throw new BadRequestException(
         `Failed to update blog category: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -358,7 +359,7 @@ export class BlogCategoriesController {
       if (error instanceof NotFoundException || error instanceof BadRequestException) {
         throw error;
       }
-      console.error('Error deleting blog category:', error);
+      this.logger.error('Error deleting blog category:', error);
       throw new BadRequestException(
         `Failed to delete blog category: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );

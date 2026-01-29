@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards, BadRequestException, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, BadRequestException, UseInterceptors, UploadedFile, Logger } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { connectDB } from '../config/db';
@@ -7,6 +7,7 @@ import mongoose, { Types } from 'mongoose';
 @Controller('admin/backup')
 @UseGuards(AdminGuard)
 export class BackupController {
+  private readonly logger = new Logger(BackupController.name);
   /**
    * Create database backup
    * Path: POST /api/admin/backup/database
@@ -47,7 +48,7 @@ export class BackupController {
         message: `Backup created with ${Object.keys(backup.collections).length} collections`,
       };
     } catch (error) {
-      console.error('Database backup error:', error);
+      this.logger.error(`Database backup error: ${error instanceof Error ? error.message : String(error)}`);
       throw new BadRequestException(
         `Failed to create database backup: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -102,7 +103,7 @@ export class BackupController {
       if (error instanceof BadRequestException) {
         throw error;
       }
-      console.error('Database restore error:', error);
+      this.logger.error(`Database restore error: ${error instanceof Error ? error.message : String(error)}`);
       throw new BadRequestException(
         `Failed to restore database: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -124,7 +125,7 @@ export class BackupController {
         message: 'Files backup requires additional dependencies. Please use manual backup of storage directories.',
       };
     } catch (error) {
-      console.error('Files backup error:', error);
+      this.logger.error(`Files backup error: ${error instanceof Error ? error.message : String(error)}`);
       throw new BadRequestException(
         `Failed to create files backup: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -153,7 +154,7 @@ export class BackupController {
       if (error instanceof BadRequestException) {
         throw error;
       }
-      console.error('Files restore error:', error);
+      this.logger.error(`Files restore error: ${error instanceof Error ? error.message : String(error)}`);
       throw new BadRequestException(
         `Failed to restore files: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { connectDB } from '../config/db';
 import mongoose, { Types } from 'mongoose';
@@ -7,6 +7,7 @@ import { SUPPORTED_LANGUAGES } from '../types/multi-lang';
 @Controller('admin/tags')
 @UseGuards(AdminGuard)
 export class TagsController {
+  private readonly logger = new Logger(TagsController.name);
   /**
    * Get all tags with optional search and category filter
    * Path: GET /api/admin/tags
@@ -72,7 +73,7 @@ export class TagsController {
         },
       };
     } catch (error) {
-      console.error('Error fetching tags:', error);
+      this.logger.error('Error fetching tags:', error);
       throw new BadRequestException(
         `Failed to fetch tags: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -107,7 +108,7 @@ export class TagsController {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      console.error('Error fetching tag:', error);
+      this.logger.error('Error fetching tag:', error);
       throw new BadRequestException(
         `Failed to fetch tag: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -225,7 +226,7 @@ export class TagsController {
       if (error instanceof BadRequestException) {
         throw error;
       }
-      console.error('Error creating tag:', error);
+      this.logger.error('Error creating tag:', error);
       throw new BadRequestException(
         `Failed to create tag: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -345,7 +346,7 @@ export class TagsController {
       if (error instanceof NotFoundException || error instanceof BadRequestException) {
         throw error;
       }
-      console.error('Error updating tag:', error);
+      this.logger.error('Error updating tag:', error);
       throw new BadRequestException(
         `Failed to update tag: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -376,7 +377,7 @@ export class TagsController {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      console.error('Error deleting tag:', error);
+      this.logger.error('Error deleting tag:', error);
       throw new BadRequestException(
         `Failed to delete tag: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );

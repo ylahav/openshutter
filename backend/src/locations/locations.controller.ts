@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { connectDB } from '../config/db';
 import mongoose, { Types } from 'mongoose';
@@ -7,6 +7,7 @@ import { SUPPORTED_LANGUAGES } from '../types/multi-lang';
 @Controller('admin/locations')
 @UseGuards(AdminGuard)
 export class LocationsController {
+  private readonly logger = new Logger(LocationsController.name);
   /**
    * Get all locations with optional search and filters
    * Path: GET /api/admin/locations
@@ -70,7 +71,7 @@ export class LocationsController {
         },
       };
     } catch (error) {
-      console.error('Error fetching locations:', error);
+      this.logger.error(`Error fetching locations: ${error instanceof Error ? error.message : String(error)}`);
       throw new BadRequestException(
         `Failed to fetch locations: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -105,7 +106,7 @@ export class LocationsController {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      console.error('Error fetching location:', error);
+      this.logger.error(`Error fetching location: ${error instanceof Error ? error.message : String(error)}`);
       throw new BadRequestException(
         `Failed to fetch location: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -138,13 +139,13 @@ export class LocationsController {
         isActive,
       } = body;
 
-      console.log('Received location create request:', { 
+      this.logger.debug(`Received location create request: ${JSON.stringify({ 
         name: typeof name, 
         description: typeof description, 
         descriptionValue: description,
         descriptionKeys: description && typeof description === 'object' ? Object.keys(description) : 'N/A',
         descriptionValues: description && typeof description === 'object' ? Object.values(description) : 'N/A'
-      });
+      })}`);
 
       // Validate required fields - name must have at least one language
       const nameObj = name || {};
@@ -186,7 +187,7 @@ export class LocationsController {
           });
         }
       }
-      console.log('Normalized description:', normalizedDescription);
+      this.logger.debug(`Normalized description: ${JSON.stringify(normalizedDescription)}`);
 
       // Validate coordinates if provided
       if (coordinates) {
@@ -270,7 +271,7 @@ export class LocationsController {
       if (error instanceof BadRequestException) {
         throw error;
       }
-      console.error('Error creating location:', error);
+      this.logger.error(`Error creating location: ${error instanceof Error ? error.message : String(error)}`);
       throw new BadRequestException(
         `Failed to create location: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -439,7 +440,7 @@ export class LocationsController {
       if (error instanceof NotFoundException || error instanceof BadRequestException) {
         throw error;
       }
-      console.error('Error updating location:', error);
+      this.logger.error(`Error updating location: ${error instanceof Error ? error.message : String(error)}`);
       throw new BadRequestException(
         `Failed to update location: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -470,7 +471,7 @@ export class LocationsController {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      console.error('Error deleting location:', error);
+      this.logger.error(`Error deleting location: ${error instanceof Error ? error.message : String(error)}`);
       throw new BadRequestException(
         `Failed to delete location: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );

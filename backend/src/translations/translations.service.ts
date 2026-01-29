@@ -46,7 +46,7 @@ export class TranslationsService {
     try {
       // Ensure directory exists
       if (!existsSync(this.translationsPath)) {
-        console.log(`[TranslationsService] Creating i18n directory: ${this.translationsPath}`);
+        this.logger.debug(`[TranslationsService] Creating i18n directory: ${this.translationsPath}`);
         await mkdir(this.translationsPath, { recursive: true });
       }
 
@@ -350,7 +350,7 @@ export class TranslationsService {
         const verifyContent = await readFile(targetFilePath, 'utf-8');
         const verifyTranslations = JSON.parse(verifyContent);
         const verifyKeys = this.countKeys(verifyTranslations);
-        console.log(`[TranslationsService] Verification: File contains ${verifyKeys} translation keys`);
+        this.logger.debug(`[TranslationsService] Verification: File contains ${verifyKeys} translation keys`);
         
         // Check a few translated keys to verify they exist
         let verifiedCount = 0;

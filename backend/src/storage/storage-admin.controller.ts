@@ -1,4 +1,4 @@
-import { Controller, Get, Put, Post, Body, Param, Query, UseGuards, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Put, Post, Body, Param, Query, UseGuards, BadRequestException, Logger } from '@nestjs/common';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { storageConfigService } from '../services/storage/config';
 import { StorageManager } from '../services/storage/manager';
@@ -7,6 +7,7 @@ import type { StorageProviderId } from '../services/storage/types';
 @Controller('admin/storage')
 @UseGuards(AdminGuard)
 export class StorageAdminController {
+  private readonly logger = new Logger(StorageAdminController.name);
   /**
    * Get all storage configurations
    * Path: GET /api/admin/storage
@@ -47,18 +48,18 @@ export class StorageAdminController {
           .filter(field => (config as any)[field] !== undefined && (config as any)[field] !== '')
         
         if (duplicateFields.length > 0) {
-          console.warn(`[getAllConfigs] Found duplicate top-level fields in ${config.providerId}:`, duplicateFields);
+          this.logger.warn(`[getAllConfigs] Found duplicate top-level fields in ${config.providerId}: ${JSON.stringify(duplicateFields)}`);
         }
         
         // Log if isEnabled was found in config object (shouldn't be there)
         if (rawConfigObj.isEnabled !== undefined) {
-          console.warn(`[getAllConfigs] Found isEnabled in config object for ${config.providerId}, removing it (should only be at root level)`);
+          this.logger.warn(`[getAllConfigs] Found isEnabled in config object for ${config.providerId}, removing it (should only be at root level)`);
         }
         
         return cleanConfig;
       });
       
-      console.log('[getAllConfigs] Returning configs:', JSON.stringify(normalizedConfigs.map(c => ({ 
+      this.logger.debug(`[getAllConfigs] Returning configs: ${JSON.stringify(normalizedConfigs.map(c => ({ 
         providerId: c.providerId, 
         isEnabled: c.isEnabled,
         hasConfig: !!c.config,
@@ -72,7 +73,7 @@ export class StorageAdminController {
       
       return normalizedConfigs;
     } catch (error) {
-      console.error('Error getting storage configs:', error);
+      this.logger.error(`Error getting storage configs: ${error instanceof Error ? error.message : String(error)}`);
       throw new BadRequestException(
         `Failed to get storage configurations: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -165,7 +166,7 @@ export class StorageAdminController {
       
       // Log warning if we detect a nested config property
       if (updates.config !== undefined) {
-        console.warn(`[updateConfig] Received nested "config" property for ${providerId}, ignoring it. This should not happen.`);
+        this.logger.warn(`[updateConfig] Received nested "config" property for ${providerId}, ignoring it. This should not happen.`);
       }
       
       // Build clean config object - explicitly remove isEnabled if it exists in existing config
@@ -175,7 +176,7 @@ export class StorageAdminController {
       // Recursively flatten any nested config structures (handle config.config.config...)
       const flattenConfig = (obj: any, depth = 0): any => {
         if (depth > 5) {
-          console.error(`[updateConfig] Maximum recursion depth reached while flattening config for ${providerId}`);
+          this.logger.error(`[updateConfig] Maximum recursion depth reached while flattening config for ${providerId}`);
           return {};
         }
         
@@ -188,7 +189,7 @@ export class StorageAdminController {
             return;
           } else if (key === 'config' && typeof obj[key] === 'object') {
             // If there's a nested config, recursively flatten it and merge
-            console.warn(`[updateConfig] Found nested config.config at depth ${depth} in ${providerId}, flattening...`);
+            this.logger.warn(`[updateConfig] Found nested config.config at depth ${depth} in ${providerId}, flattening...`);
             const nestedFlattened = flattenConfig(obj[key], depth + 1);
             Object.assign(flattened, nestedFlattened);
           } else if (obj[key] !== undefined && obj[key] !== null) {
@@ -208,18 +209,18 @@ export class StorageAdminController {
       
       // Final safety check: ensure no nested config in the final structure
       if (structuredUpdates.config.config !== undefined) {
-        console.error(`[updateConfig] ERROR: Final config still contains nested "config" property for ${providerId}! Removing it.`);
+        this.logger.error(`[updateConfig] ERROR: Final config still contains nested "config" property for ${providerId}! Removing it.`);
         const { config: ____, ...finalClean } = structuredUpdates.config;
         structuredUpdates.config = finalClean;
       }
       
       // Debug: log storageType specifically for Google Drive
       if (providerId === 'google-drive') {
-        console.log(`[updateConfig] Google Drive storageType update:`, {
+        this.logger.debug(`[updateConfig] Google Drive storageType update: ${JSON.stringify({
           incoming: cleanedConfigUpdates.storageType,
           existing: cleanExistingConfig.storageType,
           final: structuredUpdates.config.storageType
-        });
+        })}`);
       }
       
       // Ensure isEnabled is NOT in the config object (it should only be at root level)
@@ -236,17 +237,17 @@ export class StorageAdminController {
       // The updateConfig already invalidates cache, but we need to ensure it's refreshed
       const updatedConfig = await storageConfigService.getConfig(providerId as StorageProviderId);
       
-      console.log(`[updateConfig] Updated config for ${providerId}:`, {
+      this.logger.debug(`[updateConfig] Updated config for ${providerId}: ${JSON.stringify({
         providerId: updatedConfig.providerId,
         isEnabled: updatedConfig.isEnabled,
         hasConfig: !!updatedConfig.config,
         configKeys: updatedConfig.config ? Object.keys(updatedConfig.config) : [],
         storageType: updatedConfig.config?.storageType || 'not set'
-      });
+      })}`);
       
       return updatedConfig;
     } catch (error) {
-      console.error('Error updating storage config:', error);
+      this.logger.error(`Error updating storage config: ${error instanceof Error ? error.message : String(error)}`);
       throw new BadRequestException(
         `Failed to update storage configuration: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -452,7 +453,7 @@ export class StorageAdminController {
       const configs = await storageConfigService.getAllConfigs();
       for (const config of configs) {
         if (config.config && config.config.config) {
-          console.log(`[cleanup] Fixing nested config for ${config.providerId}`);
+          this.logger.debug(`[cleanup] Fixing nested config for ${config.providerId}`);
           // Flatten the nested config
           const flattenConfig = (obj: any, depth = 0): any => {
             if (depth > 5) return {};
@@ -521,7 +522,7 @@ export class StorageAdminController {
 
       const tree = await (provider as any).getFolderTree(path, depth);
       
-      console.log(`StorageAdminController: Tree result for ${providerId}`, {
+      this.logger.debug(`StorageAdminController: Tree result for ${providerId}`, {
         hasTree: !!tree,
         path: tree?.path,
         foldersCount: tree?.folders?.length || 0,
@@ -532,7 +533,7 @@ export class StorageAdminController {
       
       // Ensure we always return a valid structure
       if (!tree) {
-        console.warn(`StorageAdminController: getFolderTree returned null/undefined for ${providerId}`);
+        this.logger.warn(`StorageAdminController: getFolderTree returned null/undefined for ${providerId}`);
         return {
           success: true,
           providerId,
@@ -553,7 +554,7 @@ export class StorageAdminController {
         data: tree,
       };
     } catch (error: any) {
-      console.error(`Error getting ${providerId} tree:`, error);
+      this.logger.error(`Error getting ${providerId} tree: ${error instanceof Error ? error.message : String(error)}`);
       if (error instanceof BadRequestException) {
         throw error;
       }
@@ -607,7 +608,7 @@ export class StorageAdminController {
         storageType: storageTypeValue
       }
     } catch (error) {
-      console.error('Error generating Google OAuth URL:', error)
+      this.logger.error(`Error generating Google OAuth URL: ${error instanceof Error ? error.message : String(error)}`)
       throw new BadRequestException(
         `Failed to generate OAuth URL: ${error instanceof Error ? error.message : 'Unknown error'}`,
       )

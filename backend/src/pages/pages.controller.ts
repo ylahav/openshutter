@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { connectDB } from '../config/db';
 import mongoose, { Types } from 'mongoose';
@@ -7,6 +7,7 @@ import { SUPPORTED_LANGUAGES } from '../types/multi-lang';
 @Controller('admin/pages')
 @UseGuards(AdminGuard)
 export class PagesController {
+  private readonly logger = new Logger(PagesController.name);
   /**
    * Get all pages with optional filters
    * Path: GET /api/admin/pages
@@ -57,7 +58,7 @@ export class PagesController {
         data: serializedPages,
       };
     } catch (error) {
-      console.error('Error fetching pages:', error);
+      this.logger.error('Error fetching pages:', error);
       throw new BadRequestException(
         `Failed to fetch pages: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -93,7 +94,7 @@ export class PagesController {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      console.error('Error fetching page:', error);
+      this.logger.error('Error fetching page:', error);
       throw new BadRequestException(
         `Failed to fetch page: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -257,7 +258,7 @@ export class PagesController {
       if (error instanceof BadRequestException) {
         throw error;
       }
-      console.error('Error creating page:', error);
+      this.logger.error('Error creating page:', error);
       throw new BadRequestException(
         `Failed to create page: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -424,7 +425,7 @@ export class PagesController {
       if (error instanceof NotFoundException || error instanceof BadRequestException) {
         throw error;
       }
-      console.error('Error updating page:', error);
+      this.logger.error('Error updating page:', error);
       throw new BadRequestException(
         `Failed to update page: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -465,7 +466,7 @@ export class PagesController {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      console.error('Error fetching page modules:', error);
+      this.logger.error('Error fetching page modules:', error);
       throw new BadRequestException(
         `Failed to fetch page modules: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -536,7 +537,7 @@ export class PagesController {
       if (error instanceof BadRequestException || error instanceof NotFoundException) {
         throw error;
       }
-      console.error('Error creating page module:', error);
+      this.logger.error('Error creating page module:', error);
       throw new BadRequestException(
         `Failed to create page module: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -609,7 +610,7 @@ export class PagesController {
       if (error instanceof NotFoundException || error instanceof BadRequestException) {
         throw error;
       }
-      console.error('Error updating page module:', error);
+      this.logger.error('Error updating page module:', error);
       throw new BadRequestException(
         `Failed to update page module: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -645,7 +646,7 @@ export class PagesController {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      console.error('Error deleting page module:', error);
+      this.logger.error('Error deleting page module:', error);
       throw new BadRequestException(
         `Failed to delete page module: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -676,7 +677,7 @@ export class PagesController {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      console.error('Error deleting page:', error);
+      this.logger.error('Error deleting page:', error);
       throw new BadRequestException(
         `Failed to delete page: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );

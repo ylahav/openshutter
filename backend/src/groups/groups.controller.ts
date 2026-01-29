@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { connectDB } from '../config/db';
 import mongoose, { Types } from 'mongoose';
@@ -6,6 +6,7 @@ import mongoose, { Types } from 'mongoose';
 @Controller('admin/groups')
 @UseGuards(AdminGuard)
 export class GroupsController {
+  private readonly logger = new Logger(GroupsController.name);
   /**
    * Get all groups
    * Path: GET /api/admin/groups
@@ -30,7 +31,7 @@ export class GroupsController {
         data: serializedGroups,
       };
     } catch (error) {
-      console.error('Error fetching groups:', error);
+      this.logger.error('Error fetching groups:', error);
       throw new BadRequestException(
         `Failed to fetch groups: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -64,7 +65,7 @@ export class GroupsController {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      console.error('Error fetching group:', error);
+      this.logger.error('Error fetching group:', error);
       throw new BadRequestException(
         `Failed to fetch group: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -146,7 +147,7 @@ export class GroupsController {
       if (error instanceof BadRequestException) {
         throw error;
       }
-      console.error('Error creating group:', error);
+      this.logger.error('Error creating group:', error);
       throw new BadRequestException(
         `Failed to create group: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -216,7 +217,7 @@ export class GroupsController {
       if (error instanceof NotFoundException || error instanceof BadRequestException) {
         throw error;
       }
-      console.error('Error updating group:', error);
+      this.logger.error('Error updating group:', error);
       throw new BadRequestException(
         `Failed to update group: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -271,7 +272,7 @@ export class GroupsController {
       if (error instanceof NotFoundException || error instanceof BadRequestException) {
         throw error;
       }
-      console.error('Error deleting group:', error);
+      this.logger.error('Error deleting group:', error);
       throw new BadRequestException(
         `Failed to delete group: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
