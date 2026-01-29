@@ -136,7 +136,7 @@ export class PhotoUploadService {
       const mediumThumbnail = thumbnails.medium || thumbnails.small || Object.values(thumbnails)[0]
 
       // Extract EXIF data (use comprehensive extractor)
-      const { ExifExtractor } = await import('@/services/exif-extractor')
+      const { ExifExtractor } = await import('./exif-extractor')
       const exifData = await ExifExtractor.extractExifData(fileBuffer)
 
       // Get image dimensions

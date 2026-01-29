@@ -278,7 +278,7 @@ export class DatabaseOptimizer {
     // Build language-aware conditions synchronously
     let textMatchAfterLookups: any | null = null
     if (query) {
-      const { SUPPORTED_LANGUAGES } = await import('@/types/multi-lang')
+      const { SUPPORTED_LANGUAGES } = await import('$lib/types/multi-lang')
       const langs = SUPPORTED_LANGUAGES.map(l => l.code)
       const titleDescConds = ['title', 'description']
         .flatMap(f => langs.map(code => ({ [`${f}.${code}`]: { $regex: query, $options: 'i' } })))
