@@ -51,7 +51,7 @@ const UserSchema = new Schema<IUserDocument>({
 })
 
 // Update timestamps
-UserSchema.pre('save', function() {
+UserSchema.pre('save', function(this: IUserDocument) {
   this.updatedAt = new Date()
 })
 

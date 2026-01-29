@@ -63,7 +63,7 @@ const BlogCategorySchema = new Schema<IBlogCategory>({
   }
 })
 
-BlogCategorySchema.pre('save', async function() {
+BlogCategorySchema.pre('save', async function(this: IBlogCategory) {
   this.updatedAt = new Date()
 })
 

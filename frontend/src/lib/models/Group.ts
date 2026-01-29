@@ -36,7 +36,7 @@ const GroupSchema = new Schema<IGroup>(
 );
 
 // Update timestamps
-GroupSchema.pre('save', function () {
+GroupSchema.pre('save', function (this: IGroup) {
 	this.updatedAt = new Date();
 });
 
@@ -44,4 +44,3 @@ GroupSchema.pre('save', function () {
 GroupSchema.index({ alias: 1 });
 
 export const GroupModel = mongoose.models.Group || mongoose.model<IGroup>('Group', GroupSchema);
-

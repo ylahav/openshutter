@@ -117,7 +117,7 @@ const AlbumSchema = new Schema<IAlbum>({
 })
 
 // Update timestamps
-AlbumSchema.pre('save', function() {
+AlbumSchema.pre('save', function(this: IAlbum) {
   this.updatedAt = new Date()
 })
 
@@ -131,7 +131,7 @@ AlbumSchema.index({ lastPhotoDate: 1 })
 AlbumSchema.index({ tags: 1 })
 
 // Virtual for full path
-AlbumSchema.virtual('fullPath').get(function() {
+AlbumSchema.virtual('fullPath').get(function(this: IAlbum) {
   if (this.parentPath) {
     return `${this.parentPath}/${this.alias}`
   }
@@ -139,7 +139,7 @@ AlbumSchema.virtual('fullPath').get(function() {
 })
 
 // Method to get children
-AlbumSchema.methods.getChildren = async function() {
+AlbumSchema.methods.getChildren = async function(this: IAlbum) {
   return await this.model('Album').find({ parentAlbumId: this._id }).sort({ order: 1 })
 }
 

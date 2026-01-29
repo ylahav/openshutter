@@ -48,7 +48,7 @@ export class DatabaseOptimizer {
 
     // Then get photo counts and cover photos for each album
     const albumsWithMetadata = await Promise.all(
-      albums.map(async (album) => {
+      albums.map(async (album: { _id: ObjectId; [key: string]: unknown }) => {
         // Get photo count using the same logic as the working photos API
         const photoCount = await db.collection('photos').countDocuments({
           $or: [
@@ -234,7 +234,7 @@ export class DatabaseOptimizer {
     
     // Convert to key-value object for easy lookup
     const resultMap: Record<string, any> = {}
-    results.forEach(album => {
+    results.forEach((album: { _id: ObjectId; [key: string]: unknown }) => {
       resultMap[album._id.toString()] = album
     })
     
@@ -466,7 +466,7 @@ export class DatabaseOptimizer {
     const collections = await db.listCollections().toArray()
     
     const collectionStats = await Promise.all(
-      collections.map(async (collection) => {
+      collections.map(async (collection: { name: string; [key: string]: unknown }) => {
         try {
           const collStats = await (db.collection(collection.name) as any).stats()
           return {

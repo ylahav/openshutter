@@ -34,7 +34,7 @@ const StorageProviderConfigSchema = new Schema<IStorageProviderConfig>({
 })
 
 // Update the updatedAt field before saving
-StorageProviderConfigSchema.pre('save', async function() {
+StorageProviderConfigSchema.pre('save', async function(this: IStorageProviderConfig) {
   this.updatedAt = new Date()
 })
 

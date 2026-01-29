@@ -95,7 +95,7 @@ const PersonSchema = new Schema<IPerson>({
 })
 
 // Create fullName before saving
-PersonSchema.pre('save', async function() {
+PersonSchema.pre('save', async function(this: IPerson) {
   if (this.firstName && this.lastName) {
     this.fullName = {}
     
@@ -106,7 +106,7 @@ PersonSchema.pre('save', async function() {
     ])
     
     // Create fullName for each language
-    allLanguages.forEach(lang => {
+    allLanguages.forEach((lang: string) => {
       const firstName = this.firstName[lang] || ''
       const lastName = this.lastName[lang] || ''
       this.fullName[lang] = `${firstName} ${lastName}`.trim()
