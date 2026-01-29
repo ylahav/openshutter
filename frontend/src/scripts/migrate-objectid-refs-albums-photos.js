@@ -9,6 +9,10 @@ if (!MONGODB_URI) {
   process.exit(1)
 }
 
+/**
+ * @param {unknown} value
+ * @returns {value is string}
+ */
 function isHex24String(value) {
   return typeof value === 'string' && /^[a-fA-F0-9]{24}$/.test(value)
 }
@@ -47,8 +51,8 @@ async function migrate() {
   // albums.allowedUsers[]
   const albumsWithStringAllowed = await albums.find({ allowedUsers: { $exists: true, $ne: null } }).toArray()
   for (const a of albumsWithStringAllowed) {
-    if (Array.isArray(a.allowedUsers) && a.allowedUsers.some(u => typeof u === 'string')) {
-      const newArray = a.allowedUsers.map(u => (isHex24String(u) ? new ObjectId(u) : u)).filter(Boolean)
+    if (Array.isArray(a.allowedUsers) && a.allowedUsers.some((/** @type {unknown} */ u) => typeof u === 'string')) {
+      const newArray = a.allowedUsers.map((/** @type {unknown} */ u) => (isHex24String(u) ? new ObjectId(u) : u)).filter(Boolean)
       await albums.updateOne({ _id: a._id }, { $set: { allowedUsers: newArray } })
       albumAllowedUsersUpdated++
     }

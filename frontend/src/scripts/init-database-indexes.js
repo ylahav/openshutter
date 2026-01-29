@@ -32,7 +32,7 @@ async function initializeDatabaseIndexes() {
     
     console.log('\n📁 Collection Details:')
     console.log('======================')
-    stats.collections.forEach(collection => {
+    stats.collections.forEach((/** @type {{ name: string; count: number; size: number; avgObjSize: number; indexes: number; totalIndexSize: number }} */ collection) => {
       console.log(`\n${collection.name}:`)
       console.log(`  Documents: ${collection.count.toLocaleString()}`)
       console.log(`  Size: ${(collection.size / 1024 / 1024).toFixed(2)} MB`)

@@ -103,6 +103,10 @@ async function fixPhotoDimensions() {
 }
 
 // Helper function to download image from URL
+/**
+ * @param {string} url
+ * @returns {Promise<Buffer>}
+ */
 function downloadImage(url) {
   return new Promise((resolve, reject) => {
     const protocol = url.startsWith('https') ? https : http

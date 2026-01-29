@@ -347,7 +347,7 @@
 				await handleApiErrorResponse(response);
 			}
 			const result = await response.json();
-			modules = Array.isArray(result.data) ? result.data : [];
+			modules = Array.isArray(result.data) ? (result.data as PageModuleData[]) : [];
 			
 			// Populate rowStructure from loaded modules
 			const newStructure = new Map<number, number[]>();
@@ -568,7 +568,7 @@
 			}
 
 			const result = await response.json();
-			const moduleData = result.data || result;
+			const moduleData = (result.data || result) as PageModuleData;
 			modules = modules.map((m) => (m._id === editingModule!._id ? moduleData : m));
 			showModuleEditDialog = false;
 			editingModule = null;
@@ -877,7 +877,7 @@
 				}
 				const result = await response.json();
 
-				const moduleData = result.data || result;
+				const moduleData = (result.data || result) as PageModuleData;
 				modules = modules.map((m) => (m._id === existingModule._id ? moduleData : m));
 			} else {
 				// Create new module

@@ -177,7 +177,7 @@ async function testAccessControl() {
     }
     const anonymousAlbums = await db.collection('albums').find(anonymousQuery).toArray()
     console.log(`  - Should see 1 album (public), actually sees ${anonymousAlbums.length}`)
-    console.log(`  - Albums: ${anonymousAlbums.map(a => a.alias).join(', ')}`)
+    console.log(`  - Albums: ${anonymousAlbums.map((/** @type {{ alias: string }} */ a) => a.alias).join(', ')}`)
     
     // Test 2: User 1 (in test-group-1) should see public + group restricted
     console.log('\nTest 2: User 1 (test-group-1) access')
@@ -190,7 +190,7 @@ async function testAccessControl() {
     }
     const user1Albums = await db.collection('albums').find(user1Query).toArray()
     console.log(`  - Should see 2 albums (public + group restricted), actually sees ${user1Albums.length}`)
-    console.log(`  - Albums: ${user1Albums.map(a => a.alias).join(', ')}`)
+    console.log(`  - Albums: ${user1Albums.map((/** @type {{ alias: string }} */ a) => a.alias).join(', ')}`)
     
     // Test 3: User 2 (in test-group-2) should see public + user restricted
     console.log('\nTest 3: User 2 (test-group-2) access')
@@ -203,7 +203,7 @@ async function testAccessControl() {
     }
     const user2Albums = await db.collection('albums').find(user2Query).toArray()
     console.log(`  - Should see 2 albums (public + user restricted), actually sees ${user2Albums.length}`)
-    console.log(`  - Albums: ${user2Albums.map(a => a.alias).join(', ')}`)
+    console.log(`  - Albums: ${user2Albums.map((/** @type {{ alias: string }} */ a) => a.alias).join(', ')}`)
     
     // Test 4: User 3 (no groups) should only see public album
     console.log('\nTest 4: User 3 (no groups) access')
@@ -216,13 +216,13 @@ async function testAccessControl() {
     }
     const user3Albums = await db.collection('albums').find(user3Query).toArray()
     console.log(`  - Should see 1 album (public), actually sees ${user3Albums.length}`)
-    console.log(`  - Albums: ${user3Albums.map(a => a.alias).join(', ')}`)
+    console.log(`  - Albums: ${user3Albums.map((/** @type {{ alias: string }} */ a) => a.alias).join(', ')}`)
     
     // Test 5: Admin should see all albums
     console.log('\nTest 5: Admin access (no query restrictions)')
     const adminAlbums = await db.collection('albums').find({}).toArray()
     console.log(`  - Should see 4 albums (all), actually sees ${adminAlbums.length}`)
-    console.log(`  - Albums: ${adminAlbums.map(a => a.alias).join(', ')}`)
+    console.log(`  - Albums: ${adminAlbums.map((/** @type {{ alias: string }} */ a) => a.alias).join(', ')}`)
     
     console.log('\n✅ Access control tests completed!')
     console.log('\n🧹 Cleaning up test data...')

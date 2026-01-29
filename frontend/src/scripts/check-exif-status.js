@@ -49,7 +49,7 @@ async function checkExifStatus() {
         exif: { $exists: true, $ne: null } 
       }).limit(3).toArray()
       
-      examples.forEach(photo => {
+      examples.forEach((/** @type {{ filename: string; exif: unknown }} */ photo) => {
         console.log(`   ${photo.filename}: ${JSON.stringify(photo.exif)}`)
       })
     }
