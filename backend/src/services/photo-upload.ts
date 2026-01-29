@@ -58,6 +58,7 @@ export interface UploadReport {
 @Injectable()
 export class PhotoUploadService {
   private readonly logger = new Logger(PhotoUploadService.name)
+  private static readonly logger = new Logger(PhotoUploadService.name)
   private static readonly THUMBNAIL_WIDTH = 300
   private static readonly THUMBNAIL_HEIGHT = 300
   private static readonly THUMBNAIL_QUALITY = 80
@@ -477,13 +478,15 @@ export class PhotoUploadService {
       
       if (existingPhotoId) {
         // Update existing record with new file references (preserve metadata)
-        this.logger.debug(`PhotoUploadService: Updating existing photo record with new file references: ${JSON.stringify({
-          photoId: existingPhotoId.toString(),
-          albumId: photoData.albumId?.toString() || null,
-          filename: photoData.filename,
-          storageProvider: photoData.storage.provider
-        })
-        
+        this.logger.debug(
+          `PhotoUploadService: Updating existing photo record with new file references: ${JSON.stringify({
+            photoId: existingPhotoId.toString(),
+            albumId: photoData.albumId?.toString() || null,
+            filename: photoData.filename,
+            storageProvider: photoData.storage.provider,
+          })}`,
+        )
+
         // Update only file-related fields, preserve other metadata (title, description, tags, uploadedBy, uploadedAt, etc.)
         const updateResult = await photosCollection.updateOne(
           { _id: existingPhotoId },
@@ -499,10 +502,10 @@ export class PhotoUploadService {
               dimensions: photoData.dimensions,
               storage: photoData.storage,
               updatedAt: new Date(),
-              exif: photoData.exif
+              exif: photoData.exif,
               // Preserve: title, description, tags, uploadedBy, uploadedAt, isPublished, isLeading, albumId
-            }
-          }
+            },
+          },
         )
         
         if (updateResult.matchedCount === 0) {
@@ -515,10 +518,12 @@ export class PhotoUploadService {
           throw new Error(`Failed to retrieve updated photo: ${existingPhotoId}`)
         }
         
-        this.logger.debug(`PhotoUploadService: Photo record updated successfully: ${JSON.stringify({
-          photoId: savedPhoto._id.toString(),
-          albumId: savedPhoto.albumId?.toString() || null
-        })
+        this.logger.debug(
+          `PhotoUploadService: Photo record updated successfully: ${JSON.stringify({
+            photoId: savedPhoto._id.toString(),
+            albumId: savedPhoto.albumId?.toString() || null,
+          })}`,
+        )
         
         // Don't increment album count - it's the same photo, just with new files
       } else {
@@ -531,10 +536,12 @@ export class PhotoUploadService {
         })
         const insertResult = await photosCollection.insertOne(photoData)
         savedPhoto = { _id: insertResult.insertedId, ...photoData }
-        this.logger.debug(`PhotoUploadService: Photo saved successfully: ${JSON.stringify({
-          photoId: savedPhoto._id.toString(),
-          albumId: savedPhoto.albumId?.toString() || null
-        })
+        this.logger.debug(
+          `PhotoUploadService: Photo saved successfully: ${JSON.stringify({
+            photoId: savedPhoto._id.toString(),
+            albumId: savedPhoto.albumId?.toString() || null,
+          })}`,
+        )
 
         // Update album photo count if album exists (only for new photos)
         if (options.albumId) {

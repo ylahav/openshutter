@@ -59,17 +59,26 @@ export class StorageAdminController {
         return cleanConfig;
       });
       
-      this.logger.debug(`[getAllConfigs] Returning configs: ${JSON.stringify(normalizedConfigs.map(c => ({ 
-        providerId: c.providerId, 
-        isEnabled: c.isEnabled,
-        hasConfig: !!c.config,
-        configKeys: c.config ? Object.keys(c.config) : [],
-        sampleConfigValue: c.providerId === 'google-drive' ? {
-          clientId: c.config?.clientId ? `${c.config.clientId.substring(0, 20)}...` : 'missing',
-          hasRefreshToken: !!c.config?.refreshToken,
-          hasFolderId: !!c.config?.folderId
-        } : undefined
-      })), null, 2));
+      this.logger.debug(
+        `[getAllConfigs] Returning configs: ${JSON.stringify(
+          normalizedConfigs.map((c) => ({
+            providerId: c.providerId,
+            isEnabled: c.isEnabled,
+            hasConfig: !!c.config,
+            configKeys: c.config ? Object.keys(c.config) : [],
+            sampleConfigValue:
+              c.providerId === 'google-drive'
+                ? {
+                    clientId: c.config?.clientId
+                      ? `${c.config.clientId.substring(0, 20)}...`
+                      : 'missing',
+                    hasRefreshToken: !!c.config?.refreshToken,
+                    hasFolderId: !!c.config?.folderId,
+                  }
+                : undefined,
+          })),
+        )}`,
+      );
       
       return normalizedConfigs;
     } catch (error) {

@@ -65,13 +65,19 @@ export class AlbumsService {
 
     this.logger.debug(`AlbumsService.findAll found ${albums.length} albums for parentId: ${parentId} with ObjectId query`);
     if (albums.length > 0) {
-      this.logger.debug(`Sample album from query: ${JSON.stringify({
-        _id: albums[0]._id?.toString(),
-        alias: albums[0].alias,
-        name: albums[0].name,
-        nameType: typeof albums[0].name,
-        hasName: !!albums[0].name
-      });
+      this.logger.debug(
+        `Sample album from query: ${JSON.stringify(
+          {
+            _id: albums[0]._id?.toString(),
+            alias: albums[0].alias,
+            name: albums[0].name,
+            nameType: typeof albums[0].name,
+            hasName: !!albums[0].name,
+          },
+          null,
+          2,
+        )}`,
+      );
     }
     
     // If no results and we have a parentId, try alternative query approaches
@@ -130,29 +136,40 @@ export class AlbumsService {
       this.logger.debug(`Direct count with $eq for parentId ${parentId}: ${countWithEq} albums`);
       
       // Try finding all albums and logging their parentAlbumId values
-      const allAlbums = await this.albumModel.find({}).select('_id alias parentAlbumId').limit(10).exec();
-      this.logger.debug(`Sample albums with parentAlbumId: ${JSON.stringify(allAlbums.map(a => ({
-        _id: a._id.toString(),
-        alias: a.alias,
-        parentAlbumId: a.parentAlbumId ? a.parentAlbumId.toString() : null,
-        parentAlbumIdType: typeof a.parentAlbumId,
-        parentAlbumIdConstructor: a.parentAlbumId ? a.parentAlbumId.constructor.name : null
-      })));
+      const allAlbums = await this.albumModel
+        .find({})
+        .select('_id alias parentAlbumId')
+        .limit(10)
+        .exec();
+      this.logger.debug(
+        `Sample albums with parentAlbumId: ${JSON.stringify(
+          allAlbums.map((a) => ({
+            _id: a._id.toString(),
+            alias: a.alias,
+            parentAlbumId: a.parentAlbumId ? a.parentAlbumId.toString() : null,
+            parentAlbumIdType: typeof a.parentAlbumId,
+            parentAlbumIdConstructor: a.parentAlbumId ? a.parentAlbumId.constructor.name : null,
+          })),
+        )}`,
+      );
       
       // Find the specific album we're looking for
       const targetParentId = parentId;
       const albumsWithParent = await this.albumModel.find({}).select('_id alias parentAlbumId').exec();
-      const matchingAlbums = albumsWithParent.filter(a => {
+      const matchingAlbums = albumsWithParent.filter((a) => {
         if (!a.parentAlbumId) return false;
         const parentStr = a.parentAlbumId.toString();
         return parentStr === targetParentId;
       });
-      this.logger.debug(`Found ${matchingAlbums.length} albums with parentAlbumId matching ${targetParentId}: ${JSON.stringify(matchingAlbums.map(a => ({
-        _id: a._id.toString(),
-        alias: a.alias,
-        parentAlbumId: a.parentAlbumId ? a.parentAlbumId.toString() : null,
-          parentAlbumIdType: typeof a.parentAlbumId
-        }))
+      this.logger.debug(
+        `Found ${matchingAlbums.length} albums with parentAlbumId matching ${targetParentId}: ${JSON.stringify(
+          matchingAlbums.map((a) => ({
+            _id: a._id.toString(),
+            alias: a.alias,
+            parentAlbumId: a.parentAlbumId ? a.parentAlbumId.toString() : null,
+            parentAlbumIdType: typeof a.parentAlbumId,
+          })),
+        )}`,
       );
       
       // Try querying with $or to match both string and ObjectId
@@ -497,14 +514,17 @@ export class AlbumsService {
       .lean()
       .exec();
     
-    this.logger.debug(`getAlbumData - Sample albums with parentAlbumId: ${JSON.stringify(sampleAlbums.map((a: any) => ({
-      _id: a._id?.toString(),
-      alias: a.alias,
-      parentAlbumId: a.parentAlbumId,
-        parentAlbumIdType: typeof a.parentAlbumId,
-        parentAlbumIdString: a.parentAlbumId?.toString(),
-        parentAlbumIdMatches: a.parentAlbumId?.toString() === albumId
-      }))
+    this.logger.debug(
+      `getAlbumData - Sample albums with parentAlbumId: ${JSON.stringify(
+        sampleAlbums.map((a: any) => ({
+          _id: a._id?.toString(),
+          alias: a.alias,
+          parentAlbumId: a.parentAlbumId,
+          parentAlbumIdType: typeof a.parentAlbumId,
+          parentAlbumIdString: a.parentAlbumId?.toString(),
+          parentAlbumIdMatches: a.parentAlbumId?.toString() === albumId,
+        })),
+      )}`,
     );
     
     // Try querying with native MongoDB collection to bypass Mongoose type conversion
@@ -597,13 +617,15 @@ export class AlbumsService {
     
     this.logger.debug(`getAlbumData - Final result: ${subAlbums.length} sub-albums`);
     if (subAlbums.length > 0) {
-      this.logger.debug(`getAlbumData - First sub-album: ${JSON.stringify({
-        _id: subAlbums[0]._id?.toString(),
-        name: subAlbums[0].name,
-        alias: subAlbums[0].alias,
-        parentAlbumId: subAlbums[0].parentAlbumId?.toString(),
-        isPublic: subAlbums[0].isPublic
-      });
+      this.logger.debug(
+        `getAlbumData - First sub-album: ${JSON.stringify({
+          _id: subAlbums[0]._id?.toString(),
+          name: subAlbums[0].name,
+          alias: subAlbums[0].alias,
+          parentAlbumId: subAlbums[0].parentAlbumId?.toString(),
+          isPublic: subAlbums[0].isPublic,
+        })}`,
+      );
     }
 
     // Get photos

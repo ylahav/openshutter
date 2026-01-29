@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, UseGuards, Logger } from '@nestjs/common';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { connectDB } from '../config/db';
 import mongoose from 'mongoose';
@@ -6,6 +6,7 @@ import mongoose from 'mongoose';
 @Controller('admin/analytics')
 @UseGuards(AdminGuard)
 export class AnalyticsController {
+  private readonly logger = new Logger(AnalyticsController.name);
   /**
    * Get analytics statistics
    * Path: GET /api/admin/analytics
@@ -196,4 +197,3 @@ export class AnalyticsController {
     }
   }
 }
-

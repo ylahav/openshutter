@@ -11,6 +11,7 @@ import {
   HttpCode,
   HttpStatus,
   Req,
+  Logger,
 } from '@nestjs/common';
 import { Request } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -20,6 +21,7 @@ import { FileUploadInterceptor } from '../common/interceptors/file-upload.interc
 
 @Controller('photos')
 export class PhotosController {
+  private readonly logger = new Logger(PhotosController.name);
   constructor(
     private readonly photosService: PhotosService,
     private readonly photoUploadService: PhotoUploadService,

@@ -5,6 +5,7 @@ import {
 	UseGuards,
 	BadRequestException,
 	NotFoundException,
+	Logger,
 } from '@nestjs/common';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { FaceDetectionService } from './face-detection.service';
@@ -14,6 +15,7 @@ import mongoose, { Types } from 'mongoose';
 @Controller('admin/face-detection')
 @UseGuards(AdminGuard)
 export class FaceDetectionController {
+	private readonly logger = new Logger(FaceDetectionController.name);
 	constructor(private readonly faceDetectionService: FaceDetectionService) {}
 
 	/**

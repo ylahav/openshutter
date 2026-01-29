@@ -18,7 +18,7 @@ export interface ImageDimensions {
 }
 
 export class ThumbnailGenerator {
-  private readonly logger = new Logger(ThumbnailGenerator.name)
+  private static readonly logger = new Logger(ThumbnailGenerator.name)
   
   // Define multiple thumbnail sizes for different use cases
   // All sizes maintain aspect ratio by default

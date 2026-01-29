@@ -145,7 +145,7 @@ export interface FaceDetection {
 }
 
 export class FaceRecognitionServerService {
-  private static readonly logger = new Logger(FaceRecognitionServerService.name)
+  static readonly logger = new Logger(FaceRecognitionServerService.name)
   private static modelsLoaded = false
   private static loadingPromise: Promise<void> | null = null
   private static modelsPath: string

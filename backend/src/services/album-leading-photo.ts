@@ -11,6 +11,7 @@ export interface AlbumLeadingPhotoResult {
 }
 
 export class AlbumLeadingPhotoService {
+  private static readonly logger = new Logger(AlbumLeadingPhotoService.name)
   /**
    * Get the leading photo for an album using hierarchical selection:
    * 1. Find album's photo with isLeading === true and show it
