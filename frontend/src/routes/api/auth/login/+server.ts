@@ -22,7 +22,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 		const { email, password } = await request.json();
 
 		if (!email || !password) {
-			return json({ error: 'Missing credentials' }, { status: 400 });
+			return json({ success: false, error: 'Missing credentials' }, { status: 400 });
 		}
 
 		// Call NestJS backend auth endpoint
@@ -36,7 +36,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 
 		if (!backendResponse.ok) {
 			const errorData = await backendResponse.json().catch(() => ({ error: 'Login failed' }));
-			return json({ error: errorData.error || 'Invalid credentials' }, { status: backendResponse.status });
+			return json({ success: false, error: errorData.error || 'Invalid credentials' }, { status: backendResponse.status });
 		}
 
 		const data = await backendResponse.json();
@@ -76,6 +76,6 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 		return json({ role: user.role, user }, { status: 200 });
 	} catch (error) {
 		logger.error('Login error:', error);
-		return json({ error: 'Login failed' }, { status: 500 });
+		return json({ success: false, error: 'Login failed' }, { status: 500 });
 	}
 };
