@@ -228,15 +228,38 @@
 
 		// Same parent: reorder within siblings
 		if ((activeNode.parentAlbumId ?? null) === (overNode.parentAlbumId ?? null)) {
+			// Get ALL siblings from localAlbums (not just visible ones)
+			const allSiblings = localAlbums
+				.filter((a) => (a.parentAlbumId ?? null) === (activeNode.parentAlbumId ?? null))
+				.map((a) => a._id);
+
 			// Get siblings in the NEW order (from transformedItems - already reordered by drag)
-			const reorderedSiblings = transformedItems
+			// This gives us the order of visible siblings after drag
+			const reorderedVisibleSiblings = transformedItems
 				.filter((item) => (item.parentAlbumId ?? null) === (activeNode.parentAlbumId ?? null))
 				.map((item) => item._id);
 
-			logger.debug('[AlbumTree] Reordered siblings:', reorderedSiblings);
+			logger.debug('[AlbumTree] All siblings:', allSiblings);
+			logger.debug('[AlbumTree] Reordered visible siblings:', reorderedVisibleSiblings);
 
-			// Update order for all siblings based on their new positions in the reordered list
-			reorderedSiblings.forEach((id, idx) => {
+			// Create a map of new positions for visible siblings
+			const newPositionMap = new Map<string, number>();
+			reorderedVisibleSiblings.forEach((id, idx) => {
+				newPositionMap.set(id, idx);
+			});
+
+			// For siblings not in the visible list (shouldn't happen for same-parent, but handle it)
+			// Keep their relative order but place them after visible ones
+			const visibleSet = new Set(reorderedVisibleSiblings);
+			const hiddenSiblings = allSiblings.filter((id) => !visibleSet.has(id));
+
+			// Build final ordered list: visible siblings in new order, then hidden siblings
+			const finalOrder = [...reorderedVisibleSiblings, ...hiddenSiblings];
+
+			logger.debug('[AlbumTree] Final ordered siblings:', finalOrder);
+
+			// Update order for ALL siblings based on their new positions
+			finalOrder.forEach((id, idx) => {
 				updates.push({
 					id,
 					parentAlbumId: activeNode.parentAlbumId ?? null,
@@ -247,50 +270,62 @@
 			// Different parent: move to new parent and reorder
 			const newParentId = overNode.parentAlbumId ?? null;
 
-			// Get all siblings in the new parent (excluding the dragged item)
-			const newSiblings = localAlbums
+			// Get all siblings in the new parent (excluding the dragged item) from localAlbums
+			const allNewSiblings = localAlbums
 				.filter((a) => (a.parentAlbumId ?? null) === newParentId && a._id !== activeNode._id)
-				.sort((a, b) => (a.order - b.order) || a.name.toString().localeCompare(b.name.toString()));
+				.map((a) => a._id);
 
-			// Find the position where we're inserting
-			const overIndex = newSiblings.findIndex((s) => s._id === overNode._id);
-			const insertIndex = overIndex >= 0 ? overIndex : newSiblings.length;
+			// Get visible siblings in NEW order from transformedItems
+			const reorderedVisibleNewSiblings = transformedItems
+				.filter((item) => (item.parentAlbumId ?? null) === newParentId && item._id !== activeNode._id)
+				.map((item) => item._id);
 
-			// Create new order: insert dragged item at the target position
-			const newOrder = [...newSiblings];
-			newOrder.splice(insertIndex, 0, activeNode as any);
+			// Find the position where we're inserting the dragged item
+			const overIndex = reorderedVisibleNewSiblings.indexOf(overNode._id);
+			const insertIndex = overIndex >= 0 ? overIndex : reorderedVisibleNewSiblings.length;
 
-			// Update all affected albums
-			// 1. Update the moved album's parent and order
-			updates.push({
-				id: activeNode._id,
-				parentAlbumId: newParentId,
-				order: insertIndex
+			logger.debug('[AlbumTree] New parent siblings:', allNewSiblings);
+			logger.debug('[AlbumTree] Reordered visible new siblings:', reorderedVisibleNewSiblings);
+			logger.debug('[AlbumTree] Insert index:', insertIndex);
+
+			// Build final order: visible siblings up to insert point, then dragged item, then rest
+			const finalNewOrder = [
+				...reorderedVisibleNewSiblings.slice(0, insertIndex),
+				activeNode._id,
+				...reorderedVisibleNewSiblings.slice(insertIndex)
+			];
+
+			// Add any hidden siblings (not in visible list) at the end
+			const visibleNewSet = new Set(reorderedVisibleNewSiblings);
+			const hiddenNewSiblings = allNewSiblings.filter((id) => !visibleNewSet.has(id));
+			finalNewOrder.push(...hiddenNewSiblings);
+
+			logger.debug('[AlbumTree] Final new parent order:', finalNewOrder);
+
+			// Update order for ALL siblings in the new parent
+			finalNewOrder.forEach((id, idx) => {
+				updates.push({
+					id,
+					parentAlbumId: newParentId,
+					order: idx
+				});
 			});
 
-			// 2. Update order of siblings after insertion point
-			newOrder.forEach((album, idx) => {
-				if (album._id !== activeNode._id) {
-					updates.push({
-						id: album._id,
-						parentAlbumId: newParentId,
-						order: idx
-					});
-				}
-			});
-
-			// 3. Reorder siblings in the old parent
-			const oldSiblings = localAlbums
+			// Reorder ALL siblings in the old parent (excluding the moved item)
+			const allOldSiblings = localAlbums
 				.filter(
 					(a) =>
 						(a.parentAlbumId ?? null) === (activeNode.parentAlbumId ?? null) &&
 						a._id !== activeNode._id
 				)
-				.sort((a, b) => (a.order - b.order) || a.name.toString().localeCompare(b.name.toString()));
+				.map((a) => a._id);
 
-			oldSiblings.forEach((album, idx) => {
+			logger.debug('[AlbumTree] Old parent siblings to reorder:', allOldSiblings);
+
+			// Update order for ALL siblings in the old parent (sequential: 0, 1, 2, ...)
+			allOldSiblings.forEach((id, idx) => {
 				updates.push({
-					id: album._id,
+					id,
 					parentAlbumId: activeNode.parentAlbumId ?? null,
 					order: idx
 				});
