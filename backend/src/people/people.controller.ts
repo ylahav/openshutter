@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, BadRequestException, NotFoundException, Logger, InternalServerErrorException } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, BadRequestException, NotFoundException, Logger, InternalServerErrorException, Request } from '@nestjs/common';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { connectDB } from '../config/db';
 import mongoose, { Types } from 'mongoose';
@@ -113,12 +113,18 @@ export class PeopleController {
    * Path: POST /api/admin/people
    */
   @Post()
-  async createPerson(@Body() body: any) {
+  async createPerson(@Request() req: any, @Body() body: any) {
     try {
       await connectDB();
       const db = mongoose.connection.db;
       if (!db) throw new InternalServerErrorException('Database connection not established');
       const collection = db.collection('people');
+
+      // Get user from request (set by AdminGuard)
+      const user = req.user;
+      if (!user || !user.id) {
+        throw new BadRequestException('User not authenticated');
+      }
 
       const { firstName, lastName, nickname, birthDate, description, tags, isActive } = body;
 
@@ -159,7 +165,7 @@ export class PeopleController {
             if (!tag) {
               const insertResult = await tagCollection.insertOne({
                 name: tagName.trim(),
-                createdBy: new Types.ObjectId(), // TODO: Get from auth context
+                createdBy: new Types.ObjectId(user.id),
                 createdAt: new Date(),
                 updatedAt: new Date(),
               });
@@ -185,7 +191,7 @@ export class PeopleController {
         description: description || {},
         tags: tagObjectIds,
         isActive: isActive !== undefined ? isActive : true,
-        createdBy: new Types.ObjectId(), // TODO: Get from auth context
+        createdBy: new Types.ObjectId(user.id),
         createdAt: now,
         updatedAt: now,
       };
@@ -248,7 +254,7 @@ export class PeopleController {
             if (!tag) {
               const insertResult = await tagCollection.insertOne({
                 name: tagName.trim(),
-                createdBy: new Types.ObjectId(), // TODO: Get from auth context
+                createdBy: new Types.ObjectId(user.id),
                 createdAt: new Date(),
                 updatedAt: new Date(),
               });

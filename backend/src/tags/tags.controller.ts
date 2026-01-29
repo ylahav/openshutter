@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, BadRequestException, NotFoundException, Logger, InternalServerErrorException } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, BadRequestException, NotFoundException, Logger, InternalServerErrorException, Request } from '@nestjs/common';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { connectDB } from '../config/db';
 import mongoose, { Types } from 'mongoose';
@@ -120,12 +120,18 @@ export class TagsController {
    * Path: POST /api/admin/tags
    */
   @Post()
-  async createTag(@Body() body: any) {
+  async createTag(@Request() req: any, @Body() body: any) {
     try {
       await connectDB();
       const db = mongoose.connection.db;
       if (!db) throw new InternalServerErrorException('Database connection not established');
       const collection = db.collection('tags');
+
+      // Get user from request (set by AdminGuard)
+      const user = req.user;
+      if (!user || !user.id) {
+        throw new BadRequestException('User not authenticated');
+      }
 
       const { name, description, color, category } = body;
 
@@ -204,7 +210,7 @@ export class TagsController {
         category: tagCategory,
         isActive: true,
         usageCount: 0,
-        createdBy: new Types.ObjectId(), // TODO: Get from auth context
+        createdBy: new Types.ObjectId(user.id),
         createdAt: now,
         updatedAt: now,
       };

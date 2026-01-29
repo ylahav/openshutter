@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, BadRequestException, NotFoundException, Logger, InternalServerErrorException } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, BadRequestException, NotFoundException, Logger, InternalServerErrorException, Request } from '@nestjs/common';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { connectDB } from '../config/db';
 import mongoose, { Types } from 'mongoose';
@@ -106,12 +106,18 @@ export class PagesController {
    * Path: POST /api/admin/pages
    */
   @Post()
-  async createPage(@Body() body: any) {
+  async createPage(@Request() req: any, @Body() body: any) {
     try {
       await connectDB();
       const db = mongoose.connection.db;
       if (!db) throw new InternalServerErrorException('Database connection not established');
       const collection = db.collection('pages');
+
+      // Get user from request (set by AdminGuard)
+      const user = req.user;
+      if (!user || !user.id) {
+        throw new BadRequestException('User not authenticated');
+      }
 
       const { title, subtitle, alias, slug, leadingImage, introText, content, category, isPublished, layout } = body;
 
@@ -228,8 +234,8 @@ export class PagesController {
         slug: normalizedSlug,
         category: pageCategory,
         isPublished: Boolean(isPublished),
-        createdBy: new Types.ObjectId(), // TODO: Get from auth context
-        updatedBy: new Types.ObjectId(), // TODO: Get from auth context
+        createdBy: new Types.ObjectId(user.id),
+        updatedBy: new Types.ObjectId(user.id),
         createdAt: now,
         updatedAt: now,
       };
@@ -270,12 +276,18 @@ export class PagesController {
    * Path: PUT /api/admin/pages/:id
    */
   @Put(':id')
-  async updatePage(@Param('id') id: string, @Body() body: any) {
+  async updatePage(@Request() req: any, @Param('id') id: string, @Body() body: any) {
     try {
       await connectDB();
       const db = mongoose.connection.db;
       if (!db) throw new InternalServerErrorException('Database connection not established');
       const collection = db.collection('pages');
+
+      // Get user from request (set by AdminGuard)
+      const user = req.user;
+      if (!user || !user.id) {
+        throw new BadRequestException('User not authenticated');
+      }
 
       const page = await collection.findOne({ _id: new Types.ObjectId(id) });
       if (!page) {
@@ -393,7 +405,7 @@ export class PagesController {
       // Update page
       const updateData: any = {
         updatedAt: new Date(),
-        updatedBy: new Types.ObjectId(), // TODO: Get from auth context
+        updatedBy: new Types.ObjectId(user.id),
       };
 
       if (normalizedTitle !== undefined) updateData.title = normalizedTitle;
