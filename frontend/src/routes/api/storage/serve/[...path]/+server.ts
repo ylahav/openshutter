@@ -5,10 +5,11 @@ import { env } from '$env/dynamic/private';
 const BACKEND_URL = env.BACKEND_URL || process.env.BACKEND_URL || 'http://localhost:5000';
 
 export const GET: RequestHandler = async ({ params, request, cookies }) => {
+	let pathArray: string[] = [];
 	try {
 		const { path: pathSegments } = await params;
 		// Ensure pathSegments is an array
-		const pathArray = Array.isArray(pathSegments) ? pathSegments : (typeof pathSegments === 'string' ? [pathSegments] : []);
+		pathArray = Array.isArray(pathSegments) ? pathSegments : (typeof pathSegments === 'string' ? [pathSegments] : []);
 		const filePath = pathArray.join('/');
 
 		// Extract provider and file path from the URL

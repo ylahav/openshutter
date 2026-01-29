@@ -1,6 +1,5 @@
 import { connectToDatabase } from '../lib/mongodb.js'
 import { storageManager } from '../services/storage/manager.js'
-import sharp from 'sharp'
 import ExifParser from 'exif-parser'
 
 async function extractExifFromExistingPhotos() {

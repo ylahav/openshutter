@@ -7,6 +7,7 @@
 
 import { MultiLangUtils } from '$utils/multiLang';
 import { currentLanguage } from '$stores/language';
+import { get } from 'svelte/store';
 
 /**
  * Album-like object with name property
@@ -49,8 +50,8 @@ export function getAlbumName(album: AlbumLike | null, useReactive: boolean = tru
 	}
 	
 	if (useReactive) {
-		// Use reactive language store - Svelte will track this dependency
-		return MultiLangUtils.getTextValue(album.name, $currentLanguage) || '(No name)';
+		// Get current language value from store
+		return MultiLangUtils.getTextValue(album.name, get(currentLanguage)) || '(No name)';
 	}
 	
 	// Fallback to simple extraction (non-reactive)
@@ -86,8 +87,8 @@ export function getAlbumDescription(album: AlbumWithDescription | null, useReact
 	}
 	
 	if (useReactive) {
-		// Use reactive language store - Svelte will track this dependency
-		return MultiLangUtils.getHTMLValue(album.description, $currentLanguage) || '';
+		// Get current language value from store
+		return MultiLangUtils.getHTMLValue(album.description, get(currentLanguage)) || '';
 	}
 	
 	// Fallback to simple extraction (non-reactive)

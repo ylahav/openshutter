@@ -1,5 +1,5 @@
 import { connectToDatabase } from '$lib/mongodb'
-import type { Album, Photo } from '$lib/types'
+import type { Photo } from '$lib/types'
 import { ObjectId } from 'mongodb'
 import { logger } from '$lib/utils/logger'
 

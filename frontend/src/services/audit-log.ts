@@ -1,5 +1,5 @@
 import { connectToDatabase } from '$lib/mongodb'
-import type { AuditAction, AuditLogEntry, UserRole } from '$lib/types'
+import type { AuditAction, AuditLogEntry } from '$lib/types'
 
 export async function writeAuditLog(entry: Omit<AuditLogEntry, 'timestamp'>): Promise<void> {
   const { db } = await connectToDatabase()
@@ -38,5 +38,3 @@ export async function findAuditLogs(query: AuditLogQuery, limit = 100, skip = 0)
     .limit(limit)
     .toArray()
 }
-
-

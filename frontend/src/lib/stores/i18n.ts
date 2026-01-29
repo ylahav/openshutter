@@ -1,6 +1,5 @@
 import { writable, derived, get } from 'svelte/store';
 import { currentLanguage } from './language';
-import type { LanguageCode } from '../types/multi-lang';
 import enTranslations from '../../i18n/en.json';
 import heTranslations from '../../i18n/he.json';
 

@@ -7,6 +7,7 @@
 
 import { MultiLangUtils } from '$utils/multiLang';
 import { currentLanguage } from '$stores/language';
+import { get } from 'svelte/store';
 
 /**
  * Photo-like object with title and filename
@@ -43,8 +44,8 @@ export function getPhotoTitle(photo: PhotoLike, useReactive: boolean = true): st
 		}
 		
 		if (useReactive) {
-			// Use reactive language store - Svelte will track this dependency
-			return MultiLangUtils.getTextValue(photo.title, $currentLanguage) || photo.filename;
+			// Get current language value from store
+			return MultiLangUtils.getTextValue(photo.title, get(currentLanguage)) || photo.filename;
 		}
 		
 		// Fallback to simple extraction (non-reactive)
