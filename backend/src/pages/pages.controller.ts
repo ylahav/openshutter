@@ -225,8 +225,13 @@ export class PagesController {
         throw new BadRequestException('Page with this slug already exists');
       }
 
+      // Performance: Combine map+filter into single reduce to avoid two passes
       const layoutZones = Array.isArray(layout?.zones)
-        ? layout.zones.map((zone: string) => String(zone).trim()).filter(Boolean)
+        ? layout.zones.reduce((acc: string[], zone: string) => {
+            const trimmed = String(zone).trim();
+            if (trimmed) acc.push(trimmed);
+            return acc;
+          }, [])
         : undefined;
 
       // Create page
@@ -397,8 +402,13 @@ export class PagesController {
         }
       }
 
+      // Performance: Combine map+filter into single reduce to avoid two passes
       const layoutZones = Array.isArray(layout?.zones)
-        ? layout.zones.map((zone: string) => String(zone).trim()).filter(Boolean)
+        ? layout.zones.reduce((acc: string[], zone: string) => {
+            const trimmed = String(zone).trim();
+            if (trimmed) acc.push(trimmed);
+            return acc;
+          }, [])
         : undefined;
 
       // Validate category

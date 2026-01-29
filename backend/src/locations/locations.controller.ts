@@ -31,14 +31,17 @@ export class LocationsController {
       const query: any = {};
 
       if (search) {
+        // Performance: Cache language codes to avoid repeated map operations
         const langs = SUPPORTED_LANGUAGES.map((l) => l.code);
+        const nameQueries = langs.map((code) => ({ [`name.${code}`]: { $regex: search, $options: 'i' } }));
+        const descQueries = langs.map((code) => ({ [`description.${code}`]: { $regex: search, $options: 'i' } }));
         query.$or = [
           { address: { $regex: search, $options: 'i' } },
           { city: { $regex: search, $options: 'i' } },
           { state: { $regex: search, $options: 'i' } },
           { country: { $regex: search, $options: 'i' } },
-          ...langs.map((code) => ({ [`name.${code}`]: { $regex: search, $options: 'i' } })),
-          ...langs.map((code) => ({ [`description.${code}`]: { $regex: search, $options: 'i' } })),
+          ...nameQueries,
+          ...descQueries,
         ];
       }
 

@@ -104,7 +104,12 @@ export class PhotosController {
       try {
         parsedTags = JSON.parse(rawTags);
       } catch {
-        parsedTags = rawTags.split(',').map((value) => value.trim()).filter(Boolean);
+        // Performance: Combine map+filter into single reduce to avoid two passes
+        parsedTags = rawTags.split(',').reduce((acc: string[], value: string) => {
+          const trimmed = value.trim();
+          if (trimmed) acc.push(trimmed);
+          return acc;
+        }, []);
       }
     }
 
@@ -166,7 +171,12 @@ export class PhotosController {
       try {
         parsedTags = JSON.parse(tags);
       } catch {
-        parsedTags = tags.split(',').map((value) => value.trim()).filter(Boolean);
+        // Performance: Combine map+filter into single reduce to avoid two passes
+        parsedTags = tags.split(',').reduce((acc: string[], value: string) => {
+          const trimmed = value.trim();
+          if (trimmed) acc.push(trimmed);
+          return acc;
+        }, []);
       }
     }
 

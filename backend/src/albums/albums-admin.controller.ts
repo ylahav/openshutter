@@ -614,17 +614,25 @@ export class AlbumsAdminController {
 			}
 
 			// Update tags if provided (convert string IDs to ObjectIds)
+			// Performance: Combine filter+map into single reduce to avoid two passes
 			if (updateData.tags !== undefined && Array.isArray(updateData.tags)) {
-				update.tags = updateData.tags
-					.filter((tagId: any) => tagId && Types.ObjectId.isValid(tagId))
-					.map((tagId: string) => new Types.ObjectId(tagId));
+				update.tags = updateData.tags.reduce((acc: Types.ObjectId[], tagId: any) => {
+					if (tagId && Types.ObjectId.isValid(tagId)) {
+						acc.push(new Types.ObjectId(tagId));
+					}
+					return acc;
+				}, []);
 			}
 
 			// Update people if provided (convert string IDs to ObjectIds)
+			// Performance: Combine filter+map into single reduce to avoid two passes
 			if (updateData.people !== undefined && Array.isArray(updateData.people)) {
-				update.people = updateData.people
-					.filter((personId: any) => personId && Types.ObjectId.isValid(personId))
-					.map((personId: string) => new Types.ObjectId(personId));
+				update.people = updateData.people.reduce((acc: Types.ObjectId[], personId: any) => {
+					if (personId && Types.ObjectId.isValid(personId)) {
+						acc.push(new Types.ObjectId(personId));
+					}
+					return acc;
+				}, []);
 			}
 
 			// Update location if provided

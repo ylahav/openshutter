@@ -23,7 +23,14 @@ async function bootstrap() {
   const defaultOrigins = ['http://localhost:4000', 'http://localhost:3000', 'http://0.0.0.0:3000'];
   
   const allowedOrigins = frontendUrl
-    ? [...frontendUrl.split(',').map(url => url.trim()).filter(Boolean), ...defaultOrigins]
+    ? [
+        ...frontendUrl.split(',').reduce((acc: string[], url: string) => {
+          const trimmed = url.trim();
+          if (trimmed) acc.push(trimmed);
+          return acc;
+        }, []),
+        ...defaultOrigins
+      ]
     : defaultOrigins;
   
   // Remove duplicates
