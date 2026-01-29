@@ -1,5 +1,5 @@
 import sharp from 'sharp'
-import { logger } from '@/lib/utils/logger'
+import { logger } from '$lib/utils/logger'
 
 export interface ThumbnailSize {
   name: string

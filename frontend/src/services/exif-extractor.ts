@@ -1,6 +1,6 @@
-import { connectToDatabase } from '@/lib/mongodb'
+import { connectToDatabase } from '$lib/mongodb'
 import { storageManager } from './storage/manager'
-import { logger } from '@/lib/utils/logger'
+import { logger } from '$lib/utils/logger'
 
 export interface ExifData {
   // Basic Camera Information

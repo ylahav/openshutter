@@ -1,8 +1,8 @@
-import type { TemplateConfig, SiteTemplateConfig } from '@/types/template'
+import type { TemplateConfig, SiteTemplateConfig } from '$lib/types/template'
 import { TemplateOverridesService } from './template-overrides'
 import type { TemplateWithOverrides } from './template-overrides'
-import type { SiteConfig } from '@/types/site-config'
-import { logger } from '@/lib/utils/logger'
+import type { SiteConfig } from '$lib/types/site-config'
+import { logger } from '$lib/utils/logger'
 
 export class TemplateService {
   private static instance: TemplateService

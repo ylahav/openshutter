@@ -1,7 +1,7 @@
-import { connectToDatabase } from '@/lib/mongodb'
+import { connectToDatabase } from '$lib/mongodb'
 import { ObjectId } from 'mongodb'
 import { QueryMonitor } from './query-monitor'
-import { logger } from '@/lib/utils/logger'
+import { logger } from '$lib/utils/logger'
 
 export interface QueryOptimizationOptions {
   useAggregation?: boolean

@@ -1,7 +1,7 @@
-import type { TemplateConfig } from '@/types/template'
-import type { SiteConfig } from '@/types/site-config'
-import { logger } from '@/lib/utils/logger'
-import { handleApiErrorResponse } from '@/lib/utils/errorHandler'
+import type { TemplateConfig } from '$lib/types/template'
+import type { SiteConfig } from '$lib/types/site-config'
+import { logger } from '$lib/utils/logger'
+import { handleApiErrorResponse } from '$lib/utils/errorHandler'
 
 export interface TemplateWithOverrides extends TemplateConfig {
   // Mark that this template has been processed with overrides

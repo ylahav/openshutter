@@ -1,7 +1,7 @@
-import { connectToDatabase } from '@/lib/mongodb'
-import type { SiteConfig, SiteConfigUpdate } from '@/types/site-config'
-import type { MultiLangText, MultiLangHTML } from '@/types/multi-lang'
-import { MultiLangUtils } from '@/types/multi-lang'
+import { connectToDatabase } from '$lib/mongodb'
+import type { SiteConfig, SiteConfigUpdate } from '$lib/types/site-config'
+import type { MultiLangText, MultiLangHTML } from '$lib/types/multi-lang'
+import { MultiLangUtils } from '$lib/types/multi-lang'
 
 export class SiteConfigService {
   private static instance: SiteConfigService

@@ -1,4 +1,4 @@
-import { logger } from '@/lib/utils/logger'
+import { logger } from '$lib/utils/logger'
 
 export interface PerformanceMetrics {
   pageLoadTime: number

@@ -5,7 +5,7 @@
  * Client-side only (browser) - must not be executed during SSR
  */
 
-import { logger } from '@/lib/utils/logger'
+import { logger } from '$lib/utils/logger'
 
 // Dynamic import to avoid SSR issues
 let faceapi: typeof import('face-api.js') | null = null;

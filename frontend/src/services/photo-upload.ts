@@ -1,10 +1,10 @@
 import sharp from 'sharp'
-import { connectToDatabase } from '@/lib/mongodb'
+import { connectToDatabase } from '$lib/mongodb'
 import { storageManager } from './storage/manager'
 import { ObjectId } from 'mongodb'
 import { ThumbnailGenerator } from './thumbnail-generator'
 import { ImageCompressionService } from './image-compression'
-import { logger } from '@/lib/utils/logger'
+import { logger } from '$lib/utils/logger'
 
 export interface PhotoUploadOptions {
   albumId?: string

@@ -94,7 +94,7 @@ export interface StorageConfig {
 }
 
 // Album Types
-import { MultiLangText, MultiLangHTML } from '@/types/multi-lang'
+import type { MultiLangText, MultiLangHTML } from '$lib/types/multi-lang'
 
 export interface Album {
   _id?: string

@@ -7,7 +7,7 @@
 import { Canvas, Image, ImageData } from 'canvas'
 import * as fs from 'fs'
 import * as path from 'path'
-import { logger } from '@/lib/utils/logger'
+import { logger } from '$lib/utils/logger'
 
 // Lazy load face-api.js to avoid monkeyPatch issues at module load time
 let faceapi: typeof import('face-api.js') | null = null

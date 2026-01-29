@@ -1,5 +1,5 @@
-import { connectToDatabase } from '@/lib/mongodb'
-import type { AuditAction, AuditLogEntry, UserRole } from '@/types'
+import { connectToDatabase } from '$lib/mongodb'
+import type { AuditAction, AuditLogEntry, UserRole } from '$lib/types'
 
 export async function writeAuditLog(entry: Omit<AuditLogEntry, 'timestamp'>): Promise<void> {
   const { db } = await connectToDatabase()
