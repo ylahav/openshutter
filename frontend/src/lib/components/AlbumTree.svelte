@@ -478,7 +478,7 @@
 									{/if}
 								</div>
 								<div class="text-sm text-gray-500">
-									{node.photoCount || 0} photos • Level {node.level}
+									{node.photoCount || 0} photos • Level {node.level} • Order {node.order}
 								</div>
 							</div>
 						</div>
