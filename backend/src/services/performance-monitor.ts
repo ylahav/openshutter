@@ -1,3 +1,5 @@
+import { Logger } from '@nestjs/common'
+
 export interface PerformanceMetrics {
   pageLoadTime: number
   imageLoadTime: number
@@ -16,6 +18,7 @@ export interface ImageLoadMetrics {
 }
 
 export class PerformanceMonitor {
+  private static readonly logger = new Logger(PerformanceMonitor.name)
   private static metrics: PerformanceMetrics = {
     pageLoadTime: 0,
     imageLoadTime: 0,
@@ -80,7 +83,7 @@ export class PerformanceMonitor {
     const responseTime = performance.now() - startTime
     this.metrics.apiResponseTime = responseTime
     
-    console.log(`API ${endpoint} responded in ${responseTime.toFixed(2)}ms`)
+    PerformanceMonitor.logger.debug(`API ${endpoint} responded in ${responseTime.toFixed(2)}ms`)
   }
 
   /**
@@ -96,7 +99,7 @@ export class PerformanceMonitor {
     this.metrics.compressionRatio = compressionRatio
     this.metrics.bandwidthSaved += bandwidthSaved
     
-    console.log(`Image compressed: ${originalSize} → ${compressedSize} bytes (${((1 - compressionRatio) * 100).toFixed(1)}% reduction)`)
+    PerformanceMonitor.logger.debug(`Image compressed: ${originalSize} → ${compressedSize} bytes (${((1 - compressionRatio) * 100).toFixed(1)}% reduction)`)
   }
 
   /**
@@ -187,6 +190,6 @@ export class PerformanceMonitor {
    * Log performance metrics to console
    */
   static logMetrics(): void {
-    console.log(this.generateReport())
+    PerformanceMonitor.logger.debug(this.generateReport())
   }
 }

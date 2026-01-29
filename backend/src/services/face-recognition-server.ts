@@ -4,6 +4,7 @@
  * Uses face-api.js with Node.js canvas for server-side processing
  */
 
+import { Logger } from '@nestjs/common'
 import { Canvas, Image, ImageData } from 'canvas'
 import * as fs from 'fs'
 import * as path from 'path'
@@ -33,20 +34,20 @@ async function getFaceApi() {
           try {
             // createNodejsEnv should set up the internal environment
             const nodeEnv = env.createNodejsEnv({ Canvas, Image, ImageData } as any)
-            console.log('Created Node.js environment using createNodejsEnv()', nodeEnv ? 'with return value' : 'without return value')
+            FaceRecognitionServerService.logger.debug(`Created Node.js environment using createNodejsEnv() ${nodeEnv ? 'with return value' : 'without return value'}`)
             
             // If it returns an environment object, try to use setEnv with it
             if (nodeEnv && typeof env.setEnv === 'function') {
               try {
                 // Try setting the environment explicitly
                 env.setEnv(nodeEnv)
-                console.log('Set environment using returned nodeEnv object')
+                FaceRecognitionServerService.logger.debug('Set environment using returned nodeEnv object')
               } catch (e) {
-                console.warn('setEnv(nodeEnv) failed:', e)
+                FaceRecognitionServerService.logger.warn(`setEnv(nodeEnv) failed: ${e instanceof Error ? e.message : String(e)}`)
               }
             }
           } catch (e) {
-            console.warn('createNodejsEnv() failed:', e)
+            FaceRecognitionServerService.logger.warn('createNodejsEnv() failed:', e)
           }
         }
         
@@ -68,14 +69,14 @@ async function getFaceApi() {
           try {
             // Try setting to 'node' string
             env.setEnv('node')
-            console.log('Set environment to "node" using setEnv()')
+            FaceRecognitionServerService.logger.debug('Set environment to "node" using setEnv()')
           } catch (_e) {
             // If that fails, try with an object
             try {
               env.setEnv({ isNodejs: true, isBrowser: false })
-              console.log('Set environment using object')
+              FaceRecognitionServerService.logger.debug('Set environment using object')
             } catch (_e2) {
-              console.warn('setEnv() failed:', _e2)
+              FaceRecognitionServerService.logger.warn('setEnv() failed:', _e2)
             }
           }
         }
@@ -84,18 +85,18 @@ async function getFaceApi() {
         if (typeof env.initialize === 'function') {
           try {
             env.initialize()
-            console.log('Initialized environment')
+            FaceRecognitionServerService.logger.debug('Initialized environment')
           } catch (e) {
-            console.warn('env.initialize() failed:', e)
+            FaceRecognitionServerService.logger.warn('env.initialize() failed:', e)
           }
         }
         
         // Step 5: Verify environment state
-        console.log('Environment check:', {
+        FaceRecognitionServerService.logger.debug(`Environment check: ${JSON.stringify({
           isNodejs: env.isNodejs ? env.isNodejs() : 'not a function',
           isBrowser: env.isBrowser ? env.isBrowser() : 'not a function',
           hasGetEnv: typeof env.getEnv === 'function'
-        })
+        })}`)
         
         // Check if monkeyPatch is available
         if (!faceapi.env.monkeyPatch) {
@@ -106,17 +107,17 @@ async function getFaceApi() {
         // The environment should be properly initialized now
         faceapi.env.monkeyPatch({ Canvas, Image, ImageData } as any)
         _isPatched = true
-        console.log('Face-api.js monkeyPatch successful')
+        FaceRecognitionServerService.logger.debug('Face-api.js monkeyPatch successful')
       } catch (error) {
-        console.error('Failed to monkey patch face-api.js:', error)
-        console.error('Environment check:', {
+        FaceRecognitionServerService.logger.error(`Failed to monkey patch face-api.js: ${error instanceof Error ? error.message : String(error)}`)
+        FaceRecognitionServerService.logger.error(`Environment check: ${JSON.stringify({
           hasProcess: typeof process !== 'undefined',
           hasVersions: typeof process !== 'undefined' && !!process.versions,
           hasNode: typeof process !== 'undefined' && !!process.versions?.node,
           envType: typeof faceapi.env,
           hasMonkeyPatch: typeof faceapi.env.monkeyPatch === 'function',
           envKeys: faceapi.env ? Object.keys(faceapi.env) : []
-        })
+        })}`)
         const errorMessage = error instanceof Error ? error.message : String(error)
         throw new Error(`Failed to initialize face-api.js for Node.js: ${errorMessage}. Make sure canvas package is installed.`)
       }
@@ -144,6 +145,7 @@ export interface FaceDetection {
 }
 
 export class FaceRecognitionServerService {
+  private static readonly logger = new Logger(FaceRecognitionServerService.name)
   private static modelsLoaded = false
   private static loadingPromise: Promise<void> | null = null
   private static modelsPath: string
@@ -174,17 +176,17 @@ export class FaceRecognitionServerService {
         // Get face-api.js instance (will patch if needed)
         const faceApi = await getFaceApi()
         
-        console.log('FaceRecognitionServerService: Loading models from:', pathToModels)
-        console.log('FaceRecognitionServerService: Current working directory:', process.cwd())
-        console.log('FaceRecognitionServerService: Models path exists:', fs.existsSync(pathToModels))
+        FaceRecognitionServerService.logger.debug(`FaceRecognitionServerService: Loading models from: ${pathToModels}`)
+        FaceRecognitionServerService.logger.debug(`FaceRecognitionServerService: Current working directory: ${process.cwd()}`)
+        FaceRecognitionServerService.logger.debug(`FaceRecognitionServerService: Models path exists: ${fs.existsSync(pathToModels)}`)
         
         // Check if models directory exists
         if (!fs.existsSync(pathToModels)) {
           const absolutePath = path.resolve(pathToModels)
-          console.error('FaceRecognitionServerService: Models directory not found')
-          console.error('  Expected path:', pathToModels)
-          console.error('  Absolute path:', absolutePath)
-          console.error('  Path exists:', fs.existsSync(absolutePath))
+          FaceRecognitionServerService.logger.error('FaceRecognitionServerService: Models directory not found')
+          FaceRecognitionServerService.logger.error('  Expected path:', pathToModels)
+          FaceRecognitionServerService.logger.error('  Absolute path:', absolutePath)
+          FaceRecognitionServerService.logger.error('  Path exists:', fs.existsSync(absolutePath))
           throw new Error(`Models directory not found: ${pathToModels} (absolute: ${absolutePath})`)
         }
 
@@ -204,44 +206,44 @@ export class FaceRecognitionServerService {
           throw new Error(`Face recognition model not found: ${recognitionPath}`)
         }
 
-        console.log('Loading face recognition models from:', {
+        FaceRecognitionServerService.logger.debug(`Loading face recognition models from: ${JSON.stringify({
           tinyFacePath,
           landmarkPath,
           recognitionPath
-        })
+        })}`)
 
         // Load models one by one to get better error messages
         try {
-          console.log('Loading tinyFaceDetector...')
+          FaceRecognitionServerService.logger.debug('Loading tinyFaceDetector...')
           await faceApi.nets.tinyFaceDetector.loadFromDisk(tinyFacePath)
-          console.log('tinyFaceDetector loaded successfully')
+          FaceRecognitionServerService.logger.debug('tinyFaceDetector loaded successfully')
         } catch (error) {
-          console.error('Failed to load tinyFaceDetector:', error)
+          FaceRecognitionServerService.logger.error('Failed to load tinyFaceDetector:', error)
           throw new Error(`Failed to load tinyFaceDetector model from ${tinyFacePath}: ${error instanceof Error ? error.message : String(error)}`)
         }
 
         try {
-          console.log('Loading faceLandmark68Net...')
+          FaceRecognitionServerService.logger.debug('Loading faceLandmark68Net...')
           await faceApi.nets.faceLandmark68Net.loadFromDisk(landmarkPath)
-          console.log('faceLandmark68Net loaded successfully')
+          FaceRecognitionServerService.logger.debug('faceLandmark68Net loaded successfully')
         } catch (error) {
-          console.error('Failed to load faceLandmark68Net:', error)
+          FaceRecognitionServerService.logger.error(`Failed to load faceLandmark68Net: ${error instanceof Error ? error.message : String(error)}`)
           throw new Error(`Failed to load faceLandmark68Net model from ${landmarkPath}: ${error instanceof Error ? error.message : String(error)}`)
         }
 
         try {
-          console.log('Loading faceRecognitionNet...')
+          FaceRecognitionServerService.logger.debug('Loading faceRecognitionNet...')
           await faceApi.nets.faceRecognitionNet.loadFromDisk(recognitionPath)
-          console.log('faceRecognitionNet loaded successfully')
+          FaceRecognitionServerService.logger.debug('faceRecognitionNet loaded successfully')
         } catch (error) {
-          console.error('Failed to load faceRecognitionNet:', error)
+          FaceRecognitionServerService.logger.error(`Failed to load faceRecognitionNet: ${error instanceof Error ? error.message : String(error)}`)
           throw new Error(`Failed to load faceRecognitionNet model from ${recognitionPath}: ${error instanceof Error ? error.message : String(error)}`)
         }
 
         this.modelsLoaded = true
-        console.log('Face recognition models loaded successfully (server-side)')
+        FaceRecognitionServerService.logger.log('Face recognition models loaded successfully (server-side)')
       } catch (error) {
-        console.error('Failed to load face recognition models:', error)
+        FaceRecognitionServerService.logger.error(`Failed to load face recognition models: ${error instanceof Error ? error.message : String(error)}`)
         const errorMessage = error instanceof Error ? error.message : String(error)
         throw new Error(`Failed to load face recognition models from ${pathToModels}: ${errorMessage}`)
       }

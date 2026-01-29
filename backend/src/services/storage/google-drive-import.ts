@@ -32,7 +32,7 @@ export class GoogleDriveImportService extends GoogleDriveService {
       
       return folders
     } catch (error) {
-      console.error('Failed to list Google Drive folders:', error)
+      this.logger.error(`Failed to list Google Drive folders: ${error instanceof Error ? error.message : String(error)}`)
       throw new Error(`Failed to list folders: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
@@ -84,7 +84,7 @@ export class GoogleDriveImportService extends GoogleDriveService {
         nextPageToken = response.data.nextPageToken
       } while (nextPageToken)
     } catch (error) {
-      console.warn(`Failed to scan folder ${folderId}:`, error)
+      this.logger.warn(`Failed to scan folder ${folderId}: ${error instanceof Error ? error.message : String(error)}`)
       // Continue with other folders even if one fails
     }
   }
@@ -105,7 +105,7 @@ export class GoogleDriveImportService extends GoogleDriveService {
       
       return files
     } catch (error) {
-      console.error('Failed to list Google Drive files:', error)
+      this.logger.error(`Failed to list Google Drive files: ${error instanceof Error ? error.message : String(error)}`)
       throw new Error(`Failed to list files: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
@@ -160,7 +160,7 @@ export class GoogleDriveImportService extends GoogleDriveService {
               mimeType: file.mimeType!
             })
           } catch (fileError: any) {
-            console.warn(`Failed to process file ${file.name}:`, fileError.message)
+            this.logger.warn(`Failed to process file ${file.name}: ${fileError.message}`)
             // Continue with other files
           }
         }
@@ -181,7 +181,7 @@ export class GoogleDriveImportService extends GoogleDriveService {
         }
       }
     } catch (error) {
-      console.warn(`Failed to scan files in folder ${folderId}:`, error)
+      this.logger.warn(`Failed to scan files in folder ${folderId}: ${error instanceof Error ? error.message : String(error)}`)
       // Continue with other folders even if one fails
     }
   }
@@ -203,7 +203,7 @@ export class GoogleDriveImportService extends GoogleDriveService {
       const filePath = `${parentPath}/${file.name}`
       return await super.getFileBuffer(filePath)
     } catch (error) {
-      console.error(`Failed to get file buffer for ${fileId}:`, error)
+      this.logger.error(`Failed to get file buffer for ${fileId}:`, error)
       return null
     }
   }
@@ -243,14 +243,14 @@ export class GoogleDriveImportService extends GoogleDriveService {
           currentId = folder.parents[0]
         } catch (folderError: any) {
           // If we can't access a parent folder, stop traversing and use what we have
-          console.warn(`Cannot access parent folder ${currentId}:`, folderError.message)
+          this.logger.warn(`Cannot access parent folder ${currentId}: ${folderError.message}`)
           break
         }
       }
 
       return pathParts.length > 0 ? '/' + pathParts.join('/') : `/${folderId}`
     } catch (error) {
-      console.error(`Failed to get folder path for ${folderId}:`, error)
+      this.logger.error(`Failed to get folder path for ${folderId}:`, error)
       return `/${folderId}`
     }
   }
@@ -269,7 +269,7 @@ export class GoogleDriveImportService extends GoogleDriveService {
 
       return `${parentPath}/${file.name}`
     } catch (error) {
-      console.error(`Failed to get file path for ${fileId}:`, error)
+      this.logger.error(`Failed to get file path for ${fileId}:`, error)
       return `/${fileId}`
     }
   }

@@ -1,3 +1,5 @@
+import { Logger } from '@nestjs/common'
+
 export interface QueryMetrics {
   queryName: string
   executionTime: number
@@ -14,6 +16,7 @@ export interface PerformanceThresholds {
 }
 
 export class QueryMonitor {
+  private static readonly logger = new Logger(QueryMonitor.name)
   private static metrics: QueryMetrics[] = []
   private static thresholds: PerformanceThresholds = {
     slowQueryThreshold: 1000, // 1 second
@@ -43,17 +46,17 @@ export class QueryMonitor {
       
       // Log slow queries
       if (executionTime > this.thresholds.slowQueryThreshold) {
-        console.warn(`🐌 Slow query detected: ${queryName} took ${executionTime.toFixed(2)}ms`)
+        QueryMonitor.logger.warn(`🐌 Slow query detected: ${queryName} took ${executionTime.toFixed(2)}ms`)
       }
       
       // Log large result sets
       if (resultCount > this.thresholds.maxResultCount) {
-        console.warn(`📊 Large result set: ${queryName} returned ${resultCount} results`)
+        QueryMonitor.logger.warn(`📊 Large result set: ${queryName} returned ${resultCount} results`)
       }
       
       // Log errors
       if (error) {
-        console.error(`❌ Query error: ${queryName} - ${error}`)
+        QueryMonitor.logger.error(`❌ Query error: ${queryName} - ${error}`)
       }
     }
   }

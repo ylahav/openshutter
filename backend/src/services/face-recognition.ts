@@ -5,6 +5,7 @@
  * Supports both client-side (browser) and server-side (Node.js) processing
  */
 
+import { Logger } from '@nestjs/common'
 import * as faceapi from 'face-api.js'
 
 export interface FaceDetection {
@@ -30,6 +31,7 @@ export interface FaceMatch {
 }
 
 export class FaceRecognitionService {
+  private static readonly logger = new Logger(FaceRecognitionService.name)
   private static modelsLoaded = false
   private static loadingPromise: Promise<void> | null = null
 
@@ -63,14 +65,14 @@ export class FaceRecognitionService {
         ])
 
         this.modelsLoaded = true
-        console.log('Face recognition models loaded successfully')
+        FaceRecognitionService.logger.log('Face recognition models loaded successfully')
       } catch (error) {
-        console.error('Failed to load face recognition models:', error)
-        console.error('Model base URL:', '/models/face-api')
-        console.error('Expected structure:')
-        console.error('  /models/face-api/tiny_face_detector/tiny_face_detector_model-weights_manifest.json')
-        console.error('  /models/face-api/face_landmark_68/face_landmark_68_model-weights_manifest.json')
-        console.error('  /models/face-api/face_recognition/face_recognition_model-weights_manifest.json')
+        FaceRecognitionService.logger.error(`Failed to load face recognition models: ${error instanceof Error ? error.message : String(error)}`)
+        FaceRecognitionService.logger.error('Model base URL: /models/face-api')
+        FaceRecognitionService.logger.error('Expected structure:')
+        FaceRecognitionService.logger.error('  /models/face-api/tiny_face_detector/tiny_face_detector_model-weights_manifest.json')
+        FaceRecognitionService.logger.error('  /models/face-api/face_landmark_68/face_landmark_68_model-weights_manifest.json')
+        FaceRecognitionService.logger.error('  /models/face-api/face_recognition/face_recognition_model-weights_manifest.json')
         throw new Error('Failed to load face recognition models. Please ensure models are available at /models/face-api with subdirectories: tiny_face_detector, face_landmark_68, face_recognition')
       }
     })()
