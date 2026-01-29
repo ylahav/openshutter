@@ -1,5 +1,5 @@
 import mongoose, { Document, Schema, Types } from 'mongoose'
-import { MultiLangText } from '$lib/types/multi-lang'
+import type { MultiLangText } from '$lib/types/multi-lang'
 
 export interface IPerson extends Document {
   firstName: MultiLangText

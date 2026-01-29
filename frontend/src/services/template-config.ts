@@ -1,5 +1,5 @@
-import { SiteConfig } from '@/types/site-config'
-import { TemplateConfig } from '@/types/template'
+import type { SiteConfig } from '@/types/site-config'
+import type { TemplateConfig } from '@/types/template'
 import { templateService } from './template'
 
 export interface TemplateComponentVisibility {

@@ -1,6 +1,6 @@
 import { connectToDatabase } from '$lib/mongodb'
 import { ObjectId } from 'mongodb'
-import { UserSession, AlbumAccessInfo } from './access-control'
+import type { UserSession, AlbumAccessInfo } from './access-control'
 import { logger } from './utils/logger'
 
 /**

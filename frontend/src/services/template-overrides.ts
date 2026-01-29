@@ -1,5 +1,5 @@
-import { TemplateConfig } from '@/types/template'
-import { SiteConfig } from '@/types/site-config'
+import type { TemplateConfig } from '@/types/template'
+import type { SiteConfig } from '@/types/site-config'
 import { logger } from '@/lib/utils/logger'
 import { handleApiErrorResponse } from '@/lib/utils/errorHandler'
 

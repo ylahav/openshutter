@@ -1,6 +1,7 @@
-import { TemplateConfig, SiteTemplateConfig } from '@/types/template'
-import { TemplateOverridesService, TemplateWithOverrides } from './template-overrides'
-import { SiteConfig } from '@/types/site-config'
+import type { TemplateConfig, SiteTemplateConfig } from '@/types/template'
+import { TemplateOverridesService } from './template-overrides'
+import type { TemplateWithOverrides } from './template-overrides'
+import type { SiteConfig } from '@/types/site-config'
 import { logger } from '@/lib/utils/logger'
 
 export class TemplateService {

@@ -1,4 +1,4 @@
-import { MultiLangText, MultiLangHTML } from './multi-lang';
+import type { MultiLangText, MultiLangHTML } from './multi-lang';
 
 export interface SiteConfig {
   _id?: string

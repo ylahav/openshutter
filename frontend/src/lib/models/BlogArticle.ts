@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose'
-import { MultiLangText } from '$lib/types/multi-lang'
+import type { MultiLangText } from '$lib/types/multi-lang'
 
 export interface IBlogArticle extends Document {
   _id: any
