@@ -1,4 +1,5 @@
 import sharp from 'sharp'
+import { Logger } from '@nestjs/common'
 
 export interface ThumbnailSize {
   name: string
@@ -17,6 +18,8 @@ export interface ImageDimensions {
 }
 
 export class ThumbnailGenerator {
+  private readonly logger = new Logger(ThumbnailGenerator.name)
+  
   // Define multiple thumbnail sizes for different use cases
   // All sizes maintain aspect ratio by default
   private static readonly THUMBNAIL_SIZES: ThumbnailSize[] = [
@@ -147,7 +150,7 @@ export class ThumbnailGenerator {
         const thumbnail = await this.generateThumbnail(imageBuffer, size, imageDimensions)
         thumbnails[size.name] = thumbnail
       } catch (error) {
-        console.error(`Failed to generate ${size.name} thumbnail:`, error)
+        this.logger.error(`Failed to generate ${size.name} thumbnail: ${error instanceof Error ? error.message : String(error)}`)
         // Continue with other sizes even if one fails
       }
     }
@@ -225,7 +228,7 @@ export class ThumbnailGenerator {
 
       return `data:image/jpeg;base64,${blurBuffer.toString('base64')}`
     } catch (error) {
-      console.error('Failed to generate blur placeholder:', error)
+      this.logger.error(`Failed to generate blur placeholder: ${error instanceof Error ? error.message : String(error)}`)
       // Return a simple gradient as fallback
       return this.generateFallbackBlurDataURL(width, height)
     }

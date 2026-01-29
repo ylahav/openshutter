@@ -1,4 +1,5 @@
 import { google } from 'googleapis'
+import { Logger } from '@nestjs/common'
 import { 
   IStorageService, 
   StorageProviderId, 
@@ -12,6 +13,7 @@ import {
 import { storageConfigService } from '../config'
 
 export class GoogleDriveService implements IStorageService {
+  private readonly logger = new Logger(GoogleDriveService.name)
   private providerId: StorageProviderId = 'google-drive'
   private config: Record<string, any>
   protected drive: any
@@ -114,13 +116,13 @@ export class GoogleDriveService implements IStorageService {
       // Log token refresh attempt for debugging (without exposing sensitive data)
       // Only log if we haven't recently failed (to reduce noise)
       if (timeSinceLastError >= this.INVALID_GRANT_THROTTLE || this.lastInvalidGrantError === 0) {
-        console.log('Attempting to refresh Google Drive access token', {
+        this.logger.debug('Attempting to refresh Google Drive access token', JSON.stringify({
           hasRefreshToken: !!this.config.refreshToken,
           refreshTokenLength: this.config.refreshToken?.length,
           refreshTokenPreview: this.config.refreshToken?.substring(0, 20) + '...',
           clientId: this.config.clientId ? `${this.config.clientId.substring(0, 20)}...` : 'missing',
           hasClientSecret: !!this.config.clientSecret
-        })
+        }))
       }
       
       const { credentials } = await this.auth.refreshAccessToken()
@@ -133,15 +135,15 @@ export class GoogleDriveService implements IStorageService {
       // Update the auth instance
       this.auth.setCredentials(credentials)
       
-      console.log('Successfully refreshed Google Drive access token', {
+      this.logger.debug('Successfully refreshed Google Drive access token', JSON.stringify({
         hasAccessToken: !!credentials.access_token,
         expiryDate: credentials.expiry_date
-      })
+      }))
       
       // Persist the new access token to database (throttled to avoid too many writes)
       await this.saveAccessTokenToDatabase(credentials.access_token, credentials.expiry_date)
     } catch (error: any) {
-      console.error('Failed to refresh Google Drive access token:', error)
+      this.logger.error(`Failed to refresh Google Drive access token: ${error instanceof Error ? error.message : String(error)}`)
       
       // Check for invalid_grant error specifically
       const responseData = error?.response?.data
@@ -178,7 +180,7 @@ export class GoogleDriveService implements IStorageService {
         // Only log the error once per throttle period to reduce noise
         const timeSinceLastLog = Date.now() - this.lastInvalidGrantError
         if (timeSinceLastLog === 0 || timeSinceLastLog >= this.INVALID_GRANT_THROTTLE) {
-          console.error('GoogleDriveService: Invalid refresh token detected. Please generate a new token in admin storage settings.')
+          this.logger.error('GoogleDriveService: Invalid refresh token detected. Please generate a new token in admin storage settings.')
         }
         
         throw detailedError
@@ -221,10 +223,10 @@ export class GoogleDriveService implements IStorageService {
         }
       })
       
-      console.log('Successfully saved Google Drive access token to database')
+      this.logger.debug('Successfully saved Google Drive access token to database')
     } catch (error) {
       // Don't throw - token refresh succeeded, saving is just optimization
-      console.warn('Failed to save Google Drive access token to database (non-critical):', error)
+      this.logger.warn(`Failed to save Google Drive access token to database (non-critical): ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 
@@ -291,7 +293,7 @@ export class GoogleDriveService implements IStorageService {
       }
       return true
     } catch (error: any) {
-      console.error('Google Drive connection validation failed:', error)
+      this.logger.error(`Google Drive connection validation failed: ${error instanceof Error ? error.message : String(error)}`)
       
       // Extract detailed error information
       let errorMessage = 'Unknown error occurred'
@@ -469,11 +471,11 @@ export class GoogleDriveService implements IStorageService {
       // For Google Drive, we need to get the folder ID first
       const folderId = await this.getFolderIdByPath(folderPath)
       if (!folderId) {
-        console.warn(`GoogleDriveService: Folder not found for path: ${folderPath}`)
+        this.logger.warn(`GoogleDriveService: Folder not found for path: ${folderPath}`)
         return // Folder doesn't exist, nothing to delete
       }
 
-      console.log(`GoogleDriveService: Deleting folder ${folderPath} (ID: ${folderId})`)
+      this.logger.debug(`GoogleDriveService: Deleting folder ${folderPath} (ID: ${folderId})`)
 
       // Google Drive requires deleting all contents before deleting the folder
       // List all files and folders inside this folder
@@ -510,23 +512,23 @@ export class GoogleDriveService implements IStorageService {
         hasMore = !!pageToken
       }
 
-      console.log(`GoogleDriveService: Found ${filesToDelete.length} items to delete in folder ${folderPath}`)
+      this.logger.debug(`GoogleDriveService: Found ${filesToDelete.length} items to delete in folder ${folderPath}`)
 
       // Delete all files and sub-folders
       for (const fileId of filesToDelete) {
         try {
           await this.drive.files.delete({ fileId })
         } catch (deleteError) {
-          console.warn(`GoogleDriveService: Failed to delete item ${fileId} in folder ${folderPath}:`, deleteError)
+          this.logger.warn(`GoogleDriveService: Failed to delete item ${fileId} in folder ${folderPath}:`, deleteError)
           // Continue deleting other items even if one fails
         }
       }
 
       // Now delete the folder itself
       await this.drive.files.delete({ fileId: folderId })
-      console.log(`GoogleDriveService: Successfully deleted folder ${folderPath}`)
+      this.logger.debug(`GoogleDriveService: Successfully deleted folder ${folderPath}`)
     } catch (error) {
-      console.error(`GoogleDriveService: Failed to delete folder ${folderPath}:`, error)
+      this.logger.error(`GoogleDriveService: Failed to delete folder ${folderPath}:`, error)
       throw new StorageOperationError(
         `Failed to delete folder ${folderPath}`,
         this.providerId,
@@ -634,7 +636,7 @@ export class GoogleDriveService implements IStorageService {
     try {
       // If folderPath is empty or just whitespace, return the AppData root folder ID
       if (!folderPath || folderPath.trim() === '') {
-        console.log('GoogleDriveService: Empty folder path, returning root folder')
+        this.logger.debug('GoogleDriveService: Empty folder path, returning root folder')
         return this.getRootFolderId()
       }
 
@@ -642,21 +644,21 @@ export class GoogleDriveService implements IStorageService {
       const normalizedPath = folderPath.trim().replace(/^\/+|\/+$/g, '')
       const pathParts = normalizedPath.split('/').filter(Boolean)
       
-      console.log(`GoogleDriveService: Resolving path "${folderPath}" -> normalized: "${normalizedPath}" -> parts:`, pathParts)
+      this.logger.debug(`GoogleDriveService: Resolving path "${folderPath}" -> normalized: "${normalizedPath}" -> parts:`, pathParts)
       
       if (pathParts.length === 0) {
-        console.log('GoogleDriveService: No path parts after normalization, returning root folder')
+        this.logger.debug('GoogleDriveService: No path parts after normalization, returning root folder')
         return this.getRootFolderId()
       }
 
       let currentFolderId = this.getRootFolderId()
-      console.log(`GoogleDriveService: Starting from root folder ID: ${currentFolderId}`)
+      this.logger.debug(`GoogleDriveService: Starting from root folder ID: ${currentFolderId}`)
 
       for (let i = 0; i < pathParts.length; i++) {
         const folderName = pathParts[i]
         const query = `'${currentFolderId}' in parents and name='${folderName.replace(/'/g, "\\'")}' and mimeType='application/vnd.google-apps.folder' and trashed=false`
         
-        console.log(`GoogleDriveService: Looking for folder "${folderName}" in parent ${currentFolderId}`)
+        this.logger.debug(`GoogleDriveService: Looking for folder "${folderName}" in parent ${currentFolderId}`)
         
         const listParams: any = {
           q: query,
@@ -675,20 +677,20 @@ export class GoogleDriveService implements IStorageService {
           // If multiple folders with same name exist, use the first one
           // (Google Drive allows multiple folders with the same name in the same parent)
           currentFolderId = response.data.files[0].id
-          console.log(`GoogleDriveService: Found folder "${folderName}" with ID: ${currentFolderId} (found ${response.data.files.length} folder(s) with this name)`)
+          this.logger.debug(`GoogleDriveService: Found folder "${folderName}" with ID: ${currentFolderId} (found ${response.data.files.length} folder(s) with this name)`)
         } else {
-          console.warn(`GoogleDriveService: Folder "${folderName}" not found in parent ${currentFolderId} (path part ${i + 1}/${pathParts.length})`)
-          console.warn(`GoogleDriveService: Query used: ${query}`)
-          console.warn(`GoogleDriveService: List params:`, JSON.stringify(listParams, null, 2))
+          this.logger.warn(`GoogleDriveService: Folder "${folderName}" not found in parent ${currentFolderId} (path part ${i + 1}/${pathParts.length})`)
+          this.logger.warn(`GoogleDriveService: Query used: ${query}`)
+          this.logger.warn(`GoogleDriveService: List params:`, JSON.stringify(listParams, null, 2))
           return null
         }
       }
       
-      console.log(`GoogleDriveService: Successfully resolved path "${folderPath}" to folder ID: ${currentFolderId}`)
+      this.logger.debug(`GoogleDriveService: Successfully resolved path "${folderPath}" to folder ID: ${currentFolderId}`)
       return currentFolderId
     } catch (error) {
-      console.error('GoogleDriveService: Failed to get folder ID by path:', error)
-      console.error('GoogleDriveService: Error details:', {
+      this.logger.error('GoogleDriveService: Failed to get folder ID by path:', error)
+      this.logger.error('GoogleDriveService: Error details:', {
         folderPath,
         message: error instanceof Error ? error.message : String(error),
         stack: error instanceof Error ? error.stack : undefined
@@ -713,13 +715,13 @@ export class GoogleDriveService implements IStorageService {
       // Resolve folder path to folder ID if provided, otherwise use AppData root
       let parentFolderId = this.getRootFolderId()
       if (folderPath) {
-        console.log(`GoogleDriveService: Resolving folder path for upload: "${folderPath}"`)
+        this.logger.debug(`GoogleDriveService: Resolving folder path for upload: "${folderPath}"`)
         const resolvedFolderId = await this.getFolderIdByPath(folderPath)
         if (resolvedFolderId) {
           parentFolderId = resolvedFolderId
-          console.log(`GoogleDriveService: Resolved folder path "${folderPath}" to folder ID: ${parentFolderId}`)
+          this.logger.debug(`GoogleDriveService: Resolved folder path "${folderPath}" to folder ID: ${parentFolderId}`)
         } else {
-          console.warn(`GoogleDriveService: Failed to resolve folder path "${folderPath}", attempting to create missing folders`)
+          this.logger.warn(`GoogleDriveService: Failed to resolve folder path "${folderPath}", attempting to create missing folders`)
           // Try to create the folder structure if it doesn't exist
           try {
             const normalizedPath = folderPath.trim().replace(/^\/+|\/+$/g, '')
@@ -749,12 +751,12 @@ export class GoogleDriveService implements IStorageService {
                 
                 if (checkResponse.data.files && checkResponse.data.files.length > 0) {
                   currentParentId = checkResponse.data.files[0].id
-                  console.log(`GoogleDriveService: Folder "${folderName}" found with ID: ${currentParentId}`)
+                  this.logger.debug(`GoogleDriveService: Folder "${folderName}" found with ID: ${currentParentId}`)
                   folderFound = true
                 } else {
                   // Folder doesn't exist, try to create it
                   if (retries === 0) {
-                    console.log(`GoogleDriveService: Folder "${folderName}" not found, creating...`)
+                    this.logger.debug(`GoogleDriveService: Folder "${folderName}" not found, creating...`)
                   }
                   
                   try {
@@ -768,14 +770,14 @@ export class GoogleDriveService implements IStorageService {
                       fields: 'id,name'
                     })
                     currentParentId = createResponse.data.id
-                    console.log(`GoogleDriveService: Created folder "${folderName}" with ID: ${currentParentId}`)
+                    this.logger.debug(`GoogleDriveService: Created folder "${folderName}" with ID: ${currentParentId}`)
                     folderFound = true
                   } catch (createError: any) {
                     // If folder creation fails, it might have been created by another request
                     // Wait a bit and retry the check
                     if (createError.code === 409 || createError.status === 409 || 
                         (createError.message && (createError.message.includes('duplicate') || createError.message.includes('already exists')))) {
-                      console.log(`GoogleDriveService: Folder "${folderName}" may have been created concurrently, retrying check (attempt ${retries + 1}/${maxRetries})...`)
+                      this.logger.debug(`GoogleDriveService: Folder "${folderName}" may have been created concurrently, retrying check (attempt ${retries + 1}/${maxRetries})...`)
                       retries++
                       if (retries < maxRetries) {
                         // Wait a short time before retrying (exponential backoff)
@@ -785,8 +787,8 @@ export class GoogleDriveService implements IStorageService {
                     }
                     
                     // If we've exhausted retries or it's a different error, log and handle
-                    console.error(`GoogleDriveService: Failed to create/find folder "${folderName}" in parent ${currentParentId}:`, createError)
-                    console.error(`GoogleDriveService: Create error details:`, {
+                    this.logger.error(`GoogleDriveService: Failed to create/find folder "${folderName}" in parent ${currentParentId}:`, createError)
+                    this.logger.error(`GoogleDriveService: Create error details:`, {
                       message: createError.message,
                       code: createError.code,
                       status: createError.status,
@@ -802,7 +804,7 @@ export class GoogleDriveService implements IStorageService {
                       const finalCheck = await this.drive.files.list(checkListParams)
                       if (finalCheck.data.files && finalCheck.data.files.length > 0) {
                         currentParentId = finalCheck.data.files[0].id
-                        console.log(`GoogleDriveService: Found folder "${folderName}" on final check with ID: ${currentParentId}`)
+                        this.logger.debug(`GoogleDriveService: Found folder "${folderName}" on final check with ID: ${currentParentId}`)
                         folderFound = true
                         break
                       }
@@ -820,19 +822,19 @@ export class GoogleDriveService implements IStorageService {
               }
             }
             parentFolderId = currentParentId
-            console.log(`GoogleDriveService: Successfully created/resolved folder path "${folderPath}" to folder ID: ${parentFolderId}`)
+            this.logger.debug(`GoogleDriveService: Successfully created/resolved folder path "${folderPath}" to folder ID: ${parentFolderId}`)
           } catch (createError) {
-            console.error(`GoogleDriveService: Failed to create missing folders for path "${folderPath}":`, createError)
+            this.logger.error(`GoogleDriveService: Failed to create missing folders for path "${folderPath}":`, createError)
             const rootFolderId = this.getRootFolderId()
             const rootFolderName = this.isAppDataStorage() ? 'appDataFolder' : (rootFolderId === 'root' ? 'root' : `folder ${rootFolderId}`)
-            console.warn(`GoogleDriveService: Falling back to root folder (${rootFolderName})`)
+            this.logger.warn(`GoogleDriveService: Falling back to root folder (${rootFolderName})`)
             parentFolderId = rootFolderId
           }
         }
       } else {
         const rootFolderId = this.getRootFolderId()
         const rootFolderName = this.isAppDataStorage() ? 'appDataFolder' : (rootFolderId === 'root' ? 'root' : `folder ${rootFolderId}`)
-        console.log(`GoogleDriveService: No folder path provided, using root folder (${rootFolderName})`)
+        this.logger.debug(`GoogleDriveService: No folder path provided, using root folder (${rootFolderName})`)
       }
       
       // Google Drive API has specific fields - filter out custom metadata that conflicts
@@ -849,7 +851,7 @@ export class GoogleDriveService implements IStorageService {
         for (const [key, value] of Object.entries(metadata)) {
           if (googleDriveReservedFields.includes(key)) {
             // Skip reserved fields - they can't be set via metadata
-            console.log(`GoogleDriveService: Skipping reserved field "${key}" from metadata`)
+            this.logger.debug(`GoogleDriveService: Skipping reserved field "${key}" from metadata`)
           } else {
             // Store custom metadata in appProperties (Google Drive's way to store custom data)
             customMetadata[key] = value
@@ -862,7 +864,7 @@ export class GoogleDriveService implements IStorageService {
         }
       }
 
-      console.log(`GoogleDriveService: Uploading file "${filename}" to parent folder ID: ${parentFolderId}`, {
+      this.logger.debug(`GoogleDriveService: Uploading file "${filename}" to parent folder ID: ${parentFolderId}`, {
         storageType: this.config.storageType || 'appdata',
         isAppData: this.isAppDataStorage(),
         fileSize: file.length,
@@ -884,7 +886,7 @@ export class GoogleDriveService implements IStorageService {
         fields: 'id,name,size,webViewLink,webContentLink,createdTime,modifiedTime'
       })
       
-      console.log(`GoogleDriveService: Successfully uploaded file "${filename}" with ID: ${response.data.id}`)
+      this.logger.debug(`GoogleDriveService: Successfully uploaded file "${filename}" with ID: ${response.data.id}`)
 
       return {
         provider: this.providerId,
@@ -897,8 +899,8 @@ export class GoogleDriveService implements IStorageService {
         metadata: metadata || {}
       }
     } catch (error: any) {
-      console.error(`GoogleDriveService: Upload failed for ${filename}:`, error)
-      console.error(`GoogleDriveService: Error details:`, {
+      this.logger.error(`GoogleDriveService: Upload failed for ${filename}:`, error)
+      this.logger.error(`GoogleDriveService: Error details:`, {
         message: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined,
         code: error.code,
@@ -1039,29 +1041,29 @@ export class GoogleDriveService implements IStorageService {
 
   private async getFileIdByPath(filePath: string): Promise<string | null> {
     try {
-      console.log(`GoogleDriveService: Getting file ID for path: ${filePath}`)
+      this.logger.debug(`GoogleDriveService: Getting file ID for path: ${filePath}`)
       
       const pathParts = filePath.split('/').filter(Boolean)
       if (pathParts.length === 0) {
-        console.log(`GoogleDriveService: Empty path parts for: ${filePath}`)
+        this.logger.debug(`GoogleDriveService: Empty path parts for: ${filePath}`)
         return null
       }
 
       const fileName = pathParts[pathParts.length - 1]
       const folderPath = pathParts.slice(0, -1).join('/')
       
-      console.log(`GoogleDriveService: File name: ${fileName}, folder path: ${folderPath}`)
+      this.logger.debug(`GoogleDriveService: File name: ${fileName}, folder path: ${folderPath}`)
       
       let parentFolderId = this.getRootFolderId()
       if (folderPath) {
         parentFolderId = await this.getFolderIdByPath(folderPath) || this.getRootFolderId()
-        console.log(`GoogleDriveService: Resolved folder path to ID: ${parentFolderId}`)
+        this.logger.debug(`GoogleDriveService: Resolved folder path to ID: ${parentFolderId}`)
       }
 
       // Escape single quotes in file name for the query
       const escapedFileName = fileName.replace(/'/g, "\\'")
       const query = `'${parentFolderId}' in parents and name='${escapedFileName}' and mimeType!='application/vnd.google-apps.folder' and trashed=false`
-      console.log(`GoogleDriveService: Searching with query: ${query}`)
+      this.logger.debug(`GoogleDriveService: Searching with query: ${query}`)
 
       const listParams: any = {
         q: query,
@@ -1077,15 +1079,15 @@ export class GoogleDriveService implements IStorageService {
       const response = await this.drive.files.list(listParams)
       
       if (response.data.files && response.data.files.length > 0) {
-        console.log(`GoogleDriveService: Found file "${response.data.files[0].name}" with ID: ${response.data.files[0].id}`)
+        this.logger.debug(`GoogleDriveService: Found file "${response.data.files[0].name}" with ID: ${response.data.files[0].id}`)
       }
 
       const fileId = response.data.files && response.data.files.length > 0 ? response.data.files[0].id : null
-      console.log(`GoogleDriveService: Found file ID: ${fileId} for path: ${filePath}`)
+      this.logger.debug(`GoogleDriveService: Found file ID: ${fileId} for path: ${filePath}`)
       
       return fileId
     } catch (error) {
-      console.error('GoogleDriveService: Failed to get file ID by path:', error)
+      this.logger.error('GoogleDriveService: Failed to get file ID by path:', error)
       return null
     }
   }
@@ -1158,14 +1160,14 @@ export class GoogleDriveService implements IStorageService {
         // Try to resolve the provided path
         const resolvedId = await this.getFolderIdByPath(parentPath)
         parentFolderId = resolvedId || rootFolderId
-        console.log(`GoogleDriveService: Resolved parentPath "${parentPath}" to folder ID: ${parentFolderId}`)
+        this.logger.debug(`GoogleDriveService: Resolved parentPath "${parentPath}" to folder ID: ${parentFolderId}`)
       } else {
         // No path provided, use root folder
         parentFolderId = rootFolderId
-        console.log(`GoogleDriveService: No parentPath provided, using root folder ID: ${parentFolderId}`)
+        this.logger.debug(`GoogleDriveService: No parentPath provided, using root folder ID: ${parentFolderId}`)
       }
       
-      console.log(`GoogleDriveService: Building folder tree`, {
+      this.logger.debug(`GoogleDriveService: Building folder tree`, {
         parentPath: parentPath || 'root',
         parentFolderId,
         rootFolderId,
@@ -1180,7 +1182,7 @@ export class GoogleDriveService implements IStorageService {
           return null // Prevent infinite recursion
         }
 
-        console.log(`GoogleDriveService: Building tree for folder ID: ${folderId}, path: ${folderPath}, depth: ${depth}`)
+        this.logger.debug(`GoogleDriveService: Building tree for folder ID: ${folderId}, path: ${folderPath}, depth: ${depth}`)
 
         // List all items in this folder (both files and subfolders)
         let hasMore = true
@@ -1205,7 +1207,7 @@ export class GoogleDriveService implements IStorageService {
             listParams.pageToken = pageToken
           }
 
-          console.log(`GoogleDriveService: Listing files in folder ${folderId}`, {
+          this.logger.debug(`GoogleDriveService: Listing files in folder ${folderId}`, {
             query: listParams.q,
             hasSpaces: !!listParams.spaces,
             isAppData: this.isAppDataStorage(),
@@ -1217,7 +1219,7 @@ export class GoogleDriveService implements IStorageService {
 
           const listResponse = await this.drive.files.list(listParams)
           
-          console.log(`GoogleDriveService: List response`, {
+          this.logger.debug(`GoogleDriveService: List response`, {
             fileCount: listResponse.data.files?.length || 0,
             hasNextPage: !!listResponse.data.nextPageToken,
             files: listResponse.data.files?.slice(0, 5).map((f: any) => ({ id: f.id, name: f.name, mimeType: f.mimeType })) || []
@@ -1231,7 +1233,7 @@ export class GoogleDriveService implements IStorageService {
           hasMore = !!pageToken
         }
         
-        console.log(`GoogleDriveService: Collected ${items.length} items from folder ${folderId}`, {
+        this.logger.debug(`GoogleDriveService: Collected ${items.length} items from folder ${folderId}`, {
           folders: items.filter(item => item.mimeType === 'application/vnd.google-apps.folder').length,
           files: items.filter(item => item.mimeType !== 'application/vnd.google-apps.folder').length
         })
@@ -1259,7 +1261,7 @@ export class GoogleDriveService implements IStorageService {
         }
         
         // Log tree structure for debugging
-        console.log(`GoogleDriveService: Tree structure built`, {
+        this.logger.debug(`GoogleDriveService: Tree structure built`, {
           path: tree.path,
           folderId: tree.folderId,
           foldersCount: tree.folders.length,
@@ -1286,7 +1288,7 @@ export class GoogleDriveService implements IStorageService {
       
       // Ensure we always return a valid tree structure, even if empty
       if (!result) {
-        console.warn(`GoogleDriveService: buildTree returned null, creating empty tree structure`)
+        this.logger.warn(`GoogleDriveService: buildTree returned null, creating empty tree structure`)
         return {
           path: parentPath || '/',
           folderId: parentFolderId,
@@ -1297,7 +1299,7 @@ export class GoogleDriveService implements IStorageService {
         }
       }
       
-      console.log(`GoogleDriveService: Folder tree built successfully`, {
+      this.logger.debug(`GoogleDriveService: Folder tree built successfully`, {
         path: result?.path,
         folderId: result?.folderId,
         foldersCount: result?.folders?.length || 0,
@@ -1307,8 +1309,8 @@ export class GoogleDriveService implements IStorageService {
       })
       return result
     } catch (error) {
-      console.error(`GoogleDriveService: Failed to get folder tree:`, error)
-      console.error(`GoogleDriveService: Error details:`, {
+      this.logger.error(`GoogleDriveService: Failed to get folder tree:`, error)
+      this.logger.error(`GoogleDriveService: Error details:`, {
         parentPath: parentPath || 'root',
         storageType: this.config.storageType || 'appdata',
         isAppData: this.isAppDataStorage(),
@@ -1335,21 +1337,21 @@ export class GoogleDriveService implements IStorageService {
 
   async getFileBuffer(filePath: string): Promise<Buffer | null> {
     try {
-      console.log(`GoogleDriveService: Getting file buffer for path: ${filePath}`)
+      this.logger.debug(`GoogleDriveService: Getting file buffer for path: ${filePath}`)
       
       // Ensure we have a valid access token
       if (!this.config.accessToken || (this.config.tokenExpiry && new Date() >= this.config.tokenExpiry)) {
-        console.log('GoogleDriveService: Refreshing access token for getFileBuffer...')
+        this.logger.debug('GoogleDriveService: Refreshing access token for getFileBuffer...')
         await this.refreshAccessToken()
       }
 
       const fileId = await this.getFileIdByPath(filePath)
       if (!fileId) {
-        console.log(`GoogleDriveService: Could not find file ID for path: ${filePath}`)
+        this.logger.debug(`GoogleDriveService: Could not find file ID for path: ${filePath}`)
         return null
       }
 
-      console.log(`GoogleDriveService: Found file ID: ${fileId} for path: ${filePath}`)
+      this.logger.debug(`GoogleDriveService: Found file ID: ${fileId} for path: ${filePath}`)
 
       // Use alt: 'media' to download file content
       // The googleapis library returns a stream when alt: 'media' is used
@@ -1372,20 +1374,20 @@ export class GoogleDriveService implements IStorageService {
         
         response.data.on('end', () => {
           const buffer = Buffer.concat(chunks)
-          console.log(`GoogleDriveService: Successfully downloaded file, size: ${buffer.length} bytes`)
+          this.logger.debug(`GoogleDriveService: Successfully downloaded file, size: ${buffer.length} bytes`)
           resolve(buffer)
         })
         
         response.data.on('error', (error: Error) => {
-          console.error('GoogleDriveService: Stream error:', error)
+          this.logger.error('GoogleDriveService: Stream error:', error)
           reject(error)
         })
       })
       
       return buffer
     } catch (error: any) {
-      console.error('GoogleDriveService: Failed to get file buffer from Google Drive:', error)
-      console.error('GoogleDriveService: Error details:', {
+      this.logger.error('GoogleDriveService: Failed to get file buffer from Google Drive:', error)
+      this.logger.error('GoogleDriveService: Error details:', {
         filePath,
         message: error instanceof Error ? error.message : String(error),
         code: error.code,

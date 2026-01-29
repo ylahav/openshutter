@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import sharp from 'sharp'
 import { storageManager } from './storage/manager'
 import mongoose, { Types } from 'mongoose'
@@ -57,6 +57,7 @@ export interface UploadReport {
 
 @Injectable()
 export class PhotoUploadService {
+  private readonly logger = new Logger(PhotoUploadService.name)
   private static readonly THUMBNAIL_WIDTH = 300
   private static readonly THUMBNAIL_HEIGHT = 300
   private static readonly THUMBNAIL_QUALITY = 80
@@ -127,7 +128,7 @@ export class PhotoUploadService {
 
       return { exists: false }
     } catch (error) {
-      console.error('Error checking photo existence:', error)
+      this.logger.error(`Error checking photo existence: ${error instanceof Error ? error.message : String(error)}`)
       // On error, assume it doesn't exist to allow upload attempt
       return { exists: false }
     }
@@ -161,7 +162,7 @@ export class PhotoUploadService {
       if (existenceCheck.exists) {
         // If replaceIfExists is true, delete old files and update the existing record
         if (options.replaceIfExists && existenceCheck.existingPhoto) {
-          console.log(`PhotoUploadService: Photo exists, replacing files as requested: ${existenceCheck.existingPhoto._id}`)
+          this.logger.debug(`PhotoUploadService: Photo exists, replacing files as requested: ${existenceCheck.existingPhoto._id}`)
           
           const existingPhoto = existenceCheck.existingPhoto
           existingPhotoId = existingPhoto._id
@@ -190,7 +191,7 @@ export class PhotoUploadService {
               
               // Delete main photo file
               await storageService.deleteFile(existingPhoto.storage.path)
-              console.log(`PhotoUploadService: Deleted old main photo file: ${existingPhoto.storage.path}`)
+              this.logger.debug(`PhotoUploadService: Deleted old main photo file: ${existingPhoto.storage.path}`)
               
               // Delete thumbnails
               if (existingPhoto.storage.thumbnails && typeof existingPhoto.storage.thumbnails === 'object') {
@@ -199,10 +200,10 @@ export class PhotoUploadService {
                     const thumbnailPath = extractPathFromUrl(thumbnailUrl as string)
                     if (thumbnailPath && thumbnailPath !== existingPhoto.storage.path) {
                       await storageService.deleteFile(thumbnailPath)
-                      console.log(`PhotoUploadService: Deleted old ${size} thumbnail: ${thumbnailPath}`)
+                      this.logger.debug(`PhotoUploadService: Deleted old ${size} thumbnail: ${thumbnailPath}`)
                     }
                   } catch (thumbError) {
-                    console.warn(`PhotoUploadService: Failed to delete ${size} thumbnail:`, thumbError)
+                    this.logger.warn(`PhotoUploadService: Failed to delete ${size} thumbnail:`, thumbError)
                   }
                 }
               }
@@ -219,12 +220,12 @@ export class PhotoUploadService {
                   
                   if (!alreadyDeleted) {
                     await storageService.deleteFile(thumbPath)
-                    console.log(`PhotoUploadService: Deleted old thumbnailPath: ${thumbPath}`)
+                    this.logger.debug(`PhotoUploadService: Deleted old thumbnailPath: ${thumbPath}`)
                   }
                 }
               }
             } catch (storageError) {
-              console.error(`PhotoUploadService: Failed to delete old photo files from storage:`, storageError)
+              this.logger.error(`PhotoUploadService: Failed to delete old photo files from storage:`, storageError)
               // Continue with upload anyway - new files will overwrite references
             }
           }
@@ -247,26 +248,26 @@ export class PhotoUploadService {
       let storageProvider = options.storageProvider || 'local'
       
       if (options.albumId) {
-        console.log(`PhotoUploadService: Looking up album with ID: ${options.albumId}`)
+        this.logger.debug(`PhotoUploadService: Looking up album with ID: ${options.albumId}`)
         try {
           const objectId = new ObjectId(options.albumId)
           album = await db.collection('albums').findOne({ _id: objectId })
-          console.log(`PhotoUploadService: Album lookup result:`, album ? { _id: album._id?.toString(), alias: album.alias, name: album.name } : 'not found')
+          this.logger.debug(`PhotoUploadService: Album lookup result:`, album ? { _id: album._id?.toString(), alias: album.alias, name: album.name } : 'not found')
         } catch (error) {
-          console.error(`PhotoUploadService: Error looking up album:`, error)
+          this.logger.error(`PhotoUploadService: Error looking up album:`, error)
           album = null
         }
         if (album && album.storageProvider) {
           storageProvider = album.storageProvider
         }
       } else {
-        console.log('PhotoUploadService: No albumId provided, using default storage provider')
+        this.logger.debug('PhotoUploadService: No albumId provided, using default storage provider')
       }
 
       // Get storage service from the new storage manager
-      console.log(`PhotoUploadService: Getting storage service for provider: ${storageProvider}`)
+      this.logger.debug(`PhotoUploadService: Getting storage service for provider: ${storageProvider}`)
       const storageService = await storageManager.getProvider(storageProvider as 'local' | 'google-drive' | 'aws-s3' | 'backblaze' | 'wasabi')
-      console.log(`PhotoUploadService: Storage service obtained:`, storageService.constructor.name)
+      this.logger.debug(`PhotoUploadService: Storage service obtained: ${storageService.constructor.name}`)
 
       // Generate unique filename
       const timestamp = Date.now()
@@ -276,24 +277,24 @@ export class PhotoUploadService {
       let albumPath = ''
       if (album && album.storagePath) {
         albumPath = album.storagePath
-        console.log(`PhotoUploadService: Using album path: ${albumPath} for provider: ${storageProvider}`)
+        this.logger.debug(`PhotoUploadService: Using album path: ${albumPath} for provider: ${storageProvider}`)
         
         // Verify album folder exists (especially important for visible storage)
         if (storageProvider === 'google-drive') {
           try {
             const folderExists = await storageService.folderExists(albumPath)
             if (!folderExists) {
-              console.warn(`PhotoUploadService: Album folder does not exist at path: ${albumPath}, uploadFile will attempt to create it`)
+              this.logger.warn(`PhotoUploadService: Album folder does not exist at path: ${albumPath}, uploadFile will attempt to create it`)
             } else {
-              console.log(`PhotoUploadService: Album folder verified at path: ${albumPath}`)
+              this.logger.debug(`PhotoUploadService: Album folder verified at path: ${albumPath}`)
             }
           } catch (error) {
-            console.warn(`PhotoUploadService: Could not verify album folder existence:`, error instanceof Error ? error.message : String(error))
+            this.logger.warn(`PhotoUploadService: Could not verify album folder existence: ${error instanceof Error ? error.message : String(error)}`)
             // Continue anyway - uploadFile will handle folder creation
           }
         }
       } else {
-        console.log(`PhotoUploadService: No album path, uploading to root`)
+        this.logger.debug(`PhotoUploadService: No album path, uploading to root`)
       }
 
       // Compress original image for web delivery (used for serving, not storage)
@@ -301,7 +302,7 @@ export class PhotoUploadService {
       
       // Upload ORIGINAL file to storage (not compressed version)
       // This preserves the full quality and size of the original image
-      console.log(`PhotoUploadService: Uploading ORIGINAL file ${filename} (${(fileBuffer.length / 1024 / 1024).toFixed(2)}MB) to path: ${albumPath}`)
+      this.logger.debug(`PhotoUploadService: Uploading ORIGINAL file ${filename} (${(fileBuffer.length / 1024 / 1024).toFixed(2)}MB) to path: ${albumPath}`)
       const uploadResult = await storageService.uploadFile(
         fileBuffer, // Upload original file, not compressed version
         filename,
@@ -314,7 +315,7 @@ export class PhotoUploadService {
           description: options.description || ''
         }
       )
-      console.log(`PhotoUploadService: Upload result:`, uploadResult)
+      this.logger.debug(`PhotoUploadService: Upload result: ${JSON.stringify(uploadResult)}`)
 
       // Generate multiple thumbnails
       const thumbnailBuffers = await ThumbnailGenerator.generateAllThumbnails(fileBuffer, filename)
@@ -338,19 +339,19 @@ export class PhotoUploadService {
             try {
               const folderExists = await storageService.folderExists(sizeFolderPath)
               if (!folderExists) {
-                console.warn(`PhotoUploadService: Thumbnail folder ${sizeFolderPath} does not exist, uploadFile will create it`)
+                this.logger.warn(`PhotoUploadService: Thumbnail folder ${sizeFolderPath} does not exist, uploadFile will create it`)
               } else {
-                console.log(`PhotoUploadService: Thumbnail folder ${sizeFolderPath} verified`)
+                this.logger.debug(`PhotoUploadService: Thumbnail folder ${sizeFolderPath} verified`)
               }
             } catch (checkError) {
-              console.warn(`PhotoUploadService: Could not verify thumbnail folder existence:`, checkError instanceof Error ? checkError.message : String(checkError))
+              this.logger.warn(`PhotoUploadService: Could not verify thumbnail folder existence: ${checkError instanceof Error ? checkError.message : String(checkError)}`)
               // Continue - uploadFile will handle folder creation if needed
             }
           }
           
           // Upload thumbnail - uploadFile will use existing folder or create if missing
           // Note: Don't pass 'size' in metadata as it conflicts with Google Drive API's reserved 'size' field
-          console.log(`PhotoUploadService: Uploading ${sizeName} thumbnail (${(buffer.length / 1024).toFixed(2)}KB) to path: ${sizeFolderPath || 'root'}`)
+          this.logger.debug(`PhotoUploadService: Uploading ${sizeName} thumbnail (${(buffer.length / 1024).toFixed(2)}KB) to path: ${sizeFolderPath || 'root'}`)
           const thumbnailResult = await storageService.uploadFile(
             buffer,
             thumbnailFilename,
@@ -362,11 +363,11 @@ export class PhotoUploadService {
             }
           )
           
-          console.log(`PhotoUploadService: Successfully uploaded ${sizeName} thumbnail:`, thumbnailResult.path)
+          this.logger.debug(`PhotoUploadService: Successfully uploaded ${sizeName} thumbnail:`, thumbnailResult.path)
           thumbnails[sizeName] = `/api/storage/serve/${storageProvider}/${encodeURIComponent(thumbnailResult.path)}`
         } catch (error) {
-          console.error(`PhotoUploadService: Failed to upload ${sizeName} thumbnail:`, error)
-          console.error(`PhotoUploadService: Error details:`, {
+          this.logger.error(`PhotoUploadService: Failed to upload ${sizeName} thumbnail:`, error)
+          this.logger.error(`PhotoUploadService: Error details:`, {
             sizeName,
             thumbnailFilename,
             sizeFolderPath,
@@ -476,7 +477,7 @@ export class PhotoUploadService {
       
       if (existingPhotoId) {
         // Update existing record with new file references (preserve metadata)
-        console.log('PhotoUploadService: Updating existing photo record with new file references:', {
+        this.logger.debug(`PhotoUploadService: Updating existing photo record with new file references: ${JSON.stringify({
           photoId: existingPhotoId.toString(),
           albumId: photoData.albumId?.toString() || null,
           filename: photoData.filename,
@@ -514,7 +515,7 @@ export class PhotoUploadService {
           throw new Error(`Failed to retrieve updated photo: ${existingPhotoId}`)
         }
         
-        console.log('PhotoUploadService: Photo record updated successfully:', {
+        this.logger.debug(`PhotoUploadService: Photo record updated successfully: ${JSON.stringify({
           photoId: savedPhoto._id.toString(),
           albumId: savedPhoto.albumId?.toString() || null
         })
@@ -522,7 +523,7 @@ export class PhotoUploadService {
         // Don't increment album count - it's the same photo, just with new files
       } else {
         // Insert new record
-        console.log('PhotoUploadService: Saving new photo to database:', {
+        this.logger.debug('PhotoUploadService: Saving new photo to database:', {
           albumId: photoData.albumId?.toString() || null,
           filename: photoData.filename,
           isPublished: photoData.isPublished,
@@ -530,7 +531,7 @@ export class PhotoUploadService {
         })
         const insertResult = await photosCollection.insertOne(photoData)
         savedPhoto = { _id: insertResult.insertedId, ...photoData }
-        console.log('PhotoUploadService: Photo saved successfully:', {
+        this.logger.debug(`PhotoUploadService: Photo saved successfully: ${JSON.stringify({
           photoId: savedPhoto._id.toString(),
           albumId: savedPhoto.albumId?.toString() || null
         })
@@ -543,7 +544,7 @@ export class PhotoUploadService {
               { $inc: { photoCount: 1 } }
             )
           } catch (e) {
-            console.warn('Failed to update album photo count:', e)
+            this.logger.warn(`Failed to update album photo count: ${e instanceof Error ? e.message : String(e)}`)
           }
         }
       }
@@ -558,7 +559,7 @@ export class PhotoUploadService {
       }
 
     } catch (error) {
-      console.error('Photo upload failed:', error)
+      this.logger.error(`Photo upload failed: ${error instanceof Error ? error.message : String(error)}`)
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Upload failed'
@@ -576,7 +577,7 @@ export class PhotoUploadService {
         .jpeg({ quality: this.THUMBNAIL_QUALITY })
         .toBuffer()
     } catch (error) {
-      console.error('Thumbnail generation failed:', error)
+      this.logger.error(`Thumbnail generation failed: ${error instanceof Error ? error.message : String(error)}`)
       throw new Error('Failed to generate thumbnail')
     }
   }
@@ -626,7 +627,7 @@ export class PhotoUploadService {
       
       return Object.keys(exifData).length > 0 ? exifData : null
     } catch (error) {
-      console.warn('Failed to extract EXIF data:', error)
+      this.logger.warn(`Failed to extract EXIF data: ${error instanceof Error ? error.message : String(error)}`)
       return null
     }
   }
@@ -760,11 +761,11 @@ export class PhotoUploadService {
           await db.collection('photos').createIndex({ hash: 1 })
           await db.collection('photos').createIndex({ originalFilename: 1, size: 1 })
         } catch (e) {
-          console.warn('Index creation warning:', e)
+          this.logger.warn(`Index creation warning: ${e instanceof Error ? e.message : String(e)}`)
         }
       }
     } catch (e) {
-      console.warn('Failed to ensure photos collection:', e)
+      this.logger.warn(`Failed to ensure photos collection: ${e instanceof Error ? e.message : String(e)}`)
     }
   }
 }

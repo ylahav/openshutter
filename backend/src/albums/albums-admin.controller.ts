@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Param, Query, Body, UseGuards, BadRequestException, NotFoundException, Request } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Param, Query, Body, UseGuards, BadRequestException, NotFoundException, Request, Logger } from '@nestjs/common';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { AlbumsService } from './albums.service';
 import { connectDB } from '../config/db';
@@ -8,6 +8,8 @@ import { StorageManager } from '../services/storage/manager';
 @Controller('admin/albums')
 @UseGuards(AdminGuard)
 export class AlbumsAdminController {
+	private readonly logger = new Logger(AlbumsAdminController.name);
+	
 	constructor(private readonly albumsService: AlbumsService) {}
 
 	/**
@@ -85,7 +87,7 @@ export class AlbumsAdminController {
 					createData.storageProvider as any,
 					parentPath || undefined
 				);
-				console.log('Storage folder created:', storageFolderResult);
+				this.logger.debug('Storage folder created:', storageFolderResult);
 				
 				// Create thumbnail subfolders (hero, large, medium, small, micro) for the album
 				// This ensures all photos in the album share the same thumbnail folders
@@ -101,25 +103,25 @@ export class AlbumsAdminController {
 								const sizeConfig = ThumbnailGenerator.getThumbnailSize(sizeName as any);
 								// Create thumbnail folder inside the album folder
 								await storageService.createFolder(sizeConfig.folder, storagePath);
-								console.log(`Created thumbnail folder: ${storagePath}/${sizeConfig.folder}`);
+								this.logger.debug(`Created thumbnail folder: ${storagePath}/${sizeConfig.folder}`);
 							} catch (folderError: any) {
 								// If folder already exists, that's fine - log and continue
 								if (folderError.message && folderError.message.includes('already exists')) {
-									console.log(`Thumbnail folder ${sizeName} already exists, skipping creation`);
+									this.logger.debug(`Thumbnail folder ${sizeName} already exists, skipping creation`);
 								} else {
 									// Log but don't fail album creation if thumbnail folder creation fails
 									// The folders will be created automatically during photo upload if needed
-									console.warn(`Failed to create thumbnail folder ${sizeName}:`, folderError.message);
+									this.logger.warn(`Failed to create thumbnail folder ${sizeName}:`, folderError.message);
 								}
 							}
 						}
 					} catch (thumbnailError: any) {
 						// Don't fail album creation if thumbnail folder setup fails
-						console.warn('Failed to create thumbnail folders (will be created on first photo upload):', thumbnailError.message);
+						this.logger.warn('Failed to create thumbnail folders (will be created on first photo upload):', thumbnailError.message);
 					}
 				}
 			} catch (storageError: any) {
-				console.error('Failed to create storage folder:', storageError);
+				this.logger.error('Failed to create storage folder:', storageError);
 				throw new BadRequestException(
 					`Failed to create storage folder: ${storageError.message || 'Unknown error'}`
 				);
@@ -185,7 +187,7 @@ export class AlbumsAdminController {
 				data: serialized,
 			};
 		} catch (error) {
-			console.error('Failed to create album:', error);
+			this.logger.error('Failed to create album:', error);
 			if (error instanceof BadRequestException || error instanceof NotFoundException) {
 				throw error;
 			}
@@ -213,7 +215,7 @@ export class AlbumsAdminController {
 				query.parentAlbumId = null;
 			} else if (parentId) {
 				if (!Types.ObjectId.isValid(parentId)) {
-					console.warn(`Invalid parentId format: ${parentId}`);
+					this.logger.warn(`Invalid parentId format: ${parentId}`);
 					return [];
 				}
 				query.parentAlbumId = new Types.ObjectId(parentId);
@@ -253,7 +255,7 @@ export class AlbumsAdminController {
 
 		return serialized;
 	} catch (error) {
-		console.error('Failed to get admin albums:', error);
+		this.logger.error('Failed to get admin albums:', error);
 		throw new Error(`Failed to get admin albums: ${error instanceof Error ? error.message : 'Unknown error'}`);
 	}
 }
@@ -288,9 +290,9 @@ export class AlbumsAdminController {
 				.sort({ uploadedAt: -1 })
 				.toArray();
 
-			console.log(`Found ${photos.length} photos for album ${id}`);
+			this.logger.debug(`Found ${photos.length} photos for album ${id}`);
 			if (photos.length > 0) {
-				console.log('Sample photo storage:', {
+				this.logger.debug('Sample photo storage:', {
 					hasStorage: !!photos[0].storage,
 					storage: photos[0].storage,
 					thumbnailPath: photos[0].storage?.thumbnailPath,
@@ -338,7 +340,7 @@ export class AlbumsAdminController {
 				data: serializedPhotos,
 			};
 		} catch (error) {
-			console.error('Failed to get admin album photos:', error);
+			this.logger.error('Failed to get admin album photos:', error);
 			throw new Error(
 				`Failed to get admin album photos: ${error instanceof Error ? error.message : 'Unknown error'}`,
 			);
@@ -382,7 +384,7 @@ export class AlbumsAdminController {
 
 			return serialized;
 		} catch (error) {
-			console.error('Failed to get admin album:', error);
+			this.logger.error('Failed to get admin album:', error);
 			if (error instanceof BadRequestException || error instanceof NotFoundException) {
 				throw error;
 			}
@@ -520,7 +522,7 @@ export class AlbumsAdminController {
 
 			return serialized;
 		} catch (error) {
-			console.error('Failed to update album:', error);
+			this.logger.error('Failed to update album:', error);
 			if (error instanceof NotFoundException || error instanceof BadRequestException) {
 				throw error;
 			}
@@ -552,7 +554,7 @@ export class AlbumsAdminController {
 				throw new NotFoundException('Album not found');
 			}
 
-			console.log(`Starting deletion of album: ${album.alias} (${id})`);
+			this.logger.debug(`Starting deletion of album: ${album.alias} (${id})`);
 
 			// Recursively delete all sub-albums, their photos, folders, and DB records
 			// This will also delete the current album's photos, folder, and DB record
@@ -561,24 +563,24 @@ export class AlbumsAdminController {
 			// Verify the album was deleted (the recursive function should have deleted it)
 			const verifyAlbum = await db.collection('albums').findOne({ _id: objectId });
 			if (verifyAlbum) {
-				console.warn(`Album ${album.alias} still exists after recursive deletion, attempting direct deletion`);
+				this.logger.warn(`Album ${album.alias} still exists after recursive deletion, attempting direct deletion`);
 				// Fallback: try to delete the album folder and DB record directly
 				if (album.storagePath && album.storageProvider) {
 					try {
 						const storageManager = StorageManager.getInstance();
 						await storageManager.deleteAlbum(album.storagePath, album.storageProvider as any);
 					} catch (storageError) {
-						console.error('Failed to delete album folder from storage:', storageError);
+						this.logger.error('Failed to delete album folder from storage:', storageError);
 					}
 				}
 				await db.collection('albums').deleteOne({ _id: objectId });
 			}
 
-			console.log(`Successfully deleted album: ${album.alias}`);
+			this.logger.debug(`Successfully deleted album: ${album.alias}`);
 
 			return { success: true, message: 'Album deleted successfully' };
 		} catch (error) {
-			console.error('Failed to delete album:', error);
+			this.logger.error('Failed to delete album:', error);
 			if (error instanceof NotFoundException || error instanceof BadRequestException) {
 				throw error;
 			}
@@ -599,7 +601,7 @@ export class AlbumsAdminController {
 		// Get the current album data before deletion
 		const album = await db.collection('albums').findOne({ _id: albumId });
 		if (!album) {
-			console.warn(`Album ${albumId.toString()} not found, skipping`);
+			this.logger.warn(`Album ${albumId.toString()} not found, skipping`);
 			return;
 		}
 
@@ -609,7 +611,7 @@ export class AlbumsAdminController {
 			.find({ parentAlbumId: albumId })
 			.toArray();
 
-		console.log(`Found ${subAlbums.length} sub-albums`);
+		this.logger.debug(`Found ${subAlbums.length} sub-albums`);
 
 		// Recursively delete each sub-album (this will delete their photos, folders, and DB records)
 		for (const subAlbum of subAlbums) {
@@ -651,7 +653,7 @@ export class AlbumsAdminController {
 				// Delete photo files from storage
 				if (photo.storage && photo.storage.provider && photo.storage.path) {
 					const provider = photo.storage.provider as any;
-					console.log(`Deleting photo file: provider=${provider}, path=${photo.storage.path}`);
+					this.logger.debug(`Deleting photo file: provider=${provider}, path=${photo.storage.path}`);
 
 					try {
 						// Delete main photo file
@@ -666,7 +668,7 @@ export class AlbumsAdminController {
 										await storageManager.deletePhoto(thumbnailPath, provider);
 									}
 								} catch (thumbError) {
-									console.warn(`Failed to delete ${size} thumbnail:`, thumbError);
+									this.logger.warn(`Failed to delete ${size} thumbnail:`, thumbError);
 								}
 							}
 						}
@@ -688,16 +690,16 @@ export class AlbumsAdminController {
 							}
 						}
 					} catch (storageError) {
-						console.error(`Failed to delete photo files from storage:`, storageError);
+						this.logger.error(`Failed to delete photo files from storage:`, storageError);
 						// Continue with database deletion
 					}
 				}
 
 				// Delete photo from database
 				await db.collection('photos').deleteOne({ _id: photo._id });
-				console.log(`Deleted photo: ${photo._id.toString()}`);
+				this.logger.debug(`Deleted photo: ${photo._id.toString()}`);
 			} catch (photoError) {
-				console.error(`Failed to delete photo ${photo._id.toString()}:`, photoError);
+				this.logger.error(`Failed to delete photo ${photo._id.toString()}:`, photoError);
 				// Continue with other photos
 			}
 		}
@@ -706,20 +708,20 @@ export class AlbumsAdminController {
 		if (album.storagePath && album.storageProvider) {
 			try {
 				const storageManager = StorageManager.getInstance();
-				console.log(
+				this.logger.debug(
 					`Deleting album folder from storage: provider=${album.storageProvider}, path=${album.storagePath}`
 				);
 				await storageManager.deleteAlbum(album.storagePath, album.storageProvider as any);
-				console.log(`Successfully deleted album folder: ${album.storagePath}`);
+				this.logger.debug(`Successfully deleted album folder: ${album.storagePath}`);
 			} catch (storageError) {
-				console.error(`Failed to delete album folder from storage:`, storageError);
+				this.logger.error(`Failed to delete album folder from storage:`, storageError);
 				// Continue with database deletion even if storage deletion fails
 			}
 		}
 
 		// Delete the current album from database
 		await db.collection('albums').deleteOne({ _id: albumId });
-		console.log(`Deleted album: ${album.alias} (${albumId.toString()})`);
+		this.logger.debug(`Deleted album: ${album.alias} (${albumId.toString()})`);
 	}
 
 	/**
@@ -768,7 +770,7 @@ export class AlbumsAdminController {
 								updateData.parentAlbumId = parentId;
 								updateData.level = (parentAlbum.level || 0) + 1;
 							} else {
-								console.warn(`Parent album not found: ${update.parentAlbumId}`);
+								this.logger.warn(`Parent album not found: ${update.parentAlbumId}`);
 							}
 						}
 					}
@@ -779,12 +781,12 @@ export class AlbumsAdminController {
 					);
 
 					if (result.matchedCount === 0) {
-						console.warn(`Album not found for reorder: ${update.id}`);
+						this.logger.warn(`Album not found for reorder: ${update.id}`);
 					}
 
 					return result;
 				} catch (error) {
-					console.error(`Failed to update album ${update.id}:`, error);
+					this.logger.error(`Failed to update album ${update.id}:`, error);
 					throw error;
 				}
 			});
@@ -797,7 +799,7 @@ export class AlbumsAdminController {
 				message: `Successfully reordered ${updates.length} album(s)`
 			};
 		} catch (error) {
-			console.error('Failed to reorder albums:', error);
+			this.logger.error('Failed to reorder albums:', error);
 			if (error instanceof BadRequestException) {
 				throw error;
 			}

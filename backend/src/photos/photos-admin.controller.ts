@@ -9,6 +9,7 @@ import {
 	UseGuards,
 	BadRequestException,
 	NotFoundException,
+	Logger,
 } from '@nestjs/common';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { connectDB } from '../config/db';
@@ -19,6 +20,7 @@ import { ThumbnailGenerator } from '../services/thumbnail-generator';
 @Controller('admin/photos')
 @UseGuards(AdminGuard)
 export class PhotosAdminController {
+	private readonly logger = new Logger(PhotosAdminController.name);
 	/**
 	 * Get a photo by ID (admin only - includes unpublished)
 	 * Path: GET /api/admin/photos/:id
@@ -81,7 +83,7 @@ export class PhotosAdminController {
 
 			return serialized;
 		} catch (error) {
-			console.error('Failed to get photo:', error);
+			this.logger.error(`Failed to get photo: ${error instanceof Error ? error.message : String(error)}`);
 			if (error instanceof NotFoundException || error instanceof BadRequestException) {
 				throw error;
 			}
@@ -249,7 +251,7 @@ export class PhotosAdminController {
 
 			return serialized;
 		} catch (error) {
-			console.error('Failed to update photo:', error);
+			this.logger.error('Failed to update photo:', error);
 			if (error instanceof NotFoundException || error instanceof BadRequestException) {
 				throw error;
 			}
@@ -287,7 +289,7 @@ export class PhotosAdminController {
 				try {
 					const storageManager = StorageManager.getInstance();
 					const provider = photo.storage.provider as any;
-					console.log(`Deleting photo file from storage: provider=${provider}, path=${photo.storage.path}`);
+					this.logger.debug(`Deleting photo file from storage: provider=${provider}, path=${photo.storage.path}`);
 					
 					// Helper function to extract path from URL
 					const extractPathFromUrl = (url: string): string | null => {
@@ -310,7 +312,7 @@ export class PhotosAdminController {
 					
 					// Delete main photo file
 					await storageManager.deletePhoto(photo.storage.path, provider);
-					console.log(`Successfully deleted main photo file: ${photo.storage.path}`);
+					this.logger.debug(`Successfully deleted main photo file: ${photo.storage.path}`);
 					
 					// Delete thumbnails if they exist
 					if (photo.storage.thumbnails && typeof photo.storage.thumbnails === 'object') {
@@ -318,12 +320,12 @@ export class PhotosAdminController {
 							try {
 								const thumbnailPath = extractPathFromUrl(thumbnailUrl as string);
 								if (thumbnailPath && thumbnailPath !== photo.storage.path) {
-									console.log(`Deleting ${size} thumbnail: ${thumbnailPath}`);
+									this.logger.debug(`Deleting ${size} thumbnail: ${thumbnailPath}`);
 									await storageManager.deletePhoto(thumbnailPath, provider);
-									console.log(`Successfully deleted ${size} thumbnail`);
+									this.logger.debug(`Successfully deleted ${size} thumbnail`);
 								}
 							} catch (thumbError) {
-								console.warn(`Failed to delete ${size} thumbnail:`, thumbError);
+								this.logger.warn(`Failed to delete ${size} thumbnail:`, thumbError);
 								// Continue with other thumbnails even if one fails
 							}
 						}
@@ -342,21 +344,21 @@ export class PhotosAdminController {
 									});
 								
 								if (!alreadyDeleted) {
-									console.log(`Deleting thumbnail path: ${thumbPath}`);
+									this.logger.debug(`Deleting thumbnail path: ${thumbPath}`);
 									await storageManager.deletePhoto(thumbPath, provider);
-									console.log(`Successfully deleted thumbnail path`);
+									this.logger.debug(`Successfully deleted thumbnail path`);
 								}
 							}
 						} catch (thumbError) {
-							console.warn(`Failed to delete thumbnail path:`, thumbError);
+							this.logger.warn(`Failed to delete thumbnail path:`, thumbError);
 							// Continue even if thumbnail deletion fails
 						}
 					}
 					
-					console.log(`Successfully deleted all photo files from ${provider}`);
+					this.logger.debug(`Successfully deleted all photo files from ${provider}`);
 				} catch (storageError) {
-					console.error('Failed to delete photo from storage:', storageError);
-					console.error('Storage error details:', {
+					this.logger.error('Failed to delete photo from storage:', storageError);
+					this.logger.error('Storage error details:', {
 						provider: photo.storage?.provider,
 						path: photo.storage?.path,
 						error: storageError instanceof Error ? storageError.message : String(storageError)
@@ -365,7 +367,7 @@ export class PhotosAdminController {
 					// This ensures the database stays consistent even if storage deletion fails
 				}
 			} else {
-				console.warn('Photo has no storage information, skipping storage deletion');
+				this.logger.warn('Photo has no storage information, skipping storage deletion');
 			}
 
 			// Delete the photo from database
@@ -385,7 +387,7 @@ export class PhotosAdminController {
 
 			return { success: true, message: 'Photo deleted successfully' };
 		} catch (error) {
-			console.error('Failed to delete photo:', error);
+			this.logger.error('Failed to delete photo:', error);
 			if (error instanceof NotFoundException || error instanceof BadRequestException) {
 				throw error;
 			}
@@ -456,7 +458,7 @@ export class PhotosAdminController {
 				message: `Updated ${result.modifiedCount} photo(s)`,
 			};
 		} catch (error) {
-			console.error('Failed to bulk update photos:', error);
+			this.logger.error('Failed to bulk update photos:', error);
 			if (error instanceof BadRequestException) {
 				throw error;
 			}
@@ -534,11 +536,11 @@ export class PhotosAdminController {
 					try {
 						const thumbnailPath = extractPathFromUrl(thumbnailUrl as string);
 						if (thumbnailPath && thumbnailPath !== photo.storage.path) {
-							console.log(`Deleting old ${size} thumbnail: ${thumbnailPath}`);
+							this.logger.debug(`Deleting old ${size} thumbnail: ${thumbnailPath}`);
 							await storageManager.deletePhoto(thumbnailPath, provider);
 						}
 					} catch (thumbError) {
-						console.warn(`Failed to delete ${size} thumbnail:`, thumbError);
+						this.logger.warn(`Failed to delete ${size} thumbnail:`, thumbError);
 					}
 				}
 			}
@@ -562,9 +564,9 @@ export class PhotosAdminController {
 					);
 
 					thumbnails[sizeName] = `/api/storage/serve/${provider}/${encodeURIComponent(thumbnailResult.path)}`;
-					console.log(`Successfully regenerated ${sizeName} thumbnail`);
+					this.logger.debug(`Successfully regenerated ${sizeName} thumbnail`);
 				} catch (error) {
-					console.error(`Failed to upload ${sizeName} thumbnail:`, error);
+					this.logger.error(`Failed to upload ${sizeName} thumbnail:`, error);
 				}
 			}
 
@@ -638,7 +640,7 @@ export class PhotosAdminController {
 				data: serialized
 			};
 		} catch (error) {
-			console.error('Failed to regenerate thumbnails:', error);
+			this.logger.error('Failed to regenerate thumbnails:', error);
 			if (error instanceof NotFoundException || error instanceof BadRequestException) {
 				throw error;
 			}

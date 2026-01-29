@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Res, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Param, Res, NotFoundException, Logger } from '@nestjs/common';
 import { Response } from 'express';
 import { StorageManager } from '../services/storage/manager';
 import { StorageConfigError } from '../services/storage/types';
@@ -8,6 +8,7 @@ import { isAbsolute } from 'path';
 
 @Controller('storage')
 export class StorageController {
+  private readonly logger = new Logger(StorageController.name);
   /**
    * Serve files from storage
    * Path: GET /api/storage/serve/:provider/*
@@ -31,10 +32,10 @@ export class StorageController {
         }
       } catch (_e) {
         // If decoding fails, use original path
-        console.warn('Failed to decode path, using original:', filePath);
+        this.logger.warn(`Failed to decode path, using original: ${filePath}`);
       }
       
-      console.log(`Serving file - provider: ${provider}, original path: ${filePath}, decoded path: ${decodedPath}`);
+      this.logger.debug(`Serving file - provider: ${provider}, original path: ${filePath}, decoded path: ${decodedPath}`);
       
       // For local storage, serve files directly
       if (provider === 'local') {
@@ -46,7 +47,7 @@ export class StorageController {
           ? join(basePath, decodedPath)
           : join(process.cwd(), basePath, decodedPath);
         
-        console.log(`Full file path: ${fullPath}`);
+        this.logger.debug(`Full file path: ${fullPath}`);
         
         try {
           const fileBuffer = await readFile(fullPath);
@@ -68,15 +69,15 @@ export class StorageController {
           res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
           res.send(fileBuffer);
         } catch (error) {
-          console.error(`Failed to serve file ${fullPath}:`, error);
-          console.error(`Error details:`, {
+          this.logger.error(`Failed to serve file ${fullPath}: ${error instanceof Error ? error.message : String(error)}`);
+          this.logger.error(`Error details: ${JSON.stringify({
             originalPath: filePath,
             decodedPath: decodedPath,
             fullPath: fullPath,
             basePath: basePath,
             error: error instanceof Error ? error.message : String(error),
             stack: error instanceof Error ? error.stack : undefined
-          });
+          })}`);
           throw new NotFoundException(`File not found: ${decodedPath}`);
         }
       } else if (provider === 'google-drive') {
@@ -86,24 +87,24 @@ export class StorageController {
           
           // Check if the service has getFileBuffer method
           if (typeof (storageService as any).getFileBuffer === 'function') {
-            console.log(`GoogleDrive: Attempting to get file buffer for path: ${decodedPath}`);
+            this.logger.debug(`GoogleDrive: Attempting to get file buffer for path: ${decodedPath}`);
             const fileBuffer = await (storageService as any).getFileBuffer(decodedPath);
             
             if (!fileBuffer) {
-              console.error(`GoogleDrive: File buffer is null for path: ${decodedPath}`);
+              this.logger.error(`GoogleDrive: File buffer is null for path: ${decodedPath}`);
               throw new NotFoundException(`File not found: ${decodedPath}`);
             }
             
-            console.log(`GoogleDrive: Successfully retrieved file buffer, size: ${fileBuffer.length} bytes`);
+            this.logger.debug(`GoogleDrive: Successfully retrieved file buffer, size: ${fileBuffer.length} bytes`);
             
             // Get file info to determine content type
             let contentType = 'application/octet-stream';
             try {
               const fileInfo = await storageService.getFileInfo(decodedPath);
               contentType = fileInfo.mimeType || contentType;
-              console.log(`GoogleDrive: File info retrieved, content type: ${contentType}`);
+              this.logger.debug(`GoogleDrive: File info retrieved, content type: ${contentType}`);
             } catch (error) {
-              console.warn(`GoogleDrive: Failed to get file info, using extension-based content type:`, error);
+              this.logger.warn(`GoogleDrive: Failed to get file info, using extension-based content type: ${error instanceof Error ? error.message : String(error)}`);
               // Fallback to extension-based content type if getFileInfo fails
               const ext = decodedPath.split('.').pop()?.toLowerCase();
               const contentTypeMap: Record<string, string> = {
@@ -172,13 +173,13 @@ export class StorageController {
         } catch (error) {
           // If aws-s3 is not enabled but wasabi is, try wasabi as fallback (they're S3-compatible)
           if (provider === 'aws-s3' && error instanceof StorageConfigError) {
-            console.log(`Provider ${provider} not enabled, trying wasabi as fallback...`);
+            this.logger.log(`Provider ${provider} not enabled, trying wasabi as fallback...`);
             try {
               actualProvider = 'wasabi';
               storageService = await storageManager.getProvider('wasabi');
-              console.log(`Successfully using wasabi as fallback for ${provider}`);
+              this.logger.log(`Successfully using wasabi as fallback for ${provider}`);
             } catch (fallbackError) {
-              console.error(`Both ${provider} and wasabi are not enabled:`, fallbackError);
+              this.logger.error(`Both ${provider} and wasabi are not enabled: ${fallbackError instanceof Error ? fallbackError.message : String(fallbackError)}`);
               throw error; // Throw original error
             }
           } else {
@@ -222,7 +223,7 @@ export class StorageController {
             throw new NotFoundException(`Storage provider ${actualProvider} does not support file serving`);
           }
         } catch (error) {
-          console.error(`Failed to serve file from ${actualProvider}:`, error);
+          this.logger.error(`Failed to serve file from ${actualProvider}: ${error instanceof Error ? error.message : String(error)}`);
           if (error instanceof NotFoundException) {
             throw error;
           }
@@ -236,7 +237,7 @@ export class StorageController {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      console.error('Storage serve error:', error);
+      this.logger.error(`Storage serve error: ${error instanceof Error ? error.message : String(error)}`);
       throw new NotFoundException('File not found');
     }
   }

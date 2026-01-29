@@ -1,16 +1,17 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, Logger } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
 const cookieParser = require('cookie-parser');
 
 async function bootstrap() {
+  const logger = new Logger('Bootstrap');
   const app = await NestFactory.create(AppModule);
   
   const mode = process.env.NODE_ENV === 'production' ? 'PRODUCTION' : 'DEVELOPMENT';
-  console.log(`🚀 Backend server started (${mode})`);
+  logger.log(`🚀 Backend server started (${mode})`);
   
   // Enable cookie parser for JWT tokens
   app.use(cookieParser());
@@ -29,7 +30,7 @@ async function bootstrap() {
   const uniqueOrigins = [...new Set(allowedOrigins)];
   
   // Log allowed origins for debugging
-  console.log('🌐 CORS allowed origins:', uniqueOrigins);
+  logger.log('🌐 CORS allowed origins: ' + uniqueOrigins.join(', '));
   
   app.enableCors({
     origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
@@ -87,9 +88,9 @@ async function bootstrap() {
       }
       
       // Log blocked origin for debugging
-      console.warn('🚫 CORS blocked origin:', origin, 'Allowed origins:', uniqueOrigins);
-      console.warn('💡 To fix: Set FRONTEND_URL or CORS_ORIGINS environment variable in backend/.env');
-      console.warn('   Example: FRONTEND_URL=https://yairl.com,http://localhost:3021');
+      logger.warn(`🚫 CORS blocked origin: ${origin}`);
+      logger.warn(`💡 To fix: Set FRONTEND_URL or CORS_ORIGINS environment variable in backend/.env`);
+      logger.warn('   Example: FRONTEND_URL=https://yairl.com,http://localhost:3021');
       callback(new Error('Not allowed by CORS'));
     },
     credentials: true,
@@ -119,7 +120,7 @@ async function bootstrap() {
   const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 5000;
   await app.listen(port);
   
-  console.log(`🚀 NestJS server running on port ${port}`);
+  logger.log(`🚀 NestJS server running on port ${port}`);
 }
 
 bootstrap();
