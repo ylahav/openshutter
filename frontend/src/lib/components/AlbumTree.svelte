@@ -152,57 +152,78 @@
 
 	// Handle drag consider (during drag, for visual feedback)
 	function handleDndConsider(event: CustomEvent) {
-		logger.debug('[AlbumTree] Drag consider event fired');
 		const { detail } = event;
 		const { items } = detail;
 		// Update flatItems with the reordered items from dndzone for visual feedback
 		isDragging = true;
 		flatItemsForDnd = items;
 		flatItems = transformFromDnd(items);
-		logger.debug('[AlbumTree] Drag started, items:', items.length);
 	}
 
 	// Handle drag end (when drag is complete)
 	async function handleDndEnd(event: CustomEvent) {
-		logger.debug('[AlbumTree] Drag finalize event fired');
-		isDragging = false;
+		// Do NOT set isDragging = false here — it triggers reactive reset of flatItems before we use detail.items.
 		const { detail } = event;
 		const { items, info } = detail;
-		logger.debug('[AlbumTree] Drag ended, info:', info);
 
-		// Transform items back from dnd format
+		// Transform items back from dnd format (this is the NEW order after drop)
 		const transformedItems = transformFromDnd(items);
 
 		if (!info) {
-			// Reset flatItems from tree if no info
+			isDragging = false;
 			flatItems = flatten(tree, expandedNodes);
 			flatItemsForDnd = transformForDnd(flatItems);
 			return;
 		}
 
-		const fromIndex = info.initialIndex;
-		const toIndex = info.finalIndex;
-
-		logger.debug('[AlbumTree] Drag indices - from:', fromIndex, 'to:', toIndex);
-
-		if (fromIndex === toIndex) {
-			// No change, reset flatItems from tree
-			flatItems = flatten(tree, expandedNodes);
-			flatItemsForDnd = transformForDnd(flatItems);
-			return;
-		}
-
-		// Get the original flat list BEFORE drag to find the dragged node
+		// Original flat list BEFORE drag (from current tree)
 		const originalFlat = flatten(tree, expandedNodes);
-		const activeNode = originalFlat[fromIndex];
-		
-		// Use the reordered items AFTER drag to find the target position
-		const overNode = transformedItems[toIndex];
+		const originalIds = originalFlat.map(n => n._id);
+		const newIds = transformedItems.map(n => n._id);
 
-		logger.debug('[AlbumTree] Active node:', activeNode?._id, 'Over node:', overNode?._id);
+		// Prefer info.id (dragged item) to compute indices — library often omits initialIndex/finalIndex for droppedIntoZone
+		const draggedId = typeof info.id === 'string' ? info.id : undefined;
+		let fromIdx: number;
+		let toIdx: number;
+
+		if (draggedId !== undefined && originalIds.includes(draggedId)) {
+			fromIdx = originalIds.indexOf(draggedId);
+			toIdx = newIds.indexOf(draggedId);
+		} else {
+			// Fallback: indices from library or first difference
+			const fromIndex = info.initialIndex ?? info.fromIndex ?? info.source?.index;
+			const toIndex = info.finalIndex ?? info.toIndex ?? info.target?.index;
+			if (fromIndex !== undefined && toIndex !== undefined) {
+				fromIdx = fromIndex;
+				toIdx = toIndex;
+			} else {
+				// Find first position where order differs
+				fromIdx = -1;
+				toIdx = -1;
+				for (let i = 0; i < originalIds.length; i++) {
+					if (originalIds[i] !== newIds[i]) {
+						const movedId = originalIds[i];
+						fromIdx = i;
+						toIdx = newIds.indexOf(movedId);
+						break;
+					}
+				}
+			}
+		}
+
+		if (fromIdx === -1 || toIdx === -1 || fromIdx === toIdx) {
+			isDragging = false;
+			flatItems = flatten(tree, expandedNodes);
+			flatItemsForDnd = transformForDnd(flatItems);
+			return;
+		}
+
+		const activeNode = originalFlat[fromIdx];
+		const overNode = transformedItems[toIdx];
 
 		if (!activeNode || !overNode) {
 			logger.warn('[AlbumTree] Missing nodes - active:', !!activeNode, 'over:', !!overNode);
+			isDragging = false;
 			flatItems = flatten(tree, expandedNodes);
 			flatItemsForDnd = transformForDnd(flatItems);
 			return;
@@ -239,9 +260,6 @@
 				.filter((item) => (item.parentAlbumId ?? null) === (activeNode.parentAlbumId ?? null))
 				.map((item) => item._id);
 
-			logger.debug('[AlbumTree] All siblings:', allSiblings);
-			logger.debug('[AlbumTree] Reordered visible siblings:', reorderedVisibleSiblings);
-
 			// Create a map of new positions for visible siblings
 			const newPositionMap = new Map<string, number>();
 			reorderedVisibleSiblings.forEach((id, idx) => {
@@ -256,13 +274,20 @@
 			// Build final ordered list: visible siblings in new order, then hidden siblings
 			const finalOrder = [...reorderedVisibleSiblings, ...hiddenSiblings];
 
-			logger.debug('[AlbumTree] Final ordered siblings:', finalOrder);
-
 			// Update order for ALL siblings based on their new positions
 			finalOrder.forEach((id, idx) => {
+				if (!id) {
+					logger.warn('[AlbumTree] Skipping update with invalid id:', id);
+					return;
+				}
+				const idStr = String(id);
+				if (idStr.length !== 24 || !/^[0-9a-fA-F]{24}$/.test(idStr)) {
+					logger.warn('[AlbumTree] Skipping update with invalid ID format:', idStr);
+					return;
+				}
 				updates.push({
-					id,
-					parentAlbumId: activeNode.parentAlbumId ?? null,
+					id: idStr,
+					parentAlbumId: activeNode.parentAlbumId != null ? String(activeNode.parentAlbumId) : null,
 					order: idx
 				});
 			});
@@ -284,10 +309,6 @@
 			const overIndex = reorderedVisibleNewSiblings.indexOf(overNode._id);
 			const insertIndex = overIndex >= 0 ? overIndex : reorderedVisibleNewSiblings.length;
 
-			logger.debug('[AlbumTree] New parent siblings:', allNewSiblings);
-			logger.debug('[AlbumTree] Reordered visible new siblings:', reorderedVisibleNewSiblings);
-			logger.debug('[AlbumTree] Insert index:', insertIndex);
-
 			// Build final order: visible siblings up to insert point, then dragged item, then rest
 			const finalNewOrder = [
 				...reorderedVisibleNewSiblings.slice(0, insertIndex),
@@ -300,13 +321,20 @@
 			const hiddenNewSiblings = allNewSiblings.filter((id) => !visibleNewSet.has(id));
 			finalNewOrder.push(...hiddenNewSiblings);
 
-			logger.debug('[AlbumTree] Final new parent order:', finalNewOrder);
-
 			// Update order for ALL siblings in the new parent
 			finalNewOrder.forEach((id, idx) => {
+				if (!id) {
+					logger.warn('[AlbumTree] Skipping update with invalid id:', id);
+					return;
+				}
+				const idStr = String(id);
+				if (idStr.length !== 24 || !/^[0-9a-fA-F]{24}$/.test(idStr)) {
+					logger.warn('[AlbumTree] Skipping update with invalid ID format:', idStr);
+					return;
+				}
 				updates.push({
-					id,
-					parentAlbumId: newParentId,
+					id: idStr,
+					parentAlbumId: newParentId != null ? String(newParentId) : null,
 					order: idx
 				});
 			});
@@ -320,19 +348,27 @@
 				)
 				.map((a) => a._id);
 
-			logger.debug('[AlbumTree] Old parent siblings to reorder:', allOldSiblings);
-
 			// Update order for ALL siblings in the old parent (sequential: 0, 1, 2, ...)
 			allOldSiblings.forEach((id, idx) => {
+				if (!id) {
+					logger.warn('[AlbumTree] Skipping update with invalid id:', id);
+					return;
+				}
+				const idStr = String(id);
+				if (idStr.length !== 24 || !/^[0-9a-fA-F]{24}$/.test(idStr)) {
+					logger.warn('[AlbumTree] Skipping update with invalid ID format:', idStr);
+					return;
+				}
 				updates.push({
-					id,
-					parentAlbumId: activeNode.parentAlbumId ?? null,
+					id: idStr,
+					parentAlbumId: activeNode.parentAlbumId != null ? String(activeNode.parentAlbumId) : null,
 					order: idx
 				});
 			});
 		}
 
 		if (updates.length === 0) {
+			isDragging = false;
 			flatItems = flatten(tree, expandedNodes);
 			flatItemsForDnd = transformForDnd(flatItems);
 			return;
@@ -359,20 +395,20 @@
 		// Save to server
 		if (onReorder) {
 			try {
-				logger.debug('[AlbumTree] Sending updates to server:', updates);
 				await onReorder(updates);
-				logger.debug('[AlbumTree] Reorder successful');
 			} catch (error) {
 				logger.error('Failed to reorder albums:', error);
 				// Revert on error
 				localAlbums = albums;
 				flatItems = flatten(tree, expandedNodes);
 				flatItemsForDnd = transformForDnd(flatItems);
+				isDragging = false;
 				throw error;
 			}
 		} else {
 			logger.warn('[AlbumTree] No onReorder callback provided');
 		}
+		isDragging = false;
 	}
 
 	// Sync localAlbums when albums prop changes
@@ -394,7 +430,6 @@
 		if (!isDragging) {
 			flatItems = flatten(tree, expandedNodes);
 			flatItemsForDnd = transformForDnd(flatItems);
-			logger.debug('[AlbumTree] flatItems updated:', flatItems.length, 'items');
 		}
 	}
 

@@ -290,11 +290,16 @@
 		updates: Array<{ id: string; parentAlbumId: string | null; order: number }>
 	) {
 		try {
-			logger.debug('[handleReorder] Sending updates:', updates);
+			// Ensure all IDs are strings
+			const sanitizedUpdates = updates.map(update => ({
+				id: String(update.id),
+				parentAlbumId: update.parentAlbumId != null ? String(update.parentAlbumId) : null,
+				order: update.order
+			}));
 			const response = await fetch('/api/admin/albums/reorder', {
 				method: 'PUT',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ updates })
+				body: JSON.stringify({ updates: sanitizedUpdates })
 			});
 			
 			if (!response.ok) {
@@ -302,8 +307,7 @@
 				throw new Error(errorData.error || errorData.message || `HTTP ${response.status}`);
 			}
 			
-			const result = await response.json();
-			logger.debug('[handleReorder] Server response:', result);
+			await response.json();
 			await loadAlbums();
 		} catch (err) {
 			logger.error('Failed to reorder albums:', err);

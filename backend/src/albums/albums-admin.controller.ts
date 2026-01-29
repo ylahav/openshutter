@@ -394,6 +394,135 @@ export class AlbumsAdminController {
 	}
 
 	/**
+	 * Reorder albums
+	 * Path: PUT /api/admin/albums/reorder
+	 * NOTE: This route must come BEFORE @Put(':id') to avoid route conflicts
+	 */
+	@Put('reorder')
+	async reorderAlbums(@Body() body: { updates: Array<{ id: string; parentAlbumId: string | null; order: number }> }) {
+		try {
+			await connectDB();
+			const db = mongoose.connection.db;
+			if (!db) throw new InternalServerErrorException('Database connection not established');
+
+			const { updates } = body;
+
+			if (!Array.isArray(updates) || updates.length === 0) {
+				throw new BadRequestException('Updates array is required and must not be empty');
+			}
+
+			// Validate all updates and normalize IDs to strings
+			const validatedUpdates: Array<{ id: string; parentAlbumId: string | null; order: number }> = [];
+			for (let i = 0; i < updates.length; i++) {
+				const update = updates[i];
+				
+				if (!update.id || typeof update.order !== 'number') {
+					throw new BadRequestException(`Update ${i + 1}: Each update must have id and order. Got id: ${update.id}, order: ${update.order}`);
+				}
+				
+				// Ensure id is a string
+				const albumId = String(update.id).trim();
+				// Validate album ID format - must be exactly 24 hex characters
+				if (albumId.length !== 24 || !/^[0-9a-fA-F]{24}$/.test(albumId)) {
+					this.logger.error(`Update ${i + 1}: Invalid album ID format: "${albumId}" (type: ${typeof update.id}, length: ${albumId.length}, original: ${JSON.stringify(update.id)})`);
+					throw new BadRequestException(`Update ${i + 1}: Invalid album ID format: ${albumId} (must be exactly 24 hex characters)`);
+				}
+				// Also check with MongoDB's validator
+				if (!Types.ObjectId.isValid(albumId)) {
+					this.logger.error(`Update ${i + 1}: MongoDB validation failed for ID: "${albumId}"`);
+					throw new BadRequestException(`Update ${i + 1}: Invalid album ID format: ${albumId}`);
+				}
+				
+				// Normalize parentAlbumId
+				let parentAlbumId: string | null = null;
+				if (update.parentAlbumId !== null && update.parentAlbumId !== undefined && update.parentAlbumId !== '') {
+					const parentId = String(update.parentAlbumId).trim();
+					// Validate parent ID format - must be exactly 24 hex characters
+					if (parentId.length !== 24 || !/^[0-9a-fA-F]{24}$/.test(parentId)) {
+						this.logger.error(`Update ${i + 1}: Invalid parent album ID format: "${parentId}" (type: ${typeof update.parentAlbumId}, length: ${parentId.length}, original: ${JSON.stringify(update.parentAlbumId)})`);
+						throw new BadRequestException(`Update ${i + 1}: Invalid parent album ID format: ${parentId} (must be exactly 24 hex characters)`);
+					}
+					// Also check with MongoDB's validator
+					if (!Types.ObjectId.isValid(parentId)) {
+						this.logger.error(`Update ${i + 1}: MongoDB validation failed for parent ID: "${parentId}"`);
+						throw new BadRequestException(`Update ${i + 1}: Invalid parent album ID format: ${parentId}`);
+					}
+					parentAlbumId = parentId;
+				}
+				
+				validatedUpdates.push({
+					id: albumId,
+					parentAlbumId,
+					order: update.order
+				});
+			}
+
+			// Update each album
+			const updatePromises = validatedUpdates.map(async (update) => {
+				try {
+					const albumId = new Types.ObjectId(update.id);
+					const updateData: any = {
+						order: update.order,
+						updatedAt: new Date()
+					};
+
+					// Update parentAlbumId if provided
+					if (update.parentAlbumId !== null && update.parentAlbumId !== undefined) {
+						if (update.parentAlbumId === '') {
+							updateData.parentAlbumId = null;
+							updateData.level = 0;
+						} else {
+							const parentId = new Types.ObjectId(update.parentAlbumId);
+							// Get parent album to calculate level
+							const parentAlbum = await db.collection('albums').findOne({ _id: parentId });
+							if (parentAlbum) {
+								updateData.parentAlbumId = parentId;
+								updateData.level = (parentAlbum.level || 0) + 1;
+							} else {
+								this.logger.warn(`Parent album not found: ${update.parentAlbumId}`);
+							}
+						}
+					}
+
+					const result = await db.collection('albums').updateOne(
+						{ _id: albumId },
+						{ $set: updateData }
+					);
+
+					if (result.matchedCount === 0) {
+						this.logger.warn(`Album not found for reorder: ${update.id}`);
+					}
+
+					return result;
+				} catch (error) {
+					this.logger.error(`Failed to update album ${update.id}:`, error);
+					// If it's an ObjectId validation error, provide clearer message
+					if (error instanceof Error && error.message.includes('ObjectId')) {
+						throw new BadRequestException(`Invalid album ID format: ${update.id}`);
+					}
+					throw error;
+				}
+			});
+
+			await Promise.all(updatePromises);
+
+			// Return success response
+			return {
+				success: true,
+				message: `Successfully reordered ${validatedUpdates.length} album(s)`
+			};
+		} catch (error) {
+			this.logger.error('Failed to reorder albums:', error);
+			if (error instanceof BadRequestException) {
+				throw error;
+			}
+			throw new InternalServerErrorException(
+				`Failed to reorder albums: ${error instanceof Error ? error.message : 'Unknown error'}`
+			);
+		}
+	}
+
+	/**
 	 * Update an album (admin only)
 	 * Path: PUT /api/admin/albums/:id
 	 */
@@ -723,94 +852,5 @@ export class AlbumsAdminController {
 		// Delete the current album from database
 		await db.collection('albums').deleteOne({ _id: albumId });
 		this.logger.debug(`Deleted album: ${album.alias} (${albumId.toString()})`);
-	}
-
-	/**
-	 * Reorder albums
-	 * Path: PUT /api/admin/albums/reorder
-	 */
-	@Put('reorder')
-	async reorderAlbums(@Body() body: { updates: Array<{ id: string; parentAlbumId: string | null; order: number }> }) {
-		try {
-			await connectDB();
-			const db = mongoose.connection.db;
-			if (!db) throw new InternalServerErrorException('Database connection not established');
-
-			const { updates } = body;
-
-			if (!Array.isArray(updates) || updates.length === 0) {
-				throw new BadRequestException('Updates array is required and must not be empty');
-			}
-
-			// Validate all updates
-			for (const update of updates) {
-				if (!update.id || typeof update.order !== 'number') {
-					throw new BadRequestException('Each update must have id and order');
-				}
-			}
-
-			// Update each album
-			const updatePromises = updates.map(async (update) => {
-				try {
-					const albumId = new Types.ObjectId(update.id);
-					const updateData: any = {
-						order: update.order,
-						updatedAt: new Date()
-					};
-					
-					this.logger.debug(`Updating album ${update.id}: order=${update.order}, parentAlbumId=${update.parentAlbumId}`);
-
-					// Update parentAlbumId if provided
-					if (update.parentAlbumId !== null && update.parentAlbumId !== undefined) {
-						if (update.parentAlbumId === '') {
-							updateData.parentAlbumId = null;
-							updateData.level = 0;
-						} else {
-							const parentId = new Types.ObjectId(update.parentAlbumId);
-							// Get parent album to calculate level
-							const parentAlbum = await db.collection('albums').findOne({ _id: parentId });
-							if (parentAlbum) {
-								updateData.parentAlbumId = parentId;
-								updateData.level = (parentAlbum.level || 0) + 1;
-							} else {
-								this.logger.warn(`Parent album not found: ${update.parentAlbumId}`);
-							}
-						}
-					}
-
-					const result = await db.collection('albums').updateOne(
-						{ _id: albumId },
-						{ $set: updateData }
-					);
-
-					if (result.matchedCount === 0) {
-						this.logger.warn(`Album not found for reorder: ${update.id}`);
-					} else {
-						this.logger.debug(`Successfully updated album ${update.id}: matched=${result.matchedCount}, modified=${result.modifiedCount}`);
-					}
-
-					return result;
-				} catch (error) {
-					this.logger.error(`Failed to update album ${update.id}:`, error);
-					throw error;
-				}
-			});
-
-			await Promise.all(updatePromises);
-
-			// Return success response
-			return {
-				success: true,
-				message: `Successfully reordered ${updates.length} album(s)`
-			};
-		} catch (error) {
-			this.logger.error('Failed to reorder albums:', error);
-			if (error instanceof BadRequestException) {
-				throw error;
-			}
-			throw new InternalServerErrorException(
-				`Failed to reorder albums: ${error instanceof Error ? error.message : 'Unknown error'}`
-			);
-		}
 	}
 }

@@ -216,12 +216,18 @@ export class PeopleController {
    * Path: PUT /api/admin/people/:id
    */
   @Put(':id')
-  async updatePerson(@Param('id') id: string, @Body() body: any) {
+  async updatePerson(@Request() req: any, @Param('id') id: string, @Body() body: any) {
     try {
       await connectDB();
       const db = mongoose.connection.db;
       if (!db) throw new InternalServerErrorException('Database connection not established');
       const collection = db.collection('people');
+
+      // Get user from request (set by AdminGuard)
+      const user = req.user;
+      if (!user || !user.id) {
+        throw new BadRequestException('User not authenticated');
+      }
 
       const person = await collection.findOne({ _id: new Types.ObjectId(id) });
       if (!person) {
