@@ -4,6 +4,7 @@ import { connectDB } from '../config/db';
 import mongoose, { Types } from 'mongoose';
 import { CreateGroupDto } from './dto/create-group.dto';
 import { UpdateGroupDto } from './dto/update-group.dto';
+import { normalizeMultiLangText } from '../common/utils/multi-lang';
 
 @Controller('admin/groups')
 @UseGuards(AdminGuard)
@@ -175,27 +176,8 @@ export class GroupsController {
 
       const { name } = body;
 
-      // Validate name - must have at least one language
-      if (!name) {
-        throw new BadRequestException('Name is required');
-      }
-
-      // Normalize name object
-      const normalizedName: Record<string, string> = {};
-      if (typeof name === 'string') {
-        normalizedName.en = name.trim();
-      } else if (name && typeof name === 'object') {
-        Object.keys(name).forEach((key) => {
-          if (name[key] && typeof name[key] === 'string') {
-            normalizedName[key] = name[key].trim();
-          }
-        });
-      }
-
-      // Validate that at least one language has a value
-      if (Object.keys(normalizedName).length === 0) {
-        throw new BadRequestException('Name is required in at least one language');
-      }
+      // Normalize name object using utility function
+      const normalizedName = normalizeMultiLangText(name, false, 'Name');
 
       // Update group (alias is immutable)
       const updateData = {
