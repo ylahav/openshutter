@@ -248,6 +248,7 @@ export class AlbumsAdminController {
 						parentAlbumId: album.parentAlbumId?.toString() || null,
 						coverPhotoId: album.coverPhotoId?.toString() || null,
 						createdBy: album.createdBy?.toString() || null,
+						order: album.order ?? 0, // Ensure order field is included
 						childAlbumCount: childCount,
 					};
 				})
@@ -756,6 +757,8 @@ export class AlbumsAdminController {
 						order: update.order,
 						updatedAt: new Date()
 					};
+					
+					this.logger.debug(`Updating album ${update.id}: order=${update.order}, parentAlbumId=${update.parentAlbumId}`);
 
 					// Update parentAlbumId if provided
 					if (update.parentAlbumId !== null && update.parentAlbumId !== undefined) {
@@ -782,6 +785,8 @@ export class AlbumsAdminController {
 
 					if (result.matchedCount === 0) {
 						this.logger.warn(`Album not found for reorder: ${update.id}`);
+					} else {
+						this.logger.debug(`Successfully updated album ${update.id}: matched=${result.matchedCount}, modified=${result.modifiedCount}`);
 					}
 
 					return result;

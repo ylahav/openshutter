@@ -224,6 +224,9 @@
 			
 			// Force reactivity update
 			albums = [...albums];
+			
+			// Debug: log order values
+			logger.debug('[loadAlbums] Albums with order values:', albums.map(a => ({ _id: a._id, name: typeof a.name === 'string' ? a.name : a.name?.en, order: a.order })));
 		} catch (err) {
 			logger.error('Error loading albums:', err);
 			error = handleError(err, 'Failed to load albums');
