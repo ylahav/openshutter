@@ -184,9 +184,9 @@
 
 			logger.debug('[confirmDeletePhoto] Response status:', response.status, response.statusText);
 
-			let result: any = {};
+			let result: { success?: boolean; error?: string; message?: string } = {};
 			try {
-				result = await response.json();
+				result = await response.json() as { success?: boolean; error?: string; message?: string };
 				logger.debug('[confirmDeletePhoto] Response data:', result);
 			} catch (parseError) {
 				logger.warn('[confirmDeletePhoto] Failed to parse JSON response:', parseError);
@@ -251,9 +251,9 @@
 				const errorText = await response.text();
 				logger.error('[deleteAlbum] Delete failed:', response.status, errorText);
 				
-				let errorData: any = {};
+				let errorData: { error?: string; message?: string } = {};
 				try {
-					errorData = JSON.parse(errorText);
+					errorData = JSON.parse(errorText) as { error?: string; message?: string };
 				} catch (parseError) {
 					logger.warn('[deleteAlbum] Failed to parse error response as JSON');
 				}

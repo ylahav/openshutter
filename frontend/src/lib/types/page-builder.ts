@@ -20,8 +20,10 @@ export interface PageModuleData {
 	type: string;
 	zone?: string; // Legacy support
 	order?: number; // Legacy support
-	rowOrder: number; // Row index (0-based)
-	columnIndex: number; // Column index within row (0-based)
-	columnProportion: number; // Proportion value (e.g., 1, 2, 3)
+	rowOrder?: number; // Row index (0-based) - new layout system
+	columnIndex?: number; // Column index within row (0-based) - new layout system
+	columnProportion?: number; // Proportion value (e.g., 1, 2, 3) - new layout system
 	props: Record<string, any>;
+	createdAt?: string;
+	updatedAt?: string;
 }

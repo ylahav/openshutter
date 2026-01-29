@@ -90,7 +90,9 @@
 					album.location
 						? typeof album.location === 'string'
 							? album.location
-							: (album.location as any)?._id?.toString() || String(album.location)
+							: (album.location && typeof album.location === 'object' && '_id' in album.location)
+								? (album.location as { _id: { toString(): string } })._id.toString()
+								: String(album.location)
 						: null;
 			}
 		} catch (err) {

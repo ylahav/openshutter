@@ -234,7 +234,7 @@
 		}
 	}
 
-	function renderAlbumActions(node: any): string {
+	function renderAlbumActions(node: Album): string {
 		const albumName = getAlbumName(node).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 		return `
 			<div class="flex items-center gap-2 album-actions" data-album-id="${node._id}">
@@ -266,7 +266,7 @@
 		`;
 	}
 
-	function handleOpen(node: any) {
+	function handleOpen(node: Album) {
 		goto(`/admin/albums/${node._id}`);
 	}
 

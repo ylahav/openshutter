@@ -39,18 +39,37 @@
 		updatedAt?: string;
 	}
 
-	interface PageModule {
-		_id: string;
-		pageId: string;
+	// Module payload types
+	interface ModulePayload {
 		type: string;
-		zone?: string; // Legacy support
-		order?: number; // Legacy support
-		rowOrder?: number; // Row index (0-based) - new layout system
-		columnIndex?: number; // Column index within row (0-based) - new layout system
-		columnProportion?: number; // Proportion value (e.g., 1, 2, 3) - new layout system
-		props: Record<string, any>;
-		createdAt?: string;
-		updatedAt?: string;
+		props: Record<string, unknown>;
+		zone?: string;
+		order?: number;
+		rowOrder?: number;
+		columnIndex?: number;
+		columnProportion?: number;
+	}
+
+	interface FeatureGridProps {
+		title: MultiLangText;
+		subtitle: MultiLangText;
+		features: Array<{
+			icon: string;
+			title: MultiLangText;
+			description: MultiLangHTML;
+		}>;
+	}
+
+	interface RichTextProps {
+		title: MultiLangText;
+		body: MultiLangHTML;
+		background: 'white' | 'gray';
+	}
+
+	interface AlbumsGridProps {
+		title: MultiLangText;
+		description: MultiLangHTML;
+		selectedAlbums: string[];
 	}
 
 	interface AlbumHierarchyNode {
@@ -95,7 +114,7 @@
 		createSuccessMessage: 'Page created successfully!',
 		updateSuccessMessage: 'Page updated successfully!',
 		deleteSuccessMessage: 'Page deleted successfully!',
-		transformPayload: (data: any) => ({
+		transformPayload: (data: Partial<Page>) => ({
 			...data,
 			slug: data.alias,
 			layout: { zones: parseZones(data.layoutZones) }
@@ -158,7 +177,7 @@
 	dialogs.showCreate.subscribe(value => showCreateDialog = value);
 	dialogs.showEdit.subscribe(value => showEditDialog = value);
 	dialogs.showDelete.subscribe(value => showDeleteDialog = value);
-	let modules: PageModule[] = [];
+	let modules: PageModuleData[] = [];
 	let modulesLoading = false;
 	let modulesError = '';
 	let moduleForm = {
@@ -370,7 +389,7 @@
 	}
 
 	let showModuleEditDialog = false;
-	let editingModule: PageModule | null = null;
+	let editingModule: PageModuleData | null = null;
 	
 	// Feature Grid form state
 	interface FeatureGridItem {
@@ -395,8 +414,8 @@
 	let availableAlbums: Array<{ _id: string; name: string | MultiLangText; alias: string; level?: number }> = [];
 	let albumsLoading = false;
 
-	function editModule(module: PageModule | PageModuleData) {
-		editingModule = module as PageModule;
+	function editModule(module: PageModuleData) {
+		editingModule = module;
 		moduleForm = {
 			id: module._id,
 			type: module.type,
@@ -491,7 +510,7 @@
 		if (!editingPage || !editingModule) return;
 		modulesError = '';
 		try {
-			let props: any = {};
+			let props: FeatureGridProps | RichTextProps | AlbumsGridProps | Record<string, unknown> = {};
 			
 			// Handle featureGrid module specially
 			if (moduleForm.type === 'featureGrid') {
@@ -503,26 +522,26 @@
 						title: item.title,
 						description: item.description
 					}))
-				};
+				} as FeatureGridProps;
 			} else if (moduleForm.type === 'richText') {
 				// Handle richText module
 				props = {
 					title: richTextTitle,
 					body: richTextBody,
 					background: richTextBackground
-				};
+				} as RichTextProps;
 			} else if (moduleForm.type === 'albumsGrid') {
 				// Handle albumsGrid module
 				props = {
 					title: albumsGridTitle,
 					description: albumsGridDescription,
 					selectedAlbums: albumsGridSelectedAlbums
-				};
+				} as AlbumsGridProps;
 			} else {
-				props = moduleForm.propsJson.trim() ? JSON.parse(moduleForm.propsJson) : {};
+				props = moduleForm.propsJson.trim() ? JSON.parse(moduleForm.propsJson) as Record<string, unknown> : {};
 			}
 			
-			const payload: any = {
+			const payload: ModulePayload = {
 				type: moduleForm.type,
 				props
 			};
@@ -565,7 +584,7 @@
 		if (!editingPage) return;
 		modulesError = '';
 		try {
-			let props: any = {};
+			let props: FeatureGridProps | RichTextProps | AlbumsGridProps | Record<string, unknown> = {};
 			
 			// Handle module-specific props
 			if (moduleForm.type === 'featureGrid') {
@@ -577,24 +596,24 @@
 						title: item.title,
 						description: item.description
 					}))
-				};
+				} as FeatureGridProps;
 			} else if (moduleForm.type === 'richText') {
 				props = {
 					title: richTextTitle,
 					body: richTextBody,
 					background: richTextBackground
-				};
+				} as RichTextProps;
 			} else if (moduleForm.type === 'albumsGrid') {
 				props = {
 					title: albumsGridTitle,
 					description: albumsGridDescription,
 					selectedAlbums: albumsGridSelectedAlbums
-				};
+				} as AlbumsGridProps;
 			} else {
-				props = moduleForm.propsJson.trim() ? JSON.parse(moduleForm.propsJson) : {};
+				props = moduleForm.propsJson.trim() ? JSON.parse(moduleForm.propsJson) as Record<string, unknown> : {};
 			}
 			
-			const payload = {
+			const payload: ModulePayload = {
 				type: moduleForm.type,
 				zone: moduleForm.zone,
 				order: Number(moduleForm.order) || 0,
@@ -739,7 +758,7 @@
 			
 			// First, move current row to temp
 			for (const module of currentRowModules) {
-				const payload: any = {
+				const payload: ModulePayload = {
 					type: module.type,
 					rowOrder: tempRowOrder,
 					columnIndex: module.columnIndex,
@@ -756,7 +775,7 @@
 			
 			// Then, move target row to current position
 			for (const module of targetRowModules) {
-				const payload: any = {
+				const payload: ModulePayload = {
 					type: module.type,
 					rowOrder: rowOrder,
 					columnIndex: module.columnIndex,
@@ -773,7 +792,7 @@
 			
 			// Finally, move current row (from temp) to target position
 			for (const module of currentRowModules) {
-				const payload: any = {
+				const payload: ModulePayload = {
 					type: module.type,
 					rowOrder: targetRowOrder,
 					columnIndex: module.columnIndex,
@@ -817,7 +836,7 @@
 		}
 	}
 
-	async function handleAssignModule(rowOrder: number, columnIndex: number, moduleType: string, props: Record<string, any>) {
+	async function handleAssignModule(rowOrder: number, columnIndex: number, moduleType: string, props: Record<string, unknown>) {
 		if (!editingPage) return;
 		modulesError = '';
 		try {
@@ -1436,7 +1455,7 @@
 																item.icon = e.detail.value as string;
 															}}
 														/>
-														{#if item.icon === 'custom' || (item.icon && !AVAILABLE_ICONS.includes(item.icon as any))}
+														{#if item.icon === 'custom' || (item.icon && !AVAILABLE_ICONS.includes(item.icon))}
 															<input
 																type="text"
 																bind:value={item.icon}
@@ -1683,14 +1702,14 @@
 						<p class="text-sm text-gray-500">Loading layout...</p>
 					{:else}
 						<RowColumnLayoutBuilder
-							modules={modules as PageModuleData[]}
+							modules={modules}
 							rowStructure={rowStructure}
 							onAddRow={handleAddRow}
 							onDeleteRow={handleDeleteRow}
 							onReorderRow={handleReorderRow}
 							onAssignModule={handleAssignModule}
 							onRemoveModule={deleteModule}
-							onEditModule={editModule as (module: PageModuleData) => void}
+							onEditModule={editModule}
 							availableModuleTypes={MODULE_TYPES}
 						/>
 					{/if}
@@ -1830,7 +1849,7 @@
 																item.icon = e.detail.value as string;
 															}}
 														/>
-														{#if item.icon === 'custom' || (item.icon && !AVAILABLE_ICONS.includes(item.icon as any))}
+														{#if item.icon === 'custom' || (item.icon && !AVAILABLE_ICONS.includes(item.icon))}
 															<input
 																type="text"
 																bind:value={item.icon}
@@ -2132,7 +2151,7 @@
 																item.icon = e.detail.value as string;
 															}}
 														/>
-														{#if item.icon === 'custom' || (item.icon && !AVAILABLE_ICONS.includes(item.icon as any))}
+														{#if item.icon === 'custom' || (item.icon && !AVAILABLE_ICONS.includes(item.icon))}
 															<input
 																type="text"
 																bind:value={item.icon}
