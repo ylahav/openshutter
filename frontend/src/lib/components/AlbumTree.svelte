@@ -183,6 +183,8 @@
 		const fromIndex = info.initialIndex;
 		const toIndex = info.finalIndex;
 
+		logger.debug('[AlbumTree] Drag indices - from:', fromIndex, 'to:', toIndex);
+
 		if (fromIndex === toIndex) {
 			// No change, reset flatItems from tree
 			flatItems = flatten(tree, expandedNodes);
@@ -190,12 +192,17 @@
 			return;
 		}
 
-		// Get the original flat list to find the nodes
+		// Get the original flat list BEFORE drag to find the dragged node
 		const originalFlat = flatten(tree, expandedNodes);
 		const activeNode = originalFlat[fromIndex];
-		const overNode = originalFlat[toIndex];
+		
+		// Use the reordered items AFTER drag to find the target position
+		const overNode = transformedItems[toIndex];
+
+		logger.debug('[AlbumTree] Active node:', activeNode?._id, 'Over node:', overNode?._id);
 
 		if (!activeNode || !overNode) {
+			logger.warn('[AlbumTree] Missing nodes - active:', !!activeNode, 'over:', !!overNode);
 			flatItems = flatten(tree, expandedNodes);
 			flatItemsForDnd = transformForDnd(flatItems);
 			return;
@@ -221,28 +228,21 @@
 
 		// Same parent: reorder within siblings
 		if ((activeNode.parentAlbumId ?? null) === (overNode.parentAlbumId ?? null)) {
-			const siblings = localAlbums
-				.filter((a) => (a.parentAlbumId ?? null) === (activeNode.parentAlbumId ?? null))
-				.sort((a, b) => (a.order - b.order) || a.name.toString().localeCompare(b.name.toString()));
-			const ids = siblings.map((s) => s._id);
-			const from = ids.indexOf(activeNode._id);
-			const to = ids.indexOf(overNode._id);
-			if (from === -1 || to === -1) {
-				flatItems = flatten(tree, expandedNodes);
-				flatItemsForDnd = transformForDnd(flatItems);
-				return;
-			}
-			// Simple array move
-			const newIds = [...ids];
-			const [moved] = newIds.splice(from, 1);
-			newIds.splice(to, 0, moved);
-			updates.push(
-				...newIds.map((id, idx) => ({
+			// Get siblings in the NEW order (from transformedItems - already reordered by drag)
+			const reorderedSiblings = transformedItems
+				.filter((item) => (item.parentAlbumId ?? null) === (activeNode.parentAlbumId ?? null))
+				.map((item) => item._id);
+
+			logger.debug('[AlbumTree] Reordered siblings:', reorderedSiblings);
+
+			// Update order for all siblings based on their new positions in the reordered list
+			reorderedSiblings.forEach((id, idx) => {
+				updates.push({
 					id,
 					parentAlbumId: activeNode.parentAlbumId ?? null,
 					order: idx
-				}))
-			);
+				});
+			});
 		} else {
 			// Different parent: move to new parent and reorder
 			const newParentId = overNode.parentAlbumId ?? null;
@@ -324,7 +324,9 @@
 		// Save to server
 		if (onReorder) {
 			try {
+				logger.debug('[AlbumTree] Sending updates to server:', updates);
 				await onReorder(updates);
+				logger.debug('[AlbumTree] Reorder successful');
 			} catch (error) {
 				logger.error('Failed to reorder albums:', error);
 				// Revert on error
@@ -333,6 +335,8 @@
 				flatItemsForDnd = transformForDnd(flatItems);
 				throw error;
 			}
+		} else {
+			logger.warn('[AlbumTree] No onReorder callback provided');
 		}
 	}
 

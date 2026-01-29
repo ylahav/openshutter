@@ -287,17 +287,25 @@
 		updates: Array<{ id: string; parentAlbumId: string | null; order: number }>
 	) {
 		try {
+			logger.debug('[handleReorder] Sending updates:', updates);
 			const response = await fetch('/api/admin/albums/reorder', {
 				method: 'PUT',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ updates })
 			});
-			if (response.ok) {
-				await loadAlbums();
+			
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({ error: 'Failed to reorder albums' }));
+				throw new Error(errorData.error || errorData.message || `HTTP ${response.status}`);
 			}
+			
+			const result = await response.json();
+			logger.debug('[handleReorder] Server response:', result);
+			await loadAlbums();
 		} catch (err) {
 			logger.error('Failed to reorder albums:', err);
 			error = handleError(err, 'Failed to reorder albums');
+			throw err; // Re-throw so AlbumTree can handle the error
 		}
 	}
 
