@@ -1,9 +1,11 @@
-import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext, UnauthorizedException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { jwtVerify } from 'jose';
 
 @Injectable()
 export class AdminGuard implements CanActivate {
+  private readonly logger = new Logger(AdminGuard.name);
+  
   constructor(private configService: ConfigService) {}
 
   private getJWTSecret(): Uint8Array {
@@ -20,7 +22,7 @@ export class AdminGuard implements CanActivate {
 
     if (!token) {
       // Enhanced logging to help diagnose token extraction issues
-      console.error('[AdminGuard] No token found in request:', {
+      this.logger.error(`[AdminGuard] No token found in request: ${JSON.stringify({
         hasCookies: !!request.cookies,
         cookieKeys: request.cookies ? Object.keys(request.cookies) : [],
         hasCookieHeader: !!request.headers.cookie,
@@ -29,7 +31,7 @@ export class AdminGuard implements CanActivate {
         authHeaderPreview: request.headers.authorization ? request.headers.authorization.substring(0, 30) + '...' : null,
         url: request.url,
         method: request.method
-      });
+      })}`);
       throw new UnauthorizedException('Authentication required');
     }
 
@@ -58,11 +60,11 @@ export class AdminGuard implements CanActivate {
       
       // Log token verification failures for debugging
       if (error?.code === 'ERR_JWS_SIGNATURE_VERIFICATION_FAILED') {
-        console.error('[AdminGuard] Token signature verification failed:', {
+        this.logger.error(`[AdminGuard] Token signature verification failed: ${JSON.stringify({
           tokenLength: token.length,
           tokenPreview: token.substring(0, 20) + '...',
           error: error.message
-        });
+        })}`);
       }
       
       throw new UnauthorizedException('Invalid or expired token');

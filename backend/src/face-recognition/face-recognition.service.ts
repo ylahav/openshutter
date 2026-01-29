@@ -24,6 +24,8 @@ export interface FaceMatch {
 
 @Injectable()
 export class FaceRecognitionService {
+	private readonly logger = new Logger(FaceRecognitionService.name);
+	
 	/**
 	 * Detect faces in an image
 	 * Note: This uses client-side face-api.js models
@@ -105,7 +107,7 @@ export class FaceRecognitionService {
 			}
 
 			if (normalized.length !== 128) {
-				console.warn(`Descriptor has incorrect length: ${normalized.length}, expected 128`);
+				this.logger.warn(`Descriptor has incorrect length: ${normalized.length}, expected 128`);
 				return null;
 			}
 

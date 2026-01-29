@@ -1,4 +1,7 @@
 import mongoose from 'mongoose';
+import { Logger } from '@nestjs/common';
+
+const logger = new Logger('DatabaseConnection');
 
 /**
  * Ensure MongoDB connection is established
@@ -27,10 +30,10 @@ export const connectDB = async () => {
 
   try {
     const conn = await mongoose.connect(MONGODB_URI);
-    console.log(`MongoDB Connected: ${conn.connection.host}`);
+    logger.log(`MongoDB Connected: ${conn.connection.host}`);
     return conn;
   } catch (error) {
-    console.error('Error connecting to MongoDB:', error);
+    logger.error(`Error connecting to MongoDB: ${error instanceof Error ? error.message : String(error)}`);
     throw error;
   }
 };

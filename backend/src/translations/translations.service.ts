@@ -1,10 +1,11 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
 import { readFile, writeFile, mkdir, readdir, unlink } from 'fs/promises';
 import { join } from 'path';
 import { existsSync } from 'fs';
 
 @Injectable()
 export class TranslationsService {
+  private readonly logger = new Logger(TranslationsService.name);
   private readonly translationsPath: string;
 
   constructor() {
@@ -23,7 +24,7 @@ export class TranslationsService {
       const normalizedPath = path.replace(/\\/g, '/'); // Normalize path separators
       if (existsSync(normalizedPath)) {
         foundPath = normalizedPath;
-        console.log(`[TranslationsService] Found i18n directory at: ${foundPath}`);
+        this.logger.debug(`[TranslationsService] Found i18n directory at: ${foundPath}`);
         break;
       }
     }
@@ -32,9 +33,9 @@ export class TranslationsService {
     this.translationsPath = foundPath || join(process.cwd(), '..', 'frontend', 'src', 'i18n');
     
     if (!foundPath) {
-      console.warn(`[TranslationsService] i18n directory not found in any of the checked paths. Using fallback: ${this.translationsPath}`);
-      console.warn(`[TranslationsService] Current working directory: ${process.cwd()}`);
-      console.warn(`[TranslationsService] __dirname: ${__dirname}`);
+      this.logger.warn(`[TranslationsService] i18n directory not found in any of the checked paths. Using fallback: ${this.translationsPath}`);
+      this.logger.warn(`[TranslationsService] Current working directory: ${process.cwd()}`);
+      this.logger.warn(`[TranslationsService] __dirname: ${__dirname}`);
     }
   }
 
@@ -52,7 +53,7 @@ export class TranslationsService {
       const files = await readdir(this.translationsPath);
       const languageFiles = files.filter((file) => file.endsWith('.json'));
 
-      console.log(`[TranslationsService] Found ${languageFiles.length} language files in ${this.translationsPath}`);
+      this.logger.debug(`[TranslationsService] Found ${languageFiles.length} language files in ${this.translationsPath}`);
 
       const languages: Array<{ code: string; name: string; flag: string }> = [];
 
@@ -71,13 +72,13 @@ export class TranslationsService {
             flag: metadata.flag,
           });
         } catch (error) {
-          console.error(`[TranslationsService] Error reading language file ${file}:`, error);
+          this.logger.error(`[TranslationsService] Error reading language file ${file}:`, error);
         }
       }
 
       // If no languages found but directory exists, return at least the known default languages
       if (languages.length === 0 && existsSync(this.translationsPath)) {
-        console.warn('[TranslationsService] No language files found, returning default languages');
+        this.logger.warn('[TranslationsService] No language files found, returning default languages');
         return [
           { code: 'en', name: 'English', flag: '🇺🇸' },
           { code: 'he', name: 'Hebrew', flag: '🇮🇱' },
@@ -86,9 +87,9 @@ export class TranslationsService {
 
       return languages.sort((a, b) => a.name.localeCompare(b.name));
     } catch (error) {
-      console.error('[TranslationsService] Error getting languages:', error);
-      console.error('[TranslationsService] Translations path:', this.translationsPath);
-      console.error('[TranslationsService] Error details:', error instanceof Error ? error.stack : String(error));
+            this.logger.error(`[TranslationsService] Error getting languages: ${error instanceof Error ? error.message : String(error)}`);
+            this.logger.error(`[TranslationsService] Translations path: ${this.translationsPath}`);
+            this.logger.error(`[TranslationsService] Error details: ${error instanceof Error ? error.stack : String(error)}`);
       // Return default languages as fallback to allow the UI to load
       return [
         { code: 'en', name: 'English', flag: '🇺🇸' },
@@ -161,7 +162,7 @@ export class TranslationsService {
           
           Object.assign(emptyTranslations, copyStructure(englishTranslations));
         } catch (error) {
-          console.error('Error copying English structure:', error);
+          this.logger.error('Error copying English structure:', error);
         }
       }
 
@@ -303,8 +304,8 @@ export class TranslationsService {
       // Ensure structure matches source before translating
       targetTranslations = ensureStructure(sourceTranslations, targetTranslations);
 
-      console.log(`[TranslationsService] Starting translation of ${missingKeys.length} missing keys`);
-      console.log(`[TranslationsService] Target file path: ${targetFilePath}`);
+      this.logger.debug(`[TranslationsService] Starting translation of ${missingKeys.length} missing keys`);
+      this.logger.debug(`[TranslationsService] Target file path: ${targetFilePath}`);
 
       // Translate missing keys using Google Translate API
       let translatedCount = 0;
@@ -319,12 +320,12 @@ export class TranslationsService {
             if (translated) {
               this.setNestedValue(targetTranslations, item.path, translated);
               translatedCount++;
-              console.log(`[TranslationsService] Translated "${item.path}": "${translated.substring(0, 50)}..."`);
+              this.logger.debug(`[TranslationsService] Translated "${item.path}": "${translated.substring(0, 50)}..."`);
             } else {
-              console.warn(`[TranslationsService] Failed to translate "${item.path}" - got null result`);
+              this.logger.warn(`[TranslationsService] Failed to translate "${item.path}" - got null result`);
             }
           } catch (error) {
-            console.error(`[TranslationsService] Error translating "${item.path}":`, error);
+            this.logger.error(`[TranslationsService] Error translating "${item.path}":`, error);
           }
         }
 
@@ -334,14 +335,14 @@ export class TranslationsService {
         }
       }
 
-      console.log(`[TranslationsService] Translation complete. Translated ${translatedCount} of ${missingKeys.length} keys`);
-      console.log(`[TranslationsService] Saving translations to ${targetFilePath}`);
+      this.logger.debug(`[TranslationsService] Translation complete. Translated ${translatedCount} of ${missingKeys.length} keys`);
+      this.logger.debug(`[TranslationsService] Saving translations to ${targetFilePath}`);
 
       // Save updated translations
       const jsonContent = JSON.stringify(targetTranslations, null, 2);
       await writeFile(targetFilePath, jsonContent, 'utf-8');
       
-      console.log(`[TranslationsService] Translations saved successfully`);
+      this.logger.debug('[TranslationsService] Translations saved successfully');
       
       // Verify the file was written correctly by reading it back
       try {
@@ -359,9 +360,9 @@ export class TranslationsService {
             verifiedCount++;
           }
         }
-        console.log(`[TranslationsService] Verification: ${verifiedCount} of 10 sample keys verified in saved file`);
+        this.logger.debug(`[TranslationsService] Verification: ${verifiedCount} of 10 sample keys verified in saved file`);
       } catch (verifyError) {
-        console.error(`[TranslationsService] Warning: Could not verify saved file:`, verifyError);
+        this.logger.error(`[TranslationsService] Warning: Could not verify saved file:`, verifyError);
       }
 
       return {
@@ -397,7 +398,7 @@ export class TranslationsService {
       
       const response = await fetch(url);
       if (!response.ok) {
-        console.error(`[TranslationsService] Translation API error: ${response.status} ${response.statusText}`);
+        this.logger.error(`[TranslationsService] Translation API error: ${response.status} ${response.statusText}`);
         throw new Error(`Translation API error: ${response.statusText}`);
       }
 
@@ -420,13 +421,13 @@ export class TranslationsService {
       }
 
       if (!translatedText || translatedText.trim() === '') {
-        console.warn(`[TranslationsService] Empty translation result for text: "${text.substring(0, 50)}..."`);
+        this.logger.warn(`[TranslationsService] Empty translation result for text: "${text.substring(0, 50)}..."`);
         return null;
       }
 
       return translatedText;
     } catch (error) {
-      console.error(`[TranslationsService] Translation error for "${text.substring(0, 50)}...":`, error);
+            this.logger.error(`[TranslationsService] Translation error for "${text.substring(0, 50)}...":`, error);
       return null;
     }
   }

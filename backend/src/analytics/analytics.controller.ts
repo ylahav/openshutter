@@ -189,7 +189,7 @@ export class AnalyticsController {
         })),
       };
     } catch (error) {
-      console.error('Error fetching analytics:', error);
+      this.logger.error(`Error fetching analytics: ${error instanceof Error ? error.message : String(error)}`);
       throw new Error(
         `Failed to fetch analytics: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );

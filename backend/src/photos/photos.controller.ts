@@ -84,7 +84,7 @@ export class PhotosController {
     const resolvedDescription = description || bodyDescription;
     const rawTags = tags || bodyTags;
     
-    console.log('[Photo Upload Controller] Upload parameters:', {
+    this.logger.debug(`[Photo Upload Controller] Upload parameters: ${JSON.stringify({
       queryAlbumId: albumId,
       bodyAlbumId: bodyAlbumId,
       requestBodyAlbumId: requestBodyAlbumId,
@@ -93,7 +93,7 @@ export class PhotosController {
       filename: file.originalname,
       size: file.size,
       requestBodyKeys: request?.body ? Object.keys(request.body) : []
-    });
+    })}`);
     
     let parsedTags: string[] = [];
     if (Array.isArray(rawTags)) {

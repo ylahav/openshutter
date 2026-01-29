@@ -1,10 +1,12 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, BadRequestException, Logger } from '@nestjs/common';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { TranslationsService } from './translations.service';
 
 @Controller('admin/translations')
 @UseGuards(AdminGuard)
 export class TranslationsController {
+  private readonly logger = new Logger(TranslationsController.name);
+  
   constructor(private readonly translationsService: TranslationsService) {}
 
   /**
@@ -17,7 +19,7 @@ export class TranslationsController {
       const languages = await this.translationsService.getLanguages();
       return languages;
     } catch (error) {
-      console.error('[TranslationsController] Error getting languages:', error);
+      this.logger.error(`[TranslationsController] Error getting languages: ${error instanceof Error ? error.message : String(error)}`);
       // Return default languages as fallback
       return [
         { code: 'en', name: 'English', flag: '🇺🇸' },

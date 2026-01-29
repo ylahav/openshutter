@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { InjectConnection } from '@nestjs/mongoose';
@@ -9,6 +9,8 @@ import { AlbumLeadingPhotoService } from '../services/album-leading-photo';
 
 @Injectable()
 export class AlbumsService {
+  private readonly logger = new Logger(AlbumsService.name);
+  
   constructor(
     @InjectModel('Album') private albumModel: Model<IAlbum>,
     @InjectModel('Photo') private photoModel: Model<IPhoto>,
@@ -30,7 +32,7 @@ export class AlbumsService {
     } else if (parentId) {
       // Validate it's a valid ObjectId format first
       if (!Types.ObjectId.isValid(parentId)) {
-        console.warn(`Invalid parentId format: ${parentId}`);
+        this.logger.warn(`Invalid parentId format: ${parentId}`);
         return [];
       }
       // Use string directly - Mongoose automatically converts string IDs to ObjectId when querying ObjectId fields
@@ -51,8 +53,8 @@ export class AlbumsService {
     if (queryLog.parentAlbumId) {
       queryLog.parentAlbumId = queryLog.parentAlbumId.toString();
     }
-    console.log('AlbumsService.findAll query:', JSON.stringify(queryLog, null, 2));
-    console.log('AlbumsService.findAll query (raw):', query);
+    this.logger.debug(`AlbumsService.findAll query: ${JSON.stringify(queryLog, null, 2)}`);
+    this.logger.debug(`AlbumsService.findAll query (raw): ${JSON.stringify(query)}`);
 
     // Try the query - if parentAlbumId is an ObjectId, Mongoose should match it correctly
     let albums = await this.albumModel
@@ -61,9 +63,9 @@ export class AlbumsService {
       .populate('coverPhotoId')
       .exec();
 
-    console.log(`AlbumsService.findAll found ${albums.length} albums for parentId: ${parentId} with ObjectId query`);
+    this.logger.debug(`AlbumsService.findAll found ${albums.length} albums for parentId: ${parentId} with ObjectId query`);
     if (albums.length > 0) {
-      console.log('Sample album from query:', {
+      this.logger.debug(`Sample album from query: ${JSON.stringify({
         _id: albums[0]._id?.toString(),
         alias: albums[0].alias,
         name: albums[0].name,
@@ -74,7 +76,7 @@ export class AlbumsService {
     
     // If no results and we have a parentId, try alternative query approaches
     if (albums.length === 0 && parentId && parentId !== 'root' && parentId !== 'null') {
-      console.log('Trying alternative query approaches...');
+      this.logger.debug('Trying alternative query approaches...');
       
       // Try 1: Query with string (Mongoose auto-converts)
       const altQuery1 = { ...query };
@@ -84,7 +86,7 @@ export class AlbumsService {
         .sort({ order: 1, createdAt: -1 })
         .populate('coverPhotoId')
         .exec();
-      console.log(`Alternative query 1 (string) found ${albums.length} albums`);
+      this.logger.debug(`Alternative query 1 (string) found ${albums.length} albums`);
       
       // Try 2: Use $in operator
       if (albums.length === 0) {
@@ -95,12 +97,12 @@ export class AlbumsService {
           .sort({ order: 1, createdAt: -1 })
           .populate('coverPhotoId')
           .exec();
-        console.log(`Alternative query 2 ($in) found ${albums.length} albums`);
+        this.logger.debug(`Alternative query 2 ($in) found ${albums.length} albums`);
       }
       
       // Try 3: Find all and filter manually (fallback)
       if (albums.length === 0) {
-        console.log('Using manual filter as fallback...');
+        this.logger.debug('Using manual filter as fallback...');
         const allAlbums = await this.albumModel
           .find({})
           .sort({ order: 1, createdAt: -1 })
@@ -110,26 +112,26 @@ export class AlbumsService {
           if (!a.parentAlbumId) return false;
           return a.parentAlbumId.toString() === parentId;
         });
-        console.log(`Manual filter found ${albums.length} albums`);
+        this.logger.debug(`Manual filter found ${albums.length} albums`);
       }
     }
     
     // Debug: Try multiple query formats to diagnose the issue
     if (parentId && parentId !== 'root' && parentId !== 'null') {
       const countWithObjectId = await this.albumModel.countDocuments({ parentAlbumId: new Types.ObjectId(parentId) });
-      console.log(`Direct count with ObjectId for parentId ${parentId}: ${countWithObjectId} albums`);
+      this.logger.debug(`Direct count with ObjectId for parentId ${parentId}: ${countWithObjectId} albums`);
       
       // Also try as string (Mongoose should auto-convert)
       const countWithString = await this.albumModel.countDocuments({ parentAlbumId: parentId });
-      console.log(`Direct count with string for parentId ${parentId}: ${countWithString} albums`);
+      this.logger.debug(`Direct count with string for parentId ${parentId}: ${countWithString} albums`);
       
       // Try with $eq operator
       const countWithEq = await this.albumModel.countDocuments({ parentAlbumId: { $eq: parentId } });
-      console.log(`Direct count with $eq for parentId ${parentId}: ${countWithEq} albums`);
+      this.logger.debug(`Direct count with $eq for parentId ${parentId}: ${countWithEq} albums`);
       
       // Try finding all albums and logging their parentAlbumId values
       const allAlbums = await this.albumModel.find({}).select('_id alias parentAlbumId').limit(10).exec();
-      console.log('Sample albums with parentAlbumId:', allAlbums.map(a => ({
+      this.logger.debug(`Sample albums with parentAlbumId: ${JSON.stringify(allAlbums.map(a => ({
         _id: a._id.toString(),
         alias: a.alias,
         parentAlbumId: a.parentAlbumId ? a.parentAlbumId.toString() : null,
@@ -145,11 +147,10 @@ export class AlbumsService {
         const parentStr = a.parentAlbumId.toString();
         return parentStr === targetParentId;
       });
-      console.log(`Found ${matchingAlbums.length} albums with parentAlbumId matching ${targetParentId}:`, 
-        matchingAlbums.map(a => ({
-          _id: a._id.toString(),
-          alias: a.alias,
-          parentAlbumId: a.parentAlbumId ? a.parentAlbumId.toString() : null,
+      this.logger.debug(`Found ${matchingAlbums.length} albums with parentAlbumId matching ${targetParentId}: ${JSON.stringify(matchingAlbums.map(a => ({
+        _id: a._id.toString(),
+        alias: a.alias,
+        parentAlbumId: a.parentAlbumId ? a.parentAlbumId.toString() : null,
           parentAlbumIdType: typeof a.parentAlbumId
         }))
       );
@@ -163,7 +164,7 @@ export class AlbumsService {
         ]
       };
       const countWithOr = await this.albumModel.countDocuments(orQuery);
-      console.log(`Count with $or query (ObjectId, string, $eq ObjectId): ${countWithOr} albums`      );
+      this.logger.debug(`Count with $or query (ObjectId, string, $eq ObjectId): ${countWithOr} albums`      );
     }
     
     // Calculate childAlbumCount for each album
@@ -215,8 +216,8 @@ export class AlbumsService {
     }
 
     // Debug log to see what we got
-    console.log('findOneByIdOrAlias - album.name:', JSON.stringify(album.name));
-    console.log('findOneByIdOrAlias - album keys:', Object.keys(album));
+    this.logger.debug(`findOneByIdOrAlias - album.name: ${JSON.stringify(album.name)}`);
+    this.logger.debug(`findOneByIdOrAlias - album keys: ${JSON.stringify(Object.keys(album))}`);
 
     return album;
   }
@@ -244,8 +245,8 @@ export class AlbumsService {
     // Convert albumId to ObjectId for proper query matching
     const albumObjectId = new Types.ObjectId(albumId);
     
-    console.log('findPhotosByAlbumId - Querying photos for albumId:', albumId);
-    console.log('findPhotosByAlbumId - albumObjectId:', albumObjectId.toString());
+    this.logger.debug(`findPhotosByAlbumId - Querying photos for albumId: ${albumId}`);
+    this.logger.debug(`findPhotosByAlbumId - albumObjectId: ${albumObjectId.toString()}`);
 
     let photos: any[] = [];
     let query: any = { albumId: albumObjectId, isPublished: true };
@@ -262,11 +263,11 @@ export class AlbumsService {
       .lean()
       .exec();
 
-    console.log(`findPhotosByAlbumId - Query with ObjectId found ${photos.length} photos`);
+    this.logger.debug(`findPhotosByAlbumId - Query with ObjectId found ${photos.length} photos`);
 
     // If no results, try with string ID
     if (photos.length === 0) {
-      console.log('findPhotosByAlbumId - Trying query with string ID...');
+      this.logger.debug('findPhotosByAlbumId - Trying query with string ID...');
       query = { albumId: albumId, isPublished: true };
       photos = await this.photoModel
         .find(query)
@@ -279,12 +280,12 @@ export class AlbumsService {
         .lean()
         .exec();
       
-      console.log(`findPhotosByAlbumId - Query with string ID found ${photos.length} photos`);
+      this.logger.debug(`findPhotosByAlbumId - Query with string ID found ${photos.length} photos`);
     }
     
     // If still no results, try native MongoDB query
     if (photos.length === 0 && this.connection.db) {
-      console.log('findPhotosByAlbumId - Trying native MongoDB query...');
+      this.logger.debug('findPhotosByAlbumId - Trying native MongoDB query...');
       const db = this.connection.db;
       const photosCollection = db.collection('photos');
       
@@ -299,7 +300,7 @@ export class AlbumsService {
         .limit(limit)
         .toArray();
       
-      console.log(`findPhotosByAlbumId - Native MongoDB query (ObjectId) found ${nativePhotos.length} photos`);
+      this.logger.debug(`findPhotosByAlbumId - Native MongoDB query (ObjectId) found ${nativePhotos.length} photos`);
       
       if (nativePhotos.length > 0) {
         // Convert native results and populate references manually if needed
@@ -320,7 +321,7 @@ export class AlbumsService {
           .limit(limit)
           .toArray();
         
-        console.log(`findPhotosByAlbumId - Native MongoDB query (string) found ${nativePhotosString.length} photos`);
+        this.logger.debug(`findPhotosByAlbumId - Native MongoDB query (string) found ${nativePhotosString.length} photos`);
         if (nativePhotosString.length > 0) {
           photos = nativePhotosString.map((doc: any) => ({
             ...doc,
@@ -333,7 +334,7 @@ export class AlbumsService {
 
     // Get total count with the same query
     const total = await this.photoModel.countDocuments(query);
-    console.log(`findPhotosByAlbumId - Total photos: ${total}`);
+    this.logger.debug(`findPhotosByAlbumId - Total photos: ${total}`);
 
     // Manually populate people if they're just ObjectIds
     // Collect all person IDs that need to be populated
@@ -368,7 +369,7 @@ export class AlbumsService {
       people.forEach((person: any) => {
         peopleMap.set(person._id.toString(), person);
       });
-      console.log(`findPhotosByAlbumId - Manually fetched ${people.length} people for population`);
+      this.logger.debug(`findPhotosByAlbumId - Manually fetched ${people.length} people for population`);
     }
 
     // Ensure storage objects are properly serialized
@@ -484,8 +485,8 @@ export class AlbumsService {
     const albumObjectId = new Types.ObjectId(albumId);
 
     // Get sub-albums - try multiple query approaches
-    console.log('getAlbumData - Querying sub-albums for albumId:', albumId);
-    console.log('getAlbumData - albumObjectId:', albumObjectId.toString());
+    this.logger.debug(`getAlbumData - Querying sub-albums for albumId: ${albumId}`);
+    this.logger.debug(`getAlbumData - albumObjectId: ${albumObjectId.toString()}`);
     
     // First, let's check what parentAlbumId values actually exist in the database
     // Find a few albums to see their parentAlbumId structure
@@ -496,11 +497,10 @@ export class AlbumsService {
       .lean()
       .exec();
     
-    console.log('getAlbumData - Sample albums with parentAlbumId:', 
-      sampleAlbums.map((a: any) => ({
-        _id: a._id?.toString(),
-        alias: a.alias,
-        parentAlbumId: a.parentAlbumId,
+    this.logger.debug(`getAlbumData - Sample albums with parentAlbumId: ${JSON.stringify(sampleAlbums.map((a: any) => ({
+      _id: a._id?.toString(),
+      alias: a.alias,
+      parentAlbumId: a.parentAlbumId,
         parentAlbumIdType: typeof a.parentAlbumId,
         parentAlbumIdString: a.parentAlbumId?.toString(),
         parentAlbumIdMatches: a.parentAlbumId?.toString() === albumId
@@ -508,7 +508,7 @@ export class AlbumsService {
     );
     
     // Try querying with native MongoDB collection to bypass Mongoose type conversion
-    console.log('getAlbumData - Trying native MongoDB query...');
+    this.logger.debug('getAlbumData - Trying native MongoDB query...');
     const db = this.connection.db;
     
     let subAlbums: any[] = [];
@@ -517,7 +517,7 @@ export class AlbumsService {
       const albumsCollection = db.collection('albums');
       
       // Try query with string ID first
-      console.log('getAlbumData - Native query with string ID:', albumId);
+      this.logger.debug('getAlbumData - Native query with string ID:', albumId);
       const nativeQueryString = await albumsCollection
         .find({ 
           parentAlbumId: albumId,
@@ -526,11 +526,11 @@ export class AlbumsService {
         .sort({ order: 1 })
         .toArray();
       
-      console.log(`getAlbumData - Native MongoDB query (string) found ${nativeQueryString.length} sub-albums`);
+      this.logger.debug(`getAlbumData - Native MongoDB query (string) found ${nativeQueryString.length} sub-albums`);
       
       // Try query with ObjectId
       if (nativeQueryString.length === 0) {
-        console.log('getAlbumData - Native query with ObjectId:', albumObjectId.toString());
+        this.logger.debug('getAlbumData - Native query with ObjectId:', albumObjectId.toString());
         const nativeQueryObjectId = await albumsCollection
           .find({ 
             parentAlbumId: albumObjectId,
@@ -539,7 +539,7 @@ export class AlbumsService {
           .sort({ order: 1 })
           .toArray();
         
-        console.log(`getAlbumData - Native MongoDB query (ObjectId) found ${nativeQueryObjectId.length} sub-albums`);
+        this.logger.debug(`getAlbumData - Native MongoDB query (ObjectId) found ${nativeQueryObjectId.length} sub-albums`);
         
         if (nativeQueryObjectId.length > 0) {
           subAlbums = nativeQueryObjectId.map((doc: any) => {
@@ -572,9 +572,9 @@ export class AlbumsService {
         });
       }
       
-      console.log(`getAlbumData - Final sub-albums count: ${subAlbums.length}`);
+      this.logger.debug(`getAlbumData - Final sub-albums count: ${subAlbums.length}`);
       if (subAlbums.length > 0) {
-        console.log('getAlbumData - Sub-albums:', subAlbums.map((a: any) => ({
+        this.logger.debug('getAlbumData - Sub-albums:', subAlbums.map((a: any) => ({
           _id: a._id,
           alias: a.alias,
           name: a.name,
@@ -582,7 +582,7 @@ export class AlbumsService {
         })));
       }
     } else {
-      console.log('getAlbumData - Database connection not available, falling back to Mongoose query');
+      this.logger.debug('getAlbumData - Database connection not available, falling back to Mongoose query');
       // Fallback to Mongoose query
       const mongooseResults = await this.albumModel
         .find({ parentAlbumId: albumObjectId, isPublic: true })
@@ -591,13 +591,13 @@ export class AlbumsService {
         .lean()
         .exec();
       
-      console.log(`getAlbumData - Mongoose ObjectId query found ${mongooseResults.length} sub-albums`);
+      this.logger.debug(`getAlbumData - Mongoose ObjectId query found ${mongooseResults.length} sub-albums`);
       subAlbums = mongooseResults;
     }
     
-    console.log(`getAlbumData - Final result: ${subAlbums.length} sub-albums`);
+    this.logger.debug(`getAlbumData - Final result: ${subAlbums.length} sub-albums`);
     if (subAlbums.length > 0) {
-      console.log('getAlbumData - First sub-album:', {
+      this.logger.debug(`getAlbumData - First sub-album: ${JSON.stringify({
         _id: subAlbums[0]._id?.toString(),
         name: subAlbums[0].name,
         alias: subAlbums[0].alias,
@@ -607,9 +607,9 @@ export class AlbumsService {
     }
 
     // Get photos
-    console.log('getAlbumData - Fetching photos for albumId:', albumId);
+    this.logger.debug(`getAlbumData - Fetching photos for albumId: ${albumId}`);
     const photosData = await this.findPhotosByAlbumId(albumId, page, limit);
-    console.log(`getAlbumData - Received ${photosData.photos.length} photos`);
+    this.logger.debug(`getAlbumData - Received ${photosData.photos.length} photos`);
 
     // Serialize album (album is already a plain object from lean())
     const serializedAlbum: any = {
@@ -620,9 +620,9 @@ export class AlbumsService {
     };
     
     // Debug log to see what we're returning
-    console.log('getAlbumData - serializedAlbum.name:', JSON.stringify(serializedAlbum.name));
-    console.log('getAlbumData - serializedAlbum.name type:', typeof serializedAlbum.name);
-    console.log('getAlbumData - serializedAlbum keys:', Object.keys(serializedAlbum));
+    this.logger.debug(`getAlbumData - serializedAlbum.name: ${JSON.stringify(serializedAlbum.name)}`);
+    this.logger.debug(`getAlbumData - serializedAlbum.name type: ${typeof serializedAlbum.name}`);
+    this.logger.debug(`getAlbumData - serializedAlbum keys: ${JSON.stringify(Object.keys(serializedAlbum))}`);
 
     // Serialize sub-albums
     const serializedSubAlbums = subAlbums.map((subAlbum: any) => ({
@@ -683,7 +683,7 @@ export class AlbumsService {
       query.isPublic = true;
     }
 
-    console.log(`AlbumsService.getHierarchy: includePrivate=${includePrivate}, query:`, query);
+    this.logger.debug(`AlbumsService.getHierarchy: includePrivate=${includePrivate}, query: ${JSON.stringify(query)}`);
 
     // Get all albums
     const allAlbums = await this.albumModel
@@ -692,7 +692,7 @@ export class AlbumsService {
       .lean()
       .exec();
 
-    console.log(`AlbumsService.getHierarchy: Found ${allAlbums.length} albums`);
+    this.logger.debug(`AlbumsService.getHierarchy: Found ${allAlbums.length} albums`);
 
     // Build a map of albums by ID for quick lookup
     const albumMap = new Map<string, any>();
@@ -726,7 +726,7 @@ export class AlbumsService {
       }
     }
 
-    console.log(`AlbumsService.getHierarchy: Returning ${rootAlbums.length} root albums with nested children`);
+    this.logger.debug(`AlbumsService.getHierarchy: Returning ${rootAlbums.length} root albums with nested children`);
 
     return {
       data: rootAlbums

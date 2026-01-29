@@ -24,6 +24,7 @@ export interface FaceMatch {
 
 @Injectable()
 export class FaceDetectionService {
+	private readonly logger = new Logger(FaceDetectionService.name);
 
 	/**
 	 * Find best match for a single face descriptor
@@ -90,7 +91,7 @@ export class FaceDetectionService {
 			}
 
 			if (normalized.length !== 128) {
-				console.warn(`Descriptor has incorrect length: ${normalized.length}, expected 128`);
+				this.logger.warn(`Descriptor has incorrect length: ${normalized.length}, expected 128`);
 				return null;
 			}
 

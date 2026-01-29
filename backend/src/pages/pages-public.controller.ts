@@ -1,9 +1,11 @@
-import { Controller, Get, Param, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Param, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { connectDB } from '../config/db';
 import mongoose, { Types } from 'mongoose';
 
 @Controller('pages')
 export class PagesPublicController {
+  private readonly logger = new Logger(PagesPublicController.name);
+  
   /**
    * Get a published page by slug
    * Path: GET /api/pages/:slug
@@ -50,7 +52,7 @@ export class PagesPublicController {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      console.error('Error fetching public page:', error);
+      this.logger.error(`Error fetching public page: ${error instanceof Error ? error.message : String(error)}`);
       throw new BadRequestException(
         `Failed to fetch page: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );

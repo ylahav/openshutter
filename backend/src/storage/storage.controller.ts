@@ -126,13 +126,13 @@ export class StorageController {
             throw new NotFoundException(`Google Drive storage provider does not support file serving`);
           }
         } catch (error) {
-          console.error(`Failed to serve file from Google Drive:`, error);
-          console.error(`Error details:`, {
+          this.logger.error(`Failed to serve file from Google Drive: ${error instanceof Error ? error.message : String(error)}`);
+          this.logger.error(`Error details: ${JSON.stringify({
             provider,
             decodedPath,
             error: error instanceof Error ? error.message : String(error),
             stack: error instanceof Error ? error.stack : undefined
-          });
+          })}`);
           
           // Check for invalid_grant error (token expired/revoked)
           const errorMessage = error instanceof Error ? error.message : String(error);

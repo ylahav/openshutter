@@ -596,7 +596,7 @@ export class AlbumsAdminController {
 		albumId: Types.ObjectId,
 		storageProvider: string
 	): Promise<void> {
-		console.log(`Deleting album recursively: ${albumId.toString()}`);
+		this.logger.debug(`Deleting album recursively: ${albumId.toString()}`);
 
 		// Get the current album data before deletion
 		const album = await db.collection('albums').findOne({ _id: albumId });
@@ -626,7 +626,7 @@ export class AlbumsAdminController {
 			})
 			.toArray();
 
-		console.log(`Found ${photos.length} photos in album ${albumId.toString()}`);
+		this.logger.debug(`Found ${photos.length} photos in album ${albumId.toString()}`);
 
 		// Delete each photo from storage and database
 		const storageManager = StorageManager.getInstance();

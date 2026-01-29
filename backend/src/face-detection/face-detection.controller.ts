@@ -114,7 +114,7 @@ export class FaceDetectionController {
 				},
 			};
 		} catch (error) {
-			console.error('Failed to detect faces:', error);
+			this.logger.error(`Failed to detect faces: ${error instanceof Error ? error.message : String(error)}`);
 			if (error instanceof BadRequestException || error instanceof NotFoundException) {
 				throw error;
 			}
@@ -218,7 +218,7 @@ export class FaceDetectionController {
 				},
 			};
 		} catch (error) {
-			console.error('Failed to match faces:', error);
+			this.logger.error(`Failed to match faces: ${error instanceof Error ? error.message : String(error)}`);
 			if (error instanceof BadRequestException || error instanceof NotFoundException) {
 				throw error;
 			}
@@ -331,7 +331,7 @@ export class FaceDetectionController {
 				},
 			};
 		} catch (error) {
-			console.error('Failed to assign face:', error);
+			this.logger.error(`Failed to assign face: ${error instanceof Error ? error.message : String(error)}`);
 			if (error instanceof BadRequestException || error instanceof NotFoundException) {
 				throw error;
 			}
