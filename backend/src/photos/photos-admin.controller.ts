@@ -17,6 +17,7 @@ import { connectDB } from '../config/db';
 import mongoose, { Types } from 'mongoose';
 import { StorageManager } from '../services/storage/manager';
 import { ThumbnailGenerator } from '../services/thumbnail-generator';
+import { UpdatePhotoDto } from './dto/update-photo.dto';
 
 @Controller('admin/photos')
 @UseGuards(AdminGuard)
@@ -99,7 +100,7 @@ export class PhotosAdminController {
 	 * Path: PUT /api/admin/photos/:id
 	 */
 	@Put(':id')
-	async updatePhoto(@Param('id') id: string, @Body() updateData: any) {
+	async updatePhoto(@Param('id') id: string, @Body() updateData: UpdatePhotoDto) {
 		try {
 			await connectDB();
 			const db = mongoose.connection.db;

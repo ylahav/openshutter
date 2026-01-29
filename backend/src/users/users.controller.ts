@@ -3,6 +3,8 @@ import { AdminGuard } from '../common/guards/admin.guard';
 import { connectDB } from '../config/db';
 import mongoose, { Types } from 'mongoose';
 import * as bcrypt from 'bcryptjs';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 const SALT_ROUNDS = 10;
 
@@ -112,7 +114,7 @@ export class UsersController {
    * Path: POST /api/admin/users
    */
   @Post()
-  async createUser(@Body() body: any) {
+  async createUser(@Body() body: CreateUserDto) {
     try {
       await connectDB();
       const db = mongoose.connection.db;
@@ -216,7 +218,7 @@ export class UsersController {
    * Path: PUT /api/admin/users/:id
    */
   @Put(':id')
-  async updateUser(@Param('id') id: string, @Body() body: any) {
+  async updateUser(@Param('id') id: string, @Body() body: UpdateUserDto) {
     try {
       await connectDB();
       const db = mongoose.connection.db;

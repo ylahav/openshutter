@@ -3,6 +3,8 @@ import { AdminGuard } from '../common/guards/admin.guard';
 import { connectDB } from '../config/db';
 import mongoose, { Types } from 'mongoose';
 import { SUPPORTED_LANGUAGES } from '../types/multi-lang';
+import { CreateBlogCategoryDto } from './dto/create-blog-category.dto';
+import { UpdateBlogCategoryDto } from './dto/update-blog-category.dto';
 
 @Controller('admin/blog-categories')
 @UseGuards(AdminGuard)
@@ -113,7 +115,7 @@ export class BlogCategoriesController {
    * Path: POST /api/admin/blog-categories
    */
   @Post()
-  async createBlogCategory(@Body() body: any) {
+  async createBlogCategory(@Body() body: CreateBlogCategoryDto) {
     try {
       await connectDB();
       const db = mongoose.connection.db;
@@ -225,7 +227,7 @@ export class BlogCategoriesController {
    * Path: PUT /api/admin/blog-categories/:id
    */
   @Put(':id')
-  async updateBlogCategory(@Param('id') id: string, @Body() body: any) {
+  async updateBlogCategory(@Param('id') id: string, @Body() body: UpdateBlogCategoryDto) {
     try {
       await connectDB();
       const db = mongoose.connection.db;

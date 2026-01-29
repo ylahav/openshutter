@@ -3,6 +3,8 @@ import { AdminGuard } from '../common/guards/admin.guard';
 import { connectDB } from '../config/db';
 import mongoose, { Types } from 'mongoose';
 import { SUPPORTED_LANGUAGES } from '../types/multi-lang';
+import { CreateTagDto } from './dto/create-tag.dto';
+import { UpdateTagDto } from './dto/update-tag.dto';
 
 @Controller('admin/tags')
 @UseGuards(AdminGuard)
@@ -244,7 +246,7 @@ export class TagsController {
    * Path: PUT /api/admin/tags/:id
    */
   @Put(':id')
-  async updateTag(@Param('id') id: string, @Body() body: any) {
+  async updateTag(@Param('id') id: string, @Body() body: UpdateTagDto) {
     try {
       await connectDB();
       const db = mongoose.connection.db;

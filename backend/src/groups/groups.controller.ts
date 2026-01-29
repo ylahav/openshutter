@@ -2,6 +2,8 @@ import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, BadRequestE
 import { AdminGuard } from '../common/guards/admin.guard';
 import { connectDB } from '../config/db';
 import mongoose, { Types } from 'mongoose';
+import { CreateGroupDto } from './dto/create-group.dto';
+import { UpdateGroupDto } from './dto/update-group.dto';
 
 @Controller('admin/groups')
 @UseGuards(AdminGuard)
@@ -77,7 +79,7 @@ export class GroupsController {
    * Path: POST /api/admin/groups
    */
   @Post()
-  async createGroup(@Body() body: any) {
+  async createGroup(@Body() body: CreateGroupDto) {
     try {
       await connectDB();
       const db = mongoose.connection.db;
@@ -159,7 +161,7 @@ export class GroupsController {
    * Path: PUT /api/admin/groups/:id
    */
   @Put(':id')
-  async updateGroup(@Param('id') id: string, @Body() body: any) {
+  async updateGroup(@Param('id') id: string, @Body() body: UpdateGroupDto) {
     try {
       await connectDB();
       const db = mongoose.connection.db;

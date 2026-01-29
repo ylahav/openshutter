@@ -3,6 +3,8 @@ import { AdminGuard } from '../common/guards/admin.guard';
 import { connectDB } from '../config/db';
 import mongoose, { Types } from 'mongoose';
 import { SUPPORTED_LANGUAGES } from '../types/multi-lang';
+import { CreatePersonDto } from './dto/create-person.dto';
+import { UpdatePersonDto } from './dto/update-person.dto';
 
 @Controller('admin/people')
 @UseGuards(AdminGuard)
@@ -216,7 +218,7 @@ export class PeopleController {
    * Path: PUT /api/admin/people/:id
    */
   @Put(':id')
-  async updatePerson(@Request() req: any, @Param('id') id: string, @Body() body: any) {
+  async updatePerson(@Request() req: any, @Param('id') id: string, @Body() body: UpdatePersonDto) {
     try {
       await connectDB();
       const db = mongoose.connection.db;

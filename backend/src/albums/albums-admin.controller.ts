@@ -4,6 +4,9 @@ import { AlbumsService } from './albums.service';
 import { connectDB } from '../config/db';
 import mongoose, { Types } from 'mongoose';
 import { StorageManager } from '../services/storage/manager';
+import { CreateAlbumDto } from './dto/create-album.dto';
+import { UpdateAlbumDto } from './dto/update-album.dto';
+import { ReorderAlbumsDto } from './dto/reorder-albums.dto';
 
 @Controller('admin/albums')
 @UseGuards(AdminGuard)
@@ -399,7 +402,7 @@ export class AlbumsAdminController {
 	 * NOTE: This route must come BEFORE @Put(':id') to avoid route conflicts
 	 */
 	@Put('reorder')
-	async reorderAlbums(@Body() body: { updates: Array<{ id: string; parentAlbumId: string | null; order: number }> }) {
+	async reorderAlbums(@Body() body: ReorderAlbumsDto) {
 		try {
 			await connectDB();
 			const db = mongoose.connection.db;
@@ -527,7 +530,7 @@ export class AlbumsAdminController {
 	 * Path: PUT /api/admin/albums/:id
 	 */
 	@Put(':id')
-	async updateAlbum(@Param('id') id: string, @Body() updateData: any) {
+	async updateAlbum(@Param('id') id: string, @Body() updateData: UpdateAlbumDto) {
 		try {
 			await connectDB();
 			const db = mongoose.connection.db;

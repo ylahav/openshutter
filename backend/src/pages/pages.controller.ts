@@ -3,6 +3,9 @@ import { AdminGuard } from '../common/guards/admin.guard';
 import { connectDB } from '../config/db';
 import mongoose, { Types } from 'mongoose';
 import { SUPPORTED_LANGUAGES } from '../types/multi-lang';
+import { CreatePageDto } from './dto/create-page.dto';
+import { UpdatePageDto } from './dto/update-page.dto';
+import { UpdatePageModuleDto } from './dto/update-page-module.dto';
 
 @Controller('admin/pages')
 @UseGuards(AdminGuard)
@@ -106,7 +109,7 @@ export class PagesController {
    * Path: POST /api/admin/pages
    */
   @Post()
-  async createPage(@Request() req: any, @Body() body: any) {
+  async createPage(@Request() req: any, @Body() body: CreatePageDto) {
     try {
       await connectDB();
       const db = mongoose.connection.db;
@@ -276,7 +279,7 @@ export class PagesController {
    * Path: PUT /api/admin/pages/:id
    */
   @Put(':id')
-  async updatePage(@Request() req: any, @Param('id') id: string, @Body() body: any) {
+  async updatePage(@Request() req: any, @Param('id') id: string, @Body() body: UpdatePageDto) {
     try {
       await connectDB();
       const db = mongoose.connection.db;
@@ -564,7 +567,7 @@ export class PagesController {
   async updatePageModule(
     @Param('id') id: string,
     @Param('moduleId') moduleId: string,
-    @Body() body: any,
+    @Body() body: UpdatePageModuleDto,
   ) {
     try {
       await connectDB();

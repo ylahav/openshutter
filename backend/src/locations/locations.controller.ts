@@ -3,6 +3,8 @@ import { AdminGuard } from '../common/guards/admin.guard';
 import { connectDB } from '../config/db';
 import mongoose, { Types } from 'mongoose';
 import { SUPPORTED_LANGUAGES } from '../types/multi-lang';
+import { CreateLocationDto } from './dto/create-location.dto';
+import { UpdateLocationDto } from './dto/update-location.dto';
 
 @Controller('admin/locations')
 @UseGuards(AdminGuard)
@@ -118,7 +120,7 @@ export class LocationsController {
    * Path: POST /api/admin/locations
    */
   @Post()
-  async createLocation(@Request() req: any, @Body() body: any) {
+  async createLocation(@Request() req: any, @Body() body: CreateLocationDto) {
     try {
       await connectDB();
       const db = mongoose.connection.db;
@@ -289,7 +291,7 @@ export class LocationsController {
    * Path: PUT /api/admin/locations/:id
    */
   @Put(':id')
-  async updateLocation(@Param('id') id: string, @Body() body: any) {
+  async updateLocation(@Param('id') id: string, @Body() body: UpdateLocationDto) {
     try {
       await connectDB();
       const db = mongoose.connection.db;
