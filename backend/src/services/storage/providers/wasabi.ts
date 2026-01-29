@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common'
 import { 
   IStorageService, 
   StorageProviderId, 
@@ -12,13 +13,14 @@ import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, List
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 
 export class WasabiService implements IStorageService {
+  private readonly logger = new Logger(WasabiService.name)
   private providerId: StorageProviderId = 'wasabi'
   private config: Record<string, any>
   private s3Client!: S3Client
 
   constructor(config: Record<string, any>) {
     this.config = config
-    console.log('WasabiService constructor - config:', JSON.stringify(config, null, 2))
+    this.logger.debug(`WasabiService constructor - config: ${JSON.stringify(config)}`)
     // Don't initialize S3Client here - wait until we have validated config
     // This prevents issues with undefined values
   }
@@ -51,16 +53,16 @@ export class WasabiService implements IStorageService {
     
     // Auto-add https:// if protocol is missing
     if (!normalizedEndpoint.startsWith('http://') && !normalizedEndpoint.startsWith('https://')) {
-      console.log(`WasabiService: Endpoint missing protocol, adding https://: ${normalizedEndpoint}`)
+      this.logger.debug(`WasabiService: Endpoint missing protocol, adding https://: ${normalizedEndpoint}`)
       normalizedEndpoint = `https://${normalizedEndpoint}`
     }
     
-    console.log('WasabiService: Initializing S3Client')
-    console.log('WasabiService: Endpoint:', normalizedEndpoint)
-    console.log('WasabiService: Region:', this.config.region || 'us-east-1')
-    console.log('WasabiService: Bucket:', this.config.bucketName)
-    console.log('WasabiService: AccessKeyId length:', accessKeyId.length)
-    console.log('WasabiService: SecretAccessKey length:', secretAccessKey.length)
+    this.logger.debug('WasabiService: Initializing S3Client')
+    this.logger.debug('WasabiService: Endpoint:', normalizedEndpoint)
+    this.logger.debug('WasabiService: Region:', this.config.region || 'us-east-1')
+    this.logger.debug('WasabiService: Bucket:', this.config.bucketName)
+    this.logger.debug('WasabiService: AccessKeyId length:', accessKeyId.length)
+    this.logger.debug('WasabiService: SecretAccessKey length:', secretAccessKey.length)
     
     // Wasabi uses S3-compatible API with custom endpoint
     try {
@@ -73,9 +75,9 @@ export class WasabiService implements IStorageService {
         },
         forcePathStyle: true // Wasabi requires path-style URLs
       })
-      console.log('WasabiService: S3Client initialized successfully')
+      this.logger.debug('WasabiService: S3Client initialized successfully')
     } catch (error: any) {
-      console.error('WasabiService: Failed to create S3Client:', error)
+      this.logger.error('WasabiService: Failed to create S3Client:', error)
       throw new StorageConnectionError(
         `Failed to initialize S3 client: ${error.message || 'Unknown error'}`,
         this.providerId,
@@ -104,9 +106,9 @@ export class WasabiService implements IStorageService {
 
   async validateConnection(): Promise<boolean> {
     try {
-      console.log('WasabiService: Validating connection to bucket:', this.config.bucketName)
-      console.log('WasabiService: Full config keys:', Object.keys(this.config))
-      console.log('WasabiService: Config values:', {
+      this.logger.debug('WasabiService: Validating connection to bucket:', this.config.bucketName)
+      this.logger.debug('WasabiService: Full config keys:', Object.keys(this.config))
+      this.logger.debug('WasabiService: Config values:', {
         hasAccessKeyId: !!this.config.accessKeyId,
         hasSecretAccessKey: !!this.config.secretAccessKey,
         bucketName: this.config.bucketName,
@@ -149,7 +151,7 @@ export class WasabiService implements IStorageService {
       try {
         this.initializeS3Client()
       } catch (initError: any) {
-        console.error('WasabiService: Failed to initialize S3Client:', initError)
+        this.logger.error('WasabiService: Failed to initialize S3Client:', initError)
         if (initError instanceof StorageConnectionError) {
           throw initError
         }
@@ -166,17 +168,17 @@ export class WasabiService implements IStorageService {
         MaxKeys: 1
       })
       
-      console.log('WasabiService: Sending ListObjectsV2Command to bucket:', bucketName)
+      this.logger.debug('WasabiService: Sending ListObjectsV2Command to bucket:', bucketName)
       const response = await this.s3Client.send(command)
-      console.log('WasabiService: ListObjectsV2Command response:', {
+      this.logger.debug('WasabiService: ListObjectsV2Command response:', {
         hasContents: !!response.Contents,
         keyCount: response.KeyCount,
         isTruncated: response.IsTruncated
       })
-      console.log('WasabiService: Connection validated successfully')
+      this.logger.debug('WasabiService: Connection validated successfully')
       return true
     } catch (error: any) {
-      console.error('WasabiService: Connection validation failed:', error)
+      this.logger.error('WasabiService: Connection validation failed:', error)
       
       // If it's already a StorageConnectionError, re-throw it
       if (error instanceof StorageConnectionError) {
@@ -264,7 +266,7 @@ export class WasabiService implements IStorageService {
       // Ensure S3Client is initialized before use
       this.ensureS3ClientInitialized()
       
-      console.log(`WasabiService: Creating folder '${name}' in path: ${parentPath || 'root'}`)
+      this.logger.debug(`WasabiService: Creating folder '${name}' in path: ${parentPath || 'root'}`)
       
       // In S3-compatible storage, folders are logical constructs - we create an empty object with a trailing slash
       const folderKey = parentPath ? `${parentPath}/${name}/` : `${name}/`
@@ -276,7 +278,7 @@ export class WasabiService implements IStorageService {
       })
       
       await this.s3Client.send(command)
-      console.log(`WasabiService: Created folder '${name}' with key: ${folderKey}`)
+      this.logger.debug(`WasabiService: Created folder '${name}' with key: ${folderKey}`)
       
       return {
         provider: this.providerId,
@@ -287,7 +289,7 @@ export class WasabiService implements IStorageService {
         metadata: {}
       }
     } catch (error) {
-      console.error(`WasabiService: Failed to create folder '${name}':`, error)
+      this.logger.error(`WasabiService: Failed to create folder '${name}':`, error)
       throw new StorageOperationError(
         `Failed to create folder ${name}`,
         this.providerId,
@@ -302,7 +304,7 @@ export class WasabiService implements IStorageService {
       // Ensure S3Client is initialized before use
       this.ensureS3ClientInitialized()
       
-      console.log(`WasabiService: Deleting folder: ${folderPath}`)
+      this.logger.debug(`WasabiService: Deleting folder: ${folderPath}`)
       
       // List all objects in the folder
       const listCommand = new ListObjectsV2Command({
@@ -323,10 +325,10 @@ export class WasabiService implements IStorageService {
         })
         
         await Promise.all(deletePromises)
-        console.log(`WasabiService: Successfully deleted folder: ${folderPath}`)
+        this.logger.debug(`WasabiService: Successfully deleted folder: ${folderPath}`)
       }
     } catch (error) {
-      console.error(`WasabiService: Failed to delete folder ${folderPath}:`, error)
+      this.logger.error(`WasabiService: Failed to delete folder ${folderPath}:`, error)
       throw new StorageOperationError(
         `Failed to delete folder ${folderPath}`,
         this.providerId,
@@ -436,7 +438,7 @@ export class WasabiService implements IStorageService {
       // Ensure S3Client is initialized before use
       this.ensureS3ClientInitialized()
       
-      console.log(`WasabiService: Uploading file '${filename}' to path: ${folderPath || 'root'}`)
+      this.logger.debug(`WasabiService: Uploading file '${filename}' to path: ${folderPath || 'root'}`)
       
       const key = folderPath ? `${folderPath}/${filename}` : filename
       
@@ -449,7 +451,7 @@ export class WasabiService implements IStorageService {
       })
       
       await this.s3Client.send(command)
-      console.log(`WasabiService: Uploaded file '${filename}' with key: ${key}`)
+      this.logger.debug(`WasabiService: Uploaded file '${filename}' with key: ${key}`)
       
       return {
         provider: this.providerId,
@@ -462,7 +464,7 @@ export class WasabiService implements IStorageService {
         metadata: metadata || {}
       }
     } catch (error) {
-      console.error(`WasabiService: Failed to upload file '${filename}':`, error)
+      this.logger.error(`WasabiService: Failed to upload file '${filename}':`, error)
       throw new StorageOperationError(
         `Failed to upload file ${filename}`,
         this.providerId,
@@ -477,7 +479,7 @@ export class WasabiService implements IStorageService {
       // Ensure S3Client is initialized before use
       this.ensureS3ClientInitialized()
       
-      console.log(`WasabiService: Deleting file: ${filePath}`)
+      this.logger.debug(`WasabiService: Deleting file: ${filePath}`)
       
       const command = new DeleteObjectCommand({
         Bucket: this.config.bucketName,
@@ -485,9 +487,9 @@ export class WasabiService implements IStorageService {
       })
       
       await this.s3Client.send(command)
-      console.log(`WasabiService: Successfully deleted file: ${filePath}`)
+      this.logger.debug(`WasabiService: Successfully deleted file: ${filePath}`)
     } catch (error) {
-      console.error(`WasabiService: Failed to delete file ${filePath}:`, error)
+      this.logger.error(`WasabiService: Failed to delete file ${filePath}:`, error)
       throw new StorageOperationError(
         `Failed to delete file ${filePath}`,
         this.providerId,
@@ -537,7 +539,7 @@ export class WasabiService implements IStorageService {
       // Ensure S3Client is initialized before use
       this.ensureS3ClientInitialized()
       
-      console.log(`WasabiService: Listing files in folder: ${folderPath || 'root'}`)
+      this.logger.debug(`WasabiService: Listing files in folder: ${folderPath || 'root'}`)
       
       const command = new ListObjectsV2Command({
         Bucket: this.config.bucketName,
@@ -569,10 +571,10 @@ export class WasabiService implements IStorageService {
         }
       }
       
-      console.log(`WasabiService: Found ${files.length} files`)
+      this.logger.debug(`WasabiService: Found ${files.length} files`)
       return files
     } catch (error) {
-      console.error(`WasabiService: Failed to list files in ${folderPath || 'root'}:`, error)
+      this.logger.error(`WasabiService: Failed to list files in ${folderPath || 'root'}:`, error)
       throw new StorageOperationError(
         `Failed to list files in ${folderPath || 'root'}`,
         this.providerId,
@@ -746,7 +748,7 @@ export class WasabiService implements IStorageService {
       // Ensure S3Client is initialized before use
       this.ensureS3ClientInitialized()
       
-      console.log(`WasabiService: Getting file buffer for path: ${filePath}`)
+      this.logger.debug(`WasabiService: Getting file buffer for path: ${filePath}`)
       
       const command = new GetObjectCommand({
         Bucket: this.config.bucketName,
@@ -756,7 +758,7 @@ export class WasabiService implements IStorageService {
       const response = await this.s3Client.send(command)
       
       if (!response.Body) {
-        console.log(`WasabiService: No body in response for file: ${filePath}`)
+        this.logger.debug(`WasabiService: No body in response for file: ${filePath}`)
         return null
       }
       
@@ -771,11 +773,11 @@ export class WasabiService implements IStorageService {
       }
       
       const buffer = Buffer.concat(chunks)
-      console.log(`WasabiService: Successfully downloaded file, size: ${buffer.length} bytes`)
+      this.logger.debug(`WasabiService: Successfully downloaded file, size: ${buffer.length} bytes`)
       
       return buffer
     } catch (error) {
-      console.error(`WasabiService: Failed to get file buffer for ${filePath}:`, error)
+      this.logger.error(`WasabiService: Failed to get file buffer for ${filePath}:`, error)
       return null
     }
   }

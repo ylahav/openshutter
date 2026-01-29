@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common'
 import { TemplateConfig } from '../types/template'
 import { SiteConfig } from '../types/site-config'
 
@@ -97,7 +98,8 @@ export class TemplateOverridesService {
       // Apply overrides from site config
       return this.mergeTemplateWithOverrides(baseTemplate as TemplateConfig, siteConfig)
     } catch (error) {
-      console.error('Error loading template with overrides:', error)
+      const logger = new Logger('TemplateOverridesService')
+      logger.error(`Error loading template with overrides: ${error instanceof Error ? error.message : String(error)}`)
       return null
     }
   }

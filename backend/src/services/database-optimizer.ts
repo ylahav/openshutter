@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common'
 import mongoose, { Types } from 'mongoose'
 import { QueryMonitor } from './query-monitor'
 
@@ -18,6 +19,8 @@ export interface BatchQueryResult<T> {
 }
 
 export class DatabaseOptimizer {
+  private static readonly logger = new Logger(DatabaseOptimizer.name)
+  
   /**
    * Optimized album query with photos and metadata in single aggregation
    */
@@ -457,7 +460,7 @@ export class DatabaseOptimizer {
       { key: { title: 'text', content: 'text' } } // Text search index
     ])
 
-    console.log('✅ Optimized database indexes created successfully')
+    DatabaseOptimizer.logger.log('✅ Optimized database indexes created successfully')
   }
 
   /**
@@ -483,7 +486,7 @@ export class DatabaseOptimizer {
             totalIndexSize: collStats.totalIndexSize || 0
           }
         } catch (error) {
-          console.warn(`Failed to get stats for collection ${collection.name}:`, error)
+          DatabaseOptimizer.logger.warn(`Failed to get stats for collection ${collection.name}: ${error instanceof Error ? error.message : String(error)}`)
           return {
             name: collection.name,
             count: 0,

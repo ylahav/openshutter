@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common'
 import { AlbumModel } from '../models/Album'
 import { PhotoModel, IPhoto } from '../models/Photo'
 import mongoose from 'mongoose'
@@ -69,7 +70,7 @@ export class AlbumLeadingPhotoService {
       // No leading photos found anywhere
       return { photo: null, source: 'none', albumId }
     } catch (error) {
-      console.error('Error getting album leading photo:', error)
+      AlbumLeadingPhotoService.logger.error(`Error getting album leading photo: ${error instanceof Error ? error.message : String(error)}`)
       return { photo: null, source: 'none', albumId }
     }
   }
@@ -109,7 +110,7 @@ export class AlbumLeadingPhotoService {
         return siteConfig.logo
       }
     } catch (error) {
-      console.error('Error fetching site logo:', error)
+      AlbumLeadingPhotoService.logger.error(`Error fetching site logo: ${error instanceof Error ? error.message : String(error)}`)
     }
     
     // Final fallback to placeholder
@@ -138,7 +139,7 @@ export class AlbumLeadingPhotoService {
             siteLogo = siteConfig?.logo || null
             hasFetchedLogo = true
           } catch (error) {
-            console.error('Error fetching site logo:', error)
+            AlbumLeadingPhotoService.logger.error(`Error fetching site logo: ${error instanceof Error ? error.message : String(error)}`)
             hasFetchedLogo = true
           }
         }

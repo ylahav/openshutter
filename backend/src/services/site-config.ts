@@ -1,9 +1,11 @@
+import { Logger } from '@nestjs/common'
 import { connectDB } from '../config/db'
 import { SiteConfig, SiteConfigUpdate } from '../types/site-config'
 import { MultiLangUtils } from '../types/multi-lang'
 import mongoose from 'mongoose'
 
 export class SiteConfigService {
+  private readonly logger = new Logger(SiteConfigService.name)
   private static instance: SiteConfigService
   private configCache: SiteConfig | null = null
   private cacheExpiry: number = 5 * 60 * 1000 // 5 minutes
@@ -26,7 +28,7 @@ export class SiteConfigService {
       await this.refreshCacheIfNeeded()
     } catch (error) {
       // If MongoDB access fails (e.g., authentication error), use default config
-      console.warn('Failed to refresh site config cache, using defaults:', error instanceof Error ? error.message : 'Unknown error');
+      this.logger.warn(`Failed to refresh site config cache, using defaults: ${error instanceof Error ? error.message : 'Unknown error'}`);
       this.configCache = null;
     }
     
@@ -250,7 +252,7 @@ export class SiteConfigService {
       await connectDB()
       const db = mongoose.connection.db
       if (!db) {
-        console.warn('Database connection not established, skipping cache refresh');
+        this.logger.warn('Database connection not established, skipping cache refresh');
         this.configCache = null;
         this.lastCacheUpdate = Date.now();
         return;
@@ -289,7 +291,7 @@ export class SiteConfigService {
       this.lastCacheUpdate = Date.now()
     } catch (error) {
       // If MongoDB access fails (e.g., authentication error), clear cache and use defaults
-      console.warn('Failed to refresh site config cache:', error instanceof Error ? error.message : 'Unknown error');
+      this.logger.warn(`Failed to refresh site config cache: ${error instanceof Error ? error.message : 'Unknown error'}`);
       this.configCache = null;
       this.lastCacheUpdate = Date.now();
       // Don't throw - allow getConfig() to return default config

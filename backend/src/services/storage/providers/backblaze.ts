@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common'
 import { 
   IStorageService, 
   StorageProviderId, 
@@ -12,13 +13,14 @@ import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, List
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 
 export class BackblazeService implements IStorageService {
+  private readonly logger = new Logger(BackblazeService.name)
   private providerId: StorageProviderId = 'backblaze'
   private config: Record<string, any>
   private s3Client!: S3Client
 
   constructor(config: Record<string, any>) {
     this.config = config
-    console.log('BackblazeService constructor - config:', JSON.stringify(config, null, 2))
+    this.logger.debug(`BackblazeService constructor - config: ${JSON.stringify(config)}`)
     this.initializeS3Client()
   }
 
@@ -35,7 +37,7 @@ export class BackblazeService implements IStorageService {
       }
     }
     
-    console.log('BackblazeService: Initializing S3 client with config:', {
+    this.logger.debug('BackblazeService: Initializing S3 client with config:', {
       region: this.config.region,
       endpoint,
       applicationKeyId: this.config.applicationKeyId ? `${this.config.applicationKeyId.substring(0, 8)}...` : 'MISSING',
@@ -73,7 +75,7 @@ export class BackblazeService implements IStorageService {
 
   async validateConnection(): Promise<boolean> {
     try {
-      console.log('BackblazeService: Validating connection to bucket:', this.config.bucketName)
+      this.logger.debug('BackblazeService: Validating connection to bucket:', this.config.bucketName)
       
       // Test connection by listing objects in the bucket
       const command = new ListObjectsV2Command({
@@ -82,17 +84,17 @@ export class BackblazeService implements IStorageService {
       })
       
       await this.s3Client.send(command)
-      console.log('BackblazeService: Connection validated successfully')
+      this.logger.debug('BackblazeService: Connection validated successfully')
       return true
     } catch (error) {
-      console.error('BackblazeService: Connection validation failed:', error)
+      this.logger.error('BackblazeService: Connection validation failed:', error)
       return false
     }
   }
 
   async createFolder(name: string, parentPath?: string): Promise<StorageFolderResult> {
     try {
-      console.log(`BackblazeService: Creating folder '${name}' in path: ${parentPath || 'root'}`)
+      this.logger.debug(`BackblazeService: Creating folder '${name}' in path: ${parentPath || 'root'}`)
       
       // In S3-compatible storage, folders are logical constructs - we create an empty object with a trailing slash
       const folderKey = parentPath ? `${parentPath}/${name}/` : `${name}/`
@@ -104,7 +106,7 @@ export class BackblazeService implements IStorageService {
       })
       
       await this.s3Client.send(command)
-      console.log(`BackblazeService: Created folder '${name}' with key: ${folderKey}`)
+      this.logger.debug(`BackblazeService: Created folder '${name}' with key: ${folderKey}`)
       
       return {
         provider: this.providerId,
@@ -115,7 +117,7 @@ export class BackblazeService implements IStorageService {
         metadata: {}
       }
     } catch (error) {
-      console.error(`BackblazeService: Failed to create folder '${name}':`, error)
+      this.logger.error(`BackblazeService: Failed to create folder '${name}':`, error)
       throw new StorageOperationError(
         `Failed to create folder ${name}`,
         this.providerId,
@@ -127,7 +129,7 @@ export class BackblazeService implements IStorageService {
 
   async deleteFolder(folderPath: string): Promise<void> {
     try {
-      console.log(`BackblazeService: Deleting folder: ${folderPath}`)
+      this.logger.debug(`BackblazeService: Deleting folder: ${folderPath}`)
       
       // List all objects in the folder
       const listCommand = new ListObjectsV2Command({
@@ -148,10 +150,10 @@ export class BackblazeService implements IStorageService {
         })
         
         await Promise.all(deletePromises)
-        console.log(`BackblazeService: Successfully deleted folder: ${folderPath}`)
+        this.logger.debug(`BackblazeService: Successfully deleted folder: ${folderPath}`)
       }
     } catch (error) {
-      console.error(`BackblazeService: Failed to delete folder ${folderPath}:`, error)
+      this.logger.error(`BackblazeService: Failed to delete folder ${folderPath}:`, error)
       throw new StorageOperationError(
         `Failed to delete folder ${folderPath}`,
         this.providerId,
@@ -242,7 +244,7 @@ export class BackblazeService implements IStorageService {
     metadata?: Record<string, any>
   ): Promise<StorageUploadResult> {
     try {
-      console.log(`BackblazeService: Uploading file '${filename}' to path: ${folderPath || 'root'}`)
+      this.logger.debug(`BackblazeService: Uploading file '${filename}' to path: ${folderPath || 'root'}`)
       
       const key = folderPath ? `${folderPath}/${filename}` : filename
       
@@ -255,7 +257,7 @@ export class BackblazeService implements IStorageService {
       })
       
       await this.s3Client.send(command)
-      console.log(`BackblazeService: Uploaded file '${filename}' with key: ${key}`)
+      this.logger.debug(`BackblazeService: Uploaded file '${filename}' with key: ${key}`)
       
       return {
         provider: this.providerId,
@@ -268,7 +270,7 @@ export class BackblazeService implements IStorageService {
         metadata: metadata || {}
       }
     } catch (error) {
-      console.error(`BackblazeService: Failed to upload file '${filename}':`, error)
+      this.logger.error(`BackblazeService: Failed to upload file '${filename}':`, error)
       throw new StorageOperationError(
         `Failed to upload file ${filename}`,
         this.providerId,
@@ -280,7 +282,7 @@ export class BackblazeService implements IStorageService {
 
   async deleteFile(filePath: string): Promise<void> {
     try {
-      console.log(`BackblazeService: Deleting file: ${filePath}`)
+      this.logger.debug(`BackblazeService: Deleting file: ${filePath}`)
       
       const command = new DeleteObjectCommand({
         Bucket: this.config.bucketName,
@@ -288,9 +290,9 @@ export class BackblazeService implements IStorageService {
       })
       
       await this.s3Client.send(command)
-      console.log(`BackblazeService: Successfully deleted file: ${filePath}`)
+      this.logger.debug(`BackblazeService: Successfully deleted file: ${filePath}`)
     } catch (error) {
-      console.error(`BackblazeService: Failed to delete file ${filePath}:`, error)
+      this.logger.error(`BackblazeService: Failed to delete file ${filePath}:`, error)
       throw new StorageOperationError(
         `Failed to delete file ${filePath}`,
         this.providerId,
@@ -334,7 +336,7 @@ export class BackblazeService implements IStorageService {
 
   async listFiles(folderPath?: string, pageSize?: number): Promise<StorageFileInfo[]> {
     try {
-      console.log(`BackblazeService: Listing files in folder: ${folderPath || 'root'}`)
+      this.logger.debug(`BackblazeService: Listing files in folder: ${folderPath || 'root'}`)
       
       const command = new ListObjectsV2Command({
         Bucket: this.config.bucketName,
@@ -366,10 +368,10 @@ export class BackblazeService implements IStorageService {
         }
       }
       
-      console.log(`BackblazeService: Found ${files.length} files`)
+      this.logger.debug(`BackblazeService: Found ${files.length} files`)
       return files
     } catch (error) {
-      console.error(`BackblazeService: Failed to list files in ${folderPath || 'root'}:`, error)
+      this.logger.error(`BackblazeService: Failed to list files in ${folderPath || 'root'}:`, error)
       throw new StorageOperationError(
         `Failed to list files in ${folderPath || 'root'}`,
         this.providerId,
@@ -531,7 +533,7 @@ export class BackblazeService implements IStorageService {
 
   async getFileBuffer(filePath: string): Promise<Buffer | null> {
     try {
-      console.log(`BackblazeService: Getting file buffer for path: ${filePath}`)
+      this.logger.debug(`BackblazeService: Getting file buffer for path: ${filePath}`)
       
       const command = new GetObjectCommand({
         Bucket: this.config.bucketName,
@@ -541,7 +543,7 @@ export class BackblazeService implements IStorageService {
       const response = await this.s3Client.send(command)
       
       if (!response.Body) {
-        console.log(`BackblazeService: No body in response for file: ${filePath}`)
+        this.logger.debug(`BackblazeService: No body in response for file: ${filePath}`)
         return null
       }
       
@@ -556,11 +558,11 @@ export class BackblazeService implements IStorageService {
       }
       
       const buffer = Buffer.concat(chunks)
-      console.log(`BackblazeService: Successfully downloaded file, size: ${buffer.length} bytes`)
+      this.logger.debug(`BackblazeService: Successfully downloaded file, size: ${buffer.length} bytes`)
       
       return buffer
     } catch (error) {
-      console.error(`BackblazeService: Failed to get file buffer for ${filePath}:`, error)
+      this.logger.error(`BackblazeService: Failed to get file buffer for ${filePath}:`, error)
       return null
     }
   }

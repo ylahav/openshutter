@@ -1,5 +1,6 @@
 import fs from 'fs/promises'
 import path from 'path'
+import { Logger } from '@nestjs/common'
 import { 
   IStorageService, 
   StorageProviderId, 
@@ -12,6 +13,7 @@ import {
 } from '../types'
 
 export class LocalStorageService implements IStorageService {
+  private readonly logger = new Logger(LocalStorageService.name)
   private providerId: StorageProviderId = 'local'
   private config: Record<string, any>
   private basePath: string
@@ -38,7 +40,7 @@ export class LocalStorageService implements IStorageService {
       await fs.access(fullPath)
       return true
     } catch (error) {
-      console.error('Local storage validation failed:', error)
+      this.logger.error(`Local storage validation failed: ${error instanceof Error ? error.message : String(error)}`)
       return false
     }
   }
@@ -322,7 +324,7 @@ export class LocalStorageService implements IStorageService {
               })
             } catch (error) {
               // Skip files that can't be read
-              console.warn(`Skipping file ${itemPath}:`, error)
+              this.logger.warn(`Skipping file ${itemPath}: ${error instanceof Error ? error.message : String(error)}`)
             }
           }
         }
@@ -364,11 +366,11 @@ export class LocalStorageService implements IStorageService {
   async getFileBuffer(filePath: string): Promise<Buffer | null> {
     try {
       const fullPath = this.getFullPath(filePath)
-      console.log('Local storage get file buffer:', fullPath)
+      this.logger.debug(`Local storage get file buffer: ${fullPath}`)
       const buffer = await fs.readFile(fullPath)
       return buffer
     } catch (error) {
-      console.error(`Failed to read file buffer for ${filePath}:`, error)
+      this.logger.error(`Failed to read file buffer for ${filePath}: ${error instanceof Error ? error.message : String(error)}`)
       return null
     }
   }

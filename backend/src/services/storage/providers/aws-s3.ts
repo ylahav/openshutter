@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common'
 import { 
   IStorageService, 
   StorageProviderId, 
@@ -12,13 +13,14 @@ import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, List
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 
 export class AwsS3Service implements IStorageService {
+  private readonly logger = new Logger(AwsS3Service.name)
   private providerId: StorageProviderId = 'aws-s3'
   private config: Record<string, any>
   private s3Client!: S3Client
 
   constructor(config: Record<string, any>) {
     this.config = config
-    console.log('AwsS3Service constructor - config:', JSON.stringify(config, null, 2))
+    this.logger.debug(`AwsS3Service constructor - config: ${JSON.stringify(config)}`)
     this.initializeS3Client()
   }
 
@@ -51,7 +53,7 @@ export class AwsS3Service implements IStorageService {
 
   async validateConnection(): Promise<boolean> {
     try {
-      console.log('AwsS3Service: Validating connection to bucket:', this.config.bucketName)
+      this.logger.debug(`AwsS3Service: Validating connection to bucket: ${this.config.bucketName}`)
       
       // Test connection by listing objects in the bucket
       const command = new ListObjectsV2Command({
@@ -60,17 +62,17 @@ export class AwsS3Service implements IStorageService {
       })
       
       await this.s3Client.send(command)
-      console.log('AwsS3Service: Connection validated successfully')
+      this.logger.debug('AwsS3Service: Connection validated successfully')
       return true
     } catch (error) {
-      console.error('AwsS3Service: Connection validation failed:', error)
+      this.logger.error(`AwsS3Service: Connection validation failed: ${error instanceof Error ? error.message : String(error)}`)
       return false
     }
   }
 
   async createFolder(name: string, parentPath?: string): Promise<StorageFolderResult> {
     try {
-      console.log(`AwsS3Service: Creating folder '${name}' in path: ${parentPath || 'root'}`)
+      this.logger.debug(`AwsS3Service: Creating folder '${name}' in path: ${parentPath || 'root'}`)
       
       // In S3, folders are logical constructs - we create an empty object with a trailing slash
       const folderKey = parentPath ? `${parentPath}/${name}/` : `${name}/`
@@ -82,7 +84,7 @@ export class AwsS3Service implements IStorageService {
       })
       
       await this.s3Client.send(command)
-      console.log(`AwsS3Service: Created folder '${name}' with key: ${folderKey}`)
+      this.logger.debug(`AwsS3Service: Created folder '${name}' with key: ${folderKey}`)
       
       return {
         provider: this.providerId,
@@ -93,7 +95,7 @@ export class AwsS3Service implements IStorageService {
         metadata: {}
       }
     } catch (error) {
-      console.error(`AwsS3Service: Failed to create folder '${name}':`, error)
+      this.logger.error(`AwsS3Service: Failed to create folder '${name}':`, error)
       throw new StorageOperationError(
         `Failed to create folder ${name}`,
         this.providerId,
@@ -105,7 +107,7 @@ export class AwsS3Service implements IStorageService {
 
   async deleteFolder(folderPath: string): Promise<void> {
     try {
-      console.log(`AwsS3Service: Deleting folder: ${folderPath}`)
+      this.logger.debug(`AwsS3Service: Deleting folder: ${folderPath}`)
       
       // List all objects in the folder
       const listCommand = new ListObjectsV2Command({
@@ -126,10 +128,10 @@ export class AwsS3Service implements IStorageService {
         })
         
         await Promise.all(deletePromises)
-        console.log(`AwsS3Service: Successfully deleted folder: ${folderPath}`)
+        this.logger.debug(`AwsS3Service: Successfully deleted folder: ${folderPath}`)
       }
     } catch (error) {
-      console.error(`AwsS3Service: Failed to delete folder ${folderPath}:`, error)
+      this.logger.error(`AwsS3Service: Failed to delete folder ${folderPath}:`, error)
       throw new StorageOperationError(
         `Failed to delete folder ${folderPath}`,
         this.providerId,
@@ -220,7 +222,7 @@ export class AwsS3Service implements IStorageService {
     metadata?: Record<string, any>
   ): Promise<StorageUploadResult> {
     try {
-      console.log(`AwsS3Service: Uploading file '${filename}' to path: ${folderPath || 'root'}`)
+      this.logger.debug(`AwsS3Service: Uploading file '${filename}' to path: ${folderPath || 'root'}`)
       
       const key = folderPath ? `${folderPath}/${filename}` : filename
       
@@ -233,7 +235,7 @@ export class AwsS3Service implements IStorageService {
       })
       
       await this.s3Client.send(command)
-      console.log(`AwsS3Service: Uploaded file '${filename}' with key: ${key}`)
+      this.logger.debug(`AwsS3Service: Uploaded file '${filename}' with key: ${key}`)
       
       return {
         provider: this.providerId,
@@ -246,7 +248,7 @@ export class AwsS3Service implements IStorageService {
         metadata: metadata || {}
       }
     } catch (error) {
-      console.error(`AwsS3Service: Failed to upload file '${filename}':`, error)
+      this.logger.error(`AwsS3Service: Failed to upload file '${filename}':`, error)
       throw new StorageOperationError(
         `Failed to upload file ${filename}`,
         this.providerId,
@@ -258,7 +260,7 @@ export class AwsS3Service implements IStorageService {
 
   async deleteFile(filePath: string): Promise<void> {
     try {
-      console.log(`AwsS3Service: Deleting file: ${filePath}`)
+      this.logger.debug(`AwsS3Service: Deleting file: ${filePath}`)
       
       const command = new DeleteObjectCommand({
         Bucket: this.config.bucketName,
@@ -266,9 +268,9 @@ export class AwsS3Service implements IStorageService {
       })
       
       await this.s3Client.send(command)
-      console.log(`AwsS3Service: Successfully deleted file: ${filePath}`)
+      this.logger.debug(`AwsS3Service: Successfully deleted file: ${filePath}`)
     } catch (error) {
-      console.error(`AwsS3Service: Failed to delete file ${filePath}:`, error)
+      this.logger.error(`AwsS3Service: Failed to delete file ${filePath}:`, error)
       throw new StorageOperationError(
         `Failed to delete file ${filePath}`,
         this.providerId,
@@ -312,7 +314,7 @@ export class AwsS3Service implements IStorageService {
 
   async listFiles(folderPath?: string, pageSize?: number): Promise<StorageFileInfo[]> {
     try {
-      console.log(`AwsS3Service: Listing files in folder: ${folderPath || 'root'}`)
+      this.logger.debug(`AwsS3Service: Listing files in folder: ${folderPath || 'root'}`)
       
       const command = new ListObjectsV2Command({
         Bucket: this.config.bucketName,
@@ -344,10 +346,10 @@ export class AwsS3Service implements IStorageService {
         }
       }
       
-      console.log(`AwsS3Service: Found ${files.length} files`)
+      this.logger.debug(`AwsS3Service: Found ${files.length} files`)
       return files
     } catch (error) {
-      console.error(`AwsS3Service: Failed to list files in ${folderPath || 'root'}:`, error)
+      this.logger.error(`AwsS3Service: Failed to list files in ${folderPath || 'root'}:`, error)
       throw new StorageOperationError(
         `Failed to list files in ${folderPath || 'root'}`,
         this.providerId,
@@ -509,7 +511,7 @@ export class AwsS3Service implements IStorageService {
 
   async getFileBuffer(filePath: string): Promise<Buffer | null> {
     try {
-      console.log(`AwsS3Service: Getting file buffer for path: ${filePath}`)
+      this.logger.debug(`AwsS3Service: Getting file buffer for path: ${filePath}`)
       
       const command = new GetObjectCommand({
         Bucket: this.config.bucketName,
@@ -519,7 +521,7 @@ export class AwsS3Service implements IStorageService {
       const response = await this.s3Client.send(command)
       
       if (!response.Body) {
-        console.log(`AwsS3Service: No body in response for file: ${filePath}`)
+        this.logger.debug(`AwsS3Service: No body in response for file: ${filePath}`)
         return null
       }
       
@@ -534,11 +536,11 @@ export class AwsS3Service implements IStorageService {
       }
       
       const buffer = Buffer.concat(chunks)
-      console.log(`AwsS3Service: Successfully downloaded file, size: ${buffer.length} bytes`)
+      this.logger.debug(`AwsS3Service: Successfully downloaded file, size: ${buffer.length} bytes`)
       
       return buffer
     } catch (error) {
-      console.error(`AwsS3Service: Failed to get file buffer for ${filePath}:`, error)
+      this.logger.error(`AwsS3Service: Failed to get file buffer for ${filePath}:`, error)
       return null
     }
   }

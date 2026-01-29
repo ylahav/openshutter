@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common'
 import { storageConfigService } from './config'
 import { 
   IStorageManager, 
@@ -19,6 +20,7 @@ import { BackblazeService } from './providers/backblaze'
 import { WasabiService } from './providers/wasabi'
 
 export class StorageManager implements IStorageManager {
+  private readonly logger = new Logger(StorageManager.name)
   private static instance: StorageManager
   private serviceCache: Map<StorageProviderId, IStorageService> = new Map()
 
@@ -73,7 +75,7 @@ export class StorageManager implements IStorageManager {
       const service = await this.getProvider(providerId)
       return await service.validateConnection()
     } catch (error) {
-      console.error(`Failed to validate provider ${providerId}:`, error)
+      this.logger.error(`Failed to validate provider ${providerId}: ${error instanceof Error ? error.message : String(error)}`)
       return false
     }
   }
@@ -296,7 +298,7 @@ export class StorageManager implements IStorageManager {
       const service = await this.getProvider(providerId)
       return await service.getFileBuffer(photoPath)
     } catch (error) {
-      console.error(`Failed to get photo buffer for ${photoPath}:`, error)
+      this.logger.error(`Failed to get photo buffer for ${photoPath}: ${error instanceof Error ? error.message : String(error)}`)
       return null
     }
   }
