@@ -232,32 +232,53 @@ export class AlbumsAdminController {
 				}
 			}
 
-			// Get ALL albums (no isPublic filter for admin)
-			const albums = await db
-				.collection('albums')
-				.find(query)
-				.sort({ order: 1, createdAt: -1 })
-				.toArray();
+		// Get ALL albums (no isPublic filter for admin)
+		const albums = await db
+			.collection('albums')
+			.find(query)
+			.sort({ order: 1, createdAt: -1 })
+			.toArray();
 
-			// Calculate childAlbumCount for each album and serialize ObjectIds
-			const serialized = await Promise.all(
-				albums.map(async (album: any) => {
-					const childCount = await db.collection('albums').countDocuments({
-						parentAlbumId: album._id,
-					});
-					return {
-						...album,
-						_id: album._id.toString(),
-						parentAlbumId: album.parentAlbumId?.toString() || null,
-						coverPhotoId: album.coverPhotoId?.toString() || null,
-						createdBy: album.createdBy?.toString() || null,
-						order: album.order ?? 0, // Ensure order field is included
-						childAlbumCount: childCount,
-					};
-				})
-			);
+		// Performance optimization: Use aggregation to get child counts in a single query
+		// instead of N+1 queries (one per album)
+		const albumIds = albums.map((album: any) => album._id);
+		const childCounts = await db
+			.collection('albums')
+			.aggregate([
+				{
+					$match: {
+						parentAlbumId: { $in: albumIds },
+					},
+				},
+				{
+					$group: {
+						_id: '$parentAlbumId',
+						count: { $sum: 1 },
+					},
+				},
+			])
+			.toArray();
 
-		return serialized;
+		// Create a map for O(1) lookup
+		const childCountMap = new Map<string, number>();
+		childCounts.forEach((item: any) => {
+			if (item._id) {
+				childCountMap.set(item._id.toString(), item.count);
+			}
+		});
+
+		// Serialize ObjectIds and add child counts
+		const serialized = albums.map((album: any) => ({
+			...album,
+			_id: album._id.toString(),
+			parentAlbumId: album.parentAlbumId?.toString() || null,
+			coverPhotoId: album.coverPhotoId?.toString() || null,
+			createdBy: album.createdBy?.toString() || null,
+			order: album.order ?? 0, // Ensure order field is included
+			childAlbumCount: childCountMap.get(album._id.toString()) || 0,
+		}));
+
+	return serialized;
 	} catch (error) {
 		this.logger.error('Failed to get admin albums:', error);
 		throw new InternalServerErrorException(`Failed to get admin albums: ${error instanceof Error ? error.message : 'Unknown error'}`);

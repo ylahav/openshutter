@@ -158,28 +158,50 @@ export class PeopleController {
       }, {} as Record<string, string>);
 
       // Convert tag strings to ObjectIds
+      // Performance optimization: Use bulk operations instead of N+1 queries
       let tagObjectIds: Types.ObjectId[] = [];
       if (tags && Array.isArray(tags) && tags.length > 0) {
         const tagCollection = db.collection('tags');
+        const tagNamesToFind: string[] = [];
+        const existingObjectIds: Types.ObjectId[] = [];
+        
+        // Separate string tags from ObjectIds
         for (const tagName of tags) {
           if (typeof tagName === 'string') {
-            let tag = await tagCollection.findOne({ name: tagName.trim() });
-            if (!tag) {
-              const insertResult = await tagCollection.insertOne({
-                name: tagName.trim(),
-                createdBy: new Types.ObjectId(user.id),
-                createdAt: new Date(),
-                updatedAt: new Date(),
-              });
-              tag = await tagCollection.findOne({ _id: insertResult.insertedId });
-            }
-            if (tag) {
-              tagObjectIds.push(tag._id);
-            }
+            tagNamesToFind.push(tagName.trim());
           } else if (tagName instanceof Types.ObjectId) {
-            tagObjectIds.push(tagName);
+            existingObjectIds.push(tagName);
           }
         }
+        
+        // Bulk find existing tags
+        if (tagNamesToFind.length > 0) {
+          const existingTags = await tagCollection
+            .find({ name: { $in: tagNamesToFind } })
+            .toArray();
+          
+          const foundTagNames = new Set(existingTags.map((t: any) => t.name));
+          const tagsToCreate = tagNamesToFind.filter((name) => !foundTagNames.has(name));
+          
+          // Bulk insert new tags
+          if (tagsToCreate.length > 0) {
+            const newTags = tagsToCreate.map((name) => ({
+              name,
+              createdBy: new Types.ObjectId(user.id),
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            }));
+            const insertResult = await tagCollection.insertMany(newTags);
+            existingTags.push(...Object.values(insertResult.insertedIds).map((id, idx) => ({
+              _id: id,
+              name: tagsToCreate[idx],
+            })));
+          }
+          
+          tagObjectIds.push(...existingTags.map((t: any) => t._id));
+        }
+        
+        tagObjectIds.push(...existingObjectIds);
       }
 
       // Create person
@@ -253,28 +275,50 @@ export class PeopleController {
       }
 
       // Convert tag strings to ObjectIds
+      // Performance optimization: Use bulk operations instead of N+1 queries
       let tagObjectIds: Types.ObjectId[] = [];
       if (tags && Array.isArray(tags) && tags.length > 0) {
         const tagCollection = db.collection('tags');
+        const tagNamesToFind: string[] = [];
+        const existingObjectIds: Types.ObjectId[] = [];
+        
+        // Separate string tags from ObjectIds
         for (const tagName of tags) {
           if (typeof tagName === 'string') {
-            let tag = await tagCollection.findOne({ name: tagName.trim() });
-            if (!tag) {
-              const insertResult = await tagCollection.insertOne({
-                name: tagName.trim(),
-                createdBy: new Types.ObjectId(user.id),
-                createdAt: new Date(),
-                updatedAt: new Date(),
-              });
-              tag = await tagCollection.findOne({ _id: insertResult.insertedId });
-            }
-            if (tag) {
-              tagObjectIds.push(tag._id);
-            }
+            tagNamesToFind.push(tagName.trim());
           } else if (tagName instanceof Types.ObjectId) {
-            tagObjectIds.push(tagName);
+            existingObjectIds.push(tagName);
           }
         }
+        
+        // Bulk find existing tags
+        if (tagNamesToFind.length > 0) {
+          const existingTags = await tagCollection
+            .find({ name: { $in: tagNamesToFind } })
+            .toArray();
+          
+          const foundTagNames = new Set(existingTags.map((t: any) => t.name));
+          const tagsToCreate = tagNamesToFind.filter((name) => !foundTagNames.has(name));
+          
+          // Bulk insert new tags
+          if (tagsToCreate.length > 0) {
+            const newTags = tagsToCreate.map((name) => ({
+              name,
+              createdBy: new Types.ObjectId(user.id),
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            }));
+            const insertResult = await tagCollection.insertMany(newTags);
+            existingTags.push(...Object.values(insertResult.insertedIds).map((id, idx) => ({
+              _id: id,
+              name: tagsToCreate[idx],
+            })));
+          }
+          
+          tagObjectIds.push(...existingTags.map((t: any) => t._id));
+        }
+        
+        tagObjectIds.push(...existingObjectIds);
       }
 
       // Update person

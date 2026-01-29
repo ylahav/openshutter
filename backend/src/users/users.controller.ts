@@ -26,6 +26,8 @@ export class UsersController {
     @Query('search') search?: string,
     @Query('role') role?: string,
     @Query('blocked') blocked?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
     try {
       await connectDB();
@@ -52,7 +54,15 @@ export class UsersController {
         query.blocked = blocked === 'true';
       }
 
-      const users = await collection.find(query).sort({ username: 1 }).toArray();
+      // Performance: Add pagination to prevent loading all users at once
+      const pageNum = parseInt(page || '1', 10);
+      const limitNum = parseInt(limit || '50', 10);
+      const skip = (pageNum - 1) * limitNum;
+
+      const [users, total] = await Promise.all([
+        collection.find(query).sort({ username: 1 }).skip(skip).limit(limitNum).toArray(),
+        collection.countDocuments(query),
+      ]);
 
       // Convert ObjectIds to strings and remove passwordHash
       const serializedUsers = users.map((user) => {
@@ -65,6 +75,12 @@ export class UsersController {
 
       return {
         data: serializedUsers,
+        pagination: {
+          page: pageNum,
+          limit: limitNum,
+          total,
+          totalPages: Math.ceil(total / limitNum),
+        },
       };
     } catch (error) {
       this.logger.error('Error fetching users:', error);
