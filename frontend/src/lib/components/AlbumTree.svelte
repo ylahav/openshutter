@@ -320,8 +320,10 @@
 		const _ = expandedNodesArray;
 		if (!isDragging) {
 			flatItems = flatten(tree, expandedNodes);
+			logger.debug('[AlbumTree] flatItems updated:', flatItems.length, 'items');
 		}
 	}
+
 </script>
 
 <div class="album-tree">
@@ -334,10 +336,6 @@
 			dropTargetStyle: {
 				outline: '2px dashed rgba(59, 130, 246, 0.5)',
 				backgroundColor: 'rgba(59, 130, 246, 0.1)'
-			},
-			dragDisabledStyle: {
-				opacity: '0.5',
-				cursor: 'not-allowed'
 			}
 		}}
 		on:consider={handleDndConsider}
@@ -345,12 +343,13 @@
 	>
 		{#each flatItems as node (node._id)}
 			<div class="album-tree-node" style="padding-left: {node.level * 1.5}rem;" data-id={node._id}>
-				<div class="flex items-center gap-2 py-2 px-3 hover:bg-gray-50 rounded-md group cursor-move">
+				<div class="flex items-center gap-2 py-2 px-3 hover:bg-gray-50 rounded-md group">
 					{#if showAccordion && node.children && node.children.length > 0}
 						<button
 							type="button"
 							on:click|stopPropagation={() => toggleNode(node._id)}
-							class="flex-shrink-0 w-6 h-6 flex items-center justify-center text-gray-400 hover:text-gray-600"
+							on:mousedown|stopPropagation
+							class="shrink-0 w-6 h-6 flex items-center justify-center text-gray-400 hover:text-gray-600"
 							aria-label={expandedNodes.has(node._id) ? 'Collapse' : 'Expand'}
 						>
 							<svg
@@ -369,16 +368,17 @@
 					<div class="flex-1 flex items-center gap-3 min-w-0">
 						<!-- Drag handle - visible icon -->
 						<div 
-							class="drag-handle flex-shrink-0 cursor-move text-gray-600 hover:text-gray-800 p-1.5 rounded hover:bg-gray-200 transition-colors flex items-center justify-center border border-gray-300" 
+							class="drag-handle shrink-0 cursor-grab active:cursor-grabbing text-gray-600 hover:text-gray-800 p-1.5 rounded hover:bg-gray-200 transition-colors flex items-center justify-center border border-gray-300" 
 							title="Drag to reorder"
-							style="user-select: none; min-width: 28px; height: 28px; pointer-events: auto;"
+							style="user-select: none; min-width: 28px; height: 28px; touch-action: none;"
 						>
 							<span class="text-base font-bold text-gray-600 leading-none" style="line-height: 1;">⋮⋮</span>
 						</div>
 						<button
 							type="button"
-							on:click={() => handleNodeClick(node)}
-							class="flex-1 text-left flex items-center gap-3 min-w-0"
+							on:click|stopPropagation={() => handleNodeClick(node)}
+							on:mousedown|stopPropagation
+							class="flex-1 text-left flex items-center gap-3 min-w-0 cursor-pointer"
 						>
 							<div class="flex-1 min-w-0">
 								<div class="flex items-center gap-2">
@@ -405,7 +405,7 @@
 						</button>
 
 						{#if renderActions}
-							<div class="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+							<div class="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" on:mousedown|stopPropagation>
 								{@html renderActions(node)}
 							</div>
 						{/if}
