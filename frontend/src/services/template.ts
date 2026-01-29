@@ -149,7 +149,7 @@ export class TemplateService {
     // Pattern matches: src/templates/<template>/pages/<Page>.tsx|ts
     // Note: path here is relative to this file after compilation
     //       '../templates' resolves to 'src/templates'
-    // @ts-ignore - webpack specific API
+    // @ts-ignore - webpack's require.context() is a build-time API not recognized by TypeScript
     const ctx = require.context('../templates', true, /\/pages\/[^/]+\.(tsx|ts)$/i)
     const loaders: Record<string, Record<string, () => Promise<any>>> = {}
     ctx.keys().forEach((key: string) => {

@@ -29,8 +29,9 @@
 	async function loadPhotos() {
 		try {
 			loading = true;
-			// TODO: Implement API endpoint for fetching photos
-			// For now, this is a placeholder
+			// NOTE: This page is a placeholder. Photo browsing is currently handled
+			// through album pages. To implement: create GET /api/photos endpoint
+			// that returns all public photos with pagination/filtering support.
 			photos = [];
 		} catch (err) {
 			logger.error('Failed to load photos:', err);

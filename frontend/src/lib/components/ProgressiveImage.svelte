@@ -75,7 +75,8 @@
 
 	function handleImageLoad() {
 		imageLoaded = true;
-		// TODO: Track performance metrics if needed
+		// NOTE: Performance tracking can be added here if needed.
+		// Could track: load time, image size, network conditions, etc.
 	}
 
 	function handleImageError() {

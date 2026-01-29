@@ -31,7 +31,8 @@ export function getInitialAdminUser() {
 
 // Check if this is the first time running the system
 export function isFirstRun(): boolean {
-  // TODO: Check database for existing users
-  // For now, always return true to allow initial admin access
+  // NOTE: Currently always returns true to allow initial admin access.
+  // Future enhancement: Query backend API to check if any users exist in database.
+  // This would require a GET /api/admin/users/count endpoint or similar.
   return true
 }

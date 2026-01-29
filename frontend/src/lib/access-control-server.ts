@@ -1,5 +1,3 @@
-import { connectToDatabase } from '$lib/mongodb'
-import { ObjectId } from 'mongodb'
 import type { UserSession, AlbumAccessInfo } from './access-control'
 import { logger } from './utils/logger'
 
@@ -22,10 +20,20 @@ export async function getCurrentUser(): Promise<UserSession | null> {
 
 /**
  * Build MongoDB query for albums accessible by user (server-side only)
+ * 
+ * @deprecated This function uses direct MongoDB connections which are no longer supported.
+ * Use the backend API endpoints instead. Access control is now handled by the backend.
+ * 
  * @param user - User session information
  * @returns MongoDB query object
  */
 export async function buildAlbumAccessQuery(user: UserSession | null): Promise<any> {
+  throw new Error(
+    'buildAlbumAccessQuery() is deprecated. Direct MongoDB connections are no longer supported. ' +
+    'Use the backend API endpoints instead. Access control is handled by the backend.'
+  );
+  
+  // Legacy code below (never reached)
   // Admins can see everything
   if (user?.role === 'admin') {
     return {}
@@ -91,11 +99,19 @@ export async function buildAlbumAccessQuery(user: UserSession | null): Promise<a
 
 /**
  * Filter albums based on user access (server-side only)
+ * 
+ * @deprecated This function uses direct MongoDB connections which are no longer supported.
+ * Use the backend API endpoints instead. Access control is now handled by the backend.
+ * 
  * @param albums - Array of albums to filter
  * @param user - User session information
  * @returns Array of albums the user can access
  */
 export async function filterAlbumsByAccess(albums: any[], user: UserSession | null): Promise<any[]> {
+  throw new Error(
+    'filterAlbumsByAccess() is deprecated. Direct MongoDB connections are no longer supported. ' +
+    'Use the backend API endpoints instead. Access control is handled by the backend.'
+  );
   const accessibleAlbums = []
   
   for (const album of albums) {
@@ -116,69 +132,17 @@ export async function filterAlbumsByAccess(albums: any[], user: UserSession | nu
 
 /**
  * Check if a user has access to an album (server-side only)
+ * 
+ * @deprecated This function uses direct MongoDB connections which are no longer supported.
+ * Use the backend API endpoints instead. Access control is now handled by the backend.
+ * 
  * @param album - Album access information
  * @param user - User session information
  * @returns boolean indicating if user has access
  */
 export async function checkAlbumAccess(album: AlbumAccessInfo, user: UserSession | null): Promise<boolean> {
-  // Admins can access everything
-  if (user?.role === 'admin') {
-    return true
-  }
-
-  // If album is public, everyone can access it
-  if (album.isPublic) {
-    return true
-  }
-
-  // For private albums, user must be logged in
-  if (!user) {
-    return false
-  }
-
-  // Owners can access their own albums
-  if (user.role === 'owner' && album.createdBy && album.createdBy === user.id) {
-    return true
-  }
-
-  // For private albums, check if there are specific access restrictions
-  const hasAllowedUsers = album.allowedUsers && album.allowedUsers.length > 0
-  const hasAllowedGroups = album.allowedGroups && album.allowedGroups.length > 0
-
-  // If no specific restrictions, any logged-in user can access
-  if (!hasAllowedUsers && !hasAllowedGroups) {
-    return true
-  }
-
-  // Check if user is in allowed users list
-  if (hasAllowedUsers && album.allowedUsers) {
-    const userObjectId = new ObjectId(user.id)
-    const hasUserAccess = album.allowedUsers.some(userId => {
-      try {
-        return new ObjectId(userId).equals(userObjectId)
-      } catch {
-        return false
-      }
-    })
-    if (hasUserAccess) {
-      return true
-    }
-  }
-
-  // Check if user belongs to any allowed groups
-  if (hasAllowedGroups && album.allowedGroups) {
-    const { db } = await connectToDatabase()
-    const userDoc = await db.collection('users').findOne({ _id: new ObjectId(user.id) })
-    
-    if (userDoc?.groupAliases) {
-      const hasGroupAccess = album.allowedGroups.some(groupAlias => 
-        userDoc.groupAliases.includes(groupAlias)
-      )
-      if (hasGroupAccess) {
-        return true
-      }
-    }
-  }
-
-  return false
+  throw new Error(
+    'checkAlbumAccess() is deprecated. Direct MongoDB connections are no longer supported. ' +
+    'Use the backend API endpoints instead. Access control is handled by the backend.'
+  );
 }

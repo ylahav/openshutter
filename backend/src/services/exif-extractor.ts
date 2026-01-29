@@ -250,7 +250,7 @@ export class ExifExtractor {
       const storageService = await storageManager.getProvider(storageProvider as 'local' | 'google-drive' | 'aws-s3')
       try {
         // Debug provider config (e.g., local basePath)
-        // getConfig is available on our storage services
+        // getConfig() exists on storage services at runtime but isn't in the IStorageService interface
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const cfg = (storageService as any).getConfig?.()
         if (cfg && cfg.basePath) {
