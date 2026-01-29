@@ -135,18 +135,22 @@
 
 	// Handle drag consider (during drag, for visual feedback)
 	function handleDndConsider(event: CustomEvent) {
+		logger.debug('[AlbumTree] Drag consider event fired');
 		const { detail } = event;
 		const { items } = detail;
 		// Update flatItems with the reordered items from dndzone for visual feedback
 		isDragging = true;
 		flatItems = items;
+		logger.debug('[AlbumTree] Drag started, items:', items.length);
 	}
 
 	// Handle drag end (when drag is complete)
 	async function handleDndEnd(event: CustomEvent) {
+		logger.debug('[AlbumTree] Drag finalize event fired');
 		isDragging = false;
 		const { detail } = event;
 		const { items, info } = detail;
+		logger.debug('[AlbumTree] Drag ended, info:', info);
 
 		if (!info) {
 			// Reset flatItems from tree if no info
@@ -348,7 +352,6 @@
 						<button
 							type="button"
 							on:click|stopPropagation={() => toggleNode(node._id)}
-							on:mousedown|stopPropagation
 							class="shrink-0 w-6 h-6 flex items-center justify-center text-gray-400 hover:text-gray-600"
 							aria-label={expandedNodes.has(node._id) ? 'Collapse' : 'Expand'}
 						>
@@ -374,11 +377,11 @@
 						>
 							<span class="text-base font-bold text-gray-600 leading-none" style="line-height: 1;">⋮⋮</span>
 						</div>
-						<button
-							type="button"
+						<div
 							on:click|stopPropagation={() => handleNodeClick(node)}
-							on:mousedown|stopPropagation
 							class="flex-1 text-left flex items-center gap-3 min-w-0 cursor-pointer"
+							role="button"
+							tabindex="0"
 						>
 							<div class="flex-1 min-w-0">
 								<div class="flex items-center gap-2">
@@ -402,10 +405,10 @@
 									{node.photoCount || 0} photos • Level {node.level}
 								</div>
 							</div>
-						</button>
+						</div>
 
 						{#if renderActions}
-							<div class="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" on:mousedown|stopPropagation>
+							<div class="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" role="group" aria-label="Album actions">
 								{@html renderActions(node)}
 							</div>
 						{/if}
