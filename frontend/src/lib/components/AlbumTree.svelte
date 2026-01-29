@@ -37,7 +37,24 @@
 	let localAlbums = albums;
 	let albumsInitialized = false;
 	let flatItems: AlbumTreeNode[] = [];
+	let flatItemsForDnd: Array<AlbumTreeNode & { id: string }> = [];
 	let isDragging = false;
+
+	// Transform items to have 'id' property for svelte-dnd-action
+	function transformForDnd(items: AlbumTreeNode[]): Array<AlbumTreeNode & { id: string }> {
+		return items.map(item => ({
+			...item,
+			id: item._id
+		}));
+	}
+
+	// Transform items back from dnd format
+	function transformFromDnd(items: Array<AlbumTreeNode & { id: string }>): AlbumTreeNode[] {
+		return items.map(item => {
+			const { id, ...rest } = item;
+			return rest as AlbumTreeNode;
+		});
+	}
 
 	// Initialize expanded nodes if expandAllByDefault is true
 	function initializeExpandedNodes() {
@@ -140,7 +157,8 @@
 		const { items } = detail;
 		// Update flatItems with the reordered items from dndzone for visual feedback
 		isDragging = true;
-		flatItems = items;
+		flatItemsForDnd = items;
+		flatItems = transformFromDnd(items);
 		logger.debug('[AlbumTree] Drag started, items:', items.length);
 	}
 
@@ -152,9 +170,13 @@
 		const { items, info } = detail;
 		logger.debug('[AlbumTree] Drag ended, info:', info);
 
+		// Transform items back from dnd format
+		const transformedItems = transformFromDnd(items);
+
 		if (!info) {
 			// Reset flatItems from tree if no info
 			flatItems = flatten(tree, expandedNodes);
+			flatItemsForDnd = transformForDnd(flatItems);
 			return;
 		}
 
@@ -164,6 +186,7 @@
 		if (fromIndex === toIndex) {
 			// No change, reset flatItems from tree
 			flatItems = flatten(tree, expandedNodes);
+			flatItemsForDnd = transformForDnd(flatItems);
 			return;
 		}
 
@@ -174,6 +197,7 @@
 
 		if (!activeNode || !overNode) {
 			flatItems = flatten(tree, expandedNodes);
+			flatItemsForDnd = transformForDnd(flatItems);
 			return;
 		}
 
@@ -188,6 +212,8 @@
 
 		if (isDescendant(activeNode._id, overNode._id)) {
 			logger.warn('Cannot move album into its own descendant');
+			flatItems = flatten(tree, expandedNodes);
+			flatItemsForDnd = transformForDnd(flatItems);
 			return;
 		}
 
@@ -203,6 +229,7 @@
 			const to = ids.indexOf(overNode._id);
 			if (from === -1 || to === -1) {
 				flatItems = flatten(tree, expandedNodes);
+				flatItemsForDnd = transformForDnd(flatItems);
 				return;
 			}
 			// Simple array move
@@ -272,6 +299,7 @@
 
 		if (updates.length === 0) {
 			flatItems = flatten(tree, expandedNodes);
+			flatItemsForDnd = transformForDnd(flatItems);
 			return;
 		}
 
@@ -291,6 +319,7 @@
 		// Update flatItems from the new tree structure
 		const newTree = buildTree(localAlbums);
 		flatItems = flatten(newTree, expandedNodes);
+		flatItemsForDnd = transformForDnd(flatItems);
 
 		// Save to server
 		if (onReorder) {
@@ -301,6 +330,7 @@
 				// Revert on error
 				localAlbums = albums;
 				flatItems = flatten(tree, expandedNodes);
+				flatItemsForDnd = transformForDnd(flatItems);
 				throw error;
 			}
 		}
@@ -324,6 +354,7 @@
 		const _ = expandedNodesArray;
 		if (!isDragging) {
 			flatItems = flatten(tree, expandedNodes);
+			flatItemsForDnd = transformForDnd(flatItems);
 			logger.debug('[AlbumTree] flatItems updated:', flatItems.length, 'items');
 		}
 	}
@@ -333,7 +364,7 @@
 <div class="album-tree">
 	<div
 		use:dndzone={{
-			items: flatItems,
+			items: flatItemsForDnd,
 			type: 'album-tree',
 			dragDisabled: false,
 			dropFromOthersDisabled: true,
@@ -345,7 +376,7 @@
 		on:consider={handleDndConsider}
 		on:finalize={handleDndEnd}
 	>
-		{#each flatItems as node (node._id)}
+		{#each flatItemsForDnd as node (node.id)}
 			<div class="album-tree-node" style="padding-left: {node.level * 1.5}rem;" data-id={node._id}>
 				<div class="flex items-center gap-2 py-2 px-3 hover:bg-gray-50 rounded-md group">
 					{#if showAccordion && node.children && node.children.length > 0}
@@ -379,6 +410,12 @@
 						</div>
 						<div
 							on:click|stopPropagation={() => handleNodeClick(node)}
+							on:keydown|stopPropagation={(e) => {
+								if (e.key === 'Enter' || e.key === ' ') {
+									e.preventDefault();
+									handleNodeClick(node);
+								}
+							}}
 							class="flex-1 text-left flex items-center gap-3 min-w-0 cursor-pointer"
 							role="button"
 							tabindex="0"
