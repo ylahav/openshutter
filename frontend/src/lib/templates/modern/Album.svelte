@@ -83,6 +83,7 @@
 	let subAlbumCoverPhotos: Record<string, any> = {};
 	let subAlbumCoverImages: Record<string, string> = {};
 	let isInitialLoad = true;
+	let photoLoaded: Record<string, boolean> = {};
 
 	// React to route parameter changes using afterNavigate (recommended for SvelteKit)
 	afterNavigate(({ to, from }) => {
@@ -353,12 +354,22 @@
 											? `width: 100%; padding-bottom: ${(1 / aspectRatio) * 100}%;`
 											: 'width: 100%; padding-bottom: 100%;'}
 									>
+										{#if !photoLoaded[photo._id]}
+											<div
+												class="absolute inset-0 flex flex-col items-center justify-center bg-black/40 z-10 rounded-xl"
+												aria-live="polite"
+												aria-busy="true"
+											>
+												<div class="animate-spin rounded-full h-10 w-10 border-2 border-white/30 border-t-white mb-2"></div>
+												<span class="text-white/90 text-xs">Loading photo…</span>
+											</div>
+										{/if}
 										<img
 											src={thumbnailUrl}
 											alt=""
 											class={hasDimensions && aspectRatio < 1 
-												? "w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-												: "absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"}
+												? "w-full h-full object-cover group-hover:scale-110 transition-all duration-300 " + (photoLoaded[photo._id] ? 'opacity-100' : 'opacity-30')
+												: "absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-all duration-300 " + (photoLoaded[photo._id] ? 'opacity-100' : 'opacity-30')}
 											style="image-orientation: from-image;"
 											on:error={async (e) => {
 												// Check for token renewal errors first
@@ -390,13 +401,15 @@
 													// Show placeholder instead of hiding
 													target.src = '/placeholder.jpg';
 													target.onerror = null; // Prevent infinite loop
+													photoLoaded = { ...photoLoaded, [photo._id]: true };
 												}
 											}}
 											on:load={() => {
 												logger.debug('[Photo] Image loaded successfully:', thumbnailUrl);
+												photoLoaded = { ...photoLoaded, [photo._id]: true };
 											}}
 										/>
-										<div class="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-all duration-300"></div>
+										<div class="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-all duration-300 pointer-events-none"></div>
 									</div>
 								</button>
 								

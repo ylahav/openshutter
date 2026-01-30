@@ -30,6 +30,7 @@
 	let lightboxOpen = false;
 	let lightboxIndex = 0;
 	let isInitialLoad = true;
+	let photoLoaded: Record<string, boolean> = {};
 
 	// React to route parameter changes
 	afterNavigate(({ to, from }) => {
@@ -176,13 +177,25 @@
 										? `width: 100%; padding-bottom: ${(1 / aspectRatio) * 100}%;`
 										: 'width: 100%; padding-bottom: 100%;'}
 								>
+									{#if !photoLoaded[photo._id]}
+										<div
+											class="absolute inset-0 flex flex-col items-center justify-center bg-purple-100/90 z-10 rounded-lg"
+											aria-live="polite"
+											aria-busy="true"
+										>
+											<div class="animate-spin rounded-full h-10 w-10 border-2 border-purple-200 border-t-purple-600 mb-2"></div>
+											<span class="text-purple-700 text-xs">Loading photo…</span>
+										</div>
+									{/if}
 									<img
 										src={getPhotoUrl(photo)}
 										alt={MultiLangUtils.getTextValue(photo.title, $currentLanguage) || 'Photo'}
 										class={hasDimensions && aspectRatio < 1 
-											? "w-full h-full object-cover transition-transform duration-500 hover:scale-110"
-											: "absolute inset-0 w-full h-full object-cover transition-transform duration-500 hover:scale-110"}
+											? "w-full h-full object-cover hover:scale-110 transition-all duration-300 " + (photoLoaded[photo._id] ? 'opacity-100' : 'opacity-30')
+											: "absolute inset-0 w-full h-full object-cover hover:scale-110 transition-all duration-300 " + (photoLoaded[photo._id] ? 'opacity-100' : 'opacity-30')}
 										style="image-orientation: from-image;"
+										on:load={() => { photoLoaded = { ...photoLoaded, [photo._id]: true }; }}
+										on:error={() => { photoLoaded = { ...photoLoaded, [photo._id]: true }; }}
 									/>
 								</div>
 							</button>
