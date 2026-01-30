@@ -211,9 +211,18 @@ export class PhotosAdminController {
 				}
 			}
 
-			// Update EXIF data if provided
-			if (updateData.exif !== undefined) {
-				update.exif = updateData.exif;
+			// Update EXIF data if provided (merge into existing so overrides don't wipe other fields)
+			if (updateData.exif !== undefined && typeof updateData.exif === 'object' && updateData.exif !== null) {
+				for (const [key, value] of Object.entries(updateData.exif)) {
+					if (key && value !== undefined && value !== null && value !== '') {
+						// Store date fields as Date for MongoDB
+						if ((key === 'dateTime' || key === 'dateTimeOriginal' || key === 'dateTimeDigitized') && typeof value === 'string') {
+							update[`exif.${key}`] = new Date(value);
+						} else {
+							update[`exif.${key}`] = value;
+						}
+					}
+				}
 			}
 
 			// Update metadata if provided
@@ -482,6 +491,19 @@ export class PhotosAdminController {
 				}
 			}
 
+			// Update EXIF overrides if provided (merge into existing: dateTime, make, model, etc.)
+			if (updates.exif !== undefined && typeof updates.exif === 'object' && updates.exif !== null) {
+				for (const [key, value] of Object.entries(updates.exif)) {
+					if (key && value !== undefined && value !== null && value !== '') {
+						if ((key === 'dateTime' || key === 'dateTimeOriginal' || key === 'dateTimeDigitized') && typeof value === 'string') {
+							update[`exif.${key}`] = new Date(value);
+						} else {
+							update[`exif.${key}`] = value;
+						}
+					}
+				}
+			}
+
 			// Perform bulk update
 			const result = await db
 				.collection('photos')
@@ -500,6 +522,66 @@ export class PhotosAdminController {
 			}
 			throw new InternalServerErrorException(
 				`Failed to bulk update photos: ${error instanceof Error ? error.message : 'Unknown error'}`
+			);
+		}
+	}
+
+	/**
+	 * Bulk re-extract EXIF from photo files (admin only)
+	 * Path: POST /api/admin/photos/bulk/re-extract-exif
+	 */
+	@Post('bulk/re-extract-exif')
+	async bulkReExtractExif(@Body() body: { photoIds: string[] }) {
+		try {
+			await connectDB();
+			const db = mongoose.connection.db;
+			if (!db) throw new InternalServerErrorException('Database connection not established');
+
+			const { photoIds } = body;
+			if (!Array.isArray(photoIds) || photoIds.length === 0) {
+				throw new BadRequestException('photoIds must be a non-empty array');
+			}
+
+			const objectIds = photoIds.map((id) => {
+				if (!Types.ObjectId.isValid(id)) {
+					throw new BadRequestException(`Invalid photo ID: ${id}`);
+				}
+				return new Types.ObjectId(id);
+			});
+
+			const photos = await db.collection('photos').find({ _id: { $in: objectIds } }).toArray();
+			let processedCount = 0;
+			let failedCount = 0;
+			const errors: { photoId: string; error: string }[] = [];
+
+			for (const photo of photos) {
+				try {
+					await ExifExtractor.extractAndUpdateExif(photo, { force: true });
+					processedCount++;
+				} catch (err) {
+					failedCount++;
+					errors.push({
+						photoId: photo._id.toString(),
+						error: err instanceof Error ? err.message : String(err),
+					});
+				}
+			}
+
+			return {
+				success: true,
+				processedCount,
+				failedCount,
+				totalRequested: photoIds.length,
+				...(errors.length > 0 && { errors }),
+				message: `Re-extracted EXIF for ${processedCount} photo(s)` + (failedCount > 0 ? `; ${failedCount} failed.` : ''),
+			};
+		} catch (error) {
+			this.logger.error(`Bulk re-extract EXIF failed: ${error instanceof Error ? error.message : String(error)}`);
+			if (error instanceof BadRequestException) {
+				throw error;
+			}
+			throw new InternalServerErrorException(
+				`Bulk re-extract EXIF failed: ${error instanceof Error ? error.message : 'Unknown error'}`
 			);
 		}
 	}

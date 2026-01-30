@@ -121,6 +121,8 @@
 		people: [] as string[],
 		location: null as string | null,
 		metadata: {} as Record<string, unknown>,
+		/** Override EXIF-derived fields (merged on save; does not wipe other EXIF) */
+		exifOverrides: { dateTime: '', make: '', model: '' } as { dateTime: string; make: string; model: string },
 	};
 	let descriptionLanguage = 'en';
 	let reExtractingExif = false;
@@ -267,6 +269,18 @@
 					photo.metadata && typeof photo.metadata === 'object'
 						? { ...photo.metadata }
 						: {};
+				// EXIF overrides (date/camera) – init from photo.exif for editing
+				const ex = photo.exif && typeof photo.exif === 'object' ? photo.exif : {};
+				const dt = ex.dateTime ?? ex.dateTimeOriginal ?? ex.dateTimeDigitized;
+				formData.exifOverrides = {
+					dateTime: dt
+						? (typeof dt === 'string'
+								? dt.slice(0, 16)
+								: new Date(dt as Date).toISOString().slice(0, 16))
+						: '',
+					make: (ex.make as string) ?? '',
+					model: (ex.model as string) ?? '',
+				};
 				// Trigger reactivity after mutating formData fields
 				formData = { ...formData };
 			}
@@ -293,7 +307,7 @@
 			saving = true;
 			error = '';
 
-			const updateData = {
+			const updateData: Record<string, unknown> = {
 				title: formData.title,
 				description: formData.description,
 				isPublished: formData.isPublished,
@@ -310,6 +324,15 @@
 					return Object.keys(cleaned).length ? cleaned : undefined;
 				})(),
 			};
+			// EXIF overrides (merged with existing; only send non-empty)
+			const o = formData.exifOverrides;
+			if (o.dateTime.trim() || o.make.trim() || o.model.trim()) {
+				const exifMerge: Record<string, unknown> = { ...(photo.exif && typeof photo.exif === 'object' ? photo.exif : {}) };
+				if (o.dateTime.trim()) exifMerge.dateTime = new Date(o.dateTime.trim()).toISOString();
+				if (o.make.trim()) exifMerge.make = o.make.trim();
+				if (o.model.trim()) exifMerge.model = o.model.trim();
+				updateData.exif = exifMerge;
+			}
 
 			const response = await fetch(`/api/admin/photos/${photoId}`, {
 				method: 'PUT',
@@ -990,6 +1013,55 @@
 							{:else}
 								<p class="text-sm text-gray-500">No EXIF data. Use "Re-extract from file" to read from the image.</p>
 							{/if}
+						</div>
+
+						<!-- Override EXIF (date/camera) – merged on save -->
+						<div class="bg-white rounded-lg border border-gray-200 p-4">
+							<h3 class="text-sm font-medium text-gray-700 mb-3">Override EXIF (date / camera)</h3>
+							<p class="text-xs text-gray-500 mb-3">Override date taken or camera info. Saved values are merged with existing EXIF.</p>
+							<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+								<div>
+									<label for="exif-date" class="block text-xs font-medium text-gray-600 mb-1">Date taken</label>
+									<input
+										id="exif-date"
+										type="datetime-local"
+										class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+										value={formData.exifOverrides.dateTime}
+										on:input={(e) => {
+											formData.exifOverrides = { ...formData.exifOverrides, dateTime: (e.currentTarget as HTMLInputElement).value };
+											formData = formData;
+										}}
+									/>
+								</div>
+								<div>
+									<label for="exif-make" class="block text-xs font-medium text-gray-600 mb-1">Make</label>
+									<input
+										id="exif-make"
+										type="text"
+										class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+										placeholder="e.g. Canon"
+										value={formData.exifOverrides.make}
+										on:input={(e) => {
+											formData.exifOverrides = { ...formData.exifOverrides, make: (e.currentTarget as HTMLInputElement).value };
+											formData = formData;
+										}}
+									/>
+								</div>
+								<div>
+									<label for="exif-model" class="block text-xs font-medium text-gray-600 mb-1">Model</label>
+									<input
+										id="exif-model"
+										type="text"
+										class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+										placeholder="e.g. EOS R5"
+										value={formData.exifOverrides.model}
+										on:input={(e) => {
+											formData.exifOverrides = { ...formData.exifOverrides, model: (e.currentTarget as HTMLInputElement).value };
+											formData = formData;
+										}}
+									/>
+								</div>
+							</div>
 						</div>
 
 						<!-- Custom metadata (editable) -->

@@ -450,7 +450,13 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [ ] Enhanced tag analytics
 - [ ] User role management
 - [ ] Import/Sync functionality (currently disabled)
-- [ ] Advanced photo metadata management
+- **Advanced photo metadata management**
+  - [x] Configurable EXIF display (site config: choose which EXIF fields to show; lightbox and display respect it)
+  - [x] Re-extract EXIF per photo (admin photo edit)
+  - [x] Custom metadata fields (e.g. rating, category) editable per photo
+  - [x] Bulk metadata operations: bulk re-extract EXIF (album page), bulk set date/make/model via Set Metadata dialog
+  - [x] Manual override of EXIF-derived fields (date taken, make, model) in photo edit and bulk Set Metadata
+  - [ ] IPTC/XMP import or export (optional)
 
 ### Phase 3 (Next 12 months) *
 - [ ] AI-powered photo tagging

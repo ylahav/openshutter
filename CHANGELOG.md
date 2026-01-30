@@ -1,6 +1,11 @@
 ## [Unreleased]
 
 ### Added
+- **Advanced photo metadata management**
+  - **Bulk re-extract EXIF**: Album page bulk action "Re-extract EXIF" for selected photos; POST `/api/admin/photos/bulk/re-extract-exif`
+  - **Manual EXIF overrides**: Photo edit section "Override EXIF (date/camera)" for date taken, make, model; merged on save
+  - **Bulk EXIF overrides**: Set Metadata dialog on album page now includes EXIF overrides (date taken, make, model) for selected photos
+  - **Backend**: Single photo update and bulk update merge EXIF by key (dot notation); date fields stored as Date
 - **Face recognition UI**: Assigned names on face rectangles and in panel
   - Photo edit: face detection rectangles show the assigned person's name instead of "Face X" when a face is assigned
   - Face matching panel shows the assigned person's name (e.g. "Jane Doe (set by you)") instead of "Face X (set by you)"

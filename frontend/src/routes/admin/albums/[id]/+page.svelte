@@ -82,6 +82,9 @@
 	let selectedLocationId: string | null = null;
 	let bulkMetadataRating: string = '';
 	let bulkMetadataCategory: string = '';
+	let bulkExifDate: string = '';
+	let bulkExifMake: string = '';
+	let bulkExifModel: string = '';
 	let isBulkUpdating = false;
 
 	// Album and photo utility functions are now imported from shared utilities
@@ -305,6 +308,7 @@
 		isPublished?: boolean;
 		location?: string | null;
 		metadata?: Record<string, unknown>;
+		exif?: Record<string, unknown>;
 	}) {
 		if (selectedPhotoIds.size === 0 || isBulkUpdating) return;
 
@@ -365,6 +369,9 @@
 		showMetadataDialog = true;
 		bulkMetadataRating = '';
 		bulkMetadataCategory = '';
+		bulkExifDate = '';
+		bulkExifMake = '';
+		bulkExifModel = '';
 	}
 
 	function applyMetadata() {
@@ -374,9 +381,49 @@
 			if (r >= 1 && r <= 5) metadata.rating = r;
 		}
 		if (bulkMetadataCategory.trim() !== '') metadata.category = bulkMetadataCategory.trim();
-		if (Object.keys(metadata).length > 0) {
-			bulkUpdatePhotos({ metadata });
+		const exif: Record<string, unknown> = {};
+		if (bulkExifDate.trim()) exif.dateTime = new Date(bulkExifDate.trim()).toISOString();
+		if (bulkExifMake.trim()) exif.make = bulkExifMake.trim();
+		if (bulkExifModel.trim()) exif.model = bulkExifModel.trim();
+		if (Object.keys(metadata).length > 0 || Object.keys(exif).length > 0) {
+			bulkUpdatePhotos({ ...(Object.keys(metadata).length > 0 ? { metadata } : {}), ...(Object.keys(exif).length > 0 ? { exif } : {}) });
 			showMetadataDialog = false;
+		}
+	}
+
+	async function bulkReExtractExif() {
+		if (selectedPhotoIds.size === 0 || isBulkUpdating) return;
+
+		isBulkUpdating = true;
+		error = '';
+		successMessage = '';
+
+		try {
+			const response = await fetch('/api/admin/photos/bulk/re-extract-exif', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ photoIds: Array.from(selectedPhotoIds) })
+			});
+
+			const result = await response.json();
+
+			if (result.success) {
+				const msg = result.processedCount != null
+					? `Re-extracted EXIF for ${result.processedCount} photo(s)${result.failedCount > 0 ? `; ${result.failedCount} failed.` : ''}`
+					: (result.message || 'Re-extracted EXIF for selected photos.');
+				successMessage = msg;
+				selectedPhotoIds.clear();
+				showBulkActions = false;
+				await loadPhotos();
+				setTimeout(() => { successMessage = ''; }, 4000);
+			} else {
+				error = result.error || 'Failed to re-extract EXIF';
+			}
+		} catch (err) {
+			logger.error('Bulk re-extract EXIF failed:', err);
+			error = `Failed to re-extract EXIF: ${err instanceof Error ? err.message : 'Unknown error'}`;
+		} finally {
+			isBulkUpdating = false;
 		}
 	}
 
@@ -530,6 +577,14 @@
 									class="px-3 py-1 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50"
 								>
 									Set Metadata
+								</button>
+								<button
+									on:click={bulkReExtractExif}
+									disabled={isBulkUpdating}
+									class="px-3 py-1 text-sm bg-cyan-600 text-white rounded-md hover:bg-cyan-700 disabled:opacity-50"
+									title="Re-extract EXIF from file for selected photos"
+								>
+									Re-extract EXIF
 								</button>
 								<button
 									on:click={() => { selectedPhotoIds.clear(); showBulkActions = false; }}
@@ -725,7 +780,7 @@
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
 		<div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
 			<h3 class="text-lg font-semibold mb-4">Set Metadata for {selectedPhotoIds.size} Photo{selectedPhotoIds.size === 1 ? '' : 's'}</h3>
-			<p class="text-sm text-gray-500 mb-4">Set rating and/or category. Leave blank to leave unchanged.</p>
+			<p class="text-sm text-gray-500 mb-4">Set rating, category, and/or EXIF overrides. Leave blank to leave unchanged.</p>
 			<div class="space-y-4 mb-4">
 				<div>
 					<label for="bulk-rating" class="block text-sm font-medium text-gray-700 mb-1">Rating (1–5)</label>
@@ -750,17 +805,51 @@
 						placeholder="e.g. Event, Project"
 					/>
 				</div>
+				<div class="border-t border-gray-200 pt-3 mt-3">
+					<span class="block text-sm font-medium text-gray-700 mb-2">EXIF overrides (merged per photo)</span>
+					<div class="grid grid-cols-1 gap-3">
+						<div>
+							<label for="bulk-exif-date" class="block text-xs font-medium text-gray-600 mb-0.5">Date taken</label>
+							<input
+								id="bulk-exif-date"
+								type="datetime-local"
+								class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+								bind:value={bulkExifDate}
+							/>
+						</div>
+						<div>
+							<label for="bulk-exif-make" class="block text-xs font-medium text-gray-600 mb-0.5">Make</label>
+							<input
+								id="bulk-exif-make"
+								type="text"
+								class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+								placeholder="e.g. Canon"
+								bind:value={bulkExifMake}
+							/>
+						</div>
+						<div>
+							<label for="bulk-exif-model" class="block text-xs font-medium text-gray-600 mb-0.5">Model</label>
+							<input
+								id="bulk-exif-model"
+								type="text"
+								class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+								placeholder="e.g. EOS R5"
+								bind:value={bulkExifModel}
+							/>
+						</div>
+					</div>
+				</div>
 			</div>
 			<div class="flex justify-end gap-2">
 				<button
-					on:click={() => { showMetadataDialog = false; bulkMetadataRating = ''; bulkMetadataCategory = ''; }}
+					on:click={() => { showMetadataDialog = false; bulkMetadataRating = ''; bulkMetadataCategory = ''; bulkExifDate = ''; bulkExifMake = ''; bulkExifModel = ''; }}
 					class="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
 				>
 					Cancel
 				</button>
 				<button
 					on:click={applyMetadata}
-					disabled={isBulkUpdating || (bulkMetadataRating === '' && bulkMetadataCategory.trim() === '')}
+					disabled={isBulkUpdating || (bulkMetadataRating === '' && bulkMetadataCategory.trim() === '' && !bulkExifDate.trim() && !bulkExifMake.trim() && !bulkExifModel.trim())}
 					class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
 				>
 					{isBulkUpdating ? 'Applying...' : 'Apply'}
