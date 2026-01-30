@@ -610,7 +610,8 @@ export class AlbumsAdminController {
 
 			// Update order
 			if (updateData.order !== undefined) {
-				update.order = parseInt(updateData.order, 10) || 0;
+				const orderVal = updateData.order;
+				update.order = typeof orderVal === 'number' ? orderVal : (parseInt(String(orderVal), 10) || 0);
 			}
 
 			// Update tags if provided (convert string IDs to ObjectIds)
@@ -641,8 +642,8 @@ export class AlbumsAdminController {
 					update.location = null;
 				} else if (Types.ObjectId.isValid(updateData.location)) {
 					update.location = new Types.ObjectId(updateData.location);
-				} else if (typeof updateData.location === 'object' && updateData.location._id) {
-					update.location = new Types.ObjectId(updateData.location._id);
+				} else if (typeof updateData.location === 'object' && updateData.location && (updateData.location as { _id?: string })._id) {
+					update.location = new Types.ObjectId((updateData.location as { _id: string })._id);
 				}
 			}
 

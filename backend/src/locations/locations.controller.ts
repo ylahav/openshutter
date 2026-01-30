@@ -202,8 +202,8 @@ export class LocationsController {
 
       // Validate coordinates if provided
       if (coordinates) {
-        const lat = parseFloat(coordinates.latitude);
-        const lng = parseFloat(coordinates.longitude);
+        const lat = typeof coordinates.latitude === 'number' ? coordinates.latitude : parseFloat(String(coordinates.latitude));
+        const lng = typeof coordinates.longitude === 'number' ? coordinates.longitude : parseFloat(String(coordinates.longitude));
         if (isNaN(lat) || lat < -90 || lat > 90) {
           throw new BadRequestException('Invalid latitude. Must be between -90 and 90');
         }
@@ -245,8 +245,8 @@ export class LocationsController {
         postalCode: postalCode?.trim() || undefined,
         coordinates: coordinates
           ? {
-              latitude: parseFloat(coordinates.latitude),
-              longitude: parseFloat(coordinates.longitude),
+              latitude: typeof coordinates.latitude === 'number' ? coordinates.latitude : parseFloat(String(coordinates.latitude)),
+              longitude: typeof coordinates.longitude === 'number' ? coordinates.longitude : parseFloat(String(coordinates.longitude)),
             }
           : undefined,
         placeId: placeId?.trim() || undefined,
@@ -367,8 +367,8 @@ export class LocationsController {
 
       // Validate coordinates if provided
       if (coordinates) {
-        const lat = parseFloat(coordinates.latitude);
-        const lng = parseFloat(coordinates.longitude);
+        const lat = typeof coordinates.latitude === 'number' ? coordinates.latitude : parseFloat(String(coordinates.latitude));
+        const lng = typeof coordinates.longitude === 'number' ? coordinates.longitude : parseFloat(String(coordinates.longitude));
         if (isNaN(lat) || lat < -90 || lat > 90) {
           throw new BadRequestException('Invalid latitude. Must be between -90 and 90');
         }
@@ -418,8 +418,8 @@ export class LocationsController {
       if (coordinates !== undefined) {
         updateData.coordinates = coordinates
           ? {
-              latitude: parseFloat(coordinates.latitude),
-              longitude: parseFloat(coordinates.longitude),
+              latitude: typeof coordinates.latitude === 'number' ? coordinates.latitude : parseFloat(String(coordinates.latitude)),
+              longitude: typeof coordinates.longitude === 'number' ? coordinates.longitude : parseFloat(String(coordinates.longitude)),
             }
           : null;
       }

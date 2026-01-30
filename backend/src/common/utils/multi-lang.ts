@@ -20,7 +20,7 @@ import type { MultiLangText, MultiLangHTML } from '../../types/multi-lang';
  * ```
  */
 export function normalizeMultiLangText(
-  value: MultiLangText | undefined | null,
+  value: MultiLangText | string | undefined | null,
   allowEmpty: boolean = false,
   fieldName: string = 'Field'
 ): Record<string, string> | undefined {
@@ -39,8 +39,9 @@ export function normalizeMultiLangText(
       normalized.en = trimmed;
     }
   } else if (typeof value === 'object') {
-    Object.keys(value).forEach((key) => {
-      const val = value[key];
+    const valueObj = value as Record<string, unknown>;
+    Object.keys(valueObj).forEach((key) => {
+      const val = valueObj[key];
       if (val && typeof val === 'string') {
         const trimmed = val.trim();
         if (trimmed) {
@@ -77,7 +78,7 @@ export function normalizeMultiLangText(
  * ```
  */
 export function normalizeMultiLangHTML(
-  value: MultiLangHTML | undefined | null,
+  value: MultiLangHTML | string | undefined | null,
   allowEmpty: boolean = false
 ): Record<string, string> | undefined {
   if (!value) {
@@ -90,14 +91,15 @@ export function normalizeMultiLangHTML(
   const normalized: Record<string, string> = {};
 
   if (typeof value === 'string') {
-    const trimmed = value.trim();
+    const trimmed = (value as string).trim();
     // Don't filter out HTML content - even if it's just tags, it's valid content
     if (trimmed) {
       normalized.en = trimmed;
     }
   } else if (typeof value === 'object') {
-    Object.keys(value).forEach((key) => {
-      const val = value[key];
+    const valueObj = value as Record<string, unknown>;
+    Object.keys(valueObj).forEach((key) => {
+      const val = valueObj[key];
       if (typeof val === 'string') {
         const trimmed = val.trim();
         // Don't filter out HTML content - even if it's just tags, it's valid content

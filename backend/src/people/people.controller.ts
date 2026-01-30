@@ -169,8 +169,8 @@ export class PeopleController {
         for (const tagName of tags) {
           if (typeof tagName === 'string') {
             tagNamesToFind.push(tagName.trim());
-          } else if (tagName instanceof Types.ObjectId) {
-            existingObjectIds.push(tagName);
+          } else if ((tagName as unknown) instanceof Types.ObjectId) {
+            existingObjectIds.push(tagName as Types.ObjectId);
           }
         }
         
@@ -264,9 +264,13 @@ export class PeopleController {
       let fullName = person.fullName;
       if (firstName || lastName) {
         const langs = SUPPORTED_LANGUAGES.map((l) => l.code);
+        const firstObj = typeof firstName === 'object' && firstName ? firstName : null;
+        const lastObj = typeof lastName === 'object' && lastName ? lastName : null;
+        const personFirst = typeof person.firstName === 'object' && person.firstName ? person.firstName : null;
+        const personLast = typeof person.lastName === 'object' && person.lastName ? person.lastName : null;
         fullName = langs.reduce((acc, lang) => {
-          const first = firstName?.[lang] || person.firstName?.[lang] || '';
-          const last = lastName?.[lang] || person.lastName?.[lang] || '';
+          const first = (firstObj && (firstObj as Record<string, string>)[lang]) || (personFirst && (personFirst as Record<string, string>)[lang]) || '';
+          const last = (lastObj && (lastObj as Record<string, string>)[lang]) || (personLast && (personLast as Record<string, string>)[lang]) || '';
           if (first || last) {
             acc[lang] = `${first} ${last}`.trim();
           }
@@ -286,8 +290,8 @@ export class PeopleController {
         for (const tagName of tags) {
           if (typeof tagName === 'string') {
             tagNamesToFind.push(tagName.trim());
-          } else if (tagName instanceof Types.ObjectId) {
-            existingObjectIds.push(tagName);
+          } else if ((tagName as unknown) instanceof Types.ObjectId) {
+            existingObjectIds.push(tagName as Types.ObjectId);
           }
         }
         

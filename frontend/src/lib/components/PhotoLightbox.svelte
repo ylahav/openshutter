@@ -127,11 +127,21 @@
 	let containerRef: HTMLDivElement;
 	let imageRef: HTMLImageElement;
 	let canvasRef: HTMLCanvasElement;
+	let imageLoading = $state(true);
 
 	// Update current when index changes
 	$effect(() => {
 		actualIndex = startIndex ?? initialIndex ?? 0;
 		current = actualIndex;
+	});
+
+	// Show loading when photo index changes (user switched to another photo)
+	$effect(() => {
+		if (isOpen && photos.length > 0) {
+			// React to current index change
+			const _ = current;
+			imageLoading = true;
+		}
 	});
 
 	// Fetch face data when photo changes
@@ -400,6 +410,7 @@
 	}
 
 	function handleImageLoad() {
+		imageLoading = false;
 		if (faceData && canvasRef && imageRef) {
 			canvasRef.width = imageRef.offsetWidth;
 			canvasRef.height = imageRef.offsetHeight;
@@ -631,13 +642,25 @@
 			</button>
 			<div class="max-h-[85vh] max-w-[92vw] relative flex items-center">
 				<div class="relative shrink-0">
+					<!-- Loading indicator when switching photos -->
+					{#if imageLoading}
+						<div
+							class="absolute inset-0 flex flex-col items-center justify-center bg-black/60 z-10 min-w-[200px] min-h-[200px] rounded-lg"
+							aria-live="polite"
+							aria-busy="true"
+						>
+							<div class="animate-spin rounded-full h-12 w-12 border-2 border-white/30 border-t-white mb-3"></div>
+							<span class="text-white/90 text-sm">Loading photo…</span>
+						</div>
+					{/if}
 					<img
 						bind:this={imageRef}
 						src={photoUrl}
 						alt={photoTitle}
-						class="object-contain max-h-[85vh] max-w-[92vw]"
+						class="object-contain max-h-[85vh] max-w-[92vw] transition-opacity duration-200 {imageLoading ? 'opacity-30' : 'opacity-100'}"
 						draggable="false"
 						onload={handleImageLoad}
+						onerror={() => (imageLoading = false)}
 					/>
 					{#if showFaces && matchedFaces.length > 0}
 						<canvas
