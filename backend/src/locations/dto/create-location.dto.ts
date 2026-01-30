@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsBoolean, IsIn, ValidateNested, IsNumber, Min, Max } from 'class-validator';
+import { IsString, IsOptional, IsBoolean, IsIn, ValidateNested, IsNumber, Min, Max, Allow } from 'class-validator';
 import { Type } from 'class-transformer';
 import { MultiLangText } from '../../types/multi-lang';
 
@@ -20,6 +20,8 @@ export class CoordinatesDto {
  * Used by POST /api/admin/locations.
  */
 export class CreateLocationDto {
+	/** Name is validated in controller (string or MultiLangText with at least one language). */
+	@Allow()
 	name: string | MultiLangText;
 	
 	@IsOptional()

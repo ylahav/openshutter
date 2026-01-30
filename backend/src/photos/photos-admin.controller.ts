@@ -482,6 +482,13 @@ export class PhotosAdminController {
 				}
 			}
 
+			// Update tags if provided (replace with provided tag IDs)
+			if (updates.tags !== undefined && Array.isArray(updates.tags)) {
+				update.tags = updates.tags
+					.filter((id: any) => id != null && Types.ObjectId.isValid(String(id)))
+					.map((id: any) => new Types.ObjectId(String(id)));
+			}
+
 			// Update metadata if provided (merge into existing: rating, category, or custom keys)
 			if (updates.metadata !== undefined && typeof updates.metadata === 'object') {
 				for (const [key, value] of Object.entries(updates.metadata)) {

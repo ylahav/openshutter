@@ -443,7 +443,11 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [x] **Album Reordering** - Drag-and-drop album reordering with accordion navigation (collapsed by default)
 
 ### Phase 2 (Next 6 months) *
-- [ ] Advanced search and filtering
+- [x] **Advanced search and filtering**
+  - [x] Backend GET /api/search with filters: q, type, albumId, tags, people, locationIds, dateFrom, dateTo, sortBy, sortOrder
+  - [x] Search across photos (with filters), albums, people, locations
+  - [x] Filter panel UI: album, tags, people, locations, date range, sort (newest/oldest)
+  - [x] Filters synced to URL; chip remove and Apply update URL and re-run search
 - [ ] Photo editing capabilities
 - [ ] Social sharing features
 - [ ] Mobile app development

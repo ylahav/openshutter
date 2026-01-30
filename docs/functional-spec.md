@@ -124,7 +124,7 @@
   - Multi-language search support
   - Sorting options: relevance, date, filename, size
   - Pagination support for large result sets
-  - API: GET `/api/search` with comprehensive filtering
+  - API: GET (query params) or POST (body) `/api/search` with comprehensive filtering; POST used by UI for search requests
 
 ### 6. Template Customization
 - Admin page `/admin/templates/customize`
@@ -147,11 +147,11 @@
   - GET `/api/admin/albums` - admin: get all albums with optional parentId/level filters
   - GET `/api/admin/albums/[id]/photos` - admin: get photos for cover selection
   - PUT `/api/admin/albums/[id]/cover-photo` - admin: set album cover photo
-- Search: GET `/api/search` - comprehensive search across photos, albums, people, locations
+- Search: GET (query params) or POST (body) `/api/search` - comprehensive search across photos, albums, people, locations
 - People: admin GET/POST `/api/admin/people`, GET/PUT/DELETE `/api/admin/people/:id`
 - Locations: admin GET/POST `/api/admin/locations`, GET/PUT/DELETE `/api/admin/locations/:id`
 - Tags: admin GET/POST `/api/admin/tags`, GET/PUT/DELETE `/api/admin/tags/:id`
-- Bulk Operations: PUT `/api/photos/bulk-update` - bulk photo metadata updates
+- Bulk Operations: PUT `/api/photos/bulk-update` - bulk photo metadata updates (tags, people, location, EXIF overrides)
 - Profile Management: owner GET/PUT `/api/auth/profile` - user profile and password management
 
 ### 8. Data Validation & Migrations

@@ -47,12 +47,19 @@
 		error = null;
 
 		try {
-			const searchParams = new URLSearchParams({
-				q: query,
-				type: type
-			});
+			const body = {
+				q: query.trim(),
+				type,
+				page: 1,
+				limit: 20
+			};
 
-			const response = await fetch(`/api/search?${searchParams}`);
+			const response = await fetch('/api/search', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(body),
+				credentials: 'include'
+			});
 			if (!response.ok) {
 				await handleApiErrorResponse(response);
 			}

@@ -80,6 +80,9 @@
 	let showMetadataDialog = false;
 	let locations: Location[] = [];
 	let selectedLocationId: string | null = null;
+	let showTagsDialog = false;
+	let tags: { _id: string; name: string | { en?: string; he?: string }; category?: string }[] = [];
+	let selectedTagIds: string[] = [];
 	let bulkMetadataRating: string = '';
 	let bulkMetadataCategory: string = '';
 	let bulkExifDate: string = '';
@@ -307,6 +310,7 @@
 	async function bulkUpdatePhotos(updates: {
 		isPublished?: boolean;
 		location?: string | null;
+		tags?: string[];
 		metadata?: Record<string, unknown>;
 		exif?: Record<string, unknown>;
 	}) {
@@ -333,7 +337,9 @@
 				selectedPhotoIds.clear();
 				showBulkActions = false;
 				showLocationDialog = false;
+				showTagsDialog = false;
 				selectedLocationId = null;
+				selectedTagIds = [];
 				
 				// Reload photos to reflect changes
 				await loadPhotos();
@@ -363,6 +369,39 @@
 		if (selectedLocationId !== null) {
 			bulkUpdatePhotos({ location: selectedLocationId });
 		}
+	}
+
+	async function loadTags() {
+		try {
+			const response = await fetch('/api/admin/tags?limit=500', { credentials: 'include' });
+			if (!response.ok) return;
+			const result = await response.json();
+			const data = result.data ?? result;
+			tags = Array.isArray(data) ? data : data?.data ?? [];
+		} catch (err) {
+			logger.error('Failed to load tags', err);
+		}
+	}
+
+	function openTagsDialog() {
+		showTagsDialog = true;
+		selectedTagIds = [];
+		if (tags.length === 0) {
+			loadTags();
+		}
+	}
+
+	function toggleTag(tagId: string) {
+		if (selectedTagIds.includes(tagId)) {
+			selectedTagIds = selectedTagIds.filter((id) => id !== tagId);
+		} else {
+			selectedTagIds = [...selectedTagIds, tagId];
+		}
+	}
+
+	function applyTags() {
+		bulkUpdatePhotos({ tags: selectedTagIds });
+		showTagsDialog = false;
 	}
 
 	function openMetadataDialog() {
@@ -572,6 +611,13 @@
 									Set Location
 								</button>
 								<button
+									on:click={openTagsDialog}
+									disabled={isBulkUpdating}
+									class="px-3 py-1 text-sm bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50"
+								>
+									Set Tags
+								</button>
+								<button
 									on:click={openMetadataDialog}
 									disabled={isBulkUpdating}
 									class="px-3 py-1 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50"
@@ -767,6 +813,53 @@
 					on:click={applyLocation}
 					disabled={isBulkUpdating}
 					class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+				>
+					{isBulkUpdating ? 'Applying...' : 'Apply'}
+				</button>
+		</div>
+	</div>
+</div>
+{/if}
+
+<!-- Tags Selection Dialog -->
+{#if showTagsDialog}
+	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+		<div class="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-[80vh] flex flex-col">
+			<h3 class="text-lg font-semibold mb-2">Set Tags for {selectedPhotoIds.size} Photo{selectedPhotoIds.size === 1 ? '' : 's'}</h3>
+			<p class="text-sm text-gray-500 mb-4">Select tags to assign (replaces existing tags on selected photos).</p>
+			<div class="flex-1 overflow-y-auto border border-gray-200 rounded-md p-3 mb-4 min-h-[200px]">
+				{#if tags.length === 0}
+					<p class="text-sm text-gray-500">Loading tags...</p>
+				{:else}
+					<div class="space-y-2">
+						{#each tags as tag}
+							{@const tagName = typeof tag.name === 'string' ? tag.name : MultiLangUtils.getTextValue(tag.name, $currentLanguage) || tag._id}
+							<label class="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-2 rounded">
+								<input
+									type="checkbox"
+									checked={selectedTagIds.includes(tag._id)}
+									on:change={() => toggleTag(tag._id)}
+								/>
+								<span class="text-sm text-gray-900">{tagName}</span>
+								{#if tag.category}
+									<span class="text-xs text-gray-500">({tag.category})</span>
+								{/if}
+							</label>
+						{/each}
+					</div>
+				{/if}
+			</div>
+			<div class="flex justify-end gap-2">
+				<button
+					on:click={() => { showTagsDialog = false; selectedTagIds = []; }}
+					class="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+				>
+					Cancel
+				</button>
+				<button
+					on:click={applyTags}
+					disabled={isBulkUpdating}
+					class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50"
 				>
 					{isBulkUpdating ? 'Applying...' : 'Apply'}
 				</button>

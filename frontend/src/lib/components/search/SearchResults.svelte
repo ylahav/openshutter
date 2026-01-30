@@ -21,6 +21,8 @@
 	export let loading = false;
 	export let error: string | null = null;
 	export let query = '';
+	/** Summary of current search (query + active filters) for display in results header */
+	export let searchSummary = '';
 
 	const dispatch = createEventDispatcher();
 
@@ -140,30 +142,40 @@
 		<!-- Results Header -->
 		{#if hasResults}
 			<div class="bg-white rounded-lg shadow-sm border p-4">
-				<div class="flex items-center justify-between">
-					<div class="flex items-center space-x-4">
+				<div class="flex items-center justify-between flex-wrap gap-2">
+					<div class="flex items-center space-x-4 flex-wrap">
 						<h2 class="text-lg font-semibold text-gray-900">{$t('search.results')}</h2>
 						<span class="text-sm text-gray-600">
 							{photoCount} {photoCount === 1 ? $t('search.photo') : $t('search.photos')}
 						</span>
+						{#if searchSummary && searchSummary.trim()}
+							<span class="text-sm text-gray-500 border-l border-gray-300 pl-4">
+								{$t('search.searchingFor')} {searchSummary}
+							</span>
+						{/if}
 					</div>
 				</div>
-
-				{#if query}
-					<div class="mt-2">
-						<span class="text-sm text-gray-600">
-							{$t('search.searchingFor')} <strong>"{query}"</strong>
-						</span>
-					</div>
-				{/if}
 			</div>
 		{/if}
 
-		<!-- Loading State -->
+		<!-- Loading / Thinking State (POST sent, waiting for result) -->
 		{#if loading}
 			<div class="bg-white rounded-lg shadow-sm border p-8 text-center">
-				<div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-				<p class="text-gray-600">{$t('search.searching')}</p>
+				<div class="flex flex-col items-center gap-4">
+					<!-- Thinking icon: lightbulb (idea/thinking) with subtle pulse -->
+					<svg
+						class="h-12 w-12 text-amber-500 animate-pulse"
+						fill="currentColor"
+						viewBox="0 0 24 24"
+						aria-hidden="true"
+					>
+						<path
+							d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7z"
+						/>
+					</svg>
+					<p class="text-gray-600 font-medium">{$t('search.thinking') || 'Thinking...'}</p>
+					<p class="text-sm text-gray-400">{$t('search.searching') || 'Searching...'}</p>
+				</div>
 			</div>
 		{:else}
 			<!-- Photos Grid -->

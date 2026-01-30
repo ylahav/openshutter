@@ -1,6 +1,13 @@
 ## [Unreleased]
 
 ### Added
+- **Advanced search and filtering**
+  - Backend Search module: GET /api/search (query params) and POST /api/search (body) with q, type, page, limit, albumId, tags, people, locationIds, dateFrom, dateTo, sortBy, sortOrder
+  - Search photos (regex on title/description/filename, filters by album/tags/people/location/date), albums, people, locations
+  - Frontend filter panel: "Filters" button opens drawer with album dropdown, tags/people/locations multi-select, date from/to, sort (newest/oldest first)
+  - Filters and sort synced to URL; chip remove updates URL; Apply applies filters without changing URL; search triggered via POST
+  - Search results header shows search summary (query and active filters); loading state shows "Thinking..." with icon
+- **Bulk Set Tags**: Album page bulk action "Set Tags" with dialog to add/remove tags for selected photos; backend bulk-update supports tags
 - **Advanced photo metadata management**
   - **Bulk re-extract EXIF**: Album page bulk action "Re-extract EXIF" for selected photos; POST `/api/admin/photos/bulk/re-extract-exif`
   - **Manual EXIF overrides**: Photo edit section "Override EXIF (date/camera)" for date taken, make, model; merged on save
@@ -58,6 +65,8 @@
   - Icon selector component with visual previews
 
 ### Fixed
+- **Search**: Fixed "Search Error" when filtering by people (normalize filter IDs to strings in frontend; backend locationIds filter support)
+- **Locations**: Fixed "Invalid request" when adding new location (CreateLocationDto `name` allowed via @Allow() for ValidationPipe)
 - **Svelte Reactivity**: Fixed Map reactivity issues in row/column layout builder
 - **Icon Display**: Fixed icon rendering to show actual SVG icons instead of text names
 - **Page Rendering**: Fixed page title and subtitle not displaying on public pages
