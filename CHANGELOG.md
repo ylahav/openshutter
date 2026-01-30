@@ -1,6 +1,10 @@
 ## [Unreleased]
 
 ### Added
+- **Face recognition UI**: Assigned names on face rectangles and in panel
+  - Photo edit: face detection rectangles show the assigned person's name instead of "Face X" when a face is assigned
+  - Face matching panel shows the assigned person's name (e.g. "Jane Doe (set by you)") instead of "Face X (set by you)"
+  - Optional `getFaceLabel` prop on FaceDetectionViewer for custom labels; edit page passes labels from people list
 - **Album Reordering**: Drag-and-drop album reordering in admin albums management
   - Drag handle (⋮⋮) on each album for easy reordering
   - Reorder albums within the same parent or move to different parents

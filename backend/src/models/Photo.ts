@@ -220,7 +220,7 @@ PhotoSchema.index({ tags: 1 })
 PhotoSchema.index({ location: 1 })
 PhotoSchema.index({ isPublished: 1 })
 PhotoSchema.index({ uploadedAt: -1 })
-PhotoSchema.index({ hash: 1 })
+// hash index is defined on the field with index: true above
 PhotoSchema.index({ originalFilename: 1, size: 1 }) // For duplicate detection by filename + size
 // filename index is already defined as unique: true in the schema
 

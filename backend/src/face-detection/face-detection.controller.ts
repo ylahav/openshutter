@@ -13,7 +13,7 @@ import { FaceDetectionService } from './face-detection.service';
 import { connectDB } from '../config/db';
 import mongoose, { Types } from 'mongoose';
 
-@Controller('admin/face-detection')
+@Controller('admin/face-recognition')
 @UseGuards(AdminGuard)
 export class FaceDetectionController {
 	private readonly logger = new Logger(FaceDetectionController.name);

@@ -90,6 +90,10 @@ export interface SiteConfig {
     enableWatermark: boolean
     maxUploadSize: string
   }
+  /** EXIF metadata display: which fields to show when displaying photo EXIF (empty/undefined = show all) */
+  exifMetadata?: {
+    displayFields?: string[]
+  }
   createdAt: Date
   updatedAt: Date
 }
@@ -106,4 +110,5 @@ export interface SiteConfigUpdate {
   contact?: Partial<SiteConfig['contact']>
   homePage?: Partial<SiteConfig['homePage']>
   features?: Partial<SiteConfig['features']>
+  exifMetadata?: Partial<SiteConfig['exifMetadata']>
 }

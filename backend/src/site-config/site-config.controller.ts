@@ -31,6 +31,7 @@ export class SiteConfigController {
       homePage: config.homePage,
       features: config.features,
       template: config.template,
+      exifMetadata: config.exifMetadata,
     };
   }
 
@@ -54,6 +55,7 @@ export class SiteConfigController {
       homePage: config.homePage,
       features: config.features,
       template: config.template,
+      exifMetadata: config.exifMetadata,
     };
   }
 
@@ -77,6 +79,7 @@ export class SiteConfigController {
       homePage: config.homePage,
       features: config.features,
       template: config.template,
+      exifMetadata: config.exifMetadata,
     };
   }
 

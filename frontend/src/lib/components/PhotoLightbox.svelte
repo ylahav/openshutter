@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { createEventDispatcher } from 'svelte';
 	import { currentLanguage } from '$stores/language';
+	import { siteConfigData } from '$stores/siteConfig';
+	import { filterExifByDisplayFields } from '$lib/constants/exif-fields';
 	import { MultiLangUtils } from '$utils/multiLang';
 	import { logger } from '$lib/utils/logger';
 
@@ -146,84 +148,62 @@
 
 	// Fetch face data when photo changes
 	$effect(() => {
-		if (!isOpen) return;
+		if (!isOpen || !photos.length) return;
 
-		// Reset selected face when photo changes
 		selectedFaceIndex = null;
 
-		const photo = photos[current];
-		if (!photo?._id) {
-			const faces = photo?.faceRecognition?.faces;
-			if (faces && Array.isArray(faces) && faces.length > 0) {
-				// Fetch person names for faces with matchedPersonId
-				const fetchFacesWithNames = async () => {
-					const facesWithNames = await Promise.all(
-						faces.map(async (face: { box: { x: number; y: number; width: number; height: number }; matchedPersonId?: string; confidence?: number }) => {
-							const baseFace = {
-								box: face.box,
-								matchedPersonId: face.matchedPersonId?.toString(),
-								confidence: face.confidence
-							};
-							
-							if (face.matchedPersonId) {
-								try {
-									const personResponse = await fetch(`/api/people/${face.matchedPersonId}`);
-									if (personResponse.ok) {
-										const personData = await personResponse.json();
-										const person = personData.success ? personData.data : personData;
-										const name =
-											person.fullName?.en ||
-											person.fullName?.he ||
-											person.firstName?.en ||
-											person.firstName?.he ||
-											null;
-										return { ...baseFace, personName: name };
-									}
-								} catch (err) {
-									logger.debug('Could not fetch person name:', err);
-								}
-							}
-							return baseFace;
-						})
-					);
-					
-					faceData = {
-						faces: facesWithNames,
-						imageSize: { width: 0, height: 0 }
+		const idx = typeof current === 'number' && current >= 0 ? current : 0;
+		const photo = photos[idx];
+		const sourceFaces = photo?.faceRecognition?.faces;
+		const hasFacesFromPhoto = sourceFaces && Array.isArray(sourceFaces) && sourceFaces.length > 0;
+
+		const buildFaceDataWithNames = async (faces: Array<{ box: { x: number; y: number; width: number; height: number }; matchedPersonId?: string; confidence?: number }>) => {
+			const facesWithNames = await Promise.all(
+				faces.map(async (face: { box: { x: number; y: number; width: number; height: number }; matchedPersonId?: string; confidence?: number }) => {
+					const pid = face.matchedPersonId != null ? String(face.matchedPersonId) : undefined;
+					const baseFace = {
+						box: face.box,
+						matchedPersonId: pid,
+						confidence: face.confidence
 					};
-				};
-				
-				fetchFacesWithNames();
-				return;
-			}
+					if (pid) {
+						const personName = await fetchPersonName(pid);
+						return { ...baseFace, personName: personName ?? undefined };
+					}
+					return baseFace;
+				})
+			);
+			faceData = {
+				faces: facesWithNames,
+				imageSize: { width: 0, height: 0 }
+			};
+		};
+
+		if (hasFacesFromPhoto) {
+			// Use face data from the photo we already have (e.g. from album)
+			buildFaceDataWithNames(sourceFaces);
+			return;
+		}
+
+		if (!photo?._id) {
 			faceData = null;
 			return;
 		}
 
+		// Fetch full photo to get faceRecognition if not on photo
 		const fetchFaceData = async () => {
 			try {
-				const response = await fetch(`/api/photos/${photo._id}`);
+				const response = await fetch(`/api/photos/${photo._id}`, { credentials: 'include' });
 				if (response.ok) {
 					const photoData = await response.json();
-					if (photoData?.faceRecognition?.faces?.length > 0) {
-					const facesWithNames = await Promise.all(
-						photoData.faceRecognition.faces.map(async (face: { box: { x: number; y: number; width: number; height: number }; matchedPersonId?: string; confidence?: number }) => {
-								if (face.matchedPersonId) {
-									const personName = await fetchPersonName(face.matchedPersonId);
-									if (personName) {
-										return { ...face, personName };
-									}
-								}
-								return face;
-							})
-						);
-						faceData = {
-							faces: facesWithNames,
-							imageSize: { width: 0, height: 0 }
-						};
+					const faces = photoData?.faceRecognition?.faces;
+					if (faces && Array.isArray(faces) && faces.length > 0) {
+						await buildFaceDataWithNames(faces);
 					} else {
 						faceData = null;
 					}
+				} else {
+					faceData = null;
 				}
 			} catch (error) {
 				logger.error('Failed to fetch face data:', error);
@@ -274,32 +254,35 @@
 				ctx.lineWidth = isSelected ? 3 : 2;
 				ctx.strokeRect(x, y, width, height);
 
-				// Show name above the border when face is selected
-				if (isSelected) {
-					// Get label text - prefer personName, fallback to matchedPersonId
-					const labelText = face.personName || (face.matchedPersonId ? `Person ${face.matchedPersonId.slice(-4)}` : 'Unknown');
-					
-					ctx.font = 'bold 16px sans-serif';
+				// Show person name above or below the box for every face that has a name
+				const labelText = face.personName || (face.matchedPersonId ? `Person ${String(face.matchedPersonId).slice(-4)}` : null);
+				if (labelText) {
+					ctx.font = 'bold 14px sans-serif';
 					const textMetrics = ctx.measureText(labelText);
-					const labelWidth = textMetrics.width + 12;
-					const labelHeight = 24;
-					const labelX = x;
-					const labelY = Math.max(0, y - labelHeight); // Ensure label doesn't go above canvas
-					
-					// Draw rounded rectangle background
-					ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+					const padding = 6;
+					const labelWidth = textMetrics.width + padding * 2;
+					const labelHeight = 20;
+					const labelX = Math.max(0, Math.min(x, canvas.width - labelWidth));
+					// Prefer above the box; if not enough space, put below (clamp to canvas)
+					const spaceAbove = y;
+					const putAbove = spaceAbove >= labelHeight + 2;
+					let labelY = putAbove ? y - labelHeight - 2 : y + height + 2;
+					if (!putAbove && labelY + labelHeight > canvas.height) {
+						labelY = canvas.height - labelHeight - 2;
+					}
+					labelY = Math.max(0, labelY);
+
+					ctx.fillStyle = isSelected ? 'rgba(59, 130, 246, 0.9)' : 'rgba(0, 0, 0, 0.8)';
 					ctx.beginPath();
 					if (ctx.roundRect) {
 						ctx.roundRect(labelX, labelY, labelWidth, labelHeight, 4);
 					} else {
-						// Fallback for browsers that don't support roundRect
 						ctx.fillRect(labelX, labelY, labelWidth, labelHeight);
 					}
 					ctx.fill();
-					
-					// Draw text
+
 					ctx.fillStyle = '#ffffff';
-					ctx.fillText(labelText, labelX + 6, labelY + 17);
+					ctx.fillText(labelText, labelX + padding, labelY + 14);
 				}
 			});
 		};
@@ -422,46 +405,33 @@
 	}
 
 	async function fetchPersonName(personId: string): Promise<string | null> {
+		const id = String(personId).trim();
+		if (!id) return null;
+		const opts = { credentials: 'include' as RequestCredentials };
 		try {
-			// Try public route first
-			let personResponse = await fetch(`/api/people/${personId}`);
+			let personResponse = await fetch(`/api/people/${id}`, opts);
 			if (!personResponse.ok) {
-				// Fallback: try admin route (if user is authenticated)
-				personResponse = await fetch(`/api/admin/people/${personId}`);
+				personResponse = await fetch(`/api/admin/people/${id}`, opts);
 			}
-			
 			if (personResponse.ok) {
 				const personData = await personResponse.json();
 				let person = personData.success ? personData.data : personData;
-				
-				// Handle array response (from search)
 				if (Array.isArray(person) && person.length > 0) {
-					person = person.find((p: any) => p._id === personId || p._id?.toString() === personId) || person[0];
+					person = person.find((p: any) => String(p._id || '') === id) || person[0];
 				}
-				
-				// Extract name with better multi-language support
 				const extractName = (nameObj: any): string | null => {
 					if (!nameObj) return null;
-					if (typeof nameObj === 'string') return nameObj;
+					if (typeof nameObj === 'string') return nameObj.trim() || null;
 					if (typeof nameObj === 'object') {
-						// Try en first, then he, then any string value
-						return nameObj.en || nameObj.he || Object.values(nameObj).find((v: any) => typeof v === 'string' && v.trim() !== '') as string || null;
+						return nameObj.en || nameObj.he || (Object.values(nameObj).find((v: any) => typeof v === 'string' && (v as string).trim() !== '') as string) || null;
 					}
 					return null;
 				};
-				
-				const name = extractName(person.fullName) || extractName(person.firstName);
-				if (name) {
-					logger.debug(`Fetched person name for ${personId}: ${name}`);
-				} else {
-					logger.warn(`Person name not found for ${personId}, person data:`, person);
-				}
-				return name;
-			} else {
-				logger.warn(`Failed to fetch person ${personId}: ${personResponse.status} ${personResponse.statusText}`);
+				const name = extractName(person?.fullName) || extractName(person?.firstName);
+				return name || null;
 			}
 		} catch (err) {
-			logger.error('Could not fetch person name:', err);
+			logger.debug('Could not fetch person name:', err);
 		}
 		return null;
 	}
@@ -708,144 +678,148 @@
 								</div>
 							{/if}
 
-							<!-- EXIF Data -->
+							<!-- EXIF Data (filtered by site config displayFields when set) -->
 							{#if showExifData && photo.exif}
+								{@const displayExif = filterExifByDisplayFields(photo.exif, $siteConfigData?.exifMetadata?.displayFields)}
+								{#if displayExif}
 								<div class="space-y-3 border-t border-white/20 pt-2">
 									<div class="text-sm font-semibold opacity-80">EXIF Data</div>
 
 									<!-- Camera Information -->
-									{#if photo.exif.make || photo.exif.model || photo.exif.serialNumber}
+									{#if displayExif.make || displayExif.model || displayExif.serialNumber}
 										<div class="space-y-1">
 											<div class="text-xs font-medium opacity-70">Camera</div>
-											{#if photo.exif.make}
-												<div class="text-sm"><span class="opacity-60">Make:</span> {photo.exif.make}</div>
+											{#if displayExif.make}
+												<div class="text-sm"><span class="opacity-60">Make:</span> {displayExif.make}</div>
 											{/if}
-											{#if photo.exif.model}
-												<div class="text-sm"><span class="opacity-60">Model:</span> {photo.exif.model}</div>
+											{#if displayExif.model}
+												<div class="text-sm"><span class="opacity-60">Model:</span> {displayExif.model}</div>
 											{/if}
-											{#if photo.exif.serialNumber}
+											{#if displayExif.serialNumber}
 												<div class="text-sm">
-													<span class="opacity-60">Serial:</span> {photo.exif.serialNumber}
+													<span class="opacity-60">Serial:</span> {displayExif.serialNumber}
 												</div>
 											{/if}
 										</div>
 									{/if}
 
 									<!-- Lens Information -->
-									{#if photo.exif.lensModel || photo.exif.lensInfo || photo.exif.lensSerialNumber}
+									{#if displayExif.lensModel || displayExif.lensInfo || displayExif.lensSerialNumber}
 										<div class="space-y-1">
 											<div class="text-xs font-medium opacity-70">Lens</div>
-											{#if photo.exif.lensModel}
+											{#if displayExif.lensModel}
 												<div class="text-sm">
-													<span class="opacity-60">Model:</span> {photo.exif.lensModel}
+													<span class="opacity-60">Model:</span> {displayExif.lensModel}
 												</div>
 											{/if}
-											{#if photo.exif.lensInfo}
-												<div class="text-sm"><span class="opacity-60">Info:</span> {photo.exif.lensInfo}</div>
+											{#if displayExif.lensInfo}
+												<div class="text-sm"><span class="opacity-60">Info:</span> {displayExif.lensInfo}</div>
 											{/if}
-											{#if photo.exif.lensSerialNumber}
+											{#if displayExif.lensSerialNumber}
 												<div class="text-sm">
-													<span class="opacity-60">Serial:</span> {photo.exif.lensSerialNumber}
+													<span class="opacity-60">Serial:</span> {displayExif.lensSerialNumber}
 												</div>
 											{/if}
 										</div>
 									{/if}
 
 									<!-- Exposure Settings -->
-									{#if photo.exif.fNumber ||
-										photo.exif.exposureTime ||
-										photo.exif.iso ||
-										photo.exif.focalLength ||
-										photo.exif.exposureProgram ||
-										photo.exif.exposureMode}
+									{#if displayExif.fNumber ||
+										displayExif.exposureTime ||
+										displayExif.iso ||
+										displayExif.focalLength ||
+										displayExif.exposureProgram ||
+										displayExif.exposureMode}
 										<div class="space-y-1">
 											<div class="text-xs font-medium opacity-70">Exposure</div>
 											<div class="grid grid-cols-2 gap-2 text-sm">
-												{#if photo.exif.fNumber}
-													<div><span class="opacity-60">f/</span>{photo.exif.fNumber}</div>
+												{#if displayExif.fNumber}
+													<div><span class="opacity-60">f/</span>{displayExif.fNumber}</div>
 												{/if}
-												{#if photo.exif.exposureTime}
-													<div><span class="opacity-60">1/</span>{photo.exif.exposureTime}</div>
+												{#if displayExif.exposureTime}
+													<div><span class="opacity-60">1/</span>{displayExif.exposureTime}</div>
 												{/if}
-												{#if photo.exif.iso}
-													<div><span class="opacity-60">ISO</span> {photo.exif.iso}</div>
+												{#if displayExif.iso}
+													<div><span class="opacity-60">ISO</span> {displayExif.iso}</div>
 												{/if}
-												{#if photo.exif.focalLength}
-													<div><span class="opacity-60">{photo.exif.focalLength}mm</span></div>
+												{#if displayExif.focalLength}
+													<div><span class="opacity-60">{displayExif.focalLength}mm</span></div>
 												{/if}
 											</div>
-											{#if photo.exif.exposureProgram}
+											{#if displayExif.exposureProgram}
 												<div class="text-sm">
-													<span class="opacity-60">Program:</span> {photo.exif.exposureProgram}
+													<span class="opacity-60">Program:</span> {displayExif.exposureProgram}
 												</div>
 											{/if}
-											{#if photo.exif.exposureMode}
+											{#if displayExif.exposureMode}
 												<div class="text-sm">
-													<span class="opacity-60">Mode:</span> {photo.exif.exposureMode}
+													<span class="opacity-60">Mode:</span> {displayExif.exposureMode}
 												</div>
 											{/if}
-											{#if photo.exif.exposureBiasValue}
+											{#if displayExif.exposureBiasValue}
 												<div class="text-sm">
-													<span class="opacity-60">Bias:</span> {photo.exif.exposureBiasValue} EV
+													<span class="opacity-60">Bias:</span> {displayExif.exposureBiasValue} EV
 												</div>
 											{/if}
 										</div>
 									{/if}
 
 									<!-- Image Quality Settings -->
-									{#if photo.exif.whiteBalance ||
-										photo.exif.meteringMode ||
-										photo.exif.flash ||
-										photo.exif.colorSpace}
+									{#if displayExif.whiteBalance ||
+										displayExif.meteringMode ||
+										displayExif.flash ||
+										displayExif.colorSpace}
 										<div class="space-y-1">
 											<div class="text-xs font-medium opacity-70">Image Quality</div>
-											{#if photo.exif.whiteBalance}
+											{#if displayExif.whiteBalance}
 												<div class="text-sm">
-													<span class="opacity-60">White Balance:</span> {photo.exif.whiteBalance}
+													<span class="opacity-60">White Balance:</span> {displayExif.whiteBalance}
 												</div>
 											{/if}
-											{#if photo.exif.meteringMode}
+											{#if displayExif.meteringMode}
 												<div class="text-sm">
-													<span class="opacity-60">Metering:</span> {photo.exif.meteringMode}
+													<span class="opacity-60">Metering:</span> {displayExif.meteringMode}
 												</div>
 											{/if}
-											{#if photo.exif.flash}
+											{#if displayExif.flash}
 												<div class="text-sm">
-													<span class="opacity-60">Flash:</span> {photo.exif.flash}
+													<span class="opacity-60">Flash:</span> {displayExif.flash}
 												</div>
 											{/if}
-											{#if photo.exif.colorSpace}
+											{#if displayExif.colorSpace}
 												<div class="text-sm">
-													<span class="opacity-60">Color Space:</span> {photo.exif.colorSpace}
+													<span class="opacity-60">Color Space:</span> {displayExif.colorSpace}
 												</div>
 											{/if}
-											{#if photo.exif.sceneCaptureType}
+											{#if displayExif.sceneCaptureType}
 												<div class="text-sm">
-													<span class="opacity-60">Scene:</span> {photo.exif.sceneCaptureType}
+													<span class="opacity-60">Scene:</span> {displayExif.sceneCaptureType}
 												</div>
 											{/if}
 										</div>
 									{/if}
 
 									<!-- GPS Location -->
-									{#if (photo.exif.gps?.latitude && photo.exif.gps?.longitude) ||
-										(photo.exif.gpsLatitude && photo.exif.gpsLongitude)}
+									{#if (displayExif.gps && typeof displayExif.gps === 'object' && (displayExif.gps as { latitude?: number; longitude?: number }).latitude != null && (displayExif.gps as { longitude?: number }).longitude != null) ||
+										(displayExif.gpsLatitude != null && displayExif.gpsLongitude != null)}
+										{@const gps = displayExif.gps as { latitude?: number; longitude?: number; altitude?: number } | undefined}
 										<div class="space-y-1">
 											<div class="text-xs font-medium opacity-70">Location</div>
 											<div class="text-sm">
 												<span class="opacity-60">📍 GPS:</span>
-												{#if photo.exif.gps?.latitude && photo.exif.gps?.longitude}
-													{photo.exif.gps.latitude.toFixed(6)}, {photo.exif.gps.longitude.toFixed(6)}
+												{#if gps?.latitude != null && gps?.longitude != null}
+													{gps.latitude.toFixed(6)}, {gps.longitude.toFixed(6)}
 												{:else}
-													{photo.exif.gpsLatitude?.toFixed(6)}, {photo.exif.gpsLongitude?.toFixed(6)}
+													{Number(displayExif.gpsLatitude).toFixed(6)}, {Number(displayExif.gpsLongitude).toFixed(6)}
 												{/if}
-												{#if photo.exif.gps?.altitude}
-													({photo.exif.gps.altitude}m)
+												{#if gps?.altitude != null}
+													({gps.altitude}m)
 												{/if}
 											</div>
 										</div>
 									{/if}
 								</div>
+								{/if}
 							{/if}
 
 							<!-- Face Recognition (only show matched people) -->

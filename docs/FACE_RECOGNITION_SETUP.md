@@ -71,6 +71,15 @@ public/
         face_recognition_model-shard2
 ```
 
+### Optional: Better profile/side face detection
+
+The default detector (Tiny Face Detector) is tuned for frontal faces. For **profile or side-facing faces**, you can add the SSD Mobilenetv1 model so the app tries a second detector when the first finds no faces:
+
+1. From the [face-api.js-models](https://github.com/justadudewhohacks/face-api.js-models) repo, copy the `ssd_mobilenetv1` folder into `public/models/face-api/`.
+2. Your folder should contain the manifest and shard files for `ssd_mobilenetv1`.
+
+If this folder is missing, detection still works; only the extra pass for profile/side faces is skipped. The app also tries lower detection thresholds and multiple input sizes when no faces are found, which can help with slightly turned heads.
+
 ## Step 3: Initialize Face Recognition for People
 
 Before face matching can work, you need to extract face descriptors from people's profile images:
@@ -90,14 +99,13 @@ Before face matching can work, you need to extract face descriptors from people'
 3. Click **"Expand"** to show face recognition controls
 4. Click **"Detect Faces"** to detect faces in the photo
    - Detected faces will appear as bounding boxes on the image
-   - Auto-detected faces have a blue border
-   - You can manually select faces by clicking and dragging on the image
-   - Manually selected faces have a green border
-   - Selected faces can be resized or deleted
+   - Each rectangle is labeled: **"Face 1"**, **"Face 2"**, etc. for unassigned faces; when you assign a face to a person, the label on the image updates to show that **person's name**
+   - Auto-detected faces have a green border; manually drawn faces show **(Manual)** in the label
+   - Click **(highlight on image)** next to a face in the panel to highlight its rectangle on the image
 5. Click **"Match Faces"** to automatically match detected faces with known people
-   - Matched faces will show the person's name
+   - Matched faces will show the person's name in the panel and on the image rectangle
    - Confidence scores are displayed for each match
-6. **Manual Assignment**: Use the dropdown next to each face to manually assign it to a person
+6. **Manual Assignment**: Use the dropdown next to each face to manually assign it to a person. The panel and the rectangle label will show the assigned name (e.g. "Jane Doe (set by you)").
 7. Matched faces will automatically tag the photo with the recognized people
 
 ### Bulk Face Detection at Album Level

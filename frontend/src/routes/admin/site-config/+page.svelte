@@ -8,6 +8,7 @@
 	import { siteConfig } from '$stores/siteConfig';
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
+	import { EXIF_DISPLAY_FIELDS } from '$lib/constants/exif-fields';
 
 	let config: SiteConfig | null = null;
 	let descriptionValue: any = {};
@@ -126,6 +127,7 @@
 					contact: config.contact,
 					homePage: config.homePage,
 					features: config.features,
+					exifMetadata: config.exifMetadata,
 					template: {
 						...(config.template || {}),
 						headerConfig: {
@@ -389,6 +391,15 @@
 								on:click={() => (activeTab = 'navigation')}
 							>
 								Navigation
+							</button>
+							<button
+								type="button"
+								class="py-4 px-1 border-b-2 font-medium text-sm {activeTab === 'exifMetadata'
+									? 'border-blue-500 text-blue-600'
+									: 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}"
+								on:click={() => (activeTab = 'exifMetadata')}
+							>
+								EXIF Metadata
 							</button>
 						</nav>
 					</div>
@@ -1478,6 +1489,76 @@
 									<li>Leave roles unchecked to show the menu item to everyone</li>
 									<li>Check "Open in new tab" for external links</li>
 								</ul>
+							</div>
+						</div>
+					{:else if activeTab === 'exifMetadata'}
+						<div class="space-y-4">
+							<div>
+								<h3 class="text-lg font-semibold text-gray-900 mb-2">EXIF Metadata Display</h3>
+								<p class="text-sm text-gray-600 mb-4">
+									Select which EXIF metadata fields (when present in a photo) will be shown to visitors (e.g. in the photo lightbox). Leave all unchecked to show all available fields.
+								</p>
+								<div class="flex gap-2 mb-4">
+									<button
+										type="button"
+										on:click={() => {
+											config = {
+												...config,
+												exifMetadata: {
+													...config.exifMetadata,
+													displayFields: EXIF_DISPLAY_FIELDS.map((f) => f.id)
+												}
+											};
+										}}
+										class="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+									>
+										Select all
+									</button>
+									<button
+										type="button"
+										on:click={() => {
+											config = {
+												...config,
+												exifMetadata: {
+													...config.exifMetadata,
+													displayFields: []
+												}
+											};
+										}}
+										class="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+									>
+										Deselect all
+									</button>
+								</div>
+								<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 max-h-96 overflow-y-auto border border-gray-200 rounded-lg p-4 bg-gray-50">
+									{#each EXIF_DISPLAY_FIELDS as field}
+										{@const isChecked = (config.exifMetadata?.displayFields ?? []).includes(field.id)}
+										<label class="flex items-center gap-2 cursor-pointer">
+											<input
+												type="checkbox"
+												checked={isChecked}
+												on:change={(e) => {
+													const current = config.exifMetadata?.displayFields ?? [];
+													const next = e.currentTarget.checked
+														? [...current, field.id]
+														: current.filter((id: string) => id !== field.id);
+													config = {
+														...config,
+														exifMetadata: {
+															...config.exifMetadata,
+															displayFields: next
+														}
+													};
+												}}
+												class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+											/>
+											<span class="text-sm text-gray-700">{field.label}</span>
+										</label>
+									{/each}
+								</div>
+								<p class="text-xs text-gray-500 mt-2">
+									If no fields are selected, all available EXIF fields will be displayed. Selected fields are only shown when the photo has that metadata.
+								</p>
 							</div>
 						</div>
 					{/if}

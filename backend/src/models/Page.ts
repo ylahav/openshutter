@@ -100,9 +100,8 @@ PageSchema.pre('save', function() {
 });
 
 // Indexes for performance
-// Note: alias index is automatically created by unique: true, so we don't need to add it again
+// Note: alias and slug indexes are automatically created by unique: true on those fields
 PageSchema.index({ category: 1 });
 PageSchema.index({ isPublished: 1 });
-PageSchema.index({ slug: 1 });
 
 export const PageModel = mongoose.models.Page || mongoose.model<IPage>('Page', PageSchema);

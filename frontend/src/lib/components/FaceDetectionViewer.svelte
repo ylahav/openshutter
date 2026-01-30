@@ -21,6 +21,8 @@
 	export let onFaceClick: ((faceIndex: number) => void) | undefined = undefined;
 	export let onError: ((error: string) => void) | undefined = undefined;
 	export let onSuccess: ((message: string) => void) | undefined = undefined;
+	/** Optional: return display name for a face (e.g. assigned person name). If not provided, labels show "Face 1", "Face 2", ... */
+	export let getFaceLabel: ((faceIndex: number, matchedPersonId?: string) => string) | undefined = undefined;
 
 	let isDetecting = false;
 	let faces: FaceDetection[] = [];
@@ -124,7 +126,10 @@
 
 			ctx.fillStyle = strokeColor;
 			ctx.font = `${Math.max(12, 16 * scaleX)}px Arial`;
-			const label = `Face ${index + 1}${isManual ? ' (Manual)' : ''}`;
+			const baseLabel = getFaceLabel
+				? getFaceLabel(index, detectedFaces[index]?.matchedPersonId)
+				: `Face ${index + 1}`;
+			const label = baseLabel + (isManual ? ' (Manual)' : '');
 			ctx.fillText(label, scaledBox.x, scaledBox.y - 5);
 		});
 	}

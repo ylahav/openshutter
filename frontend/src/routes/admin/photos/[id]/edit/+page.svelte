@@ -39,6 +39,8 @@
 			width: number;
 			height: number;
 		};
+		exif?: Record<string, unknown> | null;
+		metadata?: Record<string, unknown> | null;
 		faceRecognition?: {
 			faces?: Array<{
 				box: { x: number; y: number; width: number; height: number };
@@ -118,8 +120,10 @@
 		tags: [] as string[],
 		people: [] as string[],
 		location: null as string | null,
+		metadata: {} as Record<string, unknown>,
 	};
 	let descriptionLanguage = 'en';
+	let reExtractingExif = false;
 
 	// Photo URL helper - uses shared utility
 	// Wrapper maintains backward compatibility with preferFullSize parameter
@@ -173,7 +177,22 @@
 				const responseData = await response.json();
 				loading = false;
 				// Extract photo data from response (API returns { success: true, data: {...} })
-				photo = responseData.data || responseData;
+				let loadedPhoto = responseData.data || responseData;
+				// Normalize faceRecognition so UI always gets a clean faces array (ensures reactivity after detect)
+				if (loadedPhoto?.faceRecognition?.faces && Array.isArray(loadedPhoto.faceRecognition.faces)) {
+					loadedPhoto = {
+						...loadedPhoto,
+						faceRecognition: {
+							...loadedPhoto.faceRecognition,
+							faces: loadedPhoto.faceRecognition.faces.map((f: any) => ({
+								box: f.box || { x: 0, y: 0, width: 0, height: 0 },
+								matchedPersonId: f.matchedPersonId != null ? String(f.matchedPersonId) : undefined,
+								confidence: f.confidence,
+							})),
+						},
+					};
+				}
+				photo = loadedPhoto;
 				lastLoadedPhotoId = photoId; // Mark this photo as loaded
 				
 				// Debug: Log storage information
@@ -182,6 +201,7 @@
 					hasStorage: !!photo?.storage,
 					storage: photo?.storage,
 					photoUrl: photo ? getPhotoUrlLocal(photo) : 'N/A',
+					faceCount: photo?.faceRecognition?.faces?.length ?? 0,
 					responseStructure: { hasData: !!responseData.data, hasSuccess: !!responseData.success }
 				});
 			} catch (fetchError: any) {
@@ -243,6 +263,10 @@
 							? photo.location
 							: (photo.location as any)._id?.toString() || String(photo.location)
 						: null;
+				formData.metadata =
+					photo.metadata && typeof photo.metadata === 'object'
+						? { ...photo.metadata }
+						: {};
 				// Trigger reactivity after mutating formData fields
 				formData = { ...formData };
 			}
@@ -278,6 +302,13 @@
 				tags: formData.tags,
 				people: formData.people,
 				location: formData.location,
+				metadata: (() => {
+					const m = formData.metadata;
+					const cleaned = Object.fromEntries(
+						Object.entries(m).filter(([, v]) => v !== undefined && v !== null && v !== '')
+					);
+					return Object.keys(cleaned).length ? cleaned : undefined;
+				})(),
 			};
 
 			const response = await fetch(`/api/admin/photos/${photoId}`, {
@@ -376,6 +407,49 @@
 		}
 	}
 
+	async function handleReExtractExif() {
+		if (!photo || reExtractingExif) return;
+		try {
+			reExtractingExif = true;
+			error = '';
+			const response = await fetch(`/api/admin/photos/${photoId}/re-extract-exif`, { method: 'POST' });
+			if (!response.ok) await handleApiErrorResponse(response);
+			const result = await response.json();
+			const updated = result.data || result;
+			if (updated?.exif !== undefined) {
+				photo = { ...photo, exif: updated.exif };
+			}
+			notification = {
+				show: true,
+				message: result.message || 'EXIF data re-extracted successfully',
+				type: 'success',
+			};
+		} catch (err) {
+			logger.error('Re-extract EXIF failed:', err);
+			notification = {
+				show: true,
+				message: handleError(err, 'Failed to re-extract EXIF'),
+				type: 'error',
+			};
+		} finally {
+			reExtractingExif = false;
+		}
+	}
+
+	function formatExifValue(value: unknown): string {
+		if (value == null) return '—';
+		if (value instanceof Date) return value.toLocaleString();
+		if (typeof value === 'object' && value !== null && 'latitude' in value) {
+			const g = value as { latitude?: number; longitude?: number; altitude?: number };
+			const parts = [];
+			if (g.latitude != null) parts.push(`Lat ${g.latitude.toFixed(5)}`);
+			if (g.longitude != null) parts.push(`Lon ${g.longitude.toFixed(5)}`);
+			if (g.altitude != null) parts.push(`${g.altitude}m`);
+			return parts.length ? parts.join(', ') : JSON.stringify(value);
+		}
+		return String(value);
+	}
+
 	function handleInputChange(e: Event) {
 		const target = e.target as HTMLInputElement;
 		const { name, type } = target;
@@ -433,6 +507,24 @@
 			MultiLangUtils.getTextValue(person.fullName || person.firstName || {}, $currentLanguage) ||
 			'Unknown'
 		);
+	}
+
+	function getPersonNameById(personId: string | null | undefined): string {
+		if (!personId) return 'Unknown';
+		const id = String(personId).trim();
+		const person = people.find((p) => String(p._id || '').trim() === id);
+		if (person) {
+			const name = getPersonName(person);
+			return name || 'Unknown';
+		}
+		return 'Unknown';
+	}
+
+	/** Label for face rectangle on image: assigned person name or "Face X". */
+	function getFaceLabel(faceIndex: number, matchedPersonId?: string): string {
+		if (!matchedPersonId) return `Face ${faceIndex + 1}`;
+		const name = getPersonNameById(matchedPersonId);
+		return name && name !== 'Unknown' ? name : `Face ${faceIndex + 1}`;
 	}
 
 	function getLocationName(location: Location): string {
@@ -530,7 +622,7 @@
 									logger.error('[Photo Edit] Image load error:', {
 										src: target.src,
 										photoId,
-										storage: photo.storage
+										storage: photo?.storage
 									});
 									if (target) target.style.display = 'none';
 								}}
@@ -812,9 +904,16 @@
 									imageUrl={photoUrlForFaceRec}
 									photoId={photoId}
 									detectedFaces={photo.faceRecognition?.faces || []}
+									getFaceLabel={getFaceLabel}
 									onFaceDetected={async () => {
-										// Reload photo to get updated face data
+										// Allow loadPhoto to run again (do not set lastLoadedPhotoId = null,
+										// or the reactive block would also call loadPhoto() and we’d return early)
+										loadPhotoCalled = false;
 										await loadPhoto();
+										// Scroll to face matching so user can set who each face is
+										setTimeout(() => {
+											document.getElementById('face-matching-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+										}, 150);
 									}}
 									onFaceClick={(index) => {
 										// Handle face click if needed
@@ -827,16 +926,17 @@
 									}}
 								/>
 
-								{#if photo.faceRecognition?.faces && photo.faceRecognition.faces.length > 0}
+								{#key photo.faceRecognition?.faces?.length || photo._id}
 									<FaceMatchingPanel
 										photoId={photoId}
-										faces={photo.faceRecognition.faces.map((face: any) => ({
+										faces={(photo.faceRecognition?.faces || []).map((face: any) => ({
 											box: face.box,
-											matchedPersonId: face.matchedPersonId?.toString(),
+											matchedPersonId: face.matchedPersonId != null ? String(face.matchedPersonId) : undefined,
 											confidence: face.confidence,
 										}))}
 										onMatchComplete={async () => {
 											// Reload photo to get updated matches and people list
+											loadPhotoCalled = false;
 											await loadPhoto();
 											// Update formData.people to include newly assigned people
 											if (photo) {
@@ -844,16 +944,95 @@
 													photo.people?.map((person: any) =>
 														typeof person === 'string' ? person : person._id?.toString() || person.toString()
 													) || [];
+												// Trigger reactivity
+												formData = { ...formData };
 											}
 										}}
 										onFaceClick={(index) => {
 											// Handle face click if needed
 										}}
 									/>
-								{/if}
+								{/key}
 							</div>
 						{/if}
 					{/if}
+
+					<!-- EXIF & Metadata -->
+					<div class="space-y-6">
+						<!-- EXIF (read-only + re-extract) -->
+						<div class="bg-gray-50 rounded-lg p-4">
+							<div class="flex items-center justify-between mb-3">
+								<h3 class="text-sm font-medium text-gray-700">EXIF (from camera/file)</h3>
+								<button
+									type="button"
+									on:click={handleReExtractExif}
+									disabled={reExtractingExif}
+									class="px-3 py-1.5 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 disabled:opacity-50"
+								>
+									{reExtractingExif ? 'Extracting...' : 'Re-extract from file'}
+								</button>
+							</div>
+							{#if photo.exif && Object.keys(photo.exif).length > 0}
+								<div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-sm max-h-48 overflow-y-auto">
+									{#each Object.entries(photo.exif).filter(([k]) => k !== 'gps') as [key, value]}
+										<div class="flex gap-2">
+											<span class="font-medium text-gray-600 shrink-0">{key}:</span>
+											<span class="text-gray-800 truncate" title={formatExifValue(value)}>{formatExifValue(value)}</span>
+										</div>
+									{/each}
+									{#if photo.exif.gps}
+										<div class="sm:col-span-2 flex gap-2">
+											<span class="font-medium text-gray-600 shrink-0">gps:</span>
+											<span class="text-gray-800">{formatExifValue(photo.exif.gps)}</span>
+										</div>
+									{/if}
+								</div>
+							{:else}
+								<p class="text-sm text-gray-500">No EXIF data. Use "Re-extract from file" to read from the image.</p>
+							{/if}
+						</div>
+
+						<!-- Custom metadata (editable) -->
+						<div class="bg-white rounded-lg border border-gray-200 p-4">
+							<h3 class="text-sm font-medium text-gray-700 mb-3">Custom metadata</h3>
+							<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+								<div>
+									<label for="meta-rating" class="block text-xs font-medium text-gray-600 mb-1">Rating (0–5)</label>
+									<select
+										id="meta-rating"
+										class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+										value={formData.metadata?.rating ?? ''}
+										on:change={(e) => {
+											const v = (e.currentTarget as HTMLSelectElement).value;
+											formData.metadata = { ...formData.metadata, rating: v === '' ? undefined : Number(v) };
+											formData = formData;
+										}}
+									>
+										<option value="">—</option>
+										{#each [1, 2, 3, 4, 5] as n}
+											<option value={n}>{n}</option>
+										{/each}
+									</select>
+								</div>
+								<div>
+									<label for="meta-category" class="block text-xs font-medium text-gray-600 mb-1">Category</label>
+									<input
+										id="meta-category"
+										type="text"
+										class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+										placeholder="e.g. Event, Project"
+										value={formData.metadata?.category ?? ''}
+										on:input={(e) => {
+											const v = (e.currentTarget as HTMLInputElement).value.trim();
+											formData.metadata = { ...formData.metadata, category: v || undefined };
+											formData = formData;
+										}}
+									/>
+								</div>
+							</div>
+							<p class="text-xs text-gray-500 mt-2">Rating and category can also be set in bulk from the album page.</p>
+						</div>
+					</div>
 
 					<!-- Read-only Information -->
 					<div class="bg-gray-50 rounded-lg p-4">

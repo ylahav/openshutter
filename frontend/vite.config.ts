@@ -4,6 +4,7 @@ import path from 'path';
 
 // Get configuration from environment variables (for development)
 // These are only used during development - production uses adapter-node
+// If you see "http proxy error: ECONNREFUSED" for /api, start the backend (e.g. pnpm dev from repo root).
 const DEV_PORT = parseInt(process.env.PORT || process.env.VITE_PORT || '4000', 10);
 const BACKEND_PORT = parseInt(process.env.BACKEND_PORT || '5000', 10);
 const BACKEND_URL = process.env.BACKEND_URL || `http://localhost:${BACKEND_PORT}`;

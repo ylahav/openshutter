@@ -42,9 +42,61 @@ export interface FaceMatch {
   descriptor: number[]
 }
 
+/** IoU (intersection over union) for two boxes; 0 = no overlap, 1 = identical */
+function boxIou(
+  a: { x: number; y: number; width: number; height: number },
+  b: { x: number; y: number; width: number; height: number }
+): number {
+  const ax2 = a.x + a.width
+  const ay2 = a.y + a.height
+  const bx2 = b.x + b.width
+  const by2 = b.y + b.height
+  const ix = Math.max(0, Math.min(ax2, bx2) - Math.max(a.x, b.x))
+  const iy = Math.max(0, Math.min(ay2, by2) - Math.max(a.y, b.y))
+  const inter = ix * iy
+  const areaA = a.width * a.height
+  const areaB = b.width * b.height
+  const union = areaA + areaB - inter
+  return union <= 0 ? 0 : inter / union
+}
+
+/** Map face-api detection to our FaceDetection format */
+function mapDetection(detection: any): FaceDetection {
+  return {
+    descriptor: Array.from(detection.descriptor) as number[],
+    box: {
+      x: detection.detection.box.x,
+      y: detection.detection.box.y,
+      width: detection.detection.box.width,
+      height: detection.detection.box.height
+    },
+    landmarks: detection.landmarks
+      ? {
+          leftEye: {
+            x: detection.landmarks.getLeftEye()[0].x,
+            y: detection.landmarks.getLeftEye()[0].y
+          },
+          rightEye: {
+            x: detection.landmarks.getRightEye()[0].x,
+            y: detection.landmarks.getRightEye()[0].y
+          },
+          nose: {
+            x: detection.landmarks.getNose()[0].x,
+            y: detection.landmarks.getNose()[0].y
+          },
+          mouth: {
+            x: detection.landmarks.getMouth()[0].x,
+            y: detection.landmarks.getMouth()[0].y
+          }
+        }
+      : undefined
+  }
+}
+
 export class FaceRecognitionService {
   private static modelsLoaded = false
   private static loadingPromise: Promise<void> | null = null
+  private static ssdModelLoaded = false
 
   /**
    * Load face-api.js models
@@ -74,13 +126,19 @@ export class FaceRecognitionService {
         const MODEL_BASE_URL = '/models/face-api'
         
         await Promise.all([
-          // tinyFaceDetector: looks in /models/face-api/tiny_face_detector/
           faceapi.nets.tinyFaceDetector.loadFromUri(`${MODEL_BASE_URL}/tiny_face_detector`),
-          // faceLandmark68Net: looks in /models/face-api/face_landmark_68/
           faceapi.nets.faceLandmark68Net.loadFromUri(`${MODEL_BASE_URL}/face_landmark_68`),
-          // faceRecognitionNet: looks in /models/face-api/face_recognition/
           faceapi.nets.faceRecognitionNet.loadFromUri(`${MODEL_BASE_URL}/face_recognition`)
         ])
+
+        // Optional: SSD Mobilenetv1 can help with profile/side faces (different detector)
+        try {
+          await faceapi.nets.ssdMobilenetv1.loadFromUri(`${MODEL_BASE_URL}/ssd_mobilenetv1`)
+          FaceRecognitionService.ssdModelLoaded = true
+          logger.info('Face detection: SSD Mobilenetv1 loaded (profile/side faces)')
+        } catch {
+          FaceRecognitionService.ssdModelLoaded = false
+        }
 
         this.modelsLoaded = true
         logger.info('Face detection models loaded successfully')
@@ -130,47 +188,59 @@ export class FaceRecognitionService {
       input = image
     }
 
-    // Detect faces with landmarks
-    // Use configurable scoreThreshold (default 0.3) for better detection
-    // Lower values detect more faces but may include false positives
     const scoreThreshold = options?.scoreThreshold ?? 0.3
     const inputSize = options?.inputSize ?? 416
-    
-    const detections = await faceapi
-      .detectAllFaces(input, new faceapi.TinyFaceDetectorOptions({ 
-        scoreThreshold,
-        inputSize
-      }))
+
+    // First pass: TinyFaceDetector with given options
+    let detections = await faceapi
+      .detectAllFaces(input, new faceapi.TinyFaceDetectorOptions({ scoreThreshold, inputSize }))
       .withFaceLandmarks()
       .withFaceDescriptors()
 
-    return detections.map(detection => ({
-      descriptor: Array.from(detection.descriptor) as number[],
-      box: {
-        x: detection.detection.box.x,
-        y: detection.detection.box.y,
-        width: detection.detection.box.width,
-        height: detection.detection.box.height
-      },
-      landmarks: detection.landmarks ? {
-        leftEye: {
-          x: detection.landmarks.getLeftEye()[0].x,
-          y: detection.landmarks.getLeftEye()[0].y
-        },
-        rightEye: {
-          x: detection.landmarks.getRightEye()[0].x,
-          y: detection.landmarks.getRightEye()[0].y
-        },
-        nose: {
-          x: detection.landmarks.getNose()[0].x,
-          y: detection.landmarks.getNose()[0].y
-        },
-        mouth: {
-          x: detection.landmarks.getMouth()[0].x,
-          y: detection.landmarks.getMouth()[0].y
+    // If no faces (e.g. profile/side faces), try lower threshold and multiple input sizes
+    if (detections.length === 0) {
+      const lowThreshold = 0.05
+      const sizes = [224, 416, 512]
+      const all: any[] = []
+      for (const size of sizes) {
+        const d = await faceapi
+          .detectAllFaces(input, new faceapi.TinyFaceDetectorOptions({ scoreThreshold: lowThreshold, inputSize: size }))
+          .withFaceLandmarks()
+          .withFaceDescriptors()
+        all.push(...d)
+      }
+      // Dedupe by box overlap (IoU) and keep highest-score per group
+      if (all.length > 0) {
+        const seen: any[] = []
+        for (const d of all) {
+          const box = d.detection.box
+          const score = d.detection.score ?? 1
+          const overlap = seen.findIndex(
+            (s) => boxIou(s.detection.box, box) >= 0.5
+          )
+          if (overlap === -1) {
+            seen.push(d)
+          } else if (score > (seen[overlap].detection?.score ?? 0)) {
+            seen[overlap] = d
+          }
         }
-      } : undefined
-    }))
+        detections = seen
+      }
+    }
+
+    // If still no faces and SSD Mobilenetv1 is loaded, try it (can help with profile/side faces)
+    if (detections.length === 0 && FaceRecognitionService.ssdModelLoaded) {
+      try {
+        detections = await faceapi
+          .detectAllFaces(input, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.2, maxResults: 20 }))
+          .withFaceLandmarks()
+          .withFaceDescriptors()
+      } catch {
+        // SSD failed; keep empty or previous result
+      }
+    }
+
+    return detections.map((d) => mapDetection(d))
   }
 
   /**

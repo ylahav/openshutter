@@ -77,8 +77,11 @@
 	let selectedPhotoIds = new Set<string>();
 	let showBulkActions = false;
 	let showLocationDialog = false;
+	let showMetadataDialog = false;
 	let locations: Location[] = [];
 	let selectedLocationId: string | null = null;
+	let bulkMetadataRating: string = '';
+	let bulkMetadataCategory: string = '';
 	let isBulkUpdating = false;
 
 	// Album and photo utility functions are now imported from shared utilities
@@ -298,7 +301,11 @@
 		}
 	}
 
-	async function bulkUpdatePhotos(updates: { isPublished?: boolean; location?: string | null }) {
+	async function bulkUpdatePhotos(updates: {
+		isPublished?: boolean;
+		location?: string | null;
+		metadata?: Record<string, unknown>;
+	}) {
 		if (selectedPhotoIds.size === 0 || isBulkUpdating) return;
 
 		isBulkUpdating = true;
@@ -351,6 +358,25 @@
 	function applyLocation() {
 		if (selectedLocationId !== null) {
 			bulkUpdatePhotos({ location: selectedLocationId });
+		}
+	}
+
+	function openMetadataDialog() {
+		showMetadataDialog = true;
+		bulkMetadataRating = '';
+		bulkMetadataCategory = '';
+	}
+
+	function applyMetadata() {
+		const metadata: Record<string, unknown> = {};
+		if (bulkMetadataRating !== '') {
+			const r = Number(bulkMetadataRating);
+			if (r >= 1 && r <= 5) metadata.rating = r;
+		}
+		if (bulkMetadataCategory.trim() !== '') metadata.category = bulkMetadataCategory.trim();
+		if (Object.keys(metadata).length > 0) {
+			bulkUpdatePhotos({ metadata });
+			showMetadataDialog = false;
 		}
 	}
 
@@ -497,6 +523,13 @@
 									class="px-3 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
 								>
 									Set Location
+								</button>
+								<button
+									on:click={openMetadataDialog}
+									disabled={isBulkUpdating}
+									class="px-3 py-1 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50"
+								>
+									Set Metadata
 								</button>
 								<button
 									on:click={() => { selectedPhotoIds.clear(); showBulkActions = false; }}
@@ -679,6 +712,56 @@
 					on:click={applyLocation}
 					disabled={isBulkUpdating}
 					class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+				>
+					{isBulkUpdating ? 'Applying...' : 'Apply'}
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
+
+<!-- Metadata (Rating/Category) Dialog -->
+{#if showMetadataDialog}
+	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+		<div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+			<h3 class="text-lg font-semibold mb-4">Set Metadata for {selectedPhotoIds.size} Photo{selectedPhotoIds.size === 1 ? '' : 's'}</h3>
+			<p class="text-sm text-gray-500 mb-4">Set rating and/or category. Leave blank to leave unchanged.</p>
+			<div class="space-y-4 mb-4">
+				<div>
+					<label for="bulk-rating" class="block text-sm font-medium text-gray-700 mb-1">Rating (1–5)</label>
+					<select
+						id="bulk-rating"
+						bind:value={bulkMetadataRating}
+						class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+					>
+						<option value="">— Leave unchanged</option>
+						{#each [1, 2, 3, 4, 5] as n}
+							<option value={n}>{n}</option>
+						{/each}
+					</select>
+				</div>
+				<div>
+					<label for="bulk-category" class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+					<input
+						id="bulk-category"
+						type="text"
+						bind:value={bulkMetadataCategory}
+						class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+						placeholder="e.g. Event, Project"
+					/>
+				</div>
+			</div>
+			<div class="flex justify-end gap-2">
+				<button
+					on:click={() => { showMetadataDialog = false; bulkMetadataRating = ''; bulkMetadataCategory = ''; }}
+					class="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+				>
+					Cancel
+				</button>
+				<button
+					on:click={applyMetadata}
+					disabled={isBulkUpdating || (bulkMetadataRating === '' && bulkMetadataCategory.trim() === '')}
+					class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
 				>
 					{isBulkUpdating ? 'Applying...' : 'Apply'}
 				</button>

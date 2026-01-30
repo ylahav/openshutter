@@ -17,6 +17,7 @@ import { connectDB } from '../config/db';
 import mongoose, { Types } from 'mongoose';
 import { StorageManager } from '../services/storage/manager';
 import { ThumbnailGenerator } from '../services/thumbnail-generator';
+import { ExifExtractor } from '../services/exif-extractor';
 import { UpdatePhotoDto } from './dto/update-photo.dto';
 
 @Controller('admin/photos')
@@ -80,6 +81,21 @@ export class PhotosAdminController {
 					blurDataURL: photo.storage.blurDataURL,
 					bucket: photo.storage.bucket,
 					folderId: photo.storage.folderId,
+				};
+			}
+
+			// Explicitly serialize faceRecognition so clients always get faces array and string IDs (omit descriptor)
+			if (photo.faceRecognition && Array.isArray(photo.faceRecognition.faces)) {
+				serialized.faceRecognition = {
+					faces: photo.faceRecognition.faces.map((face: any) => ({
+						box: face.box,
+						matchedPersonId: face.matchedPersonId
+							? (face.matchedPersonId._id ? face.matchedPersonId._id : face.matchedPersonId).toString()
+							: undefined,
+						confidence: face.confidence,
+					})),
+					processedAt: photo.faceRecognition.processedAt,
+					modelVersion: photo.faceRecognition.modelVersion,
 				};
 			}
 
@@ -457,6 +473,15 @@ export class PhotosAdminController {
 				}
 			}
 
+			// Update metadata if provided (merge into existing: rating, category, or custom keys)
+			if (updates.metadata !== undefined && typeof updates.metadata === 'object') {
+				for (const [key, value] of Object.entries(updates.metadata)) {
+					if (key && value !== undefined) {
+						update[`metadata.${key}`] = value;
+					}
+				}
+			}
+
 			// Perform bulk update
 			const result = await db
 				.collection('photos')
@@ -657,6 +682,81 @@ export class PhotosAdminController {
 			}
 			throw new InternalServerErrorException(
 				`Failed to regenerate thumbnails: ${error instanceof Error ? error.message : 'Unknown error'}`
+			);
+		}
+	}
+
+	/**
+	 * Re-extract EXIF from the photo file and update the database
+	 * Path: POST /api/admin/photos/:id/re-extract-exif
+	 */
+	@Post(':id/re-extract-exif')
+	async reExtractExif(@Param('id') id: string) {
+		try {
+			await connectDB();
+			const db = mongoose.connection.db;
+			if (!db) throw new InternalServerErrorException('Database connection not established');
+
+			let objectId: Types.ObjectId;
+			try {
+				objectId = new Types.ObjectId(id);
+			} catch (_error) {
+				throw new BadRequestException('Invalid photo ID format');
+			}
+
+			const photo = await db.collection('photos').findOne({ _id: objectId });
+			if (!photo) {
+				throw new NotFoundException('Photo not found');
+			}
+			if (!photo.storage?.path) {
+				throw new BadRequestException('Photo does not have storage path');
+			}
+
+			const updatedPhoto = await ExifExtractor.extractAndUpdateExif(photo, { force: true });
+			const serialized: any = {
+				...updatedPhoto,
+				_id: updatedPhoto._id.toString(),
+				albumId: updatedPhoto.albumId ? updatedPhoto.albumId.toString() : null,
+				tags: updatedPhoto.tags
+					? updatedPhoto.tags.map((tag: any) => (tag._id ? tag._id.toString() : tag.toString()))
+					: [],
+				people: updatedPhoto.people
+					? updatedPhoto.people.map((person: any) =>
+							person._id ? person._id.toString() : person.toString()
+						)
+					: [],
+				location: updatedPhoto.location
+					? (updatedPhoto.location._id
+						? updatedPhoto.location._id.toString()
+						: updatedPhoto.location.toString())
+					: null,
+				uploadedBy: updatedPhoto.uploadedBy ? updatedPhoto.uploadedBy.toString() : null,
+			};
+			if (updatedPhoto.storage) {
+				serialized.storage = {
+					provider: updatedPhoto.storage.provider || 'local',
+					fileId: updatedPhoto.storage.fileId || '',
+					url: updatedPhoto.storage.url || '',
+					path: updatedPhoto.storage.path || '',
+					thumbnailPath: updatedPhoto.storage.thumbnailPath || updatedPhoto.storage.url || '',
+					thumbnails: updatedPhoto.storage.thumbnails || {},
+					blurDataURL: updatedPhoto.storage.blurDataURL,
+					bucket: updatedPhoto.storage.bucket,
+					folderId: updatedPhoto.storage.folderId,
+				};
+			}
+			return {
+				success: true,
+				message: 'EXIF data re-extracted successfully',
+				data: serialized,
+			};
+		} catch (error) {
+			this.logger.error(`Failed to re-extract EXIF: ${error instanceof Error ? error.message : String(error)}`);
+			if (error instanceof NotFoundException || error instanceof BadRequestException) {
+				throw error;
+			}
+			throw new InternalServerErrorException(
+				`Failed to re-extract EXIF: ${error instanceof Error ? error.message : 'Unknown error'}`
 			);
 		}
 	}
