@@ -452,7 +452,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [ ] Social sharing features
 - [ ] Mobile app development
 - [ ] Enhanced tag analytics
-- [ ] User role management
+- [x] **User role management** – Admin/Owner/Guest roles, Admin → Users (role + groupAliases), Admin → Groups, owner dashboard and owner album/photo management (`/owner/albums`, `/owner/photos/[id]/edit`), AdminOrOwnerGuard and ownership enforcement
 - [ ] Import/Sync functionality (currently disabled)
 - **Advanced photo metadata management**
   - [x] Configurable EXIF display (site config: choose which EXIF fields to show; lightbox and display respect it)
@@ -522,6 +522,7 @@ User management (Admin → Users) includes assigning **role** (admin/owner/guest
 | **Admin → Users** | ✅ Done | Create/edit users with role (admin/owner/guest), groupAliases, blocked, storage providers. List with role/blocked filters. |
 | **Admin → Groups** | ✅ Done | CRUD groups (alias, name). |
 | **User/Album schema** | ✅ Done | User has `groupAliases`; Album has `allowedUsers`, `allowedGroups` in DB and create DTO. |
+| **Owner management** | ✅ Done | Owner dashboard (`/owner/albums`), owner album CRUD and photo upload/edit/delete; owner photo edit at `/owner/photos/[id]/edit`; backend AdminOrOwnerGuard and ownership enforcement (album.createdBy / photo’s album). |
 | **Album edit – access control UI** | ❌ Missing | Admin album edit form has no fields for **allowedUsers** or **allowedGroups**. |
 | **Album update API** | ❌ Missing | Backend `UpdateAlbumDto` and PUT handler do not accept or persist `allowedUsers` / `allowedGroups`. |
 | **Album list by access** | ❌ Missing | Public albums API (`GET /api/albums`) only filters by `isPublic`. It does not receive the current user or filter by `allowedUsers` / `allowedGroups`, so restricted private albums are never returned to permitted users. |
