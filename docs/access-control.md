@@ -198,6 +198,14 @@ The Owner Dashboard (`/owner`) provides a focused interface for album owners to 
 - `PUT /api/albums/[id]` - Update album (only if owner)
 - `DELETE /api/albums/[id]` - Delete album (only if owner)
 
+### Owner Management (AdminOrOwnerGuard)
+Owners can manage **their own** albums and photos using the same backend APIs as admins, with ownership enforced server-side:
+
+- **Backend**: `AdminOrOwnerGuard` allows both `admin` and `owner` roles. Controllers (`AlbumsAdminController`, `PhotosAdminController`) enforce ownership: owners may only access albums/photos where `album.createdBy === user.id`.
+- **Admin album APIs** (`/api/admin/albums/*`): Owners can call these; backend filters album list to own albums and checks ownership on get/update/delete/reorder.
+- **Admin photo APIs** (`/api/admin/photos/:id`, PUT, DELETE, regenerate-thumbnails, re-extract-exif): Owners can call these; backend verifies the photo’s album was created by the owner before allowing access.
+- **Frontend**: Owner album management uses `/owner/albums` and `/owner/albums/[id]`; photo edit uses **`/owner/photos/[id]/edit`** (not `/admin/photos/[id]/edit`). Photo edit page loads photo server-side when possible and falls back to client fetch with credentials.
+
 ## Error Handling
 
 ### Access Denied
@@ -298,9 +306,9 @@ The test script creates test users, groups, and albums with various access confi
 ## Implementation Status (Roles & Groups)
 
 ### Done
-- **User roles**: Admin, Owner, Guest; JWT includes role; AdminGuard (admin only), OptionalAdminGuard (optional auth for public album APIs).
+- **User roles**: Admin, Owner, Guest; JWT includes role; AdminGuard (admin only), AdminOrOwnerGuard (admin or owner for album/photo management), OptionalAdminGuard (optional auth for public album APIs).
 - **Role-based redirect**: After login, admin → `/admin`, owner → `/owner`, guest → `/`.
-- **Route protection**: `/admin` requires admin; `/owner` requires owner or admin.
+- **Route protection**: `/admin` requires admin (owners allowed for albums and photo upload/edit); `/owner` requires owner or admin.
 - **Groups**: CRUD in admin; User has `groupAliases[]`; assign groups in user edit.
 - **Album access (backend)**:
   - Visitors: only public AND unrestricted albums.
@@ -308,7 +316,7 @@ The test script creates test users, groups, and albums with various access confi
 - **Album edit UI (admin)**: Restrict access section with allowedGroups and allowedUsers; list shows Group/Users badges.
 - **Public album APIs**: Forward cookies so backend can apply group/user access (guest sees group albums).
 - **Frontend access helpers**: `canCreateAlbums`, `canEditAlbum`, `canDeleteAlbum` (admin or owner-own-album).
+- **Owner management**: Owner album management at `/owner/albums`; owner photo edit at `/owner/photos/[id]/edit`. Backend `AlbumsAdminController` and `PhotosAdminController` use AdminOrOwnerGuard and enforce ownership (album.createdBy / photo’s album.createdBy === user.id). Frontend admin album/photo API routes allow owner role; backend enforces ownership.
 
 ### Optional / To Verify
-- **Owner album GET/PUT**: Owner edit uses `GET /api/albums/:id` and `PUT /api/albums/:id`. If no SvelteKit route exists for these, add `api/albums/[id]/+server.ts` that proxies to backend; backend may need `PUT /albums/:id` with createdBy check for owners, or allow owner to call admin PUT only for own album.
 - **Access control doc**: `src/lib/access-control.ts` in docs refers to `checkAlbumAccess` / `buildAlbumAccessQuery`; actual logic lives in backend `AlbumsService.buildVisibilityCondition` and `canAccessAlbum`. Update docs or add thin server helpers if you want a single place in the frontend.

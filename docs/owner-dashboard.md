@@ -87,6 +87,27 @@ The Owner Dashboard provides a focused interface for users with the 'owner' role
 - Only accessible for albums created by the user
 - Removes album and all associated data
 
+### 3. Photo Management (Own Albums)
+
+#### Capabilities
+- **Upload photos** (`/owner/albums/[id]` → Upload, or `/admin/photos/upload?albumId=...&returnTo=/owner/albums`): Upload photos into albums the owner created.
+- **Edit photo** (`/owner/photos/[id]/edit`): Edit metadata (title, description, tags, people, location, EXIF overrides), publish state, and regenerate thumbnails or re-extract EXIF. Only photos in albums created by the owner are accessible.
+- **Delete photo**: From the album detail page, delete a photo (with confirmation). Only photos in own albums.
+
+#### Owner Photo Edit Page
+- **URL**: `/owner/photos/[id]/edit` (owners use this; admins use `/admin/photos/[id]/edit`).
+- **Navigation**: From `/owner/albums/[id]`, click "Edit" on a photo to open the owner photo edit page.
+- **Back / Cancel**: Links return to `/owner/albums` or the album.
+- **Backend**: Same admin photo APIs (`GET/PUT/DELETE /api/admin/photos/:id`, etc.) are used; backend enforces that the photo’s album was created by the owner (AdminOrOwnerGuard + ownership checks).
+
+#### API Endpoints (owner access enforced by backend)
+- `GET /api/admin/photos/:id` - Get photo (owner: only if album.createdBy === user.id)
+- `PUT /api/admin/photos/:id` - Update photo (owner: same check)
+- `DELETE /api/admin/photos/:id` - Delete photo (owner: same check)
+- `POST /api/admin/photos/:id/regenerate-thumbnails` - Regenerate thumbnails (owner: same check)
+- `POST /api/admin/photos/:id/re-extract-exif` - Re-extract EXIF (owner: same check)
+- `GET /api/admin/albums`, `GET/PUT/DELETE /api/admin/albums/:id`, etc. - Album management (owner: filtered to own albums)
+
 ## User Interface
 
 ### Design Principles
@@ -260,12 +281,14 @@ All UI text uses translation keys from `src/i18n/en.json`:
 ## Future Enhancements
 
 ### Planned Features
-- Photo upload and management
 - Album sharing and collaboration
 - Advanced album settings
 - Bulk operations
 - Album templates
 - Export functionality
+
+### Implemented (Owner Management)
+- **Photo upload and management**: Owners can upload photos to their albums, edit photos at `/owner/photos/[id]/edit` (metadata, thumbnails, EXIF), and delete photos from the album detail page. Backend enforces ownership via AdminOrOwnerGuard and album.createdBy checks.
 
 ### Potential Improvements
 - Drag-and-drop album reordering

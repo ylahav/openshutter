@@ -32,7 +32,7 @@ Welcome to the OpenShutter documentation. This comprehensive guide covers all as
 - **Storage Management**: Admin dashboard for configuring storage providers with visual tree browsing
 - **Album Management**: Hierarchical albums with advanced privacy controls
 - **Advanced Access Control**: Granular permissions for albums (public, private, user/group-specific)
-- **Owner Dashboard**: Focused interface for album owners to manage their collections
+- **Owner Dashboard**: Focused interface for album owners to manage their collections (albums and photo upload/edit/delete at `/owner/albums`, `/owner/photos/[id]/edit`)
 - **Cover Photo Selection**: Admin interface for selecting album cover photos
 - **Photo Management**: Upload, organize, and display photos with metadata
 - **Advanced Photo Upload**: Duplicate detection, bulk local folder upload, and detailed upload reports
