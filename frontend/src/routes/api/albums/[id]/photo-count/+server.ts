@@ -4,7 +4,7 @@ import { backendGet, parseBackendResponse } from '$lib/utils/backend-api';
 import { logger } from '$lib/utils/logger';
 import { parseError } from '$lib/utils/errorHandler';
 
-export const GET: RequestHandler = async ({ params }) => {
+export const GET: RequestHandler = async ({ params, cookies }) => {
 	try {
 		const { id } = params;
 
@@ -12,8 +12,8 @@ export const GET: RequestHandler = async ({ params }) => {
 			return json({ success: false, error: 'Album ID is required' }, { status: 400 });
 		}
 
-		// Get album data which includes photo count information
-		const albumDataResponse = await backendGet(`/albums/${id}/data?limit=1`);
+		// Get album data which includes photo count information (forward cookies for access control)
+		const albumDataResponse = await backendGet(`/albums/${id}/data?limit=1`, { cookies });
 		if (!albumDataResponse.ok) {
 			return json({ success: false, error: 'Album not found' }, { status: 404 });
 		}

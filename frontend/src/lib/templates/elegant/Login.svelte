@@ -49,7 +49,7 @@
 	}
 </script>
 
-<main class="flex-1 min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-white flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+<main class="flex-1 min-h-screen bg-linear-to-b from-purple-50 via-indigo-50 to-white flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
 	<div class="max-w-md w-full space-y-8">
 		<div>
 			<h2 class="mt-6 text-center text-4xl font-serif text-gray-900 tracking-wide" style="font-family: 'Playfair Display', serif;">

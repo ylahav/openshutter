@@ -6,8 +6,8 @@ import { parseError } from '$lib/utils/errorHandler';
 
 export const PUT: RequestHandler = async ({ request, locals, cookies }) => {
 	try {
-		// Require admin access
-		if (!locals.user || locals.user.role !== 'admin') {
+		// Require admin or owner (backend enforces album ownership for owners)
+		if (!locals.user || (locals.user.role !== 'admin' && locals.user.role !== 'owner')) {
 			return json({ success: false, error: 'Unauthorized' }, { status: 401 });
 		}
 

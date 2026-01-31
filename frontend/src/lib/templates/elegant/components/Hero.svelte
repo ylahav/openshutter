@@ -65,7 +65,7 @@
 {#if !loading && !backgroundImageUrl}
 	<!-- Hide hero if no background image -->
 {:else}
-	<section class="relative min-h-[85vh] flex items-center justify-center overflow-hidden bg-gradient-to-br from-purple-900 via-purple-800 to-indigo-900">
+	<section class="relative min-h-[85vh] flex items-center justify-center overflow-hidden bg-linear-to-b from-purple-900 via-purple-800 to-indigo-900">
 		{#if backgroundImageUrl}
 			<div class="absolute inset-0">
 				<img

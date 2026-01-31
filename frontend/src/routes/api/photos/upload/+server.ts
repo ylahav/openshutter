@@ -9,8 +9,8 @@ const API_BASE = `${BACKEND_URL}/api`;
 
 export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 	try {
-		// Require admin access
-		if (!locals.user || locals.user.role !== 'admin') {
+		// Require admin or owner (owners can upload to their albums)
+		if (!locals.user || (locals.user.role !== 'admin' && locals.user.role !== 'owner')) {
 			return json({ success: false, error: 'Unauthorized' }, { status: 401 });
 		}
 

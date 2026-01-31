@@ -20,7 +20,7 @@ import { BackupModule } from './backup/backup.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { DeploymentModule } from './deployment/deployment.module';
 import { AdminGuard } from './common/guards/admin.guard';
-import { PhotosAdminController } from './photos/photos-admin.controller';
+import { AdminOrOwnerGuard } from './common/guards/admin-or-owner.guard';
 import { FaceDetectionModule } from './face-detection/face-detection.module';
 import { TranslationsModule } from './translations/translations.module';
 import { TemplateBuilderModule } from './template-builder/template-builder.module';
@@ -53,7 +53,7 @@ import configuration from './config/configuration';
     TemplateBuilderModule,
     SearchModule,
   ],
-  controllers: [HealthController, SiteConfigController, StorageController, StorageAdminController, TemplatesController, PhotosAdminController],
-  providers: [AdminGuard],
+  controllers: [HealthController, SiteConfigController, StorageController, StorageAdminController, TemplatesController],
+  providers: [AdminGuard, AdminOrOwnerGuard],
 })
 export class AppModule {}

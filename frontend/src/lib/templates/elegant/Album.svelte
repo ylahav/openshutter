@@ -90,20 +90,20 @@
 </script>
 
 {#if loading}
-	<div class="min-h-screen flex items-center justify-center bg-gradient-to-b from-purple-50 to-white">
+	<div class="min-h-screen flex items-center justify-center bg-linear-to-b from-purple-50 to-white">
 		<div class="text-center">
 			<div class="w-10 h-10 border-3 border-purple-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
 			<p class="text-sm text-gray-600 font-light">Loading album...</p>
 		</div>
 	</div>
 {:else if error}
-	<div class="min-h-screen flex items-center justify-center bg-gradient-to-b from-purple-50 to-white">
+	<div class="min-h-screen flex items-center justify-center bg-linear-to-b from-purple-50 to-white">
 		<div class="text-center">
 			<p class="text-sm text-red-600 font-light">{error}</p>
 		</div>
 	</div>
 {:else if albumData}
-	<div class="min-h-screen bg-gradient-to-b from-purple-50 to-white">
+	<div class="min-h-screen bg-linear-to-b from-purple-50 to-white">
 		<!-- Breadcrumbs -->
 		{#if albumData.album}
 			<AlbumBreadcrumbs albumId={albumData.album._id} />
@@ -170,7 +170,7 @@
 								on:click={() => openLightbox(index)}
 								class="w-full mb-4"
 							>
-								<div class="bg-gradient-to-br from-purple-100 to-indigo-100 relative overflow-hidden rounded-lg"
+								<div class="bg-linear-to-b from-purple-100 to-indigo-100 relative overflow-hidden rounded-lg"
 									style={hasDimensions && aspectRatio < 1
 										? `width: 100%; max-height: 600px; aspect-ratio: ${aspectRatio};` 
 										: hasDimensions

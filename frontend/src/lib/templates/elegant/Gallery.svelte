@@ -58,7 +58,7 @@
 				{#each photos as photo, index}
 					<button
 						on:click={() => openLightbox(index)}
-						class="relative aspect-square bg-gradient-to-br from-purple-100 to-indigo-100 rounded-xl overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
+						class="relative aspect-square bg-linear-to-b from-purple-100 to-indigo-100 rounded-xl overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
 					>
 						{#if photo.storage?.thumbnailPath || photo.storage?.url || photo.url}
 							<img

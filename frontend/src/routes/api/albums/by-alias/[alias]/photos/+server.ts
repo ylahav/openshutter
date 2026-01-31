@@ -4,7 +4,7 @@ import { backendGet, parseBackendResponse } from '$lib/utils/backend-api';
 import { logger } from '$lib/utils/logger';
 import { parseError } from '$lib/utils/errorHandler';
 
-export const GET: RequestHandler = async ({ params, url }) => {
+export const GET: RequestHandler = async ({ params, url, cookies }) => {
 	try {
 		const { alias } = await params;
 		const searchParams = url.searchParams;
@@ -18,7 +18,7 @@ export const GET: RequestHandler = async ({ params, url }) => {
 		}
 
 		// First, get the album by alias to get its ID
-		const albumResponse = await backendGet(`/albums/by-alias/${alias}`);
+		const albumResponse = await backendGet(`/albums/by-alias/${alias}`, { cookies });
 		if (!albumResponse.ok) {
 			return json({ success: false, error: 'Album not found' }, { status: 404 });
 		}
@@ -30,7 +30,7 @@ export const GET: RequestHandler = async ({ params, url }) => {
 		queryParams.set('page', page);
 		queryParams.set('limit', limit);
 
-		const photosResponse = await backendGet(`/albums/${album._id}/photos?${queryParams.toString()}`);
+		const photosResponse = await backendGet(`/albums/${album._id}/photos?${queryParams.toString()}`, { cookies });
 		if (!photosResponse.ok) {
 			return json({ success: false, error: 'Failed to get photos' }, { status: 500 });
 		}

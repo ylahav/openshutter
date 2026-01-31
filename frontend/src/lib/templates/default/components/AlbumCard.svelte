@@ -43,7 +43,7 @@
 		class="group relative bg-background overflow-hidden border border-border cursor-pointer hover:shadow-lg transition-shadow duration-300 h-80 flex flex-col {className}"
 	>
 		<!-- Cover Image -->
-		<div class="relative h-48 bg-gradient-to-br from-muted to-muted/70 overflow-hidden flex-shrink-0">
+		<div class="relative h-48 bg-linear-to-b from-muted to-muted/70 overflow-hidden flex-shrink-0">
 			{#if !coverImageLoading && coverImageUrl}
 				<img
 					src={coverImageUrl}
@@ -55,7 +55,7 @@
 			{/if}
 
 			{#if coverImageLoading}
-				<div class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-muted to-muted/70">
+				<div class="absolute inset-0 flex items-center justify-center bg-linear-to-b from-muted to-muted/70">
 					<div class="text-center">
 						<div class="w-8 h-8 border-2 border-border border-t-primary rounded-full animate-spin mx-auto mb-2"></div>
 						<p class="text-xs text-muted-foreground">Loading...</p>
@@ -64,7 +64,7 @@
 			{/if}
 
 			{#if !coverImageUrl && !coverImageLoading}
-				<div class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-muted to-muted/70">
+				<div class="absolute inset-0 flex items-center justify-center bg-linear-to-b from-muted to-muted/70">
 					<div class="text-center">
 						<svg class="w-16 h-16 text-muted-foreground mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path

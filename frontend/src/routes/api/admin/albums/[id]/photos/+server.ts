@@ -6,9 +6,9 @@ import { parseError } from '$lib/utils/errorHandler';
 
 export const GET: RequestHandler = async ({ params, locals, cookies }) => {
 	try {
-		// Require admin access
-		if (!locals.user || locals.user.role !== 'admin') {
-			return json({ success: false, error: 'Admin access required' }, { status: 403 });
+		// Require admin or owner (backend enforces album ownership for owners)
+		if (!locals.user || (locals.user.role !== 'admin' && locals.user.role !== 'owner')) {
+			return json({ success: false, error: 'Unauthorized' }, { status: 401 });
 		}
 
 		const { id } = await params;

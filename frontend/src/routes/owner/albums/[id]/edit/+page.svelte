@@ -84,6 +84,7 @@
 			const res = await fetch(`/api/albums/${albumId}`, {
 				method: 'PUT',
 				headers: { 'Content-Type': 'application/json' },
+				credentials: 'include',
 				body: JSON.stringify({
 					...formData,
 					name: MultiLangUtils.clean(formData.name),
@@ -94,7 +95,9 @@
 				await handleApiErrorResponse(res);
 			}
 			const result = await res.json();
-			if (!result.success) throw new Error(result.error || 'Failed to update album');
+			if (result.success !== true && !result.data) {
+				throw new Error(result.error || 'Failed to update album');
+			}
 			goto('/owner/albums');
 		} catch (e) {
 			logger.error('Failed to update album:', e);

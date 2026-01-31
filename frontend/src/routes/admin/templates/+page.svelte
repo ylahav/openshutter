@@ -277,7 +277,7 @@
 								: 'border-gray-200'}"
 						>
 							<!-- Template Preview/Thumbnail -->
-							<div class="h-48 bg-gradient-to-br {template.colors.primary} flex items-center justify-center relative">
+							<div class="h-48 bg-linear-to-b {template.colors.primary} flex items-center justify-center relative">
 								{#if template.thumbnail && template.thumbnail !== '/templates/default/thumbnail.jpg'}
 									<img
 										src={template.thumbnail}

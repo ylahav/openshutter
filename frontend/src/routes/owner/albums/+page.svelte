@@ -38,12 +38,13 @@
 	async function fetchAlbums() {
 		try {
 			loading = true;
-			const response = await fetch('/api/albums?mine=true');
+			const response = await fetch('/api/albums?mine=true', { credentials: 'include' });
 			if (!response.ok) {
 				await handleApiErrorResponse(response);
 			}
 			const result = await response.json();
-			albums = result.data || [];
+			// API may return array directly or { data: array }
+			albums = Array.isArray(result) ? result : (result.data || []);
 		} catch (err) {
 			logger.error('Failed to fetch albums:', err);
 			error = handleError(err, 'Failed to fetch albums');

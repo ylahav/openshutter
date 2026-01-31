@@ -62,7 +62,7 @@
 
 {#if loading && photos.length === 0}
   <!-- Simple loading state, let the rest of the page render -->
-  <section class="relative overflow-hidden bg-gradient-to-br from-primary-500 to-secondary-600 text-white">
+  <section class="relative overflow-hidden bg-linear-to-b from-primary-500 to-secondary-600 text-white">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
       <h1 class="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight mb-4">
         {title}

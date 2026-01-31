@@ -99,7 +99,7 @@
                   </div>
                 {:else}
                   <div
-                    class="w-full h-48 bg-gradient-to-br from-primary-100 to-primary-200 flex items-center justify-center group-hover:scale-105 transition-transform duration-300"
+                    class="w-full h-48 bg-linear-to-b from-primary-100 to-primary-200 flex items-center justify-center group-hover:scale-105 transition-transform duration-300"
                   >
                     <svg class="w-16 h-16 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path

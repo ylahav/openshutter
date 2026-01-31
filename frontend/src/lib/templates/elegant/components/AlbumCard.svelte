@@ -43,7 +43,7 @@
 		class="group relative bg-white overflow-hidden rounded-xl shadow-md hover:shadow-xl transition-all duration-500 cursor-pointer flex flex-col transform hover:-translate-y-2 {className}"
 	>
 		<!-- Cover Image -->
-		<div class="relative aspect-[4/3] bg-gradient-to-br from-purple-100 to-indigo-100 overflow-hidden flex-shrink-0">
+		<div class="relative aspect-[4/3] bg-linear-to-b from-purple-100 to-indigo-100 overflow-hidden flex-shrink-0">
 			{#if !coverImageLoading && coverImageUrl}
 				<img
 					src={coverImageUrl}
@@ -55,7 +55,7 @@
 			{/if}
 
 			{#if coverImageLoading}
-				<div class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-purple-100 to-indigo-100">
+				<div class="absolute inset-0 flex items-center justify-center bg-linear-to-b from-purple-100 to-indigo-100">
 					<div class="text-center">
 						<div class="w-8 h-8 border-3 border-purple-400 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
 						<p class="text-xs text-purple-600 font-light">Loading...</p>
@@ -64,7 +64,7 @@
 			{/if}
 
 			{#if !coverImageUrl && !coverImageLoading}
-				<div class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-purple-100 to-indigo-100">
+				<div class="absolute inset-0 flex items-center justify-center bg-linear-to-b from-purple-100 to-indigo-100">
 					<div class="text-center">
 						<svg class="w-16 h-16 text-purple-300 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path

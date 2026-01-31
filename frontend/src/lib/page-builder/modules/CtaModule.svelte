@@ -13,7 +13,7 @@
 	$: descriptionText = description ? MultiLangUtils.getTextValue(description, $currentLanguage) : '';
 </script>
 
-<section class="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-blue-600 to-indigo-700">
+<section class="py-20 px-4 sm:px-6 lg:px-8 bg-linear-to-b from-blue-600 to-indigo-700">
 	<div class="max-w-4xl mx-auto text-center">
 		<h2 class="text-4xl font-bold text-white mb-6">{titleText}</h2>
 		{#if descriptionText}

@@ -7,7 +7,7 @@
 		<slot />
 	</main>
 {:else if $activeTemplate === 'modern'}
-	<main class="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white">
+	<main class="min-h-screen bg-linear-to-b from-slate-900 via-purple-900 to-slate-900 text-white">
 		<slot />
 	</main>
 {:else if $activeTemplate === 'elegant'}

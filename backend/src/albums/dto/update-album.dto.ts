@@ -40,6 +40,16 @@ export class UpdateAlbumDto {
 	@IsOptional()
 	location?: string | null;
 
+	/** Restrict access: user IDs that can access this album (when private). */
+	@IsArray()
+	@IsOptional()
+	allowedUsers?: string[];
+
+	/** Restrict access: group aliases that can access this album (when private). */
+	@IsArray()
+	@IsOptional()
+	allowedGroups?: string[];
+
 	@IsOptional()
 	metadata?: Record<string, unknown>;
 }

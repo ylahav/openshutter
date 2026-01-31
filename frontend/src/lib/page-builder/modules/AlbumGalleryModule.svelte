@@ -160,7 +160,7 @@
 						href="/albums/{album.alias}"
 						class="group bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
 					>
-						<div class="aspect-video bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center overflow-hidden">
+						<div class="aspect-video bg-linear-to-b from-gray-200 to-gray-300 flex items-center justify-center overflow-hidden">
 							{#if coverImages[album._id]}
 								<img
 									src={coverImages[album._id]}

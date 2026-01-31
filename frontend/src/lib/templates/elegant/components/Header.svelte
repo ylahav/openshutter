@@ -65,7 +65,7 @@
 							class="w-12 h-12 object-contain shrink-0"
 						/>
 					{:else}
-						<div class="w-12 h-12 bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl flex items-center justify-center shrink-0 shadow-lg border border-purple-400/50">
+						<div class="w-12 h-12 bg-linear-to-b from-purple-600 to-pink-600 rounded-xl flex items-center justify-center shrink-0 shadow-lg border border-purple-400/50">
 							<svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path
 									stroke-linecap="round"

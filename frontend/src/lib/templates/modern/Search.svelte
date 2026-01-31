@@ -10,7 +10,7 @@
 
 <Header />
 
-<main class="flex-1 min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+<main class="flex-1 min-h-screen bg-linear-to-b from-slate-50 via-blue-50 to-indigo-50">
 	<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 		<div class="bg-white rounded-lg shadow-sm p-6">
 			<h1 class="text-2xl font-bold text-gray-900 mb-4">Search</h1>
@@ -25,4 +25,3 @@
 </main>
 
 <Footer />
-

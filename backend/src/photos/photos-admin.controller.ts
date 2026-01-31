@@ -6,30 +6,53 @@ import {
 	Delete,
 	Param,
 	Body,
+	Req,
 	UseGuards,
 	BadRequestException,
 	NotFoundException,
+	ForbiddenException,
 	Logger,
 	InternalServerErrorException,
 } from '@nestjs/common';
-import { AdminGuard } from '../common/guards/admin.guard';
+import { Request } from 'express';
+import { AdminOrOwnerGuard } from '../common/guards/admin-or-owner.guard';
 import { connectDB } from '../config/db';
 import mongoose, { Types } from 'mongoose';
 import { StorageManager } from '../services/storage/manager';
+
+/** Native MongoDB Db-like (mongoose.connection.db); avoids depending on mongoose.mongodb which may not exist in all mongoose versions. */
+type MongoDb = NonNullable<typeof mongoose.connection.db>;
 import { ThumbnailGenerator } from '../services/thumbnail-generator';
 import { ExifExtractor } from '../services/exif-extractor';
 import { UpdatePhotoDto } from './dto/update-photo.dto';
 
 @Controller('admin/photos')
-@UseGuards(AdminGuard)
+@UseGuards(AdminOrOwnerGuard)
 export class PhotosAdminController {
 	private readonly logger = new Logger(PhotosAdminController.name);
+
+	private async assertOwnerCanAccessPhoto(req: Request, photo: any, db: MongoDb): Promise<void> {
+		const user = (req as any).user;
+		if (user?.role === 'admin') return;
+		if (user?.role !== 'owner' || !user?.id) {
+			throw new ForbiddenException('Access denied');
+		}
+		const albumId = photo.albumId;
+		if (!albumId) throw new ForbiddenException('Photo has no album');
+		const album = await db.collection('albums').findOne({ _id: albumId });
+		if (!album) throw new NotFoundException('Album not found');
+		const createdBy = album.createdBy?.toString?.() ?? album.createdBy;
+		if (createdBy !== user.id) {
+			throw new ForbiddenException('You can only manage photos in albums you created');
+		}
+	}
+
 	/**
-	 * Get a photo by ID (admin only - includes unpublished)
+	 * Get a photo by ID (admin or owner of the photo's album - includes unpublished)
 	 * Path: GET /api/admin/photos/:id
 	 */
 	@Get(':id')
-	async getPhoto(@Param('id') id: string) {
+	async getPhoto(@Param('id') id: string, @Req() req: Request) {
 		try {
 			await connectDB();
 			const db = mongoose.connection.db;
@@ -46,6 +69,10 @@ export class PhotosAdminController {
 
 			if (!photo) {
 				throw new NotFoundException('Photo not found');
+			}
+
+			if ((req as any).user?.role === 'owner') {
+				await this.assertOwnerCanAccessPhoto(req, photo, db);
 			}
 
 			// Serialize ObjectIds
@@ -102,7 +129,7 @@ export class PhotosAdminController {
 			return serialized;
 		} catch (error) {
 			this.logger.error(`Failed to get photo: ${error instanceof Error ? error.message : String(error)}`);
-			if (error instanceof NotFoundException || error instanceof BadRequestException) {
+			if (error instanceof NotFoundException || error instanceof BadRequestException || error instanceof ForbiddenException) {
 				throw error;
 			}
 			throw new InternalServerErrorException(
@@ -112,11 +139,11 @@ export class PhotosAdminController {
 	}
 
 	/**
-	 * Update a photo (admin only)
+	 * Update a photo (admin or owner of the photo's album)
 	 * Path: PUT /api/admin/photos/:id
 	 */
 	@Put(':id')
-	async updatePhoto(@Param('id') id: string, @Body() updateData: UpdatePhotoDto) {
+	async updatePhoto(@Param('id') id: string, @Body() updateData: UpdatePhotoDto, @Req() req: Request) {
 		try {
 			await connectDB();
 			const db = mongoose.connection.db;
@@ -133,6 +160,9 @@ export class PhotosAdminController {
 			const photo = await db.collection('photos').findOne({ _id: objectId });
 			if (!photo) {
 				throw new NotFoundException('Photo not found');
+			}
+			if ((req as any).user?.role === 'owner') {
+				await this.assertOwnerCanAccessPhoto(req, photo, db);
 			}
 
 			// Prepare update object
@@ -288,7 +318,7 @@ export class PhotosAdminController {
 			return serialized;
 		} catch (error) {
 			this.logger.error('Failed to update photo:', error);
-			if (error instanceof NotFoundException || error instanceof BadRequestException) {
+			if (error instanceof NotFoundException || error instanceof BadRequestException || error instanceof ForbiddenException) {
 				throw error;
 			}
 			throw new InternalServerErrorException(
@@ -298,11 +328,11 @@ export class PhotosAdminController {
 	}
 
 	/**
-	 * Delete a photo (admin only)
+	 * Delete a photo (admin or owner of the photo's album)
 	 * Path: DELETE /api/admin/photos/:id
 	 */
 	@Delete(':id')
-	async deletePhoto(@Param('id') id: string) {
+	async deletePhoto(@Param('id') id: string, @Req() req: Request) {
 		try {
 			await connectDB();
 			const db = mongoose.connection.db;
@@ -318,6 +348,9 @@ export class PhotosAdminController {
 			const photo = await db.collection('photos').findOne({ _id: objectId });
 			if (!photo) {
 				throw new NotFoundException('Photo not found');
+			}
+			if ((req as any).user?.role === 'owner') {
+				await this.assertOwnerCanAccessPhoto(req, photo, db);
 			}
 
 			// Delete the photo file from storage if storage info exists
@@ -424,7 +457,7 @@ export class PhotosAdminController {
 			return { success: true, message: 'Photo deleted successfully' };
 		} catch (error) {
 			this.logger.error('Failed to delete photo:', error);
-			if (error instanceof NotFoundException || error instanceof BadRequestException) {
+			if (error instanceof NotFoundException || error instanceof BadRequestException || error instanceof ForbiddenException) {
 				throw error;
 			}
 			throw new InternalServerErrorException(

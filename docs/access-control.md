@@ -294,3 +294,21 @@ The test script creates test users, groups, and albums with various access confi
 - MongoDB query logging
 - Browser developer tools
 - Server-side logging
+
+## Implementation Status (Roles & Groups)
+
+### Done
+- **User roles**: Admin, Owner, Guest; JWT includes role; AdminGuard (admin only), OptionalAdminGuard (optional auth for public album APIs).
+- **Role-based redirect**: After login, admin → `/admin`, owner → `/owner`, guest → `/`.
+- **Route protection**: `/admin` requires admin; `/owner` requires owner or admin.
+- **Groups**: CRUD in admin; User has `groupAliases[]`; assign groups in user edit.
+- **Album access (backend)**:
+  - Visitors: only public AND unrestricted albums.
+  - Logged-in: public unrestricted OR open private (private, no restrictions) OR creator OR in `allowedUsers` OR in `allowedGroups`. Restricted albums only for creator/allowed users/groups.
+- **Album edit UI (admin)**: Restrict access section with allowedGroups and allowedUsers; list shows Group/Users badges.
+- **Public album APIs**: Forward cookies so backend can apply group/user access (guest sees group albums).
+- **Frontend access helpers**: `canCreateAlbums`, `canEditAlbum`, `canDeleteAlbum` (admin or owner-own-album).
+
+### Optional / To Verify
+- **Owner album GET/PUT**: Owner edit uses `GET /api/albums/:id` and `PUT /api/albums/:id`. If no SvelteKit route exists for these, add `api/albums/[id]/+server.ts` that proxies to backend; backend may need `PUT /albums/:id` with createdBy check for owners, or allow owner to call admin PUT only for own album.
+- **Access control doc**: `src/lib/access-control.ts` in docs refers to `checkAlbumAccess` / `buildAlbumAccessQuery`; actual logic lives in backend `AlbumsService.buildVisibilityCondition` and `canAccessAlbum`. Update docs or add thin server helpers if you want a single place in the frontend.

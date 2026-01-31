@@ -1,19 +1,35 @@
-import { Controller, Get, Post, Put, Delete, Param, Query, Body, UseGuards, BadRequestException, NotFoundException, Request, Logger, InternalServerErrorException } from '@nestjs/common';
-import { AdminGuard } from '../common/guards/admin.guard';
+import { Controller, Get, Post, Put, Delete, Param, Query, Body, Req, UseGuards, BadRequestException, NotFoundException, ForbiddenException, Request, Logger, InternalServerErrorException } from '@nestjs/common';
+import { Request as ExpressRequest } from 'express';
+import { AdminOrOwnerGuard } from '../common/guards/admin-or-owner.guard';
 import { AlbumsService } from './albums.service';
 import { connectDB } from '../config/db';
 import mongoose, { Types } from 'mongoose';
 import { StorageManager } from '../services/storage/manager';
+
+/** Native MongoDB Db-like (mongoose.connection.db); avoids depending on mongoose.mongodb which may not exist in all mongoose versions. */
+type MongoDb = NonNullable<typeof mongoose.connection.db>;
 import { CreateAlbumDto } from './dto/create-album.dto';
 import { UpdateAlbumDto } from './dto/update-album.dto';
 import { ReorderAlbumsDto } from './dto/reorder-albums.dto';
 
 @Controller('admin/albums')
-@UseGuards(AdminGuard)
+@UseGuards(AdminOrOwnerGuard)
 export class AlbumsAdminController {
 	private readonly logger = new Logger(AlbumsAdminController.name);
-	
+
 	constructor(private readonly albumsService: AlbumsService) {}
+
+	private async assertOwnerCanAccessAlbum(req: ExpressRequest, album: any, db: MongoDb): Promise<void> {
+		const user = (req as any).user;
+		if (user?.role === 'admin') return;
+		if (user?.role !== 'owner' || !user?.id) {
+			throw new ForbiddenException('Access denied');
+		}
+		const createdBy = album.createdBy?.toString?.() ?? album.createdBy;
+		if (createdBy !== user.id) {
+			throw new ForbiddenException('You can only manage albums you created');
+		}
+	}
 
 	/**
 	 * Create a new album
@@ -59,6 +75,9 @@ export class AlbumsAdminController {
 					
 					if (!parentAlbum) {
 						throw new NotFoundException(`Parent album not found: ${createData.parentAlbumId}`);
+					}
+					if (user.role === 'owner') {
+						await this.assertOwnerCanAccessAlbum(req, parentAlbum, db);
 					}
 
 					parentPath = parentAlbum.storagePath || '';
@@ -201,17 +220,23 @@ export class AlbumsAdminController {
 	}
 
 	/**
-	 * Get all albums (admin only - includes private albums)
+	 * Get all albums (admin: all; owner: only albums they created)
 	 * Path: GET /api/admin/albums
 	 */
 	@Get()
-	async findAll(@Query('parentId') parentId?: string, @Query('level') level?: string) {
+	async findAll(@Req() req: ExpressRequest, @Query('parentId') parentId?: string, @Query('level') level?: string) {
 		try {
 			await connectDB();
 			const db = mongoose.connection.db;
 			if (!db) throw new InternalServerErrorException('Database connection not established');
 
 			const query: any = {};
+
+			// Owner: only albums they created
+			const user = (req as any).user;
+			if (user?.role === 'owner' && user?.id) {
+				query.createdBy = new Types.ObjectId(user.id);
+			}
 
 			// Handle parentId filter (admin can see all, no isPublic filter)
 			if (parentId === 'root' || parentId === 'null') {
@@ -267,15 +292,19 @@ export class AlbumsAdminController {
 			}
 		});
 
-		// Serialize ObjectIds and add child counts
+		// Serialize ObjectIds and add child counts (include allowedGroups/allowedUsers for admin UI)
 		const serialized = albums.map((album: any) => ({
 			...album,
 			_id: album._id.toString(),
 			parentAlbumId: album.parentAlbumId?.toString() || null,
 			coverPhotoId: album.coverPhotoId?.toString() || null,
 			createdBy: album.createdBy?.toString() || null,
-			order: album.order ?? 0, // Ensure order field is included
+			order: album.order ?? 0,
 			childAlbumCount: childCountMap.get(album._id.toString()) || 0,
+			allowedGroups: Array.isArray(album.allowedGroups) ? album.allowedGroups : [],
+			allowedUsers: Array.isArray(album.allowedUsers)
+				? album.allowedUsers.map((id: any) => (id && id.toString ? id.toString() : String(id)))
+				: [],
 		}));
 
 	return serialized;
@@ -286,12 +315,12 @@ export class AlbumsAdminController {
 }
 
 	/**
-	 * Get all photos for an album (admin only - includes unpublished)
+	 * Get all photos for an album (admin or owner of album - includes unpublished)
 	 * Path: GET /api/admin/albums/:id/photos
 	 * NOTE: This route must come before @Get(':id') to avoid route conflicts
 	 */
 	@Get(':id/photos')
-	async getAlbumPhotos(@Param('id') id: string) {
+	async getAlbumPhotos(@Param('id') id: string, @Req() req: ExpressRequest) {
 		try {
 			await connectDB();
 			const db = mongoose.connection.db;
@@ -304,7 +333,13 @@ export class AlbumsAdminController {
 				throw new BadRequestException('Invalid album ID format');
 			}
 
-			// Get ALL photos for this album (including unpublished) - admin only
+			const album = await db.collection('albums').findOne({ _id: objectId });
+			if (!album) throw new NotFoundException(`Album not found: ${id}`);
+			if ((req as any).user?.role === 'owner') {
+				await this.assertOwnerCanAccessAlbum(req, album, db);
+			}
+
+			// Get ALL photos for this album (including unpublished)
 			const photosCollection = db.collection('photos');
 			const query = {
 				$or: [{ albumId: objectId }, { albumId: id }],
@@ -373,12 +408,12 @@ export class AlbumsAdminController {
 	}
 
 	/**
-	 * Get a single album by ID (admin only - includes private albums)
+	 * Get a single album by ID (admin or owner of album - includes private albums)
 	 * Path: GET /api/admin/albums/:id
 	 * NOTE: This route must come AFTER @Get(':id/photos') to avoid route conflicts
 	 */
 	@Get(':id')
-	async findOne(@Param('id') id: string) {
+	async findOne(@Param('id') id: string, @Req() req: ExpressRequest) {
 		try {
 			await connectDB();
 			const db = mongoose.connection.db;
@@ -396,8 +431,11 @@ export class AlbumsAdminController {
 			if (!album) {
 				throw new NotFoundException(`Album not found: ${id}`);
 			}
+			if ((req as any).user?.role === 'owner') {
+				await this.assertOwnerCanAccessAlbum(req, album, db);
+			}
 
-			// Serialize ObjectIds
+			// Serialize ObjectIds (including access control fields for edit form)
 			const serialized: any = {
 				...album,
 				_id: album._id.toString(),
@@ -405,12 +443,14 @@ export class AlbumsAdminController {
 				coverPhotoId: album.coverPhotoId?.toString() || null,
 				createdBy: album.createdBy?.toString() || null,
 				tags: album.tags?.map((tag: any) => (tag._id ? tag._id.toString() : tag.toString())) || [],
+				allowedUsers: album.allowedUsers?.map((userId: any) => userId.toString()) || [],
+				allowedGroups: album.allowedGroups || [],
 			};
 
 			return serialized;
 		} catch (error) {
 			this.logger.error('Failed to get admin album:', error);
-			if (error instanceof BadRequestException || error instanceof NotFoundException) {
+			if (error instanceof BadRequestException || error instanceof NotFoundException || error instanceof ForbiddenException) {
 				throw error;
 			}
 			throw new InternalServerErrorException(`Failed to get admin album: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -423,7 +463,7 @@ export class AlbumsAdminController {
 	 * NOTE: This route must come BEFORE @Put(':id') to avoid route conflicts
 	 */
 	@Put('reorder')
-	async reorderAlbums(@Body() body: ReorderAlbumsDto) {
+	async reorderAlbums(@Body() body: ReorderAlbumsDto, @Req() req: ExpressRequest) {
 		try {
 			await connectDB();
 			const db = mongoose.connection.db;
@@ -479,6 +519,20 @@ export class AlbumsAdminController {
 					parentAlbumId,
 					order: update.order
 				});
+			}
+
+			// Owner: only allow reordering albums they created
+			const user = (req as any).user;
+			if (user?.role === 'owner' && user?.id) {
+				for (const update of validatedUpdates) {
+					const album = await db.collection('albums').findOne({ _id: new Types.ObjectId(update.id) });
+					if (album) {
+						const createdBy = album.createdBy?.toString?.() ?? album.createdBy;
+						if (createdBy !== user.id) {
+							throw new ForbiddenException('You can only reorder albums you created');
+						}
+					}
+				}
 			}
 
 			// Update each album
@@ -537,7 +591,7 @@ export class AlbumsAdminController {
 			};
 		} catch (error) {
 			this.logger.error('Failed to reorder albums:', error);
-			if (error instanceof BadRequestException) {
+			if (error instanceof BadRequestException || error instanceof ForbiddenException) {
 				throw error;
 			}
 			throw new InternalServerErrorException(
@@ -547,11 +601,11 @@ export class AlbumsAdminController {
 	}
 
 	/**
-	 * Update an album (admin only)
+	 * Update an album (admin or owner of album)
 	 * Path: PUT /api/admin/albums/:id
 	 */
 	@Put(':id')
-	async updateAlbum(@Param('id') id: string, @Body() updateData: UpdateAlbumDto) {
+	async updateAlbum(@Param('id') id: string, @Body() updateData: UpdateAlbumDto, @Req() req: ExpressRequest) {
 		try {
 			await connectDB();
 			const db = mongoose.connection.db;
@@ -568,6 +622,9 @@ export class AlbumsAdminController {
 			const album = await db.collection('albums').findOne({ _id: objectId });
 			if (!album) {
 				throw new NotFoundException('Album not found');
+			}
+			if ((req as any).user?.role === 'owner') {
+				await this.assertOwnerCanAccessAlbum(req, album, db);
 			}
 
 			// Prepare update object
@@ -652,6 +709,18 @@ export class AlbumsAdminController {
 				update.metadata = updateData.metadata;
 			}
 
+			// Update access control: allowedUsers (ObjectIds), allowedGroups (strings)
+			if (updateData.allowedUsers !== undefined && Array.isArray(updateData.allowedUsers)) {
+				update.allowedUsers = updateData.allowedUsers
+					.filter((userId: any) => userId && Types.ObjectId.isValid(userId))
+					.map((userId: any) => new Types.ObjectId(userId));
+			}
+			if (updateData.allowedGroups !== undefined && Array.isArray(updateData.allowedGroups)) {
+				update.allowedGroups = updateData.allowedGroups
+					.filter((alias: any) => typeof alias === 'string' && alias.trim() !== '')
+					.map((alias: any) => String(alias).trim());
+			}
+
 			// Perform update
 			const result = await db.collection('albums').updateOne({ _id: objectId }, { $set: update });
 
@@ -681,6 +750,7 @@ export class AlbumsAdminController {
 						: updatedAlbum.location.toString()
 					: null,
 				allowedUsers: updatedAlbum.allowedUsers?.map((userId: any) => userId.toString()) || [],
+				allowedGroups: updatedAlbum.allowedGroups || [],
 			};
 
 			return serialized;
@@ -699,7 +769,7 @@ export class AlbumsAdminController {
 	 * Path: DELETE /api/admin/albums/:id
 	 */
 	@Delete(':id')
-	async deleteAlbum(@Param('id') id: string) {
+	async deleteAlbum(@Param('id') id: string, @Req() req: ExpressRequest) {
 		try {
 			await connectDB();
 			const db = mongoose.connection.db;
@@ -715,6 +785,9 @@ export class AlbumsAdminController {
 			const album = await db.collection('albums').findOne({ _id: objectId });
 			if (!album) {
 				throw new NotFoundException('Album not found');
+			}
+			if ((req as any).user?.role === 'owner') {
+				await this.assertOwnerCanAccessAlbum(req, album, db);
 			}
 
 			this.logger.debug(`Starting deletion of album: ${album.alias} (${id})`);

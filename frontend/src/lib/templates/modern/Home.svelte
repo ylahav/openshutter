@@ -63,7 +63,7 @@
 <!-- Modern template home layout -->
 <HomeHero />
 
-<section class="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+<section class="bg-linear-to-b from-slate-900 via-purple-900 to-slate-900">
 	<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
 		<div class="flex items-center justify-between mb-10">
 			<div>
@@ -93,7 +93,7 @@
 						class="group relative overflow-hidden rounded-2xl cursor-pointer transform transition-all duration-500 hover:scale-105 hover:z-10"
 						style="animation-delay: {idx * 0.1}s"
 					>
-						<div class="aspect-square bg-gradient-to-br from-purple-600 to-blue-600 relative overflow-hidden rounded-2xl">
+						<div class="aspect-square bg-linear-to-b from-purple-600 to-blue-600 relative overflow-hidden rounded-2xl">
 							{#if coverImagesLoading[album._id]}
 								<div class="absolute inset-0 flex items-center justify-center bg-slate-800/50">
 									<div class="w-8 h-8 border-2 border-purple-400 border-t-transparent rounded-full animate-spin"></div>
@@ -107,7 +107,7 @@
 										: 'object-cover group-hover:scale-110'}"
 								/>
 							{:else}
-								<div class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-purple-600 to-blue-600">
+								<div class="absolute inset-0 flex items-center justify-center bg-linear-to-b from-purple-600 to-blue-600">
 									<svg class="w-16 h-16 text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 										<path
 											stroke-linecap="round"

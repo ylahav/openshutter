@@ -8,6 +8,9 @@ import { PhotoSchema } from '../models/Photo';
 import { TagSchema } from '../models/Tag';
 import { PersonSchema } from '../models/Person';
 import { LocationSchema } from '../models/Location';
+import { UserSchema } from '../models/User';
+import { OptionalAdminGuard } from '../common/guards/optional-admin.guard';
+import { AdminOrOwnerGuard } from '../common/guards/admin-or-owner.guard';
 
 @Module({
   imports: [
@@ -17,10 +20,11 @@ import { LocationSchema } from '../models/Location';
       { name: 'Tag', schema: TagSchema },
       { name: 'Person', schema: PersonSchema },
       { name: 'Location', schema: LocationSchema },
+      { name: 'User', schema: UserSchema },
     ]),
   ],
   controllers: [AlbumsController, AlbumsAdminController],
-  providers: [AlbumsService],
+  providers: [AlbumsService, OptionalAdminGuard, AdminOrOwnerGuard],
   exports: [AlbumsService],
 })
 export class AlbumsModule {}

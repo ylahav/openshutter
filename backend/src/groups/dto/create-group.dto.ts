@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty } from 'class-validator';
+import { IsString, IsNotEmpty, Allow } from 'class-validator';
 import { MultiLangText } from '../../types/multi-lang';
 
 /**
@@ -10,5 +10,7 @@ export class CreateGroupDto {
 	@IsNotEmpty()
 	alias: string;
 
+	/** Name is validated in controller (string or MultiLangText with at least one language). */
+	@Allow()
 	name: string | MultiLangText;
 }

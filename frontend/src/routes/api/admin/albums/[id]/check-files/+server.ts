@@ -6,7 +6,7 @@ import { parseError } from '$lib/utils/errorHandler';
 
 export const POST: RequestHandler = async ({ params, request, locals, cookies }) => {
 	try {
-		if (!locals.user) {
+		if (!locals.user || (locals.user.role !== 'admin' && locals.user.role !== 'owner')) {
 			return json({ success: false, error: 'Unauthorized' }, { status: 401 });
 		}
 

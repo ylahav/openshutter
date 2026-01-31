@@ -30,6 +30,7 @@
 	}
 
 	let albumId: string | null = null;
+	let returnTo: string | null = null;
 	let albumName = '';
 	let uploads: UploadProgress[] = [];
 	let isUploading = false;
@@ -52,6 +53,7 @@
 
 	onMount(() => {
 		albumId = $page.url.searchParams.get('albumId');
+		returnTo = $page.url.searchParams.get('returnTo');
 		if (albumId) {
 			fetchAlbumName();
 		}
@@ -60,7 +62,11 @@
 	async function fetchAlbumName() {
 		if (!albumId) return;
 		try {
-			const response = await fetch(`/api/admin/albums/${albumId}`);
+			// Owners use /api/albums/:id (access control); admins use /api/admin/albums/:id
+			const apiUrl = data?.user?.role === 'owner'
+				? `/api/albums/${albumId}`
+				: `/api/admin/albums/${albumId}`;
+			const response = await fetch(apiUrl);
 			if (response.ok) {
 				const result = await response.json();
 				// Handle both wrapped {success, data} and direct album formats
@@ -606,10 +612,13 @@
 	}
 
 	function handleFinish() {
-		if (albumId) {
-			goto(`/admin/albums/${albumId}`);
+		if (returnTo) {
+			goto(returnTo);
+		} else if (albumId) {
+			// Owner: go to owner album; admin: go to admin album
+			goto(data?.user?.role === 'owner' ? `/owner/albums/${albumId}` : `/admin/albums/${albumId}`);
 		} else {
-			goto('/admin');
+			goto(data?.user?.role === 'owner' ? '/owner/albums' : '/admin');
 		}
 	}
 
@@ -734,7 +743,11 @@
 			</div>
 			<div class="flex space-x-3">
 				<button
-					on:click={() => goto(albumId ? `/admin/albums/${albumId}` : '/admin')}
+					on:click={() => {
+						if (returnTo) goto(returnTo);
+						else if (albumId) goto(data?.user?.role === 'owner' ? `/owner/albums/${albumId}` : `/admin/albums/${albumId}`);
+						else goto(data?.user?.role === 'owner' ? '/owner/albums' : '/admin');
+					}}
 					class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
 				>
 					{albumId ? 'Back to Album' : 'Back to Photos'}
@@ -1168,7 +1181,11 @@
 		{#if allUploadsComplete}
 			<div class="mt-8 flex justify-end space-x-3">
 				<button
-					on:click={() => goto(albumId ? `/admin/albums/${albumId}` : '/admin')}
+					on:click={() => {
+						if (returnTo) goto(returnTo);
+						else if (albumId) goto(data?.user?.role === 'owner' ? `/owner/albums/${albumId}` : `/admin/albums/${albumId}`);
+						else goto(data?.user?.role === 'owner' ? '/owner/albums' : '/admin');
+					}}
 					class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
 				>
 					{albumId ? 'Back to Album' : 'Upload More Photos'}

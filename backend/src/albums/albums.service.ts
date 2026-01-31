@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException, InternalServerErrorException, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { InjectConnection } from '@nestjs/mongoose';
@@ -6,6 +6,13 @@ import { Connection } from 'mongoose';
 import { IAlbum } from '../models/Album';
 import { IPhoto } from '../models/Photo';
 import { AlbumLeadingPhotoService } from '../services/album-leading-photo';
+import { StorageManager } from '../services/storage/manager';
+
+/** When present, used to include private albums the user is allowed to see (creator, allowedUsers, allowedGroups). */
+export interface AlbumAccessContext {
+  userId: string;
+  groupAliases: string[];
+}
 
 @Injectable()
 export class AlbumsService {
@@ -18,33 +25,264 @@ export class AlbumsService {
     @InjectConnection() private connection: Connection,
   ) {}
 
-  async findAll(parentId?: string, level?: string) {
-    const query: any = {};
+  /** Condition: album has no group/user restrictions (unrestricted). */
+  private noRestrictionsCondition(): any {
+    return {
+      $and: [
+        { $or: [{ allowedGroups: { $exists: false } }, { allowedGroups: [] }, { allowedGroups: { $size: 0 } }] },
+        { $or: [{ allowedUsers: { $exists: false } }, { allowedUsers: [] }, { allowedUsers: { $size: 0 } }] },
+      ],
+    };
+  }
 
-    // Only filter by isPublic for root-level queries
-    // For sub-albums, return all albums (access control can be handled at app level)
-    if (parentId === 'root' || parentId === 'null' || !parentId) {
-      query.isPublic = true;
+  /**
+   * Build visibility condition for album queries.
+   * - When not logged in: only albums that are public AND unrestricted.
+   * - When logged in: (public AND unrestricted) OR (private AND unrestricted = "open private") OR created by user OR user in allowedUsers OR user's group in allowedGroups.
+   *   So restricted albums are only shown to creator, allowed users, or allowed groups.
+   */
+  private buildVisibilityCondition(accessContext: AlbumAccessContext | null | undefined): any {
+    const publicUnrestricted = {
+      isPublic: true,
+      ...this.noRestrictionsCondition(),
+    };
+    if (!accessContext) {
+      return publicUnrestricted;
+    }
+    const userId = new Types.ObjectId(accessContext.userId);
+    const groupAliases = accessContext.groupAliases || [];
+    const openPrivate = { isPublic: false, ...this.noRestrictionsCondition() };
+    return {
+      $or: [
+        publicUnrestricted,
+        openPrivate,
+        { createdBy: userId },
+        { allowedUsers: userId },
+        ...(groupAliases.length ? [{ allowedGroups: { $in: groupAliases } }] : []),
+      ],
+    };
+  }
+
+  /** Return true if the album has no group/user restrictions. */
+  private albumHasNoRestrictions(album: any): boolean {
+    const groups = album.allowedGroups;
+    const users = album.allowedUsers;
+    const noGroups = !groups || !Array.isArray(groups) || groups.length === 0;
+    const noUsers = !users || !Array.isArray(users) || users.length === 0;
+    return noGroups && noUsers;
+  }
+
+  /**
+   * Return true if the album is visible to the current context.
+   * Visible if: (public AND unrestricted) OR (private AND unrestricted = open private, when logged in) OR creator OR in allowedUsers OR in allowedGroups.
+   */
+  private canAccessAlbum(album: any, accessContext: AlbumAccessContext | null | undefined): boolean {
+    if (album.isPublic && this.albumHasNoRestrictions(album)) return true;
+    if (!accessContext) return false;
+    if (!album.isPublic && this.albumHasNoRestrictions(album)) return true;
+    const createdByStr = album.createdBy?.toString?.() ?? album.createdBy;
+    if (createdByStr === accessContext.userId) return true;
+    const allowedUsers = album.allowedUsers || [];
+    if (allowedUsers.some((u: any) => (u?.toString?.() ?? u) === accessContext.userId)) return true;
+    const allowedGroups = album.allowedGroups || [];
+    const userGroups = accessContext.groupAliases || [];
+    if (allowedGroups.some((g: string) => userGroups.includes(g))) return true;
+    return false;
+  }
+
+  /**
+   * Create a new album (used by both owner and admin create flows).
+   * Validates input, creates storage folder, inserts album record.
+   */
+  async createAlbum(createData: any, userId: string): Promise<{ success: true; data: any }> {
+    const db = this.connection.db;
+    if (!db) {
+      throw new InternalServerErrorException('Database connection not established');
+    }
+    if (!userId || !Types.ObjectId.isValid(userId)) {
+      throw new BadRequestException('Invalid user context for album creation');
     }
 
+    if (!createData.name || !createData.alias) {
+      throw new BadRequestException('Name and alias are required');
+    }
+    if (!createData.storageProvider) {
+      throw new BadRequestException('Storage provider is required');
+    }
+    const validProviders = ['google-drive', 'aws-s3', 'local', 'backblaze', 'wasabi'];
+    if (!validProviders.includes(createData.storageProvider)) {
+      throw new BadRequestException(`Invalid storage provider: ${createData.storageProvider}`);
+    }
+
+    let parentAlbum: any = null;
+    let parentPath = '';
+    let level = 0;
+
+    if (createData.parentAlbumId && createData.parentAlbumId !== '' && createData.parentAlbumId !== 'null') {
+      try {
+        const parentObjectId = new Types.ObjectId(createData.parentAlbumId);
+        parentAlbum = await db.collection('albums').findOne({ _id: parentObjectId });
+        if (!parentAlbum) {
+          throw new NotFoundException(`Parent album not found: ${createData.parentAlbumId}`);
+        }
+        parentPath = parentAlbum.storagePath || '';
+        level = (parentAlbum.level || 0) + 1;
+      } catch (error) {
+        if (error instanceof NotFoundException) throw error;
+        throw new BadRequestException(`Invalid parent album ID: ${createData.parentAlbumId}`);
+      }
+    }
+
+    const storagePath = parentPath ? `${parentPath}/${createData.alias}` : `/${createData.alias}`;
+
+    const existingAlbum = await db.collection('albums').findOne({ alias: createData.alias.toLowerCase() });
+    if (existingAlbum) {
+      throw new BadRequestException(`Album with alias "${createData.alias}" already exists`);
+    }
+
+    const storageManager = StorageManager.getInstance();
+    try {
+      await storageManager.createAlbum(
+        createData.name,
+        createData.alias,
+        createData.storageProvider as any,
+        parentPath || undefined
+      );
+      this.logger.debug('Storage folder created for album:', createData.alias);
+
+      if (createData.storageProvider === 'google-drive' && storagePath) {
+        try {
+          const { ThumbnailGenerator } = await import('../services/thumbnail-generator');
+          const storageService = await storageManager.getProvider(createData.storageProvider as any);
+          const thumbnailSizes = ['hero', 'large', 'medium', 'small', 'micro'];
+          for (const sizeName of thumbnailSizes) {
+            try {
+              const sizeConfig = ThumbnailGenerator.getThumbnailSize(sizeName as any);
+              await storageService.createFolder(sizeConfig.folder, storagePath);
+            } catch (folderError: any) {
+              if (!folderError.message?.includes('already exists')) {
+                this.logger.warn(`Failed to create thumbnail folder ${sizeName}:`, folderError.message);
+              }
+            }
+          }
+        } catch (thumbnailError: any) {
+          this.logger.warn('Failed to create thumbnail folders:', (thumbnailError as Error).message);
+        }
+      }
+    } catch (storageError: any) {
+      this.logger.error('Failed to create storage folder:', storageError);
+      throw new BadRequestException(
+        `Failed to create storage folder: ${storageError.message || 'Unknown error'}`
+      );
+    }
+
+    const parentIdForQuery = parentAlbum ? parentAlbum._id : null;
+    const maxOrderResult = await db
+      .collection('albums')
+      .find({ parentAlbumId: parentIdForQuery })
+      .sort({ order: -1 })
+      .limit(1)
+      .toArray();
+    const maxOrder = maxOrderResult.length > 0 ? (maxOrderResult[0].order || 0) + 1 : 0;
+
+    const albumData: any = {
+      name: createData.name,
+      alias: createData.alias.toLowerCase().trim(),
+      description: createData.description || '',
+      isPublic: createData.isPublic !== undefined ? createData.isPublic : false,
+      isFeatured: createData.isFeatured !== undefined ? createData.isFeatured : false,
+      storageProvider: createData.storageProvider,
+      storagePath,
+      parentAlbumId: parentAlbum ? parentAlbum._id : null,
+      parentPath,
+      level,
+      order: maxOrder,
+      photoCount: 0,
+      createdBy: new Types.ObjectId(userId),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      tags: [],
+      allowedGroups: [],
+      allowedUsers: [],
+    };
+
+    const result = await db.collection('albums').insertOne(albumData);
+    if (!result.insertedId) {
+      throw new InternalServerErrorException('Failed to create album');
+    }
+
+    const createdAlbum = await db.collection('albums').findOne({ _id: result.insertedId });
+    if (!createdAlbum) {
+      throw new InternalServerErrorException('Album was created but could not be retrieved');
+    }
+
+    const serialized: any = {
+      ...createdAlbum,
+      _id: createdAlbum._id.toString(),
+      createdBy: createdAlbum.createdBy?.toString() || null,
+      parentAlbumId: createdAlbum.parentAlbumId?.toString() || null,
+      coverPhotoId: createdAlbum.coverPhotoId?.toString() || null,
+      tags: createdAlbum.tags?.map((tag: any) => (tag._id ? tag._id.toString() : tag.toString())) || [],
+    };
+
+    return { success: true, data: serialized };
+  }
+
+  async findAll(
+    parentId?: string,
+    level?: string,
+    accessContext?: AlbumAccessContext | null,
+    mineOnly = false,
+  ) {
+    // When mine=true: only albums created by the current user; require auth
+    if (mineOnly) {
+      if (!accessContext?.userId) {
+        return [];
+      }
+      try {
+        const createdByMe = new Types.ObjectId(accessContext.userId);
+        const query: any = { $and: [{ createdBy: createdByMe }] };
+        if (parentId === 'root' || parentId === 'null') {
+          query.$and.push({ parentAlbumId: null });
+        } else if (parentId && parentId !== 'root' && parentId !== 'null') {
+          if (!Types.ObjectId.isValid(parentId)) {
+            this.logger.warn(`Invalid parentId format: ${parentId}`);
+            return [];
+          }
+          query.$and.push({ parentAlbumId: parentId });
+        }
+        if (level !== undefined) {
+          const levelNum = parseInt(level, 10);
+          if (!isNaN(levelNum)) query.$and.push({ level: levelNum });
+        }
+        const albums = await this.albumModel
+          .find(query)
+          .sort({ order: 1, createdAt: -1 })
+          .populate('coverPhotoId')
+          .exec();
+        return albums as any;
+      } catch {
+        return [];
+      }
+    }
+
+    const visibility = this.buildVisibilityCondition(accessContext);
+    const query: any = { $and: [visibility] };
+
     if (parentId === 'root' || parentId === 'null') {
-      query.parentAlbumId = null;
+      query.$and.push({ parentAlbumId: null });
     } else if (parentId) {
-      // Validate it's a valid ObjectId format first
       if (!Types.ObjectId.isValid(parentId)) {
         this.logger.warn(`Invalid parentId format: ${parentId}`);
         return [];
       }
-      // Use string directly - Mongoose automatically converts string IDs to ObjectId when querying ObjectId fields
-      // Explicit ObjectId conversion was causing issues, so let Mongoose handle it
-      query.parentAlbumId = parentId;
+      query.$and.push({ parentAlbumId: parentId });
     }
 
-    // Support level filter (for root albums, level 0)
     if (level !== undefined) {
       const levelNum = parseInt(level, 10);
       if (!isNaN(levelNum)) {
-        query.level = levelNum;
+        query.$and.push({ level: levelNum });
       }
     }
 
@@ -106,11 +344,11 @@ export class AlbumsService {
         this.logger.debug(`Alternative query 2 ($in) found ${albums.length} albums`);
       }
       
-      // Try 3: Find all and filter manually (fallback)
+      // Try 3: Find all matching visibility and filter by parentId manually (fallback)
       if (albums.length === 0) {
         this.logger.debug('Using manual filter as fallback...');
         const allAlbums = await this.albumModel
-          .find({})
+          .find(visibility)
           .sort({ order: 1, createdAt: -1 })
           .populate('coverPhotoId')
           .exec();
@@ -184,13 +422,11 @@ export class AlbumsService {
       this.logger.debug(`Count with $or query (ObjectId, string, $eq ObjectId): ${countWithOr} albums`      );
     }
     
-    // Calculate childAlbumCount for each album
+    // Calculate childAlbumCount for each album (same visibility as list)
     const albumsWithChildCount = await Promise.all(
       albums.map(async (album) => {
-        const childCount = await this.albumModel.countDocuments({
-          parentAlbumId: album._id,
-          isPublic: true,
-        });
+        const childQuery = { parentAlbumId: album._id, ...visibility };
+        const childCount = await this.albumModel.countDocuments(childQuery);
         const albumObj = album.toObject ? album.toObject() : (album as any);
         return {
           ...albumObj,
@@ -205,26 +441,24 @@ export class AlbumsService {
     return albumsWithChildCount;
   }
 
-  async findOneByIdOrAlias(idOrAlias: string) {
-    let album;
+  async findOneByIdOrAlias(idOrAlias: string, accessContext?: AlbumAccessContext | null) {
+    let album: any;
 
-    // Check if valid ObjectId
     if (idOrAlias.match(/^[0-9a-fA-F]{24}$/)) {
       album = await this.albumModel
         .findById(idOrAlias)
-        .select('+name +description') // Explicitly include name and description fields
+        .select('+name +description')
         .populate('coverPhotoId')
-        .lean() // Use lean() to get plain object and avoid schema type issues
+        .lean()
         .exec();
     }
 
-    // If not found by ID, try alias
     if (!album) {
       album = await this.albumModel
         .findOne({ alias: idOrAlias })
-        .select('+name +description') // Explicitly include name and description fields
+        .select('+name +description')
         .populate('coverPhotoId')
-        .lean() // Use lean() to get plain object and avoid schema type issues
+        .lean()
         .exec();
     }
 
@@ -232,20 +466,28 @@ export class AlbumsService {
       throw new NotFoundException('Album not found');
     }
 
-    // Debug log to see what we got
+    if (!this.canAccessAlbum(album, accessContext)) {
+      throw new NotFoundException('Album not found');
+    }
+
     this.logger.debug(`findOneByIdOrAlias - album.name: ${JSON.stringify(album.name)}`);
     this.logger.debug(`findOneByIdOrAlias - album keys: ${JSON.stringify(Object.keys(album))}`);
 
     return album;
   }
 
-  async findByAlias(alias: string) {
+  async findByAlias(alias: string, accessContext?: AlbumAccessContext | null) {
     const album = await this.albumModel
       .findOne({ alias })
       .populate('coverPhotoId')
+      .lean()
       .exec();
 
     if (!album) {
+      throw new NotFoundException('Album not found');
+    }
+
+    if (!this.canAccessAlbum(album, accessContext)) {
       throw new NotFoundException('Album not found');
     }
 
@@ -256,17 +498,26 @@ export class AlbumsService {
     albumId: string,
     page = 1,
     limit = 50,
+    accessContext?: AlbumAccessContext | null,
   ) {
-    const skip = (page - 1) * limit;
+    const album = await this.albumModel.findById(albumId).lean().exec();
+    if (!album || !this.canAccessAlbum(album, accessContext)) {
+      throw new NotFoundException('Album not found');
+    }
 
-    // Convert albumId to ObjectId for proper query matching
+    const skip = (page - 1) * limit;
     const albumObjectId = new Types.ObjectId(albumId);
-    
-    this.logger.debug(`findPhotosByAlbumId - Querying photos for albumId: ${albumId}`);
+
+    // Album creator (owner) sees all photos including unpublished; others only published
+    const createdByStr = album.createdBy?.toString?.() ?? album.createdBy;
+    const isCreator = !!(accessContext?.userId && createdByStr === accessContext.userId);
+    const publishedFilter = isCreator ? {} : { isPublished: true };
+
+    this.logger.debug(`findPhotosByAlbumId - Querying photos for albumId: ${albumId}, isCreator: ${isCreator}`);
     this.logger.debug(`findPhotosByAlbumId - albumObjectId: ${albumObjectId.toString()}`);
 
     let photos: any[] = [];
-    let query: any = { albumId: albumObjectId, isPublished: true };
+    let query: any = { albumId: albumObjectId, ...publishedFilter };
     
     // Try query with ObjectId first
     photos = await this.photoModel
@@ -285,7 +536,7 @@ export class AlbumsService {
     // If no results, try with string ID
     if (photos.length === 0) {
       this.logger.debug('findPhotosByAlbumId - Trying query with string ID...');
-      query = { albumId: albumId, isPublished: true };
+      query = { albumId: albumId, ...publishedFilter };
       photos = await this.photoModel
         .find(query)
         .sort({ uploadedAt: -1 })
@@ -310,7 +561,7 @@ export class AlbumsService {
       const nativePhotos = await photosCollection
         .find({ 
           albumId: albumObjectId,
-          isPublished: true 
+          ...publishedFilter 
         })
         .sort({ uploadedAt: -1 })
         .skip(skip)
@@ -331,7 +582,7 @@ export class AlbumsService {
         const nativePhotosString = await photosCollection
           .find({ 
             albumId: albumId,
-            isPublished: true 
+            ...publishedFilter 
           })
           .sort({ uploadedAt: -1 })
           .skip(skip)
@@ -491,15 +742,15 @@ export class AlbumsService {
   /**
    * Get complete album data including sub-albums and photos
    */
-  async getAlbumData(idOrAlias: string, page = 1, limit = 50) {
-    // Get the album
-    const album = await this.findOneByIdOrAlias(idOrAlias);
+  async getAlbumData(idOrAlias: string, page = 1, limit = 50, accessContext?: AlbumAccessContext | null) {
+    const album = await this.findOneByIdOrAlias(idOrAlias, accessContext);
     if (!album) {
       throw new NotFoundException('Album not found');
     }
 
     const albumId = album._id.toString();
     const albumObjectId = new Types.ObjectId(albumId);
+    const subVisibility = this.buildVisibilityCondition(accessContext);
 
     // Get sub-albums - try multiple query approaches
     this.logger.debug(`getAlbumData - Querying sub-albums for albumId: ${albumId}`);
@@ -539,10 +790,7 @@ export class AlbumsService {
       // Try query with string ID first
       this.logger.debug('getAlbumData - Native query with string ID:', albumId);
       const nativeQueryString = await albumsCollection
-        .find({ 
-          parentAlbumId: albumId,
-          isPublic: true 
-        })
+        .find({ parentAlbumId: albumId, ...subVisibility })
         .sort({ order: 1 })
         .toArray();
       
@@ -552,10 +800,7 @@ export class AlbumsService {
       if (nativeQueryString.length === 0) {
         this.logger.debug('getAlbumData - Native query with ObjectId:', albumObjectId.toString());
         const nativeQueryObjectId = await albumsCollection
-          .find({ 
-            parentAlbumId: albumObjectId,
-            isPublic: true 
-          })
+          .find({ parentAlbumId: albumObjectId, ...subVisibility })
           .sort({ order: 1 })
           .toArray();
         
@@ -605,7 +850,7 @@ export class AlbumsService {
       this.logger.debug('getAlbumData - Database connection not available, falling back to Mongoose query');
       // Fallback to Mongoose query
       const mongooseResults = await this.albumModel
-        .find({ parentAlbumId: albumObjectId, isPublic: true })
+        .find({ parentAlbumId: albumObjectId, ...subVisibility })
         .select('+name +description')
         .sort({ order: 1 })
         .lean()
@@ -630,7 +875,7 @@ export class AlbumsService {
 
     // Get photos
     this.logger.debug(`getAlbumData - Fetching photos for albumId: ${albumId}`);
-    const photosData = await this.findPhotosByAlbumId(albumId, page, limit);
+    const photosData = await this.findPhotosByAlbumId(albumId, page, limit, accessContext);
     this.logger.debug(`getAlbumData - Received ${photosData.photos.length} photos`);
 
     // Serialize album (album is already a plain object from lean())
@@ -664,9 +909,13 @@ export class AlbumsService {
 
   /**
    * Get album cover image
-   * Returns the leading photo URL or site logo
+   * Returns the leading photo URL or site logo. Returns 404 if album not found or no access.
    */
-  async getAlbumCoverImage(albumId: string) {
+  async getAlbumCoverImage(albumId: string, accessContext?: AlbumAccessContext | null) {
+    const album = await this.albumModel.findById(albumId).lean().exec();
+    if (!album || !this.canAccessAlbum(album, accessContext)) {
+      throw new NotFoundException('Album not found');
+    }
     const result = await AlbumLeadingPhotoService.getAlbumLeadingPhoto(albumId);
     const coverImageUrl = await AlbumLeadingPhotoService.getAlbumCoverImageUrl(albumId);
     
@@ -680,30 +929,135 @@ export class AlbumsService {
 
   /**
    * Get cover images for multiple albums
-   * Returns a map of albumId -> cover image URL
+   * Returns a map of albumId -> cover image URL. Only includes albums the user can access.
    */
-  async getMultipleAlbumCoverImages(albumIds: string[]): Promise<Record<string, string>> {
-    const coverImageUrls = await AlbumLeadingPhotoService.getMultipleAlbumCoverImageUrls(albumIds);
+  async getMultipleAlbumCoverImages(albumIds: string[], accessContext?: AlbumAccessContext | null): Promise<Record<string, string>> {
+    if (albumIds.length === 0) return {};
+    const albums = await this.albumModel.find({ _id: { $in: albumIds.map(id => new Types.ObjectId(id)) } }).lean().exec();
+    const allowedIds = albums.filter(a => this.canAccessAlbum(a, accessContext)).map(a => a._id.toString());
+    const coverImageUrls = await AlbumLeadingPhotoService.getMultipleAlbumCoverImageUrls(allowedIds);
     const result: Record<string, string> = {};
-    
     for (const [albumId, url] of coverImageUrls) {
       result[albumId] = url;
     }
-    
     return result;
   }
 
   /**
-   * Get albums hierarchy (tree structure)
-   * Returns albums organized in a tree with children nested
+   * Update an album. Caller must be admin or owner; owner can only update albums they created.
+   * Used by PUT /albums/:id (owner/admin).
    */
-  async getHierarchy(includePrivate: boolean = false) {
-    const query: any = {};
-    
-    // If not including private albums, filter by isPublic
-    if (!includePrivate) {
-      query.isPublic = true;
+  async updateAlbum(
+    id: string,
+    updateData: {
+      name?: string | Record<string, string>;
+      description?: string | Record<string, string>;
+      isPublic?: boolean;
+      isFeatured?: boolean;
+      showExifData?: boolean;
+      order?: number;
+      tags?: string[];
+      people?: string[];
+      location?: string | null;
+      allowedUsers?: string[];
+      allowedGroups?: string[];
+      metadata?: Record<string, unknown>;
+    },
+    context: { userId: string; role: string },
+  ): Promise<any> {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new NotFoundException('Album not found');
     }
+    const objectId = new Types.ObjectId(id);
+    const album = await this.albumModel.findById(objectId).lean().exec();
+    if (!album) {
+      throw new NotFoundException('Album not found');
+    }
+    if (context.role === 'owner') {
+      const createdByStr = album.createdBy?.toString?.() ?? album.createdBy;
+      if (createdByStr !== context.userId) {
+        throw new ForbiddenException('You can only edit albums you created');
+      }
+    } else if (context.role !== 'admin') {
+      throw new ForbiddenException('Only admin or owner can update albums');
+    }
+
+    const update: any = { updatedAt: new Date() };
+    if (updateData.name !== undefined) {
+      update.name = typeof updateData.name === 'string' ? updateData.name : updateData.name;
+    }
+    if (updateData.description !== undefined) {
+      update.description =
+        updateData.description === null || updateData.description === ''
+          ? ''
+          : typeof updateData.description === 'string'
+            ? updateData.description
+            : updateData.description;
+    }
+    if (updateData.isPublic !== undefined) update.isPublic = updateData.isPublic;
+    if (updateData.isFeatured !== undefined) update.isFeatured = updateData.isFeatured;
+    if (updateData.showExifData !== undefined) update.showExifData = updateData.showExifData;
+    if (updateData.order !== undefined) {
+      update.order = typeof updateData.order === 'number' ? updateData.order : parseInt(String(updateData.order), 10) || 0;
+    }
+    if (updateData.tags !== undefined && Array.isArray(updateData.tags)) {
+      update.tags = updateData.tags
+        .filter((tagId: any) => tagId && Types.ObjectId.isValid(tagId))
+        .map((tagId: any) => new Types.ObjectId(tagId));
+    }
+    if (updateData.people !== undefined && Array.isArray(updateData.people)) {
+      update.people = updateData.people
+        .filter((personId: any) => personId && Types.ObjectId.isValid(personId))
+        .map((personId: any) => new Types.ObjectId(personId));
+    }
+    if (updateData.location !== undefined) {
+      update.location =
+        updateData.location === null || updateData.location === ''
+          ? null
+          : Types.ObjectId.isValid(updateData.location)
+            ? new Types.ObjectId(updateData.location)
+            : typeof updateData.location === 'object' && updateData.location && (updateData.location as { _id?: string })._id
+              ? new Types.ObjectId((updateData.location as { _id: string })._id)
+              : null;
+    }
+    if (updateData.metadata !== undefined) update.metadata = updateData.metadata;
+    if (updateData.allowedUsers !== undefined && Array.isArray(updateData.allowedUsers)) {
+      update.allowedUsers = updateData.allowedUsers
+        .filter((userId: any) => userId && Types.ObjectId.isValid(userId))
+        .map((userId: any) => new Types.ObjectId(userId));
+    }
+    if (updateData.allowedGroups !== undefined && Array.isArray(updateData.allowedGroups)) {
+      update.allowedGroups = updateData.allowedGroups
+        .filter((alias: any) => typeof alias === 'string' && alias.trim() !== '')
+        .map((alias: any) => String(alias).trim());
+    }
+
+    await this.albumModel.updateOne({ _id: objectId }, { $set: update }).exec();
+    const updated = await this.albumModel.findById(objectId).lean().exec();
+    if (!updated) throw new NotFoundException('Album not found after update');
+
+    const doc = updated as any;
+    return {
+      ...doc,
+      _id: doc._id.toString(),
+      createdBy: doc.createdBy?.toString() || null,
+      parentAlbumId: doc.parentAlbumId?.toString() || null,
+      coverPhotoId: doc.coverPhotoId?.toString() || null,
+      tags: doc.tags?.map((t: any) => t?.toString?.() ?? t) || [],
+      people: doc.people?.map((p: any) => p?.toString?.() ?? p) || [],
+      location: doc.location?.toString?.() ?? doc.location ?? null,
+      allowedUsers: doc.allowedUsers?.map((u: any) => u?.toString?.() ?? u) || [],
+      allowedGroups: doc.allowedGroups || [],
+    };
+  }
+
+  /**
+   * Get albums hierarchy (tree structure)
+   * Returns albums organized in a tree with children nested.
+   * When includePrivate is false, uses visibility (public or allowed by accessContext).
+   */
+  async getHierarchy(includePrivate: boolean = false, accessContext?: AlbumAccessContext | null) {
+    const query: any = includePrivate ? {} : this.buildVisibilityCondition(accessContext);
 
     this.logger.debug(`AlbumsService.getHierarchy: includePrivate=${includePrivate}, query: ${JSON.stringify(query)}`);
 

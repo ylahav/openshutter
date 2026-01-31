@@ -286,7 +286,7 @@
 							{@const coverImageUrl = subAlbumCoverImages[subAlbum._id]}
 							{@const isLogo = coverImageUrl && (coverImageUrl.includes('/logos/') || coverImageUrl.includes('logo') || (coverImageUrl.includes('/api/storage/serve/') && coverImageUrl.includes('logo')))}
 							<a href={`/albums/${subAlbum.alias}`} class="group relative overflow-hidden rounded-2xl cursor-pointer transform transition-all duration-500 hover:scale-105 hover:z-10">
-								<div class="aspect-square bg-gradient-to-br from-purple-600 to-blue-600 relative overflow-hidden rounded-2xl">
+								<div class="aspect-square bg-linear-to-b from-purple-600 to-blue-600 relative overflow-hidden rounded-2xl">
 									{#if coverImageUrl}
 										<img
 											src={coverImageUrl}
@@ -296,7 +296,7 @@
 												: 'object-cover group-hover:scale-110 transition-transform duration-500'}"
 										/>
 									{:else}
-										<div class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-purple-600 to-blue-600">
+										<div class="absolute inset-0 flex items-center justify-center bg-linear-to-b from-purple-600 to-blue-600">
 											<svg class="w-16 h-16 text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
 												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 5a2 2 0 012-2h4a2 2 0 012 2v2H8V5z" />

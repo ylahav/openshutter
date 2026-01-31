@@ -4,21 +4,24 @@ import { backendGet, backendPost, parseBackendResponse } from '$lib/utils/backen
 import { logger } from '$lib/utils/logger';
 import { parseError } from '$lib/utils/errorHandler';
 
-export const GET: RequestHandler = async ({ url }) => {
+export const GET: RequestHandler = async ({ url, cookies }) => {
 	try {
 		const searchParams = url.searchParams;
 		const parentId = searchParams.get('parentId');
 		const level = searchParams.get('level');
+		const mine = searchParams.get('mine');
 
 		// Build query string
 		const queryParams = new URLSearchParams();
 		if (parentId) queryParams.set('parentId', parentId);
 		if (level) queryParams.set('level', level);
+		if (mine) queryParams.set('mine', mine);
 
 		const queryString = queryParams.toString();
 		const endpoint = `/albums${queryString ? `?${queryString}` : ''}`;
 
-		const response = await backendGet(endpoint);
+		// Forward cookies so backend can apply group/user access for logged-in users (e.g. guest)
+		const response = await backendGet(endpoint, { cookies });
 		const albums = await parseBackendResponse<any[]>(response);
 
 		return json(albums);
@@ -38,9 +41,9 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 		const body = await request.json();
 		logger.debug('[POST /api/albums] Body:', JSON.stringify(body, null, 2));
 		
-		// Proxy to backend admin albums endpoint
-		logger.debug('[POST /api/albums] Proxying to backend /admin/albums');
-		const response = await backendPost('/admin/albums', body, { cookies });
+		// Proxy to backend /albums (allows both owner and admin; /admin/albums is admin-only)
+		logger.debug('[POST /api/albums] Proxying to backend /albums');
+		const response = await backendPost('/albums', body, { cookies });
 		
 		logger.debug('[POST /api/albums] Backend response status:', response.status, response.statusText);
 		

@@ -33,6 +33,8 @@
 			url?: string;
 			thumbnailUrl?: string;
 		};
+		allowedGroups?: string[];
+		allowedUsers?: string[];
 		createdAt: string;
 		updatedAt: string;
 	}
@@ -562,7 +564,9 @@
 						order: a.order,
 						photoCount: a.photoCount,
 						isPublic: a.isPublic,
-						isFeatured: a.isFeatured
+						isFeatured: a.isFeatured,
+						allowedGroups: a.allowedGroups ?? [],
+						allowedUsers: a.allowedUsers ?? []
 					}))}
 					onReorder={handleReorder}
 					onOpen={handleOpen}

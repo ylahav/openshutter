@@ -496,6 +496,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
   - Can edit profile and change password
 - **Guest**: Access to albums based on permissions
 
+User management (Admin → Users) includes assigning **role** (admin/owner/guest) and **groups**; groups are used to limit who can access specific albums (see **Groups** below).
+
 ### Role-Based Redirects
 - **Admin users**: Redirected to `/admin` after login
 - **Owner users**: Redirected to `/owner` (owner dashboard) after login
@@ -505,6 +507,32 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Albums track who created them via `createdBy` field
 - Owners can only edit/delete albums they created
 - Admins can manage all albums regardless of ownership
+
+### Groups (user role & permissions)
+- **Groups** limit access to specific albums and are part of user role/permission management.
+- **Users** have `groupAliases`: the list of groups they belong to (set in Admin → Users when creating/editing a user).
+- **Albums** can be restricted with `allowedUsers` (specific user IDs) and/or `allowedGroups` (group aliases).
+- A user can access a restricted private album if they are in `allowedUsers` **or** if one of their `groupAliases` is in the album’s `allowedGroups`.
+- Admin → **Groups** defines groups (alias, name); Admin → **Users** assigns users to groups; album edit sets which groups (and users) can access that album.
+
+### Implementation status (user roles & groups)
+
+| Area | Status | Notes |
+|------|--------|--------|
+| **Admin → Users** | ✅ Done | Create/edit users with role (admin/owner/guest), groupAliases, blocked, storage providers. List with role/blocked filters. |
+| **Admin → Groups** | ✅ Done | CRUD groups (alias, name). |
+| **User/Album schema** | ✅ Done | User has `groupAliases`; Album has `allowedUsers`, `allowedGroups` in DB and create DTO. |
+| **Album edit – access control UI** | ❌ Missing | Admin album edit form has no fields for **allowedUsers** or **allowedGroups**. |
+| **Album update API** | ❌ Missing | Backend `UpdateAlbumDto` and PUT handler do not accept or persist `allowedUsers` / `allowedGroups`. |
+| **Album list by access** | ❌ Missing | Public albums API (`GET /api/albums`) only filters by `isPublic`. It does not receive the current user or filter by `allowedUsers` / `allowedGroups`, so restricted private albums are never returned to permitted users. |
+
+**Suggested next actions (in order):**
+1. **Backend**: Add `allowedUsers` and `allowedGroups` to `UpdateAlbumDto`; in admin PUT album handler, read and persist them (ObjectIds for allowedUsers, strings for allowedGroups).
+2. **Frontend**: In Admin → Albums → Edit, add an “Access” section: multi-select for **Groups** (from `/api/admin/groups`) and **Users** (from `/api/admin/users`), and send `allowedGroups` and `allowedUsers` in the update payload.
+3. **Backend**: For non-admin album listing, pass the current user (e.g. from auth) into the albums API and filter albums by: `isPublic` OR `createdBy === user.id` OR `user.id` in `allowedUsers` OR any of `user.groupAliases` in `allowedGroups`. Apply the same logic to hierarchy and single-album endpoints when used for non-admin.
+4. **Frontend**: Ensure `/api/albums` (and hierarchy) are called with credentials so the backend can identify the user; if the backend needs a “mine” or “forCurrentUser” mode, add and forward that parameter.
+
+After (1)–(4), “User role management” (including groups for album access) can be marked complete on the roadmap.
 
 ---
 

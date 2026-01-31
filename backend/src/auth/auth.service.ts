@@ -1,8 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { IUserDocument } from '../models/User';
 import * as bcrypt from 'bcryptjs';
+import { storageConfigService } from '../services/storage/config';
 
 const SALT_ROUNDS = 10;
 
@@ -94,5 +95,102 @@ export class AuthService {
       role: user.role || 'owner',
     };
   }
-}
 
+  async getProfile(userId: string): Promise<{ user: any }> {
+    const doc = await this.userModel.findById(userId).lean().exec();
+    if (!doc) {
+      return { user: null };
+    }
+    const u = doc as any;
+    return {
+      user: {
+        _id: u._id.toString(),
+        email: u.username,
+        name: u.name || {},
+        role: u.role || 'guest',
+        createdAt: u.createdAt,
+        updatedAt: u.updatedAt,
+      },
+    };
+  }
+
+  async updateProfile(
+    userId: string,
+    body: {
+      name?: Record<string, string> | string;
+      email?: string;
+      currentPassword?: string;
+      newPassword?: string;
+      bio?: any;
+      profileImage?: any;
+    },
+  ): Promise<{ user: any }> {
+    const user = await this.userModel.findById(userId).exec();
+    if (!user) {
+      return { user: null };
+    }
+
+    if (body.name !== undefined) {
+      user.name = typeof body.name === 'string' ? { en: body.name } : body.name;
+    }
+    if (body.email !== undefined && body.email.trim() !== '') {
+      user.username = body.email.trim().toLowerCase();
+    }
+
+    if (body.newPassword && body.newPassword.length >= 6) {
+      if (!body.currentPassword) {
+        throw new BadRequestException('Current password is required to set a new password');
+      }
+      const ok = await verifyPassword(body.currentPassword, user.passwordHash);
+      if (!ok) {
+        throw new BadRequestException('Current password is incorrect');
+      }
+      user.passwordHash = await hashPassword(body.newPassword);
+    }
+
+    await user.save();
+
+    const updated = await this.userModel.findById(userId).lean().exec();
+    const u = updated as any;
+    return {
+      user: {
+        _id: u._id.toString(),
+        email: u.username,
+        name: u.name || {},
+        role: u.role || 'guest',
+        createdAt: u.createdAt,
+        updatedAt: u.updatedAt,
+      },
+    };
+  }
+
+  /**
+   * Get storage options for the current user (enabled providers they are allowed to use).
+   * Admin sees all enabled; owner/guest see only providers in their allowedStorageProviders.
+   */
+  async getStorageOptions(userId: string): Promise<{ success: true; data: Array<{ id: string; name: string; type: string; isEnabled: boolean }> }> {
+    const doc = await this.userModel.findById(userId).select('allowedStorageProviders role').lean().exec();
+    if (!doc) {
+      return { success: true, data: [] };
+    }
+    const u = doc as any;
+    const role = u.role || 'guest';
+    const allowed: string[] = Array.isArray(u.allowedStorageProviders) ? u.allowedStorageProviders : [];
+
+    const configs = await storageConfigService.getAllConfigs();
+    let options = configs
+      .filter((c: any) => c.isEnabled !== false && (role === 'admin' || allowed.includes(c.providerId)))
+      .map((c: any) => ({
+        id: c.providerId,
+        name: c.name || c.providerId,
+        type: c.providerId,
+        isEnabled: true,
+      }));
+
+    if (options.length === 0 && (role === 'admin' || allowed.includes('local'))) {
+      options = [{ id: 'local', name: 'Local Storage', type: 'local', isEnabled: true }];
+    }
+
+    return { success: true, data: options };
+  }
+}

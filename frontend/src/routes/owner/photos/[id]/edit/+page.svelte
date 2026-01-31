@@ -15,6 +15,8 @@
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 
+	export let data: { photo?: any } | undefined;
+
 	interface Photo {
 		_id: string;
 		title?: string | { en?: string; he?: string };
@@ -98,9 +100,41 @@
 			lastLoadedPhotoId = null; // Reset so new photo can be loaded
 		}
 	}
+
+	// Use server-loaded photo when present (fixes auth on owner photo edit)
+	$: if (data?.photo && photoId === data.photo._id && !loadPhotoCalled) {
+		photo = data.photo;
+		lastLoadedPhotoId = photoId;
+		loadPhotoCalled = true;
+		loading = false;
+		error = '';
+		formData.title = typeof data.photo.title === 'string' ? { en: data.photo.title } : data.photo.title || {};
+		formData.description = typeof data.photo.description === 'string' ? { en: data.photo.description } : data.photo.description || {};
+		const descriptionEntries = Object.entries(formData.description || {}).filter(([, value]) => typeof value === 'string' && value.trim().length > 0);
+		const firstAvailableLanguage = descriptionEntries.length > 0 ? descriptionEntries[0][0] : 'en';
+		descriptionLanguage = ($currentLanguage && formData.description?.[$currentLanguage]?.trim()) ? $currentLanguage : (formData.description?.en?.trim() ? 'en' : firstAvailableLanguage) || $currentLanguage || 'en';
+		if ($currentLanguage && formData.description && !formData.description[$currentLanguage] && formData.description[descriptionLanguage]) {
+			formData.description = { ...formData.description, [$currentLanguage]: formData.description[descriptionLanguage] };
+		}
+		formData.isPublished = data.photo.isPublished || false;
+		formData.isLeading = data.photo.isLeading || false;
+		formData.isGalleryLeading = data.photo.isGalleryLeading || false;
+		formData.tags = data.photo.tags?.map((tag: any) => typeof tag === 'string' ? tag : tag._id?.toString() || tag.toString()) || [];
+		formData.people = data.photo.people?.map((person: any) => typeof person === 'string' ? person : person._id?.toString() || person.toString()) || [];
+		formData.location = data.photo.location ? (typeof data.photo.location === 'string' ? data.photo.location : (data.photo.location as any)._id?.toString() || String(data.photo.location)) : null;
+		formData.metadata = data.photo.metadata && typeof data.photo.metadata === 'object' ? { ...data.photo.metadata } : {};
+		const ex = data.photo.exif && typeof data.photo.exif === 'object' ? data.photo.exif : {};
+		const dt = ex.dateTime ?? ex.dateTimeOriginal ?? ex.dateTimeDigitized;
+		formData.exifOverrides = {
+			dateTime: dt ? (typeof dt === 'string' ? dt.slice(0, 16) : new Date(dt as Date).toISOString().slice(0, 16)) : '',
+			make: (ex.make as string) ?? '',
+			model: (ex.model as string) ?? '',
+		};
+		formData = { ...formData };
+	}
 	
 	// Load photo when photoId changes (for navigation between photos)
-	// Only trigger once per photoId change
+	// Only trigger once per photoId change; skip if we already applied server-loaded photo
 	$: if (browser && photoId && !loadPhotoCalled && photoId !== lastLoadedPhotoId) {
 		loadPhoto().catch((err) => {
 			logger.error('[Reactive] loadPhoto error:', err);
@@ -357,12 +391,12 @@
 				type: 'success',
 			};
 
-			// Redirect after a short delay
+			// Redirect after a short delay (owner: back to owner albums)
 			setTimeout(() => {
 				if (photo?.albumId) {
-					goto(`/admin/albums/${photo.albumId}`);
+					goto(`/owner/albums/${photo.albumId}`);
 				} else {
-					goto('/admin/albums');
+					goto('/owner/albums');
 				}
 			}, 1000);
 		} catch (err) {
@@ -592,7 +626,7 @@
 		{photo
 			? `${MultiLangUtils.getTextValue(photo.title, $currentLanguage) || photo.filename} - Edit Photo`
 			: 'Edit Photo'}
-		- Admin
+		- Owner
 	</title>
 </svelte:head>
 
@@ -607,7 +641,7 @@
 			<div class="text-center py-12">
 				<h1 class="text-2xl font-bold text-gray-900 mb-4">Error</h1>
 				<p class="text-gray-600 mb-4">{error}</p>
-				<a href="/admin/albums" class="btn-primary">Back to Albums</a>
+				<a href="/owner/albums" class="btn-primary">Back to Albums</a>
 			</div>
 		{:else if photo}
 			<!-- Header -->
@@ -624,7 +658,7 @@
 				</div>
 				{#if photo.albumId}
 					<a
-						href="/admin/albums/{photo.albumId}"
+						href="/owner/albums/{photo.albumId}"
 						class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
 					>
 						← Back to Album
@@ -1139,14 +1173,14 @@
 					<div class="flex justify-end space-x-3 pt-6 border-t border-gray-200">
 						{#if photo.albumId}
 							<a
-								href="/admin/albums/{photo.albumId}"
+								href="/owner/albums/{photo.albumId}"
 								class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
 							>
 								Cancel
 							</a>
 						{:else}
 							<a
-								href="/admin/albums"
+								href="/owner/albums"
 								class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
 							>
 								Cancel

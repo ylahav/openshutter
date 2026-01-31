@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsArray, IsBoolean, IsIn, MinLength } from 'class-validator';
+import { IsString, IsOptional, IsArray, IsBoolean, IsIn, MinLength, Allow, ValidateIf } from 'class-validator';
 import { MultiLangText } from '../../types/multi-lang';
 
 /**
@@ -6,15 +6,19 @@ import { MultiLangText } from '../../types/multi-lang';
  * Used by PUT /api/admin/users/:id.
  */
 export class UpdateUserDto {
+	/** Name is validated in controller (string or MultiLangText with at least one language). */
+	@Allow()
 	@IsOptional()
 	name?: string | MultiLangText;
-	
+
 	@IsString()
 	@IsOptional()
 	username?: string;
-	
-	@IsString()
+
+	/** Only validate length when a new password is provided (non-empty). Omit or leave empty to keep current password. */
 	@IsOptional()
+	@ValidateIf((o) => o.password != null && String(o.password).trim() !== '')
+	@IsString()
 	@MinLength(6)
 	password?: string;
 	

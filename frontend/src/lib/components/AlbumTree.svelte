@@ -17,6 +17,8 @@
 		photoCount?: number;
 		isPublic?: boolean;
 		isFeatured?: boolean;
+		allowedGroups?: string[];
+		allowedUsers?: string[];
 		childAlbumCount?: number;
 	}
 
@@ -495,7 +497,7 @@
 							tabindex="0"
 						>
 							<div class="flex-1 min-w-0">
-								<div class="flex items-center gap-2">
+								<div class="flex items-center gap-2 flex-wrap">
 									<span class="font-medium text-gray-900 truncate">{getAlbumName(node)}</span>
 									{#if node.isFeatured}
 										<span
@@ -509,6 +511,22 @@
 											class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800"
 										>
 											Private
+										</span>
+									{/if}
+									{#if (node.allowedGroups ?? []).length > 0}
+										<span
+											class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-800"
+											title="Restricted to groups: {(node.allowedGroups ?? []).join(', ')}"
+										>
+											Group: {(node.allowedGroups ?? []).join(', ')}
+										</span>
+									{/if}
+									{#if (node.allowedUsers ?? []).length > 0}
+										<span
+											class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-50 text-indigo-800"
+											title="Restricted to specific users"
+										>
+											Users
 										</span>
 									{/if}
 								</div>

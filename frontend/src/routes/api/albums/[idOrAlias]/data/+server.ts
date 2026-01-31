@@ -4,7 +4,7 @@ import { backendGet, parseBackendResponse } from '$lib/utils/backend-api';
 import { logger } from '$lib/utils/logger';
 import { parseError } from '$lib/utils/errorHandler';
 
-export const GET: RequestHandler = async ({ params, url }) => {
+export const GET: RequestHandler = async ({ params, url, cookies }) => {
 	try {
 		const { idOrAlias } = await params;
 		const searchParams = url.searchParams;
@@ -19,7 +19,7 @@ export const GET: RequestHandler = async ({ params, url }) => {
 		queryParams.set('limit', limit);
 
 		const endpoint = `/albums/${idOrAlias}/data?${queryParams.toString()}`;
-		const response = await backendGet(endpoint);
+		const response = await backendGet(endpoint, { cookies });
 		const albumData = await parseBackendResponse<any>(response);
 
 		return json(albumData);

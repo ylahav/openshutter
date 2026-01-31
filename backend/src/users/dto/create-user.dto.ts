@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsArray, IsBoolean, IsIn, MinLength, IsOptional } from 'class-validator';
+import { IsString, IsNotEmpty, IsArray, IsBoolean, IsIn, MinLength, IsOptional, Allow } from 'class-validator';
 import { MultiLangText } from '../../types/multi-lang';
 
 /**
@@ -6,8 +6,10 @@ import { MultiLangText } from '../../types/multi-lang';
  * Used by POST /api/admin/users.
  */
 export class CreateUserDto {
+	/** Name is validated in controller (string or MultiLangText with at least one language). */
+	@Allow()
 	name: string | MultiLangText;
-	
+
 	@IsString()
 	@IsNotEmpty()
 	username: string;

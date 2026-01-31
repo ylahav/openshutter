@@ -60,8 +60,9 @@
 		deleteSuccessMessage: 'User deleted successfully!',
 		transformPayload: (data: any) => {
 			const payload: any = { ...data };
-			// Only include password if it's been set (for updates)
-			if (payload.password && payload.password.trim() === '') {
+			// Only include password if it's been set (for updates: omit when empty so backend keeps current)
+			const p = payload.password;
+			if (p == null || (typeof p === 'string' && p.trim() === '')) {
 				delete payload.password;
 			}
 			return payload;

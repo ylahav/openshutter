@@ -4,7 +4,7 @@ import { backendGet, parseBackendResponse } from '$lib/utils/backend-api';
 import { logger } from '$lib/utils/logger';
 import { parseError } from '$lib/utils/errorHandler';
 
-export const GET: RequestHandler = async ({ params, url }) => {
+export const GET: RequestHandler = async ({ params, url, cookies }) => {
 	try {
 		const { alias } = await params;
 		const searchParams = url.searchParams;
@@ -26,7 +26,7 @@ export const GET: RequestHandler = async ({ params, url }) => {
 		// It uses findOneByIdOrAlias which checks both ID and alias
 		const endpoint = `/albums/${alias}/data?${queryParams.toString()}`;
 		logger.debug(`[API] Fetching album data for alias: ${alias} from endpoint: ${endpoint}`);
-		const response = await backendGet(endpoint);
+		const response = await backendGet(endpoint, { cookies });
 		
 		if (!response.ok) {
 			logger.error(`[API] Backend returned error for alias ${alias}:`, response.status, response.statusText);

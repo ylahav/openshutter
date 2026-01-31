@@ -41,7 +41,18 @@ export const handle: Handle = async ({ event, resolve }) => {
 	// This provides a better UX by redirecting before the page loads
 	const path = event.url.pathname;
 	if (path.startsWith('/admin') && !path.startsWith('/api/')) {
-		if (!event.locals.user || event.locals.user.role !== 'admin') {
+		if (!event.locals.user) {
+			return Response.redirect(new URL('/login?redirect=' + encodeURIComponent(path), event.url), 303);
+		}
+		// Owners: album management and photo upload/edit (backend enforces ownership); admins: all admin routes
+		const ownerAllowed =
+			path.startsWith('/admin/photos/upload') ||
+			/^\/admin\/photos\/[^/]+\/edit\/?$/.test(path) ||
+			path.startsWith('/admin/albums');
+		if (event.locals.user.role === 'owner' && !ownerAllowed) {
+			return Response.redirect(new URL('/login?redirect=' + encodeURIComponent(path), event.url), 303);
+		}
+		if (event.locals.user.role !== 'admin' && event.locals.user.role !== 'owner') {
 			return Response.redirect(new URL('/login?redirect=' + encodeURIComponent(path), event.url), 303);
 		}
 	}
