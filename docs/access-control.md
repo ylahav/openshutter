@@ -203,7 +203,7 @@ Owners can manage **their own** albums and photos using the same backend APIs as
 
 - **Backend**: `AdminOrOwnerGuard` allows both `admin` and `owner` roles. Controllers (`AlbumsAdminController`, `PhotosAdminController`) enforce ownership: owners may only access albums/photos where `album.createdBy === user.id`.
 - **Admin album APIs** (`/api/admin/albums/*`): Owners can call these; backend filters album list to own albums and checks ownership on get/update/delete/reorder.
-- **Admin photo APIs** (`/api/admin/photos/:id`, PUT, DELETE, regenerate-thumbnails, re-extract-exif; bulk/re-extract-exif, bulk/regenerate-thumbnails): Owners can call these; backend verifies the photo’s album was created by the owner before allowing access.
+- **Admin photo APIs** (`/api/admin/photos/:id`, PUT, DELETE, regenerate-thumbnails, re-extract-exif; bulk/re-extract-exif, bulk/regenerate-thumbnails, bulk/regenerate-thumbnails-stream): Owners can call these; backend verifies the photo’s album was created by the owner before allowing access.
 - **Frontend**: Owner album management uses `/owner/albums` and `/owner/albums/[id]`; photo edit uses **`/owner/photos/[id]/edit`** (not `/admin/photos/[id]/edit`). Photo edit page loads photo server-side when possible and falls back to client fetch with credentials.
 
 ## Error Handling

@@ -108,6 +108,7 @@ The Owner Dashboard provides a focused interface for users with the 'owner' role
 - `POST /api/admin/photos/:id/re-extract-exif` - Re-extract EXIF (owner: same check)
 - `POST /api/admin/photos/bulk/re-extract-exif` - Bulk re-extract EXIF (admin only in UI; backend allows owner for own album photos)
 - `POST /api/admin/photos/bulk/regenerate-thumbnails` - Bulk regenerate thumbnails (admin only in UI; backend allows owner for own album photos)
+- `POST /api/admin/photos/bulk/regenerate-thumbnails-stream` - Same, returns NDJSON stream for progress (admin UI uses this)
 - `GET /api/admin/albums`, `GET/PUT/DELETE /api/admin/albums/:id`, etc. - Album management (owner: filtered to own albums)
 
 ## User Interface

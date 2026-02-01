@@ -15,7 +15,7 @@ OpenShutter supports configurable EXIF display, per-photo and bulk re-extraction
 ## Regenerate thumbnails
 
 - **Per photo**: Photo edit page → "Regenerate thumbnails". Regenerates small/medium/large (and other) thumbnails with correct EXIF orientation.
-- **Bulk**: Album page → select photos → "Regenerate thumbnails". Same for all selected photos. API: `POST /api/admin/photos/bulk/regenerate-thumbnails` with body `{ photoIds: string[] }`.
+- **Bulk**: Album page → select photos → "Regenerate thumbnails". Same for all selected photos; the UI shows a **streaming progress bar** (e.g. "Regenerating thumbnails… 5/12") because the operation can take a long time. API: `POST /api/admin/photos/bulk/regenerate-thumbnails` (single JSON response) or `POST /api/admin/photos/bulk/regenerate-thumbnails-stream` (NDJSON stream: `progress` events per photo, then `done`).
 
 ## Manual EXIF overrides (merged on save)
 
@@ -28,7 +28,8 @@ Overrides are merged with existing EXIF; other fields are not wiped.
 
 - `POST /api/admin/photos/:id/re-extract-exif` — Re-extract EXIF for one photo.
 - `POST /api/admin/photos/bulk/re-extract-exif` — Re-extract EXIF for multiple photos; body: `{ photoIds: string[] }`.
-- `POST /api/admin/photos/bulk/regenerate-thumbnails` — Regenerate thumbnails (correct orientation) for multiple photos; body: `{ photoIds: string[] }`.
+- `POST /api/admin/photos/bulk/regenerate-thumbnails` — Regenerate thumbnails (correct orientation) for multiple photos; body: `{ photoIds: string[] }`; returns final JSON.
+- `POST /api/admin/photos/bulk/regenerate-thumbnails-stream` — Same input; response is NDJSON stream (`progress` per photo, then `done`) for progress UIs.
 - `PUT /api/admin/photos/:id` — Update photo; send `exif: { dateTime?, make?, model?, ... }` to merge overrides.
 - `POST /api/admin/photos/bulk-update` — Bulk update; send `updates.exif: { dateTime?, make?, model?, ... }` to merge EXIF for selected photos.
 

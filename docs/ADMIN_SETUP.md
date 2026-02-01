@@ -137,7 +137,7 @@ BACKEND_URL=http://localhost:5000
 - **Album Management**
   - Create, edit, and delete albums
   - Album photo grid: select photos one-by-one (checkbox on each photo) or "Select All" / "Deselect All". Bulk actions: Publish/Unpublish, Set Location, Set Tags, Set Metadata, Re-extract EXIF, Regenerate thumbnails.
-  - Regenerate thumbnails (per photo or bulk): corrects orientation in small/medium/large subfolders.
+  - Regenerate thumbnails (per photo or bulk): corrects orientation in small/medium/large subfolders. Bulk action shows a streaming progress bar ("Regenerating thumbnails… X/Y").
   - Recursive album deletion (deletes sub-albums and photos)
   - Delete albums from the albums list page or individual album pages
   - Album deletion removes photos from storage providers (Google Drive, Wasabi, AWS S3, Backblaze, Local)
