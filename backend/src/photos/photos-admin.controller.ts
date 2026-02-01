@@ -7,6 +7,7 @@ import {
 	Param,
 	Body,
 	Req,
+	Res,
 	UseGuards,
 	BadRequestException,
 	NotFoundException,
@@ -14,7 +15,7 @@ import {
 	Logger,
 	InternalServerErrorException,
 } from '@nestjs/common';
-import { Request } from 'express';
+import { Request, Response } from 'express';
 import { AdminOrOwnerGuard } from '../common/guards/admin-or-owner.guard';
 import { connectDB } from '../config/db';
 import mongoose, { Types } from 'mongoose';
@@ -756,6 +757,144 @@ export class PhotosAdminController {
 			throw new InternalServerErrorException(
 				`Bulk regenerate thumbnails failed: ${error instanceof Error ? error.message : 'Unknown error'}`
 			);
+		}
+	}
+
+	/**
+	 * Bulk regenerate thumbnails with streaming progress (NDJSON).
+	 * Path: POST /api/admin/photos/bulk/regenerate-thumbnails-stream
+	 */
+	@Post('bulk/regenerate-thumbnails-stream')
+	async bulkRegenerateThumbnailsStream(
+		@Body() body: { photoIds: string[] },
+		@Res({ passthrough: false }) res: Response,
+	) {
+		const send = (obj: object) => {
+			res.write(JSON.stringify(obj) + '\n');
+		};
+		try {
+			await connectDB();
+			const db = mongoose.connection.db;
+			if (!db) {
+				res.status(500).json({ success: false, error: 'Database connection not established' });
+				return;
+			}
+			const { photoIds } = body;
+			if (!Array.isArray(photoIds) || photoIds.length === 0) {
+				res.status(400).json({ success: false, error: 'photoIds must be a non-empty array' });
+				return;
+			}
+			const objectIds = photoIds.map((id) => {
+				if (!Types.ObjectId.isValid(id)) {
+					throw new BadRequestException(`Invalid photo ID: ${id}`);
+				}
+				return new Types.ObjectId(id);
+			});
+			const photos = await db.collection('photos').find({ _id: { $in: objectIds } }).toArray();
+			const total = photos.length;
+			let processedCount = 0;
+			let failedCount = 0;
+			const storageManager = StorageManager.getInstance();
+			const extractPathFromUrl = (url: string): string | null => {
+				if (!url) return null;
+				if (url.startsWith('/api/storage/serve/')) {
+					const match = url.match(/\/serve\/[^/]+\/(.+)$/);
+					return match ? decodeURIComponent(match[1]) : null;
+				}
+				return url;
+			};
+
+			res.setHeader('Content-Type', 'application/x-ndjson');
+			res.setHeader('Cache-Control', 'no-store');
+			res.flushHeaders();
+
+			for (const photo of photos) {
+				try {
+					if (!photo.storage?.path || !photo.storage?.provider) {
+						throw new Error('Photo has no storage path or provider');
+					}
+					const provider = photo.storage.provider as any;
+					const storageService = await storageManager.getProvider(provider);
+					const fileBuffer = await storageService.getFileBuffer(photo.storage.path);
+					if (!fileBuffer) {
+						throw new Error('Failed to download original image from storage');
+					}
+					let albumPath = '';
+					if (photo.albumId) {
+						const album = await db.collection('albums').findOne({ _id: photo.albumId });
+						if (album?.storagePath) albumPath = album.storagePath;
+					}
+					const thumbnailBuffers = await ThumbnailGenerator.generateAllThumbnails(fileBuffer, photo.filename);
+					const thumbnails: Record<string, string> = {};
+					if (photo.storage.thumbnails && typeof photo.storage.thumbnails === 'object') {
+						for (const [size, thumbnailUrl] of Object.entries(photo.storage.thumbnails)) {
+							try {
+								const thumbnailPath = extractPathFromUrl(thumbnailUrl as string);
+								if (thumbnailPath && thumbnailPath !== photo.storage.path) {
+									await storageManager.deletePhoto(thumbnailPath, provider);
+								}
+							} catch (_e) {
+								// continue
+							}
+						}
+					}
+					for (const [sizeName, buffer] of Object.entries(thumbnailBuffers)) {
+						try {
+							const sizeConfig = ThumbnailGenerator.getThumbnailSize(sizeName as any);
+							const thumbnailFilename = `${sizeName}-${photo.filename}`;
+							const sizeFolderPath = albumPath ? `${albumPath}/${sizeConfig.folder}` : sizeConfig.folder;
+							const thumbnailResult = await storageService.uploadFile(
+								buffer,
+								thumbnailFilename,
+								'image/jpeg',
+								sizeFolderPath,
+								{ originalFile: photo.filename, thumbnailSize: sizeName }
+							);
+							thumbnails[sizeName] = `/api/storage/serve/${provider}/${encodeURIComponent(thumbnailResult.path)}`;
+						} catch (err) {
+							this.logger.warn(`Failed to upload ${sizeName} thumbnail for ${photo.filename}: ${err}`);
+						}
+					}
+					const blurDataURL = await ThumbnailGenerator.generateBlurPlaceholder(fileBuffer);
+					const mediumThumbnail = thumbnails.medium || thumbnails.small || Object.values(thumbnails)[0];
+					await db.collection('photos').updateOne(
+						{ _id: photo._id },
+						{
+							$set: {
+								'storage.thumbnails': thumbnails,
+								'storage.thumbnailPath': mediumThumbnail,
+								'storage.blurDataURL': blurDataURL,
+								updatedAt: new Date()
+							}
+						}
+					);
+					processedCount++;
+					send({ event: 'progress', processed: processedCount + failedCount, total, processedCount, failedCount, success: true, photoId: photo._id.toString() });
+				} catch (err) {
+					failedCount++;
+					send({
+						event: 'progress',
+						processed: processedCount + failedCount,
+						total,
+						processedCount,
+						failedCount,
+						success: false,
+						photoId: photo._id.toString(),
+						error: err instanceof Error ? err.message : String(err)
+					});
+				}
+			}
+			const message = `Regenerated thumbnails for ${processedCount} photo(s)` + (failedCount > 0 ? `; ${failedCount} failed.` : '');
+			send({ event: 'done', success: true, processedCount, failedCount, totalRequested: photoIds.length, message });
+		} catch (error) {
+			this.logger.error(`Bulk regenerate thumbnails stream failed: ${error instanceof Error ? error.message : String(error)}`);
+			send({
+				event: 'done',
+				success: false,
+				error: error instanceof BadRequestException ? (error as any).message : 'Bulk regenerate thumbnails failed'
+			});
+		} finally {
+			res.end();
 		}
 	}
 

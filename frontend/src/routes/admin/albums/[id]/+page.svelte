@@ -89,6 +89,8 @@
 	let bulkExifMake: string = '';
 	let bulkExifModel: string = '';
 	let isBulkUpdating = false;
+	/** Progress for bulk regenerate thumbnails (streaming) */
+	let regenProgress: { total: number; processed: number; failed: number; inProgress: boolean } | null = null;
 
 	// Album and photo utility functions are now imported from shared utilities
 
@@ -467,37 +469,86 @@
 	}
 
 	async function bulkRegenerateThumbnails() {
-		if (selectedPhotoIds.size === 0 || isBulkUpdating) return;
+		if (selectedPhotoIds.size === 0 || isBulkUpdating || regenProgress?.inProgress) return;
 
 		isBulkUpdating = true;
 		error = '';
 		successMessage = '';
+		regenProgress = { total: selectedPhotoIds.size, processed: 0, failed: 0, inProgress: true };
 
 		try {
-			const response = await fetch('/api/admin/photos/bulk/regenerate-thumbnails', {
+			const response = await fetch('/api/admin/photos/bulk/regenerate-thumbnails-stream', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ photoIds: Array.from(selectedPhotoIds) })
 			});
 
-			const result = await response.json();
+			if (!response.ok) {
+				const err = await response.json().catch(() => ({}));
+				error = err.error || 'Failed to start regenerate thumbnails';
+				regenProgress = null;
+				isBulkUpdating = false;
+				return;
+			}
 
-			if (result.success) {
-				const msg = result.processedCount != null
-					? `Regenerated thumbnails for ${result.processedCount} photo(s)${result.failedCount > 0 ? `; ${result.failedCount} failed.` : ''}`
-					: (result.message || 'Regenerated thumbnails for selected photos.');
-				successMessage = msg;
+			const reader = response.body?.getReader();
+			if (!reader) {
+				error = 'No response stream';
+				regenProgress = null;
+				isBulkUpdating = false;
+				return;
+			}
+
+			const decoder = new TextDecoder();
+			let buffer = '';
+			let lastDone: { success: boolean; message?: string; error?: string } | null = null;
+
+			while (true) {
+				const { done, value } = await reader.read();
+				if (done) break;
+				buffer += decoder.decode(value, { stream: true });
+				const lines = buffer.split('\n');
+				buffer = lines.pop() ?? '';
+				for (const line of lines) {
+					if (!line.trim()) continue;
+					try {
+						const data = JSON.parse(line);
+						if (data.event === 'progress') {
+							regenProgress = {
+								total: data.total ?? regenProgress?.total ?? 0,
+								processed: data.processedCount ?? 0,
+								failed: data.failedCount ?? 0,
+								inProgress: true
+							};
+						} else if (data.event === 'done') {
+							lastDone = {
+								success: !!data.success,
+								message: data.message,
+								error: data.error
+							};
+						}
+					} catch (_e) {
+						// skip malformed lines
+					}
+				}
+			}
+
+			regenProgress = regenProgress ? { ...regenProgress, inProgress: false } : null;
+
+			if (lastDone?.success) {
+				successMessage = lastDone.message ?? `Regenerated thumbnails for ${regenProgress?.processed ?? 0} photo(s).`;
 				selectedPhotoIds.clear();
 				showBulkActions = false;
 				await loadPhotos();
 				setTimeout(() => { successMessage = ''; }, 4000);
-			} else {
-				error = result.error || 'Failed to regenerate thumbnails';
+			} else if (lastDone && !lastDone.success) {
+				error = lastDone.error ?? 'Failed to regenerate thumbnails';
 			}
 		} catch (err) {
 			logger.error('Bulk regenerate thumbnails failed:', err);
 			error = `Failed to regenerate thumbnails: ${err instanceof Error ? err.message : 'Unknown error'}`;
 		} finally {
+			regenProgress = null;
 			isBulkUpdating = false;
 		}
 	}
@@ -670,7 +721,7 @@
 								</button>
 								<button
 									on:click={bulkRegenerateThumbnails}
-									disabled={isBulkUpdating}
+									disabled={isBulkUpdating || (regenProgress?.inProgress ?? false)}
 									class="px-3 py-1 text-sm bg-amber-600 text-white rounded-md hover:bg-amber-700 disabled:opacity-50"
 									title="Regenerate small/medium/large thumbnails with correct orientation"
 								>
@@ -683,6 +734,25 @@
 									Cancel
 								</button>
 							</div>
+						</div>
+					</div>
+				{/if}
+
+				{#if regenProgress?.inProgress}
+					<div class="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+						<div class="flex items-center justify-between mb-2">
+							<span class="text-sm font-medium text-amber-900">
+								Regenerating thumbnails… {regenProgress.processed + regenProgress.failed}/{regenProgress.total}
+								{#if regenProgress.failed > 0}
+									<span class="text-amber-700">({regenProgress.failed} failed)</span>
+								{/if}
+							</span>
+						</div>
+						<div class="w-full bg-amber-200 rounded-full h-2.5">
+							<div
+								class="bg-amber-600 h-2.5 rounded-full transition-all duration-300"
+								style="width: {regenProgress.total ? Math.round(((regenProgress.processed + regenProgress.failed) / regenProgress.total) * 100) : 0}%"
+							></div>
 						</div>
 					</div>
 				{/if}
