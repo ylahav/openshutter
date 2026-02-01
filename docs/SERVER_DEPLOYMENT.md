@@ -81,6 +81,15 @@ Before starting the services, ensure these are configured correctly:
    - Copy the same value to both files
    - This is critical for authentication to work
 
+3. **Google Drive on deployed servers** (if you use Google Drive storage):
+   - **Recommended: Use Service Account** instead of OAuth to avoid connection issues on production:
+     - In Admin → Storage → Google Drive, set **Auth method** to **Service account**.
+     - Create a service account in [Google Cloud Console](https://console.cloud.google.com/iam-admin/serviceaccounts), download its JSON key.
+     - Paste the full JSON into **Service account JSON**, or set **Client email** and **Private key**.
+     - Create a folder in Google Drive (or use an existing one), share it with the **service account email** (Editor), and set **Folder ID** to that folder’s ID.
+     - No redirect URI or refresh token needed; works on any server.
+   - **If you keep OAuth**: Add your production callback URL in [Google Cloud Console](https://console.cloud.google.com/apis/credentials) (e.g. `https://yourdomain.com/api/auth/google/callback`). In storage config, set **Redirect URI** to that exact URL and re-authorize from the **deployed** site so the refresh token is issued for production.
+
 ### Create Production Environment Files
 
 The deployment package includes example files. Simply copy them and update with your values:

@@ -11,7 +11,7 @@
 	import FaceDetectionViewer from '$lib/components/FaceDetectionViewer.svelte';
 	import FaceMatchingPanel from '$lib/components/FaceMatchingPanel.svelte';
 	import CollectionPopup from '$lib/components/CollectionPopup.svelte';
-	import { getPhotoUrl, getPhotoFullUrl } from '$lib/utils/photoUrl';
+	import { getPhotoUrl, getPhotoFullUrl, getPhotoRotationStyle } from '$lib/utils/photoUrl';
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 
@@ -71,6 +71,7 @@
 	let loading = true;
 	let saving = false;
 	let regeneratingThumbnails = false;
+	let rotatingPhoto = false;
 	let error = '';
 	let notification = { show: false, message: '', type: 'success' as 'success' | 'error' };
 	
@@ -433,6 +434,38 @@
 		}
 	}
 
+	async function handleRotate(angle: 90 | -90 | 180) {
+		if (!photo || rotatingPhoto) return;
+		try {
+			rotatingPhoto = true;
+			error = '';
+			const response = await fetch(`/api/admin/photos/${photoId}/rotate`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				credentials: 'include',
+				body: JSON.stringify({ angle }),
+			});
+			if (!response.ok) await handleApiErrorResponse(response);
+			const result = await response.json();
+			const updatedPhotoData = result.data || result;
+			if (updatedPhotoData?.storage) {
+				photo = { ...photo, storage: updatedPhotoData.storage };
+			}
+			notification = { show: true, message: result.message || 'Photo rotated', type: 'success' };
+			setTimeout(() => {
+				loadPhotoCalled = false;
+				lastLoadedPhotoId = null;
+				loadPhoto();
+			}, 500);
+		} catch (err) {
+			logger.error('Failed to rotate photo:', err);
+			error = handleError(err, 'Failed to rotate photo');
+			notification = { show: true, message: error, type: 'error' };
+		} finally {
+			rotatingPhoto = false;
+		}
+	}
+
 	async function handleReExtractExif() {
 		if (!photo || reExtractingExif) return;
 		try {
@@ -642,7 +675,7 @@
 								src={photoUrl}
 								alt={MultiLangUtils.getTextValue(photo.title, $currentLanguage) || photo.filename}
 								class="max-w-full max-h-96 object-contain rounded-lg"
-								style="image-orientation: from-image;"
+								style="image-orientation: from-image; {getPhotoRotationStyle(photo)}"
 								on:error={(e) => {
 									const target = e.currentTarget as HTMLImageElement;
 									logger.error('[Photo Edit] Image load error:', {
@@ -678,6 +711,42 @@
 							{photo.dimensions.width} × {photo.dimensions.height} pixels
 						</p>
 					{/if}
+					<!-- Rotate -->
+					<div class="mt-4">
+						<p class="text-xs font-medium text-gray-700 mb-2">Rotate</p>
+						<div class="flex flex-wrap gap-2">
+							<button
+								type="button"
+								on:click={() => handleRotate(-90)}
+								disabled={rotatingPhoto}
+								class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+								title="90° counter-clockwise"
+							>
+								↺ 90° CCW
+							</button>
+							<button
+								type="button"
+								on:click={() => handleRotate(90)}
+								disabled={rotatingPhoto}
+								class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+								title="90° clockwise"
+							>
+								90° CW ↻
+							</button>
+							<button
+								type="button"
+								on:click={() => handleRotate(180)}
+								disabled={rotatingPhoto}
+								class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+								title="180°"
+							>
+								180°
+							</button>
+						</div>
+						{#if rotatingPhoto}
+							<p class="text-xs text-gray-500 mt-1">Rotating…</p>
+						{/if}
+					</div>
 					<div class="mt-4 text-center">
 						<button
 							type="button"
@@ -929,6 +998,7 @@
 								<FaceDetectionViewer
 									imageUrl={photoUrlForFaceRec}
 									photoId={photoId}
+									rotation={photo.rotation}
 									detectedFaces={photo.faceRecognition?.faces || []}
 									getFaceLabel={getFaceLabel}
 									people={people}

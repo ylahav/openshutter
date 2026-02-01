@@ -3,9 +3,12 @@
 	import { FaceRecognitionService, type FaceDetection } from '../../services/face-recognition';
 	import { logger } from '$lib/utils/logger';
 	import { handleError } from '$lib/utils/errorHandler';
+	import { getPhotoRotationStyle } from '$lib/utils/photoUrl';
 
 	export let imageUrl: string;
 	export let photoId: string;
+	/** Display-only rotation: 90, -90, or 180. Applied via CSS transform. */
+	export let rotation: number | undefined = undefined;
 	export let detectedFaces: Array<{
 		box: { x: number; y: number; width: number; height: number };
 		landmarks?: {
@@ -43,6 +46,44 @@
 	let pendingManualBox: { x: number; y: number; width: number; height: number } | null = null;
 	let canvas: HTMLCanvasElement;
 	let image: HTMLImageElement;
+	/** Track previous rotation to trigger re-detect when rotation changes. */
+	let prevRotation: number | undefined = undefined;
+	/** One-time: re-detect when photo has rotation + existing faces so boxes use rotated coords. */
+	let didRedetectForRotation = false;
+
+	/**
+	 * Create an offscreen canvas with the image drawn at the given display rotation.
+	 * Face detection runs on this so box coordinates match the displayed orientation.
+	 */
+	function createRotatedCanvas(
+		img: HTMLImageElement,
+		rot: number
+	): HTMLCanvasElement {
+		const w = img.naturalWidth;
+		const h = img.naturalHeight;
+		const is90 = rot === 90 || rot === -90;
+		const c = document.createElement('canvas');
+		c.width = is90 ? h : w;
+		c.height = is90 ? w : h;
+		const ctx = c.getContext('2d');
+		if (!ctx) return c;
+		ctx.save();
+		if (rot === 90) {
+			ctx.translate(c.width, 0);
+			ctx.rotate((90 * Math.PI) / 180);
+			ctx.drawImage(img, 0, 0, w, h, 0, 0, w, h);
+		} else if (rot === -90) {
+			ctx.translate(0, c.height);
+			ctx.rotate((-90 * Math.PI) / 180);
+			ctx.drawImage(img, 0, 0, w, h, 0, 0, w, h);
+		} else if (rot === 180) {
+			ctx.translate(c.width, c.height);
+			ctx.rotate(Math.PI);
+			ctx.drawImage(img, 0, 0, w, h, 0, 0, w, h);
+		}
+		ctx.restore();
+		return c;
+	}
 
 	onMount(async () => {
 		if (typeof window === 'undefined') return;
@@ -83,9 +124,16 @@
 		canvas.width = displayWidth;
 		canvas.height = displayHeight;
 		
-		// Calculate scale factors
-		const scaleX = displayWidth / image.naturalWidth;
-		const scaleY = displayHeight / image.naturalHeight;
+		// Face boxes are in "source" coords: rotated canvas when rotation is set, else natural image
+		const hasRotation = rotation === 90 || rotation === -90 || rotation === 180;
+		const sourceWidth = hasRotation && (rotation === 90 || rotation === -90)
+			? image.naturalHeight
+			: image.naturalWidth;
+		const sourceHeight = hasRotation && (rotation === 90 || rotation === -90)
+			? image.naturalWidth
+			: image.naturalHeight;
+		const scaleX = displayWidth / sourceWidth;
+		const scaleY = displayHeight / sourceHeight;
 
 		// Clear canvas
 		ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -153,6 +201,26 @@
 		drawFaces();
 	}
 
+	// When rotation changes and we have existing faces, recalculate face detection so boxes match the new orientation
+	$: if (prevRotation !== undefined && rotation !== prevRotation && (faces.length > 0 || detectedFaces.length > 0)) {
+		prevRotation = rotation;
+		didRedetectForRotation = true;
+		handleDetectFaces();
+	} else if (prevRotation === undefined) {
+		prevRotation = rotation;
+	}
+	// One-time: photo already has rotation + faces from server; re-detect so boxes are in rotated coords
+	$: if (
+		!didRedetectForRotation &&
+		(rotation === 90 || rotation === -90 || rotation === 180) &&
+		detectedFaces.length > 0 &&
+		image?.complete &&
+		modelsLoaded
+	) {
+		didRedetectForRotation = true;
+		handleDetectFaces();
+	}
+
 	async function handleDetectFaces() {
 		if (!image || !modelsLoaded) {
 			onError?.('Image not loaded or models not ready');
@@ -161,9 +229,14 @@
 
 		isDetecting = true;
 		try {
-			let detections = await FaceRecognitionService.detectFaces(image);
+			// When rotation is set, run detection on a rotated canvas so box coords match display
+			const hasRotation = rotation === 90 || rotation === -90 || rotation === 180;
+			const input: HTMLImageElement | HTMLCanvasElement = hasRotation
+				? createRotatedCanvas(image, rotation!)
+				: image;
+			let detections = await FaceRecognitionService.detectFaces(input);
 			if (detections.length === 0) {
-				const lowThresholdDetections = await FaceRecognitionService.detectFaces(image, {
+				const lowThresholdDetections = await FaceRecognitionService.detectFaces(input, {
 					scoreThreshold: 0.1,
 				});
 				if (lowThresholdDetections.length > 0) {
@@ -371,7 +444,7 @@
 				src={imageUrl}
 				alt="Photo"
 				class="max-w-full h-auto block"
-				style="max-height: 80vh;"
+				style="max-height: 80vh; {getPhotoRotationStyle({ rotation })}"
 				on:load={handleImageLoad}
 			/>
 			<canvas

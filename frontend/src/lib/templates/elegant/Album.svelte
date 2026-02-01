@@ -8,7 +8,7 @@
 	import MultiLangText from '$lib/components/MultiLangText.svelte';
 	import AlbumBreadcrumbs from '$lib/components/AlbumBreadcrumbs.svelte';
 	import PhotoLightbox from '$lib/components/PhotoLightbox.svelte';
-	import { getPhotoUrl } from '$lib/utils/photoUrl';
+	import { getPhotoUrl, getPhotoRotationStyle } from '$lib/utils/photoUrl';
 	import { logger } from '$lib/utils/logger';
 
 	interface AlbumData {
@@ -193,7 +193,7 @@
 										class={hasDimensions && aspectRatio < 1 
 											? "w-full h-full object-cover hover:scale-110 transition-all duration-300 " + (photoLoaded[photo._id] ? 'opacity-100' : 'opacity-30')
 											: "absolute inset-0 w-full h-full object-cover hover:scale-110 transition-all duration-300 " + (photoLoaded[photo._id] ? 'opacity-100' : 'opacity-30')}
-										style="image-orientation: from-image;"
+										style="image-orientation: from-image; {getPhotoRotationStyle(photo)}"
 										on:load={() => { photoLoaded = { ...photoLoaded, [photo._id]: true }; }}
 										on:error={() => { photoLoaded = { ...photoLoaded, [photo._id]: true }; }}
 									/>

@@ -54,6 +54,8 @@ export interface IPhoto extends Document {
     rating?: number
     [key: string]: any
   }
+  /** Display rotation in degrees (0, 90, -90, 180). Applied when displaying; file is unchanged. */
+  rotation?: number
   faceRecognition?: {
     faces: Array<{
       descriptor: number[] // 128D face descriptor vector
@@ -164,6 +166,10 @@ export const PhotoSchema = new Schema<IPhoto>({
   updatedAt: {
     type: Date,
     default: Date.now
+  },
+  rotation: {
+    type: Number,
+    default: 0
   },
   exif: {
     make: String,

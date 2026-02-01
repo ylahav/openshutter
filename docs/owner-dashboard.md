@@ -91,7 +91,7 @@ The Owner Dashboard provides a focused interface for users with the 'owner' role
 
 #### Capabilities
 - **Upload photos** (`/owner/albums/[id]` → Upload, or `/admin/photos/upload?albumId=...&returnTo=/owner/albums`): Upload photos into albums the owner created.
-- **Edit photo** (`/owner/photos/[id]/edit`): Edit metadata (title, description, tags, people, location, EXIF overrides), publish state, and regenerate thumbnails or re-extract EXIF. Only photos in albums created by the owner are accessible.
+- **Edit photo** (`/owner/photos/[id]/edit`): Edit metadata (title, description, tags, people, location, EXIF overrides), publish state; rotate photo (90° CW/CCW, 180°); regenerate thumbnails or re-extract EXIF. Only photos in albums created by the owner are accessible.
 - **Delete photo**: From the album detail page, delete a photo (with confirmation). Only photos in own albums.
 
 #### Owner Photo Edit Page
@@ -105,6 +105,7 @@ The Owner Dashboard provides a focused interface for users with the 'owner' role
 - `PUT /api/admin/photos/:id` - Update photo (owner: same check)
 - `DELETE /api/admin/photos/:id` - Delete photo (owner: same check)
 - `POST /api/admin/photos/:id/regenerate-thumbnails` - Regenerate thumbnails (owner: same check)
+- `POST /api/admin/photos/:id/rotate` - Rotate photo 90° CW, 90° CCW, or 180° (owner: same check)
 - `POST /api/admin/photos/:id/re-extract-exif` - Re-extract EXIF (owner: same check)
 - `POST /api/admin/photos/bulk/re-extract-exif` - Bulk re-extract EXIF (admin only in UI; backend allows owner for own album photos)
 - `POST /api/admin/photos/bulk/regenerate-thumbnails` - Bulk regenerate thumbnails (admin only in UI; backend allows owner for own album photos)

@@ -313,14 +313,18 @@ export class StorageManager implements IStorageManager {
       case 'local':
         return new LocalStorageService(config)
       case 'google-drive':
-        // Flatten the nested config structure for Google Drive
         const flattenedConfig = {
           ...config,
-          // Extract nested config properties to top level
           clientId: config.clientId,
           clientSecret: config.clientSecret,
           refreshToken: config.refreshToken,
+          redirectUri: config.redirectUri,
           folderId: config.folderId,
+          authMethod: config.authMethod || 'oauth',
+          serviceAccountJson: config.serviceAccountJson,
+          client_email: config.client_email,
+          private_key: config.private_key,
+          storageType: config.storageType,
           isEnabled: config.isEnabled
         }
         return new GoogleDriveService(flattenedConfig)

@@ -6,6 +6,7 @@
 	import { currentLanguage } from '$lib/stores/language';
 	import { getAlbumName, getAlbumDescription } from '$lib/utils/albumUtils';
 	import { getPhotoTitle } from '$lib/utils/photoUtils';
+	import { getPhotoUrl, getPhotoRotationStyle } from '$lib/utils/photoUrl';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 	import { logger } from '$lib/utils/logger';
 	import { handleError } from '$lib/utils/errorHandler';
@@ -224,9 +225,10 @@
 							<div class="relative h-48">
 								{#if photo.storage?.thumbnailPath}
 									<img
-										src={photo.storage.thumbnailPath}
+										src={getPhotoUrl(photo, { fallback: '' }) || photo.storage.thumbnailPath}
 										alt={typeof photo.title === 'string' ? photo.title : photo.filename}
 										class="w-full h-full object-cover"
+										style={getPhotoRotationStyle(photo)}
 									/>
 								{:else}
 									<div class="w-full h-full bg-gray-200 flex items-center justify-center">

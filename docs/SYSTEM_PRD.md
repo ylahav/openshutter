@@ -605,7 +605,7 @@ Operational notes:
 ### Phase 2 (Next 6 months)
 - Advanced search and filtering
 - **Face detection – manual selection** ✅: Draw a rectangle around an area and assign a person from the people list
-- Photo editing capabilities
+- **Photo editing capabilities** ✅ (rotate: 90° CW/CCW, 180° from photo edit; crop planned)
 - Social sharing features
 - Mobile app development
 - Enhanced tag analytics

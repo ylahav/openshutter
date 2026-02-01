@@ -10,7 +10,7 @@
 	import PhotoLightbox from '$lib/components/PhotoLightbox.svelte';
 	import MultiLangText from '$lib/components/MultiLangText.svelte';
 	import MultiLangHTML from '$lib/components/MultiLangHTML.svelte';
-	import { getPhotoUrl, getPhotoFullUrl } from '$lib/utils/photoUrl';
+	import { getPhotoUrl, getPhotoFullUrl, getPhotoRotationStyle } from '$lib/utils/photoUrl';
 	import { handleImageLoadError } from '$lib/utils/imageErrorHandler';
 	import { logger } from '$lib/utils/logger';
 
@@ -370,7 +370,7 @@
 											class={hasDimensions && aspectRatio < 1 
 												? "w-full h-full object-cover group-hover:scale-110 transition-all duration-300 " + (photoLoaded[photo._id] ? 'opacity-100' : 'opacity-30')
 												: "absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-all duration-300 " + (photoLoaded[photo._id] ? 'opacity-100' : 'opacity-30')}
-											style="image-orientation: from-image;"
+											style="image-orientation: from-image; {getPhotoRotationStyle(photo)}"
 											on:error={async (e) => {
 												// Check for token renewal errors first
 												await handleImageLoadError(e);
@@ -524,6 +524,7 @@
 				description: p.description,
 				takenAt: p.exif?.dateTimeOriginal,
 				exif: p.exif, // Include full EXIF data
+				rotation: p.rotation,
 				metadata: p.metadata || (p.storage ? {
 					width: p.dimensions?.width,
 					height: p.dimensions?.height,

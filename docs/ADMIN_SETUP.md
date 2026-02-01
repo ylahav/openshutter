@@ -52,9 +52,9 @@ Once you've completed the setup and logged in:
    - Navigate to `/admin/storage` in the admin dashboard
    - Configure at least one storage provider (Google Drive, AWS S3, Backblaze, Wasabi, or Local Storage)
    - For Google Drive:
-     - Choose between "Hidden (AppData Folder)" or "Visible in User's Drive" storage type
-     - Enter OAuth credentials and generate a refresh token
-     - See [Storage Configuration Guide](./STORAGE.md) for detailed instructions
+     - **On deployed servers**: Prefer **Service account** (Auth method → Service account; paste JSON key and set Folder ID after sharing the folder with the service account email).
+     - **OAuth**: Choose "Hidden (AppData Folder)" or "Visible in User's Drive"; enter OAuth credentials and generate a refresh token; set Redirect URI to your production callback when deployed.
+     - See [Storage Configuration Guide](./STORAGE.md) and [Google Drive](./GOOGLE_DRIVE.md).
 
 2. **Create Additional Admin Users**
    - Navigate to Admin Panel → Users

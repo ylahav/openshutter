@@ -449,7 +449,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
   - [x] Filter panel UI: album, tags, people, locations, date range, sort (newest/oldest)
   - [x] Filters synced to URL; chip remove and Apply update URL and re-run search
 - [x] **Face detection – manual selection** – Draw a rectangle around an area and assign a person from the people list
-- [ ] Photo editing capabilities
+- [x] **Photo editing capabilities** (rotate)
+  - [x] Rotate photo 90° CW, 90° CCW, or 180° from photo edit page (admin and owner). Backend replaces file and regenerates thumbnails. API: `POST /api/admin/photos/:id/rotate` with body `{ angle: 90 | -90 | 180 }`.
+  - [ ] Crop (future)
 - [ ] Social sharing features
 - [ ] Mobile app development
 - [ ] Enhanced tag analytics

@@ -38,55 +38,107 @@ export class GoogleDriveService implements IStorageService {
   }
 
   /**
+   * Whether authentication uses a Service Account (no OAuth redirect/refresh).
+   * Recommended for deployed servers to avoid invalid_grant and redirect URI issues.
+   */
+  private isServiceAccount(): boolean {
+    return this.config.authMethod === 'service_account'
+  }
+
+  /**
    * Get the root folder ID based on storage type
+   * - Service Account: folderId (required; folder must be shared with service account email)
    * - AppData: Hidden folder accessible only with drive.appdata scope
    * - Visible: User's Drive folder (root or specified folderId)
    */
   private getRootFolderId(): string {
-    // Check if storageType is set to 'visible'
+    if (this.isServiceAccount()) {
+      return this.config.folderId || 'root'
+    }
     const storageType = this.config.storageType || 'appdata'
-    
     if (storageType === 'visible') {
-      // Use folderId from config if provided, otherwise use root
       if (this.config.folderId && this.config.folderId !== 'appDataFolder') {
         return this.config.folderId
       }
       return 'root'
     }
-    
-    // Default: Use AppData folder (hidden)
     return 'appDataFolder'
   }
 
   /**
-   * Check if using AppData storage (hidden)
+   * Check if using AppData storage (hidden). Service account always uses shared folder (visible).
    */
   private isAppDataStorage(): boolean {
+    if (this.isServiceAccount()) return false
     const storageType = this.config.storageType || 'appdata'
     return storageType === 'appdata'
   }
 
+  /**
+   * Parse service account credentials from config (serviceAccountJson string or client_email + private_key).
+   */
+  private getServiceAccountCredentials(): { client_email: string; private_key: string } {
+    let key: { client_email?: string; private_key?: string }
+    if (this.config.serviceAccountJson) {
+      const raw = typeof this.config.serviceAccountJson === 'string'
+        ? this.config.serviceAccountJson.trim()
+        : JSON.stringify(this.config.serviceAccountJson)
+      key = JSON.parse(raw) as { client_email?: string; private_key?: string }
+    } else if (this.config.client_email && this.config.private_key) {
+      key = {
+        client_email: this.config.client_email,
+        private_key: this.config.private_key
+      }
+    } else {
+      throw new Error('Service account requires either serviceAccountJson or client_email + private_key')
+    }
+    if (!key.client_email || !key.private_key) {
+      throw new Error('Service account JSON must contain client_email and private_key')
+    }
+    const private_key = key.private_key.replace(/\\n/g, '\n')
+    return { client_email: key.client_email, private_key }
+  }
+
   private initializeAuth() {
+    if (this.isServiceAccount()) {
+      const credentials = this.getServiceAccountCredentials()
+      const auth = new google.auth.GoogleAuth({
+        credentials: {
+          client_email: credentials.client_email,
+          private_key: credentials.private_key
+        },
+        scopes: [
+          'https://www.googleapis.com/auth/drive',
+          'https://www.googleapis.com/auth/drive.file'
+        ]
+      })
+      this.auth = auth
+      this.drive = google.drive({ version: 'v3', auth: this.auth })
+      return
+    }
     this.auth = new google.auth.OAuth2(
       this.config.clientId,
       this.config.clientSecret
     )
-    
-    // Set redirect URI if provided (helps with token validation)
     if (this.config.redirectUri) {
       this.auth.redirectUri = this.config.redirectUri
     }
-    
     if (this.config.accessToken && this.config.tokenExpiry && new Date() < this.config.tokenExpiry) {
       this.auth.setCredentials({ access_token: this.config.accessToken })
     } else if (this.config.refreshToken) {
-      // Set both refresh token and client credentials
-      this.auth.setCredentials({ 
-        refresh_token: this.config.refreshToken 
-      })
+      this.auth.setCredentials({ refresh_token: this.config.refreshToken })
     }
-
     this.drive = google.drive({ version: 'v3', auth: this.auth })
+  }
+
+  /**
+   * Ensure valid auth: refresh OAuth token if needed; no-op for service account.
+   */
+  private async ensureAuth(): Promise<void> {
+    if (this.isServiceAccount()) return
+    if (!this.config.accessToken || (this.config.tokenExpiry && new Date() >= this.config.tokenExpiry)) {
+      await this.refreshAccessToken()
+    }
   }
 
   private async refreshAccessToken(): Promise<void> {
@@ -232,20 +284,23 @@ export class GoogleDriveService implements IStorageService {
 
   async validateConnection(): Promise<boolean> {
     try {
-      // Check if required config is present
-      if (!this.config.clientId) {
-        throw new Error('Google Drive Client ID is not configured')
+      if (this.isServiceAccount()) {
+        this.getServiceAccountCredentials()
+        if (!this.config.folderId || this.config.folderId === 'appDataFolder') {
+          throw new Error('Service account requires a folder ID. Create a folder in Drive and share it with the service account email (Editor).')
+        }
+        await this.drive.files.get({
+          fileId: this.config.folderId,
+          fields: 'id,name'
+        })
+        return true
       }
-      if (!this.config.clientSecret) {
-        throw new Error('Google Drive Client Secret is not configured')
-      }
+      if (!this.config.clientId) throw new Error('Google Drive Client ID is not configured')
+      if (!this.config.clientSecret) throw new Error('Google Drive Client Secret is not configured')
       if (!this.config.refreshToken && !this.config.accessToken) {
         throw new Error('Google Drive authentication tokens are missing. Please authorize the application.')
       }
-
-      // Validate refresh token format if present
       if (this.config.refreshToken) {
-        // Google refresh tokens typically start with "1/" or "4/0A" and are quite long
         const token = this.config.refreshToken.trim()
         if (token.length < 50 || (!token.startsWith('1/') && !token.startsWith('4/'))) {
           throw new Error(
@@ -254,15 +309,8 @@ export class GoogleDriveService implements IStorageService {
           )
         }
       }
-
-      // Ensure we have a valid access token
-      if (!this.config.accessToken || (this.config.tokenExpiry && new Date() >= this.config.tokenExpiry)) {
-        await this.refreshAccessToken()
-      }
-
-      // Test connection based on storage type
+      await this.ensureAuth()
       const storageType = this.config.storageType || 'appdata'
-      
       if (storageType === 'visible') {
         // For visible storage, test by getting root folder info
         // This validates drive.file or drive scope
@@ -382,10 +430,7 @@ export class GoogleDriveService implements IStorageService {
 
   async createFolder(name: string, parentPath?: string): Promise<StorageFolderResult> {
     try {
-      // Ensure we have a valid access token
-      if (!this.config.accessToken || (this.config.tokenExpiry && new Date() >= this.config.tokenExpiry)) {
-        await this.refreshAccessToken()
-      }
+      await this.ensureAuth()
 
       // Resolve parentPath to folder ID if it's a path, otherwise use AppData root
       let parentFolderId = this.getRootFolderId()
@@ -463,10 +508,7 @@ export class GoogleDriveService implements IStorageService {
 
   async deleteFolder(folderPath: string): Promise<void> {
     try {
-      // Ensure we have a valid access token
-      if (!this.config.accessToken || (this.config.tokenExpiry && new Date() >= this.config.tokenExpiry)) {
-        await this.refreshAccessToken()
-      }
+      await this.ensureAuth()
 
       // For Google Drive, we need to get the folder ID first
       const folderId = await this.getFolderIdByPath(folderPath)
@@ -542,7 +584,7 @@ export class GoogleDriveService implements IStorageService {
     try {
       // Ensure we have a valid access token
       if (!this.config.accessToken || (this.config.tokenExpiry && new Date() >= this.config.tokenExpiry)) {
-        await this.refreshAccessToken()
+        await this.ensureAuth()
       }
 
       const folderId = await this.getFolderIdByPath(folderPath)
@@ -593,7 +635,7 @@ export class GoogleDriveService implements IStorageService {
     try {
       // Ensure we have a valid access token
       if (!this.config.accessToken || (this.config.tokenExpiry && new Date() >= this.config.tokenExpiry)) {
-        await this.refreshAccessToken()
+        await this.ensureAuth()
       }
 
       const parentFolderId = parentPath ? await this.getFolderIdByPath(parentPath) || this.getRootFolderId() : this.getRootFolderId()
@@ -709,7 +751,7 @@ export class GoogleDriveService implements IStorageService {
     try {
       // Ensure we have a valid access token
       if (!this.config.accessToken || (this.config.tokenExpiry && new Date() >= this.config.tokenExpiry)) {
-        await this.refreshAccessToken()
+        await this.ensureAuth()
       }
 
       // Resolve folder path to folder ID if provided, otherwise use AppData root
@@ -936,7 +978,7 @@ export class GoogleDriveService implements IStorageService {
     try {
       // Ensure we have a valid access token
       if (!this.config.accessToken || (this.config.tokenExpiry && new Date() >= this.config.tokenExpiry)) {
-        await this.refreshAccessToken()
+        await this.ensureAuth()
       }
 
       // For Google Drive, we need to get the file ID first
@@ -958,7 +1000,7 @@ export class GoogleDriveService implements IStorageService {
     try {
       // Ensure we have a valid access token
       if (!this.config.accessToken || (this.config.tokenExpiry && new Date() >= this.config.tokenExpiry)) {
-        await this.refreshAccessToken()
+        await this.ensureAuth()
       }
 
       const fileId = await this.getFileIdByPath(filePath)
@@ -998,7 +1040,7 @@ export class GoogleDriveService implements IStorageService {
     try {
       // Ensure we have a valid access token
       if (!this.config.accessToken || (this.config.tokenExpiry && new Date() >= this.config.tokenExpiry)) {
-        await this.refreshAccessToken()
+        await this.ensureAuth()
       }
 
       const parentFolderId = folderPath ? await this.getFolderIdByPath(folderPath) || this.getRootFolderId() : this.getRootFolderId()
@@ -1096,7 +1138,7 @@ export class GoogleDriveService implements IStorageService {
     try {
       // Ensure we have a valid access token
       if (!this.config.accessToken || (this.config.tokenExpiry && new Date() >= this.config.tokenExpiry)) {
-        await this.refreshAccessToken()
+        await this.ensureAuth()
       }
 
       const fileId = await this.getFileIdByPath(filePath)
@@ -1150,7 +1192,7 @@ export class GoogleDriveService implements IStorageService {
     try {
       // Ensure we have a valid access token
       if (!this.config.accessToken || (this.config.tokenExpiry && new Date() >= this.config.tokenExpiry)) {
-        await this.refreshAccessToken()
+        await this.ensureAuth()
       }
 
       const rootFolderId = this.getRootFolderId()
@@ -1342,7 +1384,7 @@ export class GoogleDriveService implements IStorageService {
       // Ensure we have a valid access token
       if (!this.config.accessToken || (this.config.tokenExpiry && new Date() >= this.config.tokenExpiry)) {
         this.logger.debug('GoogleDriveService: Refreshing access token for getFileBuffer...')
-        await this.refreshAccessToken()
+        await this.ensureAuth()
       }
 
       const fileId = await this.getFileIdByPath(filePath)

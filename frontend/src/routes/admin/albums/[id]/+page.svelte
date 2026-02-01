@@ -6,7 +6,7 @@
 	import { MultiLangUtils } from '$utils/multiLang';
 	import AlbumBreadcrumbs from '$lib/components/AlbumBreadcrumbs.svelte';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
-	import { getPhotoUrl } from '$lib/utils/photoUrl';
+	import { getPhotoUrl, getPhotoRotationStyle } from '$lib/utils/photoUrl';
 	import { getAlbumName } from '$lib/utils/albumUtils';
 	import { getPhotoTitle } from '$lib/utils/photoUtils';
 	import { logger } from '$lib/utils/logger';
@@ -804,7 +804,7 @@
 											src={photoUrl}
 											alt={getPhotoTitle(photo)}
 											class="w-full h-full object-cover"
-											style="image-orientation: from-image;"
+											style="image-orientation: from-image; {getPhotoRotationStyle(photo)}"
 											on:error={(e) => {
 												logger.debug('Image failed to load:', photoUrl, photo);
 												const target = e.currentTarget as HTMLImageElement;

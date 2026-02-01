@@ -26,6 +26,19 @@ interface PhotoLike {
 	_id?: string;
 	url?: string;
 	storage?: PhotoStorage;
+	/** Display-only rotation: 90, -90, or 180. Applied via CSS transform. */
+	rotation?: number;
+}
+
+/**
+ * Get inline style for display-only photo rotation (thumbnails and full-size).
+ * Returns e.g. "transform: rotate(90deg)" or "" when no rotation.
+ */
+export function getPhotoRotationStyle(photo: { rotation?: number } | null | undefined): string {
+	if (photo?.rotation === 90 || photo?.rotation === -90 || photo?.rotation === 180) {
+		return `transform: rotate(${photo.rotation}deg);`;
+	}
+	return '';
 }
 
 /**

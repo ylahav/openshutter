@@ -226,12 +226,14 @@ export class StorageConfigService {
         name: 'Google Drive',
         isEnabled: false,
         config: {
+          authMethod: 'oauth', // 'oauth' (default) or 'service_account' (recommended for deployed servers)
           clientId: '',
           clientSecret: '',
           refreshToken: '',
+          redirectUri: '', // Set to production callback URL for token refresh (e.g. https://yoursite.com/api/auth/google/callback)
           folderId: '',
-          storageType: 'appdata' // 'appdata' (hidden) or 'visible' (user sees files)
-          // isEnabled should NOT be in config object - it's only at root level
+          storageType: 'appdata', // 'appdata' (hidden) or 'visible' (user sees files)
+          serviceAccountJson: '' // For authMethod 'service_account': paste full JSON key; folderId required (share folder with service account email)
         },
         createdAt: new Date(),
         updatedAt: new Date()
@@ -426,11 +428,22 @@ export class StorageConfigService {
       
       // Provider-specific validation
       switch (providerId) {
-        case 'google-drive':
-          if (!config.config.clientId) errors.push('Client ID is required')
-          if (!config.config.clientSecret) errors.push('Client Secret is required')
-          if (!config.config.refreshToken) errors.push('Refresh Token is required')
+        case 'google-drive': {
+          const authMethod = config.config.authMethod || 'oauth'
+          if (authMethod === 'service_account') {
+            const hasJson = !!config.config.serviceAccountJson && String(config.config.serviceAccountJson).trim().length > 0
+            const hasCreds = !!(config.config.client_email && config.config.private_key)
+            if (!hasJson && !hasCreds) errors.push('Service account requires Service Account JSON or client_email + private_key')
+            if (!config.config.folderId || config.config.folderId === 'appDataFolder') {
+              errors.push('Service account requires a folder ID (share a Drive folder with the service account email)')
+            }
+          } else {
+            if (!config.config.clientId) errors.push('Client ID is required')
+            if (!config.config.clientSecret) errors.push('Client Secret is required')
+            if (!config.config.refreshToken) errors.push('Refresh Token is required')
+          }
           break
+        }
           
         case 'aws-s3':
           if (!config.config.accessKeyId) errors.push('Access Key ID is required')

@@ -1,4 +1,4 @@
-import { IsOptional, IsBoolean, IsArray, IsString, IsObject } from 'class-validator';
+import { IsOptional, IsBoolean, IsArray, IsString, IsObject, IsNumber } from 'class-validator';
 import { MultiLangText } from '../../types/multi-lang';
 
 /**
@@ -45,4 +45,9 @@ export class UpdatePhotoDto {
 	@IsObject()
 	@IsOptional()
 	metadata?: Record<string, unknown>;
+
+	/** Display rotation in degrees (0, 90, -90, 180). Applied when displaying; file unchanged. */
+	@IsNumber()
+	@IsOptional()
+	rotation?: number;
 }

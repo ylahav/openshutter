@@ -216,6 +216,8 @@ export interface Photo {
   uploadedBy: string // ObjectId as string for API compatibility
   uploadedAt: Date
   updatedAt: Date
+  /** Display-only rotation in degrees: 0, 90, -90, or 180. Applied via CSS transform. */
+  rotation?: number
   faceRecognition?: {
     faces: Array<{
       descriptor: number[] // 128D vector

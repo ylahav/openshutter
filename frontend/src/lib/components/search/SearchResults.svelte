@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { createEventDispatcher } from 'svelte';
 	import PhotoLightbox from '../PhotoLightbox.svelte';
-	import { getPhotoUrl, getPhotoFullUrl } from '$lib/utils/photoUrl';
+	import { getPhotoUrl, getPhotoFullUrl, getPhotoRotationStyle } from '$lib/utils/photoUrl';
 	import { currentLanguage } from '$stores/language';
 	import { MultiLangUtils } from '$utils/multiLang';
 	import { t } from '$stores/i18n';
@@ -49,6 +49,7 @@
 							: MultiLangUtils.getTextValue(photo.title || {}, $currentLanguage) || '',
 					takenAt: photo.exif?.dateTime || photo.uploadedAt,
 					exif: photo.exif,
+					rotation: photo.rotation,
 					metadata: photo.dimensions
 						? {
 								width: photo.dimensions.width,
@@ -160,6 +161,7 @@
 									src={imageUrl}
 									alt={photo.filename || 'Photo'}
 									class="w-full h-48 object-cover"
+									style={getPhotoRotationStyle(photo)}
 									loading="lazy"
 								/>
 							{:else}

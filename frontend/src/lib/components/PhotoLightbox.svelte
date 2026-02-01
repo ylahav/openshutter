@@ -3,6 +3,7 @@
 	import { currentLanguage } from '$stores/language';
 	import { siteConfigData } from '$stores/siteConfig';
 	import { filterExifByDisplayFields } from '$lib/constants/exif-fields';
+	import { getPhotoRotationStyle } from '$lib/utils/photoUrl';
 	import { MultiLangUtils } from '$utils/multiLang';
 	import { logger } from '$lib/utils/logger';
 
@@ -81,6 +82,8 @@
 			fileSize?: number;
 			format?: string;
 		};
+		/** Display-only rotation: 90, -90, or 180. Applied via CSS transform. */
+		rotation?: number;
 	}
 
 	interface Props {
@@ -628,6 +631,7 @@
 						src={photoUrl}
 						alt={photoTitle}
 						class="object-contain max-h-[85vh] max-w-[92vw] transition-opacity duration-200 {imageLoading ? 'opacity-30' : 'opacity-100'}"
+						style={getPhotoRotationStyle(photo)}
 						draggable="false"
 						onload={handleImageLoad}
 						onerror={() => (imageLoading = false)}

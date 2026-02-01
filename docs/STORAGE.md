@@ -62,16 +62,15 @@ All storage providers are configured through the admin dashboard at `/admin/stor
 - Configure via admin dashboard at `/admin/storage`
 
 #### Google Drive
-- **Client ID**: OAuth 2.0 Client ID from Google Cloud Console
-- **Client Secret**: OAuth 2.0 Client Secret
-- **Refresh Token**: OAuth refresh token (obtained through OAuth flow)
-- **Folder ID**: Google Drive folder ID where files will be stored (optional, defaults to root for visible storage)
-- **Storage Type**: Choose between:
-  - `appdata` (default): Files are hidden from users in AppData folder
-  - `visible`: Files are visible in user's Google Drive
-- Configure via admin dashboard at `/admin/storage`
 
-**Note**: When using `visible` storage type, users will see files in their Google Drive. When using `appdata`, files are hidden and only accessible through the application.
+**Auth method** (in storage config):
+
+- **OAuth** (default): Uses Client ID, Client Secret, Refresh Token. Set **Redirect URI** to your production callback URL (e.g. `https://yourdomain.com/api/auth/google/callback`) when deployed, then re-authorize from the deployed site.
+- **Service account** (recommended for deployed servers): No redirect or refresh token. Paste **Service account JSON** (from Google Cloud Console → IAM → Service Accounts → Create key) or set **Client email** and **Private key**. **Folder ID** is required: create a folder in Drive, share it with the service account email (Editor), and set the folder ID.
+
+**OAuth fields**: Client ID, Client Secret, Refresh Token, optional Redirect URI. **Storage Type**: `appdata` (hidden) or `visible`. **Folder ID**: optional for OAuth visible; required for Service account.
+
+Configure via admin dashboard at `/admin/storage`.
 
 **OAuth Setup Process**:
 1. Enter your Client ID and Client Secret from Google Cloud Console

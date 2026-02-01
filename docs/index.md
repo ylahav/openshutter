@@ -10,7 +10,7 @@ Welcome to the OpenShutter documentation. This comprehensive guide covers all as
 - [Access Control System](./access-control.md) - Album permissions and user access management
 - [Owner Dashboard](./owner-dashboard.md) - Owner role dashboard and album management
 - [Storage Configuration](./STORAGE.md) - Storage providers setup and management
-- [Google Drive Auth Options](./GOOGLE_DRIVE_AUTH_OPTIONS.md) - Google Drive authentication methods and visible storage
+- [Google Drive](./GOOGLE_DRIVE.md) - Google Drive auth (Service Account & OAuth), visible storage, token renewal
 - [Server Deployment Guide](./SERVER_DEPLOYMENT.md) - Production deployment instructions with PM2
 - [Admin Setup Guide](./ADMIN_SETUP.md) - Initial admin configuration
 - [Translation Guide](./translation-guide.md) - Multi-language support and translation keys

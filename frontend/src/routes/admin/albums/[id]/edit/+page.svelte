@@ -8,7 +8,7 @@
 	import MultiLangHTMLEditor from '$lib/components/MultiLangHTMLEditor.svelte';
 	import AlbumBreadcrumbs from '$lib/components/AlbumBreadcrumbs.svelte';
 	import NotificationDialog from '$lib/components/NotificationDialog.svelte';
-	import { getPhotoUrl } from '$lib/utils/photoUrl';
+	import { getPhotoUrl, getPhotoRotationStyle } from '$lib/utils/photoUrl';
 	import { getPhotoTitle } from '$lib/utils/photoUtils';
 	import { getAlbumName } from '$lib/utils/albumUtils';
 	import { logger } from '$lib/utils/logger';
@@ -903,7 +903,7 @@
 									src={getPhotoUrl(photo, { fallback: '' }) || photo.storage?.thumbnailPath || photo.storage?.url || photo.url}
 									alt={getPhotoTitle(photo) || photo.filename || 'Photo'}
 									class="w-full h-20 object-cover rounded-lg hover:opacity-75 transition-opacity {isCurrentCover ? 'ring-2 ring-purple-500' : ''}"
-									style="image-orientation: from-image;"
+									style="image-orientation: from-image; {getPhotoRotationStyle(photo)}"
 								/>
 								{#if isCurrentCover}
 									<div class="absolute top-1 right-1 bg-purple-500 text-white text-xs px-1.5 py-0.5 rounded-full font-medium">

@@ -261,6 +261,14 @@ export class PhotosAdminController {
 				update.metadata = updateData.metadata;
 			}
 
+			// Update display rotation if provided (0, 90, -90, 180; applied on display only)
+			if (updateData.rotation !== undefined) {
+				const r = Number(updateData.rotation);
+				if (r === 0 || r === 90 || r === -90 || r === 180) {
+					update.rotation = r;
+				}
+			}
+
 			// Perform update
 			const result = await db
 				.collection('photos')
@@ -895,6 +903,80 @@ export class PhotosAdminController {
 			});
 		} finally {
 			res.end();
+		}
+	}
+
+	/**
+	 * Set display rotation for a photo (90° CW, 90° CCW, or 180°). Display-only; file and thumbnails unchanged.
+	 * Path: POST /api/admin/photos/:id/rotate
+	 */
+	@Post(':id/rotate')
+	async rotatePhoto(
+		@Param('id') id: string,
+		@Body() body: { angle: 90 | -90 | 180 },
+		@Req() req: Request,
+	) {
+		try {
+			await connectDB();
+			const db = mongoose.connection.db;
+			if (!db) throw new InternalServerErrorException('Database connection not established');
+
+			let objectId: Types.ObjectId;
+			try {
+				objectId = new Types.ObjectId(id);
+			} catch (_error) {
+				throw new BadRequestException('Invalid photo ID format');
+			}
+
+			const photo = await db.collection('photos').findOne({ _id: objectId });
+			if (!photo) throw new NotFoundException('Photo not found');
+			await this.assertOwnerCanAccessPhoto(req, photo, db);
+
+			const angle = body?.angle;
+			if (angle !== 90 && angle !== -90 && angle !== 180) {
+				throw new BadRequestException('angle must be 90, -90, or 180');
+			}
+
+			await db.collection('photos').updateOne(
+				{ _id: objectId },
+				{ $set: { rotation: angle, updatedAt: new Date() } }
+			);
+
+			const updatedPhoto = await db.collection('photos').findOne({ _id: objectId });
+			if (!updatedPhoto) throw new NotFoundException('Photo not found after rotate');
+
+			const serialized: any = {
+				...updatedPhoto,
+				_id: updatedPhoto._id.toString(),
+				albumId: updatedPhoto.albumId ? updatedPhoto.albumId.toString() : null,
+				tags: updatedPhoto.tags ? updatedPhoto.tags.map((t: any) => (t._id ? t._id.toString() : t.toString())) : [],
+				people: updatedPhoto.people ? updatedPhoto.people.map((p: any) => (p._id ? p._id.toString() : p.toString())) : [],
+				location: updatedPhoto.location ? (updatedPhoto.location._id ? updatedPhoto.location._id.toString() : updatedPhoto.location.toString()) : null,
+				uploadedBy: updatedPhoto.uploadedBy ? updatedPhoto.uploadedBy.toString() : null,
+			};
+			if (updatedPhoto.storage) {
+				serialized.storage = {
+					provider: updatedPhoto.storage.provider || 'local',
+					fileId: updatedPhoto.storage.fileId || '',
+					url: updatedPhoto.storage.url || '',
+					path: updatedPhoto.storage.path || '',
+					thumbnailPath: updatedPhoto.storage.thumbnailPath || updatedPhoto.storage.url || '',
+					thumbnails: updatedPhoto.storage.thumbnails || {},
+					blurDataURL: updatedPhoto.storage.blurDataURL,
+					bucket: updatedPhoto.storage.bucket,
+					folderId: updatedPhoto.storage.folderId,
+				};
+			}
+
+			return { success: true, message: 'Rotation updated (display only)', data: serialized };
+		} catch (error) {
+			this.logger.error(`Rotate photo failed: ${error instanceof Error ? error.message : String(error)}`);
+			if (error instanceof NotFoundException || error instanceof BadRequestException) {
+				throw error;
+			}
+			throw new InternalServerErrorException(
+				`Rotate photo failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+			);
 		}
 	}
 
