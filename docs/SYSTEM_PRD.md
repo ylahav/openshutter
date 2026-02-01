@@ -604,7 +604,7 @@ Operational notes:
 
 ### Phase 2 (Next 6 months)
 - Advanced search and filtering
-- **Face detection – manual selection**: Draw a rectangle around an area and assign a person from the people list
+- **Face detection – manual selection** ✅: Draw a rectangle around an area and assign a person from the people list
 - Photo editing capabilities
 - Social sharing features
 - Mobile app development
