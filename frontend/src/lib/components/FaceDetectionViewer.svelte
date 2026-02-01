@@ -23,8 +23,13 @@
 	export let onSuccess: ((message: string) => void) | undefined = undefined;
 	/** Optional: return display name for a face (e.g. assigned person name). If not provided, labels show "Face 1", "Face 2", ... */
 	export let getFaceLabel: ((faceIndex: number, matchedPersonId?: string) => string) | undefined = undefined;
+	/** People list for manual selection: draw a rectangle then assign a person. Optional. */
+	export let people: Array<{ _id: string; fullName?: unknown; firstName?: unknown }> = [];
+	/** Optional: get display name for a person ID (used in manual-assign dropdown). */
+	export let getPersonName: ((personId: string) => string) | undefined = undefined;
 
 	let isDetecting = false;
+	let addingManual = false;
 	let faces: FaceDetection[] = [];
 	let modelsLoaded = false;
 	let isManualMode = false;
@@ -34,9 +39,10 @@
 	let selectedFaceIndex: number | null = null;
 	let faceDescriptors = new Map<number, number[]>();
 	let manualFaces = new Set<number>();
+	/** After user draws a rectangle in manual mode, we show person picker. Box in image coords. */
+	let pendingManualBox: { x: number; y: number; width: number; height: number } | null = null;
 	let canvas: HTMLCanvasElement;
 	let image: HTMLImageElement;
-	let overlayCanvas: HTMLCanvasElement;
 
 	onMount(async () => {
 		if (typeof window === 'undefined') return;
@@ -132,9 +138,18 @@
 			const label = baseLabel + (isManual ? ' (Manual)' : '');
 			ctx.fillText(label, scaledBox.x, scaledBox.y - 5);
 		});
+
+		// Draw current rectangle while user is dragging (manual mode)
+		if (currentRect && isManualMode) {
+			ctx.setLineDash([4, 4]);
+			ctx.strokeStyle = '#ff8800';
+			ctx.lineWidth = 2;
+			ctx.strokeRect(currentRect.x, currentRect.y, currentRect.width, currentRect.height);
+			ctx.setLineDash([]);
+		}
 	}
 
-	$: if (faces.length > 0 && image?.complete) {
+	$: if ((faces.length > 0 || currentRect) && image?.complete) {
 		drawFaces();
 	}
 
@@ -195,19 +210,63 @@
 		}
 	}
 
-	function handleCanvasClick(e: MouseEvent) {
-		if (!canvas || !image) return;
-
+	function handleCanvasMouseDown(e: MouseEvent) {
+		if (!canvas || !image || !isManualMode) return;
 		const rect = canvas.getBoundingClientRect();
-		// Calculate scale factors (natural size to displayed size)
+		const x = e.clientX - rect.left;
+		const y = e.clientY - rect.top;
+		drawStart = { x, y };
+		currentRect = { x, y, width: 0, height: 0 };
+		isDrawing = true;
+	}
+
+	function handleCanvasMouseMove(e: MouseEvent) {
+		if (!canvas || !isDrawing || !drawStart) return;
+		const rect = canvas.getBoundingClientRect();
+		const x = e.clientX - rect.left;
+		const y = e.clientY - rect.top;
+		const minX = Math.min(drawStart.x, x);
+		const minY = Math.min(drawStart.y, y);
+		const width = Math.abs(x - drawStart.x);
+		const height = Math.abs(y - drawStart.y);
+		currentRect = { x: minX, y: minY, width, height };
+		drawFaces();
+	}
+
+	function handleCanvasMouseUp(e: MouseEvent) {
+		if (!canvas || !image || !isDrawing || !drawStart) return;
+		const rect = canvas.getBoundingClientRect();
+		const x = e.clientX - rect.left;
+		const y = e.clientY - rect.top;
+		const minX = Math.min(drawStart.x, x);
+		const minY = Math.min(drawStart.y, y);
+		const width = Math.abs(x - drawStart.x);
+		const height = Math.abs(y - drawStart.y);
+		isDrawing = false;
+		drawStart = null;
+		currentRect = null;
+		// Minimum size to avoid accidental tiny clicks
+		if (width < 10 || height < 10) return;
 		const scaleX = image.naturalWidth / rect.width;
 		const scaleY = image.naturalHeight / rect.height;
+		pendingManualBox = {
+			x: minX * scaleX,
+			y: minY * scaleY,
+			width: width * scaleX,
+			height: height * scaleY,
+		};
+		drawFaces();
+	}
 
-		// Convert click coordinates to natural image coordinates
+	function handleCanvasClick(e: MouseEvent) {
+		if (!canvas || !image || isManualMode) return;
+
+		const rect = canvas.getBoundingClientRect();
+		const scaleX = image.naturalWidth / rect.width;
+		const scaleY = image.naturalHeight / rect.height;
 		const x = (e.clientX - rect.left) * scaleX;
 		const y = (e.clientY - rect.top) * scaleY;
 
-		// Check if clicking on a face (using natural coordinates)
 		for (let i = faces.length - 1; i >= 0; i--) {
 			const face = faces[i];
 			if (
@@ -227,6 +286,48 @@
 		drawFaces();
 	}
 
+	async function addManualFaceAndReload(personId: string | null) {
+		if (!pendingManualBox) return;
+		const box = pendingManualBox;
+		pendingManualBox = null;
+		addingManual = true;
+		try {
+			// Optionally try to get a descriptor from the region (for future matching)
+			let descriptor: number[] | undefined;
+			if (modelsLoaded && image) {
+				const detection = await FaceRecognitionService.detectFaceInRegion(image, box);
+				if (detection?.descriptor) descriptor = Array.from(detection.descriptor);
+			}
+			const response = await fetch('/api/admin/face-recognition/add-manual-face', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					photoId,
+					box,
+					matchedPersonId: personId || undefined,
+					descriptor,
+				}),
+			});
+			if (response.ok) {
+				onSuccess?.('Manual face added');
+				onFaceDetected?.([]);
+			} else {
+				const err = await response.json();
+				onError?.(err.error || 'Failed to add manual face');
+			}
+		} catch (error) {
+			logger.error('Add manual face failed:', error);
+			onError?.(handleError(error, 'Failed to add manual face'));
+		} finally {
+			addingManual = false;
+		}
+	}
+
+	function cancelManualSelection() {
+		pendingManualBox = null;
+		drawFaces();
+	}
+
 	function handleImageLoad() {
 		if (canvas && image) {
 			drawFaces();
@@ -237,7 +338,7 @@
 <div class="border rounded-lg p-4 bg-white">
 	<div class="flex items-center justify-between mb-4">
 		<h3 class="text-lg font-semibold">Face Detection</h3>
-		<div class="flex gap-2">
+		<div class="flex gap-2 flex-wrap">
 			<button
 				type="button"
 				on:click={handleDetectFaces}
@@ -246,8 +347,18 @@
 			>
 				{isDetecting ? 'Detecting...' : 'Detect Faces'}
 			</button>
+			<button
+				type="button"
+				on:click={() => { isManualMode = !isManualMode; pendingManualBox = null; drawFaces(); }}
+				class="px-4 py-2 rounded border {isManualMode ? 'bg-amber-100 border-amber-400 text-amber-800' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'}"
+			>
+				{isManualMode ? 'Cancel manual' : 'Manual selection'}
+			</button>
 		</div>
 	</div>
+	{#if isManualMode}
+		<p class="text-sm text-gray-600 mb-2">Draw a rectangle around a face, then choose a person to assign (or add without assigning).</p>
+	{/if}
 
 	{#if !modelsLoaded}
 		<div class="text-sm text-gray-500 mb-4">Loading face recognition models...</div>
@@ -265,8 +376,12 @@
 			/>
 			<canvas
 				bind:this={canvas}
-				class="absolute top-0 left-0 cursor-pointer"
+				class="absolute top-0 left-0 {isManualMode ? 'cursor-crosshair' : 'cursor-pointer'}"
 				style="pointer-events: auto;"
+				on:mousedown={handleCanvasMouseDown}
+				on:mousemove={handleCanvasMouseMove}
+				on:mouseup={handleCanvasMouseUp}
+				on:mouseleave={() => { if (isDrawing) { isDrawing = false; drawStart = null; currentRect = null; drawFaces(); } }}
 				on:click={handleCanvasClick}
 			></canvas>
 		</div>
@@ -275,6 +390,45 @@
 	{#if faces.length > 0}
 		<div class="mt-4 text-sm text-gray-600">
 			Detected {faces.length} face{faces.length !== 1 ? 's' : ''}
+		</div>
+	{/if}
+
+	{#if pendingManualBox}
+		<div class="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+			<p class="text-sm font-medium text-amber-900 mb-2">Assign this area to a person</p>
+			<div class="flex flex-wrap items-center gap-2">
+				<select
+					class="rounded border border-gray-300 px-3 py-1.5 text-sm bg-white"
+					on:change={(e) => {
+						const id = (e.currentTarget as HTMLSelectElement).value;
+						if (id) addManualFaceAndReload(id);
+					}}
+					disabled={addingManual}
+				>
+					<option value="">— Select person —</option>
+					{#each people as person}
+						<option value={person._id}>
+							{getPersonName ? getPersonName(person._id) : (person.fullName || person.firstName || person._id)}
+						</option>
+					{/each}
+				</select>
+				<button
+					type="button"
+					on:click={() => addManualFaceAndReload(null)}
+					disabled={addingManual}
+					class="px-3 py-1.5 text-sm border border-gray-300 rounded bg-white hover:bg-gray-50 disabled:opacity-50"
+				>
+					{addingManual ? 'Adding...' : 'Add without person'}
+				</button>
+				<button
+					type="button"
+					on:click={cancelManualSelection}
+					disabled={addingManual}
+					class="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800"
+				>
+					Cancel
+				</button>
+			</div>
 		</div>
 	{/if}
 </div>

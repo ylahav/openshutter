@@ -1,6 +1,6 @@
 {
   "name": "openshutter",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "type": "module",
   "description": "A comprehensive photo gallery management system with multi-storage support",
   "private": true,

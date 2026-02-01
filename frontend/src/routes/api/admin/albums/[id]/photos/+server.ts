@@ -4,7 +4,7 @@ import { backendGet, parseBackendResponse } from '$lib/utils/backend-api';
 import { logger } from '$lib/utils/logger';
 import { parseError } from '$lib/utils/errorHandler';
 
-export const GET: RequestHandler = async ({ params, locals, cookies }) => {
+export const GET: RequestHandler = async ({ params, url, locals, cookies }) => {
 	try {
 		// Require admin or owner (backend enforces album ownership for owners)
 		if (!locals.user || (locals.user.role !== 'admin' && locals.user.role !== 'owner')) {
@@ -17,12 +17,15 @@ export const GET: RequestHandler = async ({ params, locals, cookies }) => {
 			return json({ success: false, error: 'Album ID is required' }, { status: 400 });
 		}
 
-		const response = await backendGet(`/admin/albums/${id}/photos`, { cookies });
-		const result = await parseBackendResponse<{ success?: boolean; data?: any[] }>(response);
+		const includeSubAlbums = url.searchParams.get('includeSubAlbums');
+		const query = includeSubAlbums ? `?includeSubAlbums=${encodeURIComponent(includeSubAlbums)}` : '';
+		const response = await backendGet(`/admin/albums/${id}/photos${query}`, { cookies });
+		const result = await parseBackendResponse<{ success?: boolean; data?: any[]; fromSubAlbums?: boolean }>(response);
 
 		return json({
 			success: result.success !== undefined ? result.success : true,
-			data: result.data || result
+			data: result.data || result,
+			fromSubAlbums: result.fromSubAlbums,
 		});
 	} catch (error) {
 		logger.error('Admin Photos API error:', error);

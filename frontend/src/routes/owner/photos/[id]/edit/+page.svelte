@@ -965,6 +965,8 @@
 									photoId={photoId}
 									detectedFaces={photo.faceRecognition?.faces || []}
 									getFaceLabel={getFaceLabel}
+									people={people}
+									getPersonName={getPersonNameById}
 									onFaceDetected={async () => {
 										// Allow loadPhoto to run again (do not set lastLoadedPhotoId = null,
 										// or the reactive block would also call loadPhoto() and we’d return early)

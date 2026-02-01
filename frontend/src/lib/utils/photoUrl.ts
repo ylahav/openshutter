@@ -5,6 +5,9 @@
  * eliminating code duplication across multiple components.
  */
 
+/** Bump this to bust caches after backend image pipeline changes (e.g. EXIF orientation fix). */
+const STORAGE_URL_VERSION = 2;
+
 /**
  * Photo storage structure (flexible to handle different API response formats)
  */
@@ -37,17 +40,20 @@ export interface PhotoUrlOptions {
 
 /**
  * Helper function to construct storage URLs
- * Handles both full URLs and relative paths
+ * Handles both full URLs and relative paths.
+ * Appends ?v=N so deployed clients bypass old cached (e.g. wrong-orientation) responses.
  */
 function constructStorageUrl(path: string, provider: string = 'local'): string {
-	// If already a full URL, return as-is
+	const param = `v=${STORAGE_URL_VERSION}`;
+	// If already a full URL, append cache-bust param
 	if (path.startsWith('/api/storage/serve/') || path.startsWith('http')) {
-		return path;
+		const sep = path.includes('?') ? '&' : '?';
+		return `${path}${sep}${param}`;
 	}
 
 	// Remove leading slash if present
 	const cleanPath = path.startsWith('/') ? path.slice(1) : path;
-	return `/api/storage/serve/${provider}/${encodeURIComponent(cleanPath)}`;
+	return `/api/storage/serve/${provider}/${encodeURIComponent(cleanPath)}?${param}`;
 }
 
 /**

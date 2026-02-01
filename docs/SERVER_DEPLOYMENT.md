@@ -19,6 +19,8 @@ This guide provides step-by-step commands to execute on your deployed server aft
    - No prompts for ports/database/credentials
 5. **Restart**: `pm2 restart all`
 
+**Portrait photos / EXIF orientation**: If portrait photos appear rotated on the deployed site but not locally, ensure you have deployed **both** the backend and frontend. The backend applies EXIF orientation when serving images; the frontend adds a cache-busting query param (`?v=2`) so browsers fetch the corrected image instead of a cached rotated one. After deploying both, do a hard refresh (Ctrl+Shift+R) or clear cache if needed.
+
 **⚠️ Important**: 
 - The deployment package includes **pre-built files** (`backend/dist/` and `frontend/build/`)
 - You **MUST install dependencies** using `pnpm install --prod --frozen-lockfile` (new packages may have been added)

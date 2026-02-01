@@ -320,7 +320,11 @@ export class AlbumsAdminController {
 	 * NOTE: This route must come before @Get(':id') to avoid route conflicts
 	 */
 	@Get(':id/photos')
-	async getAlbumPhotos(@Param('id') id: string, @Req() req: ExpressRequest) {
+	async getAlbumPhotos(
+		@Param('id') id: string,
+		@Query('includeSubAlbums') includeSubAlbums?: string,
+		@Req() req?: ExpressRequest,
+	) {
 		try {
 			await connectDB();
 			const db = mongoose.connection.db;
@@ -335,22 +339,55 @@ export class AlbumsAdminController {
 
 			const album = await db.collection('albums').findOne({ _id: objectId });
 			if (!album) throw new NotFoundException(`Album not found: ${id}`);
-			if ((req as any).user?.role === 'owner') {
+			if (req && (req as any).user?.role === 'owner') {
 				await this.assertOwnerCanAccessAlbum(req, album, db);
 			}
 
-			// Get ALL photos for this album (including unpublished)
 			const photosCollection = db.collection('photos');
-			const query = {
+			const albumPhotoQuery = {
 				$or: [{ albumId: objectId }, { albumId: id }],
 			};
 
-			const photos = await photosCollection
-				.find(query)
+			let photos: any[] = await photosCollection
+				.find(albumPhotoQuery)
 				.sort({ uploadedAt: -1 })
 				.toArray();
 
-			this.logger.debug(`Found ${photos.length} photos for album ${id}`);
+			let fromSubAlbums = false;
+			// When album has no photos and includeSubAlbums is set, return photos from direct child albums
+			if (photos.length === 0 && includeSubAlbums) {
+				const childAlbums = await db
+					.collection('albums')
+					.find({ parentAlbumId: objectId })
+					.sort({ order: 1, name: 1 })
+					.toArray();
+				const albumNamesById = new Map<string, string>();
+				for (const child of childAlbums) {
+					const name = typeof child.name === 'string' ? child.name : (child.name?.en ?? child.name?.he ?? child.alias ?? '');
+					albumNamesById.set(child._id.toString(), name);
+				}
+				const childIds = childAlbums.map((a: any) => a._id);
+				const childIdStrings = childIds.map((oid: Types.ObjectId) => oid.toString());
+				photos = await photosCollection
+					.find({
+						$or: [
+							{ albumId: { $in: childIds } },
+							{ albumId: { $in: childIdStrings } },
+						],
+					})
+					.sort({ uploadedAt: -1 })
+					.toArray();
+				fromSubAlbums = true;
+				photos = photos.map((p: any) => ({
+					...p,
+					sourceAlbumId: p.albumId ? (p.albumId.toString ? p.albumId.toString() : p.albumId) : null,
+					sourceAlbumName: p.albumId
+						? (albumNamesById.get(p.albumId.toString ? p.albumId.toString() : p.albumId) ?? '')
+						: '',
+				}));
+			}
+
+			this.logger.debug(`Found ${photos.length} photos for album ${id}${fromSubAlbums ? ' (from sub-albums)' : ''}`);
 			if (photos.length > 0) {
 				this.logger.debug('Sample photo storage:', {
 					hasStorage: !!photos[0].storage,
@@ -365,7 +402,7 @@ export class AlbumsAdminController {
 				const serialized: any = {
 					...photo,
 					_id: photo._id.toString(),
-					albumId: photo.albumId ? photo.albumId.toString() : null,
+					albumId: photo.albumId ? (photo.albumId.toString ? photo.albumId.toString() : photo.albumId) : null,
 					tags: photo.tags ? photo.tags.map((tag: any) => (tag._id ? tag._id.toString() : tag.toString())) : [],
 					people: photo.people
 						? photo.people.map((person: any) => (person._id ? person._id.toString() : person.toString()))
@@ -376,8 +413,8 @@ export class AlbumsAdminController {
 							: photo.location.toString()
 						: null,
 				};
-
-				// Ensure storage object is properly preserved
+				if (photo.sourceAlbumId != null) serialized.sourceAlbumId = photo.sourceAlbumId;
+				if (photo.sourceAlbumName != null) serialized.sourceAlbumName = photo.sourceAlbumName;
 				if (photo.storage) {
 					serialized.storage = {
 						provider: photo.storage.provider || 'local',
@@ -391,13 +428,13 @@ export class AlbumsAdminController {
 						folderId: photo.storage.folderId,
 					};
 				}
-
 				return serialized;
 			});
 
 			return {
 				success: true,
 				data: serializedPhotos,
+				fromSubAlbums: fromSubAlbums,
 			};
 		} catch (error) {
 			this.logger.error('Failed to get admin album photos:', error);

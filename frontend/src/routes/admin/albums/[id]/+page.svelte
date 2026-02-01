@@ -466,6 +466,42 @@
 		}
 	}
 
+	async function bulkRegenerateThumbnails() {
+		if (selectedPhotoIds.size === 0 || isBulkUpdating) return;
+
+		isBulkUpdating = true;
+		error = '';
+		successMessage = '';
+
+		try {
+			const response = await fetch('/api/admin/photos/bulk/regenerate-thumbnails', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ photoIds: Array.from(selectedPhotoIds) })
+			});
+
+			const result = await response.json();
+
+			if (result.success) {
+				const msg = result.processedCount != null
+					? `Regenerated thumbnails for ${result.processedCount} photo(s)${result.failedCount > 0 ? `; ${result.failedCount} failed.` : ''}`
+					: (result.message || 'Regenerated thumbnails for selected photos.');
+				successMessage = msg;
+				selectedPhotoIds.clear();
+				showBulkActions = false;
+				await loadPhotos();
+				setTimeout(() => { successMessage = ''; }, 4000);
+			} else {
+				error = result.error || 'Failed to regenerate thumbnails';
+			}
+		} catch (err) {
+			logger.error('Bulk regenerate thumbnails failed:', err);
+			error = `Failed to regenerate thumbnails: ${err instanceof Error ? err.message : 'Unknown error'}`;
+		} finally {
+			isBulkUpdating = false;
+		}
+	}
+
 	onMount(async () => {
 		await Promise.all([loadAlbum(), loadPhotos()]);
 	});
@@ -633,6 +669,14 @@
 									Re-extract EXIF
 								</button>
 								<button
+									on:click={bulkRegenerateThumbnails}
+									disabled={isBulkUpdating}
+									class="px-3 py-1 text-sm bg-amber-600 text-white rounded-md hover:bg-amber-700 disabled:opacity-50"
+									title="Regenerate small/medium/large thumbnails with correct orientation"
+								>
+									Regenerate thumbnails
+								</button>
+								<button
 									on:click={() => { selectedPhotoIds.clear(); showBulkActions = false; }}
 									class="px-3 py-1 text-sm bg-gray-600 text-white rounded-md hover:bg-gray-700"
 								>
@@ -675,16 +719,15 @@
 							{@const photoUrl = getPhotoUrl(photo, { fallback: '' })}
 							{@const isSelected = selectedPhotoIds.has(photo._id)}
 							<div class="relative group">
-								{#if showBulkActions}
-									<div class="absolute top-2 left-2 z-10">
-										<input
-											type="checkbox"
-											checked={isSelected}
-											on:change={() => togglePhotoSelection(photo._id)}
-											class="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-										/>
-									</div>
-								{/if}
+								<div class="absolute top-2 left-2 z-10">
+									<input
+										type="checkbox"
+										checked={isSelected}
+										on:change={() => togglePhotoSelection(photo._id)}
+										class="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 bg-white/90"
+										title={isSelected ? 'Deselect' : 'Select'}
+									/>
+								</div>
 								<div class="aspect-square bg-gray-200 rounded-lg overflow-hidden {isSelected ? 'ring-4 ring-blue-500' : ''}">
 									{#if photoUrl}
 										<img

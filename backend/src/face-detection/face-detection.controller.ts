@@ -343,4 +343,109 @@ export class FaceDetectionController {
 			);
 		}
 	}
+
+	/**
+	 * Add a manually selected face region (rectangle) and optionally assign a person
+	 * Path: POST /api/admin/face-recognition/add-manual-face
+	 */
+	@Post('add-manual-face')
+	async addManualFace(
+		@Body()
+		body: {
+			photoId: string;
+			box: { x: number; y: number; width: number; height: number };
+			matchedPersonId?: string;
+			descriptor?: number[];
+		},
+	) {
+		try {
+			const { photoId, box, matchedPersonId, descriptor } = body;
+
+			if (!photoId) {
+				throw new BadRequestException('Photo ID is required');
+			}
+			if (!box || typeof box.x !== 'number' || typeof box.y !== 'number' || typeof box.width !== 'number' || typeof box.height !== 'number') {
+				throw new BadRequestException('Valid box (x, y, width, height) is required');
+			}
+
+			await connectDB();
+			const db = mongoose.connection.db;
+			if (!db) throw new InternalServerErrorException('Database connection not established');
+
+			let objectId: Types.ObjectId;
+			try {
+				objectId = new Types.ObjectId(photoId);
+			} catch (_error) {
+				throw new BadRequestException('Invalid photo ID format');
+			}
+
+			const photo = await db.collection('photos').findOne({ _id: objectId });
+			if (!photo) {
+				throw new NotFoundException('Photo not found');
+			}
+
+			if (matchedPersonId) {
+				try {
+					const personObjectId = new Types.ObjectId(matchedPersonId);
+					const person = await db.collection('people').findOne({ _id: personObjectId });
+					if (!person) {
+						throw new NotFoundException('Person not found');
+					}
+				} catch (e) {
+					if (e instanceof NotFoundException) throw e;
+					throw new BadRequestException('Invalid person ID format');
+				}
+			}
+
+			const existingFaces = photo.faceRecognition?.faces || [];
+			const newFace = {
+				descriptor: descriptor && Array.isArray(descriptor) ? descriptor : null,
+				box,
+				landmarks: null,
+				detectedAt: new Date(),
+				matchedPersonId: matchedPersonId ? new Types.ObjectId(matchedPersonId) : null,
+				confidence: matchedPersonId ? 1.0 : null,
+			};
+			const updatedFaces = [...existingFaces, newFace];
+
+			const currentPeople = (photo.people || []).map((p: any) =>
+				p instanceof Types.ObjectId ? p.toString() : String(p),
+			);
+			let updatedPeople = [...currentPeople];
+			if (matchedPersonId) {
+				updatedPeople = [...new Set([...updatedPeople, matchedPersonId])];
+			}
+			const updatedPeopleObjectIds = updatedPeople.map((id) => new Types.ObjectId(id));
+
+			await db.collection('photos').updateOne(
+				{ _id: objectId },
+				{
+					$set: {
+						'faceRecognition.faces': updatedFaces,
+						'faceRecognition.processedAt': new Date(),
+						people: updatedPeopleObjectIds,
+					},
+				},
+			);
+
+			return {
+				success: true,
+				data: {
+					photoId,
+					faceIndex: existingFaces.length,
+					box,
+				},
+			};
+		} catch (error) {
+			this.logger.error(
+				`Failed to add manual face: ${error instanceof Error ? error.message : String(error)}`,
+			);
+			if (error instanceof BadRequestException || error instanceof NotFoundException) {
+				throw error;
+			}
+			throw new InternalServerErrorException(
+				`Failed to add manual face: ${error instanceof Error ? error.message : 'Unknown error'}`,
+			);
+		}
+	}
 }

@@ -1,6 +1,6 @@
 {
   "name": "openshutter",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "description": "A comprehensive photo gallery management system with multi-storage support",
   "main": "index.js",
@@ -47,7 +47,7 @@
     "@tiptap/extension-underline": "^3.18.0",
     "@tiptap/starter-kit": "^3.18.0",
     "archiver": "^7.0.1",
-    "autoprefixer": "^10.4.23",
+    "autoprefixer": "^10.4.24",
     "bcryptjs": "^3.0.3",
     "canvas": "^3.2.1",
     "clsx": "^2.1.1",

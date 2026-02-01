@@ -5,6 +5,40 @@ import { StorageConfigError } from '../services/storage/types';
 import { readFile } from 'fs/promises';
 import { join } from 'path';
 import { isAbsolute } from 'path';
+import sharp from 'sharp';
+
+function isImageContentType(contentType: string): boolean {
+  return (
+    contentType === 'image/jpeg' ||
+    contentType === 'image/png' ||
+    contentType === 'image/webp'
+  );
+}
+
+/**
+ * Apply EXIF orientation so portrait photos display correctly in album view and everywhere.
+ * Applied to all images (thumbnails already have orientation 1 so this is a no-op for them).
+ */
+async function applyExifOrientationToImage(
+  buffer: Buffer,
+  contentType: string,
+): Promise<Buffer> {
+  try {
+    let pipeline = sharp(buffer).rotate(); // Apply EXIF orientation
+    if (contentType === 'image/png') {
+      pipeline = pipeline.png();
+    } else if (contentType === 'image/webp') {
+      pipeline = pipeline.webp();
+    } else {
+      pipeline = pipeline.jpeg({ quality: 95 });
+    }
+    return await pipeline
+      .withMetadata({ orientation: 1 })
+      .toBuffer();
+  } catch (error) {
+    return buffer;
+  }
+}
 
 @Controller('storage')
 export class StorageController {
@@ -65,9 +99,13 @@ export class StorageController {
           };
           const contentType = contentTypeMap[ext || ''] || 'application/octet-stream';
           
+          let outBuffer: Buffer = fileBuffer;
+          if (isImageContentType(contentType)) {
+            outBuffer = Buffer.from(await applyExifOrientationToImage(fileBuffer, contentType));
+          }
           res.setHeader('Content-Type', contentType);
           res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
-          res.send(fileBuffer);
+          res.send(outBuffer);
         } catch (error) {
           this.logger.error(`Failed to serve file ${fullPath}: ${error instanceof Error ? error.message : String(error)}`);
           this.logger.error(`Error details: ${JSON.stringify({
@@ -119,9 +157,13 @@ export class StorageController {
               contentType = contentTypeMap[ext || ''] || contentType;
             }
             
+            let outBuffer: Buffer = fileBuffer;
+            if (isImageContentType(contentType)) {
+              outBuffer = Buffer.from(await applyExifOrientationToImage(fileBuffer, contentType));
+            }
             res.setHeader('Content-Type', contentType);
             res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
-            res.send(fileBuffer);
+            res.send(outBuffer);
           } else {
             throw new NotFoundException(`Google Drive storage provider does not support file serving`);
           }
@@ -216,9 +258,13 @@ export class StorageController {
               contentType = contentTypeMap[ext || ''] || contentType;
             }
             
+            let outBuffer: Buffer = fileBuffer;
+            if (isImageContentType(contentType)) {
+              outBuffer = Buffer.from(await applyExifOrientationToImage(fileBuffer, contentType));
+            }
             res.setHeader('Content-Type', contentType);
             res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
-            res.send(fileBuffer);
+            res.send(outBuffer);
           } else {
             throw new NotFoundException(`Storage provider ${actualProvider} does not support file serving`);
           }

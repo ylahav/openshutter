@@ -448,6 +448,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
   - [x] Search across photos (with filters), albums, people, locations
   - [x] Filter panel UI: album, tags, people, locations, date range, sort (newest/oldest)
   - [x] Filters synced to URL; chip remove and Apply update URL and re-run search
+- [ ] **Face detection – manual selection** – Draw a rectangle around an area and assign a person from the people list
 - [ ] Photo editing capabilities
 - [ ] Social sharing features
 - [ ] Mobile app development

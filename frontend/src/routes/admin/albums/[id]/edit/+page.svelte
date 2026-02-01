@@ -8,6 +8,9 @@
 	import MultiLangHTMLEditor from '$lib/components/MultiLangHTMLEditor.svelte';
 	import AlbumBreadcrumbs from '$lib/components/AlbumBreadcrumbs.svelte';
 	import NotificationDialog from '$lib/components/NotificationDialog.svelte';
+	import { getPhotoUrl } from '$lib/utils/photoUrl';
+	import { getPhotoTitle } from '$lib/utils/photoUtils';
+	import { getAlbumName } from '$lib/utils/albumUtils';
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 
@@ -24,6 +27,7 @@
 		photoCount: number;
 		level: number;
 		parentPath?: string;
+		coverPhotoId?: string;
 		createdAt: string | Date;
 		updatedAt: string | Date;
 		createdBy?: string;
@@ -32,6 +36,16 @@
 		location?: string | null;
 		allowedUsers?: string[];
 		allowedGroups?: string[];
+	}
+
+	interface Photo {
+		_id: string;
+		title?: string | { en?: string; he?: string };
+		filename: string;
+		url?: string;
+		storage?: { url?: string; path?: string; thumbnailPath?: string; thumbnails?: Record<string, string> };
+		sourceAlbumId?: string;
+		sourceAlbumName?: string;
 	}
 
 	interface Group {
@@ -77,6 +91,25 @@
 	let userSearch = '';
 	let groupsAccessRef: HTMLDivElement | null = null;
 	let usersAccessRef: HTMLDivElement | null = null;
+
+	// Cover / leading photo modal
+	let coverPhotoModal: {
+		isOpen: boolean;
+		photos: Photo[];
+		loading: boolean;
+		currentPage: number;
+		photosPerPage: number;
+		totalPhotos: number;
+		fromSubAlbums: boolean;
+	} = {
+		isOpen: false,
+		photos: [],
+		loading: false,
+		currentPage: 1,
+		photosPerPage: 24,
+		totalPhotos: 0,
+		fromSubAlbums: false,
+	};
 
 	$: filteredGroups = groupSearch.trim()
 		? groups.filter(
@@ -265,6 +298,94 @@
 		}
 	}
 
+	async function openCoverPhotoModal() {
+		if (!album) return;
+		coverPhotoModal = {
+			isOpen: true,
+			photos: [],
+			loading: true,
+			currentPage: 1,
+			photosPerPage: 24,
+			totalPhotos: 0,
+			fromSubAlbums: false,
+		};
+		try {
+			let response = await fetch(`/api/admin/albums/${album._id}/photos`);
+			if (response.ok) {
+				const result = await response.json();
+				if (result.success && Array.isArray(result.data)) {
+					coverPhotoModal.photos = result.data;
+					coverPhotoModal.totalPhotos = result.data.length;
+					coverPhotoModal.fromSubAlbums = result.fromSubAlbums === true;
+				}
+			}
+			// If album has no photos, fetch photos from sub-albums so user can pick one as leading
+			if (coverPhotoModal.totalPhotos === 0) {
+				response = await fetch(`/api/admin/albums/${album._id}/photos?includeSubAlbums=1`);
+				if (response.ok) {
+					const result = await response.json();
+					if (result.success && Array.isArray(result.data) && result.data.length > 0) {
+						coverPhotoModal.photos = result.data;
+						coverPhotoModal.totalPhotos = result.data.length;
+						coverPhotoModal.fromSubAlbums = true;
+					}
+				}
+			}
+		} catch (err) {
+			logger.error('Failed to load album photos:', err);
+		} finally {
+			coverPhotoModal.loading = false;
+		}
+	}
+
+	function closeCoverPhotoModal() {
+		coverPhotoModal = {
+			isOpen: false,
+			photos: [],
+			loading: false,
+			currentPage: 1,
+			photosPerPage: 24,
+			totalPhotos: 0,
+			fromSubAlbums: false,
+		};
+	}
+
+	async function setCoverPhoto(photoId: string) {
+		if (!album) return;
+		try {
+			const response = await fetch(`/api/admin/albums/${album._id}/cover-photo`, {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ coverPhotoId: photoId }),
+			});
+			if (!response.ok) {
+				await handleApiErrorResponse(response);
+			} else {
+				album = { ...album, coverPhotoId: photoId };
+				notification = { show: true, message: 'Leading photo updated', type: 'success' };
+				closeCoverPhotoModal();
+			}
+		} catch (err) {
+			logger.error('Failed to set cover photo:', err);
+			notification = { show: true, message: handleError(err, 'Failed to set leading photo'), type: 'error' };
+		}
+	}
+
+	function getPaginatedPhotos(): Photo[] {
+		const startIndex = (coverPhotoModal.currentPage - 1) * coverPhotoModal.photosPerPage;
+		const endIndex = startIndex + coverPhotoModal.photosPerPage;
+		return coverPhotoModal.photos.slice(startIndex, endIndex);
+	}
+
+	function getTotalPages(): number {
+		return Math.ceil(coverPhotoModal.totalPhotos / coverPhotoModal.photosPerPage) || 1;
+	}
+
+	function goToPage(page: number) {
+		coverPhotoModal.currentPage = page;
+		coverPhotoModal = coverPhotoModal;
+	}
+
 	onMount(() => {
 		window.addEventListener('keydown', handleKeydown);
 		window.addEventListener('click', handleClickOutside);
@@ -438,6 +559,21 @@
 								disabled
 							/>
 						</div>
+					</div>
+
+					<!-- Leading / cover photo -->
+					<div class="border border-gray-200 rounded-lg p-4 bg-gray-50/50">
+						<h3 class="text-sm font-medium text-gray-700 mb-2">Leading photo</h3>
+						<p class="text-xs text-gray-500 mb-3">
+							The leading photo is shown as the album cover in the gallery. Select a photo from this album.
+						</p>
+						<button
+							type="button"
+							on:click={openCoverPhotoModal}
+							class="px-4 py-2 text-sm font-medium text-purple-700 bg-purple-50 border border-purple-200 rounded-md hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+						>
+							{album.coverPhotoId ? 'Change leading photo' : 'Select leading photo'}
+						</button>
 					</div>
 
 					<!-- Status Toggles -->
@@ -710,6 +846,115 @@
 		{/if}
 	</div>
 </div>
+
+<!-- Select leading photo modal -->
+{#if coverPhotoModal.isOpen && album}
+	<div class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+		<div class="relative top-10 mx-auto p-5 border w-11/12 md:w-5/6 lg:w-4/5 xl:w-3/4 shadow-lg rounded-md bg-white max-w-6xl">
+			<div class="flex items-center justify-between mb-4">
+				<h3 class="text-lg font-medium text-gray-900">
+					Select leading photo – {getAlbumName(album)}
+				</h3>
+				<button
+					type="button"
+					on:click={closeCoverPhotoModal}
+					class="text-gray-400 hover:text-gray-600"
+					aria-label="Close modal"
+				>
+					<svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+					</svg>
+				</button>
+			</div>
+
+			{#if coverPhotoModal.loading}
+				<div class="text-center py-8">
+					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+					<p class="mt-2 text-gray-600">Loading photos...</p>
+				</div>
+			{:else if coverPhotoModal.totalPhotos === 0}
+				<div class="text-center py-8">
+					<p class="text-gray-600">No photos in this album or in sub-albums. Add photos first, then choose a leading photo.</p>
+				</div>
+			{:else}
+				<div class="max-h-[70vh] overflow-y-auto">
+					{#if coverPhotoModal.fromSubAlbums}
+						<p class="mb-4 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2">
+							This album has no photos. Showing photos from sub-albums. You can choose one as the leading photo.
+						</p>
+					{/if}
+					<div class="mb-4 text-sm text-gray-600">
+						Showing {((coverPhotoModal.currentPage - 1) * coverPhotoModal.photosPerPage) + 1}–{Math.min(
+							coverPhotoModal.currentPage * coverPhotoModal.photosPerPage,
+							coverPhotoModal.totalPhotos,
+						)} of {coverPhotoModal.totalPhotos} photos
+					</div>
+
+					<div class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3 mb-6">
+						{#each getPaginatedPhotos() as photo}
+							{@const isCurrentCover = album?.coverPhotoId === photo._id}
+							<button
+								type="button"
+								class="relative cursor-pointer group text-left {isCurrentCover ? 'ring-4 ring-purple-500 ring-opacity-75' : ''}"
+								on:click={() => setCoverPhoto(photo._id)}
+								aria-label="Set as leading photo"
+							>
+								<img
+									src={getPhotoUrl(photo, { fallback: '' }) || photo.storage?.thumbnailPath || photo.storage?.url || photo.url}
+									alt={getPhotoTitle(photo) || photo.filename || 'Photo'}
+									class="w-full h-20 object-cover rounded-lg hover:opacity-75 transition-opacity {isCurrentCover ? 'ring-2 ring-purple-500' : ''}"
+									style="image-orientation: from-image;"
+								/>
+								{#if isCurrentCover}
+									<div class="absolute top-1 right-1 bg-purple-500 text-white text-xs px-1.5 py-0.5 rounded-full font-medium">
+										✓
+									</div>
+								{/if}
+								{#if coverPhotoModal.fromSubAlbums && photo.sourceAlbumName}
+									<p class="mt-0.5 text-xs text-gray-500 truncate" title="From: {photo.sourceAlbumName}">From: {photo.sourceAlbumName}</p>
+								{/if}
+							</button>
+						{/each}
+					</div>
+
+					{#if getTotalPages() > 1}
+						<div class="flex items-center justify-center space-x-2 mt-4">
+							<button
+								type="button"
+								on:click={() => goToPage(coverPhotoModal.currentPage - 1)}
+								disabled={coverPhotoModal.currentPage === 1}
+								class="px-3 py-1 text-sm font-medium text-gray-500 bg-gray-100 rounded-md hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+							>
+								Previous
+							</button>
+							<span class="text-sm text-gray-600">
+								Page {coverPhotoModal.currentPage} of {getTotalPages()}
+							</span>
+							<button
+								type="button"
+								on:click={() => goToPage(coverPhotoModal.currentPage + 1)}
+								disabled={coverPhotoModal.currentPage === getTotalPages()}
+								class="px-3 py-1 text-sm font-medium text-gray-500 bg-gray-100 rounded-md hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+							>
+								Next
+							</button>
+						</div>
+					{/if}
+				</div>
+			{/if}
+
+			<div class="mt-6 flex justify-end">
+				<button
+					type="button"
+					on:click={closeCoverPhotoModal}
+					class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+				>
+					Cancel
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
 
 <NotificationDialog
 	isOpen={notification.show}

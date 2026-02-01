@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { createEventDispatcher } from 'svelte';
 	import PhotoLightbox from '../PhotoLightbox.svelte';
+	import { getPhotoUrl, getPhotoFullUrl } from '$lib/utils/photoUrl';
 	import { currentLanguage } from '$stores/language';
 	import { MultiLangUtils } from '$utils/multiLang';
 	import { t } from '$stores/i18n';
@@ -36,45 +37,12 @@
 
 	$: lightboxPhotos = Array.isArray(results.photos)
 		? results.photos.map((photo: any) => {
-				let imageUrl = '';
-				if (photo.storage?.url) {
-					if (photo.storage.url.startsWith('/api/storage/serve/') || photo.storage.url.startsWith('http')) {
-						imageUrl = photo.storage.url;
-					} else {
-						const provider = photo.storage.provider || 'local';
-						imageUrl = `/api/storage/serve/${provider}/${encodeURIComponent(photo.storage.url)}`;
-					}
-				} else if (photo.storage?.thumbnailPath) {
-					if (
-						photo.storage.thumbnailPath.startsWith('/api/storage/serve/') ||
-						photo.storage.thumbnailPath.startsWith('http')
-					) {
-						imageUrl = photo.storage.thumbnailPath;
-					} else {
-						const provider = photo.storage.provider || 'local';
-						imageUrl = `/api/storage/serve/${provider}/${encodeURIComponent(photo.storage.thumbnailPath)}`;
-					}
-				}
-
-				let thumbnailUrl = '';
-				if (photo.storage?.thumbnailPath) {
-					if (
-						photo.storage.thumbnailPath.startsWith('/api/storage/serve/') ||
-						photo.storage.thumbnailPath.startsWith('http')
-					) {
-						thumbnailUrl = photo.storage.thumbnailPath;
-					} else {
-						const provider = photo.storage.provider || 'local';
-						thumbnailUrl = `/api/storage/serve/${provider}/${encodeURIComponent(photo.storage.thumbnailPath)}`;
-					}
-				} else if (photo.storage?.url) {
-					thumbnailUrl = imageUrl;
-				}
-
+				const imageUrl = getPhotoFullUrl(photo, '');
+				const thumbnailUrl = getPhotoUrl(photo, { fallback: '' });
 				return {
 					_id: photo._id,
-					url: imageUrl,
-					thumbnailUrl: thumbnailUrl,
+					url: imageUrl || thumbnailUrl,
+					thumbnailUrl: thumbnailUrl || imageUrl,
 					title:
 						typeof photo.title === 'string'
 							? photo.title
@@ -187,16 +155,7 @@
 							class="cursor-pointer bg-white rounded-lg shadow overflow-hidden hover:shadow-lg transition-shadow"
 						>
 							{#if photo.storage?.thumbnailPath || photo.storage?.url}
-								{@const imageUrl =
-									photo.storage.thumbnailPath?.startsWith('/api/storage/serve/') ||
-									photo.storage.thumbnailPath?.startsWith('http')
-										? photo.storage.thumbnailPath
-										: photo.storage.url?.startsWith('/api/storage/serve/') ||
-											photo.storage.url?.startsWith('http')
-											? photo.storage.url
-											: `/api/storage/serve/${photo.storage.provider || 'local'}/${encodeURIComponent(
-													photo.storage.thumbnailPath || photo.storage.url
-												)}`}
+								{@const imageUrl = getPhotoUrl(photo, { fallback: '' })}
 								<img
 									src={imageUrl}
 									alt={photo.filename || 'Photo'}

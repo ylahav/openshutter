@@ -627,6 +627,139 @@ export class PhotosAdminController {
 	}
 
 	/**
+	 * Bulk regenerate thumbnails for photos (corrects orientation in small, medium, large, etc.)
+	 * Path: POST /api/admin/photos/bulk/regenerate-thumbnails
+	 */
+	@Post('bulk/regenerate-thumbnails')
+	async bulkRegenerateThumbnails(@Body() body: { photoIds: string[] }) {
+		try {
+			await connectDB();
+			const db = mongoose.connection.db;
+			if (!db) throw new InternalServerErrorException('Database connection not established');
+
+			const { photoIds } = body;
+			if (!Array.isArray(photoIds) || photoIds.length === 0) {
+				throw new BadRequestException('photoIds must be a non-empty array');
+			}
+
+			const objectIds = photoIds.map((id) => {
+				if (!Types.ObjectId.isValid(id)) {
+					throw new BadRequestException(`Invalid photo ID: ${id}`);
+				}
+				return new Types.ObjectId(id);
+			});
+
+			const photos = await db.collection('photos').find({ _id: { $in: objectIds } }).toArray();
+			let processedCount = 0;
+			let failedCount = 0;
+			const errors: { photoId: string; error: string }[] = [];
+			const storageManager = StorageManager.getInstance();
+
+			const extractPathFromUrl = (url: string): string | null => {
+				if (!url) return null;
+				if (url.startsWith('/api/storage/serve/')) {
+					const match = url.match(/\/serve\/[^/]+\/(.+)$/);
+					return match ? decodeURIComponent(match[1]) : null;
+				}
+				return url;
+			};
+
+			for (const photo of photos) {
+				try {
+					if (!photo.storage?.path || !photo.storage?.provider) {
+						throw new Error('Photo has no storage path or provider');
+					}
+					const provider = photo.storage.provider as any;
+					const storageService = await storageManager.getProvider(provider);
+					const fileBuffer = await storageService.getFileBuffer(photo.storage.path);
+					if (!fileBuffer) {
+						throw new Error('Failed to download original image from storage');
+					}
+
+					let albumPath = '';
+					if (photo.albumId) {
+						const album = await db.collection('albums').findOne({ _id: photo.albumId });
+						if (album?.storagePath) albumPath = album.storagePath;
+					}
+
+					const thumbnailBuffers = await ThumbnailGenerator.generateAllThumbnails(fileBuffer, photo.filename);
+					const thumbnails: Record<string, string> = {};
+
+					if (photo.storage.thumbnails && typeof photo.storage.thumbnails === 'object') {
+						for (const [size, thumbnailUrl] of Object.entries(photo.storage.thumbnails)) {
+							try {
+								const thumbnailPath = extractPathFromUrl(thumbnailUrl as string);
+								if (thumbnailPath && thumbnailPath !== photo.storage.path) {
+									await storageManager.deletePhoto(thumbnailPath, provider);
+								}
+							} catch (_e) {
+								// continue
+							}
+						}
+					}
+
+					for (const [sizeName, buffer] of Object.entries(thumbnailBuffers)) {
+						try {
+							const sizeConfig = ThumbnailGenerator.getThumbnailSize(sizeName as any);
+							const thumbnailFilename = `${sizeName}-${photo.filename}`;
+							const sizeFolderPath = albumPath ? `${albumPath}/${sizeConfig.folder}` : sizeConfig.folder;
+							const thumbnailResult = await storageService.uploadFile(
+								buffer,
+								thumbnailFilename,
+								'image/jpeg',
+								sizeFolderPath,
+								{ originalFile: photo.filename, thumbnailSize: sizeName }
+							);
+							thumbnails[sizeName] = `/api/storage/serve/${provider}/${encodeURIComponent(thumbnailResult.path)}`;
+						} catch (err) {
+							this.logger.warn(`Failed to upload ${sizeName} thumbnail for ${photo.filename}: ${err}`);
+						}
+					}
+
+					const blurDataURL = await ThumbnailGenerator.generateBlurPlaceholder(fileBuffer);
+					const mediumThumbnail = thumbnails.medium || thumbnails.small || Object.values(thumbnails)[0];
+
+					await db.collection('photos').updateOne(
+						{ _id: photo._id },
+						{
+							$set: {
+								'storage.thumbnails': thumbnails,
+								'storage.thumbnailPath': mediumThumbnail,
+								'storage.blurDataURL': blurDataURL,
+								updatedAt: new Date()
+							}
+						}
+					);
+					processedCount++;
+				} catch (err) {
+					failedCount++;
+					errors.push({
+						photoId: photo._id.toString(),
+						error: err instanceof Error ? err.message : String(err)
+					});
+				}
+			}
+
+			return {
+				success: true,
+				processedCount,
+				failedCount,
+				totalRequested: photoIds.length,
+				...(errors.length > 0 && { errors }),
+				message: `Regenerated thumbnails for ${processedCount} photo(s)` + (failedCount > 0 ? `; ${failedCount} failed.` : '')
+			};
+		} catch (error) {
+			this.logger.error(`Bulk regenerate thumbnails failed: ${error instanceof Error ? error.message : String(error)}`);
+			if (error instanceof BadRequestException) {
+				throw error;
+			}
+			throw new InternalServerErrorException(
+				`Bulk regenerate thumbnails failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+			);
+		}
+	}
+
+	/**
 	 * Regenerate thumbnails for a photo
 	 * Path: POST /api/admin/photos/:id/regenerate-thumbnails
 	 */

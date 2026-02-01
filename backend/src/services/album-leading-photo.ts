@@ -14,61 +14,120 @@ export class AlbumLeadingPhotoService {
   private static readonly logger = new Logger(AlbumLeadingPhotoService.name)
   /**
    * Get the leading photo for an album using hierarchical selection:
-   * 1. Find album's photo with isLeading === true and show it
-   * 2. If not found - go to all sub-albums (if exist) and try for each of them to find a leading photo... the first who found - show it
-   * 3. If not found - show site logo (handled by getAlbumCoverImageUrl)
+   * 1. If album has coverPhotoId set, use that photo
+   * 2. Find album's photo with isLeading === true
+   * 3. If not found - pick a random photo from the album
+   * 4. If album has no photos - pick randomly one of sub-albums' leading photos
+   * 5. If not found - show site logo (handled by getAlbumCoverImageUrl)
    */
   static async getAlbumLeadingPhoto(albumId: string): Promise<AlbumLeadingPhotoResult> {
     try {
-      
-      // Get the album
       const album = await AlbumModel.findById(albumId)
       if (!album) {
         return { photo: null, source: 'none', albumId }
       }
 
-      // Step 1: Find album's photo with isLeading === true
-      const leadingPhoto = await PhotoModel.findOne({
-        albumId: albumId,
-        isLeading: true,
-        isPublished: true
-      })
-      
-      if (leadingPhoto) {
-        return { 
-          photo: leadingPhoto, 
-          source: 'is-leading', 
-          albumId 
-        }
-      }
-
-      // Step 2: If not found, go to all sub-albums and try to find a leading photo
-      const childAlbums = await AlbumModel.find({
-          parentAlbumId: albumId,
-          isPublic: true
+      // Step 1: Album has explicit cover/leading photo set
+      if (album.coverPhotoId) {
+        const coverPhoto = await PhotoModel.findOne({
+          _id: album.coverPhotoId,
+          isPublished: true,
         })
-
-      if (childAlbums.length > 0) {
-        // Look for leading photos in child albums
-        for (const childAlbum of childAlbums) {
-          // Find photos with isLeading === true in child album
-          const childLeadingPhoto = await PhotoModel.findOne({
-            albumId: childAlbum._id,
-            isLeading: true,
-            isPublished: true
-          })
-          
-          if (childLeadingPhoto) {
-            return { 
-              photo: childLeadingPhoto, 
-              source: 'child-leading', 
-              albumId: childAlbum._id.toString() 
-            }
+        if (coverPhoto) {
+          return {
+            photo: coverPhoto,
+            source: 'album-leading',
+            albumId,
           }
         }
       }
 
-      // No leading photos found anywhere
+      // Step 2: Album's photo with isLeading === true
+      const leadingPhoto = await PhotoModel.findOne({
+        albumId: albumId,
+        isLeading: true,
+        isPublished: true,
+      })
+      if (leadingPhoto) {
+        return {
+          photo: leadingPhoto,
+          source: 'is-leading',
+          albumId,
+        }
+      }
+
+      // Step 3: Random photo from this album
+      const albumPhotos = await PhotoModel.find({
+        $or: [{ albumId: album._id }, { albumId: albumId }],
+        isPublished: true,
+      })
+        .limit(100)
+        .lean()
+        .exec()
+      if (albumPhotos.length > 0) {
+        const randomPhoto = albumPhotos[Math.floor(Math.random() * albumPhotos.length)]
+        return {
+          photo: randomPhoto as IPhoto,
+          source: 'album-leading',
+          albumId,
+        }
+      }
+
+      // Step 4: Album has no photos - collect sub-albums' leading photos and pick one randomly
+      const childAlbums = await AlbumModel.find({
+        parentAlbumId: albumId,
+        isPublic: true,
+      })
+        .lean()
+        .exec()
+
+      if (childAlbums.length > 0) {
+        const childLeadingPhotos: { photo: IPhoto; childAlbumId: string }[] = []
+        for (const childAlbum of childAlbums) {
+          let childPhoto: IPhoto | null = null
+          if (childAlbum.coverPhotoId) {
+            childPhoto = await PhotoModel.findOne({
+              _id: childAlbum.coverPhotoId,
+              isPublished: true,
+            })
+              .lean()
+              .exec() as IPhoto | null
+          }
+          if (!childPhoto) {
+            childPhoto = await PhotoModel.findOne({
+              albumId: childAlbum._id,
+              isLeading: true,
+              isPublished: true,
+            })
+              .lean()
+              .exec() as IPhoto | null
+          }
+          if (!childPhoto) {
+            const first = await PhotoModel.findOne({
+              $or: [{ albumId: childAlbum._id }, { albumId: childAlbum._id.toString() }],
+              isPublished: true,
+            })
+              .lean()
+              .exec()
+            if (first) childPhoto = first as IPhoto
+          }
+          if (childPhoto) {
+            childLeadingPhotos.push({
+              photo: childPhoto,
+              childAlbumId: childAlbum._id.toString(),
+            })
+          }
+        }
+        if (childLeadingPhotos.length > 0) {
+          const chosen = childLeadingPhotos[Math.floor(Math.random() * childLeadingPhotos.length)]
+          return {
+            photo: chosen.photo,
+            source: 'child-leading',
+            albumId: chosen.childAlbumId,
+          }
+        }
+      }
+
       return { photo: null, source: 'none', albumId }
     } catch (error) {
       AlbumLeadingPhotoService.logger.error(`Error getting album leading photo: ${error instanceof Error ? error.message : String(error)}`)
