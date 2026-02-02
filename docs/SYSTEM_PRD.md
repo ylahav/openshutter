@@ -617,7 +617,6 @@ Operational notes:
 - **Photo editing capabilities** ✅ (rotate: 90° CW/CCW, 180° from photo edit; crop planned)
 - **Welcome email on user creation**: Mail server config + configurable welcome message; send when admin creates a new user
 - Social sharing features
-- Mobile app development
 - Enhanced tag analytics
 - Tag-based recommendations
 
@@ -634,6 +633,7 @@ Operational notes:
 - Advanced collaboration features
 - Integration marketplace
 - White-label solutions
+- Mobile app development
 - Machine learning for tag optimization
 
 ## Conclusion

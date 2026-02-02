@@ -455,7 +455,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
   - [x] Rotate photo 90° CW, 90° CCW, or 180° from photo edit page (admin and owner). Backend replaces file and regenerates thumbnails. API: `POST /api/admin/photos/:id/rotate` with body `{ angle: 90 | -90 | 180 }`.
   - [ ] Crop (future)
 - [ ] Social sharing features
-- [ ] Mobile app development
 - [ ] Enhanced tag analytics
 - [x] **User role management** – Admin/Owner/Guest roles, Admin → Users (role + groupAliases), Admin → Groups, owner dashboard and owner album/photo management (`/owner/albums`, `/owner/photos/[id]/edit`), AdminOrOwnerGuard and ownership enforcement
 - [ ] Import/Sync functionality (currently disabled)
@@ -482,6 +481,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [ ] Advanced collaboration features
 - [ ] Integration marketplace
 - [ ] White-label solutions
+- [ ] Mobile app development
 
 *Note: Roadmap phases and timelines are subject to change based on user feedback, technical requirements, and development priorities.
 
