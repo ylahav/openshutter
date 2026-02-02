@@ -94,6 +94,21 @@ export interface SiteConfig {
   exifMetadata?: {
     displayFields?: string[]
   }
+  /** Mail server (SMTP) for sending emails e.g. welcome email on user creation */
+  mail?: {
+    host?: string
+    port?: number
+    user?: string
+    password?: string
+    from?: string // e.g. "OpenShutter <noreply@example.com>"
+    secure?: boolean
+  }
+  /** Welcome email sent when a new user is created. Placeholders: {{name}}, {{username}}, {{loginUrl}} */
+  welcomeEmail?: {
+    enabled?: boolean
+    subject?: string
+    body?: string
+  }
   createdAt: Date
   updatedAt: Date
 }
@@ -111,4 +126,6 @@ export interface SiteConfigUpdate {
   homePage?: Partial<SiteConfig['homePage']>
   features?: Partial<SiteConfig['features']>
   exifMetadata?: Partial<SiteConfig['exifMetadata']>
+  mail?: Partial<SiteConfig['mail']>
+  welcomeEmail?: Partial<SiteConfig['welcomeEmail']>
 }

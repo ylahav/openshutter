@@ -38,4 +38,12 @@ export class UpdateUserDto {
 	@IsArray()
 	@IsOptional()
 	allowedStorageProviders?: string[];
+
+	@IsBoolean()
+	@IsOptional()
+	forcePasswordChange?: boolean;
+
+	@IsString()
+	@IsOptional()
+	preferredLanguage?: string;
 }

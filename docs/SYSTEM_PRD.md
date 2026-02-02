@@ -82,10 +82,13 @@ To provide a modern, scalable, and user-friendly photo gallery management system
 #### Requirements
 - Secure user authentication
 - Role-based access control (Admin, Owner, Guest)
+- Distinct member area for Viewer/Guest users
 - Session management with persistent login
 - Password security
 - User profile management
 - Owner-specific dashboard and functionality
+− Forced password change on first login when using system-generated or admin-set passwords
+− Optional welcome email on user creation with configurable template
 
 #### User Stories
 - **As a user**, I want to log in securely so that my account is protected
@@ -93,6 +96,9 @@ To provide a modern, scalable, and user-friendly photo gallery management system
 - **As a user**, I want to stay logged in so that I don't need to re-authenticate frequently
 - **As an owner**, I want to manage my own albums so that I can organize my photos
 - **As an owner**, I want to edit my profile so that I can keep my information up to date
+- **As a viewer (guest)**, I want a simple member area where I can update my profile, preferred language, and password so that I can manage my own access details without seeing admin/owner tools
+- **As a new user**, I want to receive a welcome email with my login details (when enabled) so that I know how to access the system
+- **As a user with a temporary password**, I want to be forced to change my password on first login so that my account is more secure
 
 #### Acceptance Criteria
 - Login/logout functionality works correctly
@@ -101,6 +107,9 @@ To provide a modern, scalable, and user-friendly photo gallery management system
 - Session persistence works across browser sessions
 - Owners can only access their own albums and public albums
 - Owners have dedicated dashboard separate from admin interface
+- Viewer/Guest users have a dedicated member area (`/member`) with access only to their own profile and password change forms
+- Users with `forcePasswordChange` set cannot access admin/owner/member areas until they complete a password change flow
+- When enabled and configured, creating a user from the admin UI triggers a welcome email that uses the site-configured SMTP settings and template
 
 ### 2. Album Management
 
@@ -606,6 +615,7 @@ Operational notes:
 - Advanced search and filtering
 - **Face detection – manual selection** ✅: Draw a rectangle around an area and assign a person from the people list
 - **Photo editing capabilities** ✅ (rotate: 90° CW/CCW, 180° from photo edit; crop planned)
+- **Welcome email on user creation**: Mail server config + configurable welcome message; send when admin creates a new user
 - Social sharing features
 - Mobile app development
 - Enhanced tag analytics

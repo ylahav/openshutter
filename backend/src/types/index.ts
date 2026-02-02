@@ -169,6 +169,7 @@ export interface User {
   groupAliases: string[]
   blocked: boolean
   allowedStorageProviders: string[] // Array of storage provider IDs the user can use
+  forcePasswordChange?: boolean
   createdAt: Date
   updatedAt: Date
 }

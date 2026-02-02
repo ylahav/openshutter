@@ -1,4 +1,5 @@
 import { Controller, Get, Put, Body, Post, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
+import { mailService } from '../services/mail.service';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { siteConfigService } from '../services/site-config';
 import { SiteConfigUpdate } from '../types/site-config';
@@ -56,6 +57,8 @@ export class SiteConfigController {
       features: config.features,
       template: config.template,
       exifMetadata: config.exifMetadata,
+      mail: config.mail ? { ...config.mail, password: config.mail.password ? '****' : '' } : undefined,
+      welcomeEmail: config.welcomeEmail,
     };
   }
 
@@ -80,6 +83,8 @@ export class SiteConfigController {
       features: config.features,
       template: config.template,
       exifMetadata: config.exifMetadata,
+      mail: config.mail ? { ...config.mail, password: config.mail.password ? '****' : '' } : undefined,
+      welcomeEmail: config.welcomeEmail,
     };
   }
 
@@ -154,8 +159,28 @@ export class SiteConfigController {
   }
 
   /**
+   * Admin endpoint to send a test email using current SMTP config.
+   * Path: POST /api/admin/site-config/test-email
+   * Body: { to: string, subject?: string, body?: string }
+   */
+  @Post('admin/site-config/test-email')
+  async sendTestEmail(
+    @Body() body: { to: string; subject?: string; body?: string },
+  ) {
+    const to = body?.to?.trim();
+    if (!to) {
+      throw new BadRequestException('Recipient (to) is required');
+    }
+    return mailService.sendTestEmail(
+      to,
+      body.subject ?? 'Test email',
+      body.body ?? 'This is a test email from OpenShutter.',
+    );
+  }
+
+  /**
    * Admin endpoint to get available languages.
-   * 
+   *
    * Path: GET /api/admin/languages
    */
   @Get('admin/languages')

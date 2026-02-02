@@ -46,7 +46,8 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 		const jwt = await new SignJWT({
 			email: user.email,
 			name: user.name,
-			role: user.role
+			role: user.role,
+			forcePasswordChange: user.forcePasswordChange ?? false
 		})
 			.setProtectedHeader({ alg: 'HS256' })
 			.setSubject(user.id)

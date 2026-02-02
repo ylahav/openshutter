@@ -3,7 +3,7 @@
 	import { derived } from 'svelte/store';
 	import { currentLanguage } from '$stores/language';
 	import { siteConfigData, siteConfig } from '$stores/siteConfig';
-	import { auth, logout } from '$lib/stores/auth';
+	import { auth } from '$lib/stores/auth';
 	import { MultiLangUtils } from '$utils/multiLang';
 	import LanguageSelector from '$components/LanguageSelector.svelte';
 	import TemplateSelector from '$components/TemplateSelector.svelte';
@@ -45,10 +45,6 @@
 			});
 		}
 	});
-
-	async function handleLogout() {
-		await logout();
-	}
 
 	// Debug logging - always log to help diagnose
 	$: if (typeof window !== 'undefined') {
@@ -113,18 +109,9 @@
 							showAuthButtons={showAuthButtons}
 						/>
 
-						{#if showAuthButtons && $auth.authenticated && $auth.user}
+						{#if showAuthButtons && $auth.authenticated && $auth.user && showGreeting}
 							<span class="text-gray-400">|</span>
-							{#if showGreeting}
-								<span class="text-gray-500">{$auth.user.name || $auth.user.email}</span>
-							{/if}
-							<button
-								on:click={handleLogout}
-								class="hover:text-gray-900 text-gray-600"
-								type="button"
-							>
-								{$t('header.logout')}
-							</button>
+							<span class="text-gray-500">{$auth.user.name || $auth.user.email}</span>
 						{/if}
 					{/if}
 

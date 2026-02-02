@@ -4,7 +4,8 @@
 	import MultiLangInput from '$lib/components/MultiLangInput.svelte';
 	import MultiLangHTMLEditor from '$lib/components/MultiLangHTMLEditor.svelte';
 	import { MultiLangUtils } from '$lib/utils/multiLang';
-	import { currentLanguage } from '$lib/stores/language';
+	import { currentLanguage, setLanguage } from '$lib/stores/language';
+	import { SUPPORTED_LANGUAGES } from '$lib/types/multi-lang';
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 	import type { PageData } from './$types';
@@ -23,6 +24,7 @@
 			storagePath: string;
 		};
 		role: string;
+		preferredLanguage?: string;
 		createdAt: string;
 	}
 
@@ -37,6 +39,7 @@
 		email: '',
 		bio: { en: '', he: '' } as { en?: string; he?: string },
 		profileImage: undefined as UserProfile['profileImage'],
+		preferredLanguage: 'en' as string,
 		currentPassword: '',
 		newPassword: '',
 		confirmPassword: ''
@@ -55,16 +58,23 @@
 			}
 			const result = await response.json();
 			profile = result.user || result;
+			if (!profile) return;
 			const displayName = MultiLangUtils.getTextValue(profile.name, $currentLanguage);
+			const prefLang = profile.preferredLanguage && SUPPORTED_LANGUAGES.some((l) => l.code === profile.preferredLanguage)
+				? profile.preferredLanguage
+				: 'en';
 			formData = {
 				name: displayName || '',
 				email: profile.email || '',
 				bio: profile.bio || { en: '', he: '' },
 				profileImage: profile.profileImage,
+				preferredLanguage: prefLang,
 				currentPassword: '',
 				newPassword: '',
 				confirmPassword: ''
 			};
+			// Apply preferred language so UI uses it (and persist to localStorage via store)
+			setLanguage(prefLang);
 		} catch (err) {
 			logger.error('Failed to fetch profile:', err);
 			error = handleError(err, 'Failed to fetch profile');
@@ -106,6 +116,7 @@
 					email: formData.email,
 					bio: formData.bio,
 					profileImage: formData.profileImage,
+					preferredLanguage: formData.preferredLanguage || undefined,
 					currentPassword: formData.currentPassword || undefined,
 					newPassword: formData.newPassword || undefined
 				})
@@ -118,6 +129,22 @@
 			const result = await response.json();
 			profile = result.user;
 			success = 'Profile updated successfully!';
+
+			// Apply preferred language immediately so UI updates
+			if (formData.preferredLanguage) {
+				setLanguage(formData.preferredLanguage);
+			}
+			// If password was changed, refresh session so JWT has updated forcePasswordChange
+			if (formData.newPassword) {
+				try {
+					const refreshRes = await fetch('/api/auth/refresh-session', { method: 'POST' });
+					if (refreshRes.ok) {
+						// Session cookie updated; next navigation will have correct user state
+					}
+				} catch (_) {
+					// Non-fatal; user is still updated
+				}
+			}
 
 			// Clear password fields
 			formData = {
@@ -306,6 +333,20 @@
 								</div>
 							</div>
 						</div>
+					</div>
+
+					<!-- Preferred language -->
+					<div>
+						<h3 class="text-lg font-medium text-gray-900 mb-4">Preferred language</h3>
+						<p class="text-sm text-gray-600 mb-3">Default language for the interface and content.</p>
+						<select
+							bind:value={formData.preferredLanguage}
+							class="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+						>
+							{#each SUPPORTED_LANGUAGES as lang}
+								<option value={lang.code}>{lang.flag} {lang.name} ({lang.nativeName})</option>
+							{/each}
+						</select>
 					</div>
 
 					<!-- Account Information -->

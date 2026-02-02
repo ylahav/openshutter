@@ -10,6 +10,8 @@ export interface User {
   groupAliases: string[]
   blocked: boolean
   allowedStorageProviders: string[]
+  forcePasswordChange?: boolean
+  preferredLanguage?: string
   createdAt: Date
   updatedAt: Date
 }
@@ -53,6 +55,15 @@ const UserSchema = new Schema<IUserDocument>({
     type: String,
     trim: true
   }],
+  forcePasswordChange: {
+    type: Boolean,
+    default: false
+  },
+  preferredLanguage: {
+    type: String,
+    trim: true,
+    default: ''
+  },
   createdAt: {
     type: Date,
     default: Date.now

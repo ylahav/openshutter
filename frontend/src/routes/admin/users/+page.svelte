@@ -8,6 +8,8 @@
 	import { normalizeMultiLangText } from '$lib/utils/multiLangHelpers';
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
+	import { SUPPORTED_LANGUAGES } from '$lib/types/multi-lang';
+	import { ROLE_LABELS, ROLE_OPTIONS } from '$lib/constants/roles';
 	import type { PageData } from './$types';
 
 	// svelte-ignore export_let_unused - Required by SvelteKit page component
@@ -26,16 +28,14 @@
 		role: 'admin' | 'owner' | 'guest';
 		groupAliases?: string[];
 		blocked?: boolean;
+		forcePasswordChange?: boolean;
+		preferredLanguage?: string;
 		allowedStorageProviders?: string[];
 		createdAt?: string;
 		updatedAt?: string;
 	}
 
-	const ROLES = [
-		{ value: 'admin', label: 'Admin' },
-		{ value: 'owner', label: 'Owner' },
-		{ value: 'guest', label: 'Guest' }
-	];
+	const ROLES = ROLE_OPTIONS;
 
 	const STORAGE_PROVIDERS = [
 		{ id: 'local', name: 'Local Storage' },
@@ -134,8 +134,10 @@
 		username: '',
 		password: '',
 		role: 'guest' as 'admin' | 'owner' | 'guest',
+		preferredLanguage: 'en',
 		groupAliases: [] as string[],
 		blocked: false,
+		forcePasswordChange: true,
 		allowedStorageProviders: ['local'] as string[]
 	};
 
@@ -167,8 +169,10 @@
 			username: '',
 			password: '',
 			role: 'guest',
+			preferredLanguage: 'en',
 			groupAliases: [],
 			blocked: false,
+			forcePasswordChange: true,
 			allowedStorageProviders: ['local']
 		};
 		showPassword = false;
@@ -182,13 +186,18 @@
 
 	function openEditDialog(user: User) {
 		editingUser = user;
+		const prefLang = user.preferredLanguage && SUPPORTED_LANGUAGES.some((l) => l.code === user.preferredLanguage)
+			? user.preferredLanguage
+			: 'en';
 		formData = {
 			name: normalizeMultiLangText(user.name),
 			username: user.username || '',
 			password: '', // Don't populate password
 			role: user.role || 'guest',
+			preferredLanguage: prefLang,
 			groupAliases: user.groupAliases || [],
 			blocked: user.blocked || false,
+			forcePasswordChange: user.forcePasswordChange ?? false,
 			allowedStorageProviders: user.allowedStorageProviders || ['local']
 		};
 		showPassword = false;
@@ -318,7 +327,7 @@
 					>
 						<option value="all">All Roles</option>
 						{#each ROLES as role}
-							<option value={role.value}>{role.label}</option>
+							<option value={role.value} title={role.description}>{role.label} – {role.description}</option>
 						{/each}
 					</select>
 
@@ -406,15 +415,20 @@
 										</div>
 									</td>
 									<td class="px-6 py-4 whitespace-nowrap">
-										<span
-											class="px-2 py-1 text-xs font-medium rounded {user.role === 'admin'
-												? 'bg-purple-100 text-purple-800'
-												: user.role === 'owner'
-													? 'bg-blue-100 text-blue-800'
-													: 'bg-gray-100 text-gray-800'}"
-										>
-											{user.role}
-										</span>
+										<div class="flex flex-wrap items-center gap-1">
+											<span
+												class="px-2 py-1 text-xs font-medium rounded {user.role === 'admin'
+													? 'bg-purple-100 text-purple-800'
+													: user.role === 'owner'
+														? 'bg-blue-100 text-blue-800'
+														: 'bg-gray-100 text-gray-800'}"
+											>
+												{ROLE_LABELS[user.role as keyof typeof ROLE_LABELS] ?? user.role}
+											</span>
+											{#if user.forcePasswordChange}
+												<span class="px-2 py-0.5 text-xs font-medium rounded bg-amber-100 text-amber-800" title="Must change password on next login">Change password</span>
+											{/if}
+										</div>
 									</td>
 									<td class="px-6 py-4">
 										<div class="flex flex-wrap gap-1">
@@ -478,6 +492,7 @@
 			{/if}
 
 			<div class="space-y-4">
+				<!-- svelte-ignore a11y_label_has_associated_control -->
 				<div>
 					<label class="block text-sm font-medium text-gray-700 mb-2">
 						Name *
@@ -486,10 +501,11 @@
 				</div>
 
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
+					<label for="create-username" class="block text-sm font-medium text-gray-700 mb-2">
 						Username *
 					</label>
 					<input
+						id="create-username"
 						type="text"
 						bind:value={formData.username}
 						placeholder="username@example.com"
@@ -499,17 +515,18 @@
 				</div>
 
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
-						Password *
+					<label for="create-password" class="block text-sm font-medium text-gray-700 mb-2">
+						Password (optional)
 					</label>
 					<div class="relative">
 						<input
+							id="create-password"
 							type={showPassword ? 'text' : 'password'}
 							bind:value={formData.password}
-							placeholder="At least 6 characters"
-							required
+							placeholder="Leave blank to auto-generate (sent by welcome email if configured)"
 							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 						/>
+						<p class="mt-1 text-xs text-gray-500">If blank, the system generates a secure password and sends it via welcome email. User will be required to change it on first login.</p>
 						<button
 							type="button"
 							on:click={() => (showPassword = !showPassword)}
@@ -545,23 +562,39 @@
 				</div>
 
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
+					<label for="create-role" class="block text-sm font-medium text-gray-700 mb-2">
 						Role *
 					</label>
 					<select
+						id="create-role"
 						bind:value={formData.role}
 						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 					>
 						{#each ROLES as role}
-							<option value={role.value}>{role.label}</option>
+							<option value={role.value} title={role.description}>{role.label} – {role.description}</option>
 						{/each}
 					</select>
 				</div>
 
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
-						Groups
+					<label for="create-preferred-language" class="block text-sm font-medium text-gray-700 mb-2">
+						Preferred language
 					</label>
+					<select
+						id="create-preferred-language"
+						bind:value={formData.preferredLanguage}
+						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+					>
+						{#each SUPPORTED_LANGUAGES as lang}
+							<option value={lang.code}>{lang.name} ({lang.nativeName})</option>
+						{/each}
+					</select>
+				</div>
+
+				<fieldset class="space-y-2">
+					<legend class="block text-sm font-medium text-gray-700 mb-2">
+						Groups
+					</legend>
 					<div class="border border-gray-300 rounded-md p-3 max-h-32 overflow-y-auto">
 						{#if loadingGroups}
 							<p class="text-sm text-gray-500">Loading groups...</p>
@@ -584,12 +617,12 @@
 							</div>
 						{/if}
 					</div>
-				</div>
+				</fieldset>
 
-				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
+				<fieldset class="space-y-2">
+					<legend class="block text-sm font-medium text-gray-700 mb-2">
 						Allowed Storage Providers
-					</label>
+					</legend>
 					<div class="border border-gray-300 rounded-md p-3">
 						<div class="space-y-2">
 							{#each STORAGE_PROVIDERS as provider}
@@ -605,7 +638,7 @@
 							{/each}
 						</div>
 					</div>
-				</div>
+				</fieldset>
 
 				<div class="flex items-center">
 					<label class="relative inline-flex items-center cursor-pointer">
@@ -637,7 +670,7 @@
 					<button
 						type="button"
 						on:click={handleCreate}
-						disabled={saving || !formData.username.trim() || !formData.password.trim()}
+						disabled={saving || !formData.username.trim()}
 						class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm font-medium"
 					>
 						{#if saving}
@@ -663,6 +696,7 @@
 			{/if}
 
 			<div class="space-y-4">
+				<!-- svelte-ignore a11y_label_has_associated_control -->
 				<div>
 					<label class="block text-sm font-medium text-gray-700 mb-2">
 						Name *
@@ -671,10 +705,11 @@
 				</div>
 
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
+					<label for="edit-username" class="block text-sm font-medium text-gray-700 mb-2">
 						Username
 					</label>
 					<input
+						id="edit-username"
 						type="text"
 						value={formData.username}
 						disabled
@@ -684,11 +719,12 @@
 				</div>
 
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
+					<label for="edit-password" class="block text-sm font-medium text-gray-700 mb-2">
 						New Password (leave blank to keep current)
 					</label>
 					<div class="relative">
 						<input
+							id="edit-password"
 							type={showPassword ? 'text' : 'password'}
 							bind:value={formData.password}
 							placeholder="Leave blank to keep current password"
@@ -729,23 +765,39 @@
 				</div>
 
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
+					<label for="edit-role" class="block text-sm font-medium text-gray-700 mb-2">
 						Role *
 					</label>
 					<select
+						id="edit-role"
 						bind:value={formData.role}
 						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 					>
 						{#each ROLES as role}
-							<option value={role.value}>{role.label}</option>
+							<option value={role.value} title={role.description}>{role.label} – {role.description}</option>
 						{/each}
 					</select>
 				</div>
 
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
-						Groups
+					<label for="edit-preferred-language" class="block text-sm font-medium text-gray-700 mb-2">
+						Preferred language
 					</label>
+					<select
+						id="edit-preferred-language"
+						bind:value={formData.preferredLanguage}
+						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+					>
+						{#each SUPPORTED_LANGUAGES as lang}
+							<option value={lang.code}>{lang.name} ({lang.nativeName})</option>
+						{/each}
+					</select>
+				</div>
+
+				<fieldset class="space-y-2">
+					<legend class="block text-sm font-medium text-gray-700 mb-2">
+						Groups
+					</legend>
 					<div class="border border-gray-300 rounded-md p-3 max-h-32 overflow-y-auto">
 						{#if loadingGroups}
 							<p class="text-sm text-gray-500">Loading groups...</p>
@@ -768,12 +820,12 @@
 							</div>
 						{/if}
 					</div>
-				</div>
+				</fieldset>
 
-				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
+				<fieldset class="space-y-2">
+					<legend class="block text-sm font-medium text-gray-700 mb-2">
 						Allowed Storage Providers
-					</label>
+					</legend>
 					<div class="border border-gray-300 rounded-md p-3">
 						<div class="space-y-2">
 							{#each STORAGE_PROVIDERS as provider}
@@ -789,7 +841,7 @@
 							{/each}
 						</div>
 					</div>
-				</div>
+				</fieldset>
 
 				<div class="flex items-center">
 					<label class="relative inline-flex items-center cursor-pointer">
@@ -803,6 +855,22 @@
 						></div>
 						<span class="ml-3 text-sm font-medium text-gray-700">
 							Blocked
+						</span>
+					</label>
+				</div>
+
+				<div class="flex items-center">
+					<label class="relative inline-flex items-center cursor-pointer">
+						<input
+							type="checkbox"
+							bind:checked={formData.forcePasswordChange}
+							class="sr-only peer"
+						/>
+						<div
+							class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"
+						></div>
+						<span class="ml-3 text-sm font-medium text-gray-700">
+							Force password change on next login
 						</span>
 					</label>
 				</div>

@@ -74,6 +74,12 @@ echo -e "${BLUE}  Copying backend files...${NC}"
 cp -r backend/dist "$DEPLOY_DIR/backend/"
 cp backend/package.json "$DEPLOY_DIR/backend/"
 cp backend/tsconfig.json "$DEPLOY_DIR/backend/" 2>/dev/null || true
+# Copy i18n translation files so backend TranslationsService can find them (backend runs with cwd=backend, looks for ./i18n)
+if [ -d "frontend/src/i18n" ]; then
+    mkdir -p "$DEPLOY_DIR/backend/i18n"
+    cp frontend/src/i18n/*.json "$DEPLOY_DIR/backend/i18n/" 2>/dev/null || true
+    echo -e "${GREEN}    Copied frontend/src/i18n to backend/i18n${NC}"
+fi
 
 echo -e "${BLUE}  Copying frontend files...${NC}"
 cp -r frontend/build "$DEPLOY_DIR/frontend/"

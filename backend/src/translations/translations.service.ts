@@ -9,9 +9,11 @@ export class TranslationsService {
   private readonly translationsPath: string;
 
   constructor() {
-    // Translations are stored in frontend/src/i18n/
-    // In production, we need to find the correct path
+    // Translations are stored in frontend/src/i18n/ (dev) or can be overridden for deployment
+    const envPath = process.env.TRANSLATIONS_PATH || process.env.I18N_PATH;
     const possiblePaths = [
+      ...(envPath ? [envPath] : []),
+      join(process.cwd(), 'i18n'),
       join(process.cwd(), '..', 'frontend', 'src', 'i18n'),
       join(process.cwd(), 'frontend', 'src', 'i18n'),
       join(process.cwd(), 'src', 'i18n'),
@@ -29,8 +31,8 @@ export class TranslationsService {
       }
     }
 
-    // Use found path or fallback to default
-    this.translationsPath = foundPath || join(process.cwd(), '..', 'frontend', 'src', 'i18n');
+    // Use found path or fallback so writes go to cwd/i18n (deploy-friendly)
+    this.translationsPath = foundPath || join(process.cwd(), 'i18n');
     
     if (!foundPath) {
       this.logger.warn(`[TranslationsService] i18n directory not found in any of the checked paths. Using fallback: ${this.translationsPath}`);
@@ -99,13 +101,15 @@ export class TranslationsService {
   }
 
   /**
-   * Get translations for a specific language
+   * Get translations for a specific language.
+   * Returns empty object if file is missing so admin UI can load and create translations.
    */
   async getTranslations(languageCode: string): Promise<Record<string, any>> {
     const filePath = join(this.translationsPath, `${languageCode}.json`);
 
     if (!existsSync(filePath)) {
-      throw new NotFoundException(`Language file for ${languageCode} not found`);
+      this.logger.debug(`[TranslationsService] Language file for ${languageCode} not found at ${filePath}, returning empty object`);
+      return {};
     }
 
     try {

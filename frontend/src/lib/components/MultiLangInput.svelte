@@ -9,6 +9,7 @@
 	export let onChange: ((value: MultiLangText) => void) | undefined = undefined;
 	export let placeholder = 'Enter text...';
 	export let className = '';
+	export let id: string | undefined = undefined;
 	export let required = false;
 	export let maxLength: number | undefined = undefined;
 	export let showLanguageTabs = true;
@@ -197,6 +198,7 @@
 	<div class="relative">
 		{#if multiline}
 			<textarea
+				{id}
 				value={inputValue}
 				on:input={handleInputChange}
 				{placeholder}
@@ -210,6 +212,7 @@
 			></textarea>
 		{:else}
 			<input
+				{id}
 				type="text"
 				value={inputValue}
 				on:input={handleInputChange}

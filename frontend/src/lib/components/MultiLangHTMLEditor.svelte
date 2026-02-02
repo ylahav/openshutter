@@ -11,6 +11,7 @@
 	export let showLanguageTabs = true;
 	export let defaultLanguage: LanguageCode = 'en';
 	export let className = '';
+	export let id: string | undefined = undefined;
 
 	let activeLanguage: LanguageCode = defaultLanguage;
 	let editorValue = '';
@@ -144,7 +145,7 @@
 	$: hasContent = (langCode: LanguageCode) => !!(value && value[langCode] && value[langCode].trim());
 </script>
 
-<div class="space-y-3 {className}">
+<div class="space-y-3 {className}" {id}>
 	<!-- Language Tabs -->
 	{#if showLanguageTabs && availableLanguages.length > 1}
 		<div class="flex border-b border-gray-200 {isRTL ? 'flex-row-reverse' : ''}" style="pointer-events: auto;">

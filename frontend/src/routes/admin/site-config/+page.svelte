@@ -5,6 +5,7 @@
 	import MultiLangInput from '$lib/components/MultiLangInput.svelte';
 	import MultiLangHTMLEditor from '$lib/components/MultiLangHTMLEditor.svelte';
 	import { SUPPORTED_LANGUAGES } from '$lib/types/multi-lang';
+	import { ROLE_OPTIONS } from '$lib/constants/roles';
 	import { siteConfig } from '$stores/siteConfig';
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
@@ -17,7 +18,14 @@
 	let message = '';
 	let activeTab = 'basic';
 	let availableLanguages: Array<{ code: string; name: string; flag: string }> = [];
-	
+
+	// Test email modal
+	let showTestMailModal = false;
+	let testTo = '';
+	let testSubject = 'Test email';
+	let testBody = 'This is a test email from OpenShutter.';
+	let testMailResult: 'idle' | 'sending' | { success: true } | { success: false; error: string } = 'idle';
+
 	// Menu items state
 	interface MenuItem {
 		labelKey?: string;
@@ -25,6 +33,8 @@
 		href: string;
 		external?: boolean;
 		roles?: string[]; // Array of allowed roles: 'admin', 'owner', 'guest'
+		showWhen?: 'always' | 'loggedIn' | 'loggedOut';
+		type?: 'link' | 'login' | 'logout';
 	}
 	let menuItems: MenuItem[] = [];
 
@@ -128,6 +138,8 @@
 					homePage: config.homePage,
 					features: config.features,
 					exifMetadata: config.exifMetadata,
+					mail: config.mail,
+					welcomeEmail: config.welcomeEmail,
 					template: {
 						...(config.template || {}),
 						headerConfig: {
@@ -170,7 +182,7 @@
 
 	function updateConfig(field: string, value: any) {
 		if (!config) return;
-		config = { ...config, [field]: value };
+		config = { ...config, [field]: value } as SiteConfig;
 	}
 
 	function updateLanguages(activeLanguages: string[], defaultLanguage: string) {
@@ -182,7 +194,42 @@
 				activeLanguages,
 				defaultLanguage
 			}
-		};
+		} as SiteConfig;
+	}
+
+	function openTestMailModal() {
+		testTo = '';
+		testSubject = 'Test email';
+		testBody = 'This is a test email from OpenShutter.';
+		testMailResult = 'idle';
+		showTestMailModal = true;
+	}
+
+	function closeTestMailModal() {
+		showTestMailModal = false;
+		testMailResult = 'idle';
+	}
+
+	async function sendTestEmail(e: SubmitEvent) {
+		e.preventDefault();
+		if (!testTo.trim()) return;
+		testMailResult = 'sending';
+		try {
+			const response = await fetch('/api/admin/site-config/test-email', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ to: testTo.trim(), subject: testSubject, body: testBody }),
+			});
+			const result = await response.json();
+			if (result.success) {
+				testMailResult = { success: true };
+			} else {
+				testMailResult = { success: false, error: result.error || 'Failed to send' };
+			}
+		} catch (err) {
+			logger.error('Send test email error:', err);
+			testMailResult = { success: false, error: handleError(err, 'Failed to send test email') };
+		}
 	}
 
 	async function handleFileUpload(file: File, type: 'logo' | 'favicon') {
@@ -224,9 +271,9 @@
 			
 			// Update config with the uploaded URL
 			if (type === 'logo') {
-				config = { ...config, logo: result.url };
+				config = { ...config, logo: result.url } as SiteConfig;
 			} else {
-				config = { ...config, favicon: result.url };
+				config = { ...config, favicon: result.url } as SiteConfig;
 			}
 
 			message = `${type === 'logo' ? 'Logo' : 'Favicon'} uploaded successfully!`;
@@ -401,6 +448,15 @@
 							>
 								EXIF Metadata
 							</button>
+							<button
+								type="button"
+								class="py-4 px-1 border-b-2 font-medium text-sm {activeTab === 'email'
+									? 'border-blue-500 text-blue-600'
+									: 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}"
+								on:click={() => (activeTab = 'email')}
+							>
+								Email
+							</button>
 						</nav>
 					</div>
 
@@ -408,10 +464,11 @@
 					{#if activeTab === 'basic'}
 						<div class="grid grid-cols-1 gap-6">
 							<div>
-								<label class="block text-sm font-medium text-gray-700 mb-2">
+								<label for="site-title" class="block text-sm font-medium text-gray-700 mb-2">
 									Site Title
 								</label>
 								<MultiLangInput
+									id="site-title"
 									value={config.title || {}}
 									onChange={(value) => updateConfig('title', value)}
 									placeholder="Enter site title..."
@@ -423,10 +480,11 @@
 							</div>
 
 							<div>
-								<label class="block text-sm font-medium text-gray-700 mb-2">
+								<label for="site-description" class="block text-sm font-medium text-gray-700 mb-2">
 									Site Description
 								</label>
 								<MultiLangHTMLEditor
+									id="site-description"
 									value={descriptionValue}
 									onChange={(value) => {
 										descriptionValue = value;
@@ -440,22 +498,23 @@
 						</div>
 					{:else if activeTab === 'languages'}
 						<div class="space-y-4">
-							<div>
-								<label class="block text-sm font-medium text-gray-700 mb-2">
+							<fieldset class="space-y-2">
+								<legend class="block text-sm font-medium text-gray-700 mb-2">
 									Active Languages
-								</label>
+								</legend>
 								<p class="text-sm text-gray-600 mb-3">
 									Select which languages are available for content editing. Only selected languages
 									will appear in multi-language fields.
 								</p>
 								<div class="grid grid-cols-2 md:grid-cols-3 gap-3">
 									{#each availableLanguages as lang}
-										{@const isActive = config.languages?.activeLanguages?.includes(lang.code) || false}
+										{@const isActive = config?.languages?.activeLanguages?.includes(lang.code) || false}
 										<label class="flex items-center space-x-2 cursor-pointer">
 											<input
 												type="checkbox"
 												checked={isActive}
 												on:change={(e) => {
+													if (!config) return;
 													const currentLanguages = config.languages?.activeLanguages || [];
 													const newLanguages = e.currentTarget.checked
 														? [...currentLanguages, lang.code]
@@ -472,15 +531,16 @@
 										</label>
 									{/each}
 								</div>
-							</div>
+							</fieldset>
 							<div>
 								<label for="defaultLanguage" class="block text-sm font-medium text-gray-700 mb-1">
 									Default Language
 								</label>
 								<select
 									id="defaultLanguage"
-									value={config.languages?.defaultLanguage || 'en'}
+									value={config?.languages?.defaultLanguage || 'en'}
 									on:change={(e) => {
+										if (!config) return;
 										updateLanguages(
 											config.languages?.activeLanguages || ['en'],
 											e.currentTarget.value
@@ -488,7 +548,7 @@
 									}}
 									class="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
 								>
-									{#each (config.languages?.activeLanguages || ['en']) as langCode}
+									{#each (config?.languages?.activeLanguages || ['en']) as langCode}
 										{@const lang = availableLanguages.find((l) => l.code === langCode)}
 										<option value={langCode}>{lang?.name || langCode}</option>
 									{/each}
@@ -503,12 +563,13 @@
 						<div class="grid grid-cols-1 gap-6">
 							<!-- Logo -->
 							<div>
-								<label class="block text-sm font-medium text-gray-700 mb-2">
+								<label for="logo-upload" class="block text-sm font-medium text-gray-700 mb-2">
 									Logo
 								</label>
 								<div class="flex gap-4 items-start">
 									<div class="flex-1">
 										<input
+											id="logo-upload"
 											type="file"
 											accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
 											on:change={async (e) => {
@@ -524,8 +585,9 @@
 										</p>
 										{#if config.logo}
 											<div class="mt-3">
-												<label class="block text-xs text-gray-600 mb-2">Current Logo URL (you can edit manually):</label>
+												<label for="logo-url" class="block text-xs text-gray-600 mb-2">Current Logo URL (you can edit manually):</label>
 												<input
+													id="logo-url"
 													type="text"
 													value={config.logo}
 													on:input={(e) => updateConfig('logo', e.currentTarget.value)}
@@ -543,7 +605,7 @@
 												alt="Logo preview"
 												class="max-h-16 object-contain border border-gray-200 rounded p-2 bg-gray-50"
 												on:error={(e) => {
-													e.currentTarget.style.display = 'none';
+													(e.currentTarget as HTMLImageElement).style.display = 'none';
 												}}
 											/>
 										</div>
@@ -553,12 +615,13 @@
 
 							<!-- Favicon -->
 							<div>
-								<label class="block text-sm font-medium text-gray-700 mb-2">
+								<label for="favicon-upload" class="block text-sm font-medium text-gray-700 mb-2">
 									Favicon
 								</label>
 								<div class="flex gap-4 items-start">
 									<div class="flex-1">
 										<input
+											id="favicon-upload"
 											type="file"
 											accept="image/x-icon,image/vnd.microsoft.icon,image/png,image/jpeg"
 											on:change={async (e) => {
@@ -574,8 +637,9 @@
 										</p>
 										{#if config.favicon}
 											<div class="mt-3">
-												<label class="block text-xs text-gray-600 mb-2">Current Favicon URL (you can edit manually):</label>
+												<label for="favicon-url" class="block text-xs text-gray-600 mb-2">Current Favicon URL (you can edit manually):</label>
 												<input
+													id="favicon-url"
 													type="text"
 													value={config.favicon}
 													on:input={(e) => updateConfig('favicon', e.currentTarget.value)}
@@ -593,7 +657,7 @@
 												alt="Favicon preview"
 												class="w-8 h-8 object-contain border border-gray-200 rounded p-1 bg-gray-50"
 												on:error={(e) => {
-													e.currentTarget.style.display = 'none';
+													(e.currentTarget as HTMLImageElement).style.display = 'none';
 												}}
 											/>
 										</div>
@@ -607,35 +671,39 @@
 								<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 									<!-- Primary Color -->
 									<div>
-										<label class="block text-sm font-medium text-gray-700 mb-2">
+										<label for="primary-color" class="block text-sm font-medium text-gray-700 mb-2">
 											Primary Color
 										</label>
 										<div class="flex gap-2">
 											<input
+												id="primary-color"
 												type="color"
 												value={config.theme?.primaryColor || '#0ea5e9'}
 												on:input={(e) => {
+													if (!config) return;
 													config = {
-														...config,
+														...(config),
 														theme: {
 															...config.theme,
 															primaryColor: e.currentTarget.value
 														}
-													};
+													} as SiteConfig;
 												}}
 												class="w-16 h-10 border border-gray-300 rounded cursor-pointer"
 											/>
 											<input
+												id="primary-color-hex"
 												type="text"
 												value={config.theme?.primaryColor || '#0ea5e9'}
 												on:input={(e) => {
+													if (!config) return;
 													config = {
-														...config,
+														...(config),
 														theme: {
 															...config.theme,
 															primaryColor: e.currentTarget.value
 														}
-													};
+													} as SiteConfig;
 												}}
 												placeholder="#0ea5e9"
 												class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
@@ -645,35 +713,39 @@
 
 									<!-- Secondary Color -->
 									<div>
-										<label class="block text-sm font-medium text-gray-700 mb-2">
+										<label for="secondary-color" class="block text-sm font-medium text-gray-700 mb-2">
 											Secondary Color
 										</label>
 										<div class="flex gap-2">
 											<input
+												id="secondary-color"
 												type="color"
 												value={config.theme?.secondaryColor || '#64748b'}
 												on:input={(e) => {
+													if (!config) return;
 													config = {
-														...config,
+														...(config),
 														theme: {
 															...config.theme,
 															secondaryColor: e.currentTarget.value
 														}
-													};
+													} as SiteConfig;
 												}}
 												class="w-16 h-10 border border-gray-300 rounded cursor-pointer"
 											/>
 											<input
+												id="secondary-color-hex"
 												type="text"
 												value={config.theme?.secondaryColor || '#64748b'}
 												on:input={(e) => {
+													if (!config) return;
 													config = {
-														...config,
+														...(config),
 														theme: {
 															...config.theme,
 															secondaryColor: e.currentTarget.value
 														}
-													};
+													} as SiteConfig;
 												}}
 												placeholder="#64748b"
 												class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
@@ -683,35 +755,39 @@
 
 									<!-- Background Color -->
 									<div>
-										<label class="block text-sm font-medium text-gray-700 mb-2">
+										<label for="bg-color" class="block text-sm font-medium text-gray-700 mb-2">
 											Background Color
 										</label>
 										<div class="flex gap-2">
 											<input
+												id="bg-color"
 												type="color"
 												value={config.theme?.backgroundColor || '#ffffff'}
 												on:input={(e) => {
+													if (!config) return;
 													config = {
-														...config,
+														...(config),
 														theme: {
 															...config.theme,
 															backgroundColor: e.currentTarget.value
 														}
-													};
+													} as SiteConfig;
 												}}
 												class="w-16 h-10 border border-gray-300 rounded cursor-pointer"
 											/>
 											<input
+												id="bg-color-hex"
 												type="text"
 												value={config.theme?.backgroundColor || '#ffffff'}
 												on:input={(e) => {
+													if (!config) return;
 													config = {
-														...config,
+														...(config),
 														theme: {
 															...config.theme,
 															backgroundColor: e.currentTarget.value
 														}
-													};
+													} as SiteConfig;
 												}}
 												placeholder="#ffffff"
 												class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
@@ -721,35 +797,39 @@
 
 									<!-- Text Color -->
 									<div>
-										<label class="block text-sm font-medium text-gray-700 mb-2">
+										<label for="text-color" class="block text-sm font-medium text-gray-700 mb-2">
 											Text Color
 										</label>
 										<div class="flex gap-2">
 											<input
+												id="text-color"
 												type="color"
 												value={config.theme?.textColor || '#1e293b'}
 												on:input={(e) => {
+													if (!config) return;
 													config = {
-														...config,
+														...(config),
 														theme: {
 															...config.theme,
 															textColor: e.currentTarget.value
 														}
-													};
+													} as SiteConfig;
 												}}
 												class="w-16 h-10 border border-gray-300 rounded cursor-pointer"
 											/>
 											<input
+												id="text-color-hex"
 												type="text"
 												value={config.theme?.textColor || '#1e293b'}
 												on:input={(e) => {
+													if (!config) return;
 													config = {
-														...config,
+														...(config),
 														theme: {
 															...config.theme,
 															textColor: e.currentTarget.value
 														}
-													};
+													} as SiteConfig;
 												}}
 												placeholder="#1e293b"
 												class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
@@ -788,19 +868,21 @@
 						<div class="grid grid-cols-1 gap-6">
 							<!-- Meta Title -->
 							<div>
-								<label class="block text-sm font-medium text-gray-700 mb-2">
+								<label for="meta-title" class="block text-sm font-medium text-gray-700 mb-2">
 									Meta Title
 								</label>
 								<MultiLangInput
+									id="meta-title"
 									value={config.seo?.metaTitle || {}}
-									onChange={(value) => {
+onChange={(value) => {
+										if (!config) return;
 										config = {
-											...config,
+											...(config),
 											seo: {
 												...config.seo,
 												metaTitle: value
 											}
-										};
+										} as SiteConfig;
 									}}
 									placeholder="OpenShutter Gallery - Beautiful Photo Gallery"
 									maxLength={60}
@@ -814,19 +896,21 @@
 
 							<!-- Meta Description -->
 							<div>
-								<label class="block text-sm font-medium text-gray-700 mb-2">
+								<label for="meta-description" class="block text-sm font-medium text-gray-700 mb-2">
 									Meta Description
 								</label>
 								<MultiLangInput
+									id="meta-description"
 									value={config.seo?.metaDescription || {}}
-									onChange={(value) => {
+onChange={(value) => {
+										if (!config) return;
 										config = {
-											...config,
+											...(config),
 											seo: {
 												...config.seo,
 												metaDescription: value
 											}
-										};
+										} as SiteConfig;
 									}}
 									placeholder="Discover amazing photos in our beautiful gallery"
 									maxLength={160}
@@ -842,24 +926,26 @@
 
 							<!-- Meta Keywords -->
 							<div>
-								<label class="block text-sm font-medium text-gray-700 mb-2">
+								<label for="meta-keywords" class="block text-sm font-medium text-gray-700 mb-2">
 									Meta Keywords
 								</label>
 								<input
+									id="meta-keywords"
 									type="text"
 									value={(config.seo?.metaKeywords || []).join(', ')}
 									on:input={(e) => {
+										if (!config) return;
 										const keywords = e.currentTarget.value
 											.split(',')
 											.map((k) => k.trim())
 											.filter((k) => k.length > 0);
 										config = {
-											...config,
+											...(config),
 											seo: {
 												...config.seo,
 												metaKeywords: keywords
 											}
-										};
+										} as SiteConfig;
 									}}
 									placeholder="gallery, photos, photography, images, art"
 									class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -871,20 +957,22 @@
 
 							<!-- OG Image -->
 							<div>
-								<label class="block text-sm font-medium text-gray-700 mb-2">
+								<label for="og-image" class="block text-sm font-medium text-gray-700 mb-2">
 									Open Graph Image URL
 								</label>
 								<input
+									id="og-image"
 									type="text"
 									value={config.seo?.ogImage || ''}
-									on:input={(e) => {
-										config = {
-											...config,
-											seo: {
-												...config.seo,
-												ogImage: e.currentTarget.value
+on:input={(e) => {
+												if (!config) return;
+												config = {
+													...(config),
+													seo: {
+														...config.seo,
+														ogImage: e.currentTarget.value
 											}
-										};
+										} as SiteConfig;
 									}}
 									placeholder="/api/storage/serve/... or https://example.com/image.jpg"
 									class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -897,10 +985,10 @@
 										<p class="text-xs text-gray-600 mb-2">Preview:</p>
 										<img
 											src={config.seo.ogImage}
-											alt="OG Image preview"
+											alt="Open Graph share preview"
 											class="max-w-md h-32 object-contain border border-gray-200 rounded p-2 bg-gray-50"
 											on:error={(e) => {
-												e.currentTarget.style.display = 'none';
+												(e.currentTarget as HTMLImageElement).style.display = 'none';
 											}}
 										/>
 									</div>
@@ -911,20 +999,22 @@
 						<div class="grid grid-cols-1 gap-6">
 							<!-- Email -->
 							<div>
-								<label class="block text-sm font-medium text-gray-700 mb-2">
+								<label for="contact-email" class="block text-sm font-medium text-gray-700 mb-2">
 									Email
 								</label>
 								<input
+									id="contact-email"
 									type="email"
 									value={config.contact?.email || ''}
 									on:input={(e) => {
+										if (!config) return;
 										config = {
-											...config,
+											...(config),
 											contact: {
 												...config.contact,
 												email: e.currentTarget.value
 											}
-										};
+										} as SiteConfig;
 									}}
 									placeholder="contact@example.com"
 									class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -933,20 +1023,22 @@
 
 							<!-- Phone -->
 							<div>
-								<label class="block text-sm font-medium text-gray-700 mb-2">
+								<label for="contact-phone" class="block text-sm font-medium text-gray-700 mb-2">
 									Phone
 								</label>
 								<input
+									id="contact-phone"
 									type="tel"
 									value={config.contact?.phone || ''}
 									on:input={(e) => {
+										if (!config) return;
 										config = {
-											...config,
+											...(config),
 											contact: {
 												...config.contact,
 												phone: e.currentTarget.value
 											}
-										};
+										} as SiteConfig;
 									}}
 									placeholder="+1 (555) 123-4567"
 									class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -955,19 +1047,21 @@
 
 							<!-- Address -->
 							<div>
-								<label class="block text-sm font-medium text-gray-700 mb-2">
+								<label for="contact-address" class="block text-sm font-medium text-gray-700 mb-2">
 									Address
 								</label>
 								<MultiLangInput
+									id="contact-address"
 									value={config.contact?.address || {}}
 									onChange={(value) => {
+										if (!config) return;
 										config = {
-											...config,
+											...(config),
 											contact: {
 												...config.contact,
 												address: value
 											}
-										};
+										} as SiteConfig;
 									}}
 									placeholder="Enter address..."
 									multiline={true}
@@ -983,15 +1077,17 @@
 								<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 									<!-- Facebook -->
 									<div>
-										<label class="block text-sm font-medium text-gray-700 mb-2">
+										<label for="social-facebook" class="block text-sm font-medium text-gray-700 mb-2">
 											Facebook URL
 										</label>
 										<input
+											id="social-facebook"
 											type="text"
 											value={config.contact?.socialMedia?.facebook || ''}
 											on:input={(e) => {
+												if (!config) return;
 												config = {
-													...config,
+													...(config),
 													contact: {
 														...config.contact,
 														socialMedia: {
@@ -999,7 +1095,7 @@
 															facebook: e.currentTarget.value
 														}
 													}
-												};
+												} as SiteConfig;
 											}}
 											placeholder="https://facebook.com/yourpage"
 											class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -1008,15 +1104,17 @@
 
 									<!-- Instagram -->
 									<div>
-										<label class="block text-sm font-medium text-gray-700 mb-2">
+										<label for="social-instagram" class="block text-sm font-medium text-gray-700 mb-2">
 											Instagram URL
 										</label>
 										<input
+											id="social-instagram"
 											type="text"
 											value={config.contact?.socialMedia?.instagram || ''}
 											on:input={(e) => {
+												if (!config) return;
 												config = {
-													...config,
+													...(config),
 													contact: {
 														...config.contact,
 														socialMedia: {
@@ -1024,7 +1122,7 @@
 															instagram: e.currentTarget.value
 														}
 													}
-												};
+												} as SiteConfig;
 											}}
 											placeholder="https://instagram.com/yourprofile"
 											class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -1033,15 +1131,17 @@
 
 									<!-- Twitter -->
 									<div>
-										<label class="block text-sm font-medium text-gray-700 mb-2">
+										<label for="social-twitter" class="block text-sm font-medium text-gray-700 mb-2">
 											Twitter URL
 										</label>
 										<input
+											id="social-twitter"
 											type="text"
 											value={config.contact?.socialMedia?.twitter || ''}
 											on:input={(e) => {
+												if (!config) return;
 												config = {
-													...config,
+													...(config),
 													contact: {
 														...config.contact,
 														socialMedia: {
@@ -1049,7 +1149,7 @@
 															twitter: e.currentTarget.value
 														}
 													}
-												};
+												} as SiteConfig;
 											}}
 											placeholder="https://twitter.com/yourhandle"
 											class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -1058,15 +1158,17 @@
 
 									<!-- LinkedIn -->
 									<div>
-										<label class="block text-sm font-medium text-gray-700 mb-2">
+										<label for="social-linkedin" class="block text-sm font-medium text-gray-700 mb-2">
 											LinkedIn URL
 										</label>
 										<input
+											id="social-linkedin"
 											type="text"
 											value={config.contact?.socialMedia?.linkedin || ''}
 											on:input={(e) => {
+												if (!config) return;
 												config = {
-													...config,
+													...(config),
 													contact: {
 														...config.contact,
 														socialMedia: {
@@ -1074,7 +1176,7 @@
 															linkedin: e.currentTarget.value
 														}
 													}
-												};
+												} as SiteConfig;
 											}}
 											placeholder="https://linkedin.com/company/yourcompany"
 											class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -1087,19 +1189,21 @@
 						<div class="grid grid-cols-1 gap-6">
 							<!-- Contact Title -->
 							<div>
-								<label class="block text-sm font-medium text-gray-700 mb-2">
+								<label for="home-contact-title" class="block text-sm font-medium text-gray-700 mb-2">
 									Contact Section Title
 								</label>
 								<MultiLangInput
+									id="home-contact-title"
 									value={config.homePage?.contactTitle || {}}
 									onChange={(value) => {
+										if (!config) return;
 										config = {
-											...config,
+											...(config),
 											homePage: {
 												...config.homePage,
 												contactTitle: value
 											}
-										};
+										} as SiteConfig;
 									}}
 									placeholder="Get In Touch"
 									showLanguageTabs={true}
@@ -1114,9 +1218,10 @@
 									<button
 										type="button"
 										on:click={() => {
+											if (!config) return;
 											const services = config.homePage?.services || [];
 											config = {
-												...config,
+												...(config),
 												homePage: {
 													...config.homePage,
 													services: [
@@ -1128,7 +1233,7 @@
 														}
 													]
 												}
-											};
+											} as SiteConfig;
 										}}
 										class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
 									>
@@ -1144,15 +1249,16 @@
 													<h4 class="text-sm font-semibold text-gray-900">Service #{index + 1}</h4>
 													<button
 														type="button"
-														on:click={() => {
+on:click={() => {
+															if (!config) return;
 															const services = config.homePage?.services || [];
 															config = {
-																...config,
+																...(config),
 																homePage: {
 																	...config.homePage,
 																	services: services.filter((_, i) => i !== index)
 																}
-															};
+															} as SiteConfig;
 														}}
 														class="text-red-600 hover:text-red-800 text-sm font-medium"
 													>
@@ -1163,25 +1269,27 @@
 												<div class="grid grid-cols-1 gap-4">
 													<!-- Service Number -->
 													<div>
-														<label class="block text-sm font-medium text-gray-700 mb-2">
+														<label for="service-number-{index}" class="block text-sm font-medium text-gray-700 mb-2">
 															Service Number
 														</label>
 														<input
+															id="service-number-{index}"
 															type="text"
 															value={service.number || ''}
 															on:input={(e) => {
+																if (!config) return;
 																const services = config.homePage?.services || [];
 																services[index] = {
 																	...services[index],
 																	number: e.currentTarget.value
 																};
 																config = {
-																	...config,
+																	...(config),
 																	homePage: {
 																		...config.homePage,
 																		services: [...services]
 																	}
-																};
+																} as SiteConfig;
 															}}
 															placeholder="01"
 															class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -1190,24 +1298,26 @@
 
 													<!-- Service Title -->
 													<div>
-														<label class="block text-sm font-medium text-gray-700 mb-2">
+														<label for="service-title-{index}" class="block text-sm font-medium text-gray-700 mb-2">
 															Service Title
 														</label>
 														<MultiLangInput
+															id="service-title-{index}"
 															value={service.title || {}}
 															onChange={(value) => {
+																if (!config) return;
 																const services = config.homePage?.services || [];
 																services[index] = {
 																	...services[index],
 																	title: value
 																};
 																config = {
-																	...config,
+																	...(config),
 																	homePage: {
 																		...config.homePage,
 																		services: [...services]
 																	}
-																};
+																} as SiteConfig;
 															}}
 															placeholder="Enter service title..."
 															showLanguageTabs={true}
@@ -1217,24 +1327,26 @@
 
 													<!-- Service Description -->
 													<div>
-														<label class="block text-sm font-medium text-gray-700 mb-2">
+														<label for="service-desc-{index}" class="block text-sm font-medium text-gray-700 mb-2">
 															Service Description
 														</label>
 														<MultiLangHTMLEditor
+															id="service-desc-{index}"
 															value={service.description || {}}
 															onChange={(value) => {
+																if (!config) return;
 																const services = config.homePage?.services || [];
 																services[index] = {
 																	...services[index],
 																	description: value
 																};
 																config = {
-																	...config,
+																	...(config),
 																	homePage: {
 																		...config.homePage,
 																		services: [...services]
 																	}
-																};
+																} as SiteConfig;
 															}}
 															placeholder="Enter service description..."
 															height={120}
@@ -1252,20 +1364,21 @@
 										<button
 											type="button"
 											on:click={() => {
-												config = {
-													...config,
-													homePage: {
-														...config.homePage,
-														services: [
-															{
-																number: '01',
-																title: {},
-																description: {}
-															}
-														]
-													}
-												};
-											}}
+											if (!config) return;
+											config = {
+												...(config),
+												homePage: {
+													...config.homePage,
+													services: [
+														{
+															number: '01',
+															title: {},
+															description: {}
+														}
+													]
+												}
+											} as SiteConfig;
+										}}
 											class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700"
 										>
 											Add First Service
@@ -1332,10 +1445,11 @@
 											
 											<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 												<div>
-													<label class="block text-sm font-medium text-gray-700 mb-1">
+													<label for="menu-labelKey-{index}" class="block text-sm font-medium text-gray-700 mb-1">
 														Translation Key (optional)
 													</label>
 													<input
+														id="menu-labelKey-{index}"
 														type="text"
 														value={item.labelKey || ''}
 														on:input={(e) => {
@@ -1351,10 +1465,11 @@
 												</div>
 												
 												<div>
-													<label class="block text-sm font-medium text-gray-700 mb-1">
+													<label for="menu-label-{index}" class="block text-sm font-medium text-gray-700 mb-1">
 														Direct Label (optional)
 													</label>
 													<input
+														id="menu-label-{index}"
 														type="text"
 														value={item.label || ''}
 														on:input={(e) => {
@@ -1370,41 +1485,89 @@
 												</div>
 												
 												<div>
-													<label class="block text-sm font-medium text-gray-700 mb-1">
+													<label for="menu-type-{index}" class="block text-sm font-medium text-gray-700 mb-1">
+														Type
+													</label>
+													<select
+														id="menu-type-{index}"
+														value={item.type ?? 'link'}
+														on:change={(e) => {
+															const v = e.currentTarget.value as 'link' | 'login' | 'logout';
+															menuItems[index] = {
+																...menuItems[index],
+																type: v,
+																href: v === 'login' ? '/login' : v === 'logout' ? '#' : (menuItems[index].href || ''),
+																showWhen: v === 'login' ? 'loggedOut' : v === 'logout' ? 'loggedIn' : (menuItems[index].showWhen ?? 'always')
+															};
+															menuItems = [...menuItems];
+														}}
+														class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+													>
+														<option value="link">Link</option>
+														<option value="login">Login</option>
+														<option value="logout">Logout</option>
+													</select>
+													<p class="mt-1 text-xs text-gray-500">Login = link to sign in; Logout = button that signs out</p>
+												</div>
+
+												<div>
+													<label for="menu-showWhen-{index}" class="block text-sm font-medium text-gray-700 mb-1">
+														Show when
+													</label>
+													<select
+														id="menu-showWhen-{index}"
+														value={item.showWhen ?? 'always'}
+														on:change={(e) => {
+															menuItems[index] = { ...menuItems[index], showWhen: e.currentTarget.value as 'always' | 'loggedIn' | 'loggedOut' };
+															menuItems = [...menuItems];
+														}}
+														class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+													>
+														<option value="always">Always</option>
+														<option value="loggedIn">Logged in only</option>
+														<option value="loggedOut">Logged out only</option>
+													</select>
+													<p class="mt-1 text-xs text-gray-500">Show this item based on user login status</p>
+												</div>
+
+												<div>
+													<label for="menu-href-{index}" class="block text-sm font-medium text-gray-700 mb-1">
 														Link URL <span class="text-red-500">*</span>
 													</label>
 													<input
+														id="menu-href-{index}"
 														type="text"
 														value={item.href}
+														disabled={item.type === 'logout'}
 														on:input={(e) => {
 															menuItems[index] = { ...menuItems[index], href: e.currentTarget.value };
 															menuItems = [...menuItems];
 														}}
-														placeholder="/about"
-														required
-														class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+														placeholder={item.type === 'login' ? '/login' : item.type === 'logout' ? '—' : '/about'}
+														required={item.type !== 'logout'}
+														class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm disabled:bg-gray-100 disabled:text-gray-500"
 													/>
 													<p class="mt-1 text-xs text-gray-500">
-														Page URL or external link (e.g., '/about' or 'https://example.com')
+														{item.type === 'logout' ? 'Ignored for Logout' : 'Page URL or external link (e.g., /about)'}
 													</p>
 												</div>
 												
-												<div>
-													<label class="block text-sm font-medium text-gray-700 mb-1">
+												<fieldset class="space-y-2">
+													<legend class="block text-sm font-medium text-gray-700 mb-1">
 														Visible To Roles (optional)
-													</label>
+													</legend>
 													<div class="flex flex-wrap gap-2">
-														{#each ['admin', 'owner', 'guest'] as role}
-															{@const isSelected = item.roles?.includes(role) || false}
-															<label class="flex items-center space-x-1 cursor-pointer">
+														{#each ROLE_OPTIONS as roleOpt}
+															{@const isSelected = item.roles?.includes(roleOpt.value) || false}
+															<label class="flex items-center space-x-1 cursor-pointer" title={roleOpt.description}>
 																<input
 																	type="checkbox"
 																	checked={isSelected}
 																	on:change={(e) => {
 																		const currentRoles = item.roles || [];
 																		const newRoles = e.currentTarget.checked
-																			? [...currentRoles, role]
-																			: currentRoles.filter((r: string) => r !== role);
+																			? [...currentRoles, roleOpt.value]
+																			: currentRoles.filter((r: string) => r !== roleOpt.value);
 																		menuItems[index] = { 
 																			...menuItems[index], 
 																			roles: newRoles.length > 0 ? newRoles : undefined 
@@ -1413,14 +1576,14 @@
 																	}}
 																	class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
 																/>
-																<span class="text-sm text-gray-700 capitalize">{role}</span>
+																<span class="text-sm text-gray-700">{roleOpt.label}</span>
 															</label>
 														{/each}
 													</div>
 													<p class="mt-1 text-xs text-gray-500">
 														Leave unchecked to show to everyone. Check roles to restrict visibility.
 													</p>
-												</div>
+												</fieldset>
 												
 												<div class="flex items-end">
 													<label class="flex items-center space-x-2 cursor-pointer">
@@ -1449,19 +1612,45 @@
 								</div>
 							{/if}
 
-							<div class="flex justify-between items-center pt-4 border-t border-gray-200">
-								<button
-									type="button"
-									on:click={() => {
-										menuItems = [
-											...menuItems,
-											{ href: '', label: '' }
-										];
-									}}
-									class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-								>
-									+ Add Menu Item
-								</button>
+							<div class="flex flex-wrap justify-between items-center gap-2 pt-4 border-t border-gray-200">
+								<div class="flex flex-wrap gap-2">
+									<button
+										type="button"
+										on:click={() => {
+											menuItems = [
+												...menuItems,
+												{ href: '', label: '' }
+											];
+										}}
+										class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+									>
+										+ Add Menu Item
+									</button>
+									<button
+										type="button"
+										on:click={() => {
+											menuItems = [
+												...menuItems,
+												{ type: 'login', labelKey: 'auth.signIn', href: '/login', showWhen: 'loggedOut' }
+											];
+										}}
+										class="px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+									>
+										+ Add Login
+									</button>
+									<button
+										type="button"
+										on:click={() => {
+											menuItems = [
+												...menuItems,
+												{ type: 'logout', labelKey: 'header.logout', href: '#', showWhen: 'loggedIn' }
+											];
+										}}
+										class="px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+									>
+										+ Add Logout
+									</button>
+								</div>
 								
 								{#if menuItems.length > 0}
 									<button
@@ -1481,10 +1670,10 @@
 							<div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
 								<h4 class="text-sm font-semibold text-blue-900 mb-2">Tips:</h4>
 								<ul class="text-xs text-blue-800 space-y-1 list-disc list-inside">
+									<li>Use <strong>Type</strong> Login or Logout to add sign-in / sign-out buttons; use <strong>Show when</strong> to show items only when logged in or logged out</li>
 									<li>Use <strong>Translation Key</strong> for multilingual support (e.g., 'navigation.home')</li>
 									<li>Use <strong>Direct Label</strong> for simple text labels (e.g., 'About')</li>
 									<li>If both are provided, Translation Key takes precedence</li>
-									<li>If neither is provided, the URL will be displayed</li>
 									<li>Check <strong>roles</strong> to restrict menu visibility (e.g., check 'admin' to show only to admins)</li>
 									<li>Leave roles unchecked to show the menu item to everyone</li>
 									<li>Check "Open in new tab" for external links</li>
@@ -1502,13 +1691,14 @@
 									<button
 										type="button"
 										on:click={() => {
+											if (!config) return;
 											config = {
-												...config,
+												...(config),
 												exifMetadata: {
 													...config.exifMetadata,
 													displayFields: EXIF_DISPLAY_FIELDS.map((f) => f.id)
 												}
-											};
+											} as SiteConfig;
 										}}
 										class="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
 									>
@@ -1517,13 +1707,14 @@
 									<button
 										type="button"
 										on:click={() => {
+											if (!config) return;
 											config = {
-												...config,
+												...(config),
 												exifMetadata: {
 													...config.exifMetadata,
 													displayFields: []
 												}
-											};
+											} as SiteConfig;
 										}}
 										class="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
 									>
@@ -1538,6 +1729,7 @@
 												type="checkbox"
 												checked={isChecked}
 												on:change={(e) => {
+													if (!config) return;
 													const current = config.exifMetadata?.displayFields ?? [];
 													const next = e.currentTarget.checked
 														? [...current, field.id]
@@ -1548,7 +1740,7 @@
 															...config.exifMetadata,
 															displayFields: next
 														}
-													};
+													} as SiteConfig;
 												}}
 												class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
 											/>
@@ -1559,6 +1751,189 @@
 								<p class="text-xs text-gray-500 mt-2">
 									If no fields are selected, all available EXIF fields will be displayed. Selected fields are only shown when the photo has that metadata.
 								</p>
+							</div>
+						</div>
+					{:else if activeTab === 'email'}
+						<div class="grid grid-cols-1 gap-6">
+							<h3 class="text-lg font-semibold text-gray-900">SMTP Mail Server</h3>
+							<p class="text-sm text-gray-600 -mt-2">
+								Configure SMTP to send emails (e.g. welcome email when a new user is created). Leave blank to disable sending.
+							</p>
+							<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+								<div>
+									<label for="mail-host" class="block text-sm font-medium text-gray-700 mb-1">Host</label>
+									<input
+										id="mail-host"
+										type="text"
+										value={config.mail?.host ?? ''}
+										on:input={(e) => {
+											if (!config) return;
+											config = {
+												...(config),
+												mail: { ...config.mail, host: e.currentTarget.value || undefined }
+											} as SiteConfig;
+										}}
+										placeholder="smtp.example.com"
+										class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+									/>
+								</div>
+								<div>
+									<label for="mail-port" class="block text-sm font-medium text-gray-700 mb-1">Port</label>
+									<input
+										id="mail-port"
+										type="number"
+										value={config.mail?.port ?? ''}
+										on:input={(e) => {
+											if (!config) return;
+											const v = e.currentTarget.value ? Number(e.currentTarget.value) : undefined;
+											config = { ...(config), mail: { ...config.mail, port: v } } as SiteConfig;
+										}}
+										placeholder="587"
+										class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+									/>
+									<p class="mt-1 text-xs text-gray-500">Use 587 for STARTTLS (recommended) or 465 for SSL. Connection type is automatic.</p>
+								</div>
+								<div>
+									<label for="mail-user" class="block text-sm font-medium text-gray-700 mb-1">User</label>
+									<input
+										id="mail-user"
+										type="text"
+										value={config.mail?.user ?? ''}
+										on:input={(e) => {
+											if (!config) return;
+											config = {
+												...(config),
+												mail: { ...config.mail, user: e.currentTarget.value || undefined }
+											} as SiteConfig;
+										}}
+										placeholder="noreply@example.com"
+										class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+									/>
+								</div>
+								<div>
+									<label for="mail-password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+									<input
+										id="mail-password"
+										type="password"
+										value={config.mail?.password ?? ''}
+										on:input={(e) => {
+											if (!config) return;
+											config = {
+												...(config),
+												mail: { ...config.mail, password: e.currentTarget.value || undefined }
+											} as SiteConfig;
+										}}
+										placeholder="Leave blank to keep current"
+										class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+									/>
+									<p class="mt-1 text-xs text-gray-500">Leave blank to keep existing password. Backend masks stored value as ****.</p>
+								</div>
+								<div>
+									<label for="mail-from" class="block text-sm font-medium text-gray-700 mb-1">From address</label>
+									<input
+										id="mail-from"
+										type="text"
+										value={config.mail?.from ?? ''}
+										on:input={(e) => {
+											if (!config) return;
+											config = {
+												...(config),
+												mail: { ...config.mail, from: e.currentTarget.value || undefined }
+											} as SiteConfig;
+										}}
+										placeholder="OpenShutter &lt;noreply@example.com&gt;"
+										class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+									/>
+								</div>
+								<div class="flex items-end pb-2">
+									<label class="flex items-center space-x-2 cursor-pointer">
+										<input
+											type="checkbox"
+											checked={config.mail?.secure ?? false}
+											on:change={(e) => {
+												if (!config) return;
+												config = {
+													...(config),
+													mail: { ...config.mail, secure: e.currentTarget.checked }
+												} as SiteConfig;
+											}}
+											class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+										/>
+										<span class="text-sm text-gray-700">Use SSL (port 465 only; otherwise ignored)</span>
+									</label>
+								</div>
+							</div>
+
+							<div class="border-t border-gray-200 pt-6">
+								<h3 class="text-lg font-semibold text-gray-900 mb-2">Welcome Email</h3>
+								<p class="text-sm text-gray-600 mb-4">
+									Send a welcome email when a new user is created. Enable below and set subject/body. You can use placeholders in subject and body.
+								</p>
+								<label class="flex items-center space-x-2 cursor-pointer mb-4">
+									<input
+										type="checkbox"
+										checked={config.welcomeEmail?.enabled ?? false}
+										on:change={(e) => {
+											if (!config) return;
+											config = {
+												...(config),
+												welcomeEmail: { ...config.welcomeEmail, enabled: e.currentTarget.checked }
+											} as SiteConfig;
+										}}
+										class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+									/>
+									<span class="text-sm font-medium text-gray-700">Send welcome email on new user creation</span>
+								</label>
+								<div class="space-y-4">
+									<div>
+										<label for="welcome-email-subject" class="block text-sm font-medium text-gray-700 mb-1">Subject</label>
+										<input
+											id="welcome-email-subject"
+											type="text"
+											value={config.welcomeEmail?.subject ?? ''}
+											on:input={(e) => {
+												if (!config) return;
+												config = {
+													...config,
+													welcomeEmail: { ...config.welcomeEmail, subject: e.currentTarget.value || undefined }
+												} as SiteConfig;
+											}}
+											placeholder={'Welcome to {{siteTitle}}!'}
+											class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+										/>
+									</div>
+									<div>
+										<label for="welcome-email-body" class="block text-sm font-medium text-gray-700 mb-1">Body (plain text or HTML)</label>
+										<textarea
+											id="welcome-email-body"
+											value={config.welcomeEmail?.body ?? ''}
+											on:input={(e) => {
+												if (!config) return;
+												config = {
+													...config,
+													welcomeEmail: { ...config.welcomeEmail, body: e.currentTarget.value || undefined }
+												} as SiteConfig;
+											}}
+											placeholder={'Hi {{name}},\n\nWelcome! Your username is {{username}}. Log in here: {{loginUrl}}'}
+											rows={8}
+											class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
+										></textarea>
+										<p class="mt-1 text-xs text-gray-500">
+											Placeholders: <code class="bg-gray-100 px-1 rounded">{'{{name}}'}</code>, <code class="bg-gray-100 px-1 rounded">{'{{username}}'}</code>, <code class="bg-gray-100 px-1 rounded">{'{{loginUrl}}'}</code>, <code class="bg-gray-100 px-1 rounded">{'{{siteTitle}}'}</code>, <code class="bg-gray-100 px-1 rounded">{'{{password}}'}</code> (initial password set at user creation; optional; sending passwords by email is less secure).
+										</p>
+									</div>
+								</div>
+							</div>
+
+							<div class="border-t border-gray-200 pt-6">
+								<button
+									type="button"
+									on:click={openTestMailModal}
+									class="px-4 py-2 bg-gray-700 text-white text-sm font-medium rounded-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+								>
+									Send test email
+								</button>
+								<p class="mt-2 text-xs text-gray-500">Uses current SMTP config. Save first if you changed it.</p>
 							</div>
 						</div>
 					{/if}
@@ -1576,5 +1951,103 @@
 				</form>
 			</div>
 		</div>
+
+		<!-- Test email modal -->
+		{#if showTestMailModal}
+			<div
+				class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+				role="dialog"
+				aria-modal="true"
+				aria-labelledby="test-email-title"
+			>
+				<div class="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-hidden flex flex-col">
+					<div class="p-4 border-b border-gray-200 flex items-center justify-between">
+						<h2 id="test-email-title" class="text-lg font-semibold text-gray-900">Send test email</h2>
+						<button
+							type="button"
+							on:click={closeTestMailModal}
+							class="text-gray-400 hover:text-gray-600 p-1 rounded"
+							aria-label="Close"
+						>
+							<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+						</button>
+					</div>
+					<div class="p-4 overflow-y-auto flex-1">
+						{#if testMailResult === 'idle' || testMailResult === 'sending'}
+							<form on:submit|preventDefault={sendTestEmail} class="space-y-4">
+								<div>
+									<label for="test-email-to" class="block text-sm font-medium text-gray-700 mb-1">To</label>
+									<input
+										id="test-email-to"
+										type="email"
+										bind:value={testTo}
+										placeholder="recipient@example.com"
+										required
+										class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+									/>
+								</div>
+								<div>
+									<label for="test-email-subject" class="block text-sm font-medium text-gray-700 mb-1">Subject</label>
+									<input
+										id="test-email-subject"
+										type="text"
+										bind:value={testSubject}
+										class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+									/>
+								</div>
+								<div>
+									<label for="test-email-body" class="block text-sm font-medium text-gray-700 mb-1">Body</label>
+									<textarea
+										id="test-email-body"
+										bind:value={testBody}
+										rows={5}
+										class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+									></textarea>
+								</div>
+								<div class="flex gap-2 justify-end pt-2">
+									<button
+										type="button"
+										on:click={closeTestMailModal}
+										class="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+									>
+										Cancel
+									</button>
+									<button
+										type="submit"
+										disabled={testMailResult === 'sending'}
+										class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+									>
+										{testMailResult === 'sending' ? 'Sending...' : 'Send'}
+									</button>
+								</div>
+							</form>
+						{:else}
+							<div class="space-y-4">
+								{#if testMailResult.success}
+									<div class="p-4 rounded-lg bg-green-50 border border-green-200 text-green-800">
+										<p class="font-medium">Email sent successfully.</p>
+										<p class="text-sm mt-1">Check the recipient inbox.</p>
+									</div>
+								{:else}
+									<div class="p-4 rounded-lg bg-red-50 border border-red-200 text-red-800">
+										<p class="font-medium">Failed to send</p>
+										<p class="text-sm mt-1">{testMailResult.error}</p>
+									</div>
+								{/if}
+								<div class="flex justify-end">
+									<button
+										type="button"
+										on:click={closeTestMailModal}
+										class="px-4 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+									>
+										Close
+									</button>
+								</div>
+							</div>
+						{/if}
+					</div>
+				</div>
+			</div>
+		{/if}
 	</div>
 {/if}

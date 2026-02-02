@@ -9,6 +9,7 @@ declare global {
 				email: string;
 				name: string;
 				role: 'admin' | 'owner' | 'guest';
+				forcePasswordChange?: boolean;
 			} | null;
 		}
 		// interface PageData {}

@@ -13,11 +13,12 @@ export class CreateUserDto {
 	@IsString()
 	@IsNotEmpty()
 	username: string;
-	
+
+	/** Optional. If omitted, a secure password is generated and sent via welcome email (if configured). */
 	@IsString()
-	@IsNotEmpty()
+	@IsOptional()
 	@MinLength(6)
-	password: string;
+	password?: string;
 	
 	@IsString()
 	@IsIn(['admin', 'owner', 'guest'])
@@ -34,4 +35,8 @@ export class CreateUserDto {
 	@IsArray()
 	@IsOptional()
 	allowedStorageProviders?: string[];
+
+	@IsString()
+	@IsOptional()
+	preferredLanguage?: string;
 }

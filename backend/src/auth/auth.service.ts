@@ -93,6 +93,7 @@ export class AuthService {
       email: user.username,
       name: (user.name && (user.name.en || Object.values(user.name)[0])) || user.username,
       role: user.role || 'owner',
+      forcePasswordChange: (user as any).forcePasswordChange ?? false,
     };
   }
 
@@ -108,6 +109,8 @@ export class AuthService {
         email: u.username,
         name: u.name || {},
         role: u.role || 'guest',
+        forcePasswordChange: u.forcePasswordChange ?? false,
+        preferredLanguage: u.preferredLanguage || undefined,
         createdAt: u.createdAt,
         updatedAt: u.updatedAt,
       },
@@ -123,6 +126,7 @@ export class AuthService {
       newPassword?: string;
       bio?: any;
       profileImage?: any;
+      preferredLanguage?: string;
     },
   ): Promise<{ user: any }> {
     const user = await this.userModel.findById(userId).exec();
@@ -136,6 +140,9 @@ export class AuthService {
     if (body.email !== undefined && body.email.trim() !== '') {
       user.username = body.email.trim().toLowerCase();
     }
+    if (body.preferredLanguage !== undefined) {
+      user.preferredLanguage = body.preferredLanguage?.trim() || '';
+    }
 
     if (body.newPassword && body.newPassword.length >= 6) {
       if (!body.currentPassword) {
@@ -146,6 +153,7 @@ export class AuthService {
         throw new BadRequestException('Current password is incorrect');
       }
       user.passwordHash = await hashPassword(body.newPassword);
+      user.forcePasswordChange = false;
     }
 
     await user.save();
@@ -158,6 +166,8 @@ export class AuthService {
         email: u.username,
         name: u.name || {},
         role: u.role || 'guest',
+        forcePasswordChange: u.forcePasswordChange ?? false,
+        preferredLanguage: u.preferredLanguage || undefined,
         createdAt: u.createdAt,
         updatedAt: u.updatedAt,
       },

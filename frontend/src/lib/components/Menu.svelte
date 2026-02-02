@@ -24,17 +24,21 @@
 <script lang="ts">
 	import { t } from '$stores/i18n';
 	import { page } from '$app/stores';
-	import { auth } from '$lib/stores/auth';
+	import { auth, logout } from '$lib/stores/auth';
 	import { siteConfigLoading } from '$stores/siteConfig';
 	import type { SiteConfig } from '$types/site-config';
 
 	export interface MenuItem {
 		labelKey?: string; // Translation key (e.g., 'navigation.home')
 		label?: string; // Direct label text (fallback if labelKey is not provided)
-		href: string; // Link URL
+		href: string; // Link URL (ignored for type 'logout')
 		external?: boolean; // Whether link opens in new tab
 		icon?: string; // Optional icon name/class
 		roles?: string[]; // Optional: show only for specific user roles
+		/** When to show: always, only when logged in, or only when logged out */
+		showWhen?: 'always' | 'loggedIn' | 'loggedOut';
+		/** Special type: 'login' = link to /login, 'logout' = button that logs out */
+		type?: 'link' | 'login' | 'logout';
 		condition?: () => boolean; // Optional: custom condition function
 	}
 
@@ -99,25 +103,30 @@
 
 		// Add auth-related items if enabled, but only if they don't already exist in the menu
 		if (showAuthButtons) {
-			// Check if auth links already exist in the menu
+			const hasLoginItem = result.some(item => item.type === 'login' || item.href === '/login');
+			const hasLogoutItem = result.some(item => item.type === 'logout');
 			const hasAdminLink = result.some(item => item.href === '/admin');
 			const hasOwnerLink = result.some(item => item.href === '/owner');
-			const hasLoginLink = result.some(item => item.href === '/login');
-			
+			const hasMemberLink = result.some(item => item.href === '/member');
+
 			if ($auth.authenticated && $auth.user) {
 				if ($auth.user.role === 'admin' && !hasAdminLink) {
 					result.push({ labelKey: 'navigation.admin', href: '/admin' });
 				} else if ($auth.user.role === 'owner' && !hasOwnerLink) {
 					result.push({ labelKey: 'header.myGallery', href: '/owner' });
+				} else if ($auth.user.role === 'guest' && !hasMemberLink) {
+					result.push({ label: 'My Account', href: '/member' });
+				}
+				if (!hasLogoutItem) {
+					result.push({ type: 'logout', labelKey: 'header.logout', href: '#', showWhen: 'loggedIn' });
 				}
 			} else {
-				if (!hasLoginLink) {
-					result.push({ labelKey: 'auth.signIn', href: '/login' });
+				if (!hasLoginItem) {
+					result.push({ type: 'login', labelKey: 'auth.signIn', href: '/login', showWhen: 'loggedOut' });
 				}
 			}
 		}
-		
-		
+
 		return result;
 	});
 
@@ -149,43 +158,60 @@
 		? containerClass.replace('flex items-center', 'flex flex-col items-start')
 		: containerClass);
 
-	// Filter items based on conditions and roles
+	// Filter items based on showWhen, conditions and roles
 	const visibleItems = $derived(menuItems.filter(item => {
-		// Check custom condition function first
+		// Show when: by login status
+		const showWhen = item.showWhen ?? 'always';
+		if (showWhen === 'loggedIn' && !$auth.authenticated) return false;
+		if (showWhen === 'loggedOut' && $auth.authenticated) return false;
+
+		// Check custom condition function
 		if (item.condition !== undefined) {
 			return item.condition();
 		}
-		
+
 		// Check role-based visibility
 		if (item.roles && item.roles.length > 0) {
 			const userRole = $auth.user?.role;
-			if (!userRole) {
-				// User not authenticated, hide role-restricted items
-				return false;
-			}
-			// Show item if user's role is in the allowed roles list
+			if (!userRole) return false;
 			return item.roles.includes(userRole);
 		}
-		
-		// No restrictions, show item
+
 		return true;
 	}));
+
+	async function handleLogout() {
+		await logout();
+	}
 </script>
 
 	{#if !$siteConfigLoading && visibleItems.length > 0}
 	<nav class={finalContainerClass}>
 		{#each visibleItems as item, index}
-			<a
-				href={item.href}
-				class={getItemClasses(item)}
-				target={item.external ? '_blank' : undefined}
-				rel={item.external ? 'noopener noreferrer' : undefined}
-			>
-				{#if item.icon}
-					<span class="icon-{item.icon}" aria-hidden="true"></span>
-				{/if}
-				{getItemLabel(item)}
-			</a>
+			{#if item.type === 'logout'}
+				<button
+					type="button"
+					onclick={handleLogout}
+					class={getItemClasses(item)}
+				>
+					{#if item.icon}
+						<span class="icon-{item.icon}" aria-hidden="true"></span>
+					{/if}
+					{getItemLabel(item)}
+				</button>
+			{:else}
+				<a
+					href={item.type === 'login' ? '/login' : item.href}
+					class={getItemClasses(item)}
+					target={item.external ? '_blank' : undefined}
+					rel={item.external ? 'noopener noreferrer' : undefined}
+				>
+					{#if item.icon}
+						<span class="icon-{item.icon}" aria-hidden="true"></span>
+					{/if}
+					{getItemLabel(item)}
+				</a>
+			{/if}
 			{#if separator && index < visibleItems.length - 1}
 				{#if typeof separator === 'string'}
 					<span class="text-gray-400">{separator}</span>

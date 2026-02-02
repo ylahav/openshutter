@@ -28,7 +28,8 @@ export const handle: Handle = async ({ event, resolve }) => {
 				id: String(payload.sub),
 				email: String(payload.email),
 				name: String(payload.name),
-				role: (payload.role as 'admin' | 'owner' | 'guest') ?? 'owner'
+				role: (payload.role as 'admin' | 'owner' | 'guest') ?? 'owner',
+				forcePasswordChange: Boolean(payload.forcePasswordChange)
 			};
 		} catch (error: any) {
 			// Invalid/expired token - clear it
@@ -37,9 +38,16 @@ export const handle: Handle = async ({ event, resolve }) => {
 		}
 	}
 
-	// For page routes, still check authentication (backend handles API routes)
-	// This provides a better UX by redirecting before the page loads
+	// Force password change: authenticated user with forcePasswordChange must go to change-password page first
 	const path = event.url.pathname;
+	const isPageRequest = !path.startsWith('/api/') && !path.startsWith('/_');
+	if (event.locals.user?.forcePasswordChange && isPageRequest && path !== '/auth/change-password-required' && path !== '/login') {
+		const redirectUrl = new URL('/auth/change-password-required', event.url);
+		redirectUrl.searchParams.set('redirect', path);
+		return Response.redirect(redirectUrl, 303);
+	}
+
+	// For page routes, still check authentication (backend handles API routes)
 	if (path.startsWith('/admin') && !path.startsWith('/api/')) {
 		if (!event.locals.user) {
 			return Response.redirect(new URL('/login?redirect=' + encodeURIComponent(path), event.url), 303);
@@ -60,6 +68,17 @@ export const handle: Handle = async ({ event, resolve }) => {
 	if (path.startsWith('/owner') && !path.startsWith('/api/')) {
 		if (!event.locals.user || (event.locals.user.role !== 'owner' && event.locals.user.role !== 'admin')) {
 			return Response.redirect(new URL('/login?redirect=' + encodeURIComponent(path), event.url), 303);
+		}
+	}
+
+	// Member area: for users with role "guest" (displayed as "Viewer") – portfolio & change password
+	if (path.startsWith('/member') && !path.startsWith('/api/')) {
+		if (!event.locals.user) {
+			return Response.redirect(new URL('/login?redirect=' + encodeURIComponent(path), event.url), 303);
+		}
+		if (event.locals.user.role !== 'guest' && event.locals.user.role !== 'admin') {
+			// Owners and non-members go to their dashboard instead
+			return Response.redirect(new URL(event.locals.user.role === 'owner' ? '/owner' : '/admin', event.url), 303);
 		}
 	}
 

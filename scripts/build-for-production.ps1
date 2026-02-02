@@ -134,6 +134,12 @@ Copy-Item -Path "backend\package.json" -Destination (Join-Path $DEPLOY_DIR "back
 if (Test-Path "backend\tsconfig.json") {
     Copy-Item -Path "backend\tsconfig.json" -Destination (Join-Path $DEPLOY_DIR "backend\tsconfig.json") -Force
 }
+# Copy i18n translation files so backend TranslationsService can find them (backend runs with cwd=backend, looks for ./i18n)
+if (Test-Path "frontend\src\i18n") {
+    New-Item -ItemType Directory -Path (Join-Path $DEPLOY_DIR "backend\i18n") -Force | Out-Null
+    Copy-Item -Path "frontend\src\i18n\*.json" -Destination (Join-Path $DEPLOY_DIR "backend\i18n") -Force
+    Write-Host "    Copied frontend/src/i18n to backend/i18n" -ForegroundColor Green
+}
 
 Write-Host "  Copying frontend files..." -ForegroundColor Blue
 New-Item -ItemType Directory -Path (Join-Path $DEPLOY_DIR "frontend") -Force | Out-Null

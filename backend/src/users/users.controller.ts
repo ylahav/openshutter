@@ -3,10 +3,21 @@ import { AdminGuard } from '../common/guards/admin.guard';
 import { connectDB } from '../config/db';
 import mongoose, { Types } from 'mongoose';
 import * as bcrypt from 'bcryptjs';
+import { randomBytes } from 'crypto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { mailService } from '../services/mail.service';
 
 const SALT_ROUNDS = 10;
+
+/** Generate a secure random password (6 chars: upper, lower, digits). */
+function generateSecurePassword(length = 6): string {
+  const charset = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  const bytes = randomBytes(length);
+  let result = '';
+  for (let i = 0; i < length; i++) result += charset[bytes[i]! % charset.length];
+  return result;
+}
 
 async function hashPassword(plain: string): Promise<string> {
   const salt = await bcrypt.genSalt(SALT_ROUNDS);
@@ -137,11 +148,11 @@ export class UsersController {
       if (!db) throw new InternalServerErrorException('Database connection not established');
       const collection = db.collection('users');
 
-      const { name, username, password, role, groupAliases, blocked, allowedStorageProviders } = body;
+      const { name, username, password: passwordFromBody, role, groupAliases, blocked, allowedStorageProviders, preferredLanguage } = body;
 
-      // Validate required fields
-      if (!name || !username || !password || !role) {
-        throw new BadRequestException('Name, username, password, and role are required');
+      // Validate required fields (password is optional; system will generate if missing)
+      if (!name || !username || !role) {
+        throw new BadRequestException('Name, username, and role are required');
       }
 
       // Validate name - must have at least one language
@@ -181,12 +192,11 @@ export class UsersController {
         throw new BadRequestException(`Invalid role. Must be one of: ${validRoles.join(', ')}`);
       }
 
-      // Validate password
-      if (!password || password.length < 6) {
-        throw new BadRequestException('Password must be at least 6 characters long');
-      }
-
-      // Hash password
+      // Use provided password or generate a secure one (sent in welcome email)
+      const password =
+        passwordFromBody && String(passwordFromBody).trim().length >= 6
+          ? String(passwordFromBody).trim()
+          : generateSecurePassword();
       const passwordHash = await hashPassword(password);
 
       // Create user
@@ -201,6 +211,8 @@ export class UsersController {
         allowedStorageProviders: Array.isArray(allowedStorageProviders) && allowedStorageProviders.length > 0
           ? allowedStorageProviders
           : ['local'],
+        forcePasswordChange: true,
+        preferredLanguage: preferredLanguage?.trim() ?? '',
         createdAt: now,
         updatedAt: now,
       };
@@ -211,6 +223,14 @@ export class UsersController {
       if (!user) {
         throw new BadRequestException('Failed to retrieve created user');
       }
+
+      // Send welcome email if configured (fire-and-forget; do not fail user creation).
+      // Pass initial password so template can use {{password}} if desired.
+      const displayName =
+        normalizedName.en ||
+        (Object.values(normalizedName).find((v) => v && v.trim()) as string) ||
+        normalizedUsername;
+      mailService.sendWelcomeEmail(normalizedUsername, displayName, password).catch(() => {});
 
       // Remove passwordHash and convert ObjectId to string
       const { passwordHash: _, ...rest } = user;
@@ -246,7 +266,7 @@ export class UsersController {
         throw new NotFoundException(`User not found: ${id}`);
       }
 
-      const { name, password, role, groupAliases, blocked, allowedStorageProviders } = body;
+      const { name, password, role, groupAliases, blocked, allowedStorageProviders, forcePasswordChange, preferredLanguage } = body;
 
       // Normalize name object if provided
       let normalizedName: Record<string, string> | undefined;
@@ -313,6 +333,12 @@ export class UsersController {
       if (Array.isArray(allowedStorageProviders)) updateData.allowedStorageProviders = allowedStorageProviders;
       if (password !== undefined && password !== null && password !== '') {
         updateData.passwordHash = await hashPassword(password);
+      }
+      if (forcePasswordChange !== undefined) {
+        updateData.forcePasswordChange = Boolean(forcePasswordChange);
+      }
+      if (preferredLanguage !== undefined) {
+        updateData.preferredLanguage = preferredLanguage?.trim() ?? '';
       }
 
       await collection.updateOne({ _id: new Types.ObjectId(id) }, { $set: updateData });

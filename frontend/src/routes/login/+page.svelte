@@ -1,14 +1,16 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { auth, loadSession } from '$lib/stores/auth';
 	import { logger } from '$lib/utils/logger';
+	import ForcePasswordChangeModal from '$lib/components/ForcePasswordChangeModal.svelte';
 
 	let email = '';
 	let password = '';
 	let error = '';
 	let loading = false;
+	let showForcePasswordModal = false;
+	let pendingRedirectPath = '';
 
 	onMount(() => {
 		loadSession();
@@ -53,21 +55,29 @@
 				user: data.user
 			});
 
-			logger.debug('[Login] Login successful, redirecting...', {
+			logger.debug('[Login] Login successful', {
 				userRole: data.user?.role,
-				redirectTo
+				forcePasswordChange: data.user?.forcePasswordChange
 			});
-			
+
 			// Determine redirect path based on user role
-			const redirectPath = data.user?.role === 'admin' 
+			const redirectPath = data.user?.role === 'admin'
 				? (redirectTo.startsWith('/admin') ? redirectTo : '/admin')
 				: data.user?.role === 'owner'
-					? '/owner'
-					: '/';
+					? (redirectTo.startsWith('/owner') ? redirectTo : '/owner')
+					: data.user?.role === 'guest'
+						? (redirectTo.startsWith('/member') ? redirectTo : '/member')
+						: '/';
+
+			// If user must change password, show modal instead of redirecting
+			if (data.user?.forcePasswordChange) {
+				showForcePasswordModal = true;
+				pendingRedirectPath = redirectPath;
+				loading = false;
+				return;
+			}
 			
 			// Use window.location.href for full page reload
-			// This ensures hooks.server.ts runs and sees the cookie that was just set
-			// The cookie is set server-side in the login API route, so it's immediately available
 			window.location.href = redirectPath;
 		} catch (err) {
 			error = 'Login failed. Please try again.';
@@ -75,6 +85,11 @@
 		} finally {
 			loading = false;
 		}
+	}
+
+	function onPasswordChanged() {
+		showForcePasswordModal = false;
+		window.location.href = pendingRedirectPath;
 	}
 </script>
 
@@ -147,3 +162,7 @@
 		</form>
 	</div>
 </div>
+
+{#if showForcePasswordModal}
+	<ForcePasswordChangeModal onSuccess={onPasswordChanged} />
+{/if}

@@ -15,6 +15,7 @@ A comprehensive photo gallery management system with multi-storage support, adva
 - **Album Management**: Hierarchical albums with advanced privacy controls, drag-and-drop reordering, and accordion navigation
 - **Advanced Access Control**: Granular permissions for albums (public, private, user/group-specific)
 - **Owner Dashboard**: Dedicated interface for album owners to manage their collections
+- **Viewer Member Area**: Simple `/member` area for Viewer (guest) users to edit profile, preferred language, and password
 - **Cover Photo Selection**: Admin interface for selecting album cover photos
 - **Batch Operations**: Upload and manage hundreds of photos efficiently
 - **Bulk Photo Management**: Apply tags, locations, and metadata to multiple photos
@@ -26,6 +27,7 @@ A comprehensive photo gallery management system with multi-storage support, adva
 - **Role-Based Access**: Admin, Owner, and Guest roles with different capabilities
 - **Storage Management**: Configure and manage multiple storage providers through admin interface
 - **Profile Management**: Users can edit their profiles and change passwords
+- **Welcome Emails**: Optional, configurable welcome email sent when admins create new users (SMTP + template in Site Config)
 - **Template Customization**: Customizable gallery templates and themes
 - **Page Builder**: Flexible row/column-based page builder with module system
   - Create custom pages with drag-and-drop row/column layouts
@@ -457,6 +459,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [ ] Enhanced tag analytics
 - [x] **User role management** – Admin/Owner/Guest roles, Admin → Users (role + groupAliases), Admin → Groups, owner dashboard and owner album/photo management (`/owner/albums`, `/owner/photos/[id]/edit`), AdminOrOwnerGuard and ownership enforcement
 - [ ] Import/Sync functionality (currently disabled)
+- [x] **Welcome email on user creation** – Configurable SMTP settings and welcome email subject/body in Site Config; sent when an admin creates a new user (optional)
+- [x] **Force password change on first login** – System-generated or admin-set passwords mark the user to change password on first login; blocking modal/flow ensures password is updated before accessing protected areas
+- [x] **Viewer member area** – `/member` dashboard for Viewer (guest) users with profile (including preferred language) and password change pages, plus role-based redirects to `/member` after login
 - **Advanced photo metadata management**
   - [x] Configurable EXIF display (site config: choose which EXIF fields to show; lightbox and display respect it)
   - [x] Re-extract EXIF per photo (admin photo edit)
@@ -504,7 +509,7 @@ User management (Admin → Users) includes assigning **role** (admin/owner/guest
 ### Role-Based Redirects
 - **Admin users**: Redirected to `/admin` after login
 - **Owner users**: Redirected to `/owner` (owner dashboard) after login
-- **Guest users**: Redirected to `/` (home page) after login
+- **Guest/Viewer users**: Redirected to `/member` (member area) after login
 
 ### Album Ownership
 - Albums track who created them via `createdBy` field

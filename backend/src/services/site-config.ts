@@ -99,7 +99,12 @@ export class SiteConfigService {
     
     // Deep merge updates with current config to preserve nested objects
     const mergedConfig = this.deepMerge(currentConfig, updates)
-    
+    // Don't overwrite mail password with masked value; keep existing if update sent "****" or empty
+    if (updates.mail?.password === '****' || updates.mail?.password === '') {
+      if (mergedConfig.mail && currentConfig.mail?.password) {
+        mergedConfig.mail.password = currentConfig.mail.password
+      }
+    }
     // Add updatedAt timestamp
     mergedConfig.updatedAt = new Date()
     
@@ -228,6 +233,19 @@ export class SiteConfigService {
         frontendTemplate: 'modern',
         adminTemplate: 'default',
         activeTemplate: 'modern' // Kept for backward compatibility
+      },
+      mail: {
+        host: '',
+        port: 587,
+        user: '',
+        password: '',
+        from: '',
+        secure: false
+      },
+      welcomeEmail: {
+        enabled: false,
+        subject: 'Welcome to {{siteTitle}}',
+        body: 'Hi {{name}},\n\nYour account has been created. You can log in at {{loginUrl}} with username: {{username}}\n\nBest regards'
       },
       createdAt: new Date(),
       updatedAt: new Date()

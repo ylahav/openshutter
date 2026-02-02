@@ -49,7 +49,15 @@ export interface SiteConfig {
       showLogo?: boolean
       showSiteTitle?: boolean
       showMenu?: boolean
-      menu?: { labelKey?: string; label?: string; href: string }[]
+      menu?: {
+        labelKey?: string
+        label?: string
+        href: string
+        external?: boolean
+        roles?: string[]
+        showWhen?: 'always' | 'loggedIn' | 'loggedOut'
+        type?: 'link' | 'login' | 'logout'
+      }[]
       enableThemeToggle?: boolean
       enableLanguageSelector?: boolean
       showLanguageSelector?: boolean
@@ -94,6 +102,20 @@ export interface SiteConfig {
   exifMetadata?: {
     displayFields?: string[]
   }
+  /** SMTP and welcome email (e.g. on user creation) */
+  mail?: {
+    host?: string
+    port?: number
+    user?: string
+    password?: string
+    from?: string
+    secure?: boolean
+  }
+  welcomeEmail?: {
+    enabled?: boolean
+    subject?: string
+    body?: string
+  }
   createdAt: Date
   updatedAt: Date
 }
@@ -111,4 +133,6 @@ export interface SiteConfigUpdate {
   homePage?: Partial<SiteConfig['homePage']>
   features?: Partial<SiteConfig['features']>
   exifMetadata?: Partial<SiteConfig['exifMetadata']>
+  mail?: Partial<SiteConfig['mail']>
+  welcomeEmail?: Partial<SiteConfig['welcomeEmail']>
 }
