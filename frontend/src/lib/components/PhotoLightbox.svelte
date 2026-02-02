@@ -1,11 +1,13 @@
 <script lang="ts">
 	import { createEventDispatcher } from 'svelte';
+	import { page } from '$app/stores';
 	import { currentLanguage } from '$stores/language';
 	import { siteConfigData } from '$stores/siteConfig';
 	import { filterExifByDisplayFields } from '$lib/constants/exif-fields';
 	import { getPhotoRotationStyle } from '$lib/utils/photoUrl';
 	import { MultiLangUtils } from '$utils/multiLang';
 	import { logger } from '$lib/utils/logger';
+	import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 
 	const dispatch = createEventDispatcher();
 
@@ -146,6 +148,16 @@
 			// React to current index change
 			const _ = current;
 			imageLoading = true;
+		}
+	});
+
+	// Sync URL hash to current photo so "Share this photo" link opens this photo (#p=index)
+	$effect(() => {
+		if (typeof window === 'undefined' || !isOpen || photos.length === 0) return;
+		const idx = typeof current === 'number' && current >= 0 ? current : 0;
+		const hash = `#p=${idx}`;
+		if (window.location.hash !== hash) {
+			window.history.replaceState(null, '', $page.url.pathname + hash);
 		}
 	});
 
@@ -547,54 +559,73 @@
 {#if isOpen}
 	<div
 		bind:this={containerRef}
-		class="fixed inset-0 z-1000 bg-black/95 text-white flex flex-col"
+		class="photo-lightbox-root fixed inset-0 z-[9999] bg-black/95 flex flex-col"
 		role="dialog"
 		aria-modal="true"
+		style="color: white;"
 	>
-		<!-- Top bar -->
-		<div class="flex items-center justify-between px-4 py-2 text-sm">
-			<div class="opacity-80">{current + 1} / {photos.length}</div>
-			<div class="flex items-center gap-2">
+		<!-- Top bar: explicit white text/icons so visible in all templates (e.g. elegant) -->
+		<div class="photo-lightbox-toolbar flex items-center justify-between px-4 py-3 text-sm text-white bg-black/40 shrink-0 border-b border-white/10">
+			<div class="opacity-90">{current + 1} / {photos.length}</div>
+			<div class="flex items-center gap-1 text-white [&_button_svg]:stroke-white [&_button]:text-white">
 				{#if matchedFaces.length > 0}
 					<button
 						onclick={() => (showFaces = !showFaces)}
-						class="px-2 py-1 rounded hover:bg-white/10"
+						class="p-2 rounded hover:bg-white/10 shrink-0"
 						aria-label="Toggle Face Detection"
 						title="{showFaces ? 'Hide' : 'Show'} detected people"
 					>
-						{showFaces ? '👤' : '👥'}
+						{#if showFaces}
+							<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+						{:else}
+							<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+						{/if}
 					</button>
 				{/if}
 				<button
 					onclick={toggleFullscreen}
-					class="px-2 py-1 rounded hover:bg-white/10"
+					class="p-2 rounded hover:bg-white/10 shrink-0"
 					aria-label="Toggle Fullscreen"
 				>
-					⛶
+					<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>
 				</button>
 				<button
 					onclick={() => (playing = !playing)}
-					class="px-2 py-1 rounded hover:bg-white/10"
+					class="px-2 py-1 rounded hover:bg-white/10 text-sm shrink-0"
 					aria-label="Play/Pause"
 				>
 					{playing ? 'Pause' : 'Play'}
 				</button>
 				<button
 					onclick={() => (showInfo = !showInfo)}
-					class="px-2 py-1 rounded hover:bg-white/10"
+					class="p-2 rounded hover:bg-white/10 shrink-0"
 					aria-label="Toggle Info"
 				>
-					{showInfo ? '📋' : 'ℹ️'}
+					{#if showInfo}
+						<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+					{:else}
+						<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+					{/if}
 				</button>
+				{#if $siteConfigData?.features?.enableSharing !== false && $siteConfigData?.features?.sharingOnPhoto !== false}
+					<button
+						onclick={() => (showInfo = true)}
+						class="p-2 rounded hover:bg-white/10 shrink-0"
+						aria-label="Share this photo"
+						title="Share this photo"
+					>
+						<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+					</button>
+				{/if}
 				<button
 					onclick={() => {
 						if (onClose) onClose();
 						dispatch('close');
 					}}
-					class="px-2 py-1 rounded hover:bg-white/10"
+					class="p-2 rounded hover:bg-white/10 shrink-0"
 					aria-label="Close"
 				>
-					✕
+					<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
 				</button>
 			</div>
 		</div>
@@ -608,10 +639,10 @@
 		>
 			<button
 				onclick={prev}
-				class="px-6 py-4 mx-4 rounded-lg hover:bg-white/20 transition-all duration-200 text-4xl font-bold"
+				class="p-4 mx-2 rounded-lg hover:bg-white/20 transition-all duration-200"
 				aria-label="Previous"
 			>
-				‹
+				<svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
 			</button>
 			<div class="max-h-[85vh] max-w-[92vw] relative flex items-center">
 				<div class="relative shrink-0">
@@ -673,6 +704,18 @@
 									</div>
 								{/if}
 							</div>
+
+							<!-- Social Sharing (single photo: link includes #p=index so shared URL opens this photo) -->
+							{#if $siteConfigData?.features?.enableSharing !== false && $siteConfigData?.features?.sharingOnPhoto !== false}
+								<div class="mt-3">
+									<div class="text-xs font-medium opacity-70 mb-1">Share this photo</div>
+									<SocialShareButtons
+										url={typeof window !== 'undefined' ? `${window.location.origin}${$page.url.pathname}#p=${current ?? 0}` : undefined}
+										title={photoTitle || 'Photo'}
+										size="sm"
+									/>
+								</div>
+							{/if}
 
 							<!-- Date/Time -->
 							{#if photo.takenAt || photo.exif?.dateTime || photo.exif?.dateTimeOriginal}
@@ -868,10 +911,10 @@
 			</div>
 			<button
 				onclick={next}
-				class="px-6 py-4 mx-4 rounded-lg hover:bg-white/20 transition-all duration-200 text-4xl font-bold"
+				class="p-4 mx-2 rounded-lg hover:bg-white/20 transition-all duration-200"
 				aria-label="Next"
 			>
-				›
+				<svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
 			</button>
 		</div>
 
@@ -882,3 +925,10 @@
 		</div>
 	</div>
 {/if}
+
+<style>
+	/* Force toolbar icons white so they are visible in all templates (e.g. elegant with custom fonts) */
+	:global(.photo-lightbox-root .photo-lightbox-toolbar svg) {
+		stroke: white !important;
+	}
+</style>

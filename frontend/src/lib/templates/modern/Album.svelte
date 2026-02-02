@@ -1,18 +1,19 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { page } from '$app/stores';
-	import { goto, afterNavigate } from '$app/navigation';
-	import { browser } from '$app/environment';
-	import { currentLanguage } from '$stores/language';
-	import { siteConfigData } from '$stores/siteConfig';
-	import { t } from '$stores/i18n';
-	import AlbumBreadcrumbs from '$lib/components/AlbumBreadcrumbs.svelte';
-	import PhotoLightbox from '$lib/components/PhotoLightbox.svelte';
-	import MultiLangText from '$lib/components/MultiLangText.svelte';
-	import MultiLangHTML from '$lib/components/MultiLangHTML.svelte';
-	import { getPhotoUrl, getPhotoFullUrl, getPhotoRotationStyle } from '$lib/utils/photoUrl';
-	import { handleImageLoadError } from '$lib/utils/imageErrorHandler';
-	import { logger } from '$lib/utils/logger';
+import { page } from '$app/stores';
+import { goto, afterNavigate } from '$app/navigation';
+import { browser } from '$app/environment';
+import { currentLanguage } from '$stores/language';
+import { siteConfigData } from '$stores/siteConfig';
+import { t } from '$stores/i18n';
+import AlbumBreadcrumbs from '$lib/components/AlbumBreadcrumbs.svelte';
+import PhotoLightbox from '$lib/components/PhotoLightbox.svelte';
+import MultiLangText from '$lib/components/MultiLangText.svelte';
+import MultiLangHTML from '$lib/components/MultiLangHTML.svelte';
+import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
+import { getPhotoUrl, getPhotoFullUrl, getPhotoRotationStyle } from '$lib/utils/photoUrl';
+import { handleImageLoadError } from '$lib/utils/imageErrorHandler';
+import { logger } from '$lib/utils/logger';
 
 	interface AlbumData {
 		album: {
@@ -194,6 +195,18 @@
 
 			albumData = await response.json();
 			logger.debug('Album data loaded:', albumData);
+
+			// Open lightbox at photo from hash (#p=index) when sharing a single photo
+			if (browser && albumData?.photos?.length) {
+				const m = window.location.hash.match(/^#p=(\d+)$/);
+				if (m) {
+					const idx = parseInt(m[1], 10);
+					if (idx >= 0 && idx < albumData.photos.length) {
+						lightboxIndex = idx;
+						lightboxOpen = true;
+					}
+				}
+			}
 			
 			// Debug: Log photo URLs for first few photos
 			if (albumData && albumData.photos && albumData.photos.length > 0) {
@@ -263,20 +276,26 @@
 
 		<section class="py-8">
 			<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-				<div class="text-center mb-12">
-					<h1 class="text-5xl font-bold text-white mb-6 tracking-tight">
-						<MultiLangText value={albumData.album.name} fallback="Untitled Album" />
-					</h1>
-					{#if albumData.album.description}
-						<div class="text-lg text-purple-200 max-w-4xl mx-auto prose prose-lg prose-invert">
-							<MultiLangHTML value={albumData.album.description} />
-						</div>
-					{/if}
-					<div class="mt-6 text-sm text-purple-300">
-						{albumData.photos.length} {albumData.photos.length === 1 ? $t('search.photo') : $t('albums.photos')}
-						{#if albumData.subAlbums && albumData.subAlbums.length > 0}
-							• {albumData.subAlbums.length} {$t('albums.subAlbums')}
+				<div class="flex flex-col md:flex-row md:items-start md:justify-between gap-6 mb-10">
+					<div class="flex-1 text-center md:text-left">
+						<h1 class="text-5xl font-bold text-white mb-6 tracking-tight">
+							<MultiLangText value={albumData.album.name} fallback="Untitled Album" />
+						</h1>
+						{#if albumData.album.description}
+							<div class="text-lg text-purple-200 max-w-4xl mx-auto md:mx-0 prose prose-lg prose-invert">
+								<MultiLangHTML value={albumData.album.description} />
+							</div>
 						{/if}
+						<div class="mt-6 text-sm text-purple-300">
+							{albumData.photos.length} {albumData.photos.length === 1 ? $t('search.photo') : $t('albums.photos')}
+							{#if albumData.subAlbums && albumData.subAlbums.length > 0}
+								• {albumData.subAlbums.length} {$t('albums.subAlbums')}
+							{/if}
+						</div>
+					</div>
+					<div class="md:text-right text-center">
+						<p class="text-xs uppercase tracking-wide text-purple-200 mb-2">Share album</p>
+						<SocialShareButtons title="Album" size="sm" />
 					</div>
 				</div>
 

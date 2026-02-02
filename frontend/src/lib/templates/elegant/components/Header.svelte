@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { afterNavigate } from '$app/navigation';
 	import { derived } from 'svelte/store';
 	import { currentLanguage } from '$stores/language';
 	import { siteConfigData, siteConfig } from '$stores/siteConfig';
@@ -41,8 +42,20 @@
 		}
 	});
 
+	afterNavigate(() => {
+		mobileMenuOpen = false;
+	});
+
 	async function handleLogout() {
 		await logout();
+	}
+
+	let mobileMenuOpen = false;
+	function toggleMobileMenu() {
+		mobileMenuOpen = !mobileMenuOpen;
+	}
+	function closeMobileMenu() {
+		mobileMenuOpen = false;
 	}
 </script>
 
@@ -93,7 +106,28 @@
 				{/if}
 			</div>
 
-			<!-- Navigation -->
+			<!-- Mobile menu button -->
+			{#if showMenu || showTemplateSelector || showLanguageSelector || showThemeToggle}
+				<button
+					type="button"
+					class="md:hidden p-2 rounded-lg text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-purple-400"
+					aria-label="Open menu"
+					aria-expanded={mobileMenuOpen}
+					on:click={toggleMobileMenu}
+				>
+					{#if mobileMenuOpen}
+						<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+						</svg>
+					{:else}
+						<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+						</svg>
+					{/if}
+				</button>
+			{/if}
+
+			<!-- Desktop Navigation -->
 			{#if showMenu || showTemplateSelector || showLanguageSelector || showThemeToggle}
 				<div class="hidden md:flex items-center gap-6 text-sm text-white relative">
 					{#if showMenu}
@@ -145,4 +179,52 @@
 			{/if}
 		</div>
 	</div>
+
+	<!-- Mobile menu panel -->
+	{#if (showMenu || showTemplateSelector || showLanguageSelector || showThemeToggle) && mobileMenuOpen}
+		<div
+			class="md:hidden border-t border-purple-500/30 bg-black/98 backdrop-blur-md text-white"
+			role="dialog"
+			aria-label="Navigation menu"
+		>
+			<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 space-y-4">
+				{#if showMenu}
+					<Menu
+						config={$headerConfig}
+						itemClass="block py-2 hover:text-purple-300 transition-colors font-light"
+						activeItemClass="text-purple-300 font-medium"
+						containerClass="flex flex-col gap-1"
+						orientation="vertical"
+						showActiveIndicator={true}
+						showAuthButtons={showAuthButtons}
+					/>
+					{#if showAuthButtons && $auth.authenticated && $auth.user}
+						<div class="pt-2 border-t border-white/10 flex flex-col gap-2">
+							{#if showGreeting}
+								<span class="text-purple-200 text-sm">{$auth.user.name || $auth.user.email}</span>
+							{/if}
+							<button
+								on:click={() => { closeMobileMenu(); handleLogout(); }}
+								class="text-left py-2 hover:text-purple-300 transition-colors font-light w-full"
+								type="button"
+							>
+								{$t('header.logout')}
+							</button>
+						</div>
+					{/if}
+				{/if}
+				<div class="flex flex-wrap items-center gap-4 pt-2 border-t border-white/10">
+					{#if showTemplateSelector}
+						<div><TemplateSelector compact={true} /></div>
+					{/if}
+					{#if showLanguageSelector}
+						<div><LanguageSelector compact={true} /></div>
+					{/if}
+					{#if showThemeToggle}
+						<div><ThemeToggle /></div>
+					{/if}
+				</div>
+			</div>
+		</div>
+	{/if}
 </header>

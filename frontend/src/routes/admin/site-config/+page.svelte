@@ -19,6 +19,19 @@
 	let activeTab = 'basic';
 	let availableLanguages: Array<{ code: string; name: string; flag: string }> = [];
 
+	const configTabs: { id: string; label: string }[] = [
+		{ id: 'basic', label: 'Basic Settings' },
+		{ id: 'languages', label: 'Languages' },
+		{ id: 'branding', label: 'Branding' },
+		{ id: 'seo', label: 'SEO' },
+		{ id: 'contact', label: 'Contact' },
+		{ id: 'home', label: 'Services' },
+		{ id: 'navigation', label: 'Navigation' },
+		{ id: 'exifMetadata', label: 'EXIF Metadata' },
+		{ id: 'sharing', label: 'Sharing' },
+		{ id: 'email', label: 'Email' }
+	];
+
 	// Test email modal
 	let showTestMailModal = false;
 	let testTo = '';
@@ -45,18 +58,22 @@
 	async function loadConfig() {
 		try {
 			const response = await fetch('/api/admin/site-config');
+			const result = await response.json().catch(() => ({}));
+
 			if (!response.ok) {
-				throw new Error('Failed to load configuration');
+				const serverMessage = result?.error || result?.message || `HTTP ${response.status}`;
+				message = serverMessage;
+				return;
 			}
-			const result = await response.json();
-			
+
 			// Handle the response format: { success: true, data: config } or direct config
 			const data = result.success ? result.data : result;
-			
+
 			if (!data) {
-				throw new Error('No configuration data received');
+				message = result?.error || 'No configuration data received';
+				return;
 			}
-			
+
 			// Ensure socialMedia object is properly initialized
 			if (data.contact && (!data.contact.socialMedia || typeof data.contact.socialMedia !== 'object')) {
 				data.contact.socialMedia = {
@@ -68,12 +85,12 @@
 			}
 			config = data;
 			descriptionValue = data.description || {};
-			
+
 			// Initialize menu items from config
 			menuItems = data.template?.headerConfig?.menu || [];
 		} catch (error) {
 			logger.error('Error loading site config:', error);
-			message = 'Failed to load configuration';
+			message = error instanceof Error ? error.message : 'Failed to load configuration';
 		} finally {
 			loading = false;
 		}
@@ -300,167 +317,113 @@
 	</div>
 {:else if !config}
 	<div class="min-h-screen bg-gray-50 flex items-center justify-center">
-		<div class="text-center">
-			<p class="text-red-600">Failed to load configuration</p>
-			<a href="/admin" class="mt-4 text-blue-600 hover:text-blue-800">Back to Admin</a>
+		<div class="text-center max-w-md px-4">
+			<p class="text-red-600 font-medium">Failed to load configuration</p>
+			{#if message}
+				<p class="mt-2 text-sm text-gray-600">{message}</p>
+			{/if}
+			<a href="/admin" class="mt-4 inline-block text-blue-600 hover:text-blue-800">Back to Admin</a>
 		</div>
 	</div>
 {:else}
-	<div class="min-h-screen bg-gray-50 py-8">
-		<div class="max-w-4xl mx-auto px-4">
-			<div class="bg-white rounded-lg shadow-md p-6">
-				<div class="flex items-center justify-between mb-6">
-					<h1 class="text-2xl font-bold text-gray-900">Site Configuration</h1>
-					<a href="/admin" class="text-blue-600 hover:text-blue-800 text-sm">Back to Admin</a>
-				</div>
+	<div class="min-h-screen bg-gray-50 py-6 lg:py-8">
+		<div class="max-w-6xl mx-auto px-4">
+			<div class="flex items-center justify-between mb-4">
+				<h1 class="text-2xl font-bold text-gray-900">Site Configuration</h1>
+				<a href="/admin" class="text-blue-600 hover:text-blue-800 text-sm">Back to Admin</a>
+			</div>
 
-				{#if message}
-					<div
-						class="mb-6 p-6 rounded-lg border-2 {message.includes('successfully')
-							? 'bg-green-50 text-green-800 border-green-300 shadow-lg'
-							: 'bg-red-50 text-red-800 border-red-300 shadow-lg'}"
-					>
-						<div class="flex items-center">
-							{#if message.includes('successfully')}
-								<svg
-									class="w-6 h-6 text-green-600 mr-3"
-									fill="none"
-									stroke="currentColor"
-									viewBox="0 0 24 24"
-								>
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										stroke-width="2"
-										d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-									/>
-								</svg>
-							{:else}
-								<svg
-									class="w-6 h-6 text-red-600 mr-3"
-									fill="none"
-									stroke="currentColor"
-									viewBox="0 0 24 24"
-								>
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										stroke-width="2"
-										d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-									/>
-								</svg>
-							{/if}
-							<div>
-								<h3
-									class="text-lg font-semibold {message.includes('successfully')
-										? 'text-green-800'
-										: 'text-red-800'}"
-								>
-									{message.includes('successfully') ? 'Success!' : 'Error'}
-								</h3>
-								<p
-									class="text-sm {message.includes('successfully')
-										? 'text-green-700'
-										: 'text-red-700'}"
-								>
-									{message.includes('successfully')
-										? 'Your site configuration has been saved successfully. Redirecting to admin dashboard...'
-										: message}
-								</p>
-							</div>
+			{#if message}
+				<div
+					class="mb-4 p-4 rounded-lg border-2 {message.includes('successfully')
+						? 'bg-green-50 text-green-800 border-green-300 shadow-lg'
+						: 'bg-red-50 text-red-800 border-red-300 shadow-lg'}"
+				>
+					<div class="flex items-center">
+						{#if message.includes('successfully')}
+							<svg
+								class="w-6 h-6 text-green-600 mr-3 shrink-0"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24"
+							>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+								/>
+							</svg>
+						{:else}
+							<svg
+								class="w-6 h-6 text-red-600 mr-3 shrink-0"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24"
+							>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+								/>
+							</svg>
+						{/if}
+						<div>
+							<h3
+								class="text-lg font-semibold {message.includes('successfully')
+									? 'text-green-800'
+									: 'text-red-800'}"
+							>
+								{message.includes('successfully') ? 'Success!' : 'Error'}
+							</h3>
+							<p
+								class="text-sm {message.includes('successfully')
+									? 'text-green-700'
+									: 'text-red-700'}"
+							>
+								{message.includes('successfully')
+									? 'Your site configuration has been saved successfully. Redirecting to admin dashboard...'
+									: message}
+							</p>
 						</div>
 					</div>
-				{/if}
+				</div>
+			{/if}
 
-				<form on:submit|preventDefault={handleSubmit} class="space-y-6">
-					<!-- Tabs -->
-					<div class="border-b border-gray-200 mb-4">
-						<nav class="-mb-px flex space-x-8">
-							<button
-								type="button"
-								class="py-4 px-1 border-b-2 font-medium text-sm {activeTab === 'basic'
-									? 'border-blue-500 text-blue-600'
-									: 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}"
-								on:click={() => (activeTab = 'basic')}
-							>
-								Basic Settings
-							</button>
-							<button
-								type="button"
-								class="py-4 px-1 border-b-2 font-medium text-sm {activeTab === 'languages'
-									? 'border-blue-500 text-blue-600'
-									: 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}"
-								on:click={() => (activeTab = 'languages')}
-							>
-								Languages
-							</button>
-							<button
-								type="button"
-								class="py-4 px-1 border-b-2 font-medium text-sm {activeTab === 'branding'
-									? 'border-blue-500 text-blue-600'
-									: 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}"
-								on:click={() => (activeTab = 'branding')}
-							>
-								Branding
-							</button>
-							<button
-								type="button"
-								class="py-4 px-1 border-b-2 font-medium text-sm {activeTab === 'seo'
-									? 'border-blue-500 text-blue-600'
-									: 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}"
-								on:click={() => (activeTab = 'seo')}
-							>
-								SEO
-							</button>
-							<button
-								type="button"
-								class="py-4 px-1 border-b-2 font-medium text-sm {activeTab === 'contact'
-									? 'border-blue-500 text-blue-600'
-									: 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}"
-								on:click={() => (activeTab = 'contact')}
-							>
-								Contact
-							</button>
-							<button
-								type="button"
-								class="py-4 px-1 border-b-2 font-medium text-sm {activeTab === 'home'
-									? 'border-blue-500 text-blue-600'
-									: 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}"
-								on:click={() => (activeTab = 'home')}
-							>
-								Services
-							</button>
-							<button
-								type="button"
-								class="py-4 px-1 border-b-2 font-medium text-sm {activeTab === 'navigation'
-									? 'border-blue-500 text-blue-600'
-									: 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}"
-								on:click={() => (activeTab = 'navigation')}
-							>
-								Navigation
-							</button>
-							<button
-								type="button"
-								class="py-4 px-1 border-b-2 font-medium text-sm {activeTab === 'exifMetadata'
-									? 'border-blue-500 text-blue-600'
-									: 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}"
-								on:click={() => (activeTab = 'exifMetadata')}
-							>
-								EXIF Metadata
-							</button>
-							<button
-								type="button"
-								class="py-4 px-1 border-b-2 font-medium text-sm {activeTab === 'email'
-									? 'border-blue-500 text-blue-600'
-									: 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}"
-								on:click={() => (activeTab = 'email')}
-							>
-								Email
-							</button>
+			<form on:submit|preventDefault={handleSubmit} class="flex flex-col lg:flex-row gap-6">
+				<!-- Sidebar nav: dropdown on small screens, vertical list on lg+ -->
+				<aside class="lg:w-52 shrink-0">
+					<div class="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
+						<label for="site-config-tab-select" class="sr-only">Configuration section</label>
+						<select
+							id="site-config-tab-select"
+							class="lg:hidden w-full py-3 px-4 text-sm font-medium text-gray-700 border-0 border-b border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-t-lg"
+							bind:value={activeTab}
+							on:change={(e) => (activeTab = (e.currentTarget as HTMLSelectElement).value)}
+						>
+							{#each configTabs as tab}
+								<option value={tab.id}>{tab.label}</option>
+							{/each}
+						</select>
+						<nav class="hidden lg:block py-1" aria-label="Configuration sections">
+							{#each configTabs as tab}
+								<button
+									type="button"
+									class="w-full text-left py-2.5 px-4 text-sm font-medium {activeTab === tab.id
+										? 'bg-blue-50 text-blue-700 border-l-2 border-blue-600'
+										: 'text-gray-600 hover:bg-gray-50 border-l-2 border-transparent'}"
+									on:click={() => (activeTab = tab.id)}
+								>
+									{tab.label}
+								</button>
+							{/each}
 						</nav>
 					</div>
+				</aside>
 
-					<!-- Tab Content -->
+				<!-- Tab content -->
+				<div class="min-w-0 flex-1 bg-white rounded-lg shadow-md border border-gray-200 p-6">
 					{#if activeTab === 'basic'}
 						<div class="grid grid-cols-1 gap-6">
 							<div>
@@ -1753,6 +1716,145 @@ on:click={() => {
 								</p>
 							</div>
 						</div>
+					{:else if activeTab === 'sharing'}
+						<div class="grid grid-cols-1 gap-6">
+							<h3 class="text-lg font-semibold text-gray-900">Social Sharing</h3>
+							<p class="text-sm text-gray-600 -mt-2">
+								Control whether sharing is enabled and where share buttons appear. Choose which services to show (X, Facebook, WhatsApp, Copy link).
+							</p>
+							<div class="space-y-4">
+								<label class="flex items-center space-x-2 cursor-pointer">
+									<input
+										id="sharing-enabled"
+										type="checkbox"
+										checked={config.features?.enableSharing ?? true}
+										on:change={(e) => {
+											if (!config) return;
+											config = {
+												...(config),
+												features: {
+													...config.features,
+													enableSharing: e.currentTarget.checked
+												}
+											} as SiteConfig;
+										}}
+										class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+									/>
+									<span class="text-sm font-medium text-gray-700">Enable sharing</span>
+								</label>
+								<div class="border-t border-gray-200 pt-4">
+									<p class="text-sm font-medium text-gray-700 mb-2">Where to show share buttons</p>
+									<div class="space-y-2">
+										<label class="flex items-center space-x-2 cursor-pointer">
+											<input
+												id="sharing-on-album"
+												type="checkbox"
+												checked={config.features?.sharingOnAlbum !== false}
+												on:change={(e) => {
+													if (!config) return;
+													config = {
+														...(config),
+														features: {
+															...config.features,
+															sharingOnAlbum: e.currentTarget.checked
+														}
+													} as SiteConfig;
+												}}
+												class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+											/>
+											<span class="text-sm text-gray-700">On album and gallery pages</span>
+										</label>
+										<label class="flex items-center space-x-2 cursor-pointer">
+											<input
+												id="sharing-on-photo"
+												type="checkbox"
+												checked={config.features?.sharingOnPhoto !== false}
+												on:change={(e) => {
+													if (!config) return;
+													config = {
+														...(config),
+														features: {
+															...config.features,
+															sharingOnPhoto: e.currentTarget.checked
+														}
+													} as SiteConfig;
+												}}
+												class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+											/>
+											<span class="text-sm text-gray-700">In photo lightbox (info panel)</span>
+										</label>
+									</div>
+								</div>
+								<div class="border-t border-gray-200 pt-4">
+									<p class="text-sm font-medium text-gray-700 mb-2">Share options (check to show)</p>
+									{#if config}
+										{@const opts = config.features?.sharingOptions ?? ['twitter', 'facebook', 'whatsapp', 'copy']}
+										<div class="flex flex-wrap gap-4">
+										<label class="flex items-center space-x-2 cursor-pointer">
+											<input
+												id="share-twitter"
+												type="checkbox"
+												checked={opts.includes('twitter')}
+												on:change={(e) => {
+													if (!config) return;
+													const current = config.features?.sharingOptions ?? ['twitter', 'facebook', 'whatsapp', 'copy'];
+													const next = e.currentTarget.checked ? [...current.filter((x: string) => x !== 'twitter'), 'twitter'] : current.filter((x: string) => x !== 'twitter');
+													config = { ...config, features: { ...config.features, sharingOptions: next } } as SiteConfig;
+												}}
+												class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+											/>
+											<span class="text-sm text-gray-700">X (Twitter)</span>
+										</label>
+										<label class="flex items-center space-x-2 cursor-pointer">
+											<input
+												id="share-facebook"
+												type="checkbox"
+												checked={opts.includes('facebook')}
+												on:change={(e) => {
+													if (!config) return;
+													const current = config.features?.sharingOptions ?? ['twitter', 'facebook', 'whatsapp', 'copy'];
+													const next = e.currentTarget.checked ? [...current.filter((x: string) => x !== 'facebook'), 'facebook'] : current.filter((x: string) => x !== 'facebook');
+													config = { ...config, features: { ...config.features, sharingOptions: next } } as SiteConfig;
+												}}
+												class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+											/>
+											<span class="text-sm text-gray-700">Facebook</span>
+										</label>
+										<label class="flex items-center space-x-2 cursor-pointer">
+											<input
+												id="share-whatsapp"
+												type="checkbox"
+												checked={opts.includes('whatsapp')}
+												on:change={(e) => {
+													if (!config) return;
+													const current = config.features?.sharingOptions ?? ['twitter', 'facebook', 'whatsapp', 'copy'];
+													const next = e.currentTarget.checked ? [...current.filter((x: string) => x !== 'whatsapp'), 'whatsapp'] : current.filter((x: string) => x !== 'whatsapp');
+													config = { ...config, features: { ...config.features, sharingOptions: next } } as SiteConfig;
+												}}
+												class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+											/>
+											<span class="text-sm text-gray-700">WhatsApp</span>
+										</label>
+										<label class="flex items-center space-x-2 cursor-pointer">
+											<input
+												id="share-copy"
+												type="checkbox"
+												checked={opts.includes('copy')}
+												on:change={(e) => {
+													if (!config) return;
+													const current = config.features?.sharingOptions ?? ['twitter', 'facebook', 'whatsapp', 'copy'];
+													const next = e.currentTarget.checked ? [...current.filter((x: string) => x !== 'copy'), 'copy'] : current.filter((x: string) => x !== 'copy');
+													config = { ...config, features: { ...config.features, sharingOptions: next } } as SiteConfig;
+												}}
+												class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+											/>
+											<span class="text-sm text-gray-700">Copy link</span>
+										</label>
+									</div>
+									{/if}
+								</div>
+							</div>
+						</div>
 					{:else if activeTab === 'email'}
 						<div class="grid grid-cols-1 gap-6">
 							<h3 class="text-lg font-semibold text-gray-900">SMTP Mail Server</h3>
@@ -1948,8 +2050,8 @@ on:click={() => {
 							{saving ? 'Saving...' : 'Save Configuration'}
 						</button>
 					</div>
+				</div>
 				</form>
-			</div>
 		</div>
 
 		<!-- Test email modal -->

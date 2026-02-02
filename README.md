@@ -20,7 +20,7 @@ A comprehensive photo gallery management system with multi-storage support, adva
 - **Batch Operations**: Upload and manage hundreds of photos efficiently
 - **Bulk Photo Management**: Apply tags, locations, and metadata to multiple photos
 - **Multi-Language Support**: Full internationalization (i18n) with RTL support, reactive translation system, and comprehensive language coverage
-- **Responsive Design**: Beautiful galleries for all devices with masonry layouts
+- **Responsive Design**: Beautiful galleries for all devices with masonry layouts; elegant template: mobile hamburger menu with full navigation (menu, auth, template/language/theme); lightbox uses SVG icons for consistent display; sub-album cards show leading photos
 - **Mobile-First PWA**: Progressive Web App with offline capabilities and mobile optimization
 - **Touch-Optimized Interface**: Mobile navigation, photo upload, and search with gesture support
 - **Real-time Updates**: Live photo uploads and collaborative features
@@ -28,7 +28,9 @@ A comprehensive photo gallery management system with multi-storage support, adva
 - **Storage Management**: Configure and manage multiple storage providers through admin interface
 - **Profile Management**: Users can edit their profiles and change passwords
 - **Welcome Emails**: Optional, configurable welcome email sent when admins create new users (SMTP + template in Site Config)
+- **Social Sharing**: Configurable share buttons (X, Facebook, WhatsApp, Copy link) on album and photo level; single-photo links open at that photo (`#p=index`); control which options and where to show (Site Config → Sharing)
 - **Template Customization**: Customizable gallery templates and themes
+- **Site Configuration**: Sidebar navigation for many sections (Basic, Languages, Branding, SEO, Contact, Services, Navigation, EXIF, Sharing, Email); dropdown on small screens
 - **Page Builder**: Flexible row/column-based page builder with module system
   - Create custom pages with drag-and-drop row/column layouts
   - Module types: Hero, Rich Text, Feature Grid, Albums Grid, Call-to-Action
@@ -454,7 +456,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [x] **Photo editing capabilities** (rotate)
   - [x] Rotate photo 90° CW, 90° CCW, or 180° from photo edit page (admin and owner). Backend replaces file and regenerates thumbnails. API: `POST /api/admin/photos/:id/rotate` with body `{ angle: 90 | -90 | 180 }`.
   - [ ] Crop (future)
-- [ ] Social sharing features
+- [x] **Social sharing features** – Share buttons (X, Facebook, WhatsApp, Copy link) on album and in photo lightbox; configurable in Site Config → Sharing (which options, album vs photo level); single-photo share URL with `#p=index` opens lightbox at that photo; elegant template: share on album grid per photo
 - [ ] Enhanced tag analytics
 - [x] **User role management** – Admin/Owner/Guest roles, Admin → Users (role + groupAliases), Admin → Groups, owner dashboard and owner album/photo management (`/owner/albums`, `/owner/photos/[id]/edit`), AdminOrOwnerGuard and ownership enforcement
 - [ ] Import/Sync functionality (currently disabled)

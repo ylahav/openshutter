@@ -86,6 +86,12 @@ export interface SiteConfig {
   features: {
     enableComments: boolean
     enableSharing: boolean
+    /** Which share buttons to show: 'twitter' | 'facebook' | 'whatsapp' | 'copy'. Omit or empty = all. */
+    sharingOptions?: ('twitter' | 'facebook' | 'whatsapp' | 'copy')[]
+    /** Show share block on album/gallery pages. Default true. */
+    sharingOnAlbum?: boolean
+    /** Show share block in photo lightbox. Default true. */
+    sharingOnPhoto?: boolean
     enableDownload: boolean
     enableWatermark: boolean
     maxUploadSize: string

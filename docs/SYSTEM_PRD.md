@@ -616,7 +616,7 @@ Operational notes:
 - **Face detection – manual selection** ✅: Draw a rectangle around an area and assign a person from the people list
 - **Photo editing capabilities** ✅ (rotate: 90° CW/CCW, 180° from photo edit; crop planned)
 - **Welcome email on user creation**: Mail server config + configurable welcome message; send when admin creates a new user
-- Social sharing features
+- **Social sharing features** ✅: Share buttons (X, Facebook, WhatsApp, Copy link) on album and in photo lightbox; configurable in Site Config (which options, album vs photo level); single-photo URL `#p=index`; elegant template supports share on album grid per photo
 - Enhanced tag analytics
 - Tag-based recommendations
 

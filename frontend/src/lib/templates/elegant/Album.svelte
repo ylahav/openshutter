@@ -4,12 +4,14 @@
 	import { afterNavigate } from '$app/navigation';
 	import { browser } from '$app/environment';
 	import { currentLanguage } from '$stores/language';
-	import { MultiLangUtils } from '$utils/multiLang';
-	import MultiLangText from '$lib/components/MultiLangText.svelte';
-	import AlbumBreadcrumbs from '$lib/components/AlbumBreadcrumbs.svelte';
-	import PhotoLightbox from '$lib/components/PhotoLightbox.svelte';
-	import { getPhotoUrl, getPhotoRotationStyle } from '$lib/utils/photoUrl';
-	import { logger } from '$lib/utils/logger';
+	import { siteConfigData } from '$stores/siteConfig';
+import { MultiLangUtils } from '$utils/multiLang';
+import MultiLangText from '$lib/components/MultiLangText.svelte';
+import AlbumBreadcrumbs from '$lib/components/AlbumBreadcrumbs.svelte';
+import PhotoLightbox from '$lib/components/PhotoLightbox.svelte';
+import { getPhotoUrl, getPhotoRotationStyle } from '$lib/utils/photoUrl';
+import { logger } from '$lib/utils/logger';
+import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 
 	interface AlbumData {
 		album: {
@@ -31,6 +33,7 @@
 	let lightboxIndex = 0;
 	let isInitialLoad = true;
 	let photoLoaded: Record<string, boolean> = {};
+	let subAlbumCoverImages: Record<string, string> = {};
 
 	// React to route parameter changes
 	afterNavigate(({ to, from }) => {
@@ -73,6 +76,20 @@
 			const data = await res.json();
 			albumData = data;
 			logger.debug('Album data loaded:', albumData);
+			// Open lightbox at photo from hash (#p=index) when sharing a single photo
+			if (browser && data?.photos?.length) {
+				const m = window.location.hash.match(/^#p=(\d+)$/);
+				if (m) {
+					const idx = parseInt(m[1], 10);
+					if (idx >= 0 && idx < data.photos.length) {
+						lightboxIndex = idx;
+						lightboxOpen = true;
+					}
+				}
+			}
+			if (data?.subAlbums?.length) {
+				fetchSubAlbumCoverImages(data.subAlbums.map((a: { _id: string }) => a._id));
+			}
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to fetch album';
 			albumData = null;
@@ -86,7 +103,29 @@
 		lightboxOpen = true;
 	}
 
+	async function fetchSubAlbumCoverImages(albumIds: string[]) {
+		if (albumIds.length === 0) return;
+		try {
+			const response = await fetch('/api/albums/cover-images', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ albumIds })
+			});
+			if (response.ok) {
+				const result = await response.json();
+				const data = result.success ? result.data : result;
+				if (data && typeof data === 'object') {
+					subAlbumCoverImages = { ...subAlbumCoverImages, ...data };
+				}
+			}
+		} catch (err) {
+			logger.error('Failed to fetch sub-album cover images:', err);
+		}
+	}
+
 	// Photo URL function is now imported from shared utility
+	$: showAlbumShare = $siteConfigData?.features?.enableSharing !== false && $siteConfigData?.features?.sharingOnAlbum !== false;
+	$: showPhotoShare = $siteConfigData?.features?.enableSharing !== false && $siteConfigData?.features?.sharingOnPhoto !== false;
 </script>
 
 {#if loading}
@@ -104,21 +143,39 @@
 	</div>
 {:else if albumData}
 	<div class="min-h-screen bg-linear-to-b from-purple-50 to-white">
-		<!-- Breadcrumbs -->
-		{#if albumData.album}
-			<AlbumBreadcrumbs albumId={albumData.album._id} />
-		{/if}
-
-		<!-- Album Header -->
-		<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-			<h1 class="text-4xl md:text-5xl font-serif text-gray-900 mb-6 tracking-wide" style="font-family: 'Playfair Display', serif;">
-				{MultiLangUtils.getTextValue(albumData.album.name, $currentLanguage)}
-			</h1>
-			{#if albumData.album.description}
-				<div class="prose prose-lg max-w-4xl mx-auto mb-8 text-gray-700">
-					{@html MultiLangUtils.getHTMLValue(albumData.album.description, $currentLanguage)}
+		<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-12">
+			<!-- Breadcrumbs: above the title, inside template border with space from top -->
+			{#if albumData.album}
+				<div class="pb-4 mb-6 border-b border-purple-100">
+					<AlbumBreadcrumbs albumId={albumData.album._id} />
 				</div>
 			{/if}
+
+			<!-- Album Header -->
+			<div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+				<div class="flex-1">
+					<h1
+						class="text-4xl md:text-5xl font-serif text-gray-900 mb-6 tracking-wide"
+						style="font-family: 'Playfair Display', serif;"
+					>
+						{MultiLangUtils.getTextValue(albumData.album.name, $currentLanguage)}
+					</h1>
+					{#if albumData.album.description}
+						<div class="prose prose-lg max-w-4xl mx-auto mb-4 text-gray-700">
+							{@html MultiLangUtils.getHTMLValue(albumData.album.description, $currentLanguage)}
+						</div>
+					{/if}
+				</div>
+				{#if showAlbumShare}
+					<div class="md:text-right">
+						<p class="text-xs uppercase tracking-wide text-gray-500 mb-1">Share album</p>
+						<SocialShareButtons
+							title={MultiLangUtils.getTextValue(albumData.album.name, $currentLanguage)}
+							size="sm"
+						/>
+					</div>
+				{/if}
+			</div>
 		</div>
 
 		<!-- Sub-albums -->
@@ -129,24 +186,42 @@
 				</h2>
 				<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
 					{#each albumData.subAlbums as subAlbum}
+						{@const coverImageUrl = subAlbumCoverImages[subAlbum._id]}
 						<a
 							href={`/albums/${subAlbum.alias || subAlbum._id}`}
-							class="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 p-6 transform hover:-translate-y-1"
+							class="group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden transform hover:-translate-y-1"
 						>
-							<h3 class="text-lg font-serif text-gray-900 mb-2" style="font-family: 'Playfair Display', serif;">
-								{MultiLangUtils.getTextValue(subAlbum.name, $currentLanguage)}
-							</h3>
-							<p class="text-sm text-gray-600 font-light">
-								{#if subAlbum.photoCount && subAlbum.photoCount > 0}
-									{subAlbum.photoCount} photos
+							<div class="aspect-square bg-linear-to-b from-purple-100 to-purple-50 relative overflow-hidden">
+								{#if coverImageUrl}
+									<img
+										src={coverImageUrl}
+										alt=""
+										class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+									/>
+								{:else}
+									<div class="absolute inset-0 flex items-center justify-center text-purple-200">
+										<svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+										</svg>
+									</div>
 								{/if}
-								{#if subAlbum.photoCount && subAlbum.photoCount > 0 && subAlbum.childAlbumCount && subAlbum.childAlbumCount > 0}
-									• 
-								{/if}
-								{#if subAlbum.childAlbumCount && subAlbum.childAlbumCount > 0}
-									{subAlbum.childAlbumCount} {subAlbum.childAlbumCount === 1 ? 'album' : 'albums'}
-								{/if}
-							</p>
+							</div>
+							<div class="p-6">
+								<h3 class="text-lg font-serif text-gray-900 mb-2" style="font-family: 'Playfair Display', serif;">
+									{MultiLangUtils.getTextValue(subAlbum.name, $currentLanguage)}
+								</h3>
+								<p class="text-sm text-gray-600 font-light">
+									{#if subAlbum.photoCount && subAlbum.photoCount > 0}
+										{subAlbum.photoCount} photos
+									{/if}
+									{#if subAlbum.photoCount && subAlbum.photoCount > 0 && subAlbum.childAlbumCount && subAlbum.childAlbumCount > 0}
+										• 
+									{/if}
+									{#if subAlbum.childAlbumCount && subAlbum.childAlbumCount > 0}
+										{subAlbum.childAlbumCount} {subAlbum.childAlbumCount === 1 ? 'album' : 'albums'}
+									{/if}
+								</p>
+							</div>
 						</a>
 					{/each}
 				</div>
@@ -276,15 +351,27 @@
 										{/if}
 									</div>
 								{/if}
+								{#if showPhotoShare && typeof window !== 'undefined'}
+									<div class="mt-3 pt-3 border-t border-purple-100">
+										<p class="text-xs text-gray-500 font-light mb-1">Share this photo</p>
+										<SocialShareButtons
+											url={typeof window !== 'undefined' ? `${window.location.origin}${$page.url.pathname}#p=${index}` : undefined}
+											title={MultiLangUtils.getTextValue(photo.title, $currentLanguage) || 'Photo'}
+											size="sm"
+										/>
+									</div>
+								{/if}
 							</div>
 						</div>
 					{/each}
 				</div>
 			</div>
 		{:else}
-			<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 border-t border-purple-100">
-				<p class="text-sm text-gray-600 text-center font-light">No photos in this album yet.</p>
-			</div>
+			{#if !albumData.subAlbums || albumData.subAlbums.length === 0}
+				<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 border-t border-purple-100">
+					<p class="text-sm text-gray-600 text-center font-light">No photos in this album yet.</p>
+				</div>
+			{/if}
 		{/if}
 	</div>
 

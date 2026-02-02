@@ -2,10 +2,12 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { currentLanguage } from '$stores/language';
+	import { siteConfigData } from '$stores/siteConfig';
 	import { MultiLangUtils } from '$utils/multiLang';
 	import MultiLangText from '$lib/components/MultiLangText.svelte';
 	import AlbumBreadcrumbs from '$lib/components/AlbumBreadcrumbs.svelte';
 	import PhotoLightbox from '$lib/components/PhotoLightbox.svelte';
+	import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 	import { getPhotoUrl, getPhotoRotationStyle } from '$lib/utils/photoUrl';
 
 	interface AlbumData {
@@ -32,6 +34,17 @@
 	onMount(async () => {
 		if (alias) {
 			await fetchAlbumData();
+			// Open lightbox at photo from hash (#p=index) when sharing a single photo
+			if (albumData?.photos?.length && typeof window !== 'undefined') {
+				const m = window.location.hash.match(/^#p=(\d+)$/);
+				if (m) {
+					const idx = parseInt(m[1], 10);
+					if (idx >= 0 && idx < albumData.photos.length) {
+						lightboxIndex = idx;
+						lightboxOpen = true;
+					}
+				}
+			}
 		}
 	});
 
@@ -80,14 +93,24 @@
 
 		<!-- Album Header -->
 		<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-			<h1 class="text-4xl font-bold text-gray-900 mb-4">
-				{MultiLangUtils.getTextValue(albumData.album.name, $currentLanguage)}
-			</h1>
-			{#if albumData.album.description}
-				<div class="prose prose-lg max-w-4xl mx-auto mb-6">
-					{@html MultiLangUtils.getHTMLValue(albumData.album.description, $currentLanguage)}
+			<div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+				<div class="flex-1">
+					<h1 class="text-4xl font-bold text-gray-900 mb-4">
+						{MultiLangUtils.getTextValue(albumData.album.name, $currentLanguage)}
+					</h1>
+					{#if albumData.album.description}
+						<div class="prose prose-lg max-w-4xl mb-4">
+							{@html MultiLangUtils.getHTMLValue(albumData.album.description, $currentLanguage)}
+						</div>
+					{/if}
 				</div>
-			{/if}
+				{#if $siteConfigData?.features?.enableSharing !== false && $siteConfigData?.features?.sharingOnAlbum !== false}
+					<div class="md:text-right">
+						<p class="text-xs uppercase tracking-wide text-gray-500 mb-1">Share album</p>
+						<SocialShareButtons title={MultiLangUtils.getTextValue(albumData.album.name, $currentLanguage)} size="sm" />
+					</div>
+				{/if}
+			</div>
 		</div>
 
 		<!-- Sub-albums -->

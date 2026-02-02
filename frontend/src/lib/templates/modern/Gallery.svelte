@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { currentLanguage } from '$stores/language';
-	import { MultiLangUtils } from '$utils/multiLang';
-	import { logger } from '$lib/utils/logger';
+import { MultiLangUtils } from '$utils/multiLang';
+import { logger } from '$lib/utils/logger';
+import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 
 	interface TemplateAlbum {
 		_id: string;
@@ -97,8 +98,15 @@
 			</section>
 		{:else}
 			<section class="py-8">
-				<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-					<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+	<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+		<div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+			<h1 class="text-3xl font-bold text-white">Photo Gallery</h1>
+			<div class="md:text-right">
+				<p class="text-xs uppercase tracking-wide text-purple-200 mb-1">Share gallery</p>
+				<SocialShareButtons title="Photo Gallery" size="sm" />
+			</div>
+		</div>
+		<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
 						{#each albums as album, idx}
 							<a href={`/albums/${album.alias}`} class="group relative overflow-hidden rounded-2xl cursor-pointer transform transition-all duration-500 hover:scale-105 hover:z-10">
 								<div class="aspect-square bg-linear-to-b from-purple-600 to-blue-600 relative overflow-hidden rounded-2xl">

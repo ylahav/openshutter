@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { currentLanguage } from '$stores/language';
-	import { MultiLangUtils } from '$utils/multiLang';
-	import PhotoLightbox from '$lib/components/PhotoLightbox.svelte';
-	import { getPhotoRotationStyle } from '$lib/utils/photoUrl';
+import { MultiLangUtils } from '$utils/multiLang';
+import PhotoLightbox from '$lib/components/PhotoLightbox.svelte';
+import { getPhotoRotationStyle } from '$lib/utils/photoUrl';
+import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 
 	let photos: any[] = [];
 	let loading = true;
@@ -13,6 +14,17 @@
 
 	onMount(async () => {
 		await fetchPhotos();
+		// Open lightbox at photo from hash (#p=index) when sharing a single photo
+		if (photos.length > 0 && typeof window !== 'undefined') {
+			const m = window.location.hash.match(/^#p=(\d+)$/);
+			if (m) {
+				const idx = parseInt(m[1], 10);
+				if (idx >= 0 && idx < photos.length) {
+					lightboxIndex = idx;
+					lightboxOpen = true;
+				}
+			}
+		}
 	});
 
 	async function fetchPhotos() {
@@ -37,7 +49,13 @@
 
 <div class="min-h-screen bg-white">
 	<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-		<h1 class="text-3xl font-light text-black mb-8 tracking-tight">Photo Gallery</h1>
+		<div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+			<h1 class="text-3xl font-light text-black tracking-tight">Photo Gallery</h1>
+			<div class="md:text-right">
+				<p class="text-xs uppercase tracking-wide text-gray-500 mb-1">Share gallery</p>
+				<SocialShareButtons title="Photo Gallery" size="sm" />
+			</div>
+		</div>
 
 		{#if loading}
 			<div class="text-center py-12">

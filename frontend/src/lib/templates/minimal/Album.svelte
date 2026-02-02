@@ -4,12 +4,13 @@
 	import { afterNavigate } from '$app/navigation';
 	import { browser } from '$app/environment';
 	import { currentLanguage } from '$stores/language';
-	import { MultiLangUtils } from '$utils/multiLang';
-	import MultiLangText from '$lib/components/MultiLangText.svelte';
-	import AlbumBreadcrumbs from '$lib/components/AlbumBreadcrumbs.svelte';
-	import PhotoLightbox from '$lib/components/PhotoLightbox.svelte';
-	import { getPhotoUrl, getPhotoRotationStyle } from '$lib/utils/photoUrl';
-	import { logger } from '$lib/utils/logger';
+import { MultiLangUtils } from '$utils/multiLang';
+import MultiLangText from '$lib/components/MultiLangText.svelte';
+import AlbumBreadcrumbs from '$lib/components/AlbumBreadcrumbs.svelte';
+import PhotoLightbox from '$lib/components/PhotoLightbox.svelte';
+import { getPhotoUrl, getPhotoRotationStyle } from '$lib/utils/photoUrl';
+import { logger } from '$lib/utils/logger';
+import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 
 	interface AlbumData {
 		album: {
@@ -73,6 +74,17 @@
 			const data = await res.json();
 			albumData = data;
 			logger.debug('Album data loaded:', albumData);
+			// Open lightbox at photo from hash (#p=index) when sharing a single photo
+			if (browser && data?.photos?.length) {
+				const m = window.location.hash.match(/^#p=(\d+)$/);
+				if (m) {
+					const idx = parseInt(m[1], 10);
+					if (idx >= 0 && idx < data.photos.length) {
+						lightboxIndex = idx;
+						lightboxOpen = true;
+					}
+				}
+			}
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to fetch album';
 			albumData = null;
@@ -111,14 +123,25 @@
 
 		<!-- Album Header -->
 		<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-			<h1 class="text-3xl font-light text-black mb-4 tracking-tight">
-				{MultiLangUtils.getTextValue(albumData.album.name, $currentLanguage)}
-			</h1>
-			{#if albumData.album.description}
-				<div class="prose prose-sm max-w-4xl mb-6 text-gray-600">
-					{@html MultiLangUtils.getHTMLValue(albumData.album.description, $currentLanguage)}
+			<div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+				<div class="flex-1">
+					<h1 class="text-3xl font-light text-black mb-4 tracking-tight">
+						{MultiLangUtils.getTextValue(albumData.album.name, $currentLanguage)}
+					</h1>
+					{#if albumData.album.description}
+						<div class="prose prose-sm max-w-4xl mb-4 text-gray-600">
+							{@html MultiLangUtils.getHTMLValue(albumData.album.description, $currentLanguage)}
+						</div>
+					{/if}
 				</div>
-			{/if}
+				<div class="md:text-right">
+					<p class="text-xs uppercase tracking-wide text-gray-500 mb-1">Share album</p>
+					<SocialShareButtons
+						title={MultiLangUtils.getTextValue(albumData.album.name, $currentLanguage)}
+						size="sm"
+					/>
+				</div>
+			</div>
 		</div>
 
 		<!-- Sub-albums -->

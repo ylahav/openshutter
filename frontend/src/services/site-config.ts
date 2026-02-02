@@ -164,6 +164,9 @@ export class SiteConfigService {
       features: {
         enableComments: true,
         enableSharing: true,
+        sharingOptions: ['twitter', 'facebook', 'whatsapp', 'copy'],
+        sharingOnAlbum: true,
+        sharingOnPhoto: true,
         enableDownload: false,
         enableWatermark: false,
         maxUploadSize: '10MB'
