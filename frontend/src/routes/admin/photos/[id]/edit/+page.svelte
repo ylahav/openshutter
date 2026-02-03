@@ -11,6 +11,7 @@
 	import FaceDetectionViewer from '$lib/components/FaceDetectionViewer.svelte';
 	import FaceMatchingPanel from '$lib/components/FaceMatchingPanel.svelte';
 	import CollectionPopup from '$lib/components/CollectionPopup.svelte';
+	import PhotoCropper from '$lib/components/PhotoCropper.svelte';
 	import { getPhotoUrl, getPhotoFullUrl, getPhotoRotationStyle } from '$lib/utils/photoUrl';
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
@@ -48,6 +49,9 @@
 				confidence?: number;
 			}>;
 		};
+		rotation?: number;
+		/** True when an original backup exists (e.g. after crop) so admin can restore */
+		canRestoreOriginal?: boolean;
 	}
 
 	interface Tag {
@@ -72,6 +76,9 @@
 	let saving = false;
 	let regeneratingThumbnails = false;
 	let rotatingPhoto = false;
+	let croppingPhoto = false;
+	let showCropModal = false;
+	let restoringOriginal = false;
 	let error = '';
 	let notification = { show: false, message: '', type: 'success' as 'success' | 'error' };
 	
@@ -196,7 +203,11 @@
 						},
 					};
 				}
-				photo = loadedPhoto;
+				// Preserve canRestoreOriginal so "Restore original" button shows when backup exists
+				photo = {
+					...loadedPhoto,
+					canRestoreOriginal: loadedPhoto.canRestoreOriginal === true
+				};
 				lastLoadedPhotoId = photoId; // Mark this photo as loaded
 				
 				// Debug: Log storage information
@@ -463,6 +474,84 @@
 			notification = { show: true, message: error, type: 'error' };
 		} finally {
 			rotatingPhoto = false;
+		}
+	}
+
+	async function handleCrop(crop: { x: number; y: number; width: number; height: number }) {
+		if (!photo || croppingPhoto) return;
+		try {
+			croppingPhoto = true;
+			error = '';
+			const response = await fetch(`/api/admin/photos/${photoId}/crop`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				credentials: 'include',
+				body: JSON.stringify(crop),
+			});
+			if (!response.ok) await handleApiErrorResponse(response);
+			const result = await response.json();
+			const updatedPhotoData = result.data || result;
+			
+			// Update photo with all returned data including dimensions
+			if (updatedPhotoData) {
+				photo = {
+					...photo,
+					...updatedPhotoData,
+					storage: updatedPhotoData.storage || photo.storage,
+					dimensions: updatedPhotoData.dimensions || photo.dimensions
+				};
+			}
+			
+			const newWidth = updatedPhotoData?.dimensions?.width || crop.width;
+			const newHeight = updatedPhotoData?.dimensions?.height || crop.height;
+			notification = { 
+				show: true, 
+				message: result.message || `Photo cropped successfully. New size: ${newWidth} × ${newHeight}px`, 
+				type: 'success' 
+			};
+			showCropModal = false;
+			
+			// Reload photo to get fresh data and ensure dimensions are updated
+			setTimeout(() => {
+				loadPhotoCalled = false;
+				lastLoadedPhotoId = null;
+				loadPhoto();
+			}, 500);
+		} catch (err) {
+			logger.error('Failed to crop photo:', err);
+			error = handleError(err, 'Failed to crop photo');
+			notification = { show: true, message: error, type: 'error' };
+		} finally {
+			croppingPhoto = false;
+		}
+	}
+
+	async function handleRestoreOriginal() {
+		if (!photo || restoringOriginal || !photo.canRestoreOriginal) return;
+		try {
+			restoringOriginal = true;
+			error = '';
+			const response = await fetch(`/api/admin/photos/${photoId}/restore-original`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				credentials: 'include',
+			});
+			if (!response.ok) await handleApiErrorResponse(response);
+			const result = await response.json();
+			const updatedPhotoData = result.data || result;
+			if (updatedPhotoData) {
+				photo = { ...photo, ...updatedPhotoData, canRestoreOriginal: updatedPhotoData.canRestoreOriginal ?? false };
+			}
+			notification = { show: true, message: result.message || 'Photo restored to original', type: 'success' };
+			loadPhotoCalled = false;
+			lastLoadedPhotoId = null;
+			await loadPhoto();
+		} catch (err) {
+			logger.error('Failed to restore original:', err);
+			error = handleError(err, 'Failed to restore original');
+			notification = { show: true, message: error, type: 'error' };
+		} finally {
+			restoringOriginal = false;
 		}
 	}
 
@@ -745,6 +834,45 @@
 						</div>
 						{#if rotatingPhoto}
 							<p class="text-xs text-gray-500 mt-1">Rotating…</p>
+						{/if}
+					</div>
+					<!-- Crop -->
+					<div class="mt-4">
+						<p class="text-xs font-medium text-gray-700 mb-2">Crop</p>
+						<button
+							type="button"
+							on:click={() => (showCropModal = true)}
+							disabled={croppingPhoto || !photoUrl}
+							class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+							title="Crop photo"
+						>
+							✂️ Crop Photo
+						</button>
+						{#if croppingPhoto}
+							<p class="text-xs text-gray-500 mt-1">Cropping…</p>
+						{/if}
+					</div>
+					<!-- Restore original (after crop or other edits) -->
+					<div class="mt-4">
+						<p class="text-xs font-medium text-gray-700 mb-2">Restore original</p>
+						{#if photo.canRestoreOriginal}
+							<button
+								type="button"
+								on:click={handleRestoreOriginal}
+								disabled={restoringOriginal}
+								class="px-3 py-1.5 text-sm font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-md hover:bg-amber-100 disabled:opacity-50"
+								title="Restore photo to the version before crop/edit"
+							>
+								↩ Restore original
+							</button>
+							<p class="text-xs text-gray-500 mt-1">Revert to the file as it was before cropping or editing.</p>
+							{#if restoringOriginal}
+								<p class="text-xs text-amber-600 mt-1">Restoring…</p>
+							{/if}
+						{:else}
+							<p class="text-xs text-gray-500">
+								Not available for this photo. Restore is only possible when the photo was cropped or edited after the feature was enabled (a backup is created then).
+							</p>
 						{/if}
 					</div>
 					<div class="mt-4 text-center">
@@ -1292,3 +1420,54 @@
 	}}
 	searchPlaceholder="Search locations..."
 />
+
+<!-- Crop Modal -->
+{#if showCropModal && photo}
+	{@const fullPhotoUrl = getPhotoFullUrl(photo, '')}
+	<div class="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true">
+		<div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+			<!-- Background overlay -->
+			<div
+				class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
+				role="button"
+				tabindex="-1"
+				on:click={() => (showCropModal = false)}
+				on:keydown={(e) => {
+					if (e.key === 'Escape') {
+						showCropModal = false;
+					}
+				}}
+			></div>
+
+			<!-- Modal panel -->
+			<div
+				class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full"
+			>
+				<div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+					<div class="flex items-center justify-between mb-4">
+						<h3 class="text-lg font-medium text-gray-900">Crop Photo</h3>
+						<button
+							type="button"
+							on:click={() => (showCropModal = false)}
+							class="text-gray-400 hover:text-gray-500"
+							aria-label="Close crop modal"
+						>
+							<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+							</svg>
+						</button>
+					</div>
+					{#if fullPhotoUrl}
+						<PhotoCropper
+							imageUrl={fullPhotoUrl}
+							onCrop={handleCrop}
+							onCancel={() => (showCropModal = false)}
+						/>
+					{:else}
+						<p class="text-gray-500">Unable to load image for cropping</p>
+					{/if}
+				</div>
+			</div>
+		</div>
+	</div>
+{/if}

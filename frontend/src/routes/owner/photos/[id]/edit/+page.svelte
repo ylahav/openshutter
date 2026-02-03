@@ -50,6 +50,7 @@
 				confidence?: number;
 			}>;
 		};
+		canRestoreOriginal?: boolean;
 	}
 
 	interface Tag {
@@ -74,6 +75,7 @@
 	let saving = false;
 	let regeneratingThumbnails = false;
 	let rotatingPhoto = false;
+	let restoringOriginal = false;
 	let error = '';
 	let notification = { show: false, message: '', type: 'success' as 'success' | 'error' };
 	
@@ -230,7 +232,10 @@
 						},
 					};
 				}
-				photo = loadedPhoto;
+				photo = {
+					...loadedPhoto,
+					canRestoreOriginal: loadedPhoto.canRestoreOriginal === true
+				};
 				lastLoadedPhotoId = photoId; // Mark this photo as loaded
 				
 				// Debug: Log storage information
@@ -410,6 +415,35 @@
 			};
 		} finally {
 			saving = false;
+		}
+	}
+
+	async function handleRestoreOriginal() {
+		if (!photo || restoringOriginal || !photo.canRestoreOriginal) return;
+		try {
+			restoringOriginal = true;
+			error = '';
+			const response = await fetch(`/api/admin/photos/${photoId}/restore-original`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				credentials: 'include',
+			});
+			if (!response.ok) await handleApiErrorResponse(response);
+			const result = await response.json();
+			const updatedPhotoData = result.data || result;
+			if (updatedPhotoData) {
+				photo = { ...photo, ...updatedPhotoData, canRestoreOriginal: updatedPhotoData.canRestoreOriginal ?? false };
+			}
+			notification = { show: true, message: result.message || 'Photo restored to original', type: 'success' };
+			loadPhotoCalled = false;
+			lastLoadedPhotoId = null;
+			await loadPhoto();
+		} catch (err) {
+			logger.error('Failed to restore original:', err);
+			error = handleError(err, 'Failed to restore original');
+			notification = { show: true, message: error, type: 'error' };
+		} finally {
+			restoringOriginal = false;
 		}
 	}
 
@@ -779,6 +813,28 @@
 						</div>
 						{#if rotatingPhoto}
 							<p class="text-xs text-gray-500 mt-1">Rotating…</p>
+						{/if}
+					</div>
+					<div class="mt-4">
+						<p class="text-xs font-medium text-gray-700 mb-2">Restore original</p>
+						{#if photo.canRestoreOriginal}
+							<button
+								type="button"
+								on:click={handleRestoreOriginal}
+								disabled={restoringOriginal}
+								class="px-3 py-1.5 text-sm font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-md hover:bg-amber-100 disabled:opacity-50"
+								title="Restore photo to the version before crop/edit"
+							>
+								↩ Restore original
+							</button>
+							<p class="text-xs text-gray-500 mt-1">Revert to the file as it was before cropping or editing.</p>
+							{#if restoringOriginal}
+								<p class="text-xs text-amber-600 mt-1">Restoring…</p>
+							{/if}
+						{:else}
+							<p class="text-xs text-gray-500">
+								Not available for this photo. Restore is only possible when the photo was cropped or edited after the feature was enabled (a backup is created then).
+							</p>
 						{/if}
 					</div>
 					<div class="mt-4 text-center">

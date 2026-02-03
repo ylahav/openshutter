@@ -26,6 +26,9 @@ type MongoDb = NonNullable<typeof mongoose.connection.db>;
 import { ThumbnailGenerator } from '../services/thumbnail-generator';
 import { ExifExtractor } from '../services/exif-extractor';
 import { UpdatePhotoDto } from './dto/update-photo.dto';
+import { CropPhotoDto } from './dto/crop-photo.dto';
+import sharp from 'sharp';
+import { ImageCompressionService } from '../services/image-compression';
 
 @Controller('admin/photos')
 @UseGuards(AdminOrOwnerGuard)
@@ -95,6 +98,7 @@ export class PhotosAdminController {
 						: photo.location.toString()
 					: null,
 				uploadedBy: photo.uploadedBy ? photo.uploadedBy.toString() : null,
+				canRestoreOriginal: !!(photo as any).originalBackupPath,
 			};
 
 			// Ensure storage object is properly preserved
@@ -986,6 +990,495 @@ export class PhotosAdminController {
 			}
 			throw new InternalServerErrorException(
 				`Rotate photo failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+			);
+		}
+	}
+
+	/**
+	 * Crop a photo
+	 * Path: POST /api/admin/photos/:id/crop
+	 */
+	@Post(':id/crop')
+	async cropPhoto(
+		@Param('id') id: string,
+		@Body() body: CropPhotoDto,
+		@Req() req: Request,
+	) {
+		try {
+			await connectDB();
+			const db = mongoose.connection.db;
+			if (!db) throw new InternalServerErrorException('Database connection not established');
+
+			let objectId: Types.ObjectId;
+			try {
+				objectId = new Types.ObjectId(id);
+			} catch (_error) {
+				throw new BadRequestException('Invalid photo ID format');
+			}
+
+			const photo = await db.collection('photos').findOne({ _id: objectId });
+			if (!photo) throw new NotFoundException('Photo not found');
+			await this.assertOwnerCanAccessPhoto(req, photo, db);
+
+			if (!photo.storage || !photo.storage.path || !photo.storage.provider) {
+				throw new BadRequestException('Photo does not have valid storage information');
+			}
+
+			const { x, y, width, height } = body;
+			if (!x && x !== 0 || !y && y !== 0 || !width || !height) {
+				throw new BadRequestException('Crop coordinates (x, y, width, height) are required');
+			}
+
+			// Get image dimensions to validate crop coordinates
+			const storageManager = StorageManager.getInstance();
+			const provider = photo.storage.provider as any;
+			const filePath = photo.storage.path;
+
+			// Download original image
+			const storageService = await storageManager.getProvider(provider);
+			const fileBuffer = await storageService.getFileBuffer(filePath);
+
+			if (!fileBuffer) {
+				throw new InternalServerErrorException('Failed to download original image from storage');
+			}
+
+			// Get image metadata to validate crop coordinates
+			const metadata = await sharp(fileBuffer).metadata();
+			const imageWidth = metadata.width || 0;
+			const imageHeight = metadata.height || 0;
+
+			// Validate and clamp crop coordinates to image bounds
+			const clampedX = Math.max(0, Math.min(imageWidth - 1, Math.round(x)));
+			const clampedY = Math.max(0, Math.min(imageHeight - 1, Math.round(y)));
+			const clampedWidth = Math.max(1, Math.min(imageWidth - clampedX, Math.round(width)));
+			const clampedHeight = Math.max(1, Math.min(imageHeight - clampedY, Math.round(height)));
+
+			// Log if coordinates were adjusted
+			if (clampedX !== Math.round(x) || clampedY !== Math.round(y) || 
+			    clampedWidth !== Math.round(width) || clampedHeight !== Math.round(height)) {
+				this.logger.warn(
+					`Crop coordinates adjusted: Image: ${imageWidth}x${imageHeight}, ` +
+					`Requested: x=${x}, y=${y}, width=${width}, height=${height}, ` +
+					`Adjusted: x=${clampedX}, y=${clampedY}, width=${clampedWidth}, height=${clampedHeight}`
+				);
+			}
+
+			// Use clamped coordinates
+			const finalX = clampedX;
+			const finalY = clampedY;
+			const finalWidth = clampedWidth;
+			const finalHeight = clampedHeight;
+
+			// Crop the image using Sharp
+			const croppedBuffer = await sharp(fileBuffer)
+				.extract({ left: finalX, top: finalY, width: finalWidth, height: finalHeight })
+				.withMetadata() // Preserve EXIF metadata
+				.toBuffer();
+
+			// Get album path for file structure
+			let albumPath = '';
+			if (photo.albumId) {
+				const album = await db.collection('albums').findOne({ _id: photo.albumId });
+				if (album && album.storagePath) {
+					albumPath = album.storagePath;
+				}
+			}
+
+			// Backup current file as "original" before first edit (so admin can restore later)
+			if (!photo.originalBackupPath) {
+				const ext = (photo.mimeType || 'image/jpeg').split('/')[1] || 'jpg';
+				const backupFolder = albumPath ? `${albumPath}/.originals` : '.originals';
+				const backupFilename = `${objectId.toString()}.${ext}`;
+				try {
+					const backupResult = await storageService.uploadFile(
+						fileBuffer,
+						backupFilename,
+						photo.mimeType || 'image/jpeg',
+						backupFolder,
+						{ originalPhotoId: objectId.toString(), reason: 'pre-crop' }
+					);
+					await db.collection('photos').updateOne(
+						{ _id: objectId },
+						{
+							$set: {
+								originalBackupPath: backupResult.path,
+								originalBackupFilename: photo.filename,
+								updatedAt: new Date()
+							}
+						}
+					);
+					this.logger.debug(`Backed up original for restore: ${backupResult.path}`);
+				} catch (backupErr) {
+					this.logger.warn(`Failed to backup original before crop:`, backupErr);
+					// Continue with crop; restore will not be available
+				}
+			}
+
+			// Delete old photo file
+			try {
+				await storageService.deleteFile(filePath);
+				this.logger.debug(`Deleted old photo file: ${filePath}`);
+			} catch (deleteError) {
+				this.logger.warn(`Failed to delete old photo file:`, deleteError);
+				// Continue anyway - new file will be uploaded
+			}
+
+			// Use a new filename so the URL changes and browsers/proxies don't serve cached original
+			const baseName = photo.originalFilename || photo.filename;
+			const ext = baseName.includes('.') ? baseName.replace(/^.*\./, '') : 'jpg';
+			const nameWithoutExt = baseName.replace(/\.[^.]+$/, '') || baseName;
+			const newFilename = `${Date.now()}-${nameWithoutExt}.${ext}`;
+
+			// Upload cropped image with new filename (new URL = no cache, album shows cropped photo)
+			const uploadResult = await storageService.uploadFile(
+				croppedBuffer,
+				newFilename,
+				photo.mimeType || 'image/jpeg',
+				albumPath,
+				{
+					originalFilename: photo.originalFilename || photo.filename,
+					albumId: photo.albumId?.toString(),
+				}
+			);
+
+			// Delete old thumbnails
+			const extractPathFromUrl = (url: string): string | null => {
+				if (!url) return null;
+				if (url.startsWith('/api/storage/serve/')) {
+					const match = url.match(/\/serve\/[^/]+\/(.+)$/);
+					return match ? decodeURIComponent(match[1]) : null;
+				}
+				return url;
+			};
+
+			if (photo.storage.thumbnails && typeof photo.storage.thumbnails === 'object') {
+				for (const [size, thumbnailUrl] of Object.entries(photo.storage.thumbnails)) {
+					try {
+						const thumbnailPath = extractPathFromUrl(thumbnailUrl as string);
+						if (thumbnailPath && thumbnailPath !== photo.storage.path) {
+							this.logger.debug(`Deleting old ${size} thumbnail: ${thumbnailPath}`);
+							await storageService.deleteFile(thumbnailPath);
+						}
+					} catch (thumbError) {
+						this.logger.warn(`Failed to delete ${size} thumbnail:`, thumbError);
+					}
+				}
+			}
+
+			// Generate new thumbnails from cropped image
+			const thumbnailBuffers = await ThumbnailGenerator.generateAllThumbnails(croppedBuffer, newFilename);
+			const thumbnails: Record<string, string> = {};
+
+			// Upload new thumbnails
+			for (const [sizeName, buffer] of Object.entries(thumbnailBuffers)) {
+				try {
+					const sizeConfig = ThumbnailGenerator.getThumbnailSize(sizeName as any);
+					const thumbnailFilename = `${sizeName}-${newFilename}`;
+					const sizeFolderPath = albumPath ? `${albumPath}/${sizeConfig.folder}` : sizeConfig.folder;
+
+					const thumbnailResult = await storageService.uploadFile(
+						buffer,
+						thumbnailFilename,
+						'image/jpeg',
+						sizeFolderPath,
+						{
+							originalFile: newFilename,
+							thumbnailSize: sizeName
+						}
+					);
+
+					thumbnails[sizeName] = `/api/storage/serve/${provider}/${encodeURIComponent(thumbnailResult.path)}`;
+					this.logger.debug(`Successfully regenerated ${sizeName} thumbnail`);
+				} catch (error) {
+					this.logger.error(`Failed to upload ${sizeName} thumbnail:`, error);
+				}
+			}
+
+			// Generate new blur placeholder
+			const blurDataURL = await ThumbnailGenerator.generateBlurPlaceholder(croppedBuffer);
+			const mediumThumbnail = thumbnails.medium || thumbnails.small || Object.values(thumbnails)[0];
+
+			// Get new image dimensions
+			const newMetadata = await sharp(croppedBuffer).metadata();
+			const newDimensions = {
+				width: newMetadata.width || finalWidth,
+				height: newMetadata.height || finalHeight
+			};
+
+			// Re-extract EXIF from cropped image
+			const exifData = await ExifExtractor.extractExifData(croppedBuffer);
+
+			// Calculate new file size
+			const compressionResult = await ImageCompressionService.compressImage(croppedBuffer, 'gallery');
+
+			// Update photo document (new filename so storage URLs change and album shows cropped image)
+			const updateResult = await db.collection('photos').updateOne(
+				{ _id: objectId },
+				{
+					$set: {
+						filename: newFilename,
+						'storage.path': uploadResult.path,
+						'storage.fileId': uploadResult.fileId,
+						'storage.url': `/api/storage/serve/${provider}/${encodeURIComponent(uploadResult.path)}`,
+						'storage.thumbnails': thumbnails,
+						'storage.thumbnailPath': mediumThumbnail,
+						'storage.blurDataURL': blurDataURL,
+						dimensions: newDimensions,
+						size: compressionResult.compressed.length,
+						compressionRatio: compressionResult.compressionRatio,
+						exif: exifData,
+						updatedAt: new Date()
+					}
+				}
+			);
+
+			if (updateResult.modifiedCount === 0) {
+				throw new InternalServerErrorException('Failed to update photo after crop');
+			}
+
+			// Fetch updated photo
+			const updatedPhoto = await db.collection('photos').findOne({ _id: objectId });
+
+			if (!updatedPhoto) {
+				throw new NotFoundException('Photo not found after crop');
+			}
+
+			// Serialize ObjectIds
+			const serialized: any = {
+				...updatedPhoto,
+				_id: updatedPhoto._id.toString(),
+				albumId: updatedPhoto.albumId ? updatedPhoto.albumId.toString() : null,
+				tags: updatedPhoto.tags
+					? updatedPhoto.tags.map((tag: any) => (tag._id ? tag._id.toString() : tag.toString()))
+					: [],
+				people: updatedPhoto.people
+					? updatedPhoto.people.map((person: any) =>
+							person._id ? person._id.toString() : person.toString()
+						)
+					: [],
+				location: updatedPhoto.location
+					? updatedPhoto.location._id
+						? updatedPhoto.location._id.toString()
+						: updatedPhoto.location.toString()
+					: null,
+				uploadedBy: updatedPhoto.uploadedBy ? updatedPhoto.uploadedBy.toString() : null,
+				canRestoreOriginal: !!(updatedPhoto as any).originalBackupPath,
+			};
+
+			// Ensure storage object is properly preserved
+			if (updatedPhoto.storage) {
+				serialized.storage = {
+					provider: updatedPhoto.storage.provider || 'local',
+					fileId: updatedPhoto.storage.fileId || '',
+					url: updatedPhoto.storage.url || '',
+					path: updatedPhoto.storage.path || '',
+					thumbnailPath: updatedPhoto.storage.thumbnailPath || updatedPhoto.storage.url || '',
+					thumbnails: updatedPhoto.storage.thumbnails || {},
+					blurDataURL: updatedPhoto.storage.blurDataURL,
+					bucket: updatedPhoto.storage.bucket,
+					folderId: updatedPhoto.storage.folderId,
+				};
+			}
+
+			return { success: true, message: 'Photo cropped successfully', data: serialized };
+		} catch (error) {
+			this.logger.error(`Crop photo failed: ${error instanceof Error ? error.message : String(error)}`);
+			if (error instanceof NotFoundException || error instanceof BadRequestException) {
+				throw error;
+			}
+			throw new InternalServerErrorException(
+				`Crop photo failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+			);
+		}
+	}
+
+	/**
+	 * Restore photo to the original file (before crop or other edits).
+	 * Path: POST /api/admin/photos/:id/restore-original
+	 */
+	@Post(':id/restore-original')
+	async restoreOriginal(@Param('id') id: string, @Req() req: Request) {
+		try {
+			await connectDB();
+			const db = mongoose.connection.db;
+			if (!db) throw new InternalServerErrorException('Database connection not established');
+
+			let objectId: Types.ObjectId;
+			try {
+				objectId = new Types.ObjectId(id);
+			} catch (_error) {
+				throw new BadRequestException('Invalid photo ID format');
+			}
+
+			const photo = await db.collection('photos').findOne({ _id: objectId });
+			if (!photo) throw new NotFoundException('Photo not found');
+			await this.assertOwnerCanAccessPhoto(req, photo, db);
+
+			const backupPath = photo.originalBackupPath;
+			if (!backupPath || typeof backupPath !== 'string') {
+				throw new BadRequestException('No original backup available for this photo');
+			}
+
+			const provider = photo.storage?.provider as any;
+			if (!provider || !photo.storage?.path) {
+				throw new BadRequestException('Photo does not have valid storage information');
+			}
+
+			const storageManager = StorageManager.getInstance();
+			const storageService = await storageManager.getProvider(provider);
+
+			// Load backup file
+			const originalBuffer = await storageService.getFileBuffer(backupPath);
+			if (!originalBuffer) {
+				throw new InternalServerErrorException('Could not read original backup from storage');
+			}
+
+			let albumPath = '';
+			if (photo.albumId) {
+				const album = await db.collection('albums').findOne({ _id: photo.albumId });
+				if (album?.storagePath) albumPath = album.storagePath;
+			}
+
+			const extractPathFromUrl = (url: string): string | null => {
+				if (!url) return null;
+				if (url.startsWith('/api/storage/serve/')) {
+					const match = url.match(/\/serve\/[^/]+\/(.+)$/);
+					return match ? decodeURIComponent(match[1]) : null;
+				}
+				return url;
+			};
+
+			// Delete current main file
+			try {
+				await storageService.deleteFile(photo.storage.path);
+			} catch (e) {
+				this.logger.warn('Failed to delete current file before restore:', e);
+			}
+
+			// Delete current thumbnails
+			if (photo.storage.thumbnails && typeof photo.storage.thumbnails === 'object') {
+				for (const thumbnailUrl of Object.values(photo.storage.thumbnails)) {
+					try {
+						const thumbnailPath = extractPathFromUrl(thumbnailUrl as string);
+						if (thumbnailPath && thumbnailPath !== photo.storage.path) {
+							await storageService.deleteFile(thumbnailPath);
+						}
+					} catch (_e) {
+						// continue
+					}
+				}
+			}
+
+			// Restore: upload backup as main file (use a new filename so URLs change)
+			const restoredFilename = photo.originalBackupFilename || photo.filename;
+			const baseName = (restoredFilename || 'restored').replace(/\.[^.]+$/, '') || restoredFilename;
+			const ext = (photo.mimeType || 'image/jpeg').split('/')[1] || 'jpg';
+			const newFilename = `${Date.now()}-${baseName}.${ext}`;
+
+			const uploadResult = await storageService.uploadFile(
+				originalBuffer,
+				newFilename,
+				photo.mimeType || 'image/jpeg',
+				albumPath,
+				{ originalFilename: restoredFilename, reason: 'restore-original' }
+			);
+
+			// Regenerate thumbnails from restored image
+			const thumbnailBuffers = await ThumbnailGenerator.generateAllThumbnails(originalBuffer, newFilename);
+			const thumbnails: Record<string, string> = {};
+			for (const [sizeName, buffer] of Object.entries(thumbnailBuffers)) {
+				try {
+					const sizeConfig = ThumbnailGenerator.getThumbnailSize(sizeName as any);
+					const thumbnailFilename = `${sizeName}-${newFilename}`;
+					const sizeFolderPath = albumPath ? `${albumPath}/${sizeConfig.folder}` : sizeConfig.folder;
+					const thumbnailResult = await storageService.uploadFile(
+						buffer,
+						thumbnailFilename,
+						'image/jpeg',
+						sizeFolderPath,
+						{ originalFile: newFilename, thumbnailSize: sizeName }
+					);
+					thumbnails[sizeName] = `/api/storage/serve/${provider}/${encodeURIComponent(thumbnailResult.path)}`;
+				} catch (err) {
+					this.logger.warn(`Failed to upload ${sizeName} thumbnail:`, err);
+				}
+			}
+
+			const blurDataURL = await ThumbnailGenerator.generateBlurPlaceholder(originalBuffer);
+			const mediumThumbnail = thumbnails.medium || thumbnails.small || Object.values(thumbnails)[0];
+
+			const metadata = await sharp(originalBuffer).metadata();
+			const dimensions = { width: metadata.width || 0, height: metadata.height || 0 };
+			const exifData = await ExifExtractor.extractExifData(originalBuffer);
+			const compressionResult = await ImageCompressionService.compressImage(originalBuffer, 'gallery');
+
+			// Update photo and clear backup fields
+			await db.collection('photos').updateOne(
+				{ _id: objectId },
+				{
+					$set: {
+						filename: newFilename,
+						'storage.path': uploadResult.path,
+						'storage.fileId': uploadResult.fileId,
+						'storage.url': `/api/storage/serve/${provider}/${encodeURIComponent(uploadResult.path)}`,
+						'storage.thumbnails': thumbnails,
+						'storage.thumbnailPath': mediumThumbnail,
+						'storage.blurDataURL': blurDataURL,
+						dimensions,
+						size: compressionResult.compressed.length,
+						compressionRatio: compressionResult.compressionRatio,
+						exif: exifData,
+						updatedAt: new Date()
+					},
+					$unset: {
+						originalBackupPath: '',
+						originalBackupFilename: ''
+					}
+				}
+			);
+
+			// Delete backup file (optional; frees space)
+			try {
+				await storageService.deleteFile(backupPath);
+			} catch (e) {
+				this.logger.warn('Failed to delete backup after restore:', e);
+			}
+
+			const updatedPhoto = await db.collection('photos').findOne({ _id: objectId });
+			if (!updatedPhoto) throw new NotFoundException('Photo not found after restore');
+
+			const serialized: any = {
+				...updatedPhoto,
+				_id: updatedPhoto._id.toString(),
+				albumId: updatedPhoto.albumId ? updatedPhoto.albumId.toString() : null,
+				tags: updatedPhoto.tags ? updatedPhoto.tags.map((t: any) => (t._id ? t._id.toString() : t.toString())) : [],
+				people: updatedPhoto.people ? updatedPhoto.people.map((p: any) => (p._id ? p._id.toString() : p.toString())) : [],
+				location: updatedPhoto.location ? (updatedPhoto.location._id ? updatedPhoto.location._id.toString() : updatedPhoto.location.toString()) : null,
+				uploadedBy: updatedPhoto.uploadedBy ? updatedPhoto.uploadedBy.toString() : null,
+				canRestoreOriginal: false
+			};
+			if (updatedPhoto.storage) {
+				serialized.storage = {
+					provider: updatedPhoto.storage.provider || 'local',
+					fileId: updatedPhoto.storage.fileId || '',
+					url: updatedPhoto.storage.url || '',
+					path: updatedPhoto.storage.path || '',
+					thumbnailPath: updatedPhoto.storage.thumbnailPath || updatedPhoto.storage.url || '',
+					thumbnails: updatedPhoto.storage.thumbnails || {},
+					blurDataURL: updatedPhoto.storage.blurDataURL,
+					bucket: updatedPhoto.storage.bucket,
+					folderId: updatedPhoto.storage.folderId,
+				};
+			}
+
+			return { success: true, message: 'Photo restored to original', data: serialized };
+		} catch (error) {
+			this.logger.error(`Restore original failed: ${error instanceof Error ? error.message : String(error)}`);
+			if (error instanceof NotFoundException || error instanceof BadRequestException) {
+				throw error;
+			}
+			throw new InternalServerErrorException(
+				`Restore original failed: ${error instanceof Error ? error.message : 'Unknown error'}`
 			);
 		}
 	}
