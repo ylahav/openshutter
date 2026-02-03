@@ -40,7 +40,7 @@ export default [
       '.svelte-kit/**',
       'node_modules/**',
       'dist/**',
-      'public/**',
+      'static/**',
       '*.config.js',
       '*.config.ts',
     ],

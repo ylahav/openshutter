@@ -17,6 +17,8 @@ export const POST: RequestHandler = async ({ locals }) => {
 		}
 
 		// Define directories to backup (relative to project root)
+		// Note: These are backend storage paths, not frontend static assets
+		// Frontend static assets are in the 'static' directory (SvelteKit convention)
 		const backupDirectories = [
 			'public/uploads',
 			'public/logos',
