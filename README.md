@@ -459,7 +459,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [x] **Social sharing features** – Share buttons (X, Facebook, WhatsApp, Copy link) on album and in photo lightbox; configurable in Site Config → Sharing (which options, album vs photo level); single-photo share URL with `#p=index` opens lightbox at that photo; elegant template: share on album grid per photo
 - [ ] Enhanced tag analytics
 - [x] **User role management** – Admin/Owner/Guest roles, Admin → Users (role + groupAliases), Admin → Groups, owner dashboard and owner album/photo management (`/owner/albums`, `/owner/photos/[id]/edit`), AdminOrOwnerGuard and ownership enforcement
-- [ ] Import/Sync functionality (currently disabled)
 - [x] **Welcome email on user creation** – Configurable SMTP settings and welcome email subject/body in Site Config; sent when an admin creates a new user (optional)
 - [x] **Force password change on first login** – System-generated or admin-set passwords mark the user to change password on first login; blocking modal/flow ensures password is updated before accessing protected areas
 - [x] **Viewer member area** – `/member` dashboard for Viewer (guest) users with profile (including preferred language) and password change pages, plus role-based redirects to `/member` after login
@@ -472,6 +471,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
   - [x] **IPTC/XMP import** – On upload and on “Re-extract from file”, IPTC and XMP metadata are extracted (exifr) and stored in the photo’s `iptcXmp` field (keywords, caption, copyright, creator, city, country, etc.); API and templates can use `iptcXmp`. Export (write back to file) optional/future.
 
 ### Phase 3 (Next 12 months) *
+- [ ] Design then implement Import/Sync (currently disabled)
 - [ ] AI-powered photo tagging
 - [ ] Advanced analytics
 - [ ] API marketplace

@@ -621,6 +621,7 @@ Operational notes:
 - Tag-based recommendations
 
 ### Phase 3 (Next 12 months)
+- Design then implement Import/Sync (currently disabled)
 - AI-powered photo tagging
 - Advanced analytics
 - API marketplace
