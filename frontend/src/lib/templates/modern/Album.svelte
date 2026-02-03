@@ -187,13 +187,17 @@ import { logger } from '$lib/utils/logger';
 
 			const response = await fetch(`/api/albums/${encodeURIComponent(alias)}/data?page=1&limit=50&t=${Date.now()}`, {
 				cache: 'no-store',
+				credentials: 'include',
 			});
-			
+			const responseData = await response.json().catch(() => ({}));
 			if (!response.ok) {
-				throw new Error('Album not found');
+				if (response.status === 403) {
+					throw new Error('Access denied. This album is private. Sign in to view it if you have access.');
+				}
+				throw new Error(responseData?.error || 'Album not found');
 			}
 
-			albumData = await response.json();
+			albumData = responseData;
 			logger.debug('Album data loaded:', albumData);
 
 			// Open lightbox at photo from hash (#p=index) when sharing a single photo

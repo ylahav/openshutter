@@ -1,18 +1,37 @@
-import { Controller, Get, Post, Query, Body, Logger } from '@nestjs/common';
+import { Controller, Get, Post, Query, Body, Req, UseGuards } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { Request } from 'express';
 import { SearchService, SearchFilters } from './search.service';
 import { SearchBodyDto } from './dto/search-body.dto';
+import { OptionalAdminGuard } from '../common/guards/optional-admin.guard';
+import type { AlbumAccessContext } from '../albums/albums.service';
 
 @Controller('search')
+@UseGuards(OptionalAdminGuard)
 export class SearchController {
-	private readonly logger = new Logger(SearchController.name);
+	constructor(
+		private readonly searchService: SearchService,
+		@InjectModel('User') private userModel: Model<any>,
+	) {}
 
-	constructor(private readonly searchService: SearchService) {}
+	private async getAccessContext(req: Request): Promise<AlbumAccessContext | null> {
+		const user = (req as any).user;
+		if (!user?.id) return null;
+		const doc = await this.userModel.findById(user.id).select('groupAliases').lean().exec();
+		if (!doc) return null;
+		return {
+			userId: user.id,
+			groupAliases: Array.isArray(doc.groupAliases) ? doc.groupAliases : [],
+		};
+	}
 
 	/**
 	 * POST /api/search – preferred: search criteria in request body.
 	 */
 	@Post()
-	async searchPost(@Body() body: SearchBodyDto): Promise<ReturnType<SearchService['search']>> {
+	async searchPost(@Req() req: Request, @Body() body: SearchBodyDto): Promise<ReturnType<SearchService['search']>> {
+		const accessContext = await this.getAccessContext(req);
 		const filters: SearchFilters = {
 			q: body.q?.trim() || undefined,
 			type: body.type || 'photos',
@@ -27,7 +46,7 @@ export class SearchController {
 			sortBy: body.sortBy || 'date',
 			sortOrder: body.sortOrder || 'desc',
 		};
-		return this.searchService.search(filters);
+		return this.searchService.search(filters, accessContext);
 	}
 
 	/**
@@ -35,6 +54,7 @@ export class SearchController {
 	 */
 	@Get()
 	async search(
+		@Req() req: Request,
 		@Query('q') q?: string,
 		@Query('type') type?: 'photos' | 'albums' | 'people' | 'locations' | 'all',
 		@Query('page') page?: string,
@@ -48,6 +68,7 @@ export class SearchController {
 		@Query('sortBy') sortBy?: string,
 		@Query('sortOrder') sortOrder?: 'asc' | 'desc',
 	) {
+		const accessContext = await this.getAccessContext(req);
 		const filters: SearchFilters = {
 			q: q?.trim() || undefined,
 			type: type || 'photos',
@@ -63,6 +84,6 @@ export class SearchController {
 			sortOrder: sortOrder || 'desc',
 		};
 
-		return this.searchService.search(filters);
+		return this.searchService.search(filters, accessContext);
 	}
 }

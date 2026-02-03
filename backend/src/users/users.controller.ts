@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, BadRequestException, NotFoundException, Logger, InternalServerErrorException } from '@nestjs/common';
 import { AdminGuard } from '../common/guards/admin.guard';
+import { AdminOrOwnerGuard } from '../common/guards/admin-or-owner.guard';
 import { connectDB } from '../config/db';
 import mongoose, { Types } from 'mongoose';
 import * as bcrypt from 'bcryptjs';
@@ -25,14 +26,14 @@ async function hashPassword(plain: string): Promise<string> {
 }
 
 @Controller('admin/users')
-@UseGuards(AdminGuard)
 export class UsersController {
   private readonly logger = new Logger(UsersController.name);
   /**
-   * Get all users
+   * Get all users (admin or owner; owner needs this for album access restriction UI).
    * Path: GET /api/admin/users
    */
   @Get()
+  @UseGuards(AdminOrOwnerGuard)
   async getUsers(
     @Query('search') search?: string,
     @Query('role') role?: string,
@@ -102,10 +103,11 @@ export class UsersController {
   }
 
   /**
-   * Get a specific user by ID
+   * Get a specific user by ID (admin or owner).
    * Path: GET /api/admin/users/:id
    */
   @Get(':id')
+  @UseGuards(AdminOrOwnerGuard)
   async getUser(@Param('id') id: string) {
     try {
       await connectDB();
@@ -137,10 +139,11 @@ export class UsersController {
   }
 
   /**
-   * Create a new user
+   * Create a new user (admin only).
    * Path: POST /api/admin/users
    */
   @Post()
+  @UseGuards(AdminGuard)
   async createUser(@Body() body: CreateUserDto) {
     try {
       await connectDB();
@@ -254,6 +257,7 @@ export class UsersController {
    * Path: PUT /api/admin/users/:id
    */
   @Put(':id')
+  @UseGuards(AdminGuard)
   async updateUser(@Param('id') id: string, @Body() body: UpdateUserDto) {
     try {
       await connectDB();
@@ -370,6 +374,7 @@ export class UsersController {
    * Path: DELETE /api/admin/users/:id
    */
   @Delete(':id')
+  @UseGuards(AdminGuard)
   async deleteUser(@Param('id') id: string) {
     try {
       await connectDB();

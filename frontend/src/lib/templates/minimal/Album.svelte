@@ -65,13 +65,16 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 			loading = true;
 			error = null;
 			const res = await fetch(`/api/albums/${encodeURIComponent(alias)}/data?page=1&limit=50&t=${Date.now()}`, {
-				cache: 'no-store'
+				cache: 'no-store',
+				credentials: 'include',
 			});
+			const data = await res.json().catch(() => ({}));
 			if (!res.ok) {
-				const errorData = await res.json().catch(() => ({ error: 'Album not found' }));
-				throw new Error(errorData.error || 'Album not found');
+				if (res.status === 403) {
+					throw new Error('Access denied. This album is private. Sign in to view it if you have access.');
+				}
+				throw new Error(data?.error || 'Album not found');
 			}
-			const data = await res.json();
 			albumData = data;
 			logger.debug('Album data loaded:', albumData);
 			// Open lightbox at photo from hash (#p=index) when sharing a single photo

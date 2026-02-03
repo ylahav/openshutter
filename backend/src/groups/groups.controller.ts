@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, BadRequestException, NotFoundException, Logger, InternalServerErrorException } from '@nestjs/common';
 import { AdminGuard } from '../common/guards/admin.guard';
+import { AdminOrOwnerGuard } from '../common/guards/admin-or-owner.guard';
 import { connectDB } from '../config/db';
 import mongoose, { Types } from 'mongoose';
 import { CreateGroupDto } from './dto/create-group.dto';
@@ -7,14 +8,14 @@ import { UpdateGroupDto } from './dto/update-group.dto';
 import { normalizeMultiLangText } from '../common/utils/multi-lang';
 
 @Controller('admin/groups')
-@UseGuards(AdminGuard)
 export class GroupsController {
   private readonly logger = new Logger(GroupsController.name);
   /**
-   * Get all groups
+   * Get all groups (admin or owner; owner needs this for album access restriction UI).
    * Path: GET /api/admin/groups
    */
   @Get()
+  @UseGuards(AdminOrOwnerGuard)
   async getGroups() {
     try {
       await connectDB();
@@ -42,10 +43,11 @@ export class GroupsController {
   }
 
   /**
-   * Get a specific group by ID
+   * Get a specific group by ID (admin or owner).
    * Path: GET /api/admin/groups/:id
    */
   @Get(':id')
+  @UseGuards(AdminOrOwnerGuard)
   async getGroup(@Param('id') id: string) {
     try {
       await connectDB();
@@ -76,10 +78,11 @@ export class GroupsController {
   }
 
   /**
-   * Create a new group
+   * Create a new group (admin only).
    * Path: POST /api/admin/groups
    */
   @Post()
+  @UseGuards(AdminGuard)
   async createGroup(@Body() body: CreateGroupDto) {
     try {
       await connectDB();
@@ -162,6 +165,7 @@ export class GroupsController {
    * Path: PUT /api/admin/groups/:id
    */
   @Put(':id')
+  @UseGuards(AdminGuard)
   async updateGroup(@Param('id') id: string, @Body() body: UpdateGroupDto) {
     try {
       await connectDB();
@@ -213,6 +217,7 @@ export class GroupsController {
    * Path: DELETE /api/admin/groups/:id
    */
   @Delete(':id')
+  @UseGuards(AdminGuard)
   async deleteGroup(@Param('id') id: string) {
     try {
       await connectDB();

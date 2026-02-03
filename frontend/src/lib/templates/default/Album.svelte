@@ -52,9 +52,17 @@
 		if (!alias) return;
 		try {
 			loading = true;
-			const res = await fetch(`/api/albums/by-alias/${alias}/data`);
-			if (!res.ok) throw new Error('Album not found');
-			const data = await res.json();
+			error = null;
+			const res = await fetch(`/api/albums/by-alias/${alias}/data`, { credentials: 'include' });
+			const data = await res.json().catch(() => ({}));
+			if (!res.ok) {
+				if (res.status === 403) {
+					error = 'Access denied. This album is private. Sign in to view it if you have access.';
+				} else {
+					error = data?.error || 'Album not found';
+				}
+				return;
+			}
 			albumData = data;
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Failed to fetch album';

@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { connectDB } from '../config/db';
 import mongoose, { Types } from 'mongoose';
+import { AlbumsService, type AlbumAccessContext } from '../albums/albums.service';
 
 export interface SearchFilters {
 	q?: string;
@@ -35,7 +36,9 @@ export interface SearchResult {
 export class SearchService {
 	private readonly logger = new Logger(SearchService.name);
 
-	async search(filters: SearchFilters): Promise<SearchResult> {
+	constructor(private readonly albumsService: AlbumsService) {}
+
+	async search(filters: SearchFilters, accessContext?: AlbumAccessContext | null): Promise<SearchResult> {
 		await connectDB();
 		const db = mongoose.connection.db;
 		if (!db) throw new Error('Database connection not established');
@@ -61,7 +64,7 @@ export class SearchService {
 
 		const run = type === 'all' || type === 'photos';
 		if (run) {
-			const { photos, total } = await this.searchPhotos(db, filters, skip, limit);
+			const { photos, total } = await this.searchPhotos(db, filters, skip, limit, accessContext);
 			result.photos = photos;
 			result.totalPhotos = total;
 			result.hasMore = skip + photos.length < total;
@@ -69,7 +72,7 @@ export class SearchService {
 
 		if (type === 'all' || type === 'albums') {
 			const albumsLimit = type === 'all' ? 10 : limit;
-			const { albums, total } = await this.searchAlbums(db, filters.q, albumsLimit);
+			const { albums, total } = await this.searchAlbums(db, filters.q, albumsLimit, accessContext);
 			result.albums = albums;
 			result.totalAlbums = total;
 		}
@@ -96,6 +99,7 @@ export class SearchService {
 		filters: SearchFilters,
 		skip: number,
 		limit: number,
+		accessContext?: AlbumAccessContext | null,
 	): Promise<{ photos: any[]; total: number }> {
 		const match: any = { isPublished: true };
 
@@ -183,20 +187,25 @@ export class SearchService {
 		const pipeline: any[] = [{ $match: match }];
 		if (textMatch) pipeline.push({ $match: textMatch });
 
+		// Restrict to photos in albums the user can access
+		const visibilityCondition = this.albumsService.getVisibilityCondition(accessContext ?? null);
+		pipeline.push({
+			$lookup: {
+				from: 'albums',
+				localField: 'albumId',
+				foreignField: '_id',
+				as: 'album',
+				pipeline: [{ $match: visibilityCondition }],
+			},
+		});
+		pipeline.push({ $match: { 'album.0': { $exists: true } } });
+		pipeline.push({ $unwind: '$album' });
+
 		const facetStage: any = {
 			photos: [
 				{ $sort: { [sortField]: sortOrder } },
 				{ $skip: skip },
 				{ $limit: limit },
-				{
-					$lookup: {
-						from: 'albums',
-						localField: 'albumId',
-						foreignField: '_id',
-						as: 'album',
-						pipeline: [{ $project: { name: 1, alias: 1 } }],
-					},
-				},
 				{
 					$lookup: {
 						from: 'tags',
@@ -245,8 +254,14 @@ export class SearchService {
 		return { photos: serialized, total };
 	}
 
-	private async searchAlbums(db: mongoose.mongo.Db, q?: string, limitCount = 20): Promise<{ albums: any[]; total: number }> {
-		const match: any = { isPublic: true };
+	private async searchAlbums(
+		db: mongoose.mongo.Db,
+		q?: string,
+		limitCount = 20,
+		accessContext?: AlbumAccessContext | null,
+	): Promise<{ albums: any[]; total: number }> {
+		const visibilityCondition = this.albumsService.getVisibilityCondition(accessContext ?? null);
+		const match: any = { $and: [visibilityCondition] };
 		if (q && q.trim()) {
 			const { SUPPORTED_LANGUAGES } = await import('../types/multi-lang');
 			const langs = SUPPORTED_LANGUAGES.map((l) => l.code);
@@ -255,7 +270,7 @@ export class SearchService {
 				...langs.map((code) => ({ [`description.${code}`]: { $regex: q.trim(), $options: 'i' } })),
 				{ alias: { $regex: q.trim(), $options: 'i' } },
 			];
-			match.$or = conds;
+			match.$and.push({ $or: conds });
 		}
 		const [albums, total] = await Promise.all([
 			db.collection('albums').find(match).sort({ updatedAt: -1 }).limit(limitCount).toArray(),

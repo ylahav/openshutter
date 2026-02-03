@@ -36,10 +36,16 @@ export class AlbumsService {
   }
 
   /**
-   * Build visibility condition for album queries.
+   * Public visibility condition for album queries (e.g. used by search to filter by access).
    * - When not logged in: only albums that are public AND unrestricted.
    * - When logged in: (public AND unrestricted) OR (private AND unrestricted = "open private") OR created by user OR user in allowedUsers OR user's group in allowedGroups.
-   *   So restricted albums are only shown to creator, allowed users, or allowed groups.
+   */
+  getVisibilityCondition(accessContext: AlbumAccessContext | null | undefined): any {
+    return this.buildVisibilityCondition(accessContext);
+  }
+
+  /**
+   * Build visibility condition for album queries.
    */
   private buildVisibilityCondition(accessContext: AlbumAccessContext | null | undefined): any {
     const publicUnrestricted = {
@@ -467,7 +473,7 @@ export class AlbumsService {
     }
 
     if (!this.canAccessAlbum(album, accessContext)) {
-      throw new NotFoundException('Album not found');
+      throw new ForbiddenException('Access denied');
     }
 
     this.logger.debug(`findOneByIdOrAlias - album.name: ${JSON.stringify(album.name)}`);
@@ -488,7 +494,7 @@ export class AlbumsService {
     }
 
     if (!this.canAccessAlbum(album, accessContext)) {
-      throw new NotFoundException('Album not found');
+      throw new ForbiddenException('Access denied');
     }
 
     return album;
@@ -501,8 +507,11 @@ export class AlbumsService {
     accessContext?: AlbumAccessContext | null,
   ) {
     const album = await this.albumModel.findById(albumId).lean().exec();
-    if (!album || !this.canAccessAlbum(album, accessContext)) {
+    if (!album) {
       throw new NotFoundException('Album not found');
+    }
+    if (!this.canAccessAlbum(album, accessContext)) {
+      throw new ForbiddenException('Access denied');
     }
 
     const skip = (page - 1) * limit;
@@ -913,8 +922,11 @@ export class AlbumsService {
    */
   async getAlbumCoverImage(albumId: string, accessContext?: AlbumAccessContext | null) {
     const album = await this.albumModel.findById(albumId).lean().exec();
-    if (!album || !this.canAccessAlbum(album, accessContext)) {
+    if (!album) {
       throw new NotFoundException('Album not found');
+    }
+    if (!this.canAccessAlbum(album, accessContext)) {
+      throw new ForbiddenException('Access denied');
     }
     const result = await AlbumLeadingPhotoService.getAlbumLeadingPhoto(albumId);
     const coverImageUrl = await AlbumLeadingPhotoService.getAlbumCoverImageUrl(albumId);
