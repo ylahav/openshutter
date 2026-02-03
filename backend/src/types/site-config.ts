@@ -100,6 +100,10 @@ export interface SiteConfig {
   exifMetadata?: {
     displayFields?: string[]
   }
+  /** IPTC/XMP metadata display: which fields to show when displaying photo IPTC/XMP (empty/undefined = show all) */
+  iptcXmpMetadata?: {
+    displayFields?: string[]
+  }
   /** Mail server (SMTP) for sending emails e.g. welcome email on user creation */
   mail?: {
     host?: string
@@ -132,6 +136,7 @@ export interface SiteConfigUpdate {
   homePage?: Partial<SiteConfig['homePage']>
   features?: Partial<SiteConfig['features']>
   exifMetadata?: Partial<SiteConfig['exifMetadata']>
+  iptcXmpMetadata?: Partial<SiteConfig['iptcXmpMetadata']>
   mail?: Partial<SiteConfig['mail']>
   welcomeEmail?: Partial<SiteConfig['welcomeEmail']>
 }

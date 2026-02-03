@@ -469,7 +469,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
   - [x] Custom metadata fields (e.g. rating, category) editable per photo
   - [x] Bulk metadata operations: bulk re-extract EXIF (album page), bulk set date/make/model via Set Metadata dialog
   - [x] Manual override of EXIF-derived fields (date taken, make, model) in photo edit and bulk Set Metadata
-  - [ ] IPTC/XMP import or export (optional)
+  - [x] **IPTC/XMP import** – On upload and on “Re-extract from file”, IPTC and XMP metadata are extracted (exifr) and stored in the photo’s `iptcXmp` field (keywords, caption, copyright, creator, city, country, etc.); API and templates can use `iptcXmp`. Export (write back to file) optional/future.
 
 ### Phase 3 (Next 12 months) *
 - [ ] AI-powered photo tagging

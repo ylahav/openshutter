@@ -33,6 +33,7 @@ export class SiteConfigController {
       features: config.features,
       template: config.template,
       exifMetadata: config.exifMetadata,
+      iptcXmpMetadata: config.iptcXmpMetadata,
     };
   }
 
@@ -57,6 +58,7 @@ export class SiteConfigController {
       features: config.features,
       template: config.template,
       exifMetadata: config.exifMetadata,
+      iptcXmpMetadata: config.iptcXmpMetadata,
       mail: config.mail ? { ...config.mail, password: config.mail.password ? '****' : '' } : undefined,
       welcomeEmail: config.welcomeEmail,
     };
@@ -83,6 +85,7 @@ export class SiteConfigController {
       features: config.features,
       template: config.template,
       exifMetadata: config.exifMetadata,
+      iptcXmpMetadata: config.iptcXmpMetadata,
       mail: config.mail ? { ...config.mail, password: config.mail.password ? '****' : '' } : undefined,
       welcomeEmail: config.welcomeEmail,
     };

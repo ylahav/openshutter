@@ -10,6 +10,7 @@
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 	import { EXIF_DISPLAY_FIELDS } from '$lib/constants/exif-fields';
+	import { IPTC_XMP_DISPLAY_FIELDS } from '$lib/constants/iptc-xmp-fields';
 
 	let config: SiteConfig | null = null;
 	let descriptionValue: any = {};
@@ -28,6 +29,7 @@
 		{ id: 'home', label: 'Services' },
 		{ id: 'navigation', label: 'Navigation' },
 		{ id: 'exifMetadata', label: 'EXIF Metadata' },
+		{ id: 'iptcXmpMetadata', label: 'IPTC/XMP Metadata' },
 		{ id: 'sharing', label: 'Sharing' },
 		{ id: 'email', label: 'Email' }
 	];
@@ -155,6 +157,7 @@
 					homePage: config.homePage,
 					features: config.features,
 					exifMetadata: config.exifMetadata,
+					iptcXmpMetadata: config.iptcXmpMetadata,
 					mail: config.mail,
 					welcomeEmail: config.welcomeEmail,
 					template: {
@@ -1713,6 +1716,79 @@ on:click={() => {
 								</div>
 								<p class="text-xs text-gray-500 mt-2">
 									If no fields are selected, all available EXIF fields will be displayed. Selected fields are only shown when the photo has that metadata.
+								</p>
+							</div>
+						</div>
+					{:else if activeTab === 'iptcXmpMetadata'}
+						<div class="space-y-4">
+							<div>
+								<h3 class="text-lg font-semibold text-gray-900 mb-2">IPTC/XMP Metadata Display</h3>
+								<p class="text-sm text-gray-600 mb-4">
+									Select which IPTC/XMP metadata fields (when present in a photo) will be shown to visitors (e.g. in the photo lightbox). Leave all unchecked to show all available fields.
+								</p>
+								<div class="flex gap-2 mb-4">
+									<button
+										type="button"
+										on:click={() => {
+											if (!config) return;
+											config = {
+												...(config),
+												iptcXmpMetadata: {
+													...config.iptcXmpMetadata,
+													displayFields: IPTC_XMP_DISPLAY_FIELDS.map((f) => f.id)
+												}
+											} as SiteConfig;
+										}}
+										class="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+									>
+										Select all
+									</button>
+									<button
+										type="button"
+										on:click={() => {
+											if (!config) return;
+											config = {
+												...(config),
+												iptcXmpMetadata: {
+													...config.iptcXmpMetadata,
+													displayFields: []
+												}
+											} as SiteConfig;
+										}}
+										class="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+									>
+										Deselect all
+									</button>
+								</div>
+								<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 max-h-96 overflow-y-auto border border-gray-200 rounded-lg p-4 bg-gray-50">
+									{#each IPTC_XMP_DISPLAY_FIELDS as field}
+										{@const isChecked = (config.iptcXmpMetadata?.displayFields ?? []).includes(field.id)}
+										<label class="flex items-center gap-2 cursor-pointer">
+											<input
+												type="checkbox"
+												checked={isChecked}
+												on:change={(e) => {
+													if (!config) return;
+													const current = config.iptcXmpMetadata?.displayFields ?? [];
+													const next = e.currentTarget.checked
+														? [...current, field.id]
+														: current.filter((id: string) => id !== field.id);
+													config = {
+														...config,
+														iptcXmpMetadata: {
+															...config.iptcXmpMetadata,
+															displayFields: next
+														}
+													} as SiteConfig;
+												}}
+												class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+											/>
+											<span class="text-sm text-gray-700">{field.label}</span>
+										</label>
+									{/each}
+								</div>
+								<p class="text-xs text-gray-500 mt-2">
+									If no fields are selected, all available IPTC/XMP fields will be displayed. Selected fields are only shown when the photo has that metadata.
 								</p>
 							</div>
 						</div>

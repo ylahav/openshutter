@@ -479,6 +479,8 @@ export interface TemplatePhoto extends Omit<Photo, 'uploadedAt' | 'updatedAt' | 
       altitude?: number
     }
   }
+  /** IPTC/XMP metadata (keywords, caption, copyright, creator, city, country, etc.) */
+  iptcXmp?: Record<string, unknown>
 }
 
 // ============================================================================

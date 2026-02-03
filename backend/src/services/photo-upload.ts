@@ -397,6 +397,10 @@ export class PhotoUploadService {
       const { ExifExtractor } = await import('./exif-extractor')
       const exifData = await ExifExtractor.extractExifData(fileBuffer)
 
+      // Extract IPTC/XMP metadata (keywords, caption, copyright, creator, etc.)
+      const { IptcXmpExtractor } = await import('./iptc-xmp-extractor')
+      const iptcXmpData = await IptcXmpExtractor.extractIptcXmpData(fileBuffer)
+
       // Get image dimensions (after EXIF auto-rotation)
       // Sharp auto-rotates based on EXIF, so we need to account for orientation
       const imageInfo = await sharp(fileBuffer).metadata()
@@ -469,7 +473,8 @@ export class PhotoUploadService {
         uploadedBy: existingPhoto?.uploadedBy || uploaderObjectId,
         uploadedAt: existingPhoto?.uploadedAt || new Date(),
         updatedAt: new Date(),
-        exif: exifData
+        exif: exifData,
+        iptcXmp: iptcXmpData ?? undefined
       }
 
       // Save or update photo in database (native driver)

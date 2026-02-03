@@ -4,6 +4,7 @@
 	import { currentLanguage } from '$stores/language';
 	import { siteConfigData } from '$stores/siteConfig';
 	import { filterExifByDisplayFields } from '$lib/constants/exif-fields';
+	import { filterIptcXmpByDisplayFields } from '$lib/constants/iptc-xmp-fields';
 	import { getPhotoRotationStyle } from '$lib/utils/photoUrl';
 	import { MultiLangUtils } from '$utils/multiLang';
 	import { logger } from '$lib/utils/logger';
@@ -78,6 +79,7 @@
 			gpsLatitude?: number;
 			gpsLongitude?: number;
 		};
+		iptcXmp?: Record<string, unknown>;
 		metadata?: {
 			width?: number;
 			height?: number;
@@ -866,6 +868,32 @@
 										</div>
 									{/if}
 								</div>
+								{/if}
+							{/if}
+
+							<!-- IPTC/XMP Data (filtered by site config displayFields when set) -->
+							{#if showExifData && photo.iptcXmp}
+								{@const displayIptcXmp = filterIptcXmpByDisplayFields(photo.iptcXmp, $siteConfigData?.iptcXmpMetadata?.displayFields)}
+								{#if displayIptcXmp}
+									<div class="space-y-3 border-t border-white/20 pt-2">
+										<div class="text-sm font-semibold opacity-80">IPTC/XMP</div>
+										<div class="space-y-1">
+											{#each Object.entries(displayIptcXmp) as [key, value]}
+												{#if value != null && value !== ''}
+													<div class="text-sm">
+														<span class="opacity-60">{key}:</span>
+														{#if Array.isArray(value)}
+															{value.join(', ')}
+														{:else if typeof value === 'object'}
+															{JSON.stringify(value)}
+														{:else}
+															{String(value)}
+														{/if}
+													</div>
+												{/if}
+											{/each}
+										</div>
+									</div>
 								{/if}
 							{/if}
 

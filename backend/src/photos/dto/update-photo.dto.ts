@@ -46,6 +46,10 @@ export class UpdatePhotoDto {
 	@IsOptional()
 	metadata?: Record<string, unknown>;
 
+	@IsObject()
+	@IsOptional()
+	iptcXmp?: Record<string, unknown>;
+
 	/** Display rotation in degrees (0, 90, -90, 180). Applied when displaying; file unchanged. */
 	@IsNumber()
 	@IsOptional()

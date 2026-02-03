@@ -272,21 +272,35 @@ export class ExifExtractor {
       // Extract EXIF data
       const exifData = await this.extractExifData(fileBuffer)
 
-      // Update the photo in database
-      if (exifData) {
+      // Extract IPTC/XMP data (keywords, caption, copyright, creator, etc.)
+      const { IptcXmpExtractor } = await import('./iptc-xmp-extractor')
+      const iptcXmpData = await IptcXmpExtractor.extractIptcXmpData(fileBuffer)
+
+      // Update the photo in database (EXIF and IPTC/XMP)
+      const updateSet: Record<string, unknown> = {}
+      if (exifData) updateSet.exif = exifData
+      if (iptcXmpData) updateSet.iptcXmp = iptcXmpData
+      if (Object.keys(updateSet).length > 0) {
         await PhotoModel.updateOne(
           { _id: photo._id },
-          { $set: { exif: exifData } }
+          { $set: updateSet }
         )
       }
 
-      // Return updated photo (preserve existing exif if new is null)
-      const updatedPhoto = { ...photo, exif: exifData ?? photo.exif ?? null }
-      
+      // Return updated photo (preserve existing if new is null)
+      const updatedPhoto = {
+        ...photo,
+        exif: exifData ?? photo.exif ?? null,
+        iptcXmp: iptcXmpData ?? photo.iptcXmp ?? undefined
+      }
+
       if (exifData) {
         ExifExtractor.logger.debug(`✅ Extracted EXIF data for ${photo.filename}: ${Object.keys(exifData).join(', ')}`)
       } else {
         ExifExtractor.logger.debug(`ℹ️  No EXIF data found for ${photo.filename}`)
+      }
+      if (iptcXmpData) {
+        ExifExtractor.logger.debug(`✅ Extracted IPTC/XMP for ${photo.filename}: ${Object.keys(iptcXmpData).join(', ')}`)
       }
 
       return updatedPhoto

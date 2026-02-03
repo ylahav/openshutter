@@ -54,6 +54,8 @@ export interface IPhoto extends Document {
     rating?: number
     [key: string]: any
   }
+  /** IPTC and XMP metadata imported from image (keywords, caption, copyright, creator, city, country, etc.) */
+  iptcXmp?: Record<string, unknown>
   /** Display rotation in degrees (0, 90, -90, 180). Applied when displaying; file is unchanged. */
   rotation?: number
   faceRecognition?: {
@@ -191,6 +193,10 @@ export const PhotoSchema = new Schema<IPhoto>({
     location: String,
     category: String,
     rating: Number
+  },
+  iptcXmp: {
+    type: Schema.Types.Mixed,
+    default: undefined
   },
   faceRecognition: {
     faces: [{

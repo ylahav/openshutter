@@ -35,7 +35,18 @@ Overrides are merged with existing EXIF; other fields are not wiped.
 - `POST /api/admin/photos/:id/rotate` — Rotate photo; body: `{ angle: 90 | -90 | 180 }`; replaces file and regenerates thumbnails.
 - `POST /api/admin/photos/bulk/regenerate-thumbnails` — Regenerate thumbnails (correct orientation) for multiple photos; body: `{ photoIds: string[] }`; returns final JSON.
 - `POST /api/admin/photos/bulk/regenerate-thumbnails-stream` — Same input; response is NDJSON stream (`progress` per photo, then `done`) for progress UIs.
-- `PUT /api/admin/photos/:id` — Update photo; send `exif: { dateTime?, make?, model?, ... }` to merge overrides.
-- `POST /api/admin/photos/bulk-update` — Bulk update; send `updates.exif: { dateTime?, make?, model?, ... }` to merge EXIF for selected photos.
+- `PUT /api/admin/photos/:id` — Update photo; send `exif: { dateTime?, make?, model?, ... }` to merge overrides; send `iptcXmp: { ... }` to replace IPTC/XMP.
+- `POST /api/admin/photos/bulk-update` — Bulk update; send `updates.exif: { ... }` to merge EXIF; send `updates.iptcXmp: { ... }` to set IPTC/XMP for selected photos.
+
+## IPTC/XMP import
+
+- **On upload**: IPTC and XMP metadata are extracted from the image file (using exifr) and stored in the photo’s `iptcXmp` field. Common fields include: keywords, caption/description, copyright, creator, credit, city, country, and other IPTC/XMP namespaces.
+- **Re-extract**: “Re-extract from file” (per photo) and bulk “Re-extract EXIF” also re-read IPTC/XMP and update `iptcXmp` in the database.
+- **Storage**: `iptcXmp` is a flexible object; keys and structure follow what exifr returns (translated keys, dates as ISO strings). The API returns `iptcXmp` on photo objects for display or further use (e.g. pre-filling title/description from caption, or syncing keywords to tags).
+
+## IPTC/XMP display (site config)
+
+- **Site config**: Admin → Site config → **IPTC/XMP Metadata** tab. Choose which IPTC/XMP fields to show site-wide when displaying photo metadata (e.g. in the photo lightbox). Leave all unchecked to show all available fields.
+- **Display**: Photo lightbox (info panel) shows IPTC/XMP when present, filtered by `filterIptcXmpByDisplayFields(photo.iptcXmp, siteConfig.iptcXmpMetadata?.displayFields)`.
 
 Date fields (`dateTime`, `dateTimeOriginal`, `dateTimeDigitized`) are stored as Date; send ISO strings.

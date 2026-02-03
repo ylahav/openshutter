@@ -261,6 +261,11 @@ export class PhotosAdminController {
 				update.metadata = updateData.metadata;
 			}
 
+			// Update IPTC/XMP if provided (full replace)
+			if (updateData.iptcXmp !== undefined && typeof updateData.iptcXmp === 'object') {
+				update.iptcXmp = updateData.iptcXmp;
+			}
+
 			// Update display rotation if provided (0, 90, -90, 180; applied on display only)
 			if (updateData.rotation !== undefined) {
 				const r = Number(updateData.rotation);
@@ -551,6 +556,11 @@ export class PhotosAdminController {
 						}
 					}
 				}
+			}
+
+			// Update IPTC/XMP if provided (full replace per photo)
+			if (updates.iptcXmp !== undefined && typeof updates.iptcXmp === 'object') {
+				update.iptcXmp = updates.iptcXmp;
 			}
 
 			// Perform bulk update

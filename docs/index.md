@@ -2,6 +2,8 @@
 
 Welcome to the OpenShutter documentation. This comprehensive guide covers all aspects of the photo gallery management system.
 
+**All project documentation lives in the `docs/` folder.** Exceptions: [README.md](../README.md) and [CHANGELOG.md](../CHANGELOG.md) remain at the repository root.
+
 ## 📚 Documentation Overview
 
 ### Core Documentation
@@ -15,6 +17,19 @@ Welcome to the OpenShutter documentation. This comprehensive guide covers all as
 - [Admin Setup Guide](./ADMIN_SETUP.md) - Initial admin configuration
 - [Translation Guide](./translation-guide.md) - Multi-language support and translation keys
 - [Photo Upload Guide](./PHOTO_UPLOAD.md) - Photo upload features, duplicate detection, and bulk upload
+- [Photo Metadata](./PHOTO_METADATA.md) - EXIF, IPTC/XMP, re-extract, display config
+- [Upload Limits](./UPLOAD_LIMITS.md) - Size limits and configuration
+- [Face Recognition Setup](./FACE_RECOGNITION_SETUP.md) - Face detection and matching
+
+### Development & API
+- [API Testing](./API_TESTING.md) - How to test NestJS API endpoints
+- [Performance Improvements](./PERFORMANCE_IMPROVEMENTS.md) - Query optimizations and recommended indexes
+- [Type System](./TYPE_SYSTEM.md) - Centralized types (backend and frontend)
+- [SvelteKit Migration](./SVELTEKIT_MIGRATION.md) - Next.js to SvelteKit migration plan
+- [SvelteKit Progress](./SVELTEKIT_PROGRESS.md) - Migration status and progress
+
+### Other
+- [Security Policy](./SECURITY.md) - Supported versions and reporting vulnerabilities
 
 ### Quick Start
 1. **Installation**: Follow the main [README.md](../README.md) for setup instructions
@@ -86,7 +101,7 @@ frontend/src/
 └── templates/          # Gallery templates
 ```
 
-**Migration Status**: The frontend is migrating from Next.js to SvelteKit. Most admin routes and core infrastructure have been migrated. See [SVELTEKIT_PROGRESS.md](../frontend/SVELTEKIT_PROGRESS.md) for detailed status.
+**Migration Status**: The frontend is migrating from Next.js to SvelteKit. Most admin routes and core infrastructure have been migrated. See [SVELTEKIT_PROGRESS.md](./SVELTEKIT_PROGRESS.md) for detailed status.
 
 ## 🔧 Configuration
 
@@ -128,7 +143,7 @@ pnpm type-check   # TypeScript checking
 ## 📖 Additional Resources
 
 - **Main README**: [../README.md](../README.md) - Complete setup and usage guide
-- **SvelteKit Migration**: [../frontend/SVELTEKIT_PROGRESS.md](../frontend/SVELTEKIT_PROGRESS.md) - Migration status and progress
+- **SvelteKit Progress**: [SVELTEKIT_PROGRESS.md](./SVELTEKIT_PROGRESS.md) - Migration status and progress
 - **API Documentation**: Backend API available at `http://localhost:5000/api`
 - **Component Library**: Located in `src/lib/components/` (Svelte) and `src/components/ui/` (React, legacy)
 - **Type Definitions**: Available in `src/lib/types/`
