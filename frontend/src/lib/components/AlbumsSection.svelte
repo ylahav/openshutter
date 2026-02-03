@@ -86,12 +86,12 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {#each albums as album}
             <div class="card hover:shadow-xl transition-all duration-300 group">
-              <div class="aspect-[16/9] bg-gray-200 rounded-t-lg overflow-hidden">
+              <div class="aspect-[3/2] bg-gray-200 rounded-t-lg overflow-hidden">
                 {#if coverImages[album._id]}
                   <img
                     src={coverImages[album._id]}
                     alt={MultiLangUtils.getTextValue(album.name, $currentLanguage)}
-                    class="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                    class="w-full h-full object-contain bg-black/5 group-hover:scale-105 transition-transform duration-300"
                   />
                 {:else if coverImagesLoading}
                   <div class="w-full h-48 bg-gray-200 flex items-center justify-center">

@@ -111,7 +111,7 @@
 								<img
 									src={photo.storage.thumbnailPath}
 									alt={typeof photo.title === 'string' ? photo.title : photo.filename}
-									class="w-full h-48 object-cover rounded-t-lg"
+									class="w-full h-48 object-contain bg-black/5 rounded-t-lg"
 								/>
 							{:else}
 								<div class="w-full h-48 bg-gray-200 rounded-t-lg flex items-center justify-center">

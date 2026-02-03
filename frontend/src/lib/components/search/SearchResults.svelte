@@ -160,7 +160,7 @@
 								<img
 									src={imageUrl}
 									alt={photo.filename || 'Photo'}
-									class="w-full h-48 object-cover"
+									class="w-full h-48 object-contain bg-black/5"
 									style={getPhotoRotationStyle(photo)}
 									loading="lazy"
 								/>

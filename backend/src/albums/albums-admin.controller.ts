@@ -354,37 +354,49 @@ export class AlbumsAdminController {
 				.toArray();
 
 			let fromSubAlbums = false;
-			// When album has no photos and includeSubAlbums is set, return photos from direct child albums
+			// When album has no photos and includeSubAlbums is set, return photos from descendant albums (children, sub-sub-albums, etc.)
 			if (photos.length === 0 && includeSubAlbums) {
-				const childAlbums = await db
-					.collection('albums')
-					.find({ parentAlbumId: objectId })
-					.sort({ order: 1, name: 1 })
-					.toArray();
+				// Collect all descendant album IDs (BFS: direct children, then their children, etc.)
+				const descendantIds: Types.ObjectId[] = [];
+				const descendantIdStrings: string[] = [];
 				const albumNamesById = new Map<string, string>();
-				for (const child of childAlbums) {
-					const name = typeof child.name === 'string' ? child.name : (child.name?.en ?? child.name?.he ?? child.alias ?? '');
-					albumNamesById.set(child._id.toString(), name);
+				let frontier: Types.ObjectId[] = [objectId];
+				while (frontier.length > 0) {
+					const parentIds = frontier;
+					frontier = [];
+					const children = await db
+						.collection('albums')
+						.find({ parentAlbumId: { $in: parentIds } })
+						.sort({ order: 1, name: 1 })
+						.toArray();
+					for (const child of children) {
+						const id = child._id;
+						descendantIds.push(id);
+						descendantIdStrings.push(id.toString());
+						const name = typeof child.name === 'string' ? child.name : (child.name?.en ?? child.name?.he ?? child.alias ?? '');
+						albumNamesById.set(id.toString(), name);
+						frontier.push(id);
+					}
 				}
-				const childIds = childAlbums.map((a: any) => a._id);
-				const childIdStrings = childIds.map((oid: Types.ObjectId) => oid.toString());
-				photos = await photosCollection
-					.find({
-						$or: [
-							{ albumId: { $in: childIds } },
-							{ albumId: { $in: childIdStrings } },
-						],
-					})
-					.sort({ uploadedAt: -1 })
-					.toArray();
-				fromSubAlbums = true;
-				photos = photos.map((p: any) => ({
-					...p,
-					sourceAlbumId: p.albumId ? (p.albumId.toString ? p.albumId.toString() : p.albumId) : null,
-					sourceAlbumName: p.albumId
-						? (albumNamesById.get(p.albumId.toString ? p.albumId.toString() : p.albumId) ?? '')
-						: '',
-				}));
+				if (descendantIds.length > 0) {
+					photos = await photosCollection
+						.find({
+							$or: [
+								{ albumId: { $in: descendantIds } },
+								{ albumId: { $in: descendantIdStrings } },
+							],
+						})
+						.sort({ uploadedAt: -1 })
+						.toArray();
+					fromSubAlbums = true;
+					photos = photos.map((p: any) => ({
+						...p,
+						sourceAlbumId: p.albumId ? (p.albumId.toString ? p.albumId.toString() : p.albumId) : null,
+						sourceAlbumName: p.albumId
+							? (albumNamesById.get(p.albumId.toString ? p.albumId.toString() : p.albumId) ?? '')
+							: '',
+					}));
+				}
 			}
 
 			this.logger.debug(`Found ${photos.length} photos for album ${id}${fromSubAlbums ? ' (from sub-albums)' : ''}`);
@@ -688,17 +700,24 @@ export class AlbumsAdminController {
 			if (photoAlbumIdStr === albumIdStr) {
 				// OK
 			} else {
-				// Allow if photo belongs to a direct child album
+				// Allow if photo belongs to any descendant album (direct child, sub-sub-album, etc.)
 				if (!Types.ObjectId.isValid(photoAlbumIdStr)) {
 					throw new BadRequestException('Photo album reference is invalid');
 				}
-				const childAlbum = await db.collection('albums').findOne({
-					_id: new Types.ObjectId(photoAlbumIdStr),
-					parentAlbumId: albumObjectId,
-				});
-				if (!childAlbum) {
+				let currentId: Types.ObjectId | null = new Types.ObjectId(photoAlbumIdStr);
+				let isDescendant = false;
+				while (currentId) {
+					const doc: any = await db.collection('albums').findOne({ _id: currentId });
+					if (!doc) break;
+					if ((doc._id as Types.ObjectId).equals(albumObjectId)) {
+						isDescendant = true;
+						break;
+					}
+					currentId = (doc.parentAlbumId as Types.ObjectId | null | undefined) ?? null;
+				}
+				if (!isDescendant) {
 					throw new BadRequestException(
-						'Photo must belong to this album or to a direct sub-album to be set as leading photo',
+						'Photo must belong to this album or to a sub-album to be set as leading photo',
 					);
 				}
 			}

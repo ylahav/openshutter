@@ -99,6 +99,7 @@
 		isOpen: boolean;
 		photos: Photo[];
 		loading: boolean;
+		saving: boolean;
 		currentPage: number;
 		photosPerPage: number;
 		totalPhotos: number;
@@ -107,6 +108,7 @@
 		isOpen: false,
 		photos: [],
 		loading: false,
+		saving: false,
 		currentPage: 1,
 		photosPerPage: 24,
 		totalPhotos: 0,
@@ -306,6 +308,7 @@
 			isOpen: true,
 			photos: [],
 			loading: true,
+			saving: false,
 			currentPage: 1,
 			photosPerPage: 24,
 			totalPhotos: 0,
@@ -313,30 +316,36 @@
 		};
 		try {
 			let response = await fetch(`/api/admin/albums/${album._id}/photos`);
+			let data: Photo[] = [];
+			let fromSubAlbums = false;
 			if (response.ok) {
 				const result = await response.json();
 				if (result.success && Array.isArray(result.data)) {
-					coverPhotoModal.photos = result.data;
-					coverPhotoModal.totalPhotos = result.data.length;
-					coverPhotoModal.fromSubAlbums = result.fromSubAlbums === true;
+					data = result.data;
+					fromSubAlbums = result.fromSubAlbums === true;
 				}
 			}
-			// If album has no photos, fetch photos from sub-albums so user can pick one as leading
-			if (coverPhotoModal.totalPhotos === 0) {
+			// If album has no photos, fetch from sub-albums (and sub-sub-albums) so user can pick one as leading
+			if (data.length === 0) {
 				response = await fetch(`/api/admin/albums/${album._id}/photos?includeSubAlbums=1`);
 				if (response.ok) {
 					const result = await response.json();
 					if (result.success && Array.isArray(result.data) && result.data.length > 0) {
-						coverPhotoModal.photos = result.data;
-						coverPhotoModal.totalPhotos = result.data.length;
-						coverPhotoModal.fromSubAlbums = true;
+						data = result.data;
+						fromSubAlbums = true;
 					}
 				}
 			}
+			coverPhotoModal = {
+				...coverPhotoModal,
+				photos: data,
+				totalPhotos: data.length,
+				fromSubAlbums,
+				loading: false,
+			};
 		} catch (err) {
 			logger.error('Failed to load album photos:', err);
-		} finally {
-			coverPhotoModal.loading = false;
+			coverPhotoModal = { ...coverPhotoModal, loading: false };
 		}
 	}
 
@@ -345,6 +354,7 @@
 			isOpen: false,
 			photos: [],
 			loading: false,
+			saving: false,
 			currentPage: 1,
 			photosPerPage: 24,
 			totalPhotos: 0,
@@ -354,6 +364,7 @@
 
 	async function setCoverPhoto(photoId: string) {
 		if (!album) return;
+		coverPhotoModal = { ...coverPhotoModal, saving: true };
 		try {
 			const response = await fetch(`/api/admin/albums/${album._id}/cover-photo`, {
 				method: 'PUT',
@@ -370,14 +381,17 @@
 		} catch (err) {
 			logger.error('Failed to set cover photo:', err);
 			notification = { show: true, message: handleError(err, 'Failed to set leading photo'), type: 'error' };
+		} finally {
+			coverPhotoModal = { ...coverPhotoModal, saving: false };
 		}
 	}
 
-	function getPaginatedPhotos(): Photo[] {
-		const startIndex = (coverPhotoModal.currentPage - 1) * coverPhotoModal.photosPerPage;
-		const endIndex = startIndex + coverPhotoModal.photosPerPage;
-		return coverPhotoModal.photos.slice(startIndex, endIndex);
-	}
+	// Reactive so prev/next actually update the displayed photo list
+	$: coverPhotoModalPaginatedPhotos =
+		coverPhotoModal.photos.slice(
+			(coverPhotoModal.currentPage - 1) * coverPhotoModal.photosPerPage,
+			(coverPhotoModal.currentPage - 1) * coverPhotoModal.photosPerPage + coverPhotoModal.photosPerPage,
+		);
 
 	function getTotalPages(): number {
 		return Math.ceil(coverPhotoModal.totalPhotos / coverPhotoModal.photosPerPage) || 1;
@@ -868,6 +882,14 @@
 				</button>
 			</div>
 
+			{#if coverPhotoModal.saving}
+				<div class="absolute inset-0 flex items-center justify-center bg-white/80 rounded-md z-10">
+					<div class="text-center">
+						<div class="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-purple-500"></div>
+						<p class="mt-2 text-gray-700 font-medium">Saving...</p>
+					</div>
+				</div>
+			{/if}
 			{#if coverPhotoModal.loading}
 				<div class="text-center py-8">
 					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
@@ -878,7 +900,7 @@
 					<p class="text-gray-600">No photos in this album or in sub-albums. Add photos first, then choose a leading photo.</p>
 				</div>
 			{:else}
-				<div class="max-h-[70vh] overflow-y-auto">
+				<div class="relative max-h-[70vh] overflow-y-auto">
 					{#if coverPhotoModal.fromSubAlbums}
 						<p class="mb-4 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2">
 							This album has no photos. Showing photos from sub-albums. You can choose one as the leading photo.
@@ -892,12 +914,13 @@
 					</div>
 
 					<div class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3 mb-6">
-						{#each getPaginatedPhotos() as photo}
+						{#each coverPhotoModalPaginatedPhotos as photo}
 							{@const isCurrentCover = album?.coverPhotoId === photo._id}
 							<button
 								type="button"
 								class="relative cursor-pointer group text-left {isCurrentCover ? 'ring-4 ring-purple-500 ring-opacity-75' : ''}"
 								on:click={() => setCoverPhoto(photo._id)}
+								disabled={coverPhotoModal.saving}
 								aria-label="Set as leading photo"
 							>
 								<img
@@ -923,7 +946,7 @@
 							<button
 								type="button"
 								on:click={() => goToPage(coverPhotoModal.currentPage - 1)}
-								disabled={coverPhotoModal.currentPage === 1}
+								disabled={coverPhotoModal.currentPage === 1 || coverPhotoModal.saving}
 								class="px-3 py-1 text-sm font-medium text-gray-500 bg-gray-100 rounded-md hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
 							>
 								Previous
@@ -934,7 +957,7 @@
 							<button
 								type="button"
 								on:click={() => goToPage(coverPhotoModal.currentPage + 1)}
-								disabled={coverPhotoModal.currentPage === getTotalPages()}
+								disabled={coverPhotoModal.currentPage === getTotalPages() || coverPhotoModal.saving}
 								class="px-3 py-1 text-sm font-medium text-gray-500 bg-gray-100 rounded-md hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
 							>
 								Next

@@ -1,6 +1,6 @@
 {
   "name": "openshutter",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "type": "module",
   "description": "A comprehensive photo gallery management system with multi-storage support",
   "main": "index.js",
@@ -69,7 +69,7 @@
   "devDependencies": {
     "@eslint/js": "^9.39.2",
     "@sveltejs/adapter-node": "^5.5.2",
-    "@sveltejs/kit": "^2.50.1",
+    "@sveltejs/kit": "^2.50.2",
     "@sveltejs/vite-plugin-svelte": "^6.2.4",
     "@tailwindcss/postcss": "^4.1.18",
     "@types/archiver": "^7.0.0",

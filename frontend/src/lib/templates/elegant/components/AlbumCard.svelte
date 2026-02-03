@@ -39,18 +39,18 @@
 </script>
 
 <a href={`/albums/${album.alias || album._id}`}>
-	<div
+		<div
 		class="group relative bg-white overflow-hidden rounded-xl shadow-md hover:shadow-xl transition-all duration-500 cursor-pointer flex flex-col transform hover:-translate-y-2 {className}"
 	>
 		<!-- Cover Image -->
-		<div class="relative aspect-[4/3] bg-linear-to-b from-purple-100 to-indigo-100 overflow-hidden flex-shrink-0">
+		<div class="relative aspect-[3/2] bg-linear-to-b from-purple-100 to-indigo-100 overflow-hidden flex-shrink-0">
 			{#if !coverImageLoading && coverImageUrl}
 				<img
 					src={coverImageUrl}
 					alt={displayName}
 					class="w-full h-full transition-transform duration-700 ease-out {coverImageUrl.includes('/logos/')
 						? 'object-contain bg-white p-4'
-						: 'object-cover group-hover:scale-110'}"
+						: 'object-contain bg-black/10 group-hover:scale-110'}"
 				/>
 			{/if}
 

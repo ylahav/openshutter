@@ -1,6 +1,13 @@
 ## [Unreleased]
 
 ### Added
+- **Leading photo from sub-albums**
+  - Backend PUT `/api/admin/albums/:id/cover-photo` to set album cover/leading photo; accepts photos from the album or any descendant (sub-album, sub-sub-album).
+  - When parent has no photos, admin "Select leading photo" fetches photos from all descendant albums (not only direct children); sub-sub-album photos can be chosen as leading photo.
+  - Loading indicator while photos load in the modal; "Saving..." overlay and disabled buttons while setting cover photo.
+- **Card view aspect ratio**
+  - Album and photo cards preserve original photo proportions: cover/thumbnail images use `object-contain` so height/width ratio is preserved (no cropping).
+  - Album card cover area uses 3:2 aspect ratio (e.g. 384×256) to match typical photo proportions; applies to default, elegant, and minimal template album cards and home albums section.
 - **Advanced search and filtering**
   - Backend Search module: GET /api/search (query params) and POST /api/search (body) with q, type, page, limit, albumId, tags, people, locationIds, dateFrom, dateTo, sortBy, sortOrder
   - Search photos (regex on title/description/filename, filters by album/tags/people/location/date), albums, people, locations
@@ -65,6 +72,8 @@
   - Icon selector component with visual previews
 
 ### Fixed
+- **Leading photo modal (parent album with no photos)**: Prev/Next pagination now updates the displayed photo list (reactive `coverPhotoModalPaginatedPhotos`); setting a sub-album photo as leading photo no longer returns server error (dedicated cover-photo endpoint and descendant validation).
+- **Backend**: Resolved TS7022 implicit any for `doc` in album cover-photo descendant check (explicit type and casts).
 - **Search**: Fixed "Search Error" when filtering by people (normalize filter IDs to strings in frontend; backend locationIds filter support)
 - **Locations**: Fixed "Invalid request" when adding new location (CreateLocationDto `name` allowed via @Allow() for ValidationPipe)
 - **Svelte Reactivity**: Fixed Map reactivity issues in row/column layout builder
