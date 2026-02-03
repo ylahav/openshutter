@@ -46,6 +46,8 @@
 		storage?: { url?: string; path?: string; thumbnailPath?: string; thumbnails?: Record<string, string> };
 		sourceAlbumId?: string;
 		sourceAlbumName?: string;
+		/** Display-only rotation (e.g. from EXIF). Used by getPhotoRotationStyle. */
+		rotation?: number;
 	}
 
 	interface Group {
@@ -382,8 +384,7 @@
 	}
 
 	function goToPage(page: number) {
-		coverPhotoModal.currentPage = page;
-		coverPhotoModal = coverPhotoModal;
+		coverPhotoModal = { ...coverPhotoModal, currentPage: page };
 	}
 
 	onMount(() => {

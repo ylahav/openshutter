@@ -638,6 +638,110 @@ export class AlbumsAdminController {
 	}
 
 	/**
+	 * Set album cover/leading photo (admin or owner of album).
+	 * Accepts a photo from this album or from any direct sub-album (for parent albums with no photos).
+	 * Path: PUT /api/admin/albums/:id/cover-photo
+	 * NOTE: This route must come BEFORE @Put(':id') to avoid route conflicts
+	 */
+	@Put(':id/cover-photo')
+	async setAlbumCoverPhoto(
+		@Param('id') id: string,
+		@Body() body: { coverPhotoId?: string },
+		@Req() req: ExpressRequest,
+	) {
+		try {
+			await connectDB();
+			const db = mongoose.connection.db;
+			if (!db) throw new InternalServerErrorException('Database connection not established');
+
+			const coverPhotoId = body?.coverPhotoId;
+			if (!coverPhotoId || typeof coverPhotoId !== 'string' || coverPhotoId.trim() === '') {
+				throw new BadRequestException('coverPhotoId is required');
+			}
+
+			let albumObjectId: Types.ObjectId;
+			let photoObjectId: Types.ObjectId;
+			try {
+				albumObjectId = new Types.ObjectId(id);
+				photoObjectId = new Types.ObjectId(coverPhotoId.trim());
+			} catch (_error) {
+				throw new BadRequestException('Invalid album or photo ID format');
+			}
+
+			const album = await db.collection('albums').findOne({ _id: albumObjectId });
+			if (!album) {
+				throw new NotFoundException('Album not found');
+			}
+			if ((req as any).user?.role === 'owner') {
+				await this.assertOwnerCanAccessAlbum(req, album, db);
+			}
+
+			const photo = await db.collection('photos').findOne({ _id: photoObjectId });
+			if (!photo) {
+				throw new NotFoundException('Photo not found');
+			}
+
+			const photoAlbumIdStr =
+				typeof photo.albumId === 'string' ? photo.albumId : photo.albumId?.toString?.() ?? '';
+			const albumIdStr = albumObjectId.toString();
+			// Allow if photo belongs to this album
+			if (photoAlbumIdStr === albumIdStr) {
+				// OK
+			} else {
+				// Allow if photo belongs to a direct child album
+				if (!Types.ObjectId.isValid(photoAlbumIdStr)) {
+					throw new BadRequestException('Photo album reference is invalid');
+				}
+				const childAlbum = await db.collection('albums').findOne({
+					_id: new Types.ObjectId(photoAlbumIdStr),
+					parentAlbumId: albumObjectId,
+				});
+				if (!childAlbum) {
+					throw new BadRequestException(
+						'Photo must belong to this album or to a direct sub-album to be set as leading photo',
+					);
+				}
+			}
+
+			await db.collection('albums').updateOne(
+				{ _id: albumObjectId },
+				{ $set: { coverPhotoId: photoObjectId, updatedAt: new Date() } },
+			);
+
+			const updatedAlbum = await db.collection('albums').findOne({ _id: albumObjectId });
+			if (!updatedAlbum) {
+				throw new NotFoundException('Album not found after update');
+			}
+
+			const serialized: any = {
+				...updatedAlbum,
+				_id: updatedAlbum._id.toString(),
+				createdBy: updatedAlbum.createdBy?.toString() || null,
+				parentAlbumId: updatedAlbum.parentAlbumId?.toString() || null,
+				coverPhotoId: updatedAlbum.coverPhotoId?.toString() || null,
+			};
+
+			return {
+				success: true,
+				message: 'Cover photo updated successfully',
+				data: serialized,
+			};
+		} catch (error) {
+			this.logger.error('Failed to set album cover photo:', error);
+			if (
+				error instanceof BadRequestException ||
+				error instanceof NotFoundException ||
+				error instanceof ForbiddenException
+			) {
+				throw error;
+			}
+			throw new InternalServerErrorException(
+				`Failed to set cover photo: ${error instanceof Error ? error.message : 'Unknown error'}`,
+			);
+		}
+	}
+
+	/**
 	 * Update an album (admin or owner of album)
 	 * Path: PUT /api/admin/albums/:id
 	 */
