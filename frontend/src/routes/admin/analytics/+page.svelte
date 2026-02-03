@@ -40,11 +40,29 @@
 		}>;
 		topTags: Array<{
 			_id: string;
-			name: string;
+			name: string | Record<string, string>;
 			usageCount: number;
 			isActive: boolean;
+			category?: string;
+			color?: string;
 		}>;
+		tagAnalytics?: {
+			overview: { unused: number; recentlyCreated: number };
+			byCategory: Array<{ category: string; count: number }>;
+			unusedTags: Array<{ _id: string; name: string | Record<string, string>; category: string; isActive: boolean }>;
+			recentTags: Array<{ _id: string; name: string | Record<string, string>; usageCount: number; category: string; createdAt: string }>;
+			photoTagDistribution: Array<{ bucket: string; count: number }>;
+		};
 	}
+
+	function getTagName(tag: { name: string | Record<string, string> }): string {
+		const n = tag.name;
+		if (typeof n === 'string') return n;
+		if (n && typeof n === 'object') return n.en || n.he || Object.values(n)[0] || '';
+		return '';
+	}
+
+	const TAG_DISTRIBUTION_ORDER = ['0', '1-3', '4-6', '7+'];
 
 	let analytics: AnalyticsData | null = null;
 	let loading = true;
@@ -314,6 +332,93 @@
 				</div>
 			</div>
 
+			<!-- Enhanced Tag Analytics -->
+			{#if analytics.tagAnalytics}
+				<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+					<h2 class="text-lg font-semibold text-gray-900 mb-4">Tag Analytics</h2>
+
+					<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+						<div class="p-4 bg-amber-50 rounded-lg border border-amber-100">
+							<p class="text-sm text-amber-800">Unused tags</p>
+							<p class="text-2xl font-bold text-amber-700">{analytics.tagAnalytics.overview.unused}</p>
+							<p class="text-xs text-amber-600 mt-1">Never applied to photos</p>
+						</div>
+						<div class="p-4 bg-indigo-50 rounded-lg border border-indigo-100">
+							<p class="text-sm text-indigo-800">Created (30 days)</p>
+							<p class="text-2xl font-bold text-indigo-700">{analytics.tagAnalytics.overview.recentlyCreated}</p>
+							<p class="text-xs text-indigo-600 mt-1">New tags this month</p>
+						</div>
+					</div>
+
+					<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+						<div>
+							<h3 class="text-sm font-semibold text-gray-700 mb-3">Tags by category</h3>
+							{#if analytics.tagAnalytics.byCategory.length === 0}
+								<p class="text-gray-500 text-sm">No tags</p>
+							{:else}
+								<div class="space-y-2">
+									{#each analytics.tagAnalytics.byCategory as cat}
+										<div class="flex justify-between items-center py-1.5 border-b border-gray-100 last:border-0">
+											<span class="text-gray-700 capitalize">{cat.category}</span>
+											<span class="font-medium text-gray-900">{cat.count}</span>
+										</div>
+									{/each}
+								</div>
+							{/if}
+						</div>
+						<div>
+							<h3 class="text-sm font-semibold text-gray-700 mb-3">Photos by tag count</h3>
+							{#if analytics.tagAnalytics.photoTagDistribution.length === 0}
+								<p class="text-gray-500 text-sm">No data</p>
+							{:else}
+								{@const distMap = Object.fromEntries(analytics.tagAnalytics.photoTagDistribution.map((d) => [d.bucket, d.count]))}
+								<div class="space-y-2">
+									{#each TAG_DISTRIBUTION_ORDER as bucket}
+										<div class="flex justify-between items-center py-1.5 border-b border-gray-100 last:border-0">
+											<span class="text-gray-700">{bucket} tags</span>
+											<span class="font-medium text-gray-900">{distMap[bucket] ?? 0} photos</span>
+										</div>
+									{/each}
+								</div>
+							{/if}
+						</div>
+					</div>
+
+					<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+						<div>
+							<h3 class="text-sm font-semibold text-gray-700 mb-3">Unused tags (candidates for cleanup)</h3>
+							{#if analytics.tagAnalytics.unusedTags.length === 0}
+								<p class="text-gray-500 text-sm">All tags are in use</p>
+							{:else}
+								<div class="space-y-2 max-h-48 overflow-y-auto">
+									{#each analytics.tagAnalytics.unusedTags as tag}
+										<div class="flex justify-between items-center py-2 px-3 bg-gray-50 rounded text-sm">
+											<span class="font-medium text-gray-900">{getTagName(tag)}</span>
+											<span class="text-gray-500 capitalize text-xs">{tag.category}</span>
+										</div>
+									{/each}
+								</div>
+							{/if}
+						</div>
+						<div>
+							<h3 class="text-sm font-semibold text-gray-700 mb-3">Recently created tags</h3>
+							{#if analytics.tagAnalytics.recentTags.length === 0}
+								<p class="text-gray-500 text-sm">No new tags in the last 30 days</p>
+							{:else}
+								<div class="space-y-2 max-h-48 overflow-y-auto">
+									{#each analytics.tagAnalytics.recentTags as tag}
+										<div class="flex justify-between items-center py-2 px-3 bg-gray-50 rounded text-sm">
+											<span class="font-medium text-gray-900">{getTagName(tag)}</span>
+											<span class="text-gray-500">{tag.usageCount} uses</span>
+										</div>
+									{/each}
+								</div>
+							{/if}
+						</div>
+					</div>
+				</div>
+			{/if}
+
 			<!-- Top Albums and Tags -->
 			<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 				<!-- Top Albums -->
@@ -348,17 +453,20 @@
 						<div class="space-y-3">
 							{#each analytics.topTags as tag}
 								<div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-									<div class="flex-1">
-										<p class="font-medium text-gray-900">{tag.name}</p>
+									<div class="flex-1 min-w-0">
+										<p class="font-medium text-gray-900 truncate">{getTagName(tag)}</p>
 										<p class="text-xs text-gray-500">
 											{#if tag.isActive}
 												<span class="text-green-600">Active</span>
 											{:else}
 												<span class="text-gray-400">Inactive</span>
 											{/if}
+											{#if tag.category}
+												<span class="ml-1 capitalize"> · {tag.category}</span>
+											{/if}
 										</p>
 									</div>
-									<div class="text-right">
+									<div class="text-right shrink-0 ml-2">
 										<p class="text-lg font-bold text-green-600">{tag.usageCount}</p>
 										<p class="text-xs text-gray-500">uses</p>
 									</div>

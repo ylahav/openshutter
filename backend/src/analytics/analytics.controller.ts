@@ -109,12 +109,69 @@ export class AnalyticsController {
         ])
         .toArray();
 
-      // Get top tags by usage
+      // Get top tags by usage (include category and color for enhanced display)
       const tagsWithUsage = await db
         .collection('tags')
-        .find({}, { projection: { name: 1, usageCount: 1, isActive: 1 } })
+        .find({}, { projection: { name: 1, usageCount: 1, isActive: 1, category: 1, color: 1 } })
         .sort({ usageCount: -1 })
         .limit(10)
+        .toArray();
+
+      // --- Enhanced tag analytics ---
+      const unusedTagsCount = await db.collection('tags').countDocuments({ usageCount: 0 });
+      const recentTagsCount = await db
+        .collection('tags')
+        .countDocuments({ createdAt: { $gte: thirtyDaysAgo } });
+
+      const tagsByCategory = await db
+        .collection('tags')
+        .aggregate([
+          { $group: { _id: { $ifNull: ['$category', 'general'] }, count: { $sum: 1 } } },
+          { $sort: { count: -1 } },
+        ])
+        .toArray();
+
+      const unusedTagsList = await db
+        .collection('tags')
+        .find({ usageCount: 0 }, { projection: { name: 1, category: 1, isActive: 1 } })
+        .sort({ createdAt: -1 })
+        .limit(20)
+        .toArray();
+
+      const recentTagsList = await db
+        .collection('tags')
+        .find({ createdAt: { $gte: thirtyDaysAgo } }, { projection: { name: 1, usageCount: 1, category: 1, createdAt: 1 } })
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .toArray();
+
+      // Photo tag distribution: how many photos have 0, 1-3, 4-6, 7+ tags
+      const photoTagDistribution = await db
+        .collection('photos')
+        .aggregate([
+          {
+            $project: {
+              tagCount: { $size: { $ifNull: ['$tags', []] } },
+            },
+          },
+          {
+            $group: {
+              _id: {
+                $switch: {
+                  branches: [
+                    { case: { $eq: ['$tagCount', 0] }, then: '0' },
+                    { case: { $lte: ['$tagCount', 3] }, then: '1-3' },
+                    { case: { $lte: ['$tagCount', 6] }, then: '4-6' },
+                    { case: { $gte: ['$tagCount', 7] }, then: '7+' },
+                  ],
+                  default: '0',
+                },
+              },
+              count: { $sum: 1 },
+            },
+          },
+          { $sort: { _id: 1 } },
+        ])
         .toArray();
 
       return {
@@ -187,7 +244,36 @@ export class AnalyticsController {
           name: tag.name,
           usageCount: tag.usageCount || 0,
           isActive: tag.isActive,
+          category: tag.category,
+          color: tag.color,
         })),
+        tagAnalytics: {
+          overview: {
+            unused: unusedTagsCount,
+            recentlyCreated: recentTagsCount,
+          },
+          byCategory: tagsByCategory.map((c) => ({
+            category: c._id,
+            count: c.count,
+          })),
+          unusedTags: unusedTagsList.map((t) => ({
+            _id: t._id.toString(),
+            name: t.name,
+            category: t.category,
+            isActive: t.isActive,
+          })),
+          recentTags: recentTagsList.map((t) => ({
+            _id: t._id.toString(),
+            name: t.name,
+            usageCount: t.usageCount || 0,
+            category: t.category,
+            createdAt: t.createdAt,
+          })),
+          photoTagDistribution: photoTagDistribution.map((d) => ({
+            bucket: d._id,
+            count: d.count,
+          })),
+        },
       };
     } catch (error) {
       this.logger.error(`Error fetching analytics: ${error instanceof Error ? error.message : String(error)}`);
