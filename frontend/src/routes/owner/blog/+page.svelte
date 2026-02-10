@@ -295,7 +295,7 @@
 									<tr class="hover:bg-gray-50">
 										<td class="px-6 py-4 whitespace-nowrap">
 											<div class="flex items-center">
-												<div class="flex-shrink-0 h-10 w-10">
+												<div class="shrink-0 h-10 w-10">
 													{#if article.leadingImage}
 														<img
 															class="h-10 w-10 rounded-lg object-cover"

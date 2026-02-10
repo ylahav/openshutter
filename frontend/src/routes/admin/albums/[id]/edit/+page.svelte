@@ -470,7 +470,10 @@
 						{MultiLangUtils.getTextValue(album.name, $currentLanguage)}
 					</p>
 				</div>
-				<div>
+				<div class="flex items-center gap-3">
+					<a href="/admin" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm font-medium">
+						← Back to Admin
+					</a>
 					<a
 						href="/albums/new?parentAlbumId={albumId}"
 						class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm font-medium inline-flex items-center gap-2"

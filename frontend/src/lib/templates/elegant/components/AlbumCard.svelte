@@ -43,7 +43,7 @@
 		class="group relative bg-white overflow-hidden rounded-xl shadow-md hover:shadow-xl transition-all duration-500 cursor-pointer flex flex-col transform hover:-translate-y-2 {className}"
 	>
 		<!-- Cover Image -->
-		<div class="relative aspect-[3/2] bg-linear-to-b from-purple-100 to-indigo-100 overflow-hidden flex-shrink-0">
+		<div class="relative aspect-[3/2] bg-linear-to-b from-purple-100 to-indigo-100 overflow-hidden shrink-0">
 			{#if !coverImageLoading && coverImageUrl}
 				<img
 					src={coverImageUrl}

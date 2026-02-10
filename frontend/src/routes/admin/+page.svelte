@@ -423,12 +423,39 @@
 					</div>
 					<h2 class="text-xl font-semibold text-gray-900 ml-3">Backup & Restore</h2>
 				</div>
-				<p class="text-gray-600 mb-4">Backup and restore your gallery data and files</p>
+				<p class="text-gray-600 mb-4">Full system backup: exports ALL database collections for disaster recovery. Restore replaces everything.</p>
 				<a
 					href="/admin/backup-restore"
 					class="inline-flex items-center px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
 				>
 					Manage Backup
+					<svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+					</svg>
+				</a>
+			</div>
+
+			<!-- Import & Export (Migration) -->
+			<div class="bg-white rounded-lg shadow-md p-6">
+				<div class="flex items-center mb-4">
+					<div class="w-10 h-10 bg-cyan-100 rounded-lg flex items-center justify-center">
+						<svg class="w-6 h-6 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+							/>
+						</svg>
+					</div>
+					<h2 class="text-xl font-semibold text-gray-900 ml-3">Import & Export</h2>
+				</div>
+				<p class="text-gray-600 mb-4">Migration tools: export repository to portable package (DB + photos), import from package or raw folder, migrate storage between providers.</p>
+				<a
+					href="/admin/import-sync"
+					class="inline-flex items-center px-4 py-2 bg-cyan-600 text-white rounded-md hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2"
+				>
+					Migration Tools
 					<svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
 					</svg>
@@ -462,34 +489,6 @@
 				</a>
 			</div>
 
-			<!-- Deployment Preparation -->
-			<div class="bg-white rounded-lg shadow-md p-6">
-				<div class="flex items-center mb-4">
-					<div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-						<svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"
-							/>
-						</svg>
-					</div>
-					<h2 class="text-xl font-semibold text-gray-900 ml-3">Deployment Preparation</h2>
-				</div>
-				<p class="text-gray-600 mb-4">
-					Prepare deployment package with custom domain and port configuration for PM2 deployment.
-				</p>
-				<a
-					href="/admin/deployment"
-					class="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
-				>
-					Prepare Deployment
-					<svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-					</svg>
-				</a>
-			</div>
 		</div>
 	</div>
 </div>

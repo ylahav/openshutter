@@ -563,13 +563,33 @@ export class StorageAdminController {
         data: tree,
       };
     } catch (error: any) {
-      this.logger.error(`Error getting ${providerId} tree: ${error instanceof Error ? error.message : String(error)}`);
+      this.logger.error(`Error getting ${providerId} tree:`, error);
+      
+      // Extract more detailed error message
+      let errorMessage = `Failed to get ${providerId} tree`;
+      if (error?.message) {
+        errorMessage += `: ${error.message}`;
+      } else if (error instanceof Error) {
+        errorMessage += `: ${error.message}`;
+      } else if (typeof error === 'string') {
+        errorMessage += `: ${error}`;
+      }
+      
+      // Check for specific error types
+      if (error?.response?.data?.error) {
+        const apiError = error.response.data.error;
+        if (apiError.message) {
+          errorMessage += ` (${apiError.message})`;
+        }
+        if (apiError.code === 401 || apiError.code === 403) {
+          errorMessage += ' - Check authentication and permissions';
+        }
+      }
+      
       if (error instanceof BadRequestException) {
         throw error;
       }
-      throw new BadRequestException(
-        `Failed to get ${providerId} tree: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
+      throw new BadRequestException(errorMessage);
     }
   }
 

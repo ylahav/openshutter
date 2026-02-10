@@ -467,15 +467,15 @@
 				<h1 class="text-2xl font-bold text-gray-900">Albums Management</h1>
 				<p class="text-gray-600 mt-2">Manage your photo albums</p>
 			</div>
-			<div class="flex gap-3">
+			<div class="flex items-center gap-3">
+				<a href="/admin" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm font-medium">
+					← Back to Admin
+				</a>
 				<a
 					href="/albums/new"
 					class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
 				>
 					+ Create Album
-				</a>
-				<a href="/admin" class="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 text-sm">
-					← Back to Admin
 				</a>
 			</div>
 		</div>

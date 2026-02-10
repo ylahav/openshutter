@@ -208,7 +208,7 @@
 				<h1 class="text-2xl font-bold text-gray-900">Backup & Restore</h1>
 				<p class="text-gray-600 mt-2">Create backups and restore your database and files</p>
 			</div>
-			<a href="/admin" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+			<a href="/admin" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm font-medium">
 				← Back to Admin
 			</a>
 		</div>
@@ -442,7 +442,7 @@
 		<!-- Warning Notice -->
 		<div class="mt-8 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
 			<div class="flex">
-				<div class="flex-shrink-0">
+				<div class="shrink-0">
 					<svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
 						<path
 							fill-rule="evenodd"

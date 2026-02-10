@@ -694,8 +694,13 @@
 	<div class="max-w-7xl mx-auto px-4">
 		<div class="bg-white rounded-lg shadow-md p-6">
 			<div class="flex items-center justify-between mb-6">
-				<h1 class="text-2xl font-bold text-gray-900">Translation Management</h1>
-				<div class="flex gap-2">
+				<div>
+					<h1 class="text-2xl font-bold text-gray-900">Translation Management</h1>
+				</div>
+				<div class="flex items-center gap-2">
+					<a href="/admin" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm font-medium">
+						← Back to Admin
+					</a>
 					<button
 						type="button"
 						on:click={() => (showAddLanguageDialog = true)}
@@ -703,7 +708,6 @@
 					>
 						+ Add Language
 					</button>
-					<a href="/admin" class="text-blue-600 hover:text-blue-800 text-sm">Back to Admin</a>
 				</div>
 			</div>
 

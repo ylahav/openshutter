@@ -235,7 +235,7 @@
 				</div>
 				<a
 					href="/admin"
-					class="text-blue-600 hover:text-blue-800 text-sm font-medium"
+					class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm font-medium"
 				>
 					← Back to Admin
 				</a>

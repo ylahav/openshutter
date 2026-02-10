@@ -136,6 +136,9 @@ export interface IStorageService {
   
   // Tree Operations (optional - may not be supported by all providers)
   getFolderTree?(parentPath?: string, maxDepth?: number): Promise<any>
+
+  /** Optional: proactive token refresh for OAuth providers (e.g. Google Drive). No-op for providers that don't need it. */
+  refreshTokenIfNeeded?(): Promise<void>
 }
 
 // Storage Manager Interface

@@ -443,9 +443,17 @@
 
 <div class="min-h-screen bg-gray-50 py-8">
 	<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-		<div class="mb-6">
-			<h1 class="text-3xl font-bold text-gray-900">Storage Management</h1>
-			<p class="mt-2 text-sm text-gray-600">Configure and manage storage providers</p>
+		<div class="mb-6 flex items-center justify-between">
+			<div>
+				<h1 class="text-3xl font-bold text-gray-900">Storage Management</h1>
+				<p class="mt-2 text-sm text-gray-600">Configure and manage storage providers</p>
+			</div>
+			<a
+				href="/admin"
+				class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm font-medium"
+			>
+				← Back to Admin
+			</a>
 		</div>
 
 		{#if error}
@@ -514,7 +522,7 @@
 								{#if tokenInvalid}
 									<div class="bg-red-50 border-l-4 border-red-500 p-4 mb-4">
 										<div class="flex items-start">
-											<div class="flex-shrink-0">
+											<div class="shrink-0">
 												<svg
 													class="h-5 w-5 text-red-400"
 													fill="currentColor"
@@ -728,6 +736,16 @@
 											{showTreeView && activeTab === 'google-drive' ? 'Hide Tree' : 'View Tree'}
 										</button>
 									</div>
+									
+									{#if testResult === 'success'}
+										<div class="mt-3 rounded-md bg-green-50 border border-green-200 px-3 py-2 text-sm text-green-800">
+											Connection test successful.
+										</div>
+									{:else if testResult}
+										<div class="mt-3 rounded-md bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-800">
+											{testResult}
+										</div>
+									{/if}
 								</form>
 							</div>
 
@@ -874,6 +892,16 @@
 											{showTreeView && activeTab === 'aws-s3' ? 'Hide Tree' : 'View Tree'}
 										</button>
 									</div>
+									
+									{#if testResult === 'success'}
+										<div class="mt-3 rounded-md bg-green-50 border border-green-200 px-3 py-2 text-sm text-green-800">
+											Connection test successful.
+										</div>
+									{:else if testResult}
+										<div class="mt-3 rounded-md bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-800">
+											{testResult}
+										</div>
+									{/if}
 								</form>
 							</div>
 
@@ -1034,6 +1062,16 @@
 											{showTreeView && activeTab === 'backblaze' ? 'Hide Tree' : 'View Tree'}
 										</button>
 									</div>
+									
+									{#if testResult === 'success'}
+										<div class="mt-3 rounded-md bg-green-50 border border-green-200 px-3 py-2 text-sm text-green-800">
+											Connection test successful.
+										</div>
+									{:else if testResult}
+										<div class="mt-3 rounded-md bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-800">
+											{testResult}
+										</div>
+									{/if}
 								</form>
 							</div>
 
@@ -1194,6 +1232,16 @@
 											{showTreeView && activeTab === 'wasabi' ? 'Hide Tree' : 'View Tree'}
 										</button>
 									</div>
+									
+									{#if testResult === 'success'}
+										<div class="mt-3 rounded-md bg-green-50 border border-green-200 px-3 py-2 text-sm text-green-800">
+											Connection test successful.
+										</div>
+									{:else if testResult}
+										<div class="mt-3 rounded-md bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-800">
+											{testResult}
+										</div>
+									{/if}
 								</form>
 							</div>
 
@@ -1318,6 +1366,16 @@
 											{showTreeView && activeTab === 'local' ? 'Hide Tree' : 'View Tree'}
 										</button>
 									</div>
+									
+									{#if testResult === 'success'}
+										<div class="mt-3 rounded-md bg-green-50 border border-green-200 px-3 py-2 text-sm text-green-800">
+											Connection test successful.
+										</div>
+									{:else if testResult}
+										<div class="mt-3 rounded-md bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-800">
+											{testResult}
+										</div>
+									{/if}
 								</form>
 							</div>
 

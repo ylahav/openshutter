@@ -61,9 +61,14 @@
 
 <main class="min-h-screen bg-gray-50 py-8">
 	<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-		<div class="mb-6">
-			<h1 class="text-3xl font-bold text-gray-900">Audit Logs</h1>
-			<p class="mt-2 text-gray-600">View system activity and user actions</p>
+		<div class="flex items-center justify-between mb-6">
+			<div>
+				<h1 class="text-3xl font-bold text-gray-900">Audit Logs</h1>
+				<p class="mt-2 text-gray-600">View system activity and user actions</p>
+			</div>
+			<a href="/admin" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm font-medium">
+				← Back to Admin
+			</a>
 		</div>
 
 		{#if error}

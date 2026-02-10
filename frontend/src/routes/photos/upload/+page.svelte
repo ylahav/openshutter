@@ -204,7 +204,7 @@
 					<div class="space-y-4">
 						{#each uploads as upload, index}
 							<div class="flex items-center space-x-4">
-								<div class="flex-shrink-0 w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
+								<div class="shrink-0 w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
 									{#if upload.status === 'success'}
 										<svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 											<path
@@ -247,7 +247,7 @@
 									</p>
 								</div>
 
-								<div class="flex-shrink-0 w-24">
+								<div class="shrink-0 w-24">
 									<div class="w-full bg-gray-200 rounded-full h-2">
 										<div
 											class="h-2 rounded-full transition-all duration-300 {upload.status === 'success'
@@ -260,7 +260,7 @@
 									</div>
 								</div>
 
-								<div class="flex-shrink-0 w-16 text-right">
+								<div class="shrink-0 w-16 text-right">
 									<span
 										class="text-xs font-medium {upload.status === 'success'
 											? 'text-green-600'

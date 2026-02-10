@@ -39,7 +39,7 @@
 			<div class="flex items-center justify-between">
 				<div class="flex items-center flex-1">
 					<svg
-						class="h-5 w-5 mr-3 flex-shrink-0"
+						class="h-5 w-5 mr-3 shrink-0"
 						fill="currentColor"
 						viewBox="0 0 20 20"
 					>

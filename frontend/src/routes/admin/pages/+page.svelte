@@ -937,7 +937,7 @@
 					<h1 class="text-2xl font-bold text-gray-900">Pages Management</h1>
 					<p class="text-gray-600 mt-2">Create and manage site pages</p>
 				</div>
-				<a href="/admin" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+				<a href="/admin" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm font-medium">
 					← Back to Admin
 				</a>
 			</div>

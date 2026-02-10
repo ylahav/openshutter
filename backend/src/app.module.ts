@@ -25,10 +25,14 @@ import { FaceDetectionModule } from './face-detection/face-detection.module';
 import { TranslationsModule } from './translations/translations.module';
 import { TemplateBuilderModule } from './template-builder/template-builder.module';
 import { SearchModule } from './search/search.module';
+import { MigrationModule } from './migration/migration.module';
+import { ScheduleModule } from '@nestjs/schedule';
+import { StorageModule } from './storage/storage.module';
 import configuration from './config/configuration';
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
@@ -52,6 +56,8 @@ import configuration from './config/configuration';
     TranslationsModule,
     TemplateBuilderModule,
     SearchModule,
+    MigrationModule,
+    StorageModule,
   ],
   controllers: [HealthController, SiteConfigController, StorageController, StorageAdminController, TemplatesController],
   providers: [AdminGuard, AdminOrOwnerGuard],

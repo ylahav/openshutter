@@ -198,20 +198,10 @@
 							<h1 class="text-2xl font-bold text-gray-900">Template Configuration</h1>
 							<p class="text-gray-600 mt-1">Configure which components are visible in your template</p>
 						</div>
-						<button
-							on:click={() => goto('/admin')}
-							class="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
-						>
-							<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									stroke-width="2"
-									d="M10 19l-7-7m0 0l7-7m-7 7h18"
-								/>
-							</svg>
-							Back to Admin
-						</button>
+						<a href="/admin" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm font-medium">
+							← Back to Admin
+						</a>
+					</div>
 					</div>
 				</div>
 
@@ -246,7 +236,7 @@
 
 						{#each Object.entries(componentLabels) as [component, label]}
 							<div class="flex items-start space-x-4 p-4 border border-gray-200 rounded-lg">
-								<div class="flex-shrink-0">
+								<div class="shrink-0">
 									<input
 										type="checkbox"
 										id={component}
@@ -267,7 +257,7 @@
 										{componentDescriptions[component as keyof typeof componentDescriptions]}
 									</p>
 								</div>
-								<div class="flex-shrink-0">
+								<div class="shrink-0">
 									<span
 										class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {localVisibility[component as keyof TemplateComponentVisibility]
 											? 'bg-green-100 text-green-800'
@@ -303,7 +293,6 @@
 				</div>
 			</div>
 		</div>
+	{/if}
 
-		<Footer />
-	</div>
-{/if}
+	<Footer />

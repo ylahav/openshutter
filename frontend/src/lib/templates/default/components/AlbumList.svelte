@@ -37,7 +37,7 @@
 			<div class="text-center">
 				<div class="p-4 bg-red-50 border border-red-200 rounded-md">
 					<div class="flex">
-						<div class="flex-shrink-0">
+						<div class="shrink-0">
 							<svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
 								<path
 									fill-rule="evenodd"

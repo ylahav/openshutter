@@ -141,6 +141,26 @@ export class GoogleDriveService implements IStorageService {
     }
   }
 
+  /**
+   * Proactive token refresh for cron/scheduled tasks. Refreshes if token is missing, expired, or expiring within buffer.
+   * No-op for service accounts. Safe to call frequently.
+   */
+  async refreshTokenIfNeeded(): Promise<void> {
+    if (this.isServiceAccount()) return
+    if (!this.config.refreshToken) return
+    const now = new Date()
+    const expiry = this.config.tokenExpiry
+    const bufferMs = 10 * 60 * 1000 // 10 minutes
+    const shouldRefresh =
+      !this.config.accessToken ||
+      !expiry ||
+      now >= expiry ||
+      (expiry.getTime() - now.getTime()) < bufferMs
+    if (shouldRefresh) {
+      await this.refreshAccessToken()
+    }
+  }
+
   private async refreshAccessToken(): Promise<void> {
     try {
       if (!this.config.refreshToken) {
@@ -1352,21 +1372,44 @@ export class GoogleDriveService implements IStorageService {
       return result
     } catch (error) {
       this.logger.error(`GoogleDriveService: Failed to get folder tree:`, error)
+      
+      // Extract more detailed error information
+      let errorMessage = `Failed to get folder tree from ${parentPath || 'root'}`
+      let underlyingError: Error | undefined = error instanceof Error ? error : undefined
+      
+      if (error && typeof error === 'object' && 'response' in error) {
+        const apiError = error as any
+        if (apiError.response?.data?.error) {
+          const googleError = apiError.response.data.error
+          errorMessage += `: ${googleError.message || googleError.code || 'Google API error'}`
+          if (googleError.code === 401 || googleError.code === 403) {
+            errorMessage += ' (Authentication or permission issue - check OAuth token and scopes)'
+          }
+        } else if (apiError.message) {
+          errorMessage += `: ${apiError.message}`
+        }
+      } else if (error instanceof Error) {
+        errorMessage += `: ${error.message}`
+      }
+      
       this.logger.error(`GoogleDriveService: Error details:`, {
         parentPath: parentPath || 'root',
         storageType: this.config.storageType || 'appdata',
         isAppData: this.isAppDataStorage(),
-        error: error instanceof Error ? {
-          message: error.message,
-          stack: error.stack,
-          name: error.name
+        rootFolderId: this.getRootFolderId(),
+        errorMessage,
+        error: underlyingError ? {
+          message: underlyingError.message,
+          stack: underlyingError.stack,
+          name: underlyingError.name
         } : error
       })
+      
       throw new StorageOperationError(
-        `Failed to get folder tree from ${parentPath || 'root'}`,
+        errorMessage,
         this.providerId,
         'getFolderTree',
-        error instanceof Error ? error : undefined
+        underlyingError
       )
     }
   }

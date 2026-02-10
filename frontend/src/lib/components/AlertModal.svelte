@@ -110,7 +110,7 @@
 			>
 				<div class="p-6">
 					<div class="flex items-start">
-						<div class="flex-shrink-0">
+						<div class="shrink-0">
 							<div class="flex items-center justify-center h-10 w-10 rounded-full {bgColor}">
 								{#if variant === 'error'}
 									<svg class="h-6 w-6 {iconColor}" fill="none" viewBox="0 0 24 24" stroke="currentColor">

@@ -43,7 +43,7 @@
 		class="group relative bg-white overflow-hidden border border-black cursor-pointer hover:border-gray-600 transition-all duration-200 flex flex-col {className}"
 	>
 		<!-- Cover Image -->
-		<div class="relative aspect-[3/2] bg-gray-100 overflow-hidden flex-shrink-0">
+		<div class="relative aspect-[3/2] bg-gray-100 overflow-hidden shrink-0">
 			{#if !coverImageLoading && coverImageUrl}
 				<img
 					src={coverImageUrl}

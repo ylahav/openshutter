@@ -741,6 +741,9 @@
 					<p class="mt-2 text-sm text-gray-500">Loading album information...</p>
 				{/if}
 			</div>
+			<a href="/admin" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm font-medium">
+				← Back to Admin
+			</a>
 			<div class="flex space-x-3">
 				<button
 					on:click={() => {

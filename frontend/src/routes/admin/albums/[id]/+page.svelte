@@ -599,7 +599,10 @@
 							{/if}
 						</p>
 					</div>
-					<div class="flex gap-3">
+					<div class="flex items-center gap-3">
+						<a href="/admin" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm font-medium">
+							← Back to Admin
+						</a>
 						<a
 							href="/admin/photos/upload?albumId={albumId}"
 							class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
