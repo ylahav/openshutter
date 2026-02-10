@@ -28,7 +28,7 @@ frontend/.svelte-kit/
 frontend/build/
 frontend/.svelte-kit/
 
-# Next.js build artifacts (legacy, during migration)
+# Legacy build artifacts from previous frontend framework
 .next/
 out/
 

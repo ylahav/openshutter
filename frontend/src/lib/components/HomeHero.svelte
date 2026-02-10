@@ -76,7 +76,7 @@
   <section class="relative min-h-[60vh] flex items-center overflow-hidden bg-gray-900 text-white">
     {#if backgroundImageUrl}
       <div class="absolute inset-0">
-        <!-- Use a normal img to avoid Next.js-specific Image component -->
+        <!-- Use a normal img for broad compatibility across environments -->
         <img
           src={backgroundImageUrl}
           alt="Hero background"

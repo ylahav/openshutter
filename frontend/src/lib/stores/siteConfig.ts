@@ -42,7 +42,7 @@ function createSiteConfigStore() {
 				
 				const data = await response.json();
 				
-				// Handle both NestJS (direct data) and Next.js ({success, data}) formats
+				// Handle both NestJS (direct data) and legacy ({success, data}) API formats
 				const configData = data.success ? data.data : data;
 				
 				update((state) => ({

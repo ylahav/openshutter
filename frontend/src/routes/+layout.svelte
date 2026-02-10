@@ -22,7 +22,7 @@
 		}
 		loadSession();
 
-		// Unregister any existing service workers from Next.js
+		// Unregister any existing service workers from previous app versions
 		if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
 			navigator.serviceWorker.getRegistrations().then((registrations) => {
 				for (const registration of registrations) {
