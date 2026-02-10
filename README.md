@@ -471,7 +471,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
   - [x] **IPTC/XMP import** – On upload and on “Re-extract from file”, IPTC and XMP metadata are extracted (exifr) and stored in the photo’s `iptcXmp` field (keywords, caption, copyright, creator, city, country, etc.); API and templates can use `iptcXmp`. Export (write back to file) optional/future.
 
 ### Phase 3 (Next 12 months) *
-- [ ] Design then implement Import/Sync (currently disabled)
+- [x] Import/Sync & storage migration: export/import portable packages, import from raw folders, and migrate photo storage between providers (see `docs/IMPORT_SYNC_DESIGN.md` and `docs/PHASE_3_WORKFLOW.md`)
 - [ ] AI-powered photo tagging
 - [ ] Advanced analytics
 - [ ] API marketplace
