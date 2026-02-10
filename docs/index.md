@@ -25,8 +25,7 @@ Welcome to the OpenShutter documentation. This comprehensive guide covers all as
 - [API Testing](./API_TESTING.md) - How to test NestJS API endpoints
 - [Performance Improvements](./PERFORMANCE_IMPROVEMENTS.md) - Query optimizations and recommended indexes
 - [Type System](./TYPE_SYSTEM.md) - Centralized types (backend and frontend)
-- [SvelteKit Migration](./SVELTEKIT_MIGRATION.md) - Next.js to SvelteKit migration plan
-- [SvelteKit Progress](./SVELTEKIT_PROGRESS.md) - Migration status and progress
+- [SvelteKit Progress](./SVELTEKIT_PROGRESS.md) - SvelteKit frontend status and notes
 
 ### Other
 - [Security Policy](./SECURITY.md) - Supported versions and reporting vulnerabilities
