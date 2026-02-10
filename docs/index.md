@@ -68,7 +68,7 @@ Welcome to the OpenShutter documentation. This comprehensive guide covers all as
 ## 🏗️ Architecture
 
 ### Tech Stack
-- **Frontend**: SvelteKit 2, Svelte 5, TypeScript (migrating from Next.js 15/React 19)
+- **Frontend**: SvelteKit 2, Svelte 5, TypeScript
 - **Styling**: Tailwind CSS, Svelte transitions
 - **Backend**: NestJS API (port 5000), MongoDB
 - **Storage**: Google Drive API, AWS S3, Backblaze B2, Wasabi, Local Storage
@@ -93,14 +93,10 @@ frontend/src/
 │   ├── stores/         # Svelte stores (language, siteConfig)
 │   ├── types/          # TypeScript definitions
 │   └── utils/          # Utility functions
-├── app/                # Next.js code (legacy, being migrated)
-│   ├── admin/          # Next.js admin pages (to be removed)
-│   ├── components/     # React components (to be migrated)
-│   └── api/            # Next.js API routes (legacy)
 └── templates/          # Gallery templates
 ```
 
-**Migration Status**: The frontend is migrating from Next.js to SvelteKit. Most admin routes and core infrastructure have been migrated. See [SVELTEKIT_PROGRESS.md](./SVELTEKIT_PROGRESS.md) for detailed status.
+**Status**: The frontend is built on SvelteKit under `frontend/src/routes` and `frontend/src/lib`.
 
 ## 🔧 Configuration
 
@@ -123,11 +119,9 @@ Key configuration options in `.env.local`:
 
 ### Available Scripts
 ```bash
-pnpm dev          # SvelteKit development server (port 4000)
-pnpm dev:next     # Next.js development server (legacy, during migration)
-pnpm build        # Build SvelteKit for production
-pnpm build:next   # Build Next.js for production (legacy)
-pnpm start        # Production server (port 4000)
+pnpm dev          # Full stack dev: backend + SvelteKit frontend
+pnpm build        # Build backend + frontend
+pnpm start        # Start production servers
 pnpm lint         # Code linting
 pnpm type-check   # TypeScript checking
 ```
@@ -142,7 +136,6 @@ pnpm type-check   # TypeScript checking
 ## 📖 Additional Resources
 
 - **Main README**: [../README.md](../README.md) - Complete setup and usage guide
-- **SvelteKit Progress**: [SVELTEKIT_PROGRESS.md](./SVELTEKIT_PROGRESS.md) - Migration status and progress
 - **API Documentation**: Backend API available at `http://localhost:5000/api`
 - **Component Library**: Located in `src/lib/components/` (Svelte) and `src/components/ui/` (React, legacy)
 - **Type Definitions**: Available in `src/lib/types/`
@@ -159,4 +152,4 @@ For issues, questions, or contributions:
 
 *Last updated: January 2025*
 
-**Note**: The frontend is currently migrating from Next.js to SvelteKit. Most admin routes have been migrated. Legacy Next.js code remains in `src/app/` during the migration period.
+**Note**: The frontend uses SvelteKit throughout; all new work should target Svelte routes and Svelte components.

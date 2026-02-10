@@ -45,7 +45,7 @@ A comprehensive photo gallery management system with multi-storage support, adva
 
 ## 🚀 Tech Stack
 
-- **Frontend**: SvelteKit 2, Svelte 5, TypeScript, Tailwind CSS (migrating from Next.js 15/React 19)
+- **Frontend**: SvelteKit 2, Svelte 5, TypeScript, Tailwind CSS
 - **Backend**: Node.js, NestJS, Mongoose
 - **Database**: MongoDB
 - **Storage**: Google Drive API, AWS S3, Backblaze B2, Wasabi, Local Storage
@@ -173,11 +173,9 @@ For detailed admin setup instructions, see [docs/ADMIN_SETUP.md](docs/ADMIN_SETU
 
 3. **Available scripts**
    ```bash
-   pnpm dev          # Start SvelteKit development server on port 4000
-   pnpm dev:next     # Start Next.js development server (legacy, during migration)
-   pnpm build        # Build SvelteKit for production
-   pnpm build:next   # Build Next.js for production (legacy)
-   pnpm start        # Start production server on port 4000
+   pnpm dev          # Start full stack dev (backend + frontend)
+   pnpm build        # Build backend + frontend for production
+   pnpm start        # Start production servers (backend + SvelteKit preview)
    pnpm lint         # Run ESLint
    pnpm type-check   # Run TypeScript type checking
    ```
@@ -230,7 +228,7 @@ For detailed deployment instructions, see [docs/SERVER_DEPLOYMENT.md](docs/SERVE
 
 ```
 .
-├── frontend/            # SvelteKit 2 frontend application (migrating from Next.js)
+├── frontend/            # SvelteKit 2 frontend application
 │   ├── src/
 │   │   ├── routes/      # SvelteKit routes (+page.svelte, +layout.svelte)
 │   │   │   ├── admin/   # Admin pages (migrated to SvelteKit)
@@ -242,9 +240,6 @@ For detailed deployment instructions, see [docs/SERVER_DEPLOYMENT.md](docs/SERVE
 │   │   │   ├── types/       # TypeScript types
 │   │   │   ├── utils/       # Utility functions
 │   │   │   └── i18n/        # Translation files (en.json, he.json)
-│   │   ├── app/         # Next.js code (legacy, being migrated)
-│   │   │   ├── admin/   # Next.js admin pages (to be removed)
-│   │   │   └── components/  # React components (to be migrated)
 │   │   └── templates/   # Gallery templates
 │   ├── public/          # Static assets
 │   ├── svelte.config.js # SvelteKit configuration
@@ -273,7 +268,7 @@ For detailed deployment instructions, see [docs/SERVER_DEPLOYMENT.md](docs/SERVE
 
 **Note**: The `tmp/` folder (if present) contains temporary build artifacts and can be safely deleted. It is excluded from version control via `.gitignore`.
 
-**Migration Status**: The frontend is currently migrating from Next.js to SvelteKit. Most admin routes and core infrastructure have been migrated. See [SVELTEKIT_PROGRESS.md](frontend/SVELTEKIT_PROGRESS.md) for detailed migration status.
+**Status**: The frontend is built on SvelteKit. All core user/admin flows run through Svelte routes under `frontend/src/routes`.
 
 ## 🔧 Configuration
 
