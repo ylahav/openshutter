@@ -32,4 +32,12 @@ export class UpdatePageModuleDto {
 	@IsNumber()
 	@IsOptional()
 	columnProportion?: number;
+
+	@IsNumber()
+	@IsOptional()
+	rowSpan?: number;
+
+	@IsNumber()
+	@IsOptional()
+	colSpan?: number;
 }

@@ -48,6 +48,8 @@
 		rowOrder?: number;
 		columnIndex?: number;
 		columnProportion?: number;
+		rowSpan?: number;
+		colSpan?: number;
 	}
 
 	interface FeatureGridProps {
@@ -64,6 +66,15 @@
 		title: MultiLangText;
 		body: MultiLangHTML;
 		background: 'white' | 'gray';
+	}
+
+	interface HeroProps {
+		title?: MultiLangText;
+		subtitle?: MultiLangText;
+		ctaLabel?: MultiLangText;
+		ctaUrl?: string;
+		backgroundStyle?: 'light' | 'dark' | 'image' | 'galleryLeading';
+		backgroundImage?: string;
 	}
 
 	interface AlbumsGridProps {
@@ -110,16 +121,54 @@
 			published: () => publishedFilter
 		}
 	});
-	const crudOps = useCrudOperations<Page>('/api/admin/pages', {
+		const crudOps = useCrudOperations<Page>('/api/admin/pages', {
 		createSuccessMessage: 'Page created successfully!',
 		updateSuccessMessage: 'Page updated successfully!',
 		deleteSuccessMessage: 'Page deleted successfully!',
-		transformPayload: (data: Partial<Page>) => ({
-			...data,
-			slug: data.alias,
-			layout: { zones: parseZones(data.layoutZones) }
-		}),
-		onCreateSuccess: (newPage) => {
+		transformPayload: (data: Partial<Page> & { gridRows?: number; gridColumns?: number; urlParams?: string }) => {
+			const layout: any = { zones: parseZones(data.layoutZones || 'main') };
+			if (data.gridRows !== undefined) layout.gridRows = data.gridRows;
+			if (data.gridColumns !== undefined) layout.gridColumns = data.gridColumns;
+			if (data.urlParams) layout.urlParams = data.urlParams;
+			
+			return {
+				...data,
+				slug: data.alias,
+				layout
+			};
+		},
+		onCreateSuccess: async (newPage) => {
+			// Save modules after page is created
+			if (pendingModules.length > 0 && newPage?._id) {
+				try {
+					for (const module of pendingModules) {
+						const payload: Record<string, unknown> = {
+							type: module.type,
+							rowOrder: module.rowOrder,
+							columnIndex: module.columnIndex,
+							columnProportion: module.columnProportion || 1,
+							props: module.props || {}
+						};
+						if (module.rowSpan && module.rowSpan > 1) payload.rowSpan = module.rowSpan;
+						if (module.colSpan && module.colSpan > 1) payload.colSpan = module.colSpan;
+						
+						const response = await fetch(`/api/admin/pages/${newPage._id}/modules`, {
+							method: 'POST',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify(payload)
+						});
+						
+						if (!response.ok) {
+							logger.error('Failed to save module:', await response.text());
+						}
+					}
+				} catch (err) {
+					logger.error('Error saving modules after page creation:', err);
+					// Don't fail the page creation if modules fail
+				}
+			}
+			
+			pendingModules = [];
 			crudLoader.items.update(items => [...items, newPage]);
 			dialogs.closeAll();
 			resetForm();
@@ -180,6 +229,7 @@
 	let modules: PageModuleData[] = [];
 	let modulesLoading = false;
 	let modulesError = '';
+	let pendingModules: PageModuleData[] = []; // Modules to save after page creation
 	let moduleForm = {
 		id: '',
 		type: 'hero',
@@ -196,8 +246,15 @@
 		leadingImage: '',
 		category: 'site' as 'system' | 'site',
 		isPublished: false,
-		layoutZones: 'main'
+		layoutZones: 'main',
+		gridRows: 1,
+		gridColumns: 1,
+		urlParams: ''
 	};
+	
+	// Grid builder state
+	let showGridBuilder = false;
+	let gridInitialized = false;
 
 	onMount(async () => {
 		await Promise.all([crudLoader.loadItems(), loadAlbums()]);
@@ -284,8 +341,16 @@
 			leadingImage: '',
 			category: 'site',
 			isPublished: false,
-			layoutZones: 'main'
+			layoutZones: 'main',
+			gridRows: 1,
+			gridColumns: 1,
+			urlParams: ''
 		};
+		showGridBuilder = false;
+		gridInitialized = false;
+		modules = [];
+		pendingModules = [];
+		rowStructure = new Map();
 	}
 
 	function openCreateDialog() {
@@ -294,6 +359,43 @@
 		crudOps.error.set('');
 		modules = [];
 		modulesError = '';
+		showGridBuilder = false;
+		gridInitialized = false;
+	}
+	
+	function initializeGrid() {
+		if (formData.gridRows < 1 || formData.gridColumns < 1) {
+			error = 'Grid dimensions must be at least 1x1';
+			return;
+		}
+		
+		// Initialize row structure with equal proportions for each column
+		const newStructure = new Map<number, number[]>();
+		const proportions = Array(formData.gridColumns).fill(1); // Equal proportions
+		
+		for (let row = 0; row < formData.gridRows; row++) {
+			newStructure.set(row, proportions);
+		}
+		
+		rowStructure = newStructure;
+		showGridBuilder = true;
+		gridInitialized = true;
+		modules = [];
+	}
+
+	function inferGridFromModules(moduleList: PageModuleData[]): { rows: number; cols: number } {
+		if (!moduleList.length) return { rows: 1, cols: 1 };
+		let maxRow = 0;
+		let maxCol = 0;
+		for (const m of moduleList) {
+			if (m.rowOrder !== undefined && m.columnIndex !== undefined) {
+				const endRow = (m.rowOrder ?? 0) + (m.rowSpan ?? 1);
+				const endCol = (m.columnIndex ?? 0) + (m.colSpan ?? 1);
+				if (endRow > maxRow) maxRow = endRow;
+				if (endCol > maxCol) maxCol = endCol;
+			}
+		}
+		return { rows: Math.max(1, maxRow), cols: Math.max(1, maxCol) };
 	}
 
 	function openEditDialog(page: Page) {
@@ -302,6 +404,15 @@
 		const subtitleField = typeof page.subtitle === 'string'
 			? { en: page.subtitle, he: '' }
 			: page.subtitle || { en: '', he: '' };
+		
+		// Extract grid dimensions from layout (fallback to 1x1 if not persisted)
+		const layout = page.layout || {};
+		let gridRows = (layout as any).gridRows;
+		let gridColumns = (layout as any).gridColumns;
+		if (typeof gridRows !== 'number' || gridRows < 1) gridRows = 1;
+		if (typeof gridColumns !== 'number' || gridColumns < 1) gridColumns = 1;
+		const urlParams = (layout as any).urlParams || '';
+		
 		formData = {
 			title: titleField,
 			subtitle: subtitleField,
@@ -309,10 +420,24 @@
 			leadingImage: page.leadingImage || '',
 			category: page.category || 'site',
 			isPublished: page.isPublished || false,
-			layoutZones: (page.layout?.zones && page.layout.zones.length > 0)
-				? page.layout.zones.join(', ')
-				: 'main'
+			layoutZones: (layout.zones && layout.zones.length > 0)
+				? layout.zones.join(', ')
+				: 'main',
+			gridRows,
+			gridColumns,
+			urlParams
 		};
+		
+		// Initialize grid structure from existing modules or dimensions
+		const newStructure = new Map<number, number[]>();
+		const proportions = Array(gridColumns).fill(1);
+		for (let row = 0; row < gridRows; row++) {
+			newStructure.set(row, proportions);
+		}
+		rowStructure = newStructure;
+		showGridBuilder = true;
+		gridInitialized = true;
+		
 		dialogs.openEdit();
 		crudOps.error.set('');
 		loadModules(page._id);
@@ -349,27 +474,42 @@
 			const result = await response.json();
 			modules = Array.isArray(result.data) ? (result.data as PageModuleData[]) : [];
 			
-			// Populate rowStructure from loaded modules
-			const newStructure = new Map<number, number[]>();
-			modules.forEach((module) => {
-				if (module.rowOrder !== undefined && module.columnProportion !== undefined) {
-					if (!newStructure.has(module.rowOrder)) {
-						// Find all columns in this row to get proportions
-						const rowModules = modules.filter((m) => m.rowOrder === module.rowOrder);
-						const proportions = rowModules
-							.sort((a, b) => (a.columnIndex || 0) - (b.columnIndex || 0))
-							.map((m) => m.columnProportion || 1);
-						newStructure.set(module.rowOrder, proportions);
+			// If editing and layout had no grid dimensions (1x1), infer from modules and update form + structure
+			const layout = editingPage?.layout || {};
+			const hadGridDims = typeof (layout as any).gridRows === 'number' && (layout as any).gridRows > 1
+				|| typeof (layout as any).gridColumns === 'number' && (layout as any).gridColumns > 1;
+			if (editingPage && !hadGridDims && modules.length > 0) {
+				const { rows, cols } = inferGridFromModules(modules);
+				formData.gridRows = rows;
+				formData.gridColumns = cols;
+				// Rebuild rowStructure with inferred dimensions
+				const newStructure = new Map<number, number[]>();
+				const proportions = Array(cols).fill(1);
+				for (let r = 0; r < rows; r++) {
+					newStructure.set(r, proportions);
+				}
+				rowStructure = newStructure;
+			} else {
+				// Populate rowStructure from loaded modules (original logic)
+				const newStructure = new Map<number, number[]>();
+				modules.forEach((module) => {
+					if (module.rowOrder !== undefined && module.columnProportion !== undefined) {
+						if (!newStructure.has(module.rowOrder)) {
+							const rowModules = modules.filter((m) => m.rowOrder === module.rowOrder);
+							const proportions = rowModules
+								.sort((a, b) => (a.columnIndex || 0) - (b.columnIndex || 0))
+								.map((m) => m.columnProportion || 1);
+							newStructure.set(module.rowOrder, proportions);
+						}
 					}
-				}
-			});
-			// Merge with existing rowStructure (for rows without modules yet)
-			rowStructure.forEach((proportions, rowOrder) => {
-				if (!newStructure.has(rowOrder)) {
-					newStructure.set(rowOrder, proportions);
-				}
-			});
-			rowStructure = newStructure;
+				});
+				rowStructure.forEach((proportions, rowOrder) => {
+					if (!newStructure.has(rowOrder)) {
+						newStructure.set(rowOrder, proportions);
+					}
+				});
+				rowStructure = newStructure;
+			}
 		} catch (err) {
 			logger.error('Error loading modules:', err);
 			modulesError = handleError(err, 'Failed to load modules');
@@ -406,6 +546,14 @@
 	let richTextTitle: MultiLangText = { en: '', he: '' };
 	let richTextBody: MultiLangHTML = { en: '', he: '' };
 	let richTextBackground: 'white' | 'gray' = 'white';
+
+	// Hero form state
+	let heroTitle: MultiLangText = { en: '', he: '' };
+	let heroSubtitle: MultiLangText = { en: '', he: '' };
+	let heroCtaLabel: MultiLangText = { en: '', he: '' };
+	let heroCtaUrl = '';
+	let heroBackgroundStyle: 'light' | 'dark' | 'image' | 'galleryLeading' = 'light';
+	let heroBackgroundImage = '';
 
 	// Albums Grid module form state
 	let albumsGridTitle: MultiLangText = { en: '', he: '' };
@@ -460,6 +608,33 @@
 			richTextBackground = 'white';
 		}
 
+		// Initialize hero form if it's a hero module
+		if (module.type === 'hero') {
+			const props = module.props || {};
+			const config = props.config ?? props;
+			heroTitle = typeof config.title === 'string'
+				? { en: config.title, he: '' }
+				: (config.title || { en: '', he: '' });
+			heroSubtitle = typeof config.subtitle === 'string'
+				? { en: config.subtitle, he: '' }
+				: (config.subtitle || { en: '', he: '' });
+			heroCtaLabel = typeof config.ctaLabel === 'string'
+				? { en: config.ctaLabel, he: '' }
+				: (config.ctaLabel || { en: '', he: '' });
+			heroCtaUrl = config.ctaUrl || '';
+			heroBackgroundStyle = (config.backgroundStyle === 'dark' || config.backgroundStyle === 'image' || config.backgroundStyle === 'galleryLeading')
+				? config.backgroundStyle
+				: 'light';
+			heroBackgroundImage = config.backgroundImage || '';
+		} else {
+			heroTitle = { en: '', he: '' };
+			heroSubtitle = { en: '', he: '' };
+			heroCtaLabel = { en: '', he: '' };
+			heroCtaUrl = '';
+			heroBackgroundStyle = 'light';
+			heroBackgroundImage = '';
+		}
+
 		// Initialize albums grid module form if it's an albumsGrid module
 		if (module.type === 'albumsGrid') {
 			const props = module.props || {};
@@ -507,10 +682,10 @@
 	}
 
 	async function saveModuleEdit() {
-		if (!editingPage || !editingModule) return;
+		if (!editingModule) return;
 		modulesError = '';
 		try {
-			let props: FeatureGridProps | RichTextProps | AlbumsGridProps | Record<string, unknown> = {};
+			let props: FeatureGridProps | RichTextProps | HeroProps | AlbumsGridProps | Record<string, unknown> = {};
 			
 			// Handle featureGrid module specially
 			if (moduleForm.type === 'featureGrid') {
@@ -530,6 +705,16 @@
 					body: richTextBody,
 					background: richTextBackground
 				} as RichTextProps;
+			} else if (moduleForm.type === 'hero') {
+				// Handle hero module
+				props = {
+					title: heroTitle,
+					subtitle: heroSubtitle,
+					ctaLabel: heroCtaLabel,
+					ctaUrl: heroCtaUrl || undefined,
+					backgroundStyle: heroBackgroundStyle,
+					backgroundImage: heroBackgroundStyle === 'image' ? heroBackgroundImage : undefined
+				} as HeroProps;
 			} else if (moduleForm.type === 'albumsGrid') {
 				// Handle albumsGrid module
 				props = {
@@ -540,17 +725,29 @@
 			} else {
 				props = moduleForm.propsJson.trim() ? JSON.parse(moduleForm.propsJson) as Record<string, unknown> : {};
 			}
-			
+
+			// Create mode: update module locally (no API, page not created yet)
+			if (!editingPage) {
+				modules = modules.map((m) =>
+					m._id === editingModule!._id ? { ...m, type: moduleForm.type, props } : m
+				);
+				showModuleEditDialog = false;
+				editingModule = null;
+				resetModuleForm();
+				return;
+			}
+
+			// Edit mode: save via API
 			const payload: ModulePayload = {
 				type: moduleForm.type,
 				props
 			};
-
-			// Preserve row/column structure if it exists
 			if (editingModule.rowOrder !== undefined) {
 				payload.rowOrder = editingModule.rowOrder;
 				payload.columnIndex = editingModule.columnIndex;
 				payload.columnProportion = editingModule.columnProportion || 1;
+				if (editingModule.rowSpan) payload.rowSpan = editingModule.rowSpan;
+				if (editingModule.colSpan) payload.colSpan = editingModule.colSpan;
 			} else {
 				// Legacy zone/order
 				payload.zone = moduleForm.zone;
@@ -584,7 +781,7 @@
 		if (!editingPage) return;
 		modulesError = '';
 		try {
-			let props: FeatureGridProps | RichTextProps | AlbumsGridProps | Record<string, unknown> = {};
+			let props: FeatureGridProps | RichTextProps | HeroProps | AlbumsGridProps | Record<string, unknown> = {};
 			
 			// Handle module-specific props
 			if (moduleForm.type === 'featureGrid') {
@@ -603,6 +800,15 @@
 					body: richTextBody,
 					background: richTextBackground
 				} as RichTextProps;
+			} else if (moduleForm.type === 'hero') {
+				props = {
+					title: heroTitle,
+					subtitle: heroSubtitle,
+					ctaLabel: heroCtaLabel,
+					ctaUrl: heroCtaUrl || undefined,
+					backgroundStyle: heroBackgroundStyle,
+					backgroundImage: heroBackgroundStyle === 'image' ? heroBackgroundImage : undefined
+				} as HeroProps;
 			} else if (moduleForm.type === 'albumsGrid') {
 				props = {
 					title: albumsGridTitle,
@@ -646,8 +852,15 @@
 	}
 
 	async function deleteModule(moduleId: string) {
-		if (!editingPage) return;
 		modulesError = '';
+		
+		// If we're in create mode (no editingPage), remove module locally
+		if (!editingPage) {
+			modules = modules.filter((m) => m._id !== moduleId);
+			return;
+		}
+		
+		// Edit mode - delete via API
 		try {
 			const response = await fetch(`/api/admin/pages/${editingPage._id}/modules/${moduleId}`, {
 				method: 'DELETE'
@@ -666,238 +879,102 @@
 	// Row/Column Layout Handlers
 	let rowStructure: Map<number, number[]> = new Map(); // rowOrder -> proportions[]
 
-	async function handleAddRow(proportions: number[]) {
-		if (!editingPage) return;
-		modulesError = '';
-		try {
-			// Find the next row order
-			const maxRowOrder = modules
-				.filter((m) => m.rowOrder !== undefined)
-				.reduce((max, m) => Math.max(max, m.rowOrder || 0), -1);
-			const nextRowOrder = maxRowOrder + 1;
-
-			// Create placeholder modules for each column to establish the structure
-			// These will be replaced when user assigns actual modules
-			for (let colIdx = 0; colIdx < proportions.length; colIdx++) {
-				const payload = {
-					type: 'richText', // Placeholder - will be updated when user assigns module
-					rowOrder: nextRowOrder,
-					columnIndex: colIdx,
-					columnProportion: proportions[colIdx],
-					props: { _placeholder: true } // Mark as placeholder
-				};
-
-				const response = await fetch(`/api/admin/pages/${editingPage._id}/modules`, {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify(payload)
-				});
-
-				if (!response.ok) {
-					await handleApiErrorResponse(response);
-				}
-			}
-
-			// Store row structure - reassign to trigger reactivity
-			const newStructure = new Map(rowStructure);
-			newStructure.set(nextRowOrder, proportions);
-			rowStructure = newStructure;
-			
-			// Reload modules to show the new row
-			await loadModules(editingPage._id);
-		} catch (err) {
-			logger.error('Error adding row:', err);
-			modulesError = handleError(err, 'Failed to add row');
-		}
+	/** Check if a cell is inside a module's span */
+	function isCellInModule(row: number, col: number, m: PageModuleData): boolean {
+		const r = m.rowOrder ?? -1;
+		const c = m.columnIndex ?? -1;
+		const rs = m.rowSpan ?? 1;
+		const cs = m.colSpan ?? 1;
+		return row >= r && row < r + rs && col >= c && col < c + cs;
 	}
 
-	async function handleDeleteRow(rowOrder: number) {
-		if (!editingPage) return;
+	async function handleAssignModule(
+		rowOrder: number,
+		columnIndex: number,
+		moduleType: string,
+		props: Record<string, unknown>,
+		rowSpan: number = 1,
+		colSpan: number = 1
+	) {
 		modulesError = '';
-		try {
-			// Delete all modules in this row
-			const rowModules = modules.filter((m) => m.rowOrder === rowOrder);
-			for (const module of rowModules) {
-				await deleteModule(module._id);
-			}
-			// Remove from rowStructure - reassign to trigger reactivity
-			const newStructure = new Map(rowStructure);
-			newStructure.delete(rowOrder);
-			rowStructure = newStructure;
-			// Reload to get updated list
-			await loadModules(editingPage._id);
-		} catch (err) {
-			logger.error('Error deleting row:', err);
-			modulesError = handleError(err, 'Failed to delete row');
+
+		// Compute columnProportion from spanned columns
+		let columnProportion = 1;
+		if (rowStructure.has(rowOrder)) {
+			const proportions = rowStructure.get(rowOrder)!;
+			columnProportion = proportions.slice(columnIndex, columnIndex + colSpan).reduce((a, p) => a + (p || 1), 0);
 		}
-	}
 
-	async function handleReorderRow(rowOrder: number, direction: 'up' | 'down') {
-		if (!editingPage) return;
-		modulesError = '';
-		try {
-			// Get all row orders sorted
-			const allRowOrders = Array.from(rowStructure.keys()).sort((a, b) => a - b);
-			const currentIndex = allRowOrders.indexOf(rowOrder);
-			
-			if (currentIndex === -1) return;
-			
-			// Determine target index
-			const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
-			if (targetIndex < 0 || targetIndex >= allRowOrders.length) return;
-			
-			const targetRowOrder = allRowOrders[targetIndex];
-			
-			// Get all modules in both rows
-			const currentRowModules = modules.filter((m) => m.rowOrder === rowOrder);
-			const targetRowModules = modules.filter((m) => m.rowOrder === targetRowOrder);
-			
-			// Swap rowOrder values for all modules
-			// Use a temporary value to avoid conflicts
-			const tempRowOrder = 999999; // Temporary high value
-			
-			// First, move current row to temp
-			for (const module of currentRowModules) {
-				const payload: ModulePayload = {
-					type: module.type,
-					rowOrder: tempRowOrder,
-					columnIndex: module.columnIndex,
-					columnProportion: module.columnProportion || 1,
-					props: module.props || {}
-				};
-				
-				await fetch(`/api/admin/pages/${editingPage._id}/modules/${module._id}`, {
-					method: 'PUT',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify(payload)
+		// If we're in create mode (no editingPage), store modules locally
+		if (!editingPage) {
+			try {
+				// Remove any modules that would be covered by this span (including origin - we'll replace)
+				modules = modules.filter((m) => {
+					const inSpan = isCellInModule(m.rowOrder!, m.columnIndex!, { rowOrder, columnIndex, rowSpan, colSpan } as PageModuleData);
+					return !inSpan;
 				});
-			}
-			
-			// Then, move target row to current position
-			for (const module of targetRowModules) {
-				const payload: ModulePayload = {
-					type: module.type,
-					rowOrder: rowOrder,
-					columnIndex: module.columnIndex,
-					columnProportion: module.columnProportion || 1,
-					props: module.props || {}
-				};
-				
-				await fetch(`/api/admin/pages/${editingPage._id}/modules/${module._id}`, {
-					method: 'PUT',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify(payload)
-				});
-			}
-			
-			// Finally, move current row (from temp) to target position
-			for (const module of currentRowModules) {
-				const payload: ModulePayload = {
-					type: module.type,
-					rowOrder: targetRowOrder,
-					columnIndex: module.columnIndex,
-					columnProportion: module.columnProportion || 1,
-					props: module.props || {}
-				};
-				
-				await fetch(`/api/admin/pages/${editingPage._id}/modules/${module._id}`, {
-					method: 'PUT',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify(payload)
-				});
-			}
-			
-			// Update modules array immediately for instant UI update
-			modules = modules.map((m) => {
-				if (m.rowOrder === rowOrder) {
-					return { ...m, rowOrder: targetRowOrder };
-				} else if (m.rowOrder === targetRowOrder) {
-					return { ...m, rowOrder: rowOrder };
-				}
-				return m;
-			});
-			
-			// Update rowStructure
-			const newStructure = new Map(rowStructure);
-			const currentProportions = newStructure.get(rowOrder);
-			const targetProportions = newStructure.get(targetRowOrder);
-			
-			if (currentProportions && targetProportions) {
-				newStructure.set(rowOrder, targetProportions);
-				newStructure.set(targetRowOrder, currentProportions);
-				rowStructure = newStructure;
-			}
-			
-			// Reload modules to sync with backend
-			await loadModules(editingPage._id);
-		} catch (err) {
-			logger.error('Error reordering row:', err);
-			modulesError = handleError(err, 'Failed to reorder row');
-		}
-	}
 
-	async function handleAssignModule(rowOrder: number, columnIndex: number, moduleType: string, props: Record<string, unknown>) {
-		if (!editingPage) return;
-		modulesError = '';
-		try {
-			// Check if there's already a module in this column
-			const existingModule = modules.find(
-				(m) => m.rowOrder === rowOrder && m.columnIndex === columnIndex
-			);
-
-			// Get column proportion from row structure or existing module
-			let columnProportion = 1;
-			if (rowStructure.has(rowOrder)) {
-				const proportions = rowStructure.get(rowOrder)!;
-				columnProportion = proportions[columnIndex] || 1;
-			} else if (existingModule) {
-				columnProportion = existingModule.columnProportion || 1;
-			}
-
-			if (existingModule) {
-				// Update existing module (remove placeholder flag if present)
-				const updatedProps = { ...(props || {}) };
-				delete updatedProps._placeholder;
-				const payload = {
+				const newModule: PageModuleData = {
+					_id: `temp-${Date.now()}-${Math.random()}`,
+					pageId: '',
 					type: moduleType,
 					rowOrder,
 					columnIndex,
 					columnProportion,
-					props: updatedProps
+					rowSpan: rowSpan > 1 ? rowSpan : undefined,
+					colSpan: colSpan > 1 ? colSpan : undefined,
+					props: props || {}
 				};
+				modules = [...modules, newModule];
+			} catch (err) {
+				logger.error('Error assigning module:', err);
+				modulesError = handleError(err, 'Failed to assign module');
+			}
+			return;
+		}
 
+		// Edit mode - save via API
+		try {
+			// Remove modules that would be covered by this span
+			const modulesToRemove = modules.filter((m) => {
+				const inSpan = rowOrder <= (m.rowOrder ?? -1) && (m.rowOrder ?? -1) < rowOrder + rowSpan &&
+					columnIndex <= (m.columnIndex ?? -1) && (m.columnIndex ?? -1) < columnIndex + colSpan;
+				const isOrigin = m.rowOrder === rowOrder && m.columnIndex === columnIndex;
+				return inSpan && !isOrigin;
+			});
+			for (const m of modulesToRemove) {
+				await fetch(`/api/admin/pages/${editingPage._id}/modules/${m._id}`, { method: 'DELETE' });
+			}
+			modules = modules.filter((m) => !modulesToRemove.includes(m));
+
+			const existingModule = modules.find((m) => m.rowOrder === rowOrder && m.columnIndex === columnIndex);
+			const payload: Record<string, unknown> = {
+				type: moduleType,
+				rowOrder,
+				columnIndex,
+				columnProportion,
+				props: props || {}
+			};
+			if (rowSpan > 1) payload.rowSpan = rowSpan;
+			if (colSpan > 1) payload.colSpan = colSpan;
+
+			if (existingModule) {
 				const response = await fetch(`/api/admin/pages/${editingPage._id}/modules/${existingModule._id}`, {
 					method: 'PUT',
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify(payload)
 				});
-
-				if (!response.ok) {
-					await handleApiErrorResponse(response);
-				}
+				if (!response.ok) await handleApiErrorResponse(response);
 				const result = await response.json();
-
 				const moduleData = (result.data || result) as PageModuleData;
 				modules = modules.map((m) => (m._id === existingModule._id ? moduleData : m));
 			} else {
-				// Create new module
-				const payload = {
-					type: moduleType,
-					rowOrder,
-					columnIndex,
-					columnProportion,
-					props: props || {}
-				};
-
 				const response = await fetch(`/api/admin/pages/${editingPage._id}/modules`, {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify(payload)
 				});
-
-				if (!response.ok) {
-					await handleApiErrorResponse(response);
-				}
+				if (!response.ok) await handleApiErrorResponse(response);
 				const result = await response.json();
 				const moduleData = result.data || result;
 				modules = [...modules, moduleData];
@@ -911,12 +988,32 @@
 	}
 
 	async function handleCreate() {
+		// Store modules to save after page creation
+		pendingModules = modules.filter(m => m.rowOrder !== undefined && m.columnIndex !== undefined);
+		
+		// Create the page (modules will be saved in onCreateSuccess callback)
 		await crudOps.create(formData);
 	}
 
 	async function handleEdit() {
 		if (!editingPage) return;
-		await crudOps.update(editingPage._id, formData);
+		
+		// Prepare layout with grid dimensions and URL params
+		const layoutData: any = {
+			zones: parseZones(formData.layoutZones),
+			gridRows: formData.gridRows,
+			gridColumns: formData.gridColumns
+		};
+		if (formData.urlParams) {
+			layoutData.urlParams = formData.urlParams;
+		}
+		
+		const pageData = {
+			...formData,
+			layout: layoutData
+		};
+		
+		await crudOps.update(editingPage._id, pageData);
 	}
 
 	async function handleDelete() {
@@ -1122,17 +1219,18 @@
 			<div class="space-y-4">
 				<div class="grid grid-cols-2 gap-4">
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-2">
+						<label for="create-title" class="block text-sm font-medium text-gray-700 mb-2">
 							Title *
 						</label>
-						<MultiLangInput bind:value={formData.title} />
+						<MultiLangInput id="create-title" bind:value={formData.title} />
 					</div>
 
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-2">
+						<label for="create-alias" class="block text-sm font-medium text-gray-700 mb-2">
 							Alias *
 						</label>
 						<input
+							id="create-alias"
 							type="text"
 							bind:value={formData.alias}
 							placeholder="page-url-slug"
@@ -1143,18 +1241,19 @@
 				</div>
 
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
+					<label for="create-subtitle" class="block text-sm font-medium text-gray-700 mb-2">
 						Subtitle
 					</label>
-					<MultiLangInput bind:value={formData.subtitle} />
+					<MultiLangInput id="create-subtitle" bind:value={formData.subtitle} />
 				</div>
 
 				<div class="grid grid-cols-2 gap-4">
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-2">
+						<label for="create-category" class="block text-sm font-medium text-gray-700 mb-2">
 							Category
 						</label>
 						<select
+							id="create-category"
 							bind:value={formData.category}
 							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 						>
@@ -1165,10 +1264,11 @@
 					</div>
 
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-2">
+						<label for="create-leading-image" class="block text-sm font-medium text-gray-700 mb-2">
 							Leading Image URL
 						</label>
 						<input
+							id="create-leading-image"
 							type="text"
 							bind:value={formData.leadingImage}
 							placeholder="https://..."
@@ -1177,150 +1277,94 @@
 					</div>
 				</div>
 
-				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
-						Layout Zones (comma-separated)
-					</label>
-					<input
-						type="text"
-						bind:value={formData.layoutZones}
-						placeholder="hero, main, cta"
-						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-					/>
-					<p class="mt-1 text-xs text-gray-500">Modules can be assigned to these zones.</p>
-				</div>
-
-				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
-						Layout Zones (comma-separated)
-					</label>
-					<input
-						type="text"
-						bind:value={formData.layoutZones}
-						placeholder="hero, main, cta"
-						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-					/>
-					<p class="mt-1 text-xs text-gray-500">Modules can be assigned to these zones.</p>
-				</div>
-
-				<div class="border-t border-gray-200 pt-6 space-y-4">
-					<div class="flex items-center justify-between">
-						<h3 class="text-lg font-semibold text-gray-900">Modules</h3>
-						<button
-							type="button"
-							on:click={resetModuleForm}
-							class="text-sm text-blue-600 hover:text-blue-800"
-						>
-							New Module
-						</button>
-					</div>
-
-					{#if modulesError}
-						<div class="p-3 bg-red-50 text-red-700 rounded-md text-sm">{modulesError}</div>
-					{/if}
-
-					{#if modulesLoading}
-						<p class="text-sm text-gray-500">Loading modules...</p>
-					{:else if modules.length === 0}
-						<p class="text-sm text-gray-500">No modules yet.</p>
-					{:else}
-						<div class="space-y-2">
-							{#each modules as module}
-								<div class="flex items-center justify-between border border-gray-200 rounded-md p-3 bg-gray-50">
-									<div>
-										<p class="text-sm font-medium text-gray-900">{module.type}</p>
-										<p class="text-xs text-gray-500">Zone: {module.zone} • Order: {module.order}</p>
-									</div>
-									<div class="flex items-center gap-2">
-										<button
-											type="button"
-											on:click={() => editModule(module)}
-											class="text-sm text-blue-600 hover:text-blue-800"
-										>
-											Edit
-										</button>
-										<button
-											type="button"
-											on:click={() => deleteModule(module._id)}
-											class="text-sm text-red-600 hover:text-red-800"
-										>
-											Delete
-										</button>
-									</div>
-								</div>
-							{/each}
-						</div>
-					{/if}
-
-					<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-2">
-								Module Type
-							</label>
-							<select
-								bind:value={moduleForm.type}
-								class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-							>
-								{#each MODULE_TYPES as moduleType}
-									<option value={moduleType.value}>{moduleType.label}</option>
-								{/each}
-							</select>
-						</div>
-
-						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-2">
-								Zone
-							</label>
-							<select
-								bind:value={moduleForm.zone}
-								class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-							>
-								{#each parseZones(formData.layoutZones) as zone}
-									<option value={zone}>{zone}</option>
-								{/each}
-							</select>
-						</div>
-					</div>
-
+				<div class="grid grid-cols-2 gap-4">
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-2">
-							Order
+						<label for="create-grid-rows" class="block text-sm font-medium text-gray-700 mb-2">
+							Grid Rows *
 						</label>
 						<input
+							id="create-grid-rows"
 							type="number"
-							bind:value={moduleForm.order}
+							min="1"
+							max="20"
+							bind:value={formData.gridRows}
+							placeholder="1"
+							required
 							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 						/>
+						<p class="mt-1 text-xs text-gray-500">Number of rows in the page grid.</p>
 					</div>
 
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-2">
-							Props (JSON)
+						<label for="create-grid-cols" class="block text-sm font-medium text-gray-700 mb-2">
+							Grid Columns *
 						</label>
-						<textarea
-							bind:value={moduleForm.propsJson}
-							rows={6}
-							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
-						></textarea>
-					</div>
-
-					<div class="flex justify-end gap-2">
-						<button
-							type="button"
-							on:click={resetModuleForm}
-							class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm font-medium"
-						>
-							Reset
-						</button>
-						<button
-							type="button"
-							on:click={saveModule}
-							class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
-						>
-							{moduleForm.id ? 'Update Module' : 'Add Module'}
-						</button>
+						<input
+							id="create-grid-cols"
+							type="number"
+							min="1"
+							max="12"
+							bind:value={formData.gridColumns}
+							placeholder="1"
+							required
+							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+						/>
+						<p class="mt-1 text-xs text-gray-500">Number of columns in the page grid.</p>
 					</div>
 				</div>
+
+				<div>
+					<label for="create-url-params" class="block text-sm font-medium text-gray-700 mb-2">
+						URL Parameters (optional)
+					</label>
+					<input
+						id="create-url-params"
+						type="text"
+						bind:value={formData.urlParams}
+						placeholder="param1=value1&param2=value2"
+						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+					/>
+					<p class="mt-1 text-xs text-gray-500">Query parameters for the page URL (e.g., ?id=123&type=photo).</p>
+				</div>
+
+				{#if !showGridBuilder}
+					<div class="flex justify-end">
+						<button
+							type="button"
+							on:click={initializeGrid}
+							disabled={!formData.title || !formData.alias.trim() || formData.gridRows < 1 || formData.gridColumns < 1}
+							class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+						>
+							Initialize Grid
+						</button>
+					</div>
+				{/if}
+
+				{#if showGridBuilder}
+					<div class="border-t border-gray-200 pt-6">
+						<h3 class="text-lg font-semibold text-gray-900 mb-4">Page Grid Layout</h3>
+						<p class="text-sm text-gray-600 mb-4">
+							Select cells in the grid and assign modules to them. Grid: {formData.gridRows} row{formData.gridRows !== 1 ? 's' : ''} × {formData.gridColumns} column{formData.gridColumns !== 1 ? 's' : ''}
+						</p>
+						
+						{#if modulesError}
+							<div class="mb-4 p-3 bg-red-50 text-red-700 rounded-md text-sm">{modulesError}</div>
+						{/if}
+
+						{#if modulesLoading}
+							<p class="text-sm text-gray-500">Loading layout...</p>
+						{:else}
+							<RowColumnLayoutBuilder
+								modules={modules}
+								rowStructure={rowStructure}
+								onAssignModule={handleAssignModule}
+								onRemoveModule={deleteModule}
+								onEditModule={editModule}
+								availableModuleTypes={MODULE_TYPES}
+							/>
+						{/if}
+					</div>
+				{/if}
 
 				<div class="flex items-center">
 					<label class="relative inline-flex items-center cursor-pointer">
@@ -1352,7 +1396,7 @@
 					<button
 						type="button"
 						on:click={handleCreate}
-						disabled={saving || !formData.title || !formData.alias.trim()}
+						disabled={saving || !formData.title || !formData.alias.trim() || !gridInitialized}
 						class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm font-medium"
 					>
 						{#if saving}
@@ -1370,7 +1414,7 @@
 <!-- Module Edit Dialog -->
 {#if showModuleEditDialog && editingModule}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-		<div class="bg-white rounded-lg shadow-xl w-full {moduleForm.type === 'featureGrid' || moduleForm.type === 'richText' || moduleForm.type === 'albumsGrid' ? 'max-w-4xl' : 'max-w-2xl'} p-6 max-h-[90vh] overflow-y-auto">
+		<div class="bg-white rounded-lg shadow-xl w-full {moduleForm.type === 'featureGrid' || moduleForm.type === 'richText' || moduleForm.type === 'hero' || moduleForm.type === 'albumsGrid' ? 'max-w-4xl' : 'max-w-2xl'} p-6 max-h-[90vh] overflow-y-auto">
 			<h2 class="text-xl font-bold text-gray-900 mb-4">Edit Module</h2>
 
 			{#if modulesError}
@@ -1379,10 +1423,11 @@
 
 			<div class="space-y-4">
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
+					<label for="module-type" class="block text-sm font-medium text-gray-700 mb-2">
 						Module Type
 					</label>
 					<select
+						id="module-type"
 						bind:value={moduleForm.type}
 						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 					>
@@ -1396,24 +1441,24 @@
 					<!-- Feature Grid Form -->
 					<div class="space-y-4 border-t border-gray-200 pt-4">
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-feature-title" class="block text-sm font-medium text-gray-700 mb-2">
 								Title
 							</label>
-							<MultiLangInput bind:value={featureGridTitle} />
+							<MultiLangInput id="module-feature-title" bind:value={featureGridTitle} />
 						</div>
 
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-feature-subtitle" class="block text-sm font-medium text-gray-700 mb-2">
 								Subtitle
 							</label>
-							<MultiLangInput bind:value={featureGridSubtitle} />
+							<MultiLangInput id="module-feature-subtitle" bind:value={featureGridSubtitle} />
 						</div>
 
 						<div class="border-t border-gray-200 pt-4">
 							<div class="flex items-center justify-between mb-4">
-								<label class="block text-sm font-medium text-gray-700">
+								<span class="block text-sm font-medium text-gray-700">
 									Features
-								</label>
+								</span>
 								<button
 									type="button"
 									on:click={addFeatureItem}
@@ -1444,9 +1489,9 @@
 
 											<div class="space-y-3">
 												<div>
-													<label class="block text-xs font-medium text-gray-600 mb-1">
+													<span class="block text-xs font-medium text-gray-600 mb-1">
 														Icon
-													</label>
+													</span>
 													<div class="flex gap-2">
 														<IconSelector
 															bind:value={item.icon}
@@ -1472,17 +1517,17 @@
 												</div>
 
 												<div>
-													<label class="block text-xs font-medium text-gray-600 mb-1">
+													<label for="module-feature-item-{index}-title" class="block text-xs font-medium text-gray-600 mb-1">
 														Title
 													</label>
-													<MultiLangInput bind:value={item.title} />
+													<MultiLangInput id="module-feature-item-{index}-title" bind:value={item.title} />
 												</div>
 
 												<div>
-													<label class="block text-xs font-medium text-gray-600 mb-1">
+													<label for="module-feature-item-{index}-desc" class="block text-xs font-medium text-gray-600 mb-1">
 														Description (Rich Text)
 													</label>
-													<MultiLangHTMLEditor bind:value={item.description} />
+													<MultiLangHTMLEditor id="module-feature-item-{index}-desc" bind:value={item.description} />
 												</div>
 											</div>
 										</div>
@@ -1495,24 +1540,25 @@
 					<!-- Rich Text Form -->
 					<div class="space-y-4 border-t border-gray-200 pt-4">
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-richtext-title" class="block text-sm font-medium text-gray-700 mb-2">
 								Title (optional)
 							</label>
-							<MultiLangInput bind:value={richTextTitle} />
+							<MultiLangInput id="module-richtext-title" bind:value={richTextTitle} />
 						</div>
 
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-richtext-body" class="block text-sm font-medium text-gray-700 mb-2">
 								Body Content
 							</label>
-							<MultiLangHTMLEditor bind:value={richTextBody} />
+							<MultiLangHTMLEditor id="module-richtext-body" bind:value={richTextBody} />
 						</div>
 
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-richtext-bg" class="block text-sm font-medium text-gray-700 mb-2">
 								Background Color
 							</label>
 							<select
+								id="module-richtext-bg"
 								bind:value={richTextBackground}
 								class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 							>
@@ -1521,27 +1567,95 @@
 							</select>
 						</div>
 					</div>
+				{:else if moduleForm.type === 'hero'}
+					<!-- Hero Form -->
+					<div class="space-y-4 border-t border-gray-200 pt-4">
+						<div>
+							<label for="module-hero-title" class="block text-sm font-medium text-gray-700 mb-2">
+								Title
+							</label>
+							<MultiLangInput id="module-hero-title" bind:value={heroTitle} />
+						</div>
+
+						<div>
+							<label for="module-hero-subtitle" class="block text-sm font-medium text-gray-700 mb-2">
+								Subtitle
+							</label>
+							<MultiLangInput id="module-hero-subtitle" bind:value={heroSubtitle} />
+						</div>
+
+						<div>
+							<label for="module-hero-cta-label" class="block text-sm font-medium text-gray-700 mb-2">
+								CTA Label (optional)
+							</label>
+							<MultiLangInput id="module-hero-cta-label" bind:value={heroCtaLabel} />
+						</div>
+
+						<div>
+							<label for="module-hero-cta-url" class="block text-sm font-medium text-gray-700 mb-2">
+								CTA URL (optional)
+							</label>
+							<input
+								id="module-hero-cta-url"
+								type="url"
+								bind:value={heroCtaUrl}
+								placeholder="https://..."
+								class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+							/>
+						</div>
+
+						<div>
+							<label for="module-hero-bg-style" class="block text-sm font-medium text-gray-700 mb-2">
+								Background Style
+							</label>
+							<select
+								id="module-hero-bg-style"
+								bind:value={heroBackgroundStyle}
+								class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+							>
+								<option value="light">Light</option>
+								<option value="dark">Dark</option>
+								<option value="image">Image (URL)</option>
+								<option value="galleryLeading">Gallery leading photo</option>
+							</select>
+						</div>
+
+						{#if heroBackgroundStyle === 'image'}
+							<div>
+								<label for="module-hero-bg-image" class="block text-sm font-medium text-gray-700 mb-2">
+									Background Image URL
+								</label>
+								<input
+									id="module-hero-bg-image"
+									type="text"
+									bind:value={heroBackgroundImage}
+									placeholder="https://..."
+									class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								/>
+							</div>
+						{/if}
+					</div>
 				{:else if moduleForm.type === 'albumsGrid'}
 					<!-- Albums Grid Module Form -->
 					<div class="space-y-4 border-t border-gray-200 pt-4">
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-albums-title" class="block text-sm font-medium text-gray-700 mb-2">
 								Title
 							</label>
-							<MultiLangInput bind:value={albumsGridTitle} />
+							<MultiLangInput id="module-albums-title" bind:value={albumsGridTitle} />
 						</div>
 
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-albums-desc" class="block text-sm font-medium text-gray-700 mb-2">
 								Description (Rich Text)
 							</label>
-							<MultiLangHTMLEditor bind:value={albumsGridDescription} />
+							<MultiLangHTMLEditor id="module-albums-desc" bind:value={albumsGridDescription} />
 						</div>
 
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-2">
+							<span class="block text-sm font-medium text-gray-700 mb-2">
 								Select Albums
-							</label>
+							</span>
 							{#if albumsLoading}
 								<div class="text-sm text-gray-500">Loading albums...</div>
 							{:else}
@@ -1586,10 +1700,11 @@
 				{:else}
 					<!-- JSON Editor for other module types -->
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-2">
+						<label for="module-props-json" class="block text-sm font-medium text-gray-700 mb-2">
 							Props (JSON)
 						</label>
 						<textarea
+							id="module-props-json"
 							bind:value={moduleForm.propsJson}
 							rows={10}
 							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
@@ -1638,17 +1753,18 @@
 			<div class="space-y-4">
 				<div class="grid grid-cols-2 gap-4">
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-2">
+						<label for="edit-title" class="block text-sm font-medium text-gray-700 mb-2">
 							Title *
 						</label>
-						<MultiLangInput bind:value={formData.title} />
+						<MultiLangInput id="edit-title" bind:value={formData.title} />
 					</div>
 
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-2">
+						<label for="edit-alias" class="block text-sm font-medium text-gray-700 mb-2">
 							Alias *
 						</label>
 						<input
+							id="edit-alias"
 							type="text"
 							bind:value={formData.alias}
 							placeholder="page-url-slug"
@@ -1659,18 +1775,19 @@
 				</div>
 
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
+					<label for="edit-subtitle" class="block text-sm font-medium text-gray-700 mb-2">
 						Subtitle
 					</label>
-					<MultiLangInput bind:value={formData.subtitle} />
+					<MultiLangInput id="edit-subtitle" bind:value={formData.subtitle} />
 				</div>
 
 				<div class="grid grid-cols-2 gap-4">
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-2">
+						<label for="edit-category" class="block text-sm font-medium text-gray-700 mb-2">
 							Category
 						</label>
 						<select
+							id="edit-category"
 							bind:value={formData.category}
 							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 						>
@@ -1681,10 +1798,11 @@
 					</div>
 
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-2">
+						<label for="edit-leading-image" class="block text-sm font-medium text-gray-700 mb-2">
 							Leading Image URL
 						</label>
 						<input
+							id="edit-leading-image"
 							type="text"
 							bind:value={formData.leadingImage}
 							placeholder="https://..."
@@ -1693,7 +1811,57 @@
 					</div>
 				</div>
 
+				<div class="grid grid-cols-2 gap-4">
+					<div>
+						<label for="edit-grid-rows" class="block text-sm font-medium text-gray-700 mb-2">
+							Grid Rows
+						</label>
+						<input
+							id="edit-grid-rows"
+							type="number"
+							min="1"
+							max="20"
+							bind:value={formData.gridRows}
+							placeholder="1"
+							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+						/>
+					</div>
+
+					<div>
+						<label for="edit-grid-cols" class="block text-sm font-medium text-gray-700 mb-2">
+							Grid Columns
+						</label>
+						<input
+							id="edit-grid-cols"
+							type="number"
+							min="1"
+							max="12"
+							bind:value={formData.gridColumns}
+							placeholder="1"
+							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+						/>
+					</div>
+				</div>
+
+				<div>
+					<label for="edit-url-params" class="block text-sm font-medium text-gray-700 mb-2">
+						URL Parameters (optional)
+					</label>
+					<input
+						id="edit-url-params"
+						type="text"
+						bind:value={formData.urlParams}
+						placeholder="param1=value1&param2=value2"
+						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+					/>
+					<p class="mt-1 text-xs text-gray-500">Query parameters for the page URL.</p>
+				</div>
+
 				<div class="border-t border-gray-200 pt-6">
+					<h3 class="text-lg font-semibold text-gray-900 mb-4">Page Grid Layout</h3>
+					<p class="text-sm text-gray-600 mb-4">
+						Grid: {formData.gridRows} row{formData.gridRows !== 1 ? 's' : ''} × {formData.gridColumns} column{formData.gridColumns !== 1 ? 's' : ''}
+					</p>
 					{#if modulesError}
 						<div class="mb-4 p-3 bg-red-50 text-red-700 rounded-md text-sm">{modulesError}</div>
 					{/if}
@@ -1704,9 +1872,6 @@
 						<RowColumnLayoutBuilder
 							modules={modules}
 							rowStructure={rowStructure}
-							onAddRow={handleAddRow}
-							onDeleteRow={handleDeleteRow}
-							onReorderRow={handleReorderRow}
 							onAssignModule={handleAssignModule}
 							onRemoveModule={deleteModule}
 							onEditModule={editModule}
@@ -1764,7 +1929,7 @@
 <!-- Module Edit Dialog -->
 {#if showModuleEditDialog && editingModule}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-		<div class="bg-white rounded-lg shadow-xl w-full {moduleForm.type === 'featureGrid' || moduleForm.type === 'richText' || moduleForm.type === 'albumsGrid' ? 'max-w-4xl' : 'max-w-2xl'} p-6 max-h-[90vh] overflow-y-auto">
+		<div class="bg-white rounded-lg shadow-xl w-full {moduleForm.type === 'featureGrid' || moduleForm.type === 'richText' || moduleForm.type === 'hero' || moduleForm.type === 'albumsGrid' ? 'max-w-4xl' : 'max-w-2xl'} p-6 max-h-[90vh] overflow-y-auto">
 			<h2 class="text-xl font-bold text-gray-900 mb-4">Edit Module</h2>
 
 			{#if modulesError}
@@ -1773,10 +1938,11 @@
 
 			<div class="space-y-4">
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
+					<label for="module-type" class="block text-sm font-medium text-gray-700 mb-2">
 						Module Type
 					</label>
 					<select
+						id="module-type"
 						bind:value={moduleForm.type}
 						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 					>
@@ -1790,24 +1956,24 @@
 					<!-- Feature Grid Form -->
 					<div class="space-y-4 border-t border-gray-200 pt-4">
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-feature-title" class="block text-sm font-medium text-gray-700 mb-2">
 								Title
 							</label>
-							<MultiLangInput bind:value={featureGridTitle} />
+							<MultiLangInput id="module-feature-title" bind:value={featureGridTitle} />
 						</div>
 
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-feature-subtitle" class="block text-sm font-medium text-gray-700 mb-2">
 								Subtitle
 							</label>
-							<MultiLangInput bind:value={featureGridSubtitle} />
+							<MultiLangInput id="module-feature-subtitle" bind:value={featureGridSubtitle} />
 						</div>
 
 						<div class="border-t border-gray-200 pt-4">
 							<div class="flex items-center justify-between mb-4">
-								<label class="block text-sm font-medium text-gray-700">
+								<span class="block text-sm font-medium text-gray-700">
 									Features
-								</label>
+								</span>
 								<button
 									type="button"
 									on:click={addFeatureItem}
@@ -1838,9 +2004,9 @@
 
 											<div class="space-y-3">
 												<div>
-													<label class="block text-xs font-medium text-gray-600 mb-1">
+													<span class="block text-xs font-medium text-gray-600 mb-1">
 														Icon
-													</label>
+													</span>
 													<div class="flex gap-2">
 														<IconSelector
 															bind:value={item.icon}
@@ -1866,17 +2032,17 @@
 												</div>
 
 												<div>
-													<label class="block text-xs font-medium text-gray-600 mb-1">
+													<label for="module-feature-item-{index}-title" class="block text-xs font-medium text-gray-600 mb-1">
 														Title
 													</label>
-													<MultiLangInput bind:value={item.title} />
+													<MultiLangInput id="module-feature-item-{index}-title" bind:value={item.title} />
 												</div>
 
 												<div>
-													<label class="block text-xs font-medium text-gray-600 mb-1">
+													<label for="module-feature-item-{index}-desc" class="block text-xs font-medium text-gray-600 mb-1">
 														Description (Rich Text)
 													</label>
-													<MultiLangHTMLEditor bind:value={item.description} />
+													<MultiLangHTMLEditor id="module-feature-item-{index}-desc" bind:value={item.description} />
 												</div>
 											</div>
 										</div>
@@ -1889,24 +2055,25 @@
 					<!-- Rich Text Form -->
 					<div class="space-y-4 border-t border-gray-200 pt-4">
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-richtext-title" class="block text-sm font-medium text-gray-700 mb-2">
 								Title (optional)
 							</label>
-							<MultiLangInput bind:value={richTextTitle} />
+							<MultiLangInput id="module-richtext-title" bind:value={richTextTitle} />
 						</div>
 
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-richtext-body" class="block text-sm font-medium text-gray-700 mb-2">
 								Body Content
 							</label>
-							<MultiLangHTMLEditor bind:value={richTextBody} />
+							<MultiLangHTMLEditor id="module-richtext-body" bind:value={richTextBody} />
 						</div>
 
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-richtext-bg" class="block text-sm font-medium text-gray-700 mb-2">
 								Background Color
 							</label>
 							<select
+								id="module-richtext-bg"
 								bind:value={richTextBackground}
 								class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 							>
@@ -1915,27 +2082,95 @@
 							</select>
 						</div>
 					</div>
+				{:else if moduleForm.type === 'hero'}
+					<!-- Hero Form -->
+					<div class="space-y-4 border-t border-gray-200 pt-4">
+						<div>
+							<label for="module-hero-title" class="block text-sm font-medium text-gray-700 mb-2">
+								Title
+							</label>
+							<MultiLangInput id="module-hero-title" bind:value={heroTitle} />
+						</div>
+
+						<div>
+							<label for="module-hero-subtitle" class="block text-sm font-medium text-gray-700 mb-2">
+								Subtitle
+							</label>
+							<MultiLangInput id="module-hero-subtitle" bind:value={heroSubtitle} />
+						</div>
+
+						<div>
+							<label for="module-hero-cta-label" class="block text-sm font-medium text-gray-700 mb-2">
+								CTA Label (optional)
+							</label>
+							<MultiLangInput id="module-hero-cta-label" bind:value={heroCtaLabel} />
+						</div>
+
+						<div>
+							<label for="module-hero-cta-url" class="block text-sm font-medium text-gray-700 mb-2">
+								CTA URL (optional)
+							</label>
+							<input
+								id="module-hero-cta-url"
+								type="url"
+								bind:value={heroCtaUrl}
+								placeholder="https://..."
+								class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+							/>
+						</div>
+
+						<div>
+							<label for="module-hero-bg-style" class="block text-sm font-medium text-gray-700 mb-2">
+								Background Style
+							</label>
+							<select
+								id="module-hero-bg-style"
+								bind:value={heroBackgroundStyle}
+								class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+							>
+								<option value="light">Light</option>
+								<option value="dark">Dark</option>
+								<option value="image">Image (URL)</option>
+								<option value="galleryLeading">Gallery leading photo</option>
+							</select>
+						</div>
+
+						{#if heroBackgroundStyle === 'image'}
+							<div>
+								<label for="module-hero-bg-image" class="block text-sm font-medium text-gray-700 mb-2">
+									Background Image URL
+								</label>
+								<input
+									id="module-hero-bg-image"
+									type="text"
+									bind:value={heroBackgroundImage}
+									placeholder="https://..."
+									class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								/>
+							</div>
+						{/if}
+					</div>
 				{:else if moduleForm.type === 'albumsGrid'}
 					<!-- Albums Grid Module Form -->
 					<div class="space-y-4 border-t border-gray-200 pt-4">
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-albums-title" class="block text-sm font-medium text-gray-700 mb-2">
 								Title
 							</label>
-							<MultiLangInput bind:value={albumsGridTitle} />
+							<MultiLangInput id="module-albums-title" bind:value={albumsGridTitle} />
 						</div>
 
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-albums-desc" class="block text-sm font-medium text-gray-700 mb-2">
 								Description (Rich Text)
 							</label>
-							<MultiLangHTMLEditor bind:value={albumsGridDescription} />
+							<MultiLangHTMLEditor id="module-albums-desc" bind:value={albumsGridDescription} />
 						</div>
 
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-2">
+							<span class="block text-sm font-medium text-gray-700 mb-2">
 								Select Albums
-							</label>
+							</span>
 							{#if albumsLoading}
 								<div class="text-sm text-gray-500">Loading albums...</div>
 							{:else}
@@ -1980,10 +2215,11 @@
 				{:else}
 					<!-- JSON Editor for other module types -->
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-2">
+						<label for="module-props-json" class="block text-sm font-medium text-gray-700 mb-2">
 							Props (JSON)
 						</label>
 						<textarea
+							id="module-props-json"
 							bind:value={moduleForm.propsJson}
 							rows={10}
 							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
@@ -2066,7 +2302,7 @@
 <!-- Module Edit Dialog -->
 {#if showModuleEditDialog && editingModule}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-		<div class="bg-white rounded-lg shadow-xl w-full {moduleForm.type === 'featureGrid' || moduleForm.type === 'richText' || moduleForm.type === 'albumsGrid' ? 'max-w-4xl' : 'max-w-2xl'} p-6 max-h-[90vh] overflow-y-auto">
+		<div class="bg-white rounded-lg shadow-xl w-full {moduleForm.type === 'featureGrid' || moduleForm.type === 'richText' || moduleForm.type === 'hero' || moduleForm.type === 'albumsGrid' ? 'max-w-4xl' : 'max-w-2xl'} p-6 max-h-[90vh] overflow-y-auto">
 			<h2 class="text-xl font-bold text-gray-900 mb-4">Edit Module</h2>
 
 			{#if modulesError}
@@ -2075,10 +2311,11 @@
 
 			<div class="space-y-4">
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
+					<label for="module-type" class="block text-sm font-medium text-gray-700 mb-2">
 						Module Type
 					</label>
 					<select
+						id="module-type"
 						bind:value={moduleForm.type}
 						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 					>
@@ -2092,24 +2329,24 @@
 					<!-- Feature Grid Form -->
 					<div class="space-y-4 border-t border-gray-200 pt-4">
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-feature-title" class="block text-sm font-medium text-gray-700 mb-2">
 								Title
 							</label>
-							<MultiLangInput bind:value={featureGridTitle} />
+							<MultiLangInput id="module-feature-title" bind:value={featureGridTitle} />
 						</div>
 
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-feature-subtitle" class="block text-sm font-medium text-gray-700 mb-2">
 								Subtitle
 							</label>
-							<MultiLangInput bind:value={featureGridSubtitle} />
+							<MultiLangInput id="module-feature-subtitle" bind:value={featureGridSubtitle} />
 						</div>
 
 						<div class="border-t border-gray-200 pt-4">
 							<div class="flex items-center justify-between mb-4">
-								<label class="block text-sm font-medium text-gray-700">
+								<span class="block text-sm font-medium text-gray-700">
 									Features
-								</label>
+								</span>
 								<button
 									type="button"
 									on:click={addFeatureItem}
@@ -2140,9 +2377,9 @@
 
 											<div class="space-y-3">
 												<div>
-													<label class="block text-xs font-medium text-gray-600 mb-1">
+													<span class="block text-xs font-medium text-gray-600 mb-1">
 														Icon
-													</label>
+													</span>
 													<div class="flex gap-2">
 														<IconSelector
 															bind:value={item.icon}
@@ -2168,17 +2405,17 @@
 												</div>
 
 												<div>
-													<label class="block text-xs font-medium text-gray-600 mb-1">
+													<label for="module-feature-item-{index}-title" class="block text-xs font-medium text-gray-600 mb-1">
 														Title
 													</label>
-													<MultiLangInput bind:value={item.title} />
+													<MultiLangInput id="module-feature-item-{index}-title" bind:value={item.title} />
 												</div>
 
 												<div>
-													<label class="block text-xs font-medium text-gray-600 mb-1">
+													<label for="module-feature-item-{index}-desc" class="block text-xs font-medium text-gray-600 mb-1">
 														Description (Rich Text)
 													</label>
-													<MultiLangHTMLEditor bind:value={item.description} />
+													<MultiLangHTMLEditor id="module-feature-item-{index}-desc" bind:value={item.description} />
 												</div>
 											</div>
 										</div>
@@ -2191,24 +2428,25 @@
 					<!-- Rich Text Form -->
 					<div class="space-y-4 border-t border-gray-200 pt-4">
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-richtext-title" class="block text-sm font-medium text-gray-700 mb-2">
 								Title (optional)
 							</label>
-							<MultiLangInput bind:value={richTextTitle} />
+							<MultiLangInput id="module-richtext-title" bind:value={richTextTitle} />
 						</div>
 
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-richtext-body" class="block text-sm font-medium text-gray-700 mb-2">
 								Body Content
 							</label>
-							<MultiLangHTMLEditor bind:value={richTextBody} />
+							<MultiLangHTMLEditor id="module-richtext-body" bind:value={richTextBody} />
 						</div>
 
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-richtext-bg" class="block text-sm font-medium text-gray-700 mb-2">
 								Background Color
 							</label>
 							<select
+								id="module-richtext-bg"
 								bind:value={richTextBackground}
 								class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 							>
@@ -2217,27 +2455,95 @@
 							</select>
 						</div>
 					</div>
+				{:else if moduleForm.type === 'hero'}
+					<!-- Hero Form -->
+					<div class="space-y-4 border-t border-gray-200 pt-4">
+						<div>
+							<label for="module-hero-title" class="block text-sm font-medium text-gray-700 mb-2">
+								Title
+							</label>
+							<MultiLangInput id="module-hero-title" bind:value={heroTitle} />
+						</div>
+
+						<div>
+							<label for="module-hero-subtitle" class="block text-sm font-medium text-gray-700 mb-2">
+								Subtitle
+							</label>
+							<MultiLangInput id="module-hero-subtitle" bind:value={heroSubtitle} />
+						</div>
+
+						<div>
+							<label for="module-hero-cta-label" class="block text-sm font-medium text-gray-700 mb-2">
+								CTA Label (optional)
+							</label>
+							<MultiLangInput id="module-hero-cta-label" bind:value={heroCtaLabel} />
+						</div>
+
+						<div>
+							<label for="module-hero-cta-url" class="block text-sm font-medium text-gray-700 mb-2">
+								CTA URL (optional)
+							</label>
+							<input
+								id="module-hero-cta-url"
+								type="url"
+								bind:value={heroCtaUrl}
+								placeholder="https://..."
+								class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+							/>
+						</div>
+
+						<div>
+							<label for="module-hero-bg-style" class="block text-sm font-medium text-gray-700 mb-2">
+								Background Style
+							</label>
+							<select
+								id="module-hero-bg-style"
+								bind:value={heroBackgroundStyle}
+								class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+							>
+								<option value="light">Light</option>
+								<option value="dark">Dark</option>
+								<option value="image">Image (URL)</option>
+								<option value="galleryLeading">Gallery leading photo</option>
+							</select>
+						</div>
+
+						{#if heroBackgroundStyle === 'image'}
+							<div>
+								<label for="module-hero-bg-image" class="block text-sm font-medium text-gray-700 mb-2">
+									Background Image URL
+								</label>
+								<input
+									id="module-hero-bg-image"
+									type="text"
+									bind:value={heroBackgroundImage}
+									placeholder="https://..."
+									class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								/>
+							</div>
+						{/if}
+					</div>
 				{:else if moduleForm.type === 'albumsGrid'}
 					<!-- Albums Grid Module Form -->
 					<div class="space-y-4 border-t border-gray-200 pt-4">
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-albums-title" class="block text-sm font-medium text-gray-700 mb-2">
 								Title
 							</label>
-							<MultiLangInput bind:value={albumsGridTitle} />
+							<MultiLangInput id="module-albums-title" bind:value={albumsGridTitle} />
 						</div>
 
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-albums-desc" class="block text-sm font-medium text-gray-700 mb-2">
 								Description (Rich Text)
 							</label>
-							<MultiLangHTMLEditor bind:value={albumsGridDescription} />
+							<MultiLangHTMLEditor id="module-albums-desc" bind:value={albumsGridDescription} />
 						</div>
 
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-2">
+							<span class="block text-sm font-medium text-gray-700 mb-2">
 								Select Albums
-							</label>
+							</span>
 							{#if albumsLoading}
 								<div class="text-sm text-gray-500">Loading albums...</div>
 							{:else}
@@ -2282,10 +2588,11 @@
 				{:else}
 					<!-- JSON Editor for other module types -->
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-2">
+						<label for="module-props-json" class="block text-sm font-medium text-gray-700 mb-2">
 							Props (JSON)
 						</label>
 						<textarea
+							id="module-props-json"
 							bind:value={moduleForm.propsJson}
 							rows={10}
 							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"

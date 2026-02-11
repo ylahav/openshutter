@@ -82,7 +82,7 @@
           alt="Hero background"
           class="w-full h-full object-cover transition-all duration-1000 ease-in-out"
         />
-        <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/30 to-black/40"></div>
+        <div class="absolute inset-0 bg-linear-to-t from-black/60 via-black/30 to-black/40"></div>
       </div>
     {/if}
 

@@ -1,22 +1,18 @@
+<!-- frontend/src/lib/page-builder/modules/RichTextModule.svelte -->
 <script lang="ts">
-	import { currentLanguage } from '$stores/language';
-	import { MultiLangUtils } from '$lib/utils/multiLang';
-	import MultiLangHTML from '$lib/components/MultiLangHTML.svelte';
+	import Layout from './RichText/Layout.svelte';
 
 	export let title: string | Record<string, string> | undefined;
 	export let body: string | Record<string, string> = '';
 	export let background: 'white' | 'gray' = 'white';
 
-	$: titleText = title ? MultiLangUtils.getTextValue(title, $currentLanguage) : '';
+	// Support legacy: props or props.config; otherwise use individual props from spread
+	export let props: any = undefined;
+	$: config = props?.config ?? (props && typeof props === 'object' ? props : null) ?? {
+		title, body, background
+	};
+	const data = null;
+	const templateConfig = {};
 </script>
 
-<section class={"py-16 px-4 sm:px-6 lg:px-8 " + (background === 'gray' ? 'bg-gray-50' : 'bg-white')}>
-	<div class="max-w-4xl mx-auto">
-		{#if titleText}
-			<h2 class="text-3xl font-bold text-gray-900 mb-6">{titleText}</h2>
-		{/if}
-		<div class="prose prose-lg max-w-none text-gray-700">
-			<MultiLangHTML value={body} />
-		</div>
-	</div>
-</section>
+<Layout config={config} {data} {templateConfig} />

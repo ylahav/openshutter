@@ -225,7 +225,7 @@ export class PagesController {
         throw new BadRequestException('Page with this slug already exists');
       }
 
-      // Performance: Combine map+filter into single reduce to avoid two passes
+      // Build layout: zones, gridRows, gridColumns, urlParams
       const layoutZones = Array.isArray(layout?.zones)
         ? layout.zones.reduce((acc: string[], zone: string) => {
             const trimmed = String(zone).trim();
@@ -233,6 +233,12 @@ export class PagesController {
             return acc;
           }, [])
         : undefined;
+
+      const pageLayout: any = {};
+      if (layoutZones && layoutZones.length > 0) pageLayout.zones = layoutZones;
+      if (typeof layout?.gridRows === 'number' && layout.gridRows > 0) pageLayout.gridRows = layout.gridRows;
+      if (typeof layout?.gridColumns === 'number' && layout.gridColumns > 0) pageLayout.gridColumns = layout.gridColumns;
+      if (layout?.urlParams != null && String(layout.urlParams).trim() !== '') pageLayout.urlParams = String(layout.urlParams).trim();
 
       // Create page
       const now = new Date();
@@ -252,7 +258,7 @@ export class PagesController {
       if (leadingImage?.trim()) pageData.leadingImage = leadingImage.trim();
       if (normalizedIntroText) pageData.introText = normalizedIntroText;
       if (normalizedContent) pageData.content = normalizedContent;
-      if (layoutZones && layoutZones.length > 0) pageData.layout = { zones: layoutZones };
+      if (Object.keys(pageLayout).length > 0) pageData.layout = pageLayout;
 
       const result = await collection.insertOne(pageData);
       const page = await collection.findOne({ _id: result.insertedId });
@@ -402,7 +408,7 @@ export class PagesController {
         }
       }
 
-      // Performance: Combine map+filter into single reduce to avoid two passes
+      // Build layout: zones, gridRows, gridColumns, urlParams
       const layoutZones = Array.isArray(layout?.zones)
         ? layout.zones.reduce((acc: string[], zone: string) => {
             const trimmed = String(zone).trim();
@@ -430,7 +436,16 @@ export class PagesController {
       if (normalizedContent !== undefined) updateData.content = normalizedContent;
       if (category !== undefined) updateData.category = pageCategory;
       if (isPublished !== undefined) updateData.isPublished = Boolean(isPublished);
-      if (layoutZones !== undefined) updateData.layout = { zones: layoutZones };
+
+      // Merge layout: preserve gridRows, gridColumns, urlParams from request, or keep existing
+      if (layout !== undefined) {
+        const pageLayout: any = { ...(page.layout || {}) };
+        if (layoutZones !== undefined) pageLayout.zones = layoutZones;
+        if (typeof layout.gridRows === 'number' && layout.gridRows > 0) pageLayout.gridRows = layout.gridRows;
+        if (typeof layout.gridColumns === 'number' && layout.gridColumns > 0) pageLayout.gridColumns = layout.gridColumns;
+        if (layout.urlParams !== undefined) pageLayout.urlParams = String(layout.urlParams).trim();
+        updateData.layout = pageLayout;
+      }
 
       await collection.updateOne({ _id: new Types.ObjectId(id) }, { $set: updateData });
       const updatedPage = await collection.findOne({ _id: new Types.ObjectId(id) });
@@ -516,7 +531,7 @@ export class PagesController {
         throw new NotFoundException(`Page not found: ${id}`);
       }
 
-      const { type, props, zone, order, rowOrder, columnIndex, columnProportion } = body;
+      const { type, props, zone, order, rowOrder, columnIndex, columnProportion, rowSpan, colSpan } = body;
       
       // Support both old (zone/order) and new (row/column) structure
       const hasRowColumn = rowOrder !== undefined && columnIndex !== undefined && columnProportion !== undefined;
@@ -542,6 +557,8 @@ export class PagesController {
         moduleData.rowOrder = typeof rowOrder === 'number' ? rowOrder : parseInt(rowOrder, 10);
         moduleData.columnIndex = typeof columnIndex === 'number' ? columnIndex : parseInt(columnIndex, 10);
         moduleData.columnProportion = typeof columnProportion === 'number' ? columnProportion : parseInt(columnProportion, 10);
+        if (rowSpan !== undefined) moduleData.rowSpan = typeof rowSpan === 'number' ? rowSpan : parseInt(rowSpan, 10);
+        if (colSpan !== undefined) moduleData.colSpan = typeof colSpan === 'number' ? colSpan : parseInt(colSpan, 10);
       } else {
         moduleData.zone = String(zone).trim();
         moduleData.order = typeof order === 'number' ? order : parseInt(order, 10) || 0;
@@ -596,7 +613,7 @@ export class PagesController {
         throw new NotFoundException(`Module not found: ${moduleId}`);
       }
 
-      const { type, props, zone, order, rowOrder, columnIndex, columnProportion } = body;
+      const { type, props, zone, order, rowOrder, columnIndex, columnProportion, rowSpan, colSpan } = body;
       const updateData: any = { updatedAt: new Date() };
 
       if (type !== undefined) updateData.type = String(type).trim();
@@ -612,6 +629,8 @@ export class PagesController {
       if (columnProportion !== undefined) {
         updateData.columnProportion = typeof columnProportion === 'number' ? columnProportion : parseInt(columnProportion, 10);
       }
+      if (rowSpan !== undefined) updateData.rowSpan = typeof rowSpan === 'number' ? rowSpan : parseInt(rowSpan, 10);
+      if (colSpan !== undefined) updateData.colSpan = typeof colSpan === 'number' ? colSpan : parseInt(colSpan, 10);
       if (zone !== undefined) updateData.zone = String(zone).trim();
       if (order !== undefined) {
         updateData.order = typeof order === 'number' ? order : parseInt(order, 10) || 0;

@@ -35,12 +35,20 @@
 
 	$: rows = buildRows(modules);
 
+	/** Infer grid size from modules (for spanning support) */
+	$: gridCols = page?.layout && typeof (page.layout as any).gridColumns === 'number'
+		? (page.layout as any).gridColumns
+		: Math.max(1, ...modules.filter((m) => m.columnIndex !== undefined).map((m) => (m.columnIndex ?? 0) + (m.colSpan ?? 1)));
+	$: gridRows = page?.layout && typeof (page.layout as any).gridRows === 'number'
+		? (page.layout as any).gridRows
+		: Math.max(1, ...modules.filter((m) => m.rowOrder !== undefined).map((m) => (m.rowOrder ?? 0) + (m.rowSpan ?? 1)));
+
+	$: hasSpanning = modules.some((m) => (m.rowSpan ?? 1) > 1 || (m.colSpan ?? 1) > 1);
+
 	function buildRows(moduleList: PageModuleData[]): RowData[] {
 		const rowMap = new Map<number, RowData>();
-		
-		// Group modules by rowOrder
+
 		moduleList.forEach((module) => {
-			// Support both new (row/column) and legacy (zone) structure
 			if (module.rowOrder !== undefined && module.columnIndex !== undefined) {
 				if (!rowMap.has(module.rowOrder)) {
 					rowMap.set(module.rowOrder, {
@@ -48,7 +56,6 @@
 						columns: []
 					});
 				}
-				
 				const row = rowMap.get(module.rowOrder)!;
 				row.columns.push({
 					columnIndex: module.columnIndex,
@@ -56,28 +63,19 @@
 					module
 				});
 			} else if (module.zone) {
-				// Legacy zone-based: treat as single-column rows
 				const rowOrder = module.order || 0;
 				if (!rowMap.has(rowOrder)) {
-					rowMap.set(rowOrder, {
-						rowOrder,
-						columns: []
-					});
+					rowMap.set(rowOrder, { rowOrder, columns: [] });
 				}
-				const row = rowMap.get(rowOrder)!;
-				row.columns.push({
+				rowMap.get(rowOrder)!.columns.push({
 					columnIndex: 0,
 					proportion: 1,
 					module
 				});
 			}
 		});
-		
-		// Sort columns within each row
-		rowMap.forEach((row) => {
-			row.columns.sort((a, b) => a.columnIndex - b.columnIndex);
-		});
-		
+
+		rowMap.forEach((row) => row.columns.sort((a, b) => a.columnIndex - b.columnIndex));
 		return Array.from(rowMap.values()).sort((a, b) => a.rowOrder - b.rowOrder);
 	}
 </script>
@@ -100,6 +98,23 @@
 		{#if rows.length === 0}
 			<div class="max-w-3xl mx-auto px-4 py-16 text-center text-gray-500">
 				No modules configured for this page yet.
+			</div>
+		{:else if hasSpanning}
+			<div
+				class="max-w-6xl mx-auto px-4 py-6 gap-4"
+				style="display: grid; grid-template-columns: repeat({gridCols}, 1fr); grid-template-rows: repeat({gridRows}, auto);"
+			>
+				{#each modules.filter((m) => m.rowOrder !== undefined && m.columnIndex !== undefined) as module (module._id)}
+					<div
+						style="grid-column: {module.columnIndex! + 1} / span {module.colSpan ?? 1}; grid-row: {module.rowOrder! + 1} / span {module.rowSpan ?? 1}"
+					>
+						{#if moduleMap[module.type]}
+							<svelte:component this={moduleMap[module.type]} {...module.props} />
+						{:else}
+							<div class="p-6 text-sm text-gray-500">Unknown module: {module.type}</div>
+						{/if}
+					</div>
+				{/each}
 			</div>
 		{:else}
 			{#each rows as row (row.rowOrder)}

@@ -468,6 +468,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ### Phase 3 (Next 12 months) *
 - [x] Import/Sync & storage migration: export/import portable packages, import from raw folders, and migrate photo storage between providers (see `docs/IMPORT_SYNC_DESIGN.md` and `docs/PHASE_3_WORKFLOW.md`)
 - [ ] AI-powered photo tagging
+- [ ] Site-wide templating system: template “packs” that control layout and styling for home, albums list, album view, about, and Page Builder pages. Each pack is a folder of Svelte components (`Layout`, `Home`, `AlbumsList`, `Album`, `About`, `PageBuilderRenderer`) plus a small `config.ts` describing options. Admin selects the active template and per-template options in Site Config; routes dynamically load the active pack so creating a new template is as simple as copying a folder and tweaking Svelte/Tailwind.
 - [ ] Advanced analytics
 - [ ] API marketplace
 - [ ] Enterprise features

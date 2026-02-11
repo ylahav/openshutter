@@ -1,22 +1,26 @@
 <script lang="ts">
-	import { page } from '$app/stores';
-	import { goto } from '$app/navigation';
-	import { onMount } from 'svelte';
+	import { currentLanguage } from '$stores/language';
+	import { MultiLangUtils } from '$lib/utils/multiLang';
+	import PageRenderer from '$lib/page-builder/PageRenderer.svelte';
+	import type { PageData, PageModuleData } from '$lib/types/page-builder';
 
-	// Known routes that should not be handled here
-	const knownRoutes = ['admin', 'api', 'login', 'albums', 'photos', 'owner', 'page'];
+	export let data: {
+		page: PageData;
+		modules: PageModuleData[];
+	};
 
-	onMount(() => {
-		const alias = $page.params.alias;
-		
-		// Skip if it's a known route
-		if (knownRoutes.includes(alias)) {
-			return;
-		}
-		
-		// Redirect to query parameter format
-		goto(`/page?alias=${encodeURIComponent(alias)}`, { replaceState: true });
-	});
+	$: pageData = data.page;
+	$: modules = data.modules || [];
+
+	function getTextValue(value: string | { en?: string; he?: string } | undefined): string {
+		if (!value) return '';
+		if (typeof value === 'string') return value;
+		return MultiLangUtils.getTextValue(value, $currentLanguage) || '';
+	}
 </script>
 
-<!-- This page will redirect immediately, so no content needed -->
+<svelte:head>
+	<title>{getTextValue(pageData.title)} - OpenShutter</title>
+</svelte:head>
+
+<PageRenderer page={pageData} modules={modules} />

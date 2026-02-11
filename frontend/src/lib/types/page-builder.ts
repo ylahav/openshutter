@@ -23,6 +23,8 @@ export interface PageModuleData {
 	rowOrder?: number; // Row index (0-based) - new layout system
 	columnIndex?: number; // Column index within row (0-based) - new layout system
 	columnProportion?: number; // Proportion value (e.g., 1, 2, 3) - new layout system
+	rowSpan?: number; // Number of rows this module spans (default 1)
+	colSpan?: number; // Number of columns this module spans (default 1)
 	props: Record<string, any>;
 	createdAt?: string;
 	updatedAt?: string;

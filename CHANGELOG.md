@@ -1,6 +1,11 @@
 ## [Unreleased]
 
 ### Added
+- **Page Builder Module Structure**: Unified structure for all modules (Hero, RichText, FeatureGrid, AlbumGallery, CTA)
+  - Each module: `*Module.svelte` wrapper + `ModuleName/Layout.svelte` + `config.ts` + `data.ts`
+  - Layout components receive `config`, `data`, `templateConfig`; wrappers build config from props
+  - Hero background style: `galleryLeading` uses gallery-leading photo as background (client-side fetch in `onMount`)
+  - AlbumGallery: `loadAlbums` reactive block guarded with `browser` to avoid SSR fetch errors
 - **Leading photo from sub-albums**
   - Backend PUT `/api/admin/albums/:id/cover-photo` to set album cover/leading photo; accepts photos from the album or any descendant (sub-album, sub-sub-album).
   - When parent has no photos, admin "Select leading photo" fetches photos from all descendant albums (not only direct children); sub-sub-album photos can be chosen as leading photo.
@@ -83,6 +88,8 @@
 - **Albums Grid Cover Images**: Fixed cover photos not displaying in albums grid module
   - Now properly fetches cover image URLs using the cover-images API endpoint
   - Cover images display correctly for all selected albums in the grid
+- **Page Builder SSR**: Hero `galleryLeading` fetch and AlbumGallery `loadAlbums` now run only on client (onMount / browser guard) to avoid "Cannot call fetch eagerly during server-side rendering" 500 errors
+- **Dynamic routes**: `/favicon.ico` and other static assets (robots.txt, sitemap.xml) short-circuit to 404 without calling backend pages API
 
 ### Architecture
 - **Backend Migration to NestJS**: Migrated backend from Express.js to NestJS framework

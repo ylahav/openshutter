@@ -1,11 +1,21 @@
-import { IsString, IsNotEmpty, IsOptional, IsBoolean, IsIn, IsArray } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsBoolean, IsIn, IsArray, Allow } from 'class-validator';
 import { MultiLangText, MultiLangHTML } from '../../types/multi-lang';
 
-/** Layout zones for a page. */
+/** Layout zones and grid dimensions for a page. */
 export class PageLayoutDto {
 	@IsArray()
 	@IsString({ each: true })
+	@IsOptional()
 	zones?: string[];
+
+	@IsOptional()
+	gridRows?: number;
+
+	@IsOptional()
+	gridColumns?: number;
+
+	@IsOptional()
+	urlParams?: string;
 }
 
 /**
@@ -13,8 +23,9 @@ export class PageLayoutDto {
  * Used by POST /api/admin/pages.
  */
 export class CreatePageDto {
+	@Allow()
 	title: string | MultiLangText;
-	
+
 	@IsString()
 	@IsNotEmpty()
 	alias: string;

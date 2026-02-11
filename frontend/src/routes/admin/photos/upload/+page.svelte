@@ -931,7 +931,7 @@
 						<!-- Successful Uploads -->
 						{#if folderUploadReport.successes.length > 0}
 							<div class="mb-6">
-								<h4 class="text-sm font-semibold text-gray-900 mb-2 text-green-600">
+								<h4 class="text-sm font-semibold text-green-600 mb-2">
 									✓ Successful ({folderUploadReport.successes.length})
 								</h4>
 								<div class="bg-green-50 border border-green-200 rounded-md p-4 max-h-48 overflow-y-auto">
@@ -952,7 +952,7 @@
 						<!-- Skipped Files -->
 						{#if folderUploadReport.skippedItems.length > 0}
 							<div class="mb-6">
-								<h4 class="text-sm font-semibold text-gray-900 mb-2 text-yellow-600">
+								<h4 class="text-sm font-semibold text-yellow-600 mb-2">
 									⊘ Skipped ({folderUploadReport.skippedItems.length})
 								</h4>
 								<div class="bg-yellow-50 border border-yellow-200 rounded-md p-4 max-h-48 overflow-y-auto">
@@ -971,7 +971,7 @@
 						<!-- Failed Uploads -->
 						{#if folderUploadReport.failures.length > 0}
 							<div class="mb-6">
-								<h4 class="text-sm font-semibold text-gray-900 mb-2 text-red-600">
+								<h4 class="text-sm font-semibold text-red-600 mb-2">
 									✗ Failed ({folderUploadReport.failures.length})
 								</h4>
 								<div class="bg-red-50 border border-red-200 rounded-md p-4 max-h-48 overflow-y-auto">

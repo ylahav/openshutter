@@ -242,6 +242,29 @@ OpenShutter includes a page builder system (`lib/page-builder/`) for creating cu
 
 Templates can optionally integrate with the page builder by using the `PageRenderer` component.
 
+### Module Structure
+
+Each page builder module follows a consistent structure:
+
+```
+modules/
+├── HeroModule.svelte      → Thin wrapper (receives props, builds config)
+├── Hero/
+│   ├── Layout.svelte      → Presentation component
+│   ├── config.ts          → Schema metadata for admin forms
+│   └── data.ts            → Data source definitions
+├── RichTextModule.svelte
+├── RichText/
+│   ├── Layout.svelte
+│   ├── config.ts
+│   └── data.ts
+...
+```
+
+- **Module wrapper** (`*Module.svelte`): Receives props from PageRenderer, supports legacy `props.config`, builds `config` and passes to Layout.
+- **Layout** (`*/Layout.svelte`): Receives `config`, `data`, `templateConfig`; contains presentation logic. Client-side fetches (e.g. gallery-leading, albums) run in `onMount` or are guarded with `browser` to avoid SSR errors.
+- **config.ts** / **data.ts**: Optional metadata for admin forms and future use.
+
 ## Troubleshooting
 
 - Template not appearing: verify the template is registered in `backend/src/templates/templates.controller.ts`

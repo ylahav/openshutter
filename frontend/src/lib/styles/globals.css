@@ -13,6 +13,12 @@
   --color-primary-800: #075985;
   --color-primary-900: #0c4a6e;
 
+  /* Yellow/amber for warnings - ensure distinct from gray */
+  --color-yellow-500: #eab308;
+  --color-yellow-600: #ca8a04;
+  --color-yellow-700: #a16207;
+  --color-yellow-800: #854d0e;
+
   /* Light theme */
   --color-background: 0 0% 100%;
   --color-foreground: 222.2 84% 4.9%;
