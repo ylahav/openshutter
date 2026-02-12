@@ -8,6 +8,62 @@ import { StorageConfigService } from '../services/storage/config';
 import { IUserDocument } from '../models/User';
 import * as bcrypt from 'bcryptjs';
 
+// Built-in themes (seeded into themes collection - all themes live in one place)
+const BUILT_IN_THEMES = [
+  {
+    name: 'Default',
+    description: 'Clean and minimal design',
+    baseTemplate: 'default',
+    basePalette: null,
+    customColors: { primary: '#3B82F6', secondary: '#1F2937', accent: '#F59E0B', background: '#FFFFFF', text: '#1F2937', muted: '#6B7280' },
+    customFonts: { heading: 'Inter', body: 'Inter' },
+    customLayout: { maxWidth: '1200px', containerPadding: '1rem', gridGap: '1.5rem' },
+    componentVisibility: {},
+    headerConfig: {},
+    isPublished: true,
+    isBuiltIn: true,
+  },
+  {
+    name: 'Modern',
+    description: 'Contemporary and sleek design',
+    baseTemplate: 'modern',
+    basePalette: null,
+    customColors: { primary: '#3b82f6', secondary: '#6b7280', accent: '#10b981', background: '#ffffff', text: '#111827', muted: '#6b7280' },
+    customFonts: { heading: 'Inter', body: 'Inter' },
+    customLayout: { maxWidth: '1200px', containerPadding: '1rem', gridGap: '1.5rem' },
+    componentVisibility: {},
+    headerConfig: {},
+    isPublished: true,
+    isBuiltIn: true,
+  },
+  {
+    name: 'Elegant',
+    description: 'Elegant and sophisticated design',
+    baseTemplate: 'elegant',
+    basePalette: null,
+    customColors: { primary: '#8b5cf6', secondary: '#a78bfa', accent: '#f59e0b', background: '#ffffff', text: '#1f2937', muted: '#6b7280' },
+    customFonts: { heading: 'Playfair Display', body: 'Inter' },
+    customLayout: { maxWidth: '1200px', containerPadding: '1rem', gridGap: '1.5rem' },
+    componentVisibility: {},
+    headerConfig: {},
+    isPublished: true,
+    isBuiltIn: true,
+  },
+  {
+    name: 'Minimal',
+    description: 'Ultra-minimal and clean design',
+    baseTemplate: 'minimal',
+    basePalette: null,
+    customColors: { primary: '#000000', secondary: '#6b7280', accent: '#000000', background: '#ffffff', text: '#000000', muted: '#6b7280' },
+    customFonts: { heading: 'Inter', body: 'Inter' },
+    customLayout: { maxWidth: '1200px', containerPadding: '1rem', gridGap: '1rem' },
+    componentVisibility: {},
+    headerConfig: {},
+    isPublished: true,
+    isBuiltIn: true,
+  },
+];
+
 // Initial admin user configuration
 const INITIAL_ADMIN_CREDENTIALS = {
   email: 'admin@openshutter.org',
@@ -72,6 +128,7 @@ export class DatabaseInitService implements OnApplicationBootstrap {
       await this.initializeDefaultAdmin();
       await this.initializeDefaultSiteConfig();
       await this.initializeDefaultStorageConfigs();
+      await this.initializeDefaultThemes();
       
       this.logger.log('✅ Database initialization completed successfully');
     } catch (error) {
@@ -160,6 +217,41 @@ export class DatabaseInitService implements OnApplicationBootstrap {
       this.logger.log('✅ Default storage configurations initialized');
     } catch (error) {
       this.logger.error(`Failed to initialize storage configs: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      if (error instanceof Error && error.stack) {
+        this.logger.error(`Stack trace: ${error.stack}`);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Seed built-in themes into themes collection.
+   * All themes (built-in + custom) live in one collection.
+   */
+  async initializeDefaultThemes(): Promise<void> {
+    try {
+      this.logger.log('Initializing themes...');
+      const db = this.connection.db;
+      if (!db) {
+        this.logger.warn('Database not connected, skipping themes initialization');
+        return;
+      }
+      const collection = db.collection('themes');
+      const now = new Date();
+      for (const theme of BUILT_IN_THEMES) {
+        const existing = await collection.findOne({ baseTemplate: theme.baseTemplate, isBuiltIn: true });
+        if (!existing) {
+          await collection.insertOne({
+            ...theme,
+            createdAt: now,
+            updatedAt: now,
+          });
+          this.logger.log(`  Created theme: ${theme.name}`);
+        }
+      }
+      this.logger.log('✅ Default themes initialized');
+    } catch (error) {
+      this.logger.error(`Failed to initialize themes: ${error instanceof Error ? error.message : 'Unknown error'}`);
       if (error instanceof Error && error.stack) {
         this.logger.error(`Stack trace: ${error.stack}`);
       }

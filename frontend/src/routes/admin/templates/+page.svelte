@@ -10,446 +10,479 @@
 
 	export let data: PageData;
 
-	interface TemplateConfig {
-		templateName: string;
-		displayName: string;
-		description: string;
-		version: string;
-		author: string;
-		thumbnail: string;
-		category: string;
-		features: {
-			responsive: boolean;
-			darkMode: boolean;
-			animations: boolean;
-			seoOptimized: boolean;
-		};
-		colors: {
-			primary: string;
-			secondary: string;
-			accent: string;
-			background: string;
-			text: string;
-			muted: string;
-		};
+	interface Theme {
+		_id: string;
+		name: string;
+		description?: string;
+		baseTemplate: string;
+		basePalette?: string;
+		customColors?: Record<string, string>;
+		customFonts?: Record<string, string>;
+		customLayout?: Record<string, string>;
+		pageModules?: Record<string, any[]>;
+		pageLayout?: Record<string, { gridRows?: number; gridColumns?: number }>;
+		isPublished?: boolean;
+		isBuiltIn?: boolean;
+		createdAt?: string;
+		updatedAt?: string;
 	}
 
-	let templates: TemplateConfig[] = [];
+	let themes: Theme[] = [];
 	let loading = true;
-	let saving = false;
 	let message = '';
 	let error = '';
+	let showCreateModal = false;
+	let createSubmitting = false;
+	let createName = '';
+	let createBaseTemplate = 'modern';
+	let createBasePalette = 'light';
+	let duplicateName = '';
+	let duplicateThemeId: string | null = null;
+	let deleteThemeId: string | null = null;
+	let applyThemeId: string | null = null;
 
-	// Get active templates for both frontend and admin areas
 	$: frontendTemplate = $siteConfigData?.template?.frontendTemplate || $siteConfigData?.template?.activeTemplate || 'modern';
-	$: adminTemplate = $siteConfigData?.template?.adminTemplate || $siteConfigData?.template?.activeTemplate || 'default';
 
 	onMount(async () => {
-		await loadTemplates();
+		await loadThemes();
 	});
 
-	async function loadTemplates() {
+	async function loadThemes() {
 		loading = true;
 		error = '';
 		try {
-			const response = await fetch('/api/admin/templates', {
-				credentials: 'include',
-				headers: {
-					'Cache-Control': 'no-cache'
-				}
-			});
-			
+			const response = await fetch('/api/admin/themes', { credentials: 'include' });
 			if (!response.ok) {
-				// Clone response to read it multiple times if needed
-				const responseClone = response.clone();
-				let errorData: any = {};
-				
+				handleAuthError({ error: '', status: response.status }, $page.url.pathname);
+				const text = await response.text();
+				let errMsg = `Failed to load themes (${response.status})`;
 				try {
-					errorData = await response.json();
+					const err = JSON.parse(text);
+					errMsg = err.error || err.message || errMsg;
 				} catch {
-					// If JSON parsing fails, try text
-					try {
-						const errorText = await responseClone.text();
-						errorData = { error: errorText || `HTTP ${response.status}: ${response.statusText}` };
-					} catch {
-						errorData = { error: `HTTP ${response.status}: ${response.statusText}` };
-					}
+					if (text) errMsg = text.slice(0, 200);
 				}
-				
-				// Check for authentication errors and redirect
-				if (response.status === 401 || response.status === 403 || errorData.authError) {
-					const errorMsg = errorData.error || errorData.message || 'Invalid or expired token';
-					if (handleAuthError({ error: errorMsg, status: response.status }, $page.url.pathname)) {
-						return; // Redirecting to login
-					}
-				}
-				
-				// Handle error response
-				const errorMsg = errorData.error || errorData.message || `HTTP ${response.status}: ${response.statusText}`;
-				throw new Error(errorMsg);
+				throw new Error(errMsg);
 			}
-			
 			const result = await response.json();
-			
-			// Handle both wrapped {success, data} and direct array formats
-			let loadedTemplates: TemplateConfig[] = [];
-			if (result.success !== undefined) {
-				// Wrapped format: {success: true, data: [...]}
-				if (result.success && Array.isArray(result.data)) {
-					loadedTemplates = result.data;
-				} else if (!result.success) {
-					throw new Error(result.error || result.message || 'Failed to load templates');
-				}
-			} else if (Array.isArray(result)) {
-				// Direct array format
-				loadedTemplates = result;
-			} else {
-				throw new Error('Invalid response format from server');
-			}
-			
-			// Filter out 'default' template as it's a duplicate of 'minimal'
-			templates = loadedTemplates.filter((t) => t.templateName !== 'default');
-			
-			if (templates.length === 0) {
-				error = 'No templates found. Please check backend configuration.';
-			}
+			const raw = Array.isArray(result) ? result : (result.data || []);
+			// Sort: built-in first (default, modern, elegant, minimal), then custom by date
+			const order = ['default', 'modern', 'elegant', 'minimal'];
+			themes = [...raw].sort((a, b) => {
+				const aIdx = a.isBuiltIn ? order.indexOf(a.baseTemplate) : -1;
+				const bIdx = b.isBuiltIn ? order.indexOf(b.baseTemplate) : -1;
+				if (aIdx >= 0 && bIdx >= 0) return aIdx - bIdx;
+				if (aIdx >= 0) return -1;
+				if (bIdx >= 0) return 1;
+				return (new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+			});
 		} catch (err) {
-			logger.error('Error loading templates:', err);
-			
-			// Check if it's an auth error and redirect
-			if (handleAuthError(err, $page.url.pathname)) {
-				return; // Redirecting, don't set error message
-			}
-			
-			error = handleError(err, 'Failed to load templates');
+			if (handleAuthError(err, $page.url.pathname)) return;
+			error = handleError(err, 'Failed to load themes');
 		} finally {
 			loading = false;
 		}
 	}
 
-	async function setActiveTemplate(templateName: string, area: 'frontend' | 'admin') {
-		const currentTemplate = area === 'admin' ? adminTemplate : frontendTemplate;
-		if (templateName === currentTemplate) {
-			return;
-		}
-
-		saving = true;
-		message = '';
+	async function createTheme() {
+		if (!createName.trim()) return;
+		createSubmitting = true;
 		error = '';
-
 		try {
-			// Update site config with new active template for the specified area
-			const updateData: any = {
-				template: {}
-			};
+			const response = await fetch('/api/admin/themes', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				credentials: 'include',
+				body: JSON.stringify({
+					name: createName.trim(),
+					baseTemplate: createBaseTemplate,
+					basePalette: createBasePalette
+				})
+			});
+			if (!response.ok) await handleApiErrorResponse(response);
+			const result = await response.json();
+			logger.debug('Create theme result:', result);
+			const newTheme = result.data ?? result;
+			const themeId = newTheme?._id;
+			showCreateModal = false;
+			createName = '';
+			createBaseTemplate = 'modern';
+			createBasePalette = 'light';
+			message = 'Theme created successfully!';
+			if (newTheme) themes = [newTheme, ...themes];
+			try {
+				await loadThemes();
+			} catch {
+				// Keep optimistically added theme if reload fails
+			}
+			if (themeId) goto(`/admin/templates/overrides?themeId=${themeId}`);
+		} catch (err) {
+			error = handleError(err, 'Failed to create theme');
+		} finally {
+			createSubmitting = false;
+		}
+	}
+
+	async function duplicateTheme(themeId: string, name?: string) {
+		try {
+			const response = await fetch(`/api/admin/themes/${themeId}/duplicate`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				credentials: 'include',
+				body: JSON.stringify({ name: name || undefined })
+			});
+			if (!response.ok) await handleApiErrorResponse(response);
+			const result = await response.json();
+			duplicateThemeId = null;
+			duplicateName = '';
+			message = 'Theme duplicated!';
+			await loadThemes();
+			const newId = result.data?._id ?? result?._id;
+			if (newId) goto(`/admin/templates/overrides?themeId=${newId}`);
+		} catch (err) {
+			error = handleError(err, 'Failed to duplicate theme');
+		}
+	}
+
+	async function applyTheme(themeId: string) {
+		try {
+			// Fetch the full theme to ensure we have pageModules and pageLayout
+			const themeRes = await fetch(`/api/admin/themes/${themeId}`, { credentials: 'include' });
+			if (!themeRes.ok) {
+				await handleApiErrorResponse(themeRes);
+				return;
+			}
+			const themeResult = await themeRes.json();
+			const theme = themeResult.data || themeResult;
 			
-			if (area === 'admin') {
-				updateData.template.adminTemplate = templateName;
-			} else {
-				updateData.template.frontendTemplate = templateName;
+			if (!theme) {
+				error = 'Theme not found';
+				return;
 			}
 
 			const response = await fetch('/api/admin/site-config', {
 				method: 'PUT',
-				headers: {
-					'Content-Type': 'application/json'
-				},
+				headers: { 'Content-Type': 'application/json' },
 				credentials: 'include',
-				body: JSON.stringify(updateData)
-			});
-
-			if (!response.ok) {
-				// Check for authentication errors first
-				if (response.status === 401 || response.status === 403) {
-					const errorData = await response.json().catch(() => ({}));
-					const errorMsg = errorData.error || errorData.message || 'Invalid or expired token';
-					if (handleAuthError({ error: errorMsg, status: response.status }, $page.url.pathname)) {
-						return; // Redirecting to login
+				body: JSON.stringify({
+					template: {
+						frontendTemplate: theme.baseTemplate,
+						activeTemplate: theme.baseTemplate,
+						customColors: theme.customColors || {},
+						customFonts: theme.customFonts || {},
+						customLayout: theme.customLayout || {},
+						pageModules: theme.pageModules || {},
+						pageLayout: theme.pageLayout || {}
 					}
-				}
-				
-				await handleApiErrorResponse(response);
-			}
-
-			const areaLabel = area === 'admin' ? 'admin area' : 'frontend';
-			message = `Template "${templateName}" activated successfully for ${areaLabel}!`;
-			siteConfig.load(); // Refresh site config store
-
+				})
+			});
+			if (!response.ok) await handleApiErrorResponse(response);
+			applyThemeId = null;
+			message = `Theme "${theme.name}" applied!`;
+			await siteConfig.load();
+			// Reload after a short delay to ensure siteConfig is updated
 			setTimeout(() => {
 				message = '';
-			}, 3000);
+				// If we're not on the admin page, reload to see changes
+				if (!window.location.pathname.startsWith('/admin')) {
+					window.location.reload();
+				}
+			}, 1000);
 		} catch (err) {
-			logger.error('Error setting active template:', err);
-			
-			// Check if it's an auth error and redirect
-			if (handleAuthError(err, $page.url.pathname)) {
-				return; // Redirecting, don't set error message
-			}
-			
-			error = handleError(err, 'Failed to set active template');
-		} finally {
-			saving = false;
+			error = handleError(err, 'Failed to apply theme');
 		}
 	}
 
-	function getCategoryColor(category: string): string {
-		const colors: Record<string, string> = {
-			minimal: 'gray',
-			modern: 'blue',
-			classic: 'purple',
-			dark: 'slate',
-			custom: 'indigo',
-			elegant: 'pink'
-		};
-		return colors[category] || 'gray';
+	async function deleteTheme(themeId: string) {
+		try {
+			const response = await fetch(`/api/admin/themes/${themeId}`, {
+				method: 'DELETE',
+				credentials: 'include'
+			});
+			if (!response.ok) await handleApiErrorResponse(response);
+			deleteThemeId = null;
+			message = 'Theme deleted.';
+			await loadThemes();
+			setTimeout(() => (message = ''), 3000);
+		} catch (err) {
+			error = handleError(err, 'Failed to delete theme');
+		}
+	}
+
+	function getColor(theme: Theme, key: string): string {
+		return theme.customColors?.[key] || '#999';
 	}
 </script>
 
 <svelte:head>
-	<title>Template Management - Admin</title>
+	<title>Themes - Admin</title>
 </svelte:head>
 
 <div class="min-h-screen bg-gray-50 py-8">
-	<div class="max-w-6xl mx-auto px-4">
+	<div class="max-w-5xl mx-auto px-4">
 		<div class="bg-white rounded-lg shadow-md p-6">
 			<div class="flex items-center justify-between mb-6">
 				<div>
-					<h1 class="text-2xl font-bold text-gray-900">Template Management</h1>
-					<p class="text-gray-600 mt-2">Choose and manage templates for frontend and admin areas</p>
-				</div>
-				<a
-					href="/admin"
-					class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm font-medium"
-				>
-					← Back to Admin
-				</a>
-			</div>
-
-			<!-- Current Active Templates Info -->
-			<div class="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-				<div class="p-4 bg-blue-50 rounded-lg border border-blue-200">
-					<h2 class="text-lg font-semibold text-gray-900 mb-2">Frontend Template</h2>
-					<p class="text-gray-700">
-						Currently using: <strong>{frontendTemplate}</strong>
+					<h1 class="text-2xl font-bold text-gray-900">Themes</h1>
+					<p class="text-gray-600 mt-1">
+						Manage and apply themes. All themes (built-in and custom) are in one place.
 					</p>
-					<p class="text-sm text-gray-600 mt-1">
-						Used for public-facing pages (home, albums, gallery, etc.)
+					<p class="mt-2 text-sm">
+						<span class="font-medium text-gray-700">Active template:</span>
+						<span class="ml-1 px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 font-medium">{frontendTemplate}</span>
 					</p>
 				</div>
-				<div class="p-4 bg-purple-50 rounded-lg border border-purple-200">
-					<h2 class="text-lg font-semibold text-gray-900 mb-2">Admin Template</h2>
-					<p class="text-gray-700">
-						Currently using: <strong>{adminTemplate}</strong>
-					</p>
-					<p class="text-sm text-gray-600 mt-1">
-						Used for admin area pages (/admin/*)
-					</p>
+				<div class="flex gap-2">
+					<button
+						type="button"
+						on:click={() => (showCreateModal = true)}
+						class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm font-medium"
+					>
+						+ Create new theme
+					</button>
+					<a
+						href="/admin/templates/overrides"
+						class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 text-sm font-medium"
+					>
+						Theme Builder
+					</a>
+					<a
+						href="/admin"
+						class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm font-medium"
+					>
+						← Back to Admin
+					</a>
 				</div>
 			</div>
 
 			{#if message}
 				<div class="mb-4 p-4 rounded-md bg-green-50 text-green-700">{message}</div>
 			{/if}
-
 			{#if error}
 				<div class="mb-4 p-4 rounded-md bg-red-50 text-red-700">{error}</div>
 			{/if}
 
 			{#if loading}
-				<div class="text-center py-8">
-					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-					<p class="mt-2 text-gray-600">Loading templates...</p>
+				<div class="text-center py-12">
+					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+					<p class="mt-2 text-gray-600">Loading themes...</p>
 				</div>
-			{:else if templates.length === 0}
-				<div class="text-center py-8">
-					<p class="text-gray-600">No templates available.</p>
+			{:else if themes.length === 0}
+				<div class="text-center py-8 border-2 border-dashed border-gray-200 rounded-lg">
+					<p class="text-gray-600 mb-4">No themes yet. Restart the backend to seed built-in themes.</p>
+					<button
+						type="button"
+						on:click={() => (showCreateModal = true)}
+						class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+					>
+						Create your first theme
+					</button>
 				</div>
 			{:else}
-				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-					{#each templates as template}
-						{@const isFrontendActive = template.templateName === frontendTemplate}
-						{@const isAdminActive = template.templateName === adminTemplate}
-						{@const isActive = isFrontendActive || isAdminActive}
-						{@const categoryColor = getCategoryColor(template.category)}
-						<div
-							class="bg-white border-2 rounded-lg overflow-hidden transition-all hover:shadow-lg {isActive
-								? 'border-blue-500 shadow-md'
-								: 'border-gray-200'}"
-						>
-							<!-- Template Preview/Thumbnail -->
-							<div class="h-48 bg-linear-to-b {template.colors.primary} flex items-center justify-center relative">
-								{#if template.thumbnail && template.thumbnail !== '/templates/default/thumbnail.jpg'}
-									<img
-										src={template.thumbnail}
-										alt={template.displayName}
-										class="w-full h-full object-cover"
-									/>
-								{:else}
-									<div class="text-white text-4xl font-bold">{template.displayName}</div>
-								{/if}
-								{#if isActive}
-									<div class="absolute top-2 right-2 flex flex-col gap-1">
-										{#if isFrontendActive}
-											<div
-												class="bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-semibold"
-											>
-												Frontend
-											</div>
-										{/if}
-										{#if isAdminActive}
-											<div
-												class="bg-purple-600 text-white px-3 py-1 rounded-full text-xs font-semibold"
-											>
-												Admin
-											</div>
-										{/if}
-									</div>
-								{/if}
+				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+					{#each themes as theme}
+						<div class="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow">
+							<div class="h-24 flex items-center justify-center gap-1 p-2" style="background: {getColor(theme, 'background')};">
+								<span class="w-6 h-6 rounded-full border border-gray-300" style="background: {getColor(theme, 'primary')}"></span>
+								<span class="w-6 h-6 rounded-full border border-gray-300" style="background: {getColor(theme, 'secondary')}"></span>
+								<span class="w-6 h-6 rounded-full border border-gray-300" style="background: {getColor(theme, 'accent')}"></span>
 							</div>
-
-							<!-- Template Info -->
 							<div class="p-4">
-								<div class="flex items-start justify-between mb-2">
-									<div>
-										<h3 class="text-lg font-semibold text-gray-900">{template.displayName}</h3>
-										<p class="text-sm text-gray-500">{template.description}</p>
-									</div>
-									<span
-										class="px-2 py-1 text-xs font-medium rounded bg-{categoryColor}-100 text-{categoryColor}-800"
+								<div class="flex items-center gap-2">
+									<h3 class="font-semibold text-gray-900">{theme.name}</h3>
+									{#if theme.baseTemplate === frontendTemplate}
+										<span class="px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800">Active</span>
+									{/if}
+								</div>
+								<p class="text-xs text-gray-500 mt-1">Base: {theme.baseTemplate} {theme.basePalette ? `· ${theme.basePalette}` : ''} {theme.isBuiltIn ? '· Built-in' : ''}</p>
+								<div class="flex flex-wrap gap-2 mt-3">
+									<a
+										href="/admin/templates/overrides?themeId={theme._id}"
+										class="text-xs px-2 py-1 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200"
 									>
-										{template.category}
-									</span>
-								</div>
-
-								<!-- Template Features -->
-								<div class="flex flex-wrap gap-2 mt-3 mb-4">
-									{#if template.features.responsive}
-										<span class="px-2 py-1 text-xs bg-green-100 text-green-700 rounded">Responsive</span>
-									{/if}
-									{#if template.features.darkMode}
-										<span class="px-2 py-1 text-xs bg-purple-100 text-purple-700 rounded">Dark Mode</span>
-									{/if}
-									{#if template.features.animations}
-										<span class="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded">Animations</span>
-									{/if}
-									{#if template.features.seoOptimized}
-										<span class="px-2 py-1 text-xs bg-orange-100 text-orange-700 rounded">SEO</span>
-									{/if}
-								</div>
-
-								<!-- Template Colors Preview -->
-								<div class="flex gap-1 mb-4">
-									<div
-										class="w-6 h-6 rounded-full border border-gray-300"
-										style="background-color: {template.colors.primary}"
-										title="Primary: {template.colors.primary}"
-									></div>
-									<div
-										class="w-6 h-6 rounded-full border border-gray-300"
-										style="background-color: {template.colors.secondary}"
-										title="Secondary: {template.colors.secondary}"
-									></div>
-									<div
-										class="w-6 h-6 rounded-full border border-gray-300"
-										style="background-color: {template.colors.accent}"
-										title="Accent: {template.colors.accent}"
-									></div>
-									<div
-										class="w-6 h-6 rounded-full border border-gray-300"
-										style="background-color: {template.colors.background}"
-										title="Background: {template.colors.background}"
-									></div>
-								</div>
-
-								<!-- Template Meta -->
-								<div class="text-xs text-gray-500 mb-4">
-									<p>Version: {template.version}</p>
-									<p>Author: {template.author}</p>
-								</div>
-
-								<!-- Actions -->
-								<div class="flex flex-col gap-2">
-									{#if isFrontendActive && isAdminActive}
-										<button
-											type="button"
-											disabled
-											class="w-full px-4 py-2 bg-gray-200 text-gray-600 rounded-md cursor-not-allowed text-sm font-medium"
-										>
-											Active (Both Areas)
-										</button>
-									{:else if isFrontendActive}
-										<button
-											type="button"
-											disabled
-											class="w-full px-4 py-2 bg-blue-200 text-blue-800 rounded-md cursor-not-allowed text-sm font-medium"
-										>
-											Active (Frontend)
-										</button>
-										<button
-											type="button"
-											on:click={() => setActiveTemplate(template.templateName, 'admin')}
-											disabled={saving}
-											class="w-full px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
-										>
-											{#if saving}
-												Activating...
-											{:else}
-												Use for Admin
-											{/if}
-										</button>
-									{:else if isAdminActive}
-										<button
-											type="button"
-											disabled
-											class="w-full px-4 py-2 bg-purple-200 text-purple-800 rounded-md cursor-not-allowed text-sm font-medium"
-										>
-											Active (Admin)
-										</button>
-										<button
-											type="button"
-											on:click={() => setActiveTemplate(template.templateName, 'frontend')}
-											disabled={saving}
-											class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
-										>
-											{#if saving}
-												Activating...
-											{:else}
-												Use for Frontend
-											{/if}
-										</button>
-									{:else}
-										<button
-											type="button"
-											on:click={() => setActiveTemplate(template.templateName, 'frontend')}
-											disabled={saving}
-											class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
-										>
-											{#if saving}
-												Activating...
-											{:else}
-												Use for Frontend
-											{/if}
-										</button>
-										<button
-											type="button"
-											on:click={() => setActiveTemplate(template.templateName, 'admin')}
-											disabled={saving}
-											class="w-full px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
-										>
-											{#if saving}
-												Activating...
-											{:else}
-												Use for Admin
-											{/if}
-										</button>
-									{/if}
+										Edit
+									</a>
+									<button
+										type="button"
+										on:click={() => (applyThemeId = theme._id)}
+										class="text-xs px-2 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200"
+									>
+										Apply
+									</button>
+									<button
+										type="button"
+										on:click={() => { duplicateThemeId = theme._id; duplicateName = `${theme.name} (copy)`; }}
+										class="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+									>
+										Duplicate
+									</button>
+									<button
+										type="button"
+										on:click={() => (deleteThemeId = theme._id)}
+										class="text-xs px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200"
+									>
+										Remove
+									</button>
 								</div>
 							</div>
 						</div>
 					{/each}
 				</div>
-
 			{/if}
 		</div>
 	</div>
 </div>
+
+<!-- Create modal -->
+{#if showCreateModal}
+	<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-labelledby="create-theme-title">
+		<div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+			<h2 id="create-theme-title" class="text-lg font-semibold text-gray-900 mb-4">Create new theme</h2>
+			<div class="space-y-4">
+				<div>
+					<label for="theme-name" class="block text-sm font-medium text-gray-700 mb-1">Name</label>
+					<input
+						id="theme-name"
+						type="text"
+						bind:value={createName}
+						placeholder="My theme"
+						class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+					/>
+				</div>
+				<div>
+					<label for="theme-base" class="block text-sm font-medium text-gray-700 mb-1">Base theme</label>
+					<select
+						id="theme-base"
+						bind:value={createBaseTemplate}
+						class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+					>
+						<option value="default">Default</option>
+						<option value="minimal">Minimal</option>
+						<option value="modern">Modern</option>
+						<option value="elegant">Elegant</option>
+					</select>
+				</div>
+				<div>
+					<label for="theme-palette" class="block text-sm font-medium text-gray-700 mb-1">Base palette</label>
+					<select
+						id="theme-palette"
+						bind:value={createBasePalette}
+						class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+					>
+						<option value="light">Light</option>
+						<option value="dark">Dark</option>
+						<option value="highContrast">High contrast</option>
+						<option value="muted">Muted</option>
+					</select>
+				</div>
+			</div>
+			<div class="flex justify-end gap-2 mt-6">
+				<button
+					type="button"
+					on:click={() => (showCreateModal = false)}
+					class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
+				>
+					Cancel
+				</button>
+				<button
+					type="button"
+					on:click={createTheme}
+					disabled={!createName.trim() || createSubmitting}
+					class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50"
+				>
+					{createSubmitting ? 'Creating...' : 'Create'}
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
+
+<!-- Duplicate modal -->
+{#if duplicateThemeId}
+	<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-labelledby="duplicate-theme-title">
+		<div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+			<h2 id="duplicate-theme-title" class="text-lg font-semibold text-gray-900 mb-4">Duplicate theme</h2>
+			<div class="mb-4">
+				<label for="duplicate-name" class="block text-sm font-medium text-gray-700 mb-1">New theme name</label>
+				<input
+					id="duplicate-name"
+					type="text"
+					bind:value={duplicateName}
+					class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+				/>
+			</div>
+			<div class="flex justify-end gap-2">
+				<button
+					type="button"
+					on:click={() => { duplicateThemeId = null; duplicateName = ''; }}
+					class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
+				>
+					Cancel
+				</button>
+				<button
+					type="button"
+					on:click={() => duplicateTheme(duplicateThemeId!, duplicateName)}
+					class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+				>
+					Duplicate
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
+
+<!-- Apply confirm -->
+{#if applyThemeId}
+	<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-labelledby="apply-theme-title">
+		<div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+			<h2 id="apply-theme-title" class="text-lg font-semibold text-gray-900 mb-4">Apply theme?</h2>
+			<p class="text-gray-600 mb-4">
+				This will replace the current site theme with this theme's design.
+			</p>
+			<div class="flex justify-end gap-2">
+				<button
+					type="button"
+					on:click={() => (applyThemeId = null)}
+					class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
+				>
+					Cancel
+				</button>
+				<button
+					type="button"
+					on:click={() => applyTheme(applyThemeId!)}
+					class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+				>
+					Apply
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
+
+<!-- Delete confirm -->
+{#if deleteThemeId}
+	<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-labelledby="delete-theme-title">
+		<div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+			<h2 id="delete-theme-title" class="text-lg font-semibold text-gray-900 mb-4">Remove theme?</h2>
+			<p class="text-gray-600 mb-4">
+				This will permanently remove the theme. Built-in themes can be re-seeded by restarting the backend.
+			</p>
+			<div class="flex justify-end gap-2">
+				<button
+					type="button"
+					on:click={() => (deleteThemeId = null)}
+					class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
+				>
+					Cancel
+				</button>
+				<button
+					type="button"
+					on:click={() => deleteTheme(deleteThemeId!)}
+					class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+				>
+					Delete
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}

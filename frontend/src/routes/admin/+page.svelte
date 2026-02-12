@@ -142,7 +142,7 @@
 				</a>
 			</div>
 
-			<!-- Template Management -->
+			<!-- Themes -->
 			<div class="bg-white rounded-lg shadow-md p-6">
 				<div class="flex items-center mb-4">
 					<div class="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
@@ -155,24 +155,15 @@
 							/>
 						</svg>
 					</div>
-					<h2 class="text-xl font-semibold text-gray-900 ml-3">Template Management</h2>
+					<h2 class="text-xl font-semibold text-gray-900 ml-3">Themes</h2>
 				</div>
-				<p class="text-gray-600 mb-4">Choose and customize gallery templates</p>
+				<p class="text-gray-600 mb-4">Manage and apply themes for your gallery</p>
 				<div class="space-y-3">
 					<a
 						href="/admin/templates"
 						class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
 					>
-						Manage Templates
-						<svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-						</svg>
-					</a>
-					<a
-						href="/admin/templates/overrides"
-						class="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
-					>
-						Customize Active Template
+						Manage Themes
 						<svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
 						</svg>

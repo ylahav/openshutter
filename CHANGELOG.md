@@ -1,6 +1,8 @@
 ## [Unreleased]
 
 ### Added
+- **Theme Builder – Home page from theme**: Home page can be driven by theme `pageModules` and `pageLayout`. When a theme has home modules configured and is applied, the public home page uses `PageRenderer` with those modules; otherwise it falls back to the legacy template switcher. Apply theme now fetches the full theme (including `pageModules`/`pageLayout`) and writes them to site config; saving overrides for the active theme auto-applies to site config.
+- **Hero module – Background image aspect ratio**: When the Hero uses a background image, the section height preserves the image aspect ratio (no squashing/stretching). Aspect ratio is computed on image load and applied via CSS so width/height relation is maintained across viewport sizes.
 - **Page Builder Module Structure**: Unified structure for all modules (Hero, RichText, FeatureGrid, AlbumGallery, CTA)
   - Each module: `*Module.svelte` wrapper + `ModuleName/Layout.svelte` + `config.ts` + `data.ts`
   - Layout components receive `config`, `data`, `templateConfig`; wrappers build config from props
@@ -54,11 +56,12 @@
   - Support for SVG icons, emojis, and custom text
   - IconRenderer component for consistent icon display across modules
   - Easy icon addition process (add to list + add SVG definition)
-- **Page Title/Subtitle Display**: Page titles and subtitles now prominently displayed on public pages
-  - Title and subtitle rendered before dynamically rendered modules
-  - Multi-language support for page titles and subtitles
+- **Page Title/Subtitle Display**: Page titles and subtitles now prominently displayed on public pages when explicitly set on the page (not auto-pulled from site config for module-based home).
 
 ### Changed
+- **Home page with theme modules**: Home no longer auto-displays site config title/description when using PageRenderer; only module-defined content (e.g. Hero, RichText) is shown unless the page object has explicit title/subtitle.
+- **Theme apply**: Applying a theme now loads the full theme by ID (including `pageModules`, `pageLayout`) before writing to site config, so saved theme edits are reflected after apply.
+- **Theme overrides save**: Saving overrides for the currently active theme also updates site config (auto-apply), so home page updates appear without a separate "Apply" step.
 - **Page Builder UI**: Improved user experience for page management
   - Removed hard-coded `introText` and `content` fields from page administration
   - Module-based content replaces static page fields

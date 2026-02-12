@@ -38,6 +38,7 @@ Welcome to the OpenShutter documentation. This comprehensive guide covers all as
 
 ### Theming and Templates
 - [Creating a New Template](./templates.md) - How to build and register a custom template
+- [Theme Page Builder Design](./THEME_PAGE_BUILDER_DESIGN.md) - Theme-based page modules, grid layout, and home page rendering
 
 ## 🎯 Current Features
 

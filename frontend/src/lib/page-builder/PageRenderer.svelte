@@ -2,17 +2,25 @@
 	import { currentLanguage } from '$stores/language';
 	import { MultiLangUtils } from '$lib/utils/multiLang';
 	import type { PageData, PageModuleData } from '$lib/types/page-builder';
-	import HeroModule from './modules/HeroModule.svelte';
-	import RichTextModule from './modules/RichTextModule.svelte';
-	import FeatureGridModule from './modules/FeatureGridModule.svelte';
-	import AlbumGalleryModule from './modules/AlbumGalleryModule.svelte';
-	import CtaModule from './modules/CtaModule.svelte';
+import HeroModule from './modules/HeroModule.svelte';
+import RichTextModule from './modules/RichTextModule.svelte';
+import FeatureGridModule from './modules/FeatureGridModule.svelte';
+import AlbumGalleryModule from './modules/AlbumGalleryModule.svelte';
+import CtaModule from './modules/CtaModule.svelte';
+import LogoModule from './modules/LogoModule.svelte';
+import SiteTitleModule from './modules/SiteTitleModule.svelte';
+import MenuModule from './modules/MenuModule.svelte';
 
 	export let page: PageData | null = null;
 	export let modules: PageModuleData[] = [];
 
-	$: titleText = page?.title ? MultiLangUtils.getTextValue(page.title, $currentLanguage) : '';
-	$: subtitleText = page?.subtitle ? MultiLangUtils.getTextValue(page.subtitle, $currentLanguage) : '';
+	// Only show title/subtitle if they're explicitly set (not undefined/null)
+	$: titleText = (page?.title !== undefined && page?.title !== null) 
+		? MultiLangUtils.getTextValue(page.title, $currentLanguage) 
+		: '';
+	$: subtitleText = (page?.subtitle !== undefined && page?.subtitle !== null)
+		? MultiLangUtils.getTextValue(page.subtitle, $currentLanguage)
+		: '';
 
 	const moduleMap: Record<string, any> = {
 		hero: HeroModule,
@@ -20,7 +28,10 @@
 		featureGrid: FeatureGridModule,
 		albumsGrid: AlbumGalleryModule,
 		albumGallery: AlbumGalleryModule, // Backward compatibility
-		cta: CtaModule
+		cta: CtaModule,
+		logo: LogoModule,
+		siteTitle: SiteTitleModule,
+		menu: MenuModule
 	};
 
 	// Build rows from modules

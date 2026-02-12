@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import type { TemplateBuilderConfig, TemplateLocation, TemplateModule, TemplateModuleAssignment, TemplatePageConfig } from '../types/template-builder';
 
 @Injectable()
-export class TemplateBuilderService {
+export class ThemeBuilderService {
   private readonly collectionName = 'template_builder_configs';
 
   /**

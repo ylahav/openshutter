@@ -9,6 +9,7 @@ import { SiteConfigController } from './site-config/site-config.controller';
 import { StorageController } from './storage/storage.controller';
 import { StorageAdminController } from './storage/storage-admin.controller';
 import { TemplatesController } from './templates/templates.controller';
+import { ThemesController } from './themes/themes.controller';
 import { PeopleModule } from './people/people.module';
 import { TagsModule } from './tags/tags.module';
 import { LocationsModule } from './locations/locations.module';
@@ -23,7 +24,7 @@ import { AdminGuard } from './common/guards/admin.guard';
 import { AdminOrOwnerGuard } from './common/guards/admin-or-owner.guard';
 import { FaceDetectionModule } from './face-detection/face-detection.module';
 import { TranslationsModule } from './translations/translations.module';
-import { TemplateBuilderModule } from './template-builder/template-builder.module';
+import { ThemeBuilderModule } from './theme-builder/theme-builder.module';
 import { SearchModule } from './search/search.module';
 import { MigrationModule } from './migration/migration.module';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -54,12 +55,12 @@ import configuration from './config/configuration';
     DeploymentModule,
     FaceDetectionModule,
     TranslationsModule,
-    TemplateBuilderModule,
+    ThemeBuilderModule,
     SearchModule,
     MigrationModule,
     StorageModule,
   ],
-  controllers: [HealthController, SiteConfigController, StorageController, StorageAdminController, TemplatesController],
+  controllers: [HealthController, SiteConfigController, StorageController, StorageAdminController, TemplatesController, ThemesController],
   providers: [AdminGuard, AdminOrOwnerGuard],
 })
 export class AppModule {}

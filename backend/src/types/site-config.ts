@@ -57,6 +57,10 @@ export interface SiteConfig {
       showAuthButtons?: boolean
       showTemplateSelector?: boolean
     }
+    /** Per-page modules from theme: { home: [...], gallery: [...], etc. } */
+    pageModules?: Record<string, any[]>
+    /** Per-page grid layout: { home: { gridRows: 3, gridColumns: 1 }, ... } */
+    pageLayout?: Record<string, { gridRows?: number; gridColumns?: number }>
   }
   seo: {
     metaTitle: MultiLangText

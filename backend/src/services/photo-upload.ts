@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import sharp from 'sharp'
-import { storageManager } from './storage/manager'
+import { storageManager } from './storage'
 import mongoose, { Types } from 'mongoose'
 import { ThumbnailGenerator } from './thumbnail-generator'
 import { ImageCompressionService } from './image-compression'

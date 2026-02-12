@@ -1,12 +1,12 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, BadRequestException } from '@nestjs/common';
 import { AdminGuard } from '../common/guards/admin.guard';
-import { TemplateBuilderService } from './template-builder.service';
+import { ThemeBuilderService } from './theme-builder.service';
 import type { TemplateBuilderConfig, TemplateLocation, TemplateModule, TemplateModuleAssignment, TemplatePageConfig } from '../types/template-builder';
 
-@Controller('admin/template-builder')
+@Controller('admin/theme-builder')
 @UseGuards(AdminGuard)
-export class TemplateBuilderController {
-  constructor(private readonly templateBuilderService: TemplateBuilderService) {}
+export class ThemeBuilderController {
+  constructor(private readonly themeBuilderService: ThemeBuilderService) {}
 
   /**
    * Get all template builder configurations
@@ -14,7 +14,7 @@ export class TemplateBuilderController {
    */
   @Get()
   async getTemplates(): Promise<TemplateBuilderConfig[]> {
-    return this.templateBuilderService.getAllTemplates();
+    return this.themeBuilderService.getAllTemplates();
   }
 
   /**
@@ -23,7 +23,7 @@ export class TemplateBuilderController {
    */
   @Get(':templateId')
   async getTemplate(@Param('templateId') templateId: string): Promise<TemplateBuilderConfig> {
-    return this.templateBuilderService.getTemplate(templateId);
+    return this.themeBuilderService.getTemplate(templateId);
   }
 
   /**
@@ -35,7 +35,7 @@ export class TemplateBuilderController {
     if (!config.templateName) {
       throw new BadRequestException('Template name is required');
     }
-    return this.templateBuilderService.createTemplate(config);
+    return this.themeBuilderService.createTemplate(config);
   }
 
   /**
@@ -47,7 +47,7 @@ export class TemplateBuilderController {
     @Param('templateId') templateId: string,
     @Body() config: Partial<TemplateBuilderConfig>
   ): Promise<TemplateBuilderConfig> {
-    return this.templateBuilderService.updateTemplate(templateId, config);
+    return this.themeBuilderService.updateTemplate(templateId, config);
   }
 
   /**
@@ -56,7 +56,7 @@ export class TemplateBuilderController {
    */
   @Delete(':templateId')
   async deleteTemplate(@Param('templateId') templateId: string): Promise<{ success: boolean; message: string }> {
-    return this.templateBuilderService.deleteTemplate(templateId);
+    return this.themeBuilderService.deleteTemplate(templateId);
   }
 
   /**
@@ -68,7 +68,7 @@ export class TemplateBuilderController {
     @Param('templateId') templateId: string,
     @Body() location: Omit<TemplateLocation, 'id'>
   ): Promise<TemplateBuilderConfig> {
-    return this.templateBuilderService.addLocation(templateId, location);
+    return this.themeBuilderService.addLocation(templateId, location);
   }
 
   /**
@@ -81,7 +81,7 @@ export class TemplateBuilderController {
     @Param('locationId') locationId: string,
     @Body() updates: Partial<TemplateLocation>
   ): Promise<TemplateBuilderConfig> {
-    return this.templateBuilderService.updateLocation(templateId, locationId, updates);
+    return this.themeBuilderService.updateLocation(templateId, locationId, updates);
   }
 
   /**
@@ -93,7 +93,7 @@ export class TemplateBuilderController {
     @Param('templateId') templateId: string,
     @Param('locationId') locationId: string
   ): Promise<TemplateBuilderConfig> {
-    return this.templateBuilderService.deleteLocation(templateId, locationId);
+    return this.themeBuilderService.deleteLocation(templateId, locationId);
   }
 
   /**
@@ -105,7 +105,7 @@ export class TemplateBuilderController {
     @Param('templateId') templateId: string,
     @Body() module: Omit<TemplateModule, 'id'>
   ): Promise<TemplateBuilderConfig> {
-    return this.templateBuilderService.addModule(templateId, module);
+    return this.themeBuilderService.addModule(templateId, module);
   }
 
   /**
@@ -118,7 +118,7 @@ export class TemplateBuilderController {
     @Param('moduleId') moduleId: string,
     @Body() updates: Partial<TemplateModule>
   ): Promise<TemplateBuilderConfig> {
-    return this.templateBuilderService.updateModule(templateId, moduleId, updates);
+    return this.themeBuilderService.updateModule(templateId, moduleId, updates);
   }
 
   /**
@@ -130,7 +130,7 @@ export class TemplateBuilderController {
     @Param('templateId') templateId: string,
     @Param('moduleId') moduleId: string
   ): Promise<TemplateBuilderConfig> {
-    return this.templateBuilderService.deleteModule(templateId, moduleId);
+    return this.themeBuilderService.deleteModule(templateId, moduleId);
   }
 
   /**
@@ -142,7 +142,7 @@ export class TemplateBuilderController {
     @Param('templateId') templateId: string,
     @Body() assignment: TemplateModuleAssignment
   ): Promise<TemplateBuilderConfig> {
-    return this.templateBuilderService.assignModule(templateId, assignment);
+    return this.themeBuilderService.assignModule(templateId, assignment);
   }
 
   /**
@@ -155,7 +155,7 @@ export class TemplateBuilderController {
     @Param('locationId') locationId: string,
     @Param('moduleId') moduleId: string
   ): Promise<TemplateBuilderConfig> {
-    return this.templateBuilderService.unassignModule(templateId, locationId, moduleId);
+    return this.themeBuilderService.unassignModule(templateId, locationId, moduleId);
   }
 
   /**
@@ -169,7 +169,7 @@ export class TemplateBuilderController {
     @Param('moduleId') moduleId: string,
     @Body() body: { order: number }
   ): Promise<TemplateBuilderConfig> {
-    return this.templateBuilderService.updateAssignmentOrder(templateId, locationId, moduleId, body.order);
+    return this.themeBuilderService.updateAssignmentOrder(templateId, locationId, moduleId, body.order);
   }
 
   /**
@@ -182,7 +182,7 @@ export class TemplateBuilderController {
     @Param('pageId') pageId: string,
     @Body() assignment: TemplateModuleAssignment
   ): Promise<TemplateBuilderConfig> {
-    return this.templateBuilderService.assignModuleToPage(templateId, pageId, assignment);
+    return this.themeBuilderService.assignModuleToPage(templateId, pageId, assignment);
   }
 
   /**
@@ -196,7 +196,7 @@ export class TemplateBuilderController {
     @Param('locationId') locationId: string,
     @Param('moduleId') moduleId: string
   ): Promise<TemplateBuilderConfig> {
-    return this.templateBuilderService.unassignModuleFromPage(templateId, pageId, locationId, moduleId);
+    return this.themeBuilderService.unassignModuleFromPage(templateId, pageId, locationId, moduleId);
   }
 
   /**
@@ -208,7 +208,7 @@ export class TemplateBuilderController {
     @Param('templateId') templateId: string,
     @Body() page: Omit<TemplatePageConfig, 'id'>
   ): Promise<TemplateBuilderConfig> {
-    return this.templateBuilderService.addPage(templateId, page);
+    return this.themeBuilderService.addPage(templateId, page);
   }
 
   /**
@@ -220,6 +220,6 @@ export class TemplateBuilderController {
     @Param('templateId') templateId: string,
     @Param('pageId') pageId: string
   ): Promise<TemplateBuilderConfig> {
-    return this.templateBuilderService.deletePage(templateId, pageId);
+    return this.themeBuilderService.deletePage(templateId, pageId);
   }
 }

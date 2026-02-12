@@ -13,6 +13,8 @@
 
 	$: titleText = MultiLangUtils.getTextValue(config?.title, $currentLanguage) || '';
 	$: descriptionHTML = config?.description ? MultiLangUtils.getHTMLValue(config.description, $currentLanguage) : '';
+	/** 'root' = all root albums, 'featured' = only featured albums, 'selected' = specific album IDs */
+	$: albumSource = config?.albumSource ?? 'root';
 	$: selectedAlbums = config?.selectedAlbums ?? config?.rootAlbumId ?? config?.rootGallery ? [config.rootAlbumId || config.rootGallery] : [];
 	$: includeRoot = config?.includeRoot ?? true;
 
@@ -20,11 +22,15 @@
 	let loading = true;
 	let coverImages: Record<string, string> = {};
 	let lastSelectedAlbums: string[] = [];
+	let lastAlbumSource: string = '';
 
-	$: effectiveSelectedAlbums = Array.isArray(selectedAlbums) ? selectedAlbums : selectedAlbums ? [selectedAlbums] : [];
+	$: effectiveSelectedAlbums = albumSource === 'selected'
+		? (Array.isArray(selectedAlbums) ? selectedAlbums : selectedAlbums ? [selectedAlbums] : [])
+		: [];
 
-	$: if (browser && JSON.stringify(effectiveSelectedAlbums) !== JSON.stringify(lastSelectedAlbums)) {
+	$: if (browser && (JSON.stringify(effectiveSelectedAlbums) !== JSON.stringify(lastSelectedAlbums) || albumSource !== lastAlbumSource)) {
 		lastSelectedAlbums = [...effectiveSelectedAlbums];
+		lastAlbumSource = albumSource;
 		loadAlbums();
 	}
 
@@ -35,7 +41,7 @@
 	async function loadAlbums() {
 		loading = true;
 		try {
-			if (effectiveSelectedAlbums && effectiveSelectedAlbums.length > 0) {
+			if (albumSource === 'selected' && effectiveSelectedAlbums && effectiveSelectedAlbums.length > 0) {
 				const albumPromises = effectiveSelectedAlbums.map(async (albumId) => {
 					try {
 						const response = await fetch(`/api/albums/${albumId}`);
@@ -75,6 +81,9 @@
 							return resultList;
 						};
 						albums = flattenAlbums(albumsData);
+						if (albumSource === 'featured') {
+							albums = albums.filter((a) => a.isFeatured);
+						}
 					}
 				}
 
