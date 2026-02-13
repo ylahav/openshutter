@@ -38,9 +38,9 @@ export class AlbumsService {
   /**
    * Public visibility condition for album queries (e.g. used by search to filter by access).
    * Rules:
-   * 1. Album must be published
+   * 1. Album must be published (or missing, defaults to true)
    * 2. When not logged in: only public albums
-   * 3. When logged in: public albums OR private albums where user matches groups/users rules
+   * 3. When logged in: public albums OR private albums (without restrictions OR where user matches groups/users rules)
    */
   getVisibilityCondition(accessContext: AlbumAccessContext | null | undefined): any {
     return this.buildVisibilityCondition(accessContext);
@@ -49,9 +49,11 @@ export class AlbumsService {
   /**
    * Build visibility condition for album queries.
    * Rules:
-   * 1. Album must be published
+   * 1. Album must be published (or missing, defaults to true)
    * 2. If public: visible to everyone
-   * 3. If private: only visible if user is logged in AND matches groups/users rules
+   * 3. If private:
+   *    - Without restrictions: visible to all logged-in users
+   *    - With restrictions: only visible if user matches allowedUsers or allowedGroups
    */
   private buildVisibilityCondition(accessContext: AlbumAccessContext | null | undefined): any {
     // Published condition: isPublished === true OR isPublished doesn't exist (defaults to true)
@@ -75,7 +77,7 @@ export class AlbumsService {
       return publicAlbums;
     }
     
-    // For logged-in users: public albums OR private albums where user matches rules
+    // For logged-in users: public albums OR private albums (with or without restrictions)
     const userId = new Types.ObjectId(accessContext.userId);
     const groupAliases = accessContext.groupAliases || [];
     
@@ -83,7 +85,15 @@ export class AlbumsService {
     const orConditions: any[] = [
       // Always include public albums
       publicAlbums,
-      // Private albums: only visible if user is in allowedUsers
+      // Private albums without restrictions: visible to all logged-in users
+      {
+        $and: [
+          isPublishedCondition,
+          { isPublic: false },
+          this.noRestrictionsCondition()
+        ]
+      },
+      // Private albums: visible if user is in allowedUsers
       { 
         $and: [
           isPublishedCondition,
@@ -125,9 +135,11 @@ export class AlbumsService {
   /**
    * Return true if the album is visible to the current context.
    * Rules:
-   * 1. Album must be published
+   * 1. Album must be published (or missing, defaults to true)
    * 2. If public: visible to everyone
-   * 3. If private: only visible if user is logged in AND matches groups/users rules
+   * 3. If private:
+   *    - Without restrictions: visible to all logged-in users
+   *    - With restrictions: only visible if user matches allowedUsers or allowedGroups
    */
   private canAccessAlbum(album: any, accessContext: AlbumAccessContext | null | undefined): boolean {
     // Rule 1: Must be published (or missing, defaults to true)
@@ -137,8 +149,11 @@ export class AlbumsService {
     // Rule 2: Public albums are visible to everyone
     if (album.isPublic) return true;
     
-    // Rule 3: Private albums require logged-in user AND matching rules
+    // Rule 3: Private albums require logged-in user
     if (!accessContext) return false;
+    
+    // Private albums without restrictions: visible to all logged-in users
+    if (this.albumHasNoRestrictions(album)) return true;
     
     // Check if user is in allowedUsers
     const allowedUsers = album.allowedUsers || [];

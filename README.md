@@ -491,11 +491,12 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
   - Missing field: Albums without `isPublished` field are treated as published (backward compatibility)
 - **Public Albums**: Published albums that are public (`isPublic: true`) - visible to all users (logged in or anonymous)
 - **Private Albums**: Published albums that are private (`isPublic: false`) - require authentication
+  - **Open Private**: No specific restrictions - visible to all logged-in users
+    - Albums with empty or missing `allowedUsers` and `allowedGroups` arrays
   - **Restricted Private**: Limited to specific users or groups
     - `allowedUsers`: Array of specific user IDs
     - `allowedGroups`: Array of group aliases
     - User must be in `allowedUsers` OR belong to one of `allowedGroups`
-  - **Note**: Private albums without restrictions are only visible to users who match the `allowedUsers` or `allowedGroups` rules
 
 ### User Roles
 - **Admin**: Full access to dashboard, storage settings, and administrative functions
