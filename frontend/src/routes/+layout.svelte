@@ -8,6 +8,7 @@
 	import FooterTemplateSwitcher from '$lib/components/FooterTemplateSwitcher.svelte';
 	import BodyTemplateWrapper from '$lib/components/BodyTemplateWrapper.svelte';
 	import ThemeProvider from '$lib/components/ThemeProvider.svelte';
+	import ThemeColorApplier from '$lib/components/ThemeColorApplier.svelte';
 	import TokenRenewalNotification from '$lib/components/TokenRenewalNotification.svelte';
 	import { logger } from '$lib/utils/logger';
 
@@ -38,6 +39,7 @@
 </script>
 
 <ThemeProvider defaultTheme="system" enableSystem={true} disableTransitionOnChange={false}>
+	<ThemeColorApplier />
 	<TokenRenewalNotification />
 	<HeaderTemplateSwitcher />
 

@@ -486,13 +486,16 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🔐 Access Control
 
 ### Album Access Levels
-- **Public Albums**: Visible to all users (logged in or anonymous)
-- **Private Albums**: Require authentication
-  - **Open Private**: No specific restrictions - all logged-in users can access
+- **Published Albums**: Albums must be published (`isPublished: true`) to be visible on the frontend
+  - Default: New albums are published by default (`isPublished: true`)
+  - Missing field: Albums without `isPublished` field are treated as published (backward compatibility)
+- **Public Albums**: Published albums that are public (`isPublic: true`) - visible to all users (logged in or anonymous)
+- **Private Albums**: Published albums that are private (`isPublic: false`) - require authentication
   - **Restricted Private**: Limited to specific users or groups
     - `allowedUsers`: Array of specific user IDs
     - `allowedGroups`: Array of group aliases
     - User must be in `allowedUsers` OR belong to one of `allowedGroups`
+  - **Note**: Private albums without restrictions are only visible to users who match the `allowedUsers` or `allowedGroups` rules
 
 ### User Roles
 - **Admin**: Full access to dashboard, storage settings, and administrative functions

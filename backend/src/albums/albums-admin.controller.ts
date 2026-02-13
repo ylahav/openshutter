@@ -165,6 +165,7 @@ export class AlbumsAdminController {
 				alias: createData.alias.toLowerCase().trim(),
 				description: createData.description || '',
 				isPublic: createData.isPublic !== undefined ? createData.isPublic : false,
+				isPublished: createData.isPublished !== undefined ? createData.isPublished : true,
 				isFeatured: createData.isFeatured !== undefined ? createData.isFeatured : false,
 				storageProvider: createData.storageProvider,
 				storagePath: storagePath,
@@ -817,6 +818,9 @@ export class AlbumsAdminController {
 			// Update boolean flags
 			if (updateData.isPublic !== undefined) {
 				update.isPublic = updateData.isPublic;
+			}
+			if (updateData.isPublished !== undefined) {
+				update.isPublished = updateData.isPublished;
 			}
 			if (updateData.isFeatured !== undefined) {
 				update.isFeatured = updateData.isFeatured;

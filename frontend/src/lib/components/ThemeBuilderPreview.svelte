@@ -1,5 +1,9 @@
-<!-- Live preview for theme/template builder - applies design tokens as CSS variables -->
+<!-- Live preview for theme/template builder - uses PageRenderer with actual modules -->
 <script lang="ts">
+	import PageRenderer from '$lib/page-builder/PageRenderer.svelte';
+	import { DEFAULT_PAGE_LAYOUTS, DEFAULT_PAGE_MODULES } from '$lib/constants/default-page-layouts';
+    import type { PageData } from '$types/page-builder';
+
 	export let tokens: {
 		colors: { primary: string; secondary: string; accent: string; background: string; text: string; muted: string };
 		fonts: { heading: string; body: string };
@@ -11,6 +15,20 @@
 	};
 
 	export let pageType: 'home' | 'gallery' | 'album' | 'search' | 'pageBuilder' | 'header' | 'footer' = 'home';
+	export let pageModules: any[] | undefined = undefined;
+	export let pageLayout: { gridRows?: number; gridColumns?: number } | undefined = undefined;
+
+	// Use provided modules/layout or fall back to defaults
+	$: modules = pageModules || DEFAULT_PAGE_MODULES[pageType] || [];
+	$: layout = pageLayout || DEFAULT_PAGE_LAYOUTS[pageType] || { gridRows: 3, gridColumns: 1 };
+
+	// Create page object for PageRenderer
+	$: page = {
+		_id: pageType,
+		title: {},
+		subtitle: {},
+		layout
+	};
 
 	$: cssVars = `
 		--os-primary: ${tokens.colors.primary};
@@ -36,95 +54,13 @@
 			font-family: var(--os-font-body);
 		"
 	>
-		{#if pageType === 'home'}
-			<!-- Home preview -->
-			<div class="space-y-4" style="max-width: var(--os-max-width); margin: 0 auto;">
-				<div class="h-24 rounded-lg flex items-center justify-center" style="background: var(--os-primary); color: white;">
-					<span style="font-family: var(--os-font-heading); font-size: 1.5rem;">Hero Section</span>
-				</div>
-				<div class="text-center py-4">
-					<h2 style="font-family: var(--os-font-heading); color: var(--os-text);">Welcome to the Gallery</h2>
-					<p style="color: var(--os-muted);">Sample album previews below</p>
-				</div>
-				<div class="grid grid-cols-3 gap-2">
-					{#each [1, 2, 3] as i}
-						<div class="aspect-video rounded-lg p-2 flex items-center justify-center" style="background: var(--os-secondary); color: white; opacity: 0.8;">
-							Album {i}
-						</div>
-					{/each}
-				</div>
-			</div>
-		{:else if pageType === 'gallery'}
-			<!-- Gallery preview -->
-			<div class="space-y-4" style="max-width: var(--os-max-width); margin: 0 auto;">
-				<h1 style="font-family: var(--os-font-heading); color: var(--os-text);">Albums</h1>
-				<div class="grid grid-cols-2 gap-3" style="gap: var(--os-gap);">
-					{#each [1, 2, 3, 4, 5, 6] as i}
-						<div class="rounded-lg overflow-hidden border" style="border-color: var(--os-muted);">
-							<div class="h-20" style="background: var(--os-primary); opacity: 0.6;"></div>
-							<div class="p-2" style="background: var(--os-background);">
-								<span style="color: var(--os-text);">Collection {i}</span>
-								<p class="text-xs" style="color: var(--os-muted);">12 photos</p>
-							</div>
-						</div>
-					{/each}
-				</div>
-			</div>
-		{:else if pageType === 'album'}
-			<!-- Album preview -->
-			<div class="space-y-4" style="max-width: var(--os-max-width); margin: 0 auto;">
-				<div class="flex justify-between items-center">
-					<h1 style="font-family: var(--os-font-heading); color: var(--os-text);">Summer 2024</h1>
-					<span class="px-3 py-1 rounded-full text-sm" style="background: var(--os-accent); color: white;">View All</span>
-				</div>
-				<div class="grid grid-cols-4 gap-2" style="gap: var(--os-gap);">
-					{#each [1, 2, 3, 4, 5, 6, 7, 8] as i}
-						<div class="aspect-square rounded" style="background: var(--os-secondary); opacity: 0.5;"></div>
-					{/each}
-				</div>
-			</div>
-		{:else if pageType === 'search'}
-			<!-- Search preview -->
-			<div class="space-y-4" style="max-width: var(--os-max-width); margin: 0 auto;">
-				<div class="flex gap-2">
-					<div class="flex-1 h-10 rounded" style="background: var(--os-background); border: 1px solid var(--os-muted);"></div>
-					<button class="px-4 rounded" style="background: var(--os-primary); color: white;">Search</button>
-				</div>
-				<p style="color: var(--os-muted);">Search across photos, albums, people...</p>
-				<div class="grid grid-cols-4 gap-2">
-					{#each [1, 2, 3, 4] as i}
-						<div class="aspect-square rounded" style="background: var(--os-secondary); opacity: 0.4;"></div>
-					{/each}
-				</div>
-			</div>
-		{:else if pageType === 'header'}
-			<!-- Header preview -->
-			<div class="space-y-2" style="max-width: var(--os-max-width); margin: 0 auto;">
-				<div class="h-12 rounded flex items-center gap-4 px-4" style="background: var(--os-primary); color: white;">
-					<span class="w-8 h-8 rounded bg-white/20"></span>
-					<span style="font-family: var(--os-font-heading);">Site Title</span>
-					<span class="ml-auto text-sm opacity-80">Menu</span>
-				</div>
-			</div>
-		{:else if pageType === 'footer'}
-			<!-- Footer preview -->
-			<div class="space-y-2" style="max-width: var(--os-max-width); margin: 0 auto;">
-				<div class="h-16 rounded flex items-center justify-center gap-4 px-4" style="background: var(--os-secondary); color: white; opacity: 0.8;">
-					<span style="font-family: var(--os-font-heading);">Footer</span>
-					<span class="text-sm">© 2024</span>
-				</div>
-			</div>
+		{#if modules.length > 0}
+			<!-- Use PageRenderer with actual modules -->
+			<PageRenderer page={page as PageData} modules={modules} />
 		{:else}
-			<!-- Page Builder preview -->
-			<div class="space-y-4" style="max-width: var(--os-max-width); margin: 0 auto;">
-				<div class="h-16 rounded flex items-center justify-center" style="background: var(--os-primary); color: white;">
-					<span style="font-family: var(--os-font-heading);">Custom Page Hero</span>
-				</div>
-				<div class="prose max-w-none" style="color: var(--os-text);">
-					<h2 style="font-family: var(--os-font-heading);">Rich Text Section</h2>
-					<p style="color: var(--os-muted);">Sample paragraph text. Design tokens apply to Page Builder pages too.</p>
-				</div>
-				<button class="px-6 py-2 rounded" style="background: var(--os-accent); color: white;">Call to Action</button>
+			<!-- Fallback for page types without modules -->
+			<div class="flex items-center justify-center h-full text-gray-400">
+				<p>No modules configured for {pageType}</p>
 			</div>
 		{/if}
 	</div>

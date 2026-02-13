@@ -37,8 +37,10 @@ export class AlbumsService {
 
   /**
    * Public visibility condition for album queries (e.g. used by search to filter by access).
-   * - When not logged in: only albums that are public AND unrestricted.
-   * - When logged in: (public AND unrestricted) OR (private AND unrestricted = "open private") OR created by user OR user in allowedUsers OR user's group in allowedGroups.
+   * Rules:
+   * 1. Album must be published
+   * 2. When not logged in: only public albums
+   * 3. When logged in: public albums OR private albums where user matches groups/users rules
    */
   getVisibilityCondition(accessContext: AlbumAccessContext | null | undefined): any {
     return this.buildVisibilityCondition(accessContext);
@@ -46,27 +48,69 @@ export class AlbumsService {
 
   /**
    * Build visibility condition for album queries.
+   * Rules:
+   * 1. Album must be published
+   * 2. If public: visible to everyone
+   * 3. If private: only visible if user is logged in AND matches groups/users rules
    */
   private buildVisibilityCondition(accessContext: AlbumAccessContext | null | undefined): any {
-    const publicUnrestricted = {
-      isPublic: true,
-      ...this.noRestrictionsCondition(),
+    // Published condition: isPublished === true OR isPublished doesn't exist (defaults to true)
+    const isPublishedCondition = {
+      $or: [
+        { isPublished: true },
+        { isPublished: { $exists: false } }
+      ]
     };
+    
+    // Public albums: published (or missing, defaults to true) + public
+    const publicAlbums = {
+      $and: [
+        isPublishedCondition,
+        { isPublic: true }
+      ]
+    };
+    
+    // For non-logged-in users: only public albums
     if (!accessContext) {
-      return publicUnrestricted;
+      return publicAlbums;
     }
+    
+    // For logged-in users: public albums OR private albums where user matches rules
     const userId = new Types.ObjectId(accessContext.userId);
     const groupAliases = accessContext.groupAliases || [];
-    const openPrivate = { isPublic: false, ...this.noRestrictionsCondition() };
-    return {
-      $or: [
-        publicUnrestricted,
-        openPrivate,
-        { createdBy: userId },
-        { allowedUsers: userId },
-        ...(groupAliases.length ? [{ allowedGroups: { $in: groupAliases } }] : []),
-      ],
+    
+    // Build the $or conditions array
+    const orConditions: any[] = [
+      // Always include public albums
+      publicAlbums,
+      // Private albums: only visible if user is in allowedUsers
+      { 
+        $and: [
+          isPublishedCondition,
+          { isPublic: false },
+          { allowedUsers: userId }
+        ]
+      },
+    ];
+    
+    // Add group-based access if user has groups
+    if (groupAliases.length > 0) {
+      orConditions.push({
+        $and: [
+          isPublishedCondition,
+          { isPublic: false },
+          { allowedGroups: { $in: groupAliases } }
+        ]
+      });
+    }
+    
+    const condition = {
+      $or: orConditions,
     };
+    
+    this.logger.debug(`buildVisibilityCondition for user ${accessContext.userId}:`, JSON.stringify(condition, null, 2));
+    
+    return condition;
   }
 
   /** Return true if the album has no group/user restrictions. */
@@ -80,19 +124,31 @@ export class AlbumsService {
 
   /**
    * Return true if the album is visible to the current context.
-   * Visible if: (public AND unrestricted) OR (private AND unrestricted = open private, when logged in) OR creator OR in allowedUsers OR in allowedGroups.
+   * Rules:
+   * 1. Album must be published
+   * 2. If public: visible to everyone
+   * 3. If private: only visible if user is logged in AND matches groups/users rules
    */
   private canAccessAlbum(album: any, accessContext: AlbumAccessContext | null | undefined): boolean {
-    if (album.isPublic && this.albumHasNoRestrictions(album)) return true;
+    // Rule 1: Must be published (or missing, defaults to true)
+    // If isPublished doesn't exist, treat as true (default)
+    if (album.isPublished !== undefined && !album.isPublished) return false;
+    
+    // Rule 2: Public albums are visible to everyone
+    if (album.isPublic) return true;
+    
+    // Rule 3: Private albums require logged-in user AND matching rules
     if (!accessContext) return false;
-    if (!album.isPublic && this.albumHasNoRestrictions(album)) return true;
-    const createdByStr = album.createdBy?.toString?.() ?? album.createdBy;
-    if (createdByStr === accessContext.userId) return true;
+    
+    // Check if user is in allowedUsers
     const allowedUsers = album.allowedUsers || [];
     if (allowedUsers.some((u: any) => (u?.toString?.() ?? u) === accessContext.userId)) return true;
+    
+    // Check if user's groups match allowedGroups
     const allowedGroups = album.allowedGroups || [];
     const userGroups = accessContext.groupAliases || [];
     if (allowedGroups.some((g: string) => userGroups.includes(g))) return true;
+    
     return false;
   }
 
@@ -196,6 +252,7 @@ export class AlbumsService {
       alias: createData.alias.toLowerCase().trim(),
       description: createData.description || '',
       isPublic: createData.isPublic !== undefined ? createData.isPublic : false,
+      isPublished: createData.isPublished !== undefined ? createData.isPublished : true,
       isFeatured: createData.isFeatured !== undefined ? createData.isFeatured : false,
       storageProvider: createData.storageProvider,
       storagePath,
@@ -273,32 +330,38 @@ export class AlbumsService {
     }
 
     const visibility = this.buildVisibilityCondition(accessContext);
-    const query: any = { $and: [visibility] };
-
+    
+    // Build base query conditions
+    const baseConditions: any[] = [visibility];
+    
     if (parentId === 'root' || parentId === 'null') {
-      query.$and.push({ parentAlbumId: null });
+      baseConditions.push({ parentAlbumId: null });
     } else if (parentId) {
       if (!Types.ObjectId.isValid(parentId)) {
         this.logger.warn(`Invalid parentId format: ${parentId}`);
         return [];
       }
-      query.$and.push({ parentAlbumId: parentId });
+      baseConditions.push({ parentAlbumId: new Types.ObjectId(parentId) });
     }
 
     if (level !== undefined) {
       const levelNum = parseInt(level, 10);
       if (!isNaN(levelNum)) {
-        query.$and.push({ level: levelNum });
+        baseConditions.push({ level: levelNum });
       }
     }
 
+    const query: any = baseConditions.length === 1 ? baseConditions[0] : { $and: baseConditions };
+
     // Log query with better ObjectId representation
-    const queryLog = { ...query };
-    if (queryLog.parentAlbumId) {
-      queryLog.parentAlbumId = queryLog.parentAlbumId.toString();
-    }
+    const queryLog = JSON.parse(JSON.stringify(query, (key, value) => {
+      if (value instanceof Types.ObjectId) {
+        return value.toString();
+      }
+      return value;
+    }));
     this.logger.debug(`AlbumsService.findAll query: ${JSON.stringify(queryLog, null, 2)}`);
-    this.logger.debug(`AlbumsService.findAll query (raw): ${JSON.stringify(query)}`);
+    this.logger.debug(`AlbumsService.findAll visibility condition: ${JSON.stringify(visibility, null, 2)}`);
 
     // Try the query - if parentAlbumId is an ObjectId, Mongoose should match it correctly
     let albums = await this.albumModel
@@ -307,7 +370,8 @@ export class AlbumsService {
       .populate('coverPhotoId')
       .exec();
 
-    this.logger.debug(`AlbumsService.findAll found ${albums.length} albums for parentId: ${parentId} with ObjectId query`);
+    this.logger.debug(`AlbumsService.findAll found ${albums.length} albums for parentId: ${parentId}`);
+    this.logger.debug(`AlbumsService.findAll accessContext: ${accessContext ? `userId=${accessContext.userId}, groups=${accessContext.groupAliases?.join(',') || 'none'}` : 'null (not logged in)'}`);
     if (albums.length > 0) {
       this.logger.debug(
         `Sample album from query: ${JSON.stringify(
@@ -315,13 +379,52 @@ export class AlbumsService {
             _id: albums[0]._id?.toString(),
             alias: albums[0].alias,
             name: albums[0].name,
-            nameType: typeof albums[0].name,
-            hasName: !!albums[0].name,
+            isPublished: albums[0].isPublished,
+            isPublic: albums[0].isPublic,
+            parentAlbumId: albums[0].parentAlbumId?.toString() || null,
           },
           null,
           2,
         )}`,
       );
+    } else {
+      this.logger.warn(`AlbumsService.findAll: No albums found. Query: ${JSON.stringify(queryLog, null, 2)}`);
+      // Debug: Check if there are any albums at all
+      const totalAlbums = await this.albumModel.countDocuments({});
+      const publishedPublicAlbums = await this.albumModel.countDocuments({ isPublished: true, isPublic: true });
+      const rootAlbums = await this.albumModel.countDocuments({ parentAlbumId: null });
+      const rootPublishedPublicAlbums = await this.albumModel.countDocuments({ parentAlbumId: null, isPublished: true, isPublic: true });
+      
+      // Check root albums details
+      const rootAlbumsList = await this.albumModel.find({ parentAlbumId: null }).select('_id alias name isPublished isPublic').lean().exec();
+      this.logger.debug(`AlbumsService.findAll debug counts: total=${totalAlbums}, published+public=${publishedPublicAlbums}, root=${rootAlbums}, root+published+public=${rootPublishedPublicAlbums}`);
+      this.logger.debug(`AlbumsService.findAll root albums details: ${JSON.stringify(rootAlbumsList.map(a => ({
+        _id: a._id?.toString(),
+        alias: a.alias,
+        name: a.name,
+        isPublished: a.isPublished,
+        isPublic: a.isPublic
+      })), null, 2)}`);
+      
+      // If logged in, check private albums user can access
+      if (accessContext) {
+        const userIdObj = new Types.ObjectId(accessContext.userId);
+        const rootPrivateWithUserAccess = await this.albumModel.countDocuments({
+          parentAlbumId: null,
+          isPublished: true,
+          isPublic: false,
+          allowedUsers: userIdObj
+        });
+        const rootPrivateWithGroupAccess = accessContext.groupAliases?.length > 0
+          ? await this.albumModel.countDocuments({
+              parentAlbumId: null,
+              isPublished: true,
+              isPublic: false,
+              allowedGroups: { $in: accessContext.groupAliases }
+            })
+          : 0;
+        this.logger.debug(`AlbumsService.findAll private access counts: root+private+user=${rootPrivateWithUserAccess}, root+private+group=${rootPrivateWithGroupAccess}`);
+      }
     }
     
     // If no results and we have a parentId, try alternative query approaches
@@ -431,7 +534,12 @@ export class AlbumsService {
     // Calculate childAlbumCount for each album (same visibility as list)
     const albumsWithChildCount = await Promise.all(
       albums.map(async (album) => {
-        const childQuery = { parentAlbumId: album._id, ...visibility };
+        const childQuery = {
+          $and: [
+            { parentAlbumId: album._id },
+            visibility
+          ]
+        };
         const childCount = await this.albumModel.countDocuments(childQuery);
         const albumObj = album.toObject ? album.toObject() : (album as any);
         return {
@@ -796,10 +904,24 @@ export class AlbumsService {
     if (db) {
       const albumsCollection = db.collection('albums');
       
+      // Build query with $and to properly combine parentAlbumId with visibility conditions
+      const queryWithString = {
+        $and: [
+          { parentAlbumId: albumId },
+          subVisibility
+        ]
+      };
+      const queryWithObjectId = {
+        $and: [
+          { parentAlbumId: albumObjectId },
+          subVisibility
+        ]
+      };
+      
       // Try query with string ID first
       this.logger.debug('getAlbumData - Native query with string ID:', albumId);
       const nativeQueryString = await albumsCollection
-        .find({ parentAlbumId: albumId, ...subVisibility })
+        .find(queryWithString)
         .sort({ order: 1 })
         .toArray();
       
@@ -809,7 +931,7 @@ export class AlbumsService {
       if (nativeQueryString.length === 0) {
         this.logger.debug('getAlbumData - Native query with ObjectId:', albumObjectId.toString());
         const nativeQueryObjectId = await albumsCollection
-          .find({ parentAlbumId: albumObjectId, ...subVisibility })
+          .find(queryWithObjectId)
           .sort({ order: 1 })
           .toArray();
         
@@ -857,9 +979,15 @@ export class AlbumsService {
       }
     } else {
       this.logger.debug('getAlbumData - Database connection not available, falling back to Mongoose query');
-      // Fallback to Mongoose query
+      // Fallback to Mongoose query - use $and to properly combine conditions
+      const mongooseQuery = {
+        $and: [
+          { parentAlbumId: albumObjectId },
+          subVisibility
+        ]
+      };
       const mongooseResults = await this.albumModel
-        .find({ parentAlbumId: albumObjectId, ...subVisibility })
+        .find(mongooseQuery)
         .select('+name +description')
         .sort({ order: 1 })
         .lean()

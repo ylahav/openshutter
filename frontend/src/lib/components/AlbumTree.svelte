@@ -16,6 +16,7 @@
 		order: number;
 		photoCount?: number;
 		isPublic?: boolean;
+		isPublished?: boolean;
 		isFeatured?: boolean;
 		allowedGroups?: string[];
 		allowedUsers?: string[];
@@ -499,6 +500,13 @@
 							<div class="flex-1 min-w-0">
 								<div class="flex items-center gap-2 flex-wrap">
 									<span class="font-medium text-gray-900 truncate">{getAlbumName(node)}</span>
+									{#if node.isPublished === false}
+										<span
+											class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800"
+										>
+											Unpublished
+										</span>
+									{/if}
 									{#if node.isFeatured}
 										<span
 											class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800"

@@ -18,6 +18,10 @@ export class UpdateAlbumDto {
 
 	@IsBoolean()
 	@IsOptional()
+	isPublished?: boolean;
+
+	@IsBoolean()
+	@IsOptional()
 	isFeatured?: boolean;
 
 	@IsBoolean()

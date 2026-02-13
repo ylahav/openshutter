@@ -20,6 +20,7 @@
 		alias: string;
 		description?: string | { en?: string; he?: string };
 		isPublic: boolean;
+		isPublished: boolean;
 		isFeatured: boolean;
 		showExifData?: boolean;
 		order: number;
@@ -69,10 +70,11 @@
 	let error = '';
 	let notification = { show: false, message: '', type: 'success' as 'success' | 'error' };
 
-	let formData = {
+		let formData = {
 		name: {} as Record<string, string>,
 		description: {} as Record<string, string>,
 		isPublic: false,
+		isPublished: true,
 		isFeatured: false,
 		showExifData: true,
 		order: 0,
@@ -153,6 +155,7 @@
 						? { en: album.description }
 						: album.description || {};
 				formData.isPublic = album.isPublic || false;
+				formData.isPublished = album.isPublished !== undefined ? album.isPublished : true;
 				formData.isFeatured = album.isFeatured || false;
 				formData.showExifData = album.showExifData !== undefined ? album.showExifData : true;
 				formData.order = album.order || 0;
@@ -196,6 +199,7 @@
 				name: MultiLangUtils.clean(formData.name),
 				description: MultiLangUtils.clean(formData.description),
 				isPublic: formData.isPublic,
+				isPublished: formData.isPublished,
 				isFeatured: formData.isFeatured,
 				showExifData: formData.showExifData,
 				order: formData.order,
@@ -599,6 +603,20 @@
 						<div class="flex items-center">
 							<input
 								type="checkbox"
+								id="isPublished"
+								name="isPublished"
+								checked={formData.isPublished}
+								on:change={handleInputChange}
+								class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+							/>
+							<label for="isPublished" class="ml-2 block text-sm text-gray-700">
+								<span class="font-medium">Published</span>
+								<span class="text-gray-500 ml-1">(Album is published and visible)</span>
+							</label>
+						</div>
+						<div class="flex items-center">
+							<input
+								type="checkbox"
 								id="isPublic"
 								name="isPublic"
 								checked={formData.isPublic}
@@ -606,7 +624,7 @@
 								class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
 							/>
 							<label for="isPublic" class="ml-2 block text-sm text-gray-700">
-								Public (visible to visitors)
+								Public (visible to all visitors, not just logged-in users)
 							</label>
 						</div>
 						<div class="flex items-center">

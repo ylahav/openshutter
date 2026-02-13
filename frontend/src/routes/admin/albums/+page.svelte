@@ -22,6 +22,7 @@
 		alias: string;
 		description?: string | { en?: string; he?: string };
 		isPublic: boolean;
+		isPublished: boolean;
 		isFeatured: boolean;
 		photoCount: number;
 		level: number;
@@ -58,6 +59,7 @@
 	let loading = true;
 	let error = '';
 	let searchQuery = '';
+	let albumsKey = 0; // Key to force AlbumTree re-render when albums change
 
 	// Cover photo modal state
 	let coverPhotoModal: {
@@ -101,6 +103,60 @@
 			});
 		}
 	});
+
+	async function togglePublished(album: Album) {
+		try {
+			const currentStatus = album.isPublished !== undefined ? album.isPublished : true;
+			const newPublishedStatus = !currentStatus;
+			const response = await fetch(`/api/admin/albums/${album._id}`, {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({
+					isPublished: newPublishedStatus
+				}),
+			});
+
+			if (!response.ok) {
+				await handleApiErrorResponse(response);
+			}
+
+			// Reload albums to get fresh data from server
+			await loadAlbums();
+			albumsKey += 1;
+		} catch (err) {
+			logger.error('Failed to toggle published status:', err);
+			error = handleError(err, 'Failed to update published status');
+		}
+	}
+
+	async function togglePublic(album: Album) {
+		try {
+			const currentStatus = album.isPublic !== undefined ? album.isPublic : false;
+			const newPublicStatus = !currentStatus;
+			const response = await fetch(`/api/admin/albums/${album._id}`, {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({
+					isPublic: newPublicStatus
+				}),
+			});
+
+			if (!response.ok) {
+				await handleApiErrorResponse(response);
+			}
+
+			// Reload albums to get fresh data from server
+			await loadAlbums();
+			albumsKey += 1;
+		} catch (err) {
+			logger.error('Failed to toggle public status:', err);
+			error = handleError(err, 'Failed to update public status');
+		}
+	}
 
 	onMount(() => {
 		// Load albums asynchronously
@@ -150,7 +206,11 @@
 			const action = button.getAttribute('data-action');
 			logger.debug('[handleActionClick] Action clicked:', action, 'for album:', albumId);
 			
-			if (action === 'cover-photo') {
+			if (action === 'toggle-published') {
+				togglePublished(album);
+			} else if (action === 'toggle-public') {
+				togglePublic(album);
+			} else if (action === 'cover-photo') {
 				openCoverPhotoModal(album);
 			} else if (action === 'delete') {
 				openDeleteDialog(album);
@@ -239,10 +299,32 @@
 		}
 	}
 
-	function renderAlbumActions(node: Album): string {
+	function renderAlbumActions(node: any): string {
 		const albumName = getAlbumName(node).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+		const isPublished = node.isPublished !== undefined ? node.isPublished : true;
+		const isPublic = node.isPublic !== undefined ? node.isPublic : false;
 		return `
 			<div class="flex items-center gap-2 album-actions" data-album-id="${node._id}">
+				<button
+					type="button"
+					data-action="toggle-published"
+					class="p-1.5 rounded transition-colors ${isPublished 
+						? 'text-green-600 hover:text-green-900 hover:bg-green-50' 
+						: 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'}"
+					title="${isPublished ? 'Published - Click to unpublish' : 'Unpublished - Click to publish'}"
+				>
+					${isPublished ? '✓' : '○'}
+				</button>
+				<button
+					type="button"
+					data-action="toggle-public"
+					class="p-1.5 rounded transition-colors ${isPublic 
+						? 'text-blue-600 hover:text-blue-900 hover:bg-blue-50' 
+						: 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'}"
+					title="${isPublic ? 'Public - Click to make private' : 'Private - Click to make public'}"
+				>
+					${isPublic ? '🌐' : '🔒'}
+				</button>
 				<button
 					type="button"
 					data-action="cover-photo"
@@ -271,7 +353,7 @@
 		`;
 	}
 
-	function handleOpen(node: Album) {
+	function handleOpen(node: { _id: string }) {
 		goto(`/admin/albums/${node._id}`);
 	}
 
@@ -495,6 +577,14 @@
 			<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
 				<div class="text-center">
 					<div class="text-2xl font-bold text-green-600">
+						{albums.filter((a) => a.isPublished).length}
+					</div>
+					<div class="text-sm text-gray-600">Published Albums</div>
+				</div>
+			</div>
+			<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+				<div class="text-center">
+					<div class="text-2xl font-bold text-blue-600">
 						{albums.filter((a) => a.isPublic).length}
 					</div>
 					<div class="text-sm text-gray-600">Public Albums</div>
@@ -551,6 +641,7 @@
 			</div>
 		{:else}
 			<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+				{#key albumsKey}
 				<AlbumTree
 					albums={getFilteredAlbums().map((a) => ({
 						_id: a._id,
@@ -563,7 +654,8 @@
 						level: a.level,
 						order: a.order,
 						photoCount: a.photoCount,
-						isPublic: a.isPublic,
+						isPublic: a.isPublic !== undefined ? a.isPublic : false,
+						isPublished: a.isPublished !== undefined ? a.isPublished : true,
 						isFeatured: a.isFeatured,
 						allowedGroups: a.allowedGroups ?? [],
 						allowedUsers: a.allowedUsers ?? []
@@ -574,6 +666,7 @@
 					showAccordion={true}
 					expandAllByDefault={false}
 				/>
+				{/key}
 			</div>
 		{/if}
 	</div>

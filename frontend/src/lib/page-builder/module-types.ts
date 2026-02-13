@@ -8,7 +8,12 @@ export const PAGE_MODULE_TYPES = [
 	{ type: 'cta', label: 'Call to Action' },
 	{ type: 'logo', label: 'Logo' },
 	{ type: 'siteTitle', label: 'Site Title' },
-	{ type: 'menu', label: 'Menu' }
+	{ type: 'menu', label: 'Menu' },
+	{ type: 'languageSelector', label: 'Language Selector' },
+	{ type: 'themeToggle', label: 'Theme Toggle' },
+	{ type: 'userGreeting', label: 'User Greeting' },
+	{ type: 'authButtons', label: 'Auth Buttons' },
+	{ type: 'socialMedia', label: 'Social Media' }
 ] as const;
 
 export type PageModuleType = (typeof PAGE_MODULE_TYPES)[number]['type'];

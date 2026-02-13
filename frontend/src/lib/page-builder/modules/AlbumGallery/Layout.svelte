@@ -13,10 +13,12 @@
 
 	$: titleText = MultiLangUtils.getTextValue(config?.title, $currentLanguage) || '';
 	$: descriptionHTML = config?.description ? MultiLangUtils.getHTMLValue(config.description, $currentLanguage) : '';
-	/** 'root' = all root albums, 'featured' = only featured albums, 'selected' = specific album IDs */
+	/** 'root' = root-level albums only (no children), 'featured' = all featured albums (flattened), 'selected' = specific album IDs, 'current' = album from URL (alias) */
 	$: albumSource = config?.albumSource ?? 'root';
 	$: selectedAlbums = config?.selectedAlbums ?? config?.rootAlbumId ?? config?.rootGallery ? [config.rootAlbumId || config.rootGallery] : [];
 	$: includeRoot = config?.includeRoot ?? true;
+	// Get album alias from page context (URL parameter)
+	$: currentAlbumAlias = data?.alias || null;
 
 	let albums: any[] = [];
 	let loading = true;
@@ -28,9 +30,14 @@
 		? (Array.isArray(selectedAlbums) ? selectedAlbums : selectedAlbums ? [selectedAlbums] : [])
 		: [];
 
-	$: if (browser && (JSON.stringify(effectiveSelectedAlbums) !== JSON.stringify(lastSelectedAlbums) || albumSource !== lastAlbumSource)) {
+	$: currentAlbumKey = albumSource === 'current' ? `current:${currentAlbumAlias || 'none'}` : '';
+	$: if (browser && (
+		JSON.stringify(effectiveSelectedAlbums) !== JSON.stringify(lastSelectedAlbums) || 
+		albumSource !== lastAlbumSource ||
+		(albumSource === 'current' && currentAlbumKey !== lastAlbumSource)
+	)) {
 		lastSelectedAlbums = [...effectiveSelectedAlbums];
-		lastAlbumSource = albumSource;
+		lastAlbumSource = albumSource === 'current' ? currentAlbumKey : albumSource;
 		loadAlbums();
 	}
 
@@ -41,7 +48,30 @@
 	async function loadAlbums() {
 		loading = true;
 		try {
-			if (albumSource === 'selected' && effectiveSelectedAlbums && effectiveSelectedAlbums.length > 0) {
+			if (albumSource === 'current' && currentAlbumAlias) {
+				// Fetch the current album from URL alias
+				try {
+					const response = await fetch(`/api/albums/${encodeURIComponent(currentAlbumAlias)}/data?page=1&limit=50`);
+					if (response.ok) {
+						const result = await response.json();
+						const albumData = result.success ? result.data : result;
+						if (albumData?.album) {
+							// For 'current', we show the album's photos, not sub-albums
+							// This is handled by the albumGallery type, not albumsGrid
+							albums = albumData.subAlbums || [];
+							if (albums.length > 0) {
+								await fetchCoverImages();
+							}
+						}
+					} else if (response.status === 404) {
+						logger.warn(`Album not found: ${currentAlbumAlias}`);
+						albums = [];
+					}
+				} catch (err) {
+					logger.error(`Failed to fetch current album ${currentAlbumAlias}:`, err);
+					albums = [];
+				}
+			} else if (albumSource === 'selected' && effectiveSelectedAlbums && effectiveSelectedAlbums.length > 0) {
 				const albumPromises = effectiveSelectedAlbums.map(async (albumId) => {
 					try {
 						const response = await fetch(`/api/albums/${albumId}`);
@@ -63,26 +93,59 @@
 					await fetchCoverImages();
 				}
 			} else {
-				const response = await fetch('/api/albums/hierarchy?includePrivate=false');
-				if (response.ok) {
-					const result = await response.json();
-					const albumsData = result.success ? result.data : (result.data || result);
-					if (Array.isArray(albumsData)) {
-						const flattenAlbums = (items: any[]): any[] => {
-							let resultList: any[] = [];
-							for (const album of items) {
-								if (album.isPublic || album.isFeatured) {
-									resultList.push(album);
-								}
-								if (album.children && album.children.length > 0) {
-									resultList = resultList.concat(flattenAlbums(album.children));
-								}
+				if (albumSource === 'root') {
+					// For 'root', fetch only root-level albums (parentAlbumId=null)
+					try {
+						const response = await fetch('/api/albums?parentId=root');
+						if (response.ok) {
+							const result = await response.json();
+							logger.debug('[AlbumGallery] Root albums response:', result);
+							if (Array.isArray(result)) {
+								albums = result;
+								logger.debug(`[AlbumGallery] Loaded ${result.length} root albums (direct array)`);
+							} else if (result.success && Array.isArray(result.data)) {
+								albums = result.data;
+								logger.debug(`[AlbumGallery] Loaded ${result.data.length} root albums (from result.data)`);
+							} else if (result.data && Array.isArray(result.data)) {
+								albums = result.data;
+								logger.debug(`[AlbumGallery] Loaded ${result.data.length} root albums (from result.data fallback)`);
+							} else {
+								logger.warn('[AlbumGallery] Unexpected root albums response format:', result);
+								albums = [];
 							}
-							return resultList;
-						};
-						albums = flattenAlbums(albumsData);
-						if (albumSource === 'featured') {
-							albums = albums.filter((a) => a.isFeatured);
+						} else {
+							const errorText = await response.text();
+							logger.error(`[AlbumGallery] Failed to fetch root albums: ${response.status} ${response.statusText}`, errorText);
+							albums = [];
+						}
+					} catch (err) {
+						logger.error('[AlbumGallery] Error fetching root albums:', err);
+						albums = [];
+					}
+				} else {
+					// For 'featured' or other cases, fetch hierarchy and flatten recursively
+					const response = await fetch('/api/albums/hierarchy?includePrivate=false');
+					if (response.ok) {
+						const result = await response.json();
+						const albumsData = result.success ? result.data : (result.data || result);
+						if (Array.isArray(albumsData)) {
+							// Flatten recursively
+							const flattenAlbums = (items: any[]): any[] => {
+								let resultList: any[] = [];
+								for (const album of items) {
+									if (album.isPublic || album.isFeatured) {
+										resultList.push(album);
+									}
+									if (album.children && album.children.length > 0) {
+										resultList = resultList.concat(flattenAlbums(album.children));
+									}
+								}
+								return resultList;
+							};
+							albums = flattenAlbums(albumsData);
+							if (albumSource === 'featured') {
+								albums = albums.filter((a) => a.isFeatured);
+							}
 						}
 					}
 				}
@@ -169,11 +232,11 @@
 								{getAlbumName(album)}
 							</h3>
 							{#if album.description}
-								<p class="text-gray-600 text-sm line-clamp-2 mb-3">
-									{typeof album.description === 'string'
+								<div class="text-gray-600 text-sm line-clamp-2 mb-3 prose prose-sm max-w-none">
+									{@html typeof album.description === 'string'
 										? album.description
-										: MultiLangUtils.getTextValue(album.description, $currentLanguage) || ''}
-								</p>
+										: MultiLangUtils.getHTMLValue(album.description, $currentLanguage) || ''}
+								</div>
 							{/if}
 							<div class="flex items-center justify-between text-sm text-gray-500">
 								<span>{album.photoCount || 0} photos</span>
@@ -186,14 +249,6 @@
 						</div>
 					</a>
 				{/each}
-			</div>
-			<div class="text-center">
-				<a
-					href="/albums"
-					class="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-				>
-					View All Albums
-				</a>
 			</div>
 		{:else}
 			<div class="text-center py-12 bg-white rounded-xl shadow-md">

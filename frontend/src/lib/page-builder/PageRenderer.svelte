@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { currentLanguage } from '$stores/language';
 	import { MultiLangUtils } from '$lib/utils/multiLang';
+	import { page as pageStore } from '$app/stores';
 	import type { PageData, PageModuleData } from '$lib/types/page-builder';
 import HeroModule from './modules/HeroModule.svelte';
 import RichTextModule from './modules/RichTextModule.svelte';
@@ -10,9 +11,21 @@ import CtaModule from './modules/CtaModule.svelte';
 import LogoModule from './modules/LogoModule.svelte';
 import SiteTitleModule from './modules/SiteTitleModule.svelte';
 import MenuModule from './modules/MenuModule.svelte';
+import LanguageSelectorModule from './modules/LanguageSelectorModule.svelte';
+import ThemeToggleModule from './modules/ThemeToggleModule.svelte';
+import UserGreetingModule from './modules/UserGreetingModule.svelte';
+import AuthButtonsModule from './modules/AuthButtonsModule.svelte';
+import SocialMediaModule from './modules/SocialMediaModule.svelte';
 
 	export let page: PageData | null = null;
 	export let modules: PageModuleData[] = [];
+	export let compact = false; // For header/footer rendering
+
+	// Extract URL parameters for page context (e.g., album alias)
+	$: pageContext = {
+		alias: page?.alias || $pageStore.params?.alias || $pageStore.params?.id || null,
+		params: $pageStore.params || {}
+	};
 
 	// Only show title/subtitle if they're explicitly set (not undefined/null)
 	$: titleText = (page?.title !== undefined && page?.title !== null) 
@@ -31,7 +44,12 @@ import MenuModule from './modules/MenuModule.svelte';
 		cta: CtaModule,
 		logo: LogoModule,
 		siteTitle: SiteTitleModule,
-		menu: MenuModule
+		menu: MenuModule,
+		languageSelector: LanguageSelectorModule,
+		themeToggle: ThemeToggleModule,
+		userGreeting: UserGreetingModule,
+		authButtons: AuthButtonsModule,
+		socialMedia: SocialMediaModule
 	};
 
 	// Build rows from modules
@@ -94,8 +112,8 @@ import MenuModule from './modules/MenuModule.svelte';
 {#if !page}
 	<div class="min-h-screen flex items-center justify-center text-gray-500">Page not found.</div>
 {:else}
-	<div class="min-h-screen bg-white">
-		{#if titleText || subtitleText}
+	<div class="{compact ? 'w-full' : 'min-h-screen'} {compact ? '' : 'bg-white'}">
+		{#if !compact && (titleText || subtitleText)}
 			<div class="max-w-4xl mx-auto px-4 py-12 text-center border-b border-gray-200">
 				{#if titleText}
 					<h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4">{titleText}</h1>
@@ -107,30 +125,30 @@ import MenuModule from './modules/MenuModule.svelte';
 		{/if}
 
 		{#if rows.length === 0}
-			<div class="max-w-3xl mx-auto px-4 py-16 text-center text-gray-500">
+			<div class="max-w-3xl mx-auto px-4 {compact ? 'py-2' : 'py-16'} text-center text-gray-500">
 				No modules configured for this page yet.
 			</div>
 		{:else if hasSpanning}
 			<div
-				class="max-w-6xl mx-auto px-4 py-6 gap-4"
+				class="max-w-6xl mx-auto px-4 {compact ? 'py-2' : 'py-6'} gap-4"
 				style="display: grid; grid-template-columns: repeat({gridCols}, 1fr); grid-template-rows: repeat({gridRows}, auto);"
 			>
 				{#each modules.filter((m) => m.rowOrder !== undefined && m.columnIndex !== undefined) as module (module._id)}
 					<div
 						style="grid-column: {module.columnIndex! + 1} / span {module.colSpan ?? 1}; grid-row: {module.rowOrder! + 1} / span {module.rowSpan ?? 1}"
 					>
-						{#if moduleMap[module.type]}
-							<svelte:component this={moduleMap[module.type]} {...module.props} />
-						{:else}
-							<div class="p-6 text-sm text-gray-500">Unknown module: {module.type}</div>
-						{/if}
+					{#if moduleMap[module.type]}
+						<svelte:component this={moduleMap[module.type]} {...module.props} data={pageContext} />
+					{:else}
+						<div class="p-6 text-sm text-gray-500">Unknown module: {module.type}</div>
+					{/if}
 					</div>
 				{/each}
 			</div>
 		{:else}
 			{#each rows as row (row.rowOrder)}
 				{@const totalProportion = row.columns.reduce((sum, col) => sum + col.proportion, 0)}
-				<div class="flex gap-4 px-4 py-6">
+				<div class="flex gap-4 px-4 {compact ? 'py-2' : 'py-6'}">
 					{#each row.columns as col (col.columnIndex)}
 						<div
 							class="flex-1"
@@ -138,7 +156,7 @@ import MenuModule from './modules/MenuModule.svelte';
 						>
 							{#if col.module}
 								{#if moduleMap[col.module.type]}
-									<svelte:component this={moduleMap[col.module.type]} {...col.module.props} />
+									<svelte:component this={moduleMap[col.module.type]} {...col.module.props} data={pageContext} />
 								{:else}
 									<div class="max-w-4xl mx-auto px-4 py-6 text-sm text-gray-500">
 										Unknown module type: {col.module.type}

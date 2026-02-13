@@ -1,0 +1,10 @@
+<!-- frontend/src/lib/page-builder/modules/UserGreetingModule.svelte -->
+<script lang="ts">
+	import Layout from './UserGreeting/Layout.svelte';
+
+	export let props: any = undefined;
+	const data = null;
+	const templateConfig = {};
+</script>
+
+<Layout config={props || {}} {data} {templateConfig} />

@@ -22,6 +22,10 @@ export class CreateAlbumDto {
 
 	@IsBoolean()
 	@IsOptional()
+	isPublished?: boolean;
+
+	@IsBoolean()
+	@IsOptional()
 	isFeatured?: boolean;
 
 	@IsString()

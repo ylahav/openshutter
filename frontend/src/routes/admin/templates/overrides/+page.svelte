@@ -81,7 +81,7 @@
 	let error = '';
 	let activeTab = 'colors';
 	let hasChanges = false;
-	let previewPageType: 'home' | 'gallery' | 'album' | 'search' | 'pageBuilder' | 'header' | 'footer' = 'home';
+	let previewPageType: 'home' | 'gallery' | 'album' | 'search' | 'pageBuilder' = 'home';
 	let editingPageType: 'home' | 'gallery' | 'album' | 'search' | 'header' | 'footer' = 'home';
 	// Multi-select like page builder: Set of "row:col" keys
 	let selectedCells = new Set<string>();
@@ -155,6 +155,8 @@
 		}
 	}
 
+	import { DEFAULT_PAGE_LAYOUTS, DEFAULT_PAGE_MODULES } from '$lib/constants/default-page-layouts';
+
 	function initializeLocalOverrides() {
 		if (editingTheme) {
 			const migrated = migratePageModules(editingTheme.pageModules);
@@ -165,14 +167,19 @@
 				firstHomeModule: migrated.home?.[0],
 				firstHomeModuleProps: migrated.home?.[0]?.props
 			});
+			// Merge with defaults if pageModules/pageLayout are empty
+			const pageModules = Object.keys(migrated).length > 0 ? migrated : DEFAULT_PAGE_MODULES;
+			const pageLayout = editingTheme.pageLayout && Object.keys(editingTheme.pageLayout).length > 0
+				? JSON.parse(JSON.stringify(editingTheme.pageLayout))
+				: DEFAULT_PAGE_LAYOUTS;
 			localOverrides = {
 				customColors: editingTheme.customColors ? { ...editingTheme.customColors } : {},
 				customFonts: editingTheme.customFonts ? { ...editingTheme.customFonts } : {},
 				customLayout: editingTheme.customLayout ? { ...editingTheme.customLayout } : {},
 				componentVisibility: editingTheme.componentVisibility ? { ...editingTheme.componentVisibility } : {},
 				headerConfig: editingTheme.headerConfig ? { ...editingTheme.headerConfig } : {},
-				pageModules: migrated,
-				pageLayout: editingTheme.pageLayout ? JSON.parse(JSON.stringify(editingTheme.pageLayout)) : {}
+				pageModules,
+				pageLayout
 			};
 		} else {
 			localOverrides = {
@@ -181,8 +188,8 @@
 				customLayout: siteTemplateOverrides.customLayout ? { ...siteTemplateOverrides.customLayout } : {},
 				componentVisibility: siteTemplateOverrides.componentVisibility ? { ...siteTemplateOverrides.componentVisibility } : {},
 				headerConfig: siteTemplateOverrides.headerConfig ? { ...siteTemplateOverrides.headerConfig } : {},
-				pageModules: {},
-				pageLayout: {}
+				pageModules: DEFAULT_PAGE_MODULES,
+				pageLayout: DEFAULT_PAGE_LAYOUTS
 			};
 		}
 		logger.debug('[Overrides] Initialized local overrides:', { 
@@ -197,10 +204,10 @@
 		['hero', 'richText', 'featureGrid', 'albumsGrid', 'albumGallery', 'cta'].includes(m.type)
 	);
 	const HEADER_MODULES = PAGE_MODULE_TYPES.filter((m) =>
-		['logo', 'siteTitle', 'menu'].includes(m.type)
+		['logo', 'siteTitle', 'menu', 'languageSelector', 'themeToggle', 'userGreeting', 'authButtons', 'socialMedia'].includes(m.type)
 	);
 	const FOOTER_MODULES = PAGE_MODULE_TYPES.filter((m) =>
-		['richText', 'cta'].includes(m.type)
+		['richText', 'cta', 'socialMedia'].includes(m.type)
 	);
 
 	function migratePageModules(pm: Record<string, any[]> | undefined): Record<string, any[]> {
@@ -216,15 +223,21 @@
 	}
 
 	function getModulesForPageType(pt: string) {
-		return localOverrides.pageModules?.[pt] ?? [];
+		const modules = localOverrides.pageModules?.[pt];
+		if (modules && modules.length > 0) {
+			return modules;
+		}
+		// Fall back to defaults
+		return DEFAULT_PAGE_MODULES[pt] || [];
 	}
 
 	function getGridForPageType(pt: string): { gridRows: number; gridColumns: number } {
 		const layout = localOverrides.pageLayout?.[pt];
-		return {
-			gridRows: layout?.gridRows ?? 3,
-			gridColumns: layout?.gridColumns ?? 1
-		};
+		if (layout?.gridRows && layout?.gridColumns) {
+			return { gridRows: layout.gridRows, gridColumns: layout.gridColumns };
+		}
+		// Fall back to defaults
+		return DEFAULT_PAGE_LAYOUTS[pt] || { gridRows: 3, gridColumns: 1 };
 	}
 
 	function updateGridForPageType(pt: string, gridRows?: number, gridColumns?: number) {
@@ -476,22 +489,17 @@
 		hasChanges = true;
 	}
 
-	const DEFAULT_HOME_LAYOUT = [
-		{ _id: 'mod_default_hero', type: 'hero', props: {}, rowOrder: 0, columnIndex: 0 },
-		{ _id: 'mod_default_albums', type: 'albumsGrid', props: { albumSource: 'root' }, rowOrder: 1, columnIndex: 0 }
-	];
-
 	function applyDefaultLayout(pageType: string) {
-		if (pageType === 'home') {
-			const pm = localOverrides.pageModules ?? {};
-			const pl = localOverrides.pageLayout ?? {};
-			localOverrides = {
-				...localOverrides,
-				pageModules: { ...pm, home: [...DEFAULT_HOME_LAYOUT] },
-				pageLayout: { ...pl, home: { gridRows: 2, gridColumns: 1 } }
-			};
-			hasChanges = true;
-		}
+		const pm = localOverrides.pageModules ?? {};
+		const pl = localOverrides.pageLayout ?? {};
+		const defaultModules = DEFAULT_PAGE_MODULES[pageType] || [];
+		const defaultLayout = DEFAULT_PAGE_LAYOUTS[pageType] || { gridRows: 3, gridColumns: 1 };
+		localOverrides = {
+			...localOverrides,
+			pageModules: { ...pm, [pageType]: [...defaultModules] },
+			pageLayout: { ...pl, [pageType]: { ...defaultLayout } }
+		};
+		hasChanges = true;
 	}
 
 	async function loadTemplates() {
@@ -617,8 +625,14 @@
 		if (!localOverrides.customColors) {
 			localOverrides.customColors = {};
 		}
-		localOverrides.customColors[colorType] = value;
-		localOverrides = { ...localOverrides };
+		// Create a new object to ensure reactivity
+		localOverrides = {
+			...localOverrides,
+			customColors: {
+				...localOverrides.customColors,
+				[colorType]: value
+			}
+		};
 		hasChanges = true;
 	}
 
@@ -658,8 +672,19 @@
 		hasChanges = true;
 	}
 
+	// Reactive color values to ensure inputs update when palette is applied
+	let colorValues: Record<string, string> = {};
+	$: colorValues = {
+		primary: localOverrides.customColors?.primary || activeTemplate?.colors?.primary || '#000000',
+		secondary: localOverrides.customColors?.secondary || activeTemplate?.colors?.secondary || '#000000',
+		accent: localOverrides.customColors?.accent || activeTemplate?.colors?.accent || '#000000',
+		background: localOverrides.customColors?.background || activeTemplate?.colors?.background || '#000000',
+		text: localOverrides.customColors?.text || activeTemplate?.colors?.text || '#000000',
+		muted: localOverrides.customColors?.muted || activeTemplate?.colors?.muted || '#000000'
+	};
+
 	function getEffectiveColor(colorType: string): string {
-		return localOverrides.customColors?.[colorType] || activeTemplate?.colors[colorType] || '#000000';
+		return colorValues[colorType] || localOverrides.customColors?.[colorType] || activeTemplate?.colors?.[colorType as keyof typeof activeTemplate.colors] || '#000000';
 	}
 
 	function getEffectiveFont(fontType: string): string {
@@ -685,8 +710,11 @@
 	function applyPalette(presetKey: string) {
 		const preset = PALETTE_PRESETS[presetKey];
 		if (!preset) return;
-		localOverrides.customColors = { ...preset.colors };
-		localOverrides = { ...localOverrides };
+		// Force reactivity by creating a new object reference
+		localOverrides = {
+			...localOverrides,
+			customColors: { ...preset.colors }
+		};
 		hasChanges = true;
 	}
 
@@ -1005,24 +1033,6 @@
 						>
 							📐 Layout
 						</button>
-						<button
-							type="button"
-							on:click={() => (activeTab = 'visibility')}
-							class="py-4 px-1 border-b-2 font-medium text-sm {activeTab === 'visibility'
-								? 'border-blue-500 text-blue-600'
-								: 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}"
-						>
-							👁️ Visibility
-						</button>
-						<button
-							type="button"
-							on:click={() => (activeTab = 'header')}
-							class="py-4 px-1 border-b-2 font-medium text-sm {activeTab === 'header'
-								? 'border-blue-500 text-blue-600'
-								: 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}"
-						>
-							⚙️ Header
-						</button>
 						{#if themeId}
 							<button
 								type="button"
@@ -1041,29 +1051,67 @@
 				{#if activeTab === 'colors'}
 					<div class="space-y-6">
 						<h2 class="text-xl font-semibold text-gray-900">Color Customization</h2>
+						<p class="text-sm text-gray-600 mb-4">
+							Customize the color scheme for your site. Each color is used by specific UI elements as described below.
+						</p>
 						<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-							{#each ['primary', 'secondary', 'accent', 'background', 'text', 'muted'] as colorType}
-								<div>
-									<label class="block text-sm font-medium text-gray-700 mb-2">
-										{colorType.charAt(0).toUpperCase() + colorType.slice(1)} Color
+							{#each [
+								{ 
+									type: 'primary', 
+									label: 'Primary Color',
+									description: 'Used for: Primary buttons, logo backgrounds, main links, call-to-action elements'
+								},
+								{ 
+									type: 'secondary', 
+									label: 'Secondary Color',
+									description: 'Used for: Secondary buttons, borders, subtle UI elements, secondary text'
+								},
+								{ 
+									type: 'accent', 
+									label: 'Accent Color',
+									description: 'Used for: Highlights, special accents, hover states, decorative elements'
+								},
+								{ 
+									type: 'background', 
+									label: 'Background Color',
+									description: 'Used for: Main page background, card backgrounds, container backgrounds'
+								},
+								{ 
+									type: 'text', 
+									label: 'Text Color',
+									description: 'Used for: Main body text, headings, primary content text throughout the site'
+								},
+								{ 
+									type: 'muted', 
+									label: 'Muted Color',
+									description: 'Used for: Secondary text, placeholders, less important content, disabled states'
+								}
+							] as colorInfo}
+								{@const currentColor = colorValues[colorInfo.type] || getEffectiveColor(colorInfo.type)}
+								<div class="border border-gray-200 rounded-lg p-4 bg-white">
+									<label class="block text-sm font-medium text-gray-900 mb-2">
+										{colorInfo.label}
 									</label>
+									<p class="text-xs text-gray-600 mb-3">
+										{colorInfo.description}
+									</p>
 									<div class="flex gap-2">
 										<input
 											type="color"
-											value={getEffectiveColor(colorType)}
-											on:input={(e) => updateColor(colorType, e.target.value)}
+											value={colorValues[colorInfo.type] || getEffectiveColor(colorInfo.type)}
+											on:input={(e) => updateColor(colorInfo.type, (e.target as HTMLInputElement).value)}
 											class="w-16 h-10 border border-gray-300 rounded cursor-pointer"
 										/>
 										<input
 											type="text"
-											value={getEffectiveColor(colorType)}
-											on:input={(e) => updateColor(colorType, e.target.value)}
+											value={colorValues[colorInfo.type] || getEffectiveColor(colorInfo.type)}
+											on:input={(e) => updateColor(colorInfo.type, (e.target as HTMLInputElement).value)}
 											placeholder="#000000"
 											class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 										/>
 									</div>
-									<p class="mt-1 text-xs text-gray-500">
-										Default: {activeTemplate.colors[colorType]}
+									<p class="mt-2 text-xs text-gray-500">
+										Default: {activeTemplate.colors[colorInfo.type]}
 									</p>
 								</div>
 							{/each}
@@ -1146,100 +1194,6 @@
 								/>
 								<p class="mt-1 text-xs text-gray-500">Default: {activeTemplate.layout.gridGap}</p>
 							</div>
-						</div>
-					</div>
-				{:else if activeTab === 'visibility'}
-					<div class="space-y-6">
-						<h2 class="text-xl font-semibold text-gray-900">Component Visibility</h2>
-						<div class="space-y-4">
-							{#each [
-								{ key: 'hero', label: 'Hero Section', desc: 'Show the hero section on the home page' },
-								{
-									key: 'languageSelector',
-									label: 'Language Selector',
-									desc: 'Show the language selection dropdown'
-								},
-								{ key: 'authButtons', label: 'Auth Buttons', desc: 'Show login/logout buttons' },
-								{ key: 'footerMenu', label: 'Footer Menu', desc: 'Show footer navigation menu' },
-								{ key: 'statistics', label: 'Statistics', desc: 'Show site statistics' },
-								{ key: 'promotion', label: 'Promotion', desc: 'Show promotional content' }
-							] as component}
-								<div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-									<div>
-										<label class="text-sm font-medium text-gray-900">{component.label}</label>
-										<p class="text-xs text-gray-500 mt-1">{component.desc}</p>
-									</div>
-									<label class="relative inline-flex items-center cursor-pointer">
-										<input
-											type="checkbox"
-											checked={getEffectiveVisibility(component.key)}
-											on:change={(e) => updateVisibility(component.key, e.target.checked)}
-											class="sr-only peer"
-										/>
-										<div
-											class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"
-										></div>
-									</label>
-								</div>
-							{/each}
-						</div>
-					</div>
-				{:else if activeTab === 'header'}
-					<div class="space-y-6">
-						<h2 class="text-xl font-semibold text-gray-900">Header Configuration</h2>
-						<div class="space-y-4">
-							{#each [
-								{ key: 'showLogo', label: 'Show Logo', desc: 'Display the site logo in the header' },
-								{
-									key: 'showSiteTitle',
-									label: 'Show Site Title',
-									desc: 'Display the site title in the header'
-								},
-								{
-									key: 'showMenu',
-									label: 'Show Menu',
-									desc: 'Display the navigation menu in the header'
-								},
-								{
-									key: 'showTemplateSelector',
-									label: 'Show Template Selector',
-									desc: 'Display the template selector dropdown in the header'
-								},
-								{
-									key: 'enableThemeToggle',
-									label: 'Show Theme Toggle',
-									desc: 'Display the theme toggle button in the header'
-								},
-								{
-									key: 'enableLanguageSelector',
-									label: 'Enable Language Selector',
-									desc: 'Show language selection dropdown'
-								},
-								{ key: 'showAuthButtons', label: 'Show Auth Buttons', desc: 'Display login/logout buttons' },
-								{
-									key: 'showGreeting',
-									label: 'Show Greeting',
-									desc: 'Display welcome message for logged-in users'
-								}
-							] as config}
-								<div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-									<div>
-										<label class="text-sm font-medium text-gray-900">{config.label}</label>
-										<p class="text-xs text-gray-500 mt-1">{config.desc}</p>
-									</div>
-									<label class="relative inline-flex items-center cursor-pointer">
-										<input
-											type="checkbox"
-											checked={getEffectiveHeaderConfig(config.key)}
-											on:change={(e) => updateHeaderConfig(config.key, e.target.checked)}
-											class="sr-only peer"
-										/>
-										<div
-											class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"
-										></div>
-									</label>
-								</div>
-							{/each}
 						</div>
 					</div>
 				{:else if activeTab === 'pages'}
@@ -1384,6 +1338,66 @@
 																editingModule.props.body = {};
 															} else if (typeof editingModule.props.body === 'string') {
 																editingModule.props.body = { en: editingModule.props.body };
+															}
+														}
+														// Initialize languageSelector props if needed
+														if (editingModule.type === 'languageSelector') {
+															if (editingModule.props.showFlags === undefined) {
+																editingModule.props.showFlags = true;
+															}
+															if (editingModule.props.showNativeNames === undefined) {
+																editingModule.props.showNativeNames = true;
+															}
+															if (editingModule.props.compact === undefined) {
+																editingModule.props.compact = false;
+															}
+														}
+														// Initialize userGreeting props if needed
+														if (editingModule.type === 'userGreeting') {
+															if (!editingModule.props.greeting) {
+																editingModule.props.greeting = 'Hello';
+															}
+															if (editingModule.props.showEmail === undefined) {
+																editingModule.props.showEmail = false;
+															}
+														}
+														// Initialize authButtons props if needed
+														if (editingModule.type === 'authButtons') {
+															if (!editingModule.props.loginLabel) {
+																editingModule.props.loginLabel = 'Login';
+															}
+															if (!editingModule.props.logoutLabel) {
+																editingModule.props.logoutLabel = 'Logout';
+															}
+															if (!editingModule.props.loginUrl) {
+																editingModule.props.loginUrl = '/login';
+															}
+															if (!editingModule.props.containerClass) {
+																editingModule.props.containerClass = 'flex items-center gap-2';
+															}
+														}
+														// Initialize socialMedia props if needed
+														if (editingModule.type === 'socialMedia') {
+															if (!editingModule.props.socialMedia) {
+																editingModule.props.socialMedia = {};
+															}
+															if (!editingModule.props.iconSize) {
+																editingModule.props.iconSize = 'md';
+															}
+															if (!editingModule.props.iconColor) {
+																editingModule.props.iconColor = 'current';
+															}
+															if (editingModule.props.showLabels === undefined) {
+																editingModule.props.showLabels = false;
+															}
+															if (!editingModule.props.orientation) {
+																editingModule.props.orientation = 'horizontal';
+															}
+															if (!editingModule.props.align) {
+																editingModule.props.align = 'start';
+															}
+															if (!editingModule.props.gap) {
+																editingModule.props.gap = 'normal';
 															}
 														}
 														logger.debug('[Overrides] After initialization:', { 
@@ -1540,7 +1554,12 @@
 								{/each}
 							</div>
 							{#if previewTokens}
-								<ThemeBuilderPreview tokens={previewTokens} pageType={previewPageType} />
+								<ThemeBuilderPreview 
+									tokens={previewTokens} 
+									pageType={previewPageType}
+									pageModules={getModulesForPageType(previewPageType)}
+									pageLayout={getGridForPageType(previewPageType)}
+								/>
 							{:else}
 								<div class="h-64 rounded-lg border border-gray-200 bg-gray-50 flex items-center justify-center text-gray-500">
 									Loading preview...
@@ -1602,12 +1621,18 @@
 								};
 							}}
 						>
-							<option value="root">Root albums</option>
-							<option value="featured">Featured albums</option>
+							<option value="root">Root albums only</option>
+							<option value="featured">Featured albums (all levels)</option>
 							<option value="selected">Specific albums</option>
+							<option value="current">Current album (from URL)</option>
 						</select>
 						{#if editingModule.props?.albumSource === 'selected'}
 							<p class="mt-2 text-sm text-gray-500">Album picker for specific albums coming soon.</p>
+						{/if}
+						{#if editingModule.props?.albumSource === 'current'}
+							<p class="mt-2 text-xs text-gray-500">
+								Shows sub-albums of the album specified in the URL (album-alias parameter). Use this for album pages.
+							</p>
 						{/if}
 					</div>
 				{:else if editingModule.type === 'hero'}
@@ -1839,6 +1864,450 @@
 								<option value="white">White</option>
 								<option value="gray">Gray</option>
 							</select>
+						</div>
+					</div>
+				{:else if editingModule.type === 'languageSelector'}
+					<div class="space-y-4">
+						<div>
+							<label class="flex items-center gap-2">
+								<input
+									type="checkbox"
+									checked={editingModule.props?.showFlags !== false}
+									on:change={(e) => {
+										editingModule = {
+											...editingModule,
+											props: { ...editingModule.props, showFlags: (e.currentTarget as HTMLInputElement).checked }
+										};
+									}}
+									class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+								/>
+								<span class="text-sm font-medium text-gray-700">Show flags</span>
+							</label>
+						</div>
+						<div>
+							<label class="flex items-center gap-2">
+								<input
+									type="checkbox"
+									checked={editingModule.props?.showNativeNames !== false}
+									on:change={(e) => {
+										editingModule = {
+											...editingModule,
+											props: { ...editingModule.props, showNativeNames: (e.currentTarget as HTMLInputElement).checked }
+										};
+									}}
+									class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+								/>
+								<span class="text-sm font-medium text-gray-700">Show native names</span>
+							</label>
+						</div>
+						<div>
+							<label class="flex items-center gap-2">
+								<input
+									type="checkbox"
+									checked={editingModule.props?.compact === true}
+									on:change={(e) => {
+										editingModule = {
+											...editingModule,
+											props: { ...editingModule.props, compact: (e.currentTarget as HTMLInputElement).checked }
+										};
+									}}
+									class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+								/>
+								<span class="text-sm font-medium text-gray-700">Compact mode</span>
+							</label>
+						</div>
+						<div>
+							<label for="lang-selector-class" class="block text-sm font-medium text-gray-700 mb-2">
+								CSS Classes (optional)
+							</label>
+							<input
+								id="lang-selector-class"
+								type="text"
+								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								value={editingModule.props?.className || ''}
+								placeholder="e.g., ml-4"
+								on:input={(e) => {
+									editingModule = {
+										...editingModule,
+										props: { ...editingModule.props, className: (e.currentTarget as HTMLInputElement).value }
+									};
+								}}
+							/>
+						</div>
+					</div>
+				{:else if editingModule.type === 'themeToggle'}
+					<div class="space-y-4">
+						<div class="text-sm text-gray-600">
+							<p>Theme toggle module has no configuration options. It automatically toggles between light and dark themes.</p>
+						</div>
+					</div>
+				{:else if editingModule.type === 'userGreeting'}
+					<div class="space-y-4">
+						<div>
+							<label for="user-greeting-text" class="block text-sm font-medium text-gray-700 mb-2">
+								Greeting Text
+							</label>
+							<input
+								id="user-greeting-text"
+								type="text"
+								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								value={editingModule.props?.greeting || 'Hello'}
+								placeholder="Hello"
+								on:input={(e) => {
+									editingModule = {
+										...editingModule,
+										props: { ...editingModule.props, greeting: (e.currentTarget as HTMLInputElement).value }
+									};
+								}}
+							/>
+							<p class="mt-1 text-xs text-gray-500">Displayed before the user's name (e.g., "Hello, John")</p>
+						</div>
+						<div>
+							<label class="flex items-center gap-2">
+								<input
+									type="checkbox"
+									checked={editingModule.props?.showEmail === true}
+									on:change={(e) => {
+										editingModule = {
+											...editingModule,
+											props: { ...editingModule.props, showEmail: (e.currentTarget as HTMLInputElement).checked }
+										};
+									}}
+									class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+								/>
+								<span class="text-sm font-medium text-gray-700">Show email if name not available</span>
+							</label>
+						</div>
+						<div>
+							<label for="user-greeting-class" class="block text-sm font-medium text-gray-700 mb-2">
+								CSS Classes (optional)
+							</label>
+							<input
+								id="user-greeting-class"
+								type="text"
+								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								value={editingModule.props?.className || ''}
+								placeholder="e.g., text-gray-600"
+								on:input={(e) => {
+									editingModule = {
+										...editingModule,
+										props: { ...editingModule.props, className: (e.currentTarget as HTMLInputElement).value }
+									};
+								}}
+							/>
+						</div>
+					</div>
+				{:else if editingModule.type === 'authButtons'}
+					<div class="space-y-4">
+						<div>
+							<label for="auth-login-label" class="block text-sm font-medium text-gray-700 mb-2">
+								Login Button Label
+							</label>
+							<input
+								id="auth-login-label"
+								type="text"
+								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								value={editingModule.props?.loginLabel || 'Login'}
+								placeholder="Login"
+								on:input={(e) => {
+									editingModule = {
+										...editingModule,
+										props: { ...editingModule.props, loginLabel: (e.currentTarget as HTMLInputElement).value }
+									};
+								}}
+							/>
+						</div>
+						<div>
+							<label for="auth-logout-label" class="block text-sm font-medium text-gray-700 mb-2">
+								Logout Button Label
+							</label>
+							<input
+								id="auth-logout-label"
+								type="text"
+								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								value={editingModule.props?.logoutLabel || 'Logout'}
+								placeholder="Logout"
+								on:input={(e) => {
+									editingModule = {
+										...editingModule,
+										props: { ...editingModule.props, logoutLabel: (e.currentTarget as HTMLInputElement).value }
+									};
+								}}
+							/>
+						</div>
+						<div>
+							<label for="auth-login-url" class="block text-sm font-medium text-gray-700 mb-2">
+								Login URL
+							</label>
+							<input
+								id="auth-login-url"
+								type="text"
+								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								value={editingModule.props?.loginUrl || '/login'}
+								placeholder="/login"
+								on:input={(e) => {
+									editingModule = {
+										...editingModule,
+										props: { ...editingModule.props, loginUrl: (e.currentTarget as HTMLInputElement).value }
+									};
+								}}
+							/>
+						</div>
+						<div>
+							<label for="auth-container-class" class="block text-sm font-medium text-gray-700 mb-2">
+								Container CSS Classes (optional)
+							</label>
+							<input
+								id="auth-container-class"
+								type="text"
+								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								value={editingModule.props?.containerClass || 'flex items-center gap-2'}
+								placeholder="flex items-center gap-2"
+								on:input={(e) => {
+									editingModule = {
+										...editingModule,
+										props: { ...editingModule.props, containerClass: (e.currentTarget as HTMLInputElement).value }
+									};
+								}}
+							/>
+						</div>
+					</div>
+				{:else if editingModule.type === 'socialMedia'}
+					<div class="space-y-4">
+						<div class="text-sm text-gray-600 mb-4">
+							<p>Social media links are pulled from site configuration by default. You can override them here if needed.</p>
+						</div>
+						<div>
+							<label for="social-facebook" class="block text-sm font-medium text-gray-700 mb-2">
+								Facebook URL (optional override)
+							</label>
+							<input
+								id="social-facebook"
+								type="url"
+								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								value={editingModule.props?.socialMedia?.facebook || ''}
+								placeholder="Leave empty to use site config"
+								on:input={(e) => {
+									if (!editingModule.props.socialMedia) editingModule.props.socialMedia = {};
+									editingModule = {
+										...editingModule,
+										props: {
+											...editingModule.props,
+											socialMedia: {
+												...editingModule.props.socialMedia,
+												facebook: (e.currentTarget as HTMLInputElement).value
+											}
+										}
+									};
+								}}
+							/>
+						</div>
+						<div>
+							<label for="social-instagram" class="block text-sm font-medium text-gray-700 mb-2">
+								Instagram URL (optional override)
+							</label>
+							<input
+								id="social-instagram"
+								type="url"
+								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								value={editingModule.props?.socialMedia?.instagram || ''}
+								placeholder="Leave empty to use site config"
+								on:input={(e) => {
+									if (!editingModule.props.socialMedia) editingModule.props.socialMedia = {};
+									editingModule = {
+										...editingModule,
+										props: {
+											...editingModule.props,
+											socialMedia: {
+												...editingModule.props.socialMedia,
+												instagram: (e.currentTarget as HTMLInputElement).value
+											}
+										}
+									};
+								}}
+							/>
+						</div>
+						<div>
+							<label for="social-twitter" class="block text-sm font-medium text-gray-700 mb-2">
+								Twitter URL (optional override)
+							</label>
+							<input
+								id="social-twitter"
+								type="url"
+								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								value={editingModule.props?.socialMedia?.twitter || ''}
+								placeholder="Leave empty to use site config"
+								on:input={(e) => {
+									if (!editingModule.props.socialMedia) editingModule.props.socialMedia = {};
+									editingModule = {
+										...editingModule,
+										props: {
+											...editingModule.props,
+											socialMedia: {
+												...editingModule.props.socialMedia,
+												twitter: (e.currentTarget as HTMLInputElement).value
+											}
+										}
+									};
+								}}
+							/>
+						</div>
+						<div>
+							<label for="social-linkedin" class="block text-sm font-medium text-gray-700 mb-2">
+								LinkedIn URL (optional override)
+							</label>
+							<input
+								id="social-linkedin"
+								type="url"
+								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								value={editingModule.props?.socialMedia?.linkedin || ''}
+								placeholder="Leave empty to use site config"
+								on:input={(e) => {
+									if (!editingModule.props.socialMedia) editingModule.props.socialMedia = {};
+									editingModule = {
+										...editingModule,
+										props: {
+											...editingModule.props,
+											socialMedia: {
+												...editingModule.props.socialMedia,
+												linkedin: (e.currentTarget as HTMLInputElement).value
+											}
+										}
+									};
+								}}
+							/>
+						</div>
+						<div>
+							<label for="social-icon-size" class="block text-sm font-medium text-gray-700 mb-2">
+								Icon Size
+							</label>
+							<select
+								id="social-icon-size"
+								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								value={editingModule.props?.iconSize || 'md'}
+								on:change={(e) => {
+									editingModule = {
+										...editingModule,
+										props: { ...editingModule.props, iconSize: (e.currentTarget as HTMLSelectElement).value }
+									};
+								}}
+							>
+								<option value="sm">Small</option>
+								<option value="md">Medium</option>
+								<option value="lg">Large</option>
+							</select>
+						</div>
+						<div>
+							<label for="social-icon-color" class="block text-sm font-medium text-gray-700 mb-2">
+								Icon Color
+							</label>
+							<input
+								id="social-icon-color"
+								type="text"
+								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								value={editingModule.props?.iconColor || 'current'}
+								placeholder="current, gray-600, #000000, etc."
+								on:input={(e) => {
+									editingModule = {
+										...editingModule,
+										props: { ...editingModule.props, iconColor: (e.currentTarget as HTMLInputElement).value }
+									};
+								}}
+							/>
+							<p class="mt-1 text-xs text-gray-500">CSS color or Tailwind color class (e.g., current, gray-600, blue-500)</p>
+						</div>
+						<div>
+							<label class="flex items-center gap-2">
+								<input
+									type="checkbox"
+									checked={editingModule.props?.showLabels === true}
+									on:change={(e) => {
+										editingModule = {
+											...editingModule,
+											props: { ...editingModule.props, showLabels: (e.currentTarget as HTMLInputElement).checked }
+										};
+									}}
+									class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+								/>
+								<span class="text-sm font-medium text-gray-700">Show Labels</span>
+							</label>
+						</div>
+						<div>
+							<label for="social-orientation" class="block text-sm font-medium text-gray-700 mb-2">
+								Orientation
+							</label>
+							<select
+								id="social-orientation"
+								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								value={editingModule.props?.orientation || 'horizontal'}
+								on:change={(e) => {
+									editingModule = {
+										...editingModule,
+										props: { ...editingModule.props, orientation: (e.currentTarget as HTMLSelectElement).value }
+									};
+								}}
+							>
+								<option value="horizontal">Horizontal</option>
+								<option value="vertical">Vertical</option>
+							</select>
+						</div>
+						<div>
+							<label for="social-align" class="block text-sm font-medium text-gray-700 mb-2">
+								Alignment
+							</label>
+							<select
+								id="social-align"
+								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								value={editingModule.props?.align || 'start'}
+								on:change={(e) => {
+									editingModule = {
+										...editingModule,
+										props: { ...editingModule.props, align: (e.currentTarget as HTMLSelectElement).value }
+									};
+								}}
+							>
+								<option value="start">Start</option>
+								<option value="center">Center</option>
+								<option value="end">End</option>
+							</select>
+						</div>
+						<div>
+							<label for="social-gap" class="block text-sm font-medium text-gray-700 mb-2">
+								Gap Size
+							</label>
+							<select
+								id="social-gap"
+								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								value={editingModule.props?.gap || 'normal'}
+								on:change={(e) => {
+									editingModule = {
+										...editingModule,
+										props: { ...editingModule.props, gap: (e.currentTarget as HTMLSelectElement).value }
+									};
+								}}
+							>
+								<option value="tight">Tight</option>
+								<option value="normal">Normal</option>
+								<option value="loose">Loose</option>
+							</select>
+						</div>
+						<div>
+							<label for="social-class" class="block text-sm font-medium text-gray-700 mb-2">
+								CSS Classes (optional)
+							</label>
+							<input
+								id="social-class"
+								type="text"
+								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								value={editingModule.props?.className || ''}
+								placeholder="e.g., mt-4"
+								on:input={(e) => {
+									editingModule = {
+										...editingModule,
+										props: { ...editingModule.props, className: (e.currentTarget as HTMLInputElement).value }
+									};
+								}}
+							/>
 						</div>
 					</div>
 				{:else}

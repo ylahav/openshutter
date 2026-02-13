@@ -19,6 +19,7 @@ export interface Album {
   alias: string
   description?: { en?: string; he?: string } | string
   isPublic: boolean
+  isPublished: boolean
   isFeatured: boolean
   storageProvider: 'google-drive' | 'aws-s3' | 'local' | 'backblaze' | 'wasabi'
   storagePath: string
@@ -69,6 +70,10 @@ export const AlbumSchema = new Schema<IAlbum>({
   isPublic: {
     type: Boolean,
     default: false
+  },
+  isPublished: {
+    type: Boolean,
+    default: true
   },
   isFeatured: {
     type: Boolean,
@@ -165,6 +170,7 @@ AlbumSchema.pre('save', function() {
 AlbumSchema.index({ parentAlbumId: 1, order: 1 })
 AlbumSchema.index({ level: 1 })
 AlbumSchema.index({ isPublic: 1 })
+AlbumSchema.index({ isPublished: 1 })
 AlbumSchema.index({ isFeatured: 1 })
 AlbumSchema.index({ firstPhotoDate: 1 })
 AlbumSchema.index({ lastPhotoDate: 1 })

@@ -1,6 +1,17 @@
 ## [Unreleased]
 
 ### Added
+- **Album Published Status**: Albums now have an `isPublished` field to control visibility on the frontend
+  - New albums default to `isPublished: true` (published)
+  - Albums without `isPublished` field are treated as published (backward compatibility)
+  - Published/unpublished toggle in albums management page with visual indicators (✓/○)
+  - Public/private toggle in albums management page with visual indicators (🌐/🔒)
+  - "Unpublished" badge displayed in album tree for unpublished albums
+- **Album Visibility Rules**: Enhanced album visibility logic with strict publication requirements
+  - Albums must be published (`isPublished: true` or missing) to be visible on frontend
+  - Public albums: Published + public (`isPublic: true`) - visible to everyone
+  - Private albums: Published + private (`isPublic: false`) - only visible if user matches `allowedUsers` or `allowedGroups`
+  - Removed "open private" albums concept - private albums now require explicit user/group access
 - **Theme Builder – Home page from theme**: Home page can be driven by theme `pageModules` and `pageLayout`. When a theme has home modules configured and is applied, the public home page uses `PageRenderer` with those modules; otherwise it falls back to the legacy template switcher. Apply theme now fetches the full theme (including `pageModules`/`pageLayout`) and writes them to site config; saving overrides for the active theme auto-applies to site config.
 - **Hero module – Background image aspect ratio**: When the Hero uses a background image, the section height preserves the image aspect ratio (no squashing/stretching). Aspect ratio is computed on image load and applied via CSS so width/height relation is maintained across viewport sizes.
 - **Page Builder Module Structure**: Unified structure for all modules (Hero, RichText, FeatureGrid, AlbumGallery, CTA)
@@ -79,7 +90,23 @@
   - Created Svelte-compatible icon system with SVG definitions
   - Icon selector component with visual previews
 
+### Changed
+- **Album Visibility Rules**: Updated album visibility logic to require both `isPublished: true` AND `isPublic: true` for public albums
+  - Private albums without restrictions are no longer visible to all logged-in users
+  - Private albums now require explicit `allowedUsers` or `allowedGroups` matching
+  - Missing `isPublished` field defaults to `true` for backward compatibility
+- **Albums Grid Module**: Fixed root albums filtering to show only root-level albums (`parentAlbumId: null`)
+  - Changed from hierarchy endpoint to direct root albums query (`/api/albums?parentId=root`)
+  - Ensures only top-level albums are displayed when `albumSource === 'root'`
+
 ### Fixed
+- **Album Toggle UI Updates**: Fixed published/public toggle buttons not updating immediately after click
+  - Toggle functions now reload albums from server to ensure UI reflects latest state
+  - Added `{#key}` block to force AlbumTree re-render when albums change
+  - Toggle buttons now update instantly without requiring page refresh
+- **Albums Grid Root Filtering**: Fixed albumsGrid showing sub-albums when set to 'root'
+  - Now correctly fetches only root-level albums (`parentAlbumId: null`)
+  - Prevents sub-albums from appearing in root albums grid
 - **Leading photo modal (parent album with no photos)**: Prev/Next pagination now updates the displayed photo list (reactive `coverPhotoModalPaginatedPhotos`); setting a sub-album photo as leading photo no longer returns server error (dedicated cover-photo endpoint and descendant validation).
 - **Backend**: Resolved TS7022 implicit any for `doc` in album cover-photo descendant check (explicit type and casts).
 - **Search**: Fixed "Search Error" when filtering by people (normalize filter IDs to strings in frontend; backend locationIds filter support)

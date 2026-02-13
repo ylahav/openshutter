@@ -102,6 +102,7 @@ export interface Album {
   alias: string // URL-friendly name, used for folder structure
   description?: MultiLangHTML
   isPublic: boolean
+  isPublished: boolean
   isFeatured: boolean
   storageProvider: 'google-drive' | 'aws-s3' | 'local' | 'backblaze' | 'wasabi'
   storagePath: string // Full storage path like /parent/son/alias
