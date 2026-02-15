@@ -148,6 +148,38 @@ import { logger } from '$lib/utils/logger';
 		}
 	}
 
+	async function onPhotoImageError(
+		e: Event,
+		photo: AlbumData['photos'][number],
+		thumbnailUrl: string,
+		fullImageUrl: string
+	) {
+		await handleImageLoadError(e);
+		const target = e.currentTarget as HTMLImageElement;
+		if (!target) return;
+		const currentSrc = target.src;
+		logger.debug('[Photo] Image load error:', {
+			currentSrc,
+			thumbnailUrl,
+			fullImageUrl,
+			photoId: photo._id,
+			storage: photo.storage
+		});
+		if (currentSrc !== fullImageUrl && fullImageUrl && fullImageUrl !== thumbnailUrl) {
+			logger.debug('[Photo] Attempting fallback to full image:', fullImageUrl);
+			target.src = fullImageUrl;
+		} else {
+			logger.error('[Photo] All image URLs failed, showing placeholder:', {
+				thumbnail: thumbnailUrl,
+				fullImage: fullImageUrl,
+				currentSrc
+			});
+			target.src = '/placeholder.jpg';
+			target.onerror = null;
+			photoLoaded = { ...photoLoaded, [photo._id]: true };
+		}
+	}
+
 	async function loadMorePhotos() {
 		if (!albumData || !albumData.pagination || loadingMore || !albumData.album) return;
 		const albumId = albumData.album._id;
@@ -394,39 +426,7 @@ import { logger } from '$lib/utils/logger';
 												? "w-full h-full object-cover group-hover:scale-110 transition-all duration-300 " + (photoLoaded[photo._id] ? 'opacity-100' : 'opacity-30')
 												: "absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-all duration-300 " + (photoLoaded[photo._id] ? 'opacity-100' : 'opacity-30')}
 											style="image-orientation: from-image; {getPhotoRotationStyle(photo)}"
-											on:error={async (e) => {
-												// Check for token renewal errors first
-												await handleImageLoadError(e);
-												
-												// Fallback to full image if thumbnail fails to load
-												const target = e.currentTarget as HTMLImageElement;
-												const currentSrc = target.src;
-												
-												logger.debug('[Photo] Image load error:', {
-													currentSrc,
-													thumbnailUrl,
-													fullImageUrl,
-													photoId: photo._id,
-													storage: photo.storage
-												});
-												
-												// Only fallback if we haven't already tried the full image
-												if (currentSrc !== fullImageUrl && fullImageUrl && fullImageUrl !== thumbnailUrl) {
-													logger.debug('[Photo] Attempting fallback to full image:', fullImageUrl);
-													target.src = fullImageUrl;
-												} else {
-													// If full image also fails or already tried, show placeholder instead of hiding
-													logger.error('[Photo] All image URLs failed, showing placeholder:', {
-														thumbnail: thumbnailUrl,
-														fullImage: fullImageUrl,
-														currentSrc
-													});
-													// Show placeholder instead of hiding
-													target.src = '/placeholder.jpg';
-													target.onerror = null; // Prevent infinite loop
-													photoLoaded = { ...photoLoaded, [photo._id]: true };
-												}
-											}}
+											on:error={(e) => onPhotoImageError(e, photo, thumbnailUrl, fullImageUrl)}
 											on:load={() => {
 												logger.debug('[Photo] Image loaded successfully:', thumbnailUrl);
 												photoLoaded = { ...photoLoaded, [photo._id]: true };

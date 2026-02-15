@@ -252,6 +252,14 @@
 		}
 	}
 
+	async function onLogoFileChange(e: Event) {
+		const file = (e.currentTarget as HTMLInputElement).files?.[0];
+		if (file) await handleFileUpload(file, 'logo');
+	}
+	async function onFaviconFileChange(e: Event) {
+		const file = (e.currentTarget as HTMLInputElement).files?.[0];
+		if (file) await handleFileUpload(file, 'favicon');
+	}
 	async function handleFileUpload(file: File, type: 'logo' | 'favicon') {
 		if (!config) return;
 
@@ -538,12 +546,7 @@
 											id="logo-upload"
 											type="file"
 											accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
-											on:change={async (e) => {
-												const file = e.currentTarget.files?.[0];
-												if (file) {
-													await handleFileUpload(file, 'logo');
-												}
-											}}
+											on:change={onLogoFileChange}
 											class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
 										/>
 										<p class="mt-1 text-xs text-gray-500">
@@ -590,12 +593,7 @@
 											id="favicon-upload"
 											type="file"
 											accept="image/x-icon,image/vnd.microsoft.icon,image/png,image/jpeg"
-											on:change={async (e) => {
-												const file = e.currentTarget.files?.[0];
-												if (file) {
-													await handleFileUpload(file, 'favicon');
-												}
-											}}
+											on:change={onFaviconFileChange}
 											class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
 										/>
 										<p class="mt-1 text-xs text-gray-500">
@@ -628,205 +626,6 @@
 											/>
 										</div>
 									{/if}
-								</div>
-							</div>
-
-							<!-- Theme Colors -->
-							<div class="border-t border-gray-200 pt-6">
-								<h3 class="text-lg font-semibold text-gray-900 mb-4">Theme Colors</h3>
-								<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-									<!-- Primary Color -->
-									<div>
-										<label for="primary-color" class="block text-sm font-medium text-gray-700 mb-2">
-											Primary Color
-										</label>
-										<div class="flex gap-2">
-											<input
-												id="primary-color"
-												type="color"
-												value={config.theme?.primaryColor || '#0ea5e9'}
-												on:input={(e) => {
-													if (!config) return;
-													config = {
-														...(config),
-														theme: {
-															...config.theme,
-															primaryColor: e.currentTarget.value
-														}
-													} as SiteConfig;
-												}}
-												class="w-16 h-10 border border-gray-300 rounded cursor-pointer"
-											/>
-											<input
-												id="primary-color-hex"
-												type="text"
-												value={config.theme?.primaryColor || '#0ea5e9'}
-												on:input={(e) => {
-													if (!config) return;
-													config = {
-														...(config),
-														theme: {
-															...config.theme,
-															primaryColor: e.currentTarget.value
-														}
-													} as SiteConfig;
-												}}
-												placeholder="#0ea5e9"
-												class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
-											/>
-										</div>
-									</div>
-
-									<!-- Secondary Color -->
-									<div>
-										<label for="secondary-color" class="block text-sm font-medium text-gray-700 mb-2">
-											Secondary Color
-										</label>
-										<div class="flex gap-2">
-											<input
-												id="secondary-color"
-												type="color"
-												value={config.theme?.secondaryColor || '#64748b'}
-												on:input={(e) => {
-													if (!config) return;
-													config = {
-														...(config),
-														theme: {
-															...config.theme,
-															secondaryColor: e.currentTarget.value
-														}
-													} as SiteConfig;
-												}}
-												class="w-16 h-10 border border-gray-300 rounded cursor-pointer"
-											/>
-											<input
-												id="secondary-color-hex"
-												type="text"
-												value={config.theme?.secondaryColor || '#64748b'}
-												on:input={(e) => {
-													if (!config) return;
-													config = {
-														...(config),
-														theme: {
-															...config.theme,
-															secondaryColor: e.currentTarget.value
-														}
-													} as SiteConfig;
-												}}
-												placeholder="#64748b"
-												class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
-											/>
-										</div>
-									</div>
-
-									<!-- Background Color -->
-									<div>
-										<label for="bg-color" class="block text-sm font-medium text-gray-700 mb-2">
-											Background Color
-										</label>
-										<div class="flex gap-2">
-											<input
-												id="bg-color"
-												type="color"
-												value={config.theme?.backgroundColor || '#ffffff'}
-												on:input={(e) => {
-													if (!config) return;
-													config = {
-														...(config),
-														theme: {
-															...config.theme,
-															backgroundColor: e.currentTarget.value
-														}
-													} as SiteConfig;
-												}}
-												class="w-16 h-10 border border-gray-300 rounded cursor-pointer"
-											/>
-											<input
-												id="bg-color-hex"
-												type="text"
-												value={config.theme?.backgroundColor || '#ffffff'}
-												on:input={(e) => {
-													if (!config) return;
-													config = {
-														...(config),
-														theme: {
-															...config.theme,
-															backgroundColor: e.currentTarget.value
-														}
-													} as SiteConfig;
-												}}
-												placeholder="#ffffff"
-												class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
-											/>
-										</div>
-									</div>
-
-									<!-- Text Color -->
-									<div>
-										<label for="text-color" class="block text-sm font-medium text-gray-700 mb-2">
-											Text Color
-										</label>
-										<div class="flex gap-2">
-											<input
-												id="text-color"
-												type="color"
-												value={config.theme?.textColor || '#1e293b'}
-												on:input={(e) => {
-													if (!config) return;
-													config = {
-														...(config),
-														theme: {
-															...config.theme,
-															textColor: e.currentTarget.value
-														}
-													} as SiteConfig;
-												}}
-												class="w-16 h-10 border border-gray-300 rounded cursor-pointer"
-											/>
-											<input
-												id="text-color-hex"
-												type="text"
-												value={config.theme?.textColor || '#1e293b'}
-												on:input={(e) => {
-													if (!config) return;
-													config = {
-														...(config),
-														theme: {
-															...config.theme,
-															textColor: e.currentTarget.value
-														}
-													} as SiteConfig;
-												}}
-												placeholder="#1e293b"
-												class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
-											/>
-										</div>
-									</div>
-								</div>
-
-								<!-- Color Preview -->
-								<div class="mt-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
-									<p class="text-sm font-medium text-gray-700 mb-3">Color Preview:</p>
-									<div
-										class="p-4 rounded-lg"
-										style="background-color: {config.theme?.backgroundColor || '#ffffff'}; color: {config.theme?.textColor || '#1e293b'};"
-									>
-										<div
-											class="inline-block px-4 py-2 rounded-md text-white font-medium mb-2"
-											style="background-color: {config.theme?.primaryColor || '#0ea5e9'};"
-										>
-											Primary Button
-										</div>
-										<div
-											class="inline-block px-4 py-2 rounded-md text-white font-medium ml-2"
-											style="background-color: {config.theme?.secondaryColor || '#64748b'};"
-										>
-											Secondary Button
-										</div>
-										<p class="mt-3">
-											This is how your text will look with the selected colors.
-										</p>
-									</div>
 								</div>
 							</div>
 						</div>

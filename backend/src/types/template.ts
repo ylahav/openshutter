@@ -1,3 +1,9 @@
+export interface FontSetting {
+  family: string
+  size?: string
+  weight?: string
+}
+
 export interface TemplateConfig {
   templateName: string
   displayName: string
@@ -21,8 +27,12 @@ export interface TemplateConfig {
     muted: string
   }
   fonts: {
-    heading: string
-    body: string
+    heading: FontSetting
+    body: FontSetting
+    links: FontSetting
+    lists: FontSetting
+    formInputs: FontSetting
+    formLabels: FontSetting
   }
   layout: {
     maxWidth: string

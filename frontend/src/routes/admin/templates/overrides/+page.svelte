@@ -7,6 +7,14 @@
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 	import ThemeBuilderPreview from '$lib/components/ThemeBuilderPreview.svelte';
 	import { PAGE_MODULE_TYPES } from '$lib/page-builder/module-types';
+	import { GOOGLE_FONTS, GOOGLE_FONT_NAMES } from '$lib/constants/google-fonts';
+	import {
+		normalizeFontSetting,
+		FONT_SIZE_OPTIONS,
+		FONT_WEIGHT_OPTIONS,
+		type FontSetting,
+		type FontRole
+	} from '$lib/types/fonts';
 	import MultiLangInput from '$lib/components/MultiLangInput.svelte';
 	import MultiLangHTMLEditor from '$lib/components/MultiLangHTMLEditor.svelte';
 	import type { PageData } from './$types';
@@ -43,10 +51,7 @@
 			text: string;
 			muted: string;
 		};
-		fonts: {
-			heading: string;
-			body: string;
-		};
+		fonts: Record<FontRole, FontSetting>;
 		layout: {
 			maxWidth: string;
 			containerPadding: string;
@@ -94,10 +99,10 @@
 		};
 	})();
 
-	// Local overrides state
+	// Local overrides state (customFonts values can be string | FontSetting for backward compat)
 	let localOverrides: {
 		customColors?: Record<string, string>;
-		customFonts?: Record<string, string>;
+		customFonts?: Record<string, string | FontSetting>;
 		customLayout?: Record<string, string>;
 		componentVisibility?: Record<string, boolean>;
 		headerConfig?: Record<string, any>;
@@ -105,7 +110,7 @@
 		pageLayout?: Record<string, { gridRows: number; gridColumns: number }>;
 	} = {};
 
-	let editingTheme: { _id: string; name?: string; baseTemplate: string; customColors?: Record<string, string>; customFonts?: Record<string, string>; customLayout?: Record<string, string>; componentVisibility?: Record<string, boolean>; headerConfig?: Record<string, unknown>; pageModules?: Record<string, any[]>; pageLayout?: Record<string, { gridRows: number; gridColumns: number }> } | null = null;
+	let editingTheme: { _id: string; name?: string; baseTemplate: string; customColors?: Record<string, string>; customFonts?: Record<string, string | FontSetting>; customLayout?: Record<string, string>; componentVisibility?: Record<string, boolean>; headerConfig?: Record<string, unknown>; pageModules?: Record<string, any[]>; pageLayout?: Record<string, { gridRows: number; gridColumns: number }> } | null = null;
 	$: currentTemplateName = editingTheme?.baseTemplate ||
 		$siteConfigData?.template?.frontendTemplate ||
 		$siteConfigData?.template?.activeTemplate ||
@@ -636,11 +641,29 @@
 		hasChanges = true;
 	}
 
-	function updateFont(fontType: string, value: string) {
-		if (!localOverrides.customFonts) {
-			localOverrides.customFonts = {};
-		}
-		localOverrides.customFonts[fontType] = value;
+	function updateFontFamily(fontType: FontRole, value: string) {
+		if (!localOverrides.customFonts) localOverrides.customFonts = {};
+		const prev = localOverrides.customFonts[fontType];
+		localOverrides.customFonts[fontType] =
+			typeof prev === 'string' ? value : { ...prev, family: value };
+		localOverrides = { ...localOverrides };
+		hasChanges = true;
+	}
+
+	function updateFontSize(fontType: FontRole, value: string) {
+		if (!localOverrides.customFonts) localOverrides.customFonts = {};
+		const prev = localOverrides.customFonts[fontType];
+		const base: FontSetting = typeof prev === 'string' ? { family: prev } : { ...prev };
+		localOverrides.customFonts[fontType] = { ...base, size: value || undefined };
+		localOverrides = { ...localOverrides };
+		hasChanges = true;
+	}
+
+	function updateFontWeight(fontType: FontRole, value: string) {
+		if (!localOverrides.customFonts) localOverrides.customFonts = {};
+		const prev = localOverrides.customFonts[fontType];
+		const base: FontSetting = typeof prev === 'string' ? { family: prev } : { ...prev };
+		localOverrides.customFonts[fontType] = { ...base, weight: value || undefined };
 		localOverrides = { ...localOverrides };
 		hasChanges = true;
 	}
@@ -687,8 +710,40 @@
 		return colorValues[colorType] || localOverrides.customColors?.[colorType] || activeTemplate?.colors?.[colorType as keyof typeof activeTemplate.colors] || '#000000';
 	}
 
-	function getEffectiveFont(fontType: string): string {
-		return localOverrides.customFonts?.[fontType] || activeTemplate?.fonts[fontType] || 'Inter';
+	function getEffectiveFontSetting(role: FontRole): FontSetting {
+		const base = activeTemplate?.fonts?.[role];
+		const override = localOverrides.customFonts?.[role];
+		const baseFamily = base && typeof base === 'object' ? base.family : typeof base === 'string' ? base : 'Inter';
+		const merged: Partial<FontSetting> = {
+			...(typeof base === 'object' && base ? base : {}),
+			...(typeof override === 'string' ? { family: override } : override && typeof override === 'object' ? override : {})
+		};
+		return normalizeFontSetting(
+			{ family: merged.family ?? baseFamily, size: merged.size, weight: merged.weight },
+			baseFamily,
+			role
+		);
+	}
+
+	function getEffectiveFont(fontType: FontRole): string {
+		return getEffectiveFontSetting(fontType).family;
+	}
+
+	function getFontSizeOverride(role: FontRole): string {
+		const o = localOverrides.customFonts?.[role];
+		return o && typeof o === 'object' && o.size != null ? o.size : '';
+	}
+
+	function getFontWeightOverride(role: FontRole): string {
+		const o = localOverrides.customFonts?.[role];
+		return o && typeof o === 'object' && o.weight != null ? o.weight : '';
+	}
+
+	function getDefaultFontFamily(role: FontRole): string {
+		const t = activeTemplate?.fonts?.[role];
+		if (t == null) return 'Inter';
+		if (typeof t === 'string') return t;
+		return (t as FontSetting).family ?? 'Inter';
 	}
 
 	function getEffectiveLayout(layoutType: string): string {
@@ -728,7 +783,14 @@
 			text: getEffectiveColor('text'),
 			muted: getEffectiveColor('muted')
 		},
-		fonts: { heading: getEffectiveFont('heading'), body: getEffectiveFont('body') },
+		fonts: {
+			heading: getEffectiveFontSetting('heading'),
+			body: getEffectiveFontSetting('body'),
+			links: getEffectiveFontSetting('links'),
+			lists: getEffectiveFontSetting('lists'),
+			formInputs: getEffectiveFontSetting('formInputs'),
+			formLabels: getEffectiveFontSetting('formLabels')
+		},
 		layout: {
 			maxWidth: getEffectiveLayout('maxWidth') || '1200px',
 			containerPadding: getEffectiveLayout('containerPadding') || '1rem',
@@ -1120,32 +1182,253 @@
 				{:else if activeTab === 'fonts'}
 					<div class="space-y-6">
 						<h2 class="text-xl font-semibold text-gray-900">Font Customization</h2>
+						<p class="text-sm text-gray-600">
+							Choose from popular Google Fonts (loaded automatically), or use <strong>Custom</strong> for a system or self-hosted font: enter the exact CSS font-family name and ensure the font is loaded on your site (e.g. in <code class="px-1 py-0.5 bg-gray-100 rounded text-xs">app.html</code> or global CSS).
+						</p>
 						<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 							<div>
 								<label class="block text-sm font-medium text-gray-700 mb-2">
 									Heading Font
 								</label>
-								<input
-									type="text"
-									value={getEffectiveFont('heading')}
-									on:input={(e) => updateFont('heading', e.target.value)}
-									placeholder="Inter"
+								<select
+									value={GOOGLE_FONT_NAMES.has(getEffectiveFont('heading')) ? getEffectiveFont('heading') : '__custom__'}
+									on:change={(e) => {
+										const v = (e.currentTarget as HTMLSelectElement).value;
+										if (v !== '__custom__') updateFontFamily('heading', v);
+									}}
 									class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-								/>
-								<p class="mt-1 text-xs text-gray-500">Default: {activeTemplate.fonts.heading}</p>
+								>
+									{#each GOOGLE_FONTS as font}
+										<option value={font.value}>{font.label}</option>
+									{/each}
+									<option value="__custom__">Custom…</option>
+								</select>
+								{#if !GOOGLE_FONT_NAMES.has(getEffectiveFont('heading'))}
+									<input
+										type="text"
+										value={getEffectiveFont('heading')}
+										on:input={(e) => updateFontFamily('heading', (e.currentTarget as HTMLInputElement).value)}
+										placeholder="e.g. Inter, My Custom Font"
+										class="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+									/>
+								{/if}
+								<div class="mt-2 grid grid-cols-2 gap-2">
+									<div>
+										<label class="block text-xs font-medium text-gray-500 mb-1">Size</label>
+										<select
+											value={getFontSizeOverride('heading')}
+											on:change={(e) => updateFontSize('heading', (e.currentTarget as HTMLSelectElement).value)}
+											class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500"
+										>
+											{#each FONT_SIZE_OPTIONS as opt}
+												<option value={opt.value}>{opt.label}</option>
+											{/each}
+										</select>
+									</div>
+									<div>
+										<label class="block text-xs font-medium text-gray-500 mb-1">Weight</label>
+										<select
+											value={getFontWeightOverride('heading')}
+											on:change={(e) => updateFontWeight('heading', (e.currentTarget as HTMLSelectElement).value)}
+											class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500"
+										>
+											{#each FONT_WEIGHT_OPTIONS as opt}
+												<option value={opt.value}>{opt.label}</option>
+											{/each}
+										</select>
+									</div>
+								</div>
+								<p class="mt-1 text-xs text-gray-500">Default: {getDefaultFontFamily('heading')}</p>
 							</div>
 							<div>
 								<label class="block text-sm font-medium text-gray-700 mb-2">
 									Body Font
 								</label>
-								<input
-									type="text"
-									value={getEffectiveFont('body')}
-									on:input={(e) => updateFont('body', e.target.value)}
-									placeholder="Inter"
+								<select
+									value={GOOGLE_FONT_NAMES.has(getEffectiveFont('body')) ? getEffectiveFont('body') : '__custom__'}
+									on:change={(e) => {
+										const v = (e.currentTarget as HTMLSelectElement).value;
+										if (v !== '__custom__') updateFontFamily('body', v);
+									}}
 									class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-								/>
-								<p class="mt-1 text-xs text-gray-500">Default: {activeTemplate.fonts.body}</p>
+								>
+									{#each GOOGLE_FONTS as font}
+										<option value={font.value}>{font.label}</option>
+									{/each}
+									<option value="__custom__">Custom…</option>
+								</select>
+								{#if !GOOGLE_FONT_NAMES.has(getEffectiveFont('body'))}
+									<input
+										type="text"
+										value={getEffectiveFont('body')}
+										on:input={(e) => updateFontFamily('body', (e.currentTarget as HTMLInputElement).value)}
+										placeholder="e.g. Inter, My Custom Font"
+										class="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+									/>
+								{/if}
+								<div class="mt-2 grid grid-cols-2 gap-2">
+									<div><label class="block text-xs font-medium text-gray-500 mb-1">Size</label>
+										<select value={getFontSizeOverride('body')} on:change={(e) => updateFontSize('body', (e.currentTarget as HTMLSelectElement).value)} class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500">
+											{#each FONT_SIZE_OPTIONS as opt}<option value={opt.value}>{opt.label}</option>{/each}
+										</select></div>
+									<div><label class="block text-xs font-medium text-gray-500 mb-1">Weight</label>
+										<select value={getFontWeightOverride('body')} on:change={(e) => updateFontWeight('body', (e.currentTarget as HTMLSelectElement).value)} class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500">
+											{#each FONT_WEIGHT_OPTIONS as opt}<option value={opt.value}>{opt.label}</option>{/each}
+										</select></div>
+								</div>
+								<p class="mt-1 text-xs text-gray-500">Default: {getDefaultFontFamily('body')}</p>
+							</div>
+							<div>
+								<label class="block text-sm font-medium text-gray-700 mb-2">
+									Links
+								</label>
+								<select
+									value={GOOGLE_FONT_NAMES.has(getEffectiveFont('links')) ? getEffectiveFont('links') : '__custom__'}
+									on:change={(e) => {
+										const v = (e.currentTarget as HTMLSelectElement).value;
+										if (v !== '__custom__') updateFontFamily('links', v);
+									}}
+									class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								>
+									{#each GOOGLE_FONTS as font}
+										<option value={font.value}>{font.label}</option>
+									{/each}
+									<option value="__custom__">Custom…</option>
+								</select>
+								{#if !GOOGLE_FONT_NAMES.has(getEffectiveFont('links'))}
+									<input
+										type="text"
+										value={getEffectiveFont('links')}
+										on:input={(e) => updateFontFamily('links', (e.currentTarget as HTMLInputElement).value)}
+										placeholder="e.g. Inter, My Custom Font"
+										class="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+									/>
+								{/if}
+								<div class="mt-2 grid grid-cols-2 gap-2">
+									<div><label class="block text-xs font-medium text-gray-500 mb-1">Size</label>
+										<select value={getFontSizeOverride('links')} on:change={(e) => updateFontSize('links', (e.currentTarget as HTMLSelectElement).value)} class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500">
+											{#each FONT_SIZE_OPTIONS as opt}<option value={opt.value}>{opt.label}</option>{/each}
+										</select></div>
+									<div><label class="block text-xs font-medium text-gray-500 mb-1">Weight</label>
+										<select value={getFontWeightOverride('links')} on:change={(e) => updateFontWeight('links', (e.currentTarget as HTMLSelectElement).value)} class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500">
+											{#each FONT_WEIGHT_OPTIONS as opt}<option value={opt.value}>{opt.label}</option>{/each}
+										</select></div>
+								</div>
+								<p class="mt-1 text-xs text-gray-500">Default: {getDefaultFontFamily('links')}</p>
+							</div>
+							<div>
+								<label class="block text-sm font-medium text-gray-700 mb-2">
+									Lists
+								</label>
+								<select
+									value={GOOGLE_FONT_NAMES.has(getEffectiveFont('lists')) ? getEffectiveFont('lists') : '__custom__'}
+									on:change={(e) => {
+										const v = (e.currentTarget as HTMLSelectElement).value;
+										if (v !== '__custom__') updateFontFamily('lists', v);
+									}}
+									class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								>
+									{#each GOOGLE_FONTS as font}
+										<option value={font.value}>{font.label}</option>
+									{/each}
+									<option value="__custom__">Custom…</option>
+								</select>
+								{#if !GOOGLE_FONT_NAMES.has(getEffectiveFont('lists'))}
+									<input
+										type="text"
+										value={getEffectiveFont('lists')}
+										on:input={(e) => updateFontFamily('lists', (e.currentTarget as HTMLInputElement).value)}
+										placeholder="e.g. Inter, My Custom Font"
+										class="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+									/>
+								{/if}
+								<div class="mt-2 grid grid-cols-2 gap-2">
+									<div><label class="block text-xs font-medium text-gray-500 mb-1">Size</label>
+										<select value={getFontSizeOverride('lists')} on:change={(e) => updateFontSize('lists', (e.currentTarget as HTMLSelectElement).value)} class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500">
+											{#each FONT_SIZE_OPTIONS as opt}<option value={opt.value}>{opt.label}</option>{/each}
+										</select></div>
+									<div><label class="block text-xs font-medium text-gray-500 mb-1">Weight</label>
+										<select value={getFontWeightOverride('lists')} on:change={(e) => updateFontWeight('lists', (e.currentTarget as HTMLSelectElement).value)} class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500">
+											{#each FONT_WEIGHT_OPTIONS as opt}<option value={opt.value}>{opt.label}</option>{/each}
+										</select></div>
+								</div>
+								<p class="mt-1 text-xs text-gray-500">Default: {getDefaultFontFamily('lists')}</p>
+							</div>
+							<div>
+								<label class="block text-sm font-medium text-gray-700 mb-2">
+									Form inputs
+								</label>
+								<select
+									value={GOOGLE_FONT_NAMES.has(getEffectiveFont('formInputs')) ? getEffectiveFont('formInputs') : '__custom__'}
+									on:change={(e) => {
+										const v = (e.currentTarget as HTMLSelectElement).value;
+										if (v !== '__custom__') updateFontFamily('formInputs', v);
+									}}
+									class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								>
+									{#each GOOGLE_FONTS as font}
+										<option value={font.value}>{font.label}</option>
+									{/each}
+									<option value="__custom__">Custom…</option>
+								</select>
+								{#if !GOOGLE_FONT_NAMES.has(getEffectiveFont('formInputs'))}
+									<input
+										type="text"
+										value={getEffectiveFont('formInputs')}
+										on:input={(e) => updateFontFamily('formInputs', (e.currentTarget as HTMLInputElement).value)}
+										placeholder="e.g. Inter, My Custom Font"
+										class="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+									/>
+								{/if}
+								<div class="mt-2 grid grid-cols-2 gap-2">
+									<div><label class="block text-xs font-medium text-gray-500 mb-1">Size</label>
+										<select value={getFontSizeOverride('formInputs')} on:change={(e) => updateFontSize('formInputs', (e.currentTarget as HTMLSelectElement).value)} class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500">
+											{#each FONT_SIZE_OPTIONS as opt}<option value={opt.value}>{opt.label}</option>{/each}
+										</select></div>
+									<div><label class="block text-xs font-medium text-gray-500 mb-1">Weight</label>
+										<select value={getFontWeightOverride('formInputs')} on:change={(e) => updateFontWeight('formInputs', (e.currentTarget as HTMLSelectElement).value)} class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500">
+											{#each FONT_WEIGHT_OPTIONS as opt}<option value={opt.value}>{opt.label}</option>{/each}
+										</select></div>
+								</div>
+								<p class="mt-1 text-xs text-gray-500">Default: {getDefaultFontFamily('formInputs')}</p>
+							</div>
+							<div>
+								<label class="block text-sm font-medium text-gray-700 mb-2">
+									Form labels
+								</label>
+								<select
+									value={GOOGLE_FONT_NAMES.has(getEffectiveFont('formLabels')) ? getEffectiveFont('formLabels') : '__custom__'}
+									on:change={(e) => {
+										const v = (e.currentTarget as HTMLSelectElement).value;
+										if (v !== '__custom__') updateFontFamily('formLabels', v);
+									}}
+									class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								>
+									{#each GOOGLE_FONTS as font}
+										<option value={font.value}>{font.label}</option>
+									{/each}
+									<option value="__custom__">Custom…</option>
+								</select>
+								{#if !GOOGLE_FONT_NAMES.has(getEffectiveFont('formLabels'))}
+									<input
+										type="text"
+										value={getEffectiveFont('formLabels')}
+										on:input={(e) => updateFontFamily('formLabels', (e.currentTarget as HTMLInputElement).value)}
+										placeholder="e.g. Inter, My Custom Font"
+										class="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+									/>
+								{/if}
+								<div class="mt-2 grid grid-cols-2 gap-2">
+									<div><label class="block text-xs font-medium text-gray-500 mb-1">Size</label>
+										<select value={getFontSizeOverride('formLabels')} on:change={(e) => updateFontSize('formLabels', (e.currentTarget as HTMLSelectElement).value)} class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500">
+											{#each FONT_SIZE_OPTIONS as opt}<option value={opt.value}>{opt.label}</option>{/each}
+										</select></div>
+									<div><label class="block text-xs font-medium text-gray-500 mb-1">Weight</label>
+										<select value={getFontWeightOverride('formLabels')} on:change={(e) => updateFontWeight('formLabels', (e.currentTarget as HTMLSelectElement).value)} class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500">
+											{#each FONT_WEIGHT_OPTIONS as opt}<option value={opt.value}>{opt.label}</option>{/each}
+										</select></div>
+								</div>
+								<p class="mt-1 text-xs text-gray-500">Default: {getDefaultFontFamily('formLabels')}</p>
 							</div>
 						</div>
 					</div>
@@ -1374,6 +1657,27 @@
 															}
 															if (!editingModule.props.containerClass) {
 																editingModule.props.containerClass = 'flex items-center gap-2';
+															}
+														}
+														// Initialize logo props if needed
+														if (editingModule.type === 'logo') {
+															if (!editingModule.props.size) {
+																editingModule.props.size = 'md';
+															}
+															if (editingModule.props.fallbackIcon === undefined) {
+																editingModule.props.fallbackIcon = true;
+															}
+														}
+														// Initialize siteTitle props if needed
+														if (editingModule.type === 'siteTitle') {
+															if (editingModule.props.showAsLink === undefined) {
+																editingModule.props.showAsLink = true;
+															}
+														}
+														// Initialize menu props if needed
+														if (editingModule.type === 'menu') {
+															if (!editingModule.props.orientation) {
+																editingModule.props.orientation = 'horizontal';
 															}
 														}
 														// Initialize socialMedia props if needed
@@ -1933,6 +2237,90 @@
 									};
 								}}
 							/>
+						</div>
+					</div>
+				{:else if editingModule.type === 'logo'}
+					<div class="space-y-4">
+						<div>
+							<label for="logo-size" class="block text-sm font-medium text-gray-700 mb-2">
+								Size
+							</label>
+							<select
+								id="logo-size"
+								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								value={editingModule.props?.size ?? 'md'}
+								on:change={(e) => {
+									editingModule = {
+										...editingModule,
+										props: { ...editingModule.props, size: (e.currentTarget as HTMLSelectElement).value as 'sm' | 'md' | 'lg' }
+									};
+								}}
+							>
+								<option value="sm">Small</option>
+								<option value="md">Medium</option>
+								<option value="lg">Large</option>
+							</select>
+							<p class="mt-1 text-xs text-gray-500">Display size of the logo image</p>
+						</div>
+						<div>
+							<label class="flex items-center gap-2">
+								<input
+									type="checkbox"
+									checked={editingModule.props?.fallbackIcon !== false}
+									on:change={(e) => {
+										editingModule = {
+											...editingModule,
+											props: { ...editingModule.props, fallbackIcon: (e.currentTarget as HTMLInputElement).checked }
+										};
+									}}
+									class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+								/>
+								<span class="text-sm font-medium text-gray-700">Show icon when no logo is set</span>
+							</label>
+							<p class="mt-1 text-xs text-gray-500">If site logo is not configured, show a camera icon placeholder</p>
+						</div>
+					</div>
+				{:else if editingModule.type === 'siteTitle'}
+					<div class="space-y-4">
+						<div>
+							<label class="flex items-center gap-2">
+								<input
+									type="checkbox"
+									checked={editingModule.props?.showAsLink !== false}
+									on:change={(e) => {
+										editingModule = {
+											...editingModule,
+											props: { ...editingModule.props, showAsLink: (e.currentTarget as HTMLInputElement).checked }
+										};
+									}}
+									class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+								/>
+								<span class="text-sm font-medium text-gray-700">Link to home</span>
+							</label>
+							<p class="mt-1 text-xs text-gray-500">When enabled, the site title is a link to the homepage</p>
+						</div>
+					</div>
+				{:else if editingModule.type === 'menu'}
+					<div class="space-y-4">
+						<div>
+							<label for="menu-orientation" class="block text-sm font-medium text-gray-700 mb-2">
+								Orientation
+							</label>
+							<select
+								id="menu-orientation"
+								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								value={editingModule.props?.orientation ?? 'horizontal'}
+								on:change={(e) => {
+									editingModule = {
+										...editingModule,
+										props: { ...editingModule.props, orientation: (e.currentTarget as HTMLSelectElement).value as 'horizontal' | 'vertical' }
+									};
+								}}
+							>
+								<option value="horizontal">Horizontal</option>
+								<option value="vertical">Vertical</option>
+							</select>
+							<p class="mt-1 text-xs text-gray-500">Horizontal: items in a row. Vertical: items stacked.</p>
 						</div>
 					</div>
 				{:else if editingModule.type === 'themeToggle'}

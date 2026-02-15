@@ -28,10 +28,8 @@ export interface SiteConfig {
       text?: string
       muted?: string
     }
-    customFonts?: {
-      heading?: string
-      body?: string
-    }
+    /** Per-role font: string (family) or { family?, size?, weight? }. */
+    customFonts?: Record<string, string | { family?: string; size?: string; weight?: string }>
     customLayout?: {
       maxWidth?: string
       containerPadding?: string

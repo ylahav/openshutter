@@ -7,6 +7,11 @@
 
 	const isMember = data.user?.role === 'guest';
 	const isAdmin = data.user?.role === 'admin';
+
+	async function handleLogout() {
+		await logout();
+		goto('/');
+	}
 </script>
 
 <svelte:head>
@@ -38,10 +43,7 @@
 					Home
 				</a>
 				<button
-					on:click={async () => {
-						await logout();
-						goto('/');
-					}}
+					on:click={handleLogout}
 					class="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
 				>
 					<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

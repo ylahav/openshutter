@@ -1,6 +1,9 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
 import { AdminGuard } from '../common/guards/admin.guard';
-import type { TemplateConfig } from '../types/template';
+import type { TemplateConfig, FontSetting } from '../types/template';
+
+const font = (family: string, size?: string, weight?: string): FontSetting =>
+  size || weight ? { family, size, weight } : { family };
 
 // Import static templates directly
 const staticTemplates: Record<string, TemplateConfig> = {
@@ -14,7 +17,14 @@ const staticTemplates: Record<string, TemplateConfig> = {
     category: 'minimal',
     features: { responsive: true, darkMode: false, animations: true, seoOptimized: true },
     colors: { primary: '#3B82F6', secondary: '#1F2937', accent: '#F59E0B', background: '#FFFFFF', text: '#1F2937', muted: '#6B7280' },
-    fonts: { heading: 'Inter', body: 'Inter' },
+    fonts: {
+      heading: font('Inter', '1.25rem', '600'),
+      body: font('Inter', '1rem', '400'),
+      links: font('Inter'),
+      lists: font('Inter'),
+      formInputs: font('Inter'),
+      formLabels: font('Inter'),
+    },
     layout: { maxWidth: '1200px', containerPadding: '1rem', gridGap: '1.5rem' },
     components: {
       hero: 'components/Hero.tsx',
@@ -38,7 +48,14 @@ const staticTemplates: Record<string, TemplateConfig> = {
     category: 'modern',
     features: { responsive: true, darkMode: true, animations: true, seoOptimized: true },
     colors: { primary: '#3b82f6', secondary: '#6b7280', accent: '#10b981', background: '#ffffff', text: '#111827', muted: '#6b7280' },
-    fonts: { heading: 'Inter', body: 'Inter' },
+    fonts: {
+      heading: font('Inter', '1.25rem', '600'),
+      body: font('Inter', '1rem', '400'),
+      links: font('Inter'),
+      lists: font('Inter'),
+      formInputs: font('Inter'),
+      formLabels: font('Inter'),
+    },
     layout: { maxWidth: '1200px', containerPadding: '1rem', gridGap: '1.5rem' },
     components: {
       hero: 'components/Hero.tsx',
@@ -62,7 +79,14 @@ const staticTemplates: Record<string, TemplateConfig> = {
     category: 'elegant',
     features: { responsive: true, darkMode: true, animations: true, seoOptimized: true },
     colors: { primary: '#8b5cf6', secondary: '#a78bfa', accent: '#f59e0b', background: '#ffffff', text: '#1f2937', muted: '#6b7280' },
-    fonts: { heading: 'Playfair Display', body: 'Inter' },
+    fonts: {
+      heading: font('Playfair Display', '1.25rem', '600'),
+      body: font('Inter', '1rem', '400'),
+      links: font('Inter'),
+      lists: font('Inter'),
+      formInputs: font('Inter'),
+      formLabels: font('Inter'),
+    },
     layout: { maxWidth: '1200px', containerPadding: '1rem', gridGap: '1.5rem' },
     components: {
       hero: 'components/Hero.tsx',
@@ -86,7 +110,14 @@ const staticTemplates: Record<string, TemplateConfig> = {
     category: 'minimal',
     features: { responsive: true, darkMode: false, animations: false, seoOptimized: true },
     colors: { primary: '#000000', secondary: '#6b7280', accent: '#000000', background: '#ffffff', text: '#000000', muted: '#6b7280' },
-    fonts: { heading: 'Inter', body: 'Inter' },
+    fonts: {
+      heading: font('Inter', '1.25rem', '600'),
+      body: font('Inter', '1rem', '400'),
+      links: font('Inter'),
+      lists: font('Inter'),
+      formInputs: font('Inter'),
+      formLabels: font('Inter'),
+    },
     layout: { maxWidth: '1200px', containerPadding: '1rem', gridGap: '1rem' },
     components: {
       hero: 'components/Hero.tsx',

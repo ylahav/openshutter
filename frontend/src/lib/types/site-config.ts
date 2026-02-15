@@ -1,4 +1,5 @@
 import type { MultiLangText, MultiLangHTML } from './multi-lang';
+import type { FontSetting, FontRole } from './fonts';
 
 export interface SiteConfig {
   _id?: string
@@ -28,10 +29,8 @@ export interface SiteConfig {
       text?: string
       muted?: string
     }
-    customFonts?: {
-      heading?: string
-      body?: string
-    }
+    /** Per-role font: family (string) or { family, size?, weight? }. Legacy: string = family only. */
+    customFonts?: Partial<Record<FontRole, string | FontSetting>>
     customLayout?: {
       maxWidth?: string
       containerPadding?: string

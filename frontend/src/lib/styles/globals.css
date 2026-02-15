@@ -62,11 +62,46 @@ html.dark {
 
 @layer base {
   html {
-    font-family: 'Inter', system-ui, sans-serif;
+    font-family: var(--os-font-body, 'Inter', system-ui, sans-serif);
+    font-size: var(--os-font-body-size, 1rem);
+    font-weight: var(--os-font-body-weight, 400);
   }
-  
+
   body {
     @apply text-foreground bg-background;
+    font-family: var(--os-font-body, inherit);
+    font-size: var(--os-font-body-size, inherit);
+    font-weight: var(--os-font-body-weight, inherit);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--os-font-heading, inherit);
+    font-size: var(--os-font-heading-size, 1.25rem);
+    font-weight: var(--os-font-heading-weight, 600);
+  }
+
+  a {
+    font-family: var(--os-font-links, var(--os-font-body, inherit));
+    font-size: var(--os-font-links-size, inherit);
+    font-weight: var(--os-font-links-weight, inherit);
+  }
+
+  ul, ol, li {
+    font-family: var(--os-font-lists, var(--os-font-body, inherit));
+    font-size: var(--os-font-lists-size, inherit);
+    font-weight: var(--os-font-lists-weight, inherit);
+  }
+
+  input, select, textarea, button {
+    font-family: var(--os-font-form-inputs, var(--os-font-body, inherit));
+    font-size: var(--os-font-form-inputs-size, 1rem);
+    font-weight: var(--os-font-form-inputs-weight, 400);
+  }
+
+  label {
+    font-family: var(--os-font-form-labels, var(--os-font-body, inherit));
+    font-size: var(--os-font-form-labels-size, 0.875rem);
+    font-weight: var(--os-font-form-labels-weight, 500);
   }
   
   * {

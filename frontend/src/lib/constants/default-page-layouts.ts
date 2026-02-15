@@ -9,7 +9,7 @@ export const DEFAULT_PAGE_LAYOUTS: Record<string, { gridRows: number; gridColumn
 	album: { gridRows: 1, gridColumns: 1 },
 	search: { gridRows: 1, gridColumns: 1 },
 	header: { gridRows: 1, gridColumns: 5 },
-	footer: { gridRows: 1, gridColumns: 1 }
+	footer: { gridRows: 2, gridColumns: 1 }
 };
 
 export const DEFAULT_PAGE_MODULES: Record<string, any[]> = {
@@ -139,6 +139,20 @@ export const DEFAULT_PAGE_MODULES: Record<string, any[]> = {
 	],
 	footer: [
 		{
+			_id: 'mod_default_footer_social',
+			type: 'socialMedia',
+			props: {
+				align: 'center',
+				orientation: 'horizontal',
+				iconSize: 'md',
+				showLabels: false
+			},
+			rowOrder: 0,
+			columnIndex: 0,
+			rowSpan: 1,
+			colSpan: 1
+		},
+		{
 			_id: 'mod_default_footer_text',
 			type: 'richText',
 			props: {
@@ -146,7 +160,7 @@ export const DEFAULT_PAGE_MODULES: Record<string, any[]> = {
 				body: { en: '<p>&copy; 2024 OpenShutter. All rights reserved.</p>' },
 				background: 'gray'
 			},
-			rowOrder: 0,
+			rowOrder: 1,
 			columnIndex: 0,
 			rowSpan: 1,
 			colSpan: 1

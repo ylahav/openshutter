@@ -237,6 +237,8 @@ export class SiteConfigService {
         adminTemplate: 'default',
         activeTemplate: 'modern' // Kept for backward compatibility
       },
+      exifMetadata: { displayFields: [] },
+      iptcXmpMetadata: { displayFields: [] },
       mail: {
         host: '',
         port: 587,

@@ -495,6 +495,49 @@
 		}
 	}
 
+	async function saveLocationGridCoordinates(location: TemplateLocation) {
+		if (!selectedTemplate) return;
+		try {
+			saving = true;
+			error = '';
+			const response = await fetch(`/api/admin/template-builder?templateId=${selectedTemplate.templateId}&action=updateLocation&locationId=${location.id}`, {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					startRow: editingStartRow,
+					endRow: editingEndRow,
+					startCol: editingStartCol,
+					endCol: editingEndCol
+				})
+			});
+
+			if (!response.ok) {
+				const result = await response.json();
+				throw new Error(result.error || 'Failed to update location');
+			}
+
+			const result = await response.json();
+			if (result.success) {
+				message = 'Location grid coordinates updated!';
+				selectedTemplate = {
+					...result.data,
+					locations: result.data.locations ? [...result.data.locations] : []
+				};
+				editingLocationGridId = null;
+				selectedCells = [];
+				gridRenderKey += 1;
+				setTimeout(() => { message = ''; }, 3000);
+			} else {
+				throw new Error(result.error || 'Failed to update location');
+			}
+		} catch (err) {
+			logger.error('Error updating location:', err);
+			error = handleError(err, 'Failed to update location');
+		} finally {
+			saving = false;
+		}
+	}
+
 	async function addLocation() {
 		if (!selectedTemplate || !newLocationNameOld.trim()) {
 			error = 'Template must be selected and location name is required';
@@ -1466,51 +1509,7 @@
 																				<div class="flex gap-1">
 																					<button
 																						type="button"
-																						on:click={async () => {
-																							if (!selectedTemplate) return;
-																							try {
-																								saving = true;
-																								error = '';
-																								const response = await fetch(`/api/admin/template-builder?templateId=${selectedTemplate.templateId}&action=updateLocation&locationId=${location.id}`, {
-																									method: 'PUT',
-																									headers: { 'Content-Type': 'application/json' },
-																									body: JSON.stringify({
-																										startRow: editingStartRow,
-																										endRow: editingEndRow,
-																										startCol: editingStartCol,
-																										endCol: editingEndCol
-																									})
-																								});
-																								
-																								if (!response.ok) {
-																									const result = await response.json();
-																									throw new Error(result.error || 'Failed to update location');
-																								}
-																								
-																const result = await response.json();
-																if (result.success) {
-																	message = 'Location grid coordinates updated!';
-																	// Force reactive update by creating a new object reference with deep copy of locations
-																	selectedTemplate = {
-																		...result.data,
-																		locations: result.data.locations ? [...result.data.locations] : []
-																	};
-																	editingLocationGridId = null;
-																	// Clear any selected cells to refresh the grid view
-																	selectedCells = [];
-																	// Force grid re-render by incrementing key
-																	gridRenderKey += 1;
-																	setTimeout(() => { message = ''; }, 3000);
-																} else {
-																	throw new Error(result.error || 'Failed to update location');
-																}
-																							} catch (err) {
-																								logger.error('Error updating location:', err);
-																								error = handleError(err, 'Failed to update location');
-																							} finally {
-																								saving = false;
-																							}
-																						}}
+																						on:click={() => saveLocationGridCoordinates(location)}
 																						disabled={saving}
 																						class="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
 																					>

@@ -1,6 +1,21 @@
 ## [Unreleased]
 
 ### Added
+- **Footer social media module**: Footer now always includes the social media module when using page-module layout. If site config has footer modules but none is `socialMedia`, the default social module is prepended so links appear above the copyright. Social links use Site config → Contact → Social media (Facebook, Instagram, Twitter, LinkedIn).
+- **Backend HTTP error preservation**: `BackendHttpError` and `AuthenticationError` are thrown by the frontend backend-api when the backend returns non-OK; `parseError()` returns their status so API routes return 503/404/401 instead of 500. Reduces generic 500s for albums and site-config when the backend is unreachable or returns an error.
+- **backend-errors.ts**: Shared error classes (`AuthenticationError`, `BackendHttpError`) moved to a client-safe module so `errorHandler` can use them without pulling in server-only `backend-api`, fixing Vite "impossible situation" when errorHandler is used in browser code.
+
+### Changed
+- **Site config**: Theme Colors section removed from the Branding tab; colors are controlled via template/theme customization only.
+- **Footer styling**: Footer area uses a light gray background (`bg-gray-100`) and top border so it no longer shows a large black bar; content is wrapped in a max-width container with padding.
+- **Backend site config**: Default config and admin GET response always include `exifMetadata` and `iptcXmpMetadata` (with `displayFields: []` when absent). `getAdminConfig` is wrapped in try/catch with logging and returns a proper error response on failure.
+- **Default footer layout (backend and frontend)**: Default footer has two rows: row 0 = social media module, row 1 = copyright rich text. Backend themes controller and database-init defaults updated to match.
+
+### Fixed
+- **500 on /admin/site-config and album pages**: API routes now preserve backend status (401, 404, 503) via `parseError()` and `BackendHttpError`; site-config API returns 401 for `AuthenticationError`. Backend logs errors in `getAdminConfig`.
+- **Build: await in non-async function**: Replaced inline `async` event handlers with named async functions so the SvelteKit/Vite build accepts them: site-config (logo/favicon upload), template-builder (save location grid), member (logout), modern Album (photo image error).
+- **Footer social media not showing**: When stored footer modules did not include a social media module, the default one is now merged in so the footer always shows social links when configured in Contact.
+
 - **Album Published Status**: Albums now have an `isPublished` field to control visibility on the frontend
   - New albums default to `isPublished: true` (published)
   - Albums without `isPublished` field are treated as published (backward compatibility)

@@ -4,8 +4,27 @@
 	import { siteConfigData } from '$stores/siteConfig';
 	import { resolvedTheme } from '$lib/stores/theme';
 	import { browser } from '$app/environment';
+	import { buildGoogleFontsUrl } from '$lib/constants/google-fonts';
+	import { FONT_ROLES, getFontFamily, normalizeFontSetting } from '$lib/types/fonts';
 
 	let styleElement: HTMLStyleElement | null = null;
+	let googleFontsLink: HTMLLinkElement | null = null;
+
+	function applyGoogleFontsLink(fontFamilies: string[]) {
+		if (!browser || !document.head) return;
+		const url = buildGoogleFontsUrl(fontFamilies);
+		if (googleFontsLink && googleFontsLink.parentNode) {
+			googleFontsLink.parentNode.removeChild(googleFontsLink);
+			googleFontsLink = null;
+		}
+		if (url) {
+			googleFontsLink = document.createElement('link');
+			googleFontsLink.id = 'theme-google-fonts';
+			googleFontsLink.rel = 'stylesheet';
+			googleFontsLink.href = url;
+			document.head.appendChild(googleFontsLink);
+		}
+	}
 
 	function applyCustomColors() {
 		if (!browser) return;
@@ -14,6 +33,12 @@
 		const customColors = config?.template?.customColors;
 		const customFonts = config?.template?.customFonts;
 		const customLayout = config?.template?.customLayout;
+
+		// Inject Google Fonts stylesheet: collect family from each role (string or FontSetting)
+		const fontFamilies = FONT_ROLES.map((role) => getFontFamily(customFonts?.[role])).filter(
+			(name): name is string => Boolean(name)
+		);
+		applyGoogleFontsLink(fontFamilies);
 
 		// Remove existing style element if it exists to ensure fresh application
 		if (styleElement && styleElement.parentNode) {
@@ -53,8 +78,16 @@
 		}
 
 		if (customFonts) {
-			if (customFonts.heading) cssVars += `  --os-font-heading: ${customFonts.heading}, sans-serif;\n`;
-			if (customFonts.body) cssVars += `  --os-font-body: ${customFonts.body}, sans-serif;\n`;
+			for (const role of FONT_ROLES) {
+				const raw = customFonts[role];
+				const family = getFontFamily(raw);
+				if (!family) continue;
+				const normalized = normalizeFontSetting(raw, family, role);
+				const varName = role === 'formInputs' ? 'form-inputs' : role === 'formLabels' ? 'form-labels' : role;
+				cssVars += `  --os-font-${varName}: ${normalized.family}, sans-serif;\n`;
+				cssVars += `  --os-font-${varName}-size: ${normalized.size ?? 'inherit'};\n`;
+				cssVars += `  --os-font-${varName}-weight: ${normalized.weight ?? 'inherit'};\n`;
+			}
 		}
 
 		if (customLayout) {
@@ -147,8 +180,13 @@
 	});
 
 	onDestroy(() => {
-		if (browser && styleElement && styleElement.parentNode) {
-			styleElement.parentNode.removeChild(styleElement);
+		if (browser) {
+			if (styleElement && styleElement.parentNode) {
+				styleElement.parentNode.removeChild(styleElement);
+			}
+			if (googleFontsLink && googleFontsLink.parentNode) {
+				googleFontsLink.parentNode.removeChild(googleFontsLink);
+			}
 		}
 	});
 </script>

@@ -16,9 +16,28 @@
 		Array.isArray(configFooterModules) && 
 		configFooterModules.length > 0;
 	$: pageLayout = $siteConfigData?.template?.pageLayout?.footer || DEFAULT_PAGE_LAYOUTS.footer;
-	$: pageModules = hasPageModules && configFooterModules
-		? configFooterModules
-		: (DEFAULT_PAGE_MODULES.footer || []);
+
+	// Default footer modules (social + copyright); ensure we always include social media
+	const defaultFooterModules = DEFAULT_PAGE_MODULES.footer || [];
+	const defaultSocialModule = defaultFooterModules.find((m: any) => m.type === 'socialMedia');
+
+	// If config has footer modules but none is socialMedia, prepend the default social module so it always shows
+	$: pageModules = (() => {
+		const base = hasPageModules && configFooterModules ? configFooterModules : defaultFooterModules;
+		if (!base.length) return base;
+		const hasSocial = base.some((m: any) => m.type === 'socialMedia');
+		if (hasSocial || !defaultSocialModule) return base;
+		// Prepend social media (row 0), and shift existing modules' rowOrder so copyright stays below
+		const socialWithRow = { ...defaultSocialModule, rowOrder: 0, columnIndex: 0 };
+		const rest = base.map((m: any) => ({ ...m, rowOrder: (m.rowOrder ?? 0) + 1 }));
+		return [socialWithRow, ...rest];
+	})();
+
+	// Ensure layout has enough rows when we merged in social
+	$: layoutRows = pageModules.length > 0
+		? Math.max(pageLayout?.gridRows ?? 1, ...pageModules.map((m: any) => (m.rowOrder ?? 0) + (m.rowSpan ?? 1)))
+		: pageLayout?.gridRows ?? 1;
+	$: effectiveLayout = { gridRows: layoutRows, gridColumns: pageLayout?.gridColumns ?? 1 };
 
 	// Debug logging
 	$: if ($siteConfigData?.template?.pageModules?.footer !== undefined) {
@@ -26,7 +45,7 @@
 			hasPageModules,
 			pageModulesCount: pageModules?.length || 0,
 			pageModules,
-			pageLayout
+			effectiveLayout
 		});
 	}
 
@@ -37,14 +56,16 @@
 		_id: 'footer',
 		title: {} as any,
 		subtitle: {} as any,
-		layout: pageLayout ? { gridRows: pageLayout.gridRows, gridColumns: pageLayout.gridColumns } : undefined
+		layout: effectiveLayout
 	} as any) : null;
 </script>
 
 {#if usePageRenderer}
-	<!-- Use PageRenderer when pageModules are configured -->
-	<footer class="w-full">
-		<PageRenderer page={pageForRenderer} modules={pageModules} compact={true} />
+	<!-- Use PageRenderer when pageModules are configured; light background so no black bar -->
+	<footer class="w-full bg-gray-100 border-t border-gray-200 mt-auto">
+		<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+			<PageRenderer page={pageForRenderer} modules={pageModules} compact={true} />
+		</div>
 	</footer>
 {:else}
 	<!-- Fallback to template switcher for legacy templates -->

@@ -2,17 +2,29 @@
 <script lang="ts">
 	import PageRenderer from '$lib/page-builder/PageRenderer.svelte';
 	import { DEFAULT_PAGE_LAYOUTS, DEFAULT_PAGE_MODULES } from '$lib/constants/default-page-layouts';
-    import type { PageData } from '$types/page-builder';
+	import { buildGoogleFontsUrl } from '$lib/constants/google-fonts';
+	import type { FontSetting } from '$lib/types/fonts';
+	import type { PageData } from '$types/page-builder';
 
 	export let tokens: {
 		colors: { primary: string; secondary: string; accent: string; background: string; text: string; muted: string };
-		fonts: { heading: string; body: string };
+		fonts: Record<string, string | FontSetting>;
 		layout: { maxWidth: string; containerPadding: string; gridGap: string };
 	} = {
 		colors: { primary: '#3B82F6', secondary: '#6B7280', accent: '#F59E0B', background: '#FFFFFF', text: '#111827', muted: '#6B7280' },
-		fonts: { heading: 'Inter', body: 'Inter' },
+		fonts: { heading: 'Inter', body: 'Inter', links: 'Inter', lists: 'Inter', formInputs: 'Inter', formLabels: 'Inter' },
 		layout: { maxWidth: '1200px', containerPadding: '1rem', gridGap: '1.5rem' }
 	};
+
+	function fontFamily(v: string | FontSetting): string {
+		return typeof v === 'string' ? v : v.family;
+	}
+	function fontSize(v: string | FontSetting): string {
+		return typeof v === 'string' ? 'inherit' : (v.size ?? 'inherit');
+	}
+	function fontWeight(v: string | FontSetting): string {
+		return typeof v === 'string' ? 'inherit' : (v.weight ?? 'inherit');
+	}
 
 	export let pageType: 'home' | 'gallery' | 'album' | 'search' | 'pageBuilder' | 'header' | 'footer' = 'home';
 	export let pageModules: any[] | undefined = undefined;
@@ -30,6 +42,12 @@
 		layout
 	};
 
+	$: previewGoogleFontsUrl = buildGoogleFontsUrl(
+		['heading', 'body', 'links', 'lists', 'formInputs', 'formLabels']
+			.map((r) => fontFamily(tokens.fonts[r]))
+			.filter(Boolean)
+	);
+
 	$: cssVars = `
 		--os-primary: ${tokens.colors.primary};
 		--os-secondary: ${tokens.colors.secondary};
@@ -37,13 +55,35 @@
 		--os-background: ${tokens.colors.background};
 		--os-text: ${tokens.colors.text};
 		--os-muted: ${tokens.colors.muted};
-		--os-font-heading: ${tokens.fonts.heading}, sans-serif;
-		--os-font-body: ${tokens.fonts.body}, sans-serif;
+		--os-font-heading: ${fontFamily(tokens.fonts.heading)}, sans-serif;
+		--os-font-heading-size: ${fontSize(tokens.fonts.heading)};
+		--os-font-heading-weight: ${fontWeight(tokens.fonts.heading)};
+		--os-font-body: ${fontFamily(tokens.fonts.body)}, sans-serif;
+		--os-font-body-size: ${fontSize(tokens.fonts.body)};
+		--os-font-body-weight: ${fontWeight(tokens.fonts.body)};
+		--os-font-links: ${fontFamily(tokens.fonts.links)}, sans-serif;
+		--os-font-links-size: ${fontSize(tokens.fonts.links)};
+		--os-font-links-weight: ${fontWeight(tokens.fonts.links)};
+		--os-font-lists: ${fontFamily(tokens.fonts.lists)}, sans-serif;
+		--os-font-lists-size: ${fontSize(tokens.fonts.lists)};
+		--os-font-lists-weight: ${fontWeight(tokens.fonts.lists)};
+		--os-font-form-inputs: ${fontFamily(tokens.fonts.formInputs)}, sans-serif;
+		--os-font-form-inputs-size: ${fontSize(tokens.fonts.formInputs)};
+		--os-font-form-inputs-weight: ${fontWeight(tokens.fonts.formInputs)};
+		--os-font-form-labels: ${fontFamily(tokens.fonts.formLabels)}, sans-serif;
+		--os-font-form-labels-size: ${fontSize(tokens.fonts.formLabels)};
+		--os-font-form-labels-weight: ${fontWeight(tokens.fonts.formLabels)};
 		--os-max-width: ${tokens.layout.maxWidth};
 		--os-padding: ${tokens.layout.containerPadding};
 		--os-gap: ${tokens.layout.gridGap};
 	`;
 </script>
+
+<svelte:head>
+	{#if previewGoogleFontsUrl}
+		<link id="theme-preview-google-fonts" rel="stylesheet" href={previewGoogleFontsUrl} />
+	{/if}
+</svelte:head>
 
 <div class="theme-preview-root rounded-lg overflow-hidden border border-gray-300 bg-white" style={cssVars}>
 	<div

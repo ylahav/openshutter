@@ -23,7 +23,7 @@ export class CreateThemeDto {
 
   @IsOptional()
   @IsObject()
-  customFonts?: Record<string, string>;
+  customFonts?: Record<string, string | { family?: string; size?: string; weight?: string }>;
 
   @IsOptional()
   @IsObject()

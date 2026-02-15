@@ -9,6 +9,7 @@
  */
 
 import { logger } from './logger';
+import { AuthenticationError, BackendHttpError } from './backend-errors';
 
 /**
  * API Error class for structured error handling
@@ -69,6 +70,24 @@ export function parseError(error: unknown): {
 		return {
 			message: error.message,
 			userMessage: 'Network error. Please check your connection and try again.',
+		};
+	}
+
+	// Backend returned non-OK (503, 404, etc.) – preserve status so API routes don't turn it into 500
+	if (error instanceof BackendHttpError) {
+		return {
+			message: error.message,
+			userMessage: error.message || 'Request failed.',
+			status: error.statusCode,
+		};
+	}
+
+	// Backend returned 401 – preserve so API routes can return 401
+	if (error instanceof AuthenticationError) {
+		return {
+			message: error.message,
+			userMessage: error.message || 'Authentication required.',
+			status: error.statusCode ?? 401,
 		};
 	}
 

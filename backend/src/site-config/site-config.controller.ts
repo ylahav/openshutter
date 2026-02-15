@@ -1,4 +1,4 @@
-import { Controller, Get, Put, Body, Post, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Put, Body, Post, UseInterceptors, UploadedFile, BadRequestException, Logger, InternalServerErrorException } from '@nestjs/common';
 import { mailService } from '../services/mail.service';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { siteConfigService } from '../services/site-config';
@@ -10,6 +10,8 @@ import { v4 as uuidv4 } from 'uuid';
 
 @Controller()
 export class SiteConfigController {
+  private readonly logger = new Logger(SiteConfigController.name);
+
   /**
    * Public endpoint to get the current site configuration.
    * 
@@ -44,24 +46,31 @@ export class SiteConfigController {
    */
   @Get('admin/site-config')
   async getAdminConfig() {
-    const config = await siteConfigService.getConfig();
-    return {
-      title: config.title,
-      description: config.description,
-      logo: config.logo,
-      favicon: config.favicon,
-      languages: config.languages,
-      theme: config.theme,
-      seo: config.seo,
-      contact: config.contact,
-      homePage: config.homePage,
-      features: config.features,
-      template: config.template,
-      exifMetadata: config.exifMetadata,
-      iptcXmpMetadata: config.iptcXmpMetadata,
-      mail: config.mail ? { ...config.mail, password: config.mail.password ? '****' : '' } : undefined,
-      welcomeEmail: config.welcomeEmail,
-    };
+    try {
+      const config = await siteConfigService.getConfig();
+      return {
+        title: config.title,
+        description: config.description,
+        logo: config.logo,
+        favicon: config.favicon,
+        languages: config.languages,
+        theme: config.theme,
+        seo: config.seo,
+        contact: config.contact,
+        homePage: config.homePage,
+        features: config.features,
+        template: config.template,
+        exifMetadata: config.exifMetadata ?? { displayFields: [] },
+        iptcXmpMetadata: config.iptcXmpMetadata ?? { displayFields: [] },
+        mail: config.mail ? { ...config.mail, password: config.mail.password ? '****' : '' } : undefined,
+        welcomeEmail: config.welcomeEmail,
+      };
+    } catch (error) {
+      this.logger.error('getAdminConfig failed', error instanceof Error ? error.stack : String(error));
+      throw new InternalServerErrorException(
+        error instanceof Error ? error.message : 'Failed to load site configuration'
+      );
+    }
   }
 
   /**

@@ -17,6 +17,7 @@ import { Connection } from 'mongoose';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { Types } from 'mongoose';
 import { UpdateThemeDto } from './dto/update-theme.dto';
+import type { FontSetting } from '../types/template';
 
 const PALETTE_PRESETS: Record<string, { colors: Record<string, string> }> = {
   light: {
@@ -61,25 +62,56 @@ const PALETTE_PRESETS: Record<string, { colors: Record<string, string> }> = {
   },
 };
 
-const BASE_TEMPLATES: Record<string, { colors: Record<string, string>; fonts: Record<string, string>; layout: Record<string, string> }> = {
+const font = (family: string, size?: string, weight?: string): FontSetting =>
+  size || weight ? { family, size, weight } : { family };
+
+const BASE_TEMPLATES: Record<string, { colors: Record<string, string>; fonts: Record<string, FontSetting>; layout: Record<string, string> }> = {
   default: {
     colors: { primary: '#3B82F6', secondary: '#1F2937', accent: '#F59E0B', background: '#FFFFFF', text: '#1F2937', muted: '#6B7280' },
-    fonts: { heading: 'Inter', body: 'Inter' },
+    fonts: {
+      heading: font('Inter', '1.25rem', '600'),
+      body: font('Inter', '1rem', '400'),
+      links: font('Inter'),
+      lists: font('Inter'),
+      formInputs: font('Inter'),
+      formLabels: font('Inter'),
+    },
     layout: { maxWidth: '1200px', containerPadding: '1rem', gridGap: '1.5rem' },
   },
   modern: {
     colors: { primary: '#3b82f6', secondary: '#6b7280', accent: '#10b981', background: '#ffffff', text: '#111827', muted: '#6b7280' },
-    fonts: { heading: 'Inter', body: 'Inter' },
+    fonts: {
+      heading: font('Inter', '1.25rem', '600'),
+      body: font('Inter', '1rem', '400'),
+      links: font('Inter'),
+      lists: font('Inter'),
+      formInputs: font('Inter'),
+      formLabels: font('Inter'),
+    },
     layout: { maxWidth: '1200px', containerPadding: '1rem', gridGap: '1.5rem' },
   },
   elegant: {
     colors: { primary: '#8b5cf6', secondary: '#a78bfa', accent: '#f59e0b', background: '#ffffff', text: '#1f2937', muted: '#6b7280' },
-    fonts: { heading: 'Playfair Display', body: 'Inter' },
+    fonts: {
+      heading: font('Playfair Display', '1.25rem', '600'),
+      body: font('Inter', '1rem', '400'),
+      links: font('Inter'),
+      lists: font('Inter'),
+      formInputs: font('Inter'),
+      formLabels: font('Inter'),
+    },
     layout: { maxWidth: '1200px', containerPadding: '1rem', gridGap: '1.5rem' },
   },
   minimal: {
     colors: { primary: '#000000', secondary: '#6b7280', accent: '#000000', background: '#ffffff', text: '#000000', muted: '#6b7280' },
-    fonts: { heading: 'Inter', body: 'Inter' },
+    fonts: {
+      heading: font('Inter', '1.25rem', '600'),
+      body: font('Inter', '1rem', '400'),
+      links: font('Inter'),
+      lists: font('Inter'),
+      formInputs: font('Inter'),
+      formLabels: font('Inter'),
+    },
     layout: { maxWidth: '1200px', containerPadding: '1rem', gridGap: '1rem' },
   },
 };
@@ -166,7 +198,7 @@ export class ThemesController {
         album: { gridRows: 1, gridColumns: 1 },
         search: { gridRows: 1, gridColumns: 1 },
         header: { gridRows: 1, gridColumns: 5 },
-        footer: { gridRows: 1, gridColumns: 1 }
+        footer: { gridRows: 2, gridColumns: 1 }
       };
 
       const DEFAULT_PAGE_MODULES = {
@@ -286,6 +318,20 @@ export class ThemesController {
         ],
         footer: [
           {
+            _id: 'mod_default_footer_social',
+            type: 'socialMedia',
+            props: {
+              align: 'center',
+              orientation: 'horizontal',
+              iconSize: 'md',
+              showLabels: false
+            },
+            rowOrder: 0,
+            columnIndex: 0,
+            rowSpan: 1,
+            colSpan: 1
+          },
+          {
             _id: 'mod_default_footer_text',
             type: 'richText',
             props: {
@@ -293,7 +339,7 @@ export class ThemesController {
               body: { en: '<p>&copy; 2024 OpenShutter. All rights reserved.</p>' },
               background: 'gray'
             },
-            rowOrder: 0,
+            rowOrder: 1,
             columnIndex: 0,
             rowSpan: 1,
             colSpan: 1

@@ -1,3 +1,5 @@
+import type { FontSetting, FontRole } from '$lib/types/fonts'
+
 export interface TemplateConfig {
   templateName: string
   displayName: string
@@ -20,10 +22,7 @@ export interface TemplateConfig {
     text: string
     muted: string
   }
-  fonts: {
-    heading: string
-    body: string
-  }
+  fonts: Record<FontRole, FontSetting>
   layout: {
     maxWidth: string
     containerPadding: string
