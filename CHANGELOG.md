@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+## [1.0.8] - 2025-02-16
+
 ### Added
 - **Footer social media module**: Footer now always includes the social media module when using page-module layout. If site config has footer modules but none is `socialMedia`, the default social module is prepended so links appear above the copyright. Social links use Site config → Contact → Social media (Facebook, Instagram, Twitter, LinkedIn).
 - **Backend HTTP error preservation**: `BackendHttpError` and `AuthenticationError` are thrown by the frontend backend-api when the backend returns non-OK; `parseError()` returns their status so API routes return 503/404/401 instead of 500. Reduces generic 500s for albums and site-config when the backend is unreachable or returns an error.
