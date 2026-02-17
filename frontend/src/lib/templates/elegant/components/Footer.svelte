@@ -2,7 +2,7 @@
 	const year = new Date().getFullYear();
 </script>
 
-<footer class="bg-black/95 backdrop-blur-md border-t border-purple-500/30 text-white mt-16 relative overflow-hidden">
+<footer class="bg-gray-100 dark:bg-black/95 backdrop-blur-md border-t border-gray-200 dark:border-purple-500/30 text-gray-900 dark:text-white mt-16 relative overflow-hidden">
 	<!-- Animated background gradient -->
 	<div class="absolute inset-0 opacity-20">
 		<div class="absolute top-0 left-1/4 w-96 h-96 bg-purple-500 rounded-full filter blur-3xl animate-pulse"></div>
@@ -16,7 +16,7 @@
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
 				</svg>
 			</div>
-			<p class="text-purple-200 font-light" style="font-family: 'Playfair Display', serif;">
+			<p class="text-gray-600 dark:text-purple-200 font-light" style="font-family: 'Playfair Display', serif;">
 				© {year} OpenShutter. All rights reserved.
 			</p>
 		</div>

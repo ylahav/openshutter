@@ -93,9 +93,9 @@
 		type="button"
 		on:click={toggle}
 		class={`
-          flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-md shadow-sm
-          bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-          transition-colors text-gray-900
+          flex items-center gap-2 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm
+          bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+          transition-colors text-gray-900 dark:text-gray-100
           ${compact ? 'text-sm' : 'text-base'}
         `}
 		aria-haspopup="listbox"
@@ -105,7 +105,7 @@
 			<span class="text-lg">{currentLangConfig?.flag}</span>
 		{/if}
 
-		<span class="font-medium text-gray-900">
+		<span class="font-medium text-gray-900 dark:text-gray-100">
 			{#if lang === 'he'}
 				{currentLangConfig?.name}
 			{:else if showNativeNames}
@@ -116,11 +116,11 @@
 		</span>
 
 		{#if currentLangConfig?.isRTL && lang !== 'he'}
-			<span class="text-xs text-gray-500 bg-gray-100 px-1 rounded">RTL</span>
+			<span class="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-1 rounded">RTL</span>
 		{/if}
 
 		<svg
-			class={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+			class={`w-4 h-4 text-gray-400 dark:text-gray-500 transition-transform ${isOpen ? 'rotate-180' : ''}`}
 			fill="none"
 			stroke="currentColor"
 			viewBox="0 0 24 24"
@@ -142,7 +142,7 @@
 		></div>
 
 		<!-- Dropdown Menu -->
-		<div class="bg-white border border-gray-200 rounded-md shadow-lg" style={dropdownStyle}>
+		<div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg dark:shadow-gray-900/50" style={dropdownStyle}>
 			<ul class="py-1">
 				{#each availableLanguages as language}
 					{@const isSelected = language.code === lang}
@@ -153,9 +153,9 @@
 							type="button"
 							on:click={() => handleLanguageSelect(language.code as LanguageCode)}
 							class={`
-                        w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-gray-50
+                        w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-700
                         transition-colors
-                        ${isSelected ? 'bg-blue-50 text-blue-700' : 'text-gray-900'}
+                        ${isSelected ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300' : 'text-gray-900 dark:text-gray-100'}
                         ${compact ? 'text-sm' : 'text-base'}
                       `}
 						>
@@ -165,7 +165,7 @@
 
 							<div class="flex-1 min-w-0">
 								<div class="flex items-center justify-between">
-									<span class={`font-medium truncate ${isSelected ? 'text-blue-700' : 'text-gray-900'}`}>
+									<span class={`font-medium truncate ${isSelected ? 'text-blue-700 dark:text-blue-300' : 'text-gray-900 dark:text-gray-100'}`}>
 										{#if lang === 'he'}
 											{language.name}
 										{:else if showNativeNames}
@@ -176,25 +176,25 @@
 									</span>
 
 									{#if isRTL && lang !== 'he'}
-										<span class="text-xs text-gray-500 bg-gray-100 px-1 rounded ml-2">
+										<span class="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-1 rounded ml-2">
 											RTL
 										</span>
 									{/if}
 								</div>
 
 								{#if showNativeNames && language.nativeName !== language.name && lang !== 'he'}
-									<div class="text-xs text-gray-500 truncate">
+									<div class="text-xs text-gray-500 dark:text-gray-400 truncate">
 										{language.name}
 									</div>
 								{:else if lang === 'he' && language.nativeName !== language.name}
-									<div class="text-xs text-gray-500 truncate">
+									<div class="text-xs text-gray-500 dark:text-gray-400 truncate">
 										{language.nativeName}
 									</div>
 								{/if}
 							</div>
 
 							{#if isSelected}
-								<svg class="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+								<svg class="w-4 h-4 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
 									<path
 										fill-rule="evenodd"
 										d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"

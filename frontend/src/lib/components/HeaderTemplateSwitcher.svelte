@@ -36,7 +36,7 @@
 
 {#if hasPageModules}
 	<!-- Use PageRenderer when pageModules are configured -->
-	<header class="w-full bg-white shadow-sm border-b border-gray-200">
+	<header class="w-full bg-white dark:bg-gray-900 shadow-sm border-b border-gray-200 dark:border-gray-700">
 		<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 			<PageRenderer page={pageForRenderer} modules={pageModules} compact={true} />
 		</div>

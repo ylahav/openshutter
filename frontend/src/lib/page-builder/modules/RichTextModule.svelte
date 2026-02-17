@@ -4,7 +4,8 @@
 
 	export let title: string | Record<string, string> | undefined;
 	export let body: string | Record<string, string> = '';
-	export let background: 'white' | 'gray' = 'white';
+	export let background: 'white' | 'gray' | 'transparent' = 'white';
+	export let compact: boolean = false;
 
 	// Support legacy: props or props.config; otherwise use individual props from spread
 	export let props: any = undefined;
@@ -15,4 +16,4 @@
 	const templateConfig = {};
 </script>
 
-<Layout config={config} {data} {templateConfig} />
+<Layout config={config} {data} {templateConfig} {compact} />

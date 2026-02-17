@@ -62,7 +62,7 @@
 
 {#if usePageRenderer}
 	<!-- Use PageRenderer when pageModules are configured; light background so no black bar -->
-	<footer class="w-full bg-gray-100 border-t border-gray-200 mt-auto">
+	<footer class="w-full bg-gray-100 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-auto">
 		<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
 			<PageRenderer page={pageForRenderer} modules={pageModules} compact={true} />
 		</div>

@@ -1,6 +1,9 @@
 @import "tailwindcss";
 @import "../../styles/tiptap.css";
 
+/* Tailwind v4: use .dark class for dark: variant (not just prefers-color-scheme) */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-primary-50: #f0f9ff;
   --color-primary-100: #e0f2fe;
@@ -60,48 +63,95 @@ html.dark {
   --color-popover-foreground: 210 40% 98%;
 }
 
+/* Force body to use theme variables so toggle always affects the view */
+html.dark body {
+  background-color: hsl(var(--color-background));
+  color: hsl(var(--color-foreground));
+}
+
+/* Default font variable definitions for all font types.
+   Theme Builder / site config overrides these via #theme-custom-colors. */
+:root {
+  /* Heading – headings (h1–h6), header bar */
+  --os-font-heading: 'Inter', system-ui, sans-serif;
+  --os-font-heading-size: 1.25rem;
+  --os-font-heading-weight: 600;
+  /* Body – main content, paragraphs */
+  --os-font-body: 'Inter', system-ui, sans-serif;
+  --os-font-body-size: 1rem;
+  --os-font-body-weight: 400;
+  /* Links – anchors (a) */
+  --os-font-links: var(--os-font-body);
+  --os-font-links-size: inherit;
+  --os-font-links-weight: inherit;
+  /* Lists – ul, ol, li */
+  --os-font-lists: var(--os-font-body);
+  --os-font-lists-size: inherit;
+  --os-font-lists-weight: inherit;
+  /* Form inputs – input, select, textarea, button */
+  --os-font-form-inputs: var(--os-font-body);
+  --os-font-form-inputs-size: 1rem;
+  --os-font-form-inputs-weight: 400;
+  /* Form labels – label */
+  --os-font-form-labels: var(--os-font-body);
+  --os-font-form-labels-size: 0.875rem;
+  --os-font-form-labels-weight: 500;
+}
+
 @layer base {
+  /* Body font – html and body */
   html {
-    font-family: var(--os-font-body, 'Inter', system-ui, sans-serif);
-    font-size: var(--os-font-body-size, 1rem);
-    font-weight: var(--os-font-body-weight, 400);
+    font-family: var(--os-font-body);
+    font-size: var(--os-font-body-size);
+    font-weight: var(--os-font-body-weight);
   }
 
   body {
     @apply text-foreground bg-background;
-    font-family: var(--os-font-body, inherit);
-    font-size: var(--os-font-body-size, inherit);
-    font-weight: var(--os-font-body-weight, inherit);
+    font-family: var(--os-font-body);
+    font-size: var(--os-font-body-size);
+    font-weight: var(--os-font-body-weight);
   }
 
+  /* Heading font – headings and header bar */
   h1, h2, h3, h4, h5, h6 {
-    font-family: var(--os-font-heading, inherit);
-    font-size: var(--os-font-heading-size, 1.25rem);
-    font-weight: var(--os-font-heading-weight, 600);
+    font-family: var(--os-font-heading);
+    font-size: var(--os-font-heading-size);
+    font-weight: var(--os-font-heading-weight);
   }
 
+  header {
+    font-family: var(--os-font-heading);
+    font-size: var(--os-font-heading-size);
+    font-weight: var(--os-font-heading-weight);
+  }
+
+  /* Links font */
   a {
-    font-family: var(--os-font-links, var(--os-font-body, inherit));
-    font-size: var(--os-font-links-size, inherit);
-    font-weight: var(--os-font-links-weight, inherit);
+    font-family: var(--os-font-links);
+    font-size: var(--os-font-links-size);
+    font-weight: var(--os-font-links-weight);
   }
 
+  /* Lists font */
   ul, ol, li {
-    font-family: var(--os-font-lists, var(--os-font-body, inherit));
-    font-size: var(--os-font-lists-size, inherit);
-    font-weight: var(--os-font-lists-weight, inherit);
+    font-family: var(--os-font-lists);
+    font-size: var(--os-font-lists-size);
+    font-weight: var(--os-font-lists-weight);
   }
 
+  /* Form inputs font */
   input, select, textarea, button {
-    font-family: var(--os-font-form-inputs, var(--os-font-body, inherit));
-    font-size: var(--os-font-form-inputs-size, 1rem);
-    font-weight: var(--os-font-form-inputs-weight, 400);
+    font-family: var(--os-font-form-inputs);
+    font-size: var(--os-font-form-inputs-size);
+    font-weight: var(--os-font-form-inputs-weight);
   }
 
+  /* Form labels font */
   label {
-    font-family: var(--os-font-form-labels, var(--os-font-body, inherit));
-    font-size: var(--os-font-form-labels-size, 0.875rem);
-    font-weight: var(--os-font-form-labels-weight, 500);
+    font-family: var(--os-font-form-labels);
+    font-size: var(--os-font-form-labels-size);
+    font-weight: var(--os-font-form-labels-weight);
   }
   
   * {

@@ -47,7 +47,7 @@
 	}
 </script>
 
-<header class="bg-gradient-to-r from-slate-900 via-purple-900 to-slate-900 shadow-lg sticky top-0 z-50 backdrop-blur-sm bg-opacity-95 border-b border-purple-500/20">
+<header class="bg-slate-100 dark:bg-gradient-to-r dark:from-slate-900 dark:via-purple-900 dark:to-slate-900 shadow-lg sticky top-0 z-50 backdrop-blur-sm dark:bg-opacity-95 border-b border-slate-200 dark:border-purple-500/20">
 	<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 		<div class="flex justify-between items-center h-16">
 			<!-- Logo and title -->
@@ -81,7 +81,7 @@
 
 				{#if showSiteTitle}
 					<div class="flex flex-col">
-						<a href="/" class="text-xl font-bold text-white hover:text-blue-300 transition-colors">
+						<a href="/" class="text-xl font-bold text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-300 transition-colors">
 							{$title}
 						</a>
 					</div>
@@ -90,25 +90,25 @@
 
 			<!-- Navigation -->
 			{#if showMenu || showTemplateSelector || showLanguageSelector || showThemeToggle}
-				<div class="hidden md:flex items-center gap-4 text-sm text-white">
+				<div class="hidden md:flex items-center gap-4 text-sm text-gray-700 dark:text-white">
 					{#if showMenu}
 						<Menu
 							config={$headerConfig}
-							itemClass="hover:text-blue-300 transition-colors"
-							activeItemClass="text-blue-300 font-medium"
+							itemClass="hover:text-blue-600 dark:hover:text-blue-300 transition-colors"
+							activeItemClass="text-blue-600 dark:text-blue-300 font-medium"
 							containerClass="flex items-center gap-4"
 							showActiveIndicator={true}
 							showAuthButtons={showAuthButtons}
 						/>
 
 						{#if showAuthButtons && $auth.authenticated && $auth.user}
-							<span class="text-blue-400">|</span>
+							<span class="text-gray-500 dark:text-blue-400">|</span>
 							{#if showGreeting}
-								<span class="text-blue-200">{$auth.user.name || $auth.user.email}</span>
+								<span class="text-gray-600 dark:text-blue-200">{$auth.user.name || $auth.user.email}</span>
 							{/if}
 							<button
 								on:click={handleLogout}
-								class="hover:text-blue-300 text-white transition-colors"
+								class="hover:text-blue-600 dark:hover:text-blue-300 text-gray-700 dark:text-white transition-colors"
 								type="button"
 							>
 								{$t('header.logout')}

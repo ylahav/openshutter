@@ -46,7 +46,7 @@
 	}
 </script>
 
-<header class="bg-white border-b border-black sticky top-0 z-50">
+<header class="bg-white dark:bg-gray-900 border-b border-black dark:border-gray-700 sticky top-0 z-50">
 	<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 		<div class="flex justify-between items-center h-16">
 			<!-- Logo and title -->
@@ -59,7 +59,7 @@
 							class="w-10 h-10 object-contain shrink-0"
 						/>
 					{:else}
-						<div class="w-10 h-10 bg-black rounded flex items-center justify-center shrink-0">
+						<div class="w-10 h-10 bg-black dark:bg-gray-100 rounded flex items-center justify-center shrink-0">
 							<svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path
 									stroke-linecap="round"
@@ -80,7 +80,7 @@
 
 				{#if showSiteTitle}
 					<div class="flex flex-col">
-						<a href="/" class="text-xl font-light text-black hover:text-gray-600 transition-colors tracking-tight">
+						<a href="/" class="text-xl font-light text-black dark:text-gray-100 hover:text-gray-600 dark:hover:text-gray-300 transition-colors tracking-tight">
 							{$title}
 						</a>
 					</div>
@@ -89,25 +89,25 @@
 
 			<!-- Navigation -->
 			{#if showMenu || showTemplateSelector || showLanguageSelector || showThemeToggle}
-				<div class="hidden md:flex items-center gap-6 text-sm text-black">
+				<div class="hidden md:flex items-center gap-6 text-sm text-black dark:text-gray-200">
 					{#if showMenu}
 						<Menu
 							config={$headerConfig}
-							itemClass="hover:text-gray-600 font-light"
-							activeItemClass="text-gray-600 font-light"
+							itemClass="hover:text-gray-600 dark:hover:text-gray-400 font-light"
+							activeItemClass="text-gray-600 dark:text-gray-400 font-light"
 							containerClass="flex items-center gap-6"
 							showActiveIndicator={true}
 							showAuthButtons={showAuthButtons}
 						/>
 
 						{#if showAuthButtons && $auth.authenticated && $auth.user}
-							<span class="text-gray-400">|</span>
+							<span class="text-gray-400 dark:text-gray-500">|</span>
 							{#if showGreeting}
-								<span class="text-gray-600 font-light">{$auth.user.name || $auth.user.email}</span>
+								<span class="text-gray-600 dark:text-gray-400 font-light">{$auth.user.name || $auth.user.email}</span>
 							{/if}
 							<button
 								on:click={handleLogout}
-								class="hover:text-gray-600 text-black font-light"
+								class="hover:text-gray-600 dark:hover:text-gray-400 text-black dark:text-gray-200 font-light"
 								type="button"
 							>
 								{$t('header.logout')}

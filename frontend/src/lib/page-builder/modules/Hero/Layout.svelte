@@ -64,10 +64,10 @@
   <section
     class={`relative overflow-hidden ${
       backgroundStyle === 'dark'
-        ? 'bg-gray-900 text-white'
+        ? 'bg-gray-800 dark:bg-gray-900 text-white'
         : (backgroundStyle === 'image' || backgroundStyle === 'galleryLeading')
         ? 'text-white'
-        : 'bg-gray-50 text-gray-900'
+        : 'bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
     }`}
   >
     {#if effectiveBackgroundImage}
@@ -98,7 +98,7 @@
               </h1>
             {/if}
             {#if subtitleText}
-              <p class="text-base md:text-xl mb-6 {backgroundStyle === 'dark' || backgroundStyle === 'image' || backgroundStyle === 'galleryLeading' ? 'text-gray-200' : 'text-gray-600'}">
+              <p class="text-base md:text-xl mb-6 {backgroundStyle === 'dark' || backgroundStyle === 'image' || backgroundStyle === 'galleryLeading' ? 'text-gray-200' : 'text-gray-600 dark:text-gray-300'}">
                 {subtitleText}
               </p>
             {/if}
@@ -122,7 +122,7 @@
           </h1>
         {/if}
         {#if subtitleText}
-          <p class="text-base md:text-xl mb-6 {backgroundStyle === 'dark' || backgroundStyle === 'image' || backgroundStyle === 'galleryLeading' ? 'text-gray-200' : 'text-gray-600'}">
+          <p class="text-base md:text-xl mb-6 {backgroundStyle === 'dark' || backgroundStyle === 'image' || backgroundStyle === 'galleryLeading' ? 'text-gray-200' : 'text-gray-600 dark:text-gray-300'}">
             {subtitleText}
           </p>
         {/if}

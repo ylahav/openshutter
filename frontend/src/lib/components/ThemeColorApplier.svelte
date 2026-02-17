@@ -84,7 +84,9 @@
 				if (!family) continue;
 				const normalized = normalizeFontSetting(raw, family, role);
 				const varName = role === 'formInputs' ? 'form-inputs' : role === 'formLabels' ? 'form-labels' : role;
-				cssVars += `  --os-font-${varName}: ${normalized.family}, sans-serif;\n`;
+				// Quote font family so multi-word names (e.g. "Playfair Display") are valid in CSS
+				const quotedFamily = normalized.family.includes(' ') ? `"${normalized.family}"` : normalized.family;
+				cssVars += `  --os-font-${varName}: ${quotedFamily}, sans-serif;\n`;
 				cssVars += `  --os-font-${varName}-size: ${normalized.size ?? 'inherit'};\n`;
 				cssVars += `  --os-font-${varName}-weight: ${normalized.weight ?? 'inherit'};\n`;
 			}

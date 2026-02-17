@@ -10,8 +10,8 @@
 	$: logoutLabel = config?.logoutLabel || 'Logout';
 	$: loginUrl = config?.loginUrl || '/login';
 	$: buttonClass = config?.buttonClass || 'px-4 py-2 rounded-md font-medium transition-colors';
-	$: loginButtonClass = config?.loginButtonClass || `${buttonClass} bg-blue-600 text-white hover:bg-blue-700`;
-	$: logoutButtonClass = config?.logoutButtonClass || `${buttonClass} bg-gray-600 text-white hover:bg-gray-700`;
+	$: loginButtonClass = config?.loginButtonClass || `${buttonClass} bg-blue-600 dark:bg-blue-500 text-white hover:bg-blue-700 dark:hover:bg-blue-600`;
+	$: logoutButtonClass = config?.logoutButtonClass || `${buttonClass} bg-gray-600 dark:bg-gray-500 text-white hover:bg-gray-700 dark:hover:bg-gray-600`;
 	$: containerClass = config?.containerClass || 'flex items-center gap-2';
 	$: authenticated = $auth.authenticated;
 

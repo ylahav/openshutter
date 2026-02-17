@@ -189,15 +189,15 @@
 	}
 </script>
 
-<section class="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
+<section class="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50 dark:bg-gray-800/50">
 	<div class="max-w-6xl mx-auto">
 		{#if titleText || descriptionHTML}
 			<div class="text-center mb-16">
 				{#if titleText}
-					<h2 class="text-4xl font-bold text-gray-900 mb-4">{titleText}</h2>
+					<h2 class="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4">{titleText}</h2>
 				{/if}
 				{#if descriptionHTML}
-					<div class="text-lg text-gray-600 max-w-3xl mx-auto prose prose-lg">
+					<div class="text-lg text-gray-600 dark:text-gray-300 max-w-3xl mx-auto prose prose-lg">
 						{@html descriptionHTML}
 					</div>
 				{/if}
@@ -206,17 +206,17 @@
 
 		{#if loading}
 			<div class="text-center py-12">
-				<div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-				<p class="mt-4 text-gray-600">Loading galleries...</p>
+				<div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 dark:border-blue-400"></div>
+				<p class="mt-4 text-gray-600 dark:text-gray-400">Loading galleries...</p>
 			</div>
 		{:else if albums.length > 0}
 			<div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
 				{#each albums as album}
 					<a
 						href="/albums/{album.alias}"
-						class="group bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
+						class="group bg-white dark:bg-gray-800 rounded-xl shadow-md dark:shadow-gray-900/50 overflow-hidden hover:shadow-xl dark:hover:shadow-gray-900/70 transition-all duration-300 transform hover:-translate-y-1"
 					>
-						<div class="aspect-video bg-linear-to-b from-gray-200 to-gray-300 flex items-center justify-center overflow-hidden">
+						<div class="aspect-video bg-linear-to-b from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center overflow-hidden">
 							{#if coverImages[album._id]}
 								<img
 									src={coverImages[album._id]}
@@ -224,24 +224,24 @@
 									class="w-full h-full object-cover"
 								/>
 							{:else}
-								<div class="text-gray-400 text-xl">No cover</div>
+								<div class="text-gray-400 dark:text-gray-500 text-xl">No cover</div>
 							{/if}
 						</div>
 						<div class="p-6">
-							<h3 class="text-xl font-semibold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">
+							<h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
 								{getAlbumName(album)}
 							</h3>
 							{#if album.description}
-								<div class="text-gray-600 text-sm line-clamp-2 mb-3 prose prose-sm max-w-none">
+								<div class="text-gray-600 dark:text-gray-300 text-sm line-clamp-2 mb-3 prose prose-sm max-w-none">
 									{@html typeof album.description === 'string'
 										? album.description
 										: MultiLangUtils.getHTMLValue(album.description, $currentLanguage) || ''}
 								</div>
 							{/if}
-							<div class="flex items-center justify-between text-sm text-gray-500">
+							<div class="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
 								<span>{album.photoCount || 0} photos</span>
 								{#if album.isFeatured}
-									<span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+									<span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-200">
 										⭐ Featured
 									</span>
 								{/if}
@@ -251,11 +251,11 @@
 				{/each}
 			</div>
 		{:else}
-			<div class="text-center py-12 bg-white rounded-xl shadow-md">
-				<p class="text-gray-600">No public albums available at the moment.</p>
+			<div class="text-center py-12 bg-white dark:bg-gray-800 rounded-xl shadow-md dark:shadow-gray-900/50">
+				<p class="text-gray-600 dark:text-gray-400">No public albums available at the moment.</p>
 				<a
 					href="/albums"
-					class="inline-flex items-center mt-4 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+					class="inline-flex items-center mt-4 px-6 py-3 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors font-medium"
 				>
 					Browse Albums
 				</a>

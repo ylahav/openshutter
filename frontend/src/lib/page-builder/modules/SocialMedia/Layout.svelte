@@ -53,7 +53,7 @@
 					<IconRenderer icon={platform.icon} />
 				</div>
 				{#if showLabels}
-					<span class="text-sm font-medium">{platform.label}</span>
+					<span class="text-sm font-medium text-gray-700 dark:text-gray-300">{platform.label}</span>
 				{/if}
 			</a>
 		{/each}

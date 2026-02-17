@@ -214,9 +214,9 @@
 			{/if}
 			{#if separator && index < visibleItems.length - 1}
 				{#if typeof separator === 'string'}
-					<span class="text-gray-400">{separator}</span>
+					<span class="text-gray-400 dark:text-gray-500">{separator}</span>
 				{:else}
-					<span class="text-gray-400">|</span>
+					<span class="text-gray-400 dark:text-gray-500">|</span>
 				{/if}
 			{/if}
 		{/each}

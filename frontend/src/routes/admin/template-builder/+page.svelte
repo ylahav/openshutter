@@ -3,6 +3,7 @@
 	import { browser } from '$app/environment';
 	import type { TemplateBuilderConfig, TemplateLocation, TemplateModule, TemplateModuleAssignment, TemplatePageConfig } from '$lib/types/template-builder';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
+	import ModulePropsForm from '$lib/components/ModulePropsForm.svelte';
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 
@@ -98,20 +99,23 @@
 		{ value: 'search', label: 'Search', pageId: 'search' },
 	];
 	
-	// Module types available
+	// Module types available - use actual module type values from page-builder
 	const MODULE_TYPES = [
-		{ value: 'menu', label: 'Menu' },
-		{ value: 'albumGrid', label: 'Album Grid' },
 		{ value: 'hero', label: 'Hero' },
 		{ value: 'richText', label: 'Rich Text' },
 		{ value: 'featureGrid', label: 'Feature Grid' },
 		{ value: 'albumsGrid', label: 'Albums Grid' },
-		{ value: 'cta', label: 'Call To Action' },
-		{ value: 'logoAndTitle', label: 'Logo and Site Name / Title' },
-		{ value: 'languageSelection', label: 'Language Selection' },
-		{ value: 'themeSelection', label: 'Template / Theme Selection' },
-		{ value: 'loginLogout', label: 'Login / Logout Button' },
-		{ value: 'helloUser', label: 'Hello User' },
+		{ value: 'albumGallery', label: 'Album Gallery' },
+		{ value: 'cta', label: 'Call to Action' },
+		{ value: 'logo', label: 'Logo' },
+		{ value: 'siteTitle', label: 'Site Title' },
+		{ value: 'menu', label: 'Menu' },
+		{ value: 'languageSelector', label: 'Language Selector' },
+		{ value: 'themeToggle', label: 'Theme Toggle' },
+		{ value: 'themeSelect', label: 'Theme Select' },
+		{ value: 'userGreeting', label: 'User Greeting' },
+		{ value: 'authButtons', label: 'Auth Buttons' },
+		{ value: 'socialMedia', label: 'Social Media' },
 	];
 
 	onMount(async () => {
@@ -2090,6 +2094,7 @@
 					<label class="block text-sm font-medium text-gray-700 mb-1">Module Type *</label>
 					<select
 						bind:value={newModuleType}
+						on:change={() => { newModuleProps = {}; }}
 						class="w-full px-3 py-2 border border-gray-300 rounded-md"
 					>
 						{#each MODULE_TYPES as type}
@@ -2102,9 +2107,7 @@
 				<div>
 					<label class="block text-sm font-medium text-gray-700 mb-1">Module Parameters</label>
 					<div class="bg-gray-50 border border-gray-200 rounded-md p-3">
-						<p class="text-sm text-gray-600 mb-2">Module-specific parameters will be configured here based on the selected module type.</p>
-						<p class="text-xs text-gray-500">(This will be expanded with dynamic forms for each module type)</p>
-						<!-- TODO: Add dynamic form fields based on newModuleType -->
+						<ModulePropsForm moduleType={newModuleType} props={newModuleProps} onChange={(updated) => { newModuleProps = updated; }} />
 					</div>
 				</div>
 
@@ -2325,6 +2328,7 @@
 					<label class="block text-sm font-medium text-gray-700 mb-1">Module Type *</label>
 					<select
 						bind:value={newModuleType}
+						on:change={() => { newModuleProps = {}; }}
 						class="w-full px-3 py-2 border border-gray-300 rounded-md"
 					>
 						{#each MODULE_TYPES as type}
@@ -2337,9 +2341,7 @@
 				<div>
 					<label class="block text-sm font-medium text-gray-700 mb-1">Module Parameters</label>
 					<div class="bg-gray-50 border border-gray-200 rounded-md p-3">
-						<p class="text-sm text-gray-600 mb-2">Module-specific parameters will be configured here based on the selected module type.</p>
-						<p class="text-xs text-gray-500">(This will be expanded with dynamic forms for each module type)</p>
-						<!-- TODO: Add dynamic form fields based on newModuleType -->
+						<ModulePropsForm moduleType={newModuleType} props={newModuleProps} onChange={(updated) => { newModuleProps = updated; }} />
 					</div>
 				</div>
 

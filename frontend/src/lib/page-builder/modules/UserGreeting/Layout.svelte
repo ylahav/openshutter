@@ -16,7 +16,7 @@
 </script>
 
 {#if authenticated && user}
-	<span class={className}>
+	<span class="{className || 'text-gray-700 dark:text-gray-300'}">
 		{greeting}, {displayName}
 	</span>
 {/if}

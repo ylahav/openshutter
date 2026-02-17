@@ -6,6 +6,6 @@ export const richTextConfig = {
 	fields: [
 		{ key: 'title', type: 'multilangText', label: 'Title', required: false },
 		{ key: 'body', type: 'multilangHTML', label: 'Body', required: false },
-		{ key: 'background', type: 'select', label: 'Background', options: ['white', 'gray'], default: 'white' },
+		{ key: 'background', type: 'select', label: 'Background', options: ['white', 'gray', 'transparent'], default: 'white' },
 	],
 } as const;

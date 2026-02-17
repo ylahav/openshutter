@@ -1,5 +1,14 @@
 ## [Unreleased]
 
+### Added
+- **Theme Select module**: New page-builder module so end users can switch among site themes (Minimal, Modern, Elegant). Available in header and footer in Theme Builder → Pages → Page structure → Layout grid (“Theme Select” in the module dropdown). Uses the same logic as the header template selector: admins update site config; other users’ choice is stored in `localStorage` and applied on reload.
+- **Default font variable definitions**: All font types (heading, body, links, lists, form inputs, form labels) are now defined in `:root` in `globals.css` with defaults; Theme Builder overrides still apply via `#theme-custom-colors`. Header area uses the heading font. Multi-word font family names from Theme Builder are quoted in CSS so they apply correctly.
+
+### Changed
+- **Light/dark mode**: Tailwind v4 `@custom-variant dark` uses the `.dark` class so the theme toggle updates the view. Body, header, footer, PageRenderer, RichText, and all template headers/footers (default, minimal, modern, elegant) use `dark:` variants. All page-builder modules (AlbumGallery, Cta, FeatureGrid, Hero, SocialMedia, AuthButtons, UserGreeting, SiteTitle, RichText) and shared components (Menu, LanguageSelector, TemplateSelector) support dark mode.
+- **Theme selection persistence**: When an admin changes the active theme via Theme Select (or header template selector), the frontend now sends both `frontendTemplate` and `activeTemplate` so the selected theme persists after reload (the store reads `frontendTemplate` first).
+- **Theme Select in layout grid**: “Theme Select” is included in the header and footer module allowlists on the template overrides page so it appears in “Choose module…” when assigning modules to the layout grid.
+
 ## [1.0.8] - 2025-02-16
 
 ### Added

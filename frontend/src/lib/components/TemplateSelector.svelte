@@ -45,7 +45,9 @@
 
 		try {
 			if (isAdmin) {
-				// Admin users: update site config (global change)
+				// Admin users: update site config (global change).
+				// Set both frontendTemplate and activeTemplate so the store uses the new theme
+				// (activeTemplate reads frontendTemplate first, then activeTemplate).
 				const response = await fetch('/api/admin/site-config', {
 					method: 'PUT',
 					headers: {
@@ -53,7 +55,8 @@
 					},
 					body: JSON.stringify({
 						template: {
-							activeTemplate: templateName
+							activeTemplate: templateName,
+							frontendTemplate: templateName
 						}
 					})
 				});
@@ -131,12 +134,12 @@
 
 	function getCategoryColor(category: string): string {
 		const colors: Record<string, string> = {
-			minimal: 'bg-gray-100 text-gray-800',
-			modern: 'bg-blue-100 text-blue-800',
-			elegant: 'bg-purple-100 text-purple-800',
-			custom: 'bg-indigo-100 text-indigo-800'
+			minimal: 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200',
+			modern: 'bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200',
+			elegant: 'bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-200',
+			custom: 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-800 dark:text-indigo-200'
 		};
-		return colors[category] || 'bg-gray-100 text-gray-800';
+		return colors[category] || 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200';
 	}
 </script>
 
@@ -148,9 +151,9 @@
 		on:click={toggle}
 		disabled={isSwitching}
 		class={`
-          flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-md shadow-sm
-          bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-          transition-colors text-gray-900
+          flex items-center gap-2 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm
+          bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+          transition-colors text-gray-900 dark:text-gray-100
           ${compact ? 'text-sm' : 'text-base'}
           ${isSwitching ? 'opacity-50 cursor-not-allowed' : ''}
         `}
@@ -158,7 +161,7 @@
 		aria-expanded={isOpen}
 		title="Switch template"
 	>
-		<svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+		<svg class="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 			<path
 				stroke-linecap="round"
 				stroke-linejoin="round"
@@ -167,16 +170,16 @@
 			/>
 		</svg>
 
-		<span class="font-medium text-gray-900">
+		<span class="font-medium text-gray-900 dark:text-gray-100">
 			{currentTemplate.displayName}
 		</span>
 
 		{#if isAdmin}
-			<span class="text-xs text-gray-500 bg-gray-100 px-1 rounded">Admin</span>
+			<span class="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-1 rounded">Admin</span>
 		{/if}
 
 		<svg
-			class={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+			class={`w-4 h-4 text-gray-400 dark:text-gray-500 transition-transform ${isOpen ? 'rotate-180' : ''}`}
 			fill="none"
 			stroke="currentColor"
 			viewBox="0 0 24 24"
@@ -198,14 +201,14 @@
 		></div>
 
 		<!-- Dropdown Menu -->
-		<div class="bg-white border border-gray-200 rounded-md shadow-lg" style={dropdownStyle}>
+		<div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg dark:shadow-gray-900/50" style={dropdownStyle}>
 			<div class="py-1">
-				<div class="px-4 py-2 border-b border-gray-200">
-					<p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Templates</p>
+				<div class="px-4 py-2 border-b border-gray-200 dark:border-gray-600">
+					<p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Templates</p>
 					{#if isAdmin}
-						<p class="text-xs text-gray-400 mt-1">Changes apply globally</p>
+						<p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Changes apply globally</p>
 					{:else}
-						<p class="text-xs text-gray-400 mt-1">Changes apply to your view only</p>
+						<p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Changes apply to your view only</p>
 					{/if}
 				</div>
 				<ul class="py-1">
@@ -218,16 +221,16 @@
 								on:click={() => handleTemplateSelect(template.templateName)}
 								disabled={isSwitching}
 								class={`
-                          w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-gray-50
+                          w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700
                           transition-colors
-                          ${isSelected ? 'bg-blue-50' : ''}
+                          ${isSelected ? 'bg-blue-50 dark:bg-blue-900/40' : ''}
                           ${compact ? 'text-sm' : 'text-base'}
                           ${isSwitching ? 'opacity-50 cursor-not-allowed' : ''}
                         `}
 							>
 								<div class="flex-1 min-w-0">
 									<div class="flex items-center justify-between mb-1">
-										<span class={`font-medium ${isSelected ? 'text-blue-700' : 'text-gray-900'}`}>
+										<span class={`font-medium ${isSelected ? 'text-blue-700 dark:text-blue-300' : 'text-gray-900 dark:text-gray-100'}`}>
 											{template.displayName}
 										</span>
 										<span class={`text-xs px-2 py-0.5 rounded ${getCategoryColor(template.category)}`}>
@@ -235,14 +238,14 @@
 										</span>
 									</div>
 									{#if template.description}
-										<p class="text-xs text-gray-500 line-clamp-1">
+										<p class="text-xs text-gray-500 dark:text-gray-400 line-clamp-1">
 											{template.description}
 										</p>
 									{/if}
 								</div>
 
 								{#if isSelected}
-									<svg class="w-5 h-5 text-blue-600 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+									<svg class="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0" fill="currentColor" viewBox="0 0 20 20">
 										<path
 											fill-rule="evenodd"
 											d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"

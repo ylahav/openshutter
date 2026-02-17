@@ -209,10 +209,10 @@
 		['hero', 'richText', 'featureGrid', 'albumsGrid', 'albumGallery', 'cta'].includes(m.type)
 	);
 	const HEADER_MODULES = PAGE_MODULE_TYPES.filter((m) =>
-		['logo', 'siteTitle', 'menu', 'languageSelector', 'themeToggle', 'userGreeting', 'authButtons', 'socialMedia'].includes(m.type)
+		['logo', 'siteTitle', 'menu', 'languageSelector', 'themeToggle', 'themeSelect', 'userGreeting', 'authButtons', 'socialMedia'].includes(m.type)
 	);
 	const FOOTER_MODULES = PAGE_MODULE_TYPES.filter((m) =>
-		['richText', 'cta', 'socialMedia'].includes(m.type)
+		['richText', 'cta', 'socialMedia', 'themeSelect'].includes(m.type)
 	);
 
 	function migratePageModules(pm: Record<string, any[]> | undefined): Record<string, any[]> {
@@ -2161,12 +2161,13 @@
 								on:change={(e) => {
 									editingModule = {
 										...editingModule,
-										props: { ...editingModule.props, background: (e.currentTarget as HTMLSelectElement).value as 'white' | 'gray' }
+										props: { ...editingModule.props, background: (e.currentTarget as HTMLSelectElement).value as 'white' | 'gray' | 'transparent' }
 									};
 								}}
 							>
 								<option value="white">White</option>
 								<option value="gray">Gray</option>
+								<option value="transparent">Transparent</option>
 							</select>
 						</div>
 					</div>

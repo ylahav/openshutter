@@ -11,6 +11,7 @@ export const PAGE_MODULE_TYPES = [
 	{ type: 'menu', label: 'Menu' },
 	{ type: 'languageSelector', label: 'Language Selector' },
 	{ type: 'themeToggle', label: 'Theme Toggle' },
+	{ type: 'themeSelect', label: 'Theme Select' },
 	{ type: 'userGreeting', label: 'User Greeting' },
 	{ type: 'authButtons', label: 'Auth Buttons' },
 	{ type: 'socialMedia', label: 'Social Media' }

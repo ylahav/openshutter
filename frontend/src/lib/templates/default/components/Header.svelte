@@ -46,7 +46,7 @@
 	}
 </script>
 
-<header class="bg-white shadow-sm border-b border-gray-200">
+<header class="bg-white dark:bg-gray-900 shadow-sm border-b border-gray-200 dark:border-gray-700">
 	<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 		<div class="flex justify-between items-center h-16">
 			<!-- Logo and title -->
@@ -80,7 +80,7 @@
 
 				{#if showSiteTitle}
 					<div class="flex flex-col">
-						<a href="/" class="text-xl font-bold text-gray-900 hover:text-primary-600 transition-colors">
+						<a href="/" class="text-xl font-bold text-gray-900 dark:text-gray-100 hover:text-primary-600 transition-colors">
 							{$title}
 						</a>
 					</div>
@@ -89,11 +89,11 @@
 
 			<!-- Navigation -->
 			{#if showMenu || showTemplateSelector || showLanguageSelector || showThemeToggle}
-				<div class="hidden md:flex items-center gap-4 text-sm text-gray-600">
+				<div class="hidden md:flex items-center gap-4 text-sm text-gray-600 dark:text-gray-300">
 					{#if showMenu}
 						<Menu
 							config={$headerConfig}
-							itemClass="hover:text-gray-900"
+							itemClass="hover:text-gray-900 dark:hover:text-gray-100"
 							activeItemClass="text-primary-600 font-medium"
 							containerClass="flex items-center gap-4"
 							showActiveIndicator={true}
@@ -101,13 +101,13 @@
 						/>
 
 						{#if showAuthButtons && $auth.authenticated && $auth.user}
-							<span class="text-gray-400">|</span>
+							<span class="text-gray-400 dark:text-gray-500">|</span>
 							{#if showGreeting}
-								<span class="text-gray-500">{$auth.user.name || $auth.user.email}</span>
+								<span class="text-gray-500 dark:text-gray-400">{$auth.user.name || $auth.user.email}</span>
 							{/if}
 							<button
 								on:click={handleLogout}
-								class="hover:text-gray-900 text-gray-600"
+								class="hover:text-gray-900 dark:hover:text-gray-100 text-gray-600 dark:text-gray-300"
 								type="button"
 							>
 								{$t('header.logout')}

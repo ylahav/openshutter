@@ -13,6 +13,7 @@ import SiteTitleModule from './modules/SiteTitleModule.svelte';
 import MenuModule from './modules/MenuModule.svelte';
 import LanguageSelectorModule from './modules/LanguageSelectorModule.svelte';
 import ThemeToggleModule from './modules/ThemeToggleModule.svelte';
+import ThemeSelectModule from './modules/ThemeSelectModule.svelte';
 import UserGreetingModule from './modules/UserGreetingModule.svelte';
 import AuthButtonsModule from './modules/AuthButtonsModule.svelte';
 import SocialMediaModule from './modules/SocialMediaModule.svelte';
@@ -47,6 +48,7 @@ import SocialMediaModule from './modules/SocialMediaModule.svelte';
 		menu: MenuModule,
 		languageSelector: LanguageSelectorModule,
 		themeToggle: ThemeToggleModule,
+		themeSelect: ThemeSelectModule,
 		userGreeting: UserGreetingModule,
 		authButtons: AuthButtonsModule,
 		socialMedia: SocialMediaModule
@@ -110,22 +112,22 @@ import SocialMediaModule from './modules/SocialMediaModule.svelte';
 </script>
 
 {#if !page}
-	<div class="min-h-screen flex items-center justify-center text-gray-500">Page not found.</div>
+	<div class="min-h-screen flex items-center justify-center text-gray-500 dark:text-gray-400">Page not found.</div>
 {:else}
-	<div class="{compact ? 'w-full' : 'min-h-screen'} {compact ? '' : 'bg-white'}">
+	<div class="{compact ? 'w-full' : 'min-h-screen'} {compact ? '' : 'bg-white dark:bg-gray-900'}">
 		{#if !compact && (titleText || subtitleText)}
-			<div class="max-w-4xl mx-auto px-4 py-12 text-center border-b border-gray-200">
+			<div class="max-w-4xl mx-auto px-4 py-12 text-center border-b border-gray-200 dark:border-gray-700">
 				{#if titleText}
-					<h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4">{titleText}</h1>
+					<h1 class="text-4xl md:text-5xl font-bold text-gray-900 dark:text-gray-100 mb-4">{titleText}</h1>
 				{/if}
 				{#if subtitleText}
-					<h2 class="text-xl md:text-2xl font-semibold text-gray-700">{subtitleText}</h2>
+					<h2 class="text-xl md:text-2xl font-semibold text-gray-700 dark:text-gray-300">{subtitleText}</h2>
 				{/if}
 			</div>
 		{/if}
 
 		{#if rows.length === 0}
-			<div class="max-w-3xl mx-auto px-4 {compact ? 'py-2' : 'py-16'} text-center text-gray-500">
+			<div class="max-w-3xl mx-auto px-4 {compact ? 'py-2' : 'py-16'} text-center text-gray-500 dark:text-gray-400">
 				No modules configured for this page yet.
 			</div>
 		{:else if hasSpanning}
@@ -138,9 +140,9 @@ import SocialMediaModule from './modules/SocialMediaModule.svelte';
 						style="grid-column: {module.columnIndex! + 1} / span {module.colSpan ?? 1}; grid-row: {module.rowOrder! + 1} / span {module.rowSpan ?? 1}"
 					>
 					{#if moduleMap[module.type]}
-						<svelte:component this={moduleMap[module.type]} {...module.props} data={pageContext} />
+						<svelte:component this={moduleMap[module.type]} {...module.props} data={pageContext} compact={compact} />
 					{:else}
-						<div class="p-6 text-sm text-gray-500">Unknown module: {module.type}</div>
+						<div class="p-6 text-sm text-gray-500 dark:text-gray-400">Unknown module: {module.type}</div>
 					{/if}
 					</div>
 				{/each}
@@ -156,9 +158,9 @@ import SocialMediaModule from './modules/SocialMediaModule.svelte';
 						>
 							{#if col.module}
 								{#if moduleMap[col.module.type]}
-									<svelte:component this={moduleMap[col.module.type]} {...col.module.props} data={pageContext} />
+									<svelte:component this={moduleMap[col.module.type]} {...col.module.props} data={pageContext} compact={compact} />
 								{:else}
-									<div class="max-w-4xl mx-auto px-4 py-6 text-sm text-gray-500">
+									<div class="max-w-4xl mx-auto px-4 py-6 text-sm text-gray-500 dark:text-gray-400">
 										Unknown module type: {col.module.type}
 									</div>
 								{/if}

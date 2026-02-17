@@ -10,7 +10,7 @@
 	$: linkToHome = config?.showAsLink !== false;
 </script>
 
-<span class="font-semibold text-lg" style="font-family: var(--os-font-heading, inherit);">
+<span class="font-semibold text-lg text-gray-900 dark:text-gray-100" style="font-family: var(--os-font-heading, inherit);">
 	{#if linkToHome}
 		<a href="/" class="hover:opacity-80 transition-opacity">{title}</a>
 	{:else}

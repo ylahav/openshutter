@@ -59,7 +59,7 @@
 	}
 </script>
 
-<header class="bg-black/95 backdrop-blur-md border-b border-purple-500/30 sticky top-0 z-[100] shadow-2xl relative">
+<header class="bg-white/95 dark:bg-black/95 backdrop-blur-md border-b border-gray-200 dark:border-purple-500/30 sticky top-0 z-[100] shadow-2xl relative">
 	<!-- Animated background gradient -->
 	<div class="absolute inset-0 opacity-30 overflow-hidden">
 		<div class="absolute top-0 left-1/4 w-64 h-64 bg-purple-500 rounded-full filter blur-3xl animate-pulse"></div>
@@ -99,7 +99,7 @@
 
 				{#if showSiteTitle}
 					<div class="flex flex-col">
-						<a href="/" class="text-2xl font-serif text-white hover:text-purple-300 transition-colors tracking-wide" style="font-family: 'Playfair Display', serif;">
+						<a href="/" class="text-2xl font-serif text-gray-900 dark:text-white hover:text-purple-600 dark:hover:text-purple-300 transition-colors tracking-wide" style="font-family: 'Playfair Display', serif;">
 							{$title}
 						</a>
 					</div>
@@ -110,7 +110,7 @@
 			{#if showMenu || showTemplateSelector || showLanguageSelector || showThemeToggle}
 				<button
 					type="button"
-					class="md:hidden p-2 rounded-lg text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-purple-400"
+					class="md:hidden p-2 rounded-lg text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-purple-400"
 					aria-label="Open menu"
 					aria-expanded={mobileMenuOpen}
 					on:click={toggleMobileMenu}
@@ -129,25 +129,25 @@
 
 			<!-- Desktop Navigation -->
 			{#if showMenu || showTemplateSelector || showLanguageSelector || showThemeToggle}
-				<div class="hidden md:flex items-center gap-6 text-sm text-white relative">
+				<div class="hidden md:flex items-center gap-6 text-sm text-gray-900 dark:text-white relative">
 					{#if showMenu}
 						<Menu
 							config={$headerConfig}
-							itemClass="hover:text-purple-300 transition-colors font-light"
-							activeItemClass="text-purple-300 font-medium"
+							itemClass="hover:text-purple-600 dark:hover:text-purple-300 transition-colors font-light"
+							activeItemClass="text-purple-600 dark:text-purple-300 font-medium"
 							containerClass="flex items-center gap-6"
 							showActiveIndicator={true}
 							showAuthButtons={showAuthButtons}
 						/>
 
 						{#if showAuthButtons && $auth.authenticated && $auth.user}
-							<span class="text-purple-400">|</span>
+							<span class="text-gray-500 dark:text-purple-400">|</span>
 							{#if showGreeting}
-								<span class="text-purple-200">{$auth.user.name || $auth.user.email}</span>
+								<span class="text-gray-600 dark:text-purple-200">{$auth.user.name || $auth.user.email}</span>
 							{/if}
 							<button
 								on:click={handleLogout}
-								class="hover:text-purple-300 text-white transition-colors font-light"
+								class="hover:text-purple-600 dark:hover:text-purple-300 text-gray-900 dark:text-white transition-colors font-light"
 								type="button"
 							>
 								{$t('header.logout')}
@@ -183,7 +183,7 @@
 	<!-- Mobile menu panel -->
 	{#if (showMenu || showTemplateSelector || showLanguageSelector || showThemeToggle) && mobileMenuOpen}
 		<div
-			class="md:hidden border-t border-purple-500/30 bg-black/98 backdrop-blur-md text-white"
+			class="md:hidden border-t border-gray-200 dark:border-purple-500/30 bg-white dark:bg-black/98 backdrop-blur-md text-gray-900 dark:text-white"
 			role="dialog"
 			aria-label="Navigation menu"
 		>
@@ -191,8 +191,8 @@
 				{#if showMenu}
 					<Menu
 						config={$headerConfig}
-						itemClass="block py-2 hover:text-purple-300 transition-colors font-light"
-						activeItemClass="text-purple-300 font-medium"
+						itemClass="block py-2 hover:text-purple-600 dark:hover:text-purple-300 transition-colors font-light"
+						activeItemClass="text-purple-600 dark:text-purple-300 font-medium"
 						containerClass="flex flex-col gap-1"
 						orientation="vertical"
 						showActiveIndicator={true}
@@ -201,11 +201,11 @@
 					{#if showAuthButtons && $auth.authenticated && $auth.user}
 						<div class="pt-2 border-t border-white/10 flex flex-col gap-2">
 							{#if showGreeting}
-								<span class="text-purple-200 text-sm">{$auth.user.name || $auth.user.email}</span>
+								<span class="text-gray-600 dark:text-purple-200 text-sm">{$auth.user.name || $auth.user.email}</span>
 							{/if}
 							<button
 								on:click={() => { closeMobileMenu(); handleLogout(); }}
-								class="text-left py-2 hover:text-purple-300 transition-colors font-light w-full"
+								class="text-left py-2 hover:text-purple-600 dark:hover:text-purple-300 transition-colors font-light w-full"
 								type="button"
 							>
 								{$t('header.logout')}
