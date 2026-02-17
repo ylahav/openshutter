@@ -78,12 +78,13 @@ This document defines the workflow and stages for Phase 3 of the OpenShutter roa
 
 **Goal:** Automate or assist tagging using AI (e.g. object/scene recognition, keyword extraction) to suggest or apply tags.
 
-### 2.1 Design
+### 2.1 Design ✅
 
 - **Scope:** Suggest tags per photo (or batch); optional auto-apply with confidence threshold; respect existing tag taxonomy (categories, existing tags).
 - **Model options:** Local model (e.g. image captioning/classification) vs. external API (e.g. vision API); cost and privacy trade-offs.
 - **Integration points:** Photo upload pipeline, photo edit page, bulk operations.
 - **Deliverable:** Design doc (e.g. `docs/AI_TAGGING_DESIGN.md`) with chosen approach and API contract.
+- **Status:** ✅ Design document created (`docs/AI_TAGGING_DESIGN.md`)
 
 ### 2.2 Implementation
 
