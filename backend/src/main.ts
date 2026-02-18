@@ -98,6 +98,7 @@ async function bootstrap() {
       logger.warn(`🚫 CORS blocked origin: ${origin}`);
       logger.warn(`💡 To fix: Set FRONTEND_URL or CORS_ORIGINS environment variable in backend/.env`);
       logger.warn('   Example: FRONTEND_URL=https://yairl.com,http://localhost:3021');
+      logger.warn('   Note: EMAIL_BASE_URL and GOOGLE_OAUTH_CALLBACK_BASE_URL are optional and fall back to FRONTEND_URL');
       callback(new Error('Not allowed by CORS'));
     },
     credentials: true,

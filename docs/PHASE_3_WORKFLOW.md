@@ -86,24 +86,25 @@ This document defines the workflow and stages for Phase 3 of the OpenShutter roa
 - **Deliverable:** Design doc (e.g. `docs/AI_TAGGING_DESIGN.md`) with chosen approach and API contract.
 - **Status:** ✅ Design document created (`docs/AI_TAGGING_DESIGN.md`)
 
-### 2.2 Implementation
+### 2.2 Implementation ✅
 
 - **Backend:**
-  - Service to run inference (local or external); input: image URL/path; output: suggested tags + confidence.
-  - Optional: map raw labels to existing tag IDs/categories.
-  - Endpoints: e.g. `POST /api/admin/photos/:id/suggest-tags`, `POST /api/admin/photos/bulk-suggest-tags`.
+  - Service to run inference (local or external); input: image path or downloaded buffer; output: suggested tags + confidence.
+  - Tag mapping to existing tag IDs/categories (exact/fuzzy).
+  - Endpoints: `POST /api/admin/photos/:id/suggest-tags`, `POST /api/admin/photos/bulk-suggest-tags`, `GET /api/admin/photos/bulk-suggest-tags/:jobId`, `POST /api/admin/photos/:id/apply-tags`.
+  - **Storage:** Local and Google Drive (download to temp file, process, cleanup); other providers via `getPhotoBuffer`.
 - **Frontend:**
   - Photo edit: “Suggest tags” button; show suggestions with accept/reject or confidence filter.
   - Bulk: select photos → “Suggest tags” → review and apply.
-- **Performance:** Queue for batch jobs; rate limits for external API.
-- **Deliverable:** Feature behind flag or role; docs and configuration (API keys, thresholds).
+- **Performance:** Job queue for bulk; temp file cleanup for remote storage.
+- **Deliverable:** Feature behind admin/owner role; see `docs/AI_TAGGING_DESIGN.md`.
 
 ### 2.3 Acceptance Criteria
 
-- [ ] Single-photo and batch tag suggestion work.
-- [ ] Suggestions can be accepted or ignored; no forced auto-apply without user control.
-- [ ] Configurable confidence threshold if auto-apply is offered.
-- [ ] Respects existing tag list/categories where applicable.
+- [x] Single-photo and batch tag suggestion work.
+- [x] Suggestions can be accepted or ignored; no forced auto-apply without user control.
+- [ ] Configurable confidence threshold if auto-apply is offered (optional).
+- [x] Respects existing tag list/categories where applicable.
 
 ---
 
@@ -218,9 +219,9 @@ This document defines the workflow and stages for Phase 3 of the OpenShutter roa
 
 ## Phase 3 Checklist
 
-- [ ] Branch `phase-3` created and used for Phase 3 work
-- [ ] Stage 1 design doc and implementation complete
-- [ ] Stage 2 design doc and implementation complete
+- [x] Branch `phase-3` created and used for Phase 3 work
+- [x] Stage 1 design doc and implementation complete
+- [x] Stage 2 design doc and implementation complete
 - [ ] Stage 3 design doc and implementation complete
 - [ ] Stage 4 design doc and implementation complete
 - [ ] Stage 5 design doc and implementation complete

@@ -15,11 +15,32 @@ export class MailService {
   private readonly logger = new Logger(MailService.name);
 
   /**
-   * Get login URL for emails (e.g. welcome). Uses FRONTEND_URL env or default.
+   * Get login URL for emails (e.g. welcome). Uses EMAIL_BASE_URL env (fallback to FRONTEND_URL) or default.
    */
   getLoginUrl(): string {
-    const base = process.env.FRONTEND_URL || 'http://localhost:4000';
-    return base.replace(/\/$/, '') + '/login';
+    // EMAIL_BASE_URL takes precedence, fallback to FRONTEND_URL for backward compatibility
+    const base = process.env.EMAIL_BASE_URL || process.env.FRONTEND_URL || 'http://localhost:4000';
+    // Handle comma-separated URLs (take first one for emails)
+    const baseUrl = base.split(',')[0].trim();
+    return baseUrl.replace(/\/$/, '') + '/login';
+  }
+
+  /**
+   * Get Google OAuth callback base URL. Uses GOOGLE_OAUTH_CALLBACK_BASE_URL env (fallback to FRONTEND_URL) or default.
+   * Used to construct redirect URI for Google Drive OAuth.
+   */
+  static getGoogleOAuthCallbackBaseUrl(): string {
+    const base = process.env.GOOGLE_OAUTH_CALLBACK_BASE_URL || process.env.FRONTEND_URL || 'http://localhost:4000';
+    // Handle comma-separated URLs (take first one)
+    const baseUrl = base.split(',')[0].trim();
+    return baseUrl.replace(/\/$/, '');
+  }
+
+  /**
+   * Get Google OAuth callback URL (full redirect URI).
+   */
+  static getGoogleOAuthCallbackUrl(): string {
+    return `${MailService.getGoogleOAuthCallbackBaseUrl()}/api/auth/google/callback`;
   }
 
   /**

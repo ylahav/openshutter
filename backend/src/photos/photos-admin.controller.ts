@@ -1739,4 +1739,603 @@ export class PhotosAdminController {
 			);
 		}
 	}
+
+	/**
+	 * Suggest tags for a photo using AI
+	 * Path: POST /api/admin/photos/:id/suggest-tags
+	 */
+	@Post(':id/suggest-tags')
+	async suggestTags(
+		@Param('id') id: string,
+		@Body() body: {
+			provider?: 'local' | 'google-vision' | 'auto';
+			minConfidence?: number;
+			maxSuggestions?: number;
+			createNewTags?: boolean;
+		},
+		@Req() req: Request
+	) {
+		try {
+			await connectDB();
+			const db = mongoose.connection.db;
+			if (!db) throw new InternalServerErrorException('Database connection not established');
+
+			let objectId: Types.ObjectId;
+			try {
+				objectId = new Types.ObjectId(id);
+			} catch (_error) {
+				throw new BadRequestException('Invalid photo ID format');
+			}
+
+			const photo = await db.collection('photos').findOne({ _id: objectId });
+			if (!photo) throw new NotFoundException('Photo not found');
+
+			if ((req as any).user?.role === 'owner') {
+				await this.assertOwnerCanAccessPhoto(req, photo, db);
+			}
+
+			// Get photo file path/buffer for AI processing
+			const storage = photo.storage || {};
+			const provider = storage.provider || 'local';
+			const filePath = storage.path || storage.url;
+
+			if (!filePath) {
+				throw new BadRequestException('Photo has no file path');
+			}
+
+			// Import AI tagging service dynamically to avoid circular dependencies
+			const { AITaggingService } = await import('../services/ai-tagging/ai-tagging.service');
+			const { TagMappingService } = await import('../services/ai-tagging/tag-mapping.service');
+			const { LocalAIProvider } = await import('../services/ai-tagging/providers/local.provider');
+			const { GoogleVisionProvider } = await import('../services/ai-tagging/providers/google-vision.provider');
+			
+			const tagMappingService = new TagMappingService();
+			const localProvider = new LocalAIProvider();
+			const googleVisionProvider = new GoogleVisionProvider();
+			const aiTaggingService = new AITaggingService(localProvider, googleVisionProvider, tagMappingService);
+
+			const path = require('path');
+			const fs = require('fs').promises;
+			const os = require('os');
+			let imagePath: string | null = null;
+			let tempFilePath: string | null = null;
+
+			try {
+				if (provider === 'local') {
+					// Local storage: resolve file path
+					const storageManager = StorageManager.getInstance();
+					const storageService = await storageManager.getProvider('local');
+					
+					// Get the base path from storage config
+					const storageConfig = await import('../services/storage/config');
+					const config = await storageConfig.storageConfigService.getConfig('local');
+					const basePath = config.config.basePath || process.env.LOCAL_STORAGE_PATH || './uploads';
+					
+					// Resolve the full path similar to LocalStorageService.getFullPath()
+					if (path.isAbsolute(basePath)) {
+						imagePath = path.join(basePath, filePath);
+					} else {
+						imagePath = path.join(process.cwd(), basePath, filePath);
+					}
+					
+					// Normalize the path (resolve .. and . segments)
+					imagePath = path.normalize(imagePath);
+					
+					this.logger.debug(`Attempting to resolve image path. Original: ${filePath}, Base: ${basePath}, Resolved: ${imagePath}`);
+					
+					// Verify file exists
+					try {
+						await fs.access(imagePath);
+						this.logger.debug(`Image file found at: ${imagePath}`);
+					} catch (accessError) {
+						// Try alternative: if filePath is already absolute, use it directly
+						if (path.isAbsolute(filePath)) {
+							try {
+								await fs.access(filePath);
+								imagePath = filePath;
+								this.logger.debug(`Using absolute path directly: ${imagePath}`);
+							} catch {
+								this.logger.error(`Image file not found at absolute path: ${filePath}`);
+								throw new BadRequestException(`Photo file not found at: ${filePath}. Please verify the file exists.`);
+							}
+						} else {
+							this.logger.error(`Image file not found at resolved path: ${imagePath}`);
+							this.logger.error(`Original filePath from DB: ${filePath}`);
+							this.logger.error(`Base path from config: ${basePath}`);
+							this.logger.error(`Current working directory: ${process.cwd()}`);
+							throw new BadRequestException(`Photo file not found at: ${imagePath}. Please verify the storage configuration and file location.`);
+						}
+					}
+				} else {
+					// Remote storage (Google Drive, S3, etc.): download to temporary file
+					this.logger.debug(`Downloading file from ${provider} storage for AI tagging...`);
+					
+					const storageManager = StorageManager.getInstance();
+					const fileBuffer = await storageManager.getPhotoBuffer(provider as any, filePath);
+					
+					if (!fileBuffer) {
+						throw new BadRequestException(`Failed to download photo file from ${provider} storage. File may not exist or access may be denied.`);
+					}
+					
+					// Create temporary file
+					const tempDir = os.tmpdir();
+					const fileExtension = path.extname(filePath) || '.jpg'; // Default to .jpg if no extension
+					const tempFileName = `ai-tagging-${Date.now()}-${Math.random().toString(36).substring(7)}${fileExtension}`;
+					tempFilePath = path.join(tempDir, tempFileName);
+					
+					// Write buffer to temporary file
+					await fs.writeFile(tempFilePath, fileBuffer);
+					this.logger.debug(`Downloaded file to temporary location: ${tempFilePath} (${fileBuffer.length} bytes)`);
+					
+					imagePath = tempFilePath;
+				}
+			} catch (error) {
+				// Clean up temporary file if it was created
+				if (tempFilePath) {
+					try {
+						await fs.unlink(tempFilePath).catch(() => {
+							// Ignore cleanup errors
+						});
+					} catch {
+						// Ignore cleanup errors
+					}
+				}
+				
+				if (error instanceof BadRequestException) {
+					throw error;
+				}
+				this.logger.error(`Failed to resolve/download image: ${error instanceof Error ? error.message : String(error)}`);
+				throw new BadRequestException(`Could not access photo file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+			}
+
+			// TypeScript guard: ensure imagePath is not null
+			if (!imagePath) {
+				this.logger.error(`Could not resolve image path. Original path: ${filePath}, Provider: ${provider}`);
+				throw new BadRequestException(`Could not locate photo file at path: ${filePath}. Please ensure the file exists and the storage configuration is correct.`);
+			}
+
+			try {
+				const result = await aiTaggingService.suggestTags(imagePath, {
+					provider: body.provider,
+					minConfidence: body.minConfidence,
+					maxSuggestions: body.maxSuggestions,
+					createNewTags: body.createNewTags,
+				});
+
+				return {
+					success: true,
+					data: result,
+				};
+			} finally {
+				// Clean up temporary file if it was created
+				if (tempFilePath) {
+					try {
+						await fs.unlink(tempFilePath);
+						this.logger.debug(`Cleaned up temporary file: ${tempFilePath}`);
+					} catch (cleanupError) {
+						this.logger.warn(`Failed to clean up temporary file ${tempFilePath}: ${cleanupError instanceof Error ? cleanupError.message : String(cleanupError)}`);
+					}
+				}
+			}
+		} catch (error) {
+			this.logger.error(`Failed to suggest tags: ${error instanceof Error ? error.message : String(error)}`);
+			if (error instanceof NotFoundException || error instanceof BadRequestException) {
+				throw error;
+			}
+			throw new InternalServerErrorException(
+				`Failed to suggest tags: ${error instanceof Error ? error.message : 'Unknown error'}`
+			);
+		}
+	}
+
+	/**
+	 * Bulk suggest tags for multiple photos
+	 * Path: POST /api/admin/photos/bulk-suggest-tags
+	 */
+	@Post('bulk-suggest-tags')
+	async bulkSuggestTags(
+		@Body() body: {
+			photoIds: string[];
+			provider?: 'local' | 'google-vision' | 'auto';
+			minConfidence?: number;
+			maxSuggestions?: number;
+			createNewTags?: boolean;
+		},
+		@Req() req: Request
+	) {
+		try {
+			if (!body.photoIds || !Array.isArray(body.photoIds) || body.photoIds.length === 0) {
+				throw new BadRequestException('photoIds array is required');
+			}
+
+			const { randomUUID } = await import('crypto');
+			const jobId = randomUUID();
+
+			// Import job store
+			const { setAITaggingJob, updateAITaggingJob } = await import('../services/ai-tagging/job-store');
+			
+			// Initialize job
+			setAITaggingJob({
+				jobId,
+				type: 'bulk-suggest-tags',
+				status: 'pending',
+				progress: {
+					processed: 0,
+					total: body.photoIds.length,
+				},
+				results: [],
+				createdAt: new Date(),
+				updatedAt: new Date(),
+			});
+
+			// Process asynchronously
+			this.processBulkSuggestTags(jobId, body.photoIds, body, req).catch((err) => {
+				this.logger.error(`Bulk suggest tags job ${jobId} failed: ${err instanceof Error ? err.message : String(err)}`);
+				updateAITaggingJob(jobId, {
+					status: 'failed',
+					error: err instanceof Error ? err.message : String(err),
+				});
+			});
+
+			return {
+				success: true,
+				data: {
+					jobId,
+					status: 'queued',
+					totalPhotos: body.photoIds.length,
+				},
+			};
+		} catch (error) {
+			this.logger.error(`Failed to start bulk suggest tags: ${error instanceof Error ? error.message : String(error)}`);
+			if (error instanceof BadRequestException) {
+				throw error;
+			}
+			throw new InternalServerErrorException(
+				`Failed to start bulk suggest tags: ${error instanceof Error ? error.message : 'Unknown error'}`
+			);
+		}
+	}
+
+	/**
+	 * Get status of bulk suggest tags job
+	 * Path: GET /api/admin/photos/bulk-suggest-tags/:jobId
+	 */
+	@Get('bulk-suggest-tags/:jobId')
+	async getBulkSuggestTagsStatus(@Param('jobId') jobId: string) {
+		try {
+			const { getAITaggingJob } = await import('../services/ai-tagging/job-store');
+			const job = getAITaggingJob(jobId);
+
+			if (!job) {
+				throw new NotFoundException(`Job ${jobId} not found`);
+			}
+
+			return {
+				success: true,
+				data: {
+					jobId: job.jobId,
+					status: job.status,
+					progress: job.progress,
+					results: job.results,
+					error: job.error,
+				},
+			};
+		} catch (error) {
+			this.logger.error(`Failed to get bulk suggest tags status: ${error instanceof Error ? error.message : String(error)}`);
+			if (error instanceof NotFoundException) {
+				throw error;
+			}
+			throw new InternalServerErrorException(
+				`Failed to get bulk suggest tags status: ${error instanceof Error ? error.message : 'Unknown error'}`
+			);
+		}
+	}
+
+	/**
+	 * Apply suggested tags to a photo
+	 * Path: POST /api/admin/photos/:id/apply-tags
+	 */
+	@Post(':id/apply-tags')
+	async applyTags(
+		@Param('id') id: string,
+		@Body() body: {
+			tagIds?: string[];
+			createNewTags?: Array<{
+				name: string;
+				category?: string;
+			}>;
+		},
+		@Req() req: Request
+	) {
+		try {
+			await connectDB();
+			const db = mongoose.connection.db;
+			if (!db) throw new InternalServerErrorException('Database connection not established');
+
+			let objectId: Types.ObjectId;
+			try {
+				objectId = new Types.ObjectId(id);
+			} catch (_error) {
+				throw new BadRequestException('Invalid photo ID format');
+			}
+
+			const photo = await db.collection('photos').findOne({ _id: objectId });
+			if (!photo) throw new NotFoundException('Photo not found');
+
+			if ((req as any).user?.role === 'owner') {
+				await this.assertOwnerCanAccessPhoto(req, photo, db);
+			}
+
+			const existingTags = photo.tags || [];
+			const tagIdsToAdd: Types.ObjectId[] = [];
+			const createdTagIds: string[] = [];
+
+			// Add existing tag IDs
+			if (body.tagIds && body.tagIds.length > 0) {
+				for (const tagId of body.tagIds) {
+					try {
+						tagIdsToAdd.push(new Types.ObjectId(tagId));
+					} catch (_error) {
+						throw new BadRequestException(`Invalid tag ID: ${tagId}`);
+					}
+				}
+			}
+
+			// Create new tags if requested
+			if (body.createNewTags && body.createNewTags.length > 0) {
+				const userId = (req as any).user?.id;
+				if (!userId) {
+					throw new BadRequestException('User ID is required to create tags');
+				}
+
+				for (const newTag of body.createNewTags) {
+					// Check if tag already exists
+					const existingTag = await db.collection('tags').findOne({
+						name: { $regex: new RegExp(`^${newTag.name}$`, 'i') },
+					});
+
+					if (existingTag) {
+						tagIdsToAdd.push(existingTag._id);
+					} else {
+						// Create new tag
+						const tagDoc = {
+							name: newTag.name,
+							category: newTag.category || 'general',
+							isActive: true,
+							usageCount: 0,
+							createdBy: new Types.ObjectId(userId),
+							createdAt: new Date(),
+							updatedAt: new Date(),
+						};
+
+						const result = await db.collection('tags').insertOne(tagDoc);
+						tagIdsToAdd.push(result.insertedId);
+						createdTagIds.push(result.insertedId.toString());
+					}
+				}
+			}
+
+			// Merge with existing tags (avoid duplicates)
+			const allTagIds = [...new Set([...existingTags.map((t: any) => t.toString()), ...tagIdsToAdd.map(id => id.toString())])];
+
+			// Update photo
+			await db.collection('photos').updateOne(
+				{ _id: objectId },
+				{
+					$set: {
+						tags: allTagIds.map(id => new Types.ObjectId(id)),
+						updatedAt: new Date(),
+					},
+				}
+			);
+
+			// Update tag usage counts
+			for (const tagId of tagIdsToAdd) {
+				await db.collection('tags').updateOne(
+					{ _id: tagId },
+					{ $inc: { usageCount: 1 } }
+				);
+			}
+
+			return {
+				success: true,
+				data: {
+					appliedTags: allTagIds,
+					createdTags: createdTagIds,
+				},
+			};
+		} catch (error) {
+			this.logger.error(`Failed to apply tags: ${error instanceof Error ? error.message : String(error)}`);
+			if (error instanceof NotFoundException || error instanceof BadRequestException) {
+				throw error;
+			}
+			throw new InternalServerErrorException(
+				`Failed to apply tags: ${error instanceof Error ? error.message : 'Unknown error'}`
+			);
+		}
+	}
+
+	/**
+	 * Process bulk suggest tags job (async)
+	 */
+	private async processBulkSuggestTags(
+		jobId: string,
+		photoIds: string[],
+		options: {
+			provider?: 'local' | 'google-vision' | 'auto';
+			minConfidence?: number;
+			maxSuggestions?: number;
+			createNewTags?: boolean;
+		},
+		req: Request
+	): Promise<void> {
+		const { updateAITaggingJob, getAITaggingJob } = await import('../services/ai-tagging/job-store');
+		
+		updateAITaggingJob(jobId, { status: 'running' });
+
+		await connectDB();
+		const db = mongoose.connection.db;
+		if (!db) throw new InternalServerErrorException('Database connection not established');
+
+		const results: Array<{ photoId: string; suggestions: any[]; error?: string }> = [];
+
+		for (let i = 0; i < photoIds.length; i++) {
+			const photoId = photoIds[i];
+			
+			// Check if job was cancelled
+			const job = getAITaggingJob(jobId);
+			if (job?.cancelled) {
+				updateAITaggingJob(jobId, { status: 'cancelled' });
+				return;
+			}
+
+			try {
+				updateAITaggingJob(jobId, {
+					progress: {
+						processed: i,
+						total: photoIds.length,
+						current: photoId,
+					},
+				});
+
+				// Get photo
+				const photo = await db.collection('photos').findOne({ _id: new Types.ObjectId(photoId) });
+				if (!photo) {
+					results.push({
+						photoId,
+						suggestions: [],
+						error: 'Photo not found',
+					});
+					continue;
+				}
+
+				// Get file path
+				const storage = photo.storage || {};
+				const provider = storage.provider || 'local';
+				const filePath = storage.path || storage.url;
+
+				if (!filePath) {
+					results.push({
+						photoId,
+						suggestions: [],
+						error: 'Photo has no file path',
+					});
+					continue;
+				}
+
+				const path = require('path');
+				const fs = require('fs').promises;
+				const os = require('os');
+				let imagePath: string | null = null;
+				let tempFilePath: string | null = null;
+
+				try {
+					if (provider === 'local') {
+						// Local storage: resolve file path
+						const storageConfig = await import('../services/storage/config');
+						const config = await storageConfig.storageConfigService.getConfig('local');
+						const basePath = config.config.basePath || process.env.LOCAL_STORAGE_PATH || './uploads';
+						
+						if (path.isAbsolute(basePath)) {
+							imagePath = path.join(basePath, filePath);
+						} else {
+							imagePath = path.join(process.cwd(), basePath, filePath);
+						}
+						
+						imagePath = path.normalize(imagePath);
+						
+						// Verify file exists
+						try {
+							await fs.access(imagePath);
+						} catch {
+							// Try absolute path
+							if (path.isAbsolute(filePath)) {
+								try {
+									await fs.access(filePath);
+									imagePath = filePath;
+								} catch {
+									throw new Error(`Photo file not found at: ${imagePath}`);
+								}
+							} else {
+								throw new Error(`Photo file not found at: ${imagePath}`);
+							}
+						}
+					} else {
+						// Remote storage: download to temporary file
+						const storageManager = StorageManager.getInstance();
+						const fileBuffer = await storageManager.getPhotoBuffer(provider as any, filePath);
+						
+						if (!fileBuffer) {
+							throw new Error(`Failed to download photo file from ${provider} storage`);
+						}
+						
+						// Create temporary file
+						const tempDir = os.tmpdir();
+						const fileExtension = path.extname(filePath) || '.jpg';
+						const tempFileName = `ai-tagging-${Date.now()}-${Math.random().toString(36).substring(7)}${fileExtension}`;
+						tempFilePath = path.join(tempDir, tempFileName);
+						
+						// Write buffer to temporary file
+						await fs.writeFile(tempFilePath, fileBuffer);
+						imagePath = tempFilePath;
+					}
+
+					if (!imagePath) {
+						throw new Error('Could not resolve image path');
+					}
+
+					// Import and use AI tagging service
+					const { AITaggingService } = await import('../services/ai-tagging/ai-tagging.service');
+					const { TagMappingService } = await import('../services/ai-tagging/tag-mapping.service');
+					const { LocalAIProvider } = await import('../services/ai-tagging/providers/local.provider');
+					const { GoogleVisionProvider } = await import('../services/ai-tagging/providers/google-vision.provider');
+					
+					const tagMappingService = new TagMappingService();
+					const localProvider = new LocalAIProvider();
+					const googleVisionProvider = new GoogleVisionProvider();
+					const aiTaggingService = new AITaggingService(localProvider, googleVisionProvider, tagMappingService);
+
+					const result = await aiTaggingService.suggestTags(imagePath, options);
+					
+					results.push({
+						photoId,
+						suggestions: result.suggestions,
+					});
+				} catch (error) {
+					results.push({
+						photoId,
+						suggestions: [],
+						error: error instanceof Error ? error.message : String(error),
+					});
+				} finally {
+					// Clean up temporary file if it was created
+					if (tempFilePath) {
+						try {
+							await fs.unlink(tempFilePath).catch(() => {
+								// Ignore cleanup errors
+							});
+						} catch {
+							// Ignore cleanup errors
+						}
+					}
+				}
+			} catch (error) {
+				// Outer catch for any errors in photo processing (shouldn't happen as inner catch handles it)
+				results.push({
+					photoId,
+					suggestions: [],
+					error: error instanceof Error ? error.message : String(error),
+				});
+			}
+		}
+
+		updateAITaggingJob(jobId, {
+			status: 'completed',
+			progress: {
+				processed: photoIds.length,
+				total: photoIds.length,
+			},
+			results,
+		});
+	}
 }

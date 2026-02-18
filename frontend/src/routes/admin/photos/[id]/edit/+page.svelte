@@ -12,6 +12,8 @@
 	import FaceMatchingPanel from '$lib/components/FaceMatchingPanel.svelte';
 	import CollectionPopup from '$lib/components/CollectionPopup.svelte';
 	import PhotoCropper from '$lib/components/PhotoCropper.svelte';
+	import SuggestTagsButton from '$lib/components/ai-tagging/SuggestTagsButton.svelte';
+	import TagSuggestionsModal from '$lib/components/ai-tagging/TagSuggestionsModal.svelte';
 	import { getPhotoUrl, getPhotoFullUrl, getPhotoRotationStyle } from '$lib/utils/photoUrl';
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
@@ -92,6 +94,20 @@
 	let showTagsPopup = false;
 	let showPeoplePopup = false;
 	let showLocationPopup = false;
+	
+	// AI Tagging states
+	let showAITagSuggestions = false;
+	let aiTagSuggestionsLoading = false;
+	let aiTagSuggestions: Array<{
+		label: string;
+		confidence: number;
+		category?: string;
+		matchedTag?: { id: string; name: string };
+		isNewTag: boolean;
+	}> = [];
+	let aiTagSuggestionsError: string | null = null;
+	let aiTagProvider = 'local';
+	let aiTagProcessingTime = 0;
 	
 	// Track the last loaded photoId to prevent reloading the same photo
 	let lastLoadedPhotoId: string | null = null;
@@ -668,6 +684,114 @@
 		return 'Unknown';
 	}
 
+	async function handleSuggestTags() {
+		if (!photo || !photoId) return;
+
+		try {
+			showAITagSuggestions = true;
+			aiTagSuggestionsLoading = true;
+			aiTagSuggestionsError = null;
+			aiTagSuggestions = [];
+
+			const response = await fetch(`/api/admin/photos/${photoId}/suggest-tags`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				credentials: 'include',
+				body: JSON.stringify({
+					provider: 'auto',
+					minConfidence: 0.5,
+					maxSuggestions: 10,
+					createNewTags: false,
+				}),
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({ error: `HTTP ${response.status}: ${response.statusText}` }));
+				throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+			}
+
+			const result = await response.json();
+
+			if (!result.success) {
+				throw new Error(result.error || 'Failed to get tag suggestions');
+			}
+
+			aiTagSuggestions = result.data?.suggestions || [];
+			aiTagProvider = result.data?.provider || 'local';
+			aiTagProcessingTime = result.data?.processingTime || 0;
+		} catch (error) {
+			logger.error('Failed to suggest tags:', error);
+			aiTagSuggestionsError = error instanceof Error ? error.message : 'Failed to get tag suggestions';
+		} finally {
+			aiTagSuggestionsLoading = false;
+		}
+	}
+
+	async function handleApplyAITags(selectedSuggestions: Array<{
+		label: string;
+		confidence: number;
+		category?: string;
+		matchedTag?: { id: string; name: string };
+		isNewTag: boolean;
+	}>) {
+		if (!photoId || selectedSuggestions.length === 0) return;
+
+		try {
+			// Separate existing tags and new tags
+			const tagIds: string[] = [];
+			const createNewTags: Array<{ name: string; category?: string }> = [];
+
+			for (const suggestion of selectedSuggestions) {
+				if (suggestion.matchedTag) {
+					tagIds.push(suggestion.matchedTag.id);
+				} else if (suggestion.isNewTag) {
+					createNewTags.push({
+						name: suggestion.label,
+						category: suggestion.category || 'general',
+					});
+				}
+			}
+
+			const response = await fetch(`/api/admin/photos/${photoId}/apply-tags`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				credentials: 'include',
+				body: JSON.stringify({
+					tagIds: tagIds.length > 0 ? tagIds : undefined,
+					createNewTags: createNewTags.length > 0 ? createNewTags : undefined,
+				}),
+			});
+
+			const result = await response.json();
+
+			if (!result.success) {
+				throw new Error(result.error || 'Failed to apply tags');
+			}
+
+			// Update formData with applied tags
+			const appliedTagIds = result.data?.appliedTags || [];
+			formData.tags = [...new Set([...formData.tags, ...appliedTagIds])];
+			formData = { ...formData };
+
+			// Reload tags list to include newly created tags
+			await loadOptions();
+
+			showAITagSuggestions = false;
+			notification = {
+				show: true,
+				message: `Successfully applied ${appliedTagIds.length} tag${appliedTagIds.length === 1 ? '' : 's'}`,
+				type: 'success',
+			};
+		} catch (error) {
+			logger.error('Failed to apply tags:', error);
+			notification = {
+				show: true,
+				message: error instanceof Error ? error.message : 'Failed to apply tags',
+				type: 'error',
+			};
+		}
+	}
+
 	/** Label for face rectangle on image: assigned person name or "Face X". */
 	function getFaceLabel(faceIndex: number, matchedPersonId?: string): string {
 		if (!matchedPersonId) return `Face ${faceIndex + 1}`;
@@ -1013,13 +1137,19 @@
 									<button
 										type="button"
 										on:click={() => (showTagsPopup = true)}
-										class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white hover:bg-gray-50 text-gray-700 flex items-center justify-center gap-2"
+										class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white hover:bg-gray-50 text-gray-700 flex items-center justify-center gap-2 mb-2"
 									>
 										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
 										</svg>
 										Add Tag
 									</button>
+									<!-- AI Suggest Tags Button -->
+									<SuggestTagsButton
+										loading={aiTagSuggestionsLoading}
+										disabled={!photo || aiTagSuggestionsLoading}
+										on:click={handleSuggestTags}
+									/>
 								</div>
 							{/if}
 						</div>
@@ -1409,6 +1539,21 @@
 		formData = formData;
 	}}
 	searchPlaceholder="Search people..."
+/>
+
+<TagSuggestionsModal
+	isOpen={showAITagSuggestions}
+	suggestions={aiTagSuggestions}
+	loading={aiTagSuggestionsLoading}
+	error={aiTagSuggestionsError}
+	provider={aiTagProvider}
+	processingTime={aiTagProcessingTime}
+	on:close={() => {
+		showAITagSuggestions = false;
+		aiTagSuggestions = [];
+		aiTagSuggestionsError = null;
+	}}
+	on:apply={(e) => handleApplyAITags(e.detail)}
 />
 
 <CollectionPopup

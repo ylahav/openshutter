@@ -367,7 +367,8 @@ Error format:
 - Verify route order in controllers (more specific routes first)
 
 ### CORS Errors
-- Verify `FRONTEND_URL` in backend `.env` matches frontend URL
+- Verify `FRONTEND_URL` in backend `.env` matches frontend URL (comma-separated for multiple origins)
+- Optional: `EMAIL_BASE_URL` for email links (welcome emails); `GOOGLE_OAUTH_CALLBACK_BASE_URL` for Google Drive OAuth callback
 - Check CORS configuration in `main.ts`
 
 ### Database Errors

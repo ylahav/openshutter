@@ -70,8 +70,10 @@ cd openshutter
 Before starting the services, ensure these are configured correctly:
 
 1. **CORS Configuration** (Backend `.env`):
-   - Set `FRONTEND_URL` to your frontend domain(s)
+   - Set `FRONTEND_URL` to your frontend domain(s) for CORS
    - Example: `FRONTEND_URL=https://demo.openshutter.org,http://demo.openshutter.org`
+   - Optional: Set `EMAIL_BASE_URL` for email links (login URLs in welcome emails)
+   - Optional: Set `GOOGLE_OAUTH_CALLBACK_BASE_URL` for Google Drive OAuth callback (if different from frontend URL)
    - This allows the backend to accept requests from your frontend
    - Without this, you'll get "Not allowed by CORS" errors
 
@@ -172,6 +174,10 @@ PORT=5000
 # Set this to your frontend domain(s) - comma-separated for multiple domains
 # Both http and https versions should be included if you use both
 FRONTEND_URL=https://demo.openshutter.org,http://demo.openshutter.org
+# Optional: Separate URL for email links (falls back to FRONTEND_URL if not set)
+EMAIL_BASE_URL=https://demo.openshutter.org
+# Optional: Separate URL for Google Drive OAuth callback (falls back to FRONTEND_URL if not set)
+GOOGLE_OAUTH_CALLBACK_BASE_URL=https://demo.openshutter.org
 # Or for localhost development:
 # FRONTEND_URL=http://localhost:4000
 ```

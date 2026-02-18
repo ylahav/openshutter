@@ -117,6 +117,10 @@ A comprehensive photo gallery management system with multi-storage support, adva
    NODE_ENV=development
    PORT=5000
    FRONTEND_URL=http://localhost:4000
+   # Optional: Separate URL for email links (falls back to FRONTEND_URL)
+   EMAIL_BASE_URL=http://localhost:4000
+   # Optional: Separate URL for Google Drive OAuth callback (falls back to FRONTEND_URL)
+   GOOGLE_OAUTH_CALLBACK_BASE_URL=http://localhost:4000
    ```
    
    **Frontend** (`frontend/.env.production` or `frontend/.env.development`):
@@ -467,7 +471,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ### Phase 3 (Next 12 months) *
 - [x] Import/Sync & storage migration: export/import portable packages, import from raw folders, and migrate photo storage between providers (see `docs/IMPORT_SYNC_DESIGN.md` and `docs/PHASE_3_WORKFLOW.md`)
-- [ ] AI-powered photo tagging
+- [x] **AI-powered photo tagging** – Suggest tags per photo or in bulk; supports local storage and Google Drive (downloads to temp file); design in `docs/AI_TAGGING_DESIGN.md`
 - [ ] Site-wide templating system: template “packs” that control layout and styling for home, albums list, album view, about, and Page Builder pages. Each pack is a folder of Svelte components (`Layout`, `Home`, `AlbumsList`, `Album`, `About`, `PageBuilderRenderer`) plus a small `config.ts` describing options. Admin selects the active template and per-template options in Site Config; routes dynamically load the active pack so creating a new template is as simple as copying a folder and tweaking Svelte/Tailwind.
 - [ ] Advanced analytics
 - [ ] API marketplace

@@ -334,7 +334,15 @@ AI_TAGGING_QUEUE_ENABLED=true
 
 ---
 
-## 9. Privacy & Security
+## 9. Storage Support
+
+- **Local storage:** Photo file path is resolved from storage config (base path + relative path) and read directly.
+- **Google Drive (and other remote providers):** Photo is downloaded via `StorageManager.getPhotoBuffer()` to a temporary file in the system temp directory, processed for AI tagging, then the temp file is deleted. Supports single-photo and bulk suggest-tags.
+- **Extensibility:** Any storage provider that implements `getFileBuffer()` can be used for AI tagging without further backend changes.
+
+---
+
+## 10. Privacy & Security
 
 - **Local Model**: No data leaves the server (privacy-first)
 - **External API**: Images sent to third party (admin must consent)
@@ -344,17 +352,18 @@ AI_TAGGING_QUEUE_ENABLED=true
 
 ---
 
-## 10. Performance Considerations
+## 11. Performance Considerations
 
 - **Caching**: Cache model loading (local) and API responses (external)
 - **Batch Processing**: Queue system for bulk operations
 - **Async Processing**: Non-blocking tag suggestions
 - **Image Optimization**: Resize images before processing (if needed)
 - **Rate Limiting**: Respect API rate limits for external providers
+- **Temp files**: Remote storage (e.g. Google Drive) uses temp files; they are always cleaned up in a `finally` block.
 
 ---
 
-## 11. Testing Strategy
+## 12. Testing Strategy
 
 1. **Unit Tests**: Tag mapping, confidence filtering, category assignment
 2. **Integration Tests**: API endpoints with mock AI responses
@@ -364,7 +373,7 @@ AI_TAGGING_QUEUE_ENABLED=true
 
 ---
 
-## 12. Future Enhancements
+## 13. Future Enhancements
 
 - **Multi-language tag names**: Use AI to suggest tag names in multiple languages
 - **Context-aware suggestions**: Consider album context, existing tags on similar photos
@@ -374,7 +383,7 @@ AI_TAGGING_QUEUE_ENABLED=true
 
 ---
 
-## 13. References
+## 14. References
 
 - [PHASE_3_WORKFLOW.md](./PHASE_3_WORKFLOW.md) – Stage 2 scope and acceptance criteria
 - [SYSTEM_PRD.md](./SYSTEM_PRD.md) – Tag system requirements
