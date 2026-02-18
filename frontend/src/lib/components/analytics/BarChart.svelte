@@ -1,8 +1,19 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
-	import { Chart, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
+	import {
+		Chart,
+		BarController,
+		CategoryScale,
+		LinearScale,
+		BarElement,
+		Title,
+		Tooltip,
+		Legend,
+		type ChartConfiguration,
+		type ChartData
+	} from 'chart.js';
 
-	Chart.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
+	Chart.register(BarController, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 	export let data: Array<{ label: string; value: number }>;
 	export let label: string = 'Value';

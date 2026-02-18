@@ -1,8 +1,21 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
-	import { Chart, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler } from 'chart.js';
+	import {
+		Chart,
+		LineController,
+		CategoryScale,
+		LinearScale,
+		PointElement,
+		LineElement,
+		Title,
+		Tooltip,
+		Legend,
+		Filler,
+		type ChartConfiguration,
+		type ChartData
+	} from 'chart.js';
 
-	Chart.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
+	Chart.register(LineController, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
 
 	export let data: Array<{ date: string; value: number }>;
 	export let label: string = 'Value';
