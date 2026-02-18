@@ -90,12 +90,28 @@ export class AnalyticsService {
       matchFilter.resourceId = resourceId;
     }
 
+    // Check if collection exists, if not return empty results
+    const collections = await db.listCollections({ name: 'analytics_events' }).toArray();
+    if (collections.length === 0) {
+      // Collection doesn't exist yet - return empty results
+      return {
+        summary: {
+          total: 0,
+          unique: 0,
+          photos: 0,
+          albums: 0,
+        },
+        trends: [],
+        topResources: [],
+      };
+    }
+
     // Get summary
     const [totalViews, uniqueUsers, photoViews, albumViews] = await Promise.all([
-      db.collection('analytics_events').countDocuments(matchFilter),
-      db.collection('analytics_events').distinct('userId', { ...matchFilter, userId: { $exists: true, $ne: null } }),
-      db.collection('analytics_events').countDocuments({ ...matchFilter, type: 'photo_view' }),
-      db.collection('analytics_events').countDocuments({ ...matchFilter, type: 'album_view' }),
+      db.collection('analytics_events').countDocuments(matchFilter).catch(() => 0),
+      db.collection('analytics_events').distinct('userId', { ...matchFilter, userId: { $exists: true, $ne: null } }).catch(() => []),
+      db.collection('analytics_events').countDocuments({ ...matchFilter, type: 'photo_view' }).catch(() => 0),
+      db.collection('analytics_events').countDocuments({ ...matchFilter, type: 'album_view' }).catch(() => 0),
     ]);
 
     // Group by date period
@@ -105,61 +121,104 @@ export class AnalyticsService {
       month: '%Y-%m',
     };
 
-    const trends = await db.collection('analytics_events').aggregate([
-      { $match: matchFilter },
-      {
-        $group: {
-          _id: {
-            $dateToString: { format: groupFormat[period], date: '$timestamp' },
-            type: '$type',
+    let trends: any[] = [];
+    try {
+      trends = await db.collection('analytics_events').aggregate([
+        { $match: matchFilter },
+        {
+          $group: {
+            _id: {
+              date: { $dateToString: { format: groupFormat[period], date: '$timestamp' } },
+            },
+            views: { $sum: 1 },
+            uniqueUsers: { $addToSet: '$userId' },
           },
-          views: { $sum: 1 },
-          uniqueUsers: { $addToSet: '$userId' },
         },
-      },
-      {
-        $group: {
-          _id: '$_id._id',
-          views: { $sum: '$views' },
-          unique: { $sum: { $size: '$uniqueUsers' } },
+        {
+          $project: {
+            _id: 1,
+            views: 1,
+            unique: {
+              $size: {
+                $filter: {
+                  input: '$uniqueUsers',
+                  as: 'user',
+                  cond: { $ne: ['$$user', null] },
+                },
+              },
+            },
+          },
         },
-      },
-      { $sort: { _id: 1 } },
-    ]).toArray();
+        { $sort: { _id: 1 } },
+      ]).toArray();
+    } catch (error) {
+      this.logger.warn(`Error aggregating trends: ${error instanceof Error ? error.message : String(error)}`);
+      trends = [];
+    }
 
     // Get top resources
-    const topResources = await db.collection('analytics_events').aggregate([
-      { $match: matchFilter },
-      {
-        $group: {
-          _id: '$resourceId',
-          views: { $sum: 1 },
-          uniqueViews: { $addToSet: '$userId' },
+    let topResources: any[] = [];
+    try {
+      topResources = await db.collection('analytics_events').aggregate([
+        { $match: { ...matchFilter, resourceId: { $exists: true, $ne: null } } },
+        {
+          $group: {
+            _id: '$resourceId',
+            views: { $sum: 1 },
+            uniqueViews: { $addToSet: '$userId' },
+          },
         },
-      },
-      {
-        $project: {
-          _id: 1,
-          views: 1,
-          uniqueViews: { $size: '$uniqueViews' },
+        {
+          $project: {
+            _id: 1,
+            views: 1,
+            uniqueViews: { $size: '$uniqueViews' },
+          },
         },
-      },
-      { $sort: { views: -1 } },
-      { $limit: 20 },
-    ]).toArray();
+        { $sort: { views: -1 } },
+        { $limit: 20 },
+      ]).toArray();
+    } catch (error) {
+      this.logger.warn(`Error aggregating top resources: ${error instanceof Error ? error.message : String(error)}`);
+      topResources = [];
+    }
 
     // Get resource names
     const resourceIds = topResources.map((r) => r._id).filter(Boolean);
-    const photos = resourceIds.length > 0
-      ? await db.collection('photos').find({ _id: { $in: resourceIds.map((id) => new mongoose.Types.ObjectId(id)) } })
-          .project({ _id: 1, title: 1, filename: 1 })
-          .toArray()
-      : [];
-    const albums = resourceIds.length > 0
-      ? await db.collection('albums').find({ _id: { $in: resourceIds.map((id) => new mongoose.Types.ObjectId(id)) } })
-          .project({ _id: 1, name: 1, alias: 1 })
-          .toArray()
-      : [];
+    let photos: any[] = [];
+    let albums: any[] = [];
+    
+    if (resourceIds.length > 0) {
+      try {
+        // Try to convert IDs to ObjectIds and fetch
+        const objectIds = resourceIds
+          .map((id) => {
+            try {
+              return new mongoose.Types.ObjectId(id);
+            } catch {
+              return null;
+            }
+          })
+          .filter((id) => id !== null);
+
+        if (objectIds.length > 0) {
+          [photos, albums] = await Promise.all([
+            db.collection('photos')
+              .find({ _id: { $in: objectIds } })
+              .project({ _id: 1, title: 1, filename: 1 })
+              .toArray()
+              .catch(() => []),
+            db.collection('albums')
+              .find({ _id: { $in: objectIds } })
+              .project({ _id: 1, name: 1, alias: 1 })
+              .toArray()
+              .catch(() => []),
+          ]);
+        }
+      } catch (error) {
+        this.logger.warn(`Error fetching resource names: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
 
     const resourceMap = new Map();
     photos.forEach((p) => {
@@ -173,22 +232,22 @@ export class AnalyticsService {
 
     return {
       summary: {
-        total: totalViews,
-        unique: uniqueUsers.length,
-        photos: photoViews,
-        albums: albumViews,
+        total: totalViews || 0,
+        unique: Array.isArray(uniqueUsers) ? uniqueUsers.length : 0,
+        photos: photoViews || 0,
+        albums: albumViews || 0,
       },
       trends: trends.map((t) => ({
-        date: t._id,
-        views: t.views,
+        date: t._id || '',
+        views: t.views || 0,
         unique: t.unique || 0,
       })),
       topResources: topResources
         .filter((r) => r._id)
         .map((r) => ({
-          _id: r._id,
-          name: resourceMap.get(r._id) || 'Unknown',
-          views: r.views,
+          _id: r._id?.toString() || '',
+          name: resourceMap.get(r._id?.toString()) || 'Unknown',
+          views: r.views || 0,
           uniqueViews: r.uniqueViews || 0,
         })),
     };
@@ -207,6 +266,26 @@ export class AnalyticsService {
       throw new Error('Database connection not established');
     }
 
+    // Check if collection exists
+    const collections = await db.listCollections({ name: 'analytics_events' }).toArray();
+    if (collections.length === 0) {
+      return {
+        summary: {
+          totalSearches: 0,
+          uniqueQueries: 0,
+          averageResults: 0,
+        },
+        popularQueries: [],
+        byType: {
+          photos: 0,
+          albums: 0,
+          people: 0,
+          locations: 0,
+        },
+        trends: [],
+      };
+    }
+
     const dateFrom = dateRange?.dateFrom || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const dateTo = dateRange?.dateTo || new Date();
 
@@ -217,14 +296,15 @@ export class AnalyticsService {
 
     // Get summary
     const [totalSearches, uniqueQueries, searchesWithResults] = await Promise.all([
-      db.collection('analytics_events').countDocuments(matchFilter),
-      db.collection('analytics_events').distinct('metadata.query', { ...matchFilter, 'metadata.query': { $exists: true, $ne: '' } }),
+      db.collection('analytics_events').countDocuments(matchFilter).catch(() => 0),
+      db.collection('analytics_events').distinct('metadata.query', { ...matchFilter, 'metadata.query': { $exists: true, $ne: '' } }).catch(() => []),
       db.collection('analytics_events')
         .aggregate([
           { $match: { ...matchFilter, 'metadata.resultCount': { $exists: true } } },
           { $group: { _id: null, total: { $sum: '$metadata.resultCount' }, count: { $sum: 1 } } },
         ])
-        .toArray(),
+        .toArray()
+        .catch(() => []),
     ]);
 
     const averageResults = searchesWithResults.length > 0 && searchesWithResults[0].count > 0
@@ -232,56 +312,74 @@ export class AnalyticsService {
       : 0;
 
     // Popular queries
-    const popularQueries = await db.collection('analytics_events').aggregate([
-      { $match: { ...matchFilter, 'metadata.query': { $exists: true, $ne: '' } } },
-      {
-        $group: {
-          _id: '$metadata.query',
-          count: { $sum: 1 },
-          averageResults: { $avg: '$metadata.resultCount' },
-          lastSearched: { $max: '$timestamp' },
+    let popularQueries: any[] = [];
+    try {
+      popularQueries = await db.collection('analytics_events').aggregate([
+        { $match: { ...matchFilter, 'metadata.query': { $exists: true, $ne: '' } } },
+        {
+          $group: {
+            _id: '$metadata.query',
+            count: { $sum: 1 },
+            averageResults: { $avg: '$metadata.resultCount' },
+            lastSearched: { $max: '$timestamp' },
+          },
         },
-      },
-      { $sort: { count: -1 } },
-      { $limit: limit },
-    ]).toArray();
+        { $sort: { count: -1 } },
+        { $limit: limit },
+      ]).toArray();
+    } catch (error) {
+      this.logger.warn(`Error aggregating popular queries: ${error instanceof Error ? error.message : String(error)}`);
+      popularQueries = [];
+    }
 
     // By type
-    const byType = await db.collection('analytics_events').aggregate([
-      { $match: matchFilter },
-      {
-        $group: {
-          _id: '$metadata.searchType',
-          count: { $sum: 1 },
+    let byType: any[] = [];
+    try {
+      byType = await db.collection('analytics_events').aggregate([
+        { $match: matchFilter },
+        {
+          $group: {
+            _id: '$metadata.searchType',
+            count: { $sum: 1 },
+          },
         },
-      },
-    ]).toArray();
+      ]).toArray();
+    } catch (error) {
+      this.logger.warn(`Error aggregating by type: ${error instanceof Error ? error.message : String(error)}`);
+      byType = [];
+    }
 
     const byTypeMap = new Map(byType.map((b) => [b._id || 'photos', b.count]));
 
     // Trends (daily)
-    const trends = await db.collection('analytics_events').aggregate([
-      { $match: matchFilter },
-      {
-        $group: {
-          _id: { $dateToString: { format: '%Y-%m-%d', date: '$timestamp' } },
-          searches: { $sum: 1 },
+    let trends: any[] = [];
+    try {
+      trends = await db.collection('analytics_events').aggregate([
+        { $match: matchFilter },
+        {
+          $group: {
+            _id: { $dateToString: { format: '%Y-%m-%d', date: '$timestamp' } },
+            searches: { $sum: 1 },
+          },
         },
-      },
-      { $sort: { _id: 1 } },
-    ]).toArray();
+        { $sort: { _id: 1 } },
+      ]).toArray();
+    } catch (error) {
+      this.logger.warn(`Error aggregating search trends: ${error instanceof Error ? error.message : String(error)}`);
+      trends = [];
+    }
 
     return {
       summary: {
-        totalSearches,
-        uniqueQueries: uniqueQueries.length,
+        totalSearches: totalSearches || 0,
+        uniqueQueries: Array.isArray(uniqueQueries) ? uniqueQueries.length : 0,
         averageResults: Math.round(averageResults * 100) / 100,
       },
       popularQueries: popularQueries.map((q) => ({
-        query: q._id,
-        count: q.count,
+        query: q._id || '',
+        count: q.count || 0,
         averageResults: Math.round((q.averageResults || 0) * 100) / 100,
-        lastSearched: q.lastSearched.toISOString(),
+        lastSearched: q.lastSearched?.toISOString() || new Date().toISOString(),
       })),
       byType: {
         photos: byTypeMap.get('photos') || 0,
@@ -290,8 +388,8 @@ export class AnalyticsService {
         locations: byTypeMap.get('locations') || 0,
       },
       trends: trends.map((t) => ({
-        date: t._id,
-        searches: t.searches,
+        date: t._id || '',
+        searches: t.searches || 0,
       })),
     };
   }
@@ -311,6 +409,19 @@ export class AnalyticsService {
 
     const dateFrom = dateRange?.dateFrom || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const dateTo = dateRange?.dateTo || new Date();
+    
+    // Check if collections exist
+    const collections = await db.listCollections().toArray();
+    const hasTags = collections.some((c) => c.name === 'tags');
+    const hasPhotos = collections.some((c) => c.name === 'photos');
+    
+    if (!hasTags || !hasPhotos) {
+      return {
+        tagsCreated: [],
+        tagsUsed: [],
+        topTags: [],
+      };
+    }
 
     const groupFormat: Record<string, string> = {
       day: '%Y-%m-%d',
@@ -319,74 +430,92 @@ export class AnalyticsService {
     };
 
     // Tag creation trends
-    const tagsCreated = await db.collection('tags').aggregate([
-      {
-        $match: {
-          createdAt: { $gte: dateFrom, $lte: dateTo },
+    let tagsCreated: any[] = [];
+    try {
+      tagsCreated = await db.collection('tags').aggregate([
+        {
+          $match: {
+            createdAt: { $gte: dateFrom, $lte: dateTo },
+          },
         },
-      },
-      {
-        $group: {
-          _id: { $dateToString: { format: groupFormat[period], date: '$createdAt' } },
-          count: { $sum: 1 },
+        {
+          $group: {
+            _id: { $dateToString: { format: groupFormat[period], date: '$createdAt' } },
+            count: { $sum: 1 },
+          },
         },
-      },
-      { $sort: { _id: 1 } },
-    ]).toArray();
+        { $sort: { _id: 1 } },
+      ]).toArray();
+    } catch (error) {
+      this.logger.warn(`Error aggregating tag creation trends: ${error instanceof Error ? error.message : String(error)}`);
+      tagsCreated = [];
+    }
 
     // Tag usage trends (from photos)
-    const tagUsage = await db.collection('photos').aggregate([
-      {
-        $match: {
-          updatedAt: { $gte: dateFrom, $lte: dateTo },
-          tags: { $exists: true, $ne: [] },
-        },
-      },
-      {
-        $unwind: '$tags',
-      },
-      {
-        $group: {
-          _id: {
-            date: { $dateToString: { format: groupFormat[period], date: '$updatedAt' } },
-            tagId: '$tags',
+    let tagUsage: any[] = [];
+    try {
+      tagUsage = await db.collection('photos').aggregate([
+        {
+          $match: {
+            updatedAt: { $gte: dateFrom, $lte: dateTo },
+            tags: { $exists: true, $ne: [] },
           },
-          count: { $sum: 1 },
         },
-      },
-      {
-        $group: {
-          _id: '$_id.date',
-          tagsUsed: { $sum: 1 },
-          totalUsage: { $sum: '$count' },
+        {
+          $unwind: '$tags',
         },
-      },
-      { $sort: { _id: 1 } },
-    ]).toArray();
+        {
+          $group: {
+            _id: {
+              date: { $dateToString: { format: groupFormat[period], date: '$updatedAt' } },
+              tagId: '$tags',
+            },
+            count: { $sum: 1 },
+          },
+        },
+        {
+          $group: {
+            _id: '$_id.date',
+            tagsUsed: { $sum: 1 },
+            totalUsage: { $sum: '$count' },
+          },
+        },
+        { $sort: { _id: 1 } },
+      ]).toArray();
+    } catch (error) {
+      this.logger.warn(`Error aggregating tag usage trends: ${error instanceof Error ? error.message : String(error)}`);
+      tagUsage = [];
+    }
 
     // Top tags by usage
-    const topTags = await db.collection('tags')
-      .find({}, { projection: { name: 1, usageCount: 1, category: 1, createdAt: 1 } })
-      .sort({ usageCount: -1 })
-      .limit(20)
-      .toArray();
+    let topTags: any[] = [];
+    try {
+      topTags = await db.collection('tags')
+        .find({}, { projection: { name: 1, usageCount: 1, category: 1, createdAt: 1 } })
+        .sort({ usageCount: -1 })
+        .limit(20)
+        .toArray();
+    } catch (error) {
+      this.logger.warn(`Error fetching top tags: ${error instanceof Error ? error.message : String(error)}`);
+      topTags = [];
+    }
 
     return {
       tagsCreated: tagsCreated.map((t) => ({
-        date: t._id,
-        count: t.count,
+        date: t._id || '',
+        count: t.count || 0,
       })),
       tagsUsed: tagUsage.map((t) => ({
-        date: t._id,
-        tagsUsed: t.tagsUsed,
-        totalUsage: t.totalUsage,
+        date: t._id || '',
+        tagsUsed: t.tagsUsed || 0,
+        totalUsage: t.totalUsage || 0,
       })),
       topTags: topTags.map((t) => ({
-        _id: t._id.toString(),
-        name: t.name,
+        _id: t._id?.toString() || '',
+        name: t.name || '',
         usageCount: t.usageCount || 0,
-        category: t.category,
-        createdAt: t.createdAt?.toISOString(),
+        category: t.category || 'general',
+        createdAt: t.createdAt?.toISOString() || new Date().toISOString(),
       })),
     };
   }
@@ -402,9 +531,28 @@ export class AnalyticsService {
     }
 
     // Get all photos with storage info
-    const photos = await db.collection('photos')
-      .find({}, { projection: { size: 1, storage: 1, albumId: 1 } })
-      .toArray();
+    let photos: any[] = [];
+    try {
+      photos = await db.collection('photos')
+        .find({}, { projection: { size: 1, storage: 1, albumId: 1 } })
+        .toArray();
+    } catch (error) {
+      this.logger.warn(`Error fetching photos for storage analytics: ${error instanceof Error ? error.message : String(error)}`);
+      photos = [];
+    }
+    
+    if (photos.length === 0) {
+      return {
+        summary: {
+          totalGB: 0,
+          totalMB: 0,
+          totalPhotos: 0,
+          averageSizeMB: 0,
+        },
+        byProvider: groupBy === 'album' ? [] : [],
+        byAlbum: groupBy === 'provider' ? [] : [],
+      };
+    }
 
     const totalBytes = photos.reduce((sum, p) => sum + (p.size || 0), 0);
     const totalGB = totalBytes / (1024 * 1024 * 1024);
@@ -440,12 +588,31 @@ export class AnalyticsService {
     });
 
     const albumIds = Array.from(byAlbumMap.keys()).filter((id) => id !== 'no-album');
-    const albums = albumIds.length > 0
-      ? await db.collection('albums')
-          .find({ _id: { $in: albumIds.map((id) => new mongoose.Types.ObjectId(id)) } })
-          .project({ _id: 1, name: 1, alias: 1 })
-          .toArray()
-      : [];
+    let albums: any[] = [];
+    if (albumIds.length > 0) {
+      try {
+        const objectIds = albumIds
+          .map((id) => {
+            try {
+              return new mongoose.Types.ObjectId(id);
+            } catch {
+              return null;
+            }
+          })
+          .filter((id) => id !== null);
+        
+        if (objectIds.length > 0) {
+          albums = await db.collection('albums')
+            .find({ _id: { $in: objectIds } })
+            .project({ _id: 1, name: 1, alias: 1 })
+            .toArray()
+            .catch(() => []);
+        }
+      } catch (error) {
+        this.logger.warn(`Error fetching albums for storage analytics: ${error instanceof Error ? error.message : String(error)}`);
+        albums = [];
+      }
+    }
 
     const albumMap = new Map(albums.map((a) => [a._id.toString(), a]));
 
