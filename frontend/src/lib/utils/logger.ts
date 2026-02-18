@@ -4,12 +4,30 @@
  * Provides consistent logging across the application with:
  * - Log levels (debug, info, warn, error)
  * - Production filtering (debug/info logs disabled in production)
- * - Easy integration with error tracking services
+ * - Easy integration with error tracking services (Sentry)
  * - Consistent log format
  */
 
 const isDev = import.meta.env.DEV;
 const isProduction = import.meta.env.PROD;
+
+/**
+ * Get Sentry instance if available
+ * Sentry is optional and may not be configured
+ */
+function getSentry(): any {
+	if (typeof window === 'undefined') {
+		return null; // Server-side: Sentry should be initialized in hooks.server.ts
+	}
+	
+	// Try to get Sentry from window (initialized by @sentry/sveltekit)
+	const sentry = (window as any).Sentry;
+	if (sentry && (sentry.captureException || sentry.captureMessage)) {
+		return sentry;
+	}
+	
+	return null;
+}
 
 /**
  * Log levels
@@ -114,15 +132,58 @@ export const logger = {
 	 * Error logs - always shown
 	 * Use for errors that need attention
 	 * 
-	 * TODO: Integrate with error tracking service (e.g., Sentry)
+	 * Automatically sends errors to Sentry if configured
 	 */
 	error: (...args: any[]) => {
 		if (shouldLog(LogLevel.ERROR)) {
 			console.error(...formatMessage('ERROR', ...args));
 			
-			// In production, you might want to send to error tracking service
-			if (isProduction) {
-				// Example: Sentry.captureException(args[0]);
+			// Send to Sentry if available and configured
+			const sentry = getSentry();
+			if (sentry) {
+				try {
+					// Extract error from args
+					const errorArg = args.find(arg => arg instanceof Error);
+					if (errorArg) {
+						// Send Error object to Sentry
+						if (sentry.captureException) {
+							sentry.captureException(errorArg, {
+								extra: args.filter(arg => !(arg instanceof Error)),
+								tags: {
+									source: 'logger'
+								}
+							});
+						}
+					} else if (args.length > 0) {
+						// If no Error object, create a message from args
+						const message = args.map(arg => {
+							if (arg instanceof Error) {
+								return arg.message;
+							}
+							if (typeof arg === 'object') {
+								try {
+									return JSON.stringify(arg);
+								} catch {
+									return String(arg);
+								}
+							}
+							return String(arg);
+						}).join(' ');
+						
+						if (sentry.captureMessage) {
+							sentry.captureMessage(message, {
+								level: 'error',
+								extra: args,
+								tags: {
+									source: 'logger'
+								}
+							});
+						}
+					}
+				} catch (sentryError) {
+					// Don't let Sentry errors break logging
+					console.warn('Failed to send error to Sentry:', sentryError);
+				}
 			}
 		}
 	},

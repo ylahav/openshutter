@@ -325,9 +325,12 @@ AI_TAGGING_QUEUE_ENABLED=true
 
 ### 8.3 Models & Dependencies
 
-**Local Model:**
+**Local Model:** ✅ Implemented
 - `@tensorflow/tfjs-node` - TensorFlow.js for Node.js
-- Pre-trained MobileNet model (download on first use)
+- `@tensorflow-models/mobilenet` - MobileNet v2 model with ImageNet class names
+- Pre-trained MobileNet v2 model (loads on first use, cached for subsequent requests)
+- Image preprocessing with Sharp (resize to 224x224, RGB conversion)
+- Returns predictions with class names and confidence scores from 1000 ImageNet classes
 
 **External API:**
 - `@google-cloud/vision` - Google Cloud Vision API client

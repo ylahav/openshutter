@@ -1,12 +1,22 @@
 ## [Unreleased]
 
 ### Added
-- **AI-powered photo tagging (Phase 3 Stage 2)**
+- **AI-powered photo tagging (Phase 3 Stage 2)** ✅
   - Single-photo and bulk tag suggestions via `POST /api/admin/photos/:id/suggest-tags`, `POST /api/admin/photos/bulk-suggest-tags`, `GET /api/admin/photos/bulk-suggest-tags/:jobId`, `POST /api/admin/photos/:id/apply-tags`
   - Supports **local storage** (file path) and **Google Drive** (download to temp file, process, then cleanup)
+  - **Local AI provider**: Full TensorFlow.js implementation with MobileNet v2 model for on-device image classification
+    - Uses `@tensorflow-models/mobilenet` package with ImageNet class names (1000 classes)
+    - Model loads on first use and is cached for subsequent requests
+    - Image preprocessing with Sharp (resize to 224x224, RGB conversion)
+    - Returns tag suggestions with confidence scores and class names
   - Tag mapping to existing tags (exact/fuzzy); optional create-new-tags on apply
   - Photo edit page: "Suggest Tags" button and modal; apply selected suggestions
   - Design and storage behaviour documented in `docs/AI_TAGGING_DESIGN.md`
+- **Sentry error tracking integration**
+  - Frontend logger automatically sends errors to Sentry when configured
+  - Optional integration - works even if Sentry is not initialized
+  - Captures both Error objects and error messages with context
+  - Added `@sentry/sveltekit` dependency for error tracking
 - **Backend URL env split**: `EMAIL_BASE_URL` for email links (welcome emails) and `GOOGLE_OAUTH_CALLBACK_BASE_URL` for Google Drive OAuth callback; both optional, fall back to `FRONTEND_URL`
 - **Theme Select module**: New page-builder module so end users can switch among site themes (Minimal, Modern, Elegant). Available in header and footer in Theme Builder → Pages → Page structure → Layout grid (“Theme Select” in the module dropdown). Uses the same logic as the header template selector: admins update site config; other users’ choice is stored in `localStorage` and applied on reload.
 - **Default font variable definitions**: All font types (heading, body, links, lists, form inputs, form labels) are now defined in `:root` in `globals.css` with defaults; Theme Builder overrides still apply via `#theme-custom-colors`. Header area uses the heading font. Multi-word font family names from Theme Builder are quoted in CSS so they apply correctly.

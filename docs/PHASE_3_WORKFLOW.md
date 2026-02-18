@@ -103,8 +103,9 @@ This document defines the workflow and stages for Phase 3 of the OpenShutter roa
 
 - [x] Single-photo and batch tag suggestion work.
 - [x] Suggestions can be accepted or ignored; no forced auto-apply without user control.
-- [ ] Configurable confidence threshold if auto-apply is offered (optional).
+- [x] Configurable confidence threshold if auto-apply is offered (optional).
 - [x] Respects existing tag list/categories where applicable.
+- [x] Local AI provider fully implemented with TensorFlow.js MobileNet v2 model.
 
 ---
 
