@@ -5,6 +5,7 @@ packages:
 onlyBuiltDependencies:
   - '@nestjs/core'
   - '@parcel/watcher'
+  - '@sentry/cli'
   - canvas
   - core-js
   - esbuild
