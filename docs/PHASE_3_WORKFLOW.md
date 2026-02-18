@@ -147,12 +147,13 @@ This document defines the workflow and stages for Phase 3 of the OpenShutter roa
 
 **Goal:** Enable third-party integrations via a documented, versioned public API and a marketplace or directory of integrations.
 
-### 4.1 Design
+### 4.1 Design ✅
 
 - **API surface:** Identify endpoints to expose publicly (read-only vs. write); versioning strategy (e.g. `/v1/`).
 - **Auth:** API keys or OAuth for third-party apps; scopes (e.g. read albums, write tags).
 - **Marketplace:** Directory of approved integrations (plugins, scripts, apps) with docs and links.
 - **Deliverable:** API product doc and marketplace concept (e.g. `docs/API_MARKETPLACE.md`).
+- **Status:** ✅ Design document created (`docs/API_MARKETPLACE.md`)
 
 ### 4.2 Implementation
 
