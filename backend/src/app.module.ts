@@ -29,6 +29,8 @@ import { SearchModule } from './search/search.module';
 import { MigrationModule } from './migration/migration.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { StorageModule } from './storage/storage.module';
+import { ApiKeysModule } from './api-keys/api-keys.module';
+import { V1Module } from './api/v1/v1.module';
 import configuration from './config/configuration';
 
 @Module({
@@ -59,6 +61,8 @@ import configuration from './config/configuration';
     SearchModule,
     MigrationModule,
     StorageModule,
+    ApiKeysModule,
+    V1Module,
   ],
   controllers: [HealthController, SiteConfigController, StorageController, StorageAdminController, TemplatesController, ThemesController],
   providers: [AdminGuard, AdminOrOwnerGuard],
