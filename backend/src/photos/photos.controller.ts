@@ -18,6 +18,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { PhotosService } from './photos.service';
 import { PhotoUploadService } from '../services/photo-upload';
 import { FileUploadInterceptor } from '../common/interceptors/file-upload.interceptor';
+import { AnalyticsEventService } from '../analytics/analytics-event.service';
 
 @Controller('photos')
 export class PhotosController {
@@ -25,6 +26,7 @@ export class PhotosController {
   constructor(
     private readonly photosService: PhotosService,
     private readonly photoUploadService: PhotoUploadService,
+    private readonly analyticsEventService: AnalyticsEventService,
   ) {}
 
   @Get('gallery-leading')
@@ -47,8 +49,25 @@ export class PhotosController {
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: string) {
-    return this.photosService.findOne(id);
+  async findOne(@Param('id') id: string, @Req() req: Request) {
+    const photo = await this.photosService.findOne(id);
+    
+    // Log photo view
+    if (photo?._id) {
+      const user = (req as any).user;
+      const ipAddress = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+      const userAgent = req.headers['user-agent'];
+      const albumId = photo.albumId?.toString();
+      this.analyticsEventService.logPhotoView(photo._id.toString(), {
+        userId: user?.id,
+        ipAddress: typeof ipAddress === 'string' ? ipAddress : undefined,
+        userAgent,
+        albumId,
+        referrer: req.headers.referer,
+      }).catch(() => {}); // Don't block on analytics
+    }
+    
+    return photo;
   }
 
   @Post('upload')

@@ -1,12 +1,16 @@
-import { Controller, Get, UseGuards, Logger, InternalServerErrorException } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards, Logger, InternalServerErrorException, Res } from '@nestjs/common';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { connectDB } from '../config/db';
 import mongoose from 'mongoose';
+import { AnalyticsService } from './analytics.service';
+import { Response } from 'express';
 
 @Controller('admin/analytics')
 @UseGuards(AdminGuard)
 export class AnalyticsController {
   private readonly logger = new Logger(AnalyticsController.name);
+
+  constructor(private readonly analyticsService: AnalyticsService) {}
   /**
    * Get analytics statistics
    * Path: GET /api/admin/analytics
@@ -60,9 +64,9 @@ export class AnalyticsController {
       // Get storage statistics (approximate)
       const photos = await db
         .collection('photos')
-        .find({}, { projection: { fileSize: 1 } })
+        .find({}, { projection: { size: 1 } })
         .toArray();
-      const totalStorageBytes = photos.reduce((sum, photo) => sum + (photo.fileSize || 0), 0);
+      const totalStorageBytes = photos.reduce((sum, photo) => sum + (photo.size || 0), 0);
       const totalStorageMB = Math.round((totalStorageBytes / (1024 * 1024)) * 100) / 100;
       const totalStorageGB = Math.round((totalStorageBytes / (1024 * 1024 * 1024)) * 100) / 100;
 
@@ -281,5 +285,239 @@ export class AnalyticsController {
         `Failed to fetch analytics: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
     }
+  }
+
+  /**
+   * Get views analytics
+   * Path: GET /api/admin/analytics/views
+   */
+  @Get('views')
+  async getViewsAnalytics(
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
+    @Query('period') period?: 'day' | 'week' | 'month',
+    @Query('type') type?: 'photo' | 'album' | 'all',
+    @Query('resourceId') resourceId?: string,
+  ) {
+    try {
+      const dateRange = {
+        dateFrom: dateFrom ? new Date(dateFrom) : undefined,
+        dateTo: dateTo ? new Date(dateTo) : undefined,
+      };
+      return await this.analyticsService.getViewsAnalytics(
+        dateRange,
+        period || 'day',
+        type || 'all',
+        resourceId,
+      );
+    } catch (error) {
+      this.logger.error(`Error fetching views analytics: ${error instanceof Error ? error.message : String(error)}`);
+      throw new InternalServerErrorException(
+        `Failed to fetch views analytics: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+    }
+  }
+
+  /**
+   * Get search analytics
+   * Path: GET /api/admin/analytics/search
+   */
+  @Get('search')
+  async getSearchAnalytics(
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
+    @Query('limit') limit?: string,
+  ) {
+    try {
+      const dateRange = {
+        dateFrom: dateFrom ? new Date(dateFrom) : undefined,
+        dateTo: dateTo ? new Date(dateTo) : undefined,
+      };
+      const limitNum = limit ? parseInt(limit, 10) || 20 : 20;
+      return await this.analyticsService.getSearchAnalytics(dateRange, limitNum);
+    } catch (error) {
+      this.logger.error(`Error fetching search analytics: ${error instanceof Error ? error.message : String(error)}`);
+      throw new InternalServerErrorException(
+        `Failed to fetch search analytics: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+    }
+  }
+
+  /**
+   * Get tag usage trends
+   * Path: GET /api/admin/analytics/tags
+   */
+  @Get('tags')
+  async getTagUsageTrends(
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
+    @Query('period') period?: 'day' | 'week' | 'month',
+  ) {
+    try {
+      const dateRange = {
+        dateFrom: dateFrom ? new Date(dateFrom) : undefined,
+        dateTo: dateTo ? new Date(dateTo) : undefined,
+      };
+      return await this.analyticsService.getTagUsageTrends(dateRange, period || 'day');
+    } catch (error) {
+      this.logger.error(`Error fetching tag trends: ${error instanceof Error ? error.message : String(error)}`);
+      throw new InternalServerErrorException(
+        `Failed to fetch tag trends: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+    }
+  }
+
+  /**
+   * Get storage analytics
+   * Path: GET /api/admin/analytics/storage
+   */
+  @Get('storage')
+  async getStorageAnalytics(@Query('groupBy') groupBy?: 'album' | 'provider' | 'both') {
+    try {
+      return await this.analyticsService.getStorageAnalytics(groupBy || 'both');
+    } catch (error) {
+      this.logger.error(`Error fetching storage analytics: ${error instanceof Error ? error.message : String(error)}`);
+      throw new InternalServerErrorException(
+        `Failed to fetch storage analytics: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+    }
+  }
+
+  /**
+   * Export analytics data as CSV
+   * Path: GET /api/admin/analytics/export
+   */
+  @Get('export')
+  async exportAnalytics(
+    @Res() res: Response,
+    @Query('type') type: 'overview' | 'views' | 'search' | 'tags' | 'albums' | 'storage',
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
+    @Query('format') format?: 'csv' | 'json',
+  ) {
+    try {
+      const dateRange = {
+        dateFrom: dateFrom ? new Date(dateFrom) : undefined,
+        dateTo: dateTo ? new Date(dateTo) : undefined,
+      };
+
+      let data: any;
+      let filename: string;
+
+      switch (type) {
+        case 'views':
+          data = await this.analyticsService.getViewsAnalytics(dateRange);
+          filename = `views-analytics-${new Date().toISOString().split('T')[0]}.csv`;
+          break;
+        case 'search':
+          data = await this.analyticsService.getSearchAnalytics(dateRange);
+          filename = `search-analytics-${new Date().toISOString().split('T')[0]}.csv`;
+          break;
+        case 'tags':
+          data = await this.analyticsService.getTagUsageTrends(dateRange);
+          filename = `tags-analytics-${new Date().toISOString().split('T')[0]}.csv`;
+          break;
+        case 'storage':
+          data = await this.analyticsService.getStorageAnalytics();
+          filename = `storage-analytics-${new Date().toISOString().split('T')[0]}.csv`;
+          break;
+        default:
+          throw new Error(`Unsupported export type: ${type}`);
+      }
+
+      if (format === 'json') {
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename.replace('.csv', '.json')}"`);
+        return res.json(data);
+      }
+
+      // Convert to CSV
+      const csv = this.convertToCSV(data, type);
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      return res.send(csv);
+    } catch (error) {
+      this.logger.error(`Error exporting analytics: ${error instanceof Error ? error.message : String(error)}`);
+      throw new InternalServerErrorException(
+        `Failed to export analytics: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+    }
+  }
+
+  /**
+   * Convert analytics data to CSV format
+   */
+  private convertToCSV(data: any, type: string): string {
+    const escapeCSV = (value: any): string => {
+      if (value === null || value === undefined) return '';
+      const str = String(value);
+      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    };
+
+    const rows: string[] = [];
+
+    switch (type) {
+      case 'views':
+        rows.push('Date,Views,Unique Views');
+        if (data.trends) {
+          data.trends.forEach((t: any) => {
+            rows.push(`${escapeCSV(t.date)},${escapeCSV(t.views)},${escapeCSV(t.unique)}`);
+          });
+        }
+        break;
+      case 'search':
+        rows.push('Query,Count,Average Results,Last Searched');
+        if (data.popularQueries) {
+          data.popularQueries.forEach((q: any) => {
+            rows.push(`${escapeCSV(q.query)},${escapeCSV(q.count)},${escapeCSV(q.averageResults)},${escapeCSV(q.lastSearched)}`);
+          });
+        }
+        break;
+      case 'tags':
+        rows.push('Date,Tags Created,Tags Used,Total Usage');
+        // Combine tagsCreated and tagsUsed by date
+        const tagMap = new Map();
+        if (data.tagsCreated) {
+          data.tagsCreated.forEach((t: any) => {
+            tagMap.set(t.date, { created: t.count, used: 0, totalUsage: 0 });
+          });
+        }
+        if (data.tagsUsed) {
+          data.tagsUsed.forEach((t: any) => {
+            const existing = tagMap.get(t.date) || { created: 0, used: 0, totalUsage: 0 };
+            tagMap.set(t.date, {
+              created: existing.created,
+              used: t.tagsUsed,
+              totalUsage: t.totalUsage,
+            });
+          });
+        }
+        Array.from(tagMap.entries())
+          .sort((a, b) => a[0].localeCompare(b[0]))
+          .forEach(([date, values]) => {
+            rows.push(`${escapeCSV(date)},${escapeCSV(values.created)},${escapeCSV(values.used)},${escapeCSV(values.totalUsage)}`);
+          });
+        break;
+      case 'storage':
+        rows.push('Provider,Total GB,Photo Count,Percentage');
+        if (data.byProvider) {
+          data.byProvider.forEach((p: any) => {
+            rows.push(`${escapeCSV(p.provider)},${escapeCSV(p.totalGB)},${escapeCSV(p.photoCount)},${escapeCSV(p.percentage.toFixed(2))}`);
+          });
+        }
+        rows.push('');
+        rows.push('Album,Storage MB,Photo Count,Percentage');
+        if (data.byAlbum) {
+          data.byAlbum.forEach((a: any) => {
+            rows.push(`${escapeCSV(a.name)},${escapeCSV(a.storageMB)},${escapeCSV(a.photoCount)},${escapeCSV(a.percentage.toFixed(2))}`);
+          });
+        }
+        break;
+    }
+
+    return rows.join('\n');
   }
 }

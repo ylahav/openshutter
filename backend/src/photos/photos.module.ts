@@ -9,6 +9,7 @@ import { PersonSchema } from '../models/Person';
 import { LocationSchema } from '../models/Location';
 import { PhotoUploadService } from '../services/photo-upload';
 import { AdminOrOwnerGuard } from '../common/guards/admin-or-owner.guard';
+import { AnalyticsModule } from '../analytics/analytics.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { AdminOrOwnerGuard } from '../common/guards/admin-or-owner.guard';
       { name: 'Person', schema: PersonSchema },
       { name: 'Location', schema: LocationSchema },
     ]),
+    AnalyticsModule,
   ],
   controllers: [PhotosController, PhotosAdminController],
   providers: [PhotosService, PhotoUploadService, AdminOrOwnerGuard],

@@ -3,9 +3,15 @@
 	import { getAlbumName } from '$lib/utils/albumUtils';
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
+	import LineChart from '$lib/components/analytics/LineChart.svelte';
+	import BarChart from '$lib/components/analytics/BarChart.svelte';
+	import PieChart from '$lib/components/analytics/PieChart.svelte';
 	import type { PageData } from './$types';
 
 	export let data: PageData;
+
+	type Tab = 'overview' | 'views' | 'search' | 'tags' | 'albums' | 'storage';
+	let activeTab: Tab = 'overview';
 
 	interface AnalyticsData {
 		overview: {
@@ -65,10 +71,27 @@
 	const TAG_DISTRIBUTION_ORDER = ['0', '1-3', '4-6', '7+'];
 
 	let analytics: AnalyticsData | null = null;
+	let viewsData: any = null;
+	let searchData: any = null;
+	let tagsData: any = null;
+	let storageData: any = null;
 	let loading = true;
+	let loadingTab = false;
 	let error = '';
 
+	// Date range for filtered analytics
+	let dateFrom = '';
+	let dateTo = '';
+	let period: 'day' | 'week' | 'month' = 'day';
+
 	onMount(async () => {
+		// Set default date range (last 30 days)
+		const to = new Date();
+		const from = new Date();
+		from.setDate(from.getDate() - 30);
+		dateTo = to.toISOString().split('T')[0];
+		dateFrom = from.toISOString().split('T')[0];
+
 		await loadAnalytics();
 	});
 
@@ -90,6 +113,64 @@
 		}
 	}
 
+	async function loadTabData(tab: Tab) {
+		if (tab === 'overview') {
+			await loadAnalytics();
+			return;
+		}
+
+		loadingTab = true;
+		try {
+			const params = new URLSearchParams();
+			if (dateFrom) params.set('dateFrom', dateFrom);
+			if (dateTo) params.set('dateTo', dateTo);
+			if (tab === 'views') params.set('period', period);
+
+			const response = await fetch(`/api/admin/analytics/${tab}?${params}`);
+			if (!response.ok) {
+				await handleApiErrorResponse(response);
+			}
+			const result = await response.json();
+			
+			switch (tab) {
+				case 'views':
+					viewsData = result.data || result;
+					break;
+				case 'search':
+					searchData = result.data || result;
+					break;
+				case 'tags':
+					tagsData = result.data || result;
+					break;
+				case 'storage':
+					storageData = result.data || result;
+					break;
+			}
+		} catch (err) {
+			logger.error(`Error loading ${tab} analytics:`, err);
+			error = handleError(err, `Failed to load ${tab} analytics`);
+		} finally {
+			loadingTab = false;
+		}
+	}
+
+	function handleTabChange(tab: Tab) {
+		activeTab = tab;
+		if (!viewsData && tab === 'views') loadTabData('views');
+		if (!searchData && tab === 'search') loadTabData('search');
+		if (!tagsData && tab === 'tags') loadTabData('tags');
+		if (!storageData && tab === 'storage') loadTabData('storage');
+	}
+
+	function exportData(type: Tab) {
+		const params = new URLSearchParams();
+		params.set('type', type);
+		params.set('format', 'csv');
+		if (dateFrom) params.set('dateFrom', dateFrom);
+		if (dateTo) params.set('dateTo', dateTo);
+		window.open(`/api/admin/analytics/export?${params}`, '_blank');
+	}
+
 	// Album name function is now imported from shared utility
 </script>
 
@@ -109,16 +190,99 @@
 			</a>
 		</div>
 
+		<!-- Tabs -->
+		<div class="mb-6 border-b border-gray-200">
+			<nav class="-mb-px flex space-x-8">
+				<button
+					class="py-4 px-1 border-b-2 font-medium text-sm {activeTab === 'overview' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}"
+					on:click={() => handleTabChange('overview')}
+				>
+					Overview
+				</button>
+				<button
+					class="py-4 px-1 border-b-2 font-medium text-sm {activeTab === 'views' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}"
+					on:click={() => handleTabChange('views')}
+				>
+					Views
+				</button>
+				<button
+					class="py-4 px-1 border-b-2 font-medium text-sm {activeTab === 'search' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}"
+					on:click={() => handleTabChange('search')}
+				>
+					Search
+				</button>
+				<button
+					class="py-4 px-1 border-b-2 font-medium text-sm {activeTab === 'tags' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}"
+					on:click={() => handleTabChange('tags')}
+				>
+					Tags
+				</button>
+				<button
+					class="py-4 px-1 border-b-2 font-medium text-sm {activeTab === 'storage' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}"
+					on:click={() => handleTabChange('storage')}
+				>
+					Storage
+				</button>
+			</nav>
+		</div>
+
+		<!-- Date Range Filter (for tabs other than overview) -->
+		{#if activeTab !== 'overview'}
+			<div class="mb-6 bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+				<div class="flex flex-wrap items-center gap-4">
+					<div>
+						<label class="block text-sm font-medium text-gray-700 mb-1">From</label>
+						<input
+							type="date"
+							bind:value={dateFrom}
+							class="px-3 py-2 border border-gray-300 rounded-md text-sm"
+							on:change={() => loadTabData(activeTab)}
+						/>
+					</div>
+					<div>
+						<label class="block text-sm font-medium text-gray-700 mb-1">To</label>
+						<input
+							type="date"
+							bind:value={dateTo}
+							class="px-3 py-2 border border-gray-300 rounded-md text-sm"
+							on:change={() => loadTabData(activeTab)}
+						/>
+					</div>
+					{#if activeTab === 'views'}
+						<div>
+							<label class="block text-sm font-medium text-gray-700 mb-1">Period</label>
+							<select
+								bind:value={period}
+								class="px-3 py-2 border border-gray-300 rounded-md text-sm"
+								on:change={() => loadTabData(activeTab)}
+							>
+								<option value="day">Daily</option>
+								<option value="week">Weekly</option>
+								<option value="month">Monthly</option>
+							</select>
+						</div>
+					{/if}
+					<div class="flex-1"></div>
+					<button
+						on:click={() => exportData(activeTab)}
+						class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
+					>
+						Export CSV
+					</button>
+				</div>
+			</div>
+		{/if}
+
 		{#if error}
 			<div class="mb-4 p-4 rounded-md bg-red-50 text-red-700">{error}</div>
 		{/if}
 
-		{#if loading}
+		{#if loading || loadingTab}
 			<div class="text-center py-8">
 				<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
 				<p class="mt-2 text-gray-600">Loading analytics...</p>
 			</div>
-		{:else if analytics}
+		{:else if activeTab === 'overview' && analytics}
 			<!-- Overview Statistics -->
 			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
 				<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
@@ -475,6 +639,218 @@
 						</div>
 					{/if}
 				</div>
+			</div>
+		{:else if activeTab === 'views' && viewsData}
+			<!-- Views Analytics -->
+			<div class="space-y-6">
+				<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+					<h2 class="text-lg font-semibold text-gray-900 mb-4">Views Summary</h2>
+					<div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+						<div class="p-4 bg-blue-50 rounded-lg">
+							<p class="text-sm text-blue-800">Total Views</p>
+							<p class="text-2xl font-bold text-blue-700">{viewsData.summary?.total || 0}</p>
+						</div>
+						<div class="p-4 bg-green-50 rounded-lg">
+							<p class="text-sm text-green-800">Unique Views</p>
+							<p class="text-2xl font-bold text-green-700">{viewsData.summary?.unique || 0}</p>
+						</div>
+						<div class="p-4 bg-purple-50 rounded-lg">
+							<p class="text-sm text-purple-800">Photo Views</p>
+							<p class="text-2xl font-bold text-purple-700">{viewsData.summary?.photos || 0}</p>
+						</div>
+						<div class="p-4 bg-orange-50 rounded-lg">
+							<p class="text-sm text-orange-800">Album Views</p>
+							<p class="text-2xl font-bold text-orange-700">{viewsData.summary?.albums || 0}</p>
+						</div>
+					</div>
+				</div>
+
+				{#if viewsData.trends && viewsData.trends.length > 0}
+					<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+						<h2 class="text-lg font-semibold text-gray-900 mb-4">Views Over Time</h2>
+						<LineChart
+							data={viewsData.trends.map((t: any) => ({ date: t.date, value: t.views }))}
+							label="Views"
+							color="#3b82f6"
+							height={300}
+						/>
+					</div>
+				{/if}
+
+				{#if viewsData.topResources && viewsData.topResources.length > 0}
+					<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+						<h2 class="text-lg font-semibold text-gray-900 mb-4">Top Viewed Resources</h2>
+						<BarChart
+							data={viewsData.topResources.slice(0, 10).map((r: any) => ({ label: r.name, value: r.views }))}
+							label="Views"
+							color="#10b981"
+							height={300}
+						/>
+					</div>
+				{/if}
+			</div>
+		{:else if activeTab === 'search' && searchData}
+			<!-- Search Analytics -->
+			<div class="space-y-6">
+				<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+					<h2 class="text-lg font-semibold text-gray-900 mb-4">Search Summary</h2>
+					<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+						<div class="p-4 bg-blue-50 rounded-lg">
+							<p class="text-sm text-blue-800">Total Searches</p>
+							<p class="text-2xl font-bold text-blue-700">{searchData.summary?.totalSearches || 0}</p>
+						</div>
+						<div class="p-4 bg-green-50 rounded-lg">
+							<p class="text-sm text-green-800">Unique Queries</p>
+							<p class="text-2xl font-bold text-green-700">{searchData.summary?.uniqueQueries || 0}</p>
+						</div>
+						<div class="p-4 bg-purple-50 rounded-lg">
+							<p class="text-sm text-purple-800">Avg Results</p>
+							<p class="text-2xl font-bold text-purple-700">{searchData.summary?.averageResults?.toFixed(1) || 0}</p>
+						</div>
+					</div>
+				</div>
+
+				{#if searchData.trends && searchData.trends.length > 0}
+					<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+						<h2 class="text-lg font-semibold text-gray-900 mb-4">Search Trends</h2>
+						<LineChart
+							data={searchData.trends.map((t: any) => ({ date: t.date, value: t.searches }))}
+							label="Searches"
+							color="#3b82f6"
+							height={300}
+						/>
+					</div>
+				{/if}
+
+				{#if searchData.byType}
+					<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+						<h2 class="text-lg font-semibold text-gray-900 mb-4">Searches by Type</h2>
+						<PieChart
+							data={[
+								{ label: 'Photos', value: searchData.byType.photos || 0 },
+								{ label: 'Albums', value: searchData.byType.albums || 0 },
+								{ label: 'People', value: searchData.byType.people || 0 },
+								{ label: 'Locations', value: searchData.byType.locations || 0 },
+							].filter((d) => d.value > 0)}
+							height={300}
+						/>
+					</div>
+				{/if}
+
+				{#if searchData.popularQueries && searchData.popularQueries.length > 0}
+					<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+						<h2 class="text-lg font-semibold text-gray-900 mb-4">Popular Search Queries</h2>
+						<div class="space-y-2">
+							{#each searchData.popularQueries as query}
+								<div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+									<div>
+										<p class="font-medium text-gray-900">"{query.query}"</p>
+										<p class="text-xs text-gray-500">Last searched: {new Date(query.lastSearched).toLocaleDateString()}</p>
+									</div>
+									<div class="text-right">
+										<p class="text-lg font-bold text-blue-600">{query.count}</p>
+										<p class="text-xs text-gray-500">searches</p>
+									</div>
+								</div>
+							{/each}
+						</div>
+					</div>
+				{/if}
+			</div>
+		{:else if activeTab === 'tags' && tagsData}
+			<!-- Tags Analytics -->
+			<div class="space-y-6">
+				{#if tagsData.tagsCreated && tagsData.tagsCreated.length > 0}
+					<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+						<h2 class="text-lg font-semibold text-gray-900 mb-4">Tag Creation Trends</h2>
+						<LineChart
+							data={tagsData.tagsCreated.map((t: any) => ({ date: t.date, value: t.count }))}
+							label="Tags Created"
+							color="#3b82f6"
+							height={300}
+						/>
+					</div>
+				{/if}
+
+				{#if tagsData.tagsUsed && tagsData.tagsUsed.length > 0}
+					<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+						<h2 class="text-lg font-semibold text-gray-900 mb-4">Tag Usage Trends</h2>
+						<LineChart
+							data={tagsData.tagsUsed.map((t: any) => ({ date: t.date, value: t.totalUsage }))}
+							label="Tag Usage"
+							color="#10b981"
+							height={300}
+						/>
+					</div>
+				{/if}
+
+				{#if tagsData.topTags && tagsData.topTags.length > 0}
+					<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+						<h2 class="text-lg font-semibold text-gray-900 mb-4">Top Tags by Usage</h2>
+						<BarChart
+							data={tagsData.topTags.slice(0, 15).map((t: any) => ({
+								label: typeof t.name === 'string' ? t.name : t.name?.en || 'Unknown',
+								value: t.usageCount || 0,
+							}))}
+							label="Usage Count"
+							color="#8b5cf6"
+							height={400}
+						/>
+					</div>
+				{/if}
+			</div>
+		{:else if activeTab === 'storage' && storageData}
+			<!-- Storage Analytics -->
+			<div class="space-y-6">
+				<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+					<h2 class="text-lg font-semibold text-gray-900 mb-4">Storage Summary</h2>
+					<div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+						<div class="p-4 bg-blue-50 rounded-lg">
+							<p class="text-sm text-blue-800">Total Storage</p>
+							<p class="text-2xl font-bold text-blue-700">{storageData.summary?.totalGB?.toFixed(2) || 0} GB</p>
+						</div>
+						<div class="p-4 bg-green-50 rounded-lg">
+							<p class="text-sm text-green-800">Total Photos</p>
+							<p class="text-2xl font-bold text-green-700">{storageData.summary?.totalPhotos || 0}</p>
+						</div>
+						<div class="p-4 bg-purple-50 rounded-lg">
+							<p class="text-sm text-purple-800">Avg Size</p>
+							<p class="text-2xl font-bold text-purple-700">{storageData.summary?.averageSizeMB?.toFixed(2) || 0} MB</p>
+						</div>
+						<div class="p-4 bg-orange-50 rounded-lg">
+							<p class="text-sm text-orange-800">Total MB</p>
+							<p class="text-2xl font-bold text-orange-700">{storageData.summary?.totalMB?.toFixed(2) || 0}</p>
+						</div>
+					</div>
+				</div>
+
+				{#if storageData.byProvider && storageData.byProvider.length > 0}
+					<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+						<h2 class="text-lg font-semibold text-gray-900 mb-4">Storage by Provider</h2>
+						<PieChart
+							data={storageData.byProvider.map((p: any) => ({
+								label: p.provider,
+								value: p.totalGB,
+							}))}
+							height={300}
+						/>
+					</div>
+				{/if}
+
+				{#if storageData.byAlbum && storageData.byAlbum.length > 0}
+					<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+						<h2 class="text-lg font-semibold text-gray-900 mb-4">Storage by Album (Top 20)</h2>
+						<BarChart
+							data={storageData.byAlbum.map((a: any) => ({
+								label: a.name.length > 20 ? a.name.substring(0, 20) + '...' : a.name,
+								value: a.storageMB,
+							}))}
+							label="Storage (MB)"
+							color="#f59e0b"
+							height={400}
+						/>
+					</div>
+				{/if}
 			</div>
 		{/if}
 	</div>

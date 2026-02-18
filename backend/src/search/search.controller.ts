@@ -6,6 +6,7 @@ import { SearchService, SearchFilters } from './search.service';
 import { SearchBodyDto } from './dto/search-body.dto';
 import { OptionalAdminGuard } from '../common/guards/optional-admin.guard';
 import type { AlbumAccessContext } from '../albums/albums.service';
+import { AnalyticsEventService } from '../analytics/analytics-event.service';
 
 @Controller('search')
 @UseGuards(OptionalAdminGuard)
@@ -13,6 +14,7 @@ export class SearchController {
 	constructor(
 		private readonly searchService: SearchService,
 		@InjectModel('User') private userModel: Model<any>,
+		private readonly analyticsEventService: AnalyticsEventService,
 	) {}
 
 	private async getAccessContext(req: Request): Promise<AlbumAccessContext | null> {
@@ -46,7 +48,34 @@ export class SearchController {
 			sortBy: body.sortBy || 'date',
 			sortOrder: body.sortOrder || 'desc',
 		};
-		return this.searchService.search(filters, accessContext);
+		const result = await this.searchService.search(filters, accessContext);
+		
+		// Log search event
+		const user = (req as any).user;
+		const ipAddress = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+		const userAgent = req.headers['user-agent'];
+		const resultCount = result.photos?.length || result.albums?.length || result.people?.length || result.locations?.length || 0;
+		this.analyticsEventService.logSearch(
+			{
+				query: filters.q,
+				searchType: filters.type || 'photos',
+				resultCount,
+				filters: {
+					tags: filters.tags,
+					people: filters.people,
+					locationIds: filters.locationIds,
+					dateFrom: filters.dateFrom,
+					dateTo: filters.dateTo,
+				},
+			},
+			{
+				userId: user?.id,
+				ipAddress: typeof ipAddress === 'string' ? ipAddress : undefined,
+				userAgent,
+			}
+		).catch(() => {}); // Don't block on analytics
+		
+		return result;
 	}
 
 	/**
@@ -84,6 +113,33 @@ export class SearchController {
 			sortOrder: sortOrder || 'desc',
 		};
 
-		return this.searchService.search(filters, accessContext);
+		const result = await this.searchService.search(filters, accessContext);
+		
+		// Log search event
+		const user = (req as any).user;
+		const ipAddress = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+		const userAgent = req.headers['user-agent'];
+		const resultCount = result.photos?.length || result.albums?.length || result.people?.length || result.locations?.length || 0;
+		this.analyticsEventService.logSearch(
+			{
+				query: filters.q,
+				searchType: filters.type || 'photos',
+				resultCount,
+				filters: {
+					tags: filters.tags,
+					people: filters.people,
+					locationIds: filters.locationIds,
+					dateFrom: filters.dateFrom,
+					dateTo: filters.dateTo,
+				},
+			},
+			{
+				userId: user?.id,
+				ipAddress: typeof ipAddress === 'string' ? ipAddress : undefined,
+				userAgent,
+			}
+		).catch(() => {}); // Don't block on analytics
+		
+		return result;
 	}
 }

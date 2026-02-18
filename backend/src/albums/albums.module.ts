@@ -11,6 +11,7 @@ import { LocationSchema } from '../models/Location';
 import { UserSchema } from '../models/User';
 import { OptionalAdminGuard } from '../common/guards/optional-admin.guard';
 import { AdminOrOwnerGuard } from '../common/guards/admin-or-owner.guard';
+import { AnalyticsModule } from '../analytics/analytics.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { AdminOrOwnerGuard } from '../common/guards/admin-or-owner.guard';
       { name: 'Location', schema: LocationSchema },
       { name: 'User', schema: UserSchema },
     ]),
+    AnalyticsModule,
   ],
   controllers: [AlbumsController, AlbumsAdminController],
   providers: [AlbumsService, OptionalAdminGuard, AdminOrOwnerGuard],

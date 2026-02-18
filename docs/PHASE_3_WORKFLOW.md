@@ -113,27 +113,33 @@ This document defines the workflow and stages for Phase 3 of the OpenShutter roa
 
 **Goal:** Provide analytics and reporting for admins/owners: usage, engagement, tag/album stats, storage, and trends.
 
-### 3.1 Design
+### 3.1 Design ✅
 
 - **Metrics:** Views (albums/photos), search usage, tag usage over time, storage by album/provider, top albums/photos, user activity (if applicable).
-- **Data source:** Existing DB + optional event log or aggregated tables.
-- **Privacy:** Only admins (and optionally owners for their own content); no PII in exports without consent.
-- **Deliverable:** Analytics design doc with metric definitions and retention.
+- **Data source:** Existing DB + event log collection (`analytics_events`) for tracking views and searches.
+- **Privacy:** Only admins (and optionally owners for their own content); no PII in exports without consent. IP addresses are hashed, user agents anonymized.
+- **Deliverable:** Analytics design doc with metric definitions and retention. ✅ See `docs/ADVANCED_ANALYTICS_DESIGN.md`
 
-### 3.2 Implementation
+### 3.2 Implementation ✅
 
 - **Backend:**
-  - Aggregation jobs or real-time queries for chosen metrics.
-  - API: e.g. `GET /api/admin/analytics/overview`, `GET /api/admin/analytics/tags`, `GET /api/admin/analytics/albums`, `GET /api/admin/analytics/storage`, with date range and filters.
+  - ✅ Event logging service (`AnalyticsEventService`) for tracking views and searches
+  - ✅ View tracking integrated into photo and album endpoints
+  - ✅ Search tracking integrated into search controller
+  - ✅ Analytics service (`AnalyticsService`) with aggregation methods for views, search, tags, storage
+  - ✅ API endpoints: `GET /api/admin/analytics/overview`, `GET /api/admin/analytics/views`, `GET /api/admin/analytics/search`, `GET /api/admin/analytics/tags`, `GET /api/admin/analytics/storage`, `GET /api/admin/analytics/export` with date range and filters
 - **Frontend:**
-  - Analytics dashboard: charts (time series, bar, pie), tables, optional export (CSV).
-- **Deliverable:** Dashboard in admin (and optionally owner) UI; docs.
+  - ✅ Analytics dashboard with tabs (Overview, Views, Search, Tags, Storage)
+  - ✅ Charts (time series, bar, pie) using Chart.js
+  - ✅ Date range picker and period selector
+  - ✅ CSV export functionality
+- **Deliverable:** ✅ Dashboard in admin UI; design doc completed.
 
 ### 3.3 Acceptance Criteria
 
-- [ ] Key metrics (e.g. views, tag usage, storage) are available via API and UI.
-- [ ] Date range and filters work correctly.
-- [ ] Access restricted to admin (and owner scoped where defined).
+- [x] Key metrics (e.g. views, tag usage, storage) are available via API and UI.
+- [x] Date range and filters work correctly.
+- [x] Access restricted to admin (and owner scoped where defined).
 
 ---
 
@@ -223,7 +229,7 @@ This document defines the workflow and stages for Phase 3 of the OpenShutter roa
 - [x] Branch `phase-3` created and used for Phase 3 work
 - [x] Stage 1 design doc and implementation complete
 - [x] Stage 2 design doc and implementation complete
-- [ ] Stage 3 design doc and implementation complete
+- [x] Stage 3 design doc and implementation complete
 - [ ] Stage 4 design doc and implementation complete
 - [ ] Stage 5 design doc and implementation complete
 - [ ] Stage 6 design doc and implementation complete

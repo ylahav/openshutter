@@ -17,6 +17,7 @@ import { Request } from 'express';
 import { AlbumsService, AlbumAccessContext } from './albums.service';
 import { OptionalAdminGuard } from '../common/guards/optional-admin.guard';
 import { UpdateAlbumDto } from './dto/update-album.dto';
+import { AnalyticsEventService } from '../analytics/analytics-event.service';
 
 @Controller('albums')
 @UseGuards(OptionalAdminGuard)
@@ -24,6 +25,7 @@ export class AlbumsController {
   constructor(
     private readonly albumsService: AlbumsService,
     @InjectModel('User') private userModel: Model<any>,
+    private readonly analyticsEventService: AnalyticsEventService,
   ) {}
 
   private async getAccessContext(req: Request): Promise<AlbumAccessContext | null> {
@@ -51,7 +53,22 @@ export class AlbumsController {
   @Get('by-alias/:alias')
   async findByAlias(@Req() req: Request, @Param('alias') alias: string) {
     const accessContext = await this.getAccessContext(req);
-    return this.albumsService.findByAlias(alias, accessContext);
+    const album = await this.albumsService.findByAlias(alias, accessContext);
+    
+    // Log album view
+    if (album?._id) {
+      const user = (req as any).user;
+      const ipAddress = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+      const userAgent = req.headers['user-agent'];
+      this.analyticsEventService.logAlbumView(album._id.toString(), {
+        userId: user?.id,
+        ipAddress: typeof ipAddress === 'string' ? ipAddress : undefined,
+        userAgent,
+        referrer: req.headers.referer,
+      }).catch(() => {}); // Don't block on analytics
+    }
+    
+    return album;
   }
 
   @Get('hierarchy')
@@ -127,13 +144,43 @@ export class AlbumsController {
     const accessContext = await this.getAccessContext(req);
     const pageNum = page ? parseInt(page, 10) || 1 : 1;
     const limitNum = limit ? parseInt(limit, 10) || 50 : 50;
-    return this.albumsService.getAlbumData(idOrAlias, pageNum, limitNum, accessContext);
+    const albumData = await this.albumsService.getAlbumData(idOrAlias, pageNum, limitNum, accessContext);
+    
+    // Log album view
+    if (albumData?.album?._id) {
+      const user = (req as any).user;
+      const ipAddress = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+      const userAgent = req.headers['user-agent'];
+      this.analyticsEventService.logAlbumView(albumData.album._id.toString(), {
+        userId: user?.id,
+        ipAddress: typeof ipAddress === 'string' ? ipAddress : undefined,
+        userAgent,
+        referrer: req.headers.referer,
+      }).catch(() => {}); // Don't block on analytics
+    }
+    
+    return albumData;
   }
 
   @Get(':idOrAlias')
   async findOne(@Req() req: Request, @Param('idOrAlias') idOrAlias: string) {
     const accessContext = await this.getAccessContext(req);
-    return this.albumsService.findOneByIdOrAlias(idOrAlias, accessContext);
+    const album = await this.albumsService.findOneByIdOrAlias(idOrAlias, accessContext);
+    
+    // Log album view
+    if (album?._id) {
+      const user = (req as any).user;
+      const ipAddress = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+      const userAgent = req.headers['user-agent'];
+      this.analyticsEventService.logAlbumView(album._id.toString(), {
+        userId: user?.id,
+        ipAddress: typeof ipAddress === 'string' ? ipAddress : undefined,
+        userAgent,
+        referrer: req.headers.referer,
+      }).catch(() => {}); // Don't block on analytics
+    }
+    
+    return album;
   }
 
   /**

@@ -5,11 +5,13 @@ import { SearchService } from './search.service';
 import { AlbumsModule } from '../albums/albums.module';
 import { UserSchema } from '../models/User';
 import { OptionalAdminGuard } from '../common/guards/optional-admin.guard';
+import { AnalyticsModule } from '../analytics/analytics.module';
 
 @Module({
 	imports: [
 		AlbumsModule,
 		MongooseModule.forFeature([{ name: 'User', schema: UserSchema }]),
+		AnalyticsModule,
 	],
 	controllers: [SearchController],
 	providers: [SearchService, OptionalAdminGuard],

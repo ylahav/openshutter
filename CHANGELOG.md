@@ -17,6 +17,24 @@
   - Optional integration - works even if Sentry is not initialized
   - Captures both Error objects and error messages with context
   - Added `@sentry/sveltekit` dependency for error tracking
+- **Advanced Analytics (Phase 3 Stage 3)** ✅
+  - **View tracking**: Automatic tracking of photo and album views with privacy protection (hashed IPs, anonymized user agents)
+  - **Search analytics**: Track search queries, result counts, and search patterns
+  - **Analytics API endpoints**:
+    - `GET /api/admin/analytics/overview` - Overview statistics
+    - `GET /api/admin/analytics/views` - Views analytics with time series data
+    - `GET /api/admin/analytics/search` - Search analytics and popular queries
+    - `GET /api/admin/analytics/tags` - Tag usage trends over time
+    - `GET /api/admin/analytics/storage` - Storage breakdown by provider and album
+    - `GET /api/admin/analytics/export` - CSV/JSON export functionality
+  - **Enhanced analytics dashboard**:
+    - Tabbed interface (Overview, Views, Search, Tags, Storage)
+    - Interactive charts using Chart.js (line, bar, pie charts)
+    - Date range filtering and period selection (daily/weekly/monthly)
+    - CSV export for all analytics types
+    - Time series visualizations for trends
+  - **Event logging**: Lightweight `analytics_events` collection for tracking views and searches
+  - Design documented in `docs/ADVANCED_ANALYTICS_DESIGN.md`
 - **Backend URL env split**: `EMAIL_BASE_URL` for email links (welcome emails) and `GOOGLE_OAUTH_CALLBACK_BASE_URL` for Google Drive OAuth callback; both optional, fall back to `FRONTEND_URL`
 - **Theme Select module**: New page-builder module so end users can switch among site themes (Minimal, Modern, Elegant). Available in header and footer in Theme Builder → Pages → Page structure → Layout grid (“Theme Select” in the module dropdown). Uses the same logic as the header template selector: admins update site config; other users’ choice is stored in `localStorage` and applied on reload.
 - **Default font variable definitions**: All font types (heading, body, links, lists, form inputs, form labels) are now defined in `:root` in `globals.css` with defaults; Theme Builder overrides still apply via `#theme-custom-colors`. Header area uses the heading font. Multi-word font family names from Theme Builder are quoted in CSS so they apply correctly.
