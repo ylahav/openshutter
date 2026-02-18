@@ -156,10 +156,24 @@
 
 	function handleTabChange(tab: Tab) {
 		activeTab = tab;
-		if (!viewsData && tab === 'views') loadTabData('views');
-		if (!searchData && tab === 'search') loadTabData('search');
-		if (!tagsData && tab === 'tags') loadTabData('tags');
-		if (!storageData && tab === 'storage') loadTabData('storage');
+		// Always load data when switching to a tab (will use cached data if already loaded)
+		if (tab === 'views') {
+			if (!viewsData) {
+				loadTabData('views');
+			}
+		} else if (tab === 'search') {
+			if (!searchData) {
+				loadTabData('search');
+			}
+		} else if (tab === 'tags') {
+			if (!tagsData) {
+				loadTabData('tags');
+			}
+		} else if (tab === 'storage') {
+			if (!storageData) {
+				loadTabData('storage');
+			}
+		}
 	}
 
 	function exportData(type: Tab) {
@@ -277,7 +291,7 @@
 			<div class="mb-4 p-4 rounded-md bg-red-50 text-red-700">{error}</div>
 		{/if}
 
-		{#if loading || loadingTab}
+		{#if loading}
 			<div class="text-center py-8">
 				<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
 				<p class="mt-2 text-gray-600">Loading analytics...</p>
@@ -640,7 +654,13 @@
 					{/if}
 				</div>
 			</div>
-		{:else if activeTab === 'views' && viewsData}
+		{:else if activeTab === 'views'}
+			{#if loadingTab}
+				<div class="text-center py-8">
+					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+					<p class="mt-2 text-gray-600">Loading views analytics...</p>
+				</div>
+			{:else if viewsData}
 			<!-- Views Analytics -->
 			<div class="space-y-6">
 				<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -689,7 +709,16 @@
 					</div>
 				{/if}
 			</div>
-		{:else if activeTab === 'search' && searchData}
+			{:else}
+				<div class="text-center py-8 text-gray-500">No views data available</div>
+			{/if}
+		{:else if activeTab === 'search'}
+			{#if loadingTab}
+				<div class="text-center py-8">
+					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+					<p class="mt-2 text-gray-600">Loading search analytics...</p>
+				</div>
+			{:else if searchData}
 			<!-- Search Analytics -->
 			<div class="space-y-6">
 				<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -757,7 +786,16 @@
 					</div>
 				{/if}
 			</div>
-		{:else if activeTab === 'tags' && tagsData}
+			{:else}
+				<div class="text-center py-8 text-gray-500">No search data available</div>
+			{/if}
+		{:else if activeTab === 'tags'}
+			{#if loadingTab}
+				<div class="text-center py-8">
+					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+					<p class="mt-2 text-gray-600">Loading tags analytics...</p>
+				</div>
+			{:else if tagsData}
 			<!-- Tags Analytics -->
 			<div class="space-y-6">
 				{#if tagsData.tagsCreated && tagsData.tagsCreated.length > 0}
@@ -799,7 +837,16 @@
 					</div>
 				{/if}
 			</div>
-		{:else if activeTab === 'storage' && storageData}
+			{:else}
+				<div class="text-center py-8 text-gray-500">No tags data available</div>
+			{/if}
+		{:else if activeTab === 'storage'}
+			{#if loadingTab}
+				<div class="text-center py-8">
+					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+					<p class="mt-2 text-gray-600">Loading storage analytics...</p>
+				</div>
+			{:else if storageData}
 			<!-- Storage Analytics -->
 			<div class="space-y-6">
 				<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -852,6 +899,9 @@
 					</div>
 				{/if}
 			</div>
+			{:else}
+				<div class="text-center py-8 text-gray-500">No storage data available</div>
+			{/if}
 		{/if}
 	</div>
 </div>
