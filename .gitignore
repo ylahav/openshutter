@@ -36,6 +36,7 @@ out/
 # Temporary files and build artifacts
 tmp/
 temp/
+_tmp_*
 
 # Backend build output
 backend/dist/

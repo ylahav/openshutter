@@ -23,7 +23,24 @@ export class HttpExceptionFilter implements ExceptionFilter {
       if (typeof exceptionResponse === 'string') {
         message = exceptionResponse;
       } else if (typeof exceptionResponse === 'object' && exceptionResponse !== null) {
-        message = (exceptionResponse as any).message || exception.message;
+        // Handle nested error structure: { error: { message: '...', code: '...' } }
+        const resp = exceptionResponse as any;
+        if (resp.error?.message) {
+          message = resp.error.message;
+        } else if (resp.message) {
+          message = resp.message;
+        } else {
+          message = exception.message;
+        }
+        // If there's an error object with code, include it in response
+        if (resp.error) {
+          response.status(status).json({
+            statusCode: status,
+            error: resp.error,
+            timestamp: new Date().toISOString(),
+          });
+          return;
+        }
       } else {
         message = exception.message;
       }

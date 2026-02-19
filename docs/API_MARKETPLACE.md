@@ -121,9 +121,10 @@ Public API endpoints respect existing album access control:
 
 **Method:** API keys sent via HTTP header or query parameter
 
-**Header format:**
+**Header formats (all supported):**
 ```
 Authorization: Bearer {api_key}
+Authorization: {api_key}
 ```
 
 **Query parameter format (alternative):**
@@ -131,7 +132,10 @@ Authorization: Bearer {api_key}
 ?api_key={api_key}
 ```
 
-**Preference:** Header format is preferred; query parameter supported for compatibility.
+**Preference:** Header format is preferred. The guard accepts:
+- Standard Bearer token format: `Authorization: Bearer osk_dev_...`
+- Direct format (for convenience): `Authorization: osk_dev_...`
+- Query parameter: `?api_key=osk_dev_...`
 
 ### API Key Structure
 
@@ -250,6 +254,13 @@ HTTP Status: `429 Too Many Requests`
 3. **Schemas:** Request/response models
 4. **Examples:** Sample requests and responses
 5. **Error Codes:** Standard error responses
+
+### Configuration
+
+The production server URL in Swagger is configurable via environment variable:
+- `API_BASE_URL` - Explicit API base URL (e.g., `https://api.yairl.com`)
+- If not set, auto-derived from `FRONTEND_URL` (e.g., `https://yairl.com` → `https://api.yairl.com`)
+- Falls back to `http://localhost:{PORT}` for development
 
 ### Documentation Features
 
@@ -440,6 +451,30 @@ TTL: window duration
 ---
 
 ## Error Handling
+
+### Standard Error Response Format
+
+All errors follow a consistent format:
+
+```json
+{
+  "statusCode": 401,
+  "error": {
+    "code": "invalid_api_key",
+    "message": "API key is invalid, expired, or has been revoked."
+  },
+  "timestamp": "2026-02-19T13:37:30.462Z"
+}
+```
+
+For errors without a nested error object:
+```json
+{
+  "statusCode": 400,
+  "message": "Validation failed",
+  "timestamp": "2026-02-19T13:37:30.462Z"
+}
+```
 
 ### Standard Error Response
 

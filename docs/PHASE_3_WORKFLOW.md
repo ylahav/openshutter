@@ -155,14 +155,14 @@ This document defines the workflow and stages for Phase 3 of the OpenShutter roa
 - **Deliverable:** API product doc and marketplace concept (e.g. `docs/API_MARKETPLACE.md`).
 - **Status:** ✅ Design document created (`docs/API_MARKETPLACE.md`)
 
-### 4.2 Implementation
+### 4.2 Implementation (in progress)
 
-- **Backend:**
-  - Public API versioning; API key creation and scopes; rate limiting.
-  - Documentation: OpenAPI/Swagger for public endpoints.
+- **Backend (done):**
+  - Public API versioning (`/api/v1/`); API key creation, scopes, and CRUD; rate limiting by tier; v1 endpoints: albums, photos, tags, people, locations, pages, search.
+  - OpenAPI/Swagger at `/api/v1/docs` (requires `pnpm install` in backend; see `backend/SWAGGER_SETUP.md`).
 - **Frontend / Docs:**
-  - Developer portal: signup, API key management, docs, changelog.
-  - Marketplace page: list of integrations with descriptions and links.
+  - Developer portal: `/developers` (overview), `/developers/keys` (API key CRUD), `/developers/docs` (Swagger). Accessible to owner and admin.
+  - Marketplace: `/marketplace` (public list by category), `/marketplace/[id]` (listing detail), `/marketplace/submit` (submit form, owner/admin). Admin: `/admin/marketplace` (approve/edit/delete listings).
 - **Deliverable:** Working public API + developer portal + marketplace listing.
 
 ### 4.3 Acceptance Criteria

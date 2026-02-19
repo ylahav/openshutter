@@ -11,6 +11,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery, ApiBody, ApiSecurity } from '@nestjs/swagger';
 import { connectDB } from '../../../config/db';
 import mongoose, { Types } from 'mongoose';
 import { PhotosService } from '../../../photos/photos.service';
@@ -20,6 +21,8 @@ import { ApiScope } from '../../../api-keys/decorators/api-scope.decorator';
 import { RateLimitInterceptor } from '../../../api-keys/interceptors/rate-limit.interceptor';
 import { StandardSuccessResponse } from '../dto/standard-error.dto';
 
+@ApiTags('photos')
+@ApiSecurity('apiKey')
 @Controller('v1/photos')
 @UseGuards(ApiKeyGuard, ApiScopeGuard)
 @UseInterceptors(RateLimitInterceptor)
@@ -32,6 +35,10 @@ export class V1PhotosController {
    * GET /api/v1/photos
    */
   @Get()
+  @ApiOperation({ summary: 'List photos', description: 'Get a paginated list of published photos' })
+  @ApiQuery({ name: 'page', required: false, description: 'Page number (default: 1)' })
+  @ApiQuery({ name: 'limit', required: false, description: 'Items per page (default: 20)' })
+  @ApiResponse({ status: 200, description: 'Photos retrieved successfully' })
   async findAll(
     @Query('page') page?: string,
     @Query('limit') limit?: string,
@@ -58,18 +65,23 @@ export class V1PhotosController {
    * Must be defined before :id route
    */
   @Get(':id/metadata')
+  @ApiOperation({ summary: 'Get photo metadata', description: 'Retrieve EXIF, IPTC, XMP, and other metadata for a photo' })
+  @ApiParam({ name: 'id', description: 'Photo ID' })
+  @ApiResponse({ status: 200, description: 'Photo metadata retrieved successfully' })
+  @ApiResponse({ status: 404, description: 'Photo not found' })
   async getMetadata(@Param('id') id: string): Promise<StandardSuccessResponse> {
     try {
       const photo = await this.photosService.findOne(id);
       
+      const photoAny = photo as { exif?: object; iptc?: object; xmp?: object; dimensions?: object; size?: number; mimeType?: string };
       return {
         data: {
-          exif: photo.exif || {},
-          iptc: photo.iptc || {},
-          xmp: photo.xmp || {},
-          dimensions: photo.dimensions || {},
-          fileSize: photo.size || 0,
-          mimeType: photo.mimeType || '',
+          exif: photoAny.exif || {},
+          iptc: photoAny.iptc || {},
+          xmp: photoAny.xmp || {},
+          dimensions: photoAny.dimensions || {},
+          fileSize: photoAny.size || 0,
+          mimeType: photoAny.mimeType || '',
         },
       };
     } catch (error) {
@@ -91,6 +103,10 @@ export class V1PhotosController {
    * Must be defined after specific routes like :id/metadata and :id/tags
    */
   @Get(':id')
+  @ApiOperation({ summary: 'Get photo by ID', description: 'Retrieve details of a specific photo' })
+  @ApiParam({ name: 'id', description: 'Photo ID' })
+  @ApiResponse({ status: 200, description: 'Photo retrieved successfully' })
+  @ApiResponse({ status: 404, description: 'Photo not found' })
   async findOne(@Param('id') id: string): Promise<StandardSuccessResponse> {
     try {
       const photo = await this.photosService.findOne(id);
@@ -116,6 +132,24 @@ export class V1PhotosController {
    * Must be defined before :id route
    */
   @Post(':id/tags')
+  @ApiOperation({ summary: 'Add tags to photo', description: 'Add one or more tags to a photo. Requires tags:write scope.' })
+  @ApiParam({ name: 'id', description: 'Photo ID' })
+  @ApiBody({ 
+    schema: {
+      type: 'object',
+      properties: {
+        tagIds: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Array of tag IDs to add',
+        },
+      },
+      required: ['tagIds'],
+    },
+  })
+  @ApiResponse({ status: 200, description: 'Tags added successfully' })
+  @ApiResponse({ status: 400, description: 'Validation error' })
+  @ApiResponse({ status: 404, description: 'Photo or tag not found' })
   @ApiScope('tags:write', 'write')
   async addTags(
     @Param('id') photoId: string,
@@ -207,6 +241,12 @@ export class V1PhotosController {
    * DELETE /api/v1/photos/:id/tags/:tagId
    */
   @Delete(':id/tags/:tagId')
+  @ApiOperation({ summary: 'Remove tag from photo', description: 'Remove a tag from a photo. Requires tags:write scope.' })
+  @ApiParam({ name: 'id', description: 'Photo ID' })
+  @ApiParam({ name: 'tagId', description: 'Tag ID to remove' })
+  @ApiResponse({ status: 200, description: 'Tag removed successfully' })
+  @ApiResponse({ status: 400, description: 'Tag is not associated with photo' })
+  @ApiResponse({ status: 404, description: 'Photo not found' })
   @ApiScope('tags:write', 'write')
   async removeTag(
     @Param('id') photoId: string,
@@ -246,8 +286,8 @@ export class V1PhotosController {
 
     // Remove tag
     const updatedTagIds = currentTagIds
-      .filter((id) => id !== tagIdStr)
-      .map((id) => new Types.ObjectId(id));
+      .filter((id: string) => id !== tagIdStr)
+      .map((id: string) => new Types.ObjectId(id));
 
     await photosCollection.updateOne(
       { _id: new Types.ObjectId(photoId) },

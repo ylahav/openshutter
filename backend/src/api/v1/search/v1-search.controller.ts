@@ -8,6 +8,7 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiBody, ApiSecurity } from '@nestjs/swagger';
 import { Request } from 'express';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -20,6 +21,8 @@ import { RateLimitInterceptor } from '../../../api-keys/interceptors/rate-limit.
 import type { AlbumAccessContext } from '../../../albums/albums.service';
 import { StandardSuccessResponse } from '../dto/standard-error.dto';
 
+@ApiTags('search')
+@ApiSecurity('apiKey')
 @Controller('v1/search')
 @UseGuards(ApiKeyGuard, ApiScopeGuard)
 @UseInterceptors(RateLimitInterceptor)
@@ -57,6 +60,9 @@ export class V1SearchController {
    * POST /api/v1/search
    */
   @Post()
+  @ApiOperation({ summary: 'Search (POST)', description: 'Advanced search with filters. Preferred method for complex queries.' })
+  @ApiBody({ type: SearchBodyDto })
+  @ApiResponse({ status: 200, description: 'Search completed successfully' })
   async searchPost(
     @Req() req: Request,
     @Body() body: SearchBodyDto,
@@ -91,6 +97,12 @@ export class V1SearchController {
    * GET /api/v1/search
    */
   @Get()
+  @ApiOperation({ summary: 'Search (GET)', description: 'Simple search via query parameters. Use POST method for advanced filters.' })
+  @ApiQuery({ name: 'q', required: false, description: 'Search query' })
+  @ApiQuery({ name: 'type', required: false, description: 'Search type: photos, albums, people, locations, or all' })
+  @ApiQuery({ name: 'page', required: false, description: 'Page number' })
+  @ApiQuery({ name: 'limit', required: false, description: 'Items per page' })
+  @ApiResponse({ status: 200, description: 'Search completed successfully' })
   async search(
     @Req() req: Request,
     @Query('q') q?: string,

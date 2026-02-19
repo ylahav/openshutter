@@ -97,7 +97,13 @@ export class ApiKeyService {
    * Validate an API key and return key info
    */
   async validateApiKey(key: string): Promise<IApiKey | null> {
+    if (!key || key.trim().length === 0) {
+      this.logger.warn('validateApiKey called with empty key');
+      return null;
+    }
+
     const keyHash = this.hashApiKey(key);
+    this.logger.debug(`Looking up API key with hash: ${keyHash.substring(0, 16)}...`);
 
     const apiKey = await this.apiKeyModel.findOne({
       keyHash,
@@ -105,12 +111,15 @@ export class ApiKeyService {
     }).exec();
 
     if (!apiKey) {
+      this.logger.warn(`No active API key found with hash: ${keyHash.substring(0, 16)}...`);
       return null;
     }
 
+    this.logger.debug(`Found API key ${apiKey._id}, checking expiration...`);
+
     // Check expiration
     if (apiKey.expiresAt && apiKey.expiresAt < new Date()) {
-      this.logger.warn(`API key ${apiKey._id} has expired`);
+      this.logger.warn(`API key ${apiKey._id} has expired (expired at: ${apiKey.expiresAt})`);
       return null;
     }
 
@@ -128,7 +137,7 @@ export class ApiKeyService {
    * Get all API keys for a user
    */
   async getUserApiKeys(userId: string): Promise<ApiKeyInfo[]> {
-    const keys = await this.apiKeyModel.find({ userId }).sort({ createdAt: -1 }).exec();
+    const keys = await this.apiKeyModel.find({ userId } as any).sort({ createdAt: -1 }).exec();
 
     return keys.map((key) => ({
       _id: key._id.toString(),
@@ -150,7 +159,7 @@ export class ApiKeyService {
     const key = await this.apiKeyModel.findOne({
       _id: keyId,
       userId,
-    }).exec();
+    } as any).exec();
 
     if (!key) {
       return null;
@@ -180,7 +189,7 @@ export class ApiKeyService {
     const key = await this.apiKeyModel.findOne({
       _id: keyId,
       userId,
-    }).exec();
+    } as any).exec();
 
     if (!key) {
       return null;
@@ -211,7 +220,7 @@ export class ApiKeyService {
    */
   async revokeApiKey(keyId: string, userId: string): Promise<boolean> {
     const result = await this.apiKeyModel.updateOne(
-      { _id: keyId, userId },
+      { _id: keyId, userId } as any,
       { isActive: false },
     ).exec();
 

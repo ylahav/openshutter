@@ -3,6 +3,7 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { setupSwagger } from './config/swagger.config';
 
 const cookieParser = require('cookie-parser');
 
@@ -124,6 +125,12 @@ async function bootstrap() {
   
   // Global prefix for API routes
   app.setGlobalPrefix('api');
+  
+  // Setup Swagger/OpenAPI documentation (only in development or if enabled)
+  if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_SWAGGER === 'true') {
+    setupSwagger(app);
+    logger.log('📚 Swagger documentation available at /api/v1/docs');
+  }
   
   const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 5000;
   await app.listen(port);

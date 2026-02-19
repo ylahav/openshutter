@@ -7,6 +7,7 @@ import {
   UseInterceptors,
   NotFoundException,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery, ApiSecurity } from '@nestjs/swagger';
 import { connectDB } from '../../../config/db';
 import mongoose, { Types } from 'mongoose';
 import { ApiKeyGuard } from '../../../api-keys/guards/api-key.guard';
@@ -15,6 +16,8 @@ import { ApiScope } from '../../../api-keys/decorators/api-scope.decorator';
 import { RateLimitInterceptor } from '../../../api-keys/interceptors/rate-limit.interceptor';
 import { StandardSuccessResponse } from '../dto/standard-error.dto';
 
+@ApiTags('tags')
+@ApiSecurity('apiKey')
 @Controller('v1/tags')
 @UseGuards(ApiKeyGuard, ApiScopeGuard)
 @UseInterceptors(RateLimitInterceptor)
@@ -25,6 +28,11 @@ export class V1TagsController {
    * GET /api/v1/tags
    */
   @Get()
+  @ApiOperation({ summary: 'List tags', description: 'Get a paginated list of all tags' })
+  @ApiQuery({ name: 'page', required: false, description: 'Page number (default: 1)' })
+  @ApiQuery({ name: 'limit', required: false, description: 'Items per page (default: 50)' })
+  @ApiQuery({ name: 'category', required: false, description: 'Filter by category' })
+  @ApiResponse({ status: 200, description: 'Tags retrieved successfully' })
   async findAll(
     @Query('page') page?: string,
     @Query('limit') limit?: string,
@@ -74,6 +82,10 @@ export class V1TagsController {
    * GET /api/v1/tags/:id
    */
   @Get(':id')
+  @ApiOperation({ summary: 'Get tag by ID', description: 'Retrieve details of a specific tag' })
+  @ApiParam({ name: 'id', description: 'Tag ID' })
+  @ApiResponse({ status: 200, description: 'Tag retrieved successfully' })
+  @ApiResponse({ status: 404, description: 'Tag not found' })
   async findOne(@Param('id') id: string): Promise<StandardSuccessResponse> {
     await connectDB();
     const db = mongoose.connection.db;
