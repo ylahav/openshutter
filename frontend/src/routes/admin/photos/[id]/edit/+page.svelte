@@ -109,6 +109,26 @@
 	let aiTagProvider = 'local';
 	let aiTagProcessingTime = 0;
 	
+	// Context-based Tag Suggestions states
+	let showContextTagSuggestions = false;
+	let contextTagSuggestionsLoading = false;
+	let contextTagSuggestions: Array<{
+		label: string;
+		confidence: number;
+		category?: string;
+		matchedTag?: { id: string; name: string };
+		isNewTag: boolean;
+		source?: string;
+		reason?: string;
+	}> = [];
+	let contextTagSuggestionsError: string | null = null;
+	let contextTagSources: {
+		similar: number;
+		iptc: number;
+		location: number;
+		cooccurrence: number;
+	} = { similar: 0, iptc: 0, location: 0, cooccurrence: 0 };
+	
 	// Track the last loaded photoId to prevent reloading the same photo
 	let lastLoadedPhotoId: string | null = null;
 	
@@ -727,6 +747,112 @@
 		}
 	}
 
+	async function handleSuggestTagsFromContext() {
+		if (!photo || !photoId) return;
+
+		try {
+			showContextTagSuggestions = true;
+			contextTagSuggestionsLoading = true;
+			contextTagSuggestionsError = null;
+			contextTagSuggestions = [];
+
+			const response = await fetch(`/api/admin/photos/${photoId}/suggest-tags-from-context?maxSuggestions=15`, {
+				method: 'GET',
+				credentials: 'include',
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({ error: `HTTP ${response.status}: ${response.statusText}` }));
+				throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+			}
+
+			const result = await response.json();
+
+			if (!result.success) {
+				throw new Error(result.error || 'Failed to get context-based tag suggestions');
+			}
+
+			// Map context suggestions to the format expected by TagSuggestionsModal
+			contextTagSuggestions = (result.data?.suggestions || []).map((suggestion: {
+				tagId: string;
+				tagName: string;
+				category?: string;
+				source: string;
+				score: number;
+				reason: string;
+			}) => ({
+				label: suggestion.tagName,
+				confidence: Math.min(suggestion.score / 5, 1), // Normalize score to 0-1 range (assuming max score ~5)
+				category: suggestion.category,
+				matchedTag: { id: suggestion.tagId, name: suggestion.tagName },
+				isNewTag: false, // Context suggestions are always existing tags
+				source: suggestion.source,
+				reason: suggestion.reason,
+			}));
+
+			contextTagSources = result.data?.sources || { similar: 0, iptc: 0, location: 0, cooccurrence: 0 };
+		} catch (error) {
+			logger.error('Failed to suggest tags from context:', error);
+			contextTagSuggestionsError = error instanceof Error ? error.message : 'Failed to get context-based tag suggestions';
+		} finally {
+			contextTagSuggestionsLoading = false;
+		}
+	}
+
+	async function handleApplyContextTags(selectedSuggestions: Array<{
+		label: string;
+		confidence: number;
+		category?: string;
+		matchedTag?: { id: string; name: string };
+		isNewTag: boolean;
+	}>) {
+		if (!photoId || selectedSuggestions.length === 0) return;
+
+		try {
+			// Context suggestions are always existing tags (matchedTag is always present)
+			const tagIds: string[] = selectedSuggestions
+				.filter((s) => s.matchedTag)
+				.map((s) => s.matchedTag!.id);
+
+			if (tagIds.length === 0) return;
+
+			const response = await fetch(`/api/admin/photos/${photoId}/apply-tags`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				credentials: 'include',
+				body: JSON.stringify({ tagIds }),
+			});
+
+			const result = await response.json();
+
+			if (!result.success) {
+				throw new Error(result.error || 'Failed to apply tags');
+			}
+
+			// Update formData with applied tags
+			const appliedTagIds = result.data?.appliedTags || [];
+			formData.tags = [...new Set([...formData.tags, ...appliedTagIds])];
+			formData = { ...formData };
+
+			// Reload tags list
+			await loadOptions();
+
+			showContextTagSuggestions = false;
+			notification = {
+				show: true,
+				message: `Successfully applied ${appliedTagIds.length} tag${appliedTagIds.length === 1 ? '' : 's'}`,
+				type: 'success',
+			};
+		} catch (error) {
+			logger.error('Failed to apply context tags:', error);
+			notification = {
+				show: true,
+				message: error instanceof Error ? error.message : 'Failed to apply tags',
+				type: 'error',
+			};
+		}
+	}
+
 	async function handleApplyAITags(selectedSuggestions: Array<{
 		label: string;
 		confidence: number;
@@ -1150,6 +1276,26 @@
 										disabled={!photo || aiTagSuggestionsLoading}
 										on:click={handleSuggestTags}
 									/>
+									<!-- Context-Based Suggest Tags Button -->
+									<button
+										type="button"
+										on:click={handleSuggestTagsFromContext}
+										disabled={!photo || contextTagSuggestionsLoading}
+										class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
+										title="Suggest tags from similar photos, IPTC keywords, location, and patterns"
+									>
+										{#if contextTagSuggestionsLoading}
+											<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+												<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+												<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+											</svg>
+										{:else}
+											<svg class="-ml-1 mr-2 h-4 w-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+											</svg>
+										{/if}
+										Suggest from Context
+									</button>
 								</div>
 							{/if}
 						</div>
@@ -1554,6 +1700,21 @@
 		aiTagSuggestionsError = null;
 	}}
 	on:apply={(e) => handleApplyAITags(e.detail)}
+/>
+
+<TagSuggestionsModal
+	isOpen={showContextTagSuggestions}
+	suggestions={contextTagSuggestions}
+	loading={contextTagSuggestionsLoading}
+	error={contextTagSuggestionsError}
+	provider="context"
+	processingTime={0}
+	on:close={() => {
+		showContextTagSuggestions = false;
+		contextTagSuggestions = [];
+		contextTagSuggestionsError = null;
+	}}
+	on:apply={(e) => handleApplyContextTags(e.detail)}
 />
 
 <CollectionPopup

@@ -51,7 +51,11 @@ export class LocalAIProvider extends BaseAIProvider {
       }
       return this.model !== null;
     } catch (error) {
-      this.logger.warn(`LocalAIProvider not available: ${error instanceof Error ? error.message : String(error)}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.logger.error(`LocalAIProvider not available: ${errorMessage}`);
+      if (error instanceof Error && error.stack) {
+        this.logger.debug(`Stack trace: ${error.stack}`);
+      }
       return false;
     }
   }

@@ -11,6 +11,8 @@
 			name: string;
 		};
 		isNewTag: boolean;
+		source?: string;
+		reason?: string;
 	}> = [];
 	export let loading = false;
 	export let error: string | null = null;
@@ -65,7 +67,7 @@
 			on:click|stopPropagation
 		>
 			<div class="flex justify-between items-center mb-4">
-				<h3 class="text-lg font-semibold">AI Tag Suggestions</h3>
+				<h3 class="text-lg font-semibold">{provider === 'context' ? 'Context-Based Tag Suggestions' : 'AI Tag Suggestions'}</h3>
 				<button
 					type="button"
 					on:click={handleClose}
@@ -135,7 +137,11 @@
 						{/if}
 					</p>
 					<p class="text-xs text-gray-500 mt-1">
-						Select the tags you want to apply. Tags marked as "new" will be created.
+						{#if provider === 'context'}
+							Tags suggested from similar photos, IPTC keywords, location, and patterns.
+						{:else}
+							Select the tags you want to apply. Tags marked as "new" will be created.
+						{/if}
 					</p>
 				</div>
 
@@ -169,10 +175,18 @@
 												{suggestion.category}
 											</span>
 										{/if}
+										{#if suggestion.source}
+											<span class="text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-800">
+												{suggestion.source}
+											</span>
+										{/if}
 										<span class="text-xs text-gray-500">
 											Confidence: {formatConfidence(suggestion.confidence)}
 										</span>
 									</div>
+									{#if suggestion.reason}
+										<p class="text-xs text-gray-400 mt-1">{suggestion.reason}</p>
+									{/if}
 								</div>
 							</label>
 						{/each}

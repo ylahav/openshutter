@@ -6,6 +6,7 @@ import {
 	Delete,
 	Param,
 	Body,
+	Query,
 	Req,
 	Res,
 	UseGuards,
@@ -1924,6 +1925,65 @@ export class PhotosAdminController {
 			}
 			throw new InternalServerErrorException(
 				`Failed to suggest tags: ${error instanceof Error ? error.message : 'Unknown error'}`
+			);
+		}
+	}
+
+	/**
+	 * Suggest tags from context (similar photos, IPTC keywords, location, co-occurrence)
+	 * Path: GET /api/admin/photos/:id/suggest-tags-from-context
+	 * Must be defined before the :id route to avoid route conflicts
+	 */
+	@Get(':id/suggest-tags-from-context')
+	async suggestTagsFromContext(
+		@Param('id') id: string,
+		@Req() req: Request,
+		@Query('maxSuggestions') maxSuggestions?: string,
+		@Query('sources') sourcesParam?: string
+	) {
+		try {
+			await connectDB();
+			const db = mongoose.connection.db;
+			if (!db) throw new InternalServerErrorException('Database connection not established');
+
+			let objectId: Types.ObjectId;
+			try {
+				objectId = new Types.ObjectId(id);
+			} catch (_error) {
+				throw new BadRequestException('Invalid photo ID format');
+			}
+
+			const photo = await db.collection('photos').findOne({ _id: objectId });
+			if (!photo) throw new NotFoundException('Photo not found');
+
+			if ((req as any).user?.role === 'owner') {
+				await this.assertOwnerCanAccessPhoto(req, photo, db);
+			}
+
+			// Import tag suggestions service dynamically
+			const { TagSuggestionsService } = await import('../services/tag-suggestions/tag-suggestions.service');
+			const tagSuggestionsService = new TagSuggestionsService();
+
+			// Parse query parameters
+			const maxSuggestionsNum = maxSuggestions ? parseInt(maxSuggestions, 10) : undefined;
+			const sources = sourcesParam ? sourcesParam.split(',') as ('similar' | 'iptc' | 'location' | 'cooccurrence')[] : undefined;
+
+			const result = await tagSuggestionsService.suggestTagsFromContext(id, {
+				maxSuggestions: maxSuggestionsNum,
+				sources,
+			});
+
+			return {
+				success: true,
+				data: result,
+			};
+		} catch (error) {
+			this.logger.error(`Failed to suggest tags from context: ${error instanceof Error ? error.message : String(error)}`);
+			if (error instanceof NotFoundException || error instanceof BadRequestException) {
+				throw error;
+			}
+			throw new InternalServerErrorException(
+				`Failed to suggest tags from context: ${error instanceof Error ? error.message : 'Unknown error'}`
 			);
 		}
 	}

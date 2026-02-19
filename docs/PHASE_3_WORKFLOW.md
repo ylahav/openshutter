@@ -16,8 +16,9 @@ This document defines the workflow and stages for Phase 3 of the OpenShutter roa
 | 2 | AI-powered photo tagging | High | Stage 1 (optional: bulk import) |
 | 3 | Advanced analytics | Medium | Existing search & tags |
 | 4 | API marketplace | Medium | Stable public API |
-| 5 | Enterprise features | Medium | Access control, API |
 | 6 | Smart tag suggestions & search optimization | Medium | Tags, search, analytics |
+
+**Note:** Stage 5 (Enterprise Features) has been moved to Phase 4.
 
 ---
 
@@ -173,41 +174,16 @@ This document defines the workflow and stages for Phase 3 of the OpenShutter roa
 
 ---
 
-## Stage 5: Enterprise Features
-
-**Goal:** Add capabilities required for larger organizations: SSO, audit logs, quotas, and tenant-style isolation if needed.
-
-### 5.1 Design
-
-- **Candidates:** SSO (SAML/OIDC), audit log (who did what, when), storage/usage quotas, optional multi-tenancy or org hierarchy.
-- **Priority:** Decide order (e.g. audit log first, then SSO, then quotas).
-- **Deliverable:** Enterprise roadmap doc with feature list and priorities.
-
-### 5.2 Implementation
-
-- **Per feature:**
-  - Audit log: backend events (login, album create, photo delete, etc.), API and UI to browse/export.
-  - SSO: integrate with existing auth; config for IdP; JWT/session handling.
-  - Quotas: enforce limits on storage or photo count per user/org; UI and API to show usage.
-- **Deliverable:** Each feature behind config/flag; docs and migration notes.
-
-### 5.3 Acceptance Criteria
-
-- [ ] Audit log records critical actions and is queryable.
-- [ ] SSO (if implemented) allows login via enterprise IdP.
-- [ ] Quotas (if implemented) are enforced and visible to admins/users.
-
----
-
 ## Stage 6: Smart Tag Suggestions & Tag-Based Search Optimization
 
 **Goal:** Improve tagging and search: suggest tags based on existing data and optimize search for tag-based queries.
 
-### 6.1 Design
+### 6.1 Design ✅
 
 - **Smart tag suggestions:** From existing tags on similar photos, from metadata (IPTC keywords, location), or from AI (Stage 2); UX: show in tag input or photo edit.
 - **Search optimization:** Indexing (e.g. tag IDs, full-text); query performance for tag filters; relevance tuning for tag-based queries.
-- **Deliverable:** Short design note linking to Stage 2 and existing search/tag implementation.
+- **Deliverable:** Design doc (e.g. `docs/SMART_TAG_SUGGESTIONS_DESIGN.md`) linking to Stage 2 and existing search/tag implementation.
+- **Status:** ✅ Design document created (`docs/SMART_TAG_SUGGESTIONS_DESIGN.md`)
 
 ### 6.2 Implementation
 
@@ -220,8 +196,8 @@ This document defines the workflow and stages for Phase 3 of the OpenShutter roa
 
 ### 6.3 Acceptance Criteria
 
-- [ ] Context-based tag suggestions available in photo edit and/or upload.
-- [ ] Tag-based search is accurate and performant at current scale.
+- [x] Context-based tag suggestions available in photo edit and/or upload.
+- [x] Tag-based search is accurate and performant at current scale.
 
 ---
 
@@ -232,8 +208,8 @@ This document defines the workflow and stages for Phase 3 of the OpenShutter roa
 - [x] Stage 2 design doc and implementation complete
 - [x] Stage 3 design doc and implementation complete
 - [ ] Stage 4 design doc and implementation complete
-- [ ] Stage 5 design doc and implementation complete
-- [ ] Stage 6 design doc and implementation complete
+- [x] Stage 6 design doc and implementation complete
+- **Note:** Stage 5 (Enterprise Features) moved to Phase 4
 - [ ] README and SYSTEM_PRD roadmap updated with Phase 3 progress
 - [ ] CHANGELOG and release notes updated for Phase 3 releases
 

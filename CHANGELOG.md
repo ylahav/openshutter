@@ -1,6 +1,21 @@
 ## [Unreleased]
 
 ### Added
+- **Smart Tag Suggestions & Tag-Based Search Optimization (Phase 3 Stage 6)** ✅
+  - **Context-based tag suggestions**: Suggest tags based on similar photos, IPTC/XMP keywords, location, and tag co-occurrence patterns
+  - **API endpoint**: `GET /api/admin/photos/:id/suggest-tags-from-context` with optional `maxSuggestions` and `sources` query parameters
+  - **TagSuggestionsService**: Backend service implementing four suggestion sources:
+    - Similar photos analysis (same album, location, EXIF metadata)
+    - IPTC/XMP keyword extraction and matching (exact and fuzzy)
+    - Location-based tag suggestions from photos at the same location
+    - Tag co-occurrence pattern analysis
+  - **Frontend integration**: "Suggest from Context" button in photo edit page alongside AI suggestions
+  - **Enhanced TagSuggestionsModal**: Displays source information (similar, IPTC, location, co-occurrence) and reasons for each suggestion
+  - **Search optimization**: 
+    - Added compound indexes for tag queries: `{ tags: 1, albumId: 1, isPublished: 1 }`, `{ tags: 1, location: 1, isPublished: 1 }`, `{ tags: 1, 'exif.dateTime': 1, isPublished: 1 }`
+    - Relevance scoring for tag-based queries with bonuses for album/location matches
+    - Improved query performance and result relevance
+  - Design documented in `docs/SMART_TAG_SUGGESTIONS_DESIGN.md`
 - **AI-powered photo tagging (Phase 3 Stage 2)** ✅
   - Single-photo and bulk tag suggestions via `POST /api/admin/photos/:id/suggest-tags`, `POST /api/admin/photos/bulk-suggest-tags`, `GET /api/admin/photos/bulk-suggest-tags/:jobId`, `POST /api/admin/photos/:id/apply-tags`
   - Supports **local storage** (file path) and **Google Drive** (download to temp file, process, then cleanup)

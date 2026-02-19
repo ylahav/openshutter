@@ -475,10 +475,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [ ] Site-wide templating system: template “packs” that control layout and styling for home, albums list, album view, about, and Page Builder pages. Each pack is a folder of Svelte components (`Layout`, `Home`, `AlbumsList`, `Album`, `About`, `PageBuilderRenderer`) plus a small `config.ts` describing options. Admin selects the active template and per-template options in Site Config; routes dynamically load the active pack so creating a new template is as simple as copying a folder and tweaking Svelte/Tailwind.
 - [ ] Advanced analytics
 - [ ] API marketplace
-- [ ] Enterprise features
-- [ ] Smart tag suggestions
+- [x] **Smart tag suggestions & tag-based search optimization** – Context-based tag suggestions from similar photos, IPTC keywords, location, and patterns; optimized search with compound indexes and relevance scoring; design in `docs/SMART_TAG_SUGGESTIONS_DESIGN.md`
 
 ### Phase 4 (Next 18 months) *
+- [ ] Enterprise features (SSO, audit logs, quotas, multi-tenancy)
 - [ ] Video support
 - [ ] Advanced collaboration features
 - [ ] Integration marketplace

@@ -184,8 +184,78 @@ export class SearchService {
 		const sortField = filters.sortBy === 'date' ? 'uploadedAt' : 'uploadedAt';
 		const sortOrder = filters.sortOrder === 'asc' ? 1 : -1;
 
+		// Add relevance scoring for tag-based queries
+		const hasTagFilter = filters.tags && filters.tags.length > 0;
+		let tagIdsForScoring: Types.ObjectId[] = [];
+		if (hasTagFilter && filters.tags) {
+			tagIdsForScoring = filters.tags
+				.map((id) => {
+					try {
+						return new Types.ObjectId(id);
+					} catch {
+						return null;
+					}
+				})
+				.filter((id): id is Types.ObjectId => id !== null);
+		}
+
 		const pipeline: any[] = [{ $match: match }];
 		if (textMatch) pipeline.push({ $match: textMatch });
+
+		// Add relevance scoring for tag-based queries
+		if (hasTagFilter && tagIdsForScoring.length > 0) {
+			pipeline.push({
+				$addFields: {
+					relevanceScore: {
+						$add: [
+							// Base score: number of matching tags
+							{
+								$size: {
+									$setIntersection: ['$tags', tagIdsForScoring],
+								},
+							},
+							// Bonus for album match (if filtering by album)
+							...(filters.albumId
+								? [
+										{
+											$cond: [
+												{ $eq: ['$albumId', new Types.ObjectId(filters.albumId)] },
+												0.2,
+												0,
+											],
+										},
+									]
+								: []),
+							// Bonus for location match (if filtering by location)
+							...(filters.locationIds && filters.locationIds.length > 0
+								? [
+										{
+											$cond: [
+												{
+													$in: [
+														'$location',
+														filters.locationIds
+															.map((id) => {
+																try {
+																	return new Types.ObjectId(id);
+																} catch {
+																	return null;
+																}
+															})
+															.filter(Boolean),
+													],
+												},
+												0.2,
+												0,
+											],
+										},
+									]
+								: []),
+						],
+					},
+				},
+			});
+		}
 
 		// Restrict to photos in albums the user can access
 		const visibilityCondition = this.albumsService.getVisibilityCondition(accessContext ?? null);
@@ -203,7 +273,10 @@ export class SearchService {
 
 		const facetStage: any = {
 			photos: [
-				{ $sort: { [sortField]: sortOrder } },
+				// Sort by relevance score first (if tag filter exists), then by sortField
+				...(hasTagFilter && tagIdsForScoring && tagIdsForScoring.length > 0
+					? [{ $sort: { relevanceScore: -1, [sortField]: sortOrder } }]
+					: [{ $sort: { [sortField]: sortOrder } }]),
 				{ $skip: skip },
 				{ $limit: limit },
 				{

@@ -625,11 +625,11 @@ Operational notes:
 - AI-powered photo tagging
 - Advanced analytics
 - API marketplace
-- Enterprise features
 - Smart tag suggestions
 - Tag-based search optimization
 
 ### Phase 4 (Next 18 months)
+- Enterprise features (SSO, audit logs, quotas, multi-tenancy)
 - Video support
 - Advanced collaboration features
 - Integration marketplace

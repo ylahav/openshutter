@@ -236,6 +236,11 @@ PhotoSchema.index({ uploadedAt: -1 })
 PhotoSchema.index({ originalFilename: 1, size: 1 }) // For duplicate detection by filename + size
 // filename index is already defined as unique: true in the schema
 
+// Compound indexes for tag-based search optimization (Stage 6)
+PhotoSchema.index({ tags: 1, albumId: 1, isPublished: 1 }) // For tag queries filtered by album
+PhotoSchema.index({ tags: 1, location: 1, isPublished: 1 }) // For tag queries filtered by location
+PhotoSchema.index({ tags: 1, 'exif.dateTime': 1, isPublished: 1 }) // For tag queries filtered by date
+
 
 
 export const PhotoModel = mongoose.models.Photo || 

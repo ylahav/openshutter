@@ -61,7 +61,15 @@ export class AITaggingService {
       // Check if provider is available
       const isAvailable = await provider.isAvailable();
       if (!isAvailable) {
-        throw new Error(`AI tagging provider is not available. Check configuration.`);
+        const providerName = options.provider || 'auto';
+        throw new Error(
+          `AI tagging provider "${providerName}" is not available. ` +
+          `Check backend logs for details. Common issues: ` +
+          `1) TensorFlow.js model download failed (check network), ` +
+          `2) Missing native dependencies, ` +
+          `3) Model loading timeout. ` +
+          `For local provider, ensure @tensorflow/tfjs-node and @tensorflow-models/mobilenet are installed.`
+        );
       }
 
       // Get raw suggestions from AI provider
