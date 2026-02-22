@@ -253,7 +253,7 @@ html.dark body {
   }
 }
 
-/* Global right-click prevention for images and media */
+/* Global: discourage copying images (no select, no drag). Right-click and Ctrl+C are blocked in JS (PhotoCopyProtection.svelte). */
 img, video, canvas {
   -webkit-user-select: none;
   -moz-user-select: none;

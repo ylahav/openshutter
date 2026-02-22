@@ -191,7 +191,7 @@ import { logger } from '$lib/utils/logger';
 			loadingMore = true;
 			const response = await fetch(
 				`/api/albums/${albumId}/data?page=${nextPage}&limit=50&t=${Date.now()}`,
-				{ cache: 'no-store' }
+				{ cache: 'no-store', credentials: 'include' }
 			);
 			if (response.ok && albumData) {
 				const result = await response.json();
@@ -229,7 +229,21 @@ import { logger } from '$lib/utils/logger';
 				throw new Error(responseData?.error || 'Album not found');
 			}
 
-			albumData = responseData;
+			// Support both direct response and wrapped { data } (e.g. from some proxies)
+			albumData = responseData?.data ?? responseData;
+			// Ensure pagination exists so "Load more" shows when there are more photos
+			if (albumData && albumData.photos) {
+				const limit = 50;
+				if (!albumData.pagination || typeof albumData.pagination.pages !== 'number') {
+					const total = albumData.album?.photoCount ?? albumData.photos.length;
+					albumData.pagination = {
+						page: 1,
+						limit,
+						total: typeof total === 'number' ? total : albumData.photos.length,
+						pages: Math.max(1, Math.ceil((typeof total === 'number' ? total : albumData.photos.length) / limit)),
+					};
+				}
+			}
 			logger.debug('Album data loaded:', albumData);
 
 			// Open lightbox at photo from hash (#p=index) when sharing a single photo
@@ -517,14 +531,17 @@ import { logger } from '$lib/utils/logger';
 						{/each}
 					</div>
 
-					{#if albumData.pagination && albumData.pagination.page < albumData.pagination.pages}
+					{@const hasMorePages = albumData.pagination && albumData.pagination.page < albumData.pagination.pages}
+					{@const totalCount = albumData.pagination?.total ?? albumData.album?.photoCount ?? albumData.photos.length}
+					{@const hasMorePhotos = hasMorePages || (totalCount > albumData.photos.length)}
+					{#if hasMorePhotos}
 						<div class="text-center mt-8">
 							<button
 								on:click={loadMorePhotos}
 								disabled={loadingMore}
 								class="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
 							>
-								{loadingMore ? $t('search.loading') : `${$t('search.loadMore')} (${albumData.pagination.total - albumData.photos.length} ${$t('albums.remaining')})`}
+								{loadingMore ? $t('search.loading') : `${$t('search.loadMore')} (${totalCount - albumData.photos.length} ${$t('albums.remaining')})`}
 							</button>
 						</div>
 					{/if}

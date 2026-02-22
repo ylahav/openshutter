@@ -53,7 +53,10 @@
 		try {
 			loading = true;
 			error = null;
-			const res = await fetch(`/api/albums/by-alias/${alias}/data`, { credentials: 'include' });
+			const res = await fetch(`/api/albums/${encodeURIComponent(alias)}/data?page=1&limit=50&t=${Date.now()}`, {
+				cache: 'no-store',
+				credentials: 'include',
+			});
 			const data = await res.json().catch(() => ({}));
 			if (!res.ok) {
 				if (res.status === 403) {

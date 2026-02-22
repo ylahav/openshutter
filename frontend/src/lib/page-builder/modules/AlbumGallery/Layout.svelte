@@ -51,7 +51,9 @@
 			if (albumSource === 'current' && currentAlbumAlias) {
 				// Fetch the current album from URL alias
 				try {
-					const response = await fetch(`/api/albums/${encodeURIComponent(currentAlbumAlias)}/data?page=1&limit=50`);
+					const response = await fetch(`/api/albums/${encodeURIComponent(currentAlbumAlias)}/data?page=1&limit=50&t=${Date.now()}`, {
+						credentials: 'include',
+					});
 					if (response.ok) {
 						const result = await response.json();
 						const albumData = result.success ? result.data : result;

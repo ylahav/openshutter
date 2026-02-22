@@ -10,6 +10,7 @@
 	import ThemeProvider from '$lib/components/ThemeProvider.svelte';
 	import ThemeColorApplier from '$lib/components/ThemeColorApplier.svelte';
 	import TokenRenewalNotification from '$lib/components/TokenRenewalNotification.svelte';
+	import PhotoCopyProtection from '$lib/components/PhotoCopyProtection.svelte';
 	import { logger } from '$lib/utils/logger';
 
 	// Initialize site config and auth on mount (skip on login page)
@@ -39,6 +40,7 @@
 </script>
 
 <ThemeProvider defaultTheme="system" enableSystem={true} disableTransitionOnChange={false}>
+	<PhotoCopyProtection />
 	<ThemeColorApplier />
 	<TokenRenewalNotification />
 	<HeaderTemplateSwitcher />

@@ -565,6 +565,7 @@
 		role="dialog"
 		aria-modal="true"
 		style="color: white;"
+		data-no-context-menu
 	>
 		<!-- Top bar: explicit white text/icons so visible in all templates (e.g. elegant) -->
 		<div class="photo-lightbox-toolbar flex items-center justify-between px-4 py-3 text-sm text-white bg-black/40 shrink-0 border-b border-white/10">
