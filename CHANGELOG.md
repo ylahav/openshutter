@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+### Fixed
+- **Elegant theme – album load more**: Album page now shows a “Load more” button for large albums; pagination (first 50 photos, then load next page) was previously missing in the elegant template.
+
 ### Added
 - **Smart Tag Suggestions & Tag-Based Search Optimization (Phase 3 Stage 6)** ✅
   - **Context-based tag suggestions**: Suggest tags based on similar photos, IPTC/XMP keywords, location, and tag co-occurrence patterns

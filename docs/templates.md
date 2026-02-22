@@ -298,6 +298,7 @@ OpenShutter includes three demo templates:
 - Elegant typography (Playfair Display for headings)
 - Rich animations and decorative elements
 - Luxury aesthetic with backdrop blur effects
+- Album page supports **load-more** pagination for large albums (first 50 photos, then “Load more”)
 - Category: `elegant`
 
 ---
@@ -464,5 +465,6 @@ The navigation menu can be fully customized through the admin interface at `/adm
 - **Header Override UI**: Admin can now configure all header visibility options through `/admin/templates/overrides` interface
 - **Theme Toggle Implementation**: Dark/light mode toggle is now fully implemented and can be hidden via header config
 - **Auth Buttons & Greeting Controls**: Username display and logout button visibility can now be controlled independently
+- **Elegant template – album load more**: Album page supports load-more pagination for large albums (aligned with default/modern behaviour).
 
-Last updated: January 2025
+Last updated: February 2025

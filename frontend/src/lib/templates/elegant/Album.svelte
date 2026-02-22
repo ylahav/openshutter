@@ -3,8 +3,9 @@
 	import { page } from '$app/stores';
 	import { afterNavigate } from '$app/navigation';
 	import { browser } from '$app/environment';
-	import { currentLanguage } from '$stores/language';
-	import { siteConfigData } from '$stores/siteConfig';
+import { currentLanguage } from '$stores/language';
+import { siteConfigData } from '$stores/siteConfig';
+import { t } from '$stores/i18n';
 import { MultiLangUtils } from '$utils/multiLang';
 import MultiLangText from '$lib/components/MultiLangText.svelte';
 import AlbumBreadcrumbs from '$lib/components/AlbumBreadcrumbs.svelte';
@@ -23,6 +24,12 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 		};
 		subAlbums: any[];
 		photos: any[];
+		pagination?: {
+			page: number;
+			limit: number;
+			total: number;
+			pages: number;
+		};
 	}
 
 	let alias = $page.params.alias || $page.params.id;
@@ -31,6 +38,7 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 	let error: string | null = null;
 	let lightboxOpen = false;
 	let lightboxIndex = 0;
+	let loadingMore = false;
 	let isInitialLoad = true;
 	let photoLoaded: Record<string, boolean> = {};
 	let subAlbumCoverImages: Record<string, string> = {};
@@ -78,6 +86,19 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 				throw new Error(data?.error || 'Album not found');
 			}
 			albumData = data;
+			// Ensure pagination exists so "Load more" shows when there are more photos
+			if (albumData && albumData.photos) {
+				const limit = 50;
+				if (!albumData.pagination || typeof albumData.pagination.pages !== 'number') {
+					const total = albumData.album?.photoCount ?? albumData.photos.length;
+					albumData.pagination = {
+						page: 1,
+						limit,
+						total: typeof total === 'number' ? total : albumData.photos.length,
+						pages: Math.max(1, Math.ceil((typeof total === 'number' ? total : albumData.photos.length) / limit)),
+					};
+				}
+			}
 			logger.debug('Album data loaded:', albumData);
 			// Open lightbox at photo from hash (#p=index) when sharing a single photo
 			if (browser && data?.photos?.length) {
@@ -106,6 +127,34 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 		lightboxOpen = true;
 	}
 
+	async function loadMorePhotos() {
+		if (!albumData || !albumData.pagination || loadingMore || !albumData.album) return;
+		const albumId = albumData.album._id;
+		const pagination = albumData.pagination;
+		const nextPage = pagination.page + 1;
+		if (nextPage > pagination.pages) return;
+
+		try {
+			loadingMore = true;
+			const res = await fetch(
+				`/api/albums/${albumId}/data?page=${nextPage}&limit=50&t=${Date.now()}`,
+				{ cache: 'no-store', credentials: 'include' }
+			);
+			if (res.ok && albumData) {
+				const result = await res.json().catch(() => ({}));
+				const newPhotos = result.photos || [];
+				const nextPagination = result.pagination || { ...pagination, page: nextPage };
+				albumData = {
+					...albumData,
+					photos: [...albumData.photos, ...newPhotos],
+					pagination: nextPagination,
+				};
+			}
+		} finally {
+			loadingMore = false;
+		}
+	}
+
 	async function fetchSubAlbumCoverImages(albumIds: string[]) {
 		if (albumIds.length === 0) return;
 		try {
@@ -129,6 +178,13 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 	// Photo URL function is now imported from shared utility
 	$: showAlbumShare = $siteConfigData?.features?.enableSharing !== false && $siteConfigData?.features?.sharingOnAlbum !== false;
 	$: showPhotoShare = $siteConfigData?.features?.enableSharing !== false && $siteConfigData?.features?.sharingOnPhoto !== false;
+
+	$: hasMorePhotos = albumData?.photos && (
+		(albumData.pagination && albumData.pagination.page < albumData.pagination.pages) ||
+		((albumData.pagination?.total ?? albumData.album?.photoCount ?? albumData.photos.length) > albumData.photos.length)
+	);
+	$: totalPhotoCount = albumData?.pagination?.total ?? albumData?.album?.photoCount ?? albumData?.photos?.length ?? 0;
+	$: remainingCount = albumData?.photos ? Math.max(0, totalPhotoCount - albumData.photos.length) : 0;
 </script>
 
 {#if loading}
@@ -368,6 +424,18 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 						</div>
 					{/each}
 				</div>
+				{#if hasMorePhotos}
+					<div class="text-center mt-10">
+						<button
+							on:click={loadMorePhotos}
+							disabled={loadingMore}
+							class="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-serif"
+							style="font-family: 'Playfair Display', serif;"
+						>
+							{loadingMore ? $t('search.loading') : `${$t('search.loadMore')} (${remainingCount} ${$t('albums.remaining')})`}
+						</button>
+					</div>
+				{/if}
 			</div>
 		{:else}
 			{#if !albumData.subAlbums || albumData.subAlbums.length === 0}
