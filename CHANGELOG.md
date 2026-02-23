@@ -4,6 +4,7 @@
 - **Elegant theme – album load more**: Album page now shows a “Load more” button for large albums; pagination (first 50 photos, then load next page) was previously missing in the elegant template.
 
 ### Added
+- **Phase 3 complete**: All Phase 3 stages implemented (Migration, AI tagging, Advanced analytics, API marketplace, Smart tag suggestions & search optimization). See `docs/PHASE_3_WORKFLOW.md`.
 - **Smart Tag Suggestions & Tag-Based Search Optimization (Phase 3 Stage 6)** ✅
   - **Context-based tag suggestions**: Suggest tags based on similar photos, IPTC/XMP keywords, location, and tag co-occurrence patterns
   - **API endpoint**: `GET /api/admin/photos/:id/suggest-tags-from-context` with optional `maxSuggestions` and `sources` query parameters

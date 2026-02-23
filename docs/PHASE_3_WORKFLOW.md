@@ -2,7 +2,7 @@
 
 **Branch:** `phase-3`  
 **Horizon:** Next 12 months  
-**Status:** Planning
+**Status:** Complete
 
 This document defines the workflow and stages for Phase 3 of the OpenShutter roadmap. Each stage includes goals, deliverables, and acceptance criteria.
 
@@ -156,21 +156,21 @@ This document defines the workflow and stages for Phase 3 of the OpenShutter roa
 - **Deliverable:** API product doc and marketplace concept (e.g. `docs/API_MARKETPLACE.md`).
 - **Status:** ✅ Design document created (`docs/API_MARKETPLACE.md`)
 
-### 4.2 Implementation (in progress)
+### 4.2 Implementation ✅
 
-- **Backend (done):**
-  - Public API versioning (`/api/v1/`); API key creation, scopes, and CRUD; rate limiting by tier; v1 endpoints: albums, photos, tags, people, locations, pages, search.
-  - OpenAPI/Swagger at `/api/v1/docs` (requires `pnpm install` in backend; see `backend/SWAGGER_SETUP.md`).
+- **Backend:**
+  - ✅ Public API versioning (`/api/v1/`); API key creation, scopes, and CRUD; rate limiting by tier; v1 endpoints: albums, photos, tags, people, locations, pages, search.
+  - ✅ OpenAPI/Swagger at `/api/v1/docs` (requires `pnpm install` in backend; see `backend/SWAGGER_SETUP.md`).
 - **Frontend / Docs:**
-  - Developer portal: `/developers` (overview), `/developers/keys` (API key CRUD), `/developers/docs` (Swagger). Accessible to owner and admin.
-  - Marketplace: `/marketplace` (public list by category), `/marketplace/[id]` (listing detail), `/marketplace/submit` (submit form, owner/admin). Admin: `/admin/marketplace` (approve/edit/delete listings).
-- **Deliverable:** Working public API + developer portal + marketplace listing.
+  - ✅ Developer portal: `/developers` (overview), `/developers/keys` (API key CRUD), `/developers/docs` (Swagger). Accessible to owner and admin.
+  - ✅ Marketplace: `/marketplace` (public list by category), `/marketplace/[id]` (listing detail), `/marketplace/submit` (submit form, owner/admin). Admin: `/admin/marketplace` (approve/edit/delete listings).
+- **Deliverable:** ✅ Working public API + developer portal + marketplace listing.
 
 ### 4.3 Acceptance Criteria
 
-- [ ] Public API is documented and versioned.
-- [ ] API keys can be created and scoped; rate limits apply.
-- [ ] Marketplace page exists and is maintainable (e.g. config or CMS).
+- [x] Public API is documented and versioned.
+- [x] API keys can be created and scoped; rate limits apply.
+- [x] Marketplace page exists and is maintainable (e.g. config or CMS).
 
 ---
 
@@ -207,11 +207,11 @@ This document defines the workflow and stages for Phase 3 of the OpenShutter roa
 - [x] Stage 1 design doc and implementation complete
 - [x] Stage 2 design doc and implementation complete
 - [x] Stage 3 design doc and implementation complete
-- [ ] Stage 4 design doc and implementation complete
+- [x] Stage 4 design doc and implementation complete
 - [x] Stage 6 design doc and implementation complete
 - **Note:** Stage 5 (Enterprise Features) moved to Phase 4
-- [ ] README and SYSTEM_PRD roadmap updated with Phase 3 progress
-- [ ] CHANGELOG and release notes updated for Phase 3 releases
+- [x] README and SYSTEM_PRD roadmap updated with Phase 3 progress
+- [x] CHANGELOG and release notes updated for Phase 3 releases
 
 ---
 

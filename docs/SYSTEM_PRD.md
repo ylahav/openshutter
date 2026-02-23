@@ -620,13 +620,12 @@ Operational notes:
 - Enhanced tag analytics
 - Tag-based recommendations
 
-### Phase 3 (Next 12 months)
-- Design then implement Import/Sync (currently disabled)
-- AI-powered photo tagging
-- Advanced analytics
-- API marketplace
-- Smart tag suggestions
-- Tag-based search optimization
+### Phase 3 (Next 12 months) ✅ Complete
+- **Import/Sync & storage migration** ✅: Export/import portable packages, import from raw folders, migrate storage between providers (see `docs/IMPORT_SYNC_DESIGN.md`, `docs/PHASE_3_WORKFLOW.md`)
+- **AI-powered photo tagging** ✅
+- **Advanced analytics** ✅
+- **API marketplace** ✅: Public API, API keys, developer portal, marketplace listings
+- **Smart tag suggestions & tag-based search optimization** ✅
 
 ### Phase 4 (Next 18 months)
 - Enterprise features (SSO, audit logs, quotas, multi-tenancy)
