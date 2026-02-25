@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import type { PageData } from './$types';
+	import { productName } from '$stores/siteConfig';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 	import { logger } from '$lib/utils/logger';
 
@@ -21,6 +22,7 @@
 		developerName: '',
 		developerEmail: '',
 		version: '1.0.0',
+		tags: '' as string,
 		documentationUrl: '',
 		downloadUrl: '',
 		repositoryUrl: '',
@@ -48,6 +50,8 @@
 			if (form.documentationUrl.trim()) body.documentationUrl = form.documentationUrl.trim();
 			if (form.downloadUrl.trim()) body.downloadUrl = form.downloadUrl.trim();
 			if (form.repositoryUrl.trim()) body.repositoryUrl = form.repositoryUrl.trim();
+			const tags = form.tags.trim().split(',').map((t) => t.trim()).filter(Boolean);
+			if (tags.length) body.tags = tags;
 			const res = await fetch('/api/admin/marketplace', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
@@ -72,7 +76,7 @@
 </script>
 
 <svelte:head>
-	<title>Submit integration - Marketplace - OpenShutter</title>
+	<title>Submit integration - Marketplace - {$productName}</title>
 </svelte:head>
 
 <div class="max-w-2xl mx-auto px-4 py-8">
@@ -117,6 +121,10 @@
 			<div>
 				<label for="version" class="block text-sm font-medium text-gray-700">Version</label>
 				<input id="version" type="text" bind:value={form.version} class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm" placeholder="1.0.0" />
+			</div>
+			<div>
+				<label for="tags" class="block text-sm font-medium text-gray-700">Tags (comma-separated)</label>
+				<input id="tags" type="text" bind:value={form.tags} class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm" placeholder="export, cli, backup" />
 			</div>
 			<div>
 				<label for="documentationUrl" class="block text-sm font-medium text-gray-700">Documentation URL</label>

@@ -121,6 +121,12 @@ export interface SiteConfig {
     subject?: string
     body?: string
   }
+  /** White-label (Solution 1): hide OpenShutter branding and use site title everywhere; optional legal URLs */
+  whiteLabel?: {
+    hideOpenShutterBranding?: boolean
+    termsOfServiceUrl?: string
+    privacyPolicyUrl?: string
+  }
   createdAt: Date
   updatedAt: Date
 }
@@ -141,4 +147,5 @@ export interface SiteConfigUpdate {
   iptcXmpMetadata?: Partial<SiteConfig['iptcXmpMetadata']>
   mail?: Partial<SiteConfig['mail']>
   welcomeEmail?: Partial<SiteConfig['welcomeEmail']>
+  whiteLabel?: Partial<SiteConfig['whiteLabel']>
 }

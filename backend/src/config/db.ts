@@ -23,10 +23,8 @@ export const connectDB = async () => {
   }
 
   // Otherwise, connect (this should rarely happen in NestJS context)
-  const MONGODB_URI = process.env.MONGODB_URI;
-  if (!MONGODB_URI) {
-    throw new Error('Please define the MONGODB_URI environment variable');
-  }
+  // Use same default as configuration.ts so services that call connectDB() work without .env
+  const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/openshutter';
 
   try {
     const conn = await mongoose.connect(MONGODB_URI);

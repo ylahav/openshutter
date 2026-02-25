@@ -65,7 +65,7 @@ export default defineConfig({
 					if (
 						url.startsWith('/api/auth/login') ||
 						url.startsWith('/api/auth/google/') ||
-						url.startsWith('/api/admin/storage') ||
+						// /api/admin/storage is proxied to backend (no SvelteKit handler)
 						url.startsWith('/api/admin/storage-options') ||
 						url.startsWith('/api/admin/translations') ||
 						url.startsWith('/api/admin/template-builder') ||

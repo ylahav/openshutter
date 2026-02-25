@@ -1,8 +1,8 @@
 import { Logger } from '@nestjs/common'
 import { AlbumModel } from '../models/Album'
 import { PhotoModel, IPhoto } from '../models/Photo'
-import mongoose from 'mongoose'
 import { siteConfigService } from './site-config'
+import { connectDB } from '../config/db'
 
 export interface AlbumLeadingPhotoResult {
   photo: IPhoto | null
@@ -22,6 +22,7 @@ export class AlbumLeadingPhotoService {
    */
   static async getAlbumLeadingPhoto(albumId: string): Promise<AlbumLeadingPhotoResult> {
     try {
+      await connectDB()
       const album = await AlbumModel.findById(albumId)
       if (!album) {
         return { photo: null, source: 'none', albumId }
@@ -139,6 +140,7 @@ export class AlbumLeadingPhotoService {
    * Get leading photos for multiple albums efficiently
    */
   static async getMultipleAlbumLeadingPhotos(albumIds: string[]): Promise<Map<string, AlbumLeadingPhotoResult>> {
+    await connectDB()
     const results = new Map<string, AlbumLeadingPhotoResult>()
     
     // Process albums in parallel

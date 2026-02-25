@@ -90,6 +90,11 @@ export interface SiteConfig {
     enableWatermark: boolean
     maxUploadSize: string
   }
+  whiteLabel?: {
+    hideOpenShutterBranding?: boolean
+    termsOfServiceUrl?: string
+    privacyPolicyUrl?: string
+  }
   createdAt: Date
   updatedAt: Date
 }
@@ -106,4 +111,5 @@ export interface SiteConfigUpdate {
   contact?: Partial<SiteConfig['contact']>
   homePage?: Partial<SiteConfig['homePage']>
   features?: Partial<SiteConfig['features']>
+  whiteLabel?: Partial<SiteConfig['whiteLabel']>
 }

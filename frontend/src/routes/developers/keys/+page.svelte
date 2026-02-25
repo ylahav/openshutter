@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { productName } from '$stores/siteConfig';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 	import { logger } from '$lib/utils/logger';
 
@@ -164,7 +165,7 @@
 </script>
 
 <svelte:head>
-	<title>API Keys - Developer Portal - OpenShutter</title>
+	<title>API Keys - Developer Portal - {$productName}</title>
 </svelte:head>
 
 <div class="space-y-6">

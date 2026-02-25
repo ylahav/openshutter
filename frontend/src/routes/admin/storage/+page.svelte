@@ -321,7 +321,15 @@
 
 	async function checkGoogleDriveTokenValidity() {
 		const googleDriveConfig = configs.find(c => c.providerId === 'google-drive');
-		if (!googleDriveConfig?.isEnabled || !googleDriveConfig.config.refreshToken) {
+		if (!googleDriveConfig?.isEnabled) {
+			tokenInvalid = false;
+			return;
+		}
+		if ((googleDriveConfig.config.authMethod || 'oauth') === 'service_account') {
+			tokenInvalid = false;
+			return;
+		}
+		if (!googleDriveConfig.config.refreshToken) {
 			tokenInvalid = false;
 			return;
 		}
@@ -518,8 +526,8 @@
 							<div>
 								<h2 class="text-xl font-semibold text-gray-900 mb-4">Google Drive Configuration</h2>
 								
-								<!-- Token Invalid Warning Banner -->
-								{#if tokenInvalid}
+								<!-- Token Invalid Warning Banner (OAuth only) -->
+								{#if tokenInvalid && (currentFormData.authMethod || 'oauth') === 'oauth'}
 									<div class="bg-red-50 border-l-4 border-red-500 p-4 mb-4">
 										<div class="flex items-start">
 											<div class="shrink-0">
@@ -607,109 +615,164 @@
 									</div>
 
 									<div>
-										<label for="gd-client-id" class="block text-sm font-medium text-gray-700 mb-2">
-											Client ID
-										</label>
-										<input
-											type="text"
-											id="gd-client-id"
-											value={currentFormData.clientId || ''}
-											on:input={(e) => updateFormData('clientId', e.currentTarget.value)}
-											class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-											placeholder="Enter Google OAuth Client ID"
-										/>
-									</div>
-
-									<div>
-										<label for="gd-client-secret" class="block text-sm font-medium text-gray-700 mb-2">
-											Client Secret
-										</label>
-										<input
-											type="password"
-											id="gd-client-secret"
-											value={currentFormData.clientSecret || ''}
-											on:input={(e) => updateFormData('clientSecret', e.currentTarget.value)}
-											class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-											placeholder="Enter Google OAuth Client Secret"
-										/>
-									</div>
-
-									<div>
-										<label for="gd-refresh-token" class="block text-sm font-medium text-gray-700 mb-2">
-											Refresh Token
-										</label>
-										<div class="flex gap-3">
-											<input
-												type="text"
-												id="gd-refresh-token"
-												value={currentFormData.refreshToken || ''}
-												on:input={(e) => updateFormData('refreshToken', e.currentTarget.value)}
-												class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-												placeholder="Enter OAuth Refresh Token (or click Renew Token)"
-											/>
-											<button
-												type="button"
-												on:click={startGoogleOAuth}
-												class="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-											>
-												Renew Token
-											</button>
-										</div>
-										<p class="mt-1 text-xs text-gray-500">
-											Click <strong>Renew Token</strong> to open Google's authorization window and
-											automatically save a new refresh token.
-										</p>
-									</div>
-
-									<div>
-										<label for="gd-storage-type" class="block text-sm font-medium text-gray-700 mb-2">
-											Storage Type
+										<label for="gd-auth-method" class="block text-sm font-medium text-gray-700 mb-2">
+											Auth method
 										</label>
 										<select
-											id="gd-storage-type"
-											value={currentFormData.storageType || 'appdata'}
-											on:change={(e) => updateFormData('storageType', e.currentTarget.value)}
+											id="gd-auth-method"
+											value={currentFormData.authMethod || 'oauth'}
+											on:change={(e) => updateFormData('authMethod', e.currentTarget.value)}
 											class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
 										>
-											<option value="appdata">Hidden (AppData Folder)</option>
-											<option value="visible">Visible in User's Drive</option>
+											<option value="oauth">OAuth (Client ID + refresh token)</option>
+											<option value="service_account">Service account (recommended for production)</option>
 										</select>
 										<p class="mt-1 text-xs text-gray-500">
-											{#if (currentFormData.storageType || 'appdata') === 'appdata'}
-												Files will be hidden from users in AppData folder
-											{:else}
-												Files will be visible in user's Google Drive
-											{/if}
+											Service account avoids OAuth popups and token expiry. Create a service account in Google Cloud, share a Drive folder with its email, then paste the JSON key below.
 										</p>
 									</div>
 
-									{#if googleDriveMessage}
-										<div
-											class="mt-2 rounded-md p-3 text-sm {googleDriveMessage.type === 'success'
-												? 'bg-green-50 text-green-800'
-												: 'bg-red-50 text-red-800'}"
-										>
-											{googleDriveMessage.text}
-										</div>
-									{/if}
-
-									{#if (currentFormData.storageType || 'appdata') === 'visible'}
+									{#if (currentFormData.authMethod || 'oauth') === 'service_account'}
+										<!-- Service account: JSON key + Folder ID -->
 										<div>
-											<label for="gd-folder-id" class="block text-sm font-medium text-gray-700 mb-2">
-												Folder ID (Optional)
+											<label for="gd-service-account-json" class="block text-sm font-medium text-gray-700 mb-2">
+												Service account JSON
+											</label>
+											<textarea
+												id="gd-service-account-json"
+												rows="8"
+												value={currentFormData.serviceAccountJson || ''}
+												on:input={(e) => updateFormData('serviceAccountJson', e.currentTarget.value)}
+												class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+												placeholder='Paste the full contents of your service account key JSON (from Google Cloud Console → IAM → Service Accounts → Keys → Add key → JSON). Must include "client_email" and "private_key".'
+											></textarea>
+											<p class="mt-1 text-xs text-gray-500">
+												Download the JSON key from Google Cloud Console → IAM &amp; Admin → Service Accounts → your account → Keys → Add key → Create new key → JSON.
+											</p>
+										</div>
+										<div>
+											<label for="gd-sa-folder-id" class="block text-sm font-medium text-gray-700 mb-2">
+												Folder ID <span class="text-red-600">*</span>
 											</label>
 											<input
 												type="text"
-												id="gd-folder-id"
+												id="gd-sa-folder-id"
 												value={currentFormData.folderId || ''}
 												on:input={(e) => updateFormData('folderId', e.currentTarget.value)}
 												class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-												placeholder="Leave empty to use root folder"
+												placeholder="e.g. 1ABC123xyz"
 											/>
 											<p class="mt-1 text-xs text-gray-500">
-												Google Drive folder ID where files will be stored. Leave empty for root folder.
+												Create a folder in Google Drive, share it with the service account email (Editor). Copy the folder ID from the URL: <code class="bg-gray-100 px-1">drive.google.com/drive/folders/<strong>FOLDER_ID</strong></code>
 											</p>
 										</div>
+									{:else}
+										<!-- OAuth: Client ID, Secret, Refresh Token, Storage type -->
+										<div>
+											<label for="gd-client-id" class="block text-sm font-medium text-gray-700 mb-2">
+												Client ID
+											</label>
+											<input
+												type="text"
+												id="gd-client-id"
+												value={currentFormData.clientId || ''}
+												on:input={(e) => updateFormData('clientId', e.currentTarget.value)}
+												class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+												placeholder="Enter Google OAuth Client ID"
+											/>
+										</div>
+
+										<div>
+											<label for="gd-client-secret" class="block text-sm font-medium text-gray-700 mb-2">
+												Client Secret
+											</label>
+											<input
+												type="password"
+												id="gd-client-secret"
+												value={currentFormData.clientSecret || ''}
+												on:input={(e) => updateFormData('clientSecret', e.currentTarget.value)}
+												class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+												placeholder="Enter Google OAuth Client Secret"
+											/>
+										</div>
+
+										<div>
+											<label for="gd-refresh-token" class="block text-sm font-medium text-gray-700 mb-2">
+												Refresh Token
+											</label>
+											<div class="flex gap-3">
+												<input
+													type="text"
+													id="gd-refresh-token"
+													value={currentFormData.refreshToken || ''}
+													on:input={(e) => updateFormData('refreshToken', e.currentTarget.value)}
+													class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+													placeholder="Enter OAuth Refresh Token (or click Renew Token)"
+												/>
+												<button
+													type="button"
+													on:click={startGoogleOAuth}
+													class="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+												>
+													Renew Token
+												</button>
+											</div>
+											<p class="mt-1 text-xs text-gray-500">
+												Click <strong>Renew Token</strong> to open Google's authorization window and
+												automatically save a new refresh token.
+											</p>
+										</div>
+
+										<div>
+											<label for="gd-storage-type" class="block text-sm font-medium text-gray-700 mb-2">
+												Storage Type
+											</label>
+											<select
+												id="gd-storage-type"
+												value={currentFormData.storageType || 'appdata'}
+												on:change={(e) => updateFormData('storageType', e.currentTarget.value)}
+												class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+											>
+												<option value="appdata">Hidden (AppData Folder)</option>
+												<option value="visible">Visible in User's Drive</option>
+											</select>
+											<p class="mt-1 text-xs text-gray-500">
+												{#if (currentFormData.storageType || 'appdata') === 'appdata'}
+													Files will be hidden from users in AppData folder
+												{:else}
+													Files will be visible in user's Google Drive
+												{/if}
+											</p>
+										</div>
+
+										{#if googleDriveMessage}
+											<div
+												class="mt-2 rounded-md p-3 text-sm {googleDriveMessage.type === 'success'
+													? 'bg-green-50 text-green-800'
+													: 'bg-red-50 text-red-800'}"
+											>
+												{googleDriveMessage.text}
+											</div>
+										{/if}
+
+										{#if (currentFormData.storageType || 'appdata') === 'visible'}
+											<div>
+												<label for="gd-folder-id" class="block text-sm font-medium text-gray-700 mb-2">
+													Folder ID (Optional)
+												</label>
+												<input
+													type="text"
+													id="gd-folder-id"
+													value={currentFormData.folderId || ''}
+													on:input={(e) => updateFormData('folderId', e.currentTarget.value)}
+													class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+													placeholder="Leave empty to use root folder"
+												/>
+												<p class="mt-1 text-xs text-gray-500">
+													Google Drive folder ID where files will be stored. Leave empty for root folder.
+												</p>
+											</div>
+										{/if}
 									{/if}
 
 									<div class="flex gap-4">

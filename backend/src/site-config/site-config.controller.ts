@@ -36,6 +36,7 @@ export class SiteConfigController {
       template: config.template,
       exifMetadata: config.exifMetadata,
       iptcXmpMetadata: config.iptcXmpMetadata,
+      whiteLabel: config.whiteLabel,
     };
   }
 
@@ -64,6 +65,7 @@ export class SiteConfigController {
         iptcXmpMetadata: config.iptcXmpMetadata ?? { displayFields: [] },
         mail: config.mail ? { ...config.mail, password: config.mail.password ? '****' : '' } : undefined,
         welcomeEmail: config.welcomeEmail,
+        whiteLabel: config.whiteLabel,
       };
     } catch (error) {
       this.logger.error('getAdminConfig failed', error instanceof Error ? error.stack : String(error));
@@ -97,6 +99,7 @@ export class SiteConfigController {
       iptcXmpMetadata: config.iptcXmpMetadata,
       mail: config.mail ? { ...config.mail, password: config.mail.password ? '****' : '' } : undefined,
       welcomeEmail: config.welcomeEmail,
+      whiteLabel: config.whiteLabel,
     };
   }
 

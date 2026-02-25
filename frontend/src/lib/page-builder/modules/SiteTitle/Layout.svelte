@@ -1,12 +1,12 @@
 <script lang="ts">
 	import { siteConfigData } from '$stores/siteConfig';
 	import { currentLanguage } from '$stores/language';
-	import { MultiLangUtils } from '$lib/utils/multiLang';
+	import { getProductName } from '$lib/utils/productName';
 
 	export let config: any = {};
 	export let templateConfig: Record<string, any> = {};
 
-	$: title = $siteConfigData?.title ? MultiLangUtils.getTextValue($siteConfigData.title, $currentLanguage) : 'OpenShutter';
+	$: title = getProductName($siteConfigData ?? null, $currentLanguage);
 	$: linkToHome = config?.showAsLink !== false;
 </script>
 

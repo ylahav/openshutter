@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
+	import { productName } from '$stores/siteConfig';
 
 	// Swagger UI is served by the backend at /api/v1/docs when backend is running
 	let docsUrl = '';
@@ -13,7 +14,7 @@
 </script>
 
 <svelte:head>
-	<title>API Docs - Developer Portal - OpenShutter</title>
+	<title>API Docs - Developer Portal - {$productName}</title>
 </svelte:head>
 
 <div class="space-y-6">

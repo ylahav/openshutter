@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { currentLanguage } from '$stores/language';
+	import { productName } from '$stores/siteConfig';
 	import { MultiLangUtils } from '$utils/multiLang';
 	import { t } from '$stores/i18n';
 	import { getAlbumName, getAlbumDescription } from '$lib/utils/albumUtils';
@@ -99,7 +100,7 @@
 </script>
 
 <svelte:head>
-	<title>Albums - OpenShutter</title>
+	<title>Albums - {$productName}</title>
 </svelte:head>
 
 {#if isLoading}

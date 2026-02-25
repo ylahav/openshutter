@@ -4,6 +4,7 @@
 	import PageRenderer from '$lib/page-builder/PageRenderer.svelte';
 	import { MultiLangUtils } from '$lib/utils/multiLang';
 	import { currentLanguage } from '$stores/language';
+	import { productName } from '$stores/siteConfig';
 	import type { PageData, PageModuleData } from '$lib/types/page-builder';
 
 	export let data: {
@@ -25,7 +26,7 @@
 </script>
 
 <svelte:head>
-	<title>{pageData ? getTextValue(pageData.title) : 'Page'} - OpenShutter</title>
+	<title>{pageData ? getTextValue(pageData.title) : 'Page'} - {$productName}</title>
 </svelte:head>
 
 <div class="min-h-screen flex flex-col">

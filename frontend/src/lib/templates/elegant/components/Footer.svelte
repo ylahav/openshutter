@@ -1,5 +1,10 @@
 <script lang="ts">
+	import { siteConfigData } from '$stores/siteConfig';
+	import { currentLanguage } from '$stores/language';
+	import { getProductName } from '$lib/utils/productName';
+
 	const year = new Date().getFullYear();
+	$: productName = getProductName($siteConfigData ?? null, $currentLanguage);
 </script>
 
 <footer class="bg-gray-100 dark:bg-black/95 backdrop-blur-md border-t border-gray-200 dark:border-purple-500/30 text-gray-900 dark:text-white mt-16 relative overflow-hidden">
@@ -17,7 +22,7 @@
 				</svg>
 			</div>
 			<p class="text-gray-600 dark:text-purple-200 font-light" style="font-family: 'Playfair Display', serif;">
-				© {year} OpenShutter. All rights reserved.
+				© {year} {productName}. All rights reserved.
 			</p>
 		</div>
 	</div>

@@ -7,8 +7,16 @@ export class MarketplaceController {
   constructor(private marketplaceService: MarketplaceService) {}
 
   @Get()
-  async list(@Query('category') category?: MarketplaceCategory) {
-    const listings = await this.marketplaceService.findApproved(category);
+  async list(
+    @Query('category') category?: MarketplaceCategory,
+    @Query('featured') featured?: string,
+    @Query('q') q?: string,
+  ) {
+    const listings = await this.marketplaceService.findApproved({
+      category,
+      featured: featured === 'true' ? true : undefined,
+      q: q?.trim() || undefined,
+    });
     return { data: listings };
   }
 

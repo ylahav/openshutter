@@ -61,6 +61,16 @@ export class StorageManager implements IStorageManager {
   }
 
   /**
+   * Get storage service for serving existing files only.
+   * Does not require the provider to be enabled, so existing photo URLs keep working
+   * when a provider is temporarily disabled. Do not use for uploads or writes.
+   */
+  async getProviderForServe(providerId: StorageProviderId): Promise<IStorageService> {
+    const config = await storageConfigService.getConfig(providerId)
+    return this.createService(providerId, config.config)
+  }
+
+  /**
    * Get all active storage providers
    */
   async getActiveProviders(): Promise<StorageProviderId[]> {

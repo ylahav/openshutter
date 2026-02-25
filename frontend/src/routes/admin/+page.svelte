@@ -2,6 +2,7 @@
 	import type { PageData } from './$types';
 	import { logout } from '$lib/stores/auth';
 	import { goto } from '$app/navigation';
+	import { productName } from '$stores/siteConfig';
 
   export const data: PageData = undefined as any; // From +layout.server.ts, not used in this component
 
@@ -11,7 +12,7 @@
 </script>
 
 <svelte:head>
-	<title>Admin Dashboard - OpenShutter</title>
+	<title>Admin Dashboard - {$productName}</title>
 </svelte:head>
 
 <div class="min-h-screen bg-gray-50 py-8">

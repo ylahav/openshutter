@@ -408,6 +408,14 @@ export class GoogleDriveService implements IStorageService {
           errorMessage = `Authentication failed: ${apiError.error_description || apiError.error || errorMessage}. Please re-authorize the application.`
           errorDetails.authError = true
         }
+        // OAuth client was deleted or is invalid in Google Cloud Console
+        if (apiError.error === 'deleted_client' || apiError.error === 'invalid_client' || errorMessage.includes('deleted_client') || errorMessage.includes('invalid_client')) {
+          errorMessage =
+            'The OAuth client (Client ID / Secret) was deleted or is invalid in Google Cloud Console. ' +
+            'Create a new OAuth 2.0 Client ID (Web application) under APIs & Services → Credentials, add your Authorized redirect URI, ' +
+            'then update the Client ID and Client Secret in Admin → Storage → Google Drive and use "Generate New Token".'
+          errorDetails.authError = true
+        }
       } else if (error?.code) {
         errorCode = error.code.toString()
         errorDetails.code = error.code
@@ -418,7 +426,17 @@ export class GoogleDriveService implements IStorageService {
         }
       }
 
-      // Check for authentication errors in error message
+      // Check for deleted/invalid OAuth client in error message (e.g. from ensureAuth or validateConnection)
+      if (errorMessage.includes('deleted_client') || errorMessage.includes('invalid_client')) {
+        if (!errorDetails.authError) {
+          errorMessage =
+            'The OAuth client (Client ID / Secret) was deleted or is invalid in Google Cloud Console. ' +
+            'Create a new OAuth 2.0 Client ID (Web application) under APIs & Services → Credentials, add your Authorized redirect URI, ' +
+            'then update the Client ID and Client Secret in Admin → Storage → Google Drive and use "Generate New Token".'
+          errorDetails.authError = true
+        }
+      }
+      // Check for other authentication errors in error message
       if (errorMessage.includes('invalid_grant') || errorMessage.includes('invalid_token') || errorMessage.includes('unauthorized')) {
         if (!errorDetails.authError) {
           // Avoid double-wrapping if already prefixed with "Authentication failed"

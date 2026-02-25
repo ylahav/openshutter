@@ -1,6 +1,8 @@
 import { writable, derived } from 'svelte/store';
 import type { SiteConfig } from '../types/site-config';
 import { logger } from '../utils/logger';
+import { getProductName } from '../utils/productName';
+import { currentLanguage } from './language';
 
 interface SiteConfigState {
 	config: SiteConfig | null;
@@ -78,3 +80,9 @@ export const siteConfig = createSiteConfigStore();
 export const siteConfigData = derived(siteConfig, ($store) => $store.config);
 export const siteConfigLoading = derived(siteConfig, ($store) => $store.loading);
 export const siteConfigError = derived(siteConfig, ($store) => $store.error);
+
+/** Product name for titles/footer (respects white-label hideOpenShutterBranding) */
+export const productName = derived(
+	[siteConfigData, currentLanguage],
+	([$config, $lang]) => getProductName($config ?? null, $lang),
+);

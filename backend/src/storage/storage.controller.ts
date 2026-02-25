@@ -71,9 +71,9 @@ export class StorageController {
       
       this.logger.debug(`Serving file - provider: ${provider}, original path: ${filePath}, decoded path: ${decodedPath}`);
       
-      // For local storage, serve files directly
+      // For local storage, serve files directly (use getProviderForServe so disabled provider can still serve)
       if (provider === 'local') {
-        const localService = await storageManager.getProvider(provider as any);
+        const localService = await storageManager.getProviderForServe(provider as any);
         const basePath = (localService as any).basePath || process.env.LOCAL_STORAGE_PATH || './uploads';
         
         // Replicate the getFullPath logic from LocalStorageService
@@ -119,9 +119,9 @@ export class StorageController {
           throw new NotFoundException(`File not found: ${decodedPath}`);
         }
       } else if (provider === 'google-drive') {
-        // For Google Drive, use getFileBuffer
+        // For Google Drive, use getFileBuffer (getProviderForServe so disabled provider can still serve)
         try {
-          const storageService = await storageManager.getProvider('google-drive');
+          const storageService = await storageManager.getProviderForServe('google-drive');
           
           // Check if the service has getFileBuffer method
           if (typeof (storageService as any).getFileBuffer === 'function') {
@@ -205,26 +205,23 @@ export class StorageController {
           throw new NotFoundException(`File not found: ${decodedPath}`);
         }
       } else if (['wasabi', 'aws-s3', 'backblaze'].includes(provider)) {
-        // For S3-compatible providers (Wasabi, AWS S3, Backblaze), use getFileBuffer
-        // Handle case where photos have 'aws-s3' but system uses 'wasabi' (S3-compatible)
-        let actualProvider = provider;
+        // For S3-compatible providers: use getProviderForServe so existing files can be
+        // served even when the provider is disabled (read-only).
         let storageService;
-        
         try {
-          storageService = await storageManager.getProvider(provider as any);
+          storageService = await storageManager.getProviderForServe(provider as any);
         } catch (error) {
-          // If aws-s3 is not enabled but wasabi is, try wasabi as fallback (they're S3-compatible)
+          // If requested provider has no config, try wasabi as fallback for aws-s3 (S3-compatible)
           if (provider === 'aws-s3' && error instanceof StorageConfigError) {
-            this.logger.log(`Provider ${provider} not enabled, trying wasabi as fallback...`);
+            this.logger.debug(`Provider ${provider} not configured, trying wasabi as fallback...`);
             try {
-              actualProvider = 'wasabi';
-              storageService = await storageManager.getProvider('wasabi');
-              this.logger.log(`Successfully using wasabi as fallback for ${provider}`);
+              storageService = await storageManager.getProviderForServe('wasabi');
             } catch (fallbackError) {
-              this.logger.error(`Both ${provider} and wasabi are not enabled: ${fallbackError instanceof Error ? fallbackError.message : String(fallbackError)}`);
-              throw error; // Throw original error
+              this.logger.error(`Storage serve error: ${fallbackError instanceof Error ? fallbackError.message : String(fallbackError)}`);
+              throw error;
             }
           } else {
+            this.logger.error(`Storage serve error: ${error instanceof Error ? error.message : String(error)}`);
             throw error;
           }
         }
@@ -266,10 +263,10 @@ export class StorageController {
             res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
             res.send(outBuffer);
           } else {
-            throw new NotFoundException(`Storage provider ${actualProvider} does not support file serving`);
+            throw new NotFoundException(`Storage provider ${provider} does not support file serving`);
           }
         } catch (error) {
-          this.logger.error(`Failed to serve file from ${actualProvider}: ${error instanceof Error ? error.message : String(error)}`);
+          this.logger.error(`Failed to serve file from ${provider}: ${error instanceof Error ? error.message : String(error)}`);
           if (error instanceof NotFoundException) {
             throw error;
           }

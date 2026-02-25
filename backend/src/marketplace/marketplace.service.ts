@@ -15,10 +15,12 @@ export interface CreateListingDto {
   documentationUrl?: string;
   downloadUrl?: string;
   repositoryUrl?: string;
+  tags?: string[];
 }
 
 export interface UpdateListingDto extends Partial<CreateListingDto> {
   isApproved?: boolean;
+  featured?: boolean;
 }
 
 @Injectable()
@@ -28,12 +30,25 @@ export class MarketplaceService {
     private listingModel: Model<IMarketplaceListing>,
   ) {}
 
-  async findApproved(category?: MarketplaceCategory): Promise<IMarketplaceListing[]> {
+  async findApproved(opts?: {
+    category?: MarketplaceCategory;
+    featured?: boolean;
+    q?: string;
+  }): Promise<IMarketplaceListing[]> {
     const filter: Record<string, unknown> = { isApproved: true };
-    if (category) filter.category = category;
+    if (opts?.category) filter.category = opts.category;
+    if (opts?.featured === true) filter.featured = true;
+    if (opts?.q && opts.q.trim()) {
+      const re = new RegExp(opts.q.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      filter.$or = [
+        { name: re },
+        { description: re },
+        { tags: re },
+      ];
+    }
     return this.listingModel
       .find(filter)
-      .sort({ approvedAt: -1, createdAt: -1 })
+      .sort({ featured: -1, approvedAt: -1, createdAt: -1 })
       .lean()
       .exec() as Promise<IMarketplaceListing[]>;
   }
@@ -61,6 +76,7 @@ export class MarketplaceService {
       ...dto,
       apiVersionCompatible: dto.apiVersionCompatible ?? ['v1'],
       screenshots: dto.screenshots ?? [],
+      tags: dto.tags ?? [],
       version: dto.version ?? '1.0.0',
       isApproved: false,
       submittedBy: new Types.ObjectId(userId),

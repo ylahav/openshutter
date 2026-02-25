@@ -4,7 +4,7 @@
 	import { currentLanguage } from '$stores/language';
 	import { siteConfigData, siteConfig } from '$stores/siteConfig';
 	import { auth, logout } from '$lib/stores/auth';
-	import { MultiLangUtils } from '$utils/multiLang';
+	import { getProductName } from '$lib/utils/productName';
 	import LanguageSelector from '$components/LanguageSelector.svelte';
 	import TemplateSelector from '$components/TemplateSelector.svelte';
 	import ThemeToggle from '$components/ThemeToggle.svelte';
@@ -29,8 +29,7 @@
 
 	const title = derived(
 		[siteConfigData, currentLanguage],
-		([$config, $lang]) =>
-			$config?.title ? MultiLangUtils.getTextValue($config.title, $lang) : 'OpenShutter'
+		([$config, $lang]) => getProductName($config ?? null, $lang)
 	);
 
 	const logo = derived(siteConfigData, ($config) => $config?.logo ?? '');

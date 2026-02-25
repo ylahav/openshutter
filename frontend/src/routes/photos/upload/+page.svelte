@@ -4,6 +4,7 @@
 	import { goto } from '$app/navigation';
 	import Header from '$lib/components/Header.svelte';
 	import Footer from '$lib/components/Footer.svelte';
+	import { productName } from '$stores/siteConfig';
 	import { logger } from '$lib/utils/logger';
 	import { handleError } from '$lib/utils/errorHandler';
 	import type { PageData } from './$types';
@@ -137,7 +138,7 @@
 </script>
 
 <svelte:head>
-	<title>Upload Photos - OpenShutter</title>
+	<title>Upload Photos - {$productName}</title>
 </svelte:head>
 
 <div class="min-h-screen bg-gray-50">

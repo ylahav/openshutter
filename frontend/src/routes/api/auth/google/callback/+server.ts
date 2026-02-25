@@ -8,27 +8,57 @@ export const GET: RequestHandler = async ({ url, request }) => {
 		const searchParams = url.searchParams;
 		const code = searchParams.get('code');
 		const error = searchParams.get('error');
+		const errorDescription = searchParams.get('error_description') || '';
 		const state = searchParams.get('state');
 
 		if (error) {
-			// Send error message to parent window
+			// Build user-facing message (Google often sends error_description with the real reason)
+			const rawMessage = errorDescription ? `${error}: ${errorDescription}` : error;
+			const safeForHtml = (s: string) => s.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+			let hint = '';
+			if (error === 'deleted_client' || error === 'invalid_client') {
+				hint =
+					'<strong>Fix:</strong> The OAuth client (Client ID/Secret) was deleted or is invalid. ' +
+					'In <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">Google Cloud Console → APIs &amp; Services → Credentials</a>, ' +
+					'create a new <strong>OAuth 2.0 Client ID</strong> (Web application), add your redirect URI (e.g. ' +
+					safeForHtml(url.origin + '/api/auth/google/callback') +
+					'), then in Admin → Storage → Google Drive replace the Client ID and Client Secret and click <strong>Generate New Token</strong>.';
+			} else if (error === 'access_denied' || error === 'access_blocked') {
+				hint =
+					'If the app is in Testing mode, add your Google account as a Test user in Google Cloud Console (APIs &amp; Services → OAuth consent screen → Test users). ' +
+					'Ensure the Redirect URI in storage config exactly matches the Authorized redirect URI in the OAuth client.';
+			}
+
 			const errorHtml = `
 				<!DOCTYPE html>
 				<html>
 				<head>
 					<title>Google Drive Authorization - Error</title>
 					<meta charset="utf-8">
+					<meta name="viewport" content="width=device-width, initial-scale=1">
+					<style>
+						body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background: #f5f5f5; }
+						.box { max-width: 560px; margin: 20px auto; background: white; padding: 24px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
+						h1 { margin: 0 0 12px 0; font-size: 1.25rem; color: #b91c1c; }
+						p { margin: 0 0 8px 0; color: #374151; line-height: 1.5; }
+						.hint { margin-top: 16px; padding: 12px; background: #fef3c7; border-radius: 6px; font-size: 0.875rem; color: #92400e; }
+						.hint a { color: #b45309; font-weight: 600; }
+					</style>
 				</head>
 				<body>
+					<div class="box">
+						<h1>Authorization failed</h1>
+						<p>${safeForHtml(rawMessage)}</p>
+						${hint ? `<div class="hint">${hint}</div>` : ''}
+						<p style="margin-top:16px;">You can close this window. Fix the issue above, then try again from <strong>Admin → Storage → Google Drive</strong>.</p>
+					</div>
 					<script>
 						if (window.opener) {
 							window.opener.postMessage({
 								type: 'GOOGLE_OAUTH_ERROR',
-								error: 'Authorization failed: ${error.replace(/'/g, "\\'")}'
+								error: ${JSON.stringify('Authorization failed: ' + rawMessage)}
 							}, window.location.origin);
 							window.close();
-						} else {
-							document.body.innerHTML = '<h1>Authorization Failed</h1><p>${error}</p><p>You can close this window.</p>';
 						}
 					</script>
 				</body>

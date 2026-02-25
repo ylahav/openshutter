@@ -14,6 +14,10 @@ export interface IMarketplaceListing extends Document {
   documentationUrl?: string;
   downloadUrl?: string;
   repositoryUrl?: string;
+  /** Optional tags for discovery (e.g. "export", "cli"). */
+  tags: string[];
+  /** When true, listing can appear in a Featured section. */
+  featured: boolean;
   isApproved: boolean;
   submittedBy: Schema.Types.ObjectId;
   approvedBy?: Schema.Types.ObjectId;
@@ -39,6 +43,8 @@ export const MarketplaceListingSchema = new Schema<IMarketplaceListing>(
     documentationUrl: { type: String },
     downloadUrl: { type: String },
     repositoryUrl: { type: String },
+    tags: { type: [String], default: [] },
+    featured: { type: Boolean, default: false },
     isApproved: { type: Boolean, default: false },
     submittedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     approvedBy: { type: Schema.Types.ObjectId, ref: 'User' },

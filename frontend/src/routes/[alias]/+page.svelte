@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { currentLanguage } from '$stores/language';
+	import { productName } from '$stores/siteConfig';
 	import { MultiLangUtils } from '$lib/utils/multiLang';
 	import PageRenderer from '$lib/page-builder/PageRenderer.svelte';
 	import type { PageData, PageModuleData } from '$lib/types/page-builder';
@@ -20,7 +21,7 @@
 </script>
 
 <svelte:head>
-	<title>{getTextValue(pageData.title)} - OpenShutter</title>
+	<title>{getTextValue(pageData.title)} - {$productName}</title>
 </svelte:head>
 
 <PageRenderer page={pageData} modules={modules} />

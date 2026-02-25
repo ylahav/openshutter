@@ -1,11 +1,12 @@
 <script lang="ts">
 	import type { PageData } from './$types';
+	import { productName } from '$stores/siteConfig';
 
 	export let data: PageData;
 </script>
 
 <svelte:head>
-	<title>Developer Portal - OpenShutter</title>
+	<title>Developer Portal - {$productName}</title>
 </svelte:head>
 
 <div class="space-y-8">

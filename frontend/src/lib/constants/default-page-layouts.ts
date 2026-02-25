@@ -157,7 +157,7 @@ export const DEFAULT_PAGE_MODULES: Record<string, any[]> = {
 			type: 'richText',
 			props: {
 				title: {},
-				body: { en: '<p>&copy; 2024 OpenShutter. All rights reserved.</p>' },
+				body: { en: '<p>&copy; {{productName}}. All rights reserved.</p>' },
 				background: 'gray'
 			},
 			rowOrder: 1,

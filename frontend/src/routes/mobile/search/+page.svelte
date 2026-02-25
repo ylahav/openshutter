@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
+	import { productName } from '$stores/siteConfig';
 	import { MultiLangUtils } from '$lib/utils/multiLang';
 	import { currentLanguage } from '$lib/stores/language';
 	import { logger } from '$lib/utils/logger';
@@ -99,7 +100,7 @@
 </script>
 
 <svelte:head>
-	<title>Mobile Search - OpenShutter</title>
+	<title>Mobile Search - {$productName}</title>
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 	<meta name="theme-color" content="#2563eb" />
 </svelte:head>

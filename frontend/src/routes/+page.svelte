@@ -2,7 +2,7 @@
 	import type { PageData } from './$types';
 	import HomeTemplateSwitcher from '$components/HomeTemplateSwitcher.svelte';
 	import PageRenderer from '$lib/page-builder/PageRenderer.svelte';
-	import { siteConfigData } from '$stores/siteConfig';
+	import { siteConfigData, productName } from '$stores/siteConfig';
 
 	export let data: PageData;
 
@@ -34,7 +34,7 @@
 </script>
 
 <svelte:head>
-	<title>OpenShutter</title>
+	<title>{$productName}</title>
 </svelte:head>
 
 {#if hasPageModules}

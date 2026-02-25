@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { productName } from '$stores/siteConfig';
 	import { logger } from '$lib/utils/logger';
 
 	let loading = true;
@@ -130,7 +131,7 @@
 </script>
 
 <svelte:head>
-	<title>Initial Setup - OpenShutter</title>
+	<title>Initial Setup - {$productName}</title>
 </svelte:head>
 
 <div class="w-full min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">

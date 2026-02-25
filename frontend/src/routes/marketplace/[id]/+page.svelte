@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { PageData } from './$types';
+	import { productName } from '$stores/siteConfig';
 
 	export let data: PageData;
 
@@ -13,7 +14,7 @@
 </script>
 
 <svelte:head>
-	<title>{data.listing?.name ?? 'Listing'} - Marketplace - OpenShutter</title>
+	<title>{data.listing?.name ?? 'Listing'} - Marketplace - {$productName}</title>
 </svelte:head>
 
 <div class="max-w-3xl mx-auto px-4 py-8">
@@ -26,10 +27,22 @@
 	{:else}
 		<article class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
 			<div class="p-6">
-				<span class="inline-block px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-700">
-					{CATEGORY_LABELS[data.listing.category] || data.listing.category}
-				</span>
+				<div class="flex flex-wrap gap-1.5">
+					{#if data.listing.featured}
+						<span class="inline-block px-2 py-0.5 text-xs font-medium rounded bg-primary-100 text-primary-800">Featured</span>
+					{/if}
+					<span class="inline-block px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-700">
+						{CATEGORY_LABELS[data.listing.category] || data.listing.category}
+					</span>
+				</div>
 				<h1 class="mt-2 text-2xl font-bold text-gray-900">{data.listing.name}</h1>
+				{#if data.listing.tags?.length}
+					<p class="mt-2 flex flex-wrap gap-1.5">
+						{#each data.listing.tags as tag}
+							<span class="text-sm text-gray-500">#{tag}</span>
+						{/each}
+					</p>
+				{/if}
 				<p class="mt-2 text-gray-600 whitespace-pre-wrap">{data.listing.description}</p>
 				<dl class="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
 					<div>

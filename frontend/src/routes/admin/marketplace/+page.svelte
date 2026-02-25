@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { productName } from '$stores/siteConfig';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 	import { logger } from '$lib/utils/logger';
 
@@ -11,6 +12,8 @@
 		developerName: string;
 		developerEmail: string;
 		version: string;
+		tags?: string[];
+		featured?: boolean;
 		isApproved: boolean;
 		createdAt: string;
 		approvedAt?: string;
@@ -74,6 +77,25 @@
 		}
 	}
 
+	async function toggleFeatured(listing: Listing) {
+		togglingId = listing._id;
+		try {
+			const res = await fetch(`/api/admin/marketplace/${listing._id}`, {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ featured: !listing.featured }),
+				credentials: 'include',
+			});
+			if (!res.ok) await handleApiErrorResponse(res);
+			else fetchListings();
+		} catch (e) {
+			logger.error('Toggle featured:', e);
+			error = handleError(e, 'Failed to update');
+		} finally {
+			togglingId = null;
+		}
+	}
+
 	async function deleteListing(id: string) {
 		if (!confirm('Delete this listing? This cannot be undone.')) return;
 		deletingId = id;
@@ -95,7 +117,7 @@
 </script>
 
 <svelte:head>
-	<title>Marketplace - Admin - OpenShutter</title>
+	<title>Marketplace - Admin - {$productName}</title>
 </svelte:head>
 
 <div class="space-y-6">
@@ -138,6 +160,7 @@
 						<th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
 						<th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Developer</th>
 						<th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+						<th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Featured</th>
 						<th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
 					</tr>
 				</thead>
@@ -156,6 +179,17 @@
 								{:else}
 									<span class="inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">Pending</span>
 								{/if}
+							</td>
+							<td class="px-4 py-3">
+								<button
+									type="button"
+									disabled={togglingId === listing._id}
+									on:click={() => toggleFeatured(listing)}
+									class="text-sm {listing.featured ? 'text-primary-600' : 'text-gray-500'} hover:underline disabled:opacity-50"
+									title={listing.featured ? 'Remove from featured' : 'Set as featured'}
+								>
+									{listing.featured ? '★ Featured' : 'Set featured'}
+								</button>
 							</td>
 							<td class="px-4 py-3 text-right space-x-2">
 								<button

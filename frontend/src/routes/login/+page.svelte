@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { auth, loadSession } from '$lib/stores/auth';
+	import { productName } from '$stores/siteConfig';
 	import { logger } from '$lib/utils/logger';
 	import ForcePasswordChangeModal from '$lib/components/ForcePasswordChangeModal.svelte';
 
@@ -94,7 +95,7 @@
 </script>
 
 <svelte:head>
-	<title>Sign In - OpenShutter</title>
+	<title>Sign In - {$productName}</title>
 </svelte:head>
 
 <div class="w-full min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">

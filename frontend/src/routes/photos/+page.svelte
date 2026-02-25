@@ -3,6 +3,7 @@
 	import { goto } from '$app/navigation';
 	import Header from '$lib/components/Header.svelte';
 	import Footer from '$lib/components/Footer.svelte';
+	import { productName } from '$stores/siteConfig';
 	import { logger } from '$lib/utils/logger';
 	import { handleError } from '$lib/utils/errorHandler';
 
@@ -43,7 +44,7 @@
 </script>
 
 <svelte:head>
-	<title>Photos - OpenShutter</title>
+	<title>Photos - {$productName}</title>
 </svelte:head>
 
 <Header />

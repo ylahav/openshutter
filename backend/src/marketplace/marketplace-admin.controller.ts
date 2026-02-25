@@ -72,6 +72,7 @@ export class MarketplaceAdminController {
       documentationUrl: body.documentationUrl,
       downloadUrl: body.downloadUrl,
       repositoryUrl: body.repositoryUrl,
+      tags: Array.isArray(body.tags) ? body.tags : typeof body.tags === 'string' ? (body.tags as string).split(',').map((t) => t.trim()).filter(Boolean) : undefined,
     };
     const listing = await this.marketplaceService.create(dto, user.id);
     return { data: listing, message: 'Listing submitted. It will appear in the marketplace after admin approval.' };
