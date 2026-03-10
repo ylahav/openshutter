@@ -58,7 +58,16 @@
 
 	interface Tag {
 		_id: string;
-		name: string;
+		name: string | Record<string, string>;
+	}
+
+	interface RelatedTagSuggestion {
+		tagId: string;
+		name: Tag['name'];
+		category?: string;
+		color?: string;
+		count: number;
+		sourceTagIds: string[];
 	}
 
 	interface Person {
@@ -128,6 +137,11 @@
 		location: number;
 		cooccurrence: number;
 	} = { similar: 0, iptc: 0, location: 0, cooccurrence: 0 };
+	let relatedTagsLoading = false;
+	let relatedTagsError: string | null = null;
+	let relatedTags: RelatedTagSuggestion[] = [];
+	let applyingRelatedTagId: string | null = null;
+	let lastRelatedTagsKey = '';
 	
 	// Track the last loaded photoId to prevent reloading the same photo
 	let lastLoadedPhotoId: string | null = null;
@@ -153,6 +167,21 @@
 			loadPhotoCalled = false; // Reset on error so it can retry
 			lastLoadedPhotoId = null; // Reset on error
 		});
+	}
+
+	$: {
+		const selectedTagIds = [...new Set((formData.tags || []).map((tagId) => String(tagId).trim()).filter(Boolean))].sort();
+		const relatedTagsKey = photoId && selectedTagIds.length > 0 ? `${photoId}:${selectedTagIds.join(',')}` : '';
+
+		if (!relatedTagsKey) {
+			lastRelatedTagsKey = '';
+			relatedTags = [];
+			relatedTagsError = null;
+			relatedTagsLoading = false;
+		} else if (relatedTagsKey !== lastRelatedTagsKey) {
+			lastRelatedTagsKey = relatedTagsKey;
+			loadRelatedTags(selectedTagIds, relatedTagsKey);
+		}
 	}
 
 	let formData = {
@@ -683,7 +712,13 @@
 	}
 
 	function getTagName(tag: Tag): string {
-		return tag.name || 'Unknown';
+		return getLocalizedText(tag.name);
+	}
+
+	function getLocalizedText(value: string | Record<string, string> | undefined): string {
+		if (!value) return 'Unknown';
+		if (typeof value === 'string') return value;
+		return MultiLangUtils.getTextValue(value, $currentLanguage) || Object.values(value)[0] || 'Unknown';
 	}
 
 	function getPersonName(person: Person): string {
@@ -799,6 +834,115 @@
 		}
 	}
 
+	async function loadRelatedTags(selectedTagIds: string[], requestKey: string) {
+		if (!photoId || selectedTagIds.length === 0) {
+			relatedTags = [];
+			relatedTagsError = null;
+			return;
+		}
+
+		try {
+			relatedTagsLoading = true;
+			relatedTagsError = null;
+
+			const selectedSet = new Set(selectedTagIds);
+			const seedTagIds = selectedTagIds.slice(0, 5);
+			const responses = await Promise.all(
+				seedTagIds.map(async (tagId) => {
+					const response = await fetch(
+						`/api/admin/tags/related/by-id?tagId=${encodeURIComponent(tagId)}&limit=8`,
+						{ credentials: 'include' },
+					);
+
+					if (!response.ok) {
+						const errorData = await response.json().catch(() => ({
+							error: `HTTP ${response.status}: ${response.statusText}`,
+						}));
+						throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+					}
+
+					const result = await response.json();
+					return {
+						sourceTagId: tagId,
+						items: result.data || [],
+					};
+				}),
+			);
+
+			if (lastRelatedTagsKey !== requestKey) return;
+
+			const aggregated = new Map<string, RelatedTagSuggestion>();
+			for (const response of responses) {
+				for (const item of response.items) {
+					const relatedTagId = String(item.tagId || '').trim();
+					if (!relatedTagId || selectedSet.has(relatedTagId)) continue;
+
+					const existing = aggregated.get(relatedTagId);
+					if (existing) {
+						existing.count += Number(item.count || 0);
+						if (!existing.sourceTagIds.includes(response.sourceTagId)) {
+							existing.sourceTagIds.push(response.sourceTagId);
+						}
+						if (!existing.name && item.name) existing.name = item.name;
+						if (!existing.category && item.category) existing.category = item.category;
+						if (!existing.color && item.color) existing.color = item.color;
+						continue;
+					}
+
+					aggregated.set(relatedTagId, {
+						tagId: relatedTagId,
+						name: item.name,
+						category: item.category,
+						color: item.color,
+						count: Number(item.count || 0),
+						sourceTagIds: [response.sourceTagId],
+					});
+				}
+			}
+
+			relatedTags = Array.from(aggregated.values())
+				.sort((a, b) => b.count - a.count)
+				.slice(0, 8);
+		} catch (error) {
+			if (lastRelatedTagsKey !== requestKey) return;
+			logger.error('Failed to load related tags:', error);
+			relatedTags = [];
+			relatedTagsError = error instanceof Error ? error.message : 'Failed to load related tags';
+		} finally {
+			if (lastRelatedTagsKey === requestKey) {
+				relatedTagsLoading = false;
+			}
+		}
+	}
+
+	async function applySuggestedTags(params: {
+		tagIds?: string[];
+		createNewTags?: Array<{ name: string; category?: string }>;
+		source: 'ai' | 'context' | 'manual';
+	}): Promise<string[]> {
+		const response = await fetch(`/api/admin/photos/${photoId}/apply-tags`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			credentials: 'include',
+			body: JSON.stringify({
+				tagIds: params.tagIds && params.tagIds.length > 0 ? params.tagIds : undefined,
+				createNewTags: params.createNewTags && params.createNewTags.length > 0 ? params.createNewTags : undefined,
+				source: params.source,
+			}),
+		});
+
+		const result = await response.json();
+		if (!result.success) {
+			throw new Error(result.error || 'Failed to apply tags');
+		}
+
+		const appliedTagIds = result.data?.appliedTags || [];
+		formData.tags = [...new Set([...formData.tags, ...appliedTagIds])];
+		formData = { ...formData };
+		await loadOptions();
+		return appliedTagIds;
+	}
+
 	async function handleApplyContextTags(selectedSuggestions: Array<{
 		label: string;
 		confidence: number;
@@ -815,27 +959,7 @@
 				.map((s) => s.matchedTag!.id);
 
 			if (tagIds.length === 0) return;
-
-			const response = await fetch(`/api/admin/photos/${photoId}/apply-tags`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				credentials: 'include',
-				body: JSON.stringify({ tagIds }),
-			});
-
-			const result = await response.json();
-
-			if (!result.success) {
-				throw new Error(result.error || 'Failed to apply tags');
-			}
-
-			// Update formData with applied tags
-			const appliedTagIds = result.data?.appliedTags || [];
-			formData.tags = [...new Set([...formData.tags, ...appliedTagIds])];
-			formData = { ...formData };
-
-			// Reload tags list
-			await loadOptions();
+			const appliedTagIds = await applySuggestedTags({ tagIds, source: 'context' });
 
 			showContextTagSuggestions = false;
 			notification = {
@@ -877,30 +1001,11 @@
 					});
 				}
 			}
-
-			const response = await fetch(`/api/admin/photos/${photoId}/apply-tags`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				credentials: 'include',
-				body: JSON.stringify({
-					tagIds: tagIds.length > 0 ? tagIds : undefined,
-					createNewTags: createNewTags.length > 0 ? createNewTags : undefined,
-				}),
+			const appliedTagIds = await applySuggestedTags({
+				tagIds,
+				createNewTags,
+				source: 'ai',
 			});
-
-			const result = await response.json();
-
-			if (!result.success) {
-				throw new Error(result.error || 'Failed to apply tags');
-			}
-
-			// Update formData with applied tags
-			const appliedTagIds = result.data?.appliedTags || [];
-			formData.tags = [...new Set([...formData.tags, ...appliedTagIds])];
-			formData = { ...formData };
-
-			// Reload tags list to include newly created tags
-			await loadOptions();
 
 			showAITagSuggestions = false;
 			notification = {
@@ -915,6 +1020,33 @@
 				message: error instanceof Error ? error.message : 'Failed to apply tags',
 				type: 'error',
 			};
+		}
+	}
+
+	async function handleApplyRelatedTag(tagId: string) {
+		if (!photoId || !tagId || applyingRelatedTagId) return;
+
+		try {
+			applyingRelatedTagId = tagId;
+			const appliedTagIds = await applySuggestedTags({
+				tagIds: [tagId],
+				source: 'context',
+			});
+
+			notification = {
+				show: true,
+				message: `Applied related tag${appliedTagIds.length === 1 ? '' : 's'} successfully`,
+				type: 'success',
+			};
+		} catch (error) {
+			logger.error('Failed to apply related tag:', error);
+			notification = {
+				show: true,
+				message: error instanceof Error ? error.message : 'Failed to apply related tag',
+				type: 'error',
+			};
+		} finally {
+			applyingRelatedTagId = null;
 		}
 	}
 
@@ -1270,32 +1402,40 @@
 										</svg>
 										Add Tag
 									</button>
-									<!-- AI Suggest Tags Button -->
-									<SuggestTagsButton
-										loading={aiTagSuggestionsLoading}
-										disabled={!photo || aiTagSuggestionsLoading}
-										on:click={handleSuggestTags}
-									/>
-									<!-- Context-Based Suggest Tags Button -->
-									<button
-										type="button"
-										on:click={handleSuggestTagsFromContext}
-										disabled={!photo || contextTagSuggestionsLoading}
-										class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
-										title="Suggest tags from similar photos, IPTC keywords, location, and patterns"
-									>
-										{#if contextTagSuggestionsLoading}
-											<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-												<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-												<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-											</svg>
-										{:else}
-											<svg class="-ml-1 mr-2 h-4 w-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-											</svg>
-										{/if}
-										Suggest from Context
-									</button>
+									<!-- AI Suggest Tags and Context Suggest buttons are temporarily disabled -->
+									{#if formData.tags && formData.tags.length > 0}
+										<div class="mt-3 rounded-md border border-gray-200 bg-gray-50 p-3">
+											<div class="flex items-center justify-between gap-2">
+												<p class="text-xs font-medium text-gray-700">Related tags</p>
+												<p class="text-xs text-gray-500">Based on current tag co-occurrence</p>
+											</div>
+
+											{#if relatedTagsLoading}
+												<p class="mt-2 text-xs text-gray-500">Loading related tags...</p>
+											{:else if relatedTagsError}
+												<p class="mt-2 text-xs text-red-600">{relatedTagsError}</p>
+											{:else if relatedTags.length > 0}
+												<div class="mt-3 flex flex-wrap gap-2">
+													{#each relatedTags as relatedTag}
+														<button
+															type="button"
+															on:click={() => handleApplyRelatedTag(relatedTag.tagId)}
+															disabled={applyingRelatedTagId === relatedTag.tagId}
+															class="inline-flex items-center gap-2 rounded-md border border-purple-200 bg-white px-3 py-1.5 text-sm text-purple-700 hover:bg-purple-50 disabled:opacity-50 disabled:cursor-not-allowed"
+															title={`Seen ${relatedTag.count} time${relatedTag.count === 1 ? '' : 's'} with the selected tags`}
+														>
+															<span>{getLocalizedText(relatedTag.name)}</span>
+															<span class="rounded bg-purple-100 px-1.5 py-0.5 text-xs text-purple-700">
+																{relatedTag.count}
+															</span>
+														</button>
+													{/each}
+												</div>
+											{:else}
+												<p class="mt-2 text-xs text-gray-500">No related tags found for the current selection yet.</p>
+											{/if}
+										</div>
+									{/if}
 								</div>
 							{/if}
 						</div>

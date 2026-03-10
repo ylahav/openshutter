@@ -138,10 +138,14 @@ export class LocalAIProvider extends BaseAIProvider {
   private async doLoadModel(): Promise<void> {
     try {
       this.logger.log('Loading MobileNet model...');
-      
-      // Load TensorFlow.js and MobileNet packages
+
+      // Ensure TensorFlow.js Node backend is loaded BEFORE loading the model,
+      // otherwise tfjs-core will have no registered backend and model load will fail
+      await loadTensorFlow();
+
+      // Load MobileNet package (it will reuse the already-registered tfjs-node backend)
       const mobilenetModule = await loadMobileNet();
-      
+
       // Load MobileNet v2 using the @tensorflow-models/mobilenet package
       // This package includes the model and ImageNet class names
       // version: 2 - MobileNet v2 (more accurate)

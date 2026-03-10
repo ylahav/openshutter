@@ -627,14 +627,16 @@ Operational notes:
 - **API marketplace** ✅: Public API, API keys, developer portal, marketplace listings
 - **Smart tag suggestions & tag-based search optimization** ✅
 
-### Phase 4 (Next 18 months)
-- Enterprise features (SSO, audit logs, quotas, multi-tenancy)
-- Video support
-- Advanced collaboration features
-- Integration marketplace
+### Phase 4 (Next 18 months) – In progress
 - White-label solutions
-- Mobile app development
+- Integration marketplace
+- Advanced collaboration features
 - Machine learning for tag optimization
+- Mobile app development
+- Video support
+- Enterprise features (SSO, audit logs, quotas, multi-tenancy)
+
+See `docs/PHASE_4_WORKFLOW.md` for detailed Phase 4 stages and status.
 
 ## Conclusion
 

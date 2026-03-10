@@ -2,7 +2,7 @@
 
 **Branch:** `phase-4`  
 **Horizon:** Next 18 months  
-**Status:** Planning
+**Status:** Stage 1 – White-label solutions (in progress)
 
 This document defines the workflow and scope for Phase 4 of the OpenShutter roadmap. Each initiative includes goals, scope, and suggested deliverables.
 
@@ -289,8 +289,8 @@ Implementation: when `siteContext.type === 'owner-site'`, guards for `/admin` al
 
 ## Phase 4 Checklist
 
-- Branch `phase-4` created
-- Prioritize and sequence initiatives (e.g. 1 → 2 → 3)
+- [x] Branch `phase-4` created
+- [x] Prioritize and sequence initiatives (e.g. 1 → 2 → 3)
 - Stage 1 (White-label solutions): design and implementation
 - Stage 2 (Integration marketplace): design and implementation
 - Stage 3 (Advanced collaboration): design and implementation

@@ -5,6 +5,7 @@ import mongoose, { Types } from 'mongoose';
 import { SUPPORTED_LANGUAGES } from '../types/multi-lang';
 import { CreateTagDto } from './dto/create-tag.dto';
 import { UpdateTagDto } from './dto/update-tag.dto';
+import { TagFeedbackService } from '../services/tag-feedback';
 
 @Controller('admin/tags')
 @UseGuards(AdminGuard)
@@ -388,6 +389,67 @@ export class TagsController {
       this.logger.error('Error deleting tag:', error);
       throw new BadRequestException(
         `Failed to delete tag: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+    }
+  }
+
+  /**
+   * Get related tags based on co-occurrence in TagFeedback.
+   * Path: GET /api/admin/tags/related/by-id?tagId=...&limit=10
+   */
+  @Get('related/by-id')
+  async getRelatedTagsById(
+    @Query('tagId') tagId?: string,
+    @Query('limit') limitParam?: string
+  ) {
+    if (!tagId) {
+      throw new BadRequestException('tagId query parameter is required');
+    }
+
+    const limit = limitParam ? parseInt(limitParam, 10) || 10 : 10;
+
+    try {
+      await connectDB();
+      const db = mongoose.connection.db;
+      if (!db) throw new InternalServerErrorException('Database connection not established');
+
+      const related = await TagFeedbackService.getRelatedTags(tagId, limit);
+
+      if (related.length === 0) {
+        return { data: [], total: 0 };
+      }
+
+      const tagIds = related.map((r) => new Types.ObjectId(r.tagId));
+      const tagsCollection = db.collection('tags');
+      const tags = await tagsCollection
+        .find({ _id: { $in: tagIds } })
+        .project({ name: 1, category: 1, color: 1 })
+        .toArray();
+
+      const tagMap = new Map<string, any>();
+      for (const tag of tags) {
+        tagMap.set(tag._id.toString(), tag);
+      }
+
+      const data = related.map((r) => {
+        const tag = tagMap.get(r.tagId);
+        return {
+          tagId: r.tagId,
+          count: r.count,
+          name: tag?.name,
+          category: tag?.category,
+          color: tag?.color,
+        };
+      });
+
+      return {
+        data,
+        total: data.length,
+      };
+    } catch (error) {
+      this.logger.error('Error getting related tags:', error);
+      throw new BadRequestException(
+        `Failed to get related tags: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
     }
   }

@@ -626,7 +626,11 @@
 	}
 
 	function getTagName(tag: Tag): string {
-		return tag.name || 'Unknown';
+		return (
+			MultiLangUtils.getTextValue(tag.name || {}, $currentLanguage) ||
+			Object.values(tag.name || {})[0] ||
+			'Unknown'
+		);
 	}
 
 	function getPersonName(person: Person): string {

@@ -21,6 +21,7 @@ import { AdminOrOwnerGuard } from '../common/guards/admin-or-owner.guard';
 import { connectDB } from '../config/db';
 import mongoose, { Types } from 'mongoose';
 import { StorageManager } from '../services/storage/manager';
+import { TagFeedbackService } from '../services/tag-feedback';
 
 /** Native MongoDB Db-like (mongoose.connection.db); avoids depending on mongoose.mongodb which may not exist in all mongoose versions. */
 type MongoDb = NonNullable<typeof mongoose.connection.db>;
@@ -1919,12 +1920,30 @@ export class PhotosAdminController {
 				}
 			}
 		} catch (error) {
-			this.logger.error(`Failed to suggest tags: ${error instanceof Error ? error.message : String(error)}`);
+			const message = error instanceof Error ? error.message : String(error);
+			this.logger.error(`Failed to suggest tags: ${message}`);
+
+			// For explicitly disabled / unavailable AI, return a structured payload
+			// instead of relying on Nest's exception wrapper, so the client gets a clear message.
+			if (
+				message.includes('AI tagging is disabled') ||
+				message.includes('AI tagging provider "') ||
+				message.includes('@tensorflow/tfjs-node is not installed') ||
+				message.includes('MobileNet model failed to load')
+			) {
+				return {
+					success: false,
+					error: message,
+				};
+			}
+
+			// Pass through known 4xx errors unchanged
 			if (error instanceof NotFoundException || error instanceof BadRequestException) {
 				throw error;
 			}
+
 			throw new InternalServerErrorException(
-				`Failed to suggest tags: ${error instanceof Error ? error.message : 'Unknown error'}`
+				`Failed to suggest tags: ${message || 'Unknown error'}`
 			);
 		}
 	}
@@ -2104,6 +2123,7 @@ export class PhotosAdminController {
 				name: string;
 				category?: string;
 			}>;
+			source?: 'ai' | 'context' | 'manual';
 		},
 		@Req() req: Request
 	) {
@@ -2129,6 +2149,10 @@ export class PhotosAdminController {
 			const existingTags = photo.tags || [];
 			const tagIdsToAdd: Types.ObjectId[] = [];
 			const createdTagIds: string[] = [];
+			const feedbackSource = body.source ?? 'manual';
+			if (!['ai', 'context', 'manual'].includes(feedbackSource)) {
+				throw new BadRequestException('Invalid tag feedback source');
+			}
 
 			// Add existing tag IDs
 			if (body.tagIds && body.tagIds.length > 0) {
@@ -2176,7 +2200,15 @@ export class PhotosAdminController {
 			}
 
 			// Merge with existing tags (avoid duplicates)
-			const allTagIds = [...new Set([...existingTags.map((t: any) => t.toString()), ...tagIdsToAdd.map(id => id.toString())])];
+			const existingTagIdStrings = existingTags.map((t: any) => t.toString());
+			const allTagIds = [
+				...new Set([...existingTagIdStrings, ...tagIdsToAdd.map((id) => id.toString())]),
+			];
+
+			// Determine which tags are newly applied in this operation (for feedback logging)
+			const newlyAppliedTagIds = allTagIds.filter(
+				(tagId) => !existingTagIdStrings.includes(tagId)
+			);
 
 			// Update photo
 			await db.collection('photos').updateOne(
@@ -2188,6 +2220,17 @@ export class PhotosAdminController {
 					},
 				}
 			);
+
+			// Record tag feedback for newly applied tags (used later for ML optimization)
+			const userId = (req as any).user?.id as string | undefined;
+			if (newlyAppliedTagIds.length > 0) {
+				await TagFeedbackService.recordAppliedTags({
+					photoId: id,
+					tagIds: newlyAppliedTagIds,
+					userId,
+					source: feedbackSource,
+				});
+			}
 
 			// Update tag usage counts
 			for (const tagId of tagIdsToAdd) {
