@@ -17,15 +17,28 @@ export class SearchController {
 		private readonly analyticsEventService: AnalyticsEventService,
 	) {}
 
-	private async getAccessContext(req: Request): Promise<AlbumAccessContext | null> {
+  private async getAccessContext(req: Request): Promise<AlbumAccessContext | null> {
 		const user = (req as any).user;
-		if (!user?.id) return null;
+		const siteContext = (req as any).siteContext;
+
+		if (!user?.id) {
+			if (siteContext?.type === 'owner-site') {
+				return {
+					userId: '',
+					groupAliases: [],
+					ownerSiteId: siteContext.ownerId as string,
+				} as any;
+			}
+			return null;
+		}
+
 		const doc = await this.userModel.findById(user.id).select('groupAliases').lean().exec();
 		if (!doc) return null;
 		return {
 			userId: user.id,
 			groupAliases: Array.isArray(doc.groupAliases) ? doc.groupAliases : [],
-		};
+			ownerSiteId: siteContext?.type === 'owner-site' ? (siteContext.ownerId as string) : undefined,
+		} as any;
 	}
 
 	/**

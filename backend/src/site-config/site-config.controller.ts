@@ -1,4 +1,7 @@
-import { Controller, Get, Put, Body, Post, UseInterceptors, UploadedFile, BadRequestException, Logger, InternalServerErrorException } from '@nestjs/common';
+import { Controller, Get, Put, Body, Post, Req, UseInterceptors, UploadedFile, BadRequestException, Logger, InternalServerErrorException } from '@nestjs/common';
+import { Request } from 'express';
+import mongoose, { Types } from 'mongoose';
+import { connectDB } from '../config/db';
 import { mailService } from '../services/mail.service';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { siteConfigService } from '../services/site-config';
@@ -14,15 +17,35 @@ export class SiteConfigController {
 
   /**
    * Public endpoint to get the current site configuration.
-   * 
+   * When request is on an owner domain (siteContext.owner-site), title and description
+   * are overridden from owner_site_settings so the mini-site shows the owner's name and description.
+   *
    * Path: GET /api/site-config
    */
   @Get('site-config')
-  async getConfig() {
+  async getConfig(@Req() req: Request) {
     const config = await siteConfigService.getConfig();
 
+    const siteContext = (req as any).siteContext;
+    if (siteContext?.type === 'owner-site' && siteContext.ownerId) {
+      try {
+        await connectDB();
+        const db = mongoose.connection.db;
+        if (db && Types.ObjectId.isValid(siteContext.ownerId)) {
+          const doc = await db.collection('owner_site_settings').findOne({
+            ownerId: new Types.ObjectId(siteContext.ownerId),
+          });
+          if (doc) {
+            this.applyOwnerOverrides(config, doc);
+          }
+        }
+      } catch (err) {
+        this.logger.warn(`Failed to load owner site settings: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
+
     // Return the same shape the frontend expects (direct config object)
-    return {
+    const out: any = {
       title: config.title,
       description: config.description,
       logo: config.logo,
@@ -38,6 +61,70 @@ export class SiteConfigController {
       iptcXmpMetadata: config.iptcXmpMetadata,
       whiteLabel: config.whiteLabel,
     };
+    if ((config as any).footer !== undefined) out.footer = (config as any).footer;
+    return out;
+  }
+
+  /**
+   * Merge owner_site_settings doc into config for owner-domain requests.
+   */
+  private applyOwnerOverrides(config: any, doc: any) {
+    if (doc.siteName && typeof doc.siteName === 'object' && Object.keys(doc.siteName).length > 0) {
+      config.title = doc.siteName;
+    }
+    if (doc.description && typeof doc.description === 'object' && Object.keys(doc.description).length > 0) {
+      config.description = doc.description;
+    }
+    if (typeof doc.logo === 'string' && doc.logo.trim() !== '') {
+      config.logo = doc.logo;
+    }
+    if (typeof doc.favicon === 'string' && doc.favicon.trim() !== '') {
+      config.favicon = doc.favicon;
+    }
+    if (doc.seo && typeof doc.seo === 'object' && Object.keys(doc.seo).length > 0) {
+      config.seo = { ...(config.seo || {}), ...doc.seo };
+    }
+    if (doc.contact && typeof doc.contact === 'object' && Object.keys(doc.contact).length > 0) {
+      config.contact = { ...(config.contact || {}), ...doc.contact };
+    }
+    if (doc.footer && typeof doc.footer === 'object' && Object.keys(doc.footer).length > 0) {
+      config.footer = { ...(config.footer || {}), ...doc.footer };
+    }
+    if (doc.template && typeof doc.template === 'object') {
+      if (!config.template) config.template = {};
+      if (doc.template.pageLayout && typeof doc.template.pageLayout === 'object') {
+        config.template.pageLayout = { ...(config.template.pageLayout || {}), ...doc.template.pageLayout };
+      }
+      if (doc.template.pageModules && typeof doc.template.pageModules === 'object') {
+        config.template.pageModules = { ...(config.template.pageModules || {}), ...doc.template.pageModules };
+      }
+      if (doc.template.headerConfig && typeof doc.template.headerConfig === 'object') {
+        config.template.headerConfig = { ...(config.template.headerConfig || {}), ...doc.template.headerConfig };
+      }
+    }
+    if (doc.hero && typeof doc.hero === 'object') {
+      const homeModules = Array.isArray(config.template?.pageModules?.home) ? [...config.template.pageModules.home] : [];
+      const heroIndex = homeModules.findIndex((m: any) => m && m.type === 'hero');
+      if (heroIndex >= 0) {
+        homeModules[heroIndex] = {
+          ...homeModules[heroIndex],
+          props: { ...(homeModules[heroIndex].props || {}), ...doc.hero },
+        };
+      } else {
+        homeModules.unshift({
+          _id: 'mod_owner_hero',
+          type: 'hero',
+          props: doc.hero,
+          rowOrder: 0,
+          columnIndex: 0,
+          rowSpan: 1,
+          colSpan: 1,
+        });
+      }
+      if (!config.template) config.template = {};
+      if (!config.template.pageModules) config.template.pageModules = {};
+      config.template.pageModules = { ...config.template.pageModules, home: homeModules };
+    }
   }
 
   /**

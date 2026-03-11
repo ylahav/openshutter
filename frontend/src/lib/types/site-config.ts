@@ -107,6 +107,11 @@ export interface SiteConfig {
     enableWatermark: boolean
     maxUploadSize: string
   }
+  footer?: {
+    copyrightText?: string
+    termsUrl?: string
+    privacyUrl?: string
+  }
   /** EXIF metadata display: which fields to show when displaying photo EXIF (empty/undefined = show all) */
   exifMetadata?: {
     displayFields?: string[]

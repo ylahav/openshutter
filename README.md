@@ -537,9 +537,9 @@ User management (Admin → Users) includes assigning **role** (admin/owner/guest
 | **Admin → Groups** | ✅ Done | CRUD groups (alias, name). |
 | **User/Album schema** | ✅ Done | User has `groupAliases`; Album has `allowedUsers`, `allowedGroups` in DB and create DTO. |
 | **Owner management** | ✅ Done | Owner dashboard (`/owner/albums`), owner album CRUD and photo upload/edit/delete; owner photo edit at `/owner/photos/[id]/edit`; backend AdminOrOwnerGuard and ownership enforcement (album.createdBy / photo’s album). |
-| **Album edit – access control UI** | ❌ Missing | Admin album edit form has no fields for **allowedUsers** or **allowedGroups**. |
-| **Album update API** | ❌ Missing | Backend `UpdateAlbumDto` and PUT handler do not accept or persist `allowedUsers` / `allowedGroups`. |
-| **Album list by access** | ❌ Missing | Public albums API (`GET /api/albums`) only filters by `isPublic`. It does not receive the current user or filter by `allowedUsers` / `allowedGroups`, so restricted private albums are never returned to permitted users. |
+| **Album edit – access control UI** | ✅ Done | Admin album edit form includes access section with **allowedUsers** and **allowedGroups** selectors, persisted via the admin albums API. |
+| **Album update API** | ✅ Done | Backend `UpdateAlbumDto` and PUT handler accept and persist `allowedUsers` / `allowedGroups` and serialize them for admin/owner UIs. |
+| **Album list by access** | ✅ Done | Public albums and hierarchy APIs use an access context (user + groups) to filter by `isPublic`, `createdBy`, `allowedUsers`, and `allowedGroups` so restricted albums are only returned to permitted users. |
 
 **Suggested next actions (in order):**
 1. **Backend**: Add `allowedUsers` and `allowedGroups` to `UpdateAlbumDto`; in admin PUT album handler, read and persist them (ObjectIds for allowedUsers, strings for allowedGroups).

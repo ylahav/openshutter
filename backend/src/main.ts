@@ -83,11 +83,12 @@ async function bootstrap() {
         return callback(null, true);
       }
       
-      // For development, allow localhost on any port
+      // For development, allow localhost and *.localhost (e.g. sara.localhost:4000) on any port
       if (process.env.NODE_ENV !== 'production') {
         try {
           const originUrl = new URL(origin);
-          if (originUrl.hostname === 'localhost' || originUrl.hostname === '127.0.0.1') {
+          const h = originUrl.hostname;
+          if (h === 'localhost' || h === '127.0.0.1' || h.endsWith('.localhost')) {
             return callback(null, true);
           }
         } catch {

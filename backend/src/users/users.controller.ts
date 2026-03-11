@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, BadRequestException, NotFoundException, Logger, InternalServerErrorException } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, BadRequestException, NotFoundException, Logger, InternalServerErrorException, Req } from '@nestjs/common';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { AdminOrOwnerGuard } from '../common/guards/admin-or-owner.guard';
 import { connectDB } from '../config/db';
@@ -8,6 +8,8 @@ import { randomBytes } from 'crypto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { mailService } from '../services/mail.service';
+import { getOwnerGroupAlias } from '../utils/owner-groups';
+import type { Request } from 'express';
 
 const SALT_ROUNDS = 10;
 
@@ -144,7 +146,7 @@ export class UsersController {
    */
   @Post()
   @UseGuards(AdminGuard)
-  async createUser(@Body() body: CreateUserDto) {
+  async createUser(@Req() _req: Request, @Body() body: CreateUserDto) {
     try {
       await connectDB();
       const db = mongoose.connection.db;
@@ -225,6 +227,41 @@ export class UsersController {
 
       if (!user) {
         throw new BadRequestException('Failed to retrieve created user');
+      }
+
+      // If this is an owner account, ensure a dedicated group exists and is assigned.
+      if (role === 'owner') {
+        const ownerIdStr = user._id.toString();
+        const ownerGroupAlias = getOwnerGroupAlias(ownerIdStr);
+
+        // Upsert group document for this owner
+        const groups = db.collection('groups');
+        const displayName =
+          normalizedName.en ||
+          (Object.values(normalizedName).find((v) => v && v.trim()) as string | undefined) ||
+          normalizedUsername;
+        await groups.updateOne(
+          { alias: ownerGroupAlias },
+          {
+            $setOnInsert: {
+              alias: ownerGroupAlias,
+              name: { en: displayName },
+              createdAt: now,
+              updatedAt: now,
+            },
+          },
+          { upsert: true },
+        );
+
+        // Ensure user has this group alias
+        await collection.updateOne(
+          { _id: user._id },
+          { $addToSet: { groupAliases: ownerGroupAlias } },
+        );
+        // Also reflect in in-memory user document for the response
+        user.groupAliases = Array.from(
+          new Set([...(user.groupAliases || []), ownerGroupAlias]),
+        );
       }
 
       // Send welcome email if configured (fire-and-forget; do not fail user creation).
@@ -352,8 +389,41 @@ export class UsersController {
         throw new NotFoundException(`User not found after update: ${id}`);
       }
 
+      // If this user is (now) an owner, ensure a dedicated group exists and is assigned.
+      if (newRole === 'owner') {
+        const ownerIdStr = updatedUser._id.toString();
+        const ownerGroupAlias = getOwnerGroupAlias(ownerIdStr);
+
+        const groups = db.collection('groups');
+        const currentName =
+          (updatedUser as any).name?.en ||
+          (Object.values((updatedUser as any).name || {}).find((v) => v && (v as string).trim()) as string | undefined) ||
+          (updatedUser as any).username;
+
+        await groups.updateOne(
+          { alias: ownerGroupAlias },
+          {
+            $setOnInsert: {
+              alias: ownerGroupAlias,
+              name: { en: currentName },
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+          },
+          { upsert: true },
+        );
+
+        await collection.updateOne(
+          { _id: updatedUser._id },
+          { $addToSet: { groupAliases: ownerGroupAlias } },
+        );
+        (updatedUser as any).groupAliases = Array.from(
+          new Set([...(updatedUser as any).groupAliases || [], ownerGroupAlias]),
+        );
+      }
+
       // Remove passwordHash and convert ObjectId to string
-      const { passwordHash: _, ...rest } = updatedUser;
+      const { passwordHash: _, ...rest } = updatedUser as any;
       return {
         ...rest,
         _id: updatedUser._id.toString(),

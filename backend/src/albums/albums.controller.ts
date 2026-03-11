@@ -17,6 +17,7 @@ import { Request } from 'express';
 import { AlbumsService, AlbumAccessContext } from './albums.service';
 import { OptionalAdminGuard } from '../common/guards/optional-admin.guard';
 import { UpdateAlbumDto } from './dto/update-album.dto';
+import { getOwnerGroupAlias } from '../utils/owner-groups';
 import { AnalyticsEventService } from '../analytics/analytics-event.service';
 
 @Controller('albums')
@@ -30,13 +31,26 @@ export class AlbumsController {
 
   private async getAccessContext(req: Request): Promise<AlbumAccessContext | null> {
     const user = (req as any).user;
-    if (!user?.id) return null;
+    const siteContext = (req as any).siteContext;
+    if (!user?.id) {
+      // No user, but we may still be on an owner site; return minimal context for owner scoping.
+      if (siteContext?.type === 'owner-site') {
+        return {
+          userId: '', // no logged-in user
+          groupAliases: [],
+          ownerSiteId: siteContext.ownerId as string,
+        } as any;
+      }
+      return null;
+    }
+
     const doc = await this.userModel.findById(user.id).select('groupAliases').lean().exec();
     if (!doc) return null;
     return {
       userId: user.id,
       groupAliases: Array.isArray(doc.groupAliases) ? doc.groupAliases : [],
-    };
+      ownerSiteId: siteContext?.type === 'owner-site' ? (siteContext.ownerId as string) : undefined,
+    } as any;
   }
 
   @Get()
@@ -117,6 +131,16 @@ export class AlbumsController {
         throw new ForbiddenException(
           'You can only create albums using storage providers assigned to your account'
         );
+      }
+
+      // Ensure albums created by an owner are associated with the owner's group.
+      const ownerGroupAlias = getOwnerGroupAlias(user.id);
+      if (Array.isArray(body.allowedGroups)) {
+        if (!body.allowedGroups.includes(ownerGroupAlias)) {
+          body.allowedGroups.push(ownerGroupAlias);
+        }
+      } else {
+        body.allowedGroups = [ownerGroupAlias];
       }
     }
     return this.albumsService.createAlbum(body, user.id);

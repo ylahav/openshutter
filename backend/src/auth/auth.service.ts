@@ -94,6 +94,9 @@ export class AuthService {
       name: (user.name && (user.name.en || Object.values(user.name)[0])) || user.username,
       role: user.role || 'owner',
       forcePasswordChange: (user as any).forcePasswordChange ?? false,
+      groupAliases: Array.isArray((user as any).groupAliases)
+        ? (user as any).groupAliases
+        : [],
     };
   }
 

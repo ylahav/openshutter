@@ -12,13 +12,14 @@ import {
 import { Request } from 'express';
 import { AuthService } from './auth.service';
 import { OptionalAdminGuard } from '../common/guards/optional-admin.guard';
+import { getOwnerIdFromOwnerGroupAlias, isOwnerGroupAlias } from '../utils/owner-groups';
 
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
 
   @Post('login')
-  async login(@Body() loginDto: { email: string; password: string }) {
+  async login(@Req() req: Request, @Body() loginDto: { email: string; password: string }) {
     const user = await this.authService.validateUser(
       loginDto.email,
       loginDto.password,
@@ -26,6 +27,25 @@ export class AuthController {
 
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
+    }
+
+    // Restrict guest accounts that belong to an owner group to the corresponding owner domain.
+    const siteContext: any = (req as any).siteContext;
+    const groupAliases: string[] = Array.isArray((user as any).groupAliases)
+      ? (user as any).groupAliases
+      : [];
+    if (user.role === 'guest') {
+      const ownerAlias = groupAliases.find((alias) => isOwnerGroupAlias(alias));
+      if (ownerAlias) {
+        const ownerIdFromAlias = getOwnerIdFromOwnerGroupAlias(ownerAlias);
+        const ownerSiteId: string | undefined =
+          siteContext && siteContext.type === 'owner-site' ? siteContext.ownerId : undefined;
+        if (!ownerSiteId || !ownerIdFromAlias || ownerSiteId !== ownerIdFromAlias) {
+          throw new UnauthorizedException(
+            'This account can only be used on its owner site.',
+          );
+        }
+      }
     }
 
     return {

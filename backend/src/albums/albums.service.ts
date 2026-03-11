@@ -8,7 +8,9 @@ import { IPhoto } from '../models/Photo';
 import { AlbumLeadingPhotoService } from '../services/album-leading-photo';
 import { StorageManager } from '../services/storage/manager';
 
-/** When present, used to include private albums the user is allowed to see (creator, allowedUsers, allowedGroups). */
+/** When present, used to include private albums the user is allowed to see (creator, allowedUsers, allowedGroups).
+ * If ownerSiteId is set, results must also belong to that owner (album.createdBy === ownerSiteId).
+ */
 export interface AlbumAccessContext {
   userId: string;
   groupAliases: string[];
@@ -114,11 +116,28 @@ export class AlbumsService {
       });
     }
     
-    const condition = {
+    let condition: any = {
       $or: orConditions,
     };
     
-    this.logger.debug(`buildVisibilityCondition for user ${accessContext.userId}:`, JSON.stringify(condition, null, 2));
+    // If we are in an owner-site context, further restrict to albums created by that owner.
+    if ((accessContext as any).ownerSiteId) {
+      try {
+        const ownerId = new Types.ObjectId((accessContext as any).ownerSiteId as string);
+        condition = {
+          $and: [
+            condition,
+            { createdBy: ownerId },
+          ],
+        };
+      } catch {
+        // If ownerSiteId is invalid, fall back to original condition.
+      }
+    }
+    
+    this.logger.debug(
+      `buildVisibilityCondition for user ${accessContext.userId}: ${JSON.stringify(condition, null, 2)}`,
+    );
     
     return condition;
   }
@@ -142,6 +161,12 @@ export class AlbumsService {
    *    - With restrictions: only visible if user matches allowedUsers or allowedGroups
    */
   private canAccessAlbum(album: any, accessContext: AlbumAccessContext | null | undefined): boolean {
+    // If we are on an owner site, album must belong to that owner.
+    const ownerSiteId = (accessContext as any)?.ownerSiteId as string | undefined;
+    if (ownerSiteId) {
+      const createdByStr = album.createdBy?.toString?.() ?? album.createdBy;
+      if (!createdByStr || createdByStr !== ownerSiteId) return false;
+    }
     // Rule 1: Must be published (or missing, defaults to true)
     // If isPublished doesn't exist, treat as true (default)
     if (album.isPublished !== undefined && !album.isPublished) return false;

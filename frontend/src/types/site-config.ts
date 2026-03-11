@@ -90,6 +90,11 @@ export interface SiteConfig {
     enableWatermark: boolean
     maxUploadSize: string
   }
+  footer?: {
+    copyrightText?: string
+    termsUrl?: string
+    privacyUrl?: string
+  }
   whiteLabel?: {
     hideOpenShutterBranding?: boolean
     termsOfServiceUrl?: string

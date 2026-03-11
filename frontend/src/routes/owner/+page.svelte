@@ -95,6 +95,60 @@
 						</svg>
 					</a>
 				</div>
+
+				<!-- Site settings (name, description for custom domain) - Only for owners -->
+				<div class="bg-white rounded-lg shadow-md p-6">
+					<div class="flex items-center mb-4">
+						<div class="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
+							<svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"
+								/>
+							</svg>
+						</div>
+						<h2 class="text-xl font-semibold text-gray-900 ml-3">Site settings</h2>
+					</div>
+					<p class="text-gray-600 mb-4">Set site name, description, logo, hero, SEO, contact and footer for your custom domain</p>
+					<a
+						href="/owner/site-settings"
+						class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+					>
+						Site settings
+						<svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M9 5l7 7-7 7"
+							/>
+						</svg>
+					</a>
+				</div>
+
+				<!-- Theme (layout, header, menu) - Only for owners -->
+				<div class="bg-white rounded-lg shadow-md p-6">
+					<div class="flex items-center mb-4">
+						<div class="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
+							<svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+							</svg>
+						</div>
+						<h2 class="text-xl font-semibold text-gray-900 ml-3">Theme</h2>
+					</div>
+					<p class="text-gray-600 mb-4">Layout, header options and menu for your custom domain</p>
+					<a
+						href="/owner/theme"
+						class="inline-flex items-center px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700"
+					>
+						Layout &amp; menu
+						<svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+						</svg>
+					</a>
+				</div>
 			{/if}
 
 			<!-- Albums Management -->

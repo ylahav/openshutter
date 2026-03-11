@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { DatabaseModule } from './database/database.module';
 import { PhotosModule } from './photos/photos.module';
@@ -33,6 +33,9 @@ import { ApiKeysModule } from './api-keys/api-keys.module';
 import { V1Module } from './api/v1/v1.module';
 import { MarketplaceModule } from './marketplace/marketplace.module';
 import configuration from './config/configuration';
+import { SiteContextMiddleware } from './middleware/site-context.middleware';
+import { OwnerDomainsController } from './owner-domains/owner-domains.controller';
+import { OwnerSiteSettingsController } from './owner-site-settings/owner-site-settings.controller';
 
 @Module({
   imports: [
@@ -66,7 +69,21 @@ import configuration from './config/configuration';
     V1Module,
     MarketplaceModule,
   ],
-  controllers: [HealthController, SiteConfigController, StorageController, StorageAdminController, TemplatesController, ThemesController],
+  controllers: [
+    HealthController,
+    SiteConfigController,
+    StorageController,
+    StorageAdminController,
+    TemplatesController,
+    ThemesController,
+    OwnerDomainsController,
+    OwnerSiteSettingsController,
+  ],
   providers: [AdminGuard, AdminOrOwnerGuard],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    // Apply site-context resolution to all routes so controllers/services can scope by owner domain.
+    consumer.apply(SiteContextMiddleware).forRoutes('*');
+  }
+}

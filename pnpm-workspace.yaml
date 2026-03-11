@@ -6,6 +6,7 @@ onlyBuiltDependencies:
   - '@nestjs/core'
   - '@parcel/watcher'
   - '@sentry/cli'
+  - '@tensorflow/tfjs-node'
   - canvas
   - core-js
   - esbuild

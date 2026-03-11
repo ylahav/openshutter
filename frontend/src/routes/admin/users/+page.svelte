@@ -101,6 +101,7 @@
 	let groups: Group[] = [];
 	let loading = false;
 	let loadingGroups = false;
+	let loadingOwnerDomains = false;
 	let saving = false;
 	let message = '';
 	let error = '';
@@ -112,6 +113,19 @@
 	let showDeleteDialog = false;
 	let editingUser: User | null = null;
 	let userToDelete: User | null = null;
+
+	type OwnerDomain = {
+		id: string;
+		hostname: string;
+		active: boolean;
+		isPrimary: boolean;
+		createdAt?: string;
+		updatedAt?: string;
+	};
+
+	let ownerDomains: OwnerDomain[] = [];
+	let ownerDomainsError = '';
+	let newOwnerDomainHostname = '';
 
 	// Subscribe to stores
 	crudLoader.items.subscribe(value => users = value);
@@ -176,6 +190,9 @@
 			allowedStorageProviders: ['local']
 		};
 		showPassword = false;
+		ownerDomains = [];
+		ownerDomainsError = '';
+		newOwnerDomainHostname = '';
 	}
 
 	function openCreateDialog() {
@@ -201,8 +218,101 @@
 			allowedStorageProviders: user.allowedStorageProviders || ['local']
 		};
 		showPassword = false;
+		ownerDomains = [];
+		ownerDomainsError = '';
+		newOwnerDomainHostname = '';
+
+		if (user.role === 'owner') {
+			loadOwnerDomains(user._id).catch((err) => {
+				logger.error('Failed to load owner domains', err);
+			});
+		}
 		dialogs.openEdit();
 		crudOps.error.set('');
+	}
+
+	async function loadOwnerDomains(ownerId: string) {
+		loadingOwnerDomains = true;
+		ownerDomainsError = '';
+		try {
+			const response = await fetch(`/api/admin/owner-domains?ownerId=${encodeURIComponent(ownerId)}`);
+			if (!response.ok) {
+				await handleApiErrorResponse(response);
+			}
+			const result = await response.json();
+			const data = result.data ?? result;
+			ownerDomains = Array.isArray(data) ? data : Array.isArray(result.data) ? result.data : [];
+		} catch (err) {
+			logger.error('Error loading owner domains:', err);
+			ownerDomainsError = handleError(err, 'Failed to load owner domains');
+		} finally {
+			loadingOwnerDomains = false;
+		}
+	}
+
+	async function addOwnerDomain() {
+		if (!editingUser || !newOwnerDomainHostname.trim()) return;
+		try {
+			const response = await fetch('/api/admin/owner-domains', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					hostname: newOwnerDomainHostname.trim(),
+					ownerId: editingUser._id,
+					active: true,
+					isPrimary: ownerDomains.length === 0,
+				}),
+			});
+			if (!response.ok) {
+				await handleApiErrorResponse(response);
+			}
+			const result = await response.json();
+			const domain = result.data ?? result;
+			ownerDomains = [...ownerDomains, domain];
+			newOwnerDomainHostname = '';
+		} catch (err) {
+			logger.error('Error adding owner domain:', err);
+			ownerDomainsError = handleError(err, 'Failed to add owner domain');
+		}
+	}
+
+	async function updateOwnerDomain(domain: OwnerDomain, changes: Partial<OwnerDomain>) {
+		try {
+			const response = await fetch(`/api/admin/owner-domains/${encodeURIComponent(domain.id)}`, {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					hostname: changes.hostname ?? domain.hostname,
+					active: changes.active ?? domain.active,
+					isPrimary: changes.isPrimary ?? domain.isPrimary,
+				}),
+			});
+			if (!response.ok) {
+				await handleApiErrorResponse(response);
+			}
+			const result = await response.json();
+			const updated = result.data ?? result;
+			ownerDomains = ownerDomains.map((d) => (d.id === domain.id ? updated : d));
+		} catch (err) {
+			logger.error('Error updating owner domain:', err);
+			ownerDomainsError = handleError(err, 'Failed to update owner domain');
+		}
+	}
+
+	async function deleteOwnerDomain(domain: OwnerDomain) {
+		if (!confirm(`Remove domain "${domain.hostname}" from this owner?`)) return;
+		try {
+			const response = await fetch(`/api/admin/owner-domains/${encodeURIComponent(domain.id)}`, {
+				method: 'DELETE',
+			});
+			if (!response.ok) {
+				await handleApiErrorResponse(response);
+			}
+			ownerDomains = ownerDomains.filter((d) => d.id !== domain.id);
+		} catch (err) {
+			logger.error('Error deleting owner domain:', err);
+			ownerDomainsError = handleError(err, 'Failed to delete owner domain');
+		}
 	}
 
 	function openDeleteDialog(user: User) {
@@ -772,12 +882,102 @@
 						id="edit-role"
 						bind:value={formData.role}
 						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+						on:change={() => {
+							if (formData.role === 'owner' && editingUser) {
+								loadOwnerDomains(editingUser._id).catch((err) => logger.error('Failed to load owner domains', err));
+							} else {
+								ownerDomains = [];
+							}
+						}}
 					>
 						{#each ROLES as role}
 							<option value={role.value} title={role.description}>{role.label} – {role.description}</option>
 						{/each}
 					</select>
 				</div>
+
+				<fieldset class="space-y-2">
+					<legend class="block text-sm font-medium text-gray-700 mb-2">
+						Owner Domains
+					</legend>
+					{#if formData.role !== 'owner'}
+						<p class="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+							Custom domains are only for users with <strong>Editor</strong> role. Change the <strong>Role</strong> above to <strong>Editor</strong> to assign domains to this user.
+						</p>
+					{:else}
+						<p class="text-xs text-gray-500 mb-2">
+							Assign custom domains to this editor. Visitors on these domains will see only this user's content, with admin at
+							<code class="px-1 py-0.5 bg-gray-100 rounded text-[11px]">/admin</code>.
+						</p>
+						<div class="border border-gray-300 rounded-md p-3 space-y-3">
+							{#if ownerDomainsError}
+								<div class="p-2 bg-red-50 text-red-700 text-xs rounded">{ownerDomainsError}</div>
+							{/if}
+							<div class="{ownerDomains.length === 0 ? 'bg-gray-50 border border-dashed border-gray-300 rounded-md p-3' : ''}">
+								<label class="block text-sm font-medium text-gray-700 mb-1">Add domain</label>
+								<div class="flex gap-2 items-center">
+									<input
+										type="text"
+										placeholder="e.g. photos.example.com"
+										class="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm"
+										bind:value={newOwnerDomainHostname}
+									/>
+									<button
+										type="button"
+										on:click={addOwnerDomain}
+										class="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+										disabled={loadingOwnerDomains || !newOwnerDomainHostname.trim()}
+									>
+										Add domain
+									</button>
+								</div>
+								{#if ownerDomains.length === 0}
+									<p class="text-xs text-gray-500 mt-1">Enter a hostname and click Add domain. No domains assigned yet.</p>
+								{/if}
+							</div>
+							{#if loadingOwnerDomains}
+								<p class="text-sm text-gray-500">Loading domains...</p>
+							{:else if ownerDomains.length > 0}
+								<ul class="space-y-2">
+									{#each ownerDomains as domain}
+										<li class="flex items-center justify-between border border-gray-200 rounded-md px-3 py-2 text-sm">
+											<div class="flex flex-col">
+												<span class="font-medium">{domain.hostname}</span>
+												<div class="flex items-center gap-3 text-xs text-gray-500 mt-1">
+													<label class="inline-flex items-center gap-1">
+														<input
+															type="checkbox"
+															checked={domain.active}
+															on:change={(e) =>
+																updateOwnerDomain(domain, { active: (e.currentTarget as HTMLInputElement).checked })}
+														/>
+														<span>Active</span>
+													</label>
+													<label class="inline-flex items-center gap-1">
+														<input
+															type="checkbox"
+															checked={domain.isPrimary}
+															on:change={(e) =>
+																updateOwnerDomain(domain, { isPrimary: (e.currentTarget as HTMLInputElement).checked })}
+														/>
+														<span>Primary</span>
+													</label>
+												</div>
+											</div>
+											<button
+												type="button"
+												class="text-xs text-red-600 hover:text-red-800"
+												on:click={() => deleteOwnerDomain(domain)}
+											>
+												Remove
+											</button>
+										</li>
+									{/each}
+								</ul>
+							{/if}
+						</div>
+					{/if}
+				</fieldset>
 
 				<div>
 					<label for="edit-preferred-language" class="block text-sm font-medium text-gray-700 mb-2">

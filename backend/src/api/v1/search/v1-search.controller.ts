@@ -35,7 +35,16 @@ export class V1SearchController {
 
   private async getAccessContext(req: Request): Promise<AlbumAccessContext | null> {
     const apiKey = (req as any).apiKey;
+    const siteContext = (req as any).siteContext;
+
     if (!apiKey?.userId) {
+      if (siteContext?.type === 'owner-site') {
+        return {
+          userId: '',
+          groupAliases: [],
+          ownerSiteId: siteContext.ownerId as string,
+        } as any;
+      }
       return null;
     }
 
@@ -52,7 +61,8 @@ export class V1SearchController {
     return {
       userId: apiKey.userId.toString(),
       groupAliases: Array.isArray(doc.groupAliases) ? doc.groupAliases : [],
-    };
+      ownerSiteId: siteContext?.type === 'owner-site' ? (siteContext.ownerId as string) : undefined,
+    } as any;
   }
 
   /**

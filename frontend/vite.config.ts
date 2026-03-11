@@ -56,6 +56,13 @@ export default defineConfig({
 			'/api': {
 				target: BACKEND_URL,
 				changeOrigin: true,
+				// Forward original Host so backend can resolve owner domains (e.g. sara.localhost:4000)
+				configure: (proxy) => {
+					proxy.on('proxyReq', (proxyReq, req) => {
+						const host = req.headers.host;
+						if (host) proxyReq.setHeader('X-Forwarded-Host', host);
+					});
+				},
 				// Don't proxy routes that have SvelteKit handlers
 				bypass: (req) => {
 					// Let SvelteKit handle these routes
