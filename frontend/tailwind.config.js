@@ -6,10 +6,12 @@ module.exports = {
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
     './src/templates/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/lib/styles/globals.css',
   ],
   theme: {
     extend: {
       colors: {
+        // Primary scale (bg-primary-600, etc.) plus shadcn semantic (bg-primary, text-primary-foreground)
         primary: {
           50: '#f0f9ff',
           100: '#e0f2fe',
@@ -21,7 +23,10 @@ module.exports = {
           700: '#0369a1',
           800: '#075985',
           900: '#0c4a6e',
+          DEFAULT: 'hsl(var(--color-primary))',
+          foreground: 'hsl(var(--color-primary-foreground))',
         },
+        // Secondary scale plus shadcn semantic
         secondary: {
           50: '#f8fafc',
           100: '#f1f5f9',
@@ -33,6 +38,8 @@ module.exports = {
           700: '#334155',
           800: '#1e293b',
           900: '#0f172a',
+          DEFAULT: 'hsl(var(--color-secondary))',
+          foreground: 'hsl(var(--color-secondary-foreground))',
         },
         // shadcn/ui color system
         background: 'hsl(var(--color-background))',
@@ -44,14 +51,6 @@ module.exports = {
         border: 'hsl(var(--color-border))',
         input: 'hsl(var(--color-input))',
         ring: 'hsl(var(--color-ring))',
-        primary: {
-          DEFAULT: 'hsl(var(--color-primary))',
-          foreground: 'hsl(var(--color-primary-foreground))',
-        },
-        secondary: {
-          DEFAULT: 'hsl(var(--color-secondary))',
-          foreground: 'hsl(var(--color-secondary-foreground))',
-        },
         destructive: {
           DEFAULT: 'hsl(var(--color-destructive))',
           foreground: 'hsl(var(--color-destructive-foreground))',

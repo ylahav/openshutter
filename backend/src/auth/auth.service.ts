@@ -114,6 +114,7 @@ export class AuthService {
         role: u.role || 'guest',
         forcePasswordChange: u.forcePasswordChange ?? false,
         preferredLanguage: u.preferredLanguage || undefined,
+        storageConfig: u.storageConfig || undefined,
         createdAt: u.createdAt,
         updatedAt: u.updatedAt,
       },
@@ -130,6 +131,28 @@ export class AuthService {
       bio?: any;
       profileImage?: any;
       preferredLanguage?: string;
+      storageConfig?: {
+        useAdminConfig?: boolean;
+        googleDrive?: {
+          rootFolderId?: string;
+          sharedDriveId?: string;
+          folderPrefix?: string;
+          authMethod?: string;
+          clientId?: string;
+          clientSecret?: string;
+          refreshToken?: string;
+          storageType?: string;
+          folderId?: string;
+          serviceAccountJson?: string;
+        };
+        wasabi?: {
+          endpoint?: string;
+          bucketName?: string;
+          region?: string;
+          accessKeyId?: string;
+          secretAccessKey?: string;
+        };
+      };
     },
   ): Promise<{ user: any }> {
     const user = await this.userModel.findById(userId).exec();
@@ -145,6 +168,9 @@ export class AuthService {
     }
     if (body.preferredLanguage !== undefined) {
       user.preferredLanguage = body.preferredLanguage?.trim() || '';
+    }
+    if (body.storageConfig !== undefined) {
+      user.storageConfig = body.storageConfig;
     }
 
     if (body.newPassword && body.newPassword.length >= 6) {
@@ -171,6 +197,7 @@ export class AuthService {
         role: u.role || 'guest',
         forcePasswordChange: u.forcePasswordChange ?? false,
         preferredLanguage: u.preferredLanguage || undefined,
+        storageConfig: u.storageConfig || undefined,
         createdAt: u.createdAt,
         updatedAt: u.updatedAt,
       },

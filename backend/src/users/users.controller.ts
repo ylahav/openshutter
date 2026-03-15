@@ -307,7 +307,7 @@ export class UsersController {
         throw new NotFoundException(`User not found: ${id}`);
       }
 
-      const { name, password, role, groupAliases, blocked, allowedStorageProviders, forcePasswordChange, preferredLanguage } = body;
+      const { name, password, role, groupAliases, blocked, allowedStorageProviders, forcePasswordChange, preferredLanguage, storageConfig } = body;
 
       // Normalize name object if provided
       let normalizedName: Record<string, string> | undefined;
@@ -380,6 +380,9 @@ export class UsersController {
       }
       if (preferredLanguage !== undefined) {
         updateData.preferredLanguage = preferredLanguage?.trim() ?? '';
+      }
+      if (storageConfig !== undefined) {
+        updateData.storageConfig = storageConfig;
       }
 
       await collection.updateOne({ _id: new Types.ObjectId(id) }, { $set: updateData });

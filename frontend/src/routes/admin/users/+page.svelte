@@ -31,6 +31,10 @@
 		forcePasswordChange?: boolean;
 		preferredLanguage?: string;
 		allowedStorageProviders?: string[];
+		storageConfig?: {
+			useAdminConfig?: boolean;
+			googleDrive?: { rootFolderId?: string; sharedDriveId?: string; folderPrefix?: string };
+		};
 		createdAt?: string;
 		updatedAt?: string;
 	}
@@ -152,7 +156,8 @@
 		groupAliases: [] as string[],
 		blocked: false,
 		forcePasswordChange: true,
-		allowedStorageProviders: ['local'] as string[]
+		allowedStorageProviders: ['local'] as string[],
+		storageUseAdminConfig: true
 	};
 
 	let showPassword = false;
@@ -187,7 +192,8 @@
 			groupAliases: [],
 			blocked: false,
 			forcePasswordChange: true,
-			allowedStorageProviders: ['local']
+			allowedStorageProviders: ['local'],
+			storageUseAdminConfig: true
 		};
 		showPassword = false;
 		ownerDomains = [];
@@ -206,6 +212,7 @@
 		const prefLang = user.preferredLanguage && SUPPORTED_LANGUAGES.some((l) => l.code === user.preferredLanguage)
 			? user.preferredLanguage
 			: 'en';
+		const storage = user.storageConfig ?? {};
 		formData = {
 			name: normalizeMultiLangText(user.name),
 			username: user.username || '',
@@ -215,7 +222,8 @@
 			groupAliases: user.groupAliases || [],
 			blocked: user.blocked || false,
 			forcePasswordChange: user.forcePasswordChange ?? false,
-			allowedStorageProviders: user.allowedStorageProviders || ['local']
+			allowedStorageProviders: user.allowedStorageProviders || ['local'],
+			storageUseAdminConfig: storage.useAdminConfig !== false
 		};
 		showPassword = false;
 		ownerDomains = [];
@@ -363,7 +371,15 @@
 	async function handleEdit() {
 		if (!editingUser) return;
 		const currentEditingUser = editingUser;
-		const updatedUser = await crudOps.update(currentEditingUser._id, formData);
+		const payload = {
+			...formData,
+			storageConfig: {
+				useAdminConfig: formData.storageUseAdminConfig,
+				// When using own connection, preserve existing owner data (credentials/folders are set on owner setup only)
+				googleDrive: formData.storageUseAdminConfig ? undefined : (currentEditingUser.storageConfig?.googleDrive ?? undefined)
+			}
+		};
+		const updatedUser = await crudOps.update(currentEditingUser._id, payload);
 		if (updatedUser) {
 			// Success handled by onUpdateSuccess callback
 		}
@@ -914,9 +930,10 @@
 								<div class="p-2 bg-red-50 text-red-700 text-xs rounded">{ownerDomainsError}</div>
 							{/if}
 							<div class="{ownerDomains.length === 0 ? 'bg-gray-50 border border-dashed border-gray-300 rounded-md p-3' : ''}">
-								<label class="block text-sm font-medium text-gray-700 mb-1">Add domain</label>
+								<label for="edit-owner-domain-hostname" class="block text-sm font-medium text-gray-700 mb-1">Add domain</label>
 								<div class="flex gap-2 items-center">
 									<input
+										id="edit-owner-domain-hostname"
 										type="text"
 										placeholder="e.g. photos.example.com"
 										class="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm"
@@ -1042,6 +1059,32 @@
 						</div>
 					</div>
 				</fieldset>
+
+				{#if formData.role === 'owner' && formData.allowedStorageProviders.includes('google-drive')}
+					<fieldset class="space-y-2">
+						<legend class="block text-sm font-medium text-gray-700 mb-2">
+							Storage connection (Google Drive)
+						</legend>
+						<p class="text-xs text-gray-500 mb-2">
+							Choose whether this owner uses the main domain's connection or their own. Connection and folder details are configured by the owner on their setup screen only (not here).
+						</p>
+						<div class="border border-gray-300 rounded-md p-3">
+							<label class="flex items-center cursor-pointer">
+								<input
+									type="checkbox"
+									bind:checked={formData.storageUseAdminConfig}
+									class="mr-2"
+								/>
+								<span class="text-sm font-medium text-gray-700">Use main domain connection</span>
+							</label>
+							{#if !formData.storageUseAdminConfig}
+								<p class="text-xs text-gray-500 mt-2 pl-4 border-l-2 border-gray-200">
+									Owner configures credentials and folder on their own setup page.
+								</p>
+							{/if}
+						</div>
+					</fieldset>
+				{/if}
 
 				<div class="flex items-center">
 					<label class="relative inline-flex items-center cursor-pointer">

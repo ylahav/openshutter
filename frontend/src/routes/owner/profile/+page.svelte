@@ -25,6 +25,14 @@
 		};
 		role: string;
 		preferredLanguage?: string;
+		storageConfig?: {
+			useAdminConfig?: boolean;
+			googleDrive?: {
+				rootFolderId?: string;
+				sharedDriveId?: string;
+				folderPrefix?: string;
+			};
+		};
 		createdAt: string;
 	}
 
@@ -34,16 +42,16 @@
 	let error: string | null = null;
 	let success: string | null = null;
 
-	let formData = {
-		name: '' as string,
-		email: '',
-		bio: { en: '', he: '' } as { en?: string; he?: string },
-		profileImage: undefined as UserProfile['profileImage'],
-		preferredLanguage: 'en' as string,
-		currentPassword: '',
-		newPassword: '',
-		confirmPassword: ''
-	};
+let formData = {
+	name: '' as string,
+	email: '',
+	bio: { en: '', he: '' } as { en?: string; he?: string },
+	profileImage: undefined as UserProfile['profileImage'],
+	preferredLanguage: 'en' as string,
+	currentPassword: '',
+	newPassword: '',
+	confirmPassword: '',
+};
 
 	onMount(async () => {
 		await fetchProfile();
@@ -59,15 +67,16 @@
 			const result = await response.json();
 			profile = result.user || result;
 			if (!profile) return;
-			const displayName = MultiLangUtils.getTextValue(profile.name, $currentLanguage);
-			const prefLang = profile.preferredLanguage && SUPPORTED_LANGUAGES.some((l) => l.code === profile.preferredLanguage)
-				? profile.preferredLanguage
+			const p = profile;
+			const displayName = MultiLangUtils.getTextValue(p.name, $currentLanguage);
+			const prefLang = p.preferredLanguage && SUPPORTED_LANGUAGES.some((l) => l.code === p.preferredLanguage)
+				? p.preferredLanguage
 				: 'en';
 			formData = {
 				name: displayName || '',
-				email: profile.email || '',
-				bio: profile.bio || { en: '', he: '' },
-				profileImage: profile.profileImage,
+				email: p.email || '',
+				bio: p.bio || { en: '', he: '' },
+				profileImage: p.profileImage,
 				preferredLanguage: prefLang,
 				currentPassword: '',
 				newPassword: '',
@@ -183,8 +192,8 @@
 			<!-- Header -->
 			<div class="flex justify-between items-center mb-8">
 				<div>
-					<h1 class="text-3xl font-bold text-gray-900">Profile Management</h1>
-					<p class="text-gray-600 mt-2">Edit your personal information and profile settings</p>
+					<h1 class="text-3xl font-bold text-gray-900">Profile &amp; setup</h1>
+					<p class="text-gray-600 mt-2">Personal information and preferred language</p>
 				</div>
 				<button
 					on:click={() => goto('/owner')}

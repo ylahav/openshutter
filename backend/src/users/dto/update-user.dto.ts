@@ -46,4 +46,30 @@ export class UpdateUserDto {
 	@IsString()
 	@IsOptional()
 	preferredLanguage?: string;
+
+	/** Owner storage: use main-domain config vs own connection. Used when allowedStorageProviders includes google-drive, wasabi, etc. */
+	@Allow()
+	@IsOptional()
+	storageConfig?: {
+		useAdminConfig?: boolean;
+		googleDrive?: {
+			rootFolderId?: string;
+			sharedDriveId?: string;
+			folderPrefix?: string;
+			authMethod?: string;
+			clientId?: string;
+			clientSecret?: string;
+			refreshToken?: string;
+			storageType?: string;
+			folderId?: string;
+			serviceAccountJson?: string;
+		};
+		wasabi?: {
+			endpoint?: string;
+			bucketName?: string;
+			region?: string;
+			accessKeyId?: string;
+			secretAccessKey?: string;
+		};
+	};
 }

@@ -1,4 +1,6 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 @import "../../styles/tiptap.css";
 
 /* Tailwind v4: use .dark class for dark: variant (not just prefers-color-scheme) */

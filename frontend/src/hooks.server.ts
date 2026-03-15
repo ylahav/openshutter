@@ -52,11 +52,12 @@ export const handle: Handle = async ({ event, resolve }) => {
 		if (!event.locals.user) {
 			return Response.redirect(new URL('/login?redirect=' + encodeURIComponent(path), event.url), 303);
 		}
-		// Owners: album management and photo upload/edit (backend enforces ownership); admins: all admin routes
+		// Owners: album management, photo upload/edit, and storage (own data); admins: all admin routes
 		const ownerAllowed =
 			path.startsWith('/admin/photos/upload') ||
 			/^\/admin\/photos\/[^/]+\/edit\/?$/.test(path) ||
-			path.startsWith('/admin/albums');
+			path.startsWith('/admin/albums') ||
+			path.startsWith('/admin/storage');
 		if (event.locals.user.role === 'owner' && !ownerAllowed) {
 			return Response.redirect(new URL('/login?redirect=' + encodeURIComponent(path), event.url), 303);
 		}

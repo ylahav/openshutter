@@ -10,6 +10,28 @@ export interface User {
   groupAliases: string[]
   blocked: boolean
   allowedStorageProviders: string[]
+  storageConfig?: {
+    useAdminConfig?: boolean
+    googleDrive?: {
+      rootFolderId?: string
+      sharedDriveId?: string
+      folderPrefix?: string
+      authMethod?: string
+      clientId?: string
+      clientSecret?: string
+      refreshToken?: string
+      storageType?: string
+      folderId?: string
+      serviceAccountJson?: string
+    }
+    wasabi?: {
+      endpoint?: string
+      bucketName?: string
+      region?: string
+      accessKeyId?: string
+      secretAccessKey?: string
+    }
+  }
   forcePasswordChange?: boolean
   preferredLanguage?: string
   createdAt: Date
@@ -55,6 +77,10 @@ const UserSchema = new Schema<IUserDocument>({
     type: String,
     trim: true
   }],
+  storageConfig: {
+    type: Schema.Types.Mixed,
+    default: undefined
+  },
   forcePasswordChange: {
     type: Boolean,
     default: false
