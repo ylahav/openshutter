@@ -1,7 +1,5 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import MultiLangInput from '$lib/components/MultiLangInput.svelte';
-	import type { MultiLangText } from '$lib/types/multi-lang';
 	import { useCrudLoader } from '$lib/composables/useCrudLoader';
 	import { useCrudOperations } from '$lib/composables/useCrudOperations';
 	import { useDialogManager } from '$lib/composables/useDialogManager';
@@ -9,35 +7,16 @@
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 	import { SUPPORTED_LANGUAGES } from '$lib/types/multi-lang';
-	import { ROLE_LABELS, ROLE_OPTIONS } from '$lib/constants/roles';
+	import { ROLE_OPTIONS } from '$lib/constants/roles';
 	import type { PageData } from './$types';
+	import type { User, Group, OwnerDomain, UserFormData } from './types';
+	import UserFilters from './components/UserFilters.svelte';
+	import UserTable from './components/UserTable.svelte';
+	import UserForm from './components/UserForm.svelte';
+	import OwnerDomainsSection from './components/OwnerDomainsSection.svelte';
 
 	// svelte-ignore export_let_unused - Required by SvelteKit page component
 	export let data: PageData;
-
-	interface Group {
-		_id: string;
-		alias: string;
-		name: MultiLangText | string;
-	}
-
-	interface User {
-		_id: string;
-		name: MultiLangText | string;
-		username: string;
-		role: 'admin' | 'owner' | 'guest';
-		groupAliases?: string[];
-		blocked?: boolean;
-		forcePasswordChange?: boolean;
-		preferredLanguage?: string;
-		allowedStorageProviders?: string[];
-		storageConfig?: {
-			useAdminConfig?: boolean;
-			googleDrive?: { rootFolderId?: string; sharedDriveId?: string; folderPrefix?: string };
-		};
-		createdAt?: string;
-		updatedAt?: string;
-	}
 
 	const ROLES = ROLE_OPTIONS;
 
@@ -58,12 +37,15 @@
 			blocked: () => blockedFilter
 		}
 	});
+	/** Payload sent to create/update user API (User fields + optional password). */
+	type UserPayload = Partial<Omit<User, '_id' | 'createdAt' | 'updatedAt'>> & { password?: string };
+
 	const crudOps = useCrudOperations<User>('/api/admin/users', {
 		createSuccessMessage: 'User created successfully!',
 		updateSuccessMessage: 'User updated successfully!',
 		deleteSuccessMessage: 'User deleted successfully!',
-		transformPayload: (data: any) => {
-			const payload: any = { ...data };
+		transformPayload: (data: UserPayload): UserPayload => {
+			const payload: UserPayload = { ...data };
 			// Only include password if it's been set (for updates: omit when empty so backend keeps current)
 			const p = payload.password;
 			if (p == null || (typeof p === 'string' && p.trim() === '')) {
@@ -118,15 +100,6 @@
 	let editingUser: User | null = null;
 	let userToDelete: User | null = null;
 
-	type OwnerDomain = {
-		id: string;
-		hostname: string;
-		active: boolean;
-		isPrimary: boolean;
-		createdAt?: string;
-		updatedAt?: string;
-	};
-
 	let ownerDomains: OwnerDomain[] = [];
 	let ownerDomainsError = '';
 	let newOwnerDomainHostname = '';
@@ -147,16 +120,16 @@
 	dialogs.showDelete.subscribe(value => showDeleteDialog = value);
 
 	// Form state
-	let formData = {
-		name: { en: '', he: '' } as MultiLangText,
+	let formData: UserFormData = {
+		name: { en: '', he: '' },
 		username: '',
 		password: '',
-		role: 'guest' as 'admin' | 'owner' | 'guest',
+		role: 'guest',
 		preferredLanguage: 'en',
-		groupAliases: [] as string[],
+		groupAliases: [],
 		blocked: false,
 		forcePasswordChange: true,
-		allowedStorageProviders: ['local'] as string[],
+		allowedStorageProviders: ['local'],
 		storageUseAdminConfig: true
 	};
 
@@ -335,12 +308,6 @@
 		return nameField?.en || nameField?.he || user.username || '(No name)';
 	}
 
-	function getGroupName(group: Group): string {
-		const nameField = typeof group.name === 'string' ? group.name : group.name;
-		if (typeof nameField === 'string') return nameField;
-		return nameField?.en || nameField?.he || group.alias;
-	}
-
 	function toggleGroup(groupAlias: string) {
 		if (formData.groupAliases.includes(groupAlias)) {
 			formData.groupAliases = formData.groupAliases.filter((g) => g !== groupAlias);
@@ -421,69 +388,14 @@
 			{/if}
 
 			<!-- Search and Filters -->
-			<div class="flex items-center justify-between mb-6">
-				<div class="flex items-center space-x-4">
-					<div class="relative">
-						<input
-							type="text"
-							placeholder="Search users..."
-							bind:value={searchTerm}
-							on:input={() => crudLoader.loadItems()}
-							class="pl-10 pr-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-64"
-						/>
-						<svg
-							class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4"
-							fill="none"
-							stroke="currentColor"
-							viewBox="0 0 24 24"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-							/>
-						</svg>
-					</div>
-
-					<select
-						bind:value={roleFilter}
-						on:change={() => crudLoader.loadItems()}
-						class="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-					>
-						<option value="all">All Roles</option>
-						{#each ROLES as role}
-							<option value={role.value} title={role.description}>{role.label} – {role.description}</option>
-						{/each}
-					</select>
-
-					<select
-						bind:value={blockedFilter}
-						on:change={() => crudLoader.loadItems()}
-						class="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-					>
-						<option value="all">All Status</option>
-						<option value="false">Active</option>
-						<option value="true">Blocked</option>
-					</select>
-				</div>
-
-				<button
-					type="button"
-					on:click={openCreateDialog}
-					class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium flex items-center gap-2"
-				>
-					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M12 4v16m8-8H4"
-						/>
-					</svg>
-					Add User
-				</button>
-			</div>
+			<UserFilters
+				bind:searchTerm
+				bind:roleFilter
+				bind:blockedFilter
+				roles={ROLES}
+				onFilterChange={() => crudLoader.loadItems()}
+				onAddUser={openCreateDialog}
+			/>
 
 			<!-- Users List -->
 			{#if loading}
@@ -510,98 +422,12 @@
 					<p class="text-gray-600">Start by adding your first user.</p>
 				</div>
 			{:else}
-				<div class="overflow-x-auto">
-					<table class="min-w-full divide-y divide-gray-200">
-						<thead class="bg-gray-50">
-							<tr>
-								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-									User
-								</th>
-								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-									Role
-								</th>
-								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-									Groups
-								</th>
-								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-									Status
-								</th>
-								<th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-									Actions
-								</th>
-							</tr>
-						</thead>
-						<tbody class="bg-white divide-y divide-gray-200">
-							{#each users as user}
-								<tr class="hover:bg-gray-50">
-									<td class="px-6 py-4 whitespace-nowrap">
-										<div>
-											<div class="text-sm font-medium text-gray-900">{getUserName(user)}</div>
-											<div class="text-sm text-gray-500">{user.username}</div>
-										</div>
-									</td>
-									<td class="px-6 py-4 whitespace-nowrap">
-										<div class="flex flex-wrap items-center gap-1">
-											<span
-												class="px-2 py-1 text-xs font-medium rounded {user.role === 'admin'
-													? 'bg-purple-100 text-purple-800'
-													: user.role === 'owner'
-														? 'bg-blue-100 text-blue-800'
-														: 'bg-gray-100 text-gray-800'}"
-											>
-												{ROLE_LABELS[user.role as keyof typeof ROLE_LABELS] ?? user.role}
-											</span>
-											{#if user.forcePasswordChange}
-												<span class="px-2 py-0.5 text-xs font-medium rounded bg-amber-100 text-amber-800" title="Must change password on next login">Change password</span>
-											{/if}
-										</div>
-									</td>
-									<td class="px-6 py-4">
-										<div class="flex flex-wrap gap-1">
-											{#if user.groupAliases && user.groupAliases.length > 0}
-												{#each user.groupAliases as alias}
-													{@const group = groups.find((g) => g.alias === alias)}
-													<span class="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded">
-														{group ? getGroupName(group) : alias}
-													</span>
-												{/each}
-											{:else}
-												<span class="text-xs text-gray-400">None</span>
-											{/if}
-										</div>
-									</td>
-									<td class="px-6 py-4 whitespace-nowrap">
-										{#if user.blocked}
-											<span class="px-2 py-1 text-xs font-medium rounded bg-red-100 text-red-800">
-												Blocked
-											</span>
-										{:else}
-											<span class="px-2 py-1 text-xs font-medium rounded bg-green-100 text-green-800">
-												Active
-											</span>
-										{/if}
-									</td>
-									<td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-										<button
-											type="button"
-											on:click={() => openEditDialog(user)}
-											class="text-blue-600 hover:text-blue-900 mr-4"
-										>
-											Edit
-										</button>
-										<button
-											type="button"
-											on:click={() => openDeleteDialog(user)}
-											class="text-red-600 hover:text-red-900"
-										>
-											Delete
-										</button>
-									</td>
-								</tr>
-							{/each}
-						</tbody>
-					</table>
-				</div>
+				<UserTable
+					users={users}
+					groups={groups}
+					onEdit={openEditDialog}
+					onDelete={openDeleteDialog}
+				/>
 			{/if}
 		</div>
 	</div>
@@ -618,170 +444,18 @@
 			{/if}
 
 			<div class="space-y-4">
-				<!-- svelte-ignore a11y_label_has_associated_control -->
-				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
-						Name *
-					</label>
-					<MultiLangInput bind:value={formData.name} />
-				</div>
-
-				<div>
-					<label for="create-username" class="block text-sm font-medium text-gray-700 mb-2">
-						Username *
-					</label>
-					<input
-						id="create-username"
-						type="text"
-						bind:value={formData.username}
-						placeholder="username@example.com"
-						required
-						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-					/>
-				</div>
-
-				<div>
-					<label for="create-password" class="block text-sm font-medium text-gray-700 mb-2">
-						Password (optional)
-					</label>
-					<div class="relative">
-						<input
-							id="create-password"
-							type={showPassword ? 'text' : 'password'}
-							bind:value={formData.password}
-							placeholder="Leave blank to auto-generate (sent by welcome email if configured)"
-							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-						/>
-						<p class="mt-1 text-xs text-gray-500">If blank, the system generates a secure password and sends it via welcome email. User will be required to change it on first login.</p>
-						<button
-							type="button"
-							on:click={() => (showPassword = !showPassword)}
-							class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-						>
-							{#if showPassword}
-								<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										stroke-width="2"
-										d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
-									/>
-								</svg>
-							{:else}
-								<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										stroke-width="2"
-										d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-									/>
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										stroke-width="2"
-										d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-									/>
-								</svg>
-							{/if}
-						</button>
-					</div>
-				</div>
-
-				<div>
-					<label for="create-role" class="block text-sm font-medium text-gray-700 mb-2">
-						Role *
-					</label>
-					<select
-						id="create-role"
-						bind:value={formData.role}
-						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-					>
-						{#each ROLES as role}
-							<option value={role.value} title={role.description}>{role.label} – {role.description}</option>
-						{/each}
-					</select>
-				</div>
-
-				<div>
-					<label for="create-preferred-language" class="block text-sm font-medium text-gray-700 mb-2">
-						Preferred language
-					</label>
-					<select
-						id="create-preferred-language"
-						bind:value={formData.preferredLanguage}
-						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-					>
-						{#each SUPPORTED_LANGUAGES as lang}
-							<option value={lang.code}>{lang.name} ({lang.nativeName})</option>
-						{/each}
-					</select>
-				</div>
-
-				<fieldset class="space-y-2">
-					<legend class="block text-sm font-medium text-gray-700 mb-2">
-						Groups
-					</legend>
-					<div class="border border-gray-300 rounded-md p-3 max-h-32 overflow-y-auto">
-						{#if loadingGroups}
-							<p class="text-sm text-gray-500">Loading groups...</p>
-						{:else if groups.length === 0}
-							<p class="text-sm text-gray-500">No groups available</p>
-						{:else}
-							<div class="space-y-2">
-								{#each groups as group}
-									<label class="flex items-center">
-										<input
-											type="checkbox"
-											checked={formData.groupAliases.includes(group.alias)}
-											on:change={() => toggleGroup(group.alias)}
-											class="mr-2"
-										/>
-										<span class="text-sm text-gray-700">{getGroupName(group)}</span>
-										<span class="ml-2 text-xs text-gray-500">({group.alias})</span>
-									</label>
-								{/each}
-							</div>
-						{/if}
-					</div>
-				</fieldset>
-
-				<fieldset class="space-y-2">
-					<legend class="block text-sm font-medium text-gray-700 mb-2">
-						Allowed Storage Providers
-					</legend>
-					<div class="border border-gray-300 rounded-md p-3">
-						<div class="space-y-2">
-							{#each STORAGE_PROVIDERS as provider}
-								<label class="flex items-center">
-									<input
-										type="checkbox"
-										checked={formData.allowedStorageProviders.includes(provider.id)}
-										on:change={() => toggleStorageProvider(provider.id)}
-										class="mr-2"
-									/>
-									<span class="text-sm text-gray-700">{provider.name}</span>
-								</label>
-							{/each}
-						</div>
-					</div>
-				</fieldset>
-
-				<div class="flex items-center">
-					<label class="relative inline-flex items-center cursor-pointer">
-						<input
-							type="checkbox"
-							bind:checked={formData.blocked}
-							class="sr-only peer"
-						/>
-						<div
-							class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"
-						></div>
-						<span class="ml-3 text-sm font-medium text-gray-700">
-							Blocked
-						</span>
-					</label>
-				</div>
-
+				<UserForm
+					bind:formData
+					bind:showPassword
+					mode="create"
+					groups={groups}
+					loadingGroups={loadingGroups}
+					roles={ROLES}
+					supportedLanguages={SUPPORTED_LANGUAGES}
+					storageProviders={STORAGE_PROVIDERS}
+					onToggleGroup={toggleGroup}
+					onToggleStorageProvider={toggleStorageProvider}
+				/>
 				<div class="flex justify-end space-x-2 pt-4">
 					<button
 						type="button"
@@ -822,302 +496,37 @@
 			{/if}
 
 			<div class="space-y-4">
-				<!-- svelte-ignore a11y_label_has_associated_control -->
-				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
-						Name *
-					</label>
-					<MultiLangInput bind:value={formData.name} />
-				</div>
-
-				<div>
-					<label for="edit-username" class="block text-sm font-medium text-gray-700 mb-2">
-						Username
-					</label>
-					<input
-						id="edit-username"
-						type="text"
-						value={formData.username}
-						disabled
-						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-100 text-gray-600"
+				<UserForm
+					bind:formData
+					bind:showPassword
+					mode="edit"
+					groups={groups}
+					loadingGroups={loadingGroups}
+					roles={ROLES}
+					supportedLanguages={SUPPORTED_LANGUAGES}
+					storageProviders={STORAGE_PROVIDERS}
+					onToggleGroup={toggleGroup}
+					onToggleStorageProvider={toggleStorageProvider}
+					onRoleChange={() => {
+						if (formData.role === 'owner' && editingUser) {
+							loadOwnerDomains(editingUser._id).catch((err) => logger.error('Failed to load owner domains', err));
+						} else {
+							ownerDomains = [];
+						}
+					}}
+				>
+					<OwnerDomainsSection
+						slot="extra"
+						role={formData.role}
+						ownerDomains={ownerDomains}
+						loadingOwnerDomains={loadingOwnerDomains}
+						ownerDomainsError={ownerDomainsError}
+						bind:newOwnerDomainHostname
+						onAddDomain={addOwnerDomain}
+						onUpdateDomain={updateOwnerDomain}
+						onDeleteDomain={deleteOwnerDomain}
 					/>
-					<p class="mt-1 text-xs text-gray-500">Username cannot be changed</p>
-				</div>
-
-				<div>
-					<label for="edit-password" class="block text-sm font-medium text-gray-700 mb-2">
-						New Password (leave blank to keep current)
-					</label>
-					<div class="relative">
-						<input
-							id="edit-password"
-							type={showPassword ? 'text' : 'password'}
-							bind:value={formData.password}
-							placeholder="Leave blank to keep current password"
-							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-						/>
-						<button
-							type="button"
-							on:click={() => (showPassword = !showPassword)}
-							class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-						>
-							{#if showPassword}
-								<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										stroke-width="2"
-										d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
-									/>
-								</svg>
-							{:else}
-								<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										stroke-width="2"
-										d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-									/>
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										stroke-width="2"
-										d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-									/>
-								</svg>
-							{/if}
-						</button>
-					</div>
-				</div>
-
-				<div>
-					<label for="edit-role" class="block text-sm font-medium text-gray-700 mb-2">
-						Role *
-					</label>
-					<select
-						id="edit-role"
-						bind:value={formData.role}
-						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-						on:change={() => {
-							if (formData.role === 'owner' && editingUser) {
-								loadOwnerDomains(editingUser._id).catch((err) => logger.error('Failed to load owner domains', err));
-							} else {
-								ownerDomains = [];
-							}
-						}}
-					>
-						{#each ROLES as role}
-							<option value={role.value} title={role.description}>{role.label} – {role.description}</option>
-						{/each}
-					</select>
-				</div>
-
-				<fieldset class="space-y-2">
-					<legend class="block text-sm font-medium text-gray-700 mb-2">
-						Owner Domains
-					</legend>
-					{#if formData.role !== 'owner'}
-						<p class="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
-							Custom domains are only for users with <strong>Editor</strong> role. Change the <strong>Role</strong> above to <strong>Editor</strong> to assign domains to this user.
-						</p>
-					{:else}
-						<p class="text-xs text-gray-500 mb-2">
-							Assign custom domains to this editor. Visitors on these domains will see only this user's content, with admin at
-							<code class="px-1 py-0.5 bg-gray-100 rounded text-[11px]">/admin</code>.
-						</p>
-						<div class="border border-gray-300 rounded-md p-3 space-y-3">
-							{#if ownerDomainsError}
-								<div class="p-2 bg-red-50 text-red-700 text-xs rounded">{ownerDomainsError}</div>
-							{/if}
-							<div class="{ownerDomains.length === 0 ? 'bg-gray-50 border border-dashed border-gray-300 rounded-md p-3' : ''}">
-								<label for="edit-owner-domain-hostname" class="block text-sm font-medium text-gray-700 mb-1">Add domain</label>
-								<div class="flex gap-2 items-center">
-									<input
-										id="edit-owner-domain-hostname"
-										type="text"
-										placeholder="e.g. photos.example.com"
-										class="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm"
-										bind:value={newOwnerDomainHostname}
-									/>
-									<button
-										type="button"
-										on:click={addOwnerDomain}
-										class="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-										disabled={loadingOwnerDomains || !newOwnerDomainHostname.trim()}
-									>
-										Add domain
-									</button>
-								</div>
-								{#if ownerDomains.length === 0}
-									<p class="text-xs text-gray-500 mt-1">Enter a hostname and click Add domain. No domains assigned yet.</p>
-								{/if}
-							</div>
-							{#if loadingOwnerDomains}
-								<p class="text-sm text-gray-500">Loading domains...</p>
-							{:else if ownerDomains.length > 0}
-								<ul class="space-y-2">
-									{#each ownerDomains as domain}
-										<li class="flex items-center justify-between border border-gray-200 rounded-md px-3 py-2 text-sm">
-											<div class="flex flex-col">
-												<span class="font-medium">{domain.hostname}</span>
-												<div class="flex items-center gap-3 text-xs text-gray-500 mt-1">
-													<label class="inline-flex items-center gap-1">
-														<input
-															type="checkbox"
-															checked={domain.active}
-															on:change={(e) =>
-																updateOwnerDomain(domain, { active: (e.currentTarget as HTMLInputElement).checked })}
-														/>
-														<span>Active</span>
-													</label>
-													<label class="inline-flex items-center gap-1">
-														<input
-															type="checkbox"
-															checked={domain.isPrimary}
-															on:change={(e) =>
-																updateOwnerDomain(domain, { isPrimary: (e.currentTarget as HTMLInputElement).checked })}
-														/>
-														<span>Primary</span>
-													</label>
-												</div>
-											</div>
-											<button
-												type="button"
-												class="text-xs text-red-600 hover:text-red-800"
-												on:click={() => deleteOwnerDomain(domain)}
-											>
-												Remove
-											</button>
-										</li>
-									{/each}
-								</ul>
-							{/if}
-						</div>
-					{/if}
-				</fieldset>
-
-				<div>
-					<label for="edit-preferred-language" class="block text-sm font-medium text-gray-700 mb-2">
-						Preferred language
-					</label>
-					<select
-						id="edit-preferred-language"
-						bind:value={formData.preferredLanguage}
-						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-					>
-						{#each SUPPORTED_LANGUAGES as lang}
-							<option value={lang.code}>{lang.name} ({lang.nativeName})</option>
-						{/each}
-					</select>
-				</div>
-
-				<fieldset class="space-y-2">
-					<legend class="block text-sm font-medium text-gray-700 mb-2">
-						Groups
-					</legend>
-					<div class="border border-gray-300 rounded-md p-3 max-h-32 overflow-y-auto">
-						{#if loadingGroups}
-							<p class="text-sm text-gray-500">Loading groups...</p>
-						{:else if groups.length === 0}
-							<p class="text-sm text-gray-500">No groups available</p>
-						{:else}
-							<div class="space-y-2">
-								{#each groups as group}
-									<label class="flex items-center">
-										<input
-											type="checkbox"
-											checked={formData.groupAliases.includes(group.alias)}
-											on:change={() => toggleGroup(group.alias)}
-											class="mr-2"
-										/>
-										<span class="text-sm text-gray-700">{getGroupName(group)}</span>
-										<span class="ml-2 text-xs text-gray-500">({group.alias})</span>
-									</label>
-								{/each}
-							</div>
-						{/if}
-					</div>
-				</fieldset>
-
-				<fieldset class="space-y-2">
-					<legend class="block text-sm font-medium text-gray-700 mb-2">
-						Allowed Storage Providers
-					</legend>
-					<div class="border border-gray-300 rounded-md p-3">
-						<div class="space-y-2">
-							{#each STORAGE_PROVIDERS as provider}
-								<label class="flex items-center">
-									<input
-										type="checkbox"
-										checked={formData.allowedStorageProviders.includes(provider.id)}
-										on:change={() => toggleStorageProvider(provider.id)}
-										class="mr-2"
-									/>
-									<span class="text-sm text-gray-700">{provider.name}</span>
-								</label>
-							{/each}
-						</div>
-					</div>
-				</fieldset>
-
-				{#if formData.role === 'owner' && formData.allowedStorageProviders.includes('google-drive')}
-					<fieldset class="space-y-2">
-						<legend class="block text-sm font-medium text-gray-700 mb-2">
-							Storage connection (Google Drive)
-						</legend>
-						<p class="text-xs text-gray-500 mb-2">
-							Choose whether this owner uses the main domain's connection or their own. Connection and folder details are configured by the owner on their setup screen only (not here).
-						</p>
-						<div class="border border-gray-300 rounded-md p-3">
-							<label class="flex items-center cursor-pointer">
-								<input
-									type="checkbox"
-									bind:checked={formData.storageUseAdminConfig}
-									class="mr-2"
-								/>
-								<span class="text-sm font-medium text-gray-700">Use main domain connection</span>
-							</label>
-							{#if !formData.storageUseAdminConfig}
-								<p class="text-xs text-gray-500 mt-2 pl-4 border-l-2 border-gray-200">
-									Owner configures credentials and folder on their own setup page.
-								</p>
-							{/if}
-						</div>
-					</fieldset>
-				{/if}
-
-				<div class="flex items-center">
-					<label class="relative inline-flex items-center cursor-pointer">
-						<input
-							type="checkbox"
-							bind:checked={formData.blocked}
-							class="sr-only peer"
-						/>
-						<div
-							class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"
-						></div>
-						<span class="ml-3 text-sm font-medium text-gray-700">
-							Blocked
-						</span>
-					</label>
-				</div>
-
-				<div class="flex items-center">
-					<label class="relative inline-flex items-center cursor-pointer">
-						<input
-							type="checkbox"
-							bind:checked={formData.forcePasswordChange}
-							class="sr-only peer"
-						/>
-						<div
-							class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"
-						></div>
-						<span class="ml-3 text-sm font-medium text-gray-700">
-							Force password change on next login
-						</span>
-					</label>
-				</div>
-
+				</UserForm>
 				<div class="flex justify-end space-x-2 pt-4">
 					<button
 						type="button"

@@ -14,30 +14,15 @@
 	import { normalizeMultiLangText } from '$lib/utils/multiLangHelpers';
 	import type { PageData } from './$types';
 	import type { PageModuleData } from '$lib/types/page-builder';
+	import type { Page } from './types';
+	import PageFilters from './components/PageFilters.svelte';
+	import PageList from './components/PageList.svelte';
 
 	// Available icon names from icons.ts (sorted)
 	const AVAILABLE_ICONS: string[] = [...AVAILABLE_ICON_NAMES].sort();
 
 	// svelte-ignore export_let_unused - Required by SvelteKit page component
 	export let data: PageData;
-
-	interface Page {
-		_id: string;
-		title: MultiLangText | string;
-		subtitle?: MultiLangText | string;
-		alias: string;
-		slug?: string;
-		leadingImage?: string;
-		introText?: MultiLangHTML | string;
-		content?: MultiLangHTML | string;
-		layout?: {
-			zones?: string[];
-		};
-		category: 'system' | 'site';
-		isPublished?: boolean;
-		createdAt?: string;
-		updatedAt?: string;
-	}
 
 	// Module payload types
 	interface ModulePayload {
@@ -125,12 +110,12 @@
 		createSuccessMessage: 'Page created successfully!',
 		updateSuccessMessage: 'Page updated successfully!',
 		deleteSuccessMessage: 'Page deleted successfully!',
-		transformPayload: (data: Partial<Page> & { gridRows?: number; gridColumns?: number; urlParams?: string }) => {
-			const layout: any = { zones: parseZones(data.layoutZones || 'main') };
+		transformPayload: (data: Partial<Page> & { gridRows?: number; gridColumns?: number; urlParams?: string; layoutZones?: string }) => {
+			const layout: { zones: string[]; gridRows?: number; gridColumns?: number; urlParams?: string } = { zones: parseZones(data.layoutZones || 'main') };
 			if (data.gridRows !== undefined) layout.gridRows = data.gridRows;
 			if (data.gridColumns !== undefined) layout.gridColumns = data.gridColumns;
 			if (data.urlParams) layout.urlParams = data.urlParams;
-			
+
 			return {
 				...data,
 				slug: data.alias,
@@ -159,11 +144,11 @@
 						});
 						
 						if (!response.ok) {
-							logger.error('Failed to save module:', await response.text());
+							await handleApiErrorResponse(response);
 						}
 					}
 				} catch (err) {
-					logger.error('Error saving modules after page creation:', err);
+					logger.error('Error saving modules after page creation:', handleError(err, 'Failed to save module'));
 					// Don't fail the page creation if modules fail
 				}
 			}
@@ -740,7 +725,7 @@
 			// Edit mode: save via API
 			const payload: ModulePayload = {
 				type: moduleForm.type,
-				props
+				props: props as Record<string, unknown>
 			};
 			if (editingModule.rowOrder !== undefined) {
 				payload.rowOrder = editingModule.rowOrder;
@@ -818,12 +803,13 @@
 			} else {
 				props = moduleForm.propsJson.trim() ? JSON.parse(moduleForm.propsJson) as Record<string, unknown> : {};
 			}
-			
+
+			const propsPayload: Record<string, unknown> = { ...props };
 			const payload: ModulePayload = {
 				type: moduleForm.type,
 				zone: moduleForm.zone,
 				order: Number(moduleForm.order) || 0,
-				props
+				props: propsPayload
 			};
 			const endpoint = moduleForm.id
 				? `/api/admin/pages/${editingPage._id}/modules/${moduleForm.id}`
@@ -1048,69 +1034,14 @@
 			{/if}
 
 			<!-- Search and Filters -->
-			<div class="flex items-center justify-between mb-6">
-				<div class="flex items-center space-x-4">
-					<div class="relative">
-						<input
-							type="text"
-							placeholder="Search pages..."
-							bind:value={searchTerm}
-							on:input={() => crudLoader.loadItems()}
-							class="pl-10 pr-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-64"
-						/>
-						<svg
-							class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4"
-							fill="none"
-							stroke="currentColor"
-							viewBox="0 0 24 24"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-							/>
-						</svg>
-					</div>
-
-					<select
-						bind:value={categoryFilter}
-						on:change={() => crudLoader.loadItems()}
-						class="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-					>
-						<option value="all">All Categories</option>
-						{#each CATEGORIES as cat}
-							<option value={cat.value}>{cat.label}</option>
-						{/each}
-					</select>
-
-					<select
-						bind:value={publishedFilter}
-						on:change={() => crudLoader.loadItems()}
-						class="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-					>
-						<option value="all">All Status</option>
-						<option value="true">Published</option>
-						<option value="false">Draft</option>
-					</select>
-				</div>
-
-				<button
-					type="button"
-					on:click={openCreateDialog}
-					class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium flex items-center gap-2"
-				>
-					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M12 4v16m8-8H4"
-						/>
-					</svg>
-					Add Page
-				</button>
-			</div>
+			<PageFilters
+				bind:searchTerm
+				bind:categoryFilter
+				bind:publishedFilter
+				categories={CATEGORIES}
+				onFilterChange={() => crudLoader.loadItems()}
+				onAddPage={openCreateDialog}
+			/>
 
 			<!-- Pages List -->
 			{#if loading}
@@ -1137,70 +1068,12 @@
 					<p class="text-gray-600">Start by creating your first page.</p>
 				</div>
 			{:else}
-				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-					{#each pages as page}
-						<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-							<div class="flex items-start justify-between mb-3">
-								<div class="flex-1">
-									<h3 class="font-semibold text-gray-900 mb-1">{getPageTitle(page)}</h3>
-									<p class="text-sm text-gray-500">
-										Alias: <code class="bg-gray-100 px-1 rounded">{page.alias}</code>
-									</p>
-								</div>
-
-								<div class="flex space-x-1">
-									<button
-										type="button"
-										on:click={() => openEditDialog(page)}
-										class="p-1 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded"
-										aria-label="Edit page"
-									>
-										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-											<path
-												stroke-linecap="round"
-												stroke-linejoin="round"
-												stroke-width="2"
-												d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-											/>
-										</svg>
-									</button>
-									<button
-										type="button"
-										on:click={() => openDeleteDialog(page)}
-										class="p-1 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded"
-										aria-label="Delete page"
-									>
-										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-											<path
-												stroke-linecap="round"
-												stroke-linejoin="round"
-												stroke-width="2"
-												d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-											/>
-										</svg>
-									</button>
-								</div>
-							</div>
-
-							<div class="flex items-center justify-between mt-3">
-								<span
-									class="px-2 py-1 text-xs font-medium rounded bg-gray-100 text-gray-800"
-								>
-									{CATEGORIES.find((c) => c.value === page.category)?.label || page.category}
-								</span>
-								{#if page.isPublished}
-									<span class="px-2 py-1 text-xs font-medium rounded bg-green-100 text-green-800">
-										Published
-									</span>
-								{:else}
-									<span class="px-2 py-1 text-xs font-medium rounded bg-yellow-100 text-yellow-800">
-										Draft
-									</span>
-								{/if}
-							</div>
-						</div>
-					{/each}
-				</div>
+				<PageList
+					pages={pages}
+					categories={CATEGORIES}
+					onEdit={openEditDialog}
+					onDelete={openDeleteDialog}
+				/>
 			{/if}
 		</div>
 	</div>
