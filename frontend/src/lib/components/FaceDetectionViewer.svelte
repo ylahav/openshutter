@@ -2,7 +2,7 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { FaceRecognitionService, type FaceDetection } from '../../services/face-recognition';
 	import { logger } from '$lib/utils/logger';
-	import { handleError } from '$lib/utils/errorHandler';
+	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 	import { getPhotoRotationStyle } from '$lib/utils/photoUrl';
 
 	export let imageUrl: string;
@@ -272,8 +272,7 @@
 				onSuccess?.('Faces detected successfully');
 				onFaceDetected?.(detections);
 			} else {
-				const error = await response.json();
-				onError?.(error.error || 'Failed to save face detection');
+				await handleApiErrorResponse(response);
 			}
 		} catch (error) {
 			logger.error('Face detection failed:', error);
@@ -385,8 +384,7 @@
 				onSuccess?.('Manual face added');
 				onFaceDetected?.([]);
 			} else {
-				const err = await response.json();
-				onError?.(err.error || 'Failed to add manual face');
+				await handleApiErrorResponse(response);
 			}
 		} catch (error) {
 			logger.error('Add manual face failed:', error);
@@ -442,7 +440,7 @@
 			<img
 				bind:this={image}
 				src={imageUrl}
-				alt="Photo"
+				alt="Face detection source"
 				class="max-w-full h-auto block"
 				style="max-height: 80vh; {getPhotoRotationStyle({ rotation })}"
 				on:load={handleImageLoad}

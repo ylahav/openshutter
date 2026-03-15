@@ -41,7 +41,7 @@
 		createSuccessMessage: 'Blog category created successfully!',
 		updateSuccessMessage: 'Blog category updated successfully!',
 		deleteSuccessMessage: 'Blog category deleted successfully!',
-		transformPayload: (data: any) => {
+		transformPayload: (data: Partial<BlogCategory>): Partial<BlogCategory> => {
 			// This is called for both create and update
 			// For create, we use the data as-is
 			// For update, handleEdit will transform it before calling update

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, BadRequestException, NotFoundException, Logger, InternalServerErrorException, Req } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, BadRequestException, NotFoundException, Logger, InternalServerErrorException, HttpException, Req } from '@nestjs/common';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { AdminOrOwnerGuard } from '../common/guards/admin-or-owner.guard';
 import { connectDB } from '../config/db';
@@ -12,6 +12,51 @@ import { getOwnerGroupAlias } from '../utils/owner-groups';
 import type { Request } from 'express';
 
 const SALT_ROUNDS = 10;
+
+/** One possible clause in the users list search $or array. */
+interface UsersListQueryOrClause {
+  username?: { $regex: string; $options: string };
+  'name.en'?: { $regex: string; $options: string };
+  'name.he'?: { $regex: string; $options: string };
+}
+
+/** MongoDB query filter for GET /admin/users list. */
+interface UsersListQuery {
+  $or?: UsersListQueryOrClause[];
+  role?: string;
+  blocked?: boolean;
+}
+
+/** Fields we persist on user update (no arbitrary keys). */
+interface UserUpdatePayload {
+  updatedAt: Date;
+  name?: Record<string, string>;
+  role?: 'admin' | 'owner' | 'guest';
+  groupAliases?: string[];
+  blocked?: boolean;
+  allowedStorageProviders?: string[];
+  passwordHash?: string;
+  forcePasswordChange?: boolean;
+  preferredLanguage?: string;
+  storageConfig?: UpdateUserDto['storageConfig'];
+}
+
+/** Raw user document from db.collection('users').findOne(). */
+interface UserDocumentRaw {
+  _id: Types.ObjectId;
+  name?: Record<string, string>;
+  username?: string;
+  role?: string;
+  groupAliases?: string[];
+  blocked?: boolean;
+  passwordHash?: string;
+  forcePasswordChange?: boolean;
+  preferredLanguage?: string;
+  storageConfig?: UpdateUserDto['storageConfig'];
+  createdAt?: Date;
+  updatedAt?: Date;
+  allowedStorageProviders?: string[];
+}
 
 /** Generate a secure random password (6 chars: upper, lower, digits). */
 function generateSecurePassword(length = 6): string {
@@ -50,7 +95,7 @@ export class UsersController {
       const collection = db.collection('users');
 
       // Build query
-      const query: any = {};
+      const query: UsersListQuery = {};
 
       if (search) {
         query.$or = [
@@ -97,10 +142,9 @@ export class UsersController {
         },
       };
     } catch (error) {
+      if (error instanceof HttpException) throw error;
       this.logger.error('Error fetching users:', error);
-      throw new BadRequestException(
-        `Failed to fetch users: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
+      throw new InternalServerErrorException('Failed to fetch users');
     }
   }
 
@@ -130,13 +174,9 @@ export class UsersController {
         _id: user._id.toString(),
       };
     } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
+      if (error instanceof HttpException) throw error;
       this.logger.error('Error fetching user:', error);
-      throw new BadRequestException(
-        `Failed to fetch user: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
+      throw new InternalServerErrorException('Failed to fetch user');
     }
   }
 
@@ -161,8 +201,8 @@ export class UsersController {
       }
 
       // Validate name - must have at least one language
-      const nameObj = name || {};
-      const hasName = typeof name === 'string' ? !!name.trim() : Object.values(nameObj || {}).some((v: any) => (v || '').trim());
+      const nameObj = (name && typeof name === 'object' ? name : {}) as Record<string, unknown>;
+      const hasName = typeof name === 'string' ? !!name.trim() : Object.values(nameObj).some((v) => (v != null && String(v).trim() !== ''));
       if (!hasName) {
         throw new BadRequestException('Name is required in at least one language');
       }
@@ -172,9 +212,11 @@ export class UsersController {
       if (typeof name === 'string') {
         normalizedName.en = name.trim();
       } else if (name && typeof name === 'object') {
-        Object.keys(name).forEach((key) => {
-          if (name[key] && typeof name[key] === 'string') {
-            normalizedName[key] = name[key].trim();
+        const nameRecord = name as Record<string, unknown>;
+        Object.keys(nameRecord).forEach((key) => {
+          const val = nameRecord[key];
+          if (val != null && typeof val === 'string') {
+            normalizedName[key] = val.trim();
           }
         });
       }
@@ -279,13 +321,9 @@ export class UsersController {
         _id: user._id.toString(),
       };
     } catch (error) {
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
+      if (error instanceof HttpException) throw error;
       this.logger.error('Error creating user:', error);
-      throw new BadRequestException(
-        `Failed to create user: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
+      throw new InternalServerErrorException('Failed to create user');
     }
   }
 
@@ -363,7 +401,7 @@ export class UsersController {
       }
 
       // Update user
-      const updateData: any = {
+      const updateData: UserUpdatePayload = {
         updatedAt: new Date(),
       };
 
@@ -393,15 +431,17 @@ export class UsersController {
       }
 
       // If this user is (now) an owner, ensure a dedicated group exists and is assigned.
+      const userDoc = updatedUser as UserDocumentRaw;
       if (newRole === 'owner') {
-        const ownerIdStr = updatedUser._id.toString();
+        const ownerIdStr = userDoc._id.toString();
         const ownerGroupAlias = getOwnerGroupAlias(ownerIdStr);
 
         const groups = db.collection('groups');
+        const nameObj = userDoc.name || {};
         const currentName =
-          (updatedUser as any).name?.en ||
-          (Object.values((updatedUser as any).name || {}).find((v) => v && (v as string).trim()) as string | undefined) ||
-          (updatedUser as any).username;
+          userDoc.name?.en ||
+          (Object.values(nameObj).find((v) => v != null && String(v).trim() !== '') as string | undefined) ||
+          userDoc.username;
 
         await groups.updateOne(
           { alias: ownerGroupAlias },
@@ -417,28 +457,24 @@ export class UsersController {
         );
 
         await collection.updateOne(
-          { _id: updatedUser._id },
+          { _id: userDoc._id },
           { $addToSet: { groupAliases: ownerGroupAlias } },
         );
-        (updatedUser as any).groupAliases = Array.from(
-          new Set([...(updatedUser as any).groupAliases || [], ownerGroupAlias]),
+        userDoc.groupAliases = Array.from(
+          new Set([...(userDoc.groupAliases || []), ownerGroupAlias]),
         );
       }
 
       // Remove passwordHash and convert ObjectId to string
-      const { passwordHash: _, ...rest } = updatedUser as any;
+      const { passwordHash: _, ...rest } = userDoc;
       return {
         ...rest,
-        _id: updatedUser._id.toString(),
+        _id: userDoc._id.toString(),
       };
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException) {
-        throw error;
-      }
+      if (error instanceof HttpException) throw error;
       this.logger.error('Error updating user:', error);
-      throw new BadRequestException(
-        `Failed to update user: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
+      throw new InternalServerErrorException('Failed to update user');
     }
   }
 
@@ -477,13 +513,9 @@ export class UsersController {
 
       return { success: true, message: 'User deleted successfully' };
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException) {
-        throw error;
-      }
+      if (error instanceof HttpException) throw error;
       this.logger.error('Error deleting user:', error);
-      throw new BadRequestException(
-        `Failed to delete user: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
+      throw new InternalServerErrorException('Failed to delete user');
     }
   }
 }

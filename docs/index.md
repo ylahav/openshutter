@@ -22,13 +22,26 @@ Welcome to the OpenShutter documentation. This comprehensive guide covers all as
 - [Face Recognition Setup](./FACE_RECOGNITION_SETUP.md) - Face detection and matching
 
 ### Development & API
+- [Code Review Summary](./CODE_REVIEW.md) - Backend and frontend review notes and recommendations
 - [API Testing](./API_TESTING.md) - How to test NestJS API endpoints
 - [Performance Improvements](./PERFORMANCE_IMPROVEMENTS.md) - Query optimizations and recommended indexes
 - [Type System](./TYPE_SYSTEM.md) - Centralized types (backend and frontend)
-- [SvelteKit Progress](./SVELTEKIT_PROGRESS.md) - SvelteKit frontend status and notes
+- **Backend:** [Swagger/OpenAPI](../backend/SWAGGER_SETUP.md) - API docs setup and access
 
 ### Other
 - [Security Policy](./SECURITY.md) - Supported versions and reporting vulnerabilities
+
+### Phase workflows & design (reference)
+- [Phase 3 Workflow](./PHASE_3_WORKFLOW.md) - Import/sync, AI tagging, analytics, API marketplace, smart tags
+- [Phase 4 Workflow](./PHASE_4_WORKFLOW.md) - White-label, integration marketplace, etc.
+- [Import/Sync Design](./IMPORT_SYNC_DESIGN.md) - Export/import packages, storage migration
+- [AI Tagging Design](./AI_TAGGING_DESIGN.md) - AI-powered tag suggestions
+- [Advanced Analytics Design](./ADVANCED_ANALYTICS_DESIGN.md) - Analytics dashboard and events
+- [API Marketplace](./API_MARKETPLACE.md) - Public API, keys, developer portal, marketplace
+- [Smart Tag Suggestions Design](./SMART_TAG_SUGGESTIONS_DESIGN.md) - Context-based tag suggestions
+- [Marketplace Expansion Phase 4](./MARKETPLACE_EXPANSION_PHASE4.md) - Discovery and listing richness
+- [White-Label Design](./WHITE_LABEL_DESIGN.md) - White-label solutions (future)
+- [Template Builder Scenario](./TEMPLATE_BUILDER_SCENARIO.md) - Page builder scenarios
 
 ### Quick Start
 1. **Installation**: Follow the main [README.md](../README.md) for setup instructions
@@ -39,6 +52,12 @@ Welcome to the OpenShutter documentation. This comprehensive guide covers all as
 ### Theming and Templates
 - [Creating a New Template](./templates.md) - How to build and register a custom template
 - [Theme Page Builder Design](./THEME_PAGE_BUILDER_DESIGN.md) - Theme-based page modules, grid layout, and home page rendering
+- [Module URL Parameters](./MODULE_URL_PARAMS.md) - How modules access route params (e.g. album alias)
+- [Theme Seeding](./THEME_SEEDING.md) - Theme seeding for scripts and setup
+
+### Archived
+- [SvelteKit Migration Progress](./archive/SVELTEKIT_PROGRESS.md) - Migration completed; frontend is SvelteKit.
+- [SvelteKit Migration](./archive/SVELTEKIT_MIGRATION.md) - Historical migration notes.
 
 ## 🎯 Current Features
 
@@ -138,7 +157,7 @@ pnpm type-check   # TypeScript checking
 
 - **Main README**: [../README.md](../README.md) - Complete setup and usage guide
 - **API Documentation**: Backend API available at `http://localhost:5000/api`
-- **Component Library**: Located in `src/lib/components/` (Svelte) and `src/components/ui/` (React, legacy)
+- **Component Library**: Located in `src/lib/components/` (Svelte)
 - **Type Definitions**: Available in `src/lib/types/`
 
 ## 🆘 Support

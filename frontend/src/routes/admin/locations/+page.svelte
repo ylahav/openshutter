@@ -50,21 +50,22 @@
 			category: () => categoryFilter
 		}
 	});
+	/** Coordinates may come from form as string; we normalize to number. */
+	type LocationFormData = Partial<Omit<Location, '_id'>> & {
+		coordinates?: { latitude?: number | string; longitude?: number | string };
+	};
+
 	const crudOps = useCrudOperations<Location>('/api/admin/locations', {
 		createSuccessMessage: 'Location created successfully!',
 		updateSuccessMessage: 'Location updated successfully!',
 		deleteSuccessMessage: 'Location deleted successfully!',
-		transformPayload: (data: any) => {
-			// Transform coordinates from string to number if provided
-			const payload: any = { ...data };
-			if (payload.coordinates?.latitude && payload.coordinates?.longitude) {
+		transformPayload: (data: LocationFormData): Partial<Location> => {
+			const payload: Partial<Location> = { ...data };
+			const coords = data.coordinates;
+			if (coords?.latitude != null && coords?.longitude != null) {
 				payload.coordinates = {
-					latitude: typeof payload.coordinates.latitude === 'string' 
-						? parseFloat(payload.coordinates.latitude) 
-						: payload.coordinates.latitude,
-					longitude: typeof payload.coordinates.longitude === 'string'
-						? parseFloat(payload.coordinates.longitude)
-						: payload.coordinates.longitude
+					latitude: typeof coords.latitude === 'string' ? parseFloat(coords.latitude) : coords.latitude,
+					longitude: typeof coords.longitude === 'string' ? parseFloat(coords.longitude) : coords.longitude
 				};
 			} else {
 				delete payload.coordinates;

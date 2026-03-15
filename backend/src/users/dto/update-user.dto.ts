@@ -1,5 +1,104 @@
-import { IsString, IsOptional, IsArray, IsBoolean, IsIn, MinLength, Allow, ValidateIf } from 'class-validator';
+import { IsString, IsOptional, IsArray, IsBoolean, IsIn, MinLength, Allow, ValidateIf, ValidateNested, MaxLength } from 'class-validator';
+import { Type } from 'class-transformer';
 import { MultiLangText } from '../../types/multi-lang';
+
+/** Nested DTO for owner Google Drive storage config (per-user override). */
+export class GoogleDriveStorageConfigDto {
+	@IsOptional()
+	@IsString()
+	@MaxLength(128)
+	rootFolderId?: string;
+
+	@IsOptional()
+	@IsString()
+	@MaxLength(128)
+	sharedDriveId?: string;
+
+	@IsOptional()
+	@IsString()
+	@MaxLength(256)
+	folderPrefix?: string;
+
+	@IsOptional()
+	@IsString()
+	@MaxLength(32)
+	authMethod?: string;
+
+	@IsOptional()
+	@IsString()
+	@MaxLength(256)
+	clientId?: string;
+
+	@IsOptional()
+	@IsString()
+	@MaxLength(256)
+	clientSecret?: string;
+
+	@IsOptional()
+	@IsString()
+	@MaxLength(1024)
+	refreshToken?: string;
+
+	@IsOptional()
+	@IsString()
+	@MaxLength(32)
+	storageType?: string;
+
+	@IsOptional()
+	@IsString()
+	@MaxLength(128)
+	folderId?: string;
+
+	@IsOptional()
+	@IsString()
+	@MaxLength(20000)
+	serviceAccountJson?: string;
+}
+
+/** Nested DTO for owner Wasabi storage config (per-user override). */
+export class WasabiStorageConfigDto {
+	@IsOptional()
+	@IsString()
+	@MaxLength(512)
+	endpoint?: string;
+
+	@IsOptional()
+	@IsString()
+	@MaxLength(128)
+	bucketName?: string;
+
+	@IsOptional()
+	@IsString()
+	@MaxLength(64)
+	region?: string;
+
+	@IsOptional()
+	@IsString()
+	@MaxLength(256)
+	accessKeyId?: string;
+
+	@IsOptional()
+	@IsString()
+	@MaxLength(256)
+	secretAccessKey?: string;
+}
+
+/** Nested DTO for owner storage config (which provider overrides to use). */
+export class UserStorageConfigDto {
+	@IsOptional()
+	@IsBoolean()
+	useAdminConfig?: boolean;
+
+	@IsOptional()
+	@ValidateNested()
+	@Type(() => GoogleDriveStorageConfigDto)
+	googleDrive?: GoogleDriveStorageConfigDto;
+
+	@IsOptional()
+	@ValidateNested()
+	@Type(() => WasabiStorageConfigDto)
+	wasabi?: WasabiStorageConfigDto;
+}
 
 /**
  * DTO for updating an existing user.
@@ -47,29 +146,9 @@ export class UpdateUserDto {
 	@IsOptional()
 	preferredLanguage?: string;
 
-	/** Owner storage: use main-domain config vs own connection. Used when allowedStorageProviders includes google-drive, wasabi, etc. */
-	@Allow()
+	/** Owner storage: use main-domain config vs own connection. Validated nested shape. */
 	@IsOptional()
-	storageConfig?: {
-		useAdminConfig?: boolean;
-		googleDrive?: {
-			rootFolderId?: string;
-			sharedDriveId?: string;
-			folderPrefix?: string;
-			authMethod?: string;
-			clientId?: string;
-			clientSecret?: string;
-			refreshToken?: string;
-			storageType?: string;
-			folderId?: string;
-			serviceAccountJson?: string;
-		};
-		wasabi?: {
-			endpoint?: string;
-			bucketName?: string;
-			region?: string;
-			accessKeyId?: string;
-			secretAccessKey?: string;
-		};
-	};
+	@ValidateNested()
+	@Type(() => UserStorageConfigDto)
+	storageConfig?: UserStorageConfigDto;
 }

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, BadRequestException, NotFoundException, Logger, InternalServerErrorException } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, BadRequestException, NotFoundException, Logger, InternalServerErrorException, HttpException } from '@nestjs/common';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { connectDB } from '../config/db';
 import mongoose, { Types } from 'mongoose';
@@ -69,10 +69,9 @@ export class BlogCategoriesController {
         },
       };
     } catch (error) {
+      if (error instanceof HttpException) throw error;
       this.logger.error('Error fetching blog categories:', error);
-      throw new BadRequestException(
-        `Failed to fetch blog categories: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
+      throw new InternalServerErrorException('Failed to fetch blog categories');
     }
   }
 
@@ -100,13 +99,9 @@ export class BlogCategoriesController {
         _id: category._id.toString(),
       };
     } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
+      if (error instanceof HttpException) throw error;
       this.logger.error('Error fetching blog category:', error);
-      throw new BadRequestException(
-        `Failed to fetch blog category: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
+      throw new InternalServerErrorException('Failed to fetch blog category');
     }
   }
 
@@ -212,13 +207,9 @@ export class BlogCategoriesController {
         _id: category._id.toString(),
       };
     } catch (error) {
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
+      if (error instanceof HttpException) throw error;
       this.logger.error('Error creating blog category:', error);
-      throw new BadRequestException(
-        `Failed to create blog category: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
+      throw new InternalServerErrorException('Failed to create blog category');
     }
   }
 
@@ -315,13 +306,9 @@ export class BlogCategoriesController {
         _id: updatedCategory._id.toString(),
       };
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException) {
-        throw error;
-      }
+      if (error instanceof HttpException) throw error;
       this.logger.error('Error updating blog category:', error);
-      throw new BadRequestException(
-        `Failed to update blog category: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
+      throw new InternalServerErrorException('Failed to update blog category');
     }
   }
 
@@ -358,13 +345,9 @@ export class BlogCategoriesController {
 
       return { success: true, message: 'Blog category deleted successfully' };
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException) {
-        throw error;
-      }
+      if (error instanceof HttpException) throw error;
       this.logger.error('Error deleting blog category:', error);
-      throw new BadRequestException(
-        `Failed to delete blog category: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
+      throw new InternalServerErrorException('Failed to delete blog category');
     }
   }
 }

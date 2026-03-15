@@ -7,6 +7,12 @@ import {
 } from '@nestjs/common';
 import { Response } from 'express';
 
+/** Nest HTTP exception response body (string or object with message/error). */
+interface HttpExceptionResponseBody {
+  message?: string | string[];
+  error?: string | { message?: string; code?: string };
+}
+
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost) {
@@ -19,20 +25,19 @@ export class HttpExceptionFilter implements ExceptionFilter {
     if (exception instanceof HttpException) {
       status = exception.getStatus();
       const exceptionResponse = exception.getResponse();
-      
+
       if (typeof exceptionResponse === 'string') {
         message = exceptionResponse;
       } else if (typeof exceptionResponse === 'object' && exceptionResponse !== null) {
-        // Handle nested error structure: { error: { message: '...', code: '...' } }
-        const resp = exceptionResponse as any;
-        if (resp.error?.message) {
-          message = resp.error.message;
+        const resp = exceptionResponse as HttpExceptionResponseBody;
+        const errorObj = typeof resp.error === 'object' && resp.error !== null ? resp.error : null;
+        if (errorObj?.message) {
+          message = typeof errorObj.message === 'string' ? errorObj.message : exception.message;
         } else if (resp.message) {
-          message = resp.message;
+          message = Array.isArray(resp.message) ? resp.message[0] : resp.message;
         } else {
           message = exception.message;
         }
-        // If there's an error object with code, include it in response
         if (resp.error) {
           response.status(status).json({
             statusCode: status,

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, BadRequestException, NotFoundException, Logger, InternalServerErrorException, Request } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, BadRequestException, NotFoundException, Logger, InternalServerErrorException, HttpException, Request } from '@nestjs/common';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { connectDB } from '../config/db';
 import mongoose, { Types } from 'mongoose';
@@ -73,10 +73,9 @@ export class PeopleController {
         },
       };
     } catch (error) {
+      if (error instanceof HttpException) throw error;
       this.logger.error('Error fetching people:', error);
-      throw new BadRequestException(
-        `Failed to fetch people: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
+      throw new InternalServerErrorException('Failed to fetch people');
     }
   }
 
@@ -100,13 +99,9 @@ export class PeopleController {
 
       return person;
     } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
+      if (error instanceof HttpException) throw error;
       this.logger.error('Error fetching person:', error);
-      throw new BadRequestException(
-        `Failed to fetch person: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
+      throw new InternalServerErrorException('Failed to fetch person');
     }
   }
 
@@ -225,13 +220,9 @@ export class PeopleController {
 
       return person;
     } catch (error) {
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
+      if (error instanceof HttpException) throw error;
       this.logger.error('Error creating person:', error);
-      throw new BadRequestException(
-        `Failed to create person: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
+      throw new InternalServerErrorException('Failed to create person');
     }
   }
 
@@ -344,13 +335,9 @@ export class PeopleController {
 
       return updatedPerson;
     } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
+      if (error instanceof HttpException) throw error;
       this.logger.error('Error updating person:', error);
-      throw new BadRequestException(
-        `Failed to update person: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
+      throw new InternalServerErrorException('Failed to update person');
     }
   }
 
@@ -375,13 +362,9 @@ export class PeopleController {
 
       return { success: true, message: 'Person deleted successfully' };
     } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
+      if (error instanceof HttpException) throw error;
       this.logger.error('Error deleting person:', error);
-      throw new BadRequestException(
-        `Failed to delete person: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
+      throw new InternalServerErrorException('Failed to delete person');
     }
   }
 }

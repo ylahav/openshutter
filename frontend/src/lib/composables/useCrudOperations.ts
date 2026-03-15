@@ -72,11 +72,11 @@ import { writable } from 'svelte/store';
 import { logger } from '../utils/logger';
 import { handleError, handleApiErrorResponse } from '../utils/errorHandler';
 
-export interface CrudOperationsOptions<T = any> {
-	/** Transform function to modify payload before sending to API */
-	transformPayload?: (data: any) => any;
+export interface CrudOperationsOptions<T = unknown> {
+	/** Transform function to modify payload before sending to API. Receives partial item + any form extras (e.g. password). */
+	transformPayload?: (data: Partial<T> & Record<string, unknown>) => unknown;
 	/** Transform function to modify response data after receiving from API */
-	transformResponse?: (data: any) => T;
+	transformResponse?: (data: unknown) => T;
 	/** Callback invoked when create operation succeeds */
 	onCreateSuccess?: (item: T) => void;
 	/** Callback invoked when update operation succeeds */
@@ -91,7 +91,7 @@ export interface CrudOperationsOptions<T = any> {
 	deleteSuccessMessage?: string;
 }
 
-export function useCrudOperations<T = any>(
+export function useCrudOperations<T = unknown>(
 	endpoint: string,
 	options: CrudOperationsOptions<T> = {}
 ) {
@@ -126,6 +126,7 @@ export function useCrudOperations<T = any>(
 				headers: {
 					'Content-Type': 'application/json'
 				},
+				credentials: 'include',
 				body: JSON.stringify(payload)
 			});
 
@@ -193,6 +194,7 @@ export function useCrudOperations<T = any>(
 				headers: {
 					'Content-Type': 'application/json'
 				},
+				credentials: 'include',
 				body: JSON.stringify(payload)
 			});
 
@@ -253,7 +255,8 @@ export function useCrudOperations<T = any>(
 
 		try {
 			const response = await fetch(`${endpoint}/${id}`, {
-				method: 'DELETE'
+				method: 'DELETE',
+				credentials: 'include'
 			});
 
 			if (!response.ok) {

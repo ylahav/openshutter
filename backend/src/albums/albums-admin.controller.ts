@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Param, Query, Body, Req, UseGuards, BadRequestException, NotFoundException, ForbiddenException, Request, Logger, InternalServerErrorException } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Param, Query, Body, Req, UseGuards, BadRequestException, NotFoundException, ForbiddenException, Request, Logger, InternalServerErrorException, HttpException } from '@nestjs/common';
 import { Request as ExpressRequest } from 'express';
 import { AdminOrOwnerGuard } from '../common/guards/admin-or-owner.guard';
 import { AlbumsService } from './albums.service';
@@ -83,10 +83,9 @@ export class AlbumsAdminController {
 					parentPath = parentAlbum.storagePath || '';
 					level = (parentAlbum.level || 0) + 1;
 				} catch (error) {
-					if (error instanceof NotFoundException) {
-						throw error;
-					}
-					throw new BadRequestException(`Invalid parent album ID: ${createData.parentAlbumId}`);
+					if (error instanceof HttpException) throw error;
+					this.logger.error('Error resolving parent album:', error);
+					throw new InternalServerErrorException('Failed to resolve parent album');
 				}
 			}
 
@@ -210,13 +209,9 @@ export class AlbumsAdminController {
 				data: serialized,
 			};
 		} catch (error) {
+			if (error instanceof HttpException) throw error;
 			this.logger.error('Failed to create album:', error);
-			if (error instanceof BadRequestException || error instanceof NotFoundException) {
-				throw error;
-			}
-			throw new BadRequestException(
-				`Failed to create album: ${error instanceof Error ? error.message : 'Unknown error'}`
-			);
+			throw new InternalServerErrorException('Failed to create album');
 		}
 	}
 
@@ -640,13 +635,9 @@ export class AlbumsAdminController {
 				message: `Successfully reordered ${validatedUpdates.length} album(s)`
 			};
 		} catch (error) {
+			if (error instanceof HttpException) throw error;
 			this.logger.error('Failed to reorder albums:', error);
-			if (error instanceof BadRequestException || error instanceof ForbiddenException) {
-				throw error;
-			}
-			throw new InternalServerErrorException(
-				`Failed to reorder albums: ${error instanceof Error ? error.message : 'Unknown error'}`
-			);
+			throw new InternalServerErrorException('Failed to reorder albums');
 		}
 	}
 
@@ -747,14 +738,8 @@ export class AlbumsAdminController {
 				data: serialized,
 			};
 		} catch (error) {
+			if (error instanceof HttpException) throw error;
 			this.logger.error('Failed to set album cover photo:', error);
-			if (
-				error instanceof BadRequestException ||
-				error instanceof NotFoundException ||
-				error instanceof ForbiddenException
-			) {
-				throw error;
-			}
 			throw new InternalServerErrorException(
 				`Failed to set cover photo: ${error instanceof Error ? error.message : 'Unknown error'}`,
 			);

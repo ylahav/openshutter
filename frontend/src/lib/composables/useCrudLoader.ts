@@ -159,7 +159,7 @@ export function useCrudLoader<T = any>(
 				? options.endpointBuilder(endpoint, params)
 				: `${endpoint}?${params.toString()}`;
 
-			const response = await fetch(url);
+			const response = await fetch(url, { credentials: 'include' });
 			
 			if (!response.ok) {
 				await handleApiErrorResponse(response);

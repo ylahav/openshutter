@@ -13,6 +13,7 @@ import MultiLangHTML from '$lib/components/MultiLangHTML.svelte';
 import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 import { getPhotoUrl, getPhotoFullUrl, getPhotoRotationStyle } from '$lib/utils/photoUrl';
 import { handleImageLoadError } from '$lib/utils/imageErrorHandler';
+import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 import { logger } from '$lib/utils/logger';
 
 	interface AlbumData {
@@ -49,6 +50,8 @@ import { logger } from '$lib/utils/logger';
 				thumbnails?: Record<string, string>;
 			};
 			exif?: any;
+			/** Display-only rotation: 90, -90, or 180. Applied via CSS transform. */
+			rotation?: number;
 			metadata?: {
 				width?: number;
 				height?: number;
@@ -221,13 +224,10 @@ import { logger } from '$lib/utils/logger';
 				cache: 'no-store',
 				credentials: 'include',
 			});
-			const responseData = await response.json().catch(() => ({}));
 			if (!response.ok) {
-				if (response.status === 403) {
-					throw new Error('Access denied. This album is private. Sign in to view it if you have access.');
-				}
-				throw new Error(responseData?.error || 'Album not found');
+				await handleApiErrorResponse(response);
 			}
+			const responseData = await response.json().catch(() => ({}));
 
 			// Support both direct response and wrapped { data } (e.g. from some proxies)
 			albumData = responseData?.data ?? responseData;
@@ -274,8 +274,7 @@ import { logger } from '$lib/utils/logger';
 				fetchSubAlbumCoverImages(albumData.subAlbums.map((a: any) => a._id));
 			}
 		} catch (err) {
-			logger.error('Failed to fetch album data:', err);
-			error = err instanceof Error ? err.message : 'Failed to fetch album';
+			error = handleError(err, 'Failed to fetch album');
 		} finally {
 			loading = false;
 		}

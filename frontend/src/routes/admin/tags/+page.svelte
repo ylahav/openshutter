@@ -54,13 +54,16 @@
 			category: () => categoryFilter
 		}
 	});
+	/** Payload sent to create/update tag API. */
+	type TagPayload = Pick<Partial<Tag>, 'name' | 'description' | 'color' | 'category' | 'isActive'>;
+
 	const crudOps = useCrudOperations<Tag>('/api/admin/tags', {
 		createSuccessMessage: 'Tag created successfully!',
 		updateSuccessMessage: 'Tag updated successfully!',
 		deleteSuccessMessage: 'Tag deleted successfully!',
-		transformPayload: (data: any) => ({
-			name: MultiLangUtils.clean(data.name),
-			description: MultiLangUtils.clean(data.description),
+		transformPayload: (data: Partial<Tag>): TagPayload => ({
+			name: MultiLangUtils.clean(data.name ?? {}),
+			description: MultiLangUtils.clean(data.description ?? {}),
 			color: data.color,
 			category: data.category,
 			isActive: data.isActive

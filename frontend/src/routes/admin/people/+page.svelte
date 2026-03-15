@@ -41,22 +41,31 @@
 		searchParam: 'search',
 		searchValue: () => searchTerm
 	});
+	/** Form/payload shape for create/update person (tags can be string or array). */
+	type PersonFormData = Partial<Omit<Person, '_id'>> & { tags?: string | string[] | Array<{ _id: string; name: string }> };
+	/** Payload sent to API (tags normalized to string[]). */
+	type PersonPayload = Partial<Omit<Person, '_id' | 'fullName'>> & { tags: string[] };
+
 	const crudOps = useCrudOperations<Person>('/api/admin/people', {
 		createSuccessMessage: 'Person created successfully!',
 		updateSuccessMessage: 'Person updated successfully!',
 		deleteSuccessMessage: 'Person deleted successfully!',
-		transformPayload: (data: any) => {
-			const tagsArray = data.tags
-				? (typeof data.tags === 'string'
-					? data.tags.split(',').map((tag: string) => tag.trim()).filter(Boolean)
-					: data.tags)
-				: [];
+		transformPayload: (data: PersonFormData): PersonPayload => {
+			let tagsArray: string[] = [];
+			if (data.tags) {
+				if (typeof data.tags === 'string') {
+					tagsArray = data.tags.split(',').map((tag: string) => tag.trim()).filter(Boolean);
+				} else {
+					const arr = data.tags as Array<string | { _id: string; name: string }>;
+					tagsArray = arr.map((t) => (typeof t === 'string' ? t : t.name)).filter(Boolean);
+				}
+			}
 			return {
-				firstName: MultiLangUtils.clean(data.firstName),
-				lastName: MultiLangUtils.clean(data.lastName),
-				nickname: MultiLangUtils.clean(data.nickname),
+				firstName: MultiLangUtils.clean(data.firstName ?? {}),
+				lastName: MultiLangUtils.clean(data.lastName ?? {}),
+				nickname: MultiLangUtils.clean(data.nickname ?? {}),
 				birthDate: data.birthDate || undefined,
-				description: MultiLangUtils.clean(data.description),
+				description: MultiLangUtils.clean(data.description ?? {}),
 				tags: tagsArray,
 				isActive: data.isActive
 			};

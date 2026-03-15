@@ -3,6 +3,7 @@
 	import { page } from '$app/stores';
 	import StorageTreeItem from '$lib/components/StorageTreeItem.svelte';
 	import OwnerStorageView from '$lib/components/OwnerStorageView.svelte';
+	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 	import type { PageData } from './$types';
 
 	export let data: PageData;
@@ -91,11 +92,10 @@
 			const response = await fetch('/api/admin/storage', {
 				credentials: 'include'
 			});
-			const data = await response.json().catch(() => ({}));
 			if (!response.ok) {
-				const msg = data?.error || data?.message || `Failed to fetch storage configurations (${response.status})`;
-				throw new Error(msg);
+				await handleApiErrorResponse(response);
 			}
+			const data = await response.json().catch(() => ({}));
 			configs = Array.isArray(data) ? data : data.data || [];
 			
 			// Initialize form data for each provider
@@ -112,8 +112,7 @@
 				activeTab = enabledProvider?.providerId || configs[0].providerId;
 			}
 		} catch (err) {
-			console.error('Failed to load storage configs:', err);
-			error = err instanceof Error ? err.message : 'Failed to fetch storage configurations';
+			error = handleError(err, 'Failed to fetch storage configurations');
 		} finally {
 			loading = false;
 		}
@@ -135,8 +134,7 @@
 			});
 			
 			if (!response.ok) {
-				const errorData = await response.json().catch(() => ({}));
-				throw new Error(errorData.error || errorData.message || 'Failed to save configuration');
+				await handleApiErrorResponse(response);
 			}
 			
 			saveSuccess = 'Configuration saved successfully!';
@@ -152,8 +150,7 @@
 				await checkGoogleDriveTokenValidity();
 			}
 		} catch (err) {
-			console.error('Failed to save config:', err);
-			saveError = err instanceof Error ? err.message : 'Failed to save configuration';
+			saveError = handleError(err, 'Failed to save configuration');
 		} finally {
 			saving = false;
 		}
@@ -233,8 +230,7 @@
 			);
 
 			if (!authUrlResponse.ok) {
-				const errorData = await authUrlResponse.json().catch(() => ({}));
-				throw new Error(errorData.error || errorData.message || 'Failed to generate OAuth URL');
+				await handleApiErrorResponse(authUrlResponse);
 			}
 
 			const authUrlData = await authUrlResponse.json();
@@ -258,13 +254,9 @@
 				text: 'Authorization window opened. Complete the Google consent screen to continue.'
 			};
 		} catch (err) {
-			console.error('Failed to start Google OAuth flow:', err);
 			googleDriveMessage = {
 				type: 'error',
-				text:
-					err instanceof Error
-						? err.message
-						: 'Failed to start Google authorization flow.'
+				text: handleError(err, 'Failed to start Google authorization flow.')
 			};
 		}
 	}
@@ -291,13 +283,12 @@
 				body: JSON.stringify({ code, clientId, clientSecret, redirectUri })
 			});
 
+			if (!tokenResponse.ok) {
+				await handleApiErrorResponse(tokenResponse);
+			}
 			const tokenData = await tokenResponse.json().catch(() => ({}));
-
-			if (!tokenResponse.ok || !tokenData?.success || !tokenData?.refreshToken) {
-				const msg =
-					tokenData?.error ||
-					'Failed to exchange authorization code for tokens. Please try again.';
-				throw new Error(msg);
+			if (!tokenData?.success || !tokenData?.refreshToken) {
+				throw new Error(tokenData?.error || 'Failed to exchange authorization code for tokens. Please try again.');
 			}
 
 			// Update form data with new refresh token and save config
@@ -313,13 +304,9 @@
 				text: 'New refresh token generated and saved successfully.'
 			};
 		} catch (err) {
-			console.error('Failed to handle Google OAuth code:', err);
 			googleDriveMessage = {
 				type: 'error',
-				text:
-					err instanceof Error
-						? err.message
-						: 'Failed to complete Google authorization. Please try again.'
+				text: handleError(err, 'Failed to complete Google authorization. Please try again.')
 			};
 		} finally {
 			if (oauthWindow && !oauthWindow.closed) {
@@ -394,8 +381,7 @@
 			});
 			
 			if (!response.ok) {
-				const errorData = await response.json().catch(() => ({}));
-				throw new Error(errorData.error || `Failed to load tree: ${response.statusText}`);
+				await handleApiErrorResponse(response);
 			}
 			
 			const result = await response.json();
@@ -415,8 +401,7 @@
 				throw new Error('Invalid tree response format');
 			}
 		} catch (err) {
-			console.error('Failed to load tree:', err);
-			treeError = err instanceof Error ? err.message : 'Failed to load folder tree';
+			treeError = handleError(err, 'Failed to load folder tree');
 			treeData = null;
 		} finally {
 			loadingTree = false;
