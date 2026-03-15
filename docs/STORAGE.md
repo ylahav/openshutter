@@ -35,7 +35,7 @@ OpenShutter supports multiple storage providers for photo and album storage. Thi
 
 **Primary Method: Admin Dashboard (Recommended)**
 
-All storage providers are configured through the admin dashboard at `/admin/storage` (admin access required). This is the recommended method as it stores configurations securely in the database and provides a user-friendly interface.
+All storage providers are configured through the admin dashboard at `/admin/storage` (admin access required). Owners who use their **own** storage connection (admin has not set "Use main domain connection") manage storage at **`/owner/storage`**; if that flag is set, visiting `/admin/storage` as an owner redirects to `/owner`. This is the recommended method as it stores configurations securely in the database and provides a user-friendly interface.
 
 1. **Login as Admin**: Navigate to `http://localhost:4000/login`
 2. **Go to Storage**: Click "Storage" in the admin dashboard or navigate to `/admin/storage`

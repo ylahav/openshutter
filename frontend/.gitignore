@@ -46,8 +46,9 @@ src/i18n/*.backup
 openshutter-image.tar
 openshutter-deployment.tar.gz
 
-# Storage and logs
+# Storage and logs (exclude route path so owner storage page is tracked)
 storage/
+!src/routes/owner/storage/
 logs/
 
 # Server start timestamp and PID (development only)

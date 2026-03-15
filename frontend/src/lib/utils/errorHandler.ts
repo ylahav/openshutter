@@ -168,6 +168,7 @@ export async function handleApiErrorResponse(response: Response): Promise<never>
  * Get default user-friendly message for HTTP status codes
  */
 function getDefaultUserMessage(status: number): string {
+	const backendHint = ' If the backend is not running, start it from the project root: pnpm run dev:backend';
 	const messages: Record<number, string> = {
 		400: 'Invalid request. Please check your input and try again.',
 		401: 'You need to be logged in to perform this action.',
@@ -177,8 +178,8 @@ function getDefaultUserMessage(status: number): string {
 		422: 'The request was well-formed but contains validation errors.',
 		429: 'Too many requests. Please wait a moment and try again.',
 		500: 'Server error. Please try again later.',
-		502: 'Service temporarily unavailable. Please try again later.',
-		503: 'Service temporarily unavailable. Please try again later.',
+		502: 'Service temporarily unavailable. Please try again later.' + backendHint,
+		503: 'Service temporarily unavailable. Please try again later.' + backendHint,
 		504: 'Request timeout. Please try again.',
 	};
 

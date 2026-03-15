@@ -1,13 +1,37 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import type { PageData } from './$types';
 	import { logout } from '$lib/stores/auth';
-	import { goto } from '$app/navigation';
 	import { productName } from '$stores/siteConfig';
 
 	export let data: PageData;
 
 	const isAdmin = data.user?.role === 'admin';
 	const isOwner = data.user?.role === 'owner';
+
+	/** When true, owner uses their own storage (not main domain); show Storage management card. */
+	let useOwnStorageConnection = false;
+	let profileLoaded = false;
+
+	onMount(async () => {
+		if (!isOwner) {
+			profileLoaded = true;
+			return;
+		}
+		try {
+			const res = await fetch('/api/auth/profile');
+			if (res.ok) {
+				const json = await res.json();
+				const user = json.user || json;
+				// Hide Storage management when "Use main domain connection" is set
+				useOwnStorageConnection = user?.storageConfig?.useAdminConfig !== true;
+			}
+		} catch (_) {
+			// Non-fatal; keep card hidden if we can't load profile
+		} finally {
+			profileLoaded = true;
+		}
+	});
 
 	async function handleLogout() {
 		await logout();
@@ -79,12 +103,12 @@
 						</div>
 						<h2 class="text-xl font-semibold text-gray-900 ml-3">Profile Management</h2>
 					</div>
-					<p class="text-gray-600 mb-4">Edit your personal information and profile settings</p>
+					<p class="text-gray-600 mb-4">Edit your personal information and preferred language</p>
 					<a
 						href="/owner/profile"
 						class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
 					>
-						Edit Profile
+						Profile
 						<svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path
 								stroke-linecap="round"
@@ -149,6 +173,30 @@
 						</svg>
 					</a>
 				</div>
+
+				<!-- Storage management – only when owner does NOT use main domain connection -->
+				{#if profileLoaded && useOwnStorageConnection}
+					<div class="bg-white rounded-lg shadow-md p-6">
+						<div class="flex items-center mb-4">
+							<div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+								<svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+								</svg>
+							</div>
+							<h2 class="text-xl font-semibold text-gray-900 ml-3">Storage management</h2>
+						</div>
+						<p class="text-gray-600 mb-4">Configure your storage connection and folder settings for the providers enabled for you</p>
+						<a
+							href="/owner/storage"
+							class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+						>
+							Manage storage
+							<svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+							</svg>
+						</a>
+					</div>
+				{/if}
 			{/if}
 
 			<!-- Albums Management -->

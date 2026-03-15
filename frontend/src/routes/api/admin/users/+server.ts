@@ -44,10 +44,11 @@ export const GET: RequestHandler = async ({ url, locals, cookies }) => {
 	} catch (error) {
 		logger.error('Admin Users API error:', error);
 		const parsed = parseError(error);
+		const status = parsed.status && (parsed.status === 502 || parsed.status === 503) ? parsed.status : (parsed.status || 500);
 		return json({ 
 			success: false, 
 			error: parsed.userMessage || 'Failed to fetch users' 
-		}, { status: parsed.status || 500 });
+		}, { status });
 	}
 };
 
@@ -70,9 +71,10 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 	} catch (error) {
 		logger.error('Create user error:', error);
 		const parsed = parseError(error);
+		const status = parsed.status && (parsed.status === 502 || parsed.status === 503) ? parsed.status : (parsed.status || 500);
 		return json({ 
 			success: false, 
 			error: parsed.userMessage || 'Failed to create user' 
-		}, { status: parsed.status || 500 });
+		}, { status });
 	}
 };

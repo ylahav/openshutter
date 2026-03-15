@@ -2,6 +2,10 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import StorageTreeItem from '$lib/components/StorageTreeItem.svelte';
+	import OwnerStorageView from '$lib/components/OwnerStorageView.svelte';
+	import type { PageData } from './$types';
+
+	export let data: PageData;
 
 	interface StorageConfig {
 		providerId: string;
@@ -39,6 +43,11 @@
 	$: currentFormData = formData[activeTab] || {};
 
 	onMount(async () => {
+		// Only load admin storage configs when user is admin; owners see OwnerStorageView and load their own data
+		if (data.user?.role !== 'admin') {
+			loading = false;
+			return;
+		}
 		await loadConfigs();
 		setupGoogleOAuthListener();
 		// Auto-check Google Drive token validity if enabled
@@ -82,10 +91,11 @@
 			const response = await fetch('/api/admin/storage', {
 				credentials: 'include'
 			});
+			const data = await response.json().catch(() => ({}));
 			if (!response.ok) {
-				throw new Error('Failed to fetch storage configurations');
+				const msg = data?.error || data?.message || `Failed to fetch storage configurations (${response.status})`;
+				throw new Error(msg);
 			}
-			const data = await response.json();
 			configs = Array.isArray(data) ? data : data.data || [];
 			
 			// Initialize form data for each provider
@@ -103,7 +113,7 @@
 			}
 		} catch (err) {
 			console.error('Failed to load storage configs:', err);
-			error = err instanceof Error ? err.message : 'Failed to load storage configurations';
+			error = err instanceof Error ? err.message : 'Failed to fetch storage configurations';
 		} finally {
 			loading = false;
 		}
@@ -446,7 +456,7 @@
 </script>
 
 <svelte:head>
-	<title>Storage Management - Admin</title>
+	<title>Storage Management - {data.user?.role === 'owner' ? 'Owner' : 'Admin'}</title>
 </svelte:head>
 
 <div class="min-h-screen bg-gray-50 py-8">
@@ -454,16 +464,25 @@
 		<div class="mb-6 flex items-center justify-between">
 			<div>
 				<h1 class="text-3xl font-bold text-gray-900">Storage Management</h1>
-				<p class="mt-2 text-sm text-gray-600">Configure and manage storage providers</p>
+				<p class="mt-2 text-sm text-gray-600">
+					{#if data.user?.role === 'owner'}
+						Configure your storage connection (data stored in your account)
+					{:else}
+						Configure and manage storage providers
+					{/if}
+				</p>
 			</div>
 			<a
-				href="/admin"
+				href={data.user?.role === 'owner' ? '/owner' : '/admin'}
 				class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm font-medium"
 			>
-				← Back to Admin
+				← Back to {data.user?.role === 'owner' ? 'Owner' : 'Admin'}
 			</a>
 		</div>
 
+		{#if data.user?.role === 'owner'}
+			<OwnerStorageView backHref="/owner" />
+		{:else}
 		{#if error}
 			<div class="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
 				<p class="text-sm text-red-800">{error}</p>
@@ -1484,6 +1503,7 @@
 					{/if}
 				</div>
 			</div>
+		{/if}
 		{/if}
 	</div>
 </div>

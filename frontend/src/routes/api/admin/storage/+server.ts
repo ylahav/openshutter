@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { backendGet, parseBackendResponse } from '$lib/utils/backend-api';
+import { parseError } from '$lib/utils/errorHandler';
 
 export const GET: RequestHandler = async ({ locals, cookies }) => {
 	try {
@@ -22,10 +23,11 @@ export const GET: RequestHandler = async ({ locals, cookies }) => {
 		return json(configs);
 	} catch (error) {
 		console.error('[storage] Failed to get storage configs:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
+		const parsed = parseError(error);
+		const status = parsed.status && (parsed.status === 502 || parsed.status === 503) ? parsed.status : 500;
 		return json(
-			{ success: false, error: errorMessage || 'Failed to get storage configurations' },
-			{ status: 500 }
+			{ success: false, error: parsed.userMessage || parsed.message || 'Failed to get storage configurations' },
+			{ status }
 		);
 	}
 };

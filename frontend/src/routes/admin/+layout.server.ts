@@ -1,19 +1,35 @@
 import type { LayoutServerLoad } from './$types';
 import { redirect } from '@sveltejs/kit';
+import { backendGet, parseBackendResponse } from '$lib/utils/backend-api';
 
 /** Paths owners can access (same album/photo management as admin; backend enforces ownership). */
 function ownerCanAccess(pathname: string): boolean {
 	if (pathname.startsWith('/admin/photos/upload')) return true;
 	if (/^\/admin\/photos\/[^/]+\/edit\/?$/.test(pathname)) return true;
 	if (pathname.startsWith('/admin/albums')) return true;
+	if (pathname.startsWith('/admin/storage')) return true;
 	return false;
 }
 
-export const load: LayoutServerLoad = async ({ locals, url }) => {
+export const load: LayoutServerLoad = async ({ locals, url, cookies }) => {
 	if (!locals.user) {
 		throw redirect(303, '/login?redirect=' + encodeURIComponent(url.pathname));
 	}
-	// Owners: album management and photo upload/edit only; admins: all admin routes
+	// Owners visiting /admin/storage: redirect to /owner only when "Use main domain connection" is set
+	if (locals.user.role === 'owner' && url.pathname.startsWith('/admin/storage')) {
+		try {
+			const response = await backendGet('/auth/profile', { cookies });
+			const result = await parseBackendResponse<{ user?: { storageConfig?: { useAdminConfig?: boolean } } }>(response);
+			const user = result?.user ?? result;
+			if (user?.storageConfig?.useAdminConfig === true) {
+				throw redirect(303, '/owner');
+			}
+		} catch (e) {
+			if (e && typeof e === 'object' && 'status' in e && (e as { status: number }).status === 303) throw e;
+			// On profile fetch error, allow access (don't redirect)
+		}
+	}
+	// Owners: album management, photo upload/edit, and storage; admins: all admin routes
 	if (locals.user.role === 'owner' && !ownerCanAccess(url.pathname)) {
 		throw redirect(303, '/login?redirect=' + encodeURIComponent(url.pathname));
 	}

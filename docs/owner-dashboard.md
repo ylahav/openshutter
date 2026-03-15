@@ -100,6 +100,15 @@ The Owner Dashboard provides a focused interface for users with the 'owner' role
 - **Back / Cancel**: Links return to `/owner/albums` or the album.
 - **Backend**: Same admin photo APIs (`GET/PUT/DELETE /api/admin/photos/:id`, etc.) are used; backend enforces that the photo’s album was created by the owner (AdminOrOwnerGuard + ownership checks).
 
+### 4. Storage Management (owners with own connection)
+
+When an owner does **not** use "Use main domain connection" (i.e. they have their own storage config), the Owner Dashboard shows a **Storage management** card.
+
+- **URL**: `/owner/storage` (owners use this; admins use `/admin/storage`).
+- **Visibility**: The card appears only when the admin has **not** set "Use main domain connection" for that owner (profile `storageConfig.useAdminConfig !== true`). If that flag is set, the card is hidden and the owner uses the main site’s storage.
+- **Redirect**: If an owner with "Use main domain connection" set visits `/admin/storage`, they are redirected to `/owner`. Owners with their own connection can use `/admin/storage` or `/owner/storage` (dashboard links to `/owner/storage`).
+- **Capabilities**: Configure Google Drive (folder, OAuth) and Wasabi (credentials, bucket, region) per profile; view "using main site storage" message when applicable.
+
 #### API Endpoints (owner access enforced by backend)
 - `GET /api/admin/photos/:id` - Get photo (owner: only if album.createdBy === user.id)
 - `PUT /api/admin/photos/:id` - Update photo (owner: same check)
