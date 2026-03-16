@@ -760,10 +760,18 @@
 						<div class="space-y-2">
 							{#each languages as lang}
 								<div
+									role="button"
+									tabindex="0"
 									class="p-3 rounded-lg border cursor-pointer transition-colors {selectedLanguage === lang.code
 										? 'bg-blue-50 border-blue-500'
 										: 'bg-gray-50 border-gray-200 hover:bg-gray-100'}"
 									on:click={() => loadTranslations(lang.code)}
+									on:keydown={(e) => {
+										if (e.key === 'Enter' || e.key === ' ') {
+											e.preventDefault();
+											loadTranslations(lang.code);
+										}
+									}}
 								>
 									<div class="flex items-center justify-between">
 										<div class="flex items-center gap-2">
@@ -962,8 +970,9 @@
 			
 			<div class="space-y-4">
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-1">Language Code</label>
+					<label for="new-language-code" class="block text-sm font-medium text-gray-700 mb-1">Language Code</label>
 					<input
+						id="new-language-code"
 						type="text"
 						bind:value={newLanguageCode}
 						placeholder="e.g., fr, de, es"
@@ -981,8 +990,9 @@
 				</div>
 
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-1">Language Name</label>
+					<label for="new-language-name" class="block text-sm font-medium text-gray-700 mb-1">Language Name</label>
 					<input
+						id="new-language-name"
 						type="text"
 						bind:value={newLanguageName}
 						placeholder="e.g., French, German, Spanish"
@@ -991,8 +1001,9 @@
 				</div>
 
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-1">Flag Emoji</label>
+					<label for="new-language-flag" class="block text-sm font-medium text-gray-700 mb-1">Flag Emoji</label>
 					<input
+						id="new-language-flag"
 										type="text"
 										bind:value={newLanguageFlag}
 										placeholder="🇫🇷"

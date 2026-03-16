@@ -13,7 +13,7 @@
 	let saving = false;
 	let message = '';
 	let error = '';
-	let activeTab: 'grid' | 'templates' | 'pages' = 'templates';
+let activeTab: 'grid' | 'templates' | 'pages' | 'locations' | 'modules' | 'assignments' = 'templates';
 	
 	// Workflow steps - simplified to just 2 steps
 	type WorkflowStep = 'grid' | 'pages';
@@ -1037,7 +1037,10 @@
 				message = 'Module instance added to page successfully!';
 				selectedTemplate = { ...assignResult.data };
 				const pages = (assignResult.data as TemplateBuilderConfig).pages || [];
-				selectedPage = pages.find((p: TemplatePageConfig) => p.id === editingModuleAssignment.pageId) || null;
+				const assignment = editingModuleAssignment;
+				if (assignment) {
+					selectedPage = pages.find((p: TemplatePageConfig) => p.id === assignment.pageId) || null;
+				}
 				showAddModuleToPageDialog = false;
 				editingModuleAssignment = null;
 				newModuleInstanceName = '';
@@ -1045,7 +1048,9 @@
 				newModuleLocationId = '';
 				newModuleOrder = 1;
 				newModuleProps = {};
-				setTimeout(() => { message = ''; }, 3000);
+				setTimeout(() => {
+					message = '';
+				}, 3000);
 			} else {
 				throw new Error(assignResult.error || 'Failed to assign module to page');
 			}
@@ -1188,10 +1193,18 @@
 						<div class="space-y-2">
 							{#each templates as template}
 								<div
+									role="button"
+									tabindex="0"
 									class="p-3 rounded-lg border cursor-pointer transition-colors {selectedTemplate?.templateId === template.templateId
 										? 'bg-blue-50 border-blue-500'
 										: 'bg-gray-50 border-gray-200 hover:bg-gray-100'}"
 									on:click={() => (selectedTemplate = template)}
+									on:keydown={(e) => {
+										if (e.key === 'Enter' || e.key === ' ') {
+											e.preventDefault();
+											selectedTemplate = template;
+										}
+									}}
 								>
 									<div class="flex items-center justify-between">
 										<div>
@@ -1200,10 +1213,10 @@
 												{template.locations.length} locations, {template.modules.length} modules
 											</div>
 										</div>
-									<button
-										type="button"
-										on:click|stopPropagation={() => openDeleteTemplateDialog(template.templateId)}
-										class="text-red-600 hover:text-red-800 text-sm"
+										<button
+											type="button"
+											on:click|stopPropagation={() => openDeleteTemplateDialog(template.templateId)}
+											class="text-red-600 hover:text-red-800 text-sm"
 										>
 											Delete
 										</button>
@@ -1306,8 +1319,9 @@
 											<h3 class="text-lg font-semibold text-gray-900 mb-4">Grid Configuration</h3>
 											<div class="grid grid-cols-2 gap-4">
 												<div>
-													<label class="block text-sm font-medium text-gray-700 mb-1">Rows</label>
+													<label for="grid-rows" class="block text-sm font-medium text-gray-700 mb-1">Rows</label>
 													<input
+														id="grid-rows"
 														type="number"
 														min="1"
 														max="20"
@@ -1317,8 +1331,9 @@
 													/>
 												</div>
 												<div>
-													<label class="block text-sm font-medium text-gray-700 mb-1">Columns</label>
+													<label for="grid-columns" class="block text-sm font-medium text-gray-700 mb-1">Columns</label>
 													<input
+														id="grid-columns"
 														type="number"
 														min="1"
 														max="20"
@@ -1349,6 +1364,8 @@
 												{#key `${selectedTemplate?.templateId || ''}-${gridRenderKey}`}
 												<div
 													class="grid gap-1"
+													role="grid"
+													tabindex="0"
 													style="grid-template-columns: repeat({gridColumns}, minmax(40px, 1fr));"
 													on:mousemove={(e) => {
 														if (isSelecting && selectionStart) {
@@ -1372,6 +1389,8 @@
 															{@const isSelected = isCellSelected(row, col)}
 															{@const _renderKey = gridRenderKey}
 															<div
+																role="gridcell"
+																tabindex="-1"
 																data-row={row}
 																data-col={col}
 																class="w-10 h-10 border border-gray-300 cursor-crosshair transition-all flex items-center justify-center text-xs font-medium select-none
@@ -1470,8 +1489,9 @@
 																			<div class="text-xs font-medium text-gray-700 mb-1">Grid Coordinates:</div>
 																			<div class="flex items-center gap-2 flex-wrap">
 																				<div class="flex items-center gap-1">
-																					<label class="text-xs text-gray-600">Start Row:</label>
+																					<label for={`loc-${location.id}-start-row`} class="text-xs text-gray-600">Start Row:</label>
 																					<input
+																						id={`loc-${location.id}-start-row`}
 																						type="number"
 																						min="1"
 																						max={gridRows}
@@ -1480,8 +1500,9 @@
 																					/>
 																				</div>
 																				<div class="flex items-center gap-1">
-																					<label class="text-xs text-gray-600">Start Col:</label>
+																					<label for={`loc-${location.id}-start-col`} class="text-xs text-gray-600">Start Col:</label>
 																					<input
+																						id={`loc-${location.id}-start-col`}
 																						type="number"
 																						min="1"
 																						max={gridColumns}
@@ -1490,8 +1511,9 @@
 																					/>
 																				</div>
 																				<div class="flex items-center gap-1">
-																					<label class="text-xs text-gray-600">End Row:</label>
+																					<label for={`loc-${location.id}-end-row`} class="text-xs text-gray-600">End Row:</label>
 																					<input
+																						id={`loc-${location.id}-end-row`}
 																						type="number"
 																						min="1"
 																						max={gridRows}
@@ -1500,8 +1522,9 @@
 																					/>
 																				</div>
 																				<div class="flex items-center gap-1">
-																					<label class="text-xs text-gray-600">End Col:</label>
+																					<label for={`loc-${location.id}-end-col`} class="text-xs text-gray-600">End Col:</label>
 																					<input
+																						id={`loc-${location.id}-end-col`}
 																						type="number"
 																						min="1"
 																						max={gridColumns}
@@ -1910,8 +1933,9 @@
 		<div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
 			<h3 class="text-lg font-semibold text-gray-900 mb-4">Create New Template</h3>
 			<div class="mb-4">
-				<label class="block text-sm font-medium text-gray-700 mb-1">Template Name</label>
+				<label for="create-template-name" class="block text-sm font-medium text-gray-700 mb-1">Template Name</label>
 				<input
+					id="create-template-name"
 					type="text"
 					bind:value={newTemplateName}
 					placeholder="e.g., My Custom Template"
@@ -1949,8 +1973,9 @@
 			<h3 class="text-lg font-semibold text-gray-900 mb-4">Add Location</h3>
 			<div class="space-y-4">
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-1">Location Name</label>
+					<label for="add-location-name" class="block text-sm font-medium text-gray-700 mb-1">Location Name</label>
 					<input
+						id="add-location-name"
 						type="text"
 						bind:value={newLocationNameOld}
 						placeholder="e.g., header, footer, sidebar"
@@ -1958,8 +1983,9 @@
 					/>
 				</div>
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-1">Description (optional)</label>
+					<label for="add-location-description" class="block text-sm font-medium text-gray-700 mb-1">Description (optional)</label>
 					<input
+						id="add-location-description"
 						type="text"
 						bind:value={newLocationDescriptionOld}
 						placeholder="Brief description"
@@ -1967,8 +1993,9 @@
 					/>
 				</div>
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-1">Order</label>
+					<label for="add-location-order" class="block text-sm font-medium text-gray-700 mb-1">Order</label>
 					<input
+						id="add-location-order"
 						type="number"
 						bind:value={newLocationOrder}
 						class="w-full px-3 py-2 border border-gray-300 rounded-md"
@@ -2010,18 +2037,19 @@
 			</h3>
 			<div class="space-y-4">
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-1">Location Name</label>
+					<label for="grid-location-name" class="block text-sm font-medium text-gray-700 mb-1">Location Name</label>
 					<input
+						id="grid-location-name"
 						type="text"
 						bind:value={newLocationName}
 						placeholder="e.g., header, footer, sidebar"
 						class="w-full px-3 py-2 border border-gray-300 rounded-md"
-						autofocus
 					/>
 				</div>
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-1">Description (optional)</label>
+					<label for="grid-location-description" class="block text-sm font-medium text-gray-700 mb-1">Description (optional)</label>
 					<input
+						id="grid-location-description"
 						type="text"
 						bind:value={newLocationDescription}
 						placeholder="Brief description"
@@ -2077,21 +2105,22 @@
 			<div class="space-y-4">
 				<!-- Instance Name -->
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-1">Instance Name *</label>
+					<label for="add-module-instance-name" class="block text-sm font-medium text-gray-700 mb-1">Instance Name *</label>
 					<input
+						id="add-module-instance-name"
 						type="text"
 						bind:value={newModuleInstanceName}
 						placeholder="e.g., Header Menu, Footer Menu, Main Logo"
 						class="w-full px-3 py-2 border border-gray-300 rounded-md"
-						autofocus
 					/>
 					<p class="text-xs text-gray-500 mt-1">Give this module instance a descriptive name</p>
 				</div>
 
 				<!-- Module Type -->
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-1">Module Type *</label>
+					<label for="add-module-type" class="block text-sm font-medium text-gray-700 mb-1">Module Type *</label>
 					<select
+						id="add-module-type"
 						bind:value={newModuleType}
 						on:change={() => { newModuleProps = {}; }}
 						class="w-full px-3 py-2 border border-gray-300 rounded-md"
@@ -2104,30 +2133,34 @@
 
 				<!-- Module-Specific Parameters -->
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-1">Module Parameters</label>
+					<label for="add-module-params" class="block text-sm font-medium text-gray-700 mb-1">Module Parameters</label>
 					<div class="bg-gray-50 border border-gray-200 rounded-md p-3">
 						<ModulePropsForm moduleType={newModuleType} props={newModuleProps} onChange={(updated) => { newModuleProps = updated; }} />
 					</div>
 				</div>
 
 				<!-- Location Selection -->
-				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-1">Location *</label>
-					<select
-						bind:value={newModuleLocationId}
-						class="w-full px-3 py-2 border border-gray-300 rounded-md"
-					>
-						<option value="">Select a location...</option>
-						{#each selectedTemplate.locations.sort((a, b) => a.order - b.order) as location}
-							<option value={location.id}>{location.name}</option>
-						{/each}
-					</select>
-				</div>
+				{#if selectedTemplate}
+					<div>
+						<label for="add-module-location" class="block text-sm font-medium text-gray-700 mb-1">Location *</label>
+						<select
+							id="add-module-location"
+							bind:value={newModuleLocationId}
+							class="w-full px-3 py-2 border border-gray-300 rounded-md"
+						>
+							<option value="">Select a location...</option>
+							{#each selectedTemplate.locations.sort((a, b) => a.order - b.order) as location}
+								<option value={location.id}>{location.name}</option>
+							{/each}
+						</select>
+					</div>
+				{/if}
 
 				<!-- Order in Location -->
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-1">Order in Location *</label>
+					<label for="add-module-order" class="block text-sm font-medium text-gray-700 mb-1">Order in Location *</label>
 					<input
+						id="add-module-order"
 						type="number"
 						bind:value={newModuleOrder}
 						min="1"
@@ -2173,8 +2206,9 @@
 			<p class="text-sm text-gray-600 mb-4">Create a new instance of a module type. You can create multiple instances of the same type (e.g., header menu, footer menu).</p>
 			<div class="space-y-4">
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-1">Module Type</label>
+					<label for="create-module-type" class="block text-sm font-medium text-gray-700 mb-1">Module Type</label>
 					<select
+						id="create-module-type"
 						bind:value={newModuleType}
 						class="w-full px-3 py-2 border border-gray-300 rounded-md"
 					>
@@ -2185,19 +2219,20 @@
 					<p class="text-xs text-gray-500 mt-1">Select the type of module to create an instance of</p>
 				</div>
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-1">Instance Name</label>
+					<label for="create-module-instance-name" class="block text-sm font-medium text-gray-700 mb-1">Instance Name</label>
 					<input
+						id="create-module-instance-name"
 						type="text"
 						bind:value={newModuleTitle}
 						placeholder="e.g., Header Menu, Footer Menu, Main Logo"
 						class="w-full px-3 py-2 border border-gray-300 rounded-md"
-						autofocus
 					/>
 					<p class="text-xs text-gray-500 mt-1">Give this instance a descriptive name to identify it (optional - will use module type if left empty)</p>
 				</div>
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-1">Order</label>
+					<label for="create-module-order" class="block text-sm font-medium text-gray-700 mb-1">Order</label>
 					<input
+						id="create-module-order"
 						type="number"
 						bind:value={newModuleOrder}
 						class="w-full px-3 py-2 border border-gray-300 rounded-md"
@@ -2311,21 +2346,22 @@
 			<div class="space-y-4">
 				<!-- Instance Name -->
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-1">Instance Name *</label>
+					<label for="assign-module-instance-name" class="block text-sm font-medium text-gray-700 mb-1">Instance Name *</label>
 					<input
+						id="assign-module-instance-name"
 						type="text"
 						bind:value={newModuleInstanceName}
 						placeholder="e.g., Header Menu, Footer Menu, Main Logo"
 						class="w-full px-3 py-2 border border-gray-300 rounded-md"
-						autofocus
 					/>
 					<p class="text-xs text-gray-500 mt-1">Give this module instance a descriptive name</p>
 				</div>
 
 				<!-- Module Type -->
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-1">Module Type *</label>
+					<label for="assign-module-type" class="block text-sm font-medium text-gray-700 mb-1">Module Type *</label>
 					<select
+						id="assign-module-type"
 						bind:value={newModuleType}
 						on:change={() => { newModuleProps = {}; }}
 						class="w-full px-3 py-2 border border-gray-300 rounded-md"
@@ -2338,7 +2374,7 @@
 
 				<!-- Module-Specific Parameters -->
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-1">Module Parameters</label>
+					<label for="assign-module-params" class="block text-sm font-medium text-gray-700 mb-1">Module Parameters</label>
 					<div class="bg-gray-50 border border-gray-200 rounded-md p-3">
 						<ModulePropsForm moduleType={newModuleType} props={newModuleProps} onChange={(updated) => { newModuleProps = updated; }} />
 					</div>
@@ -2346,8 +2382,9 @@
 
 				<!-- Location Selection -->
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-1">Location *</label>
+					<label for="assign-module-location" class="block text-sm font-medium text-gray-700 mb-1">Location *</label>
 					<select
+						id="assign-module-location"
 						bind:value={newModuleLocationId}
 						class="w-full px-3 py-2 border border-gray-300 rounded-md"
 					>
@@ -2360,8 +2397,9 @@
 
 				<!-- Order in Location -->
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-1">Order in Location *</label>
+					<label for="assign-module-order" class="block text-sm font-medium text-gray-700 mb-1">Order in Location *</label>
 					<input
+						id="assign-module-order"
 						type="number"
 						bind:value={newModuleOrder}
 						min="1"

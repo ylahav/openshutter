@@ -1,3 +1,4 @@
+import tailwindcss from '@tailwindcss/vite'
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
 import path from 'path';
@@ -11,18 +12,8 @@ const BACKEND_URL = process.env.BACKEND_URL || `http://localhost:${BACKEND_PORT}
 
 export default defineConfig({
 	plugins: [
-		sveltekit({
-			// Suppress a11y warnings during build
-			compilerOptions: {
-				warnings: (warning, defaultHandler) => {
-					// Suppress accessibility warnings during builds (both dev and production)
-					if (warning.code?.startsWith('a11y-')) {
-						return;
-					}
-					defaultHandler(warning);
-				},
-			},
-		}),
+		tailwindcss(),
+		sveltekit(),
 	],
 	build: {
 		chunkSizeWarningLimit: 1000, // Increase limit to reduce warnings for large chunks

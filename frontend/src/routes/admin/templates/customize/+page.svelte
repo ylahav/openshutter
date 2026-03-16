@@ -2,9 +2,8 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import NotificationDialog from '$lib/components/NotificationDialog.svelte';
-	import type { PageData } from './$types';
-
-	export let data: PageData;
+// PageData is loaded via +page.server.ts; this component does not
+// currently consume it directly, so we omit the prop to avoid unused-export warnings.
 
 	interface TemplateSummary {
 		templateName: string;
@@ -72,7 +71,7 @@
 				originalRaw = pretty;
 			} else {
 				error = json?.error || 'Failed to load template config';
-				showNotification('error', 'Error', error);
+				showNotification('error', 'Error', error || 'Failed to load template config');
 			}
 		} catch (e) {
 			error = 'Failed to load template config';
@@ -112,7 +111,7 @@
 			const j = await res.json();
 			if (!j?.success) {
 				error = j?.error || 'Failed to save';
-				showNotification('error', 'Save Failed', error);
+				showNotification('error', 'Save Failed', error || 'Failed to save');
 				return;
 			}
 			message = 'Saved successfully';
@@ -175,8 +174,9 @@
 			</div>
 
 			<div class="flex flex-wrap items-center gap-3">
-				<label class="text-sm font-medium text-gray-700">Select template:</label>
+				<label for="template-select" class="text-sm font-medium text-gray-700">Select template:</label>
 				<select
+					id="template-select"
 					bind:value={selected}
 					class="border border-gray-300 rounded-md px-2 py-1 bg-white text-gray-900 text-sm"
 				>
@@ -212,8 +212,9 @@
 			<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
 				<!-- Editor -->
 				<div class="space-y-2">
-					<label class="text-sm font-medium text-gray-700">template.config.json</label>
+					<label for="template-config-editor" class="text-sm font-medium text-gray-700">template.config.json</label>
 					<textarea
+						id="template-config-editor"
 						bind:value={raw}
 						class="w-full h-[500px] border border-gray-300 rounded-md p-3 font-mono text-sm bg-white text-gray-900"
 						placeholder="Loading template config..."

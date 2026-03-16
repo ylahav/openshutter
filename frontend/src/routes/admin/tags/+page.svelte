@@ -61,13 +61,17 @@
 		createSuccessMessage: 'Tag created successfully!',
 		updateSuccessMessage: 'Tag updated successfully!',
 		deleteSuccessMessage: 'Tag deleted successfully!',
-		transformPayload: (data: Partial<Tag>): TagPayload => ({
-			name: MultiLangUtils.clean(data.name ?? {}),
-			description: MultiLangUtils.clean(data.description ?? {}),
-			color: data.color,
-			category: data.category,
-			isActive: data.isActive
-		}),
+		transformPayload: (data: Partial<Tag>): TagPayload => {
+			const rawName = data.name && typeof data.name === 'object' ? data.name : {};
+			const rawDescription = data.description && typeof data.description === 'object' ? data.description : {};
+			return {
+				name: MultiLangUtils.clean(rawName),
+				description: MultiLangUtils.clean(rawDescription),
+				color: data.color,
+				category: data.category,
+				isActive: data.isActive
+			};
+		},
 		onCreateSuccess: (newTag) => {
 			crudLoader.items.update(items => [...items, newTag]);
 			dialogs.closeAll();
@@ -405,9 +409,9 @@
 
 			<div class="space-y-4">
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
+					<p class="block text-sm font-medium text-gray-700 mb-2">
 						Tag Name *
-					</label>
+					</p>
 					<MultiLangInput
 						bind:value={formData.name}
 						placeholder="e.g., Family, Vacation, Nature"
@@ -416,9 +420,9 @@
 				</div>
 
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
+					<p class="block text-sm font-medium text-gray-700 mb-2">
 						Description
-					</label>
+					</p>
 					<MultiLangInput
 						bind:value={formData.description}
 						placeholder="Optional description..."
@@ -426,10 +430,11 @@
 				</div>
 
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
+					<label for="tag-category" class="block text-sm font-medium text-gray-700 mb-2">
 						Category
 					</label>
 					<select
+						id="tag-category"
 						bind:value={formData.category}
 						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 					>
@@ -440,9 +445,9 @@
 				</div>
 
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
+					<p class="block text-sm font-medium text-gray-700 mb-2">
 						Color
-					</label>
+					</p>
 					<div class="flex items-center gap-3">
 						<input
 							type="color"
@@ -512,9 +517,9 @@
 
 			<div class="space-y-4">
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
+					<p class="block text-sm font-medium text-gray-700 mb-2">
 						Tag Name *
-					</label>
+					</p>
 					<MultiLangInput
 						bind:value={formData.name}
 						placeholder="e.g., Family, Vacation, Nature"
@@ -523,9 +528,9 @@
 				</div>
 
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
+					<p class="block text-sm font-medium text-gray-700 mb-2">
 						Description
-					</label>
+					</p>
 					<MultiLangInput
 						bind:value={formData.description}
 						placeholder="Optional description..."
@@ -533,9 +538,9 @@
 				</div>
 
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
+					<p class="block text-sm font-medium text-gray-700 mb-2">
 						Category
-					</label>
+					</p>
 					<select
 						bind:value={formData.category}
 						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -547,9 +552,9 @@
 				</div>
 
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2">
+					<p class="block text-sm font-medium text-gray-700 mb-2">
 						Color
-					</label>
+					</p>
 					<div class="flex items-center gap-3">
 						<input
 							type="color"

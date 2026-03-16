@@ -1,9 +1,8 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
-	import type { PageData } from './$types';
-
-	export let data: PageData;
+// PageData is loaded via +page.server.ts; this component does not
+// currently consume it directly, so we omit the prop to avoid unused-export warnings.
 
 	type Tab = 'export' | 'import' | 'storage';
 	let activeTab: Tab = 'export';
@@ -866,8 +865,12 @@
 					</span>
 				</p>
 				<div class="mb-4">
-					<label class="block font-medium text-gray-700 mb-2">Source storage provider:</label>
-					<select class="border border-gray-300 rounded px-3 py-2 text-gray-900 mb-3" bind:value={sourceProviderId}>
+					<label for="source-provider" class="block font-medium text-gray-700 mb-2">Source storage provider:</label>
+					<select
+						id="source-provider"
+						class="border border-gray-300 rounded px-3 py-2 text-gray-900 mb-3"
+						bind:value={sourceProviderId}
+					>
 						<option value="">Select source provider...</option>
 						{#if storageProviders.length === 0}
 							<option value="" disabled>No providers configured</option>
@@ -879,9 +882,13 @@
 					</select>
 				</div>
 				<div class="mb-4">
-					<label class="block font-medium text-gray-700 mb-2">Target storage provider:</label>
+					<label for="target-provider" class="block font-medium text-gray-700 mb-2">Target storage provider:</label>
 					<div class="flex gap-2 items-center">
-						<select class="border border-gray-300 rounded px-3 py-2 text-gray-900" bind:value={targetProviderId}>
+						<select
+							id="target-provider"
+							class="border border-gray-300 rounded px-3 py-2 text-gray-900"
+							bind:value={targetProviderId}
+						>
 							<option value="">Select target provider...</option>
 							{#if storageProviders.length === 0}
 								<option value="" disabled>No providers configured</option>
@@ -908,16 +915,16 @@
 					</div>
 				</div>
 				<div class="mb-4">
-					<label class="block font-medium text-gray-700 mb-2">
+					<p class="block font-medium text-gray-700 mb-2">
 						Scope: <span class="text-sm font-normal text-gray-600">(Optional - leave empty to migrate all photos from source)</span>
-					</label>
-					<div class="text-sm text-gray-600 mb-2">
+					</p>
+					<p class="text-sm text-gray-600 mb-2">
 						{#if !sourceProviderId}
 							Select a source provider to see albums.
 						{:else}
 							Select specific albums to migrate. Child albums are automatically included.
 						{/if}
-					</div>
+					</p>
 					<div class="border border-gray-300 rounded p-3 max-h-48 overflow-y-auto">
 						{#if !sourceProviderId}
 							<p class="text-gray-500 text-sm">Select a source provider first</p>

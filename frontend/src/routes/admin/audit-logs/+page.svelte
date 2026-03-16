@@ -2,11 +2,11 @@
 	import { onMount } from 'svelte';
 	import Header from '$lib/components/Header.svelte';
 	import Footer from '$lib/components/Footer.svelte';
-	import { logger } from '$lib/utils/logger';
-	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
-	import type { PageData } from './$types';
+import { logger } from '$lib/utils/logger';
+import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 
-	export let data: PageData;
+// PageData is loaded via +page.server.ts; this component does not
+// currently consume it directly, so we omit the prop to avoid unused-export warnings.
 
 	interface Log {
 		_id: string;
