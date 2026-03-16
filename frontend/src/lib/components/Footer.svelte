@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { siteConfigData } from '$stores/siteConfig';
+	import { siteConfigData, productName } from '$stores/siteConfig';
 
 	const year = new Date().getFullYear();
 </script>
@@ -13,19 +13,19 @@
 				</p>
 			{:else}
 				<p class="text-gray-300">
-					© {year} OpenShutter. All rights reserved.
+					© {year} {$productName}. All rights reserved.
 				</p>
 			{/if}
 
-			{#if $siteConfigData?.footer?.termsUrl || $siteConfigData?.footer?.privacyUrl}
+			{#if $siteConfigData?.footer?.termsUrl || $siteConfigData?.footer?.privacyUrl || $siteConfigData?.whiteLabel?.termsOfServiceUrl || $siteConfigData?.whiteLabel?.privacyPolicyUrl}
 				<div class="flex flex-wrap justify-center gap-4 text-sm text-gray-400">
-					{#if $siteConfigData.footer?.termsUrl}
-						<a href={$siteConfigData.footer.termsUrl} class="hover:text-white">
+					{#if $siteConfigData.footer?.termsUrl || $siteConfigData.whiteLabel?.termsOfServiceUrl}
+						<a href={$siteConfigData.footer?.termsUrl || $siteConfigData.whiteLabel?.termsOfServiceUrl} class="hover:text-white">
 							Terms of Service
 						</a>
 					{/if}
-					{#if $siteConfigData.footer?.privacyUrl}
-						<a href={$siteConfigData.footer.privacyUrl} class="hover:text-white">
+					{#if $siteConfigData.footer?.privacyUrl || $siteConfigData.whiteLabel?.privacyPolicyUrl}
+						<a href={$siteConfigData.footer?.privacyUrl || $siteConfigData.whiteLabel?.privacyPolicyUrl} class="hover:text-white">
 							Privacy Policy
 						</a>
 					{/if}

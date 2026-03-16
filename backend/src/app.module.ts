@@ -36,6 +36,7 @@ import configuration from './config/configuration';
 import { SiteContextMiddleware } from './middleware/site-context.middleware';
 import { OwnerDomainsController } from './owner-domains/owner-domains.controller';
 import { OwnerSiteSettingsController } from './owner-site-settings/owner-site-settings.controller';
+import { SiteContextController } from './site-context/site-context.controller';
 
 @Module({
   imports: [
@@ -78,6 +79,7 @@ import { OwnerSiteSettingsController } from './owner-site-settings/owner-site-se
     ThemesController,
     OwnerDomainsController,
     OwnerSiteSettingsController,
+    SiteContextController,
   ],
   providers: [AdminGuard, AdminOrOwnerGuard],
 })

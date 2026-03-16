@@ -38,7 +38,7 @@
 	let showTestMailModal = false;
 	let testTo = '';
 	let testSubject = 'Test email';
-	let testBody = 'This is a test email from OpenShutter.';
+	let testBody = 'This is a test email.';
 	let testMailResult: 'idle' | 'sending' | { success: true } | { success: false; error: string } = 'idle';
 
 	// Menu items state
@@ -220,7 +220,7 @@
 	function openTestMailModal() {
 		testTo = '';
 		testSubject = 'Test email';
-		testBody = 'This is a test email from OpenShutter.';
+		testBody = 'This is a test email.';
 		testMailResult = 'idle';
 		showTestMailModal = true;
 	}

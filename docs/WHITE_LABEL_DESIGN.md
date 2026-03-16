@@ -1,7 +1,7 @@
 ## White-Label Solutions Design
 
 **Phase:** 4 – Stage 1  
-**Status:** Draft – ready for implementation  
+**Status:** Partially implemented (Option 1 & core of Option 2)  
 
 This document describes the design and implementation plan for Phase 4 Stage 1: **White-label solutions**.
 
@@ -116,13 +116,15 @@ Introduce a **site context** object resolved from the hostname:
   - Look up `hostname` in `owner_domains`.
   - If found: attach `siteContext = { type: 'owner-site', ownerId }` to the request (e.g. on `req.siteContext`).
   - If not found: `siteContext = { type: 'global' }` (current single-site behaviour).
+  - **Implemented:** `SiteContextMiddleware` sets `req.siteContext` for all routes, and a `SiteContextController` exposes `GET /api/site-context` for the frontend.
 - **Frontend (SvelteKit)**:
-  - In root `+layout.server.ts`, determine `siteContext` (via an API call or shared host-resolution logic) and set `locals.siteContext`.
-  - Public routes (`/`, `/albums`, album view, blog, etc.) must:
+  - In root `+layout.server.ts`, determine `siteContext` by calling `GET /api/site-context` and expose it in layout data.
+  - Public routes (`/`, `/albums`, album view, blog, etc.) can branch on `data.siteContext.type`:
     - When `siteContext.type === 'owner-site'`, filter all content to that owner:
       - Only albums where `createdBy === ownerId` (or equivalent owner field).
       - Only blog posts, pages, and other content associated with that owner.
     - When `siteContext.type === 'global'`, behave exactly as today.
+  - **Implemented (initial):** root `+layout.server.ts` now loads `siteContext` once per request; individual routes can consume it to adjust behaviour for owner domains.
 
 ### 3.4 Content scoping rules
 
@@ -250,20 +252,25 @@ Each owner should have a **single, self-managed theme** for their domain. They c
 1. **Site config extensions**
    - Add `whiteLabel` block to site-config schema and persistence.
    - Expose `whiteLabel` fields via existing site-config APIs.
+   - **Status:** Implemented for `hideOpenShutterBranding`, `termsOfServiceUrl`, `privacyPolicyUrl`; more advanced fields (productName, per-install logo overrides) are still design-only.
 2. **Branding helpers**
    - Add helpers for product name and logos for use by controllers that send templated emails.
+   - **Status:** Implemented `getProductName` helper on the frontend and wired it into the footer and emails (via `{{siteTitle}}`).
 3. **Owner domain model and middleware**
    - Create `owner_domains` model/schema.
    - Add NestJS middleware or guard that:
      - Resolves `siteContext` from `Host`/`X-Forwarded-Host`.
      - Attaches `siteContext` to the request object.
+   - **Status:** Implemented `owner_domains` collection, `OwnerDomainsController`, and `SiteContextMiddleware`.
 4. **Per-owner scoping**
    - Update album, photo, page, blog, and search controllers to:
      - Respect `siteContext` when present.
      - Pass the appropriate `ownerId` or access context into services.
+   - **Status:** Implemented for albums and search APIs; additional content types (blog/pages) remain future work.
 5. **Admin APIs for owner domains and storage**
    - CRUD endpoints to manage `owner_domains` (admin-only).
    - Extend existing owner/user admin APIs to show associated domains and storage config.
+   - **Status:** Implemented admin CRUD for owner domains and Owner Domains section in the Users admin page. Per-owner storage configuration is still handled via user `storageConfig` and `/owner/storage`, not a dedicated per-owner storage model yet.
 
 ### 5.2 Frontend
 

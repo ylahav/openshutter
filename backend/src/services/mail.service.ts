@@ -52,7 +52,7 @@ export class MailService {
     out = out.replace(/\{\{name\}\}/g, ctx.name || '');
     out = out.replace(/\{\{username\}\}/g, ctx.username || '');
     out = out.replace(/\{\{loginUrl\}\}/g, ctx.loginUrl || '');
-    out = out.replace(/\{\{siteTitle\}\}/g, ctx.siteTitle || 'OpenShutter');
+    out = out.replace(/\{\{siteTitle\}\}/g, ctx.siteTitle || '');
     out = out.replace(/\{\{password\}\}/g, ctx.password ?? '');
     return out;
   }
@@ -77,7 +77,9 @@ export class MailService {
 
       const loginUrl = this.getLoginUrl();
       const siteTitle =
-        typeof config.title === 'string' ? config.title : (config.title?.en || 'OpenShutter');
+        typeof config.title === 'string'
+          ? config.title
+          : (config.title?.en || (config.whiteLabel?.hideOpenShutterBranding ? 'Site' : 'OpenShutter'));
       const ctx: WelcomeEmailContext = {
         name: displayName || toUsername,
         username: toUsername,
@@ -87,7 +89,10 @@ export class MailService {
       };
 
       const subject = this.replacePlaceholders(welcome.subject || 'Welcome to {{siteTitle}}', ctx);
-      const body = this.replacePlaceholders(welcome.body || 'Hi {{name}},\n\nWelcome.', ctx);
+      const body = this.replacePlaceholders(
+        welcome.body || 'Hi {{name}},\n\nWelcome to {{siteTitle}}.\n\nYou can log in here: {{loginUrl}}',
+        ctx,
+      );
 
       const port = mail.port ?? 587;
       const transporter = nodemailer.createTransport({
@@ -144,7 +149,7 @@ export class MailService {
         from,
         to: to.trim(),
         subject: subject.trim() || 'Test email',
-        text: body.trim() || 'This is a test email from OpenShutter.',
+        text: body.trim() || 'This is a test email.',
       });
 
       this.logger.log(`Test email sent to ${to}`);

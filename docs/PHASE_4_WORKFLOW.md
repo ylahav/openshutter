@@ -54,6 +54,14 @@ One deployment that appears as a completely separate product. No mention of Open
 
 ### 1.2 Solution 2: Per-owner custom domains ("mini-sites")
 
+**Implementation status (March 2026):**
+
+- `owner_domains` collection, admin CRUD (`/api/admin/owner-domains`), and Users admin UI (Owner Domains section) are implemented.
+- Host-based `SiteContextMiddleware` resolves `siteContext = { type: 'owner-site', ownerId }` from `Host` / `X-Forwarded-Host`.
+- Public site config (`GET /api/site-config`) merges `owner_site_settings` for owner domains (title, description, logo, favicon, SEO, header/menu overrides).
+- Root SvelteKit `+layout.server.ts` now loads `siteContext` via `GET /api/site-context` so all routes can branch on owner vs global context.
+- Per-owner storage is still handled via user `storageConfig` and `/owner/storage`; a dedicated per-owner storage model (independent of user profile) remains future work.
+
 An **owner** user can have their own **public site at a custom domain**. Visitors on that domain see **only that owner's albums** (and blog, if applicable). Admin for that site is at `**<owner-domain>/admin`**. If no custom domain is configured for an owner, behaviour stays as today (shared domain, shared browse).
 
 #### 1.2.1 Data model
@@ -94,9 +102,9 @@ Implementation: when `siteContext.type === 'owner-site'`, guards for `/admin` al
 
 #### 1.2.6 Storage config per owner/domain
 
-- **Per-owner storage:** Each owner (and thus each owner domain) has its **own storage configuration**. This includes: which storage providers are enabled (local, S3, Google Drive, etc.), default provider for new uploads, and provider-specific settings (bucket, path, credentials). Photos and assets for that owner are stored and served only from that owner's configured storage.
-- **No shared default:** Owner-site content does not use the global/site-wide storage config; it uses the storage config attached to that owner. If an owner has no storage config yet, admin must configure it (or a sensible default per deployment) before the owner can upload.
-- **Admin UI:** Global admin sets or edits per-owner storage when creating/editing the owner (or in a dedicated storage section per owner). When the owner uses `<domain>/admin`, they see and manage only their own storage settings (e.g. which provider is default, reconnect OAuth); they cannot see or change other owners' storage.
+- **Per-owner storage (design):** Each owner (and thus each owner domain) has its **own storage configuration**. This includes: which storage providers are enabled (local, S3, Google Drive, etc.), default provider for new uploads, and provider-specific settings (bucket, path, credentials). Photos and assets for that owner are stored and served only from that owner's configured storage.
+- **Current implementation:** Owners configure their effective storage via the existing `storageConfig` on their user profile and `/owner/storage`; global admin configures main storage via `/admin/storage`. A separate per-owner storage config model (independent of user profile) and strict “no shared default” enforcement are still to be implemented.
+- **Admin UI (future):** Global admin sets or edits per-owner storage when creating/editing the owner (or in a dedicated storage section per owner). When the owner uses `<domain>/admin`, they see and manage only their own storage settings (e.g. which provider is default, reconnect OAuth); they cannot see or change other owners' storage.
 
 #### 1.2.7 Edge cases and notes
 

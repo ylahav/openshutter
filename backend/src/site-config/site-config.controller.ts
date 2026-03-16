@@ -273,11 +273,7 @@ export class SiteConfigController {
     if (!to) {
       throw new BadRequestException('Recipient (to) is required');
     }
-    return mailService.sendTestEmail(
-      to,
-      body.subject ?? 'Test email',
-      body.body ?? 'This is a test email from OpenShutter.',
-    );
+    return mailService.sendTestEmail(to, body.subject ?? 'Test email', body.body ?? 'This is a test email.');
   }
 
   /**
