@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import Header from '$lib/components/Header.svelte';
 	import Footer from '$lib/components/Footer.svelte';
+	import { t } from '$stores/i18n';
 import { logger } from '$lib/utils/logger';
 import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 
@@ -54,7 +55,7 @@ import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 </script>
 
 <svelte:head>
-	<title>Audit Logs - Admin</title>
+	<title>{$t('admin.auditLogs')} - {$t('navigation.admin')}</title>
 </svelte:head>
 
 <Header />
@@ -63,11 +64,11 @@ import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 	<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 		<div class="flex items-center justify-between mb-6">
 			<div>
-				<h1 class="text-3xl font-bold text-gray-900">Audit Logs</h1>
-				<p class="mt-2 text-gray-600">View system activity and user actions</p>
+				<h1 class="text-3xl font-bold text-gray-900">{$t('admin.auditLogs')}</h1>
+				<p class="mt-2 text-gray-600">{$t('admin.viewSystemActivity')}</p>
 			</div>
 			<a href="/admin" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm font-medium">
-				← Back to Admin
+				{$t('admin.backToAdmin')}
 			</a>
 		</div>
 
@@ -80,11 +81,11 @@ import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 		{#if loading}
 			<div class="flex items-center justify-center py-12">
 				<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-				<p class="ml-4 text-gray-600">Loading audit logs...</p>
+				<p class="ml-4 text-gray-600">{$t('admin.loadingAuditLogs')}</p>
 			</div>
 		{:else if logs.length === 0}
 			<div class="text-center py-12">
-				<p class="text-gray-500">No audit logs found</p>
+				<p class="text-gray-500">{$t('admin.noAuditLogsFound')}</p>
 			</div>
 		{:else}
 			<div class="bg-white rounded-lg shadow overflow-hidden">
@@ -93,22 +94,22 @@ import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 						<thead class="bg-gray-50">
 							<tr>
 								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-									Time
+									{$t('admin.time')}
 								</th>
 								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-									Action
+									{$t('admin.action')}
 								</th>
 								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-									User
+									{$t('admin.user')}
 								</th>
 								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-									Resource
+									{$t('admin.resource')}
 								</th>
 								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-									IP Address
+									{$t('admin.ipAddress')}
 								</th>
 								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-									User Agent
+									{$t('admin.userAgent')}
 								</th>
 							</tr>
 						</thead>

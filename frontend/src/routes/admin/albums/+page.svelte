@@ -7,6 +7,7 @@
 	import AlbumTree from '$lib/components/AlbumTree.svelte';
 	import { MultiLangUtils } from '$lib/utils/multiLang';
 	import { currentLanguage } from '$lib/stores/language';
+	import { t } from '$stores/i18n';
 	import { getAlbumName } from '$lib/utils/albumUtils';
 	import { getPhotoTitle } from '$lib/utils/photoUtils';
 	import { logger } from '$lib/utils/logger';
@@ -127,7 +128,7 @@
 			albumsKey += 1;
 		} catch (err) {
 			logger.error('Failed to toggle published status:', err);
-			error = handleError(err, 'Failed to update published status');
+			error = handleError(err, $t('admin.failedToUpdatePublishedStatus'));
 		}
 	}
 
@@ -154,7 +155,7 @@
 			albumsKey += 1;
 		} catch (err) {
 			logger.error('Failed to toggle public status:', err);
-			error = handleError(err, 'Failed to update public status');
+			error = handleError(err, $t('admin.failedToUpdatePublicStatus'));
 		}
 	}
 
@@ -168,7 +169,7 @@
 			} catch (err) {
 				logger.error('[onMount] Failed to load albums on mount:', err);
 				loading = false; // Ensure loading is set to false even if loadAlbums fails unexpectedly
-				error = handleError(err, 'Failed to load albums');
+				error = handleError(err, $t('admin.failedToLoadAlbums'));
 				albums = []; // Ensure albums is always an array
 			}
 		})();
@@ -539,25 +540,25 @@
 </script>
 
 <svelte:head>
-	<title>Albums Management - Admin</title>
+	<title>{$t('admin.albumsManagement')} - {$t('navigation.admin')}</title>
 </svelte:head>
 
 <div class="min-h-screen bg-gray-50 py-8">
 	<div class="max-w-7xl mx-auto px-4">
 		<div class="flex items-center justify-between mb-6">
 			<div>
-				<h1 class="text-2xl font-bold text-gray-900">Albums Management</h1>
-				<p class="text-gray-600 mt-2">Manage your photo albums</p>
+					<h1 class="text-2xl font-bold text-gray-900">{$t('admin.albumsManagement')}</h1>
+					<p class="text-gray-600 mt-2">{$t('admin.manageAlbumsDescription')}</p>
 			</div>
 			<div class="flex items-center gap-3">
 				<a href="/admin" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm font-medium">
-					← Back to Admin
+						{$t('admin.backToAdmin')}
 				</a>
 				<a
 					href="/albums/new"
 					class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
 				>
-					+ Create Album
+					+ {$t('admin.createAlbum')}
 				</a>
 			</div>
 		</div>
@@ -571,7 +572,7 @@
 			<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
 				<div class="text-center">
 					<div class="text-2xl font-bold text-blue-600">{albums.length}</div>
-					<div class="text-sm text-gray-600">Total Albums</div>
+					<div class="text-sm text-gray-600">{$t('admin.totalAlbums')}</div>
 				</div>
 			</div>
 			<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
@@ -579,7 +580,7 @@
 					<div class="text-2xl font-bold text-green-600">
 						{albums.filter((a) => a.isPublished).length}
 					</div>
-					<div class="text-sm text-gray-600">Published Albums</div>
+					<div class="text-sm text-gray-600">{$t('admin.publishedAlbums')}</div>
 				</div>
 			</div>
 			<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
@@ -587,7 +588,7 @@
 					<div class="text-2xl font-bold text-blue-600">
 						{albums.filter((a) => a.isPublic).length}
 					</div>
-					<div class="text-sm text-gray-600">Public Albums</div>
+					<div class="text-sm text-gray-600">{$t('admin.publicAlbums')}</div>
 				</div>
 			</div>
 			<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
@@ -595,7 +596,7 @@
 					<div class="text-2xl font-bold text-purple-600">
 						{albums.filter((a) => a.isFeatured).length}
 					</div>
-					<div class="text-sm text-gray-600">Featured Albums</div>
+					<div class="text-sm text-gray-600">{$t('admin.featuredAlbums')}</div>
 				</div>
 			</div>
 			<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
@@ -603,7 +604,7 @@
 					<div class="text-2xl font-bold text-orange-600">
 						{albums.reduce((total, album) => total + (album.photoCount || 0), 0)}
 					</div>
-					<div class="text-sm text-gray-600">Total Photos</div>
+					<div class="text-sm text-gray-600">{$t('admin.totalPhotos')}</div>
 				</div>
 			</div>
 		</div>
@@ -613,7 +614,7 @@
 			<input
 				type="text"
 				bind:value={searchQuery}
-				placeholder="Search albums..."
+				placeholder={$t('admin.searchAlbumsPlaceholder')}
 				class="w-full md:w-64 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
 			/>
 		</div>
@@ -621,21 +622,23 @@
 		{#if loading}
 			<div class="text-center py-8">
 				<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-				<p class="mt-2 text-gray-600">Loading albums...</p>
+				<p class="mt-2 text-gray-600">{$t('admin.loadingAlbums')}</p>
 			</div>
 		{:else if getFilteredAlbums().length === 0}
 			<div class="text-center py-12 bg-white rounded-lg shadow-sm border border-gray-200">
 				<div class="text-gray-400 text-6xl mb-4">📁</div>
-				<h3 class="text-xl font-semibold text-gray-900 mb-2">No Albums Found</h3>
+				<h3 class="text-xl font-semibold text-gray-900 mb-2">{$t('admin.noAlbumsFound')}</h3>
 				<p class="text-gray-600 mb-6">
-					{searchQuery ? 'No albums match your search.' : 'Get started by creating your first album.'}
+					{searchQuery
+						? $t('admin.noAlbumsMatchSearch')
+						: $t('admin.getStartedByCreatingFirstAlbum')}
 				</p>
 				{#if !searchQuery}
 					<a
 						href="/albums/new"
 						class="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700"
 					>
-						Create Album
+						{$t('admin.createAlbum')}
 					</a>
 				{/if}
 			</div>
@@ -678,7 +681,7 @@
 		<div class="relative top-10 mx-auto p-5 border w-11/12 md:w-5/6 lg:w-4/5 xl:w-3/4 shadow-lg rounded-md bg-white max-w-6xl">
 			<div class="flex items-center justify-between mb-4">
 				<h3 class="text-lg font-medium text-gray-900">
-					Select Cover Photo - {coverPhotoModal.album ? getAlbumName(coverPhotoModal.album) : ''}
+					{$t('admin.selectCoverPhoto')} - {coverPhotoModal.album ? getAlbumName(coverPhotoModal.album) : ''}
 				</h3>
 				<button 
 					on:click={closeCoverPhotoModal} 
@@ -692,21 +695,32 @@
 			</div>
 
 			{#if coverPhotoModal.loading}
-				<div class="text-center py-8">
+					<div class="text-center py-8">
 					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-					<p class="mt-2 text-gray-600">Loading photos...</p>
+					<p class="mt-2 text-gray-600">{$t('admin.loadingPhotos')}</p>
 				</div>
 			{:else if coverPhotoModal.totalPhotos === 0}
 				<div class="text-center py-8">
-					<p class="text-gray-600">No photos available</p>
+					<p class="text-gray-600">{$t('admin.noPhotosAvailable')}</p>
 				</div>
 			{:else}
 				<div class="max-h-[70vh] overflow-y-auto">
 					<div class="mb-4 text-sm text-gray-600">
-						Showing {((coverPhotoModal.currentPage - 1) * coverPhotoModal.photosPerPage) + 1}-{Math.min(
-							coverPhotoModal.currentPage * coverPhotoModal.photosPerPage,
-							coverPhotoModal.totalPhotos,
-						)} of {coverPhotoModal.totalPhotos} photos
+						{$t('admin.showingPhotosRange')
+							.replace(
+								'{from}',
+								String((coverPhotoModal.currentPage - 1) * coverPhotoModal.photosPerPage + 1)
+							)
+							.replace(
+								'{to}',
+								String(
+									Math.min(
+										coverPhotoModal.currentPage * coverPhotoModal.photosPerPage,
+										coverPhotoModal.totalPhotos
+									)
+								)
+							)
+							.replace('{total}', String(coverPhotoModal.totalPhotos))}
 					</div>
 
 					<div class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3 mb-6">
@@ -718,11 +732,11 @@
 									? 'ring-4 ring-blue-500 ring-opacity-75'
 									: ''}"
 								on:click={() => setCoverPhoto(photo._id)}
-								aria-label="Set as cover photo"
+								aria-label={$t('admin.setAsCoverPhoto')}
 							>
 								<img
 									src={photo.storage?.thumbnailPath || photo.storage?.url || photo.url}
-									alt={getPhotoTitle(photo) || photo.filename || 'Photo'}
+									alt={getPhotoTitle(photo) || photo.filename || $t('admin.photoFallbackAlt')}
 									class="w-full h-20 object-cover rounded-lg hover:opacity-75 transition-opacity {isCurrentCover
 										? 'ring-2 ring-blue-500'
 										: ''}"
@@ -746,17 +760,19 @@
 								disabled={coverPhotoModal.currentPage === 1}
 								class="px-3 py-1 text-sm font-medium text-gray-500 bg-gray-100 rounded-md hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
 							>
-								Previous
+								{$t('admin.previous')}
 							</button>
 							<span class="text-sm text-gray-600">
-								Page {coverPhotoModal.currentPage} of {getTotalPages()}
+								{$t('admin.pageOf')
+									.replace('{page}', String(coverPhotoModal.currentPage))
+									.replace('{total}', String(getTotalPages()))}
 							</span>
 							<button
 								on:click={() => goToPage(coverPhotoModal.currentPage + 1)}
 								disabled={coverPhotoModal.currentPage === getTotalPages()}
 								class="px-3 py-1 text-sm font-medium text-gray-500 bg-gray-100 rounded-md hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
 							>
-								Next
+								{$t('admin.next')}
 							</button>
 						</div>
 					{/if}
@@ -768,7 +784,7 @@
 					on:click={closeCoverPhotoModal}
 					class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
 				>
-					Cancel
+					{$t('admin.close')}
 				</button>
 			</div>
 		</div>
@@ -778,10 +794,11 @@
 <!-- Delete Confirmation Dialog -->
 <ConfirmDialog
 	isOpen={deleteDialog.isOpen}
-	title="Delete Album"
-	message="Are you sure you want to delete &quot;{deleteDialog.albumName}&quot;? This will delete all photos and sub-albums. This action cannot be undone."
-	confirmText={deleteDialog.isDeleting ? 'Deleting...' : 'Delete'}
-	cancelText="Cancel"
+	title={$t('admin.deleteAlbum')}
+	message={$t('admin.confirmDeleteAlbum')
+		.replace('{name}', deleteDialog.albumName)}
+	confirmText={deleteDialog.isDeleting ? $t('admin.deleting') : $t('admin.delete')}
+	cancelText={$t('admin.cancel')}
 	variant="danger"
 	disabled={deleteDialog.isDeleting}
 	on:confirm={confirmDelete}

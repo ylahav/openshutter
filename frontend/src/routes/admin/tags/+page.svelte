@@ -8,6 +8,7 @@
 	import { useCrudOperations } from '$lib/composables/useCrudOperations';
 	import { useDialogManager } from '$lib/composables/useDialogManager';
 	import { normalizeMultiLangText } from '$lib/utils/multiLangHelpers';
+	import { t } from '$stores/i18n';
 	import type { PageData } from './$types';
 
 	// svelte-ignore export_let_unused - Required by SvelteKit page component
@@ -220,7 +221,7 @@
 </script>
 
 <svelte:head>
-	<title>Tags Management - Admin</title>
+	<title>{$t('admin.tagsManagement')} - {$t('navigation.admin')}</title>
 </svelte:head>
 
 <div class="min-h-screen bg-gray-50 py-8">
@@ -228,14 +229,14 @@
 		<div class="bg-white rounded-lg shadow-md p-6">
 			<div class="flex items-center justify-between mb-6">
 				<div>
-					<h1 class="text-2xl font-bold text-gray-900">Tags Management</h1>
-					<p class="text-gray-600 mt-2">Manage tags for categorizing and organizing your photos</p>
+					<h1 class="text-2xl font-bold text-gray-900">{$t('admin.tagsManagement')}</h1>
+					<p class="text-gray-600 mt-2">{$t('admin.manageTagsStructuredData')}</p>
 				</div>
 				<a
 					href="/admin"
 					class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm font-medium"
 				>
-					← Back to Admin
+					{$t('admin.backToAdmin')}
 				</a>
 			</div>
 
@@ -253,7 +254,7 @@
 					<div class="relative">
 						<input
 							type="text"
-							placeholder="Search tags..."
+							placeholder={$t('admin.searchTagsPlaceholder')}
 							bind:value={searchTerm}
 							on:input={() => crudLoader.loadItems()}
 							class="pl-10 pr-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-64"
@@ -278,7 +279,7 @@
 						on:change={() => crudLoader.loadItems()}
 						class="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 					>
-						<option value="all">All Categories</option>
+						<option value="all">{$t('admin.allCategories')}</option>
 						{#each TAG_CATEGORIES as cat}
 							<option value={cat.value}>{cat.label}</option>
 						{/each}
@@ -298,7 +299,7 @@
 							d="M12 4v16m8-8H4"
 						/>
 					</svg>
-					Add Tag
+					{$t('admin.addTag')}
 				</button>
 			</div>
 
@@ -306,7 +307,7 @@
 			{#if loading}
 				<div class="text-center py-8">
 					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-					<p class="mt-2 text-gray-600">Loading tags...</p>
+					<p class="mt-2 text-gray-600">{$t('admin.loadingTags')}</p>
 				</div>
 			{:else if tags.length === 0}
 				<div class="text-center py-8">
@@ -323,8 +324,8 @@
 							d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
 						/>
 					</svg>
-					<h3 class="text-lg font-semibold text-gray-900 mb-2">No tags found</h3>
-					<p class="text-gray-600">Start by adding your first tag.</p>
+					<h3 class="text-lg font-semibold text-gray-900 mb-2">{$t('admin.noTagsFound')}</h3>
+					<p class="text-gray-600">{$t('admin.startByAddingFirstTag')}</p>
 				</div>
 			{:else}
 				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

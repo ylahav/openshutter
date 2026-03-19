@@ -3,6 +3,7 @@
 	import { logout } from '$lib/stores/auth';
 	import { goto } from '$app/navigation';
 	import { productName } from '$stores/siteConfig';
+	import { t } from '$stores/i18n';
 
   export const data: PageData = undefined as any; // From +layout.server.ts, not used in this component
 
@@ -12,7 +13,7 @@
 </script>
 
 <svelte:head>
-	<title>Admin Dashboard - {$productName}</title>
+	<title>{$t('admin.adminPanel')} - {$productName}</title>
 </svelte:head>
 
 <div class="min-h-screen bg-gray-50 py-8">
@@ -20,8 +21,8 @@
 		<!-- Navigation Buttons -->
 		<div class="flex justify-between items-center mb-8">
 			<div>
-				<h1 class="text-3xl font-bold text-gray-900">Admin Panel</h1>
-				<p class="text-gray-600 mt-2">Manage gallery settings and content</p>
+				<h1 class="text-3xl font-bold text-gray-900">{$t('admin.adminPanel')}</h1>
+				<p class="text-gray-600 mt-2">{$t('admin.manageGallerySettings')}</p>
 			</div>
 			<div class="flex space-x-3">
 				<a
@@ -36,7 +37,7 @@
 							d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
 						/>
 					</svg>
-					Home
+					{$t('navigation.home')}
 				</a>
 				<button
 					on:click={handleLogout}
@@ -50,7 +51,7 @@
 							d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
 						/>
 					</svg>
-					Logout
+					{$t('header.logout')}
 				</button>
 			</div>
 		</div>
@@ -75,15 +76,15 @@
 							/>
 						</svg>
 					</div>
-					<h2 class="text-xl font-semibold text-gray-900 ml-3">Site Configuration</h2>
+					<h2 class="text-xl font-semibold text-gray-900 ml-3">{$t('admin.siteConfiguration')}</h2>
 				</div>
-				<p class="text-gray-600 mb-4">Configure gallery settings, title, description, and more</p>
+				<p class="text-gray-600 mb-4">{$t('admin.configureGallery')}</p>
 				<a
 					href="/admin/site-config"
 					class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
 				>
-					Configure Site
-					<svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					{$t('admin.configureSite')}
+					<svg class="ml-2 w-4 h-4 rtl-flip" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
 					</svg>
 				</a>
@@ -102,15 +103,15 @@
 							/>
 						</svg>
 					</div>
-					<h2 class="text-xl font-semibold text-gray-900 ml-3">Translation Management</h2>
+					<h2 class="text-xl font-semibold text-gray-900 ml-3">{$t('admin.translationManagement')}</h2>
 				</div>
-				<p class="text-gray-600 mb-4">Add new languages and manage translations</p>
+				<p class="text-gray-600 mb-4">{$t('admin.manageTranslationsDescription')}</p>
 				<a
 					href="/admin/translations"
 					class="inline-flex items-center px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2"
 				>
-					Manage Translations
-					<svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					{$t('admin.manageTranslations')}
+					<svg class="ml-2 w-4 h-4 rtl-flip" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
 					</svg>
 				</a>
@@ -129,15 +130,15 @@
 							/>
 						</svg>
 					</div>
-					<h2 class="text-xl font-semibold text-gray-900 ml-3">Storage Management</h2>
+					<h2 class="text-xl font-semibold text-gray-900 ml-3">{$t('admin.storageManagement')}</h2>
 				</div>
-				<p class="text-gray-600 mb-4">Configure storage providers (Local, AWS S3, Google Drive, etc.)</p>
+				<p class="text-gray-600 mb-4">{$t('admin.configureStorage')}</p>
 				<a
 					href="/admin/storage"
 					class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
 				>
-					Manage Storage
-					<svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					{$t('admin.manageStorage')}
+					<svg class="ml-2 w-4 h-4 rtl-flip" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
 					</svg>
 				</a>
@@ -156,15 +157,15 @@
 							/>
 						</svg>
 					</div>
-					<h2 class="text-xl font-semibold text-gray-900 ml-3">Themes</h2>
+					<h2 class="text-xl font-semibold text-gray-900 ml-3">{$t('admin.templateManagement')}</h2>
 				</div>
-				<p class="text-gray-600 mb-4">Manage and apply themes for your gallery</p>
+				<p class="text-gray-600 mb-4">{$t('admin.templateManagementDescription')}</p>
 				<div class="space-y-3">
 					<a
 						href="/admin/templates"
 						class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
 					>
-						Manage Themes
+						{$t('admin.manageTemplates')}
 						<svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
 						</svg>
@@ -185,15 +186,15 @@
 							/>
 						</svg>
 					</div>
-					<h2 class="text-xl font-semibold text-gray-900 ml-3">Albums Management</h2>
+					<h2 class="text-xl font-semibold text-gray-900 ml-3">{$t('admin.albumsManagement')}</h2>
 				</div>
-				<p class="text-gray-600 mb-4">Create, edit, and organize photo albums</p>
+				<p class="text-gray-600 mb-4">{$t('admin.createEditAlbums')}</p>
 				<a
 					href="/admin/albums"
 					class="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
 				>
-					Manage Albums
-					<svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					{$t('admin.manageAlbums')}
+					<svg class="ml-2 w-4 h-4 rtl-flip" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
 					</svg>
 				</a>
@@ -212,15 +213,15 @@
 							/>
 						</svg>
 					</div>
-					<h2 class="text-xl font-semibold text-gray-900 ml-3">People Management</h2>
+					<h2 class="text-xl font-semibold text-gray-900 ml-3">{$t('admin.peopleManagement')}</h2>
 				</div>
-				<p class="text-gray-600 mb-4">Manage people who appear in your photos with structured data</p>
+				<p class="text-gray-600 mb-4">{$t('admin.managePeopleStructuredData')}</p>
 				<a
 					href="/admin/people"
 					class="inline-flex items-center px-4 py-2 bg-pink-600 text-white rounded-md hover:bg-pink-700 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2"
 				>
-					Manage People
-					<svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					{$t('admin.managePeople')}
+					<svg class="ml-2 w-4 h-4 rtl-flip" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
 					</svg>
 				</a>
@@ -239,15 +240,15 @@
 							/>
 						</svg>
 					</div>
-					<h2 class="text-xl font-semibold text-gray-900 ml-3">Tags Management</h2>
+					<h2 class="text-xl font-semibold text-gray-900 ml-3">{$t('admin.tagsManagement')}</h2>
 				</div>
-				<p class="text-gray-600 mb-4">Manage tags for categorizing and organizing your photos</p>
+				<p class="text-gray-600 mb-4">{$t('admin.manageTagsStructuredData')}</p>
 				<a
 					href="/admin/tags"
 					class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
 				>
-					Manage Tags
-					<svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					{$t('admin.manageTags')}
+					<svg class="ml-2 w-4 h-4 rtl-flip" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
 					</svg>
 				</a>
@@ -272,15 +273,15 @@
 							/>
 						</svg>
 					</div>
-					<h2 class="text-xl font-semibold text-gray-900 ml-3">Location Management</h2>
+					<h2 class="text-xl font-semibold text-gray-900 ml-3">{$t('admin.locationsManagement')}</h2>
 				</div>
-				<p class="text-gray-600 mb-4">Manage locations for your photos with coordinates and addresses</p>
+				<p class="text-gray-600 mb-4">{$t('admin.manageLocationsStructuredData')}</p>
 				<a
 					href="/admin/locations"
 					class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
 				>
-					Manage Locations
-					<svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					{$t('admin.manageLocations')}
+					<svg class="ml-2 w-4 h-4 rtl-flip" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
 					</svg>
 				</a>
@@ -305,15 +306,15 @@
 							/>
 						</svg>
 					</div>
-					<h2 class="text-xl font-semibold text-gray-900 ml-3">Users Management</h2>
+					<h2 class="text-xl font-semibold text-gray-900 ml-3">{$t('admin.usersManagement')}</h2>
 				</div>
-				<p class="text-gray-600 mb-4">Manage users and their roles</p>
+				<p class="text-gray-600 mb-4">{$t('admin.manageUsersRoles')}</p>
 				<a
 					href="/admin/users"
 					class="inline-flex items-center px-4 py-2 bg-slate-700 text-white rounded-md hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2"
 				>
-					Manage Users
-					<svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					{$t('admin.manageUsers')}
+					<svg class="ml-2 w-4 h-4 rtl-flip" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
 					</svg>
 				</a>
@@ -332,15 +333,15 @@
 							/>
 						</svg>
 					</div>
-					<h2 class="text-xl font-semibold text-gray-900 ml-3">Groups Management</h2>
+					<h2 class="text-xl font-semibold text-gray-900 ml-3">{$t('admin.groupsManagement')}</h2>
 				</div>
-				<p class="text-gray-600 mb-4">Define user groups for access control</p>
+				<p class="text-gray-600 mb-4">{$t('admin.defineUserGroups')}</p>
 				<a
 					href="/admin/groups"
 					class="inline-flex items-center px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
 				>
-					Manage Groups
-					<svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					{$t('admin.manageGroups')}
+					<svg class="ml-2 w-4 h-4 rtl-flip" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
 					</svg>
 				</a>
@@ -359,15 +360,15 @@
 							/>
 						</svg>
 					</div>
-					<h2 class="text-xl font-semibold text-gray-900 ml-3">Pages Management</h2>
+					<h2 class="text-xl font-semibold text-gray-900 ml-3">{$t('admin.pagesManagement')}</h2>
 				</div>
-				<p class="text-gray-600 mb-4">Create and manage internal pages like About Us, Our Story, etc.</p>
+				<p class="text-gray-600 mb-4">{$t('admin.pagesManagementDescription')}</p>
 				<a
 					href="/admin/pages"
 					class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
 				>
-					Manage Pages
-					<svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					{$t('admin.managePages')}
+					<svg class="ml-2 w-4 h-4 rtl-flip" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
 					</svg>
 				</a>
@@ -386,15 +387,15 @@
 							/>
 						</svg>
 					</div>
-					<h2 class="text-xl font-semibold text-gray-900 ml-3">Blog Categories</h2>
+					<h2 class="text-xl font-semibold text-gray-900 ml-3">{$t('admin.blogCategories')}</h2>
 				</div>
-				<p class="text-gray-600 mb-4">Manage blog categories for organizing blog posts</p>
+				<p class="text-gray-600 mb-4">{$t('admin.manageBlogCategories')}</p>
 				<a
 					href="/admin/blog-categories"
 					class="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
 				>
-					Manage Blog Categories
-					<svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					{$t('admin.manageBlogCategories')}
+					<svg class="ml-2 w-4 h-4 rtl-flip" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
 					</svg>
 				</a>
@@ -413,15 +414,15 @@
 							/>
 						</svg>
 					</div>
-					<h2 class="text-xl font-semibold text-gray-900 ml-3">Backup & Restore</h2>
+					<h2 class="text-xl font-semibold text-gray-900 ml-3">{$t('admin.backupRestore')}</h2>
 				</div>
-				<p class="text-gray-600 mb-4">Full system backup: exports ALL database collections for disaster recovery. Restore replaces everything.</p>
+				<p class="text-gray-600 mb-4">{$t('admin.backupRestoreDescription')}</p>
 				<a
 					href="/admin/backup-restore"
 					class="inline-flex items-center px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
 				>
-					Manage Backup
-					<svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					{$t('admin.manageBackup')}
+					<svg class="ml-2 w-4 h-4 rtl-flip" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
 					</svg>
 				</a>
@@ -440,14 +441,14 @@
 							/>
 						</svg>
 					</div>
-					<h2 class="text-xl font-semibold text-gray-900 ml-3">Import & Export</h2>
+					<h2 class="text-xl font-semibold text-gray-900 ml-3">{$t('admin.importSync')}</h2>
 				</div>
-				<p class="text-gray-600 mb-4">Migration tools: export repository to portable package (DB + photos), import from package or raw folder, migrate storage between providers.</p>
+				<p class="text-gray-600 mb-4">{$t('admin.importSyncDescription')}</p>
 				<a
 					href="/admin/import-sync"
 					class="inline-flex items-center px-4 py-2 bg-cyan-600 text-white rounded-md hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2"
 				>
-					Migration Tools
+					{$t('admin.manageImport')}
 					<svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
 					</svg>
@@ -462,14 +463,14 @@
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
 						</svg>
 					</div>
-					<h2 class="text-xl font-semibold text-gray-900 ml-3">Marketplace</h2>
+					<h2 class="text-xl font-semibold text-gray-900 ml-3">{$t('admin.marketplace')}</h2>
 				</div>
-				<p class="text-gray-600 mb-4">Review and approve API integration submissions</p>
+				<p class="text-gray-600 mb-4">{$t('admin.marketplaceDescription')}</p>
 				<a
 					href="/admin/marketplace"
 					class="inline-flex items-center px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"
 				>
-					Manage listings
+					{$t('admin.manageMarketplace')}
 					<svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
 					</svg>
@@ -489,14 +490,14 @@
 							/>
 						</svg>
 					</div>
-					<h2 class="text-xl font-semibold text-gray-900 ml-3">Analytics</h2>
+					<h2 class="text-xl font-semibold text-gray-900 ml-3">{$t('admin.analytics')}</h2>
 				</div>
-				<p class="text-gray-600 mb-4">View statistics and analytics for your gallery</p>
+				<p class="text-gray-600 mb-4">{$t('admin.viewStatistics')}</p>
 				<a
 					href="/admin/analytics"
 					class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
 				>
-					View Analytics
+					{$t('admin.viewAnalytics')}
 					<svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
 					</svg>
@@ -506,3 +507,9 @@
 		</div>
 	</div>
 </div>
+
+<style>
+	:global([dir='rtl'] .rtl-flip) {
+		transform: scaleX(-1);
+	}
+</style>

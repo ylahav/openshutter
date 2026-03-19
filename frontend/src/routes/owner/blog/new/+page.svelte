@@ -3,10 +3,11 @@
 	import { goto } from '$app/navigation';
 	import MultiLangInput from '$lib/components/MultiLangInput.svelte';
 	import MultiLangHTMLEditor from '$lib/components/MultiLangHTMLEditor.svelte';
-	import { MultiLangUtils } from '$lib/utils/multiLang';
-	import { currentLanguage } from '$lib/stores/language';
-	import { logger } from '$lib/utils/logger';
-	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
+import { MultiLangUtils } from '$lib/utils/multiLang';
+import { currentLanguage } from '$lib/stores/language';
+import { logger } from '$lib/utils/logger';
+import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
+import { t } from '$stores/i18n';
 	import type { PageData } from './$types';
 
 	export let data: PageData;
@@ -95,13 +96,13 @@
 		try {
 			// Validate required fields
 			if (!MultiLangUtils.getTextValue(formData.title, $currentLanguage).trim()) {
-				throw new Error('Title is required');
+				throw new Error($t('owner.titleRequired'));
 			}
 			if (!formData.category.trim()) {
-				throw new Error('Category is required');
+				throw new Error($t('owner.categoryRequired'));
 			}
 			if (!MultiLangUtils.getHTMLValue(formData.content, $currentLanguage).trim()) {
-				throw new Error('Content is required');
+				throw new Error($t('owner.contentRequired'));
 			}
 
 			const response = await fetch('/api/owner/blog', {
@@ -114,10 +115,10 @@
 
 			if (!response.ok) {
 				const errorData = await response.json();
-				throw new Error(errorData.error || 'Failed to create article');
+				throw new Error(errorData.error || $t('owner.failedToCreateArticle'));
 			}
 
-			success = 'Article created successfully!';
+			success = $t('owner.articleCreatedSuccessfully');
 
 			// Reset form
 			formData = {
@@ -133,7 +134,7 @@
 			};
 		} catch (err) {
 			logger.error('Failed to create article:', err);
-			error = handleError(err, 'Failed to create article');
+			error = handleError(err, $t('owner.failedToCreateArticle'));
 		} finally {
 			saving = false;
 		}
@@ -141,7 +142,7 @@
 </script>
 
 <svelte:head>
-	<title>Create New Article - Owner</title>
+	<title>{$t('owner.createNewArticle')} - {$t('owner.blogManagement')}</title>
 </svelte:head>
 
 <div class="min-h-screen bg-gray-50 py-8">
@@ -149,8 +150,8 @@
 		<!-- Header -->
 		<div class="flex justify-between items-center mb-8">
 			<div>
-				<h1 class="text-3xl font-bold text-gray-900">Create New Article</h1>
-				<p class="text-gray-600 mt-2">Create a new blog article</p>
+				<h1 class="text-3xl font-bold text-gray-900">{$t('owner.createNewArticle')}</h1>
+				<p class="text-gray-600 mt-2">{$t('owner.createArticleDescription')}</p>
 			</div>
 			<button
 				on:click={() => goto('/owner/blog')}
@@ -164,7 +165,7 @@
 						d="M10 19l-7-7m0 0l7-7m-7 7h18"
 					/>
 				</svg>
-				Back to Blog
+				{$t('owner.backToBlog')}
 			</button>
 		</div>
 
@@ -185,17 +186,23 @@
 			<form on:submit={handleSubmit} class="space-y-6">
 				<!-- Basic Information -->
 				<div>
-					<h3 class="text-lg font-medium text-gray-900 mb-4">Basic Information</h3>
+					<h3 class="text-lg font-medium text-gray-900 mb-4">{$t('owner.basicInformation')}</h3>
 					<div class="space-y-4">
 						<div>
-							<label for="title" class="block text-sm font-medium text-gray-700 mb-2"> Title * </label>
-							<MultiLangInput bind:value={formData.title} placeholder="Enter article title..." required />
+							<label for="title" class="block text-sm font-medium text-gray-700 mb-2">
+								{$t('owner.title')} *
+							</label>
+							<MultiLangInput
+								bind:value={formData.title}
+								placeholder={$t('owner.enterArticleTitle')}
+								required
+							/>
 						</div>
 
 						<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 							<div>
 								<label for="category" class="block text-sm font-medium text-gray-700 mb-2">
-									Category *
+									{$t('owner.category')} *
 								</label>
 								<input
 									type="text"
@@ -204,7 +211,7 @@
 									required
 									list="categories"
 									class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-									placeholder="Enter category"
+									placeholder={$t('owner.enterCategory')}
 								/>
 								<datalist id="categories">
 									{#each categories as category}
@@ -214,7 +221,9 @@
 							</div>
 
 							<div>
-								<label for="tags" class="block text-sm font-medium text-gray-700 mb-2"> Tags </label>
+								<label for="tags" class="block text-sm font-medium text-gray-700 mb-2">
+									{$t('owner.tags')}
+								</label>
 								<div class="flex">
 									<input
 										type="text"
@@ -227,14 +236,14 @@
 											}
 										}}
 										class="flex-1 px-3 py-2 border border-gray-300 rounded-l-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-										placeholder="Add tag"
+										placeholder={$t('owner.addTag')}
 									/>
 									<button
 										type="button"
 										on:click={handleAddTag}
 										class="px-3 py-2 bg-blue-600 text-white rounded-r-md hover:bg-blue-700"
 									>
-										Add
+										{$t('owner.add')}
 									</button>
 								</div>
 								{#if formData.tags.length > 0}
@@ -267,9 +276,11 @@
 
 				<!-- Leading Image -->
 				<div>
-					<h3 class="text-lg font-medium text-gray-900 mb-4">Leading Image</h3>
+					<h3 class="text-lg font-medium text-gray-900 mb-4">{$t('owner.leadingImage')}</h3>
 					<div>
-						<label for="leading-image-url-owner" class="block text-sm font-medium text-gray-700 mb-2"> Image URL </label>
+						<label for="leading-image-url-owner" class="block text-sm font-medium text-gray-700 mb-2">
+							{$t('owner.profileImageUrl')}
+						</label>
               <input
                 type="url"
                 id="leading-image-url-owner"
@@ -283,55 +294,66 @@
 								};
 							}}
 							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-							placeholder="Enter image URL"
+							placeholder={$t('owner.enterImageUrl')}
 						/>
 						<p class="mt-1 text-sm text-gray-500">
-							Note: Full image upload functionality will be available in a future update
+							{$t('owner.profileImageNote')}
 						</p>
 					</div>
 				</div>
 
 				<!-- Content -->
 				<div>
-					<h3 class="text-lg font-medium text-gray-900 mb-4">Content</h3>
+					<h3 class="text-lg font-medium text-gray-900 mb-4">{$t('owner.content')}</h3>
 					<div class="space-y-4">
 						<div>
-							<label for="excerpt" class="block text-sm font-medium text-gray-700 mb-2"> Excerpt </label>
+							<label for="excerpt" class="block text-sm font-medium text-gray-700 mb-2">
+								{$t('owner.excerpt')}
+							</label>
 							<MultiLangInput
 								bind:value={formData.excerpt}
-								placeholder="Enter excerpt..."
+								placeholder={$t('owner.enterExcerpt')}
 								multiline={true}
 							/>
 						</div>
 
 						<div>
-							<span class="block text-sm font-medium text-gray-700 mb-2"> Content * </span>
+							<span class="block text-sm font-medium text-gray-700 mb-2">
+								{$t('owner.content')} *
+							</span>
 							<MultiLangHTMLEditor
 								bind:value={formData.content}
-								placeholder="Enter content..."
+								placeholder={$t('owner.enterContent')}
 								height={300}
 							/>
-							<p class="mt-1 text-sm text-gray-500">The main content of your article</p>
+							<p class="mt-1 text-sm text-gray-500">
+								{$t('owner.contentHelp')}
+							</p>
 						</div>
 					</div>
 				</div>
 
 				<!-- SEO -->
 				<div>
-					<h3 class="text-lg font-medium text-gray-900 mb-4">SEO</h3>
+					<h3 class="text-lg font-medium text-gray-900 mb-4">{$t('owner.seo')}</h3>
 					<div class="space-y-4">
 						<div>
-							<label for="seoTitle" class="block text-sm font-medium text-gray-700 mb-2"> SEO Title </label>
-							<MultiLangInput bind:value={formData.seoTitle} placeholder="Enter SEO title..." />
+							<label for="seoTitle" class="block text-sm font-medium text-gray-700 mb-2">
+								{$t('owner.seoTitle')}
+							</label>
+							<MultiLangInput
+								bind:value={formData.seoTitle}
+								placeholder={$t('owner.enterSeoTitle')}
+							/>
 						</div>
 
 						<div>
 							<label for="seoDescription" class="block text-sm font-medium text-gray-700 mb-2">
-								SEO Description
+								{$t('owner.seoDescription')}
 							</label>
 							<MultiLangInput
 								bind:value={formData.seoDescription}
-								placeholder="Enter SEO description..."
+								placeholder={$t('owner.enterSeoDescription')}
 								multiline={true}
 							/>
 						</div>
@@ -340,7 +362,7 @@
 
 				<!-- Settings -->
 				<div>
-					<h3 class="text-lg font-medium text-gray-900 mb-4">Settings</h3>
+					<h3 class="text-lg font-medium text-gray-900 mb-4">{$t('owner.settings')}</h3>
 					<div class="space-y-4">
 						<div class="flex items-center">
 							<input
@@ -350,7 +372,7 @@
 								class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
 							/>
 							<label for="isPublished" class="ml-2 block text-sm text-gray-900">
-								Publish Article
+								{$t('owner.publishArticle')}
 							</label>
 						</div>
 
@@ -361,7 +383,9 @@
 								bind:checked={formData.isFeatured}
 								class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
 							/>
-							<label for="isFeatured" class="ml-2 block text-sm text-gray-900"> Feature Article </label>
+							<label for="isFeatured" class="ml-2 block text-sm text-gray-900">
+								{$t('owner.featureArticle')}
+							</label>
 						</div>
 					</div>
 				</div>
@@ -393,9 +417,9 @@
 									d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
 								></path>
 							</svg>
-							Creating...
+							{$t('owner.saving')}
 						{:else}
-							Create Article
+							{$t('owner.createArticle')}
 						{/if}
 					</button>
 				</div>

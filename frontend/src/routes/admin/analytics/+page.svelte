@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { t } from '$stores/i18n';
 	import { getAlbumName } from '$lib/utils/albumUtils';
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
@@ -189,18 +190,18 @@
 </script>
 
 <svelte:head>
-	<title>Analytics - Admin</title>
+	<title>{$t('admin.analytics')} - {$t('navigation.admin')}</title>
 </svelte:head>
 
 <div class="min-h-screen bg-gray-50 py-8">
 	<div class="max-w-6xl mx-auto px-4">
 		<div class="flex items-center justify-between mb-6">
 			<div>
-				<h1 class="text-2xl font-bold text-gray-900">Analytics & Statistics</h1>
-				<p class="text-gray-600 mt-2">View comprehensive statistics about your gallery</p>
+				<h1 class="text-2xl font-bold text-gray-900">{$t('admin.analyticsAndStatistics')}</h1>
+				<p class="text-gray-600 mt-2">{$t('admin.analyticsDescription')}</p>
 			</div>
 			<a href="/admin" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm font-medium">
-				← Back to Admin
+				{$t('admin.backToAdmin')}
 			</a>
 		</div>
 
@@ -211,31 +212,31 @@
 					class="py-4 px-1 border-b-2 font-medium text-sm {activeTab === 'overview' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}"
 					on:click={() => handleTabChange('overview')}
 				>
-					Overview
+					{$t('admin.analyticsOverviewTab')}
 				</button>
 				<button
 					class="py-4 px-1 border-b-2 font-medium text-sm {activeTab === 'views' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}"
 					on:click={() => handleTabChange('views')}
 				>
-					Views
+					{$t('admin.analyticsViewsTab')}
 				</button>
 				<button
 					class="py-4 px-1 border-b-2 font-medium text-sm {activeTab === 'search' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}"
 					on:click={() => handleTabChange('search')}
 				>
-					Search
+					{$t('admin.analyticsSearchTab')}
 				</button>
 				<button
 					class="py-4 px-1 border-b-2 font-medium text-sm {activeTab === 'tags' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}"
 					on:click={() => handleTabChange('tags')}
 				>
-					Tags
+					{$t('admin.analyticsTagsTab')}
 				</button>
 				<button
 					class="py-4 px-1 border-b-2 font-medium text-sm {activeTab === 'storage' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}"
 					on:click={() => handleTabChange('storage')}
 				>
-					Storage
+					{$t('admin.analyticsStorageTab')}
 				</button>
 			</nav>
 		</div>

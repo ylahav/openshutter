@@ -96,7 +96,7 @@
 			result = [
 				{ labelKey: 'navigation.home', href: '/' },
 				{ labelKey: 'navigation.albums', href: '/albums' },
-				{ label: 'About', href: '/about' },
+				{ labelKey: 'navigation.about', href: '/about' },
 				{ labelKey: 'navigation.search', href: '/search' }
 			];
 		}

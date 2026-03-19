@@ -1,10 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { page } from '$app/stores';
-	import { getAlbumName } from '$lib/utils/albumUtils';
-	import { logger } from '$lib/utils/logger';
-	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
+import { page } from '$app/stores';
+import { getAlbumName } from '$lib/utils/albumUtils';
+import { logger } from '$lib/utils/logger';
+import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
+import { t } from '$stores/i18n';
 	import type { PageData } from './$types';
 
 	export let data: PageData;
@@ -294,7 +295,7 @@
 </script>
 
 <svelte:head>
-	<title>Create New Album</title>
+	<title>{$t('admin.createNewAlbum')} - {$t('navigation.albums')}</title>
 </svelte:head>
 
 <div class="min-h-screen bg-gray-50 py-8">
@@ -303,13 +304,16 @@
 		<div class="mb-8">
 			<div class="flex items-center justify-between">
 				<div>
-					<h1 class="text-3xl font-bold text-gray-900">Create New Album</h1>
+					<h1 class="text-3xl font-bold text-gray-900">{$t('admin.createNewAlbum')}</h1>
 					<p class="mt-2 text-gray-600">
-						Create a new album with hierarchical organization and storage provider selection.
+						{$t('admin.createAlbumLongDescription')}
 					</p>
 				</div>
-				<a href="/albums" class="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200">
-					Back to Albums
+				<a
+					href={data?.user?.role === 'admin' ? '/admin/albums' : '/owner/albums'}
+					class="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+				>
+					{$t('albums.backToAlbums')}
 				</a>
 			</div>
 		</div>
@@ -360,11 +364,11 @@
 			<form on:submit|preventDefault={handleSubmit} class="space-y-6">
 				<!-- Basic Information -->
 				<div>
-					<h3 class="text-lg font-medium text-gray-900 mb-4">Basic Information</h3>
+					<h3 class="text-lg font-medium text-gray-900 mb-4">{$t('owner.basicInformation')}</h3>
 					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 						<div>
 							<label for="name" class="block text-sm font-medium text-gray-700 mb-2">
-								Album Name *
+								{$t('admin.albumName')} *
 							</label>
 							<input
 								type="text"
@@ -372,48 +376,48 @@
 								bind:value={formData.name}
 								on:input={(e) => handleNameChange(e.currentTarget.value)}
 								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-								placeholder="Enter album name"
+								placeholder={$t('admin.enterAlbumName')}
 								required
 							/>
 						</div>
 						<div>
 							<label for="alias" class="block text-sm font-medium text-gray-700 mb-2">
-								Album Alias *
+								{$t('admin.albumAlias')} *
 							</label>
 							<input
 								type="text"
 								id="alias"
 								bind:value={formData.alias}
 								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-								placeholder="URL-friendly name"
+								placeholder={$t('admin.aliasUnique')}
 								required
 							/>
 							<p class="mt-1 text-xs text-gray-500">
-								This will be used in the folder structure and URLs
+								{$t('admin.albumAliasHelp')}
 							</p>
 						</div>
 					</div>
 					<div class="mt-4">
 						<label for="description" class="block text-sm font-medium text-gray-700 mb-2">
-							Description
+							{$t('admin.description')}
 						</label>
 						<textarea
 							id="description"
 							bind:value={formData.description}
 							class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
 							rows="3"
-							placeholder="Describe your album"
+							placeholder={$t('admin.enterDescription')}
 						></textarea>
 					</div>
 				</div>
 
 				<!-- Storage Configuration -->
 				<div>
-					<h3 class="text-lg font-medium text-gray-900 mb-4">Storage Configuration</h3>
+					<h3 class="text-lg font-medium text-gray-900 mb-4">{$t('admin.storageSettings')}</h3>
 					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 						<div>
 							<label for="storageProvider" class="block text-sm font-medium text-gray-700 mb-2">
-								Storage Provider *
+								{$t('admin.storageProvider')} *
 							</label>
 							{#if loadingStorageOptions}
 								<div
@@ -438,15 +442,17 @@
 											d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
 										></path>
 									</svg>
-									Loading storage options...
+									{$t('admin.loadingStorageConfiguration')}
 								</div>
 							{:else if storageOptions.length === 0}
 								<div
 									class="w-full px-3 py-2 border border-yellow-300 rounded-md bg-yellow-50 text-yellow-800"
 								>
-									<p class="text-sm font-medium">No storage providers available</p>
+									<p class="text-sm font-medium">
+										{$t('admin.noStorageProviders')}
+									</p>
 									<p class="text-xs mt-1">
-										{storageOptionsError || 'Please configure and enable at least one storage provider in the admin panel.'}
+										{storageOptionsError || $t('admin.noStorageProvidersHint')}
 									</p>
 									<a
 										href="/admin/storage"
@@ -468,24 +474,28 @@
 								</select>
 							{/if}
 							{#if storageOptions.length > 0}
-								<p class="mt-1 text-xs text-gray-500">Where photos will be stored</p>
+								<p class="mt-1 text-xs text-gray-500">
+									{$t('admin.storageProviderHelp')}
+								</p>
 							{/if}
 						</div>
 						<div>
 							<label for="parentAlbumId" class="block text-sm font-medium text-gray-700 mb-2">
-								Parent Album
+								{$t('admin.parentAlbum')}
 							</label>
-							<select
+								<select
 								id="parentAlbumId"
 								bind:value={formData.parentAlbumId}
 								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-							>
-								<option value="">No Parent (Root Level)</option>
+								>
+								<option value="">{`-- ${$t('admin.noParentAlbum')} --`}</option>
 								{#each parentAlbums as album}
 									<option value={album._id}>{getParentDisplayName(album)}</option>
 								{/each}
 							</select>
-							<p class="mt-1 text-xs text-gray-500">Select parent album for hierarchy</p>
+							<p class="mt-1 text-xs text-gray-500">
+								{$t('admin.albumHierarchyHelp')}
+							</p>
 						</div>
 					</div>
 				</div>

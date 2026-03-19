@@ -17,6 +17,7 @@
 	} from '$lib/types/fonts';
 	import MultiLangInput from '$lib/components/MultiLangInput.svelte';
 	import MultiLangHTMLEditor from '$lib/components/MultiLangHTMLEditor.svelte';
+	import { t } from '$stores/i18n';
 	import type { PageData } from './$types';
 	import type { MultiLangText, MultiLangHTML } from '$lib/types/multi-lang';
 
@@ -949,7 +950,7 @@
 </script>
 
 <svelte:head>
-	<title>Theme Builder - Admin</title>
+	<title>{$t('admin.themeBuilder')} - {$t('navigation.admin')}</title>
 </svelte:head>
 
 <div class="min-h-screen bg-gray-50 py-8">
@@ -962,14 +963,17 @@
 						href="/admin/templates"
 						class="text-blue-600 hover:text-blue-800 text-sm font-medium"
 					>
-						← Back to {themeId ? 'Themes' : 'Templates'}
+						{$t('admin.backToTemplates')}
 					</a>
 					<div>
-						<h1 class="text-2xl font-bold text-gray-900">Theme Builder</h1>
+						<h1 class="text-2xl font-bold text-gray-900">{$t('admin.themeBuilder')}</h1>
 						<p class="text-gray-600 mt-1">
 							{themeId && editingTheme
-								? `Editing theme: ${editingTheme.name || 'Theme'}`
-								: `Customize your active template: ${activeTemplate?.displayName || currentTemplateName}`}
+								? $t('admin.editingTheme').replace('{name}', editingTheme.name || $t('admin.themeFallbackName'))
+								: $t('admin.customizeActiveTemplate').replace(
+										'{name}',
+										activeTemplate?.displayName || currentTemplateName
+								  )}
 						</p>
 					</div>
 				</div>
@@ -980,22 +984,22 @@
 							on:click={cancelChanges}
 							class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm font-medium"
 						>
-							Cancel
+							{$t('admin.cancel')}
 						</button>
 					{/if}
 					{#if hasOverrides() && !themeId}
-						<button
-							type="button"
-							on:click={resetOverrides}
-							disabled={resetting}
-							class="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 disabled:opacity-50 text-sm font-medium"
-						>
-							{#if resetting}
-								Resetting...
-							{:else}
-								Reset to Default
-							{/if}
-						</button>
+							<button
+								type="button"
+								on:click={resetOverrides}
+								disabled={resetting}
+								class="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 disabled:opacity-50 text-sm font-medium"
+							>
+								{#if resetting}
+									{$t('admin.resetting')}
+								{:else}
+									{$t('admin.resetToDefault')}
+								{/if}
+							</button>
 					{/if}
 					<button
 						type="button"
@@ -1004,9 +1008,9 @@
 						class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm font-medium"
 					>
 						{#if saving}
-							Saving...
+							{$t('admin.saving')}
 						{:else}
-							Save Changes
+							{$t('admin.applyChanges')}
 						{/if}
 					</button>
 				</div>
@@ -1022,24 +1026,23 @@
 
 			{#if hasOverrides()}
 				<div class="mb-4 p-4 rounded-md bg-blue-50 text-blue-700 text-sm">
-					This template has custom overrides applied. Changes will be merged with the base template
-					configuration.
+					{$t('admin.templateHasOverridesInfo')}
 				</div>
 			{/if}
 
 			{#if loading}
 				<div class="text-center py-8">
 					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-					<p class="mt-2 text-gray-600">Loading template overrides...</p>
+					<p class="mt-2 text-gray-600">{$t('admin.loadingTemplateOverrides')}</p>
 				</div>
 			{:else if !activeTemplate}
 				<div class="text-center py-8">
-					<p class="text-gray-600">No active template found.</p>
+					<p class="text-gray-600">{$t('admin.noActiveTemplateFound')}</p>
 				</div>
 			{:else}
 				<!-- Base palette presets -->
 				<div class="mb-6">
-					<h3 class="text-sm font-medium text-gray-700 mb-2">Base palette</h3>
+					<h3 class="text-sm font-medium text-gray-700 mb-2">{$t('admin.basePalette')}</h3>
 					<div class="flex flex-wrap gap-2">
 						{#each ['light', 'dark', 'highContrast', 'muted'] as key}
 							{@const preset = PALETTE_PRESETS[key]}
@@ -1056,7 +1059,13 @@
 										></span>
 									{/each}
 								</span>
-								{key === 'highContrast' ? 'High contrast' : key.charAt(0).toUpperCase() + key.slice(1)}
+								{key === 'light'
+									? $t('admin.basePaletteLight')
+									: key === 'dark'
+									? $t('admin.basePaletteDark')
+									: key === 'highContrast'
+									? $t('admin.basePaletteHighContrast')
+									: $t('admin.basePaletteMuted')}
 							</button>
 						{/each}
 					</div>

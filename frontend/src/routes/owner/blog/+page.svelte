@@ -1,10 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { MultiLangUtils } from '$lib/utils/multiLang';
-	import { currentLanguage } from '$lib/stores/language';
-	import { logger } from '$lib/utils/logger';
-	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
+import { MultiLangUtils } from '$lib/utils/multiLang';
+import { currentLanguage } from '$lib/stores/language';
+import { logger } from '$lib/utils/logger';
+import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
+import { t } from '$stores/i18n';
 	import type { PageData } from './$types';
 
 	export let data: PageData;
@@ -57,14 +58,14 @@
 			}
 		} catch (err) {
 			logger.error('Failed to fetch articles:', err);
-			error = handleError(err, 'Failed to fetch articles');
+			error = handleError(err, $t('owner.requestFailed'));
 		} finally {
 			loading = false;
 		}
 	}
 
 	async function handleDelete(articleId: string) {
-		if (!confirm('Are you sure you want to delete this article?')) return;
+		if (!confirm($t('owner.confirmDeleteArticle'))) return;
 
 		try {
 			const response = await fetch(`/api/owner/blog/${articleId}`, {
@@ -78,7 +79,7 @@
 			articles = articles.filter((article) => article._id !== articleId);
 		} catch (err) {
 			logger.error('Failed to delete article:', err);
-			error = handleError(err, 'Failed to delete article');
+			error = handleError(err, $t('owner.failedToDelete'));
 		}
 	}
 
@@ -96,7 +97,7 @@
 			});
 
 			if (!response.ok) {
-				throw new Error('Failed to update article');
+				throw new Error($t('owner.failedToUpdate'));
 			}
 
 			const result = await response.json();
@@ -106,20 +107,20 @@
 				);
 			}
 		} catch (err) {
-			error = err instanceof Error ? err.message : 'Failed to update article';
+			error = err instanceof Error ? err.message : $t('owner.failedToUpdate');
 		}
 	}
 </script>
 
 <svelte:head>
-	<title>Blog Management - Owner</title>
+	<title>{$t('owner.blogManagement')} - {$t('owner.ownerPanel')}</title>
 </svelte:head>
 
 {#if loading}
 	<div class="min-h-screen bg-gray-50 flex items-center justify-center">
 		<div class="text-center">
 			<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-			<p class="mt-4 text-gray-600">Loading...</p>
+			<p class="mt-4 text-gray-600">{$t('loading.loading')}</p>
 		</div>
 	</div>
 {:else}
@@ -128,8 +129,8 @@
 			<!-- Header -->
 			<div class="flex justify-between items-center mb-8">
 				<div>
-					<h1 class="text-3xl font-bold text-gray-900">Blog Management</h1>
-					<p class="text-gray-600 mt-2">Manage your blog articles</p>
+					<h1 class="text-3xl font-bold text-gray-900">{$t('owner.blogManagement')}</h1>
+					<p class="text-gray-600 mt-2">{$t('owner.manageYourBlogArticles')}</p>
 				</div>
 				<div class="flex space-x-3">
 					<button
@@ -144,7 +145,7 @@
 								d="M12 4v16m8-8H4"
 							/>
 						</svg>
-						Create New Article
+						{$t('owner.createNewArticle')}
 					</button>
 					<button
 						on:click={() => goto('/owner')}
@@ -158,7 +159,7 @@
 								d="M10 19l-7-7m0 0l7-7m-7 7h18"
 							/>
 						</svg>
-						Back to Dashboard
+						{$t('owner.backToDashboard')}
 					</button>
 				</div>
 			</div>
@@ -168,39 +169,43 @@
 				<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
 					<div>
 						<label for="search" class="block text-sm font-medium text-gray-700 mb-2">
-							Search Articles
+							{$t('owner.searchArticles')}
 						</label>
 						<input
 							type="text"
 							id="search"
 							bind:value={searchTerm}
 							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-							placeholder="Search..."
+							placeholder={$t('owner.searchPlaceholder')}
 						/>
 					</div>
 					<div>
-						<label for="category" class="block text-sm font-medium text-gray-700 mb-2"> Category </label>
+						<label for="category" class="block text-sm font-medium text-gray-700 mb-2">
+							{$t('owner.category')}
+						</label>
 						<select
 							id="category"
 							bind:value={categoryFilter}
 							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
 						>
-							<option value="">All Categories</option>
+							<option value="">{ $t('owner.allCategories') }</option>
 							{#each categories as category}
 								<option value={category}>{category}</option>
 							{/each}
 						</select>
 					</div>
 					<div>
-						<label for="status" class="block text-sm font-medium text-gray-700 mb-2"> Status </label>
+						<label for="status" class="block text-sm font-medium text-gray-700 mb-2">
+							{$t('owner.status')}
+						</label>
 						<select
 							id="status"
 							bind:value={statusFilter}
 							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
 						>
-							<option value="">All Statuses</option>
-							<option value="true">Published</option>
-							<option value="false">Draft</option>
+							<option value="">{ $t('owner.allStatuses') }</option>
+							<option value="true">{ $t('owner.published') }</option>
+							<option value="false">{ $t('owner.draft') }</option>
 						</select>
 					</div>
 				</div>
@@ -217,7 +222,7 @@
 								d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
 							/>
 						</svg>
-						Filter
+						{$t('owner.filter')}
 					</button>
 				</div>
 			</div>
@@ -246,8 +251,10 @@
 								d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"
 							/>
 						</svg>
-						<h3 class="mt-2 text-sm font-medium text-gray-900">No articles</h3>
-						<p class="mt-1 text-sm text-gray-500">Get started by creating your first article</p>
+						<h3 class="mt-2 text-sm font-medium text-gray-900">{$t('owner.noArticles')}</h3>
+						<p class="mt-1 text-sm text-gray-500">
+							{$t('owner.getStartedByCreatingArticle')}
+						</p>
 						<div class="mt-6">
 							<button
 								on:click={() => goto('/owner/blog/new')}
@@ -261,7 +268,7 @@
 										d="M12 4v16m8-8H4"
 									/>
 								</svg>
-								Create New Article
+								{$t('owner.createNewArticle')}
 							</button>
 						</div>
 					</div>

@@ -3,6 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { siteConfigData, siteConfig } from '$stores/siteConfig';
+	import { t } from '$stores/i18n';
 	import { handleAuthError } from '$lib/utils/auth-error-handler';
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
@@ -78,7 +79,7 @@
 			});
 		} catch (err) {
 			if (handleAuthError(err, $page.url.pathname)) return;
-			error = handleError(err, 'Failed to load themes');
+			error = handleError(err, $t('admin.errorLoadingTemplates'));
 		} finally {
 			loading = false;
 		}
@@ -108,7 +109,7 @@
 			createName = '';
 			createBaseTemplate = 'modern';
 			createBasePalette = 'light';
-			message = 'Theme created successfully!';
+			message = $t('admin.themeCreatedSuccessfully');
 			if (newTheme) themes = [newTheme, ...themes];
 			try {
 				await loadThemes();
@@ -117,7 +118,7 @@
 			}
 			if (themeId) goto(`/admin/templates/overrides?themeId=${themeId}`);
 		} catch (err) {
-			error = handleError(err, 'Failed to create theme');
+			error = handleError(err, $t('admin.failedToCreateTheme'));
 		} finally {
 			createSubmitting = false;
 		}
@@ -135,12 +136,12 @@
 			const result = await response.json();
 			duplicateThemeId = null;
 			duplicateName = '';
-			message = 'Theme duplicated!';
+			message = $t('admin.themeDuplicated');
 			await loadThemes();
 			const newId = result.data?._id ?? result?._id;
 			if (newId) goto(`/admin/templates/overrides?themeId=${newId}`);
 		} catch (err) {
-			error = handleError(err, 'Failed to duplicate theme');
+			error = handleError(err, $t('admin.failedToDuplicateTheme'));
 		}
 	}
 
@@ -156,7 +157,7 @@
 			const theme = themeResult.data || themeResult;
 			
 			if (!theme) {
-				error = 'Theme not found';
+				error = $t('admin.themeNotFound');
 				return;
 			}
 
@@ -178,7 +179,7 @@
 			});
 			if (!response.ok) await handleApiErrorResponse(response);
 			applyThemeId = null;
-			message = `Theme "${theme.name}" applied!`;
+			message = $t('admin.themeApplied').replace('{name}', theme.name);
 			await siteConfig.load();
 			// Reload after a short delay to ensure siteConfig is updated
 			setTimeout(() => {
@@ -189,7 +190,7 @@
 				}
 			}, 1000);
 		} catch (err) {
-			error = handleError(err, 'Failed to apply theme');
+			error = handleError(err, $t('admin.failedToApplyTheme'));
 		}
 	}
 
@@ -201,11 +202,11 @@
 			});
 			if (!response.ok) await handleApiErrorResponse(response);
 			deleteThemeId = null;
-			message = 'Theme deleted.';
+			message = $t('admin.themeDeleted');
 			await loadThemes();
 			setTimeout(() => (message = ''), 3000);
 		} catch (err) {
-			error = handleError(err, 'Failed to delete theme');
+			error = handleError(err, $t('admin.failedToDeleteTheme'));
 		}
 	}
 
@@ -215,7 +216,7 @@
 </script>
 
 <svelte:head>
-	<title>Themes - Admin</title>
+	<title>{$t('admin.templateManagement')} - {$t('navigation.admin')}</title>
 </svelte:head>
 
 <div class="min-h-screen bg-gray-50 py-8">
@@ -223,12 +224,12 @@
 		<div class="bg-white rounded-lg shadow-md p-6">
 			<div class="flex items-center justify-between mb-6">
 				<div>
-					<h1 class="text-2xl font-bold text-gray-900">Themes</h1>
+					<h1 class="text-2xl font-bold text-gray-900">{$t('admin.templates')}</h1>
 					<p class="text-gray-600 mt-1">
-						Manage and apply themes. All themes (built-in and custom) are in one place.
+						{$t('admin.manageThemesDescription')}
 					</p>
 					<p class="mt-2 text-sm">
-						<span class="font-medium text-gray-700">Active template:</span>
+						<span class="font-medium text-gray-700">{$t('admin.activeTemplate')}:</span>
 						<span class="ml-1 px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 font-medium">{frontendTemplate}</span>
 					</p>
 				</div>
@@ -238,19 +239,19 @@
 						on:click={() => (showCreateModal = true)}
 						class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm font-medium"
 					>
-						+ Create new theme
+						+ {$t('admin.createNewTheme')}
 					</button>
 					<a
 						href="/admin/templates/overrides"
 						class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 text-sm font-medium"
 					>
-						Theme Builder
+						{$t('admin.themeBuilder')}
 					</a>
 					<a
 						href="/admin"
 						class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm font-medium"
 					>
-						← Back to Admin
+						{$t('admin.backToAdmin')}
 					</a>
 				</div>
 			</div>
@@ -265,17 +266,17 @@
 			{#if loading}
 				<div class="text-center py-12">
 					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-					<p class="mt-2 text-gray-600">Loading themes...</p>
+					<p class="mt-2 text-gray-600">{$t('admin.loadingTemplates')}</p>
 				</div>
 			{:else if themes.length === 0}
 				<div class="text-center py-8 border-2 border-dashed border-gray-200 rounded-lg">
-					<p class="text-gray-600 mb-4">No themes yet. Restart the backend to seed built-in themes.</p>
+					<p class="text-gray-600 mb-4">{$t('admin.noTemplatesYetRestartBackend')}</p>
 					<button
 						type="button"
 						on:click={() => (showCreateModal = true)}
 						class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
 					>
-						Create your first theme
+						{$t('admin.createYourFirstTheme')}
 					</button>
 				</div>
 			{:else}
@@ -291,37 +292,43 @@
 								<div class="flex items-center gap-2">
 									<h3 class="font-semibold text-gray-900">{theme.name}</h3>
 									{#if theme.baseTemplate === frontendTemplate}
-										<span class="px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800">Active</span>
+										<span class="px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800">
+											{$t('admin.active')}
+										</span>
 									{/if}
 								</div>
-								<p class="text-xs text-gray-500 mt-1">Base: {theme.baseTemplate} {theme.basePalette ? `· ${theme.basePalette}` : ''} {theme.isBuiltIn ? '· Built-in' : ''}</p>
+								<p class="text-xs text-gray-500 mt-1">
+									{$t('admin.baseTemplateLabel')}: {theme.baseTemplate}{' '}
+									{theme.basePalette ? `· ${theme.basePalette}` : ''}{' '}
+									{theme.isBuiltIn ? `· ${$t('admin.builtIn')}` : ''}
+								</p>
 								<div class="flex flex-wrap gap-2 mt-3">
 									<a
 										href="/admin/templates/overrides?themeId={theme._id}"
 										class="text-xs px-2 py-1 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200"
 									>
-										Edit
+										{$t('admin.edit')}
 									</a>
 									<button
 										type="button"
 										on:click={() => (applyThemeId = theme._id)}
 										class="text-xs px-2 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200"
 									>
-										Apply
+										{$t('admin.apply')}
 									</button>
 									<button
 										type="button"
 										on:click={() => { duplicateThemeId = theme._id; duplicateName = `${theme.name} (copy)`; }}
 										class="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
 									>
-										Duplicate
+										{$t('admin.duplicate')}
 									</button>
 									<button
 										type="button"
 										on:click={() => (deleteThemeId = theme._id)}
 										class="text-xs px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200"
 									>
-										Remove
+										{$t('admin.remove')}
 									</button>
 								</div>
 							</div>
@@ -337,42 +344,50 @@
 {#if showCreateModal}
 	<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-labelledby="create-theme-title">
 		<div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-			<h2 id="create-theme-title" class="text-lg font-semibold text-gray-900 mb-4">Create new theme</h2>
+			<h2 id="create-theme-title" class="text-lg font-semibold text-gray-900 mb-4">
+				{$t('admin.createNewTheme')}
+			</h2>
 			<div class="space-y-4">
 				<div>
-					<label for="theme-name" class="block text-sm font-medium text-gray-700 mb-1">Name</label>
+					<label for="theme-name" class="block text-sm font-medium text-gray-700 mb-1">
+						{$t('admin.themeName')}
+					</label>
 					<input
 						id="theme-name"
 						type="text"
 						bind:value={createName}
-						placeholder="My theme"
+						placeholder={$t('admin.themeNamePlaceholder')}
 						class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
 					/>
 				</div>
 				<div>
-					<label for="theme-base" class="block text-sm font-medium text-gray-700 mb-1">Base theme</label>
+					<label for="theme-base" class="block text-sm font-medium text-gray-700 mb-1">
+						{$t('admin.baseTheme')}
+					</label>
 					<select
 						id="theme-base"
 						bind:value={createBaseTemplate}
 						class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
 					>
-						<option value="default">Default</option>
-						<option value="minimal">Minimal</option>
-						<option value="modern">Modern</option>
-						<option value="elegant">Elegant</option>
+						<option value="default">{$t('admin.baseThemeDefault')}</option>
+						<option value="minimal">{$t('admin.baseThemeMinimal')}</option>
+						<option value="modern">{$t('admin.baseThemeModern')}</option>
+						<option value="elegant">{$t('admin.baseThemeElegant')}</option>
 					</select>
 				</div>
 				<div>
-					<label for="theme-palette" class="block text-sm font-medium text-gray-700 mb-1">Base palette</label>
+					<label for="theme-palette" class="block text-sm font-medium text-gray-700 mb-1">
+						{$t('admin.basePalette')}
+					</label>
 					<select
 						id="theme-palette"
 						bind:value={createBasePalette}
 						class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
 					>
-						<option value="light">Light</option>
-						<option value="dark">Dark</option>
-						<option value="highContrast">High contrast</option>
-						<option value="muted">Muted</option>
+						<option value="light">{$t('admin.basePaletteLight')}</option>
+						<option value="dark">{$t('admin.basePaletteDark')}</option>
+						<option value="highContrast">{$t('admin.basePaletteHighContrast')}</option>
+						<option value="muted">{$t('admin.basePaletteMuted')}</option>
 					</select>
 				</div>
 			</div>
@@ -381,16 +396,16 @@
 					type="button"
 					on:click={() => (showCreateModal = false)}
 					class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
-				>
-					Cancel
-				</button>
+					>
+						{$t('admin.cancel')}
+					</button>
 				<button
 					type="button"
 					on:click={createTheme}
 					disabled={!createName.trim() || createSubmitting}
 					class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50"
 				>
-					{createSubmitting ? 'Creating...' : 'Create'}
+					{createSubmitting ? $t('admin.creatingTheme') : $t('admin.create')}
 				</button>
 			</div>
 		</div>
@@ -401,9 +416,13 @@
 {#if duplicateThemeId}
 	<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-labelledby="duplicate-theme-title">
 		<div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-			<h2 id="duplicate-theme-title" class="text-lg font-semibold text-gray-900 mb-4">Duplicate theme</h2>
+			<h2 id="duplicate-theme-title" class="text-lg font-semibold text-gray-900 mb-4">
+				{$t('admin.duplicateTheme')}
+			</h2>
 			<div class="mb-4">
-				<label for="duplicate-name" class="block text-sm font-medium text-gray-700 mb-1">New theme name</label>
+				<label for="duplicate-name" class="block text-sm font-medium text-gray-700 mb-1">
+					{$t('admin.newThemeName')}
+				</label>
 				<input
 					id="duplicate-name"
 					type="text"
@@ -417,14 +436,14 @@
 					on:click={() => { duplicateThemeId = null; duplicateName = ''; }}
 					class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
 				>
-					Cancel
+					{$t('admin.cancel')}
 				</button>
 				<button
 					type="button"
 					on:click={() => duplicateTheme(duplicateThemeId!, duplicateName)}
 					class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
 				>
-					Duplicate
+					{$t('admin.duplicate')}
 				</button>
 			</div>
 		</div>
@@ -435,9 +454,11 @@
 {#if applyThemeId}
 	<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-labelledby="apply-theme-title">
 		<div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-			<h2 id="apply-theme-title" class="text-lg font-semibold text-gray-900 mb-4">Apply theme?</h2>
+			<h2 id="apply-theme-title" class="text-lg font-semibold text-gray-900 mb-4">
+				{$t('admin.applyThemeQuestion')}
+			</h2>
 			<p class="text-gray-600 mb-4">
-				This will replace the current site theme with this theme's design.
+				{$t('admin.applyThemeDescription')}
 			</p>
 			<div class="flex justify-end gap-2">
 				<button
@@ -445,14 +466,14 @@
 					on:click={() => (applyThemeId = null)}
 					class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
 				>
-					Cancel
+					{$t('admin.cancel')}
 				</button>
 				<button
 					type="button"
 					on:click={() => applyTheme(applyThemeId!)}
 					class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
 				>
-					Apply
+					{$t('admin.apply')}
 				</button>
 			</div>
 		</div>
@@ -463,9 +484,11 @@
 {#if deleteThemeId}
 	<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-labelledby="delete-theme-title">
 		<div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-			<h2 id="delete-theme-title" class="text-lg font-semibold text-gray-900 mb-4">Remove theme?</h2>
+			<h2 id="delete-theme-title" class="text-lg font-semibold text-gray-900 mb-4">
+				{$t('admin.removeThemeQuestion')}
+			</h2>
 			<p class="text-gray-600 mb-4">
-				This will permanently remove the theme. Built-in themes can be re-seeded by restarting the backend.
+				{$t('admin.removeThemeDescription')}
 			</p>
 			<div class="flex justify-end gap-2">
 				<button
@@ -473,14 +496,14 @@
 					on:click={() => (deleteThemeId = null)}
 					class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
 				>
-					Cancel
+					{$t('admin.cancel')}
 				</button>
 				<button
 					type="button"
 					on:click={() => deleteTheme(deleteThemeId!)}
 					class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
 				>
-					Delete
+					{$t('admin.delete')}
 				</button>
 			</div>
 		</div>

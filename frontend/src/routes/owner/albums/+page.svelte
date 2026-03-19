@@ -2,11 +2,12 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import AlbumTree from '$lib/components/AlbumTree.svelte';
-	import { MultiLangUtils } from '$lib/utils/multiLang';
-	import { currentLanguage } from '$lib/stores/language';
-	import { canCreateAlbums } from '$lib/access-control';
-	import { logger } from '$lib/utils/logger';
-	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
+import { MultiLangUtils } from '$lib/utils/multiLang';
+import { currentLanguage } from '$lib/stores/language';
+import { canCreateAlbums } from '$lib/access-control';
+import { logger } from '$lib/utils/logger';
+import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
+import { t } from '$stores/i18n';
 	import type { PageData } from './$types';
 
 	export let data: PageData;
@@ -30,10 +31,13 @@
 
 	const isAdmin = data.user?.role === 'admin';
 	const isOwner = data.user?.role === 'owner';
+	let pageTitle = '';
 
 	onMount(async () => {
 		await fetchAlbums();
 	});
+
+	$: pageTitle = isAdmin ? $t('admin.albumsManagement') : $t('owner.myAlbums');
 
 	async function fetchAlbums() {
 		try {
@@ -47,7 +51,7 @@
 			albums = Array.isArray(result) ? result : (result.data || []);
 		} catch (err) {
 			logger.error('Failed to fetch albums:', err);
-			error = handleError(err, 'Failed to fetch albums');
+			error = handleError(err, $t('owner.requestFailed'));
 		} finally {
 			loading = false;
 		}
@@ -77,14 +81,14 @@
 </script>
 
 <svelte:head>
-	<title>{isAdmin ? 'Albums Management' : 'My Albums'} - Owner</title>
+	<title>{pageTitle} - {$t('owner.ownerPanel')}</title>
 </svelte:head>
 
 {#if loading}
 	<div class="min-h-screen bg-gray-50 flex items-center justify-center">
 		<div class="text-center">
 			<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-			<p class="mt-4 text-gray-600">Loading...</p>
+			<p class="mt-4 text-gray-600">{$t('loading.loading')}</p>
 		</div>
 	</div>
 {:else if error}
@@ -107,10 +111,18 @@
 			<div class="flex justify-between items-center mb-8">
 				<div>
 					<h1 class="text-3xl font-bold text-gray-900">
-						{isAdmin ? 'Albums Management' : 'My Albums'}
+						{#if isAdmin}
+							{$t('admin.albumsManagement')}
+						{:else}
+							{$t('owner.myAlbums')}
+						{/if}
 					</h1>
 					<p class="text-gray-600 mt-2">
-						{isAdmin ? 'Create and edit albums' : 'Create and edit your albums'}
+						{#if isAdmin}
+							{$t('admin.createEditAlbums')}
+						{:else}
+							{$t('owner.createEditMyAlbums')}
+						{/if}
 					</p>
 				</div>
 				<div class="flex space-x-3">
@@ -126,7 +138,11 @@
 								d="M10 19l-7-7m0 0l7-7m-7 7h18"
 							/>
 						</svg>
-						Back
+						{#if isAdmin}
+							{$t('admin.backToAdmin')}
+						{:else}
+							{$t('owner.backToDashboard')}
+						{/if}
 					</button>
 					{#if canCreateAlbums(data.user)}
 						<button
@@ -141,7 +157,7 @@
 									d="M12 6v6m0 0v6m0-6h6m-6 0H6"
 								/>
 							</svg>
-							Create New Album
+							{$t('admin.createNewAlbum')}
 						</button>
 					{/if}
 				</div>
@@ -151,8 +167,12 @@
 			{#if albums.length === 0}
 				<div class="text-center py-12">
 					<div class="text-gray-400 text-6xl mb-4">📁</div>
-					<h3 class="text-xl font-semibold text-gray-900 mb-2">No albums yet</h3>
-					<p class="text-gray-600 mb-6">Get started by creating your first album</p>
+					<h3 class="text-xl font-semibold text-gray-900 mb-2">
+						{$t('admin.noAlbumsYet')}
+					</h3>
+					<p class="text-gray-600 mb-6">
+						{$t('admin.getStartedByCreatingCategory')}
+					</p>
 					{#if canCreateAlbums(data.user)}
 						<button
 							on:click={() => goto('/albums/new')}
@@ -166,7 +186,7 @@
 									d="M12 6v6m0 0v6m0-6h6m-6 0H6"
 								/>
 							</svg>
-							Create Album
+							{$t('admin.createAlbum')}
 						</button>
 					{/if}
 				</div>

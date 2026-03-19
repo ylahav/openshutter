@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { t } from '$stores/i18n';
 	import MultiLangInput from '$lib/components/MultiLangInput.svelte';
 	import MultiLangHTMLEditor from '$lib/components/MultiLangHTMLEditor.svelte';
 	import RowColumnLayoutBuilder from '$lib/page-builder/RowColumnLayoutBuilder.svelte';
@@ -1009,7 +1010,7 @@
 </script>
 
 <svelte:head>
-	<title>Pages Management - Admin</title>
+	<title>{$t('admin.pagesManagement')} - {$t('navigation.admin')}</title>
 </svelte:head>
 
 <div class="min-h-screen bg-gray-50 py-8">
@@ -1017,11 +1018,11 @@
 		<div class="bg-white rounded-lg shadow-md p-6">
 			<div class="flex items-center justify-between mb-6">
 				<div>
-					<h1 class="text-2xl font-bold text-gray-900">Pages Management</h1>
-					<p class="text-gray-600 mt-2">Create and manage site pages</p>
+					<h1 class="text-2xl font-bold text-gray-900">{$t('admin.pagesManagement')}</h1>
+					<p class="text-gray-600 mt-2">{$t('admin.pagesManagementDescription')}</p>
 				</div>
 				<a href="/admin" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm font-medium">
-					← Back to Admin
+					{$t('admin.backToAdmin')}
 				</a>
 			</div>
 
@@ -1047,7 +1048,7 @@
 			{#if loading}
 				<div class="text-center py-8">
 					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-					<p class="mt-2 text-gray-600">Loading pages...</p>
+					<p class="mt-2 text-gray-600">{$t('admin.loadingPages')}</p>
 				</div>
 			{:else if pages.length === 0}
 				<div class="text-center py-8">
@@ -1064,8 +1065,8 @@
 							d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
 						/>
 					</svg>
-					<h3 class="text-lg font-semibold text-gray-900 mb-2">No pages found</h3>
-					<p class="text-gray-600">Start by creating your first page.</p>
+					<h3 class="text-lg font-semibold text-gray-900 mb-2">{$t('admin.noPagesFound')}</h3>
+					<p class="text-gray-600">{$t('admin.startByCreatingFirstPage')}</p>
 				</div>
 			{:else}
 				<PageList

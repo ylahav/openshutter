@@ -295,9 +295,13 @@ Each owner should have a **single, self-managed theme** for their domain. They c
 
 - **Default behaviour**:
   - On upgrade, `whiteLabel.enabled` is `false`, `hideOpenShutterBranding` is `false`, and no owner domains exist, so behaviour matches current deployments.
-- **Enabling white-label**:
-  - Admin sets `whiteLabel.enabled = true`, configures product name and logos, and optionally hides OpenShutter branding.
-  - Admin configures owner domains as needed and updates DNS/TLS.
+- **Enabling white-label (Solution 1)**:
+  - In **Admin → Site Config → Branding**, set the public **Site Title**, upload logo and favicon, and (optionally) set **Terms of Service** and **Privacy Policy** URLs.
+  - In the same section, enable **Hide OpenShutter branding** to remove the OpenShutter name from public UI, emails, and footers; the configured Site Title becomes the visible product name.
+- **Enabling owner mini-sites (Solution 2)**:
+  - In **Admin → Users**, create or edit a user with role **Owner**, then open the **Owner Domains** section and add the custom hostname (e.g. `photos.alice.com` or `sara.localhost:4000` for dev). Ensure DNS (CNAME/A) points to your frontend and TLS is configured.
+  - The backend `SiteContextMiddleware` will resolve that host to the owner; all public album/search APIs automatically scope results to that owner. Visitors on that domain see only that owner’s content.
+  - The owner (and global admins) can reach their scoped admin panel at `https://<owner-domain>/admin`. Their storage configuration is managed via `/owner/storage`, while `/admin/storage` remains the global/main-site storage configuration.
 
 ---
 

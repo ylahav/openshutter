@@ -72,7 +72,8 @@
 		<div class="rounded-lg border border-gray-200 bg-gray-50 p-8 text-center text-gray-600">
 			<p>No integrations listed yet.</p>
 			<p class="mt-2 text-sm">
-				<a href="/developers" class="text-primary-600 hover:underline">Developer portal</a> — create API keys and submit your integration.
+				<a href="/developers" class="text-primary-600 hover:underline">{$t('owner.developerPortal')}</a>
+				— {$t('owner.developerApiDescription')}
 			</p>
 		</div>
 	{:else}

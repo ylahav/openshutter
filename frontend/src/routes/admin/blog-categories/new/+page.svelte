@@ -6,6 +6,7 @@
 	import { currentLanguage } from '$lib/stores/language';
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
+	import { t } from '$stores/i18n';
 	import type { PageData } from './$types';
 
 	export let data: PageData;
@@ -41,7 +42,7 @@
 		success = null;
 
 		if (!MultiLangUtils.getTextValue(formData.title, $currentLanguage)) {
-			error = 'Title is required';
+			error = $t('admin.titleRequired');
 			saving = false;
 			return;
 		}
@@ -63,7 +64,7 @@
 				await handleApiErrorResponse(response);
 			}
 
-			success = 'Category created successfully!';
+			success = $t('admin.categoryCreatedSuccessfully');
 			setTimeout(() => {
 				goto('/admin/blog-categories');
 			}, 1500);
@@ -77,15 +78,15 @@
 </script>
 
 <svelte:head>
-	<title>Create New Category - Admin</title>
+	<title>{$t('admin.createNewCategory')} - {$t('navigation.admin')}</title>
 </svelte:head>
 
 <div class="min-h-screen bg-gray-50 py-8">
 	<div class="max-w-4xl mx-auto px-4">
 		<div class="flex justify-between items-center mb-8">
 			<div>
-				<h1 class="text-3xl font-bold text-gray-900">Create New Category</h1>
-				<p class="text-gray-600 mt-2">Create a new blog category</p>
+				<h1 class="text-3xl font-bold text-gray-900">{$t('admin.createNewCategory')}</h1>
+				<p class="text-gray-600 mt-2">{$t('admin.createCategoryDescription')}</p>
 			</div>
 			<button
 				on:click={() => goto('/admin/blog-categories')}
@@ -99,7 +100,7 @@
 						d="M10 19l-7-7m0 0l7-7m-7 7h18"
 					/>
 				</svg>
-				Back to Categories
+				{$t('admin.backToCategories')}
 			</button>
 		</div>
 
@@ -118,20 +119,22 @@
 		<form on:submit={handleSubmit} class="space-y-6">
 			<!-- Basic Information -->
 			<div class="bg-white rounded-lg shadow-md p-6">
-				<h3 class="text-lg font-medium text-gray-900 mb-4">Basic Information</h3>
+				<h3 class="text-lg font-medium text-gray-900 mb-4">{$t('admin.basicInformation')}</h3>
 				<div class="space-y-4">
 					<div>
-						<label for="title" class="block text-sm font-medium text-gray-700 mb-2"> Title * </label>
-						<MultiLangInput bind:value={formData.title} placeholder="Enter category title..." required />
+						<label for="title" class="block text-sm font-medium text-gray-700 mb-2">
+              {$t('admin.title')} *
+            </label>
+						<MultiLangInput bind:value={formData.title} placeholder={$t('admin.enterCategoryTitle')} required />
 					</div>
 
 					<div>
 						<label for="description" class="block text-sm font-medium text-gray-700 mb-2">
-							Description
+							{$t('admin.description')}
 						</label>
 						<MultiLangInput
 							bind:value={formData.description}
-							placeholder="Enter category description..."
+							placeholder={$t('admin.enterCategoryDescription')}
 							multiline={true}
 						/>
 					</div>
@@ -140,9 +143,11 @@
 
 			<!-- Leading Image -->
 			<div class="bg-white rounded-lg shadow-md p-6">
-				<h3 class="text-lg font-medium text-gray-900 mb-4">Leading Image</h3>
+				<h3 class="text-lg font-medium text-gray-900 mb-4">{$t('admin.leadingImage')}</h3>
 				<div>
-          <label for="leading-image-url-new" class="block text-sm font-medium text-gray-700 mb-2"> Image URL </label>
+          <label for="leading-image-url-new" class="block text-sm font-medium text-gray-700 mb-2">
+						{$t('admin.imageUrl')}
+          </label>
 					<input
 						type="url"
 						id="leading-image-url-new"
@@ -156,17 +161,17 @@
 							};
 						}}
 						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-						placeholder="Enter image URL"
+						placeholder={$t('admin.enterImageUrl')}
 					/>
 					<p class="mt-1 text-sm text-gray-500">
-						Note: Full image upload functionality will be available in a future update
+						{$t('admin.imageUploadNote')}
 					</p>
 				</div>
 			</div>
 
 			<!-- Settings -->
 			<div class="bg-white rounded-lg shadow-md p-6">
-				<h3 class="text-lg font-medium text-gray-900 mb-4">Settings</h3>
+				<h3 class="text-lg font-medium text-gray-900 mb-4">{$t('admin.settings')}</h3>
 				<div class="space-y-4">
 					<div class="flex items-center">
 						<input
@@ -176,11 +181,13 @@
 							bind:checked={formData.isActive}
 							class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
 						/>
-						<label for="isActive" class="ml-2 block text-sm text-gray-900"> Active </label>
+						<label for="isActive" class="ml-2 block text-sm text-gray-900">
+							{$t('admin.active')}
+						</label>
 					</div>
 					<div>
-						<label for="sortOrder" class="block text-sm font-medium text-gray-700 mb-2">
-							Sort Order
+							<label for="sortOrder" class="block text-sm font-medium text-gray-700 mb-2">
+								{$t('admin.sortOrder')}
 						</label>
 						<input
 							type="number"
@@ -189,7 +196,7 @@
 							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
 							placeholder="0"
 						/>
-						<p class="mt-1 text-sm text-gray-500">Lower numbers appear first</p>
+						<p class="mt-1 text-sm text-gray-500">{$t('admin.sortOrderHelp')}</p>
 					</div>
 				</div>
 			</div>
@@ -221,9 +228,9 @@
 								d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
 							></path>
 						</svg>
-						Creating...
+						{$t('admin.creating')}
 					{:else}
-						Create Category
+						{$t('admin.createCategory')}
 					{/if}
 				</button>
 			</div>

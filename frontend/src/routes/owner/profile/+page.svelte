@@ -8,6 +8,7 @@
 	import { SUPPORTED_LANGUAGES } from '$lib/types/multi-lang';
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
+	import { t } from '$stores/i18n';
 	import type { PageData } from './$types';
 
 	export let data: PageData;
@@ -86,7 +87,7 @@ let formData = {
 			setLanguage(prefLang);
 		} catch (err) {
 			logger.error('Failed to fetch profile:', err);
-			error = handleError(err, 'Failed to fetch profile');
+			error = handleError(err, $t('owner.requestFailed'));
 		} finally {
 			loading = false;
 		}
@@ -102,10 +103,10 @@ let formData = {
 			// Validate password fields if changing password
 			if (formData.newPassword || formData.confirmPassword) {
 				if (formData.newPassword !== formData.confirmPassword) {
-					throw new Error('Passwords do not match');
+					throw new Error($t('owner.passwordsDoNotMatch'));
 				}
 				if (formData.newPassword.length < 6) {
-					throw new Error('Password must be at least 6 characters');
+					throw new Error($t('owner.passwordTooShort'));
 				}
 			}
 
@@ -137,7 +138,7 @@ let formData = {
 
 			const result = await response.json();
 			profile = result.user;
-			success = 'Profile updated successfully!';
+			success = $t('owner.profileUpdatedSuccessfully');
 
 			// Apply preferred language immediately so UI updates
 			if (formData.preferredLanguage) {
@@ -164,7 +165,7 @@ let formData = {
 			};
 		} catch (err) {
 			logger.error('Failed to update profile:', err);
-			error = handleError(err, 'Failed to update profile');
+			error = handleError(err, $t('owner.requestFailed'));
 		} finally {
 			saving = false;
 		}
@@ -176,7 +177,7 @@ let formData = {
 </script>
 
 <svelte:head>
-	<title>Profile Management - Owner</title>
+	<title>{$t('owner.profileManagement')} - {$t('owner.ownerPanel')}</title>
 </svelte:head>
 
 {#if loading}
@@ -192,8 +193,8 @@ let formData = {
 			<!-- Header -->
 			<div class="flex justify-between items-center mb-8">
 				<div>
-					<h1 class="text-3xl font-bold text-gray-900">Profile &amp; setup</h1>
-					<p class="text-gray-600 mt-2">Personal information and preferred language</p>
+					<h1 class="text-3xl font-bold text-gray-900">{$t('owner.profileManagement')}</h1>
+					<p class="text-gray-600 mt-2">{$t('owner.editProfileDescription')}</p>
 				</div>
 				<button
 					on:click={() => goto('/owner')}
@@ -207,7 +208,7 @@ let formData = {
 							d="M10 19l-7-7m0 0l7-7m-7 7h18"
 						/>
 					</svg>
-					Back to Dashboard
+					{$t('owner.backToDashboard')}
 				</button>
 			</div>
 
@@ -228,29 +229,33 @@ let formData = {
 				<form on:submit={handleSubmit} class="space-y-6">
 					<!-- Basic Information -->
 					<div>
-						<h3 class="text-lg font-medium text-gray-900 mb-4">Basic Information</h3>
+						<h3 class="text-lg font-medium text-gray-900 mb-4">{$t('owner.basicInformation')}</h3>
 						<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 							<div>
-								<label for="name" class="block text-sm font-medium text-gray-700 mb-2"> Name </label>
+								<label for="name" class="block text-sm font-medium text-gray-700 mb-2">
+									{$t('owner.name')}
+								</label>
 								<input
 									type="text"
 									id="name"
 									bind:value={formData.name}
 									required
 									class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-									placeholder="Enter your name"
+									placeholder={$t('owner.enterYourName')}
 								/>
 							</div>
 
 							<div>
-								<label for="email" class="block text-sm font-medium text-gray-700 mb-2"> Email </label>
+								<label for="email" class="block text-sm font-medium text-gray-700 mb-2">
+									{$t('owner.email')}
+								</label>
 								<input
 									type="email"
 									id="email"
 									bind:value={formData.email}
 									required
 									class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-									placeholder="Enter your email"
+									placeholder={$t('owner.enterYourEmail')}
 								/>
 							</div>
 						</div>
@@ -258,10 +263,10 @@ let formData = {
 
 					<!-- Profile Image -->
 					<div>
-						<h3 class="text-lg font-medium text-gray-900 mb-4">Profile Image</h3>
+						<h3 class="text-lg font-medium text-gray-900 mb-4">{$t('owner.profileImage')}</h3>
 						<div>
 							<label class="block text-sm font-medium text-gray-700 mb-2">
-								Profile Image URL
+								{$t('owner.profileImageUrl')}
 							</label>
                 <input
                   type="url"
@@ -274,70 +279,72 @@ let formData = {
 									};
 								}}
 								class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-								placeholder="Enter image URL"
+								placeholder={$t('owner.enterImageUrl')}
 							/>
 							<p class="mt-1 text-sm text-gray-500">
-								Note: Full image upload functionality will be available in a future update
+								{$t('owner.profileImageNote')}
 							</p>
 						</div>
 					</div>
 
 					<!-- Bio/Description -->
 					<div>
-						<h3 class="text-lg font-medium text-gray-900 mb-4">Bio</h3>
+						<h3 class="text-lg font-medium text-gray-900 mb-4">{$t('owner.bio')}</h3>
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-2"> Bio Description </label>
+							<label class="block text-sm font-medium text-gray-700 mb-2">
+								{$t('owner.bioDescription')}
+							</label>
 							<MultiLangHTMLEditor
 								bind:value={formData.bio}
-								placeholder="Enter bio description..."
+								placeholder={$t('owner.enterBioDescription')}
 								height={150}
 							/>
-							<p class="mt-1 text-sm text-gray-500">A brief description about yourself</p>
+							<p class="mt-1 text-sm text-gray-500">{$t('owner.bioHelp')}</p>
 						</div>
 					</div>
 
 					<!-- Password Change -->
 					<div>
-						<h3 class="text-lg font-medium text-gray-900 mb-4">Change Password</h3>
+						<h3 class="text-lg font-medium text-gray-900 mb-4">{$t('owner.changePassword')}</h3>
 						<div class="space-y-4">
 							<div>
 								<label for="currentPassword" class="block text-sm font-medium text-gray-700 mb-2">
-									Current Password
+									{$t('owner.currentPassword')}
 								</label>
 								<input
 									type="password"
 									id="currentPassword"
 									bind:value={formData.currentPassword}
 									class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-									placeholder="Enter current password"
+									placeholder={$t('owner.enterCurrentPassword')}
 								/>
-								<p class="mt-1 text-sm text-gray-500">Required when changing password</p>
+								<p class="mt-1 text-sm text-gray-500">{$t('owner.currentPasswordHelp')}</p>
 							</div>
 
 							<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 								<div>
 									<label for="newPassword" class="block text-sm font-medium text-gray-700 mb-2">
-										New Password
+										{$t('owner.newPassword')}
 									</label>
 									<input
 										type="password"
 										id="newPassword"
 										bind:value={formData.newPassword}
 										class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-										placeholder="Enter new password"
+										placeholder={$t('owner.enterNewPassword')}
 									/>
 								</div>
 
 								<div>
 									<label for="confirmPassword" class="block text-sm font-medium text-gray-700 mb-2">
-										Confirm Password
+										{$t('owner.confirmPassword')}
 									</label>
 									<input
 										type="password"
 										id="confirmPassword"
 										bind:value={formData.confirmPassword}
 										class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-										placeholder="Confirm new password"
+										placeholder={$t('owner.confirmNewPassword')}
 									/>
 								</div>
 							</div>
@@ -346,8 +353,8 @@ let formData = {
 
 					<!-- Preferred language -->
 					<div>
-						<h3 class="text-lg font-medium text-gray-900 mb-4">Preferred language</h3>
-						<p class="text-sm text-gray-600 mb-3">Default language for the interface and content.</p>
+						<h3 class="text-lg font-medium text-gray-900 mb-4">{$t('owner.preferredLanguage')}</h3>
+						<p class="text-sm text-gray-600 mb-3">{$t('owner.preferredLanguageHelp')}</p>
 						<select
 							bind:value={formData.preferredLanguage}
 							class="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
@@ -360,15 +367,15 @@ let formData = {
 
 					<!-- Account Information -->
 					<div>
-						<h3 class="text-lg font-medium text-gray-900 mb-4">Account Information</h3>
+						<h3 class="text-lg font-medium text-gray-900 mb-4">{$t('owner.accountInformation')}</h3>
 						<div class="bg-gray-50 rounded-md p-4">
 							<dl class="grid grid-cols-1 md:grid-cols-2 gap-4">
 								<div>
-									<dt class="text-sm font-medium text-gray-500">Role</dt>
+									<dt class="text-sm font-medium text-gray-500">{$t('owner.role')}</dt>
 									<dd class="mt-1 text-sm text-gray-900 capitalize">{profile?.role}</dd>
 								</div>
 								<div>
-									<dt class="text-sm font-medium text-gray-500">Member Since</dt>
+									<dt class="text-sm font-medium text-gray-500">{$t('owner.memberSince')}</dt>
 									<dd class="mt-1 text-sm text-gray-900">
 										{profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString() : '-'}
 									</dd>
@@ -404,9 +411,9 @@ let formData = {
 										d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
 									></path>
 								</svg>
-								Saving...
+								{$t('owner.saving')}
 							{:else}
-								Save Changes
+								{$t('owner.saveChanges')}
 							{/if}
 						</button>
 					</div>

@@ -6,6 +6,7 @@
 	import { useCrudOperations } from '$lib/composables/useCrudOperations';
 	import { useDialogManager } from '$lib/composables/useDialogManager';
 	import { normalizeMultiLangText } from '$lib/utils/multiLangHelpers';
+	import { t } from '$stores/i18n';
 	import type { PageData } from './$types';
 
 	// svelte-ignore export_let_unused - Required by SvelteKit page component
@@ -56,9 +57,9 @@
 	};
 
 	const crudOps = useCrudOperations<Location>('/api/admin/locations', {
-		createSuccessMessage: 'Location created successfully!',
-		updateSuccessMessage: 'Location updated successfully!',
-		deleteSuccessMessage: 'Location deleted successfully!',
+		createSuccessMessage: $t('admin.locationCreatedSuccessfully'),
+		updateSuccessMessage: $t('admin.locationUpdatedSuccessfully'),
+		deleteSuccessMessage: $t('admin.locationDeletedSuccessfully'),
 		transformPayload: (data: LocationFormData): Partial<Location> => {
 			const payload: Partial<Location> = { ...data };
 			const coords = data.coordinates;
@@ -202,7 +203,7 @@
 	function getLocationName(location: Location): string {
 		const nameField = typeof location.name === 'string' ? location.name : location.name;
 		if (typeof nameField === 'string') return nameField;
-		return nameField?.en || nameField?.he || '(No name)';
+		return nameField?.en || nameField?.he || $t('admin.unnamedLocation');
 	}
 
 	function getCategoryLabel(category: string): string {
@@ -236,7 +237,7 @@
 </script>
 
 <svelte:head>
-	<title>Locations Management - Admin</title>
+	<title>{$t('admin.locationsManagement')} - {$t('navigation.admin')}</title>
 </svelte:head>
 
 <div class="min-h-screen bg-gray-50 py-8">
@@ -244,11 +245,11 @@
 		<div class="bg-white rounded-lg shadow-md p-6">
 			<div class="flex items-center justify-between mb-6">
 				<div>
-					<h1 class="text-2xl font-bold text-gray-900">Locations Management</h1>
-					<p class="text-gray-600 mt-2">Manage locations for organizing your photos by place</p>
+					<h1 class="text-2xl font-bold text-gray-900">{$t('admin.locationsManagement')}</h1>
+					<p class="text-gray-600 mt-2">{$t('admin.manageLocationsStructuredData')}</p>
 				</div>
 				<a href="/admin" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm font-medium">
-					← Back to Admin
+					{$t('admin.backToAdmin')}
 				</a>
 			</div>
 
@@ -266,7 +267,7 @@
 					<div class="relative">
 						<input
 							type="text"
-							placeholder="Search locations..."
+							placeholder={$t('admin.searchLocationsPlaceholder')}
 							bind:value={searchTerm}
 							on:input={() => crudLoader.loadItems()}
 							class="pl-10 pr-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-64"
@@ -291,7 +292,7 @@
 						on:change={() => crudLoader.loadItems()}
 						class="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 					>
-						<option value="all">All Categories</option>
+						<option value="all">{$t('admin.allCategories')}</option>
 						{#each LOCATION_CATEGORIES as cat}
 							<option value={cat.value}>{cat.label}</option>
 						{/each}
@@ -311,7 +312,7 @@
 							d="M12 4v16m8-8H4"
 						/>
 					</svg>
-					Add Location
+					{$t('admin.addLocation')}
 				</button>
 			</div>
 
@@ -319,7 +320,7 @@
 			{#if loading}
 				<div class="text-center py-8">
 					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-					<p class="mt-2 text-gray-600">Loading locations...</p>
+					<p class="mt-2 text-gray-600">{$t('admin.loadingLocations')}</p>
 				</div>
 			{:else if locations.length === 0}
 				<div class="text-center py-8">
@@ -342,8 +343,8 @@
 							d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
 						/>
 					</svg>
-					<h3 class="text-lg font-semibold text-gray-900 mb-2">No locations found</h3>
-					<p class="text-gray-600">Start by adding your first location.</p>
+					<h3 class="text-lg font-semibold text-gray-900 mb-2">{$t('admin.noLocationsFound')}</h3>
+					<p class="text-gray-600">{$t('admin.startByAddingFirstLocation')}</p>
 				</div>
 			{:else}
 				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -366,7 +367,7 @@
 										type="button"
 										on:click={() => openEditDialog(location)}
 										class="p-1 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded"
-										aria-label="Edit location"
+										aria-label={$t('admin.editLocationAria')}
 									>
 										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 											<path
@@ -381,7 +382,7 @@
 										type="button"
 										on:click={() => openDeleteDialog(location)}
 										class="p-1 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded"
-										aria-label="Delete location"
+										aria-label={$t('admin.deleteLocationAria')}
 									>
 										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 											<path
@@ -407,7 +408,8 @@
 								</span>
 								{#if location.usageCount !== undefined}
 									<span class="text-xs text-gray-500">
-										Used {location.usageCount} {location.usageCount === 1 ? 'time' : 'times'}
+										{$t('admin.locationUsage')
+											.replace('{count}', String(location.usageCount))}
 									</span>
 								{/if}
 							</div>

@@ -5,6 +5,7 @@
 	import Footer from '$lib/components/Footer.svelte';
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
+	import { t } from '$stores/i18n';
 // PageData is loaded via +page.server.ts; this component does not
 // currently consume it directly, so we omit the prop to avoid unused-export warnings.
 
@@ -32,21 +33,21 @@
 	};
 
 	const componentLabels = {
-		hero: 'Hero Section',
-		languageSelector: 'Language Selector',
-		authButtons: 'Login/Logout Buttons',
-		footerMenu: 'Footer Menu',
-		statistics: 'Statistics Section',
-		promotion: 'Promotion Section'
+		hero: $t('admin.templateConfig.heroLabel'),
+		languageSelector: $t('admin.templateConfig.languageSelectorLabel'),
+		authButtons: $t('admin.templateConfig.authButtonsLabel'),
+		footerMenu: $t('admin.templateConfig.footerMenuLabel'),
+		statistics: $t('admin.templateConfig.statisticsLabel'),
+		promotion: $t('admin.templateConfig.promotionLabel')
 	};
 
 	const componentDescriptions = {
-		hero: 'The main hero section displayed on the home page',
-		languageSelector: 'Language selection dropdown in the header',
-		authButtons: 'Login and logout buttons in the header',
-		footerMenu: 'Footer menu and links at the bottom of pages',
-		statistics: 'Statistics section showing album and photo counts below the albums grid',
-		promotion: 'Promotion section with call-to-action buttons below the statistics'
+		hero: $t('admin.templateConfig.heroDescription'),
+		languageSelector: $t('admin.templateConfig.languageSelectorDescription'),
+		authButtons: $t('admin.templateConfig.authButtonsDescription'),
+		footerMenu: $t('admin.templateConfig.footerMenuDescription'),
+		statistics: $t('admin.templateConfig.statisticsDescription'),
+		promotion: $t('admin.templateConfig.promotionDescription')
 	};
 
 	onMount(async () => {
@@ -166,7 +167,7 @@
 </script>
 
 <svelte:head>
-	<title>Template Configuration - Admin</title>
+	<title>{$t('admin.templateConfigTitle')} - {$t('navigation.admin')}</title>
 </svelte:head>
 
 {#if loading}
@@ -194,11 +195,11 @@
 				<div class="px-6 py-4 border-b border-gray-200">
 					<div class="flex items-center justify-between">
 						<div>
-							<h1 class="text-2xl font-bold text-gray-900">Template Configuration</h1>
-							<p class="text-gray-600 mt-1">Configure which components are visible in your template</p>
+							<h1 class="text-2xl font-bold text-gray-900">{$t('admin.templateConfigTitle')}</h1>
+							<p class="text-gray-600 mt-1">{$t('admin.templateConfigSubtitle')}</p>
 						</div>
 						<a href="/admin" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm font-medium">
-							← Back to Admin
+							{$t('admin.backToAdmin')}
 						</a>
 					</div>
 					</div>
@@ -220,18 +221,18 @@
 
 					<!-- Current Template Info -->
 					<div class="mb-8 p-4 bg-blue-50 border border-blue-200 rounded-md">
-						<h3 class="text-lg font-semibold text-blue-900 mb-2">Current Template</h3>
+						<h3 class="text-lg font-semibold text-blue-900 mb-2">{$t('admin.templateConfigCurrentTemplate')}</h3>
 						<p class="text-blue-800">
-							<span class="font-medium">Active Template:</span> {activeTemplate}
+							<span class="font-medium">{$t('admin.templateConfigActiveTemplate')}</span> {activeTemplate}
 						</p>
 						<p class="text-blue-800 text-sm mt-1">
-							Configure which components should be visible in this template. Changes will apply immediately.
+							{$t('admin.templateConfigCurrentDescription')}
 						</p>
 					</div>
 
 					<!-- Component Visibility Settings -->
 					<div class="space-y-6">
-						<h3 class="text-lg font-semibold text-gray-900">Component Visibility</h3>
+						<h3 class="text-lg font-semibold text-gray-900">{$t('admin.templateConfigComponentVisibility')}</h3>
 
 						{#each Object.entries(componentLabels) as [component, label]}
 							<div class="flex items-start space-x-4 p-4 border border-gray-200 rounded-lg">
@@ -263,8 +264,8 @@
 											: 'bg-red-100 text-red-800'}"
 									>
 										{localVisibility[component as keyof TemplateComponentVisibility]
-											? 'Visible'
-											: 'Hidden'}
+											? $t('admin.templateConfigVisible')
+											: $t('admin.templateConfigHidden')}
 									</span>
 								</div>
 							</div>
@@ -278,7 +279,7 @@
 							disabled={saving}
 							class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
 						>
-							Reset to Defaults
+							{$t('admin.templateConfigResetToDefaults')}
 						</button>
 
 						<button
@@ -286,7 +287,7 @@
 							disabled={saving}
 							class="px-6 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
 						>
-							{saving ? 'Saving...' : 'Save Configuration'}
+							{saving ? $t('admin.templateConfigSaving') : $t('admin.templateConfigSaveConfiguration')}
 						</button>
 					</div>
 				</div>

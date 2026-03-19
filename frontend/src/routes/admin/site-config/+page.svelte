@@ -7,6 +7,7 @@
 	import { SUPPORTED_LANGUAGES } from '$lib/types/multi-lang';
 	import { ROLE_OPTIONS } from '$lib/constants/roles';
 	import { siteConfig } from '$stores/siteConfig';
+	import { t } from '$stores/i18n';
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 	import { EXIF_DISPLAY_FIELDS } from '$lib/constants/exif-fields';
@@ -20,18 +21,18 @@
 	let activeTab = 'basic';
 	let availableLanguages: Array<{ code: string; name: string; flag: string }> = [];
 
-	const configTabs: { id: string; label: string }[] = [
-		{ id: 'basic', label: 'Basic Settings' },
-		{ id: 'languages', label: 'Languages' },
-		{ id: 'branding', label: 'Branding' },
-		{ id: 'seo', label: 'SEO' },
-		{ id: 'contact', label: 'Contact' },
-		{ id: 'home', label: 'Services' },
-		{ id: 'navigation', label: 'Navigation' },
-		{ id: 'exifMetadata', label: 'EXIF Metadata' },
-		{ id: 'iptcXmpMetadata', label: 'IPTC/XMP Metadata' },
-		{ id: 'sharing', label: 'Sharing' },
-		{ id: 'email', label: 'Email' }
+	const configTabs: { id: string; labelKey: string }[] = [
+		{ id: 'basic', labelKey: 'admin.basicSettings' },
+		{ id: 'languages', labelKey: 'admin.languageSettings' },
+		{ id: 'branding', labelKey: 'admin.branding' },
+		{ id: 'seo', labelKey: 'admin.seoSettings' },
+		{ id: 'contact', labelKey: 'admin.contactTitle' },
+		{ id: 'home', labelKey: 'admin.services' },
+		{ id: 'navigation', labelKey: 'admin.navigation' },
+		{ id: 'exifMetadata', labelKey: 'admin.exifMetadata' },
+		{ id: 'iptcXmpMetadata', labelKey: 'admin.iptcXmpMetadata' },
+		{ id: 'sharing', labelKey: 'admin.sharing' },
+		{ id: 'email', labelKey: 'admin.email' }
 	];
 
 	// Test email modal
@@ -316,7 +317,7 @@
 </script>
 
 <svelte:head>
-	<title>Site Configuration - Admin</title>
+	<title>{$t('admin.siteConfiguration')} - {$t('navigation.admin')}</title>
 </svelte:head>
 
 {#if loading}
@@ -340,8 +341,13 @@
 	<div class="min-h-screen bg-gray-50 py-6 lg:py-8">
 		<div class="max-w-6xl mx-auto px-4">
 			<div class="flex items-center justify-between mb-4">
-				<h1 class="text-2xl font-bold text-gray-900">Site Configuration</h1>
-				<a href="/admin" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm font-medium">← Back to Admin</a>
+				<h1 class="text-2xl font-bold text-gray-900">{$t('admin.siteConfiguration')}</h1>
+				<a
+					href="/admin"
+					class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm font-medium"
+				>
+					{$t('admin.backToAdmin')}
+				</a>
 			</div>
 
 			{#if message}
@@ -406,7 +412,9 @@
 				<!-- Sidebar nav: dropdown on small screens, vertical list on lg+ -->
 				<aside class="lg:w-52 shrink-0">
 					<div class="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
-						<label for="site-config-tab-select" class="sr-only">Configuration section</label>
+						<label for="site-config-tab-select" class="sr-only">
+							{$t('admin.configurationSection')}
+						</label>
 						<select
 							id="site-config-tab-select"
 							class="lg:hidden w-full py-3 px-4 text-sm font-medium text-gray-700 border-0 border-b border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-t-lg"
@@ -414,10 +422,10 @@
 							on:change={(e) => (activeTab = (e.currentTarget as HTMLSelectElement).value)}
 						>
 							{#each configTabs as tab}
-								<option value={tab.id}>{tab.label}</option>
+								<option value={tab.id}>{$t(tab.labelKey)}</option>
 							{/each}
 						</select>
-						<nav class="hidden lg:block py-1" aria-label="Configuration sections">
+						<nav class="hidden lg:block py-1" aria-label={$t('admin.configurationSections')}>
 							{#each configTabs as tab}
 								<button
 									type="button"
@@ -426,7 +434,7 @@
 										: 'text-gray-600 hover:bg-gray-50 border-l-2 border-transparent'}"
 									on:click={() => (activeTab = tab.id)}
 								>
-									{tab.label}
+									{$t(tab.labelKey)}
 								</button>
 							{/each}
 						</nav>
@@ -439,13 +447,13 @@
 						<div class="grid grid-cols-1 gap-6">
 							<div>
 								<label for="site-title" class="block text-sm font-medium text-gray-700 mb-2">
-									Site Title
+									{$t('admin.siteTitle')}
 								</label>
 								<MultiLangInput
 									id="site-title"
 									value={config.title || {}}
 									onChange={(value) => updateConfig('title', value)}
-									placeholder="Enter site title..."
+									placeholder={$t('admin.enterSiteTitlePlaceholder')}
 									required={true}
 									maxLength={100}
 									showLanguageTabs={true}
@@ -455,7 +463,7 @@
 
 							<div>
 								<label for="site-description" class="block text-sm font-medium text-gray-700 mb-2">
-									Site Description
+									{$t('admin.siteDescription')}
 								</label>
 								<MultiLangHTMLEditor
 									id="site-description"
@@ -463,7 +471,7 @@
 									onChange={(value) => {
 										descriptionValue = value;
 									}}
-									placeholder="Enter site description..."
+									placeholder={$t('admin.enterSiteDescriptionPlaceholder')}
 									height={150}
 									showLanguageTabs={true}
 									defaultLanguage={config.languages?.defaultLanguage || 'en'}
@@ -1963,7 +1971,7 @@ on:click={() => {
 							disabled={saving}
 							class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
 						>
-							{saving ? 'Saving...' : 'Save Configuration'}
+							{saving ? $t('admin.saving') : $t('admin.saveConfiguration')}
 						</button>
 					</div>
 				</div>

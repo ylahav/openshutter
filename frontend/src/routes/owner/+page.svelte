@@ -3,6 +3,7 @@
 	import type { PageData } from './$types';
 	import { logout } from '$lib/stores/auth';
 	import { productName } from '$stores/siteConfig';
+	import { t } from '$stores/i18n';
 
 	export let data: PageData;
 
@@ -12,6 +13,7 @@
 	/** When true, owner uses their own storage (not main domain); show Storage management card. */
 	let useOwnStorageConnection = false;
 	let profileLoaded = false;
+	let pageTitle = '';
 
 	onMount(async () => {
 		if (!isOwner) {
@@ -33,13 +35,15 @@
 		}
 	});
 
+	$: pageTitle = isAdmin ? $t('admin.adminPanel') : $t('owner.ownerPanel');
+
 	async function handleLogout() {
 		await logout();
 	}
 </script>
 
 <svelte:head>
-	<title>{isAdmin ? 'Admin Panel' : 'Owner Panel'} - {$productName}</title>
+	<title>{pageTitle} - {$productName}</title>
 </svelte:head>
 
 <div class="min-h-screen bg-gray-50 py-8">
@@ -48,10 +52,18 @@
 		<div class="flex justify-between items-center mb-8">
 			<div>
 				<h1 class="text-3xl font-bold text-gray-900">
-					{isAdmin ? 'Admin Panel' : 'Owner Panel'}
+					{#if isAdmin}
+						{$t('admin.adminPanel')}
+					{:else}
+						{$t('owner.ownerPanel')}
+					{/if}
 				</h1>
 				<p class="text-gray-600 mt-2">
-					{isAdmin ? 'Manage gallery settings and content' : 'Manage your albums and content'}
+					{#if isAdmin}
+						{$t('admin.manageGallerySettings')}
+					{:else}
+						{$t('owner.manageYourAlbums')}
+					{/if}
 				</p>
 			</div>
 			<div class="flex space-x-3">
@@ -67,7 +79,7 @@
 							d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
 						/>
 					</svg>
-					Home
+					{$t('navigation.home')}
 				</a>
 				<button
 					on:click={handleLogout}
@@ -81,7 +93,7 @@
 							d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
 						/>
 					</svg>
-					Logout
+					{$t('header.logout')}
 				</button>
 			</div>
 		</div>
@@ -101,14 +113,14 @@
 								/>
 							</svg>
 						</div>
-						<h2 class="text-xl font-semibold text-gray-900 ml-3">Profile Management</h2>
+						<h2 class="text-xl font-semibold text-gray-900 ml-3">{$t('owner.profileManagement')}</h2>
 					</div>
-					<p class="text-gray-600 mb-4">Edit your personal information and preferred language</p>
+					<p class="text-gray-600 mb-4">{$t('owner.editProfileDescription')}</p>
 					<a
 						href="/owner/profile"
 						class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
 					>
-						Profile
+						{$t('owner.editProfile')}
 						<svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path
 								stroke-linecap="round"
@@ -133,14 +145,14 @@
 								/>
 							</svg>
 						</div>
-						<h2 class="text-xl font-semibold text-gray-900 ml-3">Site settings</h2>
+						<h2 class="text-xl font-semibold text-gray-900 ml-3">{$t('owner.siteSettings')}</h2>
 					</div>
-					<p class="text-gray-600 mb-4">Set site name, description, logo, hero, SEO, contact and footer for your custom domain</p>
+					<p class="text-gray-600 mb-4">{$t('owner.siteSettingsDescription')}</p>
 					<a
 						href="/owner/site-settings"
 						class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
 					>
-						Site settings
+						{$t('owner.siteSettingsButton')}
 						<svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path
 								stroke-linecap="round"
@@ -160,14 +172,14 @@
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
 							</svg>
 						</div>
-						<h2 class="text-xl font-semibold text-gray-900 ml-3">Theme</h2>
+						<h2 class="text-xl font-semibold text-gray-900 ml-3">{$t('owner.theme')}</h2>
 					</div>
-					<p class="text-gray-600 mb-4">Layout, header options and menu for your custom domain</p>
+					<p class="text-gray-600 mb-4">{$t('owner.themeDescription')}</p>
 					<a
 						href="/owner/theme"
 						class="inline-flex items-center px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700"
 					>
-						Layout &amp; menu
+						{$t('owner.layoutAndMenu')}
 						<svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
 						</svg>
@@ -183,14 +195,14 @@
 									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
 								</svg>
 							</div>
-							<h2 class="text-xl font-semibold text-gray-900 ml-3">Storage management</h2>
+							<h2 class="text-xl font-semibold text-gray-900 ml-3">{$t('owner.storageManagement')}</h2>
 						</div>
-						<p class="text-gray-600 mb-4">Configure your storage connection and folder settings for the providers enabled for you</p>
+						<p class="text-gray-600 mb-4">{$t('owner.storageManagementDescription')}</p>
 						<a
 							href="/owner/storage"
 							class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
 						>
-							Manage storage
+							{$t('owner.manageStorage')}
 							<svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
 							</svg>
@@ -213,17 +225,29 @@
 						</svg>
 					</div>
 					<h2 class="text-xl font-semibold text-gray-900 ml-3">
-						{isAdmin ? 'Albums Management' : 'My Albums'}
+						{#if isAdmin}
+							{$t('admin.albumsManagement')}
+						{:else}
+							{$t('owner.myAlbums')}
+						{/if}
 					</h2>
 				</div>
 				<p class="text-gray-600 mb-4">
-					{isAdmin ? 'Create and edit albums' : 'Create and edit your albums'}
+					{#if isAdmin}
+						{$t('admin.createEditAlbums')}
+					{:else}
+						{$t('owner.createEditMyAlbums')}
+					{/if}
 				</p>
 				<a
 					href={isAdmin ? '/admin/albums' : '/owner/albums'}
 					class="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
 				>
-					{isAdmin ? 'Manage Albums' : 'Manage My Albums'}
+					{#if isAdmin}
+						{$t('admin.manageAlbums')}
+					{:else}
+						{$t('owner.manageMyAlbums')}
+					{/if}
 					<svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path
 							stroke-linecap="round"
@@ -249,14 +273,14 @@
 								/>
 							</svg>
 						</div>
-						<h2 class="text-xl font-semibold text-gray-900 ml-3">Blog Management</h2>
+						<h2 class="text-xl font-semibold text-gray-900 ml-3">{$t('owner.blogManagement')}</h2>
 					</div>
-					<p class="text-gray-600 mb-4">Create and edit blog articles</p>
+					<p class="text-gray-600 mb-4">{$t('owner.createEditBlogArticles')}</p>
 					<a
 						href="/owner/blog"
 						class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
 					>
-						Manage Blog
+						{$t('owner.manageBlog')}
 						<svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path
 								stroke-linecap="round"
@@ -282,14 +306,14 @@
 							/>
 						</svg>
 					</div>
-					<h2 class="text-xl font-semibold text-gray-900 ml-3">Developers</h2>
+					<h2 class="text-xl font-semibold text-gray-900 ml-3">{$t('owner.developers')}</h2>
 				</div>
-				<p class="text-gray-600 mb-4">API keys and documentation for the public API</p>
+				<p class="text-gray-600 mb-4">{$t('owner.developerApiDescription')}</p>
 				<a
 					href="/developers"
 					class="inline-flex items-center px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700"
 				>
-					Developer portal
+					{$t('owner.developerPortal')}
 					<svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path
 							stroke-linecap="round"

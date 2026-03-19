@@ -8,6 +8,8 @@
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 	import { SUPPORTED_LANGUAGES } from '$lib/types/multi-lang';
 	import { ROLE_OPTIONS } from '$lib/constants/roles';
+	import { t } from '$stores/i18n';
+	import { get } from 'svelte/store';
 	import type { PageData } from './$types';
 	import type { User, Group, OwnerDomain, UserFormData } from './types';
 	import UserFilters from './components/UserFilters.svelte';
@@ -41,9 +43,9 @@
 	type UserPayload = Partial<Omit<User, '_id' | 'createdAt' | 'updatedAt'>> & { password?: string };
 
 	const crudOps = useCrudOperations<User>('/api/admin/users', {
-		createSuccessMessage: 'User created successfully!',
-		updateSuccessMessage: 'User updated successfully!',
-		deleteSuccessMessage: 'User deleted successfully!',
+		createSuccessMessage: get(t)('admin.userCreatedSuccessfully'),
+		updateSuccessMessage: get(t)('admin.userUpdatedSuccessfully'),
+		deleteSuccessMessage: get(t)('admin.userDeletedSuccessfully'),
 		transformPayload: (data: UserPayload): UserPayload => {
 			const payload: UserPayload = { ...data };
 			// Only include password if it's been set (for updates: omit when empty so backend keeps current)
@@ -225,7 +227,7 @@
 			ownerDomains = Array.isArray(data) ? data : Array.isArray(result.data) ? result.data : [];
 		} catch (err) {
 			logger.error('Error loading owner domains:', err);
-			ownerDomainsError = handleError(err, 'Failed to load owner domains');
+			ownerDomainsError = handleError(err, get(t)('admin.failedToLoadOwnerDomains'));
 		} finally {
 			loadingOwnerDomains = false;
 		}
@@ -253,7 +255,7 @@
 			newOwnerDomainHostname = '';
 		} catch (err) {
 			logger.error('Error adding owner domain:', err);
-			ownerDomainsError = handleError(err, 'Failed to add owner domain');
+			ownerDomainsError = handleError(err, get(t)('admin.failedToAddOwnerDomain'));
 		}
 	}
 
@@ -276,12 +278,12 @@
 			ownerDomains = ownerDomains.map((d) => (d.id === domain.id ? updated : d));
 		} catch (err) {
 			logger.error('Error updating owner domain:', err);
-			ownerDomainsError = handleError(err, 'Failed to update owner domain');
+			ownerDomainsError = handleError(err, get(t)('admin.failedToUpdateOwnerDomain'));
 		}
 	}
 
 	async function deleteOwnerDomain(domain: OwnerDomain) {
-		if (!confirm(`Remove domain "${domain.hostname}" from this owner?`)) return;
+		if (!confirm(get(t)('admin.confirmRemoveOwnerDomain').replace('{hostname}', domain.hostname))) return;
 		try {
 			const response = await fetch(`/api/admin/owner-domains/${encodeURIComponent(domain.id)}`, {
 				method: 'DELETE',
@@ -292,7 +294,7 @@
 			ownerDomains = ownerDomains.filter((d) => d.id !== domain.id);
 		} catch (err) {
 			logger.error('Error deleting owner domain:', err);
-			ownerDomainsError = handleError(err, 'Failed to delete owner domain');
+			ownerDomainsError = handleError(err, get(t)('admin.failedToDeleteOwnerDomain'));
 		}
 	}
 
@@ -305,7 +307,7 @@
 	function getUserName(user: User): string {
 		const nameField = typeof user.name === 'string' ? user.name : user.name;
 		if (typeof nameField === 'string') return nameField;
-		return nameField?.en || nameField?.he || user.username || '(No name)';
+		return nameField?.en || nameField?.he || user.username || get(t)('admin.noNameFallback');
 	}
 
 	function toggleGroup(groupAlias: string) {
@@ -363,7 +365,7 @@
 </script>
 
 <svelte:head>
-	<title>Users Management - Admin</title>
+	<title>{$t('admin.usersManagement')} - {$t('navigation.admin')}</title>
 </svelte:head>
 
 <div class="min-h-screen bg-gray-50 py-8">
@@ -371,11 +373,11 @@
 		<div class="bg-white rounded-lg shadow-md p-6">
 			<div class="flex items-center justify-between mb-6">
 				<div>
-					<h1 class="text-2xl font-bold text-gray-900">Users Management</h1>
-					<p class="text-gray-600 mt-2">Manage user accounts, roles, and permissions</p>
+					<h1 class="text-2xl font-bold text-gray-900">{$t('admin.usersManagement')}</h1>
+					<p class="text-gray-600 mt-2">{$t('admin.manageUsersRoles')}</p>
 				</div>
 				<a href="/admin" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm font-medium">
-					← Back to Admin
+					{$t('admin.backToAdmin')}
 				</a>
 			</div>
 
@@ -401,7 +403,7 @@
 			{#if loading}
 				<div class="text-center py-8">
 					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-					<p class="mt-2 text-gray-600">Loading users...</p>
+					<p class="mt-2 text-gray-600">{$t('admin.loadingUsers')}</p>
 				</div>
 			{:else if users.length === 0}
 				<div class="text-center py-8">
@@ -418,8 +420,8 @@
 							d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
 						/>
 					</svg>
-					<h3 class="text-lg font-semibold text-gray-900 mb-2">No users found</h3>
-					<p class="text-gray-600">Start by adding your first user.</p>
+					<h3 class="text-lg font-semibold text-gray-900 mb-2">{$t('admin.noUsersFound')}</h3>
+					<p class="text-gray-600">{$t('admin.startByAddingFirstUser')}</p>
 				</div>
 			{:else}
 				<UserTable
@@ -437,7 +439,7 @@
 {#if showCreateDialog}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
 		<div class="bg-white rounded-lg shadow-xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
-			<h2 class="text-xl font-bold text-gray-900 mb-4">Add New User</h2>
+			<h2 class="text-xl font-bold text-gray-900 mb-4">{$t('admin.addNewUser')}</h2>
 
 			{#if error}
 				<div class="mb-4 p-4 bg-red-50 text-red-700 rounded-md">{error}</div>
@@ -465,7 +467,7 @@
 						}}
 						class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm font-medium"
 					>
-						Cancel
+						{$t('admin.cancel')}
 					</button>
 					<button
 						type="button"
@@ -474,9 +476,9 @@
 						class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm font-medium"
 					>
 						{#if saving}
-							Creating...
+							{$t('admin.creatingUser')}
 						{:else}
-							Create User
+							{$t('admin.createUser')}
 						{/if}
 					</button>
 				</div>
@@ -489,7 +491,7 @@
 {#if showEditDialog && editingUser}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
 		<div class="bg-white rounded-lg shadow-xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
-			<h2 class="text-xl font-bold text-gray-900 mb-4">Edit User</h2>
+			<h2 class="text-xl font-bold text-gray-900 mb-4">{$t('admin.editUser')}</h2>
 
 			{#if error}
 				<div class="mb-4 p-4 bg-red-50 text-red-700 rounded-md">{error}</div>
@@ -537,7 +539,7 @@
 						}}
 						class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm font-medium"
 					>
-						Cancel
+						{$t('admin.cancel')}
 					</button>
 					<button
 						type="button"
@@ -546,9 +548,9 @@
 						class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm font-medium"
 					>
 						{#if saving}
-							Updating...
+							{$t('admin.updatingUser')}
 						{:else}
-							Update User
+							{$t('admin.updateUser')}
 						{/if}
 					</button>
 				</div>
@@ -561,7 +563,7 @@
 {#if showDeleteDialog && userToDelete}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
 		<div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
-			<h2 class="text-xl font-bold text-gray-900 mb-4">Delete User</h2>
+			<h2 class="text-xl font-bold text-gray-900 mb-4">{$t('admin.deleteUser')}</h2>
 
 			{#if error}
 				<div class="mb-4 p-4 bg-red-50 text-red-700 rounded-md">{error}</div>
@@ -569,13 +571,14 @@
 
 			<div class="space-y-4">
 				<p class="text-gray-600">
-					Are you sure you want to delete <strong>{getUserName(userToDelete)}</strong> ({userToDelete.username})? This
-					action cannot be undone.
+					{$t('admin.confirmDeleteUser')
+						.replace('{name}', getUserName(userToDelete))
+						.replace('{username}', userToDelete.username)}
 				</p>
 				{#if userToDelete.role === 'admin' && !userToDelete.blocked}
 					<div class="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
 						<p class="text-sm text-yellow-800">
-							⚠️ This is an active admin user. Make sure there are other active admins before deleting.
+							{$t('admin.activeAdminDeleteWarning')}
 						</p>
 					</div>
 				{/if}
@@ -588,7 +591,7 @@
 						}}
 						class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm font-medium"
 					>
-						Cancel
+						{$t('admin.cancel')}
 					</button>
 					<button
 						type="button"
@@ -597,9 +600,9 @@
 						class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 text-sm font-medium"
 					>
 						{#if saving}
-							Deleting...
+							{$t('admin.deletingUser')}
 						{:else}
-							Delete User
+							{$t('admin.deleteUser')}
 						{/if}
 					</button>
 				</div>

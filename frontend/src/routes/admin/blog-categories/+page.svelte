@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { t } from '$stores/i18n';
 	import MultiLangInput from '$lib/components/MultiLangInput.svelte';
 	import MultiLangHTMLEditor from '$lib/components/MultiLangHTMLEditor.svelte';
 	import type { MultiLangText } from '$lib/types/multi-lang';
@@ -228,7 +229,7 @@
 </script>
 
 <svelte:head>
-	<title>Blog Categories Management - Admin</title>
+	<title>{$t('admin.blogCategories')} - {$t('navigation.admin')}</title>
 </svelte:head>
 
 <div class="min-h-screen bg-gray-50 py-8">
@@ -236,11 +237,11 @@
 		<div class="bg-white rounded-lg shadow-md p-6">
 			<div class="flex items-center justify-between mb-6">
 				<div>
-					<h1 class="text-2xl font-bold text-gray-900">Blog Categories Management</h1>
-					<p class="text-gray-600 mt-2">Organize blog articles into categories</p>
+					<h1 class="text-2xl font-bold text-gray-900">{$t('admin.blogCategories')}</h1>
+					<p class="text-gray-600 mt-2">{$t('admin.manageBlogCategories')}</p>
 				</div>
 				<a href="/admin" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm font-medium">
-					← Back to Admin
+					{$t('admin.backToAdmin')}
 				</a>
 			</div>
 
@@ -258,7 +259,7 @@
 					<div class="relative">
 						<input
 							type="text"
-							placeholder="Search categories..."
+							placeholder={$t('admin.searchCategories')}
 							bind:value={searchTerm}
 							on:input={() => crudLoader.loadItems()}
 							class="pl-10 pr-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-64"
@@ -282,10 +283,10 @@
 						bind:value={activeFilter}
 						on:change={() => crudLoader.loadItems()}
 						class="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-					>
-						<option value="all">All Status</option>
-						<option value="true">Active</option>
-						<option value="false">Inactive</option>
+						>
+						<option value="all">{$t('admin.allStatuses')}</option>
+						<option value="true">{$t('admin.active')}</option>
+						<option value="false">{$t('admin.inactive')}</option>
 					</select>
 				</div>
 
@@ -293,7 +294,7 @@
 					type="button"
 					on:click={openCreateDialog}
 					class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium flex items-center gap-2"
-				>
+					>
 					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path
 							stroke-linecap="round"
@@ -302,7 +303,7 @@
 							d="M12 4v16m8-8H4"
 						/>
 					</svg>
-					Add Category
+					{$t('admin.createNewCategory')}
 				</button>
 			</div>
 
@@ -310,7 +311,7 @@
 			{#if loading}
 				<div class="text-center py-8">
 					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-					<p class="mt-2 text-gray-600">Loading categories...</p>
+					<p class="mt-2 text-gray-600">{$t('admin.loadingCategories')}</p>
 				</div>
 			{:else if categories.length === 0}
 				<div class="text-center py-8">
@@ -327,8 +328,8 @@
 							d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
 						/>
 					</svg>
-					<h3 class="text-lg font-semibold text-gray-900 mb-2">No categories found</h3>
-					<p class="text-gray-600">Start by creating your first blog category.</p>
+					<h3 class="text-lg font-semibold text-gray-900 mb-2">{$t('admin.noCategories')}</h3>
+					<p class="text-gray-600">{$t('admin.getStartedByCreatingCategory')}</p>
 				</div>
 			{:else}
 				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -338,7 +339,8 @@
 								<div class="flex-1">
 									<h3 class="font-semibold text-gray-900 mb-1">{getCategoryTitle(category)}</h3>
 									<p class="text-sm text-gray-500">
-										Alias: <code class="bg-gray-100 px-1 rounded">{category.alias}</code>
+										{$t('admin.alias')}:
+										<code class="bg-gray-100 px-1 rounded">{category.alias}</code>
 									</p>
 								</div>
 
@@ -382,11 +384,11 @@
 								</span>
 								{#if category.isActive}
 									<span class="px-2 py-1 text-xs font-medium rounded bg-green-100 text-green-800">
-										Active
+										{$t('admin.active')}
 									</span>
 								{:else}
 									<span class="px-2 py-1 text-xs font-medium rounded bg-gray-100 text-gray-800">
-										Inactive
+										{$t('admin.inactive')}
 									</span>
 								{/if}
 							</div>

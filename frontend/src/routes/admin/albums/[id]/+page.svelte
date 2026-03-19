@@ -4,6 +4,7 @@
 	import { goto } from '$app/navigation';
 	import { currentLanguage } from '$stores/language';
 	import { MultiLangUtils } from '$utils/multiLang';
+	import { t } from '$stores/i18n';
 	import AlbumBreadcrumbs from '$lib/components/AlbumBreadcrumbs.svelte';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 	import { getPhotoUrl, getPhotoRotationStyle } from '$lib/utils/photoUrl';
@@ -111,7 +112,7 @@
 			album = result.data || result;
 		} catch (err) {
 			logger.error('Failed to fetch album:', err);
-			error = handleError(err, 'Failed to load album');
+			error = handleError(err, $t('admin.failedToLoadAlbum'));
 		} finally {
 			loading = false;
 		}
@@ -145,11 +146,11 @@
 					});
 				}
 			} else {
-				throw new Error(result.error || 'Failed to load photos');
+				throw new Error(result.error || $t('admin.failedToLoadPhotos'));
 			}
 		} catch (err) {
 			logger.error('Failed to fetch photos:', err);
-			error = handleError(err, 'Failed to fetch photos');
+			error = handleError(err, $t('admin.failedToFetchPhotos'));
 		}
 	}
 
@@ -214,7 +215,7 @@
 				photos = photos.filter((p) => p._id !== deletedPhotoId);
 				
 				// Show success message
-				successMessage = `Photo "${photoTitle}" deleted successfully`;
+				successMessage = $t('admin.photoDeletedSuccessfully').replace('{title}', photoTitle);
 				
 				// Clear success message after 3 seconds
 				setTimeout(() => {
@@ -224,7 +225,8 @@
 				// Reload album and photos to update counts
 				await Promise.all([loadAlbum(), loadPhotos()]);
 			} else {
-				const errorMsg = result.error || result.message || `Failed to delete photo (${response.status})`;
+				const errorMsg = result.error || result.message || $t('admin.failedToDeletePhotoWithStatus')
+					.replace('{status}', String(response.status));
 				error = errorMsg;
 				// Update isDeleting by creating a new object
 				photoDeleteDialog = {
@@ -235,7 +237,7 @@
 			}
 		} catch (err) {
 			logger.error('[confirmDeletePhoto] Exception during delete:', err);
-			error = handleError(err, 'Failed to delete photo');
+			error = handleError(err, $t('admin.failedToDeletePhoto'));
 			// Update isDeleting by creating a new object
 			photoDeleteDialog = {
 				...photoDeleteDialog,
@@ -273,7 +275,7 @@
 			}
 		} catch (err) {
 			logger.error('[deleteAlbum] Exception during delete:', err);
-			error = handleError(err, 'Failed to delete album');
+			error = handleError(err, $t('admin.failedToDeleteAlbum'));
 		}
 	}
 
@@ -559,23 +561,23 @@
 </script>
 
 <svelte:head>
-	<title>{album ? getAlbumName(album) : 'Album'} - Admin</title>
+	<title>{album ? getAlbumName(album) : $t('admin.albumFallbackTitle')} - {$t('navigation.admin')}</title>
 </svelte:head>
 
 {#if loading}
 	<div class="min-h-screen bg-gray-50 flex items-center justify-center">
-		<div class="text-center">
+			<div class="text-center">
 			<div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-			<p class="mt-4 text-gray-600">Loading album...</p>
+			<p class="mt-4 text-gray-600">{$t('admin.loadingAlbum')}</p>
 		</div>
 	</div>
 {:else if error || !album}
 	<div class="min-h-screen bg-gray-50 flex items-center justify-center">
 		<div class="text-center">
-			<h1 class="text-2xl font-bold text-gray-900 mb-4">Error</h1>
-			<p class="text-gray-600 mb-4">{error || 'Album not found'}</p>
+			<h1 class="text-2xl font-bold text-gray-900 mb-4">{$t('admin.errorTitle')}</h1>
+			<p class="text-gray-600 mb-4">{error || $t('admin.albumNotFound')}</p>
 			<a href="/admin/albums" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
-				Back to Albums
+				{$t('admin.backToAlbums')}
 			</a>
 		</div>
 	</div>
@@ -593,42 +595,43 @@
 					<div>
 						<h1 class="text-3xl font-bold text-gray-900">{getAlbumName(album)}</h1>
 						<p class="mt-2 text-gray-600">
-							{album.photoCount || 0} photos • {album.isPublic ? 'Public' : 'Private'}
+							{album.photoCount || 0} {album.photoCount === 1 ? $t('admin.photoSingular') : $t('admin.photosPlural')}
+							• {album.isPublic ? $t('admin.public') : $t('admin.private')}
 							{#if album.isFeatured}
-								• ⭐ Featured
+								• ⭐ {$t('admin.featured')}
 							{/if}
 						</p>
 					</div>
 					<div class="flex items-center gap-3">
 						<a href="/admin" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm font-medium">
-							← Back to Admin
+							{$t('admin.backToAdmin')}
 						</a>
 						<a
 							href="/admin/photos/upload?albumId={albumId}"
 							class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
 						>
-							Upload Photos
+							{$t('admin.uploadPhotos')}
 						</a>
 						<a
 							href="/albums/new?parentAlbumId={albumId}"
 							class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
 						>
-							Create Sub-Album
+							{$t('admin.createSubAlbum')}
 						</a>
 						<a
 							href="/admin/albums/{albumId}/edit"
 							class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
 						>
-							Edit Album
+							{$t('admin.editAlbum')}
 						</a>
 						<button
 							on:click={() => (showDeleteDialog = true)}
 							class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
 						>
-							Delete Album
+							{$t('admin.deleteAlbum')}
 						</button>
 						<a href="/admin/albums" class="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200">
-							← Back
+							{$t('admin.back')}
 						</a>
 					</div>
 				</div>
@@ -653,10 +656,10 @@
 			<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
 				<div class="flex items-center justify-between mb-6">
 					<h2 class="text-2xl font-bold text-gray-900">
-						Photos ({photos.length}
+						{$t('admin.photosHeading')} ({photos.length}
 						{#if album && album.photoCount !== photos.length}
 							<span class="text-sm font-normal text-gray-500">
-								/ {album.photoCount} total
+								/ {album.photoCount} {$t('admin.totalLabel')}
 							</span>
 						{/if})
 					</h2>
@@ -666,7 +669,9 @@
 								on:click={toggleSelectAll}
 								class="px-3 py-1 text-sm text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
 							>
-								{selectedPhotoIds.size === photos.length ? 'Deselect All' : 'Select All'}
+								{selectedPhotoIds.size === photos.length
+									? $t('admin.deselectAll')
+									: $t('admin.selectAll')}
 							</button>
 						</div>
 					{/if}
@@ -698,43 +703,43 @@
 									disabled={isBulkUpdating}
 									class="px-3 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
 								>
-									Set Location
+									{$t('admin.setLocation')}
 								</button>
 								<button
 									on:click={openTagsDialog}
 									disabled={isBulkUpdating}
 									class="px-3 py-1 text-sm bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50"
 								>
-									Set Tags
+									{$t('admin.setTags')}
 								</button>
 								<button
 									on:click={openMetadataDialog}
 									disabled={isBulkUpdating}
 									class="px-3 py-1 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50"
 								>
-									Set Metadata
+									{$t('admin.setMetadata')}
 								</button>
 								<button
 									on:click={bulkReExtractExif}
 									disabled={isBulkUpdating}
 									class="px-3 py-1 text-sm bg-cyan-600 text-white rounded-md hover:bg-cyan-700 disabled:opacity-50"
-									title="Re-extract EXIF from file for selected photos"
+									title={$t('admin.reExtractExifTitle')}
 								>
-									Re-extract EXIF
+									{$t('admin.reExtractExif')}
 								</button>
 								<button
 									on:click={bulkRegenerateThumbnails}
 									disabled={isBulkUpdating || (regenProgress?.inProgress ?? false)}
 									class="px-3 py-1 text-sm bg-amber-600 text-white rounded-md hover:bg-amber-700 disabled:opacity-50"
-									title="Regenerate small/medium/large thumbnails with correct orientation"
+									title={$t('admin.regenerateThumbnailsTitle')}
 								>
-									Regenerate thumbnails
+									{$t('admin.regenerateThumbnails')}
 								</button>
 								<button
 									on:click={() => { selectedPhotoIds.clear(); showBulkActions = false; }}
 									class="px-3 py-1 text-sm bg-gray-600 text-white rounded-md hover:bg-gray-700"
 								>
-									Cancel
+									{$t('admin.cancel')}
 								</button>
 							</div>
 						</div>
@@ -838,14 +843,14 @@
 											href="/admin/photos/{photo._id}/edit"
 											class="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
 										>
-											Edit
+											{$t('admin.edit')}
 										</a>
 										<button
 											on:click={() => openPhotoDeleteDialog(photo)}
 											disabled={photoDeleteDialog.isDeleting}
 											class="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 disabled:opacity-50"
 										>
-											Delete
+											{$t('admin.delete')}
 										</button>
 									</div>
 								</div>
@@ -854,7 +859,7 @@
 										<span
 											class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800"
 										>
-											Draft
+											{$t('admin.draft')}
 										</span>
 									</div>
 								{/if}
@@ -871,10 +876,11 @@
 {#if album}
 	<ConfirmDialog
 		isOpen={showDeleteDialog}
-		title="Delete Album"
-		message="Are you sure you want to delete &quot;{getAlbumName(album)}&quot;? This action cannot be undone and will also delete all photos in this album."
-		confirmText="Delete Album"
-		cancelText="Cancel"
+		title={$t('admin.deleteAlbum')}
+		message={$t('admin.confirmDeleteAlbumWithPhotos')
+			.replace('{name}', getAlbumName(album))}
+		confirmText={$t('admin.deleteAlbum')}
+		cancelText={$t('admin.cancel')}
 		variant="danger"
 		on:confirm={deleteAlbum}
 		on:cancel={() => (showDeleteDialog = false)}
@@ -884,10 +890,11 @@
 <!-- Delete Photo Confirmation Dialog -->
 <ConfirmDialog
 	isOpen={photoDeleteDialog.isOpen}
-	title="Delete Photo"
-	message="Are you sure you want to delete &quot;{photoDeleteDialog.photoTitle}&quot;? This action cannot be undone."
-	confirmText={photoDeleteDialog.isDeleting ? 'Deleting...' : 'Delete'}
-	cancelText="Cancel"
+	title={$t('admin.deletePhoto')}
+	message={$t('admin.confirmDeletePhoto')
+		.replace('{title}', photoDeleteDialog.photoTitle)}
+	confirmText={photoDeleteDialog.isDeleting ? $t('admin.deleting') : $t('admin.delete')}
+	cancelText={$t('admin.cancel')}
 	variant="danger"
 	disabled={photoDeleteDialog.isDeleting}
 	on:confirm={confirmDeletePhoto}
@@ -898,22 +905,29 @@
 {#if showLocationDialog}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
 		<div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-			<h3 class="text-lg font-semibold mb-4">Set Location for {selectedPhotoIds.size} Photo{selectedPhotoIds.size === 1 ? '' : 's'}</h3>
+			<h3 class="text-lg font-semibold mb-4">
+				{$t('admin.setLocationForCount')
+					.replace('{count}', String(selectedPhotoIds.size))
+					.replace(
+						'{photosLabel}',
+						selectedPhotoIds.size === 1 ? $t('admin.photoSingular') : $t('admin.photosPlural')
+					)}
+			</h3>
 			<div class="mb-4">
 				<label for="location-select" class="block text-sm font-medium text-gray-700 mb-2">
-					Select Location
+					{$t('admin.selectLocation')}
 				</label>
 				<select
 					id="location-select"
 					bind:value={selectedLocationId}
 					class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
 				>
-					<option value="">No Location</option>
+					<option value="">{ $t('admin.noLocation') }</option>
 					{#each locations as location}
 						<option value={location._id}>
 							{typeof location.name === 'string' 
 								? location.name 
-								: MultiLangUtils.getTextValue(location.name, $currentLanguage) || location.address || 'Unnamed Location'}
+								: MultiLangUtils.getTextValue(location.name, $currentLanguage) || location.address || $t('admin.unnamedLocation')}
 						</option>
 					{/each}
 				</select>
@@ -923,14 +937,14 @@
 					on:click={() => { showLocationDialog = false; selectedLocationId = null; }}
 					class="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
 				>
-					Cancel
+					{$t('admin.cancel')}
 				</button>
 				<button
 					on:click={applyLocation}
 					disabled={isBulkUpdating}
 					class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
 				>
-					{isBulkUpdating ? 'Applying...' : 'Apply'}
+					{isBulkUpdating ? $t('admin.applying') : $t('admin.apply')}
 				</button>
 		</div>
 	</div>
@@ -942,10 +956,12 @@
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
 		<div class="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-[80vh] flex flex-col">
 			<h3 class="text-lg font-semibold mb-2">Set Tags for {selectedPhotoIds.size} Photo{selectedPhotoIds.size === 1 ? '' : 's'}</h3>
-			<p class="text-sm text-gray-500 mb-4">Select tags to assign (replaces existing tags on selected photos).</p>
+			<p class="text-sm text-gray-500 mb-4">
+				{$t('admin.setTagsDescription')}
+			</p>
 			<div class="flex-1 overflow-y-auto border border-gray-200 rounded-md p-3 mb-4 min-h-[200px]">
 				{#if tags.length === 0}
-					<p class="text-sm text-gray-500">Loading tags...</p>
+					<p class="text-sm text-gray-500">{$t('admin.loadingTags')}</p>
 				{:else}
 					<div class="space-y-2">
 						{#each tags as tag}
@@ -970,14 +986,14 @@
 					on:click={() => { showTagsDialog = false; selectedTagIds = []; }}
 					class="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
 				>
-					Cancel
+					{$t('admin.cancel')}
 				</button>
 				<button
 					on:click={applyTags}
 					disabled={isBulkUpdating}
 					class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50"
 				>
-					{isBulkUpdating ? 'Applying...' : 'Apply'}
+					{isBulkUpdating ? $t('admin.applying') : $t('admin.apply')}
 				</button>
 			</div>
 		</div>
@@ -988,37 +1004,54 @@
 {#if showMetadataDialog}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
 		<div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-			<h3 class="text-lg font-semibold mb-4">Set Metadata for {selectedPhotoIds.size} Photo{selectedPhotoIds.size === 1 ? '' : 's'}</h3>
-			<p class="text-sm text-gray-500 mb-4">Set rating, category, and/or EXIF overrides. Leave blank to leave unchanged.</p>
+			<h3 class="text-lg font-semibold mb-4">
+				{$t('admin.setMetadataForCount')
+					.replace('{count}', String(selectedPhotoIds.size))
+					.replace(
+						'{photosLabel}',
+						selectedPhotoIds.size === 1 ? $t('admin.photoSingular') : $t('admin.photosPlural')
+					)}
+			</h3>
+			<p class="text-sm text-gray-500 mb-4">
+				{$t('admin.setMetadataDescription')}
+			</p>
 			<div class="space-y-4 mb-4">
 				<div>
-					<label for="bulk-rating" class="block text-sm font-medium text-gray-700 mb-1">Rating (1–5)</label>
+					<label for="bulk-rating" class="block text-sm font-medium text-gray-700 mb-1">
+						{$t('admin.ratingLabel')}
+					</label>
 					<select
 						id="bulk-rating"
 						bind:value={bulkMetadataRating}
 						class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
 					>
-						<option value="">— Leave unchanged</option>
+						<option value="">{ $t('admin.leaveUnchangedOption') }</option>
 						{#each [1, 2, 3, 4, 5] as n}
 							<option value={n}>{n}</option>
 						{/each}
 					</select>
 				</div>
 				<div>
-					<label for="bulk-category" class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+					<label for="bulk-category" class="block text-sm font-medium text-gray-700 mb-1">
+						{$t('admin.categoryLabel')}
+					</label>
 					<input
 						id="bulk-category"
 						type="text"
 						bind:value={bulkMetadataCategory}
 						class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-						placeholder="e.g. Event, Project"
+						placeholder={$t('admin.categoryPlaceholder')}
 					/>
 				</div>
 				<div class="border-t border-gray-200 pt-3 mt-3">
-					<span class="block text-sm font-medium text-gray-700 mb-2">EXIF overrides (merged per photo)</span>
+					<span class="block text-sm font-medium text-gray-700 mb-2">
+						{$t('admin.exifOverridesLabel')}
+					</span>
 					<div class="grid grid-cols-1 gap-3">
 						<div>
-							<label for="bulk-exif-date" class="block text-xs font-medium text-gray-600 mb-0.5">Date taken</label>
+							<label for="bulk-exif-date" class="block text-xs font-medium text-gray-600 mb-0.5">
+								{$t('admin.exifDateTakenLabel')}
+							</label>
 							<input
 								id="bulk-exif-date"
 								type="datetime-local"
@@ -1027,22 +1060,26 @@
 							/>
 						</div>
 						<div>
-							<label for="bulk-exif-make" class="block text-xs font-medium text-gray-600 mb-0.5">Make</label>
+							<label for="bulk-exif-make" class="block text-xs font-medium text-gray-600 mb-0.5">
+								{$t('admin.exifMakeLabel')}
+							</label>
 							<input
 								id="bulk-exif-make"
 								type="text"
 								class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-								placeholder="e.g. Canon"
+								placeholder={$t('admin.exifMakePlaceholder')}
 								bind:value={bulkExifMake}
 							/>
 						</div>
 						<div>
-							<label for="bulk-exif-model" class="block text-xs font-medium text-gray-600 mb-0.5">Model</label>
+							<label for="bulk-exif-model" class="block text-xs font-medium text-gray-600 mb-0.5">
+								{$t('admin.exifModelLabel')}
+							</label>
 							<input
 								id="bulk-exif-model"
 								type="text"
 								class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-								placeholder="e.g. EOS R5"
+								placeholder={$t('admin.exifModelPlaceholder')}
 								bind:value={bulkExifModel}
 							/>
 						</div>
@@ -1054,14 +1091,14 @@
 					on:click={() => { showMetadataDialog = false; bulkMetadataRating = ''; bulkMetadataCategory = ''; bulkExifDate = ''; bulkExifMake = ''; bulkExifModel = ''; }}
 					class="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
 				>
-					Cancel
+					{$t('admin.cancel')}
 				</button>
 				<button
 					on:click={applyMetadata}
 					disabled={isBulkUpdating || (bulkMetadataRating === '' && bulkMetadataCategory.trim() === '' && !bulkExifDate.trim() && !bulkExifMake.trim() && !bulkExifModel.trim())}
 					class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
 				>
-					{isBulkUpdating ? 'Applying...' : 'Apply'}
+					{isBulkUpdating ? $t('admin.applying') : $t('admin.apply')}
 				</button>
 			</div>
 		</div>

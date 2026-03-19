@@ -4,6 +4,7 @@
 	import StorageTreeItem from '$lib/components/StorageTreeItem.svelte';
 	import OwnerStorageView from '$lib/components/OwnerStorageView.svelte';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
+	import { t } from '$stores/i18n';
 	import type { PageData } from './$types';
 
 	export let data: PageData;
@@ -76,7 +77,7 @@
 				if (!code) return;
 				await handleGoogleOAuthCode(code);
 			} else if (event.data?.type === 'GOOGLE_OAUTH_ERROR') {
-				const error = event.data.error || 'Authorization failed';
+				const error = event.data.error || $t('admin.authorizationFailed');
 				googleDriveMessage = { type: 'error', text: String(error) };
 				if (oauthWindow && !oauthWindow.closed) {
 					oauthWindow.close();
@@ -214,7 +215,7 @@
 			if (!clientId || !clientSecret) {
 				googleDriveMessage = {
 					type: 'error',
-					text: 'Please enter and save Client ID and Client Secret first.'
+					text: $t('admin.enterAndSaveClientIdAndSecretFirst')
 				};
 				return;
 			}
@@ -441,19 +442,23 @@
 </script>
 
 <svelte:head>
-	<title>Storage Management - {data.user?.role === 'owner' ? 'Owner' : 'Admin'}</title>
+	<title>
+		{$t('admin.storageManagement')} - {data.user?.role === 'owner' ? $t('owner.ownerPanel') : $t('navigation.admin')}
+	</title>
 </svelte:head>
 
 <div class="min-h-screen bg-gray-50 py-8">
 	<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 		<div class="mb-6 flex items-center justify-between">
 			<div>
-				<h1 class="text-3xl font-bold text-gray-900">Storage Management</h1>
+				<h1 class="text-3xl font-bold text-gray-900">
+					{$t('admin.storageManagement')}
+				</h1>
 				<p class="mt-2 text-sm text-gray-600">
 					{#if data.user?.role === 'owner'}
-						Configure your storage connection (data stored in your account)
+						{$t('admin.storageManagementDescription')}
 					{:else}
-						Configure and manage storage providers
+						{$t('admin.storageSettingsDescription')}
 					{/if}
 				</p>
 			</div>
@@ -461,7 +466,7 @@
 				href={data.user?.role === 'owner' ? '/owner' : '/admin'}
 				class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm font-medium"
 			>
-				← Back to {data.user?.role === 'owner' ? 'Owner' : 'Admin'}
+				{data.user?.role === 'owner' ? $t('owner.backToOwnerDashboard') : $t('admin.backToAdmin')}
 			</a>
 		</div>
 
@@ -514,7 +519,7 @@
 								{config.name}
 								{#if config.isEnabled}
 									<span class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-										Enabled
+										{$t('admin.enabled')}
 									</span>
 								{/if}
 							</button>
@@ -528,7 +533,7 @@
 						<!-- Google Drive Configuration -->
 						<div class="space-y-6">
 							<div>
-								<h2 class="text-xl font-semibold text-gray-900 mb-4">Google Drive Configuration</h2>
+								<h2 class="text-xl font-semibold text-gray-900 mb-4">{$t('admin.googleDriveConfiguration')}</h2>
 								
 								<!-- Token Invalid Warning Banner (OAuth only) -->
 								{#if tokenInvalid && (currentFormData.authMethod || 'oauth') === 'oauth'}
@@ -614,13 +619,13 @@
 											class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
 										/>
 										<label for="gd-enabled" class="ml-2 block text-sm font-medium text-gray-700">
-											Enable Google Drive Storage
+											{$t('admin.enable')} {$t('admin.googleDrive')} {$t('admin.storageProvider')}
 										</label>
 									</div>
 
 									<div>
 										<label for="gd-auth-method" class="block text-sm font-medium text-gray-700 mb-2">
-											Auth method
+											{$t('admin.authMethod')}
 										</label>
 										<select
 											id="gd-auth-method"
@@ -628,11 +633,11 @@
 											on:change={(e) => updateFormData('authMethod', e.currentTarget.value)}
 											class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
 										>
-											<option value="oauth">OAuth (Client ID + refresh token)</option>
-											<option value="service_account">Service account (recommended for production)</option>
+											<option value="oauth">{$t('admin.authMethodOAuth')}</option>
+											<option value="service_account">{$t('admin.authMethodServiceAccount')}</option>
 										</select>
 										<p class="mt-1 text-xs text-gray-500">
-											Service account avoids OAuth popups and token expiry. Create a service account in Google Cloud, share a Drive folder with its email, then paste the JSON key below.
+											{$t('admin.serviceAccountHelp')}
 										</p>
 									</div>
 
@@ -640,7 +645,7 @@
 										<!-- Service account: JSON key + Folder ID -->
 										<div>
 											<label for="gd-service-account-json" class="block text-sm font-medium text-gray-700 mb-2">
-												Service account JSON
+												{$t('admin.serviceAccountJson')}
 											</label>
 											<textarea
 												id="gd-service-account-json"
@@ -648,15 +653,15 @@
 												value={currentFormData.serviceAccountJson || ''}
 												on:input={(e) => updateFormData('serviceAccountJson', e.currentTarget.value)}
 												class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
-												placeholder='Paste the full contents of your service account key JSON (from Google Cloud Console → IAM → Service Accounts → Keys → Add key → JSON). Must include "client_email" and "private_key".'
+												placeholder={$t('admin.serviceAccountJsonPlaceholder')}
 											></textarea>
 											<p class="mt-1 text-xs text-gray-500">
-												Download the JSON key from Google Cloud Console → IAM &amp; Admin → Service Accounts → your account → Keys → Add key → Create new key → JSON.
+												{$t('admin.serviceAccountJsonHelp')}
 											</p>
 										</div>
 										<div>
 											<label for="gd-sa-folder-id" class="block text-sm font-medium text-gray-700 mb-2">
-												Folder ID <span class="text-red-600">*</span>
+												{$t('admin.folderId')} <span class="text-red-600">*</span>
 											</label>
 											<input
 												type="text"
@@ -667,14 +672,14 @@
 												placeholder="e.g. 1ABC123xyz"
 											/>
 											<p class="mt-1 text-xs text-gray-500">
-												Create a folder in Google Drive, share it with the service account email (Editor). Copy the folder ID from the URL: <code class="bg-gray-100 px-1">drive.google.com/drive/folders/<strong>FOLDER_ID</strong></code>
+												{$t('admin.folderIdHelp')}
 											</p>
 										</div>
 									{:else}
 										<!-- OAuth: Client ID, Secret, Refresh Token, Storage type -->
 										<div>
 											<label for="gd-client-id" class="block text-sm font-medium text-gray-700 mb-2">
-												Client ID
+												{$t('admin.clientId')}
 											</label>
 											<input
 												type="text"
@@ -682,13 +687,13 @@
 												value={currentFormData.clientId || ''}
 												on:input={(e) => updateFormData('clientId', e.currentTarget.value)}
 												class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-												placeholder="Enter Google OAuth Client ID"
+												placeholder={$t('admin.enterGoogleClientId')}
 											/>
 										</div>
 
 										<div>
 											<label for="gd-client-secret" class="block text-sm font-medium text-gray-700 mb-2">
-												Client Secret
+												{$t('admin.clientSecret')}
 											</label>
 											<input
 												type="password"
@@ -696,13 +701,13 @@
 												value={currentFormData.clientSecret || ''}
 												on:input={(e) => updateFormData('clientSecret', e.currentTarget.value)}
 												class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-												placeholder="Enter Google OAuth Client Secret"
+												placeholder={$t('admin.enterGoogleClientSecret')}
 											/>
 										</div>
 
 										<div>
 											<label for="gd-refresh-token" class="block text-sm font-medium text-gray-700 mb-2">
-												Refresh Token
+												{$t('admin.refreshToken')}
 											</label>
 											<div class="flex gap-3">
 												<input
@@ -711,25 +716,24 @@
 													value={currentFormData.refreshToken || ''}
 													on:input={(e) => updateFormData('refreshToken', e.currentTarget.value)}
 													class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-													placeholder="Enter OAuth Refresh Token (or click Renew Token)"
+													placeholder={$t('admin.enterRefreshToken')}
 												/>
 												<button
 													type="button"
 													on:click={startGoogleOAuth}
 													class="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
 												>
-													Renew Token
+													{$t('admin.renewToken')}
 												</button>
 											</div>
 											<p class="mt-1 text-xs text-gray-500">
-												Click <strong>Renew Token</strong> to open Google's authorization window and
-												automatically save a new refresh token.
+												{$t('admin.renewTokenHelp')}
 											</p>
 										</div>
 
 										<div>
 											<label for="gd-storage-type" class="block text-sm font-medium text-gray-700 mb-2">
-												Storage Type
+												{$t('admin.storageType')}
 											</label>
 											<select
 												id="gd-storage-type"
@@ -737,14 +741,14 @@
 												on:change={(e) => updateFormData('storageType', e.currentTarget.value)}
 												class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
 											>
-												<option value="appdata">Hidden (AppData Folder)</option>
-												<option value="visible">Visible in User's Drive</option>
+												<option value="appdata">{$t('admin.storageTypeAppdata')}</option>
+												<option value="visible">{$t('admin.storageTypeVisible')}</option>
 											</select>
 											<p class="mt-1 text-xs text-gray-500">
 												{#if (currentFormData.storageType || 'appdata') === 'appdata'}
-													Files will be hidden from users in AppData folder
+													{$t('admin.storageTypeAppdataDescription')}
 												{:else}
-													Files will be visible in user's Google Drive
+													{$t('admin.storageTypeVisibleDescription')}
 												{/if}
 											</p>
 										</div>
@@ -762,7 +766,7 @@
 										{#if (currentFormData.storageType || 'appdata') === 'visible'}
 											<div>
 												<label for="gd-folder-id" class="block text-sm font-medium text-gray-700 mb-2">
-													Folder ID (Optional)
+													{$t('admin.folderIdOptional')}
 												</label>
 												<input
 													type="text"
@@ -770,10 +774,10 @@
 													value={currentFormData.folderId || ''}
 													on:input={(e) => updateFormData('folderId', e.currentTarget.value)}
 													class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-													placeholder="Leave empty to use root folder"
+													placeholder={$t('admin.folderIdOptional')}
 												/>
 												<p class="mt-1 text-xs text-gray-500">
-													Google Drive folder ID where files will be stored. Leave empty for root folder.
+													{$t('admin.folderIdHelp')}
 												</p>
 											</div>
 										{/if}
@@ -785,7 +789,7 @@
 											disabled={saving}
 											class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
 										>
-											{saving ? 'Saving...' : 'Save Configuration'}
+											{saving ? $t('admin.saving') : $t('admin.saveConfiguration')}
 										</button>
 										<button
 											type="button"
@@ -793,20 +797,20 @@
 											disabled={testingConnection}
 											class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
 										>
-											{testingConnection ? 'Testing...' : 'Test Connection'}
+											{testingConnection ? $t('admin.connectionTest') : $t('admin.testConnection')}
 										</button>
 										<button
 											type="button"
 											on:click={() => toggleTreeView('google-drive')}
 											class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
 										>
-											{showTreeView && activeTab === 'google-drive' ? 'Hide Tree' : 'View Tree'}
+											{showTreeView && activeTab === 'google-drive' ? $t('admin.hideTree') : $t('admin.viewTree')}
 										</button>
 									</div>
 									
 									{#if testResult === 'success'}
 										<div class="mt-3 rounded-md bg-green-50 border border-green-200 px-3 py-2 text-sm text-green-800">
-											Connection test successful.
+											{$t('admin.connectionSuccessful')}
 										</div>
 									{:else if testResult}
 										<div class="mt-3 rounded-md bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-800">
@@ -819,10 +823,10 @@
 							<!-- Tree View -->
 							{#if showTreeView && activeTab === 'google-drive'}
 								<div class="border-t border-gray-200 pt-6">
-									<h3 class="text-lg font-semibold text-gray-900 mb-4">Folder Tree</h3>
+									<h3 class="text-lg font-semibold text-gray-900 mb-4">{$t('admin.folderTree')}</h3>
 									{#if loadingTree}
 										<div class="text-center py-12">
-											<p class="text-gray-600">Loading folder tree...</p>
+											<p class="text-gray-600">{$t('admin.loadingFolderTree')}</p>
 										</div>
 									{:else if treeError}
 										<div class="bg-red-50 border border-red-200 rounded-md p-4">
@@ -832,7 +836,7 @@
 												on:click={() => loadTree('google-drive')}
 												class="mt-3 text-sm text-red-600 hover:text-red-800 underline"
 											>
-												Retry
+												{$t('admin.retry')}
 											</button>
 										</div>
 									{:else if treeData}
@@ -841,7 +845,7 @@
 										</div>
 									{:else}
 										<div class="text-center py-12">
-											<p class="text-gray-600">No data available</p>
+											<p class="text-gray-600">{$t('admin.noDataAvailable')}</p>
 										</div>
 									{/if}
 								</div>

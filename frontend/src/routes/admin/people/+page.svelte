@@ -5,6 +5,7 @@
 	import { MultiLangUtils } from '$utils/multiLang';
 	import MultiLangInput from '$lib/components/MultiLangInput.svelte';
 	import type { MultiLangText } from '$lib/types/multi-lang';
+	import { t } from '$stores/i18n';
 	import { useCrudLoader } from '$lib/composables/useCrudLoader';
 	import { useCrudOperations } from '$lib/composables/useCrudOperations';
 	import { useDialogManager } from '$lib/composables/useDialogManager';
@@ -47,9 +48,9 @@
 	type PersonPayload = Partial<Omit<Person, '_id' | 'fullName'>> & { tags: string[] };
 
 	const crudOps = useCrudOperations<Person>('/api/admin/people', {
-		createSuccessMessage: 'Person created successfully!',
-		updateSuccessMessage: 'Person updated successfully!',
-		deleteSuccessMessage: 'Person deleted successfully!',
+		createSuccessMessage: $t('admin.personCreatedSuccessfully'),
+		updateSuccessMessage: $t('admin.personUpdatedSuccessfully'),
+		deleteSuccessMessage: $t('admin.personDeletedSuccessfully'),
 		transformPayload: (data: PersonFormData): PersonPayload => {
 			let tagsArray: string[] = [];
 			if (data.tags) {
@@ -213,17 +214,26 @@
 	}
 
 	function getPersonDisplayName(person: Person): string {
-		return MultiLangUtils.getTextValue(person.fullName, $currentLanguage) ||
-			MultiLangUtils.getTextValue(person.firstName, $currentLanguage) + ' ' +
-			MultiLangUtils.getTextValue(person.lastName, $currentLanguage) ||
-			'Unknown Person';
+		const fullName =
+			MultiLangUtils.getTextValue(person.fullName, $currentLanguage) ||
+			[
+				MultiLangUtils.getTextValue(person.firstName, $currentLanguage),
+				MultiLangUtils.getTextValue(person.lastName, $currentLanguage)
+			]
+				.filter(Boolean)
+				.join(' ');
+		return fullName || $t('admin.unknownPerson');
 	}
 
 	function formatDate(dateString: string): string {
 		if (!dateString) return '';
 		try {
 			const date = new Date(dateString);
-			return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+			return date.toLocaleDateString($currentLanguage === 'he' ? 'he-IL' : 'en-US', {
+				year: 'numeric',
+				month: 'short',
+				day: 'numeric'
+			});
 		} catch {
 			return dateString;
 		}
@@ -231,7 +241,7 @@
 </script>
 
 <svelte:head>
-	<title>People Management - Admin</title>
+	<title>{$t('admin.peopleManagement')} - {$t('navigation.admin')}</title>
 </svelte:head>
 
 <div class="min-h-screen bg-gray-50 py-8">
@@ -239,14 +249,14 @@
 		<div class="bg-white rounded-lg shadow-md p-6">
 			<div class="flex items-center justify-between mb-6">
 				<div>
-					<h1 class="text-2xl font-bold text-gray-900">People Management</h1>
-					<p class="text-gray-600 mt-2">Manage people who appear in your photos</p>
+					<h1 class="text-2xl font-bold text-gray-900">{$t('admin.peopleManagement')}</h1>
+					<p class="text-gray-600 mt-2">{$t('admin.managePeopleStructuredData')}</p>
 				</div>
 				<a
 					href="/admin"
 					class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm font-medium"
 				>
-					← Back to Admin
+					{$t('admin.backToAdmin')}
 				</a>
 			</div>
 
