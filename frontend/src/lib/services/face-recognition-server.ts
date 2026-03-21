@@ -11,7 +11,19 @@ import { logger } from '../utils/logger'
 
 // Lazy load face-api.js to avoid monkeyPatch issues at module load time
 let faceapi: typeof import('face-api.js') | null = null
-let isPatched = false
+
+type CanvasBindings = { Canvas: typeof Canvas; Image: typeof Image; ImageData: typeof ImageData }
+
+/** Subset of face-api.js env we mutate for Node + canvas (library types are loose). */
+type FaceApiEnvMut = {
+  createNodejsEnv?: (impl: CanvasBindings) => unknown
+  setEnv?: (v: unknown) => void
+  isNodejs?: () => boolean
+  isBrowser?: () => boolean
+  initialize?: () => void
+  getEnv?: () => unknown
+  monkeyPatch?: (impl: CanvasBindings) => void
+}
 
 async function getFaceApi() {
   if (!faceapi) {
@@ -23,7 +35,8 @@ async function getFaceApi() {
     if (typeof process !== 'undefined' && process.versions && process.versions.node) {
       // We're in Node.js, ensure face-api.js knows this
       try {
-        const env = faceapi.env as any
+        const env = faceapi.env as unknown as FaceApiEnvMut
+        const bindings: CanvasBindings = { Canvas, Image, ImageData }
         
         // The issue: face-api.js checks internal environment state, not just isNodejs/isBrowser
         // We need to ensure the internal environment object is properly initialized
@@ -33,7 +46,7 @@ async function getFaceApi() {
         if (typeof env.createNodejsEnv === 'function') {
           try {
             // createNodejsEnv should set up the internal environment
-            const nodeEnv = env.createNodejsEnv({ Canvas, Image, ImageData } as any)
+            const nodeEnv = env.createNodejsEnv(bindings)
             logger.debug('Created Node.js environment using createNodejsEnv()', nodeEnv ? 'with return value' : 'without return value')
             
             // If it returns an environment object, try to use setEnv with it
@@ -70,7 +83,7 @@ async function getFaceApi() {
             // Try setting to 'node' string
             env.setEnv('node')
             logger.debug('Set environment to "node" using setEnv()')
-          } catch (e) {
+          } catch {
             // If that fails, try with an object
             try {
               env.setEnv({ isNodejs: true, isBrowser: false })
@@ -105,8 +118,7 @@ async function getFaceApi() {
         
         // Step 6: Now monkey patch with Node.js canvas
         // The environment should be properly initialized now
-        faceapi.env.monkeyPatch({ Canvas, Image, ImageData } as any)
-        isPatched = true
+        env.monkeyPatch?.(bindings)
         logger.debug('Face-api.js monkeyPatch successful')
       } catch (error) {
         logger.error('Failed to monkey patch face-api.js:', error)
@@ -279,8 +291,9 @@ export class FaceRecognitionServerService {
     })
 
     // Detect faces with landmarks
+    // face-api.js typings target DOM Image; node-canvas Image is runtime-compatible
     const detections = await faceApi
-      .detectAllFaces(img as any, new faceApi.TinyFaceDetectorOptions())
+      .detectAllFaces(img as unknown as HTMLImageElement, new faceApi.TinyFaceDetectorOptions())
       .withFaceLandmarks()
       .withFaceDescriptors()
 

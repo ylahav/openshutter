@@ -5,7 +5,7 @@
  * create, update, and delete operations with consistent error handling,
  * loading states, and success messaging.
  * 
- * @template T - The type of items being created/updated (defaults to `any`)
+ * @template T - The type of items being created/updated (defaults to `unknown`)
  * 
  * @param endpoint - The base API endpoint URL (e.g., '/api/admin/people')
  * @param options - Configuration options for payload transformation and callbacks
@@ -113,7 +113,7 @@ export function useCrudOperations<T = unknown>(
 	 * }
 	 * ```
 	 */
-	async function create(data: any): Promise<T | null> {
+	async function create(data: Partial<T> & Record<string, unknown>): Promise<T | null> {
 		saving.set(true);
 		error.set('');
 		message.set('');
@@ -181,7 +181,7 @@ export function useCrudOperations<T = unknown>(
 	 * }
 	 * ```
 	 */
-	async function update(id: string, data: any): Promise<T | null> {
+	async function update(id: string, data: Partial<T> & Record<string, unknown>): Promise<T | null> {
 		saving.set(true);
 		error.set('');
 		message.set('');

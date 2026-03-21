@@ -31,7 +31,7 @@ if (typeof process !== 'undefined') {
 		if (source === 'default') {
 			logger.warn(`⚠️  WARNING: Using default backend URL. Set BACKEND_URL in frontend/.env.production to match your backend port!`);
 		}
-	} catch (e) {
+	} catch {
 		// If URL parsing fails, just log the raw value
 		const source = env.BACKEND_URL ? 'env.BACKEND_URL' : process.env.BACKEND_URL ? 'process.env.BACKEND_URL' : 'default';
 		logger.info(`🔗 Frontend connecting to backend: ${BACKEND_URL} [source: ${source}]`);
@@ -133,9 +133,14 @@ export async function backendRequest(
 		});
 	}
 
-	const finalHeaders = {
+	const optionHeaders: Record<string, string> =
+		options.headers && typeof options.headers === 'object' && !Array.isArray(options.headers)
+			? (options.headers as Record<string, string>)
+			: {};
+
+	const finalHeaders: Record<string, string> = {
 		...defaultHeaders,
-		...options.headers,
+		...optionHeaders,
 	};
 
 	// Always log request details to help diagnose auth issues

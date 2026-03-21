@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+### Changed
+- **Frontend database access**: The SvelteKit app no longer opens MongoDB or registers Mongoose models. Persistence and queries go through the NestJS backend API only. `frontend/src/lib/mongodb.ts` exports `connectToDatabase` / `connectMongoose` stubs that throw with a clear message. Narrow collection helpers (`legacy-mongo-audit.ts`, `legacy-mongo-storage-config.ts`) remain for typed legacy call sites; shared domain types live under `frontend/src/lib/types` and `frontend/src/types`.
+
 ### Fixed
 - **Elegant theme – album load more**: Album page now shows a “Load more” button for large albums; pagination (first 50 photos, then load next page) was previously missing in the elegant template.
 

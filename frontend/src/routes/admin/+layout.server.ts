@@ -19,9 +19,9 @@ export const load: LayoutServerLoad = async ({ locals, url, cookies }) => {
 	if (locals.user.role === 'owner' && url.pathname.startsWith('/admin/storage')) {
 		try {
 			const response = await backendGet('/auth/profile', { cookies });
-			const result = await parseBackendResponse<{ user?: { storageConfig?: { useAdminConfig?: boolean } } }>(response);
-			const user = result?.user ?? result;
-			if (user?.storageConfig?.useAdminConfig === true) {
+			const result = await parseBackendResponse<{ user?: { storageConfig?: { useAdminConfig?: boolean } }; storageConfig?: { useAdminConfig?: boolean } }>(response);
+			const profile = result?.user ?? result;
+			if (profile?.storageConfig?.useAdminConfig === true) {
 				throw redirect(303, '/owner');
 			}
 		} catch (e) {

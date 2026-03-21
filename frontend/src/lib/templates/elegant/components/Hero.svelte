@@ -48,6 +48,7 @@
 		intervalId = setInterval(() => {
 			currentPhotoIndex = (currentPhotoIndex + 1) % photos.length;
 		}, ROTATION_INTERVAL);
+		void intervalId;
 	}
 
 	$: currentPhoto = photos[currentPhotoIndex];

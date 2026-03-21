@@ -35,18 +35,18 @@
   ],
   "author": "OpenShutter Team",
   "license": "MIT",
-  "packageManager": "pnpm@10.32.0",
+  "packageManager": "pnpm@10.32.1",
   "engines": {
     "node": ">=18.0.0",
     "pnpm": ">=8.0.0"
   },
   "dependencies": {
-    "@tiptap/core": "3.20.3",
-    "@tiptap/extension-color": "3.20.3",
-    "@tiptap/extension-link": "3.20.3",
-    "@tiptap/extension-text-align": "3.20.3",
-    "@tiptap/extension-text-style": "3.20.3",
-    "@tiptap/extension-underline": "3.20.3",
-    "@tiptap/starter-kit": "3.20.3"
+    "@tiptap/core": "3.20.4",
+    "@tiptap/extension-color": "3.20.4",
+    "@tiptap/extension-link": "3.20.4",
+    "@tiptap/extension-text-align": "3.20.4",
+    "@tiptap/extension-text-style": "3.20.4",
+    "@tiptap/extension-underline": "3.20.4",
+    "@tiptap/starter-kit": "3.20.4"
   }
 }

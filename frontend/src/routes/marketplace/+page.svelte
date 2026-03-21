@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import { productName } from '$stores/siteConfig';
+	import { t } from '$stores/i18n';
 
 	export let data: PageData;
 

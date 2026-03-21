@@ -49,7 +49,7 @@ A comprehensive photo gallery management system with multi-storage support, adva
 - **Backend**: Node.js, NestJS, Mongoose
 - **Database**: MongoDB
 - **Storage**: Google Drive API, AWS S3, Backblaze B2, Wasabi, Local Storage
-- **Authentication**: NextAuth.js (being adapted for SvelteKit)
+- **Authentication**: JWT-based sessions compatible with SvelteKit (see env examples below)
 - **Rich Text**: Tiptap Editor
 - **State Management**: Svelte stores and reactivity (migrating from React Query)
 
@@ -241,7 +241,7 @@ For detailed deployment instructions, see [docs/SERVER_DEPLOYMENT.md](docs/SERVE
 │   │   ├── lib/         # SvelteKit library code
 │   │   │   ├── components/  # Svelte components
 │   │   │   ├── stores/      # Svelte stores (language, siteConfig, i18n)
-│   │   │   ├── types/       # TypeScript types
+│   │   │   ├── types/       # TypeScript types (no Mongoose; DB is backend-only)
 │   │   │   ├── utils/       # Utility functions
 │   │   │   └── i18n/        # Translation files (en.json, he.json)
 │   │   └── templates/   # Gallery templates
@@ -273,6 +273,8 @@ For detailed deployment instructions, see [docs/SERVER_DEPLOYMENT.md](docs/SERVE
 **Note**: The `tmp/` folder (if present) contains temporary build artifacts and can be safely deleted. It is excluded from version control via `.gitignore`.
 
 **Status**: The frontend is built on SvelteKit. All core user/admin flows run through Svelte routes under `frontend/src/routes`.
+
+**Database from the frontend**: The SvelteKit app does not connect to MongoDB. Use the NestJS backend API; `frontend/src/lib/mongodb.ts` is a stub that errors if legacy code calls it.
 
 ## 🔧 Configuration
 
@@ -540,14 +542,6 @@ User management (Admin → Users) includes assigning **role** (admin/owner/guest
 | **Album edit – access control UI** | ✅ Done | Admin album edit form includes access section with **allowedUsers** and **allowedGroups** selectors, persisted via the admin albums API. |
 | **Album update API** | ✅ Done | Backend `UpdateAlbumDto` and PUT handler accept and persist `allowedUsers` / `allowedGroups` and serialize them for admin/owner UIs. |
 | **Album list by access** | ✅ Done | Public albums and hierarchy APIs use an access context (user + groups) to filter by `isPublic`, `createdBy`, `allowedUsers`, and `allowedGroups` so restricted albums are only returned to permitted users. |
-
-**Suggested next actions (in order):**
-1. **Backend**: Add `allowedUsers` and `allowedGroups` to `UpdateAlbumDto`; in admin PUT album handler, read and persist them (ObjectIds for allowedUsers, strings for allowedGroups).
-2. **Frontend**: In Admin → Albums → Edit, add an “Access” section: multi-select for **Groups** (from `/api/admin/groups`) and **Users** (from `/api/admin/users`), and send `allowedGroups` and `allowedUsers` in the update payload.
-3. **Backend**: For non-admin album listing, pass the current user (e.g. from auth) into the albums API and filter albums by: `isPublic` OR `createdBy === user.id` OR `user.id` in `allowedUsers` OR any of `user.groupAliases` in `allowedGroups`. Apply the same logic to hierarchy and single-album endpoints when used for non-admin.
-4. **Frontend**: Ensure `/api/albums` (and hierarchy) are called with credentials so the backend can identify the user; if the backend needs a “mine” or “forCurrentUser” mode, add and forward that parameter.
-
-After (1)–(4), “User role management” (including groups for album access) can be marked complete on the roadmap.
 
 ---
 

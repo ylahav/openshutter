@@ -91,13 +91,13 @@ export interface TemplatePage {
   name: string
   path: string
   component: string
-  props?: Record<string, any>
+  props?: Record<string, unknown>
 }
 
 export interface TemplateComponent {
   name: string
   path: string
-  props?: Record<string, any>
+  props?: Record<string, unknown>
 }
 
 export interface SiteTemplateConfig {

@@ -1,5 +1,4 @@
 // Service Worker for OpenShutter - Enhanced Mobile Support
-const CACHE_NAME = 'openshutter-v2'
 const STATIC_CACHE = 'openshutter-static-v2'
 const DYNAMIC_CACHE = 'openshutter-dynamic-v2'
 const IMAGE_CACHE = 'openshutter-images-v2'

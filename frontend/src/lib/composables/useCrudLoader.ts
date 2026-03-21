@@ -4,7 +4,7 @@
  * Eliminates duplication across admin CRUD pages by providing a standardized
  * way to load, filter, and search data from API endpoints.
  * 
- * @template T - The type of items in the array (defaults to `any`)
+ * @template T - The type of items in the array (defaults to `unknown`)
  * 
  * @param endpoint - The base API endpoint URL (e.g., '/api/admin/people')
  * @param options - Configuration options for search, filters, and transformations
@@ -66,7 +66,7 @@ import { writable } from 'svelte/store';
 import { logger } from '../utils/logger';
 import { handleError, handleApiErrorResponse } from '../utils/errorHandler';
 
-export interface CrudLoaderOptions {
+export interface CrudLoaderOptions<T = unknown> {
 	/** Search parameter name (e.g., 'search', 'q') */
 	searchParam?: string;
 	/** Function that returns current search value */
@@ -76,7 +76,7 @@ export interface CrudLoaderOptions {
 	/** Custom endpoint builder function for advanced URL construction */
 	endpointBuilder?: (baseEndpoint: string, params: URLSearchParams) => string;
 	/** Transform function to modify response data before setting items */
-	transform?: (data: any) => any;
+	transform?: (data: T[]) => T[];
 	/** Enable pagination support (optional, defaults to false) */
 	pagination?: {
 		/** Current page number (1-indexed) */
@@ -95,9 +95,9 @@ export interface CrudLoaderOptions {
 	};
 }
 
-export function useCrudLoader<T = any>(
+export function useCrudLoader<T = unknown>(
 	endpoint: string,
-	options: CrudLoaderOptions = {}
+	options: CrudLoaderOptions<T> = {}
 ) {
 	const items = writable<T[]>([]);
 	const loading = writable(false);

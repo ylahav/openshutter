@@ -1,7 +1,7 @@
 // Stub file - MongoDB connections are now handled by the NestJS backend
 // This file exists to prevent build errors for legacy service files that aren't used in active routes
 
-export async function connectToDatabase(): Promise<{ client: any; db: any }> {
+export async function connectToDatabase(): Promise<{ client: unknown; db: unknown }> {
 	throw new Error(
 		'MongoDB direct connections are no longer supported. Use the NestJS backend API instead.'
 	);

@@ -3,12 +3,13 @@ import { siteConfigData } from '$stores/siteConfig';
 import { browser } from '$app/environment';
 import { auth } from '$lib/stores/auth';
 import { page } from '$app/stores';
+import type { SiteConfig } from '$lib/types/site-config';
 
 /**
  * Helper function to get the template name based on area (frontend or admin)
  * Supports backward compatibility with activeTemplate
  */
-function getTemplateForArea(config: any, area: 'frontend' | 'admin'): string {
+function getTemplateForArea(config: SiteConfig | null, area: 'frontend' | 'admin'): string {
 	if (area === 'admin') {
 		return config?.template?.adminTemplate || config?.template?.activeTemplate || 'default';
 	} else {

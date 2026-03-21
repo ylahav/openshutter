@@ -1,7 +1,7 @@
 import type { RequestHandler } from './$types';
 import { readFile, access, stat } from 'fs/promises';
 import { join, normalize, isAbsolute } from 'path';
-import { storageConfigService } from '$lib/services/storage/config';
+import { storageConfigService } from '$lib/services/storage/config.server';
 
 export const GET: RequestHandler = async ({ params }) => {
 	try {

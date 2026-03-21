@@ -1,10 +1,21 @@
 import sharp from 'sharp'
 import { connectToDatabase } from '$lib/mongodb'
 import { storageManager } from './storage/manager'
-import { ObjectId } from 'mongodb'
 import { ThumbnailGenerator } from './thumbnail-generator'
 import { ImageCompressionService } from './image-compression'
 import { logger } from '$lib/utils/logger'
+
+// Local placeholder to avoid importing the backend-only `mongodb` runtime in frontend code.
+// The actual database connection is handled by the NestJS backend.
+class ObjectId {
+	private value: string;
+	constructor(id: string) {
+		this.value = id;
+	}
+	toString(): string {
+		return this.value;
+	}
+}
 
 export interface PhotoUploadOptions {
   albumId?: string

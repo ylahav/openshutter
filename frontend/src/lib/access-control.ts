@@ -27,14 +27,17 @@ export function canCreateAlbums(user: UserSession | null): boolean {
  * @param user - User session information
  * @returns boolean indicating if user can edit album
  */
-export function canEditAlbum(album: any, user: UserSession | null): boolean {
+export function canEditAlbum(
+  album: Pick<AlbumAccessInfo, 'createdBy'> | null | undefined,
+  user: UserSession | null
+): boolean {
   if (!user) return false
   
   // Admins can edit everything
   if (user.role === 'admin') return true
   
   // Owners can edit their own albums
-  if (user.role === 'owner' && album.createdBy === user.id) return true
+  if (user.role === 'owner' && album?.createdBy === user.id) return true
   
   return false
 }
@@ -45,14 +48,17 @@ export function canEditAlbum(album: any, user: UserSession | null): boolean {
  * @param user - User session information
  * @returns boolean indicating if user can delete album
  */
-export function canDeleteAlbum(album: any, user: UserSession | null): boolean {
+export function canDeleteAlbum(
+  album: Pick<AlbumAccessInfo, 'createdBy'> | null | undefined,
+  user: UserSession | null
+): boolean {
   if (!user) return false
   
   // Admins can delete everything
   if (user.role === 'admin') return true
   
   // Owners can delete their own albums
-  if (user.role === 'owner' && album.createdBy === user.id) return true
+  if (user.role === 'owner' && album?.createdBy === user.id) return true
   
   return false
 }

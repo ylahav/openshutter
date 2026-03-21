@@ -88,7 +88,7 @@ Welcome to the OpenShutter documentation. This comprehensive guide covers all as
 ## 🏗️ Architecture
 
 ### Tech Stack
-- **Frontend**: SvelteKit 2, Svelte 5, TypeScript
+- **Frontend**: SvelteKit 2, Svelte 5, TypeScript (data via NestJS API; no direct MongoDB/Mongoose in the frontend)
 - **Styling**: Tailwind CSS, Svelte transitions
 - **Backend**: NestJS API (port 5000), MongoDB
 - **Storage**: Google Drive API, AWS S3, Backblaze B2, Wasabi, Local Storage
@@ -158,7 +158,7 @@ pnpm type-check   # TypeScript checking
 - **Main README**: [../README.md](../README.md) - Complete setup and usage guide
 - **API Documentation**: Backend API available at `http://localhost:5000/api`
 - **Component Library**: Located in `src/lib/components/` (Svelte)
-- **Type Definitions**: Available in `src/lib/types/`
+- **Type Definitions**: `frontend/src/lib/types/` and `frontend/src/types/`
 
 ## 🆘 Support
 
@@ -170,6 +170,6 @@ For issues, questions, or contributions:
 
 ---
 
-*Last updated: January 2025*
+*Last updated: March 2025*
 
 **Note**: The frontend uses SvelteKit throughout; all new work should target Svelte routes and Svelte components.

@@ -2,6 +2,8 @@
  * Shared search types for OpenShutter
  */
 
+import type { Album, Location, Person, Photo } from './index'
+
 export interface MobileSearchFilters {
   type: 'all' | 'photos' | 'albums' | 'people' | 'locations'
   tags: string[]
@@ -39,10 +41,10 @@ export interface SearchResult {
 }
 
 export interface SearchResults {
-  photos: any[] // Full photo objects from database
-  albums: any[] // Full album objects from database
-  people: any[] // Full person objects from database
-  locations: any[] // Full location objects from database
+  photos: Photo[]
+  albums: Album[]
+  people: Person[]
+  locations: Location[]
   totalPhotos: number
   totalAlbums: number
   totalPeople: number

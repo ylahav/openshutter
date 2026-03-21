@@ -12,7 +12,18 @@ export const DEFAULT_PAGE_LAYOUTS: Record<string, { gridRows: number; gridColumn
 	footer: { gridRows: 2, gridColumns: 1 }
 };
 
-export const DEFAULT_PAGE_MODULES: Record<string, any[]> = {
+/** Default theme module row — props vary by `type` */
+export type DefaultPageModule = {
+	_id: string
+	type: string
+	props: Record<string, unknown>
+	rowOrder: number
+	columnIndex: number
+	rowSpan: number
+	colSpan: number
+}
+
+export const DEFAULT_PAGE_MODULES: Record<string, DefaultPageModule[]> = {
 	home: [
 		{
 			_id: 'mod_default_home_hero',

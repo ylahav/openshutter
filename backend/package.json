@@ -11,8 +11,8 @@
     "lint": "eslint src/**/*.ts"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.1010.0",
-    "@aws-sdk/s3-request-presigner": "^3.1010.0",
+    "@aws-sdk/client-s3": "^3.1014.0",
+    "@aws-sdk/s3-request-presigner": "^3.1014.0",
     "@nestjs/common": "^11.1.17",
     "@nestjs/config": "^4.0.3",
     "@nestjs/core": "^11.1.17",
@@ -31,10 +31,10 @@
     "express": "^5.2.1",
     "face-api.js": "^0.22.2",
     "googleapis": "^171.4.0",
-    "jose": "^6.2.1",
-    "mongoose": "^9.3.0",
+    "jose": "^6.2.2",
+    "mongoose": "^9.3.1",
     "multer": "^2.1.1",
-    "nodemailer": "^8.0.2",
+    "nodemailer": "^8.0.3",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
     "sharp": "^0.34.5",
@@ -53,7 +53,7 @@
     "@types/nodemailer": "^7.0.11",
     "@typescript-eslint/eslint-plugin": "^8.57.1",
     "@typescript-eslint/parser": "^8.57.1",
-    "eslint": "^10.0.3",
+    "eslint": "^10.1.0",
     "nodemon": "^3.1.14",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"

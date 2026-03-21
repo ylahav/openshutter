@@ -3,7 +3,7 @@ export interface StorageProviderConfig {
   providerId: string
   name: string
   isEnabled: boolean
-  config: Record<string, any>
+  config: Record<string, unknown>
   createdAt: Date
   updatedAt: Date
 }

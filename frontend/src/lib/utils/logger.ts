@@ -9,19 +9,23 @@
  */
 
 const isDev = import.meta.env.DEV;
-const isProduction = import.meta.env.PROD;
+
+type SentryLike = {
+	captureException?: (error: Error, context?: unknown) => void;
+	captureMessage?: (message: string, context?: unknown) => void;
+};
 
 /**
  * Get Sentry instance if available
  * Sentry is optional and may not be configured
  */
-function getSentry(): any {
+function getSentry(): SentryLike | null {
 	if (typeof window === 'undefined') {
 		return null; // Server-side: Sentry should be initialized in hooks.server.ts
 	}
 	
 	// Try to get Sentry from window (initialized by @sentry/sveltekit)
-	const sentry = (window as any).Sentry;
+	const sentry = (window as unknown as { Sentry?: SentryLike }).Sentry;
 	if (sentry && (sentry.captureException || sentry.captureMessage)) {
 		return sentry;
 	}
@@ -69,8 +73,8 @@ export function configureLogger(newConfig: Partial<LoggerConfig>) {
 /**
  * Format log message with prefix and timestamp
  */
-function formatMessage(level: string, ...args: any[]): any[] {
-	const parts: any[] = [];
+function formatMessage(level: string, ...args: unknown[]): unknown[] {
+	const parts: unknown[] = [];
 	
 	if (config.prefix) {
 		parts.push(`[${config.prefix}]`);
@@ -102,7 +106,7 @@ export const logger = {
 	 * Debug logs - only shown in development
 	 * Use for detailed debugging information
 	 */
-	debug: (...args: any[]) => {
+	debug: (...args: unknown[]) => {
 		if (shouldLog(LogLevel.DEBUG)) {
 			console.log(...formatMessage('DEBUG', ...args));
 		}
@@ -112,7 +116,7 @@ export const logger = {
 	 * Info logs - shown in development, can be enabled in production
 	 * Use for general informational messages
 	 */
-	info: (...args: any[]) => {
+	info: (...args: unknown[]) => {
 		if (shouldLog(LogLevel.INFO)) {
 			console.info(...formatMessage('INFO', ...args));
 		}
@@ -122,7 +126,7 @@ export const logger = {
 	 * Warning logs - shown in all environments
 	 * Use for warnings that don't break functionality
 	 */
-	warn: (...args: any[]) => {
+	warn: (...args: unknown[]) => {
 		if (shouldLog(LogLevel.WARN)) {
 			console.warn(...formatMessage('WARN', ...args));
 		}
@@ -134,7 +138,7 @@ export const logger = {
 	 * 
 	 * Automatically sends errors to Sentry if configured
 	 */
-	error: (...args: any[]) => {
+	error: (...args: unknown[]) => {
 		if (shouldLog(LogLevel.ERROR)) {
 			console.error(...formatMessage('ERROR', ...args));
 			
@@ -143,7 +147,7 @@ export const logger = {
 			if (sentry) {
 				try {
 					// Extract error from args
-					const errorArg = args.find(arg => arg instanceof Error);
+					const errorArg = args.find((arg): arg is Error => arg instanceof Error);
 					if (errorArg) {
 						// Send Error object to Sentry
 						if (sentry.captureException) {
@@ -218,7 +222,7 @@ export const logger = {
 	/**
 	 * Table output (useful for debugging objects/arrays)
 	 */
-	table: (data: any) => {
+	table: (data: unknown) => {
 		if (isDev) {
 			console.table(data);
 		}

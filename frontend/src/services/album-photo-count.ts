@@ -1,5 +1,16 @@
 import { connectToDatabase } from '$lib/mongodb';
-import { ObjectId } from 'mongodb';
+
+// Local placeholder to avoid importing the backend-only `mongodb` runtime in frontend code.
+// The actual database connection is handled by the NestJS backend.
+class ObjectId {
+	private value: string;
+	constructor(id: string) {
+		this.value = id;
+	}
+	toString(): string {
+		return this.value;
+	}
+}
 
 export interface AlbumPhotoCountResult {
   directPhotoCount: number

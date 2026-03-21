@@ -48,6 +48,8 @@
 		intervalId = setInterval(() => {
 			currentPhotoIndex = (currentPhotoIndex + 1) % photos.length;
 		}, ROTATION_INTERVAL);
+		// Read interval id so eslint knows the assignment is intentionally retained for the next reactive run / cleanup
+		void intervalId;
 	}
 
 	$: currentPhoto = photos[currentPhotoIndex];

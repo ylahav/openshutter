@@ -31,7 +31,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 				role: (payload.role as 'admin' | 'owner' | 'guest') ?? 'owner',
 				forcePasswordChange: Boolean(payload.forcePasswordChange)
 			};
-		} catch (error: any) {
+		} catch {
 			// Invalid/expired token - clear it
 			// Don't log errors here - backend will handle authentication
 			event.cookies.delete('auth_token', { path: '/' });

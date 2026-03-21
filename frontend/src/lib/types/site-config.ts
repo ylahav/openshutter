@@ -65,7 +65,7 @@ export interface SiteConfig {
       showTemplateSelector?: boolean
     }
     /** Per-page modules from theme: { home: [...], gallery: [...], etc. } */
-    pageModules?: Record<string, any[]>
+    pageModules?: Record<string, unknown[]>
     /** Per-page grid layout: { home: { gridRows: 3, gridColumns: 1 }, ... } */
     pageLayout?: Record<string, { gridRows?: number; gridColumns?: number }>
   }

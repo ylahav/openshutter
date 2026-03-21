@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { storageManager } from '$lib/services/storage/manager';
+import { storageManager } from '$lib/services/storage/manager.server';
 
 export const GET: RequestHandler = async () => {
 	try {

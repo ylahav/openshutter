@@ -3,16 +3,19 @@ import { currentLanguage } from './language';
 import enTranslations from '../../i18n/en.json';
 import heTranslations from '../../i18n/he.json';
 
-type TranslationDictionary = Record<string, any>;
+/** Nested JSON-like translation tree (leaves are strings). */
+type TranslationJson = string | { [key: string]: TranslationJson };
+
+type TranslationDictionary = TranslationJson;
 
 const translations: Record<string, TranslationDictionary> = {
-	en: enTranslations,
-	he: heTranslations,
+	en: enTranslations as TranslationDictionary,
+	he: heTranslations as TranslationDictionary,
 };
 
-function getNestedValue(obj: any, path: string): string | undefined {
+function getNestedValue(obj: TranslationJson | undefined, path: string): string | undefined {
 	const parts = path.split('.');
-	let current: any = obj;
+	let current: TranslationJson | undefined = obj;
 	
 	for (const part of parts) {
 		if (current && typeof current === 'object' && part in current) {

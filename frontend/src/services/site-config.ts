@@ -1,6 +1,6 @@
 import { connectToDatabase } from '$lib/mongodb'
 import type { SiteConfig, SiteConfigUpdate } from '$lib/types/site-config'
-import type { MultiLangText, MultiLangHTML } from '$lib/types/multi-lang'
+import type { MultiLangHTML, MultiLangText } from '$lib/types/multi-lang'
 import { MultiLangUtils } from '$lib/types/multi-lang'
 
 export class SiteConfigService {
@@ -63,7 +63,7 @@ export class SiteConfigService {
       updatedAt: new Date()
     }
     
-    const result = await collection.updateOne(
+    await collection.updateOne(
       {}, // Update the first (and only) config document
       { $set: updateData },
       { upsert: true }
@@ -79,13 +79,13 @@ export class SiteConfigService {
   /**
    * Migrate existing string-based title/description to multi-language format
    */
-  private migrateToMultiLang(config: any): any {
+  private migrateToMultiLang(config: Record<string, unknown>): Record<string, unknown> {
     // Convert string title to multi-language format
     if (typeof config.title === 'string') {
       config.title = { en: config.title }
     } else if (config.title && typeof config.title === 'object') {
       // Clean existing multi-language title
-      config.title = MultiLangUtils.clean(config.title)
+      config.title = MultiLangUtils.clean(config.title as MultiLangText)
     }
     
     // Convert string description to multi-language format
@@ -93,7 +93,7 @@ export class SiteConfigService {
       config.description = { en: config.description }
     } else if (config.description && typeof config.description === 'object') {
       // Clean existing multi-language description
-      config.description = MultiLangUtils.clean(config.description)
+      config.description = MultiLangUtils.clean(config.description as MultiLangHTML)
     }
     
     return config
@@ -110,13 +110,14 @@ export class SiteConfigService {
     const existingConfig = await collection.findOne({})
     if (existingConfig) {
       // Migrate to multi-language format if needed
-      const migratedConfig = this.migrateToMultiLang(existingConfig)
+      const migratedConfig = this.migrateToMultiLang(existingConfig as Record<string, unknown>)
       return migratedConfig as unknown as SiteConfig
     }
     
     // Create default config
     const defaultConfig = this.getDefaultConfig()
-    const { _id, ...configWithoutId } = defaultConfig
+    const { _id: _unusedDefaultId, ...configWithoutId } = defaultConfig
+    void _unusedDefaultId
     const result = await collection.insertOne(configWithoutId)
     
     return { ...defaultConfig, _id: result.insertedId.toString() }
