@@ -12,6 +12,10 @@
 	import TokenRenewalNotification from '$lib/components/TokenRenewalNotification.svelte';
 	import PhotoCopyProtection from '$lib/components/PhotoCopyProtection.svelte';
 	import { logger } from '$lib/utils/logger';
+	import { canonicalUrlFromPageUrl, pathShouldNoindex } from '$lib/utils/canonical-url';
+
+	$: canonicalHref = canonicalUrlFromPageUrl($page.url);
+	$: noindexPanel = pathShouldNoindex($page.url.pathname);
 
 	// Initialize site config and auth on mount (skip on login page)
 	onMount(() => {
@@ -38,6 +42,14 @@
 		}
 	});
 </script>
+
+<svelte:head>
+	<link rel="canonical" href={canonicalHref} />
+	<meta property="og:url" content={canonicalHref} />
+	{#if noindexPanel}
+		<meta name="robots" content="noindex, nofollow" />
+	{/if}
+</svelte:head>
 
 <ThemeProvider defaultTheme="system" enableSystem={true} disableTransitionOnChange={false}>
 	<PhotoCopyProtection />

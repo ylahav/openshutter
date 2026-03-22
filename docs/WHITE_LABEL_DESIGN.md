@@ -243,6 +243,8 @@ Each owner should have a **single, self-managed theme** for their domain. They c
   - Avoid leaking global-domain URLs in sitemaps or `<link rel="canonical">` when in owner context.
 - When multiple domains exist for one owner (`isPrimary` flag), canonical URLs should prefer the primary domain.
 
+**Status (implemented):** Root **`+layout.svelte`** sets **`<link rel="canonical">`** and **`og:url`** from the current request URL (`origin` + pathname + search, no hash), so visitors on a custom owner host get canonicals on that host. **`/admin`** and **`/owner`** receive **`noindex, nofollow`**. **Not yet implemented:** sitemap generation per host; forcing canonical to **`isPrimary`** when the same content is reachable from multiple owner hostnames.
+
 ---
 
 ## 5. Implementation Plan
@@ -290,6 +292,8 @@ Each owner should have a **single, self-managed theme** for their domain. They c
 4. **Owner-site behaviour**
    - On owner domains, ensure navigation and lists only show that owner’s content.
    - Update admin navigation on owner domains to reflect the scoped nature of the admin.
+5. **SEO (canonical)**
+   - **Status:** Root **`routes/+layout.svelte`**: canonical + **`og:url`** from request URL; **`noindex`** for **`/admin`** and **`/owner`**. See §4.2 for gaps (sitemap, **`isPrimary`** canonical).
 
 ### 5.3 Migration and rollout
 

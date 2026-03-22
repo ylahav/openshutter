@@ -112,7 +112,7 @@ Implementation: when `siteContext.type === 'owner-site'`, guards for `/admin` al
 #### 1.2.7 Edge cases and notes
 
 - **Multiple domains per owner:** Supported if using a mapping table; one can be marked primary for canonical URLs.
-- **SEO:** Canonical URLs should use the owner's domain when in owner context.
+- **SEO:** Canonical **`og:url`** use the request host (root layout). **Remaining:** per-host sitemaps; optional canonical override to **`owner_domains.isPrimary`** when multiple domains serve the same site.
 - **SSO (Phase 4 Enterprise):** When adding SSO, auth can be tied to `siteContext` so org-specific IdP can be used per domain/tenant later.
 
 **Deliverables:** Design doc (domain mapping, host resolution, security, per-owner storage); backend: `owner_domains` + host-resolution middleware + **owner storage resolution** (`useDedicatedStorage`, `owner_storage_configs`); frontend: `siteContext`, owner-scoped public routes and `/admin`; admin UI for owner domains and per-owner storage (flag + **`/owner/storage`**); DNS/TLS runbook (**`docs/WHITE_LABEL_DEPLOY.md`** for Solution 1 + owner-domain notes).

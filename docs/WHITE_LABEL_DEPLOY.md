@@ -38,3 +38,4 @@ Short runbook for **Phase 4 Stage 1**: Solution 1 (single branded install) and S
 
 - Send a **test email** after configuring SMTP (Admin → Site config → Email) and verify **`{{siteTitle}}`** matches **`productName`** or title.  
 - After enabling **Hide OpenShutter branding**, spot-check login, footer, and a welcome email.
+- **SEO:** On an owner domain, view page source and confirm **`<link rel="canonical">`** and **`og:url`** use that domain’s origin (not the main site URL). Ensure your reverse proxy forwards **`Host`** / **`X-Forwarded-Host`** (and **`X-Forwarded-Proto`** if TLS terminates at the edge) so SSR builds the correct absolute URLs.
