@@ -60,9 +60,14 @@
 			return payload as UserPayload;
 		},
 		onCreateSuccess: (newUser) => {
-			crudLoader.items.update(items => [...items, newUser]);
-			dialogs.closeAll();
-			resetForm();
+			crudLoader.items.update((items) => [...items, newUser]);
+			if (newUser.role === 'owner') {
+				crudOps.message.set(get(t)('admin.ownerCreatedNextSteps'));
+				openEditDialog(newUser);
+			} else {
+				dialogs.closeAll();
+				resetForm();
+			}
 		},
 		onUpdateSuccess: (updatedUser) => {
 			const currentEditingUser = editingUser;

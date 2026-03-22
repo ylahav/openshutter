@@ -166,6 +166,11 @@
 					</span>
 				</label>
 			</div>
+			{#if formData.useDedicatedStorage}
+				<p class="text-xs text-blue-800 bg-blue-50 border border-blue-100 rounded-md px-3 py-2 mt-2">
+					{$t('admin.dedicatedStorageOwnerNextSteps')}
+				</p>
+			{/if}
 		</fieldset>
 	{/if}
 

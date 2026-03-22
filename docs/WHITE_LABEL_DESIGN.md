@@ -164,7 +164,7 @@ Implementation notes:
 
 Admin flow when creating or editing an `owner` user:
 
-1. Create owner user (existing flow).
+1. Create owner user (existing flow). **UX:** After submit, the UI opens **edit** for that user so the admin can add domains without finding them in the list; the Domains section includes a collapsible DNS/TLS checklist (i18n en/he).
 2. Optional “Domains” section:
    - Add domain: input `hostname`.
    - Validate uniqueness and basic syntax.
