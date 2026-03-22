@@ -34,6 +34,8 @@ export class MarketplaceService {
     category?: MarketplaceCategory;
     featured?: boolean;
     q?: string;
+    limit?: number;
+    offset?: number;
   }): Promise<IMarketplaceListing[]> {
     const filter: Record<string, unknown> = { isApproved: true };
     if (opts?.category) filter.category = opts.category;
@@ -46,9 +48,13 @@ export class MarketplaceService {
         { tags: re },
       ];
     }
+    const limit = Math.min(Math.max(opts?.limit ?? 100, 1), 200);
+    const offset = Math.max(opts?.offset ?? 0, 0);
     return this.listingModel
       .find(filter)
       .sort({ featured: -1, approvedAt: -1, createdAt: -1 })
+      .skip(offset)
+      .limit(limit)
       .lean()
       .exec() as Promise<IMarketplaceListing[]>;
   }

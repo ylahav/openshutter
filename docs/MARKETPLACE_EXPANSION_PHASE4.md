@@ -1,7 +1,7 @@
 # Integration Marketplace Expansion (Phase 4 – Stage 2)
 
 **Stage:** 4.2 Design + Implementation  
-**Status:** In progress  
+**Status:** Complete (March 2026)  
 **Date:** 2026-02-23
 
 ## Overview
@@ -36,7 +36,7 @@ Existing fields (name, description, category, screenshots, version, apiVersionCo
 ### Public listing list
 
 - **GET /api/marketplace** (or existing public route)
-  - Query params: `category`, `featured=true`, `q` (search on name/description), `limit`, `offset`.
+  - Query params: `category`, `featured=true`, `q` (search on name/description/tags), `limit` (default 100, max 200), `offset`.
   - Response: list of approved listings; when `featured=true` only return listings with `featured: true`.
 
 ### Admin
@@ -49,17 +49,17 @@ Existing fields (name, description, category, screenshots, version, apiVersionCo
 ## Frontend
 
 - **Marketplace home:** Search input, category filter chips/links, optional "Featured" section at top (listings with `featured: true`).
-- **Listing detail:** Show tags; optional "Featured" badge.
+- **Listing detail:** Tags, optional "Featured" badge, **screenshots** grid when URLs exist.
 - **Submit form:** Optional tags field.
-- **Admin marketplace:** Toggle "Featured" per listing; edit tags.
+- **Admin marketplace:** Toggle "Featured" per listing; **edit tags** (comma-separated, inline save).
 
 ---
 
 ## Deliverables
 
 - [x] Design doc (this document).
-- [ ] Backend: add `tags`, `featured` to schema and DTOs; list endpoint query params (category, featured, q).
-- [ ] Frontend: marketplace home search + category filter + featured section; detail page tags; submit form tags; admin featured/tags.
+- [x] Backend: `tags`, `featured` on schema and DTOs; list query params `category`, `featured`, `q`, `limit`, `offset`.
+- [x] Frontend: marketplace home search + category filter + featured section; detail tags + screenshots; submit tags; admin featured + tags editor.
 
 ---
 

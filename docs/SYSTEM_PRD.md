@@ -629,7 +629,7 @@ Operational notes:
 
 ### Phase 4 (Next 18 months) – In progress
 - **White-label solutions (Stage 1) ✅** — Per-owner custom domains: host-based `siteContext`; public albums, photos, search, **pages**, and **blog** scoped to the resolved owner; **canonical** / **og:url** from request host, **noindex** on `/admin` and `/owner`; optional **`whiteLabel.*`** branding for public chrome (`docs/PHASE_4_WORKFLOW.md`, `docs/WHITE_LABEL_DESIGN.md`). Further SEO/storage polish deferred as low priority.
-- Integration marketplace
+- **Integration marketplace (Stage 2) ✅** — Discovery on `/marketplace`: search, category filter, featured section; listing detail with tags and screenshots; **`tags`** / **`featured`** and **`limit`/`offset`** on **`GET /api/marketplace`**; admin moderation + tag editing (`docs/MARKETPLACE_EXPANSION_PHASE4.md`). Reviews, version history UI, verified badges deferred.
 - Advanced collaboration features
 - Machine learning for tag optimization
 - Mobile app development

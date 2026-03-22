@@ -11,11 +11,17 @@ export class MarketplaceController {
     @Query('category') category?: MarketplaceCategory,
     @Query('featured') featured?: string,
     @Query('q') q?: string,
+    @Query('limit') limitStr?: string,
+    @Query('offset') offsetStr?: string,
   ) {
+    const limit = limitStr != null && limitStr !== '' ? Number.parseInt(limitStr, 10) : undefined;
+    const offset = offsetStr != null && offsetStr !== '' ? Number.parseInt(offsetStr, 10) : undefined;
     const listings = await this.marketplaceService.findApproved({
       category,
       featured: featured === 'true' ? true : undefined,
       q: q?.trim() || undefined,
+      limit: Number.isFinite(limit) ? limit : undefined,
+      offset: Number.isFinite(offset) ? offset : undefined,
     });
     return { data: listings };
   }

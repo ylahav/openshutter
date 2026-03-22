@@ -483,7 +483,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [ ] Enterprise features (SSO, audit logs, quotas, multi-tenancy)
 - [ ] Video support
 - [ ] Advanced collaboration features
-- [ ] Integration marketplace
+- [x] Integration marketplace (Phase 4 Stage 2 — `docs/MARKETPLACE_EXPANSION_PHASE4.md`)
 - [x] White-label solutions (Phase 4 Stage 1 — see `docs/PHASE_4_WORKFLOW.md`)
 - [ ] Mobile app development
 
