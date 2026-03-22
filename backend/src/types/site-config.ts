@@ -126,6 +126,10 @@ export interface SiteConfig {
     hideOpenShutterBranding?: boolean
     /** Optional display name (per language) for headers/emails when it differs from public site title */
     productName?: MultiLangText
+    /** Optional public-site logo URL (global `logo` remains default / admin reference) */
+    logo?: string
+    /** Optional public-site favicon URL (global `favicon` remains default) */
+    favicon?: string
     termsOfServiceUrl?: string
     privacyPolicyUrl?: string
   }

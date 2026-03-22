@@ -2,7 +2,7 @@
 
 Welcome to the OpenShutter documentation. This comprehensive guide covers all aspects of the photo gallery management system.
 
-**All project documentation lives in the `docs/` folder.** Exceptions: [README.md](../README.md) and [CHANGELOG.md](../CHANGELOG.md) remain at the repository root.
+**All project documentation lives in the `docs/` folder.** Exceptions: [README.md](../README.md), [LICENSE](../LICENSE), and [CHANGELOG.md](../CHANGELOG.md) remain at the repository root.
 
 ## 📚 Documentation Overview
 

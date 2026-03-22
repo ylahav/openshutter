@@ -121,9 +121,18 @@ Implementation: when `siteContext.type === 'owner-site'`, guards for `/admin` al
 
 ### 1.x Cross-cutting considerations
 
-- **Licensing:** Clarify license (e.g. AGPL) and whether white-label is a commercial offering or configuration-only.
-- **Updates:** Theme and config overrides survive upgrades; document override points.
-- **Summary:** Solution 1 = one brand per install, no OpenShutter visible. Solution 2 = per-owner domain and content isolation with admin at `<domain>/admin`; optional at owner creation.
+- **Licensing**
+  - The monorepo **`package.json`** files currently declare **MIT** (see repository root). **There is no separate “white-label license”** in code: white-label is **configuration** (site config, themes, optional owner domains). Whether you **sell** hosting, support, or a branded product is a **business and legal** choice outside this repo.
+  - **Dependencies** (NestJS, SvelteKit, MongoDB drivers, cloud SDKs, etc.) have their own licenses; production deployments must **comply with all of them**. If you **relicense** the project (e.g. AGPL for network copyleft), update **`LICENSE`**, **`package.json`**, contributor agreements, and this section consistently.
+  - A root **`LICENSE`** file should **mirror** the SPDX license in **`package.json`** so forks and CI know the terms at a glance.
+
+- **Updates and upgrades**
+  - **Site config** (`site_config` / Admin → Site config): merged on read with defaults; nested blocks (**`whiteLabel`**, **`contact.socialMedia`**, etc.) are deep-merged where implemented so partial documents survive upgrades.
+  - **Theme Builder / template JSON** lives in site config; back up before major upgrades if you rely on custom layouts.
+  - **Owner domains** (`owner_domains`), **dedicated storage** rows (`owner_storage_configs`), and **album/photo** data are ordinary MongoDB collections—plan migrations and backups per **`docs/SERVER_DEPLOYMENT.md`**.
+  - **Override points** for branding: **`docs/WHITE_LABEL_DESIGN.md`**, **`docs/WHITE_LABEL_DEPLOY.md`**, and **`CHANGELOG.md`** for release-to-release behavior changes.
+
+- **Summary:** Solution 1 = one brand per install, no OpenShutter visible (optional separate public logo/favicon under **`whiteLabel`**). Solution 2 = per-owner domain and content isolation with admin at `<domain>/admin`; optional at owner creation.
 
 ---
 

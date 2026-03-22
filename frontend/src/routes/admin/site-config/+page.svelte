@@ -261,7 +261,18 @@
 		const file = (e.currentTarget as HTMLInputElement).files?.[0];
 		if (file) await handleFileUpload(file, 'favicon');
 	}
-	async function handleFileUpload(file: File, type: 'logo' | 'favicon') {
+	async function onWhiteLabelLogoFileChange(e: Event) {
+		const file = (e.currentTarget as HTMLInputElement).files?.[0];
+		if (file) await handleFileUpload(file, 'whiteLabelLogo');
+	}
+	async function onWhiteLabelFaviconFileChange(e: Event) {
+		const file = (e.currentTarget as HTMLInputElement).files?.[0];
+		if (file) await handleFileUpload(file, 'whiteLabelFavicon');
+	}
+	async function handleFileUpload(
+		file: File,
+		type: 'logo' | 'favicon' | 'whiteLabelLogo' | 'whiteLabelFavicon'
+	) {
 		if (!config) return;
 
 		// Validate file size (5MB limit)
@@ -272,9 +283,10 @@
 		}
 
 		// Validate file type
-		const allowedTypes = type === 'logo'
-			? ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
-			: ['image/x-icon', 'image/vnd.microsoft.icon', 'image/png', 'image/jpeg'];
+		const allowedTypes =
+			type === 'logo' || type === 'whiteLabelLogo'
+				? ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+				: ['image/x-icon', 'image/vnd.microsoft.icon', 'image/png', 'image/jpeg'];
 		
 		if (!allowedTypes.includes(file.type)) {
 			message = `Invalid file type. Allowed types: ${allowedTypes.join(', ')}`;
@@ -301,11 +313,23 @@
 			// Update config with the uploaded URL
 			if (type === 'logo') {
 				config = { ...config, logo: result.url } as SiteConfig;
-			} else {
+			} else if (type === 'favicon') {
 				config = { ...config, favicon: result.url } as SiteConfig;
+			} else if (type === 'whiteLabelLogo') {
+				config = {
+					...config,
+					whiteLabel: { ...(config.whiteLabel || {}), logo: result.url }
+				} as SiteConfig;
+			} else {
+				config = {
+					...config,
+					whiteLabel: { ...(config.whiteLabel || {}), favicon: result.url }
+				} as SiteConfig;
 			}
 
-			message = `${type === 'logo' ? 'Logo' : 'Favicon'} uploaded successfully!`;
+			const labelKey =
+				type === 'logo' || type === 'whiteLabelLogo' ? 'Logo' : 'Favicon';
+			message = `${labelKey} uploaded successfully!`;
 			setTimeout(() => {
 				message = '';
 			}, 3000);
@@ -663,6 +687,77 @@
 											defaultLanguage={config.languages?.defaultLanguage || 'en'}
 										/>
 										<p class="mt-1 text-xs text-gray-500">{$t('admin.whiteLabelProductNameHelp')}</p>
+									</div>
+									<p class="text-xs text-gray-600">{$t('admin.whiteLabelAssetsHelp')}</p>
+									<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+										<div class="space-y-2">
+											<label for="wl-logo-url" class="block text-sm font-medium text-gray-700"
+												>{$t('admin.whiteLabelLogoUrl')}</label
+											>
+											<input
+												id="wl-logo-url"
+												type="text"
+												value={config?.whiteLabel?.logo ?? ''}
+												on:input={(e) =>
+													config &&
+													updateConfig('whiteLabel', {
+														...(config.whiteLabel || {}),
+														logo: e.currentTarget.value || undefined
+													})}
+												placeholder="/api/storage/serve/..."
+												class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm"
+											/>
+											<input
+												type="file"
+												accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+												on:change={onWhiteLabelLogoFileChange}
+												class="block w-full text-xs text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-gray-100"
+											/>
+											{#if config?.whiteLabel?.logo}
+												<img
+													src={config.whiteLabel.logo}
+													alt=""
+													class="h-10 w-auto object-contain border border-gray-200 rounded p-1 bg-gray-50"
+													on:error={(e) => {
+														(e.currentTarget as HTMLImageElement).style.display = 'none';
+													}}
+												/>
+											{/if}
+										</div>
+										<div class="space-y-2">
+											<label for="wl-favicon-url" class="block text-sm font-medium text-gray-700"
+												>{$t('admin.whiteLabelFaviconUrl')}</label
+											>
+											<input
+												id="wl-favicon-url"
+												type="text"
+												value={config?.whiteLabel?.favicon ?? ''}
+												on:input={(e) =>
+													config &&
+													updateConfig('whiteLabel', {
+														...(config.whiteLabel || {}),
+														favicon: e.currentTarget.value || undefined
+													})}
+												placeholder="/api/storage/serve/..."
+												class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm"
+											/>
+											<input
+												type="file"
+												accept="image/x-icon,image/vnd.microsoft.icon,image/png,image/jpeg"
+												on:change={onWhiteLabelFaviconFileChange}
+												class="block w-full text-xs text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-gray-100"
+											/>
+											{#if config?.whiteLabel?.favicon}
+												<img
+													src={config.whiteLabel.favicon}
+													alt=""
+													class="w-8 h-8 object-contain border border-gray-200 rounded p-1 bg-gray-50"
+													on:error={(e) => {
+														(e.currentTarget as HTMLImageElement).style.display = 'none';
+													}}
+												/>
+											{/if}
+										</div>
 									</div>
 									<label class="flex items-center gap-2">
 										<input

@@ -628,7 +628,7 @@ Operational notes:
 - **Smart tag suggestions & tag-based search optimization** ✅
 
 ### Phase 4 (Next 18 months) – In progress
-- White-label solutions (per-owner custom domains: host-based `siteContext`; public albums, photos, search, **pages**, and **blog** APIs scoped to the resolved owner; **canonical** / **og:url** from request host, **noindex** on `/admin` and `/owner`—see `docs/PHASE_4_WORKFLOW.md`, `docs/WHITE_LABEL_DESIGN.md` §4.2)
+- White-label solutions (per-owner custom domains: host-based `siteContext`; public albums, photos, search, **pages**, and **blog** APIs scoped to the resolved owner; **canonical** / **og:url** from request host, **noindex** on `/admin` and `/owner`; optional **`whiteLabel.logo` / `whiteLabel.favicon`** for public chrome—see `docs/PHASE_4_WORKFLOW.md`, `docs/WHITE_LABEL_DESIGN.md`)
 - Integration marketplace
 - Advanced collaboration features
 - Machine learning for tag optimization

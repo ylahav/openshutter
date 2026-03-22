@@ -2,6 +2,7 @@ import { writable, derived } from 'svelte/store';
 import type { SiteConfig } from '../types/site-config';
 import { logger } from '../utils/logger';
 import { getProductName } from '../utils/productName';
+import { getPublicLogo, getPublicFavicon } from '../utils/public-branding';
 import { currentLanguage } from './language';
 
 interface SiteConfigState {
@@ -86,3 +87,7 @@ export const productName = derived(
 	[siteConfigData, currentLanguage],
 	([$config, $lang]) => getProductName($config ?? null, $lang),
 );
+
+/** Public gallery header / tab icon: white-label assets override global logo/favicon */
+export const publicSiteLogo = derived(siteConfigData, ($c) => getPublicLogo($c ?? null));
+export const publicSiteFavicon = derived(siteConfigData, ($c) => getPublicFavicon($c ?? null));

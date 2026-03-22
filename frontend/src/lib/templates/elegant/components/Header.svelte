@@ -3,7 +3,7 @@
 	import { afterNavigate } from '$app/navigation';
 	import { derived } from 'svelte/store';
 	import { currentLanguage } from '$stores/language';
-	import { siteConfigData, siteConfig } from '$stores/siteConfig';
+	import { siteConfigData, siteConfig, publicSiteLogo } from '$stores/siteConfig';
 	import { auth, logout } from '$lib/stores/auth';
 	import { getProductName } from '$lib/utils/productName';
 	import LanguageSelector from '$components/LanguageSelector.svelte';
@@ -33,7 +33,7 @@
 		([$config, $lang]) => getProductName($config ?? null, $lang)
 	);
 
-	const logo = derived(siteConfigData, ($config) => $config?.logo ?? '');
+	const logo = publicSiteLogo;
 
 	onMount(() => {
 		if (typeof window !== 'undefined' && window.location.pathname !== '/login') {

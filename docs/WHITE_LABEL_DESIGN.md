@@ -254,7 +254,7 @@ Each owner should have a **single, self-managed theme** for their domain. They c
 1. **Site config extensions**
    - Add `whiteLabel` block to site-config schema and persistence.
    - Expose `whiteLabel` fields via existing site-config APIs.
-   - **Status:** Implemented for `hideOpenShutterBranding`, `termsOfServiceUrl`, `privacyPolicyUrl`, and optional **`whiteLabel.productName`** (`MultiLangText`) for display name in UI/emails when it should differ from public **site title**. Per-install **logo/favicon** still use top-level `logo` / `favicon` (no separate white-label asset fields).
+   - **Status:** Implemented for `hideOpenShutterBranding`, `termsOfServiceUrl`, `privacyPolicyUrl`, optional **`whiteLabel.productName`** (`MultiLangText`), and optional **`whiteLabel.logo`** / **`whiteLabel.favicon`** for **public** gallery chrome (global **`logo`** / **`favicon`** remain defaults and admin reference).
 2. **Branding helpers**
    - Add helpers for product name and logos for use by controllers that send templated emails.
    - **Status:** Implemented `getProductName` helper on the frontend and wired it into the footer and emails (via `{{siteTitle}}`).
@@ -345,6 +345,8 @@ This document defines the design for **Solution 1: Clean white-label installatio
 |-------|------|-------------|
 | `whiteLabel.hideOpenShutterBranding` | `boolean` | When `true`, all user-facing text uses the product display name (`productName` if set, else site `title`); "OpenShutter" is never shown. Default: `false`. |
 | `whiteLabel.productName` | `MultiLangText` (optional) | Override for headers, footers, emails, and `{{siteTitle}}` when you want a different string than public **site title**. |
+| `whiteLabel.logo` | `string` (optional, URL) | Public-site header / page-builder logo; if unset, top-level **`logo`** is used. |
+| `whiteLabel.favicon` | `string` (optional, URL) | Browser icon on the public app; if unset, top-level **`favicon`** is used. |
 | `whiteLabel.termsOfServiceUrl` | `string` (optional) | URL to terms of service. Shown in footer and/or login/register when set. |
 | `whiteLabel.privacyPolicyUrl` | `string` (optional) | URL to privacy policy. Shown in footer and/or login/register when set. |
 
@@ -391,6 +393,7 @@ Existing fields already used for branding:
 - **Branding tab** (existing) extended with:
   - **White-label**
     - Optional **Product display name** (`productName`, per language).
+    - Optional **Public site logo** and **favicon** (URL + upload), mapped to `whiteLabel.logo` / `whiteLabel.favicon`.
     - Checkbox: "Hide OpenShutter branding" (`hideOpenShutterBranding`). When checked, public and email-facing text never shows "OpenShutter"; the display name is `productName` or site title.
     - Optional text inputs: "Terms of service URL", "Privacy policy URL".
 - No change to domain or TLS in this solution; one canonical base URL per install (existing `FRONTEND_URL` / `EMAIL_BASE_URL`).

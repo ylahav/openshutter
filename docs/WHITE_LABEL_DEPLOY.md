@@ -8,8 +8,8 @@ Short runbook for **Phase 4 Stage 1**: Solution 1 (single branded install) and S
    Set **`FRONTEND_URL`** to the public site origin (no trailing slash). Set **`EMAIL_BASE_URL`** if email links must use a different host than the main app. Set **`BACKEND_URL`** on the SvelteKit server so API proxying targets the NestJS instance.
 
 2. **Site config (Admin → Site config)**  
-   - **Branding:** site title, logo, favicon.  
-   - **White-label:** optional **`productName`** (per language) if the string in headers/emails should differ from the public title; enable **Hide OpenShutter branding**; set terms/privacy URLs if needed.
+   - **Branding:** site title, logo, favicon (global defaults and admin reference).  
+   - **White-label:** optional **`productName`** (per language); optional **public-only** **`logo`** / **`favicon`** when the visitor-facing brand should differ from global assets; enable **Hide OpenShutter branding**; set terms/privacy URLs if needed.
 
 3. **TLS**  
    Terminate HTTPS at your reverse proxy or host; ensure cookies and `Secure` flags match your environment.

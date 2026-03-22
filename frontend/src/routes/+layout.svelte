@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
+	import { assets } from '$app/paths';
 	import '$lib/styles/globals.css';
-	import { siteConfig } from '$stores/siteConfig';
+	import { siteConfig, publicSiteFavicon } from '$stores/siteConfig';
 	import { loadSession } from '$lib/stores/auth';
 	import HeaderTemplateSwitcher from '$lib/components/HeaderTemplateSwitcher.svelte';
 	import FooterTemplateSwitcher from '$lib/components/FooterTemplateSwitcher.svelte';
@@ -44,6 +45,7 @@
 </script>
 
 <svelte:head>
+	<link rel="icon" href={faviconHref} />
 	<link rel="canonical" href={canonicalHref} />
 	<meta property="og:url" content={canonicalHref} />
 	{#if noindexPanel}
