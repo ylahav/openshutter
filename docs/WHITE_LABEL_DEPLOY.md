@@ -1,6 +1,6 @@
 # White-label and owner-domain deployment notes
 
-Short runbook for **Phase 4 Stage 1**: Solution 1 (single branded install) and Solution 2 (per-owner custom domains). For full stack setup, start with [`SERVER_DEPLOYMENT.md`](./SERVER_DEPLOYMENT.md) and [`ADMIN_SETUP.md`](./ADMIN_SETUP.md).
+Short runbook for **Phase 4 Stage 1** (complete): Solution 1 (single branded install) and Solution 2 (per-owner custom domains). For full stack setup, start with [`SERVER_DEPLOYMENT.md`](./SERVER_DEPLOYMENT.md) and [`ADMIN_SETUP.md`](./ADMIN_SETUP.md).
 
 ## Solution 1: One branded installation
 

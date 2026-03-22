@@ -2,7 +2,7 @@
 
 **Branch:** `phase-4`  
 **Horizon:** Next 18 months  
-**Status:** Stage 1 – White-label solutions (in progress)
+**Status:** Stage 1 – White-label solutions **complete** (March 2026). Other Phase 4 initiatives (marketplace, collaboration, etc.) are not started.
 
 This document defines the workflow and scope for Phase 4 of the OpenShutter roadmap. Each initiative includes goals, scope, and suggested deliverables.
 
@@ -63,7 +63,7 @@ One deployment that appears as a completely separate product. No mention of Open
 - **Owner-domain `/admin` and `/owner`:** system **admins** are redirected to `/` on an owner custom domain (use the main site for full admin). **Owners** must match `siteContext.ownerId`; otherwise the session cookie is cleared and the user is sent to login. `admin/+layout.server.ts` repeats the same checks as a safeguard.
 - **Public photos API** (`GET /api/photos`, `gallery-leading`, `:id`) is scoped by `createdBy` album ownership when `siteContext` is owner-site (prevents cross-owner photo ID leaks).
 - **Public pages and blog:** `GET /api/pages/:slug` and `GET /api/v1/pages` (list + by slug/alias) filter by page `createdBy` when on an owner domain. **Blog:** `GET /api/blog`, `GET /api/blog/:slug`, and `GET /api/v1/blog` filter published articles by `authorId`. SvelteKit proxies `/api/blog` and `/api/blog/[slug]` forward `Host` like other public API routes.
-- **Per-owner storage:** Global/site storage is configured under **`/admin/storage`** (`storage_configs`). Owners normally use the shared profile field **`storageConfig`** on **`/owner/storage`**. When an admin enables **`useDedicatedStorage`** for an owner (Admin → Users), that owner’s uploads and reads use rows in **`owner_storage_configs`** (managed on **`/owner/storage`** with per-provider credentials). What remains for a “pure” model is optional polish: storage metadata not gated on a user flag, first-class admin UX when **creating** an owner, and documented “no fallback to global” guarantees where product needs them.
+- **Per-owner storage:** Global/site storage is configured under **`/admin/storage`** (`storage_configs`). Owners normally use the shared profile field **`storageConfig`** on **`/owner/storage`**. When an admin enables **`useDedicatedStorage`** for an owner (Admin → Users), that owner’s uploads and reads use rows in **`owner_storage_configs`** (managed on **`/owner/storage`** with per-provider credentials). **Stage 1 is complete** for this area; optional hardening (storage off the user document, stricter “no global fallback” docs) is **deferred, low priority** — see §1.2.6.
 
 An **owner** user can have their own **public site at a custom domain**. Visitors on that domain see **only that owner's albums** (and blog, if applicable). Admin for that site is at `**<owner-domain>/admin`**. If no custom domain is configured for an owner, behaviour stays as today (shared domain, shared browse).
 
@@ -107,12 +107,12 @@ Implementation: when `siteContext.type === 'owner-site'`, guards for `/admin` al
 
 - **Per-owner storage (design):** Each owner (and thus each owner domain) should have a clear storage story: which providers are allowed, credentials, default provider for uploads, and serving paths. Content for that owner should resolve to the correct backend without leaking another owner’s assets.
 - **Current implementation:** **Global** storage lives in **`storage_configs`** (Admin → **Storage**). **Owners** use **`/owner/storage`**, backed by profile **`storageConfig`** for the default path. **Dedicated per-owner storage:** when **`User.useDedicatedStorage`** is `true`, the backend uses **`owner_storage_configs`** (per provider) and **`StorageManager`** resolves owner context for uploads/serve; admins set the flag and allowed providers in **Admin → Users**; owners manage credentials on **`/owner/storage`**. This is tied to the user record today (flag + profile), not a standalone “storage tenant” entity.
-- **Remaining (optional / product-dependent):** Dedicated storage UX on **owner user creation** (wizard vs edit-after-create), stricter policy docs if the product must **never** fall back to global when dedicated is enabled, and any future split if storage settings should live off the `User` document entirely.
+- **Deferred (low priority):** Stricter policy docs if the product must **never** fall back to global when dedicated is enabled; optional wizard vs edit-after-create for storage; any future split if storage settings should live off the `User` document entirely. (Post–Stage 1 UX for domains/storage is already in Admin → Users.)
 
 #### 1.2.7 Edge cases and notes
 
 - **Multiple domains per owner:** Supported if using a mapping table; one can be marked primary for canonical URLs.
-- **SEO:** Canonical **`og:url`** use the request host (root layout). **Remaining:** per-host sitemaps; optional canonical override to **`owner_domains.isPrimary`** when multiple domains serve the same site.
+- **SEO:** Canonical **`og:url`** use the request host (root layout). **Deferred (low priority):** per-host sitemaps; optional canonical override to **`owner_domains.isPrimary`** when multiple domains serve the same site.
 - **SSO (Phase 4 Enterprise):** When adding SSO, auth can be tied to `siteContext` so org-specific IdP can be used per domain/tenant later.
 
 **Deliverables:** Design doc (domain mapping, host resolution, security, per-owner storage); backend: `owner_domains` + host-resolution middleware + **owner storage resolution** (`useDedicatedStorage`, `owner_storage_configs`); frontend: `siteContext`, owner-scoped public routes and `/admin`; admin UI for owner domains and per-owner storage (flag + **`/owner/storage`**); DNS/TLS runbook (**`docs/WHITE_LABEL_DEPLOY.md`** for Solution 1 + owner-domain notes).
@@ -311,7 +311,7 @@ Implementation: when `siteContext.type === 'owner-site'`, guards for `/admin` al
 
 - [x] Branch `phase-4` created
 - [x] Prioritize and sequence initiatives (e.g. 1 → 2 → 3)
-- Stage 1 (White-label solutions): design and implementation
+- [x] Stage 1 (White-label solutions): design and implementation
 - Stage 2 (Integration marketplace): design and implementation
 - Stage 3 (Advanced collaboration): design and implementation
 - Stage 4 (Machine learning for tag optimization): design and implementation

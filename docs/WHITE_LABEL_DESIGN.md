@@ -1,7 +1,7 @@
 ## White-Label Solutions Design
 
 **Phase:** 4 – Stage 1  
-**Status:** Partially implemented (Option 1 & core of Option 2)  
+**Status:** **Complete** (March 2026) — Solution 1 (single-install branding) and Solution 2 (per-owner domains, scoped public APIs, owner admin). Optional follow-ups (sitemaps, primary canonical, storage model polish, schema extras in §2.1 vs code) are **low priority** and tracked in `docs/PHASE_4_WORKFLOW.md` §1.2.6–1.2.7.  
 
 This document describes the design and implementation plan for Phase 4 Stage 1: **White-label solutions**.
 

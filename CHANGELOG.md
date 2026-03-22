@@ -1,6 +1,7 @@
 ## [Unreleased]
 
 ### Changed
+- **Docs:** Phase 4 **Stage 1 (white-label)** marked **complete** (`docs/PHASE_4_WORKFLOW.md`, `docs/WHITE_LABEL_DESIGN.md`, `docs/SYSTEM_PRD.md`, `README.md`). SEO/sitemap, primary canonical, and storage-model polish called out as **deferred (low priority)** in the workflow.
 - **Frontend database access**: The SvelteKit app no longer opens MongoDB or registers Mongoose models. Persistence and queries go through the NestJS backend API only. `frontend/src/lib/mongodb.ts` exports `connectToDatabase` / `connectMongoose` stubs that throw with a clear message. Narrow collection helpers (`legacy-mongo-audit.ts`, `legacy-mongo-storage-config.ts`) remain for typed legacy call sites; shared domain types live under `frontend/src/lib/types` and `frontend/src/types`.
 - **Admin → Users (owners)**: Per-provider JSON for dedicated storage is no longer edited inline on the user form; owners configure credentials on **Owner → Storage**. Copy and i18n updated accordingly.
 
