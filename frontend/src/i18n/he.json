@@ -52,7 +52,18 @@
     "backToAlbums": "חזור לאלבומים",
     "albumNotFound": "אלבום לא נמצא",
     "emptyAlbum": "האלבום הזה ריק.",
-    "remaining": "נותרו"
+    "remaining": "נותרו",
+    "commentsTitle": "תגובות",
+    "commentsEmpty": "אין עדיין תגובות.",
+    "commentsSignIn": "התחברו כדי לפרסם תגובה.",
+    "commentsPlaceholder": "כתבו תגובה…",
+    "commentsPost": "פרסם",
+    "commentsPosting": "שולח…",
+    "commentsLoadError": "לא ניתן לטעון תגובות.",
+    "commentsHidden": "מוסתר",
+    "commentsHide": "הסתר",
+    "commentsShow": "הצג",
+    "commentsModeratorHint": "בעלי האלבום ומנהלים יכולים להסתיר תגובות."
   },
   "loading": {
     "loading": "טוען...",

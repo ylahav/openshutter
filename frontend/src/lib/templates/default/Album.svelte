@@ -7,6 +7,7 @@
 	import MultiLangText from '$lib/components/MultiLangText.svelte';
 	import AlbumBreadcrumbs from '$lib/components/AlbumBreadcrumbs.svelte';
 	import PhotoLightbox from '$lib/components/PhotoLightbox.svelte';
+	import AlbumComments from '$lib/components/AlbumComments.svelte';
 	import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 	import { getPhotoUrl, getPhotoRotationStyle } from '$lib/utils/photoUrl';
 
@@ -17,6 +18,7 @@
 			description?: any;
 			alias: string;
 			photoCount?: number;
+			createdBy?: string | null;
 		};
 		subAlbums: any[];
 		photos: any[];
@@ -285,6 +287,10 @@
 				<p class="text-gray-600 text-center">No photos in this album yet.</p>
 			</div>
 		{/if}
+	</div>
+
+	<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+		<AlbumComments albumId={albumData.album._id} albumCreatorId={String(albumData.album.createdBy ?? '')} />
 	</div>
 
 	<!-- Photo Lightbox -->

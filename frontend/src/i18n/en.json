@@ -53,7 +53,18 @@
     "backToAlbums": "Back to Albums",
     "albumNotFound": "Album not found",
     "emptyAlbum": "This album is empty.",
-    "remaining": "remaining"
+    "remaining": "remaining",
+    "commentsTitle": "Comments",
+    "commentsEmpty": "No comments yet.",
+    "commentsSignIn": "Sign in to post a comment.",
+    "commentsPlaceholder": "Write a comment…",
+    "commentsPost": "Post",
+    "commentsPosting": "Posting…",
+    "commentsLoadError": "Could not load comments.",
+    "commentsHidden": "Hidden",
+    "commentsHide": "Hide",
+    "commentsShow": "Show",
+    "commentsModeratorHint": "Album owners and admins can hide comments."
   },
   "loading": {
     "loading": "Loading...",

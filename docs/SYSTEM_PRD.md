@@ -630,7 +630,7 @@ Operational notes:
 ### Phase 4 (Next 18 months) – In progress
 - **White-label solutions (Stage 1) ✅** — Per-owner custom domains: host-based `siteContext`; public albums, photos, search, **pages**, and **blog** scoped to the resolved owner; **canonical** / **og:url** from request host, **noindex** on `/admin` and `/owner`; optional **`whiteLabel.*`** branding for public chrome (`docs/PHASE_4_WORKFLOW.md`, `docs/WHITE_LABEL_DESIGN.md`). Further SEO/storage polish deferred as low priority.
 - **Integration marketplace (Stage 2) ✅** — Discovery on `/marketplace`: search, category filter, featured section; listing detail with tags and screenshots; **`tags`** / **`featured`** and **`limit`/`offset`** on **`GET /api/marketplace`**; admin moderation + tag editing (`docs/MARKETPLACE_EXPANSION_PHASE4.md`). Reviews, version history UI, verified badges deferred.
-- Advanced collaboration features
+- **Advanced collaboration (Stage 3) ✅ MVP** — **Album comments** for users with album access; **hide/show** for admins and album owners; API **`/api/comments/album/:albumId`** (GET/POST) and **`PATCH /api/comments/:id`** (`docs/COLLABORATION_PHASE4_STAGE3.md`). Tasks, approvals, activity feed, threading, notifications deferred.
 - Machine learning for tag optimization
 - Mobile app development
 - Video support

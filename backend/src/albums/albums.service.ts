@@ -1064,6 +1064,7 @@ export class AlbumsService {
       _id: album._id.toString(),
       parentAlbumId: album.parentAlbumId ? album.parentAlbumId.toString() : null,
       coverPhotoId: album.coverPhotoId ? (album.coverPhotoId._id ? album.coverPhotoId._id.toString() : album.coverPhotoId.toString()) : null,
+      createdBy: album.createdBy ? album.createdBy.toString() : null,
     };
     
     // Debug log to see what we're returning
