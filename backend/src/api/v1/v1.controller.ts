@@ -23,6 +23,7 @@ export class V1Controller {
         people: '/api/v1/people',
         locations: '/api/v1/locations',
         pages: '/api/v1/pages',
+        blog: '/api/v1/blog',
         search: '/api/v1/search',
       },
     };

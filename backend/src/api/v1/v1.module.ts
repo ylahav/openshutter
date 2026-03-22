@@ -12,6 +12,7 @@ import { V1TagsController } from './tags/v1-tags.controller';
 import { V1PeopleController } from './people/v1-people.controller';
 import { V1LocationsController } from './locations/v1-locations.controller';
 import { V1PagesController } from './pages/v1-pages.controller';
+import { V1BlogController } from './blog/v1-blog.controller';
 import { V1SearchController } from './search/v1-search.controller';
 
 @Module({
@@ -30,6 +31,7 @@ import { V1SearchController } from './search/v1-search.controller';
     V1PeopleController,
     V1LocationsController,
     V1PagesController,
+    V1BlogController,
     V1SearchController,
   ],
 })

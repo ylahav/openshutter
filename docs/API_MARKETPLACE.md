@@ -56,8 +56,14 @@ The public API (`/api/v1/`) exposes read-only and limited write operations for t
 - `GET /api/v1/locations/:id` - Get location details
 
 **Pages:**
-- `GET /api/v1/pages` - List published pages
-- `GET /api/v1/pages/:slug` - Get page by slug
+- `GET /api/v1/pages` - List published pages (on an owner custom domain, only pages created by that owner)
+- `GET /api/v1/pages/:slug` - Get page by slug or alias (same owner scoping when on owner domain)
+
+**Blog:**
+- `GET /api/v1/blog` - List published blog articles (on an owner domain, only articles with `authorId` matching that owner)
+- `GET /api/v1/blog/:slug` - Get article by slug (same owner scoping)
+
+**Scopes:** Blog endpoints accept `blog:read` or the broad `read` scope (same pattern as other v1 read routes).
 
 #### Write Endpoints (Scoped)
 

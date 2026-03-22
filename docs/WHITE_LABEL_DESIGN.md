@@ -266,7 +266,7 @@ Each owner should have a **single, self-managed theme** for their domain. They c
    - Update album, photo, page, blog, and search controllers to:
      - Respect `siteContext` when present.
      - Pass the appropriate `ownerId` or access context into services.
-   - **Status:** Implemented for albums and search APIs; additional content types (blog/pages) remain future work.
+   - **Status:** Implemented for albums, search, **public pages** (`GET /api/pages/:slug`, `GET /api/v1/pages`, scoped by `createdBy` on owner domains), and **public blog** (`GET /api/blog`, `GET /api/blog/:slug`, `GET /api/v1/blog`, scoped by `authorId` on owner domains). Frontend proxies: `/api/blog`, `/api/blog/[slug]` (forwards `Host` like `/api/pages/...`).
 5. **Admin APIs for owner domains and storage**
    - CRUD endpoints to manage `owner_domains` (admin-only).
    - Extend existing owner/user admin APIs to show associated domains and storage config.

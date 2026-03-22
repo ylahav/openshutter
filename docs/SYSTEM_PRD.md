@@ -628,7 +628,7 @@ Operational notes:
 - **Smart tag suggestions & tag-based search optimization** ✅
 
 ### Phase 4 (Next 18 months) – In progress
-- White-label solutions
+- White-label solutions (per-owner custom domains: host-based `siteContext`; public albums, photos, search, **pages**, and **blog** APIs scoped to the resolved owner—see `docs/PHASE_4_WORKFLOW.md`)
 - Integration marketplace
 - Advanced collaboration features
 - Machine learning for tag optimization

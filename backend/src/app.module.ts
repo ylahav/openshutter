@@ -17,6 +17,7 @@ import { UsersModule } from './users/users.module';
 import { GroupsModule } from './groups/groups.module';
 import { PagesModule } from './pages/pages.module';
 import { BlogCategoriesModule } from './blog-categories/blog-categories.module';
+import { BlogModule } from './blog/blog.module';
 import { BackupModule } from './backup/backup.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { DeploymentModule } from './deployment/deployment.module';
@@ -61,6 +62,7 @@ import {
     GroupsModule,
     PagesModule,
     BlogCategoriesModule,
+    BlogModule,
     BackupModule,
     AnalyticsModule,
     DeploymentModule,

@@ -1,6 +1,17 @@
-import { Controller, Get, Param, NotFoundException, BadRequestException, Logger, InternalServerErrorException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  Req,
+  NotFoundException,
+  BadRequestException,
+  Logger,
+  InternalServerErrorException,
+} from '@nestjs/common';
+import type { Request } from 'express';
 import { connectDB } from '../config/db';
 import mongoose, { Types } from 'mongoose';
+import { ownerSiteUserIdFromRequest } from '../common/utils/owner-site-from-request.util';
 
 @Controller('pages')
 export class PagesPublicController {
@@ -11,7 +22,7 @@ export class PagesPublicController {
    * Path: GET /api/pages/:slug
    */
   @Get(':slug')
-  async getPageBySlug(@Param('slug') slug: string) {
+  async getPageBySlug(@Req() req: Request, @Param('slug') slug: string) {
     try {
       await connectDB();
       const db = mongoose.connection.db;
@@ -20,10 +31,16 @@ export class PagesPublicController {
       const modulesCollection = db.collection('page_modules');
 
       const normalizedSlug = String(slug).trim().toLowerCase();
-      const page = await pagesCollection.findOne({
+      const ownerUserId = ownerSiteUserIdFromRequest(req);
+      const pageQuery: Record<string, unknown> = {
         isPublished: true,
         $or: [{ slug: normalizedSlug }, { alias: normalizedSlug }],
-      });
+      };
+      if (ownerUserId && Types.ObjectId.isValid(ownerUserId)) {
+        pageQuery.createdBy = new Types.ObjectId(ownerUserId);
+      }
+
+      const page = await pagesCollection.findOne(pageQuery);
 
       if (!page) {
         throw new NotFoundException(`Page not found: ${normalizedSlug}`);

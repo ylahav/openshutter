@@ -41,7 +41,7 @@ Welcome to the OpenShutter documentation. This comprehensive guide covers all as
 - [API Marketplace](./API_MARKETPLACE.md) - Public API, keys, developer portal, marketplace
 - [Smart Tag Suggestions Design](./SMART_TAG_SUGGESTIONS_DESIGN.md) - Context-based tag suggestions
 - [Marketplace Expansion Phase 4](./MARKETPLACE_EXPANSION_PHASE4.md) - Discovery and listing richness
-- [White-Label Design](./WHITE_LABEL_DESIGN.md) - White-label solutions (future)
+- [White-Label Design](./WHITE_LABEL_DESIGN.md) - White-label install + per-owner custom domains (Phase 4; see `PHASE_4_WORKFLOW.md`)
 - [Template Builder Scenario](./TEMPLATE_BUILDER_SCENARIO.md) - Page builder scenarios
 
 ### Quick Start
