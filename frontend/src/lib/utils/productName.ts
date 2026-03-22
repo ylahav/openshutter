@@ -8,7 +8,12 @@ import type { LanguageCode } from '$lib/types/multi-lang';
  */
 export function getProductName(config: SiteConfig | null | undefined, lang?: LanguageCode): string {
 	if (!config) return 'OpenShutter';
-	const title = config.title ? MultiLangUtils.getTextValue(config.title, lang) : '';
+	const langCode = lang ?? (config.languages?.defaultLanguage as LanguageCode | undefined);
+	const productOverride = config.whiteLabel?.productName
+		? MultiLangUtils.getTextValue(config.whiteLabel.productName, langCode)
+		: '';
+	if (productOverride && productOverride.trim()) return productOverride.trim();
+	const title = config.title ? MultiLangUtils.getTextValue(config.title, langCode) : '';
 	if (title && title.trim()) return title.trim();
 	return config.whiteLabel?.hideOpenShutterBranding ? 'Site' : 'OpenShutter';
 }

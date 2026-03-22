@@ -124,6 +124,8 @@ export interface SiteConfig {
   /** White-label (Solution 1): hide OpenShutter branding and use site title everywhere; optional legal URLs */
   whiteLabel?: {
     hideOpenShutterBranding?: boolean
+    /** Optional display name (per language) for headers/emails when it differs from public site title */
+    productName?: MultiLangText
     termsOfServiceUrl?: string
     privacyPolicyUrl?: string
   }

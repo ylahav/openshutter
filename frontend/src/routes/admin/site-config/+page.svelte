@@ -639,11 +639,31 @@
 
 							<!-- White-label -->
 							<div class="border-t border-gray-200 pt-6 mt-6">
-								<h3 class="text-sm font-medium text-gray-900 mb-3">White-label</h3>
+								<h3 class="text-sm font-medium text-gray-900 mb-3">{$t('admin.whiteLabelSectionTitle')}</h3>
 								<p class="text-xs text-gray-500 mb-4">
-									When enabled, "OpenShutter" is hidden from footers, headers, and page titles; the site title above is used instead.
+									{$t('admin.whiteLabelSectionHelp')}
 								</p>
 								<div class="space-y-4">
+									<div>
+										<label for="wl-product-name" class="block text-sm font-medium text-gray-700 mb-2">
+											{$t('admin.whiteLabelProductName')}
+										</label>
+										<MultiLangInput
+											id="wl-product-name"
+											value={config.whiteLabel?.productName || {}}
+											onChange={(value) => {
+												if (!config) return;
+												config = {
+													...config,
+													whiteLabel: { ...(config.whiteLabel || {}), productName: value }
+												} as SiteConfig;
+											}}
+											placeholder={$t('admin.whiteLabelProductNamePlaceholder')}
+											showLanguageTabs={true}
+											defaultLanguage={config.languages?.defaultLanguage || 'en'}
+										/>
+										<p class="mt-1 text-xs text-gray-500">{$t('admin.whiteLabelProductNameHelp')}</p>
+									</div>
 									<label class="flex items-center gap-2">
 										<input
 											type="checkbox"
@@ -651,10 +671,10 @@
 											on:change={(e) => config && updateConfig('whiteLabel', { ...(config.whiteLabel || {}), hideOpenShutterBranding: e.currentTarget.checked })}
 											class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
 										/>
-										<span class="text-sm text-gray-700">Hide OpenShutter branding</span>
+										<span class="text-sm text-gray-700">{$t('admin.whiteLabelHideOpenShutter')}</span>
 									</label>
 									<div>
-										<label for="terms-url" class="block text-sm font-medium text-gray-700 mb-1">Terms of service URL</label>
+										<label for="terms-url" class="block text-sm font-medium text-gray-700 mb-1">{$t('admin.whiteLabelTermsUrl')}</label>
 										<input
 											id="terms-url"
 											type="url"
@@ -665,7 +685,7 @@
 										/>
 									</div>
 									<div>
-										<label for="privacy-url" class="block text-sm font-medium text-gray-700 mb-1">Privacy policy URL</label>
+										<label for="privacy-url" class="block text-sm font-medium text-gray-700 mb-1">{$t('admin.whiteLabelPrivacyUrl')}</label>
 										<input
 											id="privacy-url"
 											type="url"

@@ -55,6 +55,10 @@ export class SiteConfigService {
           ...defaultConfig.contact.socialMedia,
           ...(this.configCache.contact?.socialMedia || {})
         }
+      },
+      whiteLabel: {
+        ...defaultConfig.whiteLabel,
+        ...this.configCache.whiteLabel,
       }
     }
   }
@@ -154,6 +158,10 @@ export class SiteConfigService {
     } else if (config.seo?.metaDescription && typeof config.seo.metaDescription === 'object') {
       config.seo.metaDescription = MultiLangUtils.clean(config.seo.metaDescription)
     }
+
+    if (config.whiteLabel?.productName && typeof config.whiteLabel.productName === 'object') {
+      config.whiteLabel.productName = MultiLangUtils.clean(config.whiteLabel.productName)
+    }
     
     return config
   }
@@ -252,6 +260,9 @@ export class SiteConfigService {
         subject: 'Welcome to {{siteTitle}}',
         body: 'Hi {{name}},\n\nYour account has been created. You can log in at {{loginUrl}} with username: {{username}}\n\nBest regards'
       },
+      whiteLabel: {
+        hideOpenShutterBranding: false,
+      },
       createdAt: new Date(),
       updatedAt: new Date()
     }
@@ -306,6 +317,10 @@ export class SiteConfigService {
               ...defaultConfig.contact.socialMedia,
               ...(migratedConfig.contact?.socialMedia || {})
             }
+          },
+          whiteLabel: {
+            ...defaultConfig.whiteLabel,
+            ...migratedConfig.whiteLabel,
           }
         } as unknown as SiteConfig
       } else {

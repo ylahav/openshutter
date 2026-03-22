@@ -1,6 +1,7 @@
 import { Logger } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 import { siteConfigService } from './site-config';
+import { productDisplayNameFromSiteConfig } from '../common/utils/product-display-name-from-site-config';
 
 export interface WelcomeEmailContext {
   name: string;
@@ -76,10 +77,7 @@ export class MailService {
       }
 
       const loginUrl = this.getLoginUrl();
-      const siteTitle =
-        typeof config.title === 'string'
-          ? config.title
-          : (config.title?.en || (config.whiteLabel?.hideOpenShutterBranding ? 'Site' : 'OpenShutter'));
+      const siteTitle = productDisplayNameFromSiteConfig(config, 'en');
       const ctx: WelcomeEmailContext = {
         name: displayName || toUsername,
         username: toUsername,

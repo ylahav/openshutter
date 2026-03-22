@@ -252,7 +252,7 @@ Each owner should have a **single, self-managed theme** for their domain. They c
 1. **Site config extensions**
    - Add `whiteLabel` block to site-config schema and persistence.
    - Expose `whiteLabel` fields via existing site-config APIs.
-   - **Status:** Implemented for `hideOpenShutterBranding`, `termsOfServiceUrl`, `privacyPolicyUrl`; more advanced fields (productName, per-install logo overrides) are still design-only.
+   - **Status:** Implemented for `hideOpenShutterBranding`, `termsOfServiceUrl`, `privacyPolicyUrl`, and optional **`whiteLabel.productName`** (`MultiLangText`) for display name in UI/emails when it should differ from public **site title**. Per-install **logo/favicon** still use top-level `logo` / `favicon` (no separate white-label asset fields).
 2. **Branding helpers**
    - Add helpers for product name and logos for use by controllers that send templated emails.
    - **Status:** Implemented `getProductName` helper on the frontend and wired it into the footer and emails (via `{{siteTitle}}`).
@@ -270,7 +270,7 @@ Each owner should have a **single, self-managed theme** for their domain. They c
 5. **Admin APIs for owner domains and storage**
    - CRUD endpoints to manage `owner_domains` (admin-only).
    - Extend existing owner/user admin APIs to show associated domains and storage config.
-   - **Status:** Implemented admin CRUD for owner domains and Owner Domains section in the Users admin page. Per-owner storage configuration is still handled via user `storageConfig` and `/owner/storage`, not a dedicated per-owner storage model yet.
+   - **Status:** Implemented admin CRUD for owner domains and Owner Domains section in the Users admin page. **Storage:** global `storage_configs` + per-owner **`storageConfig`** on **`/owner/storage`**; **dedicated** path via **`useDedicatedStorage`** and **`owner_storage_configs`** (see `docs/PHASE_4_WORKFLOW.md` §1.2.6). Optional UX gap: configure dedicated storage in the same flow as **creating** an owner.
 
 ### 5.2 Frontend
 
@@ -339,7 +339,8 @@ This document defines the design for **Solution 1: Clean white-label installatio
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `whiteLabel.hideOpenShutterBranding` | `boolean` | When `true`, all user-facing text uses the site `title` (product name); "OpenShutter" is never shown. Default: `false`. |
+| `whiteLabel.hideOpenShutterBranding` | `boolean` | When `true`, all user-facing text uses the product display name (`productName` if set, else site `title`); "OpenShutter" is never shown. Default: `false`. |
+| `whiteLabel.productName` | `MultiLangText` (optional) | Override for headers, footers, emails, and `{{siteTitle}}` when you want a different string than public **site title**. |
 | `whiteLabel.termsOfServiceUrl` | `string` (optional) | URL to terms of service. Shown in footer and/or login/register when set. |
 | `whiteLabel.privacyPolicyUrl` | `string` (optional) | URL to privacy policy. Shown in footer and/or login/register when set. |
 
@@ -366,7 +367,8 @@ Existing fields already used for branding:
 ### Product name helper
 
 - **`getProductName(config, lang): string`**
-  - If `config.title` is set: return `MultiLangUtils.getTextValue(config.title, lang)`.
+  - If `config.whiteLabel?.productName` has text for `lang`: return it.
+  - Else if `config.title` is set: return `MultiLangUtils.getTextValue(config.title, lang)`.
   - Else if `config.whiteLabel?.hideOpenShutterBranding`: return `'Site'`.
   - Else: return `'OpenShutter'`.
 
@@ -384,7 +386,8 @@ Existing fields already used for branding:
 
 - **Branding tab** (existing) extended with:
   - **White-label**
-    - Checkbox: "Hide OpenShutter branding" (`hideOpenShutterBranding`). When checked, all public and email-facing text uses site name only.
+    - Optional **Product display name** (`productName`, per language).
+    - Checkbox: "Hide OpenShutter branding" (`hideOpenShutterBranding`). When checked, public and email-facing text never shows "OpenShutter"; the display name is `productName` or site title.
     - Optional text inputs: "Terms of service URL", "Privacy policy URL".
 - No change to domain or TLS in this solution; one canonical base URL per install (existing `FRONTEND_URL` / `EMAIL_BASE_URL`).
 
@@ -393,11 +396,11 @@ Existing fields already used for branding:
 ## Deliverables
 
 - [x] Design doc (this document).
-- [ ] Backend: add `whiteLabel` to `SiteConfig` and defaults; expose in GET/PATCH.
-- [ ] Frontend: add `whiteLabel` to types; `getProductName()` helper; use in header, footer, page titles, default footer module.
-- [ ] Admin UI: white-label section in Site config (Branding tab).
-- [ ] Email: ensure `{{siteTitle}}` uses site config title (already in place; verify when white-label is on).
-- [ ] Runbook for white-label deploy (DNS, TLS, config) — short addendum to existing deployment docs.
+- [x] Backend: `whiteLabel` on `SiteConfig`, defaults/merge, GET/PATCH via existing site-config APIs.
+- [x] Frontend: `whiteLabel` types; `getProductName()` (title / `productName` / fallbacks); wired in header, footer, titles per earlier implementation.
+- [x] Admin UI: white-label section in Site config (Branding tab), including optional **product display name**.
+- [x] Email: `{{siteTitle}}` uses `productDisplayNameFromSiteConfig` (optional `productName`, then title).
+- [x] Runbook: **`docs/WHITE_LABEL_DEPLOY.md`** (canonical URLs, env, owner domains, TLS pointers).
 
 ---
 

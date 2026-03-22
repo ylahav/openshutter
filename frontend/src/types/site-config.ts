@@ -97,6 +97,7 @@ export interface SiteConfig {
   }
   whiteLabel?: {
     hideOpenShutterBranding?: boolean
+    productName?: MultiLangText
     termsOfServiceUrl?: string
     privacyPolicyUrl?: string
   }

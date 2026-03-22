@@ -63,7 +63,7 @@ One deployment that appears as a completely separate product. No mention of Open
 - **Owner-domain `/admin` and `/owner`:** system **admins** are redirected to `/` on an owner custom domain (use the main site for full admin). **Owners** must match `siteContext.ownerId`; otherwise the session cookie is cleared and the user is sent to login. `admin/+layout.server.ts` repeats the same checks as a safeguard.
 - **Public photos API** (`GET /api/photos`, `gallery-leading`, `:id`) is scoped by `createdBy` album ownership when `siteContext` is owner-site (prevents cross-owner photo ID leaks).
 - **Public pages and blog:** `GET /api/pages/:slug` and `GET /api/v1/pages` (list + by slug/alias) filter by page `createdBy` when on an owner domain. **Blog:** `GET /api/blog`, `GET /api/blog/:slug`, and `GET /api/v1/blog` filter published articles by `authorId`. SvelteKit proxies `/api/blog` and `/api/blog/[slug]` forward `Host` like other public API routes.
-- Per-owner storage is still handled via user `storageConfig` and `/owner/storage`; a dedicated per-owner storage model (independent of user profile) remains future work.
+- **Per-owner storage:** Global/site storage is configured under **`/admin/storage`** (`storage_configs`). Owners normally use the shared profile field **`storageConfig`** on **`/owner/storage`**. When an admin enables **`useDedicatedStorage`** for an owner (Admin → Users), that owner’s uploads and reads use rows in **`owner_storage_configs`** (managed on **`/owner/storage`** with per-provider credentials). What remains for a “pure” model is optional polish: storage metadata not gated on a user flag, first-class admin UX when **creating** an owner, and documented “no fallback to global” guarantees where product needs them.
 
 An **owner** user can have their own **public site at a custom domain**. Visitors on that domain see **only that owner's albums** (and blog, if applicable). Admin for that site is at `**<owner-domain>/admin`**. If no custom domain is configured for an owner, behaviour stays as today (shared domain, shared browse).
 
@@ -105,9 +105,9 @@ Implementation: when `siteContext.type === 'owner-site'`, guards for `/admin` al
 
 #### 1.2.6 Storage config per owner/domain
 
-- **Per-owner storage (design):** Each owner (and thus each owner domain) has its **own storage configuration**. This includes: which storage providers are enabled (local, S3, Google Drive, etc.), default provider for new uploads, and provider-specific settings (bucket, path, credentials). Photos and assets for that owner are stored and served only from that owner's configured storage.
-- **Current implementation:** Owners configure their effective storage via the existing `storageConfig` on their user profile and `/owner/storage`; global admin configures main storage via `/admin/storage`. A separate per-owner storage config model (independent of user profile) and strict “no shared default” enforcement are still to be implemented.
-- **Admin UI (future):** Global admin sets or edits per-owner storage when creating/editing the owner (or in a dedicated storage section per owner). When the owner uses `<domain>/admin`, they see and manage only their own storage settings (e.g. which provider is default, reconnect OAuth); they cannot see or change other owners' storage.
+- **Per-owner storage (design):** Each owner (and thus each owner domain) should have a clear storage story: which providers are allowed, credentials, default provider for uploads, and serving paths. Content for that owner should resolve to the correct backend without leaking another owner’s assets.
+- **Current implementation:** **Global** storage lives in **`storage_configs`** (Admin → **Storage**). **Owners** use **`/owner/storage`**, backed by profile **`storageConfig`** for the default path. **Dedicated per-owner storage:** when **`User.useDedicatedStorage`** is `true`, the backend uses **`owner_storage_configs`** (per provider) and **`StorageManager`** resolves owner context for uploads/serve; admins set the flag and allowed providers in **Admin → Users**; owners manage credentials on **`/owner/storage`**. This is tied to the user record today (flag + profile), not a standalone “storage tenant” entity.
+- **Remaining (optional / product-dependent):** Dedicated storage UX on **owner user creation** (wizard vs edit-after-create), stricter policy docs if the product must **never** fall back to global when dedicated is enabled, and any future split if storage settings should live off the `User` document entirely.
 
 #### 1.2.7 Edge cases and notes
 
@@ -115,7 +115,7 @@ Implementation: when `siteContext.type === 'owner-site'`, guards for `/admin` al
 - **SEO:** Canonical URLs should use the owner's domain when in owner context.
 - **SSO (Phase 4 Enterprise):** When adding SSO, auth can be tied to `siteContext` so org-specific IdP can be used per domain/tenant later.
 
-**Deliverables:** Design doc (domain mapping, host resolution, security, **per-owner storage config**); backend: `OwnerDomain` (or equivalent) + host-resolution middleware + **per-owner storage config model and resolution**; frontend: `siteContext` in layout, owner-scoped public routes and `/admin`; admin UI to assign/remove owner domains and **configure storage per owner** at owner creation/edit; DNS/TLS runbook for owner domains.
+**Deliverables:** Design doc (domain mapping, host resolution, security, per-owner storage); backend: `owner_domains` + host-resolution middleware + **owner storage resolution** (`useDedicatedStorage`, `owner_storage_configs`); frontend: `siteContext`, owner-scoped public routes and `/admin`; admin UI for owner domains and per-owner storage (flag + **`/owner/storage`**); DNS/TLS runbook (**`docs/WHITE_LABEL_DEPLOY.md`** for Solution 1 + owner-domain notes).
 
 ---
 
