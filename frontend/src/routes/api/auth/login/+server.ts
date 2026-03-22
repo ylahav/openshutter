@@ -3,6 +3,7 @@ import type { RequestHandler } from './$types';
 import { SignJWT } from 'jose';
 import { env } from '$env/dynamic/private';
 import { logger } from '$lib/utils/logger';
+import { forwardedHostHeadersFromRequest } from '$lib/server/forward-host';
 
 // Simple static JWT secret - backend handles all authentication
 function getJWTSecret(): Uint8Array {
@@ -25,11 +26,13 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			return json({ success: false, error: 'Missing credentials' }, { status: 400 });
 		}
 
-		// Call NestJS backend auth endpoint
+		const hostHeaders = forwardedHostHeadersFromRequest(request);
+		// Call NestJS backend auth endpoint (Host matters for owner-only guest accounts)
 		const backendResponse = await fetch(`${BACKEND_URL}/api/auth/login`, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
+				...hostHeaders,
 			},
 			body: JSON.stringify({ email, password }),
 		});

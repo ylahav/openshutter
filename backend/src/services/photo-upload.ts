@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import sharp from 'sharp'
 import { storageManager } from './storage'
+import { resolveOwnerStorageContext } from './storage/owner-storage-context'
+import { extractStorageServePath } from './storage/storage-serve-url'
 import mongoose, { Types } from 'mongoose'
 import { ThumbnailGenerator } from './thumbnail-generator'
 import { ImageCompressionService } from './image-compression'
@@ -171,24 +173,23 @@ export class PhotoUploadService {
           // Delete old photo files from storage (but keep the database record)
           if (existingPhoto.storage && existingPhoto.storage.provider && existingPhoto.storage.path) {
             try {
-              const storageService = await storageManager.getProvider(existingPhoto.storage.provider as any)
-              
-              // Helper function to extract path from URL
-              const extractPathFromUrl = (url: string): string | null => {
-                if (!url || typeof url !== 'string') return null
-                const urlMatch = url.match(/\/api\/storage\/serve\/[^/]+\/(.+)$/)
-                if (urlMatch && urlMatch[1]) {
-                  try {
-                    return decodeURIComponent(urlMatch[1])
-                  } catch {
-                    return urlMatch[1]
-                  }
+              let replaceCtx: Awaited<ReturnType<typeof resolveOwnerStorageContext>> = undefined
+              if (existingPhoto.albumId) {
+                try {
+                  const alb = await db
+                    .collection('albums')
+                    .findOne({ _id: new ObjectId(existingPhoto.albumId) })
+                  replaceCtx = await resolveOwnerStorageContext(
+                    alb?.createdBy ? String(alb.createdBy) : undefined,
+                  )
+                } catch {
+                  replaceCtx = undefined
                 }
-                if (!url.startsWith('/api/storage/serve/')) {
-                  return url
-                }
-                return null
               }
+              const storageService = await storageManager.getProvider(
+                existingPhoto.storage.provider as any,
+                replaceCtx,
+              )
               
               // Delete main photo file
               await storageService.deleteFile(existingPhoto.storage.path)
@@ -198,7 +199,7 @@ export class PhotoUploadService {
               if (existingPhoto.storage.thumbnails && typeof existingPhoto.storage.thumbnails === 'object') {
                 for (const [size, thumbnailUrl] of Object.entries(existingPhoto.storage.thumbnails)) {
                   try {
-                    const thumbnailPath = extractPathFromUrl(thumbnailUrl as string)
+                    const thumbnailPath = extractStorageServePath(thumbnailUrl as string)
                     if (thumbnailPath && thumbnailPath !== existingPhoto.storage.path) {
                       await storageService.deleteFile(thumbnailPath)
                       this.logger.debug(`PhotoUploadService: Deleted old ${size} thumbnail: ${thumbnailPath}`)
@@ -211,11 +212,11 @@ export class PhotoUploadService {
               
               // Delete thumbnailPath if different
               if (existingPhoto.storage.thumbnailPath) {
-                const thumbPath = extractPathFromUrl(existingPhoto.storage.thumbnailPath)
+                const thumbPath = extractStorageServePath(existingPhoto.storage.thumbnailPath)
                 if (thumbPath && thumbPath !== existingPhoto.storage.path) {
                   const alreadyDeleted = existingPhoto.storage.thumbnails &&
                     Object.values(existingPhoto.storage.thumbnails).some((url) => {
-                      const path = extractPathFromUrl(url as string)
+                      const path = extractStorageServePath(url as string)
                       return path === thumbPath
                     })
                   
@@ -265,9 +266,19 @@ export class PhotoUploadService {
         this.logger.debug('PhotoUploadService: No albumId provided, using default storage provider')
       }
 
+      const storageCtx = await resolveOwnerStorageContext(
+        album?.createdBy ? String(album.createdBy) : undefined,
+      )
+      const serveOwnerQs = storageCtx
+        ? `?storageOwnerId=${encodeURIComponent(storageCtx.ownerUserId)}`
+        : ''
+
       // Get storage service from the new storage manager
       this.logger.debug(`PhotoUploadService: Getting storage service for provider: ${storageProvider}`)
-      const storageService = await storageManager.getProvider(storageProvider as 'local' | 'google-drive' | 'aws-s3' | 'backblaze' | 'wasabi')
+      const storageService = await storageManager.getProvider(
+        storageProvider as 'local' | 'google-drive' | 'aws-s3' | 'backblaze' | 'wasabi',
+        storageCtx,
+      )
       this.logger.debug(`PhotoUploadService: Storage service obtained: ${storageService.constructor.name}`)
 
       // Generate unique filename
@@ -365,7 +376,7 @@ export class PhotoUploadService {
           )
           
           this.logger.debug(`PhotoUploadService: Successfully uploaded ${sizeName} thumbnail:`, thumbnailResult.path)
-          thumbnails[sizeName] = `/api/storage/serve/${storageProvider}/${encodeURIComponent(thumbnailResult.path)}`
+          thumbnails[sizeName] = `/api/storage/serve/${storageProvider}/${encodeURIComponent(thumbnailResult.path)}${serveOwnerQs}`
         } catch (error) {
           this.logger.error(`PhotoUploadService: Failed to upload ${sizeName} thumbnail:`, error)
           this.logger.error(`PhotoUploadService: Error details:`, {
@@ -459,12 +470,13 @@ export class PhotoUploadService {
         storage: {
           provider: storageProvider,
           fileId: uploadResult.fileId,
-          url: `/api/storage/serve/${storageProvider}/${encodeURIComponent(uploadResult.path)}`,
+          url: `/api/storage/serve/${storageProvider}/${encodeURIComponent(uploadResult.path)}${serveOwnerQs}`,
           path: uploadResult.path,
           thumbnailPath: mediumThumbnail,
           thumbnails: thumbnails,
           blurDataURL: blurDataURL,
-          folderId: uploadResult.folderId
+          folderId: uploadResult.folderId,
+          ...(storageCtx ? { storageOwnerId: storageCtx.ownerUserId } : {}),
         },
         albumId: options.albumId ? new ObjectId(options.albumId) : null,
         tags: existingPhoto?.tags || options.tags || [],

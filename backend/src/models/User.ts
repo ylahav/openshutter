@@ -10,6 +10,8 @@ export interface User {
   groupAliases: string[]
   blocked: boolean
   allowedStorageProviders: string[]
+  /** When true, this owner's uploads and reads use `owner_storage_configs` only (not global site storage). */
+  useDedicatedStorage?: boolean
   storageConfig?: {
     useAdminConfig?: boolean
     googleDrive?: {
@@ -77,6 +79,10 @@ const UserSchema = new Schema<IUserDocument>({
     type: String,
     trim: true
   }],
+  useDedicatedStorage: {
+    type: Boolean,
+    default: false
+  },
   storageConfig: {
     type: Schema.Types.Mixed,
     default: undefined

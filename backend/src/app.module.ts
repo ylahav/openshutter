@@ -37,6 +37,10 @@ import { SiteContextMiddleware } from './middleware/site-context.middleware';
 import { OwnerDomainsController } from './owner-domains/owner-domains.controller';
 import { OwnerSiteSettingsController } from './owner-site-settings/owner-site-settings.controller';
 import { SiteContextController } from './site-context/site-context.controller';
+import {
+  AdminOwnerDedicatedStorageController,
+  OwnerDedicatedStorageController,
+} from './owner-dedicated-storage/owner-dedicated-storage.controller';
 
 @Module({
   imports: [
@@ -80,6 +84,8 @@ import { SiteContextController } from './site-context/site-context.controller';
     OwnerDomainsController,
     OwnerSiteSettingsController,
     SiteContextController,
+    AdminOwnerDedicatedStorageController,
+    OwnerDedicatedStorageController,
   ],
   providers: [AdminGuard, AdminOrOwnerGuard],
 })

@@ -15,6 +15,15 @@ export const load: LayoutServerLoad = async ({ locals, url, cookies }) => {
 	if (!locals.user) {
 		throw redirect(303, '/login?redirect=' + encodeURIComponent(url.pathname));
 	}
+	const sc = locals.siteContext;
+	if (sc.type === 'owner-site') {
+		if (locals.user.role === 'admin') {
+			throw redirect(303, '/');
+		}
+		if (locals.user.role === 'owner' && locals.user.id !== sc.ownerId) {
+			throw redirect(303, '/login?wrongSite=1');
+		}
+	}
 	// Owners visiting /admin/storage: redirect to /owner only when "Use main domain connection" is set
 	if (locals.user.role === 'owner' && url.pathname.startsWith('/admin/storage')) {
 		try {

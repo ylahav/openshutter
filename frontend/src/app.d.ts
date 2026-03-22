@@ -3,6 +3,10 @@
 declare global {
 	namespace App {
 		// interface Error {}
+		type SiteContext =
+			| { type: 'global' }
+			| { type: 'owner-site'; ownerId: string };
+
 		interface Locals {
 			user: {
 				id: string;
@@ -11,6 +15,8 @@ declare global {
 				role: 'admin' | 'owner' | 'guest';
 				forcePasswordChange?: boolean;
 			} | null;
+			/** Set in hooks from GET /api/site-context + Host forwarding (owner custom domains). */
+			siteContext: SiteContext;
 		}
 		// interface PageData {}
 		// interface Platform {}

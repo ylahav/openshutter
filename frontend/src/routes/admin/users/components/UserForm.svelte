@@ -1,5 +1,6 @@
 <script lang="ts">
 	import MultiLangInput from '$lib/components/MultiLangInput.svelte';
+	import { t } from '$stores/i18n';
 	import type { UserFormData } from '../types';
 	import type { Group } from '../types';
 
@@ -146,6 +147,28 @@
 		</div>
 	</fieldset>
 
+	{#if formData.role === 'owner'}
+		<fieldset class="space-y-2">
+			<legend class="block text-sm font-medium text-gray-700 mb-2">{$t('admin.dedicatedStorageLegend')}</legend>
+			<div class="border border-gray-300 rounded-md p-3">
+				<label class="flex items-start cursor-pointer gap-2">
+					<input
+						type="checkbox"
+						bind:checked={formData.useDedicatedStorage}
+						class="mt-1"
+						data-testid="user-form-use-dedicated-storage"
+					/>
+					<span>
+						<span class="text-sm font-medium text-gray-800">{$t('admin.dedicatedStorageCheckboxLabel')}</span>
+						<span class="block text-xs text-gray-500 mt-1">
+							{$t('admin.dedicatedStorageCheckboxHelp')}
+						</span>
+					</span>
+				</label>
+			</div>
+		</fieldset>
+	{/if}
+
 	<fieldset class="space-y-2">
 		<legend class="block text-sm font-medium text-gray-700 mb-2">Allowed Storage Providers</legend>
 		<div class="border border-gray-300 rounded-md p-3">
@@ -165,7 +188,7 @@
 		</div>
 	</fieldset>
 
-	{#if formData.role === 'owner' && formData.allowedStorageProviders.includes('google-drive')}
+	{#if formData.role === 'owner' && formData.allowedStorageProviders.includes('google-drive') && !formData.useDedicatedStorage}
 		<fieldset class="space-y-2">
 			<legend class="block text-sm font-medium text-gray-700 mb-2">Storage connection (Google Drive)</legend>
 			<p class="text-xs text-gray-500 mb-2">

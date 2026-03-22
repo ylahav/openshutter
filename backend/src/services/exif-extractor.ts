@@ -1,6 +1,9 @@
 import { Logger } from '@nestjs/common'
+import mongoose from 'mongoose'
+import { connectDB } from '../config/db'
 import { PhotoModel } from '../models/Photo'
 import { storageManager } from './storage/manager'
+import { storageCtxForPhoto } from './storage/photo-storage-context'
 
 export interface ExifData {
   // Basic Camera Information
@@ -245,9 +248,12 @@ export class ExifExtractor {
       ExifExtractor.logger.debug(`   Storage provider: ${photo.storage?.provider}`)
       ExifExtractor.logger.debug(`   Storage path: ${photo.storage?.path}`)
 
-      // Get the storage provider
+      // Get the storage provider (per-owner dedicated config when applicable)
       const storageProvider = photo.storage?.provider || 'local'
-      const storageService = await storageManager.getProvider(storageProvider as 'local' | 'google-drive' | 'aws-s3')
+      await connectDB()
+      const db = mongoose.connection.db
+      const pctx = db ? await storageCtxForPhoto(db, photo) : undefined
+      const storageService = await storageManager.getProvider(storageProvider as 'local' | 'google-drive' | 'aws-s3', pctx)
       try {
         // Debug provider config (e.g., local basePath)
         // getConfig() exists on storage services at runtime but isn't in the IStorageService interface

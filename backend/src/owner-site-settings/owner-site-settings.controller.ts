@@ -21,6 +21,8 @@ import { AdminOrOwnerGuard } from '../common/guards/admin-or-owner.guard';
 import { StorageManager } from '../services/storage/manager';
 import { storageConfigService } from '../services/storage/config';
 import { StorageError, StorageProviderId } from '../services/storage/types';
+import { resolveOwnerStorageContext } from '../services/storage/owner-storage-context';
+import { appendStorageOwnerQuery } from '../services/storage/storage-serve-url';
 
 const COLLECTION = 'owner_site_settings';
 const ALLOWED_LOGO_MIME = [
@@ -190,6 +192,8 @@ export class OwnerSiteSettingsController {
       new Set([defaultProvider, 'local']),
     );
 
+    const storageCtx = await resolveOwnerStorageContext(user.id);
+
     const errors: string[] = [];
     for (const provider of providersToTry) {
       const isEnabled = await storageConfigService.isProviderEnabled(provider);
@@ -203,8 +207,10 @@ export class OwnerSiteSettingsController {
           filePath,
           provider,
           file.mimetype,
+          storageCtx,
         );
-        const url = `/api/storage/serve/${uploadResult.provider}/${encodeURIComponent(uploadResult.path)}`;
+        const baseUrl = `/api/storage/serve/${uploadResult.provider}/${encodeURIComponent(uploadResult.path)}`;
+        const url = appendStorageOwnerQuery(baseUrl, storageCtx?.ownerUserId);
         return { url, path: uploadResult.path, filename };
       } catch (error) {
         const message =

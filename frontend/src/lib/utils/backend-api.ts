@@ -6,7 +6,9 @@
  */
 
 import { env } from '$env/dynamic/private';
+import { getRequestEvent } from '$app/server';
 import type { Cookies } from '@sveltejs/kit';
+import { forwardedHostHeadersFromRequest } from '$lib/server/forward-host';
 import { logger } from './logger';
 
 // Note: Environment variables should be loaded by start.sh or PM2 before starting the app
@@ -142,6 +144,17 @@ export async function backendRequest(
 		...defaultHeaders,
 		...optionHeaders,
 	};
+
+	// Let the backend resolve owner custom domains (SiteContextMiddleware) when this
+	// request is proxied from SvelteKit without going through Vite's dev proxy.
+	if (!finalHeaders['X-Forwarded-Host']) {
+		try {
+			const { request } = getRequestEvent();
+			Object.assign(finalHeaders, forwardedHostHeadersFromRequest(request));
+		} catch {
+			/* not in a SvelteKit request context (e.g. scripts) */
+		}
+	}
 
 	// Always log request details to help diagnose auth issues
 	logger.debug('[Backend API] Making request:', {

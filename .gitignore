@@ -38,6 +38,11 @@ tmp/
 temp/
 _tmp_*
 
+# Playwright E2E
+e2e-report/
+test-results/
+playwright-report/
+
 # Backend build output
 backend/dist/
 

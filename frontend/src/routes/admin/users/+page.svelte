@@ -46,14 +46,18 @@
 		createSuccessMessage: get(t)('admin.userCreatedSuccessfully'),
 		updateSuccessMessage: get(t)('admin.userUpdatedSuccessfully'),
 		deleteSuccessMessage: get(t)('admin.userDeletedSuccessfully'),
-		transformPayload: (data: UserPayload): UserPayload => {
-			const payload: UserPayload = { ...data };
+		transformPayload: (data: UserPayload & Record<string, unknown>): UserPayload => {
+			const payload = { ...data } as UserPayload & Record<string, unknown>;
 			// Only include password if it's been set (for updates: omit when empty so backend keeps current)
 			const p = payload.password;
 			if (p == null || (typeof p === 'string' && p.trim() === '')) {
 				delete payload.password;
 			}
-			return payload;
+			delete payload.storageUseAdminConfig;
+			if (payload.role !== 'owner') {
+				delete payload.useDedicatedStorage;
+			}
+			return payload as UserPayload;
 		},
 		onCreateSuccess: (newUser) => {
 			crudLoader.items.update(items => [...items, newUser]);
@@ -132,6 +136,7 @@
 		blocked: false,
 		forcePasswordChange: true,
 		allowedStorageProviders: ['local'],
+		useDedicatedStorage: false,
 		storageUseAdminConfig: true
 	};
 
@@ -168,6 +173,7 @@
 			blocked: false,
 			forcePasswordChange: true,
 			allowedStorageProviders: ['local'],
+			useDedicatedStorage: false,
 			storageUseAdminConfig: true
 		};
 		showPassword = false;
@@ -198,6 +204,7 @@
 			blocked: user.blocked || false,
 			forcePasswordChange: user.forcePasswordChange ?? false,
 			allowedStorageProviders: user.allowedStorageProviders || ['local'],
+			useDedicatedStorage: user.useDedicatedStorage === true,
 			storageUseAdminConfig: storage.useAdminConfig !== false
 		};
 		showPassword = false;
@@ -331,7 +338,7 @@
 	}
 
 	async function handleCreate() {
-		const newUser = await crudOps.create(formData);
+		const newUser = await crudOps.create(formData as unknown as Partial<User> & Record<string, unknown>);
 		if (newUser) {
 			// Success handled by onCreateSuccess callback
 		}
@@ -344,9 +351,11 @@
 			...formData,
 			storageConfig: {
 				useAdminConfig: formData.storageUseAdminConfig,
-				// When using own connection, preserve existing owner data (credentials/folders are set on owner setup only)
-				googleDrive: formData.storageUseAdminConfig ? undefined : (currentEditingUser.storageConfig?.googleDrive ?? undefined)
-			}
+				googleDrive:
+					formData.useDedicatedStorage || formData.storageUseAdminConfig
+						? undefined
+						: (currentEditingUser.storageConfig?.googleDrive ?? undefined),
+			},
 		};
 		const updatedUser = await crudOps.update(currentEditingUser._id, payload);
 		if (updatedUser) {
@@ -543,6 +552,7 @@
 					</button>
 					<button
 						type="button"
+						data-testid="admin-users-save-edit"
 						on:click={handleEdit}
 						disabled={saving}
 						class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm font-medium"

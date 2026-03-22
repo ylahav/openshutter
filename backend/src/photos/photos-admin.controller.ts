@@ -21,6 +21,7 @@ import { AdminOrOwnerGuard } from '../common/guards/admin-or-owner.guard';
 import { connectDB } from '../config/db';
 import mongoose, { Types } from 'mongoose';
 import { StorageManager } from '../services/storage/manager';
+import { storageCtxForPhoto } from '../services/storage/photo-storage-context';
 import { TagFeedbackService } from '../services/tag-feedback';
 
 /** Native MongoDB Db-like (mongoose.connection.db); avoids depending on mongoose.mongodb which may not exist in all mongoose versions. */
@@ -31,6 +32,12 @@ import { UpdatePhotoDto } from './dto/update-photo.dto';
 import { CropPhotoDto } from './dto/crop-photo.dto';
 import sharp from 'sharp';
 import { ImageCompressionService } from '../services/image-compression';
+import { extractStorageServePath } from '../services/storage/storage-serve-url';
+
+function storageServeQs(photo: unknown): string {
+	const id = (photo as { storage?: { storageOwnerId?: string } } | null | undefined)?.storage?.storageOwnerId;
+	return id ? `?storageOwnerId=${encodeURIComponent(String(id))}` : '';
+}
 
 @Controller('admin/photos')
 @UseGuards(AdminOrOwnerGuard)
@@ -378,39 +385,21 @@ export class PhotosAdminController {
 				try {
 					const storageManager = StorageManager.getInstance();
 					const provider = photo.storage.provider as any;
+					const pctx = await storageCtxForPhoto(db, photo);
 					this.logger.debug(`Deleting photo file from storage: provider=${provider}, path=${photo.storage.path}`);
-					
-					// Helper function to extract path from URL
-					const extractPathFromUrl = (url: string): string | null => {
-						if (!url || typeof url !== 'string') return null;
-						// URL format: /api/storage/serve/{provider}/{path}
-						const urlMatch = url.match(/\/api\/storage\/serve\/[^/]+\/(.+)$/);
-						if (urlMatch && urlMatch[1]) {
-							try {
-								return decodeURIComponent(urlMatch[1]);
-							} catch {
-								return urlMatch[1]; // Return as-is if decoding fails
-							}
-						}
-						// If it's already a path (not a URL), return as-is
-						if (!url.startsWith('/api/storage/serve/')) {
-							return url;
-						}
-						return null;
-					};
-					
+
 					// Delete main photo file
-					await storageManager.deletePhoto(photo.storage.path, provider);
+					await storageManager.deletePhoto(photo.storage.path, provider, pctx);
 					this.logger.debug(`Successfully deleted main photo file: ${photo.storage.path}`);
 					
 					// Delete thumbnails if they exist
 					if (photo.storage.thumbnails && typeof photo.storage.thumbnails === 'object') {
 						for (const [size, thumbnailUrl] of Object.entries(photo.storage.thumbnails)) {
 							try {
-								const thumbnailPath = extractPathFromUrl(thumbnailUrl as string);
+								const thumbnailPath = extractStorageServePath(thumbnailUrl as string);
 								if (thumbnailPath && thumbnailPath !== photo.storage.path) {
 									this.logger.debug(`Deleting ${size} thumbnail: ${thumbnailPath}`);
-									await storageManager.deletePhoto(thumbnailPath, provider);
+									await storageManager.deletePhoto(thumbnailPath, provider, pctx);
 									this.logger.debug(`Successfully deleted ${size} thumbnail`);
 								}
 							} catch (thumbError) {
@@ -423,18 +412,18 @@ export class PhotosAdminController {
 					// Also try to delete thumbnailPath if it's different from main path
 					if (photo.storage.thumbnailPath) {
 						try {
-							const thumbPath = extractPathFromUrl(photo.storage.thumbnailPath);
+							const thumbPath = extractStorageServePath(photo.storage.thumbnailPath);
 							if (thumbPath && thumbPath !== photo.storage.path) {
 								// Check if we already deleted this path (might be in thumbnails object)
 								const alreadyDeleted = photo.storage.thumbnails && 
 									Object.values(photo.storage.thumbnails).some(url => {
-										const path = extractPathFromUrl(url as string);
+										const path = extractStorageServePath(url as string);
 										return path === thumbPath;
 									});
 								
 								if (!alreadyDeleted) {
 									this.logger.debug(`Deleting thumbnail path: ${thumbPath}`);
-									await storageManager.deletePhoto(thumbPath, provider);
+									await storageManager.deletePhoto(thumbPath, provider, pctx);
 									this.logger.debug(`Successfully deleted thumbnail path`);
 								}
 							}
@@ -679,15 +668,7 @@ export class PhotosAdminController {
 			let failedCount = 0;
 			const errors: { photoId: string; error: string }[] = [];
 			const storageManager = StorageManager.getInstance();
-
-			const extractPathFromUrl = (url: string): string | null => {
-				if (!url) return null;
-				if (url.startsWith('/api/storage/serve/')) {
-					const match = url.match(/\/serve\/[^/]+\/(.+)$/);
-					return match ? decodeURIComponent(match[1]) : null;
-				}
-				return url;
-			};
+			const extractPathFromUrl = (url: string): string | null => extractStorageServePath(url);
 
 			for (const photo of photos) {
 				try {
@@ -695,7 +676,8 @@ export class PhotosAdminController {
 						throw new Error('Photo has no storage path or provider');
 					}
 					const provider = photo.storage.provider as any;
-					const storageService = await storageManager.getProvider(provider);
+					const pctx = await storageCtxForPhoto(db, photo);
+					const storageService = await storageManager.getProvider(provider, pctx);
 					const fileBuffer = await storageService.getFileBuffer(photo.storage.path);
 					if (!fileBuffer) {
 						throw new Error('Failed to download original image from storage');
@@ -715,7 +697,7 @@ export class PhotosAdminController {
 							try {
 								const thumbnailPath = extractPathFromUrl(thumbnailUrl as string);
 								if (thumbnailPath && thumbnailPath !== photo.storage.path) {
-									await storageManager.deletePhoto(thumbnailPath, provider);
+									await storageManager.deletePhoto(thumbnailPath, provider, pctx);
 								}
 							} catch (_e) {
 								// continue
@@ -735,7 +717,7 @@ export class PhotosAdminController {
 								sizeFolderPath,
 								{ originalFile: photo.filename, thumbnailSize: sizeName }
 							);
-							thumbnails[sizeName] = `/api/storage/serve/${provider}/${encodeURIComponent(thumbnailResult.path)}`;
+							thumbnails[sizeName] = `/api/storage/serve/${provider}/${encodeURIComponent(thumbnailResult.path)}${storageServeQs(photo)}`;
 						} catch (err) {
 							this.logger.warn(`Failed to upload ${sizeName} thumbnail for ${photo.filename}: ${err}`);
 						}
@@ -819,14 +801,7 @@ export class PhotosAdminController {
 			let processedCount = 0;
 			let failedCount = 0;
 			const storageManager = StorageManager.getInstance();
-			const extractPathFromUrl = (url: string): string | null => {
-				if (!url) return null;
-				if (url.startsWith('/api/storage/serve/')) {
-					const match = url.match(/\/serve\/[^/]+\/(.+)$/);
-					return match ? decodeURIComponent(match[1]) : null;
-				}
-				return url;
-			};
+			const extractPathFromUrl = (url: string): string | null => extractStorageServePath(url);
 
 			res.setHeader('Content-Type', 'application/x-ndjson');
 			res.setHeader('Cache-Control', 'no-store');
@@ -838,7 +813,8 @@ export class PhotosAdminController {
 						throw new Error('Photo has no storage path or provider');
 					}
 					const provider = photo.storage.provider as any;
-					const storageService = await storageManager.getProvider(provider);
+					const pctx = await storageCtxForPhoto(db, photo);
+					const storageService = await storageManager.getProvider(provider, pctx);
 					const fileBuffer = await storageService.getFileBuffer(photo.storage.path);
 					if (!fileBuffer) {
 						throw new Error('Failed to download original image from storage');
@@ -855,7 +831,7 @@ export class PhotosAdminController {
 							try {
 								const thumbnailPath = extractPathFromUrl(thumbnailUrl as string);
 								if (thumbnailPath && thumbnailPath !== photo.storage.path) {
-									await storageManager.deletePhoto(thumbnailPath, provider);
+									await storageManager.deletePhoto(thumbnailPath, provider, pctx);
 								}
 							} catch (_e) {
 								// continue
@@ -874,7 +850,7 @@ export class PhotosAdminController {
 								sizeFolderPath,
 								{ originalFile: photo.filename, thumbnailSize: sizeName }
 							);
-							thumbnails[sizeName] = `/api/storage/serve/${provider}/${encodeURIComponent(thumbnailResult.path)}`;
+							thumbnails[sizeName] = `/api/storage/serve/${provider}/${encodeURIComponent(thumbnailResult.path)}${storageServeQs(photo)}`;
 						} catch (err) {
 							this.logger.warn(`Failed to upload ${sizeName} thumbnail for ${photo.filename}: ${err}`);
 						}
@@ -1035,9 +1011,10 @@ export class PhotosAdminController {
 			const storageManager = StorageManager.getInstance();
 			const provider = photo.storage.provider as any;
 			const filePath = photo.storage.path;
+			const pctx = await storageCtxForPhoto(db, photo);
 
 			// Download original image
-			const storageService = await storageManager.getProvider(provider);
+			const storageService = await storageManager.getProvider(provider, pctx);
 			const fileBuffer = await storageService.getFileBuffer(filePath);
 
 			if (!fileBuffer) {
@@ -1144,14 +1121,7 @@ export class PhotosAdminController {
 			);
 
 			// Delete old thumbnails
-			const extractPathFromUrl = (url: string): string | null => {
-				if (!url) return null;
-				if (url.startsWith('/api/storage/serve/')) {
-					const match = url.match(/\/serve\/[^/]+\/(.+)$/);
-					return match ? decodeURIComponent(match[1]) : null;
-				}
-				return url;
-			};
+			const extractPathFromUrl = (url: string): string | null => extractStorageServePath(url);
 
 			if (photo.storage.thumbnails && typeof photo.storage.thumbnails === 'object') {
 				for (const [size, thumbnailUrl] of Object.entries(photo.storage.thumbnails)) {
@@ -1189,7 +1159,7 @@ export class PhotosAdminController {
 						}
 					);
 
-					thumbnails[sizeName] = `/api/storage/serve/${provider}/${encodeURIComponent(thumbnailResult.path)}`;
+					thumbnails[sizeName] = `/api/storage/serve/${provider}/${encodeURIComponent(thumbnailResult.path)}${storageServeQs(photo)}`;
 					this.logger.debug(`Successfully regenerated ${sizeName} thumbnail`);
 				} catch (error) {
 					this.logger.error(`Failed to upload ${sizeName} thumbnail:`, error);
@@ -1221,7 +1191,7 @@ export class PhotosAdminController {
 						filename: newFilename,
 						'storage.path': uploadResult.path,
 						'storage.fileId': uploadResult.fileId,
-						'storage.url': `/api/storage/serve/${provider}/${encodeURIComponent(uploadResult.path)}`,
+						'storage.url': `/api/storage/serve/${provider}/${encodeURIComponent(uploadResult.path)}${storageServeQs(photo)}`,
 						'storage.thumbnails': thumbnails,
 						'storage.thumbnailPath': mediumThumbnail,
 						'storage.blurDataURL': blurDataURL,
@@ -1327,7 +1297,8 @@ export class PhotosAdminController {
 			}
 
 			const storageManager = StorageManager.getInstance();
-			const storageService = await storageManager.getProvider(provider);
+			const pctx = await storageCtxForPhoto(db, photo);
+			const storageService = await storageManager.getProvider(provider, pctx);
 
 			// Load backup file
 			const originalBuffer = await storageService.getFileBuffer(backupPath);
@@ -1341,14 +1312,7 @@ export class PhotosAdminController {
 				if (album?.storagePath) albumPath = album.storagePath;
 			}
 
-			const extractPathFromUrl = (url: string): string | null => {
-				if (!url) return null;
-				if (url.startsWith('/api/storage/serve/')) {
-					const match = url.match(/\/serve\/[^/]+\/(.+)$/);
-					return match ? decodeURIComponent(match[1]) : null;
-				}
-				return url;
-			};
+			const extractPathFromUrl = (url: string): string | null => extractStorageServePath(url);
 
 			// Delete current main file
 			try {
@@ -1400,7 +1364,7 @@ export class PhotosAdminController {
 						sizeFolderPath,
 						{ originalFile: newFilename, thumbnailSize: sizeName }
 					);
-					thumbnails[sizeName] = `/api/storage/serve/${provider}/${encodeURIComponent(thumbnailResult.path)}`;
+					thumbnails[sizeName] = `/api/storage/serve/${provider}/${encodeURIComponent(thumbnailResult.path)}${storageServeQs(photo)}`;
 				} catch (err) {
 					this.logger.warn(`Failed to upload ${sizeName} thumbnail:`, err);
 				}
@@ -1422,7 +1386,7 @@ export class PhotosAdminController {
 						filename: newFilename,
 						'storage.path': uploadResult.path,
 						'storage.fileId': uploadResult.fileId,
-						'storage.url': `/api/storage/serve/${provider}/${encodeURIComponent(uploadResult.path)}`,
+						'storage.url': `/api/storage/serve/${provider}/${encodeURIComponent(uploadResult.path)}${storageServeQs(photo)}`,
 						'storage.thumbnails': thumbnails,
 						'storage.thumbnailPath': mediumThumbnail,
 						'storage.blurDataURL': blurDataURL,
@@ -1516,9 +1480,10 @@ export class PhotosAdminController {
 			const storageManager = StorageManager.getInstance();
 			const provider = photo.storage.provider as any;
 			const filePath = photo.storage.path;
+			const pctx = await storageCtxForPhoto(db, photo);
 
 			// Get the original image file buffer
-			const storageService = await storageManager.getProvider(provider);
+			const storageService = await storageManager.getProvider(provider, pctx);
 			const fileBuffer = await storageService.getFileBuffer(filePath);
 
 			if (!fileBuffer) {
@@ -1539,14 +1504,7 @@ export class PhotosAdminController {
 			const thumbnails: Record<string, string> = {};
 
 			// Delete old thumbnails first
-			const extractPathFromUrl = (url: string): string | null => {
-				if (!url) return null;
-				if (url.startsWith('/api/storage/serve/')) {
-					const match = url.match(/\/serve\/[^/]+\/(.+)$/);
-					return match ? decodeURIComponent(match[1]) : null;
-				}
-				return url;
-			};
+			const extractPathFromUrl = (url: string): string | null => extractStorageServePath(url);
 
 			if (photo.storage.thumbnails && typeof photo.storage.thumbnails === 'object') {
 				for (const [size, thumbnailUrl] of Object.entries(photo.storage.thumbnails)) {
@@ -1554,7 +1512,7 @@ export class PhotosAdminController {
 						const thumbnailPath = extractPathFromUrl(thumbnailUrl as string);
 						if (thumbnailPath && thumbnailPath !== photo.storage.path) {
 							this.logger.debug(`Deleting old ${size} thumbnail: ${thumbnailPath}`);
-							await storageManager.deletePhoto(thumbnailPath, provider);
+							await storageManager.deletePhoto(thumbnailPath, provider, pctx);
 						}
 					} catch (thumbError) {
 						this.logger.warn(`Failed to delete ${size} thumbnail:`, thumbError);
@@ -1580,7 +1538,7 @@ export class PhotosAdminController {
 						}
 					);
 
-					thumbnails[sizeName] = `/api/storage/serve/${provider}/${encodeURIComponent(thumbnailResult.path)}`;
+					thumbnails[sizeName] = `/api/storage/serve/${provider}/${encodeURIComponent(thumbnailResult.path)}${storageServeQs(photo)}`;
 					this.logger.debug(`Successfully regenerated ${sizeName} thumbnail`);
 				} catch (error) {
 					this.logger.error(`Failed to upload ${sizeName} thumbnail:`, error);
@@ -1776,12 +1734,16 @@ export class PhotosAdminController {
 				await this.assertOwnerCanAccessPhoto(req, photo, db);
 			}
 
-			// Get photo file path/buffer for AI processing
+			// Get photo file path for AI processing (dedicated owner storage uses StorageManager + ctx)
 			const storage = photo.storage || {};
 			const provider = storage.provider || 'local';
-			const filePath = storage.path || storage.url;
-
-			if (!filePath) {
+			let resolvedPath = '';
+			if (typeof storage.path === 'string' && storage.path.trim()) {
+				resolvedPath = storage.path.trim();
+			} else if (typeof storage.url === 'string') {
+				resolvedPath = extractStorageServePath(storage.url) ?? '';
+			}
+			if (!resolvedPath) {
 				throw new BadRequestException('Photo has no file path');
 			}
 
@@ -1799,105 +1761,27 @@ export class PhotosAdminController {
 			const path = require('path');
 			const fs = require('fs').promises;
 			const os = require('os');
-			let imagePath: string | null = null;
 			let tempFilePath: string | null = null;
 
 			try {
-				if (provider === 'local') {
-					// Local storage: resolve file path
-					const storageManager = StorageManager.getInstance();
-					const storageService = await storageManager.getProvider('local');
-					
-					// Get the base path from storage config
-					const storageConfig = await import('../services/storage/config');
-					const config = await storageConfig.storageConfigService.getConfig('local');
-					const basePath = config.config.basePath || process.env.LOCAL_STORAGE_PATH || './uploads';
-					
-					// Resolve the full path similar to LocalStorageService.getFullPath()
-					if (path.isAbsolute(basePath)) {
-						imagePath = path.join(basePath, filePath);
-					} else {
-						imagePath = path.join(process.cwd(), basePath, filePath);
-					}
-					
-					// Normalize the path (resolve .. and . segments)
-					imagePath = path.normalize(imagePath);
-					
-					this.logger.debug(`Attempting to resolve image path. Original: ${filePath}, Base: ${basePath}, Resolved: ${imagePath}`);
-					
-					// Verify file exists
-					try {
-						await fs.access(imagePath);
-						this.logger.debug(`Image file found at: ${imagePath}`);
-					} catch (accessError) {
-						// Try alternative: if filePath is already absolute, use it directly
-						if (path.isAbsolute(filePath)) {
-							try {
-								await fs.access(filePath);
-								imagePath = filePath;
-								this.logger.debug(`Using absolute path directly: ${imagePath}`);
-							} catch {
-								this.logger.error(`Image file not found at absolute path: ${filePath}`);
-								throw new BadRequestException(`Photo file not found at: ${filePath}. Please verify the file exists.`);
-							}
-						} else {
-							this.logger.error(`Image file not found at resolved path: ${imagePath}`);
-							this.logger.error(`Original filePath from DB: ${filePath}`);
-							this.logger.error(`Base path from config: ${basePath}`);
-							this.logger.error(`Current working directory: ${process.cwd()}`);
-							throw new BadRequestException(`Photo file not found at: ${imagePath}. Please verify the storage configuration and file location.`);
-						}
-					}
-				} else {
-					// Remote storage (Google Drive, S3, etc.): download to temporary file
-					this.logger.debug(`Downloading file from ${provider} storage for AI tagging...`);
-					
-					const storageManager = StorageManager.getInstance();
-					const fileBuffer = await storageManager.getPhotoBuffer(provider as any, filePath);
-					
-					if (!fileBuffer) {
-						throw new BadRequestException(`Failed to download photo file from ${provider} storage. File may not exist or access may be denied.`);
-					}
-					
-					// Create temporary file
-					const tempDir = os.tmpdir();
-					const fileExtension = path.extname(filePath) || '.jpg'; // Default to .jpg if no extension
-					const tempFileName = `ai-tagging-${Date.now()}-${Math.random().toString(36).substring(7)}${fileExtension}`;
-					tempFilePath = path.join(tempDir, tempFileName);
-					
-					// Write buffer to temporary file
-					await fs.writeFile(tempFilePath, fileBuffer);
-					this.logger.debug(`Downloaded file to temporary location: ${tempFilePath} (${fileBuffer.length} bytes)`);
-					
-					imagePath = tempFilePath;
+				const pctx = await storageCtxForPhoto(db, photo);
+				const storageManager = StorageManager.getInstance();
+				this.logger.debug(`AI tagging: loading buffer provider=${provider} path=${resolvedPath}`);
+				const fileBuffer = await storageManager.getPhotoBuffer(provider as any, resolvedPath, pctx);
+				if (!fileBuffer) {
+					throw new BadRequestException(
+						`Failed to load photo file from ${provider} storage. File may not exist or access may be denied.`,
+					);
 				}
-			} catch (error) {
-				// Clean up temporary file if it was created
-				if (tempFilePath) {
-					try {
-						await fs.unlink(tempFilePath).catch(() => {
-							// Ignore cleanup errors
-						});
-					} catch {
-						// Ignore cleanup errors
-					}
-				}
-				
-				if (error instanceof BadRequestException) {
-					throw error;
-				}
-				this.logger.error(`Failed to resolve/download image: ${error instanceof Error ? error.message : String(error)}`);
-				throw new BadRequestException(`Could not access photo file: ${error instanceof Error ? error.message : 'Unknown error'}`);
-			}
+				const tempDir = os.tmpdir();
+				const fileExtension = path.extname(resolvedPath) || '.jpg';
+				const tempFileName = `ai-tagging-${Date.now()}-${Math.random().toString(36).substring(7)}${fileExtension}`;
+				const writtenPath = path.join(tempDir, tempFileName);
+				tempFilePath = writtenPath;
+				await fs.writeFile(writtenPath, fileBuffer);
+				this.logger.debug(`AI tagging: temp file ${writtenPath} (${fileBuffer.length} bytes)`);
 
-			// TypeScript guard: ensure imagePath is not null
-			if (!imagePath) {
-				this.logger.error(`Could not resolve image path. Original path: ${filePath}, Provider: ${provider}`);
-				throw new BadRequestException(`Could not locate photo file at path: ${filePath}. Please ensure the file exists and the storage configuration is correct.`);
-			}
-
-			try {
-				const result = await aiTaggingService.suggestTags(imagePath, {
+				const result = await aiTaggingService.suggestTags(writtenPath, {
 					provider: body.provider,
 					minConfidence: body.minConfidence,
 					maxSuggestions: body.maxSuggestions,
@@ -1909,7 +1793,6 @@ export class PhotosAdminController {
 					data: result,
 				};
 			} finally {
-				// Clean up temporary file if it was created
 				if (tempFilePath) {
 					try {
 						await fs.unlink(tempFilePath);
@@ -2312,12 +2195,16 @@ export class PhotosAdminController {
 					continue;
 				}
 
-				// Get file path
 				const storage = photo.storage || {};
 				const provider = storage.provider || 'local';
-				const filePath = storage.path || storage.url;
+				let resolvedPath = '';
+				if (typeof storage.path === 'string' && storage.path.trim()) {
+					resolvedPath = storage.path.trim();
+				} else if (typeof storage.url === 'string') {
+					resolvedPath = extractStorageServePath(storage.url) ?? '';
+				}
 
-				if (!filePath) {
+				if (!resolvedPath) {
 					results.push({
 						photoId,
 						suggestions: [],
@@ -2329,63 +2216,21 @@ export class PhotosAdminController {
 				const path = require('path');
 				const fs = require('fs').promises;
 				const os = require('os');
-				let imagePath: string | null = null;
 				let tempFilePath: string | null = null;
 
 				try {
-					if (provider === 'local') {
-						// Local storage: resolve file path
-						const storageConfig = await import('../services/storage/config');
-						const config = await storageConfig.storageConfigService.getConfig('local');
-						const basePath = config.config.basePath || process.env.LOCAL_STORAGE_PATH || './uploads';
-						
-						if (path.isAbsolute(basePath)) {
-							imagePath = path.join(basePath, filePath);
-						} else {
-							imagePath = path.join(process.cwd(), basePath, filePath);
-						}
-						
-						imagePath = path.normalize(imagePath);
-						
-						// Verify file exists
-						try {
-							await fs.access(imagePath);
-						} catch {
-							// Try absolute path
-							if (path.isAbsolute(filePath)) {
-								try {
-									await fs.access(filePath);
-									imagePath = filePath;
-								} catch {
-									throw new Error(`Photo file not found at: ${imagePath}`);
-								}
-							} else {
-								throw new Error(`Photo file not found at: ${imagePath}`);
-							}
-						}
-					} else {
-						// Remote storage: download to temporary file
-						const storageManager = StorageManager.getInstance();
-						const fileBuffer = await storageManager.getPhotoBuffer(provider as any, filePath);
-						
-						if (!fileBuffer) {
-							throw new Error(`Failed to download photo file from ${provider} storage`);
-						}
-						
-						// Create temporary file
-						const tempDir = os.tmpdir();
-						const fileExtension = path.extname(filePath) || '.jpg';
-						const tempFileName = `ai-tagging-${Date.now()}-${Math.random().toString(36).substring(7)}${fileExtension}`;
-						tempFilePath = path.join(tempDir, tempFileName);
-						
-						// Write buffer to temporary file
-						await fs.writeFile(tempFilePath, fileBuffer);
-						imagePath = tempFilePath;
+					const pctx = await storageCtxForPhoto(db, photo);
+					const storageManager = StorageManager.getInstance();
+					const fileBuffer = await storageManager.getPhotoBuffer(provider as any, resolvedPath, pctx);
+					if (!fileBuffer) {
+						throw new Error(`Failed to load photo file from ${provider} storage`);
 					}
-
-					if (!imagePath) {
-						throw new Error('Could not resolve image path');
-					}
+					const tempDir = os.tmpdir();
+					const fileExtension = path.extname(resolvedPath) || '.jpg';
+					const tempFileName = `ai-tagging-${Date.now()}-${Math.random().toString(36).substring(7)}${fileExtension}`;
+					const writtenPath = path.join(tempDir, tempFileName);
+					tempFilePath = writtenPath;
+					await fs.writeFile(writtenPath, fileBuffer);
 
 					// Import and use AI tagging service
 					const { AITaggingService } = await import('../services/ai-tagging/ai-tagging.service');
@@ -2398,7 +2243,7 @@ export class PhotosAdminController {
 					const googleVisionProvider = new GoogleVisionProvider();
 					const aiTaggingService = new AITaggingService(localProvider, googleVisionProvider, tagMappingService);
 
-					const result = await aiTaggingService.suggestTags(imagePath, options);
+					const result = await aiTaggingService.suggestTags(writtenPath, options);
 					
 					results.push({
 						photoId,

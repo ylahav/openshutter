@@ -24,6 +24,7 @@ Welcome to the OpenShutter documentation. This comprehensive guide covers all as
 ### Development & API
 - [Code Review Summary](./CODE_REVIEW.md) - Backend and frontend review notes and recommendations
 - [API Testing](./API_TESTING.md) - How to test NestJS API endpoints
+- [Manual test: dedicated owner storage](./MANUAL_TEST_DEDICATED_STORAGE.md) - QA checklist (admin flags, owner dashboard card, `/owner/storage`); Playwright spec in [`e2e/`](../e2e/README.md)
 - [Performance Improvements](./PERFORMANCE_IMPROVEMENTS.md) - Query optimizations and recommended indexes
 - [Type System](./TYPE_SYSTEM.md) - Centralized types (backend and frontend)
 - **Backend:** [Swagger/OpenAPI](../backend/SWAGGER_SETUP.md) - API docs setup and access

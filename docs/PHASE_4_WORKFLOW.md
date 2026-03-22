@@ -59,7 +59,9 @@ One deployment that appears as a completely separate product. No mention of Open
 - `owner_domains` collection, admin CRUD (`/api/admin/owner-domains`), and Users admin UI (Owner Domains section) are implemented.
 - Host-based `SiteContextMiddleware` resolves `siteContext = { type: 'owner-site', ownerId }` from `Host` / `X-Forwarded-Host`.
 - Public site config (`GET /api/site-config`) merges `owner_site_settings` for owner domains (title, description, logo, favicon, SEO, header/menu overrides).
-- Root SvelteKit `+layout.server.ts` now loads `siteContext` via `GET /api/site-context` so all routes can branch on owner vs global context.
+- SvelteKit `hooks.server.ts` resolves `locals.siteContext` once per request via `GET /api/site-context`, forwarding the visitor `Host` (and `backendRequest` auto-forwards `Host` for all server-proxied API calls so the backend sees the same context).
+- **Owner-domain `/admin` and `/owner`:** system **admins** are redirected to `/` on an owner custom domain (use the main site for full admin). **Owners** must match `siteContext.ownerId`; otherwise the session cookie is cleared and the user is sent to login. `admin/+layout.server.ts` repeats the same checks as a safeguard.
+- **Public photos API** (`GET /api/photos`, `gallery-leading`, `:id`) is scoped by `createdBy` album ownership when `siteContext` is owner-site (prevents cross-owner photo ID leaks).
 - Per-owner storage is still handled via user `storageConfig` and `/owner/storage`; a dedicated per-owner storage model (independent of user profile) remains future work.
 
 An **owner** user can have their own **public site at a custom domain**. Visitors on that domain see **only that owner's albums** (and blog, if applicable). Admin for that site is at `**<owner-domain>/admin`**. If no custom domain is configured for an owner, behaviour stays as today (shared domain, shared browse).

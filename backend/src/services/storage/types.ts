@@ -1,6 +1,9 @@
 // Storage Provider Types
 export type StorageProviderId = 'google-drive' | 'aws-s3' | 'local' | 'backblaze' | 'wasabi'
 
+/** When passed to StorageManager, resolves credentials from `owner_storage_configs` (dedicated owner storage). */
+export type StorageOwnerContext = { ownerUserId: string }
+
 // Base Storage Configuration
 export interface BaseStorageConfig {
   providerId: StorageProviderId
@@ -144,14 +147,20 @@ export interface IStorageService {
 // Storage Manager Interface
 export interface IStorageManager {
   // Provider Management
-  getProvider(providerId: StorageProviderId): Promise<IStorageService>
+  getProvider(providerId: StorageProviderId, ctx?: StorageOwnerContext): Promise<IStorageService>
   getActiveProviders(): Promise<StorageProviderId[]>
-  validateProvider(providerId: StorageProviderId): Promise<boolean>
+  validateProvider(providerId: StorageProviderId, ctx?: StorageOwnerContext): Promise<boolean>
   
   // Album Operations
-  createAlbum(albumName: string, albumAlias: string, providerId: StorageProviderId, parentPath?: string): Promise<StorageFolderResult>
-  deleteAlbum(albumPath: string, providerId: StorageProviderId): Promise<void>
-  getAlbumInfo(albumPath: string, providerId: StorageProviderId): Promise<StorageFolderInfo>
+  createAlbum(
+    albumName: string,
+    albumAlias: string,
+    providerId: StorageProviderId,
+    parentPath?: string,
+    ctx?: StorageOwnerContext,
+  ): Promise<StorageFolderResult>
+  deleteAlbum(albumPath: string, providerId: StorageProviderId, ctx?: StorageOwnerContext): Promise<void>
+  getAlbumInfo(albumPath: string, providerId: StorageProviderId, ctx?: StorageOwnerContext): Promise<StorageFolderInfo>
   
   // Photo Operations
   uploadPhoto(
@@ -160,17 +169,18 @@ export interface IStorageManager {
     mimeType: string,
     albumPath: string,
     providerId: StorageProviderId,
-    metadata?: Record<string, any>
+    metadata?: Record<string, any>,
+    ctx?: StorageOwnerContext,
   ): Promise<StorageUploadResult>
   
-  deletePhoto(photoPath: string, providerId: StorageProviderId): Promise<void>
-  getPhotoInfo(photoPath: string, providerId: StorageProviderId): Promise<StorageFileInfo>
-  listAlbumPhotos(albumPath: string, providerId: StorageProviderId): Promise<StorageFileInfo[]>
+  deletePhoto(photoPath: string, providerId: StorageProviderId, ctx?: StorageOwnerContext): Promise<void>
+  getPhotoInfo(photoPath: string, providerId: StorageProviderId, ctx?: StorageOwnerContext): Promise<StorageFileInfo>
+  listAlbumPhotos(albumPath: string, providerId: StorageProviderId, ctx?: StorageOwnerContext): Promise<StorageFileInfo[]>
   
   // Utility Operations
-  getPhotoUrl(photoPath: string, providerId: StorageProviderId): Promise<string>
-  getAlbumUrl(albumPath: string, providerId: StorageProviderId): Promise<string>
-  getPhotoBuffer(providerId: StorageProviderId, photoPath: string): Promise<Buffer | null>
+  getPhotoUrl(photoPath: string, providerId: StorageProviderId, ctx?: StorageOwnerContext): Promise<string>
+  getAlbumUrl(albumPath: string, providerId: StorageProviderId, ctx?: StorageOwnerContext): Promise<string>
+  getPhotoBuffer(providerId: StorageProviderId, photoPath: string, ctx?: StorageOwnerContext): Promise<Buffer | null>
 }
 
 // Error Types

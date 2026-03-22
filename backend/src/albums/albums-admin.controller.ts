@@ -5,6 +5,8 @@ import { AlbumsService } from './albums.service';
 import { connectDB } from '../config/db';
 import mongoose, { Types } from 'mongoose';
 import { StorageManager } from '../services/storage/manager';
+import { resolveOwnerStorageContext } from '../services/storage/owner-storage-context';
+import { extractStorageServePath } from '../services/storage/storage-serve-url';
 
 /** Native MongoDB Db-like (mongoose.connection.db); avoids depending on mongoose.mongodb which may not exist in all mongoose versions. */
 type MongoDb = NonNullable<typeof mongoose.connection.db>;
@@ -47,6 +49,8 @@ export class AlbumsAdminController {
 			if (!user || !user.id) {
 				throw new BadRequestException('User not authenticated');
 			}
+
+			const storageCtx = await resolveOwnerStorageContext(user.id);
 
 			// Validate required fields
 			if (!createData.name || !createData.alias) {
@@ -106,7 +110,8 @@ export class AlbumsAdminController {
 					createData.name,
 					createData.alias,
 					createData.storageProvider as any,
-					parentPath || undefined
+					parentPath || undefined,
+					storageCtx,
 				);
 				this.logger.debug('Storage folder created:', storageFolderResult);
 				
@@ -116,7 +121,7 @@ export class AlbumsAdminController {
 				if (createData.storageProvider === 'google-drive' && storagePath) {
 					try {
 						const { ThumbnailGenerator } = await import('../services/thumbnail-generator');
-						const storageService = await storageManager.getProvider(createData.storageProvider as any);
+						const storageService = await storageManager.getProvider(createData.storageProvider as any, storageCtx);
 						const thumbnailSizes = ['hero', 'large', 'medium', 'small', 'micro'];
 						
 						for (const sizeName of thumbnailSizes) {
@@ -953,7 +958,10 @@ export class AlbumsAdminController {
 				if (album.storagePath && album.storageProvider) {
 					try {
 						const storageManager = StorageManager.getInstance();
-						await storageManager.deleteAlbum(album.storagePath, album.storageProvider as any);
+						const fallbackCtx = await resolveOwnerStorageContext(
+							album.createdBy ? String(album.createdBy) : undefined,
+						);
+						await storageManager.deleteAlbum(album.storagePath, album.storageProvider as any, fallbackCtx);
 					} catch (storageError) {
 						this.logger.error('Failed to delete album folder from storage:', storageError);
 					}
@@ -990,6 +998,10 @@ export class AlbumsAdminController {
 			return;
 		}
 
+		const storageCtx = await resolveOwnerStorageContext(
+			album.createdBy ? String(album.createdBy) : undefined,
+		);
+
 		// Get all sub-albums
 		const subAlbums = await db
 			.collection('albums')
@@ -1016,23 +1028,6 @@ export class AlbumsAdminController {
 		// Delete each photo from storage and database
 		const storageManager = StorageManager.getInstance();
 
-		// Helper function to extract path from URL
-		const extractPathFromUrl = (url: string): string | null => {
-			if (!url || typeof url !== 'string') return null;
-			const urlMatch = url.match(/\/api\/storage\/serve\/[^/]+\/(.+)$/);
-			if (urlMatch && urlMatch[1]) {
-				try {
-					return decodeURIComponent(urlMatch[1]);
-				} catch {
-					return urlMatch[1];
-				}
-			}
-			if (!url.startsWith('/api/storage/serve/')) {
-				return url;
-			}
-			return null;
-		};
-
 		for (const photo of photos) {
 			try {
 				// Delete photo files from storage
@@ -1042,15 +1037,15 @@ export class AlbumsAdminController {
 
 					try {
 						// Delete main photo file
-						await storageManager.deletePhoto(photo.storage.path, provider);
+						await storageManager.deletePhoto(photo.storage.path, provider, storageCtx);
 
 						// Delete thumbnails
 						if (photo.storage.thumbnails && typeof photo.storage.thumbnails === 'object') {
 							for (const [size, thumbnailUrl] of Object.entries(photo.storage.thumbnails)) {
 								try {
-									const thumbnailPath = extractPathFromUrl(thumbnailUrl as string);
+									const thumbnailPath = extractStorageServePath(thumbnailUrl as string);
 									if (thumbnailPath && thumbnailPath !== photo.storage.path) {
-										await storageManager.deletePhoto(thumbnailPath, provider);
+										await storageManager.deletePhoto(thumbnailPath, provider, storageCtx);
 									}
 								} catch (thumbError) {
 									this.logger.warn(`Failed to delete ${size} thumbnail:`, thumbError);
@@ -1060,17 +1055,17 @@ export class AlbumsAdminController {
 
 						// Delete thumbnailPath if different
 						if (photo.storage.thumbnailPath) {
-							const thumbPath = extractPathFromUrl(photo.storage.thumbnailPath);
+							const thumbPath = extractStorageServePath(photo.storage.thumbnailPath);
 							if (thumbPath && thumbPath !== photo.storage.path) {
 								const alreadyDeleted =
 									photo.storage.thumbnails &&
 									Object.values(photo.storage.thumbnails).some((url) => {
-										const path = extractPathFromUrl(url as string);
+										const path = extractStorageServePath(url as string);
 										return path === thumbPath;
 									});
 
 								if (!alreadyDeleted) {
-									await storageManager.deletePhoto(thumbPath, provider);
+									await storageManager.deletePhoto(thumbPath, provider, storageCtx);
 								}
 							}
 						}
@@ -1096,7 +1091,7 @@ export class AlbumsAdminController {
 				this.logger.debug(
 					`Deleting album folder from storage: provider=${album.storageProvider}, path=${album.storagePath}`
 				);
-				await storageManager.deleteAlbum(album.storagePath, album.storageProvider as any);
+				await storageManager.deleteAlbum(album.storagePath, album.storageProvider as any, storageCtx);
 				this.logger.debug(`Successfully deleted album folder: ${album.storagePath}`);
 			} catch (storageError) {
 				this.logger.error(`Failed to delete album folder from storage:`, storageError);

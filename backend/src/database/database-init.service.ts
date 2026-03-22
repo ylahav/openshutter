@@ -5,6 +5,7 @@ import { Connection } from 'mongoose';
 import { InjectConnection } from '@nestjs/mongoose';
 import { SiteConfigService } from '../services/site-config';
 import { StorageConfigService } from '../services/storage/config';
+import { ownerStorageConfigService } from '../services/storage/owner-storage-config.service';
 import { IUserDocument } from '../models/User';
 import * as bcrypt from 'bcryptjs';
 
@@ -292,6 +293,7 @@ export class DatabaseInitService implements OnApplicationBootstrap {
       await this.initializeDefaultAdmin();
       await this.initializeDefaultSiteConfig();
       await this.initializeDefaultStorageConfigs();
+      await ownerStorageConfigService.ensureIndexes();
       await this.initializeDefaultThemes();
       
       this.logger.log('✅ Database initialization completed successfully');

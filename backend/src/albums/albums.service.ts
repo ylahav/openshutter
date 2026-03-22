@@ -7,6 +7,7 @@ import { IAlbum } from '../models/Album';
 import { IPhoto } from '../models/Photo';
 import { AlbumLeadingPhotoService } from '../services/album-leading-photo';
 import { StorageManager } from '../services/storage/manager';
+import { resolveOwnerStorageContext } from '../services/storage/owner-storage-context';
 
 /** When present, used to include private albums the user is allowed to see (creator, allowedUsers, allowedGroups).
  * If ownerSiteId is set, results must also belong to that owner (album.createdBy === ownerSiteId).
@@ -243,19 +244,21 @@ export class AlbumsService {
     }
 
     const storageManager = StorageManager.getInstance();
+    const storageCtx = await resolveOwnerStorageContext(userId);
     try {
       await storageManager.createAlbum(
         createData.name,
         createData.alias,
         createData.storageProvider as any,
-        parentPath || undefined
+        parentPath || undefined,
+        storageCtx,
       );
       this.logger.debug('Storage folder created for album:', createData.alias);
 
       if (createData.storageProvider === 'google-drive' && storagePath) {
         try {
           const { ThumbnailGenerator } = await import('../services/thumbnail-generator');
-          const storageService = await storageManager.getProvider(createData.storageProvider as any);
+          const storageService = await storageManager.getProvider(createData.storageProvider as any, storageCtx);
           const thumbnailSizes = ['hero', 'large', 'medium', 'small', 'micro'];
           for (const sizeName of thumbnailSizes) {
             try {

@@ -37,6 +37,15 @@ OpenShutter supports multiple storage providers for photo and album storage. Thi
 
 All storage providers are configured through the admin dashboard at `/admin/storage` (admin access required). Owners who use their **own** storage connection (admin has not set "Use main domain connection") manage storage at **`/owner/storage`**; if that flag is set, visiting `/admin/storage` as an owner redirects to `/owner`. This is the recommended method as it stores configurations securely in the database and provides a user-friendly interface.
 
+#### Dedicated per-owner storage
+
+For multi-tenant setups, an admin can enable **Use dedicated per-owner storage** on an owner account (**Admin → Users** → edit owner). That owner then configures credentials per allowed provider on **`/owner/storage`**; data is stored for that owner only, not in the shared site profile storage block. **Allowed Storage Providers** on the same user form limits which provider tabs they see.
+
+The owner dashboard shows **Storage management** when dedicated storage is enabled, or when the owner manages their own profile storage (not “main domain connection” only).
+
+- Manual QA checklist: [`MANUAL_TEST_DEDICATED_STORAGE.md`](./MANUAL_TEST_DEDICATED_STORAGE.md)
+- Automated checks (Playwright): [`e2e/README.md`](../e2e/README.md)
+
 1. **Login as Admin**: Navigate to `http://localhost:4000/login`
 2. **Go to Storage**: Click "Storage" in the admin dashboard or navigate to `/admin/storage`
 3. **Select Provider**: Choose the storage provider tab you want to configure

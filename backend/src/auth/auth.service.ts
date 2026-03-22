@@ -4,6 +4,7 @@ import { Model } from 'mongoose';
 import { IUserDocument } from '../models/User';
 import * as bcrypt from 'bcryptjs';
 import { storageConfigService } from '../services/storage/config';
+import { ownerStorageConfigService } from '../services/storage/owner-storage-config.service';
 
 const SALT_ROUNDS = 10;
 
@@ -115,6 +116,7 @@ export class AuthService {
         forcePasswordChange: u.forcePasswordChange ?? false,
         preferredLanguage: u.preferredLanguage || undefined,
         storageConfig: u.storageConfig || undefined,
+        useDedicatedStorage: Boolean(u.useDedicatedStorage),
         createdAt: u.createdAt,
         updatedAt: u.updatedAt,
       },
@@ -198,6 +200,7 @@ export class AuthService {
         forcePasswordChange: u.forcePasswordChange ?? false,
         preferredLanguage: u.preferredLanguage || undefined,
         storageConfig: u.storageConfig || undefined,
+        useDedicatedStorage: Boolean(u.useDedicatedStorage),
         createdAt: u.createdAt,
         updatedAt: u.updatedAt,
       },
@@ -207,15 +210,54 @@ export class AuthService {
   /**
    * Get storage options for the current user (enabled providers they are allowed to use).
    * Admin sees all enabled; owner/guest see only providers in their allowedStorageProviders.
+   * Owners with useDedicatedStorage see their `owner_storage_configs` rows (intersect allowed).
    */
   async getStorageOptions(userId: string): Promise<{ success: true; data: Array<{ id: string; name: string; type: string; isEnabled: boolean }> }> {
-    const doc = await this.userModel.findById(userId).select('allowedStorageProviders role').lean().exec();
+    const doc = await this.userModel
+      .findById(userId)
+      .select('allowedStorageProviders role useDedicatedStorage')
+      .lean()
+      .exec();
     if (!doc) {
       return { success: true, data: [] };
     }
     const u = doc as any;
     const role = u.role || 'guest';
     const allowed: string[] = Array.isArray(u.allowedStorageProviders) ? u.allowedStorageProviders : [];
+
+    if (role === 'owner' && u.useDedicatedStorage) {
+      const rows = await ownerStorageConfigService.listByOwner(userId);
+      const rowById = new Map(rows.map((r) => [r.providerId, r]));
+      const label: Record<string, string> = {
+        local: 'Local Storage',
+        'google-drive': 'Google Drive',
+        'aws-s3': 'AWS S3',
+        backblaze: 'Backblaze',
+        wasabi: 'Wasabi',
+      };
+      // One tab per allowed provider so owners can save an initial row (upsert) even before DB rows exist
+      const options = allowed.map((providerId) => {
+        if (providerId === 'local') {
+          return { id: 'local', name: 'Local Storage', type: 'local', isEnabled: true };
+        }
+        const row = rowById.get(providerId as (typeof rows)[0]['providerId']);
+        if (row) {
+          return {
+            id: row.providerId,
+            name: row.name || label[row.providerId] || row.providerId,
+            type: row.providerId,
+            isEnabled: row.isEnabled !== false,
+          };
+        }
+        return {
+          id: providerId,
+          name: label[providerId] || providerId,
+          type: providerId,
+          isEnabled: false,
+        };
+      });
+      return { success: true, data: options };
+    }
 
     const configs = await storageConfigService.getAllConfigs();
     let options = configs

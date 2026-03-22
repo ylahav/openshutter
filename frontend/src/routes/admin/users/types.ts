@@ -16,6 +16,8 @@ export interface User {
 	forcePasswordChange?: boolean;
 	preferredLanguage?: string;
 	allowedStorageProviders?: string[];
+	/** When true (owner only), uploads use per-owner rows in `owner_storage_configs`. */
+	useDedicatedStorage?: boolean;
 	storageConfig?: {
 		useAdminConfig?: boolean;
 		googleDrive?: { rootFolderId?: string; sharedDriveId?: string; folderPrefix?: string };
@@ -43,5 +45,7 @@ export interface UserFormData {
 	blocked: boolean;
 	forcePasswordChange: boolean;
 	allowedStorageProviders: string[];
+	/** Owner-only: separate credentials per provider (not embedded profile storage). */
+	useDedicatedStorage: boolean;
 	storageUseAdminConfig: boolean;
 }

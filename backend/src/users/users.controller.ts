@@ -10,6 +10,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { mailService } from '../services/mail.service';
 import { getOwnerGroupAlias } from '../utils/owner-groups';
 import type { Request } from 'express';
+import { StorageManager } from '../services/storage/manager';
 
 const SALT_ROUNDS = 10;
 
@@ -39,6 +40,7 @@ interface UserUpdatePayload {
   forcePasswordChange?: boolean;
   preferredLanguage?: string;
   storageConfig?: UpdateUserDto['storageConfig'];
+  useDedicatedStorage?: boolean;
 }
 
 /** Raw user document from db.collection('users').findOne(). */
@@ -56,6 +58,7 @@ interface UserDocumentRaw {
   createdAt?: Date;
   updatedAt?: Date;
   allowedStorageProviders?: string[];
+  useDedicatedStorage?: boolean;
 }
 
 /** Generate a secure random password (6 chars: upper, lower, digits). */
@@ -193,7 +196,17 @@ export class UsersController {
       if (!db) throw new InternalServerErrorException('Database connection not established');
       const collection = db.collection('users');
 
-      const { name, username, password: passwordFromBody, role, groupAliases, blocked, allowedStorageProviders, preferredLanguage } = body;
+      const {
+        name,
+        username,
+        password: passwordFromBody,
+        role,
+        groupAliases,
+        blocked,
+        allowedStorageProviders,
+        preferredLanguage,
+        useDedicatedStorage,
+      } = body;
 
       // Validate required fields (password is optional; system will generate if missing)
       if (!name || !username || !role) {
@@ -239,6 +252,10 @@ export class UsersController {
         throw new BadRequestException(`Invalid role. Must be one of: ${validRoles.join(', ')}`);
       }
 
+      if (typeof useDedicatedStorage === 'boolean' && useDedicatedStorage && role !== 'owner') {
+        throw new BadRequestException('Dedicated storage can only be enabled for owner accounts');
+      }
+
       // Use provided password or generate a secure one (sent in welcome email)
       const password =
         passwordFromBody && String(passwordFromBody).trim().length >= 6
@@ -248,7 +265,7 @@ export class UsersController {
 
       // Create user
       const now = new Date();
-      const userData = {
+      const userData: Record<string, unknown> = {
         name: normalizedName,
         username: normalizedUsername,
         passwordHash,
@@ -264,7 +281,14 @@ export class UsersController {
         updatedAt: now,
       };
 
-      const result = await collection.insertOne(userData);
+      if (role === 'owner' && typeof useDedicatedStorage === 'boolean') {
+        userData.useDedicatedStorage = Boolean(useDedicatedStorage);
+      }
+
+      const result = await collection.insertOne(userData as any);
+      if (role === 'owner' && useDedicatedStorage === true) {
+        StorageManager.getInstance().clearOwnerCache(result.insertedId.toString());
+      }
       const user = await collection.findOne({ _id: result.insertedId });
 
       if (!user) {
@@ -345,7 +369,18 @@ export class UsersController {
         throw new NotFoundException(`User not found: ${id}`);
       }
 
-      const { name, password, role, groupAliases, blocked, allowedStorageProviders, forcePasswordChange, preferredLanguage, storageConfig } = body;
+      const {
+        name,
+        password,
+        role,
+        groupAliases,
+        blocked,
+        allowedStorageProviders,
+        forcePasswordChange,
+        preferredLanguage,
+        storageConfig,
+        useDedicatedStorage,
+      } = body;
 
       // Normalize name object if provided
       let normalizedName: Record<string, string> | undefined;
@@ -422,8 +457,17 @@ export class UsersController {
       if (storageConfig !== undefined) {
         updateData.storageConfig = storageConfig;
       }
+      if (typeof useDedicatedStorage === 'boolean') {
+        if (useDedicatedStorage && user.role !== 'owner') {
+          throw new BadRequestException('Dedicated storage can only be enabled for owner accounts');
+        }
+        updateData.useDedicatedStorage = useDedicatedStorage;
+      }
 
       await collection.updateOne({ _id: new Types.ObjectId(id) }, { $set: updateData });
+      if (typeof useDedicatedStorage === 'boolean') {
+        StorageManager.getInstance().clearOwnerCache(id);
+      }
       const updatedUser = await collection.findOne({ _id: new Types.ObjectId(id) });
 
       if (!updatedUser) {

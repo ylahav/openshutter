@@ -39,4 +39,9 @@ export class CreateUserDto {
 	@IsString()
 	@IsOptional()
 	preferredLanguage?: string;
+
+	/** Owner only: use per-owner `owner_storage_configs` instead of profile storage. */
+	@IsBoolean()
+	@IsOptional()
+	useDedicatedStorage?: boolean;
 }

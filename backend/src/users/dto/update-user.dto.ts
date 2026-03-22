@@ -133,6 +133,11 @@ export class UpdateUserDto {
 	@IsBoolean()
 	@IsOptional()
 	blocked?: boolean;
+
+	/** When true (owners only), albums/photos use `owner_storage_configs` instead of global site storage. */
+	@IsBoolean()
+	@IsOptional()
+	useDedicatedStorage?: boolean;
 	
 	@IsArray()
 	@IsOptional()

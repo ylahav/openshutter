@@ -2,11 +2,16 @@
 
 ### Changed
 - **Frontend database access**: The SvelteKit app no longer opens MongoDB or registers Mongoose models. Persistence and queries go through the NestJS backend API only. `frontend/src/lib/mongodb.ts` exports `connectToDatabase` / `connectMongoose` stubs that throw with a clear message. Narrow collection helpers (`legacy-mongo-audit.ts`, `legacy-mongo-storage-config.ts`) remain for typed legacy call sites; shared domain types live under `frontend/src/lib/types` and `frontend/src/types`.
+- **Admin → Users (owners)**: Per-provider JSON for dedicated storage is no longer edited inline on the user form; owners configure credentials on **Owner → Storage**. Copy and i18n updated accordingly.
 
 ### Fixed
 - **Elegant theme – album load more**: Album page now shows a “Load more” button for large albums; pagination (first 50 photos, then load next page) was previously missing in the elegant template.
+- **Owner dashboard – storage card**: The **Storage management** card on `/owner` now appears when **Use dedicated per-owner storage** is enabled, even if the owner’s profile still uses the main site storage connection (`useAdminConfig`).
 
 ### Added
+- **Dedicated per-owner storage**: Admins can enable **Use dedicated per-owner storage** per owner (Admin → Users) and restrict **Allowed Storage Providers**. Owners with this flag manage per-provider credentials on `/owner/storage` (stored separately from the shared profile `storageConfig`). Backend uses owner storage context for uploads, serving, and related flows where applicable; includes APIs and SvelteKit proxies for dedicated config.
+- **Playwright E2E**: `e2e/dedicated-storage.spec.ts` exercises admin toggle, owner dashboard card, and `/owner/storage` (dedicated banner vs site-admin panel). Run with `pnpm test:e2e` after `pnpm exec playwright install chromium` and `E2E_ADMIN_*` / `E2E_OWNER_*` env vars. See `e2e/README.md`.
+- **Docs**: `docs/MANUAL_TEST_DEDICATED_STORAGE.md` (manual QA checklist); `docs/STORAGE.md` section on dedicated storage; doc index links updated.
 - **Phase 3 complete**: All Phase 3 stages implemented (Migration, AI tagging, Advanced analytics, API marketplace, Smart tag suggestions & search optimization). See `docs/PHASE_3_WORKFLOW.md`.
 - **Smart Tag Suggestions & Tag-Based Search Optimization (Phase 3 Stage 6)** ✅
   - **Context-based tag suggestions**: Suggest tags based on similar photos, IPTC/XMP keywords, location, and tag co-occurrence patterns

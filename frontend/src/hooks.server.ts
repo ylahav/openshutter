@@ -1,6 +1,7 @@
 import type { Handle } from '@sveltejs/kit';
 import { jwtVerify } from 'jose';
 import { env } from '$env/dynamic/private';
+import { resolveSiteContext } from '$lib/server/site-context';
 
 // Simple static JWT secret - matches backend
 // Frontend only uses this for UI state (showing user info)
@@ -17,6 +18,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 	// Default anonymous user - this is just for UI state
 	// Backend handles all authentication enforcement
 	event.locals.user = null;
+	event.locals.siteContext = { type: 'global' };
 
 	const token = event.cookies.get('auth_token');
 	
@@ -38,6 +40,8 @@ export const handle: Handle = async ({ event, resolve }) => {
 		}
 	}
 
+	event.locals.siteContext = await resolveSiteContext(event.cookies, event.request);
+
 	// Force password change: authenticated user with forcePasswordChange must go to change-password page first
 	const path = event.url.pathname;
 	const isPageRequest = !path.startsWith('/api/') && !path.startsWith('/_');
@@ -49,6 +53,17 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	// For page routes, still check authentication (backend handles API routes)
 	if (path.startsWith('/admin') && !path.startsWith('/api/')) {
+		const sc = event.locals.siteContext;
+		if (sc.type === 'owner-site' && event.locals.user) {
+			if (event.locals.user.role === 'admin') {
+				return Response.redirect(new URL('/', event.url), 303);
+			}
+			if (event.locals.user.role === 'owner' && event.locals.user.id !== sc.ownerId) {
+				event.cookies.delete('auth_token', { path: '/' });
+				event.locals.user = null;
+				return Response.redirect(new URL('/login?wrongSite=1', event.url), 303);
+			}
+		}
 		if (!event.locals.user) {
 			return Response.redirect(new URL('/login?redirect=' + encodeURIComponent(path), event.url), 303);
 		}
@@ -69,6 +84,17 @@ export const handle: Handle = async ({ event, resolve }) => {
 	if (path.startsWith('/owner') && !path.startsWith('/api/')) {
 		if (!event.locals.user || (event.locals.user.role !== 'owner' && event.locals.user.role !== 'admin')) {
 			return Response.redirect(new URL('/login?redirect=' + encodeURIComponent(path), event.url), 303);
+		}
+		const sc = event.locals.siteContext;
+		if (sc.type === 'owner-site') {
+			if (event.locals.user.role === 'admin') {
+				return Response.redirect(new URL('/', event.url), 303);
+			}
+			if (event.locals.user.role === 'owner' && event.locals.user.id !== sc.ownerId) {
+				event.cookies.delete('auth_token', { path: '/' });
+				event.locals.user = null;
+				return Response.redirect(new URL('/login?wrongSite=1', event.url), 303);
+			}
 		}
 	}
 

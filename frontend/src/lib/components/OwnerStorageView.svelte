@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
+	import { t } from '$stores/i18n';
 
 	export let backHref = '/owner';
 
@@ -13,6 +14,8 @@
 	}
 
 	interface UserProfile {
+		/** When true, credentials are loaded/saved via `/api/owner/dedicated-storage`. */
+		useDedicatedStorage?: boolean;
 		storageConfig?: {
 			useAdminConfig?: boolean;
 			googleDrive?: {
@@ -38,6 +41,8 @@
 	}
 
 	let profile: UserProfile | null = null as UserProfile | null;
+	/** Mirrors profile: dedicated per-owner `owner_storage_configs` instead of profile.storageConfig. */
+	let dedicatedMode = false;
 	let storageOptions: StorageOption[] = [];
 	let loading = true;
 	let saving = false;
@@ -60,8 +65,12 @@
 		wasabiBucketName: '',
 		wasabiRegion: '',
 		wasabiAccessKeyId: '',
-		wasabiSecretAccessKey: ''
+		wasabiSecretAccessKey: '',
+		localBasePath: ''
 	};
+
+	/** For dedicated mode: JSON editor for providers without a bespoke form (e.g. aws-s3). */
+	let dedicatedRawJson: Record<string, string> = {};
 
 	let googleDriveMessage: { type: 'success' | 'error'; text: string } | null = null;
 	let oauthWindow: Window | null = null;
@@ -70,7 +79,12 @@
 
 	onMount(async () => {
 		try {
-			await Promise.all([fetchProfile(), fetchStorageOptions()]);
+			await fetchProfile();
+			dedicatedMode = profile?.useDedicatedStorage === true;
+			await Promise.all([
+				fetchStorageOptions(),
+				dedicatedMode ? fetchDedicatedConfigs() : Promise.resolve(),
+			]);
 		} finally {
 			loading = false;
 		}
@@ -150,7 +164,12 @@
 	}
 
 	async function saveStorageConfig() {
-		if (!profile || profile.storageConfig?.useAdminConfig === true) return;
+		if (!profile) return;
+		if (dedicatedMode) {
+			await saveDedicatedProvider('google-drive');
+			return;
+		}
+		if (profile.storageConfig?.useAdminConfig === true) return;
 		const storageConfig = buildStorageConfig();
 		const response = await fetch('/api/auth/profile', {
 			method: 'PUT',
@@ -162,8 +181,140 @@
 		profile = (result.user || result) as UserProfile;
 	}
 
+	function buildGoogleDedicatedConfig(): Record<string, unknown> {
+		if (formData.gdAuthMethod === 'service_account') {
+			return {
+				authMethod: 'service_account',
+				serviceAccountJson: formData.gdServiceAccountJson?.trim() || undefined,
+				folderId: formData.gdFolderId?.trim() || undefined,
+			};
+		}
+		const cfg: Record<string, unknown> = {
+			authMethod: 'oauth',
+			clientId: formData.gdClientId?.trim() || undefined,
+			clientSecret: formData.gdClientSecret?.trim() || undefined,
+			refreshToken: formData.gdRefreshToken?.trim() || undefined,
+			storageType: formData.gdStorageType || 'appdata',
+		};
+		if (formData.gdStorageType === 'visible') {
+			cfg.folderId = formData.gdFolderId?.trim() || undefined;
+		}
+		if (formData.storageRootFolderId?.trim()) cfg.rootFolderId = formData.storageRootFolderId.trim();
+		if (formData.storageSharedDriveId?.trim()) cfg.sharedDriveId = formData.storageSharedDriveId.trim();
+		if (formData.storageFolderPrefix?.trim()) cfg.folderPrefix = formData.storageFolderPrefix.trim();
+		return cfg;
+	}
+
+	function buildDedicatedUpsert(providerId: string): { config: Record<string, unknown>; isEnabled: boolean } {
+		if (providerId === 'google-drive') {
+			return { config: buildGoogleDedicatedConfig(), isEnabled: true };
+		}
+		if (providerId === 'wasabi') {
+			return {
+				config: {
+					endpoint: formData.wasabiEndpoint?.trim() || undefined,
+					bucketName: formData.wasabiBucketName?.trim() || undefined,
+					region: formData.wasabiRegion?.trim() || undefined,
+					accessKeyId: formData.wasabiAccessKeyId?.trim() || undefined,
+					secretAccessKey: formData.wasabiSecretAccessKey?.trim() || undefined,
+				},
+				isEnabled: true,
+			};
+		}
+		if (providerId === 'local') {
+			return {
+				config: {
+					basePath: formData.localBasePath?.trim() || undefined,
+				},
+				isEnabled: true,
+			};
+		}
+		let parsed: Record<string, unknown>;
+		try {
+			parsed = JSON.parse(dedicatedRawJson[providerId] || '{}');
+		} catch {
+			throw new Error('Invalid JSON for this provider');
+		}
+		if (typeof parsed !== 'object' || parsed === null) {
+			throw new Error('Config must be a JSON object');
+		}
+		return { config: parsed, isEnabled: true };
+	}
+
+	async function saveDedicatedProvider(providerId: string) {
+		const opt = storageOptions.find((o) => o.id === providerId);
+		const upsert = buildDedicatedUpsert(providerId);
+		const res = await fetch(`/api/owner/dedicated-storage/${encodeURIComponent(providerId)}`, {
+			method: 'PUT',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({
+				name: opt?.name || providerId,
+				isEnabled: upsert.isEnabled,
+				config: upsert.config,
+			}),
+		});
+		if (!res.ok) await handleApiErrorResponse(res);
+		await fetchDedicatedConfigs();
+		await fetchStorageOptions();
+	}
+
+	async function fetchDedicatedConfigs() {
+		try {
+			const res = await fetch('/api/owner/dedicated-storage');
+			if (!res.ok) await handleApiErrorResponse(res);
+			const j = await res.json();
+			const rows = Array.isArray(j.data) ? j.data : [];
+			dedicatedRawJson = {};
+			for (const row of rows) {
+				const id = row.providerId as string;
+				const c = (row.config && typeof row.config === 'object' ? row.config : {}) as Record<
+					string,
+					unknown
+				>;
+				if (id === 'google-drive') {
+					formData.gdAuthMethod = String(c.authMethod ?? 'oauth');
+					formData.gdClientId = String(c.clientId ?? '');
+					formData.gdClientSecret = String(c.clientSecret ?? '');
+					formData.gdRefreshToken = String(c.refreshToken ?? '');
+					formData.gdStorageType = String(c.storageType ?? 'appdata');
+					formData.gdFolderId = String(c.folderId ?? '');
+					formData.gdServiceAccountJson = String(
+						typeof c.serviceAccountJson === 'string' ? c.serviceAccountJson : '',
+					);
+					formData.storageRootFolderId = String(c.rootFolderId ?? '');
+					formData.storageSharedDriveId = String(c.sharedDriveId ?? '');
+					formData.storageFolderPrefix = String(c.folderPrefix ?? '');
+				} else if (id === 'wasabi') {
+					formData.wasabiEndpoint = String(c.endpoint ?? '');
+					formData.wasabiBucketName = String(c.bucketName ?? '');
+					formData.wasabiRegion = String(c.region ?? '');
+					formData.wasabiAccessKeyId = String(c.accessKeyId ?? '');
+					formData.wasabiSecretAccessKey = String(c.secretAccessKey ?? '');
+				} else if (id === 'local') {
+					formData.localBasePath = String(c.basePath ?? '');
+				} else {
+					dedicatedRawJson[id] = JSON.stringify(c, null, 2);
+				}
+			}
+			dedicatedRawJson = { ...dedicatedRawJson };
+		} catch (err) {
+			logger.error('Failed to load dedicated storage:', err);
+			error = handleError(err, 'Failed to load dedicated storage');
+		}
+	}
+
 	$: if (storageOptions.length > 0 && !activeTab) {
 		activeTab = storageOptions[0].id;
+	}
+
+	$: if (
+		dedicatedMode &&
+		activeTab &&
+		!['google-drive', 'wasabi', 'local'].includes(activeTab) &&
+		dedicatedRawJson[activeTab] === undefined
+	) {
+		dedicatedRawJson[activeTab] = '{}';
+		dedicatedRawJson = { ...dedicatedRawJson };
 	}
 
 	async function fetchProfile() {
@@ -172,7 +323,8 @@
 			if (!response.ok) await handleApiErrorResponse(response);
 			const result = await response.json();
 			profile = (result.user || result) as UserProfile;
-			if (profile?.storageConfig?.googleDrive) {
+			const fromProfileStorage = profile?.useDedicatedStorage !== true;
+			if (fromProfileStorage && profile?.storageConfig?.googleDrive) {
 				const gd = profile.storageConfig.googleDrive;
 				formData.storageRootFolderId = gd.rootFolderId ?? '';
 				formData.storageSharedDriveId = gd.sharedDriveId ?? '';
@@ -185,7 +337,7 @@
 				formData.gdFolderId = gd.folderId ?? '';
 				formData.gdServiceAccountJson = gd.serviceAccountJson ?? '';
 			}
-			if (profile?.storageConfig?.wasabi) {
+			if (fromProfileStorage && profile?.storageConfig?.wasabi) {
 				const wa = profile.storageConfig.wasabi;
 				formData.wasabiEndpoint = wa.endpoint ?? '';
 				formData.wasabiBucketName = wa.bucketName ?? '';
@@ -206,7 +358,7 @@
 			const result = await response.json();
 			const data = result.data ?? result;
 			const all = Array.isArray(data) ? data : [];
-			storageOptions = all.filter((o: StorageOption) => o.id !== 'local');
+			storageOptions = dedicatedMode ? all : all.filter((o: StorageOption) => o.id !== 'local');
 		} catch (err) {
 			logger.error('Failed to fetch storage options:', err);
 		}
@@ -239,7 +391,26 @@
 
 	async function handleSubmit(e: Event, _providerId?: string) {
 		e.preventDefault();
-		if (!profile || profile.storageConfig?.useAdminConfig === true) return;
+		const providerId = _providerId || activeTab;
+		if (!profile) return;
+
+		if (dedicatedMode) {
+			saving = true;
+			error = null;
+			success = null;
+			try {
+				await saveDedicatedProvider(providerId);
+				success = 'Storage settings saved.';
+			} catch (err) {
+				logger.error('Failed to save dedicated storage:', err);
+				error = handleError(err, 'Failed to save');
+			} finally {
+				saving = false;
+			}
+			return;
+		}
+
+		if (profile.storageConfig?.useAdminConfig === true) return;
 		saving = true;
 		error = null;
 		success = null;
@@ -262,7 +433,8 @@
 		}
 	}
 
-	const useOwnConnection = profile?.storageConfig?.useAdminConfig !== true;
+	/** Site-wide admin connection (profile); dedicated owners skip this and use their own rows. */
+	$: useSiteAdminStorage = !dedicatedMode && profile?.storageConfig?.useAdminConfig === true;
 </script>
 
 {#if loading}
@@ -272,8 +444,8 @@
 			<p class="mt-4 text-gray-600">Loading...</p>
 		</div>
 	</div>
-{:else if !useOwnConnection}
-	<div class="bg-white rounded-lg shadow-md p-6">
+{:else if useSiteAdminStorage}
+	<div class="bg-white rounded-lg shadow-md p-6" data-testid="owner-storage-site-admin-panel">
 		<h2 class="text-xl font-bold text-gray-900 mb-2">Storage management</h2>
 		<p class="text-gray-600 mb-4">
 			You are using the main site's storage connection. Storage is managed by the administrator. If you need your own connection, ask an admin to change your setting in User management.
@@ -298,13 +470,26 @@
 			</div>
 		{/if}
 
-		<p class="text-sm text-gray-600 mb-4">
-			Local storage is always managed by the administrator. Configure the providers below that are enabled for your account.
-		</p>
+		{#if dedicatedMode}
+			<p
+				class="text-sm text-amber-900 bg-amber-50 border border-amber-200 rounded-md p-3 mb-4"
+				data-testid="owner-storage-dedicated-notice"
+			>
+				You are on <strong>dedicated storage</strong>: each provider below uses credentials stored for your account only (not the shared site profile).
+			</p>
+		{:else}
+			<p class="text-sm text-gray-600 mb-4">
+				Local storage is always managed by the administrator. Configure the providers below that are enabled for your account.
+			</p>
+		{/if}
 
 		{#if storageOptions.length === 0}
 			<div class="bg-white rounded-lg shadow-md p-6">
-				<p class="text-gray-600">No additional storage providers (Wasabi, Google Drive, etc.) are enabled for your account. Local storage is managed by the admin. Contact an administrator to enable other providers.</p>
+				<p class="text-gray-600">
+					{dedicatedMode
+						? $t('owner.storageNoProvidersDedicated')
+						: 'No additional storage providers (Wasabi, Google Drive, etc.) are enabled for your account. Local storage is managed by the admin. Contact an administrator to enable other providers.'}
+				</p>
 			</div>
 		{:else}
 			<div class="bg-white rounded-lg shadow border border-gray-200">
@@ -327,10 +512,40 @@
 
 				<!-- Tab content -->
 				<div class="p-6">
-					{#if activeTab === 'google-drive'}
+					{#if activeTab === 'local'}
+						<div class="space-y-4">
+							<h2 class="text-xl font-semibold text-gray-900">{$t('owner.storageLocalDedicatedTitle')}</h2>
+							<p class="text-sm text-gray-500">
+								{$t('owner.storageLocalDedicatedHelp')}
+							</p>
+							<form on:submit={(e) => handleSubmit(e, 'local')} class="space-y-4">
+								<div>
+									<label for="owner-local-base" class="block text-sm font-medium text-gray-700 mb-1">{$t('owner.storageLocalBasePathLabel')}</label>
+									<input
+										id="owner-local-base"
+										type="text"
+										bind:value={formData.localBasePath}
+										placeholder="./uploads/owners/your-id"
+										class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+									/>
+								</div>
+								<button
+									type="submit"
+									disabled={saving}
+									class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
+								>
+									{saving ? $t('owner.saving') : $t('owner.storageLocalSave')}
+								</button>
+							</form>
+						</div>
+					{:else if activeTab === 'google-drive'}
 						<div class="space-y-6">
 							<h2 class="text-xl font-semibold text-gray-900">Google Drive Configuration</h2>
-							<p class="text-sm text-gray-500">Same configuration as admin: OAuth or Service account, credentials, and folder. Data is stored in your account only.</p>
+							<p class="text-sm text-gray-500">
+								{dedicatedMode
+									? $t('owner.storageGoogleDedicatedHint')
+									: 'Same configuration as admin: OAuth or Service account, credentials, and folder. Data is stored in your account only.'}
+							</p>
 
 							{#if googleDriveMessage}
 								<div class="rounded-md p-3 text-sm {googleDriveMessage.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}">
@@ -535,9 +750,33 @@
 						</div>
 
 					{:else}
-						<div class="space-y-2">
+						<div class="space-y-4">
 							<h2 class="text-lg font-semibold text-gray-900">{activeOption?.name ?? activeTab}</h2>
-							<p class="text-sm text-gray-500">Per-owner configuration for this provider is not available yet. Connection is managed by the main site.</p>
+							{#if dedicatedMode}
+								<p class="text-sm text-gray-500">
+									{$t('owner.storageGenericDedicatedHelp')}
+								</p>
+								<form on:submit={(e) => handleSubmit(e, activeTab)} class="space-y-4">
+									{#key activeTab}
+										<textarea
+											rows="14"
+											bind:value={dedicatedRawJson[activeTab]}
+											class="w-full font-mono text-xs border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-green-500"
+										></textarea>
+									{/key}
+									<button
+										type="submit"
+										disabled={saving}
+										class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
+									>
+										{saving ? $t('owner.saving') : $t('owner.storageGenericSave')}
+									</button>
+								</form>
+							{:else}
+								<p class="text-sm text-gray-500">
+									Per-owner configuration for this provider is not available yet. Connection is managed by the main site.
+								</p>
+							{/if}
 						</div>
 					{/if}
 				</div>

@@ -18,9 +18,13 @@
     "type-check": "pnpm --filter openshutter type-check",
     "build:prod": "node -e \"const {execSync}=require('child_process');const cmd=process.platform==='win32'?'powershell -ExecutionPolicy Bypass -File scripts/build-for-production.ps1':'bash scripts/build-for-production.sh';execSync(cmd,{stdio:'inherit',cwd:process.cwd()})\"",
     "deploy": "./scripts/deploy-to-server.sh",
-    "cleanup-storage-configs": "node scripts/cleanup-storage-configs.cjs"
+    "cleanup-storage-configs": "node scripts/cleanup-storage-configs.cjs",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed"
   },
   "devDependencies": {
+    "@playwright/test": "^1.51.0",
     "concurrently": "^9.2.1"
   },
   "keywords": [

@@ -1,6 +1,7 @@
-import { Controller, Get, Param, Res, NotFoundException, Logger } from '@nestjs/common';
+import { Controller, Get, Param, Query, Res, NotFoundException, Logger } from '@nestjs/common';
 import { Response } from 'express';
 import { StorageManager } from '../services/storage/manager';
+import type { StorageOwnerContext } from '../services/storage/types';
 import { StorageConfigError } from '../services/storage/types';
 import { readFile } from 'fs/promises';
 import { join } from 'path';
@@ -51,11 +52,14 @@ export class StorageController {
   async serveFile(
     @Param('provider') provider: string,
     @Param('path') filePath: string,
+    @Query('storageOwnerId') storageOwnerId: string | undefined,
     @Res() res: Response,
   ) {
     try {
       const storageManager = StorageManager.getInstance();
-      
+      const ownerCtx: StorageOwnerContext | undefined =
+        storageOwnerId && storageOwnerId.trim() ? { ownerUserId: storageOwnerId.trim() } : undefined;
+
       // Decode the path - handle both single and double encoding
       let decodedPath = filePath;
       try {
@@ -73,7 +77,7 @@ export class StorageController {
       
       // For local storage, serve files directly (use getProviderForServe so disabled provider can still serve)
       if (provider === 'local') {
-        const localService = await storageManager.getProviderForServe(provider as any);
+        const localService = await storageManager.getProviderForServe(provider as any, ownerCtx);
         const basePath = (localService as any).basePath || process.env.LOCAL_STORAGE_PATH || './uploads';
         
         // Replicate the getFullPath logic from LocalStorageService
@@ -121,7 +125,7 @@ export class StorageController {
       } else if (provider === 'google-drive') {
         // For Google Drive, use getFileBuffer (getProviderForServe so disabled provider can still serve)
         try {
-          const storageService = await storageManager.getProviderForServe('google-drive');
+          const storageService = await storageManager.getProviderForServe('google-drive', ownerCtx);
           
           // Check if the service has getFileBuffer method
           if (typeof (storageService as any).getFileBuffer === 'function') {
@@ -209,13 +213,13 @@ export class StorageController {
         // served even when the provider is disabled (read-only).
         let storageService;
         try {
-          storageService = await storageManager.getProviderForServe(provider as any);
+          storageService = await storageManager.getProviderForServe(provider as any, ownerCtx);
         } catch (error) {
           // If requested provider has no config, try wasabi as fallback for aws-s3 (S3-compatible)
           if (provider === 'aws-s3' && error instanceof StorageConfigError) {
             this.logger.debug(`Provider ${provider} not configured, trying wasabi as fallback...`);
             try {
-              storageService = await storageManager.getProviderForServe('wasabi');
+              storageService = await storageManager.getProviderForServe('wasabi', ownerCtx);
             } catch (fallbackError) {
               this.logger.error(`Storage serve error: ${fallbackError instanceof Error ? fallbackError.message : String(fallbackError)}`);
               throw error;

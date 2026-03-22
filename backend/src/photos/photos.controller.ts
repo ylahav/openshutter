@@ -29,28 +29,31 @@ export class PhotosController {
     private readonly analyticsEventService: AnalyticsEventService,
   ) {}
 
+  private ownerSiteIdFromReq(req: Request): string | undefined {
+    const siteContext = (req as any).siteContext as { type?: string; ownerId?: string } | undefined;
+    if (siteContext?.type === 'owner-site' && siteContext.ownerId) {
+      return siteContext.ownerId;
+    }
+    return undefined;
+  }
+
   @Get('gallery-leading')
-  async findGalleryLeading(
-    @Query('limit') limit?: string,
-  ) {
+  async findGalleryLeading(@Req() req: Request, @Query('limit') limit?: string) {
     const limitNum = limit ? parseInt(limit, 10) || 5 : 5;
-    // Return direct array, frontend handles shape
-    return this.photosService.findGalleryLeading(limitNum);
+    const ownerSiteId = this.ownerSiteIdFromReq(req);
+    return this.photosService.findGalleryLeading(limitNum, ownerSiteId);
   }
 
   @Get()
-  async findAll(
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
-  ) {
+  async findAll(@Req() req: Request, @Query('page') page?: string, @Query('limit') limit?: string) {
     const pageNum = page ? parseInt(page, 10) || 1 : 1;
     const limitNum = limit ? parseInt(limit, 10) || 20 : 20;
-    return this.photosService.findAll(pageNum, limitNum);
+    return this.photosService.findAll(pageNum, limitNum, this.ownerSiteIdFromReq(req));
   }
 
   @Get(':id')
   async findOne(@Param('id') id: string, @Req() req: Request) {
-    const photo = await this.photosService.findOne(id);
+    const photo = await this.photosService.findOne(id, this.ownerSiteIdFromReq(req));
     
     // Log photo view
     if (photo?._id) {

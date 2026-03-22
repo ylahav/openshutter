@@ -10,8 +10,8 @@
 	const isAdmin = data.user?.role === 'admin';
 	const isOwner = data.user?.role === 'owner';
 
-	/** When true, owner uses their own storage (not main domain); show Storage management card. */
-	let useOwnStorageConnection = false;
+	/** Show Storage management: own profile storage, or dedicated per-owner storage (admin flag). */
+	let showStorageManagementCard = false;
 	let profileLoaded = false;
 	let pageTitle = '';
 
@@ -25,8 +25,9 @@
 			if (res.ok) {
 				const json = await res.json();
 				const user = json.user || json;
-				// Hide Storage management when "Use main domain connection" is set
-				useOwnStorageConnection = user?.storageConfig?.useAdminConfig !== true;
+				const notUsingMainSiteStorage = user?.storageConfig?.useAdminConfig !== true;
+				const dedicated = user?.useDedicatedStorage === true;
+				showStorageManagementCard = notUsingMainSiteStorage || dedicated;
 			}
 		} catch (_) {
 			// Non-fatal; keep card hidden if we can't load profile
@@ -186,9 +187,9 @@
 					</a>
 				</div>
 
-				<!-- Storage management – only when owner does NOT use main domain connection -->
-				{#if profileLoaded && useOwnStorageConnection}
-					<div class="bg-white rounded-lg shadow-md p-6">
+				<!-- Storage management: own credentials or dedicated per-owner storage -->
+				{#if profileLoaded && showStorageManagementCard}
+					<div class="bg-white rounded-lg shadow-md p-6" data-testid="owner-dashboard-storage-card">
 						<div class="flex items-center mb-4">
 							<div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
 								<svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -201,6 +202,7 @@
 						<a
 							href="/owner/storage"
 							class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+							data-testid="owner-dashboard-storage-link"
 						>
 							{$t('owner.manageStorage')}
 							<svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

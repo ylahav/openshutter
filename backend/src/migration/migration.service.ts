@@ -1,7 +1,7 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import mongoose, { Model, Types } from 'mongoose';
 import * as fs from 'fs/promises';
 import { createWriteStream } from 'fs';
 import * as path from 'path';
@@ -10,6 +10,8 @@ import archiver from 'archiver';
 import { storageManager } from '../services/storage/manager';
 import { storageConfigService } from '../services/storage/config';
 import type { StorageProviderId } from '../services/storage/types';
+import { storageCtxForPhoto } from '../services/storage/photo-storage-context';
+import { coerceStorageServePathOrRaw } from '../services/storage/storage-serve-url';
 import {
   setJob,
   getJob,
@@ -235,6 +237,7 @@ export class MigrationService {
     };
     await fs.writeFile(path.join(dest, PACKAGE_MANIFEST), JSON.stringify(manifest, null, 2));
 
+    const exportDb = mongoose.connection.db;
     let progress = 0;
     for (const p of photos) {
       if (isJobCancelled(jobId)) {
@@ -251,12 +254,14 @@ export class MigrationService {
       const filename = (p as any).filename;
       if (provider && filePath) {
         try {
-          const buf = await storageManager.getPhotoBuffer(provider, filePath);
+          const pctx = exportDb ? await storageCtxForPhoto(exportDb, p as any) : undefined;
+          const buf = await storageManager.getPhotoBuffer(provider, filePath, pctx);
           if (buf) {
             await fs.writeFile(path.join(outDir, filename), buf);
-            const thumbPath = (p as any).storage?.thumbnailPath;
+            const thumbPathRaw = (p as any).storage?.thumbnailPath;
+            const thumbPath = coerceStorageServePathOrRaw(thumbPathRaw) ?? thumbPathRaw;
             if (thumbPath) {
-              const thumbBuf = await storageManager.getPhotoBuffer(provider, thumbPath);
+              const thumbBuf = await storageManager.getPhotoBuffer(provider, thumbPath, pctx);
               if (thumbBuf) await fs.writeFile(path.join(outDir, `thumb_${filename}`), thumbBuf);
             }
           } else {
@@ -932,6 +937,7 @@ export class MigrationService {
       });
     }
     
+    const migrateDb = mongoose.connection.db;
     let progress = 0;
     for (const photo of photos) {
       if (isJobCancelled(jobId)) {
@@ -940,14 +946,20 @@ export class MigrationService {
       }
       const sourceProv = (sourceProviderId ?? photo.storage?.provider ?? 'local') as StorageProviderId;
       const filePath = photo.storage?.path;
-      const thumbPath = photo.storage?.thumbnailPath;
+      const thumbPathRaw = photo.storage?.thumbnailPath;
+      const thumbPath =
+        thumbPathRaw != null && thumbPathRaw !== ''
+          ? coerceStorageServePathOrRaw(thumbPathRaw) ?? thumbPathRaw
+          : undefined;
       if (!filePath) {
         progress++;
         updateJob(jobId, { progress });
         continue;
       }
       try {
-        const buf = await storageManager.getPhotoBuffer(sourceProv, filePath);
+        const photoDoc = typeof (photo as any).toObject === 'function' ? (photo as any).toObject() : photo;
+        const pctx = migrateDb ? await storageCtxForPhoto(migrateDb, photoDoc) : undefined;
+        const buf = await storageManager.getPhotoBuffer(sourceProv, filePath, pctx);
         if (buf) {
           // Use album's storagePath to preserve hierarchy, fallback to extracting from file path
           const albumId = toPlainObjectId(photo.albumId);
@@ -966,7 +978,7 @@ export class MigrationService {
           const result = await storageManager.uploadPhoto(buf, filename, mimeType, albumPath, targetProviderId);
           let thumbResult: { path: string; url: string } | undefined;
           if (thumbPath) {
-            const thumbBuf = await storageManager.getPhotoBuffer(sourceProv, thumbPath);
+            const thumbBuf = await storageManager.getPhotoBuffer(sourceProv, thumbPath, pctx);
             if (thumbBuf) {
               // Preserve original thumbnail folder structure when migrating
               let thumbFolderPath = albumPath;
@@ -1002,11 +1014,11 @@ export class MigrationService {
           
           // Delete original files from source storage after successful migration
           try {
-            await storageManager.deletePhoto(filePath, sourceProv);
+            await storageManager.deletePhoto(filePath, sourceProv, pctx);
             this.logger.debug(`Storage migration: Deleted original photo from source: ${filePath}`);
             
             if (thumbPath && thumbPath !== filePath) {
-              await storageManager.deletePhoto(thumbPath, sourceProv);
+              await storageManager.deletePhoto(thumbPath, sourceProv, pctx);
               this.logger.debug(`Storage migration: Deleted original thumbnail from source: ${thumbPath}`);
             }
           } catch (deleteErr) {
