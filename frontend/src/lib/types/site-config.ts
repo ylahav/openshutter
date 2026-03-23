@@ -111,6 +111,7 @@ export interface SiteConfig {
     enableDownload: boolean
     enableWatermark: boolean
     maxUploadSize: string
+    enableTagFeedbackSearchBoost?: boolean
   }
   footer?: {
     copyrightText?: string

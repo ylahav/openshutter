@@ -1891,6 +1891,177 @@ export class PhotosAdminController {
 	}
 
 	/**
+	 * Get related tags for a photo using feedback co-occurrence with fallback to photos.tags.
+	 * Path: GET /api/admin/photos/:id/related-tags?limit=15&tagIds=id1,id2
+	 */
+	@Get(':id/related-tags')
+	async getRelatedTagsForPhoto(
+		@Param('id') id: string,
+		@Query('limit') limitParam?: string,
+		@Query('tagIds') tagIdsParam?: string,
+		@Req() req?: Request
+	) {
+		try {
+			await connectDB();
+			const db = mongoose.connection.db;
+			if (!db) throw new InternalServerErrorException('Database connection not established');
+
+			let objectId: Types.ObjectId;
+			try {
+				objectId = new Types.ObjectId(id);
+			} catch (_error) {
+				throw new BadRequestException('Invalid photo ID format');
+			}
+
+			const photo = await db.collection('photos').findOne({ _id: objectId });
+			if (!photo) throw new NotFoundException('Photo not found');
+
+			if (req && (req as any).user?.role === 'owner') {
+				await this.assertOwnerCanAccessPhoto(req, photo, db);
+			}
+
+			const limitRaw = limitParam ? parseInt(limitParam, 10) : 15;
+			const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(limitRaw, 1), 30) : 15;
+			const selectedTagIds = tagIdsParam
+				? [...new Set(tagIdsParam.split(',').map((s) => s.trim()).filter(Boolean))]
+				: [...new Set((photo.tags || []).map((tag: any) => String(tag).trim()).filter(Boolean))];
+
+			if (selectedTagIds.length === 0) {
+				return {
+					success: true,
+					data: [],
+					total: 0,
+				};
+			}
+
+			const selectedSet = new Set(selectedTagIds);
+			const feedbackCounts = new Map<string, number>();
+			const fallbackCounts = new Map<string, number>();
+
+			const feedbackCollection = db.collection('tag_feedback');
+			const seedPhotoRows = await feedbackCollection
+				.find({ action: 'applied', tagId: { $in: selectedTagIds } })
+				.project({ photoId: 1 })
+				.toArray();
+			const seedPhotoIds = [...new Set(seedPhotoRows.map((row: any) => String(row.photoId || '').trim()).filter(Boolean))];
+			if (seedPhotoIds.length > 0) {
+				const coTags = await feedbackCollection
+					.find({ action: 'applied', photoId: { $in: seedPhotoIds } })
+					.project({ tagId: 1 })
+					.toArray();
+				for (const row of coTags) {
+					const tagId = String((row as any).tagId || '').trim();
+					if (!tagId || selectedSet.has(tagId)) continue;
+					feedbackCounts.set(tagId, (feedbackCounts.get(tagId) || 0) + 1);
+				}
+			}
+
+			const fallbackCriteria: any = { _id: { $ne: objectId } };
+			const fallbackOr: any[] = [];
+			if (photo.albumId) fallbackOr.push({ albumId: photo.albumId });
+			if (photo.location) fallbackOr.push({ location: photo.location });
+			if (fallbackOr.length > 0) {
+				fallbackCriteria.$or = fallbackOr;
+			}
+
+			const fallbackPhotos = await db
+				.collection('photos')
+				.find(fallbackCriteria)
+				.project({ tags: 1 })
+				.limit(400)
+				.toArray();
+			for (const fallbackPhoto of fallbackPhotos) {
+				const tags = Array.isArray((fallbackPhoto as any).tags) ? (fallbackPhoto as any).tags : [];
+				for (const rawTagId of tags) {
+					const tagId = String(rawTagId || '').trim();
+					if (!tagId || selectedSet.has(tagId)) continue;
+					fallbackCounts.set(tagId, (fallbackCounts.get(tagId) || 0) + 1);
+				}
+			}
+
+			const mergedTagIds = [...new Set([...feedbackCounts.keys(), ...fallbackCounts.keys()])];
+			if (mergedTagIds.length === 0) {
+				return {
+					success: true,
+					data: [],
+					total: 0,
+				};
+			}
+
+			const scoreByTagId = new Map<string, number>();
+			for (const tagId of mergedTagIds) {
+				const feedbackScore = feedbackCounts.get(tagId) || 0;
+				const fallbackScore = fallbackCounts.get(tagId) || 0;
+				scoreByTagId.set(tagId, feedbackScore * 2 + fallbackScore);
+			}
+
+			const sortedTagIds = mergedTagIds
+				.sort((a, b) => (scoreByTagId.get(b) || 0) - (scoreByTagId.get(a) || 0))
+				.slice(0, limit);
+
+			const tagObjectIds: Types.ObjectId[] = [];
+			const validTagIdSet = new Set<string>();
+			for (const tagId of sortedTagIds) {
+				try {
+					tagObjectIds.push(new Types.ObjectId(tagId));
+					validTagIdSet.add(tagId);
+				} catch (_error) {
+					// Skip non-ObjectId values safely.
+				}
+			}
+
+			if (tagObjectIds.length === 0) {
+				return {
+					success: true,
+					data: [],
+					total: 0,
+				};
+			}
+
+			const tags = await db
+				.collection('tags')
+				.find({ _id: { $in: tagObjectIds } })
+				.project({ name: 1, category: 1, color: 1 })
+				.toArray();
+			const tagMap = new Map<string, any>();
+			for (const tag of tags) {
+				tagMap.set(String((tag as any)._id), tag);
+			}
+
+			const data = sortedTagIds
+				.filter((tagId) => validTagIdSet.has(tagId) && tagMap.has(tagId))
+				.map((tagId) => {
+					const tag = tagMap.get(tagId);
+					const feedbackCount = feedbackCounts.get(tagId) || 0;
+					const fallbackCount = fallbackCounts.get(tagId) || 0;
+					return {
+						tagId,
+						count: feedbackCount + fallbackCount,
+						feedbackCount,
+						fallbackCount,
+						name: tag?.name,
+						category: tag?.category,
+						color: tag?.color,
+					};
+				});
+
+			return {
+				success: true,
+				data,
+				total: data.length,
+			};
+		} catch (error) {
+			this.logger.error(`Failed to get related tags for photo: ${error instanceof Error ? error.message : String(error)}`);
+			if (error instanceof NotFoundException || error instanceof BadRequestException || error instanceof ForbiddenException) {
+				throw error;
+			}
+			throw new InternalServerErrorException(
+				`Failed to get related tags for photo: ${error instanceof Error ? error.message : 'Unknown error'}`
+			);
+		}
+	}
+
+	/**
 	 * Bulk suggest tags for multiple photos
 	 * Path: POST /api/admin/photos/bulk-suggest-tags
 	 */
@@ -1989,6 +2160,86 @@ export class PhotosAdminController {
 			}
 			throw new InternalServerErrorException(
 				`Failed to get bulk suggest tags status: ${error instanceof Error ? error.message : 'Unknown error'}`
+			);
+		}
+	}
+
+	/**
+	 * Record user feedback for tag suggestions (e.g. dismissed suggestions)
+	 * Path: POST /api/admin/photos/:id/tag-suggestion-feedback
+	 */
+	@Post(':id/tag-suggestion-feedback')
+	async recordTagSuggestionFeedback(
+		@Param('id') id: string,
+		@Body() body: {
+			tagIds?: string[];
+			source?: 'ai' | 'context' | 'manual';
+			action?: 'dismissed' | 'removed';
+		},
+		@Req() req: Request
+	) {
+		try {
+			await connectDB();
+			const db = mongoose.connection.db;
+			if (!db) throw new InternalServerErrorException('Database connection not established');
+
+			let objectId: Types.ObjectId;
+			try {
+				objectId = new Types.ObjectId(id);
+			} catch (_error) {
+				throw new BadRequestException('Invalid photo ID format');
+			}
+
+			const photo = await db.collection('photos').findOne({ _id: objectId });
+			if (!photo) throw new NotFoundException('Photo not found');
+
+			if ((req as any).user?.role === 'owner') {
+				await this.assertOwnerCanAccessPhoto(req, photo, db);
+			}
+
+			const tagIds = Array.isArray(body.tagIds)
+				? [...new Set(body.tagIds.map((t) => String(t).trim()).filter(Boolean))]
+				: [];
+			if (tagIds.length === 0) {
+				throw new BadRequestException('tagIds array is required');
+			}
+
+			const source = body.source ?? 'manual';
+			if (!['ai', 'context', 'manual'].includes(source)) {
+				throw new BadRequestException('Invalid tag feedback source');
+			}
+
+			const action = body.action ?? 'dismissed';
+			if (!['dismissed', 'removed'].includes(action)) {
+				throw new BadRequestException('Invalid tag feedback action');
+			}
+
+			const userId = (req as any).user?.id as string | undefined;
+			await TagFeedbackService.recordTagEvents({
+				photoId: id,
+				tagIds,
+				userId,
+				source,
+				action,
+			});
+
+			return {
+				success: true,
+				data: {
+					recorded: tagIds.length,
+					source,
+					action,
+				},
+			};
+		} catch (error) {
+			this.logger.error(
+				`Failed to record tag suggestion feedback: ${error instanceof Error ? error.message : String(error)}`
+			);
+			if (error instanceof NotFoundException || error instanceof BadRequestException) {
+				throw error;
+			}
+			throw new InternalServerErrorException(
+				`Failed to record tag suggestion feedback: ${error instanceof Error ? error.message : 'Unknown error'}`
 			);
 		}
 	}

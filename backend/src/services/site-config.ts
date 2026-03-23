@@ -256,7 +256,8 @@ export class SiteConfigService {
         sharingOnPhoto: true,
         enableDownload: false,
         enableWatermark: false,
-        maxUploadSize: '10MB'
+        maxUploadSize: '10MB',
+        enableTagFeedbackSearchBoost: false,
       },
       template: {
         frontendTemplate: 'modern',

@@ -1,6 +1,6 @@
 # Tag optimization & ML signals (Phase 4 – Stage 4)
 
-**Status:** Design (March 2026) — implementation planned in slices below  
+**Status:** Implemented (March 2026) — slices A-D shipped  
 **Parent:** [PHASE_4_WORKFLOW.md](./PHASE_4_WORKFLOW.md) §4  
 **Related:** [AI_TAGGING_DESIGN.md](./AI_TAGGING_DESIGN.md) (Phase 3 AI tagging), [SMART_TAG_SUGGESTIONS_DESIGN.md](./SMART_TAG_SUGGESTIONS_DESIGN.md) (context suggestions & search indexes)
 
@@ -27,28 +27,30 @@ This satisfies part of the Phase 4 workflow deliverable *“feedback collection 
 4. **Search relevance:** [SMART_TAG_SUGGESTIONS_DESIGN.md](./SMART_TAG_SUGGESTIONS_DESIGN.md) already improved indexes and tag-query scoring. Stage 4 can add **lightweight boosts** (e.g. prefer tags with higher apply/dismiss ratio from feedback) behind a feature flag or config—optional slice.
 5. **Privacy & retention:** Document TTL or admin export/delete for `tag_feedback`; avoid storing PII beyond `userId` ObjectId.
 
-## Proposed implementation slices (ordered)
+## Implemented slices
 
-### Slice A — Dismiss / reject feedback (backend + frontend)
+### Slice A — Dismiss / reject feedback (backend + frontend) ✅
 
-- Extend `TagFeedbackEvent` / insert path to allow `action: 'dismissed'` (or `rejected`).
-- New endpoint, e.g. `POST /api/admin/photos/:id/tag-suggestion-feedback`, body: `{ tagIds: string[], source: 'ai' | 'context', action: 'dismissed' }` (idempotent-friendly).
-- Frontend: when the user closes the AI or context suggestion modal without applying, or explicitly dismisses a row, call the endpoint (debounced batch).
+- `TagFeedbackEvent` now supports `action: 'dismissed'`.
+- New endpoint: `POST /api/admin/photos/:id/tag-suggestion-feedback`, body: `{ tagIds: string[], source: 'ai' | 'context', action: 'dismissed' }`.
+- Frontend records dismiss on modal close and explicit per-row dismiss, with debounced batching.
 
-### Slice B — Related tags for a photo (API + UI)
+### Slice B — Related tags for a photo (API + UI) ✅
 
-- New endpoint, e.g. `GET /api/admin/photos/:id/related-tags?limit=15`:
-  - Union tags from **feedback-based** co-occurrence (tags on same photos in `tag_feedback` for this photo’s current tags) with **fallback** co-occurrence from `photos.tags` on the same album or location.
-  - Exclude tags already on the photo.
-- Photo edit UI: small “Related tags” strip with one-click add (reusing `apply-tags`).
+- New endpoint: `GET /api/admin/photos/:id/related-tags?limit=15&tagIds=...`.
+  - Unions **feedback-based** co-occurrence with fallback co-occurrence from `photos.tags` on same album/location.
+  - Excludes tags already on the photo.
+- Photo edit UI consumes this API and supports one-click apply.
 
-### Slice C — Admin visibility (optional)
+### Slice C — Admin visibility (optional) ✅
 
-- Admin page or section: counts of feedback events by `source` and `action`; link to existing tag analytics if present.
+- Admin endpoint `GET /api/admin/tags/feedback/stats` returns grouped counts by `source` and `action`.
+- Admin Tags page includes a "Tag Feedback Signals" panel with refresh.
 
-### Slice D — Search boost (optional)
+### Slice D — Search boost (optional) ✅
 
-- Config-gated adjustment to tag search scoring using aggregate accept/dismiss rates per suggested tag class—**only after** Slice A has data.
+- Config-gated adjustment added to tag search relevance in `SearchService` using apply/dismiss ratios.
+- Gate: `features.enableTagFeedbackSearchBoost` (default `false`) with admin Site Config toggle.
 
 ## Non-goals (initially)
 

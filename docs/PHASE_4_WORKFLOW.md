@@ -212,7 +212,7 @@ Implementation: when `siteContext.type === 'owner-site'`, guards for `/admin` al
 - Backend: feedback collection from Phase 3 flows; related-tags or similarity API; optional search relevance tuning.
 - Frontend: "Related tags", "Similar photos" or "Refine tags" UX where applicable.
 
-**Design & baseline (March 2026):** See [`TAG_OPTIMIZATION_PHASE4.md`](./TAG_OPTIMIZATION_PHASE4.md). The repo already records **positive** tag feedback on `apply-tags` and exposes **feedback-based related tags** via `GET /api/admin/tags/related/by-id`. Stage 4 implementation work is tracked as **slices A–D** in that doc (dismiss signals, photo-level related tags + UI, optional admin stats and search boosts).
+**Design & implementation (March 2026):** See [`TAG_OPTIMIZATION_PHASE4.md`](./TAG_OPTIMIZATION_PHASE4.md). Stage 4 slices **A-D** are implemented: dismissed feedback logging (`POST /api/admin/photos/:id/tag-suggestion-feedback`), photo-level related tags with fallback (`GET /api/admin/photos/:id/related-tags`), admin feedback stats (`GET /api/admin/tags/feedback/stats` + Tags page panel), and config-gated search relevance boost (`features.enableTagFeedbackSearchBoost`).
 
 ---
 
@@ -321,7 +321,7 @@ Implementation: when `siteContext.type === 'owner-site'`, guards for `/admin` al
 - [x] Stage 1 (White-label solutions): design and implementation
 - [x] Stage 2 (Integration marketplace): design and implementation
 - [x] Stage 3 (Advanced collaboration): design and implementation (comments, collaboration panel, notifications, v1 comment scopes — see `COLLABORATION_PHASE4_STAGE3.md`)
-- [ ] Stage 4 (Machine learning for tag optimization): design doc [`TAG_OPTIMIZATION_PHASE4.md`](./TAG_OPTIMIZATION_PHASE4.md); implementation (slices A–D) in progress
+- [x] Stage 4 (Machine learning for tag optimization): design doc [`TAG_OPTIMIZATION_PHASE4.md`](./TAG_OPTIMIZATION_PHASE4.md); implementation complete for slices A-D
 - Stage 5 (Mobile app): design and implementation
 - Stage 6 (Video support): design and implementation
 - Stage 7 (Enterprise features): design docs and implementation

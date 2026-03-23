@@ -1969,6 +1969,31 @@ on:click={() => {
 								</div>
 								<p class="text-xs text-gray-500 mt-2">{$t('admin.collaborationModeratorNote')}</p>
 							{/if}
+							<div class="border-t border-gray-200 pt-6 space-y-3">
+								<h3 class="text-lg font-semibold text-gray-900">{$t('admin.tagSearchFeedbackBoostSectionTitle')}</h3>
+								<p class="text-sm text-gray-600 -mt-1">
+									{$t('admin.tagSearchFeedbackBoostSectionHelp')}
+								</p>
+								<label class="flex items-center space-x-2 cursor-pointer">
+									<input
+										id="tag-feedback-search-boost"
+										type="checkbox"
+										checked={config.features?.enableTagFeedbackSearchBoost === true}
+										on:change={(e) => {
+											if (!config) return;
+											config = {
+												...(config),
+												features: {
+													...config.features,
+													enableTagFeedbackSearchBoost: e.currentTarget.checked
+												}
+											} as SiteConfig;
+										}}
+										class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+									/>
+									<span class="text-sm font-medium text-gray-700">{$t('admin.tagSearchFeedbackBoostEnable')}</span>
+								</label>
+							</div>
 							<div class="border-t border-gray-200 pt-6 space-y-4">
 							<h3 class="text-lg font-semibold text-gray-900">{$t('admin.socialSharingSectionTitle')}</h3>
 							<p class="text-sm text-gray-600 -mt-2">

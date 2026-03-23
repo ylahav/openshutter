@@ -108,6 +108,8 @@ export interface SiteConfig {
     enableDownload: boolean
     enableWatermark: boolean
     maxUploadSize: string
+    /** Optional Stage 4 flag: apply/dismiss-based boost for tag search relevance. */
+    enableTagFeedbackSearchBoost?: boolean
   }
   /** EXIF metadata display: which fields to show when displaying photo EXIF (empty/undefined = show all) */
   exifMetadata?: {

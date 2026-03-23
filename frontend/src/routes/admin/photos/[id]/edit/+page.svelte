@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import { browser } from '$app/environment';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
@@ -142,6 +142,15 @@
 	let relatedTags: RelatedTagSuggestion[] = [];
 	let applyingRelatedTagId: string | null = null;
 	let lastRelatedTagsKey = '';
+	const DISMISS_FEEDBACK_DEBOUNCE_MS = 500;
+	const dismissFeedbackQueue: Record<'ai' | 'context', Set<string>> = {
+		ai: new Set<string>(),
+		context: new Set<string>(),
+	};
+	let dismissFeedbackTimers: Record<'ai' | 'context', ReturnType<typeof setTimeout> | null> = {
+		ai: null,
+		context: null,
+	};
 	
 	// Track the last loaded photoId to prevent reloading the same photo
 	let lastLoadedPhotoId: string | null = null;
@@ -834,6 +843,70 @@
 		}
 	}
 
+	function queueSuggestionDismissFeedback(
+		source: 'ai' | 'context',
+		suggestions: Array<{
+			label: string;
+			matchedTag?: { id: string; name: string };
+			isNewTag: boolean;
+		}>
+	): void {
+		if (!suggestions || suggestions.length === 0) return;
+		const queue = dismissFeedbackQueue[source];
+		for (const suggestion of suggestions) {
+			const tagId = suggestion.matchedTag?.id?.trim();
+			if (tagId) queue.add(tagId);
+		}
+		if (queue.size === 0) return;
+		if (dismissFeedbackTimers[source]) clearTimeout(dismissFeedbackTimers[source]!);
+		dismissFeedbackTimers[source] = setTimeout(() => {
+			void flushSuggestionDismissFeedback(source);
+		}, DISMISS_FEEDBACK_DEBOUNCE_MS);
+	}
+
+	async function flushSuggestionDismissFeedback(source: 'ai' | 'context') {
+		if (!photoId) return;
+		const queue = dismissFeedbackQueue[source];
+		if (queue.size === 0) return;
+		const tagIds = Array.from(queue);
+		queue.clear();
+		try {
+			await fetch(`/api/admin/photos/${photoId}/tag-suggestion-feedback`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				credentials: 'include',
+				body: JSON.stringify({
+					tagIds,
+					source,
+					action: 'dismissed',
+				}),
+			});
+		} catch (error) {
+			for (const tagId of tagIds) queue.add(tagId);
+			logger.warn('Failed to record tag dismiss feedback:', error);
+		} finally {
+			dismissFeedbackTimers[source] = null;
+		}
+	}
+
+	async function handleDismissAISuggestion(suggestion: {
+		label: string;
+		matchedTag?: { id: string; name: string };
+		isNewTag: boolean;
+	}) {
+		queueSuggestionDismissFeedback('ai', [suggestion]);
+		aiTagSuggestions = aiTagSuggestions.filter((s) => s.label !== suggestion.label);
+	}
+
+	async function handleDismissContextSuggestion(suggestion: {
+		label: string;
+		matchedTag?: { id: string; name: string };
+		isNewTag: boolean;
+	}) {
+		queueSuggestionDismissFeedback('context', [suggestion]);
+		contextTagSuggestions = contextTagSuggestions.filter((s) => s.label !== suggestion.label);
+	}
+
 	async function loadRelatedTags(selectedTagIds: string[], requestKey: string) {
 		if (!photoId || selectedTagIds.length === 0) {
 			relatedTags = [];
@@ -844,65 +917,29 @@
 		try {
 			relatedTagsLoading = true;
 			relatedTagsError = null;
-
-			const selectedSet = new Set(selectedTagIds);
-			const seedTagIds = selectedTagIds.slice(0, 5);
-			const responses = await Promise.all(
-				seedTagIds.map(async (tagId) => {
-					const response = await fetch(
-						`/api/admin/tags/related/by-id?tagId=${encodeURIComponent(tagId)}&limit=8`,
-						{ credentials: 'include' },
-					);
-
-					if (!response.ok) {
-						const errorData = await response.json().catch(() => ({
-							error: `HTTP ${response.status}: ${response.statusText}`,
-						}));
-						throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
-					}
-
-					const result = await response.json();
-					return {
-						sourceTagId: tagId,
-						items: result.data || [],
-					};
-				}),
+			const response = await fetch(
+				`/api/admin/photos/${photoId}/related-tags?limit=8&tagIds=${encodeURIComponent(selectedTagIds.join(','))}`,
+				{ credentials: 'include' },
 			);
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({
+					error: `HTTP ${response.status}: ${response.statusText}`,
+				}));
+				throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+			}
+			const result = await response.json();
 
 			if (lastRelatedTagsKey !== requestKey) return;
-
-			const aggregated = new Map<string, RelatedTagSuggestion>();
-			for (const response of responses) {
-				for (const item of response.items) {
-					const relatedTagId = String(item.tagId || '').trim();
-					if (!relatedTagId || selectedSet.has(relatedTagId)) continue;
-
-					const existing = aggregated.get(relatedTagId);
-					if (existing) {
-						existing.count += Number(item.count || 0);
-						if (!existing.sourceTagIds.includes(response.sourceTagId)) {
-							existing.sourceTagIds.push(response.sourceTagId);
-						}
-						if (!existing.name && item.name) existing.name = item.name;
-						if (!existing.category && item.category) existing.category = item.category;
-						if (!existing.color && item.color) existing.color = item.color;
-						continue;
-					}
-
-					aggregated.set(relatedTagId, {
-						tagId: relatedTagId,
-						name: item.name,
-						category: item.category,
-						color: item.color,
-						count: Number(item.count || 0),
-						sourceTagIds: [response.sourceTagId],
-					});
-				}
-			}
-
-			relatedTags = Array.from(aggregated.values())
-				.sort((a, b) => b.count - a.count)
-				.slice(0, 8);
+			relatedTags = (result.data || [])
+				.map((item: any) => ({
+					tagId: String(item.tagId || '').trim(),
+					name: item.name,
+					category: item.category,
+					color: item.color,
+					count: Number(item.count || 0),
+					sourceTagIds: [],
+				}))
+				.filter((item: RelatedTagSuggestion) => item.tagId);
 		} catch (error) {
 			if (lastRelatedTagsKey !== requestKey) return;
 			logger.error('Failed to load related tags:', error);
@@ -1088,6 +1125,13 @@
 		loadOptions().catch((err) => {
 			logger.error('[onMount] loadOptions error:', err);
 		});
+	});
+
+	onDestroy(() => {
+		if (dismissFeedbackTimers.ai) clearTimeout(dismissFeedbackTimers.ai);
+		if (dismissFeedbackTimers.context) clearTimeout(dismissFeedbackTimers.context);
+		void flushSuggestionDismissFeedback('ai');
+		void flushSuggestionDismissFeedback('context');
 	});
 </script>
 
@@ -1402,7 +1446,28 @@
 										</svg>
 										Add Tag
 									</button>
-									<!-- AI Suggest Tags and Context Suggest buttons are temporarily disabled -->
+									<div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+										<button
+											type="button"
+											on:click={handleSuggestTags}
+											class="w-full px-3 py-2 text-sm border border-blue-300 rounded-md bg-blue-50 hover:bg-blue-100 text-blue-700 flex items-center justify-center gap-2"
+										>
+											<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+											</svg>
+											Suggest Tags (AI)
+										</button>
+										<button
+											type="button"
+											on:click={handleSuggestTagsFromContext}
+											class="w-full px-3 py-2 text-sm border border-purple-300 rounded-md bg-purple-50 hover:bg-purple-100 text-purple-700 flex items-center justify-center gap-2"
+										>
+											<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-4l-4 4v-4z" />
+											</svg>
+											Suggest from Context
+										</button>
+									</div>
 									{#if formData.tags && formData.tags.length > 0}
 										<div class="mt-3 rounded-md border border-gray-200 bg-gray-50 p-3">
 											<div class="flex items-center justify-between gap-2">
@@ -1835,11 +1900,14 @@
 	provider={aiTagProvider}
 	processingTime={aiTagProcessingTime}
 	on:close={() => {
+		queueSuggestionDismissFeedback('ai', aiTagSuggestions);
+		void flushSuggestionDismissFeedback('ai');
 		showAITagSuggestions = false;
 		aiTagSuggestions = [];
 		aiTagSuggestionsError = null;
 	}}
 	on:apply={(e) => handleApplyAITags(e.detail)}
+	on:dismiss={(e) => handleDismissAISuggestion(e.detail)}
 />
 
 <TagSuggestionsModal
@@ -1850,11 +1918,14 @@
 	provider="context"
 	processingTime={0}
 	on:close={() => {
+		queueSuggestionDismissFeedback('context', contextTagSuggestions);
+		void flushSuggestionDismissFeedback('context');
 		showContextTagSuggestions = false;
 		contextTagSuggestions = [];
 		contextTagSuggestionsError = null;
 	}}
 	on:apply={(e) => handleApplyContextTags(e.detail)}
+	on:dismiss={(e) => handleDismissContextSuggestion(e.detail)}
 />
 
 <CollectionPopup
