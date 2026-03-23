@@ -16,6 +16,7 @@
 - **Admin → Users (owners)**: Per-provider JSON for dedicated storage is no longer edited inline on the user form; owners configure credentials on **Owner → Storage**. Copy and i18n updated accordingly.
 
 ### Fixed
+- **Local AI tagging on Node.js 23+:** `@tensorflow/tfjs-node` failed loading MobileNet with `util.isNullOrUndefined is not a function` because Node removed those helpers. Apply a small `util` polyfill before loading tfjs-node (`tfjs-node-util-polyfill.ts`). Documented in `docs/AI_TAGGING_DESIGN.md`.
 - **Elegant theme – album load more**: Album page now shows a “Load more” button for large albums; pagination (first 50 photos, then load next page) was previously missing in the elegant template.
 - **Owner dashboard – storage card**: The **Storage management** card on `/owner` now appears when **Use dedicated per-owner storage** is enabled, even if the owner’s profile still uses the main site storage connection (`useAdminConfig`).
 

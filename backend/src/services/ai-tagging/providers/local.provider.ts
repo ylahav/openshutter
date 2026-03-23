@@ -4,6 +4,7 @@ import { TagSuggestion, SuggestTagsOptions } from '../types';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import sharp from 'sharp';
+import '../tfjs-node-util-polyfill';
 
 // Dynamic imports for TensorFlow.js (optional dependencies)
 // These will be loaded at runtime, so TypeScript won't complain if packages aren't installed

@@ -332,6 +332,8 @@ AI_TAGGING_QUEUE_ENABLED=true
 - Image preprocessing with Sharp (resize to 224x224, RGB conversion)
 - Returns predictions with class names and confidence scores from 1000 ImageNet classes
 
+**Node.js 23+:** `@tensorflow/tfjs-node` 4.22.x still calls Node’s removed `util.isNullOrUndefined` (and may expect `util.isArray`), which causes `TypeError: (0 , util_1.isNullOrUndefined) is not a function` when loading MobileNet. The backend imports `backend/src/services/ai-tagging/tfjs-node-util-polyfill.ts` before any `import('@tensorflow/tfjs-node')` to restore those helpers. **Alternative:** run the API on **Node.js 22 LTS** without the polyfill.
+
 **External API:**
 - `@google-cloud/vision` - Google Cloud Vision API client
 
