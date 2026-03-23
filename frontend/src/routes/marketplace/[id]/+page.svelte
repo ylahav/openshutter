@@ -44,6 +44,18 @@
 					</p>
 				{/if}
 				<p class="mt-2 text-gray-600 whitespace-pre-wrap">{data.listing.description}</p>
+				{#if data.listing.screenshots?.length}
+					<div class="mt-6">
+						<h2 class="text-sm font-medium text-gray-700 mb-2">Screenshots</h2>
+						<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+							{#each data.listing.screenshots as url}
+								<a href={url} target="_blank" rel="noopener noreferrer" class="block rounded-md border border-gray-200 overflow-hidden bg-gray-50 hover:opacity-90">
+									<img src={url} alt="" class="w-full h-auto max-h-64 object-contain" loading="lazy" />
+								</a>
+							{/each}
+						</div>
+					</div>
+				{/if}
 				<dl class="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
 					<div>
 						<dt class="text-gray-500">Developer</dt>

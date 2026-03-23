@@ -482,8 +482,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ### Phase 4 (Next 18 months) *
 - [ ] Enterprise features (SSO, audit logs, quotas, multi-tenancy)
 - [ ] Video support
-- [ ] Advanced collaboration features
-- [ ] Integration marketplace
+- [x] Advanced collaboration — album comments (Phase 4 Stage 3 MVP — `docs/COLLABORATION_PHASE4_STAGE3.md`)
+- [x] Integration marketplace (Phase 4 Stage 2 — `docs/MARKETPLACE_EXPANSION_PHASE4.md`)
 - [x] White-label solutions (Phase 4 Stage 1 — see `docs/PHASE_4_WORKFLOW.md`)
 - [ ] Mobile app development
 

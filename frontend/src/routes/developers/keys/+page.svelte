@@ -29,6 +29,8 @@
 		{ value: 'pages:read', label: 'pages:read' },
 		{ value: 'search:read', label: 'search:read' },
 		{ value: 'photos:write', label: 'photos:write' },
+		{ value: 'comments:read', label: 'comments:read' },
+		{ value: 'comments:write', label: 'comments:write' },
 	];
 
 	const TIER_OPTIONS = [

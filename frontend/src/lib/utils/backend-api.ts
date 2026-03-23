@@ -240,6 +240,17 @@ export async function backendPut(endpoint: string, body?: any, options: BackendR
 }
 
 /**
+ * Make a PATCH request to the backend API
+ */
+export async function backendPatch(endpoint: string, body?: any, options: BackendRequestOptions = {}) {
+	return backendRequest(endpoint, {
+		...options,
+		method: 'PATCH',
+		body: body ? JSON.stringify(body) : undefined,
+	});
+}
+
+/**
  * Make a DELETE request to the backend API
  */
 export async function backendDelete(endpoint: string, options: BackendRequestOptions = {}) {

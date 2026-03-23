@@ -3,10 +3,17 @@
 	import { page } from '$app/stores';
 	import { currentLanguage } from '$stores/language';
 	import { siteConfigData } from '$stores/siteConfig';
+	import { auth, loadSession } from '$lib/stores/auth';
+	import {
+		anyCollaborationSectionVisible,
+		resolveCollaborationVisibility,
+		showCollabServiceForViewer,
+	} from '$lib/utils/collaboration-visibility';
 	import { MultiLangUtils } from '$utils/multiLang';
 	import MultiLangText from '$lib/components/MultiLangText.svelte';
 	import AlbumBreadcrumbs from '$lib/components/AlbumBreadcrumbs.svelte';
 	import PhotoLightbox from '$lib/components/PhotoLightbox.svelte';
+	import AlbumCollaborationPanel from '$lib/components/AlbumCollaborationPanel.svelte';
 	import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 	import { getPhotoUrl, getPhotoRotationStyle } from '$lib/utils/photoUrl';
 
@@ -17,6 +24,7 @@
 			description?: any;
 			alias: string;
 			photoCount?: number;
+			createdBy?: string | null;
 		};
 		subAlbums: any[];
 		photos: any[];
@@ -30,8 +38,17 @@
 	let photoLoaded: Record<string, boolean> = {};
 
 	$: alias = $page.params.alias || $page.params.id;
+	$: collabVis = resolveCollaborationVisibility($siteConfigData?.features);
+	$: isAuthed = $auth.authenticated && !!$auth.user;
+	$: canModerateAlbum =
+		isAuthed &&
+		$auth.user &&
+		albumData &&
+		($auth.user.role === 'admin' || $auth.user.id === albumData.album.createdBy);
+	$: showCollabPanel = !!albumData && anyCollaborationSectionVisible(collabVis, isAuthed, !!canModerateAlbum);
 
 	onMount(async () => {
+		await loadSession();
 		if (alias) {
 			await fetchAlbumData();
 			// Open lightbox at photo from hash (#p=index) when sharing a single photo
@@ -287,11 +304,29 @@
 		{/if}
 	</div>
 
+	{#if showCollabPanel}
+		<AlbumCollaborationPanel
+			albumId={albumData.album._id}
+			albumCreatorId={String(albumData.album.createdBy ?? '')}
+			albumAlias={albumData.album.alias}
+			showActivity={showCollabServiceForViewer(collabVis, 'activity', isAuthed, !!canModerateAlbum)}
+			showTasks={showCollabServiceForViewer(collabVis, 'tasks', isAuthed, !!canModerateAlbum)}
+			showComments={showCollabServiceForViewer(collabVis, 'comments', isAuthed, !!canModerateAlbum)}
+		/>
+	{/if}
+
 	<!-- Photo Lightbox -->
 	{#if lightboxOpen && albumData.photos}
 		<PhotoLightbox
 			photos={albumData.photos}
 			initialIndex={lightboxIndex}
+			albumCollaboration={showCollabServiceForViewer(collabVis, 'comments', isAuthed, !!canModerateAlbum)
+				? {
+						albumId: albumData.album._id,
+						albumCreatorId: String(albumData.album.createdBy ?? ''),
+						albumAlias: albumData.album.alias,
+					}
+				: undefined}
 			on:close={() => (lightboxOpen = false)}
 		/>
 	{/if}

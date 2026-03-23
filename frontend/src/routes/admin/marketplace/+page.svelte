@@ -36,6 +36,9 @@
 	let filterApproved: 'all' | 'true' | 'false' = 'all';
 	let togglingId: string | null = null;
 	let deletingId: string | null = null;
+	let editingTagsId: string | null = null;
+	let tagEditValue = '';
+	let savingTagsId: string | null = null;
 
 	onMount(() => fetchListings());
 
@@ -93,6 +96,40 @@
 			error = handleError(e, 'Failed to update');
 		} finally {
 			togglingId = null;
+		}
+	}
+
+	function startEditTags(listing: Listing) {
+		editingTagsId = listing._id;
+		tagEditValue = (listing.tags || []).join(', ');
+	}
+
+	function cancelEditTags() {
+		editingTagsId = null;
+		tagEditValue = '';
+	}
+
+	async function saveTags(listing: Listing) {
+		savingTagsId = listing._id;
+		try {
+			const tags = tagEditValue.split(',').map((t) => t.trim()).filter(Boolean);
+			const res = await fetch(`/api/admin/marketplace/${listing._id}`, {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ tags }),
+				credentials: 'include',
+			});
+			if (!res.ok) await handleApiErrorResponse(res);
+			else {
+				editingTagsId = null;
+				tagEditValue = '';
+				fetchListings();
+			}
+		} catch (e) {
+			logger.error('Save tags:', e);
+			error = handleError(e, 'Failed to save tags');
+		} finally {
+			savingTagsId = null;
 		}
 	}
 
@@ -158,6 +195,7 @@
 					<tr>
 						<th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
 						<th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
+						<th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase min-w-48">Tags</th>
 						<th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Developer</th>
 						<th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
 						<th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Featured</th>
@@ -172,6 +210,46 @@
 								<p class="text-xs text-gray-500 line-clamp-1">{listing.description}</p>
 							</td>
 							<td class="px-4 py-3 text-sm text-gray-600">{CATEGORY_LABELS[listing.category] || listing.category}</td>
+							<td class="px-4 py-3 text-sm align-top">
+								{#if editingTagsId === listing._id}
+									<div class="flex flex-col gap-1">
+										<input
+											type="text"
+											bind:value={tagEditValue}
+											class="w-full min-w-40 rounded border border-gray-300 px-2 py-1 text-xs"
+											placeholder="comma-separated"
+											disabled={savingTagsId === listing._id}
+										/>
+										<div class="flex gap-2">
+											<button
+												type="button"
+												disabled={savingTagsId === listing._id}
+												on:click={() => saveTags(listing)}
+												class="text-xs text-primary-600 hover:underline disabled:opacity-50"
+											>
+												Save
+											</button>
+											<button
+												type="button"
+												disabled={savingTagsId === listing._id}
+												on:click={cancelEditTags}
+												class="text-xs text-gray-500 hover:underline disabled:opacity-50"
+											>
+												Cancel
+											</button>
+										</div>
+									</div>
+								{:else}
+									<p class="text-xs text-gray-600 line-clamp-2">{listing.tags?.length ? listing.tags.join(', ') : '—'}</p>
+									<button
+										type="button"
+										on:click={() => startEditTags(listing)}
+										class="mt-1 text-xs text-primary-600 hover:underline"
+									>
+										Edit
+									</button>
+								{/if}
+							</td>
 							<td class="px-4 py-3 text-sm text-gray-600">{listing.developerName}</td>
 							<td class="px-4 py-3">
 								{#if listing.isApproved}

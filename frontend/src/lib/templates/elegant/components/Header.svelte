@@ -10,6 +10,7 @@
 	import TemplateSelector from '$components/TemplateSelector.svelte';
 	import ThemeToggle from '$components/ThemeToggle.svelte';
 	import Menu from '$components/Menu.svelte';
+	import NotificationNavLink from '$lib/components/NotificationNavLink.svelte';
 	import { t } from '$stores/i18n';
 
 	const year = new Date().getFullYear();
@@ -199,6 +200,9 @@
 					/>
 					{#if showAuthButtons && $auth.authenticated && $auth.user}
 						<div class="pt-2 border-t border-white/10 flex flex-col gap-2">
+							<NotificationNavLink
+								linkClass="relative inline-block py-2 text-gray-900 dark:text-white hover:text-purple-600 dark:hover:text-purple-300 font-light"
+							/>
 							{#if showGreeting}
 								<span class="text-gray-600 dark:text-purple-200 text-sm">{$auth.user.name || $auth.user.email}</span>
 							{/if}

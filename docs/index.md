@@ -34,7 +34,9 @@ Welcome to the OpenShutter documentation. This comprehensive guide covers all as
 
 ### Phase workflows & design (reference)
 - [Phase 3 Workflow](./PHASE_3_WORKFLOW.md) - Import/sync, AI tagging, analytics, API marketplace, smart tags
-- [Phase 4 Workflow](./PHASE_4_WORKFLOW.md) - White-label, integration marketplace, etc.
+- [Phase 4 Workflow](./PHASE_4_WORKFLOW.md) - White-label, integration marketplace, collaboration, etc.
+- [Collaboration Phase 4 Stage 3](./COLLABORATION_PHASE4_STAGE3.md) - Album collaboration (comments, tasks, notifications, v1)
+- [Tag optimization Phase 4 Stage 4](./TAG_OPTIMIZATION_PHASE4.md) - ML signals, related tags, feedback pipeline
 - [Import/Sync Design](./IMPORT_SYNC_DESIGN.md) - Export/import packages, storage migration
 - [AI Tagging Design](./AI_TAGGING_DESIGN.md) - AI-powered tag suggestions
 - [Advanced Analytics Design](./ADVANCED_ANALYTICS_DESIGN.md) - Analytics dashboard and events

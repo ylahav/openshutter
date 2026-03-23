@@ -2,6 +2,7 @@ import { Logger } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 import { siteConfigService } from './site-config';
 import { productDisplayNameFromSiteConfig } from '../common/utils/product-display-name-from-site-config';
+import { MultiLangUtils } from '../types/multi-lang';
 
 export interface WelcomeEmailContext {
   name: string;
@@ -65,7 +66,12 @@ export class MailService {
    * @param displayName - Display name for greeting
    * @param initialPassword - Optional. Plain password set at creation; included only for {{password}} placeholder.
    */
-  async sendWelcomeEmail(toUsername: string, displayName: string, initialPassword?: string): Promise<void> {
+  async sendWelcomeEmail(
+    toUsername: string,
+    displayName: string,
+    initialPassword?: string,
+    preferredLanguage = 'en',
+  ): Promise<void> {
     try {
       const config = await siteConfigService.getConfig();
       const welcome = config.welcomeEmail;
@@ -77,7 +83,8 @@ export class MailService {
       }
 
       const loginUrl = this.getLoginUrl();
-      const siteTitle = productDisplayNameFromSiteConfig(config, 'en');
+      const lang = preferredLanguage || 'en';
+      const siteTitle = productDisplayNameFromSiteConfig(config, lang);
       const ctx: WelcomeEmailContext = {
         name: displayName || toUsername,
         username: toUsername,
@@ -86,9 +93,17 @@ export class MailService {
         password: initialPassword,
       };
 
-      const subject = this.replacePlaceholders(welcome.subject || 'Welcome to {{siteTitle}}', ctx);
+      const subjectTemplate = MultiLangUtils.getTextValue(
+        welcome.subject || { en: 'Welcome to {{siteTitle}}' },
+        lang,
+      ) || 'Welcome to {{siteTitle}}';
+      const subject = this.replacePlaceholders(subjectTemplate, ctx);
       const body = this.replacePlaceholders(
-        welcome.body || 'Hi {{name}},\n\nWelcome to {{siteTitle}}.\n\nYou can log in here: {{loginUrl}}',
+        MultiLangUtils.getTextValue(
+          welcome.body ||
+            { en: 'Hi {{name}},\n\nWelcome to {{siteTitle}}.\n\nYou can log in here: {{loginUrl}}' },
+          lang,
+        ) || 'Hi {{name}},\n\nWelcome to {{siteTitle}}.\n\nYou can log in here: {{loginUrl}}',
         ctx,
       );
 
@@ -156,6 +171,44 @@ export class MailService {
       const message = err instanceof Error ? err.message : String(err);
       this.logger.warn(`Test email failed: ${message}`);
       return { success: false, error: message };
+    }
+  }
+
+  /**
+   * Send a plain-text email if SMTP is configured (same rules as welcome). Does not throw; logs errors.
+   */
+  async sendRawIfConfigured(to: string, subject: string, text: string): Promise<void> {
+    const addr = (to || '').trim();
+    if (!addr) return;
+    try {
+      const config = await siteConfigService.getConfig();
+      const mail = config.mail;
+      if (!mail?.host?.trim()) {
+        this.logger.debug('Email skipped: mail not configured');
+        return;
+      }
+      const port = mail.port ?? 587;
+      const transporter = nodemailer.createTransport({
+        host: mail.host,
+        port,
+        secure: port === 465,
+        auth:
+          mail.user && mail.password
+            ? { user: mail.user, pass: mail.password }
+            : undefined,
+      });
+      const from = mail.from?.trim() || mail.user || 'noreply@localhost';
+      await transporter.sendMail({
+        from,
+        to: addr,
+        subject: subject.trim().slice(0, 200) || 'Notification',
+        text: text || '',
+      });
+      this.logger.log(`Notification email sent to ${addr}`);
+    } catch (err) {
+      this.logger.warn(
+        `Notification email failed for ${addr}: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
   }
 }

@@ -33,6 +33,7 @@ import { StorageModule } from './storage/storage.module';
 import { ApiKeysModule } from './api-keys/api-keys.module';
 import { V1Module } from './api/v1/v1.module';
 import { MarketplaceModule } from './marketplace/marketplace.module';
+import { CommentsModule } from './comments/comments.module';
 import configuration from './config/configuration';
 import { SiteContextMiddleware } from './middleware/site-context.middleware';
 import { OwnerDomainsController } from './owner-domains/owner-domains.controller';
@@ -75,6 +76,7 @@ import {
     ApiKeysModule,
     V1Module,
     MarketplaceModule,
+    CommentsModule,
   ],
   controllers: [
     HealthController,

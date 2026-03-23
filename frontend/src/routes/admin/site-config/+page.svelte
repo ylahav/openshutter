@@ -12,6 +12,7 @@
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 	import { EXIF_DISPLAY_FIELDS } from '$lib/constants/exif-fields';
 	import { IPTC_XMP_DISPLAY_FIELDS } from '$lib/constants/iptc-xmp-fields';
+	import { resolveCollaborationVisibility } from '$lib/utils/collaboration-visibility';
 
 	let config: SiteConfig | null = null;
 	let descriptionValue: any = {};
@@ -54,6 +55,78 @@
 	}
 	let menuItems: MenuItem[] = [];
 
+	function normalizeWelcomeEmailMultiLang(data: any) {
+		const welcomeEmail = data?.welcomeEmail || {};
+		const normalizeField = (value: unknown) => {
+			if (typeof value === 'string') {
+				const trimmed = value.trim();
+				return trimmed ? { en: trimmed } : {};
+			}
+			if (value && typeof value === 'object') return value as Record<string, string>;
+			return {};
+		};
+		return {
+			...welcomeEmail,
+			subject: normalizeField(welcomeEmail.subject),
+			body: normalizeField(welcomeEmail.body)
+		};
+	}
+
+	type CollabService = 'comments' | 'tasks' | 'activity';
+	type CollabAudience = 'public' | 'authenticated';
+
+	function setCollabFlag(service: CollabService, audience: CollabAudience, value: boolean) {
+		if (!config) return;
+		const prev = config.features?.collaboration || {};
+		const svcPrev = prev[service] || {};
+		config = {
+			...config,
+			features: {
+				...config.features,
+				collaboration: {
+					...prev,
+					[service]: {
+						...svcPrev,
+						[audience]: value,
+					},
+				},
+			},
+		} as SiteConfig;
+		syncEnableCommentsLegacy();
+	}
+
+	function setCollabServiceEnabled(service: CollabService, enabled: boolean) {
+		if (!config) return;
+		const prev = config.features?.collaboration || {};
+		const svcPrev = prev[service] || {};
+		config = {
+			...config,
+			features: {
+				...config.features,
+				collaboration: {
+					...prev,
+					[service]: {
+						...svcPrev,
+						enabled,
+					},
+				},
+			},
+		} as SiteConfig;
+		syncEnableCommentsLegacy();
+	}
+
+	function syncEnableCommentsLegacy() {
+		if (!config?.features?.collaboration) return;
+		const vis = resolveCollaborationVisibility(config.features);
+		const anyOn =
+			(vis.comments.enabled && (vis.comments.public || vis.comments.authenticated)) ||
+			(vis.tasks.enabled && (vis.tasks.public || vis.tasks.authenticated)) ||
+			(vis.activity.enabled && (vis.activity.public || vis.activity.authenticated));
+		config.features.enableComments = anyOn;
+	}
+
+	$: collabVisAdmin = config ? resolveCollaborationVisibility(config.features) : null;
+
 	onMount(async () => {
 		await Promise.all([loadConfig(), loadAvailableLanguages()]);
 	});
@@ -86,6 +159,7 @@
 					linkedin: ''
 				};
 			}
+			data.welcomeEmail = normalizeWelcomeEmailMultiLang(data);
 			config = data;
 			descriptionValue = data.description || {};
 
@@ -177,6 +251,7 @@
 
 			const result = await response.json();
 			const data = result?.success ? result.data : result;
+			data.welcomeEmail = normalizeWelcomeEmailMultiLang(data);
 			config = data;
 			descriptionValue = data.description || {};
 			// Reload menu items from saved config
@@ -506,11 +581,10 @@
 						<div class="space-y-4">
 							<fieldset class="space-y-2">
 								<legend class="block text-sm font-medium text-gray-700 mb-2">
-									Active Languages
+									{$t('admin.activeLanguages')}
 								</legend>
 								<p class="text-sm text-gray-600 mb-3">
-									Select which languages are available for content editing. Only selected languages
-									will appear in multi-language fields.
+									{$t('admin.selectLanguagesDescription')}
 								</p>
 								<div class="grid grid-cols-2 md:grid-cols-3 gap-3">
 									{#each availableLanguages as lang}
@@ -540,7 +614,7 @@
 							</fieldset>
 							<div>
 								<label for="defaultLanguage" class="block text-sm font-medium text-gray-700 mb-1">
-									Default Language
+									{$t('admin.defaultLanguage')}
 								</label>
 								<select
 									id="defaultLanguage"
@@ -560,8 +634,7 @@
 									{/each}
 								</select>
 								<p class="text-xs text-gray-500 mt-1">
-									The default language will be used when content is not available in the user's
-									preferred language.
+									{$t('admin.defaultLanguageDescription')}
 								</p>
 							</div>
 						</div>
@@ -570,7 +643,7 @@
 							<!-- Logo -->
 							<div>
 								<label for="logo-upload" class="block text-sm font-medium text-gray-700 mb-2">
-									Logo
+									{$t('admin.logo')}
 								</label>
 								<div class="flex gap-4 items-start">
 									<div class="flex-1">
@@ -582,11 +655,11 @@
 											class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
 										/>
 										<p class="mt-1 text-xs text-gray-500">
-											Upload your logo image. Recommended size: 200x50px or similar aspect ratio. Max size: 5MB.
+											{$t('admin.brandingLogoHelp')}
 										</p>
 										{#if config.logo}
 											<div class="mt-3">
-												<label for="logo-url" class="block text-xs text-gray-600 mb-2">Current Logo URL (you can edit manually):</label>
+												<label for="logo-url" class="block text-xs text-gray-600 mb-2">{$t('admin.brandingCurrentLogoUrl')}</label>
 												<input
 													id="logo-url"
 													type="text"
@@ -600,10 +673,10 @@
 									</div>
 									{#if config.logo}
 										<div class="mt-8">
-											<p class="text-xs text-gray-600 mb-2">Preview:</p>
+											<p class="text-xs text-gray-600 mb-2">{$t('admin.preview')}</p>
 											<img
 												src={config.logo}
-												alt="Logo preview"
+												alt={$t('admin.logoPreviewAlt')}
 												class="max-h-16 object-contain border border-gray-200 rounded p-2 bg-gray-50"
 												on:error={(e) => {
 													(e.currentTarget as HTMLImageElement).style.display = 'none';
@@ -617,7 +690,7 @@
 							<!-- Favicon -->
 							<div>
 								<label for="favicon-upload" class="block text-sm font-medium text-gray-700 mb-2">
-									Favicon
+									{$t('admin.favicon')}
 								</label>
 								<div class="flex gap-4 items-start">
 									<div class="flex-1">
@@ -629,11 +702,11 @@
 											class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
 										/>
 										<p class="mt-1 text-xs text-gray-500">
-											Upload your favicon. Recommended size: 32x32px or 16x16px (ICO or PNG format). Max size: 5MB.
+											{$t('admin.brandingFaviconHelp')}
 										</p>
 										{#if config.favicon}
 											<div class="mt-3">
-												<label for="favicon-url" class="block text-xs text-gray-600 mb-2">Current Favicon URL (you can edit manually):</label>
+												<label for="favicon-url" class="block text-xs text-gray-600 mb-2">{$t('admin.brandingCurrentFaviconUrl')}</label>
 												<input
 													id="favicon-url"
 													type="text"
@@ -647,10 +720,10 @@
 									</div>
 									{#if config.favicon}
 										<div class="mt-8">
-											<p class="text-xs text-gray-600 mb-2">Preview:</p>
+											<p class="text-xs text-gray-600 mb-2">{$t('admin.preview')}</p>
 											<img
 												src={config.favicon}
-												alt="Favicon preview"
+												alt={$t('admin.brandingFaviconPreviewAlt')}
 												class="w-8 h-8 object-contain border border-gray-200 rounded p-1 bg-gray-50"
 												on:error={(e) => {
 													(e.currentTarget as HTMLImageElement).style.display = 'none';
@@ -798,7 +871,7 @@
 							<!-- Meta Title -->
 							<div>
 								<label for="meta-title" class="block text-sm font-medium text-gray-700 mb-2">
-									Meta Title
+									{$t('admin.metaTitle')}
 								</label>
 								<MultiLangInput
 									id="meta-title"
@@ -813,20 +886,20 @@ onChange={(value) => {
 											}
 										} as SiteConfig;
 									}}
-									placeholder="OpenShutter Gallery - Beautiful Photo Gallery"
+									placeholder={$t('admin.seoMetaTitleInputPlaceholder')}
 									maxLength={60}
 									showLanguageTabs={true}
 									defaultLanguage={config.languages?.defaultLanguage || 'en'}
 								/>
 								<p class="mt-1 text-xs text-gray-500">
-									Recommended length: 50-60 characters per language. This appears in browser tabs and search results.
+									{$t('admin.seoMetaTitleHelp')}
 								</p>
 							</div>
 
 							<!-- Meta Description -->
 							<div>
 								<label for="meta-description" class="block text-sm font-medium text-gray-700 mb-2">
-									Meta Description
+									{$t('admin.metaDescription')}
 								</label>
 								<MultiLangInput
 									id="meta-description"
@@ -841,7 +914,7 @@ onChange={(value) => {
 											}
 										} as SiteConfig;
 									}}
-									placeholder="Discover amazing photos in our beautiful gallery"
+									placeholder={$t('admin.seoMetaDescriptionInputPlaceholder')}
 									maxLength={160}
 									multiline={true}
 									rows={3}
@@ -849,14 +922,14 @@ onChange={(value) => {
 									defaultLanguage={config.languages?.defaultLanguage || 'en'}
 								/>
 								<p class="mt-1 text-xs text-gray-500">
-									Recommended length: 150-160 characters per language. This appears in search engine results.
+									{$t('admin.seoMetaDescriptionHelp')}
 								</p>
 							</div>
 
 							<!-- Meta Keywords -->
 							<div>
 								<label for="meta-keywords" class="block text-sm font-medium text-gray-700 mb-2">
-									Meta Keywords
+									{$t('admin.metaKeywords')}
 								</label>
 								<input
 									id="meta-keywords"
@@ -876,18 +949,18 @@ onChange={(value) => {
 											}
 										} as SiteConfig;
 									}}
-									placeholder="gallery, photos, photography, images, art"
+									placeholder={$t('admin.metaKeywordsPlaceholder')}
 									class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 								/>
 								<p class="mt-1 text-xs text-gray-500">
-									Enter keywords separated by commas. These help search engines understand your content.
+									{$t('admin.metaKeywordsHelp')}
 								</p>
 							</div>
 
 							<!-- OG Image -->
 							<div>
 								<label for="og-image" class="block text-sm font-medium text-gray-700 mb-2">
-									Open Graph Image URL
+									{$t('admin.ogImageUrlLabel')}
 								</label>
 								<input
 									id="og-image"
@@ -903,18 +976,18 @@ on:input={(e) => {
 											}
 										} as SiteConfig;
 									}}
-									placeholder="/api/storage/serve/... or https://example.com/image.jpg"
+									placeholder={$t('admin.ogImageUrlPlaceholder')}
 									class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 								/>
 								<p class="mt-1 text-xs text-gray-500">
-									Optional. Image shown when your site is shared on social media. Recommended size: 1200x630px.
+									{$t('admin.ogImageHelp')}
 								</p>
 								{#if config.seo?.ogImage}
 									<div class="mt-3">
-										<p class="text-xs text-gray-600 mb-2">Preview:</p>
+										<p class="text-xs text-gray-600 mb-2">{$t('admin.seoOgPreviewLabel')}</p>
 										<img
 											src={config.seo.ogImage}
-											alt="Open Graph share preview"
+											alt={$t('admin.seoOgPreviewAlt')}
 											class="max-w-md h-32 object-contain border border-gray-200 rounded p-2 bg-gray-50"
 											on:error={(e) => {
 												(e.currentTarget as HTMLImageElement).style.display = 'none';
@@ -929,7 +1002,7 @@ on:input={(e) => {
 							<!-- Email -->
 							<div>
 								<label for="contact-email" class="block text-sm font-medium text-gray-700 mb-2">
-									Email
+									{$t('admin.contactEmail')}
 								</label>
 								<input
 									id="contact-email"
@@ -953,7 +1026,7 @@ on:input={(e) => {
 							<!-- Phone -->
 							<div>
 								<label for="contact-phone" class="block text-sm font-medium text-gray-700 mb-2">
-									Phone
+									{$t('admin.contactPhone')}
 								</label>
 								<input
 									id="contact-phone"
@@ -977,7 +1050,7 @@ on:input={(e) => {
 							<!-- Address -->
 							<div>
 								<label for="contact-address" class="block text-sm font-medium text-gray-700 mb-2">
-									Address
+									{$t('admin.contactAddress')}
 								</label>
 								<MultiLangInput
 									id="contact-address"
@@ -992,7 +1065,7 @@ on:input={(e) => {
 											}
 										} as SiteConfig;
 									}}
-									placeholder="Enter address..."
+									placeholder={$t('admin.contactAddressPlaceholder')}
 									multiline={true}
 									rows={3}
 									showLanguageTabs={true}
@@ -1002,12 +1075,12 @@ on:input={(e) => {
 
 							<!-- Social Media -->
 							<div class="border-t border-gray-200 pt-6">
-								<h3 class="text-lg font-semibold text-gray-900 mb-4">Social Media</h3>
+								<h3 class="text-lg font-semibold text-gray-900 mb-4">{$t('admin.contactSocialMedia')}</h3>
 								<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 									<!-- Facebook -->
 									<div>
 										<label for="social-facebook" class="block text-sm font-medium text-gray-700 mb-2">
-											Facebook URL
+											{$t('admin.contactFacebookUrl')}
 										</label>
 										<input
 											id="social-facebook"
@@ -1034,7 +1107,7 @@ on:input={(e) => {
 									<!-- Instagram -->
 									<div>
 										<label for="social-instagram" class="block text-sm font-medium text-gray-700 mb-2">
-											Instagram URL
+											{$t('admin.contactInstagramUrl')}
 										</label>
 										<input
 											id="social-instagram"
@@ -1061,7 +1134,7 @@ on:input={(e) => {
 									<!-- Twitter -->
 									<div>
 										<label for="social-twitter" class="block text-sm font-medium text-gray-700 mb-2">
-											Twitter URL
+											{$t('admin.contactTwitterUrl')}
 										</label>
 										<input
 											id="social-twitter"
@@ -1088,7 +1161,7 @@ on:input={(e) => {
 									<!-- LinkedIn -->
 									<div>
 										<label for="social-linkedin" class="block text-sm font-medium text-gray-700 mb-2">
-											LinkedIn URL
+											{$t('admin.contactLinkedinUrl')}
 										</label>
 										<input
 											id="social-linkedin"
@@ -1119,7 +1192,7 @@ on:input={(e) => {
 							<!-- Contact Title -->
 							<div>
 								<label for="home-contact-title" class="block text-sm font-medium text-gray-700 mb-2">
-									Contact Section Title
+									{$t('admin.contactSectionTitle')}
 								</label>
 								<MultiLangInput
 									id="home-contact-title"
@@ -1134,7 +1207,7 @@ on:input={(e) => {
 											}
 										} as SiteConfig;
 									}}
-									placeholder="Get In Touch"
+									placeholder={$t('admin.contactSectionTitlePlaceholder')}
 									showLanguageTabs={true}
 									defaultLanguage={config.languages?.defaultLanguage || 'en'}
 								/>
@@ -1319,9 +1392,9 @@ on:click={() => {
 					{:else if activeTab === 'navigation'}
 						<div class="space-y-6">
 							<div>
-								<h3 class="text-lg font-semibold text-gray-900 mb-2">Navigation Menu</h3>
+								<h3 class="text-lg font-semibold text-gray-900 mb-2">{$t('admin.navigationMenuTitle')}</h3>
 								<p class="text-sm text-gray-600 mb-4">
-									Configure your site's navigation menu. You can use translation keys (e.g., 'navigation.home') or direct labels.
+									{$t('admin.navigationMenuHelp')}
 								</p>
 							</div>
 
@@ -1330,7 +1403,7 @@ on:click={() => {
 									{#each menuItems as item, index}
 										<div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
 											<div class="flex items-start justify-between mb-3">
-												<span class="text-sm font-medium text-gray-700">Menu Item #{index + 1}</span>
+												<span class="text-sm font-medium text-gray-700">{$t('admin.navigationMenuItemLabel', 'Menu Item')} #{index + 1}</span>
 												<div class="flex gap-2">
 													{#if index > 0}
 														<button
@@ -1341,7 +1414,7 @@ on:click={() => {
 																menuItems = newItems;
 															}}
 															class="text-gray-600 hover:text-gray-900 text-sm"
-															title="Move up"
+															title={$t('admin.navigationMoveUp')}
 														>
 															↑
 														</button>
@@ -1355,7 +1428,7 @@ on:click={() => {
 																menuItems = newItems;
 															}}
 															class="text-gray-600 hover:text-gray-900 text-sm"
-															title="Move down"
+															title={$t('admin.navigationMoveDown')}
 														>
 															↓
 														</button>
@@ -1367,7 +1440,7 @@ on:click={() => {
 														}}
 														class="text-red-600 hover:text-red-800 text-sm font-medium"
 													>
-														Remove
+														{$t('admin.remove')}
 													</button>
 												</div>
 											</div>
@@ -1375,7 +1448,7 @@ on:click={() => {
 											<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 												<div>
 													<label for="menu-labelKey-{index}" class="block text-sm font-medium text-gray-700 mb-1">
-														Translation Key (optional)
+														{$t('admin.navigationTranslationKeyOptional')}
 													</label>
 													<input
 														id="menu-labelKey-{index}"
@@ -1389,13 +1462,13 @@ on:click={() => {
 														class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
 													/>
 													<p class="mt-1 text-xs text-gray-500">
-														Use translation key (e.g., 'navigation.home') for i18n support
+														{$t('admin.navigationTranslationKeyHelp')}
 													</p>
 												</div>
 												
 												<div>
 													<label for="menu-label-{index}" class="block text-sm font-medium text-gray-700 mb-1">
-														Direct Label (optional)
+														{$t('admin.navigationDirectLabelOptional')}
 													</label>
 													<input
 														id="menu-label-{index}"
@@ -1409,13 +1482,13 @@ on:click={() => {
 														class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
 													/>
 													<p class="mt-1 text-xs text-gray-500">
-														Direct text label (used if translation key is not provided)
+														{$t('admin.navigationDirectLabelHelp')}
 													</p>
 												</div>
 												
 												<div>
 													<label for="menu-type-{index}" class="block text-sm font-medium text-gray-700 mb-1">
-														Type
+														{$t('admin.navigationType')}
 													</label>
 													<select
 														id="menu-type-{index}"
@@ -1432,16 +1505,16 @@ on:click={() => {
 														}}
 														class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
 													>
-														<option value="link">Link</option>
-														<option value="login">Login</option>
-														<option value="logout">Logout</option>
+														<option value="link">{$t('admin.navigationTypeLink')}</option>
+														<option value="login">{$t('admin.navigationTypeLogin')}</option>
+														<option value="logout">{$t('admin.navigationTypeLogout')}</option>
 													</select>
-													<p class="mt-1 text-xs text-gray-500">Login = link to sign in; Logout = button that signs out</p>
+													<p class="mt-1 text-xs text-gray-500">{$t('admin.navigationTypeHelp')}</p>
 												</div>
 
 												<div>
 													<label for="menu-showWhen-{index}" class="block text-sm font-medium text-gray-700 mb-1">
-														Show when
+														{$t('admin.navigationShowWhen')}
 													</label>
 													<select
 														id="menu-showWhen-{index}"
@@ -1452,16 +1525,16 @@ on:click={() => {
 														}}
 														class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
 													>
-														<option value="always">Always</option>
-														<option value="loggedIn">Logged in only</option>
-														<option value="loggedOut">Logged out only</option>
+														<option value="always">{$t('admin.navigationShowWhenAlways')}</option>
+														<option value="loggedIn">{$t('admin.navigationShowWhenLoggedIn')}</option>
+														<option value="loggedOut">{$t('admin.navigationShowWhenLoggedOut')}</option>
 													</select>
-													<p class="mt-1 text-xs text-gray-500">Show this item based on user login status</p>
+													<p class="mt-1 text-xs text-gray-500">{$t('admin.navigationShowWhenHelp')}</p>
 												</div>
 
 												<div>
 													<label for="menu-href-{index}" class="block text-sm font-medium text-gray-700 mb-1">
-														Link URL <span class="text-red-500">*</span>
+														{$t('admin.navigationLinkUrl')} <span class="text-red-500">*</span>
 													</label>
 													<input
 														id="menu-href-{index}"
@@ -1477,13 +1550,13 @@ on:click={() => {
 														class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm disabled:bg-gray-100 disabled:text-gray-500"
 													/>
 													<p class="mt-1 text-xs text-gray-500">
-														{item.type === 'logout' ? 'Ignored for Logout' : 'Page URL or external link (e.g., /about)'}
+														{item.type === 'logout' ? $t('admin.navigationIgnoredForLogout') : $t('admin.navigationLinkUrlHelp')}
 													</p>
 												</div>
 												
 												<fieldset class="space-y-2">
 													<legend class="block text-sm font-medium text-gray-700 mb-1">
-														Visible To Roles (optional)
+														{$t('admin.navigationVisibleToRolesOptional')}
 													</legend>
 													<div class="flex flex-wrap gap-2">
 														{#each ROLE_OPTIONS as roleOpt}
@@ -1510,7 +1583,7 @@ on:click={() => {
 														{/each}
 													</div>
 													<p class="mt-1 text-xs text-gray-500">
-														Leave unchecked to show to everyone. Check roles to restrict visibility.
+														{$t('admin.navigationRolesHelp')}
 													</p>
 												</fieldset>
 												
@@ -1525,7 +1598,7 @@ on:click={() => {
 															}}
 															class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
 														/>
-														<span class="text-sm text-gray-700">Open in new tab (external link)</span>
+														<span class="text-sm text-gray-700">{$t('admin.navigationOpenInNewTab')}</span>
 													</label>
 												</div>
 											</div>
@@ -1534,9 +1607,9 @@ on:click={() => {
 								</div>
 							{:else}
 								<div class="text-center py-8 border border-gray-200 rounded-lg bg-gray-50">
-									<p class="text-gray-500 mb-4">No menu items configured yet.</p>
+									<p class="text-gray-500 mb-4">{$t('admin.navigationNoItems')}</p>
 									<p class="text-sm text-gray-400 mb-4">
-										If no menu items are configured, default menu items will be used.
+										{$t('admin.navigationNoItemsHelp')}
 									</p>
 								</div>
 							{/if}
@@ -1553,7 +1626,7 @@ on:click={() => {
 										}}
 										class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
 									>
-										+ Add Menu Item
+										+ {$t('admin.navigationAddMenuItem')}
 									</button>
 									<button
 										type="button"
@@ -1565,7 +1638,7 @@ on:click={() => {
 										}}
 										class="px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
 									>
-										+ Add Login
+										+ {$t('admin.navigationAddLogin')}
 									</button>
 									<button
 										type="button"
@@ -1577,7 +1650,7 @@ on:click={() => {
 										}}
 										class="px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
 									>
-										+ Add Logout
+										+ {$t('admin.navigationAddLogout')}
 									</button>
 								</div>
 								
@@ -1585,36 +1658,36 @@ on:click={() => {
 									<button
 										type="button"
 										on:click={() => {
-											if (confirm('Are you sure you want to clear all menu items? Default menu will be used.')) {
+											if (confirm($t('admin.navigationClearAllConfirm'))) {
 												menuItems = [];
 											}
 										}}
 										class="px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
 									>
-										Clear All
+										{$t('admin.navigationClearAll')}
 									</button>
 								{/if}
 							</div>
 
 							<div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-								<h4 class="text-sm font-semibold text-blue-900 mb-2">Tips:</h4>
+								<h4 class="text-sm font-semibold text-blue-900 mb-2">{$t('admin.navigationTipsTitle')}</h4>
 								<ul class="text-xs text-blue-800 space-y-1 list-disc list-inside">
-									<li>Use <strong>Type</strong> Login or Logout to add sign-in / sign-out buttons; use <strong>Show when</strong> to show items only when logged in or logged out</li>
-									<li>Use <strong>Translation Key</strong> for multilingual support (e.g., 'navigation.home')</li>
-									<li>Use <strong>Direct Label</strong> for simple text labels (e.g., 'About')</li>
-									<li>If both are provided, Translation Key takes precedence</li>
-									<li>Check <strong>roles</strong> to restrict menu visibility (e.g., check 'admin' to show only to admins)</li>
-									<li>Leave roles unchecked to show the menu item to everyone</li>
-									<li>Check "Open in new tab" for external links</li>
+									<li>{$t('admin.navigationTipType')}</li>
+									<li>{$t('admin.navigationTipTranslationKey')}</li>
+									<li>{$t('admin.navigationTipDirectLabel')}</li>
+									<li>{$t('admin.navigationTipPriority')}</li>
+									<li>{$t('admin.navigationTipRolesRestrict')}</li>
+									<li>{$t('admin.navigationTipRolesOpen')}</li>
+									<li>{$t('admin.navigationTipExternal')}</li>
 								</ul>
 							</div>
 						</div>
 					{:else if activeTab === 'exifMetadata'}
 						<div class="space-y-4">
 							<div>
-								<h3 class="text-lg font-semibold text-gray-900 mb-2">EXIF Metadata Display</h3>
+								<h3 class="text-lg font-semibold text-gray-900 mb-2">{$t('admin.exifDisplaySectionTitle')}</h3>
 								<p class="text-sm text-gray-600 mb-4">
-									Select which EXIF metadata fields (when present in a photo) will be shown to visitors (e.g. in the photo lightbox). Leave all unchecked to show all available fields.
+									{$t('admin.exifDisplaySectionHelp')}
 								</p>
 								<div class="flex gap-2 mb-4">
 									<button
@@ -1631,7 +1704,7 @@ on:click={() => {
 										}}
 										class="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
 									>
-										Select all
+										{$t('admin.metadataDisplaySelectAll')}
 									</button>
 									<button
 										type="button"
@@ -1647,7 +1720,7 @@ on:click={() => {
 										}}
 										class="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
 									>
-										Deselect all
+										{$t('admin.metadataDisplayDeselectAll')}
 									</button>
 								</div>
 								<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 max-h-96 overflow-y-auto border border-gray-200 rounded-lg p-4 bg-gray-50">
@@ -1673,21 +1746,21 @@ on:click={() => {
 												}}
 												class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
 											/>
-											<span class="text-sm text-gray-700">{field.label}</span>
+											<span class="text-sm text-gray-700">{$t('admin.exifFields.' + field.id, field.label)}</span>
 										</label>
 									{/each}
 								</div>
 								<p class="text-xs text-gray-500 mt-2">
-									If no fields are selected, all available EXIF fields will be displayed. Selected fields are only shown when the photo has that metadata.
+									{$t('admin.exifDisplayFooterHelp')}
 								</p>
 							</div>
 						</div>
 					{:else if activeTab === 'iptcXmpMetadata'}
 						<div class="space-y-4">
 							<div>
-								<h3 class="text-lg font-semibold text-gray-900 mb-2">IPTC/XMP Metadata Display</h3>
+								<h3 class="text-lg font-semibold text-gray-900 mb-2">{$t('admin.iptcXmpDisplaySectionTitle')}</h3>
 								<p class="text-sm text-gray-600 mb-4">
-									Select which IPTC/XMP metadata fields (when present in a photo) will be shown to visitors (e.g. in the photo lightbox). Leave all unchecked to show all available fields.
+									{$t('admin.iptcXmpDisplaySectionHelp')}
 								</p>
 								<div class="flex gap-2 mb-4">
 									<button
@@ -1704,7 +1777,7 @@ on:click={() => {
 										}}
 										class="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
 									>
-										Select all
+										{$t('admin.metadataDisplaySelectAll')}
 									</button>
 									<button
 										type="button"
@@ -1720,7 +1793,7 @@ on:click={() => {
 										}}
 										class="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
 									>
-										Deselect all
+										{$t('admin.metadataDisplayDeselectAll')}
 									</button>
 								</div>
 								<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 max-h-96 overflow-y-auto border border-gray-200 rounded-lg p-4 bg-gray-50">
@@ -1746,20 +1819,160 @@ on:click={() => {
 												}}
 												class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
 											/>
-											<span class="text-sm text-gray-700">{field.label}</span>
+											<span class="text-sm text-gray-700">{$t('admin.iptcXmpFields.' + field.id, field.label)}</span>
 										</label>
 									{/each}
 								</div>
 								<p class="text-xs text-gray-500 mt-2">
-									If no fields are selected, all available IPTC/XMP fields will be displayed. Selected fields are only shown when the photo has that metadata.
+									{$t('admin.iptcXmpDisplayFooterHelp')}
 								</p>
 							</div>
 						</div>
 					{:else if activeTab === 'sharing'}
 						<div class="grid grid-cols-1 gap-6">
-							<h3 class="text-lg font-semibold text-gray-900">Social Sharing</h3>
+							<h3 class="text-lg font-semibold text-gray-900">{$t('admin.collaborationSectionTitle')}</h3>
+							<p class="text-sm text-gray-600 -mt-2">{$t('admin.collaborationMatrixHelp')}</p>
+							<div class="mt-4 rounded-lg border border-gray-100 bg-gray-50 p-4 text-sm text-gray-700 space-y-2">
+								<p class="font-medium text-gray-900">{$t('admin.collabServicesExplainerTitle')}</p>
+								<ul class="list-disc ps-5 space-y-1.5">
+									<li>{$t('admin.collabServiceCommentsDesc')}</li>
+									<li>{$t('admin.collabServiceTasksDesc')}</li>
+									<li>{$t('admin.collabServiceActivityDesc')}</li>
+								</ul>
+							</div>
+							{#if collabVisAdmin}
+								<div
+									class="overflow-x-auto border border-gray-200 rounded-lg mt-4"
+									dir="ltr"
+								>
+									<table class="min-w-full text-sm">
+										<thead>
+											<tr class="bg-gray-50 border-b border-gray-200">
+												<th class="p-3 font-medium text-gray-700 text-start align-bottom w-[min(40%,14rem)]"></th>
+												<th class="p-3 font-medium text-gray-700 text-center align-bottom">
+													{$t('admin.collabServiceEnabledColumn')}
+												</th>
+												<th class="p-3 font-medium text-gray-700 text-center align-bottom">
+													{$t('admin.collabAudienceVisitors')}
+												</th>
+												<th class="p-3 font-medium text-gray-700 text-center align-bottom">
+													{$t('admin.collabAudienceSignedIn')}
+												</th>
+											</tr>
+										</thead>
+										<tbody>
+											<tr class="border-b border-gray-100">
+												<td class="p-3 font-medium text-gray-800 text-start align-middle">
+													{$t('admin.collabServiceComments')}
+												</td>
+												<td class="p-3 align-middle text-center">
+													<input
+														type="checkbox"
+														class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+														checked={collabVisAdmin.comments.enabled}
+														on:change={(e) =>
+															setCollabServiceEnabled('comments', e.currentTarget.checked)}
+														aria-label={$t('admin.collabServiceEnabledColumn')}
+													/>
+												</td>
+												<td class="p-3 align-middle text-center">
+													<input
+														type="checkbox"
+														class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+														checked={collabVisAdmin.comments.public}
+														disabled={!collabVisAdmin.comments.enabled}
+														on:change={(e) =>
+															setCollabFlag('comments', 'public', e.currentTarget.checked)}
+													/>
+												</td>
+												<td class="p-3 align-middle text-center">
+													<input
+														type="checkbox"
+														class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+														checked={collabVisAdmin.comments.authenticated}
+														disabled={!collabVisAdmin.comments.enabled}
+														on:change={(e) =>
+															setCollabFlag('comments', 'authenticated', e.currentTarget.checked)}
+													/>
+												</td>
+											</tr>
+											<tr class="border-b border-gray-100">
+												<td class="p-3 font-medium text-gray-800 text-start align-middle">
+													{$t('admin.collabServiceTasks')}
+												</td>
+												<td class="p-3 align-middle text-center">
+													<input
+														type="checkbox"
+														class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+														checked={collabVisAdmin.tasks.enabled}
+														on:change={(e) => setCollabServiceEnabled('tasks', e.currentTarget.checked)}
+														aria-label={$t('admin.collabServiceEnabledColumn')}
+													/>
+												</td>
+												<td class="p-3 align-middle text-center">
+													<input
+														type="checkbox"
+														class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+														checked={collabVisAdmin.tasks.public}
+														disabled={!collabVisAdmin.tasks.enabled}
+														on:change={(e) => setCollabFlag('tasks', 'public', e.currentTarget.checked)}
+													/>
+												</td>
+												<td class="p-3 align-middle text-center">
+													<input
+														type="checkbox"
+														class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+														checked={collabVisAdmin.tasks.authenticated}
+														disabled={!collabVisAdmin.tasks.enabled}
+														on:change={(e) =>
+															setCollabFlag('tasks', 'authenticated', e.currentTarget.checked)}
+													/>
+												</td>
+											</tr>
+											<tr>
+												<td class="p-3 font-medium text-gray-800 text-start align-middle">
+													{$t('admin.collabServiceActivity')}
+												</td>
+												<td class="p-3 align-middle text-center">
+													<input
+														type="checkbox"
+														class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+														checked={collabVisAdmin.activity.enabled}
+														on:change={(e) =>
+															setCollabServiceEnabled('activity', e.currentTarget.checked)}
+														aria-label={$t('admin.collabServiceEnabledColumn')}
+													/>
+												</td>
+												<td class="p-3 align-middle text-center">
+													<input
+														type="checkbox"
+														class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+														checked={collabVisAdmin.activity.public}
+														disabled={!collabVisAdmin.activity.enabled}
+														on:change={(e) =>
+															setCollabFlag('activity', 'public', e.currentTarget.checked)}
+													/>
+												</td>
+												<td class="p-3 align-middle text-center">
+													<input
+														type="checkbox"
+														class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+														checked={collabVisAdmin.activity.authenticated}
+														disabled={!collabVisAdmin.activity.enabled}
+														on:change={(e) =>
+															setCollabFlag('activity', 'authenticated', e.currentTarget.checked)}
+													/>
+												</td>
+											</tr>
+										</tbody>
+									</table>
+								</div>
+								<p class="text-xs text-gray-500 mt-2">{$t('admin.collaborationModeratorNote')}</p>
+							{/if}
+							<div class="border-t border-gray-200 pt-6 space-y-4">
+							<h3 class="text-lg font-semibold text-gray-900">{$t('admin.socialSharingSectionTitle')}</h3>
 							<p class="text-sm text-gray-600 -mt-2">
-								Control whether sharing is enabled and where share buttons appear. Choose which services to show (X, Facebook, WhatsApp, Copy link).
+								{$t('admin.socialSharingSectionHelp')}
 							</p>
 							<div class="space-y-4">
 								<label class="flex items-center space-x-2 cursor-pointer">
@@ -1779,10 +1992,10 @@ on:click={() => {
 										}}
 										class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
 									/>
-									<span class="text-sm font-medium text-gray-700">Enable sharing</span>
+									<span class="text-sm font-medium text-gray-700">{$t('admin.socialSharingEnable')}</span>
 								</label>
 								<div class="border-t border-gray-200 pt-4">
-									<p class="text-sm font-medium text-gray-700 mb-2">Where to show share buttons</p>
+									<p class="text-sm font-medium text-gray-700 mb-2">{$t('admin.socialSharingWhereTitle')}</p>
 									<div class="space-y-2">
 										<label class="flex items-center space-x-2 cursor-pointer">
 											<input
@@ -1801,7 +2014,7 @@ on:click={() => {
 												}}
 												class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
 											/>
-											<span class="text-sm text-gray-700">On album and gallery pages</span>
+											<span class="text-sm text-gray-700">{$t('admin.socialSharingOnAlbum')}</span>
 										</label>
 										<label class="flex items-center space-x-2 cursor-pointer">
 											<input
@@ -1820,12 +2033,12 @@ on:click={() => {
 												}}
 												class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
 											/>
-											<span class="text-sm text-gray-700">In photo lightbox (info panel)</span>
+											<span class="text-sm text-gray-700">{$t('admin.socialSharingOnPhoto')}</span>
 										</label>
 									</div>
 								</div>
 								<div class="border-t border-gray-200 pt-4">
-									<p class="text-sm font-medium text-gray-700 mb-2">Share options (check to show)</p>
+									<p class="text-sm font-medium text-gray-700 mb-2">{$t('admin.socialSharingOptionsTitle')}</p>
 									{#if config}
 										{@const opts = config.features?.sharingOptions ?? ['twitter', 'facebook', 'whatsapp', 'copy']}
 										<div class="flex flex-wrap gap-4">
@@ -1842,7 +2055,7 @@ on:click={() => {
 												}}
 												class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
 											/>
-											<span class="text-sm text-gray-700">X (Twitter)</span>
+											<span class="text-sm text-gray-700">{$t('admin.socialSharingX')}</span>
 										</label>
 										<label class="flex items-center space-x-2 cursor-pointer">
 											<input
@@ -1857,7 +2070,7 @@ on:click={() => {
 												}}
 												class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
 											/>
-											<span class="text-sm text-gray-700">Facebook</span>
+											<span class="text-sm text-gray-700">{$t('admin.socialSharingFacebook')}</span>
 										</label>
 										<label class="flex items-center space-x-2 cursor-pointer">
 											<input
@@ -1872,7 +2085,7 @@ on:click={() => {
 												}}
 												class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
 											/>
-											<span class="text-sm text-gray-700">WhatsApp</span>
+											<span class="text-sm text-gray-700">{$t('admin.socialSharingWhatsapp')}</span>
 										</label>
 										<label class="flex items-center space-x-2 cursor-pointer">
 											<input
@@ -1887,22 +2100,23 @@ on:click={() => {
 												}}
 												class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
 											/>
-											<span class="text-sm text-gray-700">Copy link</span>
+											<span class="text-sm text-gray-700">{$t('admin.socialSharingCopyLink')}</span>
 										</label>
 									</div>
 									{/if}
 								</div>
 							</div>
+							</div>
 						</div>
 					{:else if activeTab === 'email'}
 						<div class="grid grid-cols-1 gap-6">
-							<h3 class="text-lg font-semibold text-gray-900">SMTP Mail Server</h3>
+							<h3 class="text-lg font-semibold text-gray-900">{$t('admin.smtpSectionTitle')}</h3>
 							<p class="text-sm text-gray-600 -mt-2">
-								Configure SMTP to send emails (e.g. welcome email when a new user is created). Leave blank to disable sending.
+								{$t('admin.smtpSectionHelp')}
 							</p>
 							<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 								<div>
-									<label for="mail-host" class="block text-sm font-medium text-gray-700 mb-1">Host</label>
+									<label for="mail-host" class="block text-sm font-medium text-gray-700 mb-1">{$t('admin.smtpHost')}</label>
 									<input
 										id="mail-host"
 										type="text"
@@ -1919,7 +2133,7 @@ on:click={() => {
 									/>
 								</div>
 								<div>
-									<label for="mail-port" class="block text-sm font-medium text-gray-700 mb-1">Port</label>
+									<label for="mail-port" class="block text-sm font-medium text-gray-700 mb-1">{$t('admin.smtpPort')}</label>
 									<input
 										id="mail-port"
 										type="number"
@@ -1932,10 +2146,10 @@ on:click={() => {
 										placeholder="587"
 										class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 									/>
-									<p class="mt-1 text-xs text-gray-500">Use 587 for STARTTLS (recommended) or 465 for SSL. Connection type is automatic.</p>
+									<p class="mt-1 text-xs text-gray-500">{$t('admin.smtpPortHelp')}</p>
 								</div>
 								<div>
-									<label for="mail-user" class="block text-sm font-medium text-gray-700 mb-1">User</label>
+									<label for="mail-user" class="block text-sm font-medium text-gray-700 mb-1">{$t('admin.smtpUser')}</label>
 									<input
 										id="mail-user"
 										type="text"
@@ -1952,7 +2166,7 @@ on:click={() => {
 									/>
 								</div>
 								<div>
-									<label for="mail-password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+									<label for="mail-password" class="block text-sm font-medium text-gray-700 mb-1">{$t('admin.smtpPassword')}</label>
 									<input
 										id="mail-password"
 										type="password"
@@ -1964,13 +2178,13 @@ on:click={() => {
 												mail: { ...config.mail, password: e.currentTarget.value || undefined }
 											} as SiteConfig;
 										}}
-										placeholder="Leave blank to keep current"
+										placeholder={$t('admin.smtpPasswordPlaceholder')}
 										class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 									/>
-									<p class="mt-1 text-xs text-gray-500">Leave blank to keep existing password. Backend masks stored value as ****.</p>
+									<p class="mt-1 text-xs text-gray-500">{$t('admin.smtpPasswordHelp')}</p>
 								</div>
 								<div>
-									<label for="mail-from" class="block text-sm font-medium text-gray-700 mb-1">From address</label>
+									<label for="mail-from" class="block text-sm font-medium text-gray-700 mb-1">{$t('admin.smtpFromAddress')}</label>
 									<input
 										id="mail-from"
 										type="text"
@@ -2000,15 +2214,15 @@ on:click={() => {
 											}}
 											class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
 										/>
-										<span class="text-sm text-gray-700">Use SSL (port 465 only; otherwise ignored)</span>
+										<span class="text-sm text-gray-700">{$t('admin.smtpUseSsl')}</span>
 									</label>
 								</div>
 							</div>
 
 							<div class="border-t border-gray-200 pt-6">
-								<h3 class="text-lg font-semibold text-gray-900 mb-2">Welcome Email</h3>
+								<h3 class="text-lg font-semibold text-gray-900 mb-2">{$t('admin.welcomeEmailSectionTitle')}</h3>
 								<p class="text-sm text-gray-600 mb-4">
-									Send a welcome email when a new user is created. Enable below and set subject/body. You can use placeholders in subject and body.
+									{$t('admin.welcomeEmailSectionHelp')}
 								</p>
 								<label class="flex items-center space-x-2 cursor-pointer mb-4">
 									<input
@@ -2023,44 +2237,45 @@ on:click={() => {
 										}}
 										class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
 									/>
-									<span class="text-sm font-medium text-gray-700">Send welcome email on new user creation</span>
+									<span class="text-sm font-medium text-gray-700">{$t('admin.welcomeEmailEnabledLabel')}</span>
 								</label>
 								<div class="space-y-4">
 									<div>
-										<label for="welcome-email-subject" class="block text-sm font-medium text-gray-700 mb-1">Subject</label>
-										<input
+										<label for="welcome-email-subject" class="block text-sm font-medium text-gray-700 mb-1">{$t('admin.welcomeEmailSubject')}</label>
+										<MultiLangInput
 											id="welcome-email-subject"
-											type="text"
-											value={config.welcomeEmail?.subject ?? ''}
-											on:input={(e) => {
+											value={config.welcomeEmail?.subject || {}}
+											onChange={(value) => {
 												if (!config) return;
 												config = {
 													...config,
-													welcomeEmail: { ...config.welcomeEmail, subject: e.currentTarget.value || undefined }
+													welcomeEmail: { ...config.welcomeEmail, subject: value }
 												} as SiteConfig;
 											}}
-											placeholder={'Welcome to {{siteTitle}}!'}
-											class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+											placeholder={$t('admin.welcomeEmailSubjectPlaceholder')}
+											showLanguageTabs={true}
+											defaultLanguage={config.languages?.defaultLanguage || 'en'}
 										/>
 									</div>
 									<div>
-										<label for="welcome-email-body" class="block text-sm font-medium text-gray-700 mb-1">Body (plain text or HTML)</label>
-										<textarea
+										<label for="welcome-email-body" class="block text-sm font-medium text-gray-700 mb-1">{$t('admin.welcomeEmailBody')}</label>
+										<MultiLangHTMLEditor
 											id="welcome-email-body"
-											value={config.welcomeEmail?.body ?? ''}
-											on:input={(e) => {
+											value={config.welcomeEmail?.body || {}}
+											onChange={(value) => {
 												if (!config) return;
 												config = {
 													...config,
-													welcomeEmail: { ...config.welcomeEmail, body: e.currentTarget.value || undefined }
+													welcomeEmail: { ...config.welcomeEmail, body: value }
 												} as SiteConfig;
 											}}
-											placeholder={'Hi {{name}},\n\nWelcome! Your username is {{username}}. Log in here: {{loginUrl}}'}
-											rows={8}
-											class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
-										></textarea>
+											placeholder={$t('admin.welcomeEmailBodyPlaceholder')}
+											height={180}
+											showLanguageTabs={true}
+											defaultLanguage={config.languages?.defaultLanguage || 'en'}
+										/>
 										<p class="mt-1 text-xs text-gray-500">
-											Placeholders: <code class="bg-gray-100 px-1 rounded">{'{{name}}'}</code>, <code class="bg-gray-100 px-1 rounded">{'{{username}}'}</code>, <code class="bg-gray-100 px-1 rounded">{'{{loginUrl}}'}</code>, <code class="bg-gray-100 px-1 rounded">{'{{siteTitle}}'}</code>, <code class="bg-gray-100 px-1 rounded">{'{{password}}'}</code> (initial password set at user creation; optional; sending passwords by email is less secure).
+											{$t('admin.welcomeEmailPlaceholdersLabel')}: <code class="bg-gray-100 px-1 rounded">{'{{name}}'}</code>, <code class="bg-gray-100 px-1 rounded">{'{{username}}'}</code>, <code class="bg-gray-100 px-1 rounded">{'{{loginUrl}}'}</code>, <code class="bg-gray-100 px-1 rounded">{'{{siteTitle}}'}</code>, <code class="bg-gray-100 px-1 rounded">{'{{password}}'}</code> ({$t('admin.welcomeEmailPasswordNote')}).
 										</p>
 									</div>
 								</div>
@@ -2072,9 +2287,9 @@ on:click={() => {
 									on:click={openTestMailModal}
 									class="px-4 py-2 bg-gray-700 text-white text-sm font-medium rounded-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
 								>
-									Send test email
+									{$t('admin.sendTestEmail')}
 								</button>
-								<p class="mt-2 text-xs text-gray-500">Uses current SMTP config. Save first if you changed it.</p>
+								<p class="mt-2 text-xs text-gray-500">{$t('admin.sendTestEmailHelp')}</p>
 							</div>
 						</div>
 					{/if}

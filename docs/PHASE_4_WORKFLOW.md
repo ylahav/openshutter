@@ -2,7 +2,7 @@
 
 **Branch:** `phase-4`  
 **Horizon:** Next 18 months  
-**Status:** Stage 1 – White-label solutions **complete** (March 2026). Other Phase 4 initiatives (marketplace, collaboration, etc.) are not started.
+**Status:** Stages 1–3 **complete** (March 2026): white-label, marketplace expansion, collaboration (comments, threading, mentions, notifications, tasks/activity, per-photo in lightbox, v1 scopes). Phase 4 stages 4+ not started.
 
 This document defines the workflow and scope for Phase 4 of the OpenShutter roadmap. Each initiative includes goals, scope, and suggested deliverables.
 
@@ -158,6 +158,11 @@ Implementation: when `siteContext.type === 'owner-site'`, guards for `/admin` al
 - Backend: extended listing model, versioning, ratings/reviews if desired; moderation APIs.
 - Frontend: improved marketplace UI (categories, search, detail page with versions/reviews); submit/update flow; admin moderation UI.
 
+**Implementation status (March 2026 – Stage 2 scope per [`MARKETPLACE_EXPANSION_PHASE4.md`](./MARKETPLACE_EXPANSION_PHASE4.md)):**
+
+- **Done:** `tags` and `featured` on listings; public **`GET /api/marketplace`** with `category`, `featured`, `q`, **`limit`/`offset`**; marketplace home search, category chips, featured section; listing detail shows tags, featured badge, **screenshots**; submit form tags; admin approve/unapprove, featured toggle, **tag editing**, delete.
+- **Deferred (low priority, full §2.1):** Version history on detail, ratings/reviews, verified badges, popularity metrics, reporting, OAuth/webhook integration types.
+
 ---
 
 ## 3. Advanced collaboration features
@@ -206,6 +211,8 @@ Implementation: when `siteContext.type === 'owner-site'`, guards for `/admin` al
 - ML design doc (use cases, data pipeline, model strategy, privacy).
 - Backend: feedback collection from Phase 3 flows; related-tags or similarity API; optional search relevance tuning.
 - Frontend: "Related tags", "Similar photos" or "Refine tags" UX where applicable.
+
+**Design & baseline (March 2026):** See [`TAG_OPTIMIZATION_PHASE4.md`](./TAG_OPTIMIZATION_PHASE4.md). The repo already records **positive** tag feedback on `apply-tags` and exposes **feedback-based related tags** via `GET /api/admin/tags/related/by-id`. Stage 4 implementation work is tracked as **slices A–D** in that doc (dismiss signals, photo-level related tags + UI, optional admin stats and search boosts).
 
 ---
 
@@ -312,9 +319,9 @@ Implementation: when `siteContext.type === 'owner-site'`, guards for `/admin` al
 - [x] Branch `phase-4` created
 - [x] Prioritize and sequence initiatives (e.g. 1 → 2 → 3)
 - [x] Stage 1 (White-label solutions): design and implementation
-- Stage 2 (Integration marketplace): design and implementation
-- Stage 3 (Advanced collaboration): design and implementation
-- Stage 4 (Machine learning for tag optimization): design and implementation
+- [x] Stage 2 (Integration marketplace): design and implementation
+- [x] Stage 3 (Advanced collaboration): design and implementation (comments, collaboration panel, notifications, v1 comment scopes — see `COLLABORATION_PHASE4_STAGE3.md`)
+- [ ] Stage 4 (Machine learning for tag optimization): design doc [`TAG_OPTIMIZATION_PHASE4.md`](./TAG_OPTIMIZATION_PHASE4.md); implementation (slices A–D) in progress
 - Stage 5 (Mobile app): design and implementation
 - Stage 6 (Video support): design and implementation
 - Stage 7 (Enterprise features): design docs and implementation
