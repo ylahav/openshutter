@@ -162,7 +162,25 @@ export class SiteConfigService {
     if (config.whiteLabel?.productName && typeof config.whiteLabel.productName === 'object') {
       config.whiteLabel.productName = MultiLangUtils.clean(config.whiteLabel.productName)
     }
-    
+
+    if (config.welcomeEmail) {
+      const we = config.welcomeEmail
+      if (typeof we.subject === 'string') {
+        we.subject = we.subject.trim() ? { en: we.subject } : {}
+      } else if (we.subject && typeof we.subject === 'object') {
+        we.subject = MultiLangUtils.clean(we.subject)
+      } else {
+        we.subject = {}
+      }
+      if (typeof we.body === 'string') {
+        we.body = we.body.trim() ? { en: we.body } : {}
+      } else if (we.body && typeof we.body === 'object') {
+        we.body = MultiLangUtils.clean(we.body)
+      } else {
+        we.body = {}
+      }
+    }
+
     return config
   }
 
@@ -257,8 +275,11 @@ export class SiteConfigService {
       },
       welcomeEmail: {
         enabled: false,
-        subject: 'Welcome to {{siteTitle}}',
-        body: 'Hi {{name}},\n\nYour account has been created. You can log in at {{loginUrl}} with username: {{username}}\n\nBest regards'
+        subject: { en: 'Welcome to {{siteTitle}}' },
+        body: {
+          en:
+            'Hi {{name}},\n\nYour account has been created. You can log in at {{loginUrl}} with username: {{username}}\n\nBest regards',
+        },
       },
       whiteLabel: {
         hideOpenShutterBranding: false,

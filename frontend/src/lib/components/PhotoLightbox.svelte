@@ -4,7 +4,11 @@
 	import { currentLanguage } from '$stores/language';
 	import { siteConfigData } from '$stores/siteConfig';
 	import { filterExifByDisplayFields } from '$lib/constants/exif-fields';
-	import { filterIptcXmpByDisplayFields } from '$lib/constants/iptc-xmp-fields';
+	import {
+		filterIptcXmpByDisplayFields,
+		IPTC_XMP_DISPLAY_FIELDS,
+	} from '$lib/constants/iptc-xmp-fields';
+	import { t } from '$stores/i18n';
 	import { getPhotoRotationStyle } from '$lib/utils/photoUrl';
 	import { MultiLangUtils } from '$utils/multiLang';
 	import { logger } from '$lib/utils/logger';
@@ -12,6 +16,10 @@
 	import AlbumComments from '$lib/components/AlbumComments.svelte';
 
 	const dispatch = createEventDispatcher();
+
+	function iptcXmpFieldLabelFallback(fieldId: string): string {
+		return IPTC_XMP_DISPLAY_FIELDS.find((f) => f.id === fieldId)?.label ?? fieldId;
+	}
 
 	type AlbumCollaborationContext = {
 		albumId: string;
@@ -755,7 +763,7 @@
 								{@const displayExif = filterExifByDisplayFields(photo.exif, $siteConfigData?.exifMetadata?.displayFields)}
 								{#if displayExif}
 								<div class="space-y-3 border-t border-white/20 pt-2">
-									<div class="text-sm font-semibold opacity-80">EXIF Data</div>
+									<div class="text-sm font-semibold opacity-80">{$t('metadata.exifHeading')}</div>
 
 									<!-- Camera Information -->
 									{#if displayExif.make || displayExif.model || displayExif.serialNumber}
@@ -899,12 +907,12 @@
 								{@const displayIptcXmp = filterIptcXmpByDisplayFields(photo.iptcXmp, $siteConfigData?.iptcXmpMetadata?.displayFields)}
 								{#if displayIptcXmp}
 									<div class="space-y-3 border-t border-white/20 pt-2">
-										<div class="text-sm font-semibold opacity-80">IPTC/XMP</div>
+										<div class="text-sm font-semibold opacity-80">{$t('metadata.iptcXmpHeading')}</div>
 										<div class="space-y-1">
 											{#each Object.entries(displayIptcXmp) as [key, value]}
 												{#if value != null && value !== ''}
 													<div class="text-sm">
-														<span class="opacity-60">{key}:</span>
+														<span class="opacity-60">{$t('admin.iptcXmpFields.' + key, iptcXmpFieldLabelFallback(key))}:</span>
 														{#if Array.isArray(value)}
 															{value.join(', ')}
 														{:else if typeof value === 'object'}

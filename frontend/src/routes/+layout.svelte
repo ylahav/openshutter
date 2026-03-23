@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
-	import { assets } from '$app/paths';
 	import '$lib/styles/globals.css';
 	import { siteConfig, publicSiteFavicon } from '$stores/siteConfig';
 	import { loadSession } from '$lib/stores/auth';
@@ -15,8 +14,20 @@
 	import { logger } from '$lib/utils/logger';
 	import { canonicalUrlFromPageUrl, pathShouldNoindex } from '$lib/utils/canonical-url';
 
+	/** Inline fallback when site config has no favicon yet (avoids undefined href on SSR). */
+	const DEFAULT_FAVICON =
+		'data:image/svg+xml,' +
+		encodeURIComponent(
+			'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="6" fill="#4f46e5"/></svg>',
+		);
+
 	$: canonicalHref = canonicalUrlFromPageUrl($page.url);
 	$: noindexPanel = pathShouldNoindex($page.url.pathname);
+	$: faviconFromConfig =
+		$publicSiteFavicon != null && String($publicSiteFavicon).trim() !== ''
+			? String($publicSiteFavicon).trim()
+			: '';
+	$: faviconHref = faviconFromConfig || DEFAULT_FAVICON;
 
 	// Initialize site config and auth on mount (skip on login page)
 	onMount(() => {

@@ -336,7 +336,9 @@ export class UsersController {
         normalizedName.en ||
         (Object.values(normalizedName).find((v) => v && v.trim()) as string) ||
         normalizedUsername;
-      mailService.sendWelcomeEmail(normalizedUsername, displayName, password).catch(() => {});
+      mailService
+        .sendWelcomeEmail(normalizedUsername, displayName, password, preferredLanguage?.trim() || 'en')
+        .catch(() => {});
 
       // Remove passwordHash and convert ObjectId to string
       const { passwordHash: _, ...rest } = user;

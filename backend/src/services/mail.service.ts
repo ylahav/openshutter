@@ -2,6 +2,7 @@ import { Logger } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 import { siteConfigService } from './site-config';
 import { productDisplayNameFromSiteConfig } from '../common/utils/product-display-name-from-site-config';
+import { MultiLangUtils } from '../types/multi-lang';
 
 export interface WelcomeEmailContext {
   name: string;
@@ -65,7 +66,12 @@ export class MailService {
    * @param displayName - Display name for greeting
    * @param initialPassword - Optional. Plain password set at creation; included only for {{password}} placeholder.
    */
-  async sendWelcomeEmail(toUsername: string, displayName: string, initialPassword?: string): Promise<void> {
+  async sendWelcomeEmail(
+    toUsername: string,
+    displayName: string,
+    initialPassword?: string,
+    preferredLanguage = 'en',
+  ): Promise<void> {
     try {
       const config = await siteConfigService.getConfig();
       const welcome = config.welcomeEmail;
@@ -77,7 +83,8 @@ export class MailService {
       }
 
       const loginUrl = this.getLoginUrl();
-      const siteTitle = productDisplayNameFromSiteConfig(config, 'en');
+      const lang = preferredLanguage || 'en';
+      const siteTitle = productDisplayNameFromSiteConfig(config, lang);
       const ctx: WelcomeEmailContext = {
         name: displayName || toUsername,
         username: toUsername,
@@ -86,9 +93,17 @@ export class MailService {
         password: initialPassword,
       };
 
-      const subject = this.replacePlaceholders(welcome.subject || 'Welcome to {{siteTitle}}', ctx);
+      const subjectTemplate = MultiLangUtils.getTextValue(
+        welcome.subject || { en: 'Welcome to {{siteTitle}}' },
+        lang,
+      ) || 'Welcome to {{siteTitle}}';
+      const subject = this.replacePlaceholders(subjectTemplate, ctx);
       const body = this.replacePlaceholders(
-        welcome.body || 'Hi {{name}},\n\nWelcome to {{siteTitle}}.\n\nYou can log in here: {{loginUrl}}',
+        MultiLangUtils.getTextValue(
+          welcome.body ||
+            { en: 'Hi {{name}},\n\nWelcome to {{siteTitle}}.\n\nYou can log in here: {{loginUrl}}' },
+          lang,
+        ) || 'Hi {{name}},\n\nWelcome to {{siteTitle}}.\n\nYou can log in here: {{loginUrl}}',
         ctx,
       );
 

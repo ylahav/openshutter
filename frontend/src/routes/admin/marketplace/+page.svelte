@@ -195,7 +195,7 @@
 					<tr>
 						<th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
 						<th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
-						<th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase min-w-[12rem]">Tags</th>
+						<th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase min-w-48">Tags</th>
 						<th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Developer</th>
 						<th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
 						<th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Featured</th>
@@ -216,7 +216,7 @@
 										<input
 											type="text"
 											bind:value={tagEditValue}
-											class="w-full min-w-[10rem] rounded border border-gray-300 px-2 py-1 text-xs"
+											class="w-full min-w-40 rounded border border-gray-300 px-2 py-1 text-xs"
 											placeholder="comma-separated"
 											disabled={savingTagsId === listing._id}
 										/>

@@ -63,6 +63,7 @@ export class V1CommentsController {
       includeHidden: false,
       photoId: undefined,
       viewerUserId: accessContext?.userId,
+      isAdmin: false,
     });
   }
 

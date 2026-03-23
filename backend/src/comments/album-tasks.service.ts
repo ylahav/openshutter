@@ -9,6 +9,8 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { AlbumsService, AlbumAccessContext } from '../albums/albums.service';
 import { CollaborationActivityService } from './collaboration-activity.service';
+import { siteConfigService } from '../services/site-config';
+import { assertTasksWritable, canViewCollaborationService, resolveCollaborationVisibility } from './collaboration-feature.util';
 import { AlbumTaskStatus, IAlbumTask } from './album-task.schema';
 
 @Injectable()
@@ -20,10 +22,23 @@ export class AlbumTasksService {
     private readonly activityService: CollaborationActivityService,
   ) {}
 
-  async listForAlbum(albumKey: string, accessContext: AlbumAccessContext | null) {
+  async listForAlbum(
+    albumKey: string,
+    accessContext: AlbumAccessContext | null,
+    opts?: { viewerUserId?: string; isAdmin?: boolean },
+  ) {
     const album = await this.albumsService.findOneByIdOrAlias(albumKey, accessContext);
     if (!album) {
       throw new NotFoundException('Album not found');
+    }
+    const cfg = await siteConfigService.getConfig();
+    const vis = resolveCollaborationVisibility(cfg.features);
+    const canModerate =
+      opts?.isAdmin ||
+      (!!opts?.viewerUserId && album.createdBy?.toString() === opts.viewerUserId);
+    const isAuthed = !!opts?.viewerUserId;
+    if (!canModerate && !canViewCollaborationService(vis, 'tasks', isAuthed)) {
+      return { albumId: album._id.toString(), tasks: [] };
     }
     const rows = await this.taskModel
       .find({ albumId: new Types.ObjectId(album._id.toString()) })
@@ -63,6 +78,7 @@ export class AlbumTasksService {
     if (!userId) {
       throw new UnauthorizedException('Authentication required');
     }
+    await assertTasksWritable();
     const title = (dto.title || '').trim();
     if (!title) {
       throw new BadRequestException('title is required');
@@ -101,6 +117,7 @@ export class AlbumTasksService {
     if (!user?.id) {
       throw new UnauthorizedException('Authentication required');
     }
+    await assertTasksWritable();
     const task = await this.taskModel.findById(taskId).exec();
     if (!task) {
       throw new NotFoundException('Task not found');

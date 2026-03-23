@@ -51,13 +51,21 @@ export class CollaborationController {
   @Get('album/:albumId/activity')
   async activity(@Req() req: Request, @Param('albumId') albumId: string) {
     const accessContext = await this.getAccessContext(req);
-    return this.activityService.listForAlbum(albumId, accessContext, 40);
+    const user = (req as any).user;
+    return this.activityService.listForAlbum(albumId, accessContext, 40, {
+      viewerUserId: user?.id,
+      isAdmin: user?.role === 'admin',
+    });
   }
 
   @Get('album/:albumId/tasks')
   async listTasks(@Req() req: Request, @Param('albumId') albumId: string) {
     const accessContext = await this.getAccessContext(req);
-    return this.tasksService.listForAlbum(albumId, accessContext);
+    const user = (req as any).user;
+    return this.tasksService.listForAlbum(albumId, accessContext, {
+      viewerUserId: user?.id,
+      isAdmin: user?.role === 'admin',
+    });
   }
 
   @Post('album/:albumId/tasks')

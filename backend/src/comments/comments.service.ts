@@ -17,6 +17,11 @@ import { NotificationsService } from './notifications.service';
 import { CollaborationActivityService } from './collaboration-activity.service';
 import { siteConfigService } from '../services/site-config';
 import { productDisplayNameFromSiteConfig } from '../common/utils/product-display-name-from-site-config';
+import {
+  assertCommentsWritable,
+  canViewCollaborationService,
+  resolveCollaborationVisibility,
+} from './collaboration-feature.util';
 
 function displayNameFromUser(user: { username?: string; name?: Record<string, string> } | null): string {
   if (!user) return 'Unknown';
@@ -87,15 +92,28 @@ export class CommentsService {
       viewerUserId?: string;
     },
   ) {
+    const cfg = await siteConfigService.getConfig();
+    const vis = resolveCollaborationVisibility(cfg.features);
+
     const album = await this.albumsService.findOneByIdOrAlias(albumKey, accessContext);
     if (!album) {
       throw new NotFoundException('Album not found');
     }
-    const albumOid = new Types.ObjectId(album._id.toString());
-    const filter: Record<string, unknown> = { albumId: albumOid };
     const canModerate =
       opts.isAdmin ||
       (!!opts.moderatorUserId && album.createdBy?.toString() === opts.moderatorUserId);
+    const isAuthed = !!opts.viewerUserId;
+    if (!canModerate && !canViewCollaborationService(vis, 'comments', isAuthed)) {
+      const alias = typeof (album as any).alias === 'string' ? (album as any).alias : '';
+      return {
+        albumId: album._id.toString(),
+        albumAlias: alias,
+        comments: [],
+      };
+    }
+
+    const albumOid = new Types.ObjectId(album._id.toString());
+    const filter: Record<string, unknown> = { albumId: albumOid };
 
     if (opts.photoId && Types.ObjectId.isValid(opts.photoId)) {
       filter.photoId = new Types.ObjectId(opts.photoId);
@@ -165,6 +183,7 @@ export class CommentsService {
     if (text.length > 4000) {
       throw new BadRequestException('Comment is too long (max 4000 characters)');
     }
+    await assertCommentsWritable();
     const album = await this.albumsService.findOneByIdOrAlias(albumKey, accessContext);
     if (!album) {
       throw new NotFoundException('Album not found');
@@ -301,6 +320,7 @@ export class CommentsService {
     if (!userId) {
       throw new UnauthorizedException('Authentication required');
     }
+    await assertCommentsWritable();
     if (!Types.ObjectId.isValid(commentId)) {
       throw new BadRequestException('Invalid comment id');
     }

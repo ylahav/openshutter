@@ -5,6 +5,12 @@ import { goto, afterNavigate } from '$app/navigation';
 import { browser } from '$app/environment';
 import { currentLanguage } from '$stores/language';
 import { siteConfigData } from '$stores/siteConfig';
+import { auth, loadSession } from '$lib/stores/auth';
+import {
+	anyCollaborationSectionVisible,
+	resolveCollaborationVisibility,
+	showCollabServiceForViewer,
+} from '$lib/utils/collaboration-visibility';
 import { t } from '$stores/i18n';
 import AlbumBreadcrumbs from '$lib/components/AlbumBreadcrumbs.svelte';
 import PhotoLightbox from '$lib/components/PhotoLightbox.svelte';
@@ -90,6 +96,16 @@ import { logger } from '$lib/utils/logger';
 	let subAlbumCoverImages: Record<string, string> = {};
 	let isInitialLoad = true;
 	let photoLoaded: Record<string, boolean> = {};
+
+	$: collabVis = resolveCollaborationVisibility($siteConfigData?.features);
+	$: isAuthed = $auth.authenticated && !!$auth.user;
+	$: canModerateAlbum =
+		isAuthed &&
+		$auth.user &&
+		albumData &&
+		($auth.user.role === 'admin' || $auth.user.id === albumData.album.createdBy);
+	$: showCollabPanel =
+		!!albumData && anyCollaborationSectionVisible(collabVis, isAuthed, !!canModerateAlbum);
 
 	// React to route parameter changes using afterNavigate (recommended for SvelteKit)
 	afterNavigate(({ to, from }) => {
@@ -285,6 +301,7 @@ import { logger } from '$lib/utils/logger';
 	// Initial load is handled by afterNavigate
 	// But we also need onMount as a fallback for cases where afterNavigate doesn't fire
 	onMount(() => {
+		void loadSession();
 		if (browser && alias && isInitialLoad) {
 			fetchAlbumData();
 			isInitialLoad = false;
@@ -555,11 +572,16 @@ import { logger } from '$lib/utils/logger';
 		</section>
 	</div>
 
-	<AlbumCollaborationPanel
-		albumId={albumData.album._id}
-		albumCreatorId={String(albumData.album.createdBy ?? '')}
-		albumAlias={albumData.album.alias}
-	/>
+	{#if showCollabPanel}
+		<AlbumCollaborationPanel
+			albumId={albumData.album._id}
+			albumCreatorId={String(albumData.album.createdBy ?? '')}
+			albumAlias={albumData.album.alias}
+			showActivity={showCollabServiceForViewer(collabVis, 'activity', isAuthed, !!canModerateAlbum)}
+			showTasks={showCollabServiceForViewer(collabVis, 'tasks', isAuthed, !!canModerateAlbum)}
+			showComments={showCollabServiceForViewer(collabVis, 'comments', isAuthed, !!canModerateAlbum)}
+		/>
+	{/if}
 
 	{#if albumData.photos && albumData.photos.length > 0}
 		<PhotoLightbox
@@ -583,11 +605,13 @@ import { logger } from '$lib/utils/logger';
 			}))}
 			startIndex={lightboxIndex}
 			isOpen={lightboxOpen}
-			albumCollaboration={{
-				albumId: albumData.album._id,
-				albumCreatorId: String(albumData.album.createdBy ?? ''),
-				albumAlias: albumData.album.alias,
-			}}
+			albumCollaboration={showCollabServiceForViewer(collabVis, 'comments', isAuthed, !!canModerateAlbum)
+				? {
+						albumId: albumData.album._id,
+						albumCreatorId: String(albumData.album.createdBy ?? ''),
+						albumAlias: albumData.album.alias,
+					}
+				: undefined}
 			onClose={() => (lightboxOpen = false)}
 			autoPlay={false}
 			intervalMs={4000}

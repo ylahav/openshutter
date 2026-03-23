@@ -96,6 +96,11 @@ export interface SiteConfig {
   }
   features: {
     enableComments: boolean
+    collaboration?: {
+      comments?: { enabled?: boolean; public?: boolean; authenticated?: boolean }
+      tasks?: { enabled?: boolean; public?: boolean; authenticated?: boolean }
+      activity?: { enabled?: boolean; public?: boolean; authenticated?: boolean }
+    }
     enableSharing: boolean
     /** Which share buttons to show: 'twitter' | 'facebook' | 'whatsapp' | 'copy'. Omit or empty = all. */
     sharingOptions?: ('twitter' | 'facebook' | 'whatsapp' | 'copy')[]
@@ -131,8 +136,8 @@ export interface SiteConfig {
   }
   welcomeEmail?: {
     enabled?: boolean
-    subject?: string
-    body?: string
+    subject?: MultiLangText
+    body?: MultiLangText
   }
   /** White-label (Solution 1): hide OpenShutter branding and use site title everywhere; optional legal URLs */
   whiteLabel?: {

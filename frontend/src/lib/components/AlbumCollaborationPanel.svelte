@@ -8,6 +8,10 @@
 	export let albumId: string;
 	export let albumCreatorId: string;
 	export let albumAlias: string;
+	/** Visibility for current viewer (admin already applies session). */
+	export let showActivity = true;
+	export let showTasks = true;
+	export let showComments = true;
 
 	let activityOpen = false;
 	let events: Array<{ _id: string; type: string; actorUserId: string; payload: unknown; createdAt: string }> = [];
@@ -31,8 +35,8 @@
 
 	onMount(async () => {
 		await loadSession();
-		loadActivity();
-		loadTasks();
+		if (showActivity) loadActivity();
+		if (showTasks) loadTasks();
 	});
 
 	async function loadActivity() {
@@ -130,9 +134,23 @@
 				return type;
 		}
 	}
+
+	function approvalLabel(status: string | undefined): string {
+		switch (status) {
+			case 'pending':
+				return $t('albums.collabApprovalPending');
+			case 'approved':
+				return $t('albums.collabApprovalApproved');
+			case 'rejected':
+				return $t('albums.collabApprovalRejected');
+			default:
+				return status || '';
+		}
+	}
 </script>
 
 <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 space-y-8">
+	{#if showActivity}
 	<details class="rounded-lg border border-gray-200 bg-white shadow-sm" bind:open={activityOpen}>
 		<summary class="cursor-pointer px-4 py-3 text-sm font-medium text-gray-900">
 			{$t('albums.collabActivity')}
@@ -156,7 +174,9 @@
 			{/if}
 		</div>
 	</details>
+	{/if}
 
+	{#if showTasks}
 	<section class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
 		<h2 class="text-lg font-semibold text-gray-900">{$t('albums.collabTasks')}</h2>
 		{#if loadingTasks}
@@ -172,7 +192,7 @@
 							<p class="text-xs text-gray-500">
 								{task.status === 'done' ? $t('albums.collabTaskStatusDone') : $t('albums.collabTaskStatusOpen')}
 								{#if task.approvalStatus && task.approvalStatus !== 'none'}
-									· {task.approvalStatus}
+									· {approvalLabel(task.approvalStatus)}
 								{/if}
 							</p>
 						</div>
@@ -240,6 +260,9 @@
 			</div>
 		{/if}
 	</section>
+	{/if}
 
-	<AlbumComments {albumId} {albumCreatorId} {albumAlias} />
+	{#if showComments}
+		<AlbumComments {albumId} {albumCreatorId} {albumAlias} />
+	{/if}
 </div>

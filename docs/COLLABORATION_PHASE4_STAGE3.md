@@ -41,6 +41,23 @@
 - **`albums.*`** strings for comments (threading, report, mention hint, per-photo label) and collaboration (activity, tasks, approvals) in **en** and **he**.
 - **`notifications.*`**, **`header.notifications`**.
 
+### Collaboration services (what each row controls)
+
+The visibility matrix applies independently to three **services**:
+
+| Service | Role |
+| -------- | ---- |
+| **Comments** | Discussion on the album: threaded replies on the album page, optional **per-photo** threads in the lightbox info panel, `@mentions`, reporting, and moderation (hide/show). Reading the list respects **Visitors** / **Signed-in**; **posting**, replying, and reporting require a **signed-in** user and the **Signed-in** column for comments to be on. |
+| **Tasks** | A simple **to-do list** for the album: create items, mark done/reopen, optional **needs owner approval** (pending → approve/reject). Only **signed-in** users can create or change tasks; the two columns control **who can see** the task block (visitors vs members). |
+| **Activity feed** | A **read-only timeline** of recent collaboration events on the album (e.g. new comment, reply, task created/completed, approval updated). It does not replace full audit logs; it helps the team see what changed. Visibility follows the same **Visitors** / **Signed-in** toggles. |
+
+### Enabling / disabling
+
+- **`features.collaboration`** in site config: per **service** (`comments`, `tasks`, `activity`) each has optional **`enabled`** (master switch; default on), **`public`** (visitors), and **`authenticated`** (signed-in). If **`enabled`** is **`false`**, that service is off for everyone except album moderators. **Admin → Site configuration → Sharing** tab: matrix with **Service on** + audience columns.
+- Legacy: if **`features.enableComments === false`** and **`collaboration`** is not set, everything behaves as off for everyone.
+- **Album owners and admins** always see all three sections on albums they can access (moderation), even when a column is off for normal users.
+- **APIs:** **`GET`** lists require **`enabled`** and the matching audience flag; anonymous requests use **`public`**; authenticated requests use **`authenticated`**. **Writes:** comments/report require **`comments.enabled`** and **`comments.authenticated`**; tasks require **`tasks.enabled`** and **`tasks.authenticated`**.
+
 ## Deferred (later iterations)
 
 - Deeper threading (multi-level), rich text editor, groups/`allowedGroups` alignment for tasks.

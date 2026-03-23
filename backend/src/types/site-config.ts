@@ -86,7 +86,18 @@ export interface SiteConfig {
     contactTitle?: MultiLangText
   }
   features: {
+    /** @deprecated Prefer features.collaboration; when false and collaboration unset, all collaboration is off. */
     enableComments: boolean
+    /**
+     * Per-service collaboration visibility: visitors (not signed in) vs signed-in users.
+     * When any key is set, granular mode is active; omitted service keys still default to on unless legacy enableComments is false alone.
+     */
+    collaboration?: {
+      /** `enabled: false` turns the service off for everyone except album moderators (same as audience flags). */
+      comments?: { enabled?: boolean; public?: boolean; authenticated?: boolean }
+      tasks?: { enabled?: boolean; public?: boolean; authenticated?: boolean }
+      activity?: { enabled?: boolean; public?: boolean; authenticated?: boolean }
+    }
     enableSharing: boolean
     /** Which share buttons to show: 'twitter' | 'facebook' | 'whatsapp' | 'copy'. Omit or empty = all. */
     sharingOptions?: ('twitter' | 'facebook' | 'whatsapp' | 'copy')[]
@@ -115,11 +126,11 @@ export interface SiteConfig {
     from?: string // e.g. "OpenShutter <noreply@example.com>"
     secure?: boolean
   }
-  /** Welcome email sent when a new user is created. Placeholders: {{name}}, {{username}}, {{loginUrl}} */
+  /** Welcome email when a new user is created. Subject/body per language; placeholders: {{name}}, {{username}}, {{loginUrl}}, {{siteTitle}}, {{password}} */
   welcomeEmail?: {
     enabled?: boolean
-    subject?: string
-    body?: string
+    subject?: MultiLangText
+    body?: MultiLangText
   }
   /** White-label (Solution 1): hide OpenShutter branding and use site title everywhere; optional legal URLs */
   whiteLabel?: {
