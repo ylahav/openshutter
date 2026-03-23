@@ -2,7 +2,7 @@
 
 **Branch:** `phase-4`  
 **Horizon:** Next 18 months  
-**Status:** Stages 1–3 **complete** (March 2026): white-label, marketplace expansion, collaboration MVP (album comments). Phase 4 stages 4+ not started.
+**Status:** Stages 1–3 **complete** (March 2026): white-label, marketplace expansion, collaboration (comments, threading, mentions, notifications, tasks/activity, per-photo in lightbox, v1 scopes). Phase 4 stages 4+ not started.
 
 This document defines the workflow and scope for Phase 4 of the OpenShutter roadmap. Each initiative includes goals, scope, and suggested deliverables.
 
@@ -318,7 +318,7 @@ Implementation: when `siteContext.type === 'owner-site'`, guards for `/admin` al
 - [x] Prioritize and sequence initiatives (e.g. 1 → 2 → 3)
 - [x] Stage 1 (White-label solutions): design and implementation
 - [x] Stage 2 (Integration marketplace): design and implementation
-- [x] Stage 3 (Advanced collaboration): design and implementation (MVP: album comments)
+- [x] Stage 3 (Advanced collaboration): design and implementation (comments, collaboration panel, notifications, v1 comment scopes — see `COLLABORATION_PHASE4_STAGE3.md`)
 - Stage 4 (Machine learning for tag optimization): design and implementation
 - Stage 5 (Mobile app): design and implementation
 - Stage 6 (Video support): design and implementation

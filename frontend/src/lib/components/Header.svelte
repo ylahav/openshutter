@@ -9,7 +9,7 @@
 	import TemplateSelector from '$components/TemplateSelector.svelte';
 	import ThemeToggle from '$components/ThemeToggle.svelte';
 	import Menu from '$components/Menu.svelte';
-	import { t } from '$stores/i18n';
+	import NotificationNavLink from '$lib/components/NotificationNavLink.svelte';
 	import { logger } from '$lib/utils/logger';
 
 	const year = new Date().getFullYear();
@@ -108,9 +108,13 @@
 							showAuthButtons={showAuthButtons}
 						/>
 
-						{#if showAuthButtons && $auth.authenticated && $auth.user && showGreeting}
+						{#if showAuthButtons && $auth.authenticated && $auth.user}
 							<span class="text-gray-400">|</span>
-							<span class="text-gray-500">{$auth.user.name || $auth.user.email}</span>
+							<NotificationNavLink linkClass="relative text-gray-600 hover:text-gray-900" />
+							{#if showGreeting}
+								<span class="text-gray-400">|</span>
+								<span class="text-gray-500">{$auth.user.name || $auth.user.email}</span>
+							{/if}
 						{/if}
 					{/if}
 

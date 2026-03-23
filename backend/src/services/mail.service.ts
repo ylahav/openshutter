@@ -158,6 +158,44 @@ export class MailService {
       return { success: false, error: message };
     }
   }
+
+  /**
+   * Send a plain-text email if SMTP is configured (same rules as welcome). Does not throw; logs errors.
+   */
+  async sendRawIfConfigured(to: string, subject: string, text: string): Promise<void> {
+    const addr = (to || '').trim();
+    if (!addr) return;
+    try {
+      const config = await siteConfigService.getConfig();
+      const mail = config.mail;
+      if (!mail?.host?.trim()) {
+        this.logger.debug('Email skipped: mail not configured');
+        return;
+      }
+      const port = mail.port ?? 587;
+      const transporter = nodemailer.createTransport({
+        host: mail.host,
+        port,
+        secure: port === 465,
+        auth:
+          mail.user && mail.password
+            ? { user: mail.user, pass: mail.password }
+            : undefined,
+      });
+      const from = mail.from?.trim() || mail.user || 'noreply@localhost';
+      await transporter.sendMail({
+        from,
+        to: addr,
+        subject: subject.trim().slice(0, 200) || 'Notification',
+        text: text || '',
+      });
+      this.logger.log(`Notification email sent to ${addr}`);
+    } catch (err) {
+      this.logger.warn(
+        `Notification email failed for ${addr}: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
 }
 
 export const mailService = new MailService();

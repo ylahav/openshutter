@@ -14,6 +14,8 @@ import { V1LocationsController } from './locations/v1-locations.controller';
 import { V1PagesController } from './pages/v1-pages.controller';
 import { V1BlogController } from './blog/v1-blog.controller';
 import { V1SearchController } from './search/v1-search.controller';
+import { CommentsModule } from '../../comments/comments.module';
+import { V1CommentsController } from './comments/v1-comments.controller';
 
 @Module({
   imports: [
@@ -21,6 +23,7 @@ import { V1SearchController } from './search/v1-search.controller';
     AlbumsModule,
     PhotosModule,
     SearchModule,
+    CommentsModule,
     MongooseModule.forFeature([{ name: 'User', schema: UserSchema }]),
   ],
   controllers: [
@@ -33,6 +36,7 @@ import { V1SearchController } from './search/v1-search.controller';
     V1PagesController,
     V1BlogController,
     V1SearchController,
+    V1CommentsController,
   ],
 })
 export class V1Module {}

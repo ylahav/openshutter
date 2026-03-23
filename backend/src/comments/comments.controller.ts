@@ -53,6 +53,7 @@ export class CommentsController {
     @Req() req: Request,
     @Param('albumId') albumId: string,
     @Query('includeHidden') includeHidden?: string,
+    @Query('photoId') photoId?: string,
   ) {
     const accessContext = await this.getAccessContext(req);
     const user = (req as any).user;
@@ -61,17 +62,37 @@ export class CommentsController {
       includeHidden: include,
       moderatorUserId: user?.id,
       isAdmin: user?.role === 'admin',
+      photoId: photoId?.trim() || undefined,
+      viewerUserId: user?.id,
     });
   }
 
   @Post('album/:albumId')
-  async createAlbum(@Req() req: Request, @Param('albumId') albumId: string, @Body() body: { body?: string }) {
+  async createAlbum(
+    @Req() req: Request,
+    @Param('albumId') albumId: string,
+    @Body() body: { body?: string; parentCommentId?: string | null; photoId?: string | null },
+  ) {
     const user = (req as any).user;
     if (!user?.id) {
       throw new UnauthorizedException('Sign in to post a comment');
     }
     const accessContext = await this.getAccessContext(req);
-    return this.commentsService.createForAlbum(albumId, accessContext, user.id, body?.body ?? '');
+    return this.commentsService.createForAlbum(albumId, accessContext, user.id, {
+      body: body?.body ?? '',
+      parentCommentId: body?.parentCommentId,
+      photoId: body?.photoId,
+    });
+  }
+
+  @Post(':id/report')
+  async report(@Req() req: Request, @Param('id') id: string) {
+    const user = (req as any).user;
+    if (!user?.id) {
+      throw new UnauthorizedException('Authentication required');
+    }
+    const accessContext = await this.getAccessContext(req);
+    return this.commentsService.reportComment(id, accessContext, user.id);
   }
 
   @Patch(':id')

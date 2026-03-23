@@ -8,7 +8,7 @@ import { siteConfigData } from '$stores/siteConfig';
 import { t } from '$stores/i18n';
 import AlbumBreadcrumbs from '$lib/components/AlbumBreadcrumbs.svelte';
 import PhotoLightbox from '$lib/components/PhotoLightbox.svelte';
-import AlbumComments from '$lib/components/AlbumComments.svelte';
+import AlbumCollaborationPanel from '$lib/components/AlbumCollaborationPanel.svelte';
 import MultiLangText from '$lib/components/MultiLangText.svelte';
 import MultiLangHTML from '$lib/components/MultiLangHTML.svelte';
 import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
@@ -555,9 +555,11 @@ import { logger } from '$lib/utils/logger';
 		</section>
 	</div>
 
-	<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
-		<AlbumComments albumId={albumData.album._id} albumCreatorId={String(albumData.album.createdBy ?? '')} />
-	</div>
+	<AlbumCollaborationPanel
+		albumId={albumData.album._id}
+		albumCreatorId={String(albumData.album.createdBy ?? '')}
+		albumAlias={albumData.album.alias}
+	/>
 
 	{#if albumData.photos && albumData.photos.length > 0}
 		<PhotoLightbox
@@ -581,6 +583,11 @@ import { logger } from '$lib/utils/logger';
 			}))}
 			startIndex={lightboxIndex}
 			isOpen={lightboxOpen}
+			albumCollaboration={{
+				albumId: albumData.album._id,
+				albumCreatorId: String(albumData.album.createdBy ?? ''),
+				albumAlias: albumData.album.alias,
+			}}
 			onClose={() => (lightboxOpen = false)}
 			autoPlay={false}
 			intervalMs={4000}

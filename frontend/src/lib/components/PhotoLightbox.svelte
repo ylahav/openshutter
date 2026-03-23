@@ -9,8 +9,15 @@
 	import { MultiLangUtils } from '$utils/multiLang';
 	import { logger } from '$lib/utils/logger';
 	import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
+	import AlbumComments from '$lib/components/AlbumComments.svelte';
 
 	const dispatch = createEventDispatcher();
+
+	type AlbumCollaborationContext = {
+		albumId: string;
+		albumCreatorId: string;
+		albumAlias: string;
+	};
 
 	export interface LightboxPhoto {
 		_id?: string;
@@ -99,6 +106,7 @@
 		intervalMs?: number;
 		onClose?: () => void;
 		showExifData?: boolean; // Whether to show EXIF data (defaults to true if not specified)
+		albumCollaboration?: AlbumCollaborationContext;
 	}
 
 	let {
@@ -109,7 +117,8 @@
 		autoPlay = false,
 		intervalMs = 4000,
 		onClose,
-		showExifData = true // Default to showing EXIF data if not specified
+		showExifData = true, // Default to showing EXIF data if not specified
+		albumCollaboration,
 	}: Props = $props();
 
 	// Support both initialIndex and startIndex for backward compatibility
@@ -716,6 +725,19 @@
 										url={typeof window !== 'undefined' ? `${window.location.origin}${$page.url.pathname}#p=${current ?? 0}` : undefined}
 										title={photoTitle || 'Photo'}
 										size="sm"
+									/>
+								</div>
+							{/if}
+
+							{#if albumCollaboration && photo?._id}
+								<div class="border-t border-white/20 pt-3 mt-2">
+									<AlbumComments
+										albumId={albumCollaboration.albumId}
+										albumCreatorId={albumCollaboration.albumCreatorId}
+										albumAlias={albumCollaboration.albumAlias}
+										photoId={photo._id}
+										variant="dark"
+										compact={true}
 									/>
 								</div>
 							{/if}

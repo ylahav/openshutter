@@ -8,5 +8,9 @@ export function canonicalUrlFromPageUrl(url: URL): string {
 
 /** Paths that should not be indexed (admin/owner panels). */
 export function pathShouldNoindex(pathname: string): boolean {
-	return pathname.startsWith('/admin') || pathname.startsWith('/owner');
+	return (
+		pathname.startsWith('/admin') ||
+		pathname.startsWith('/owner') ||
+		pathname === '/notifications'
+	);
 }

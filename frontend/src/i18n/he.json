@@ -9,7 +9,8 @@
   },
   "header": {
     "logout": "התנתק",
-    "myGallery": "הגלריה שלי"
+    "myGallery": "הגלריה שלי",
+    "notifications": "התראות"
   },
   "hero": {
     "defaultTitle": "גלריית OpenShutter",
@@ -63,7 +64,41 @@
     "commentsHidden": "מוסתר",
     "commentsHide": "הסתר",
     "commentsShow": "הצג",
-    "commentsModeratorHint": "בעלי האלבום ומנהלים יכולים להסתיר תגובות."
+    "commentsModeratorHint": "בעלי האלבום ומנהלים יכולים להסתיר תגובות.",
+    "commentsOnPhoto": "תמונה זו",
+    "commentsReply": "השב",
+    "commentsReplyingTo": "משיבים ל־",
+    "commentsCancelReply": "ביטול",
+    "commentsReport": "דיווח",
+    "commentsReportsModerator": "דיווחים",
+    "commentsMentionHint": "אפשר לציין משתמש עם @שם_משתמש (יישלחה התראה אם הוא משתמש באתר).",
+    "collabActivity": "פעילות",
+    "collabActivityEmpty": "אין עדיין פעילות.",
+    "collabActComment": "תגובה",
+    "collabActReply": "תשובה",
+    "collabActTaskCreated": "משימה נוצרה",
+    "collabActTaskDone": "משימה הושלמה",
+    "collabActApproval": "אישור עודכן",
+    "collabTasks": "משימות",
+    "collabTasksEmpty": "אין עדיין משימות.",
+    "collabTaskStatusDone": "בוצע",
+    "collabTaskStatusOpen": "פתוח",
+    "collabMarkDone": "סמן כבוצע",
+    "collabReopen": "פתח מחדש",
+    "collabApprove": "אשר",
+    "collabReject": "דחה",
+    "collabTaskNew": "משימה חדשה",
+    "collabTaskTitlePlaceholder": "כותרת המשימה…",
+    "collabTaskNeedsApproval": "דורש אישור בעלים",
+    "collabTaskAdd": "הוסף משימה"
+  },
+  "notifications": {
+    "title": "התראות",
+    "empty": "אין התראות חדשות.",
+    "markRead": "סמן כנקרא",
+    "markAllRead": "סמן הכל כנקרא",
+    "signInPrompt": "התחברו כדי לראות התראות.",
+    "loadError": "לא ניתן לטעון התראות."
   },
   "loading": {
     "loading": "טוען...",

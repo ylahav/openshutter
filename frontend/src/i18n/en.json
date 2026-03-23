@@ -9,7 +9,8 @@
   },
   "header": {
     "logout": "Logout",
-    "myGallery": "My Gallery"
+    "myGallery": "My Gallery",
+    "notifications": "Notifications"
   },
   "hero": {
     "defaultTitle": "OpenShutter Gallery",
@@ -64,7 +65,41 @@
     "commentsHidden": "Hidden",
     "commentsHide": "Hide",
     "commentsShow": "Show",
-    "commentsModeratorHint": "Album owners and admins can hide comments."
+    "commentsModeratorHint": "Album owners and admins can hide comments.",
+    "commentsOnPhoto": "This photo",
+    "commentsReply": "Reply",
+    "commentsReplyingTo": "Replying to",
+    "commentsCancelReply": "Cancel",
+    "commentsReport": "Report",
+    "commentsReportsModerator": "Reports",
+    "commentsMentionHint": "Mention someone with @username (they get a notification if they use the site).",
+    "collabActivity": "Activity",
+    "collabActivityEmpty": "No activity yet.",
+    "collabActComment": "Comment",
+    "collabActReply": "Reply",
+    "collabActTaskCreated": "Task created",
+    "collabActTaskDone": "Task completed",
+    "collabActApproval": "Approval updated",
+    "collabTasks": "Tasks",
+    "collabTasksEmpty": "No tasks yet.",
+    "collabTaskStatusDone": "Done",
+    "collabTaskStatusOpen": "Open",
+    "collabMarkDone": "Mark done",
+    "collabReopen": "Reopen",
+    "collabApprove": "Approve",
+    "collabReject": "Reject",
+    "collabTaskNew": "New task",
+    "collabTaskTitlePlaceholder": "Task title…",
+    "collabTaskNeedsApproval": "Needs owner approval",
+    "collabTaskAdd": "Add task"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "empty": "You're all caught up.",
+    "markRead": "Mark read",
+    "markAllRead": "Mark all read",
+    "signInPrompt": "Sign in to see your notifications.",
+    "loadError": "Could not load notifications."
   },
   "loading": {
     "loading": "Loading...",
