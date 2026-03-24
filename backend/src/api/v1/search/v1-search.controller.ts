@@ -20,6 +20,7 @@ import { ApiScope } from '../../../api-keys/decorators/api-scope.decorator';
 import { RateLimitInterceptor } from '../../../api-keys/interceptors/rate-limit.interceptor';
 import type { AlbumAccessContext } from '../../../albums/albums.service';
 import { StandardSuccessResponse } from '../dto/standard-error.dto';
+import { AnalyticsEventService } from '../../../analytics/analytics-event.service';
 
 @ApiTags('search')
 @ApiSecurity('apiKey')
@@ -31,6 +32,7 @@ export class V1SearchController {
   constructor(
     private readonly searchService: SearchService,
     @InjectModel('User') private userModel: Model<any>,
+    private readonly analyticsEventService: AnalyticsEventService,
   ) {}
 
   private async getAccessContext(req: Request): Promise<AlbumAccessContext | null> {
@@ -97,6 +99,43 @@ export class V1SearchController {
 
     const result = await this.searchService.search(filters, accessContext);
 
+    const apiKey = (req as any).apiKey;
+    const siteContext = (req as any).siteContext;
+    const ownerScopeId =
+      siteContext?.type === 'owner-site' && siteContext.ownerId
+        ? String(siteContext.ownerId)
+        : undefined;
+    const resultCount =
+      result.photos?.length ||
+      result.albums?.length ||
+      result.people?.length ||
+      result.locations?.length ||
+      0;
+    const ipAddress = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+    const userAgent = req.headers['user-agent'];
+    this.analyticsEventService
+      .logSearch(
+        {
+          query: filters.q,
+          searchType: filters.type || 'photos',
+          resultCount,
+          ownerScopeId,
+          filters: {
+            tags: filters.tags,
+            people: filters.people,
+            locationIds: filters.locationIds,
+            dateFrom: filters.dateFrom,
+            dateTo: filters.dateTo,
+          },
+        },
+        {
+          userId: apiKey?.userId?.toString?.(),
+          ipAddress: typeof ipAddress === 'string' ? ipAddress : undefined,
+          userAgent: typeof userAgent === 'string' ? userAgent : undefined,
+        },
+      )
+      .catch(() => {});
+
     return {
       data: result,
     };
@@ -147,6 +186,43 @@ export class V1SearchController {
     };
 
     const result = await this.searchService.search(filters, accessContext);
+
+    const apiKey = (req as any).apiKey;
+    const siteContext = (req as any).siteContext;
+    const ownerScopeId =
+      siteContext?.type === 'owner-site' && siteContext.ownerId
+        ? String(siteContext.ownerId)
+        : undefined;
+    const resultCount =
+      result.photos?.length ||
+      result.albums?.length ||
+      result.people?.length ||
+      result.locations?.length ||
+      0;
+    const ipAddress = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+    const userAgent = req.headers['user-agent'];
+    this.analyticsEventService
+      .logSearch(
+        {
+          query: filters.q,
+          searchType: filters.type || 'photos',
+          resultCount,
+          ownerScopeId,
+          filters: {
+            tags: filters.tags,
+            people: filters.people,
+            locationIds: filters.locationIds,
+            dateFrom: filters.dateFrom,
+            dateTo: filters.dateTo,
+          },
+        },
+        {
+          userId: apiKey?.userId?.toString?.(),
+          ipAddress: typeof ipAddress === 'string' ? ipAddress : undefined,
+          userAgent: typeof userAgent === 'string' ? userAgent : undefined,
+        },
+      )
+      .catch(() => {});
 
     return {
       data: result,

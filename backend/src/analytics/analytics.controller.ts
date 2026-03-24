@@ -475,6 +475,30 @@ export class AnalyticsController {
             rows.push(`${escapeCSV(q.query)},${escapeCSV(q.count)},${escapeCSV(q.averageResults)},${escapeCSV(q.lastSearched)}`);
           });
         }
+        if (data.tagFilterStats?.summary) {
+          const s = data.tagFilterStats.summary;
+          rows.push('');
+          rows.push('Tag filter summary');
+          rows.push(
+            `Searches with tag filter,${escapeCSV(s.searchesWithTagFilter)}`,
+          );
+          rows.push(`Share of all searches %,${escapeCSV(s.shareOfSearchesPercent)}`);
+          rows.push(
+            `Zero-result searches (with tag filter),${escapeCSV(s.zeroResultWithTagFilter)}`,
+          );
+          rows.push(
+            `Average results (when tag filter used),${escapeCSV(s.averageResultsWhenTagFilter)}`,
+          );
+        }
+        if (data.tagFilterStats?.topFilterTags?.length) {
+          rows.push('');
+          rows.push('Tag,Tag ID,Filter uses,Zero-result uses,Average results');
+          data.tagFilterStats.topFilterTags.forEach((t: any) => {
+            rows.push(
+              `${escapeCSV(t.name)},${escapeCSV(t.tagId)},${escapeCSV(t.filterUses)},${escapeCSV(t.zeroResultCount)},${escapeCSV(t.averageResults)}`,
+            );
+          });
+        }
         break;
       case 'tags':
         rows.push('Date,Tags Created,Tags Used,Total Usage');

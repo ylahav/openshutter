@@ -120,6 +120,8 @@ export class AnalyticsEventService {
       query?: string;
       searchType: 'photos' | 'albums' | 'people' | 'locations' | 'all';
       resultCount: number;
+      /** When set (e.g. owner mini-site host), owner analytics can attribute anonymous searches to this owner. */
+      ownerScopeId?: string;
       filters?: {
         tags?: string[];
         people?: string[];
@@ -156,6 +158,7 @@ export class AnalyticsEventService {
           searchType: searchData.searchType,
           resultCount: searchData.resultCount,
           filters: searchData.filters,
+          ...(searchData.ownerScopeId ? { ownerScopeId: searchData.ownerScopeId } : {}),
         },
       };
 

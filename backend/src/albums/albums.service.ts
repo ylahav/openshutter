@@ -15,6 +15,8 @@ import { resolveOwnerStorageContext } from '../services/storage/owner-storage-co
 export interface AlbumAccessContext {
   userId: string;
   groupAliases: string[];
+  /** When browsing an owner custom domain, restrict content to this owner's albums. */
+  ownerSiteId?: string;
 }
 
 @Injectable()

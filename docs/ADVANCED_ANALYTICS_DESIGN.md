@@ -65,29 +65,35 @@ Provide comprehensive analytics and reporting for admins/owners: usage metrics, 
 - Search filters usage
 
 **Data Source:**
-- Event log entries with type `search`:
+- Event log entries with type `search` (stored in `analytics_events` under `metadata`):
   ```typescript
   {
     type: 'search',
-    query?: string, // search term (normalized)
-    searchType: 'photos' | 'albums' | 'people' | 'locations' | 'all',
-    resultCount: number,
-    filters?: {
-      tags?: string[],
-      people?: string[],
-      locationIds?: string[],
-      dateFrom?: string,
-      dateTo?: string,
-    },
+    userId?: string,
     timestamp: Date,
-    userId?: ObjectId,
+    metadata: {
+      query?: string, // normalized lowercase trim
+      searchType: 'photos' | 'albums' | 'people' | 'locations' | 'all',
+      resultCount: number,
+      /** Set for owner custom-domain (and v1 API on that host): attribute traffic to that gallery owner. */
+      ownerScopeId?: string,
+      filters?: {
+        tags?: string[],
+        people?: string[],
+        locationIds?: string[],
+        dateFrom?: string,
+        dateTo?: string,
+      },
+    },
   }
   ```
 
 **Implementation:**
-- Log search events in search controller
-- Normalize queries (lowercase, trim) for aggregation
-- Aggregate by query, type, date range
+- Log search events from **`POST/GET /api/search`** and **`POST/GET /api/v1/search`** (optional auth / API key).
+- Normalize queries (lowercase, trim) for aggregation.
+- Aggregate by query, type, date range.
+- **Tag filter behavior:** `GET /api/admin/analytics/search` includes **`tagFilterStats`**: summary (searches with any tag filter, share of all searches, zero-result count with tag filter, average `resultCount` when a tag filter was used) and **`topFilterTags`** (per-tag filter use counts, zero-result counts, averages). CSV export for `type=search` appends tag-filter summary and top-tag rows.
+- **Owner scope:** `metadata.ownerScopeId` is set when the request runs in an **owner-site** context (host resolves to an owner domain). Logged-in users still set `userId`. Owner analytics (below) matches events where `userId === ownerId` **or** `metadata.ownerScopeId === ownerId`.
 
 ### 3.3 Tag Usage Over Time
 
@@ -238,9 +244,42 @@ Provide comprehensive analytics and reporting for admins/owners: usage metrics, 
   "trends": [
     { "date": "2025-02-01", "searches": 45 },
     // ...
-  ]
+  ],
+  "tagFilterStats": {
+    "summary": {
+      "searchesWithTagFilter": 120,
+      "shareOfSearchesPercent": 9.7,
+      "zeroResultWithTagFilter": 8,
+      "averageResultsWhenTagFilter": 12.4
+    },
+    "topFilterTags": [
+      {
+        "tagId": "…",
+        "name": "sunset",
+        "filterUses": 45,
+        "zeroResultCount": 2,
+        "averageResults": 11.2
+      }
+    ]
+  }
 }
 ```
+
+**Note:** `resultCount` on each logged search is the **first-page hit count** returned by the search API (not total matching rows across pages).
+
+### 4.3.1 Owner search tag-filter analytics
+
+**Endpoint:** `GET /api/owner/analytics/search-tag-filters`
+
+**Auth:** Gallery **owner** only (JWT cookie or Bearer; same guard family as other owner APIs). Admins should use **`GET /api/admin/analytics/search`**.
+
+**Query parameters:** `dateFrom`, `dateTo` (optional ISO dates), `limit` (optional, default 20) for the top-tag breakdown.
+
+**Response:** `{ "data": { "summary": { "totalSearches": number }, "tagFilterStats": { … same shape as admin `tagFilterStats` … } } }`
+
+Events included: `type === 'search'` in the date range where **`userId`** equals the authenticated owner **or** **`metadata.ownerScopeId`** equals that owner (custom-domain anonymous searches).
+
+**UI:** Owner dashboard card links to **`/owner/analytics`**; SvelteKit proxies via **`GET /api/owner/analytics/search-tag-filters`**.
 
 ### 4.4 Tags Analytics
 

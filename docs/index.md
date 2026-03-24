@@ -10,7 +10,7 @@ Welcome to the OpenShutter documentation. This comprehensive guide covers all as
 - [System Requirements Document (PRD)](./SYSTEM_PRD.md) - System requirements and business logic
 - [Functional Specification](./functional-spec.md) - Detailed technical specifications
 - [Access Control System](./access-control.md) - Album permissions and user access management
-- [Owner Dashboard](./owner-dashboard.md) - Owner role dashboard and album management
+- [Owner Dashboard](./owner-dashboard.md) - Owner role dashboard and album management (includes **Search insights** / tag-filter analytics on `/owner/analytics`)
 - [Storage Configuration](./STORAGE.md) - Storage providers setup and management
 - [Google Drive](./GOOGLE_DRIVE.md) - Google Drive auth (Service Account & OAuth), visible storage, token renewal
 - [Server Deployment Guide](./SERVER_DEPLOYMENT.md) - Production deployment instructions with PM2

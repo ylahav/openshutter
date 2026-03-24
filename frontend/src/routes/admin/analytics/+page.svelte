@@ -820,6 +820,72 @@
 					</div>
 				</div>
 
+				{#if searchData.tagFilterStats}
+					<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+						<h2 class="text-lg font-semibold text-gray-900 mb-1">
+							{$t('admin.analyticsSearchTagFiltersTitle')}
+						</h2>
+						<p class="text-sm text-gray-500 mb-4">{$t('admin.analyticsSearchTagFiltersSubtitle')}</p>
+						<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+							<div class="p-4 bg-teal-50 rounded-lg border border-teal-100">
+								<p class="text-sm text-teal-800">{$t('admin.analyticsSearchesWithTagFilter')}</p>
+								<p class="text-2xl font-bold text-teal-700">
+									{searchData.tagFilterStats.summary?.searchesWithTagFilter ?? 0}
+								</p>
+							</div>
+							<div class="p-4 bg-cyan-50 rounded-lg border border-cyan-100">
+								<p class="text-sm text-cyan-800">{$t('admin.analyticsShareOfAllSearches')}</p>
+								<p class="text-2xl font-bold text-cyan-700">
+									{(searchData.tagFilterStats.summary?.shareOfSearchesPercent ?? 0).toFixed(1)}%
+								</p>
+							</div>
+							<div class="p-4 bg-rose-50 rounded-lg border border-rose-100">
+								<p class="text-sm text-rose-800">{$t('admin.analyticsZeroResultsWithTagFilter')}</p>
+								<p class="text-2xl font-bold text-rose-700">
+									{searchData.tagFilterStats.summary?.zeroResultWithTagFilter ?? 0}
+								</p>
+							</div>
+							<div class="p-4 bg-sky-50 rounded-lg border border-sky-100">
+								<p class="text-sm text-sky-800">{$t('admin.analyticsAvgResultsWithTagFilter')}</p>
+								<p class="text-2xl font-bold text-sky-700">
+									{(searchData.tagFilterStats.summary?.averageResultsWhenTagFilter ?? 0).toFixed(1)}
+								</p>
+							</div>
+						</div>
+						{#if searchData.tagFilterStats.topFilterTags?.length > 0}
+							<h3 class="text-sm font-semibold text-gray-700 mb-3">
+								{$t('admin.analyticsTopTagsInSearchFilters')}
+							</h3>
+							<BarChart
+								data={searchData.tagFilterStats.topFilterTags.slice(0, 12).map((t: any) => ({
+									label: t.name?.length > 28 ? `${t.name.slice(0, 28)}…` : t.name,
+									value: t.filterUses,
+								}))}
+								label={$t('admin.analyticsFilterUses')}
+								color="#0d9488"
+								height={320}
+							/>
+							<div class="mt-4 space-y-2">
+								{#each searchData.tagFilterStats.topFilterTags.slice(0, 15) as row}
+									<div
+										class="flex flex-wrap items-center justify-between gap-2 p-2 bg-gray-50 rounded-md text-sm"
+									>
+										<span class="font-medium text-gray-900">{row.name}</span>
+										<span class="text-gray-600">
+											{row.filterUses}
+											{$t('admin.analyticsFilterUses')} · {row.zeroResultCount}
+											{$t('admin.analyticsZeroResultsShort')} · {row.averageResults?.toFixed?.(1) ?? row.averageResults}
+											{$t('admin.analyticsAvgResultsShort')}
+										</span>
+									</div>
+								{/each}
+							</div>
+						{:else if (searchData.tagFilterStats.summary?.searchesWithTagFilter ?? 0) === 0}
+							<p class="text-sm text-gray-500">{$t('admin.analyticsNoTagFilterSearchesInPeriod')}</p>
+						{/if}
+					</div>
+				{/if}
+
 				{#if searchData.trends && searchData.trends.length > 0}
 					<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
 						<h2 class="text-lg font-semibold text-gray-900 mb-4">Search Trends</h2>

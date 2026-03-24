@@ -68,11 +68,13 @@ export class SearchController {
 		const ipAddress = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
 		const userAgent = req.headers['user-agent'];
 		const resultCount = result.photos?.length || result.albums?.length || result.people?.length || result.locations?.length || 0;
+		const ownerSiteId = accessContext?.ownerSiteId;
 		this.analyticsEventService.logSearch(
 			{
 				query: filters.q,
 				searchType: filters.type || 'photos',
 				resultCount,
+				ownerScopeId: ownerSiteId ? String(ownerSiteId) : undefined,
 				filters: {
 					tags: filters.tags,
 					people: filters.people,
@@ -133,11 +135,13 @@ export class SearchController {
 		const ipAddress = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
 		const userAgent = req.headers['user-agent'];
 		const resultCount = result.photos?.length || result.albums?.length || result.people?.length || result.locations?.length || 0;
+		const ownerSiteId = accessContext?.ownerSiteId;
 		this.analyticsEventService.logSearch(
 			{
 				query: filters.q,
 				searchType: filters.type || 'photos',
 				resultCount,
+				ownerScopeId: ownerSiteId ? String(ownerSiteId) : undefined,
 				filters: {
 					tags: filters.tags,
 					people: filters.people,

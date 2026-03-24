@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { connectDB } from '../config/db';
-import mongoose from 'mongoose';
+import mongoose, { Types } from 'mongoose';
 
 export interface DateRange {
   dateFrom?: Date;
@@ -49,6 +49,22 @@ export interface SearchAnalytics {
     date: string;
     searches: number;
   }>;
+  /** How visitors use tag filters in search (from analytics_events). */
+  tagFilterStats: {
+    summary: {
+      searchesWithTagFilter: number;
+      shareOfSearchesPercent: number;
+      zeroResultWithTagFilter: number;
+      averageResultsWhenTagFilter: number;
+    };
+    topFilterTags: Array<{
+      tagId: string;
+      name: string;
+      filterUses: number;
+      zeroResultCount: number;
+      averageResults: number;
+    }>;
+  };
 }
 
 @Injectable()
@@ -283,6 +299,15 @@ export class AnalyticsService {
           locations: 0,
         },
         trends: [],
+        tagFilterStats: {
+          summary: {
+            searchesWithTagFilter: 0,
+            shareOfSearchesPercent: 0,
+            zeroResultWithTagFilter: 0,
+            averageResultsWhenTagFilter: 0,
+          },
+          topFilterTags: [],
+        },
       };
     }
 
@@ -310,6 +335,8 @@ export class AnalyticsService {
     const averageResults = searchesWithResults.length > 0 && searchesWithResults[0].count > 0
       ? searchesWithResults[0].total / searchesWithResults[0].count
       : 0;
+
+    const totalSearchesNum = totalSearches || 0;
 
     // Popular queries
     let popularQueries: any[] = [];
@@ -369,9 +396,11 @@ export class AnalyticsService {
       trends = [];
     }
 
+    const tagFilterStats = await this.buildSearchTagFilterStats(db, matchFilter, totalSearchesNum, limit);
+
     return {
       summary: {
-        totalSearches: totalSearches || 0,
+        totalSearches: totalSearchesNum,
         uniqueQueries: Array.isArray(uniqueQueries) ? uniqueQueries.length : 0,
         averageResults: Math.round(averageResults * 100) / 100,
       },
@@ -391,7 +420,199 @@ export class AnalyticsService {
         date: t._id || '',
         searches: t.searches || 0,
       })),
+      tagFilterStats,
     };
+  }
+
+  /**
+   * Search + tag-filter behavior scoped to one gallery owner (logged-in searches as that user, or anonymous/API on their custom domain).
+   */
+  async getOwnerSearchTagFilterStats(
+    ownerId: string,
+    dateRange?: DateRange,
+    limit: number = 20,
+  ): Promise<{
+    summary: { totalSearches: number };
+    tagFilterStats: SearchAnalytics['tagFilterStats'];
+  }> {
+    await connectDB();
+    const db = mongoose.connection.db;
+    if (!db) {
+      throw new Error('Database connection not established');
+    }
+
+    const collections = await db.listCollections({ name: 'analytics_events' }).toArray();
+    if (collections.length === 0) {
+      return {
+        summary: { totalSearches: 0 },
+        tagFilterStats: {
+          summary: {
+            searchesWithTagFilter: 0,
+            shareOfSearchesPercent: 0,
+            zeroResultWithTagFilter: 0,
+            averageResultsWhenTagFilter: 0,
+          },
+          topFilterTags: [],
+        },
+      };
+    }
+
+    const dateFrom = dateRange?.dateFrom || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const dateTo = dateRange?.dateTo || new Date();
+
+    const ownerSearchMatch: Record<string, unknown> = {
+      type: 'search',
+      timestamp: { $gte: dateFrom, $lte: dateTo },
+      $or: [{ userId: ownerId }, { 'metadata.ownerScopeId': ownerId }],
+    };
+
+    const totalSearches = await db.collection('analytics_events').countDocuments(ownerSearchMatch);
+    const tagFilterStats = await this.buildSearchTagFilterStats(db, ownerSearchMatch, totalSearches, limit);
+
+    return {
+      summary: { totalSearches },
+      tagFilterStats,
+    };
+  }
+
+  private async buildSearchTagFilterStats(
+    db: mongoose.mongo.Db,
+    searchMatch: Record<string, unknown>,
+    totalSearches: number,
+    limit: number,
+  ): Promise<SearchAnalytics['tagFilterStats']> {
+    const tagFilterMatch = {
+      ...searchMatch,
+      'metadata.filters.tags.0': { $exists: true },
+    };
+
+    let searchesWithTagFilter = 0;
+    let zeroResultWithTagFilter = 0;
+    let avgWhenTagFilter = 0;
+    let topFilterTagRows: Array<{
+      _id: string;
+      filterUses: number;
+      zeroResultCount: number;
+      averageResults: number;
+    }> = [];
+
+    try {
+      const [withTagCount, zeroTagCount, avgRows, topRows] = await Promise.all([
+        db.collection('analytics_events').countDocuments(tagFilterMatch),
+        db.collection('analytics_events').countDocuments({
+          ...tagFilterMatch,
+          'metadata.resultCount': 0,
+        }),
+        db
+          .collection('analytics_events')
+          .aggregate([
+            { $match: tagFilterMatch },
+            { $group: { _id: null, avg: { $avg: '$metadata.resultCount' } } },
+          ])
+          .toArray(),
+        db
+          .collection('analytics_events')
+          .aggregate([
+            { $match: tagFilterMatch },
+            { $unwind: '$metadata.filters.tags' },
+            {
+              $group: {
+                _id: '$metadata.filters.tags',
+                filterUses: { $sum: 1 },
+                zeroResultCount: {
+                  $sum: {
+                    $cond: [{ $eq: ['$metadata.resultCount', 0] }, 1, 0],
+                  },
+                },
+                totalResults: { $sum: '$metadata.resultCount' },
+              },
+            },
+            { $sort: { filterUses: -1 } },
+            { $limit: limit },
+          ])
+          .toArray(),
+      ]);
+
+      searchesWithTagFilter = withTagCount || 0;
+      zeroResultWithTagFilter = zeroTagCount || 0;
+      avgWhenTagFilter =
+        avgRows.length > 0 && typeof avgRows[0].avg === 'number'
+          ? Math.round(avgRows[0].avg * 100) / 100
+          : 0;
+
+      topFilterTagRows = topRows.map((r) => ({
+        _id: String(r._id ?? ''),
+        filterUses: r.filterUses || 0,
+        zeroResultCount: r.zeroResultCount || 0,
+        averageResults:
+          r.filterUses > 0
+            ? Math.round(((r.totalResults || 0) / r.filterUses) * 100) / 100
+            : 0,
+      }));
+    } catch (error) {
+      this.logger.warn(
+        `Error aggregating search tag-filter stats: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+
+    const totalSearchesNum = totalSearches || 0;
+    const shareOfSearchesPercent =
+      totalSearchesNum > 0
+        ? Math.round((searchesWithTagFilter / totalSearchesNum) * 10000) / 100
+        : 0;
+
+    const tagIdsForNames = topFilterTagRows
+      .map((r) => r._id)
+      .filter((id) => Types.ObjectId.isValid(id));
+    const tagNameById = new Map<string, string>();
+    if (tagIdsForNames.length > 0) {
+      try {
+        const objectIds = tagIdsForNames.map((id) => new Types.ObjectId(id));
+        const tagDocs = await db
+          .collection('tags')
+          .find({ _id: { $in: objectIds } }, { projection: { name: 1 } })
+          .toArray();
+        for (const doc of tagDocs) {
+          const id = doc._id?.toString();
+          if (id) {
+            tagNameById.set(id, AnalyticsService.formatTagName(doc.name));
+          }
+        }
+      } catch (error) {
+        this.logger.warn(
+          `Error resolving tag names for search analytics: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    }
+
+    const topFilterTags = topFilterTagRows.map((r) => ({
+      tagId: r._id,
+      name: tagNameById.get(r._id) || r._id,
+      filterUses: r.filterUses,
+      zeroResultCount: r.zeroResultCount,
+      averageResults: r.averageResults,
+    }));
+
+    return {
+      summary: {
+        searchesWithTagFilter,
+        shareOfSearchesPercent,
+        zeroResultWithTagFilter,
+        averageResultsWhenTagFilter: avgWhenTagFilter,
+      },
+      topFilterTags,
+    };
+  }
+
+  private static formatTagName(name: unknown): string {
+    if (typeof name === 'string') {
+      return name;
+    }
+    if (name && typeof name === 'object') {
+      const o = name as Record<string, string>;
+      return o.en || o.he || Object.values(o)[0] || '';
+    }
+    return '';
   }
 
   /**
