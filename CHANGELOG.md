@@ -1,6 +1,10 @@
 ## [Unreleased]
 
 ### Added
+- **AI providers health API:** Admin-only endpoint **`GET /api/admin/ai/providers/health`** reports configured provider, auto fallback order, active provider, and per-provider availability/reason for **`google-vision`**, **`clip`**, and **`local`**.
+- **Analytics visibility for AI health:** Admin Analytics overview now includes an **AI Providers Health** panel with active provider status and a manual refresh action.
+- **Vendored BTAG core (TypeScript):** Added local STAG-style core at **`backend/src/services/stag/btag-core.ts`** (CLIP/ResNet tagging + XMP generation) so no private npm registry package is required.
+- **XMP sidecar generation on apply-tags:** Applying tags now writes/updates local photo sidecars (`<image>.xmp`) with **`dc:subject`** and **`lr:hierarchicalSubject`** (`st|` prefix by default, configurable via **`STAG_XMP_PREFIX`**).
 - **Collaboration visibility:** **Admin → Site config → Sharing** exposes a matrix (**comments** / **tasks** / **activity** × **visitors** / **signed-in users**), stored as **`features.collaboration`**. Legacy **`enableComments: false`** without `collaboration` still turns all off. Album owners/admins always see collaboration blocks for moderation. APIs and public album templates respect the same flags.
 - **Collaboration (Phase 4 Stage 3 — extended):** Threaded replies (one level), `@mentions` with **in-app notifications** and email when configured, **comment reporting**, **per-photo comments** in **`PhotoLightbox`** (via **`albumCollaboration`** prop), **`AlbumCollaborationPanel`** (activity feed, tasks with optional approval, album comments), **`GET/PATCH`** notification APIs and **`/notifications`** page, header **Notifications** link with unread badge, **`comments:read` / `comments:write`** on API keys and **v1** album comments. **`docs/COLLABORATION_PHASE4_STAGE3.md`** and **`PHASE_4_WORKFLOW.md`** §3 updated.
 - **Album comments (Phase 4 Stage 3 MVP):** New **`album_comments`** collection and **`CommentsModule`**: **`GET/POST /api/comments/album/:albumId`**, **`PATCH /api/comments/:id`** (`hidden`). Permissions mirror **album view** for read/post; **admin** or **album creator** moderates. Public album templates include collaboration UI; i18n **en/he**. SvelteKit **`/api/comments/**`** proxies. **`GET /albums/.../data`** serialized album includes **`createdBy`** for UI moderation.
@@ -8,6 +12,9 @@
 - **Integration marketplace (Phase 4 Stage 2):** Public **`GET /api/marketplace`** supports **`limit`** (default 100, max 200) and **`offset`**. Listing detail page shows **screenshots** when present. **Admin → Marketplace** can **edit tags** (comma-separated) per listing.
 
 ### Changed
+- **AI provider orchestration:** `auto` now resolves providers in order **`google-vision` → `clip` → `local`** (when not explicitly pinned), with better health diagnostics and operator-facing reasons.
+- **Google Vision quality:** Suggestion extraction now fuses multiple Vision signals (labels/objects/landmarks/web entities), then normalizes, de-duplicates, and re-ranks for better relevance.
+- **Clip provider implementation:** `clip` now uses the vendored BTAG core and DB-backed candidate labels, with fallback labels when needed.
 - **Tag optimization (Phase 4 Stage 4):** Implemented slices A-D end-to-end. Added dismissed suggestion feedback capture (close + per-row dismiss, debounced), photo-level related-tags API with fallback co-occurrence, admin feedback stats endpoint and Tags-page signals panel, and optional feedback-based tag search boost behind `features.enableTagFeedbackSearchBoost` (default off) with Site Config toggle.
 - **Admin i18n coverage:** Localized remaining **Site configuration** sections and controls in **en/he** (Languages, Branding, SEO, Contact, Navigation, EXIF, IPTC/XMP, storage status badges), including tab labels such as **`admin.contactTitle`** and common state keys like **`admin.enabled`**.
 - **Welcome email templates:** **`welcomeEmail.subject`** and **`welcomeEmail.body`** now support **multi-language values** end-to-end. Admin form uses multilingual editors, legacy string values are normalized to `{ en: ... }`, and sending resolves templates by user preferred language with fallback.
@@ -16,6 +23,9 @@
 - **Admin → Users (owners)**: Per-provider JSON for dedicated storage is no longer edited inline on the user form; owners configure credentials on **Owner → Storage**. Copy and i18n updated accordingly.
 
 ### Fixed
+- **AI suggestions apply flow:** Fixed Tag Suggestions modal payload handling so **Apply** reliably sends selected suggestions to backend.
+- **AI suggestions empty-state regressions:** Removed frontend hardcoded high `minConfidence` override and applied provider-specific defaults (lower threshold for CLIP), preventing valid CLIP results from being filtered out.
+- **Build compatibility for new STAG core:** Fixed TypeScript 6 compatibility issues in vendored STAG files (transformers typings, `replaceAll`, strict typing) and Windows build cleanup robustness.
 - **Local AI tagging on Node.js 23+:** `@tensorflow/tfjs-node` failed loading MobileNet with `util.isNullOrUndefined is not a function` because Node removed those helpers. Apply a small `util` polyfill before loading tfjs-node (`tfjs-node-util-polyfill.ts`). Documented in `docs/AI_TAGGING_DESIGN.md`.
 - **Elegant theme – album load more**: Album page now shows a “Load more” button for large albums; pagination (first 50 photos, then load next page) was previously missing in the elegant template.
 - **Owner dashboard – storage card**: The **Storage management** card on `/owner` now appears when **Use dedicated per-owner storage** is enabled, even if the owner’s profile still uses the main site storage connection (`useAdminConfig`).
