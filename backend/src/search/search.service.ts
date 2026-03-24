@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { connectDB } from '../config/db';
 import mongoose, { Types } from 'mongoose';
 import { AlbumsService, type AlbumAccessContext } from '../albums/albums.service';
+import { SiteConfigService } from '../services/site-config';
 
 export interface SearchFilters {
 	q?: string;
@@ -35,6 +36,7 @@ export interface SearchResult {
 @Injectable()
 export class SearchService {
 	private readonly logger = new Logger(SearchService.name);
+	private readonly siteConfigService = SiteConfigService.getInstance();
 
 	constructor(private readonly albumsService: AlbumsService) {}
 
@@ -198,12 +200,17 @@ export class SearchService {
 				})
 				.filter((id): id is Types.ObjectId => id !== null);
 		}
+		let tagFeedbackBoostByTagId = new Map<string, number>();
+		if (hasTagFilter && tagIdsForScoring.length > 0) {
+			tagFeedbackBoostByTagId = await this.getTagFeedbackBoostByTagId(db, tagIdsForScoring);
+		}
 
 		const pipeline: any[] = [{ $match: match }];
 		if (textMatch) pipeline.push({ $match: textMatch });
 
 		// Add relevance scoring for tag-based queries
 		if (hasTagFilter && tagIdsForScoring.length > 0) {
+			const feedbackBoostExpression = this.buildTagFeedbackBoostExpression(tagIdsForScoring, tagFeedbackBoostByTagId);
 			pipeline.push({
 				$addFields: {
 					relevanceScore: {
@@ -251,6 +258,7 @@ export class SearchService {
 										},
 									]
 								: []),
+							feedbackBoostExpression,
 						],
 					},
 				},
@@ -325,6 +333,91 @@ export class SearchService {
 		}));
 
 		return { photos: serialized, total };
+	}
+
+	private async getTagFeedbackBoostByTagId(
+		db: mongoose.mongo.Db,
+		tagIds: Types.ObjectId[],
+	): Promise<Map<string, number>> {
+		try {
+			const config = await this.siteConfigService.getConfig();
+			if (!config.features?.enableTagFeedbackSearchBoost) {
+				return new Map<string, number>();
+			}
+			const idStrings = tagIds.map((id) => id.toString());
+			const rows = await db
+				.collection('tag_feedback')
+				.aggregate([
+					{
+						$match: {
+							tagId: { $in: idStrings },
+							action: { $in: ['applied', 'dismissed'] },
+						},
+					},
+					{
+						$group: {
+							_id: { tagId: '$tagId', action: '$action' },
+							count: { $sum: 1 },
+						},
+					},
+				])
+				.toArray();
+
+			const countsByTag = new Map<string, { applied: number; dismissed: number }>();
+			for (const row of rows as Array<{ _id?: { tagId?: string; action?: string }; count?: number }>) {
+				const tagId = row._id?.tagId;
+				if (!tagId) continue;
+				const current = countsByTag.get(tagId) || { applied: 0, dismissed: 0 };
+				if (row._id?.action === 'applied') current.applied += Number(row.count || 0);
+				if (row._id?.action === 'dismissed') current.dismissed += Number(row.count || 0);
+				countsByTag.set(tagId, current);
+			}
+
+			const boosts = new Map<string, number>();
+			for (const tagId of idStrings) {
+				const counts = countsByTag.get(tagId) || { applied: 0, dismissed: 0 };
+				const total = counts.applied + counts.dismissed;
+				if (total === 0) {
+					boosts.set(tagId, 0);
+					continue;
+				}
+				const ratio = counts.applied / total; // 0..1
+				// Center at 0.5 and keep boost modest to avoid overpowering base relevance.
+				const centered = (ratio - 0.5) * 0.4; // range ~[-0.2, +0.2]
+				boosts.set(tagId, Number(centered.toFixed(4)));
+			}
+			return boosts;
+		} catch (error) {
+			this.logger.warn(
+				`Failed to compute tag feedback boost, using base relevance only: ${error instanceof Error ? error.message : String(error)}`,
+			);
+			return new Map<string, number>();
+		}
+	}
+
+	private buildTagFeedbackBoostExpression(
+		tagIdsForScoring: Types.ObjectId[],
+		boostByTagId: Map<string, number>,
+	): Record<string, unknown> {
+		if (!boostByTagId || boostByTagId.size === 0) return { $literal: 0 };
+		const branches = tagIdsForScoring.map((tagId) => ({
+			case: { $eq: ['$$matchedTag', tagId] },
+			then: boostByTagId.get(tagId.toString()) || 0,
+		}));
+		return {
+			$sum: {
+				$map: {
+					input: { $setIntersection: ['$tags', tagIdsForScoring] },
+					as: 'matchedTag',
+					in: {
+						$switch: {
+							branches,
+							default: 0,
+						},
+					},
+				},
+			},
+		};
 	}
 
 	private async searchAlbums(

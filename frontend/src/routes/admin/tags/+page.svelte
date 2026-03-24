@@ -115,6 +115,19 @@
 	let showDeleteDialog = false;
 	let editingTag: Tag | null = null;
 	let tagToDelete: Tag | null = null;
+	let feedbackStatsLoading = false;
+	let feedbackStatsError = '';
+	let feedbackStats: {
+		total: number;
+		bySource: Record<string, number>;
+		byAction: Record<string, number>;
+		bySourceAction: Record<string, Record<string, number>>;
+	} = {
+		total: 0,
+		bySource: {},
+		byAction: {},
+		bySourceAction: {}
+	};
 
 	// Subscribe to stores
 	crudLoader.items.subscribe(value => tags = value);
@@ -141,8 +154,31 @@
 	};
 
 	onMount(async () => {
-		await crudLoader.loadItems();
+		await Promise.all([crudLoader.loadItems(), loadFeedbackStats()]);
 	});
+
+	async function loadFeedbackStats() {
+		try {
+			feedbackStatsLoading = true;
+			feedbackStatsError = '';
+			const response = await fetch('/api/admin/tags/feedback/stats', { credentials: 'include' });
+			if (!response.ok) {
+				const payload = await response.json().catch(() => ({ error: `HTTP ${response.status}` }));
+				throw new Error(payload.error || `HTTP ${response.status}`);
+			}
+			const result = await response.json();
+			feedbackStats = result.data || {
+				total: 0,
+				bySource: {},
+				byAction: {},
+				bySourceAction: {}
+			};
+		} catch (err) {
+			feedbackStatsError = err instanceof Error ? err.message : 'Failed to load feedback stats';
+		} finally {
+			feedbackStatsLoading = false;
+		}
+	}
 
 	function resetForm() {
 		formData = {
@@ -247,6 +283,47 @@
 			{#if error}
 				<div class="mb-4 p-4 rounded-md bg-red-50 text-red-700">{error}</div>
 			{/if}
+
+			<div class="mb-6 p-4 rounded-md border border-gray-200 bg-gray-50">
+				<div class="flex items-center justify-between gap-3">
+					<div>
+						<h2 class="text-sm font-semibold text-gray-900">Tag Feedback Signals</h2>
+						<p class="text-xs text-gray-600 mt-1">Observed apply/dismiss activity from AI and context suggestions.</p>
+					</div>
+					<button
+						type="button"
+						on:click={loadFeedbackStats}
+						class="px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-100"
+					>
+						Refresh
+					</button>
+				</div>
+
+				{#if feedbackStatsLoading}
+					<p class="mt-3 text-xs text-gray-500">Loading feedback stats...</p>
+				{:else if feedbackStatsError}
+					<p class="mt-3 text-xs text-red-600">{feedbackStatsError}</p>
+				{:else}
+					<div class="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3">
+						<div class="p-3 bg-white border border-gray-200 rounded">
+							<p class="text-xs text-gray-500">Total Events</p>
+							<p class="text-xl font-semibold text-gray-900">{feedbackStats.total || 0}</p>
+						</div>
+						<div class="p-3 bg-white border border-gray-200 rounded">
+							<p class="text-xs text-gray-500">By Source</p>
+							<p class="text-sm text-gray-800">AI: {feedbackStats.bySource.ai || 0}</p>
+							<p class="text-sm text-gray-800">Context: {feedbackStats.bySource.context || 0}</p>
+							<p class="text-sm text-gray-800">Manual: {feedbackStats.bySource.manual || 0}</p>
+						</div>
+						<div class="p-3 bg-white border border-gray-200 rounded">
+							<p class="text-xs text-gray-500">By Action</p>
+							<p class="text-sm text-gray-800">Applied: {feedbackStats.byAction.applied || 0}</p>
+							<p class="text-sm text-gray-800">Dismissed: {feedbackStats.byAction.dismissed || 0}</p>
+							<p class="text-sm text-gray-800">Removed: {feedbackStats.byAction.removed || 0}</p>
+						</div>
+					</div>
+				{/if}
+			</div>
 
 			<!-- Search and Filters -->
 			<div class="flex items-center justify-between mb-6">

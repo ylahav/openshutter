@@ -4,6 +4,7 @@ import { TagSuggestion, SuggestTagsOptions } from '../types';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import sharp from 'sharp';
+import '../tfjs-node-util-polyfill';
 
 // Dynamic imports for TensorFlow.js (optional dependencies)
 // These will be loaded at runtime, so TypeScript won't complain if packages aren't installed
@@ -42,6 +43,13 @@ export class LocalAIProvider extends BaseAIProvider {
   private model: any = null; // MobileNet model type
   private modelLoaded = false;
   private modelLoadingPromise: Promise<void> | null = null;
+  /** Last failure from model load / availability check (for operator-facing errors). */
+  private lastLoadError: string | null = null;
+
+  /** Exposed for AITaggingService when local provider is unavailable. */
+  getLastLoadError(): string | null {
+    return this.lastLoadError;
+  }
 
   async isAvailable(): Promise<boolean> {
     try {
@@ -49,9 +57,14 @@ export class LocalAIProvider extends BaseAIProvider {
       if (!this.modelLoaded) {
         await this.loadModel();
       }
-      return this.model !== null;
+      const ok = this.model !== null;
+      if (ok) {
+        this.lastLoadError = null;
+      }
+      return ok;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
+      this.lastLoadError = errorMessage;
       this.logger.error(`LocalAIProvider not available: ${errorMessage}`);
       if (error instanceof Error && error.stack) {
         this.logger.debug(`Stack trace: ${error.stack}`);

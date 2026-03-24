@@ -394,6 +394,25 @@ export class TagsController {
   }
 
   /**
+   * Get tag feedback stats grouped by source/action.
+   * Path: GET /api/admin/tags/feedback/stats
+   */
+  @Get('feedback/stats')
+  async getTagFeedbackStats() {
+    try {
+      const stats = await TagFeedbackService.getFeedbackStats();
+      return {
+        data: stats,
+      };
+    } catch (error) {
+      this.logger.error('Error getting tag feedback stats:', error);
+      throw new BadRequestException(
+        `Failed to get tag feedback stats: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+    }
+  }
+
+  /**
    * Get related tags based on co-occurrence in TagFeedback.
    * Path: GET /api/admin/tags/related/by-id?tagId=...&limit=10
    */

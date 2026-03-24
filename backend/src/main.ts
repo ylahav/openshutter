@@ -1,3 +1,4 @@
+import './services/ai-tagging/tfjs-node-util-polyfill';
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';

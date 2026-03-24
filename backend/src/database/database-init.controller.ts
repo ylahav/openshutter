@@ -11,6 +11,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { SiteConfigService } from '../services/site-config';
 import { StorageManager } from '../services/storage/manager';
 import { v4 as uuidv4 } from 'uuid';
+import type { MulterIncomingFile } from '../common/types/multer-incoming-file';
 
 @Controller('init')
 export class DatabaseInitController {
@@ -196,7 +197,7 @@ export class DatabaseInitController {
   }))
   async initialSetup(
     @Req() request: Request,
-    @UploadedFile() logoFile?: Express.Multer.File,
+    @UploadedFile() logoFile?: MulterIncomingFile,
   ) {
     // Get form fields from request body (parsed by multer)
     const body = request.body as {
@@ -286,6 +287,10 @@ export class DatabaseInitController {
         if (!allowedMimeTypes.includes(logoFile.mimetype)) {
           throw new BadRequestException(`File type ${logoFile.mimetype} is not allowed. Allowed types: images only`);
         }
+        const logoBuffer = logoFile.buffer;
+        if (!logoBuffer) {
+          throw new BadRequestException('Logo file has no in-memory buffer; cannot upload');
+        }
 
         const fileExtension = logoFile.originalname.split('.').pop() || 'png';
         const filename = `logo-${uuidv4()}.${fileExtension}`;
@@ -294,7 +299,7 @@ export class DatabaseInitController {
         const storageManager = StorageManager.getInstance();
         const defaultProvider = (process.env.STORAGE_PROVIDER || 'local') as any;
         const uploadResult = await storageManager.uploadBuffer(
-          logoFile.buffer,
+          logoBuffer,
           filePath,
           defaultProvider,
           logoFile.mimetype

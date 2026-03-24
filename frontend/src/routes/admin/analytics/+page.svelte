@@ -13,6 +13,13 @@
 
 	type Tab = 'overview' | 'views' | 'search' | 'tags' | 'albums' | 'storage';
 	let activeTab: Tab = 'overview';
+	type ProviderKey = 'google-vision' | 'clip' | 'local';
+	interface AIProvidersHealthData {
+		configuredProvider: string;
+		autoOrder: ProviderKey[];
+		activeProvider: ProviderKey | null;
+		providers: Record<ProviderKey, { available: boolean; reason: string }>;
+	}
 
 	interface AnalyticsData {
 		overview: {
@@ -78,7 +85,10 @@
 	let storageData: any = null;
 	let loading = true;
 	let loadingTab = false;
+	let loadingAIHealth = false;
 	let error = '';
+	let aiHealthError = '';
+	let aiHealth: AIProvidersHealthData | null = null;
 
 	// Date range for filtered analytics
 	let dateFrom = '';
@@ -94,7 +104,26 @@
 		dateFrom = from.toISOString().split('T')[0];
 
 		await loadAnalytics();
+		await loadAIHealth();
 	});
+
+	async function loadAIHealth() {
+		loadingAIHealth = true;
+		aiHealthError = '';
+		try {
+			const response = await fetch('/api/admin/ai/providers/health');
+			if (!response.ok) {
+				await handleApiErrorResponse(response);
+			}
+			const result = await response.json();
+			aiHealth = (result.data || result) as AIProvidersHealthData;
+		} catch (err) {
+			logger.error('Error loading AI providers health:', err);
+			aiHealthError = handleError(err, 'Failed to load AI providers health');
+		} finally {
+			loadingAIHealth = false;
+		}
+	}
 
 	async function loadAnalytics() {
 		loading = true;
@@ -490,6 +519,57 @@
 						</div>
 					</div>
 				</div>
+			</div>
+
+			<!-- AI Providers Health -->
+			<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+				<div class="flex items-center justify-between mb-4">
+					<div>
+						<h2 class="text-lg font-semibold text-gray-900">AI Providers Health</h2>
+						<p class="text-sm text-gray-500 mt-1">Current provider selection and fallback readiness</p>
+					</div>
+					<button
+						on:click={loadAIHealth}
+						class="px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 text-sm font-medium"
+						disabled={loadingAIHealth}
+					>
+						{loadingAIHealth ? 'Refreshing...' : 'Refresh'}
+					</button>
+				</div>
+
+				{#if aiHealthError}
+					<div class="mb-3 p-3 rounded-md bg-red-50 text-red-700 text-sm">{aiHealthError}</div>
+				{/if}
+
+				{#if aiHealth}
+					<div class="mb-4 text-sm text-gray-700">
+						<span class="font-medium">Configured:</span> {aiHealth.configuredProvider}
+						<span class="mx-2 text-gray-400">|</span>
+						<span class="font-medium">Active:</span>
+						<span class="{aiHealth.activeProvider ? 'text-green-700' : 'text-red-700'}">
+							{aiHealth.activeProvider || 'none'}
+						</span>
+					</div>
+
+					<div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+						{#each ['google-vision', 'clip', 'local'] as key}
+							{@const p = aiHealth.providers[key as ProviderKey]}
+							<div class="rounded-md border p-3 {p?.available ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}">
+								<div class="flex items-center justify-between mb-1">
+									<span class="font-medium text-gray-900">{key}</span>
+									<span class="text-xs {p?.available ? 'text-green-700' : 'text-red-700'}">
+										{p?.available ? 'available' : 'unavailable'}
+									</span>
+								</div>
+								<p class="text-xs text-gray-700 wrap-break-word">{p?.reason || 'No details'}</p>
+							</div>
+						{/each}
+					</div>
+				{:else if loadingAIHealth}
+					<div class="text-sm text-gray-500">Loading provider health...</div>
+				{:else}
+					<div class="text-sm text-gray-500">No provider health data yet.</div>
+				{/if}
 			</div>
 
 			<!-- Recent Activity -->

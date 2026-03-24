@@ -18,6 +18,28 @@
 	export let error: string | null = null;
 	export let provider: string = 'local';
 	export let processingTime: number = 0;
+export let onApply:
+	| ((selected: Array<{
+			label: string;
+			confidence: number;
+			category?: string;
+			matchedTag?: { id: string; name: string };
+			isNewTag: boolean;
+			source?: string;
+			reason?: string;
+	  }>) => void)
+	| undefined = undefined;
+export let onDismiss:
+	| ((suggestion: {
+			label: string;
+			confidence: number;
+			category?: string;
+			matchedTag?: { id: string; name: string };
+			isNewTag: boolean;
+			source?: string;
+			reason?: string;
+	  }) => void)
+	| undefined = undefined;
 
 	const dispatch = createEventDispatcher();
 
@@ -39,8 +61,24 @@
 
 	function handleApply() {
 		const selected = suggestions.filter((s) => selectedSuggestions.has(s.label));
-		dispatch('apply', { detail: selected });
+		if (onApply) onApply(selected);
+		dispatch('apply', selected);
 		selectedSuggestions.clear();
+	}
+
+	function handleDismiss(suggestion: {
+		label: string;
+		confidence: number;
+		category?: string;
+		matchedTag?: { id: string; name: string };
+		isNewTag: boolean;
+		source?: string;
+		reason?: string;
+	}) {
+		selectedSuggestions.delete(suggestion.label);
+		selectedSuggestions = selectedSuggestions;
+		if (onDismiss) onDismiss(suggestion);
+		dispatch('dismiss', suggestion);
 	}
 
 	function formatConfidence(confidence: number): string {
@@ -61,10 +99,19 @@
 </script>
 
 {#if isOpen}
-	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" on:click={handleClose}>
+	<div
+		class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+		on:click={handleClose}
+		on:keydown={(e) => (e.key === 'Escape' || e.key === 'Enter') && handleClose()}
+		role="button"
+		tabindex="0"
+	>
 		<div
 			class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[80vh] flex flex-col"
 			on:click|stopPropagation
+			on:keydown|stopPropagation
+			role="dialog"
+			tabindex="0"
 		>
 			<div class="flex justify-between items-center mb-4">
 				<h3 class="text-lg font-semibold">{provider === 'context' ? 'Context-Based Tag Suggestions' : 'AI Tag Suggestions'}</h3>
@@ -72,6 +119,7 @@
 					type="button"
 					on:click={handleClose}
 					class="text-gray-400 hover:text-gray-600 focus:outline-none"
+					aria-label="Close suggestions modal"
 				>
 					<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -149,7 +197,7 @@
 					<div class="space-y-2">
 						{#each suggestions as suggestion}
 							{@const isSelected = selectedSuggestions.has(suggestion.label)}
-							<label
+							<div
 								class="flex items-start gap-3 p-3 rounded-md border cursor-pointer transition-colors {isSelected
 									? 'bg-purple-50 border-purple-300'
 									: 'bg-white border-gray-200 hover:bg-gray-50'}"
@@ -188,7 +236,14 @@
 										<p class="text-xs text-gray-400 mt-1">{suggestion.reason}</p>
 									{/if}
 								</div>
-							</label>
+								<button
+									type="button"
+									class="px-2 py-1 text-xs text-red-600 border border-red-200 rounded hover:bg-red-50"
+									on:click|stopPropagation={() => handleDismiss(suggestion)}
+								>
+									Dismiss
+								</button>
+							</div>
 						{/each}
 					</div>
 				</div>
