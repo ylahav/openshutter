@@ -23,6 +23,7 @@ import { storageConfigService } from '../services/storage/config';
 import { StorageError, StorageProviderId } from '../services/storage/types';
 import { resolveOwnerStorageContext } from '../services/storage/owner-storage-context';
 import { appendStorageOwnerQuery } from '../services/storage/storage-serve-url';
+import type { MulterIncomingFile } from '../common/types/multer-incoming-file';
 
 const COLLECTION = 'owner_site_settings';
 const ALLOWED_LOGO_MIME = [
@@ -165,7 +166,7 @@ export class OwnerSiteSettingsController {
       limits: { fileSize: 2 * 1024 * 1024 }, // 2MB for logo
     }),
   )
-  async uploadLogo(@Req() req: Request, @UploadedFile() file: Express.Multer.File) {
+  async uploadLogo(@Req() req: Request, @UploadedFile() file: MulterIncomingFile) {
     const user = (req as any).user;
     if (!user?.id) {
       throw new ForbiddenException('Authentication required');
@@ -180,6 +181,10 @@ export class OwnerSiteSettingsController {
       throw new BadRequestException(
         `File type ${file.mimetype} is not allowed. Use JPEG, PNG, GIF, WebP or SVG.`,
       );
+    }
+    const fileBuffer = file.buffer;
+    if (!fileBuffer) {
+      throw new BadRequestException('File has no in-memory buffer; cannot upload');
     }
 
     const ext = file.originalname.split('.').pop()?.toLowerCase() || 'png';
@@ -203,7 +208,7 @@ export class OwnerSiteSettingsController {
       }
       try {
         const uploadResult = await storageManager.uploadBuffer(
-          file.buffer,
+          fileBuffer,
           filePath,
           provider,
           file.mimetype,

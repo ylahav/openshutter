@@ -361,7 +361,11 @@
 									? 'bg-blue-50 border border-blue-200'
 									: 'border border-transparent'}"
 							>
-								<span class="flex-1">{getItemName(item)}</span>
+								<span
+									class="flex-1 {isSelected(item) ? 'text-blue-900 font-medium' : 'text-gray-900'}"
+								>
+									{getItemName(item)}
+								</span>
 								{#if isSelected(item)}
 									<svg class="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
 										<path

@@ -1,23 +1,33 @@
 /**
- * TensorFlow.js Node backend still calls Node's deprecated util.isNullOrUndefined /
- * util.isArray in some paths. Those helpers were removed in Node.js 23+, which breaks
- * MobileNet load with: "(0 , util_1.isNullOrUndefined) is not a function".
+ * TensorFlow.js Node still calls Node's legacy `util.isNullOrUndefined` / `util.isArray`
+ * (removed in Node.js 23+), which breaks MobileNet load.
  *
- * Import this module once before any `import('@tensorflow/tfjs-node')`.
- * @see https://github.com/tensorflow/tfjs/pull/8425
+ * Must run before any `require('@tensorflow/tfjs-node')`. Loaded from `main.ts` and again
+ * from `local.provider.ts` so dev/watch and dynamic imports are covered.
+ *
+ * We use `require('util')` so we mutate the exact object CommonJS consumers get from `require('util')`.
+ * `import * as u from 'node:util'` can be a live binding namespace that does not patch `require('util')` reliably.
  */
-import * as nodeUtil from 'node:util';
-
-type UtilWithLegacy = typeof nodeUtil & {
-	isNullOrUndefined?: (v: unknown) => boolean;
-	isArray?: (a: unknown) => boolean;
-};
-
-const u = nodeUtil as UtilWithLegacy;
-
-if (typeof u.isNullOrUndefined !== 'function') {
-	(u as Record<string, unknown>).isNullOrUndefined = (v: unknown) => v == null;
+/* eslint-disable @typescript-eslint/no-require-imports */
+function patchUtil(u: Record<string, unknown>): void {
+	if (typeof u.isNullOrUndefined !== 'function') {
+		u.isNullOrUndefined = (v: unknown) => v == null;
+	}
+	if (typeof u.isArray !== 'function') {
+		u.isArray = Array.isArray;
+	}
 }
-if (typeof u.isArray !== 'function') {
-	(u as Record<string, unknown>).isArray = Array.isArray;
+
+const utilMod = require('util') as Record<string, unknown>;
+patchUtil(utilMod);
+
+try {
+	const nu = require('node:util') as Record<string, unknown>;
+	if (nu !== utilMod) {
+		patchUtil(nu);
+	}
+} catch {
+	// ignore
 }
+
+export {};

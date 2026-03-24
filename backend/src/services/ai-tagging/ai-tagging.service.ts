@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { AITaggingProvider, TagSuggestion, SuggestTagsOptions, AIProvider } from './types';
 import { LocalAIProvider } from './providers/local.provider';
 import { GoogleVisionProvider } from './providers/google-vision.provider';
+import { ClipAIProvider } from './providers/clip.provider';
 import { TagMappingService } from './tag-mapping.service';
 
 /**
@@ -15,31 +16,65 @@ export class AITaggingService {
   constructor(
     private readonly localProvider: LocalAIProvider,
     private readonly googleVisionProvider: GoogleVisionProvider,
+    private readonly clipProvider: ClipAIProvider,
     private readonly tagMappingService: TagMappingService
   ) {
     this.providers.set('local', localProvider);
     this.providers.set('google-vision', googleVisionProvider);
+    this.providers.set('clip', clipProvider);
   }
 
   /**
-   * Get the configured provider based on environment/config
+   * Resolve which backend implementation to use.
+   * - Explicit `local` / `google-vision` / `clip`: only that provider.
+   * - `auto` or unset: if AI_TAGGING_PROVIDER is pinned, use it; otherwise try google-vision, then clip, then local.
    */
-  private getProvider(providerOverride?: AIProvider): AITaggingProvider {
-    const configuredProvider = (process.env.AI_TAGGING_PROVIDER || 'local') as AIProvider;
-    
-    // Handle 'auto' by using the configured provider
-    let provider = providerOverride === 'auto' ? configuredProvider : (providerOverride || configuredProvider);
-
-    if (provider === 'disabled') {
+  private async resolveProvider(requested?: AIProvider): Promise<{
+    impl: AITaggingProvider;
+    name: 'local' | 'google-vision' | 'clip';
+  }> {
+    if (requested === 'disabled') {
       throw new Error('AI tagging is disabled');
     }
 
-    const providerInstance = this.providers.get(provider);
-    if (!providerInstance) {
-      throw new Error(`AI tagging provider '${provider}' not found`);
+    const env = (process.env.AI_TAGGING_PROVIDER || '').trim();
+
+    const order = (): Array<'local' | 'google-vision' | 'clip'> => {
+      if (requested === 'local' || requested === 'google-vision' || requested === 'clip') {
+        return [requested];
+      }
+      // auto or undefined
+      if (env === 'local') {
+        return ['local'];
+      }
+      if (env === 'google-vision') {
+        return ['google-vision'];
+      }
+      if (env === 'clip') {
+        return ['clip'];
+      }
+      return ['google-vision', 'clip', 'local'];
+    };
+
+    const tried: Array<'local' | 'google-vision' | 'clip'> = [];
+    for (const name of order()) {
+      tried.push(name);
+      const impl = this.providers.get(name);
+      if (!impl) {
+        continue;
+      }
+      if (await impl.isAvailable()) {
+        return { impl, name };
+      }
     }
 
-    return providerInstance;
+    const localDetail = this.localProvider.getLastLoadError?.() ?? 'see Nest logs for LocalAIProvider';
+    throw new Error(
+      `No AI tagging provider is available. Tried: ${[...new Set(tried)].join(', ')}. ` +
+        `Google Vision: set GOOGLE_CLOUD_VISION_API_KEY on the Nest backend (PM2/env for the API), not the frontend; enable Cloud Vision API and create an API key. ` +
+        `Local MobileNet last error: ${localDetail}. ` +
+        `Hints: deploy latest backend (util polyfill runs from main.ts); or use Node 22 LTS; on Linux try \`pnpm rebuild @tensorflow/tfjs-node\` in the backend directory.`,
+    );
   }
 
   /**
@@ -56,21 +91,7 @@ export class AITaggingService {
     const startTime = Date.now();
     
     try {
-      const provider = this.getProvider(options.provider);
-      
-      // Check if provider is available
-      const isAvailable = await provider.isAvailable();
-      if (!isAvailable) {
-        const providerName = options.provider || 'auto';
-        throw new Error(
-          `AI tagging provider "${providerName}" is not available. ` +
-          `Check backend logs for details. Common issues: ` +
-          `1) TensorFlow.js model download failed (check network), ` +
-          `2) Missing native dependencies, ` +
-          `3) Model loading timeout. ` +
-          `For local provider, ensure @tensorflow/tfjs-node and @tensorflow-models/mobilenet are installed.`
-        );
-      }
+      const { impl: provider, name: usedProviderName } = await this.resolveProvider(options.provider);
 
       // Get raw suggestions from AI provider
       const rawSuggestions = await provider.suggestTags(imagePath, options);
@@ -97,22 +118,24 @@ export class AITaggingService {
       );
 
       // Filter and sort
-      const minConfidence = options.minConfidence || 0.5;
+      // CLIP zero-shot scores are typically lower than classifier-style probabilities.
+      // Use provider-specific defaults when caller did not supply minConfidence.
+      const minConfidence =
+        options.minConfidence ??
+        (usedProviderName === 'clip' ? 0.18 : 0.5);
       const filtered = mappedSuggestions.filter(s => s.confidence >= minConfidence);
       const sorted = filtered.sort((a, b) => b.confidence - a.confidence);
       const limited = sorted.slice(0, options.maxSuggestions || 10);
 
       const processingTime = Date.now() - startTime;
-      // Resolve 'auto' to actual provider used
-      const resolvedProvider = options.provider === 'auto' 
-        ? (process.env.AI_TAGGING_PROVIDER || 'local') as AIProvider
-        : (options.provider || process.env.AI_TAGGING_PROVIDER || 'local') as AIProvider;
 
-      this.logger.debug(`AI tagging completed: ${limited.length} suggestions using ${resolvedProvider} in ${processingTime}ms`);
+      this.logger.debug(
+        `AI tagging completed: ${limited.length}/${mappedSuggestions.length} suggestions using ${usedProviderName} in ${processingTime}ms (minConfidence=${minConfidence})`,
+      );
 
       return {
         suggestions: limited,
-        provider: resolvedProvider,
+        provider: usedProviderName,
         processingTime,
       };
     } catch (error) {
@@ -129,11 +152,11 @@ export class AITaggingService {
       return false;
     }
 
-    const providerInstance = this.providers.get(provider);
-    if (!providerInstance) {
+    try {
+      await this.resolveProvider(provider === 'auto' ? undefined : provider);
+      return true;
+    } catch {
       return false;
     }
-
-    return providerInstance.isAvailable();
   }
 }

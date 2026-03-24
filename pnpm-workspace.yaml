@@ -10,5 +10,6 @@ onlyBuiltDependencies:
   - canvas
   - core-js
   - esbuild
+  - protobufjs
   - sharp
   - unrs-resolver

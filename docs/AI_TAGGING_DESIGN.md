@@ -219,6 +219,20 @@ Respect existing tag categories:
 }
 ```
 
+When tags are applied, backend also writes/updates a sidecar `XMP` file (`<image>.xmp`) for local-storage photos:
+- `dc:subject` contains tag keywords
+- `lr:hierarchicalSubject` contains prefixed keywords (`st|keyword` by default)
+
+### 5.4 AI Provider Health
+
+**Endpoint:** `GET /api/admin/ai/providers/health` (admin only)
+
+Returns:
+- configured provider (`AI_TAGGING_PROVIDER` or `auto`)
+- fallback order used by `auto`
+- currently active provider
+- per-provider availability + reason (`google-vision`, `clip`, `local`)
+
 ---
 
 ## 6. Configuration
@@ -227,11 +241,13 @@ Respect existing tag categories:
 
 ```bash
 # AI Tagging Provider
-AI_TAGGING_PROVIDER=local|google-vision|disabled
+AI_TAGGING_PROVIDER=local|google-vision|clip|auto|disabled
 
-# Google Cloud Vision API (if using external API)
+# Google Cloud Vision API (optional cloud provider for AI suggest-tags)
+# Get key: https://console.cloud.google.com/ → APIs & Services → enable "Cloud Vision API"
+# → Credentials → Create credentials → API key (restrict to Vision API + server IP in production).
+# Set only on the Nest backend process (e.g. PM2 ecosystem `env` for the API), not on the SvelteKit app.
 GOOGLE_CLOUD_VISION_API_KEY=your-api-key
-GOOGLE_CLOUD_VISION_PROJECT_ID=your-project-id
 
 # Local Model Configuration
 AI_TAGGING_LOCAL_MODEL_PATH=./models/mobilenet
@@ -332,6 +348,13 @@ AI_TAGGING_QUEUE_ENABLED=true
 - Image preprocessing with Sharp (resize to 224x224, RGB conversion)
 - Returns predictions with class names and confidence scores from 1000 ImageNet classes
 
+**CLIP Model (offline semantic ranking):** ✅ Implemented
+- Vendored BTAG core (`backend/src/services/stag/btag-core.ts`) using `@xenova/transformers` with `Xenova/clip-vit-base-patch32`
+- Uses zero-shot image classification against your active tag vocabulary from DB
+- Better semantic matching to repository tags than raw ImageNet labels
+- Falls back to a curated default vocabulary if tags are unavailable
+- Works in `AI_TAGGING_PROVIDER=clip`, or via `auto` fallback order (`google-vision` → `clip` → `local`)
+
 **Node.js 23+:** `@tensorflow/tfjs-node` 4.22.x still calls Node’s removed `util.isNullOrUndefined` (and may expect `util.isArray`), which causes `TypeError: (0 , util_1.isNullOrUndefined) is not a function` when loading MobileNet. The backend imports `backend/src/services/ai-tagging/tfjs-node-util-polyfill.ts` before any `import('@tensorflow/tfjs-node')` to restore those helpers. **Alternative:** run the API on **Node.js 22 LTS** without the polyfill.
 
 **External API:**
@@ -344,6 +367,7 @@ AI_TAGGING_QUEUE_ENABLED=true
 - **Local storage:** Photo file path is resolved from storage config (base path + relative path) and read directly.
 - **Google Drive (and other remote providers):** Photo is downloaded via `StorageManager.getPhotoBuffer()` to a temporary file in the system temp directory, processed for AI tagging, then the temp file is deleted. Supports single-photo and bulk suggest-tags.
 - **Extensibility:** Any storage provider that implements `getFileBuffer()` can be used for AI tagging without further backend changes.
+- **XMP sidecars on apply-tags:** when tags are applied to a photo, backend writes/updates a sidecar file (`<image>.xmp`) for **local storage photos** with `dc:subject` and `lr:hierarchicalSubject` entries. Hierarchical prefix defaults to `st` and can be changed via `STAG_XMP_PREFIX`.
 
 ---
 

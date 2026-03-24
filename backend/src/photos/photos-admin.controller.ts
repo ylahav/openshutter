@@ -33,6 +33,7 @@ import { CropPhotoDto } from './dto/crop-photo.dto';
 import sharp from 'sharp';
 import { ImageCompressionService } from '../services/image-compression';
 import { extractStorageServePath } from '../services/storage/storage-serve-url';
+import { XmpSidecarService } from '../services/stag/xmp-sidecar.service';
 
 function storageServeQs(photo: unknown): string {
 	const id = (photo as { storage?: { storageOwnerId?: string } } | null | undefined)?.storage?.storageOwnerId;
@@ -1708,7 +1709,7 @@ export class PhotosAdminController {
 	async suggestTags(
 		@Param('id') id: string,
 		@Body() body: {
-			provider?: 'local' | 'google-vision' | 'auto';
+			provider?: 'local' | 'google-vision' | 'clip' | 'auto';
 			minConfidence?: number;
 			maxSuggestions?: number;
 			createNewTags?: boolean;
@@ -1752,11 +1753,13 @@ export class PhotosAdminController {
 			const { TagMappingService } = await import('../services/ai-tagging/tag-mapping.service');
 			const { LocalAIProvider } = await import('../services/ai-tagging/providers/local.provider');
 			const { GoogleVisionProvider } = await import('../services/ai-tagging/providers/google-vision.provider');
+			const { ClipAIProvider } = await import('../services/ai-tagging/providers/clip.provider');
 			
 			const tagMappingService = new TagMappingService();
 			const localProvider = new LocalAIProvider();
 			const googleVisionProvider = new GoogleVisionProvider();
-			const aiTaggingService = new AITaggingService(localProvider, googleVisionProvider, tagMappingService);
+			const clipProvider = new ClipAIProvider();
+			const aiTaggingService = new AITaggingService(localProvider, googleVisionProvider, clipProvider, tagMappingService);
 
 			const path = require('path');
 			const fs = require('fs').promises;
@@ -1806,28 +1809,20 @@ export class PhotosAdminController {
 			const message = error instanceof Error ? error.message : String(error);
 			this.logger.error(`Failed to suggest tags: ${message}`);
 
-			// For explicitly disabled / unavailable AI, return a structured payload
-			// instead of relying on Nest's exception wrapper, so the client gets a clear message.
-			if (
-				message.includes('AI tagging is disabled') ||
-				message.includes('AI tagging provider "') ||
-				message.includes('@tensorflow/tfjs-node is not installed') ||
-				message.includes('MobileNet model failed to load')
-			) {
-				return {
-					success: false,
-					error: message,
-				};
-			}
-
 			// Pass through known 4xx errors unchanged
 			if (error instanceof NotFoundException || error instanceof BadRequestException) {
 				throw error;
 			}
+			if (error instanceof ForbiddenException) {
+				throw error;
+			}
 
-			throw new InternalServerErrorException(
-				`Failed to suggest tags: ${message || 'Unknown error'}`
-			);
+			// Admin-only: return 200 + { success: false, error } so operators always see the reason.
+			// Nest often omits exception messages on 500 in production, which produced opaque failures.
+			return {
+				success: false,
+				error: message || 'Unknown error',
+			};
 		}
 	}
 
@@ -2069,7 +2064,7 @@ export class PhotosAdminController {
 	async bulkSuggestTags(
 		@Body() body: {
 			photoIds: string[];
-			provider?: 'local' | 'google-vision' | 'auto';
+			provider?: 'local' | 'google-vision' | 'clip' | 'auto';
 			minConfidence?: number;
 			maxSuggestions?: number;
 			createNewTags?: boolean;
@@ -2374,6 +2369,22 @@ export class PhotosAdminController {
 				);
 			}
 
+			// Write/update XMP sidecar for local-storage photos.
+			try {
+				const xmpRes = await XmpSidecarService.writePhotoTagsSidecar({
+					db,
+					photo,
+					tagIds: allTagIds,
+				});
+				if (!xmpRes.written) {
+					this.logger.debug(`XMP sidecar skipped for photo ${id}: ${xmpRes.reason}`);
+				}
+			} catch (xmpError) {
+				this.logger.warn(
+					`Failed writing XMP sidecar for photo ${id}: ${xmpError instanceof Error ? xmpError.message : String(xmpError)}`,
+				);
+			}
+
 			return {
 				success: true,
 				data: {
@@ -2399,7 +2410,7 @@ export class PhotosAdminController {
 		jobId: string,
 		photoIds: string[],
 		options: {
-			provider?: 'local' | 'google-vision' | 'auto';
+			provider?: 'local' | 'google-vision' | 'clip' | 'auto';
 			minConfidence?: number;
 			maxSuggestions?: number;
 			createNewTags?: boolean;
@@ -2488,11 +2499,13 @@ export class PhotosAdminController {
 					const { TagMappingService } = await import('../services/ai-tagging/tag-mapping.service');
 					const { LocalAIProvider } = await import('../services/ai-tagging/providers/local.provider');
 					const { GoogleVisionProvider } = await import('../services/ai-tagging/providers/google-vision.provider');
+					const { ClipAIProvider } = await import('../services/ai-tagging/providers/clip.provider');
 					
 					const tagMappingService = new TagMappingService();
 					const localProvider = new LocalAIProvider();
 					const googleVisionProvider = new GoogleVisionProvider();
-					const aiTaggingService = new AITaggingService(localProvider, googleVisionProvider, tagMappingService);
+					const clipProvider = new ClipAIProvider();
+					const aiTaggingService = new AITaggingService(localProvider, googleVisionProvider, clipProvider, tagMappingService);
 
 					const result = await aiTaggingService.suggestTags(writtenPath, options);
 					

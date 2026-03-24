@@ -20,9 +20,16 @@ export const POST: RequestHandler = async ({ params, request, locals, cookies })
 		const response = await backendPost(`/admin/photos/${id}/suggest-tags`, body, { cookies });
 		const result = await parseBackendResponse<any>(response);
 
+		if (result?.success === false) {
+			return json({
+				success: false,
+				error: result.error || 'Failed to suggest tags',
+			});
+		}
+
 		return json({
 			success: result.success !== undefined ? result.success : true,
-			data: result.data || result,
+			data: result.data ?? result,
 		});
 	} catch (error) {
 		logger.error('Suggest tags API error:', error);

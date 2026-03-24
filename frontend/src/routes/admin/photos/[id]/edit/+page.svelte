@@ -763,7 +763,6 @@
 				credentials: 'include',
 				body: JSON.stringify({
 					provider: 'auto',
-					minConfidence: 0.5,
 					maxSuggestions: 10,
 					createNewTags: false,
 				}),
@@ -1899,6 +1898,8 @@
 	error={aiTagSuggestionsError}
 	provider={aiTagProvider}
 	processingTime={aiTagProcessingTime}
+	onApply={handleApplyAITags}
+	onDismiss={handleDismissAISuggestion}
 	on:close={() => {
 		queueSuggestionDismissFeedback('ai', aiTagSuggestions);
 		void flushSuggestionDismissFeedback('ai');
@@ -1917,6 +1918,8 @@
 	error={contextTagSuggestionsError}
 	provider="context"
 	processingTime={0}
+	onApply={handleApplyContextTags}
+	onDismiss={handleDismissContextSuggestion}
 	on:close={() => {
 		queueSuggestionDismissFeedback('context', contextTagSuggestions);
 		void flushSuggestionDismissFeedback('context');

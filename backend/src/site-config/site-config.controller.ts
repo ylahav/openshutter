@@ -10,6 +10,7 @@ import { StorageManager } from '../services/storage/manager';
 import { storageConfigService } from '../services/storage/config';
 import { StorageError, StorageProviderId } from '../services/storage/types';
 import { v4 as uuidv4 } from 'uuid';
+import type { MulterIncomingFile } from '../common/types/multer-incoming-file';
 
 @Controller()
 export class SiteConfigController {
@@ -201,7 +202,7 @@ export class SiteConfigController {
       fileSize: 5 * 1024 * 1024, // 5MB limit for assets
     },
   }))
-  async uploadAsset(@UploadedFile() file: Express.Multer.File) {
+  async uploadAsset(@UploadedFile() file: MulterIncomingFile) {
     if (!file) {
       throw new BadRequestException('No file provided');
     }
@@ -210,6 +211,10 @@ export class SiteConfigController {
     const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/x-icon', 'image/vnd.microsoft.icon'];
     if (!allowedMimeTypes.includes(file.mimetype)) {
       throw new BadRequestException(`File type ${file.mimetype} is not allowed. Allowed types: images only`);
+    }
+    const fileBuffer = file.buffer;
+    if (!fileBuffer) {
+      throw new BadRequestException('File has no in-memory buffer; cannot upload');
     }
 
     // Generate unique filename
@@ -234,7 +239,7 @@ export class SiteConfigController {
 
       try {
         const uploadResult = await storageManager.uploadBuffer(
-          file.buffer,
+          fileBuffer,
           filePath,
           provider,
           file.mimetype

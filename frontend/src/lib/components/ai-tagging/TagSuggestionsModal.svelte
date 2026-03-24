@@ -18,6 +18,28 @@
 	export let error: string | null = null;
 	export let provider: string = 'local';
 	export let processingTime: number = 0;
+export let onApply:
+	| ((selected: Array<{
+			label: string;
+			confidence: number;
+			category?: string;
+			matchedTag?: { id: string; name: string };
+			isNewTag: boolean;
+			source?: string;
+			reason?: string;
+	  }>) => void)
+	| undefined = undefined;
+export let onDismiss:
+	| ((suggestion: {
+			label: string;
+			confidence: number;
+			category?: string;
+			matchedTag?: { id: string; name: string };
+			isNewTag: boolean;
+			source?: string;
+			reason?: string;
+	  }) => void)
+	| undefined = undefined;
 
 	const dispatch = createEventDispatcher();
 
@@ -39,7 +61,8 @@
 
 	function handleApply() {
 		const selected = suggestions.filter((s) => selectedSuggestions.has(s.label));
-		dispatch('apply', { detail: selected });
+		if (onApply) onApply(selected);
+		dispatch('apply', selected);
 		selectedSuggestions.clear();
 	}
 
@@ -54,7 +77,8 @@
 	}) {
 		selectedSuggestions.delete(suggestion.label);
 		selectedSuggestions = selectedSuggestions;
-		dispatch('dismiss', { detail: suggestion });
+		if (onDismiss) onDismiss(suggestion);
+		dispatch('dismiss', suggestion);
 	}
 
 	function formatConfidence(confidence: number): string {

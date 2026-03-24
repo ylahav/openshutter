@@ -19,6 +19,7 @@ import { PhotosService } from './photos.service';
 import { PhotoUploadService } from '../services/photo-upload';
 import { FileUploadInterceptor } from '../common/interceptors/file-upload.interceptor';
 import { AnalyticsEventService } from '../analytics/analytics-event.service';
+import type { MulterIncomingFile } from '../common/types/multer-incoming-file';
 
 @Controller('photos')
 export class PhotosController {
@@ -84,7 +85,7 @@ export class PhotosController {
     FileUploadInterceptor,
   )
   async upload(
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile() file: MulterIncomingFile,
     @Query('albumId') albumId?: string,
     @Query('title') title?: string,
     @Query('description') description?: string,
@@ -99,6 +100,10 @@ export class PhotosController {
   ) {
     if (!file) {
       throw new BadRequestException('No file provided');
+    }
+    const fileBuffer = file.buffer;
+    if (!fileBuffer) {
+      throw new BadRequestException('File has no in-memory buffer; cannot upload');
     }
 
     // Also try to get albumId from request.body (multer stores FormData fields there)
@@ -146,7 +151,7 @@ export class PhotosController {
           : false;
     
     const result = await this.photoUploadService.uploadPhoto(
-      file.buffer,
+      fileBuffer,
       file.originalname,
       file.mimetype,
       {

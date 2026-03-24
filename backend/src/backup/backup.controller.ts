@@ -1,6 +1,7 @@
 import { Controller, Post, Body, UseGuards, BadRequestException, UseInterceptors, UploadedFile, Logger, InternalServerErrorException } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AdminGuard } from '../common/guards/admin.guard';
+import type { MulterIncomingFile } from '../common/types/multer-incoming-file';
 import { connectDB } from '../config/db';
 import mongoose, { Types } from 'mongoose';
 
@@ -138,7 +139,7 @@ export class BackupController {
    */
   @Post('restore-files')
   @UseInterceptors(FileInterceptor('backup'))
-  async restoreFiles(@UploadedFile() file: Express.Multer.File) {
+  async restoreFiles(@UploadedFile() file: MulterIncomingFile) {
     try {
       if (!file) {
         throw new BadRequestException('No backup file provided');

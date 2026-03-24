@@ -43,6 +43,7 @@ import {
   AdminOwnerDedicatedStorageController,
   OwnerDedicatedStorageController,
 } from './owner-dedicated-storage/owner-dedicated-storage.controller';
+import { AIProvidersHealthController } from './ai/ai-providers-health.controller';
 
 @Module({
   imports: [
@@ -90,6 +91,7 @@ import {
     SiteContextController,
     AdminOwnerDedicatedStorageController,
     OwnerDedicatedStorageController,
+    AIProvidersHealthController,
   ],
   providers: [AdminGuard, AdminOrOwnerGuard],
 })
