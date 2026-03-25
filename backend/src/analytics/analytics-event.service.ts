@@ -19,14 +19,16 @@ export class AnalyticsEventService {
    */
   private buildTagPairKeys(tagIds?: string[]): string[] {
     if (!Array.isArray(tagIds) || tagIds.length < 2) return [];
-    const uniq = Array.from(new Set(tagIds.filter(Boolean)));
-    if (uniq.length < 2) return [];
+    // Keep only "ObjectId-shaped" values to avoid polluting analytics with malformed tag filters.
+    const uniq = Array.from(new Set(tagIds.filter(Boolean).map((id) => String(id))));
+    const validIds = uniq.filter((id) => mongoose.Types.ObjectId.isValid(id));
+    if (validIds.length < 2) return [];
 
     const keys: string[] = [];
-    for (let i = 0; i < uniq.length; i++) {
-      for (let j = i + 1; j < uniq.length; j++) {
-        const a = String(uniq[i]);
-        const b = String(uniq[j]);
+    for (let i = 0; i < validIds.length; i++) {
+      for (let j = i + 1; j < validIds.length; j++) {
+        const a = validIds[i];
+        const b = validIds[j];
         if (!a || !b) continue;
         const min = a < b ? a : b;
         const max = a < b ? b : a;

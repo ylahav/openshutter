@@ -293,7 +293,7 @@
 							on:change={() => loadTabData(activeTab)}
 						/>
 					</div>
-					{#if activeTab === 'views'}
+					{#if activeTab === 'views' || activeTab === 'search'}
 						<div>
 							<label class="block text-sm font-medium text-gray-700 mb-1">Period</label>
 							<select
