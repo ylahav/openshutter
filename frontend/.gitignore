@@ -51,6 +51,8 @@ storage/
 !src/routes/owner/storage/
 !src/routes/api/admin/analytics/storage/
 !src/routes/api/admin/analytics/storage/+server.ts
+!src/routes/api/storage/
+!src/routes/api/storage/**
 logs/
 
 # Server start timestamp and PID (development only)
