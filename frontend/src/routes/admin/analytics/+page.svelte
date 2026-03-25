@@ -154,7 +154,7 @@
 			const params = new URLSearchParams();
 			if (dateFrom) params.set('dateFrom', dateFrom);
 			if (dateTo) params.set('dateTo', dateTo);
-			if (tab === 'views') params.set('period', period);
+			if (tab === 'views' || tab === 'search') params.set('period', period);
 
 			const response = await fetch(`/api/admin/analytics/${tab}?${params}`);
 			if (!response.ok) {
@@ -212,6 +212,7 @@
 		params.set('format', 'csv');
 		if (dateFrom) params.set('dateFrom', dateFrom);
 		if (dateTo) params.set('dateTo', dateTo);
+		if (type === 'views' || type === 'search') params.set('period', period);
 		window.open(`/api/admin/analytics/export?${params}`, '_blank');
 	}
 
@@ -883,6 +884,63 @@
 						{:else if (searchData.tagFilterStats.summary?.searchesWithTagFilter ?? 0) === 0}
 							<p class="text-sm text-gray-500">{$t('admin.analyticsNoTagFilterSearchesInPeriod')}</p>
 						{/if}
+					</div>
+				{/if}
+
+				{#if searchData.tagFilterTrends && searchData.tagFilterTrends.length > 0}
+					<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+						<h2 class="text-lg font-semibold text-gray-900 mb-4">{$t('admin.analyticsTagFilterTrendsTitle')}</h2>
+						<LineChart
+							data={searchData.tagFilterTrends.map((t: any) => ({ date: t.date, value: t.searches }))}
+							label={$t('admin.analyticsSearchesWithTagFilter')}
+							color="#0d9488"
+							height={300}
+						/>
+					</div>
+				{/if}
+
+				{#if searchData.tagFilterByType}
+					<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+						<h2 class="text-lg font-semibold text-gray-900 mb-4">{$t('admin.analyticsTagFilterByTypeTitle')}</h2>
+						<BarChart
+							data={[
+								{ label: 'Photos', value: searchData.tagFilterByType.photos?.searches || 0 },
+								{ label: 'Albums', value: searchData.tagFilterByType.albums?.searches || 0 },
+								{ label: 'People', value: searchData.tagFilterByType.people?.searches || 0 },
+								{ label: 'Locations', value: searchData.tagFilterByType.locations?.searches || 0 },
+								{ label: 'All', value: searchData.tagFilterByType.all?.searches || 0 },
+							].filter((d) => d.value > 0)}
+							label={$t('admin.analyticsSearchesWithTagFilter')}
+							color="#0ea5e9"
+							height={280}
+						/>
+					</div>
+				{/if}
+
+				{#if searchData.topTagPairs && searchData.topTagPairs.length > 0}
+					<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+						<h2 class="text-lg font-semibold text-gray-900 mb-4">{$t('admin.analyticsTopTagPairsTitle')}</h2>
+						<BarChart
+							data={searchData.topTagPairs.slice(0, 12).map((p: any) => ({
+								label: `${p.tagAName} + ${p.tagBName}`.length > 32
+									? `${`${p.tagAName} + ${p.tagBName}`.slice(0, 32)}…`
+									: `${p.tagAName} + ${p.tagBName}`,
+								value: p.filterUses,
+							}))}
+							label={$t('admin.analyticsFilterUses')}
+							color="#8b5cf6"
+							height={320}
+						/>
+						<div class="mt-4 space-y-2">
+							{#each searchData.topTagPairs.slice(0, 15) as row}
+								<div class="flex flex-wrap items-center justify-between gap-2 p-2 bg-gray-50 rounded-md text-sm">
+									<span class="font-medium text-gray-900">{row.tagAName} + {row.tagBName}</span>
+									<span class="text-gray-600">
+										{row.filterUses} {$t('admin.analyticsFilterUses')} · {row.zeroResultCount} {$t('admin.analyticsZeroResultsShort')} · {row.averageResults?.toFixed?.(1) ?? row.averageResults} {$t('admin.analyticsAvgResultsShort')}
+									</span>
+								</div>
+							{/each}
+						</div>
 					</div>
 				{/if}
 
