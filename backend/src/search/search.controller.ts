@@ -67,7 +67,19 @@ export class SearchController {
 		const user = (req as any).user;
 		const ipAddress = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
 		const userAgent = req.headers['user-agent'];
-		const resultCount = result.photos?.length || result.albums?.length || result.people?.length || result.locations?.length || 0;
+		const resultCount =
+			filters.type === 'photos'
+				? result.totalPhotos
+				: filters.type === 'albums'
+					? result.totalAlbums
+					: filters.type === 'people'
+						? result.totalPeople
+						: filters.type === 'locations'
+							? result.totalLocations
+							: (result.totalPhotos || 0) +
+									(result.totalAlbums || 0) +
+									(result.totalPeople || 0) +
+									(result.totalLocations || 0);
 		const ownerSiteId = accessContext?.ownerSiteId;
 		this.analyticsEventService.logSearch(
 			{
@@ -134,7 +146,19 @@ export class SearchController {
 		const user = (req as any).user;
 		const ipAddress = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
 		const userAgent = req.headers['user-agent'];
-		const resultCount = result.photos?.length || result.albums?.length || result.people?.length || result.locations?.length || 0;
+		const resultCount =
+			filters.type === 'photos'
+				? result.totalPhotos
+				: filters.type === 'albums'
+					? result.totalAlbums
+					: filters.type === 'people'
+						? result.totalPeople
+						: filters.type === 'locations'
+							? result.totalLocations
+							: (result.totalPhotos || 0) +
+									(result.totalAlbums || 0) +
+									(result.totalPeople || 0) +
+									(result.totalLocations || 0);
 		const ownerSiteId = accessContext?.ownerSiteId;
 		this.analyticsEventService.logSearch(
 			{

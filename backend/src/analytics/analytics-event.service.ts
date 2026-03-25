@@ -14,6 +14,29 @@ export class AnalyticsEventService {
   private readonly logger = new Logger(AnalyticsEventService.name);
 
   /**
+   * Canonical unordered tag pair keys derived from tag IDs.
+   * Example key: "minId|maxId"
+   */
+  private buildTagPairKeys(tagIds?: string[]): string[] {
+    if (!Array.isArray(tagIds) || tagIds.length < 2) return [];
+    const uniq = Array.from(new Set(tagIds.filter(Boolean)));
+    if (uniq.length < 2) return [];
+
+    const keys: string[] = [];
+    for (let i = 0; i < uniq.length; i++) {
+      for (let j = i + 1; j < uniq.length; j++) {
+        const a = String(uniq[i]);
+        const b = String(uniq[j]);
+        if (!a || !b) continue;
+        const min = a < b ? a : b;
+        const max = a < b ? b : a;
+        keys.push(`${min}|${max}`);
+      }
+    }
+    return keys;
+  }
+
+  /**
    * Hash IP address for privacy
    */
   private hashIP(ip: string): string {
@@ -147,6 +170,14 @@ export class AnalyticsEventService {
       // Normalize query (lowercase, trim) for aggregation
       const normalizedQuery = searchData.query?.toLowerCase().trim() || '';
 
+      const tagPairKeys = this.buildTagPairKeys(searchData.filters?.tags);
+      const eventFilters = searchData.filters
+        ? {
+            ...searchData.filters,
+            ...(tagPairKeys.length ? { tagPairKeys } : {}),
+          }
+        : searchData.filters;
+
       const event: Partial<IAnalyticsEvent> = {
         type: 'search',
         userId: options?.userId,
@@ -157,7 +188,7 @@ export class AnalyticsEventService {
           query: normalizedQuery,
           searchType: searchData.searchType,
           resultCount: searchData.resultCount,
-          filters: searchData.filters,
+          filters: eventFilters,
           ...(searchData.ownerScopeId ? { ownerScopeId: searchData.ownerScopeId } : {}),
         },
       };

@@ -19,6 +19,8 @@ export interface IAnalyticsEvent extends Document {
     ownerScopeId?: string;
     filters?: {
       tags?: string[];
+      /** Canonical unordered tag-pair keys derived from `tags`. pairs-only analytics. */
+      tagPairKeys?: string[];
       people?: string[];
       locationIds?: string[];
       dateFrom?: string;

@@ -106,11 +106,18 @@ export class V1SearchController {
         ? String(siteContext.ownerId)
         : undefined;
     const resultCount =
-      result.photos?.length ||
-      result.albums?.length ||
-      result.people?.length ||
-      result.locations?.length ||
-      0;
+      filters.type === 'photos'
+        ? result.totalPhotos
+        : filters.type === 'albums'
+          ? result.totalAlbums
+          : filters.type === 'people'
+            ? result.totalPeople
+            : filters.type === 'locations'
+              ? result.totalLocations
+              : (result.totalPhotos || 0) +
+                  (result.totalAlbums || 0) +
+                  (result.totalPeople || 0) +
+                  (result.totalLocations || 0);
     const ipAddress = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
     const userAgent = req.headers['user-agent'];
     this.analyticsEventService
@@ -194,11 +201,18 @@ export class V1SearchController {
         ? String(siteContext.ownerId)
         : undefined;
     const resultCount =
-      result.photos?.length ||
-      result.albums?.length ||
-      result.people?.length ||
-      result.locations?.length ||
-      0;
+      filters.type === 'photos'
+        ? result.totalPhotos
+        : filters.type === 'albums'
+          ? result.totalAlbums
+          : filters.type === 'people'
+            ? result.totalPeople
+            : filters.type === 'locations'
+              ? result.totalLocations
+              : (result.totalPhotos || 0) +
+                  (result.totalAlbums || 0) +
+                  (result.totalPeople || 0) +
+                  (result.totalLocations || 0);
     const ipAddress = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
     const userAgent = req.headers['user-agent'];
     this.analyticsEventService
