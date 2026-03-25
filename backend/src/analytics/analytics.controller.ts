@@ -395,6 +395,7 @@ export class AnalyticsController {
     @Query('dateFrom') dateFrom?: string,
     @Query('dateTo') dateTo?: string,
     @Query('format') format?: 'csv' | 'json',
+    @Query('period') period?: 'day' | 'week' | 'month',
   ) {
     try {
       const dateRange = {
@@ -411,7 +412,7 @@ export class AnalyticsController {
           filename = `views-analytics-${new Date().toISOString().split('T')[0]}.csv`;
           break;
         case 'search':
-          data = await this.analyticsService.getSearchAnalytics(dateRange);
+          data = await this.analyticsService.getSearchAnalytics(dateRange, 20, period || 'day');
           filename = `search-analytics-${new Date().toISOString().split('T')[0]}.csv`;
           break;
         case 'tags':
@@ -497,6 +498,42 @@ export class AnalyticsController {
           data.tagFilterStats.topFilterTags.forEach((t: any) => {
             rows.push(
               `${escapeCSV(t.name)},${escapeCSV(t.tagId)},${escapeCSV(t.filterUses)},${escapeCSV(t.zeroResultCount)},${escapeCSV(t.averageResults)}`,
+            );
+          });
+        }
+
+        if (data.tagFilterTrends?.length) {
+          rows.push('');
+          rows.push('Tag filter trends');
+          rows.push('Date,Searches,Zero-result searches,Average results');
+          data.tagFilterTrends.forEach((r: any) => {
+            rows.push(
+              `${escapeCSV(r.date)},${escapeCSV(r.searches)},${escapeCSV(r.zeroResultCount)},${escapeCSV(r.averageResults)}`,
+            );
+          });
+        }
+
+        if (data.tagFilterByType) {
+          const bt = data.tagFilterByType;
+          rows.push('');
+          rows.push('Tag filter by search type');
+          rows.push('Search type,Searches,Zero-result searches,Average results');
+          (['photos', 'albums', 'people', 'locations', 'all'] as const).forEach((k) => {
+            const row = bt[k];
+            if (!row) return;
+            rows.push(
+              `${escapeCSV(k)},${escapeCSV(row.searches)},${escapeCSV(row.zeroResultCount)},${escapeCSV(row.averageResults)}`,
+            );
+          });
+        }
+
+        if (data.topTagPairs?.length) {
+          rows.push('');
+          rows.push('Top tag pairs in filters');
+          rows.push('Tag A,Tag B,Tag A ID,Tag B ID,Filter uses,Zero-result uses,Average results,Pair key');
+          data.topTagPairs.forEach((p: any) => {
+            rows.push(
+              `${escapeCSV(p.tagAName)},${escapeCSV(p.tagBName)},${escapeCSV(p.tagAId)},${escapeCSV(p.tagBId)},${escapeCSV(p.filterUses)},${escapeCSV(p.zeroResultCount)},${escapeCSV(p.averageResults)},${escapeCSV(p.pairKey)}`,
             );
           });
         }
