@@ -29,6 +29,7 @@ export class OwnerAnalyticsController {
     @Query('dateFrom') dateFrom?: string,
     @Query('dateTo') dateTo?: string,
     @Query('limit') limit?: string,
+    @Query('period') period?: 'day' | 'week' | 'month',
   ) {
     const user = (req as any).user;
     if (!user || user.role !== 'owner') {
@@ -41,7 +42,12 @@ export class OwnerAnalyticsController {
         dateTo: dateTo ? new Date(dateTo) : undefined,
       };
       const limitNum = limit ? parseInt(limit, 10) || 20 : 20;
-      const data = await this.analyticsService.getOwnerSearchTagFilterStats(user.id, dateRange, limitNum);
+      const data = await this.analyticsService.getOwnerSearchTagFilterStats(
+        user.id,
+        dateRange,
+        limitNum,
+        period || 'day',
+      );
       return { data };
     } catch (error) {
       this.logger.error(

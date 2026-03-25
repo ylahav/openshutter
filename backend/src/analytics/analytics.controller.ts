@@ -327,6 +327,7 @@ export class AnalyticsController {
     @Query('dateFrom') dateFrom?: string,
     @Query('dateTo') dateTo?: string,
     @Query('limit') limit?: string,
+    @Query('period') period?: 'day' | 'week' | 'month',
   ) {
     try {
       const dateRange = {
@@ -334,7 +335,7 @@ export class AnalyticsController {
         dateTo: dateTo ? new Date(dateTo) : undefined,
       };
       const limitNum = limit ? parseInt(limit, 10) || 20 : 20;
-      return await this.analyticsService.getSearchAnalytics(dateRange, limitNum);
+      return await this.analyticsService.getSearchAnalytics(dateRange, limitNum, period || 'day');
     } catch (error) {
       this.logger.error(`Error fetching search analytics: ${error instanceof Error ? error.message : String(error)}`);
       throw new InternalServerErrorException(

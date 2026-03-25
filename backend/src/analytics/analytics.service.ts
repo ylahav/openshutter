@@ -65,6 +65,35 @@ export interface SearchAnalytics {
       averageResults: number;
     }>;
   };
+
+  /** Tag-filter usage trends over time (grouped by day/week/month). */
+  tagFilterTrends: Array<{
+    date: string;
+    searches: number;
+    zeroResultCount: number;
+    averageResults: number;
+  }>;
+
+  /** How tag filters are used across searchType (photos/albums/people/locations/all). */
+  tagFilterByType: {
+    photos: { searches: number; zeroResultCount: number; averageResults: number };
+    albums: { searches: number; zeroResultCount: number; averageResults: number };
+    people: { searches: number; zeroResultCount: number; averageResults: number };
+    locations: { searches: number; zeroResultCount: number; averageResults: number };
+    all: { searches: number; zeroResultCount: number; averageResults: number };
+  };
+
+  /** Most used tag combinations (pairs-only; derived from tagPairKeys). */
+  topTagPairs: Array<{
+    pairKey: string;
+    tagAId: string;
+    tagBId: string;
+    tagAName: string;
+    tagBName: string;
+    filterUses: number;
+    zeroResultCount: number;
+    averageResults: number;
+  }>;
 }
 
 @Injectable()
@@ -274,7 +303,8 @@ export class AnalyticsService {
    */
   async getSearchAnalytics(
     dateRange?: DateRange,
-    limit: number = 20
+    limit: number = 20,
+    period: 'day' | 'week' | 'month' = 'day'
   ): Promise<SearchAnalytics> {
     await connectDB();
     const db = mongoose.connection.db;
@@ -308,6 +338,15 @@ export class AnalyticsService {
           },
           topFilterTags: [],
         },
+        tagFilterTrends: [],
+        tagFilterByType: {
+          photos: { searches: 0, zeroResultCount: 0, averageResults: 0 },
+          albums: { searches: 0, zeroResultCount: 0, averageResults: 0 },
+          people: { searches: 0, zeroResultCount: 0, averageResults: 0 },
+          locations: { searches: 0, zeroResultCount: 0, averageResults: 0 },
+          all: { searches: 0, zeroResultCount: 0, averageResults: 0 },
+        },
+        topTagPairs: [],
       };
     }
 
@@ -398,6 +437,10 @@ export class AnalyticsService {
 
     const tagFilterStats = await this.buildSearchTagFilterStats(db, matchFilter, totalSearchesNum, limit);
 
+    const tagFilterTrends = await this.buildSearchTagFilterTrends(db, matchFilter, period);
+    const tagFilterByType = await this.buildSearchTagFilterByType(db, matchFilter);
+    const topTagPairs = await this.buildSearchTopTagPairs(db, matchFilter, limit);
+
     return {
       summary: {
         totalSearches: totalSearchesNum,
@@ -421,6 +464,9 @@ export class AnalyticsService {
         searches: t.searches || 0,
       })),
       tagFilterStats,
+      tagFilterTrends,
+      tagFilterByType,
+      topTagPairs,
     };
   }
 
@@ -431,9 +477,13 @@ export class AnalyticsService {
     ownerId: string,
     dateRange?: DateRange,
     limit: number = 20,
+    period: 'day' | 'week' | 'month' = 'day'
   ): Promise<{
     summary: { totalSearches: number };
     tagFilterStats: SearchAnalytics['tagFilterStats'];
+    tagFilterTrends: SearchAnalytics['tagFilterTrends'];
+    tagFilterByType: SearchAnalytics['tagFilterByType'];
+    topTagPairs: SearchAnalytics['topTagPairs'];
   }> {
     await connectDB();
     const db = mongoose.connection.db;
@@ -454,6 +504,15 @@ export class AnalyticsService {
           },
           topFilterTags: [],
         },
+        tagFilterTrends: [],
+        tagFilterByType: {
+          photos: { searches: 0, zeroResultCount: 0, averageResults: 0 },
+          albums: { searches: 0, zeroResultCount: 0, averageResults: 0 },
+          people: { searches: 0, zeroResultCount: 0, averageResults: 0 },
+          locations: { searches: 0, zeroResultCount: 0, averageResults: 0 },
+          all: { searches: 0, zeroResultCount: 0, averageResults: 0 },
+        },
+        topTagPairs: [],
       };
     }
 
@@ -469,9 +528,16 @@ export class AnalyticsService {
     const totalSearches = await db.collection('analytics_events').countDocuments(ownerSearchMatch);
     const tagFilterStats = await this.buildSearchTagFilterStats(db, ownerSearchMatch, totalSearches, limit);
 
+    const tagFilterTrends = await this.buildSearchTagFilterTrends(db, ownerSearchMatch, period);
+    const tagFilterByType = await this.buildSearchTagFilterByType(db, ownerSearchMatch);
+    const topTagPairs = await this.buildSearchTopTagPairs(db, ownerSearchMatch, limit);
+
     return {
       summary: { totalSearches },
       tagFilterStats,
+      tagFilterTrends,
+      tagFilterByType,
+      topTagPairs,
     };
   }
 
@@ -602,6 +668,176 @@ export class AnalyticsService {
       },
       topFilterTags,
     };
+  }
+
+  private async buildSearchTagFilterTrends(
+    db: mongoose.mongo.Db,
+    searchMatch: Record<string, unknown>,
+    period: 'day' | 'week' | 'month',
+  ): Promise<SearchAnalytics['tagFilterTrends']> {
+    const tagFilterMatch: any = {
+      ...searchMatch,
+      'metadata.filters.tags.0': { $exists: true },
+    };
+
+    const groupFormat: Record<string, string> = {
+      day: '%Y-%m-%d',
+      week: '%Y-W%V',
+      month: '%Y-%m',
+    };
+
+    try {
+      const rows = await db.collection('analytics_events').aggregate([
+        { $match: tagFilterMatch },
+        {
+          $group: {
+            _id: { $dateToString: { format: groupFormat[period], date: '$timestamp' } },
+            searches: { $sum: 1 },
+            zeroResultCount: {
+              $sum: { $cond: [{ $eq: ['$metadata.resultCount', 0] }, 1, 0] },
+            },
+            averageResults: { $avg: '$metadata.resultCount' },
+          },
+        },
+        { $sort: { _id: 1 } },
+      ]).toArray();
+
+      return rows.map((r: any) => ({
+        date: r._id || '',
+        searches: r.searches || 0,
+        zeroResultCount: r.zeroResultCount || 0,
+        averageResults: Math.round((r.averageResults || 0) * 100) / 100,
+      }));
+    } catch (error) {
+      this.logger.warn(`Error aggregating tag-filter trends: ${error instanceof Error ? error.message : String(error)}`);
+      return [];
+    }
+  }
+
+  private async buildSearchTagFilterByType(
+    db: mongoose.mongo.Db,
+    searchMatch: Record<string, unknown>,
+  ): Promise<SearchAnalytics['tagFilterByType']> {
+    const tagFilterMatch: any = {
+      ...searchMatch,
+      'metadata.filters.tags.0': { $exists: true },
+    };
+
+    const empty = {
+      photos: { searches: 0, zeroResultCount: 0, averageResults: 0 },
+      albums: { searches: 0, zeroResultCount: 0, averageResults: 0 },
+      people: { searches: 0, zeroResultCount: 0, averageResults: 0 },
+      locations: { searches: 0, zeroResultCount: 0, averageResults: 0 },
+      all: { searches: 0, zeroResultCount: 0, averageResults: 0 },
+    };
+
+    try {
+      const rows = await db.collection('analytics_events').aggregate([
+        { $match: tagFilterMatch },
+        {
+          $group: {
+            _id: '$metadata.searchType',
+            searches: { $sum: 1 },
+            zeroResultCount: {
+              $sum: { $cond: [{ $eq: ['$metadata.resultCount', 0] }, 1, 0] },
+            },
+            averageResults: { $avg: '$metadata.resultCount' },
+          },
+        },
+      ]).toArray();
+
+      const out = { ...empty };
+      for (const r of rows) {
+        const k = String(r._id || '');
+        if (!['photos', 'albums', 'people', 'locations', 'all'].includes(k)) continue;
+        out[k as keyof typeof empty] = {
+          searches: r.searches || 0,
+          zeroResultCount: r.zeroResultCount || 0,
+          averageResults: Math.round((r.averageResults || 0) * 100) / 100,
+        } as any;
+      }
+      return out as SearchAnalytics['tagFilterByType'];
+    } catch (error) {
+      this.logger.warn(`Error aggregating tag-filter by type: ${error instanceof Error ? error.message : String(error)}`);
+      return empty as SearchAnalytics['tagFilterByType'];
+    }
+  }
+
+  private async buildSearchTopTagPairs(
+    db: mongoose.mongo.Db,
+    searchMatch: Record<string, unknown>,
+    limit: number,
+  ): Promise<SearchAnalytics['topTagPairs']> {
+    const tagFilterMatch: any = {
+      ...searchMatch,
+      'metadata.filters.tagPairKeys.0': { $exists: true },
+    };
+
+    try {
+      const rows = await db.collection('analytics_events').aggregate([
+        { $match: tagFilterMatch },
+        { $unwind: '$metadata.filters.tagPairKeys' },
+        {
+          $group: {
+            _id: '$metadata.filters.tagPairKeys',
+            filterUses: { $sum: 1 },
+            zeroResultCount: {
+              $sum: { $cond: [{ $eq: ['$metadata.resultCount', 0] }, 1, 0] },
+            },
+            averageResults: { $avg: '$metadata.resultCount' },
+          },
+        },
+        { $sort: { filterUses: -1 } },
+        { $limit: limit },
+      ]).toArray();
+
+      const top = rows.map((r: any) => ({
+        pairKey: String(r._id || ''),
+        filterUses: r.filterUses || 0,
+        zeroResultCount: r.zeroResultCount || 0,
+        averageResults: Math.round((r.averageResults || 0) * 100) / 100,
+      }));
+
+      // Resolve tag names for the top pairs
+      const ids = new Set<string>();
+      for (const p of top) {
+        const parts = p.pairKey.split('|');
+        if (parts[0]) ids.add(parts[0]);
+        if (parts[1]) ids.add(parts[1]);
+      }
+
+      const idList = Array.from(ids).filter((id) => Types.ObjectId.isValid(id));
+      const tagNameById = new Map<string, string>();
+      if (idList.length) {
+        const tagDocs = await db
+          .collection('tags')
+          .find({ _id: { $in: idList.map((id) => new Types.ObjectId(id)) } }, { projection: { name: 1 } })
+          .toArray();
+        for (const doc of tagDocs) {
+          const id = doc._id?.toString();
+          if (id) tagNameById.set(id, AnalyticsService.formatTagName(doc.name));
+        }
+      }
+
+      return top.map((p) => {
+        const parts = p.pairKey.split('|');
+        const tagAId = parts[0] || '';
+        const tagBId = parts[1] || '';
+        return {
+          pairKey: p.pairKey,
+          tagAId,
+          tagBId,
+          tagAName: tagNameById.get(tagAId) || tagAId,
+          tagBName: tagNameById.get(tagBId) || tagBId,
+          filterUses: p.filterUses,
+          zeroResultCount: p.zeroResultCount,
+          averageResults: p.averageResults,
+        };
+      });
+    } catch (error) {
+      this.logger.warn(`Error aggregating top tag pairs: ${error instanceof Error ? error.message : String(error)}`);
+      return [];
+    }
   }
 
   private static formatTagName(name: unknown): string {
