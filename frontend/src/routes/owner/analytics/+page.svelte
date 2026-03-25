@@ -5,12 +5,14 @@
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 	import BarChart from '$lib/components/analytics/BarChart.svelte';
+	import LineChart from '$lib/components/analytics/LineChart.svelte';
 	import type { PageData } from './$types';
 
 	export let data: PageData;
 
 	let dateFrom = '';
 	let dateTo = '';
+	let period: 'day' | 'week' | 'month' = 'day';
 	let loading = true;
 	let error = '';
 	let payload: {
@@ -30,6 +32,29 @@
 				averageResults: number;
 			}>;
 		};
+		tagFilterTrends?: Array<{
+			date: string;
+			searches: number;
+			zeroResultCount: number;
+			averageResults: number;
+		}>;
+		tagFilterByType?: {
+			photos: { searches: number; zeroResultCount: number; averageResults: number };
+			albums: { searches: number; zeroResultCount: number; averageResults: number };
+			people: { searches: number; zeroResultCount: number; averageResults: number };
+			locations: { searches: number; zeroResultCount: number; averageResults: number };
+			all: { searches: number; zeroResultCount: number; averageResults: number };
+		};
+		topTagPairs?: Array<{
+			pairKey: string;
+			tagAId: string;
+			tagBId: string;
+			tagAName: string;
+			tagBName: string;
+			filterUses: number;
+			zeroResultCount: number;
+			averageResults: number;
+		}>;
 	} | null = null;
 
 	const isAdmin = data.user?.role === 'admin';
@@ -50,6 +75,7 @@
 			const params = new URLSearchParams();
 			if (dateFrom) params.set('dateFrom', dateFrom);
 			if (dateTo) params.set('dateTo', dateTo);
+			if (period) params.set('period', period);
 			const response = await fetch(`/api/owner/analytics/search-tag-filters?${params}`);
 			if (!response.ok) {
 				await handleApiErrorResponse(response);
@@ -138,6 +164,20 @@
 							class="border border-gray-300 rounded-md px-3 py-2 text-sm"
 						/>
 					</div>
+					<div>
+						<label class="block text-xs font-medium text-gray-600 mb-1" for="p">
+							{$t('owner.analyticsPeriod')}
+						</label>
+						<select
+							id="p"
+							bind:value={period}
+							class="border border-gray-300 rounded-md px-3 py-2 text-sm bg-white"
+						>
+							<option value="day">{$t('owner.periodDay')}</option>
+							<option value="week">{$t('owner.periodWeek')}</option>
+							<option value="month">{$t('owner.periodMonth')}</option>
+						</select>
+					</div>
 					<button
 						type="button"
 						class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
@@ -217,6 +257,65 @@
 					{:else if (payload.tagFilterStats.summary?.searchesWithTagFilter ?? 0) === 0}
 						<p class="text-sm text-gray-500">{$t('admin.analyticsNoTagFilterSearchesInPeriod')}</p>
 					{/if}
+				</div>
+			{/if}
+
+			{#if payload.tagFilterTrends && payload.tagFilterTrends.length > 0}
+				<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+					<h2 class="text-lg font-semibold text-gray-900 mb-4">{$t('admin.analyticsTagFilterTrendsTitle')}</h2>
+					<LineChart
+						data={payload.tagFilterTrends.map((t) => ({ date: t.date, value: t.searches }))}
+						label={$t('admin.analyticsSearchesWithTagFilter')}
+						color="#0d9488"
+						height={300}
+					/>
+				</div>
+			{/if}
+
+			{#if payload.tagFilterByType}
+				<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+					<h2 class="text-lg font-semibold text-gray-900 mb-4">{$t('admin.analyticsTagFilterByTypeTitle')}</h2>
+					<BarChart
+						data={[
+							{ label: 'Photos', value: payload.tagFilterByType.photos?.searches || 0 },
+							{ label: 'Albums', value: payload.tagFilterByType.albums?.searches || 0 },
+							{ label: 'People', value: payload.tagFilterByType.people?.searches || 0 },
+							{ label: 'Locations', value: payload.tagFilterByType.locations?.searches || 0 },
+							{ label: 'All', value: payload.tagFilterByType.all?.searches || 0 },
+						].filter((d) => d.value > 0)}
+						label={$t('admin.analyticsSearchesWithTagFilter')}
+						color="#0ea5e9"
+						height={280}
+					/>
+				</div>
+			{/if}
+
+			{#if payload.topTagPairs && payload.topTagPairs.length > 0}
+				<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+					<h2 class="text-lg font-semibold text-gray-900 mb-4">{$t('admin.analyticsTopTagPairsTitle')}</h2>
+					<BarChart
+						data={payload.topTagPairs.slice(0, 12).map((p) => ({
+							label: `${p.tagAName} + ${p.tagBName}`.length > 32
+								? `${`${p.tagAName} + ${p.tagBName}`.slice(0, 32)}…`
+								: `${p.tagAName} + ${p.tagBName}`,
+							value: p.filterUses,
+						}))}
+						label={$t('admin.analyticsFilterUses')}
+						color="#8b5cf6"
+						height={320}
+					/>
+					<div class="mt-4 space-y-2">
+						{#each payload.topTagPairs.slice(0, 15) as row}
+							<div class="flex flex-wrap items-center justify-between gap-2 p-2 bg-gray-50 rounded-md text-sm">
+								<span class="font-medium text-gray-900">{row.tagAName} + {row.tagBName}</span>
+								<span class="text-gray-600">
+									{row.filterUses} {$t('admin.analyticsFilterUses')} · {row.zeroResultCount}
+									{$t('admin.analyticsZeroResultsShort')} · {row.averageResults?.toFixed?.(1) ?? row.averageResults}
+									{$t('admin.analyticsAvgResultsShort')}
+								</span>
+							</div>
+						{/each}
+					</div>
 				</div>
 			{/if}
 		{/if}
