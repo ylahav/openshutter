@@ -125,8 +125,8 @@ When an owner does **not** use "Use main domain connection" (i.e. they have thei
 
 - **Purpose:** Tag-filter usage for searches attributed to the owner (logged-in searches as that user, plus searches on their **custom domain** where events carry `metadata.ownerScopeId`).
 - **Entry:** Dashboard card **Search insights** on `/owner` (owners only).
-- **UI:** Date range, total searches in range, tag-filter summary, chart and table of most-used tags in filters (same metrics as Admin → Analytics → Search → tag filter section).
-- **API:** `GET /api/owner/analytics/search-tag-filters?dateFrom=&dateTo=&limit=` (owner JWT). SvelteKit: `GET /api/owner/analytics/search-tag-filters` (proxies to backend with cookies).
+- **UI:** Date range, period granularity (`day|week|month`), total searches in range, tag-filter summary, tag-filter trends over time, tag-filter usage by `searchType`, and most-used tag pairs in filters.
+- **API:** `GET /api/owner/analytics/search-tag-filters?dateFrom=&dateTo=&limit=&period=` (owner JWT). SvelteKit: `GET /api/owner/analytics/search-tag-filters` (proxies to backend with cookies).
 - **Docs:** Event schema and admin response shape in **`docs/ADVANCED_ANALYTICS_DESIGN.md`** (§3.2 Search analytics, §4.3 and §4.3.1).
 
 ## User Interface
