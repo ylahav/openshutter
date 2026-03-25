@@ -804,7 +804,7 @@
 			<!-- Search Analytics -->
 			<div class="space-y-6">
 				<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-					<h2 class="text-lg font-semibold text-gray-900 mb-4">Search Summary</h2>
+					<h2 class="text-lg font-semibold text-gray-900 mb-4">{$t('admin.analyticsSearchSummaryTitle')}</h2>
 					<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
 						<div class="p-4 bg-blue-50 rounded-lg">
 							<p class="text-sm text-blue-800">Total Searches</p>
@@ -904,11 +904,11 @@
 						<h2 class="text-lg font-semibold text-gray-900 mb-4">{$t('admin.analyticsTagFilterByTypeTitle')}</h2>
 						<BarChart
 							data={[
-								{ label: 'Photos', value: searchData.tagFilterByType.photos?.searches || 0 },
-								{ label: 'Albums', value: searchData.tagFilterByType.albums?.searches || 0 },
-								{ label: 'People', value: searchData.tagFilterByType.people?.searches || 0 },
-								{ label: 'Locations', value: searchData.tagFilterByType.locations?.searches || 0 },
-								{ label: 'All', value: searchData.tagFilterByType.all?.searches || 0 },
+								{ label: $t('admin.analyticsLabelPhotos'), value: searchData.tagFilterByType.photos?.searches || 0 },
+								{ label: $t('admin.analyticsLabelAlbums'), value: searchData.tagFilterByType.albums?.searches || 0 },
+								{ label: $t('admin.analyticsLabelPeople'), value: searchData.tagFilterByType.people?.searches || 0 },
+								{ label: $t('admin.analyticsLabelLocations'), value: searchData.tagFilterByType.locations?.searches || 0 },
+								{ label: $t('admin.analyticsLabelAll'), value: searchData.tagFilterByType.all?.searches || 0 },
 							].filter((d) => d.value > 0)}
 							label={$t('admin.analyticsSearchesWithTagFilter')}
 							color="#0ea5e9"
@@ -946,7 +946,7 @@
 
 				{#if searchData.trends && searchData.trends.length > 0}
 					<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-						<h2 class="text-lg font-semibold text-gray-900 mb-4">Search Trends</h2>
+						<h2 class="text-lg font-semibold text-gray-900 mb-4">{$t('admin.analyticsSearchTrendsTitle')}</h2>
 						<LineChart
 							data={searchData.trends.map((t: any) => ({ date: t.date, value: t.searches }))}
 							label="Searches"
@@ -958,13 +958,13 @@
 
 				{#if searchData.byType}
 					<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-						<h2 class="text-lg font-semibold text-gray-900 mb-4">Searches by Type</h2>
+						<h2 class="text-lg font-semibold text-gray-900 mb-4">{$t('admin.analyticsSearchesByTypeTitle')}</h2>
 						<PieChart
 							data={[
-								{ label: 'Photos', value: searchData.byType.photos || 0 },
-								{ label: 'Albums', value: searchData.byType.albums || 0 },
-								{ label: 'People', value: searchData.byType.people || 0 },
-								{ label: 'Locations', value: searchData.byType.locations || 0 },
+								{ label: $t('admin.analyticsLabelPhotos'), value: searchData.byType.photos || 0 },
+								{ label: $t('admin.analyticsLabelAlbums'), value: searchData.byType.albums || 0 },
+								{ label: $t('admin.analyticsLabelPeople'), value: searchData.byType.people || 0 },
+								{ label: $t('admin.analyticsLabelLocations'), value: searchData.byType.locations || 0 },
 							].filter((d) => d.value > 0)}
 							height={300}
 						/>
@@ -973,7 +973,7 @@
 
 				{#if searchData.popularQueries && searchData.popularQueries.length > 0}
 					<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-						<h2 class="text-lg font-semibold text-gray-900 mb-4">Popular Search Queries</h2>
+						<h2 class="text-lg font-semibold text-gray-900 mb-4">{$t('admin.analyticsPopularSearchQueriesTitle')}</h2>
 						<div class="space-y-2">
 							{#each searchData.popularQueries as query}
 								<div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">

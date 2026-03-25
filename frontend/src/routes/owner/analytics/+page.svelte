@@ -277,11 +277,11 @@
 					<h2 class="text-lg font-semibold text-gray-900 mb-4">{$t('admin.analyticsTagFilterByTypeTitle')}</h2>
 					<BarChart
 						data={[
-							{ label: 'Photos', value: payload.tagFilterByType.photos?.searches || 0 },
-							{ label: 'Albums', value: payload.tagFilterByType.albums?.searches || 0 },
-							{ label: 'People', value: payload.tagFilterByType.people?.searches || 0 },
-							{ label: 'Locations', value: payload.tagFilterByType.locations?.searches || 0 },
-							{ label: 'All', value: payload.tagFilterByType.all?.searches || 0 },
+							{ label: $t('admin.analyticsLabelPhotos'), value: payload.tagFilterByType.photos?.searches || 0 },
+							{ label: $t('admin.analyticsLabelAlbums'), value: payload.tagFilterByType.albums?.searches || 0 },
+							{ label: $t('admin.analyticsLabelPeople'), value: payload.tagFilterByType.people?.searches || 0 },
+							{ label: $t('admin.analyticsLabelLocations'), value: payload.tagFilterByType.locations?.searches || 0 },
+							{ label: $t('admin.analyticsLabelAll'), value: payload.tagFilterByType.all?.searches || 0 },
 						].filter((d) => d.value > 0)}
 						label={$t('admin.analyticsSearchesWithTagFilter')}
 						color="#0ea5e9"
