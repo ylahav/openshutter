@@ -95,6 +95,41 @@
 	let dateTo = '';
 	let period: 'day' | 'week' | 'month' = 'day';
 
+	let translate: (key: string, fallback?: string) => string;
+	let analyticsUnknownLabel = '';
+
+	// Keep store subscriptions top-level (Svelte disallows `$t(...)` inside callbacks/functions).
+	$: translate = $t;
+	$: analyticsUnknownLabel = translate('admin.analyticsUnknown');
+
+	function formatRecentActivityPeriod(raw: string | undefined): string {
+		if (!raw) return '';
+		// Backend sends strings like "30 days" (hardcoded). Translate the unit only.
+		const m = raw.trim().match(/^(\d+)\s+(day|days|week|weeks|month|months)$/i);
+		if (!m) return raw;
+		const count = m[1];
+		const unit = m[2].toLowerCase();
+		if (unit.startsWith('day')) return `${count} ${translate('admin.analyticsDaysPlural', 'days')}`;
+		if (unit.startsWith('week')) return `${count} ${translate('admin.analyticsWeeksPlural', 'weeks')}`;
+		if (unit.startsWith('month')) return `${count} ${translate('admin.analyticsMonthsPlural', 'months')}`;
+		return raw;
+	}
+
+	function getTabLoadError(tab: Tab): string {
+		switch (tab) {
+			case 'views':
+				return translate('admin.analyticsFailedToLoadViewsAnalytics', 'Failed to load views analytics');
+			case 'search':
+				return translate('admin.analyticsFailedToLoadSearchAnalytics', 'Failed to load search analytics');
+			case 'tags':
+				return translate('admin.analyticsFailedToLoadTagsAnalytics', 'Failed to load tags analytics');
+			case 'storage':
+				return translate('admin.analyticsFailedToLoadStorageAnalytics', 'Failed to load storage analytics');
+			default:
+				return translate('admin.analyticsFailedToLoadAnalytics', 'Failed to load analytics');
+		}
+	}
+
 	onMount(async () => {
 		// Set default date range (last 30 days)
 		const to = new Date();
@@ -119,7 +154,7 @@
 			aiHealth = (result.data || result) as AIProvidersHealthData;
 		} catch (err) {
 			logger.error('Error loading AI providers health:', err);
-			aiHealthError = handleError(err, 'Failed to load AI providers health');
+			aiHealthError = handleError(err, translate('admin.analyticsFailedToLoadAIProvidersHealth', 'Failed to load AI providers health'));
 		} finally {
 			loadingAIHealth = false;
 		}
@@ -137,7 +172,7 @@
 			analytics = result.data || result;
 		} catch (err) {
 			logger.error('Error loading analytics:', err);
-			error = handleError(err, 'Failed to load analytics');
+			error = handleError(err, translate('admin.analyticsFailedToLoadAnalytics', 'Failed to load analytics'));
 		} finally {
 			loading = false;
 		}
@@ -178,7 +213,7 @@
 			}
 		} catch (err) {
 			logger.error(`Error loading ${tab} analytics:`, err);
-			error = handleError(err, `Failed to load ${tab} analytics`);
+			error = handleError(err, getTabLoadError(tab));
 		} finally {
 			loadingTab = false;
 		}
@@ -276,7 +311,7 @@
 			<div class="mb-6 bg-white rounded-lg shadow-sm border border-gray-200 p-4">
 				<div class="flex flex-wrap items-center gap-4">
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-1">From</label>
+						<label class="block text-sm font-medium text-gray-700 mb-1">{$t('admin.analyticsDateFrom')}</label>
 						<input
 							type="date"
 							bind:value={dateFrom}
@@ -285,7 +320,7 @@
 						/>
 					</div>
 					<div>
-						<label class="block text-sm font-medium text-gray-700 mb-1">To</label>
+						<label class="block text-sm font-medium text-gray-700 mb-1">{$t('admin.analyticsDateTo')}</label>
 						<input
 							type="date"
 							bind:value={dateTo}
@@ -295,15 +330,15 @@
 					</div>
 					{#if activeTab === 'views' || activeTab === 'search'}
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-1">Period</label>
+							<label class="block text-sm font-medium text-gray-700 mb-1">{$t('admin.analyticsPeriod')}</label>
 							<select
 								bind:value={period}
 								class="px-3 py-2 border border-gray-300 rounded-md text-sm"
 								on:change={() => loadTabData(activeTab)}
 							>
-								<option value="day">Daily</option>
-								<option value="week">Weekly</option>
-								<option value="month">Monthly</option>
+								<option value="day">{$t('admin.analyticsPeriodDay')}</option>
+								<option value="week">{$t('admin.analyticsPeriodWeek')}</option>
+								<option value="month">{$t('admin.analyticsPeriodMonth')}</option>
 							</select>
 						</div>
 					{/if}
@@ -312,7 +347,7 @@
 						on:click={() => exportData(activeTab)}
 						class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
 					>
-						Export CSV
+						{$t('admin.analyticsExportCsv')}
 					</button>
 				</div>
 			</div>
@@ -325,7 +360,7 @@
 		{#if loading}
 			<div class="text-center py-8">
 				<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-				<p class="mt-2 text-gray-600">Loading analytics...</p>
+				<p class="mt-2 text-gray-600">{$t('admin.analyticsLoadingAnalytics')}</p>
 			</div>
 		{:else if activeTab === 'overview' && analytics}
 			<!-- Overview Statistics -->
@@ -333,10 +368,10 @@
 				<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
 					<div class="flex items-center justify-between">
 						<div>
-							<p class="text-sm text-gray-600">Total Photos</p>
+							<p class="text-sm text-gray-600">{$t('admin.analyticsTotalPhotos')}</p>
 							<p class="text-2xl font-bold text-gray-900">{analytics.overview.photos.total}</p>
 							<p class="text-xs text-gray-500 mt-1">
-								{analytics.overview.photos.published} published, {analytics.overview.photos.draft} draft
+								{analytics.overview.photos.published} {$t('admin.analyticsPublishedLower')}, {analytics.overview.photos.draft} {$t('admin.analyticsDraftLower')}
 							</p>
 						</div>
 						<div class="p-3 bg-blue-100 rounded-lg">
@@ -355,10 +390,10 @@
 				<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
 					<div class="flex items-center justify-between">
 						<div>
-							<p class="text-sm text-gray-600">Total Albums</p>
+							<p class="text-sm text-gray-600">{$t('admin.analyticsTotalAlbums')}</p>
 							<p class="text-2xl font-bold text-gray-900">{analytics.overview.albums.total}</p>
 							<p class="text-xs text-gray-500 mt-1">
-								{analytics.overview.albums.public} public, {analytics.overview.albums.private} private
+								{analytics.overview.albums.public} {$t('admin.analyticsPublicLower')}, {analytics.overview.albums.private} {$t('admin.analyticsPrivateLower')}
 							</p>
 						</div>
 						<div class="p-3 bg-green-100 rounded-lg">
@@ -377,10 +412,10 @@
 				<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
 					<div class="flex items-center justify-between">
 						<div>
-							<p class="text-sm text-gray-600">Total Users</p>
+							<p class="text-sm text-gray-600">{$t('admin.analyticsTotalUsers')}</p>
 							<p class="text-2xl font-bold text-gray-900">{analytics.overview.users.total}</p>
 							<p class="text-xs text-gray-500 mt-1">
-								{analytics.overview.users.active} active, {analytics.overview.users.blocked} blocked
+								{analytics.overview.users.active} {$t('admin.analyticsActiveLower')}, {analytics.overview.users.blocked} {$t('admin.analyticsBlockedLower')}
 							</p>
 						</div>
 						<div class="p-3 bg-purple-100 rounded-lg">
@@ -399,10 +434,10 @@
 				<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
 					<div class="flex items-center justify-between">
 						<div>
-							<p class="text-sm text-gray-600">Storage Used</p>
+							<p class="text-sm text-gray-600">{$t('admin.analyticsStorageUsed')}</p>
 							<p class="text-2xl font-bold text-gray-900">{analytics.storage.formatted}</p>
 							<p class="text-xs text-gray-500 mt-1">
-								{analytics.storage.totalMB.toFixed(2)} MB total
+								{analytics.storage.totalMB.toFixed(2)} {$t('admin.analyticsMBTotal')}
 							</p>
 						</div>
 						<div class="p-3 bg-yellow-100 rounded-lg">
@@ -422,100 +457,100 @@
 			<!-- Detailed Statistics Grid -->
 			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
 				<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-					<h3 class="text-sm font-semibold text-gray-700 mb-3">Tags</h3>
+					<h3 class="text-sm font-semibold text-gray-700 mb-3">{$t('admin.analyticsTagsHeading')}</h3>
 					<div class="space-y-2">
 						<div class="flex justify-between">
-							<span class="text-gray-600">Total</span>
+							<span class="text-gray-600">{$t('admin.analyticsTotal')}</span>
 							<span class="font-semibold">{analytics.overview.tags.total}</span>
 						</div>
 						<div class="flex justify-between">
-							<span class="text-gray-600">Active</span>
+							<span class="text-gray-600">{$t('admin.active')}</span>
 							<span class="text-green-600">{analytics.overview.tags.active}</span>
 						</div>
 						<div class="flex justify-between">
-							<span class="text-gray-600">Inactive</span>
+							<span class="text-gray-600">{$t('admin.inactive')}</span>
 							<span class="text-gray-400">{analytics.overview.tags.inactive}</span>
 						</div>
 					</div>
 				</div>
 
 				<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-					<h3 class="text-sm font-semibold text-gray-700 mb-3">Locations</h3>
+					<h3 class="text-sm font-semibold text-gray-700 mb-3">{$t('admin.analyticsLocationsHeading')}</h3>
 					<div class="space-y-2">
 						<div class="flex justify-between">
-							<span class="text-gray-600">Total</span>
+							<span class="text-gray-600">{$t('admin.analyticsTotal')}</span>
 							<span class="font-semibold">{analytics.overview.locations.total}</span>
 						</div>
 						<div class="flex justify-between">
-							<span class="text-gray-600">Active</span>
+							<span class="text-gray-600">{$t('admin.active')}</span>
 							<span class="text-green-600">{analytics.overview.locations.active}</span>
 						</div>
 						<div class="flex justify-between">
-							<span class="text-gray-600">Inactive</span>
+							<span class="text-gray-600">{$t('admin.inactive')}</span>
 							<span class="text-gray-400">{analytics.overview.locations.inactive}</span>
 						</div>
 					</div>
 				</div>
 
 				<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-					<h3 class="text-sm font-semibold text-gray-700 mb-3">People</h3>
+					<h3 class="text-sm font-semibold text-gray-700 mb-3">{$t('admin.analyticsPeopleHeading')}</h3>
 					<div class="space-y-2">
 						<div class="flex justify-between">
-							<span class="text-gray-600">Total</span>
+							<span class="text-gray-600">{$t('admin.analyticsTotal')}</span>
 							<span class="font-semibold">{analytics.overview.people.total}</span>
 						</div>
 						<div class="flex justify-between">
-							<span class="text-gray-600">Active</span>
+							<span class="text-gray-600">{$t('admin.active')}</span>
 							<span class="text-green-600">{analytics.overview.people.active}</span>
 						</div>
 						<div class="flex justify-between">
-							<span class="text-gray-600">Inactive</span>
+							<span class="text-gray-600">{$t('admin.inactive')}</span>
 							<span class="text-gray-400">{analytics.overview.people.inactive}</span>
 						</div>
 					</div>
 				</div>
 
 				<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-					<h3 class="text-sm font-semibold text-gray-700 mb-3">Groups</h3>
+					<h3 class="text-sm font-semibold text-gray-700 mb-3">{$t('admin.analyticsGroupsHeading')}</h3>
 					<div class="space-y-2">
 						<div class="flex justify-between">
-							<span class="text-gray-600">Total</span>
+							<span class="text-gray-600">{$t('admin.analyticsTotal')}</span>
 							<span class="font-semibold">{analytics.overview.groups.total}</span>
 						</div>
 					</div>
 				</div>
 
 				<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-					<h3 class="text-sm font-semibold text-gray-700 mb-3">Pages</h3>
+					<h3 class="text-sm font-semibold text-gray-700 mb-3">{$t('admin.analyticsPagesHeading')}</h3>
 					<div class="space-y-2">
 						<div class="flex justify-between">
-							<span class="text-gray-600">Total</span>
+							<span class="text-gray-600">{$t('admin.analyticsTotal')}</span>
 							<span class="font-semibold">{analytics.overview.pages.total}</span>
 						</div>
 						<div class="flex justify-between">
-							<span class="text-gray-600">Published</span>
+							<span class="text-gray-600">{$t('admin.analyticsPublishedTitle')}</span>
 							<span class="text-green-600">{analytics.overview.pages.published}</span>
 						</div>
 						<div class="flex justify-between">
-							<span class="text-gray-600">Draft</span>
+							<span class="text-gray-600">{$t('admin.analyticsDraftTitle')}</span>
 							<span class="text-gray-400">{analytics.overview.pages.draft}</span>
 						</div>
 					</div>
 				</div>
 
 				<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-					<h3 class="text-sm font-semibold text-gray-700 mb-3">Blog Categories</h3>
+					<h3 class="text-sm font-semibold text-gray-700 mb-3">{$t('admin.analyticsBlogCategoriesHeading')}</h3>
 					<div class="space-y-2">
 						<div class="flex justify-between">
-							<span class="text-gray-600">Total</span>
+							<span class="text-gray-600">{$t('admin.analyticsTotal')}</span>
 							<span class="font-semibold">{analytics.overview.blogCategories.total}</span>
 						</div>
 						<div class="flex justify-between">
-							<span class="text-gray-600">Active</span>
+							<span class="text-gray-600">{$t('admin.active')}</span>
 							<span class="text-green-600">{analytics.overview.blogCategories.active}</span>
 						</div>
 						<div class="flex justify-between">
-							<span class="text-gray-600">Inactive</span>
+							<span class="text-gray-600">{$t('admin.inactive')}</span>
 							<span class="text-gray-400">{analytics.overview.blogCategories.inactive}</span>
 						</div>
 					</div>
@@ -526,15 +561,15 @@
 			<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
 				<div class="flex items-center justify-between mb-4">
 					<div>
-						<h2 class="text-lg font-semibold text-gray-900">AI Providers Health</h2>
-						<p class="text-sm text-gray-500 mt-1">Current provider selection and fallback readiness</p>
+						<h2 class="text-lg font-semibold text-gray-900">{$t('admin.analyticsAIProvidersHealthTitle')}</h2>
+						<p class="text-sm text-gray-500 mt-1">{$t('admin.analyticsAIProvidersHealthSubtitle')}</p>
 					</div>
 					<button
 						on:click={loadAIHealth}
 						class="px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 text-sm font-medium"
 						disabled={loadingAIHealth}
 					>
-						{loadingAIHealth ? 'Refreshing...' : 'Refresh'}
+						{loadingAIHealth ? $t('admin.analyticsRefreshing') : $t('admin.analyticsRefresh')}
 					</button>
 				</div>
 
@@ -544,11 +579,11 @@
 
 				{#if aiHealth}
 					<div class="mb-4 text-sm text-gray-700">
-						<span class="font-medium">Configured:</span> {aiHealth.configuredProvider}
+						<span class="font-medium">{$t('admin.analyticsConfigured')}:</span> {aiHealth.configuredProvider}
 						<span class="mx-2 text-gray-400">|</span>
-						<span class="font-medium">Active:</span>
+						<span class="font-medium">{$t('admin.active')}:</span>
 						<span class="{aiHealth.activeProvider ? 'text-green-700' : 'text-red-700'}">
-							{aiHealth.activeProvider || 'none'}
+							{aiHealth.activeProvider || $t('admin.analyticsNone')}
 						</span>
 					</div>
 
@@ -559,35 +594,37 @@
 								<div class="flex items-center justify-between mb-1">
 									<span class="font-medium text-gray-900">{key}</span>
 									<span class="text-xs {p?.available ? 'text-green-700' : 'text-red-700'}">
-										{p?.available ? 'available' : 'unavailable'}
+										{p?.available ? $t('admin.analyticsAvailable') : $t('admin.analyticsUnavailable')}
 									</span>
 								</div>
-								<p class="text-xs text-gray-700 wrap-break-word">{p?.reason || 'No details'}</p>
+								<p class="text-xs text-gray-700 wrap-break-word">{p?.reason || $t('admin.analyticsNoDetails')}</p>
 							</div>
 						{/each}
 					</div>
 				{:else if loadingAIHealth}
-					<div class="text-sm text-gray-500">Loading provider health...</div>
+					<div class="text-sm text-gray-500">{$t('admin.analyticsLoadingProviderHealth')}</div>
 				{:else}
-					<div class="text-sm text-gray-500">No provider health data yet.</div>
+					<div class="text-sm text-gray-500">{$t('admin.analyticsNoProviderHealthDataYet')}</div>
 				{/if}
 			</div>
 
 			<!-- Recent Activity -->
 			<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-				<h2 class="text-lg font-semibold text-gray-900 mb-4">Recent Activity (Last {analytics.recentActivity.period})</h2>
+				<h2 class="text-lg font-semibold text-gray-900 mb-4">
+					{$t('admin.analyticsRecentActivityTitle')} ({$t('admin.analyticsLast')} {formatRecentActivityPeriod(analytics.recentActivity.period)})
+				</h2>
 				<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
 					<div class="text-center p-4 bg-blue-50 rounded-lg">
 						<p class="text-2xl font-bold text-blue-600">{analytics.recentActivity.photos}</p>
-						<p class="text-sm text-gray-600 mt-1">New Photos</p>
+						<p class="text-sm text-gray-600 mt-1">{$t('admin.analyticsNewPhotos')}</p>
 					</div>
 					<div class="text-center p-4 bg-green-50 rounded-lg">
 						<p class="text-2xl font-bold text-green-600">{analytics.recentActivity.albums}</p>
-						<p class="text-sm text-gray-600 mt-1">New Albums</p>
+						<p class="text-sm text-gray-600 mt-1">{$t('admin.analyticsNewAlbums')}</p>
 					</div>
 					<div class="text-center p-4 bg-purple-50 rounded-lg">
 						<p class="text-2xl font-bold text-purple-600">{analytics.recentActivity.users}</p>
-						<p class="text-sm text-gray-600 mt-1">New Users</p>
+						<p class="text-sm text-gray-600 mt-1">{$t('admin.analyticsNewUsers')}</p>
 					</div>
 				</div>
 			</div>
@@ -595,26 +632,26 @@
 			<!-- Enhanced Tag Analytics -->
 			{#if analytics.tagAnalytics}
 				<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-					<h2 class="text-lg font-semibold text-gray-900 mb-4">Tag Analytics</h2>
+					<h2 class="text-lg font-semibold text-gray-900 mb-4">{$t('admin.analyticsTagAnalyticsTitle')}</h2>
 
 					<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
 						<div class="p-4 bg-amber-50 rounded-lg border border-amber-100">
-							<p class="text-sm text-amber-800">Unused tags</p>
+							<p class="text-sm text-amber-800">{$t('admin.analyticsUnusedTagsTitle')}</p>
 							<p class="text-2xl font-bold text-amber-700">{analytics.tagAnalytics.overview.unused}</p>
-							<p class="text-xs text-amber-600 mt-1">Never applied to photos</p>
+							<p class="text-xs text-amber-600 mt-1">{$t('admin.analyticsNeverAppliedToPhotos')}</p>
 						</div>
 						<div class="p-4 bg-indigo-50 rounded-lg border border-indigo-100">
-							<p class="text-sm text-indigo-800">Created (30 days)</p>
+							<p class="text-sm text-indigo-800">{$t('admin.analyticsCreated30Days')}</p>
 							<p class="text-2xl font-bold text-indigo-700">{analytics.tagAnalytics.overview.recentlyCreated}</p>
-							<p class="text-xs text-indigo-600 mt-1">New tags this month</p>
+							<p class="text-xs text-indigo-600 mt-1">{$t('admin.analyticsNewTagsThisMonth')}</p>
 						</div>
 					</div>
 
 					<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
 						<div>
-							<h3 class="text-sm font-semibold text-gray-700 mb-3">Tags by category</h3>
+							<h3 class="text-sm font-semibold text-gray-700 mb-3">{$t('admin.analyticsTagsByCategoryTitle')}</h3>
 							{#if analytics.tagAnalytics.byCategory.length === 0}
-								<p class="text-gray-500 text-sm">No tags</p>
+								<p class="text-gray-500 text-sm">{$t('admin.analyticsNoTags')}</p>
 							{:else}
 								<div class="space-y-2">
 									{#each analytics.tagAnalytics.byCategory as cat}
@@ -627,16 +664,16 @@
 							{/if}
 						</div>
 						<div>
-							<h3 class="text-sm font-semibold text-gray-700 mb-3">Photos by tag count</h3>
+							<h3 class="text-sm font-semibold text-gray-700 mb-3">{$t('admin.analyticsPhotosByTagCountTitle')}</h3>
 							{#if analytics.tagAnalytics.photoTagDistribution.length === 0}
-								<p class="text-gray-500 text-sm">No data</p>
+								<p class="text-gray-500 text-sm">{$t('admin.analyticsNoData')}</p>
 							{:else}
 								{@const distMap = Object.fromEntries(analytics.tagAnalytics.photoTagDistribution.map((d) => [d.bucket, d.count]))}
 								<div class="space-y-2">
 									{#each TAG_DISTRIBUTION_ORDER as bucket}
 										<div class="flex justify-between items-center py-1.5 border-b border-gray-100 last:border-0">
-											<span class="text-gray-700">{bucket} tags</span>
-											<span class="font-medium text-gray-900">{distMap[bucket] ?? 0} photos</span>
+											<span class="text-gray-700">{bucket} {$t('admin.analyticsTagsPlural')}</span>
+											<span class="font-medium text-gray-900">{distMap[bucket] ?? 0} {$t('admin.analyticsPhotosPlural')}</span>
 										</div>
 									{/each}
 								</div>
@@ -646,9 +683,9 @@
 
 					<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 						<div>
-							<h3 class="text-sm font-semibold text-gray-700 mb-3">Unused tags (candidates for cleanup)</h3>
+							<h3 class="text-sm font-semibold text-gray-700 mb-3">{$t('admin.analyticsUnusedTagsCleanupTitle')}</h3>
 							{#if analytics.tagAnalytics.unusedTags.length === 0}
-								<p class="text-gray-500 text-sm">All tags are in use</p>
+								<p class="text-gray-500 text-sm">{$t('admin.analyticsAllTagsInUse')}</p>
 							{:else}
 								<div class="space-y-2 max-h-48 overflow-y-auto">
 									{#each analytics.tagAnalytics.unusedTags as tag}
@@ -661,15 +698,15 @@
 							{/if}
 						</div>
 						<div>
-							<h3 class="text-sm font-semibold text-gray-700 mb-3">Recently created tags</h3>
+							<h3 class="text-sm font-semibold text-gray-700 mb-3">{$t('admin.analyticsRecentlyCreatedTagsTitle')}</h3>
 							{#if analytics.tagAnalytics.recentTags.length === 0}
-								<p class="text-gray-500 text-sm">No new tags in the last 30 days</p>
+								<p class="text-gray-500 text-sm">{$t('admin.analyticsNoNewTagsLast30Days')}</p>
 							{:else}
 								<div class="space-y-2 max-h-48 overflow-y-auto">
 									{#each analytics.tagAnalytics.recentTags as tag}
 										<div class="flex justify-between items-center py-2 px-3 bg-gray-50 rounded text-sm">
 											<span class="font-medium text-gray-900">{getTagName(tag)}</span>
-											<span class="text-gray-500">{tag.usageCount} uses</span>
+											<span class="text-gray-500">{tag.usageCount} {$t('admin.analyticsUses')}</span>
 										</div>
 									{/each}
 								</div>
@@ -683,9 +720,9 @@
 			<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 				<!-- Top Albums -->
 				<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-					<h2 class="text-lg font-semibold text-gray-900 mb-4">Top Albums by Photo Count</h2>
+					<h2 class="text-lg font-semibold text-gray-900 mb-4">{$t('admin.analyticsTopAlbumsTitle')}</h2>
 					{#if analytics.topAlbums.length === 0}
-						<p class="text-gray-500 text-sm">No albums found</p>
+						<p class="text-gray-500 text-sm">{$t('admin.analyticsNoAlbumsFound')}</p>
 					{:else}
 						<div class="space-y-3">
 							{#each analytics.topAlbums as album}
@@ -696,7 +733,7 @@
 									</div>
 									<div class="text-right">
 										<p class="text-lg font-bold text-blue-600">{album.photoCount}</p>
-										<p class="text-xs text-gray-500">photos</p>
+										<p class="text-xs text-gray-500">{$t('admin.analyticsPhotosPlural')}</p>
 									</div>
 								</div>
 							{/each}
@@ -706,9 +743,9 @@
 
 				<!-- Top Tags -->
 				<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-					<h2 class="text-lg font-semibold text-gray-900 mb-4">Top Tags by Usage</h2>
+					<h2 class="text-lg font-semibold text-gray-900 mb-4">{$t('admin.analyticsTopTagsTitle')}</h2>
 					{#if analytics.topTags.length === 0}
-						<p class="text-gray-500 text-sm">No tags found</p>
+						<p class="text-gray-500 text-sm">{$t('admin.analyticsNoTagsFound')}</p>
 					{:else}
 						<div class="space-y-3">
 							{#each analytics.topTags as tag}
@@ -717,9 +754,9 @@
 										<p class="font-medium text-gray-900 truncate">{getTagName(tag)}</p>
 										<p class="text-xs text-gray-500">
 											{#if tag.isActive}
-												<span class="text-green-600">Active</span>
+												<span class="text-green-600">{$t('admin.active')}</span>
 											{:else}
-												<span class="text-gray-400">Inactive</span>
+												<span class="text-gray-400">{$t('admin.inactive')}</span>
 											{/if}
 											{#if tag.category}
 												<span class="ml-1 capitalize"> · {tag.category}</span>
@@ -728,7 +765,7 @@
 									</div>
 									<div class="text-right shrink-0 ml-2">
 										<p class="text-lg font-bold text-green-600">{tag.usageCount}</p>
-										<p class="text-xs text-gray-500">uses</p>
+										<p class="text-xs text-gray-500">{$t('admin.analyticsUses')}</p>
 									</div>
 								</div>
 							{/each}
@@ -740,28 +777,28 @@
 			{#if loadingTab}
 				<div class="text-center py-8">
 					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-					<p class="mt-2 text-gray-600">Loading views analytics...</p>
+					<p class="mt-2 text-gray-600">{$t('admin.analyticsLoadingViewsAnalytics')}</p>
 				</div>
 			{:else if viewsData}
 			<!-- Views Analytics -->
 			<div class="space-y-6">
 				<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-					<h2 class="text-lg font-semibold text-gray-900 mb-4">Views Summary</h2>
+					<h2 class="text-lg font-semibold text-gray-900 mb-4">{$t('admin.analyticsViewsSummaryTitle')}</h2>
 					<div class="grid grid-cols-1 md:grid-cols-4 gap-4">
 						<div class="p-4 bg-blue-50 rounded-lg">
-							<p class="text-sm text-blue-800">Total Views</p>
+							<p class="text-sm text-blue-800">{$t('admin.analyticsTotalViews')}</p>
 							<p class="text-2xl font-bold text-blue-700">{viewsData.summary?.total || 0}</p>
 						</div>
 						<div class="p-4 bg-green-50 rounded-lg">
-							<p class="text-sm text-green-800">Unique Views</p>
+							<p class="text-sm text-green-800">{$t('admin.analyticsUniqueViews')}</p>
 							<p class="text-2xl font-bold text-green-700">{viewsData.summary?.unique || 0}</p>
 						</div>
 						<div class="p-4 bg-purple-50 rounded-lg">
-							<p class="text-sm text-purple-800">Photo Views</p>
+							<p class="text-sm text-purple-800">{$t('admin.analyticsPhotoViews')}</p>
 							<p class="text-2xl font-bold text-purple-700">{viewsData.summary?.photos || 0}</p>
 						</div>
 						<div class="p-4 bg-orange-50 rounded-lg">
-							<p class="text-sm text-orange-800">Album Views</p>
+							<p class="text-sm text-orange-800">{$t('admin.analyticsAlbumViews')}</p>
 							<p class="text-2xl font-bold text-orange-700">{viewsData.summary?.albums || 0}</p>
 						</div>
 					</div>
@@ -769,10 +806,10 @@
 
 				{#if viewsData.trends && viewsData.trends.length > 0}
 					<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-						<h2 class="text-lg font-semibold text-gray-900 mb-4">Views Over Time</h2>
+						<h2 class="text-lg font-semibold text-gray-900 mb-4">{$t('admin.analyticsViewsOverTimeTitle')}</h2>
 						<LineChart
 							data={viewsData.trends.map((t: any) => ({ date: t.date, value: t.views }))}
-							label="Views"
+							label={$t('admin.analyticsViewsLabel')}
 							color="#3b82f6"
 							height={300}
 						/>
@@ -781,10 +818,10 @@
 
 				{#if viewsData.topResources && viewsData.topResources.length > 0}
 					<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-						<h2 class="text-lg font-semibold text-gray-900 mb-4">Top Viewed Resources</h2>
+						<h2 class="text-lg font-semibold text-gray-900 mb-4">{$t('admin.analyticsTopViewedResourcesTitle')}</h2>
 						<BarChart
 							data={viewsData.topResources.slice(0, 10).map((r: any) => ({ label: r.name, value: r.views }))}
-							label="Views"
+							label={$t('admin.analyticsViewsLabel')}
 							color="#10b981"
 							height={300}
 						/>
@@ -792,13 +829,13 @@
 				{/if}
 			</div>
 			{:else}
-				<div class="text-center py-8 text-gray-500">No views data available</div>
+				<div class="text-center py-8 text-gray-500">{$t('admin.analyticsNoViewsDataAvailable')}</div>
 			{/if}
 		{:else if activeTab === 'search'}
 			{#if loadingTab}
 				<div class="text-center py-8">
 					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-					<p class="mt-2 text-gray-600">Loading search analytics...</p>
+					<p class="mt-2 text-gray-600">{$t('admin.analyticsLoadingSearchAnalytics')}</p>
 				</div>
 			{:else if searchData}
 			<!-- Search Analytics -->
@@ -807,15 +844,15 @@
 					<h2 class="text-lg font-semibold text-gray-900 mb-4">{$t('admin.analyticsSearchSummaryTitle')}</h2>
 					<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
 						<div class="p-4 bg-blue-50 rounded-lg">
-							<p class="text-sm text-blue-800">Total Searches</p>
+							<p class="text-sm text-blue-800">{$t('admin.analyticsTotalSearches')}</p>
 							<p class="text-2xl font-bold text-blue-700">{searchData.summary?.totalSearches || 0}</p>
 						</div>
 						<div class="p-4 bg-green-50 rounded-lg">
-							<p class="text-sm text-green-800">Unique Queries</p>
+							<p class="text-sm text-green-800">{$t('admin.analyticsUniqueQueries')}</p>
 							<p class="text-2xl font-bold text-green-700">{searchData.summary?.uniqueQueries || 0}</p>
 						</div>
 						<div class="p-4 bg-purple-50 rounded-lg">
-							<p class="text-sm text-purple-800">Avg Results</p>
+							<p class="text-sm text-purple-800">{$t('admin.analyticsAvgResults')}</p>
 							<p class="text-2xl font-bold text-purple-700">{searchData.summary?.averageResults?.toFixed(1) || 0}</p>
 						</div>
 					</div>
@@ -949,7 +986,7 @@
 						<h2 class="text-lg font-semibold text-gray-900 mb-4">{$t('admin.analyticsSearchTrendsTitle')}</h2>
 						<LineChart
 							data={searchData.trends.map((t: any) => ({ date: t.date, value: t.searches }))}
-							label="Searches"
+							label={$t('admin.analyticsSearchesLabel')}
 							color="#3b82f6"
 							height={300}
 						/>
@@ -979,11 +1016,11 @@
 								<div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
 									<div>
 										<p class="font-medium text-gray-900">"{query.query}"</p>
-										<p class="text-xs text-gray-500">Last searched: {new Date(query.lastSearched).toLocaleDateString()}</p>
+										<p class="text-xs text-gray-500">{$t('admin.analyticsLastSearched')}: {new Date(query.lastSearched).toLocaleDateString()}</p>
 									</div>
 									<div class="text-right">
 										<p class="text-lg font-bold text-blue-600">{query.count}</p>
-										<p class="text-xs text-gray-500">searches</p>
+										<p class="text-xs text-gray-500">{$t('admin.analyticsSearchesPlural')}</p>
 									</div>
 								</div>
 							{/each}
@@ -992,23 +1029,23 @@
 				{/if}
 			</div>
 			{:else}
-				<div class="text-center py-8 text-gray-500">No search data available</div>
+				<div class="text-center py-8 text-gray-500">{$t('admin.analyticsNoSearchDataAvailable')}</div>
 			{/if}
 		{:else if activeTab === 'tags'}
 			{#if loadingTab}
 				<div class="text-center py-8">
 					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-					<p class="mt-2 text-gray-600">Loading tags analytics...</p>
+					<p class="mt-2 text-gray-600">{$t('admin.analyticsLoadingTagsAnalytics')}</p>
 				</div>
 			{:else if tagsData}
 			<!-- Tags Analytics -->
 			<div class="space-y-6">
 				{#if tagsData.tagsCreated && tagsData.tagsCreated.length > 0}
 					<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-						<h2 class="text-lg font-semibold text-gray-900 mb-4">Tag Creation Trends</h2>
+						<h2 class="text-lg font-semibold text-gray-900 mb-4">{$t('admin.analyticsTagCreationTrendsTitle')}</h2>
 						<LineChart
 							data={tagsData.tagsCreated.map((t: any) => ({ date: t.date, value: t.count }))}
-							label="Tags Created"
+							label={$t('admin.analyticsTagsCreatedLabel')}
 							color="#3b82f6"
 							height={300}
 						/>
@@ -1017,10 +1054,10 @@
 
 				{#if tagsData.tagsUsed && tagsData.tagsUsed.length > 0}
 					<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-						<h2 class="text-lg font-semibold text-gray-900 mb-4">Tag Usage Trends</h2>
+						<h2 class="text-lg font-semibold text-gray-900 mb-4">{$t('admin.analyticsTagUsageTrendsTitle')}</h2>
 						<LineChart
 							data={tagsData.tagsUsed.map((t: any) => ({ date: t.date, value: t.totalUsage }))}
-							label="Tag Usage"
+							label={$t('admin.analyticsTagUsageLabel')}
 							color="#10b981"
 							height={300}
 						/>
@@ -1029,13 +1066,13 @@
 
 				{#if tagsData.topTags && tagsData.topTags.length > 0}
 					<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-						<h2 class="text-lg font-semibold text-gray-900 mb-4">Top Tags by Usage</h2>
+						<h2 class="text-lg font-semibold text-gray-900 mb-4">{$t('admin.analyticsTopTagsByUsageTitle')}</h2>
 						<BarChart
 							data={tagsData.topTags.slice(0, 15).map((t: any) => ({
-								label: typeof t.name === 'string' ? t.name : t.name?.en || 'Unknown',
+								label: typeof t.name === 'string' ? t.name : t.name?.en || analyticsUnknownLabel,
 								value: t.usageCount || 0,
 							}))}
-							label="Usage Count"
+							label={$t('admin.analyticsUsageCountLabel')}
 							color="#8b5cf6"
 							height={400}
 						/>
@@ -1043,34 +1080,34 @@
 				{/if}
 			</div>
 			{:else}
-				<div class="text-center py-8 text-gray-500">No tags data available</div>
+				<div class="text-center py-8 text-gray-500">{$t('admin.analyticsNoTagsDataAvailable')}</div>
 			{/if}
 		{:else if activeTab === 'storage'}
 			{#if loadingTab}
 				<div class="text-center py-8">
 					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-					<p class="mt-2 text-gray-600">Loading storage analytics...</p>
+					<p class="mt-2 text-gray-600">{$t('admin.analyticsLoadingStorageAnalytics')}</p>
 				</div>
 			{:else if storageData}
 			<!-- Storage Analytics -->
 			<div class="space-y-6">
 				<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-					<h2 class="text-lg font-semibold text-gray-900 mb-4">Storage Summary</h2>
+					<h2 class="text-lg font-semibold text-gray-900 mb-4">{$t('admin.analyticsStorageSummaryTitle')}</h2>
 					<div class="grid grid-cols-1 md:grid-cols-4 gap-4">
 						<div class="p-4 bg-blue-50 rounded-lg">
-							<p class="text-sm text-blue-800">Total Storage</p>
+							<p class="text-sm text-blue-800">{$t('admin.analyticsTotalStorageLabel')}</p>
 							<p class="text-2xl font-bold text-blue-700">{storageData.summary?.totalGB?.toFixed(2) || 0} GB</p>
 						</div>
 						<div class="p-4 bg-green-50 rounded-lg">
-							<p class="text-sm text-green-800">Total Photos</p>
+							<p class="text-sm text-green-800">{$t('admin.analyticsTotalPhotosLabel')}</p>
 							<p class="text-2xl font-bold text-green-700">{storageData.summary?.totalPhotos || 0}</p>
 						</div>
 						<div class="p-4 bg-purple-50 rounded-lg">
-							<p class="text-sm text-purple-800">Avg Size</p>
+							<p class="text-sm text-purple-800">{$t('admin.analyticsAvgSizeLabel')}</p>
 							<p class="text-2xl font-bold text-purple-700">{storageData.summary?.averageSizeMB?.toFixed(2) || 0} MB</p>
 						</div>
 						<div class="p-4 bg-orange-50 rounded-lg">
-							<p class="text-sm text-orange-800">Total MB</p>
+							<p class="text-sm text-orange-800">{$t('admin.analyticsTotalMBLabel')}</p>
 							<p class="text-2xl font-bold text-orange-700">{storageData.summary?.totalMB?.toFixed(2) || 0}</p>
 						</div>
 					</div>
@@ -1078,7 +1115,7 @@
 
 				{#if storageData.byProvider && storageData.byProvider.length > 0}
 					<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-						<h2 class="text-lg font-semibold text-gray-900 mb-4">Storage by Provider</h2>
+						<h2 class="text-lg font-semibold text-gray-900 mb-4">{$t('admin.analyticsStorageByProviderTitle')}</h2>
 						<PieChart
 							data={storageData.byProvider.map((p: any) => ({
 								label: p.provider,
@@ -1091,13 +1128,13 @@
 
 				{#if storageData.byAlbum && storageData.byAlbum.length > 0}
 					<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-						<h2 class="text-lg font-semibold text-gray-900 mb-4">Storage by Album (Top 20)</h2>
+						<h2 class="text-lg font-semibold text-gray-900 mb-4">{$t('admin.analyticsStorageByAlbumTop20Title')}</h2>
 						<BarChart
 							data={storageData.byAlbum.map((a: any) => ({
 								label: a.name.length > 20 ? a.name.substring(0, 20) + '...' : a.name,
 								value: a.storageMB,
 							}))}
-							label="Storage (MB)"
+							label={$t('admin.analyticsStorageMBLabel')}
 							color="#f59e0b"
 							height={400}
 						/>
@@ -1105,7 +1142,7 @@
 				{/if}
 			</div>
 			{:else}
-				<div class="text-center py-8 text-gray-500">No storage data available</div>
+				<div class="text-center py-8 text-gray-500">{$t('admin.analyticsNoStorageDataAvailable')}</div>
 			{/if}
 		{/if}
 	</div>
