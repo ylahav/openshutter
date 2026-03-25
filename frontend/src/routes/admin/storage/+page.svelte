@@ -166,8 +166,18 @@
 				method: 'POST',
 				credentials: 'include'
 			});
-			
-			const result = await response.json();
+
+			const rawText = await response.text();
+			let result: any = null;
+			try {
+				result = JSON.parse(rawText);
+			} catch {
+				// If the backend/proxy returns an HTML error page, response.json() would throw:
+				// "Unexpected token '<' ...". We surface a clearer message instead.
+				throw new Error(
+					`Server returned non-JSON response for connection test (status ${response.status}).`
+				);
+			}
 			
 			if (result.success) {
 				testResult = 'success';
@@ -195,10 +205,10 @@
 				
 				throw new Error(result.error || 'Connection test failed');
 			}
-		} catch (err) {
+			} catch (err) {
 			console.error('Connection test failed:', err);
 			testResult = 'error';
-			testResult = err instanceof Error ? err.message : 'Connection test failed';
+				testResult = err instanceof Error ? err.message : 'Connection test failed';
 		} finally {
 			testingConnection = false;
 		}

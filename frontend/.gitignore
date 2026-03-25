@@ -49,6 +49,8 @@ openshutter-deployment.tar.gz
 # Storage and logs (exclude route path so owner storage page is tracked)
 storage/
 !src/routes/owner/storage/
+!src/routes/api/admin/analytics/storage/
+!src/routes/api/admin/analytics/storage/+server.ts
 logs/
 
 # Server start timestamp and PID (development only)

@@ -12,6 +12,10 @@
 	// svelte-ignore export_let_unused - Required by SvelteKit page component
 	export let data: PageData;
 
+	// Safe translation function for script usage (avoid calling before $t is ready).
+	let translate: (key: string, fallback?: string) => string = (key, fallback) => fallback || key;
+	$: translate = $t;
+
 	interface Location {
 		_id: string;
 		name: { en?: string; he?: string } | string;
@@ -22,8 +26,8 @@
 		country?: string;
 		postalCode?: string;
 		coordinates?: {
-			latitude: number;
-			longitude: number;
+			latitude: number | string;
+			longitude: number | string;
 		};
 		placeId?: string;
 		category?: string;
@@ -32,15 +36,15 @@
 	}
 
 	const LOCATION_CATEGORIES = [
-		{ value: 'city', label: 'City' },
-		{ value: 'landmark', label: 'Landmark' },
-		{ value: 'venue', label: 'Venue' },
-		{ value: 'outdoor', label: 'Outdoor' },
-		{ value: 'indoor', label: 'Indoor' },
-		{ value: 'travel', label: 'Travel' },
-		{ value: 'home', label: 'Home' },
-		{ value: 'work', label: 'Work' },
-		{ value: 'custom', label: 'Custom' }
+		{ value: 'city', labelKey: 'admin.locationCategoryCity' },
+		{ value: 'landmark', labelKey: 'admin.locationCategoryLandmark' },
+		{ value: 'venue', labelKey: 'admin.locationCategoryVenue' },
+		{ value: 'outdoor', labelKey: 'admin.locationCategoryOutdoor' },
+		{ value: 'indoor', labelKey: 'admin.locationCategoryIndoor' },
+		{ value: 'travel', labelKey: 'admin.locationCategoryTravel' },
+		{ value: 'home', labelKey: 'admin.locationCategoryHome' },
+		{ value: 'work', labelKey: 'admin.locationCategoryWork' },
+		{ value: 'custom', labelKey: 'admin.locationCategoryCustom' }
 	];
 
 	// Use CRUD composables
@@ -207,7 +211,8 @@
 	}
 
 	function getCategoryLabel(category: string): string {
-		return LOCATION_CATEGORIES.find((c) => c.value === category)?.label || category;
+		const cat = LOCATION_CATEGORIES.find((c) => c.value === category);
+		return (cat?.labelKey ? translate(cat.labelKey) : undefined) || category;
 	}
 
 	async function handleCreate() {
@@ -294,7 +299,7 @@
 					>
 						<option value="all">{$t('admin.allCategories')}</option>
 						{#each LOCATION_CATEGORIES as cat}
-							<option value={cat.value}>{cat.label}</option>
+							<option value={cat.value}>{$t(cat.labelKey)}</option>
 						{/each}
 					</select>
 				</div>
@@ -425,7 +430,7 @@
 {#if showCreateDialog}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
 		<div class="bg-white rounded-lg shadow-xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
-			<h2 class="text-xl font-bold text-gray-900 mb-4">Add New Location</h2>
+			<h2 class="text-xl font-bold text-gray-900 mb-4">{$t('admin.locationAddNewTitle')}</h2>
 
 			{#if error}
 				<div class="mb-4 p-4 bg-red-50 text-red-700 rounded-md">{error}</div>
@@ -434,14 +439,14 @@
 			<div class="space-y-4">
 				<div>
 					<span class="block text-sm font-medium text-gray-700 mb-2">
-						Location Name *
+						{$t('admin.locationNameLabel')}
 					</span>
 					<MultiLangInput bind:value={formData.name} />
 				</div>
 
 				<div>
 					<span class="block text-sm font-medium text-gray-700 mb-2">
-						Description
+						{$t('admin.locationDescriptionLabel')}
 					</span>
 					<MultiLangHTMLEditor bind:value={formData.description} />
 				</div>
@@ -449,26 +454,26 @@
 				<div class="grid grid-cols-2 gap-4">
 					<div>
 						<label for="address-create" class="block text-sm font-medium text-gray-700 mb-2">
-							Address
+							{$t('admin.locationAddressLabel')}
 						</label>
 						<input
 							type="text"
 							id="address-create"
 							bind:value={formData.address}
-							placeholder="Street address"
+							placeholder={$t('admin.locationStreetAddressPlaceholder')}
 							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 						/>
 					</div>
 
 					<div>
 						<label for="city-create" class="block text-sm font-medium text-gray-700 mb-2">
-							City
+							{$t('admin.locationCityLabel')}
 						</label>
 						<input
 							type="text"
 							id="city-create"
 							bind:value={formData.city}
-							placeholder="City"
+							placeholder={$t('admin.locationCityPlaceholder')}
 							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 						/>
 					</div>
@@ -477,39 +482,39 @@
 				<div class="grid grid-cols-3 gap-4">
 					<div>
 						<label for="state-create" class="block text-sm font-medium text-gray-700 mb-2">
-							State/Province
+							{$t('admin.locationStateProvinceLabel')}
 						</label>
 						<input
 							type="text"
 							id="state-create"
 							bind:value={formData.state}
-							placeholder="State"
+							placeholder={$t('admin.locationStatePlaceholder')}
 							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 						/>
 					</div>
 
 					<div>
 						<label for="country-create" class="block text-sm font-medium text-gray-700 mb-2">
-							Country
+							{$t('admin.locationCountryLabel')}
 						</label>
 						<input
 							type="text"
 							id="country-create"
 							bind:value={formData.country}
-							placeholder="Country"
+							placeholder={$t('admin.locationCountryPlaceholder')}
 							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 						/>
 					</div>
 
 					<div>
 						<label for="postal-create" class="block text-sm font-medium text-gray-700 mb-2">
-							Postal Code
+							{$t('admin.locationPostalCodeLabel')}
 						</label>
 						<input
 							type="text"
 							id="postal-create"
 							bind:value={formData.postalCode}
-							placeholder="Postal code"
+							placeholder={$t('admin.locationPostalCodePlaceholder')}
 							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 						/>
 					</div>
@@ -518,28 +523,28 @@
 				<div class="grid grid-cols-2 gap-4">
 					<div>
 						<label for="lat-create" class="block text-sm font-medium text-gray-700 mb-2">
-							Latitude
+							{$t('admin.locationLatitudeLabel')}
 						</label>
 						<input
 							type="number"
 							id="lat-create"
 							step="any"
 							bind:value={formData.coordinates.latitude}
-							placeholder="-90 to 90"
+							placeholder={$t('admin.locationLatitudePlaceholder')}
 							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 						/>
 					</div>
 
 					<div>
 						<label for="lng-create" class="block text-sm font-medium text-gray-700 mb-2">
-							Longitude
+							{$t('admin.locationLongitudeLabel')}
 						</label>
 						<input
 							type="number"
 							id="lng-create"
 							step="any"
 							bind:value={formData.coordinates.longitude}
-							placeholder="-180 to 180"
+							placeholder={$t('admin.locationLongitudePlaceholder')}
 							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 						/>
 					</div>
@@ -547,20 +552,20 @@
 
 				<div>
 					<label for="place-id-create" class="block text-sm font-medium text-gray-700 mb-2">
-						Place ID (Google Places)
+						{$t('admin.locationPlaceIdLabel')}
 					</label>
 					<input
 						type="text"
 						id="place-id-create"
 						bind:value={formData.placeId}
-						placeholder="Optional Google Places ID"
+						placeholder={$t('admin.locationPlaceIdPlaceholder')}
 						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 					/>
 				</div>
 
 				<div>
 					<label for="category-create" class="block text-sm font-medium text-gray-700 mb-2">
-						Category
+						{$t('admin.locationCategoryLabel')}
 					</label>
 					<select
 						id="category-create"
@@ -568,7 +573,7 @@
 						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 					>
 						{#each LOCATION_CATEGORIES as cat}
-							<option value={cat.value}>{cat.label}</option>
+							<option value={cat.value}>{$t(cat.labelKey)}</option>
 						{/each}
 					</select>
 				</div>
@@ -582,7 +587,7 @@
 						}}
 						class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm font-medium"
 					>
-						Cancel
+						{$t('admin.locationCancelButton')}
 					</button>
 					<button
 						type="button"
@@ -591,9 +596,9 @@
 						class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm font-medium"
 					>
 						{#if saving}
-							Creating...
+							{$t('admin.locationCreatingButton')}
 						{:else}
-							Create Location
+							{$t('admin.locationCreateButton')}
 						{/if}
 					</button>
 				</div>
@@ -606,7 +611,7 @@
 {#if showEditDialog && editingLocation}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
 		<div class="bg-white rounded-lg shadow-xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
-			<h2 class="text-xl font-bold text-gray-900 mb-4">Edit Location</h2>
+			<h2 class="text-xl font-bold text-gray-900 mb-4">{$t('admin.locationEditTitle')}</h2>
 
 			{#if error}
 				<div class="mb-4 p-4 bg-red-50 text-red-700 rounded-md">{error}</div>
@@ -615,14 +620,14 @@
 			<div class="space-y-4">
 				<div>
 					<span class="block text-sm font-medium text-gray-700 mb-2">
-						Location Name *
+						{$t('admin.locationNameLabel')}
 					</span>
 					<MultiLangInput bind:value={formData.name} />
 				</div>
 
 				<div>
 					<span class="block text-sm font-medium text-gray-700 mb-2">
-						Description
+						{$t('admin.locationDescriptionLabel')}
 					</span>
 					<MultiLangHTMLEditor bind:value={formData.description} />
 				</div>
@@ -630,26 +635,26 @@
 				<div class="grid grid-cols-2 gap-4">
 					<div>
 						<label for="address-edit" class="block text-sm font-medium text-gray-700 mb-2">
-							Address
+							{$t('admin.locationAddressLabel')}
 						</label>
 						<input
 							type="text"
 							id="address-edit"
 							bind:value={formData.address}
-							placeholder="Street address"
+							placeholder={$t('admin.locationStreetAddressPlaceholder')}
 							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 						/>
 					</div>
 
 					<div>
 						<label for="city-edit" class="block text-sm font-medium text-gray-700 mb-2">
-							City
+							{$t('admin.locationCityLabel')}
 						</label>
 						<input
 							type="text"
 							id="city-edit"
 							bind:value={formData.city}
-							placeholder="City"
+							placeholder={$t('admin.locationCityPlaceholder')}
 							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 						/>
 					</div>
@@ -658,39 +663,39 @@
 				<div class="grid grid-cols-3 gap-4">
 					<div>
 						<label for="state-edit" class="block text-sm font-medium text-gray-700 mb-2">
-							State/Province
+							{$t('admin.locationStateProvinceLabel')}
 						</label>
 						<input
 							type="text"
 							id="state-edit"
 							bind:value={formData.state}
-							placeholder="State"
+							placeholder={$t('admin.locationStatePlaceholder')}
 							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 						/>
 					</div>
 
 					<div>
 						<label for="country-edit" class="block text-sm font-medium text-gray-700 mb-2">
-							Country
+							{$t('admin.locationCountryLabel')}
 						</label>
 						<input
 							type="text"
 							id="country-edit"
 							bind:value={formData.country}
-							placeholder="Country"
+							placeholder={$t('admin.locationCountryPlaceholder')}
 							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 						/>
 					</div>
 
 					<div>
 						<label for="postal-edit" class="block text-sm font-medium text-gray-700 mb-2">
-							Postal Code
+							{$t('admin.locationPostalCodeLabel')}
 						</label>
 						<input
 							type="text"
 							id="postal-edit"
 							bind:value={formData.postalCode}
-							placeholder="Postal code"
+							placeholder={$t('admin.locationPostalCodePlaceholder')}
 							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 						/>
 					</div>
@@ -699,28 +704,28 @@
 				<div class="grid grid-cols-2 gap-4">
 					<div>
 						<label for="lat-edit" class="block text-sm font-medium text-gray-700 mb-2">
-							Latitude
+							{$t('admin.locationLatitudeLabel')}
 						</label>
 						<input
 							type="number"
 							id="lat-edit"
 							step="any"
 							bind:value={formData.coordinates.latitude}
-							placeholder="-90 to 90"
+							placeholder={$t('admin.locationLatitudePlaceholder')}
 							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 						/>
 					</div>
 
 					<div>
 						<label for="lng-edit" class="block text-sm font-medium text-gray-700 mb-2">
-							Longitude
+							{$t('admin.locationLongitudeLabel')}
 						</label>
 						<input
 							type="number"
 							id="lng-edit"
 							step="any"
 							bind:value={formData.coordinates.longitude}
-							placeholder="-180 to 180"
+							placeholder={$t('admin.locationLongitudePlaceholder')}
 							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 						/>
 					</div>
@@ -728,20 +733,20 @@
 
 				<div>
 					<label for="place-id-edit" class="block text-sm font-medium text-gray-700 mb-2">
-						Place ID (Google Places)
+						{$t('admin.locationPlaceIdLabel')}
 					</label>
 					<input
 						type="text"
 						id="place-id-edit"
 						bind:value={formData.placeId}
-						placeholder="Optional Google Places ID"
+						placeholder={$t('admin.locationPlaceIdPlaceholder')}
 						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 					/>
 				</div>
 
 				<div>
 					<label for="category-edit" class="block text-sm font-medium text-gray-700 mb-2">
-						Category
+						{$t('admin.locationCategoryLabel')}
 					</label>
 					<select
 						id="category-edit"
@@ -749,7 +754,7 @@
 						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 					>
 						{#each LOCATION_CATEGORIES as cat}
-							<option value={cat.value}>{cat.label}</option>
+							<option value={cat.value}>{$t(cat.labelKey)}</option>
 						{/each}
 					</select>
 				</div>
@@ -765,7 +770,7 @@
 							class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"
 						></div>
 						<span class="ml-3 text-sm font-medium text-gray-700">
-							Active
+							{$t('admin.locationActiveLabel')}
 						</span>
 					</label>
 				</div>
@@ -780,7 +785,7 @@
 						}}
 						class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm font-medium"
 					>
-						Cancel
+						{$t('admin.locationCancelButton')}
 					</button>
 					<button
 						type="button"
@@ -789,9 +794,9 @@
 						class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm font-medium"
 					>
 						{#if saving}
-							Updating...
+							{$t('admin.locationUpdatingButton')}
 						{:else}
-							Update Location
+							{$t('admin.locationUpdateButton')}
 						{/if}
 					</button>
 				</div>
@@ -804,7 +809,7 @@
 {#if showDeleteDialog && locationToDelete}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
 		<div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
-			<h2 class="text-xl font-bold text-gray-900 mb-4">Delete Location</h2>
+			<h2 class="text-xl font-bold text-gray-900 mb-4">{$t('admin.locationDeleteTitle')}</h2>
 
 			{#if error}
 				<div class="mb-4 p-4 bg-red-50 text-red-700 rounded-md">{error}</div>
@@ -812,15 +817,16 @@
 
 			<div class="space-y-4">
 				<p class="text-gray-600">
-					Are you sure you want to delete <strong>{getLocationName(locationToDelete)}</strong>? This
-					action cannot be undone.
+					{$t('admin.locationDeleteConfirmPrefix')}
+					<strong>{getLocationName(locationToDelete)}</strong>
+					{$t('admin.locationDeleteConfirmSuffix')}
 				</p>
 				{#if locationToDelete.usageCount && locationToDelete.usageCount > 0}
 					<div class="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
 						<p class="text-sm text-yellow-800">
-							⚠️ This location is used in {locationToDelete.usageCount}{' '}
-							{locationToDelete.usageCount === 1 ? 'photo' : 'photos'}. Deleting it will remove
-							the location from all photos.
+							{$t('admin.locationDeleteUsedWarningPrefix')} {locationToDelete.usageCount}{' '}
+							{locationToDelete.usageCount === 1 ? $t('admin.tagsPhotoSingular') : $t('admin.tagsPhotoPlural')}
+							{$t('admin.locationDeleteUsedWarningSuffix')}
 						</p>
 					</div>
 				{/if}
@@ -833,7 +839,7 @@
 						}}
 						class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm font-medium"
 					>
-						Cancel
+						{$t('admin.locationCancelButton')}
 					</button>
 					<button
 						type="button"
@@ -842,9 +848,9 @@
 						class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 text-sm font-medium"
 					>
 						{#if saving}
-							Deleting...
+							{$t('admin.locationDeletingButton')}
 						{:else}
-							Delete Location
+							{$t('admin.locationDeleteButton')}
 						{/if}
 					</button>
 				</div>

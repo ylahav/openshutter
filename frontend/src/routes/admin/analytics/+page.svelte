@@ -808,7 +808,11 @@
 					<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
 						<h2 class="text-lg font-semibold text-gray-900 mb-4">{$t('admin.analyticsViewsOverTimeTitle')}</h2>
 						<LineChart
-							data={viewsData.trends.map((t: any) => ({ date: t.date, value: t.views }))}
+							data={viewsData.trends.map((t: any) => {
+								const rawDate = t.date;
+								const date = typeof rawDate === 'string' ? rawDate : rawDate?.date ?? String(rawDate);
+								return { date, value: t.views };
+							})}
 							label={$t('admin.analyticsViewsLabel')}
 							color="#3b82f6"
 							height={300}
@@ -985,7 +989,11 @@
 					<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
 						<h2 class="text-lg font-semibold text-gray-900 mb-4">{$t('admin.analyticsSearchTrendsTitle')}</h2>
 						<LineChart
-							data={searchData.trends.map((t: any) => ({ date: t.date, value: t.searches }))}
+							data={searchData.trends.map((t: any) => {
+								const rawDate = t.date;
+								const date = typeof rawDate === 'string' ? rawDate : rawDate?.date ?? String(rawDate);
+								return { date, value: t.searches };
+							})}
 							label={$t('admin.analyticsSearchesLabel')}
 							color="#3b82f6"
 							height={300}
