@@ -271,7 +271,8 @@ export { AuthenticationError, BackendHttpError };
 export async function parseBackendResponse<T>(response: Response): Promise<T> {
 	if (!response.ok) {
 		const errorData = await response.json().catch(() => ({ error: 'Request failed' }));
-		const message = errorData.error || errorData.message || `HTTP ${response.status}: ${response.statusText}`;
+		// Prefer Nest's `message` (when present) over generic `error` like "Bad Request"
+		const message = errorData.message || errorData.error || `HTTP ${response.status}: ${response.statusText}`;
 		if (response.status === 401) {
 			throw new AuthenticationError(message, 401);
 		}

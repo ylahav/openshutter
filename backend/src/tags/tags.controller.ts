@@ -4,7 +4,6 @@ import { connectDB } from '../config/db';
 import mongoose, { Types } from 'mongoose';
 import { SUPPORTED_LANGUAGES } from '../types/multi-lang';
 import { CreateTagDto } from './dto/create-tag.dto';
-import { UpdateTagDto } from './dto/update-tag.dto';
 import { TagFeedbackService } from '../services/tag-feedback';
 
 @Controller('admin/tags')
@@ -247,7 +246,7 @@ export class TagsController {
    * Path: PUT /api/admin/tags/:id
    */
   @Put(':id')
-  async updateTag(@Param('id') id: string, @Body() body: UpdateTagDto) {
+  async updateTag(@Param('id') id: string, @Body() body: any) {
     try {
       await connectDB();
       const db = mongoose.connection.db;
@@ -294,22 +293,36 @@ export class TagsController {
           throw new BadRequestException('Tag name is required in at least one language');
         }
 
-        // Check if name changed and if new name already exists
-        const nameConditions = SUPPORTED_LANGUAGES.map((l) => ({
-          [`name.${l.code}`]: (nameObj as any)[l.code]
-        })).filter((cond) => Object.values(cond)[0]);
+        // Avoid false duplicate errors when editing non-name fields or re-saving
+        // an unchanged name for legacy data.
+        const currentNameObj =
+          typeof tag.name === 'string'
+            ? { en: tag.name.trim() }
+            : Object.fromEntries(
+                SUPPORTED_LANGUAGES.map((l) => {
+                  const val = (tag.name as any)?.[l.code];
+                  return [l.code, typeof val === 'string' ? val.trim() : ''];
+                }).filter(([_, value]) => value && typeof value === 'string' && value.trim().length > 0)
+              );
+        const hasNameChanged = JSON.stringify(currentNameObj) !== JSON.stringify(nameObj);
 
-        const duplicateQuery: any = {
-          _id: { $ne: new Types.ObjectId(id) },
-          $or: [
-            ...(nameConditions.length ? nameConditions : []),
-            ...(typeof name === 'string' ? [{ name: name.trim() }] : [])
-          ]
-        };
+        if (hasNameChanged) {
+          const nameConditions = SUPPORTED_LANGUAGES.map((l) => ({
+            [`name.${l.code}`]: (nameObj as any)[l.code]
+          })).filter((cond) => Object.values(cond)[0]);
 
-        const existingTag = await collection.findOne(duplicateQuery);
-        if (existingTag) {
-          throw new BadRequestException('Tag with this name already exists');
+          const duplicateQuery: any = {
+            _id: { $ne: new Types.ObjectId(id) },
+            $or: [
+              ...(nameConditions.length ? nameConditions : []),
+              ...(typeof name === 'string' ? [{ name: name.trim() }] : [])
+            ]
+          };
+
+          const existingTag = await collection.findOne(duplicateQuery);
+          if (existingTag) {
+            throw new BadRequestException('Tag with this name already exists');
+          }
         }
 
         updateData.name = nameObj;
