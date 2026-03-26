@@ -137,19 +137,7 @@ export class TagsController {
 
       const { name, description, color, category } = body;
 
-      // Validate required fields - support both string and multi-language
-      const hasAnyName =
-        typeof name === 'string'
-          ? !!name.trim()
-          : name && typeof name === 'object'
-            ? Object.values(name as Record<string, any>).some((v) => typeof v === 'string' && v.trim().length > 0)
-            : false;
-      if (!hasAnyName) {
-        throw new BadRequestException('Tag name is required');
-      }
-
-      // Convert name to multi-language format if it's a string
-      // Filter out empty strings to keep only languages with actual content
+      // Convert name to multi-language format if it's a string.
       const nameObj =
         typeof name === 'string'
           ? { en: name.trim() }
@@ -161,10 +149,12 @@ export class TagsController {
                 .filter(([_, value]) => value && typeof value === 'string' && value.trim().length > 0)
             );
 
-      // Ensure nameObj is not empty
-      if (!nameObj || Object.keys(nameObj).length === 0) {
-        throw new BadRequestException('Tag name is required in at least one language');
+      const englishName = typeof (nameObj as any).en === 'string' ? (nameObj as any).en.trim() : '';
+      if (!englishName) {
+        throw new BadRequestException('English tag name (name.en) is required');
       }
+      (nameObj as any).en = englishName;
+      const escapedEnglishName = englishName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
       // Convert description to multi-language format if it's a string
       // Filter out empty strings to keep only languages with actual content
@@ -180,17 +170,12 @@ export class TagsController {
             )
         : undefined;
 
-      // Check if tag already exists (check by any language name)
-      const nameConditions = SUPPORTED_LANGUAGES.map((l) => ({
-        [`name.${l.code}`]: (nameObj as any)[l.code]
-      })).filter((cond) => Object.values(cond)[0]);
-      
-      // Also check old string format for backward compatibility
+      // Enforce uniqueness by English value only (case-insensitive),
+      // while still matching legacy string-format tags.
       const existingTagQuery: any = {
         $or: [
-          ...(nameConditions.length ? nameConditions : []),
-          // Backward compatibility: check string name
-          ...(typeof name === 'string' ? [{ name: name.trim() }] : [])
+          { 'name.en': { $regex: new RegExp(`^${escapedEnglishName}$`, 'i') } },
+          { name: { $regex: new RegExp(`^${escapedEnglishName}$`, 'i') } },
         ]
       };
 
@@ -266,17 +251,6 @@ export class TagsController {
       };
 
       if (name !== undefined) {
-        // Validate required fields - support both string and multi-language
-        const hasAnyName =
-          typeof name === 'string'
-            ? !!name.trim()
-            : name && typeof name === 'object'
-              ? Object.values(name as Record<string, any>).some((v) => typeof v === 'string' && v.trim().length > 0)
-              : false;
-        if (!hasAnyName) {
-          throw new BadRequestException('Tag name is required');
-        }
-
         // Convert name to multi-language format if it's a string
         const nameObj =
           typeof name === 'string'
@@ -289,33 +263,27 @@ export class TagsController {
                   .filter(([_, value]) => value && typeof value === 'string' && value.trim().length > 0)
               );
 
-        if (!nameObj || Object.keys(nameObj).length === 0) {
-          throw new BadRequestException('Tag name is required in at least one language');
+        const englishName = typeof (nameObj as any).en === 'string' ? (nameObj as any).en.trim() : '';
+        if (!englishName) {
+          throw new BadRequestException('English tag name (name.en) is required');
         }
+        (nameObj as any).en = englishName;
+        const escapedEnglishName = englishName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-        // Avoid false duplicate errors when editing non-name fields or re-saving
-        // an unchanged name for legacy data.
-        const currentNameObj =
+        const currentEnglishName =
           typeof tag.name === 'string'
-            ? { en: tag.name.trim() }
-            : Object.fromEntries(
-                SUPPORTED_LANGUAGES.map((l) => {
-                  const val = (tag.name as any)?.[l.code];
-                  return [l.code, typeof val === 'string' ? val.trim() : ''];
-                }).filter(([_, value]) => value && typeof value === 'string' && value.trim().length > 0)
-              );
-        const hasNameChanged = JSON.stringify(currentNameObj) !== JSON.stringify(nameObj);
+            ? tag.name.trim()
+            : typeof tag.name?.en === 'string'
+              ? tag.name.en.trim()
+              : '';
+        const hasNameChanged = currentEnglishName.toLowerCase() !== englishName.toLowerCase();
 
         if (hasNameChanged) {
-          const nameConditions = SUPPORTED_LANGUAGES.map((l) => ({
-            [`name.${l.code}`]: (nameObj as any)[l.code]
-          })).filter((cond) => Object.values(cond)[0]);
-
           const duplicateQuery: any = {
             _id: { $ne: new Types.ObjectId(id) },
             $or: [
-              ...(nameConditions.length ? nameConditions : []),
-              ...(typeof name === 'string' ? [{ name: name.trim() }] : [])
+              { 'name.en': { $regex: new RegExp(`^${escapedEnglishName}$`, 'i') } },
+              { name: { $regex: new RegExp(`^${escapedEnglishName}$`, 'i') } },
             ]
           };
 

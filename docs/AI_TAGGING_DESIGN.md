@@ -203,7 +203,7 @@ Respect existing tag categories:
   "tagIds": ["tag-id-1", "tag-id-2"],
   "createNewTags": [
     {
-      "name": { "en": "Beach" },
+      "name": "beach",
       "category": "location"
     }
   ]
@@ -218,6 +218,13 @@ Respect existing tag categories:
   "createdTags": ["new-tag-id"]
 }
 ```
+
+**Tag identity + dedupe rules (implemented):**
+- `name.en` is the canonical tag identity in the system.
+- `name.en` is required for tag creation (`POST /api/admin/tags`) and for updates when `name` is provided (`PUT /api/admin/tags/:id`).
+- Uniqueness is enforced case-insensitively by English value (`name.en`) across all tags.
+- Legacy tags stored as string `name` are still checked for duplicate prevention.
+- `apply-tags` creates new tags in multi-language shape (`name: { en: "Title Case" }`) and de-duplicates AI-created names by English value before insert.
 
 When tags are applied, backend also writes/updates a sidecar `XMP` file (`<image>.xmp`) for local-storage photos:
 - `dc:subject` contains tag keywords
