@@ -14,7 +14,10 @@ export const GET: RequestHandler = async ({ params, request, cookies }) => {
 
 		// Extract provider and file path from the URL
 		// Expected format: /api/storage/serve/{provider}/{filepath}
-		const pathParts = filePath.split('/').filter(Boolean); // Remove empty parts
+		// IMPORTANT: do NOT filter(Boolean) here.
+		// Some storage object keys may legitimately start with "/" (encoded as %2F),
+		// and our proxy should preserve the leading empty segment so the backend searches the exact S3 key.
+		const pathParts = filePath.split('/');
 		if (pathParts.length < 2) {
 			console.error('Storage API: Invalid path format', { filePath, pathParts });
 			return new Response(
@@ -34,7 +37,8 @@ export const GET: RequestHandler = async ({ params, request, cookies }) => {
 		const encodedFilePath = encodeURIComponent(fullFilePath);
 		
 		// Proxy the request to the backend
-		const backendUrl = `${BACKEND_URL}/api/storage/serve/${provider}/${encodedFilePath}`;
+		// Forward query params (e.g. storageOwnerId, cache-busting ?v=...) so dedicated storage can be served correctly.
+		const backendUrl = `${BACKEND_URL}/api/storage/serve/${provider}/${encodedFilePath}${new URL(request.url).search}`;
 		
 		// Forward cookies for authentication (if needed)
 		const cookieHeader: string[] = [];

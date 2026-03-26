@@ -14,6 +14,31 @@ export class AnalyticsEventService {
   private readonly logger = new Logger(AnalyticsEventService.name);
 
   /**
+   * Canonical unordered tag pair keys derived from tag IDs.
+   * Example key: "minId|maxId"
+   */
+  private buildTagPairKeys(tagIds?: string[]): string[] {
+    if (!Array.isArray(tagIds) || tagIds.length < 2) return [];
+    // Keep only "ObjectId-shaped" values to avoid polluting analytics with malformed tag filters.
+    const uniq = Array.from(new Set(tagIds.filter(Boolean).map((id) => String(id))));
+    const validIds = uniq.filter((id) => mongoose.Types.ObjectId.isValid(id));
+    if (validIds.length < 2) return [];
+
+    const keys: string[] = [];
+    for (let i = 0; i < validIds.length; i++) {
+      for (let j = i + 1; j < validIds.length; j++) {
+        const a = validIds[i];
+        const b = validIds[j];
+        if (!a || !b) continue;
+        const min = a < b ? a : b;
+        const max = a < b ? b : a;
+        keys.push(`${min}|${max}`);
+      }
+    }
+    return keys;
+  }
+
+  /**
    * Hash IP address for privacy
    */
   private hashIP(ip: string): string {
@@ -120,6 +145,8 @@ export class AnalyticsEventService {
       query?: string;
       searchType: 'photos' | 'albums' | 'people' | 'locations' | 'all';
       resultCount: number;
+      /** When set (e.g. owner mini-site host), owner analytics can attribute anonymous searches to this owner. */
+      ownerScopeId?: string;
       filters?: {
         tags?: string[];
         people?: string[];
@@ -145,6 +172,14 @@ export class AnalyticsEventService {
       // Normalize query (lowercase, trim) for aggregation
       const normalizedQuery = searchData.query?.toLowerCase().trim() || '';
 
+      const tagPairKeys = this.buildTagPairKeys(searchData.filters?.tags);
+      const eventFilters = searchData.filters
+        ? {
+            ...searchData.filters,
+            ...(tagPairKeys.length ? { tagPairKeys } : {}),
+          }
+        : searchData.filters;
+
       const event: Partial<IAnalyticsEvent> = {
         type: 'search',
         userId: options?.userId,
@@ -155,7 +190,8 @@ export class AnalyticsEventService {
           query: normalizedQuery,
           searchType: searchData.searchType,
           resultCount: searchData.resultCount,
-          filters: searchData.filters,
+          filters: eventFilters,
+          ...(searchData.ownerScopeId ? { ownerScopeId: searchData.ownerScopeId } : {}),
         },
       };
 

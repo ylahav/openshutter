@@ -1,6 +1,7 @@
 ## [Unreleased]
 
 ### Added
+- **Search tag-filter analytics:** `GET /api/admin/analytics/search` returns **`tagFilterStats`** (searches using tag filters, share of searches, zero-result counts, top tags in filters with resolved names). CSV export (`type=search`) includes tag-filter sections. **`metadata.ownerScopeId`** on `analytics_events` search rows for owner-site / v1 host context. **Owner:** `GET /api/owner/analytics/search-tag-filters`, UI **`/owner/analytics`**, dashboard card on **`/owner`**, SvelteKit **`/api/owner/analytics/search-tag-filters`**. Documented in **`docs/ADVANCED_ANALYTICS_DESIGN.md`** and **`docs/owner-dashboard.md`**. **`AlbumAccessContext`** documents optional **`ownerSiteId`**.
 - **AI providers health API:** Admin-only endpoint **`GET /api/admin/ai/providers/health`** reports configured provider, auto fallback order, active provider, and per-provider availability/reason for **`google-vision`**, **`clip`**, and **`local`**.
 - **Analytics visibility for AI health:** Admin Analytics overview now includes an **AI Providers Health** panel with active provider status and a manual refresh action.
 - **Vendored BTAG core (TypeScript):** Added local STAG-style core at **`backend/src/services/stag/btag-core.ts`** (CLIP/ResNet tagging + XMP generation) so no private npm registry package is required.

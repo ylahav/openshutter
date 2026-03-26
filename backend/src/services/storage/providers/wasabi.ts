@@ -748,11 +748,13 @@ export class WasabiService implements IStorageService {
       // Ensure S3Client is initialized before use
       this.ensureS3ClientInitialized()
       
-      this.logger.debug(`WasabiService: Getting file buffer for path: ${filePath}`)
+      // Wasabi/S3 object keys typically do not start with `/`, but some stored paths do.
+      const key = typeof filePath === 'string' ? filePath.replace(/^\/+/, '') : filePath
+      this.logger.debug(`WasabiService: Getting file buffer for path: ${filePath} (key: ${key})`)
       
       const command = new GetObjectCommand({
         Bucket: this.config.bucketName,
-        Key: filePath
+        Key: key
       })
       
       const response = await this.s3Client.send(command)

@@ -15,8 +15,12 @@ export interface IAnalyticsEvent extends Document {
     query?: string;
     searchType?: 'photos' | 'albums' | 'people' | 'locations' | 'all';
     resultCount?: number;
+    /** Owner whose site context this search ran under (custom domain / scoped browse). */
+    ownerScopeId?: string;
     filters?: {
       tags?: string[];
+      /** Canonical unordered tag-pair keys derived from `tags`. pairs-only analytics. */
+      tagPairKeys?: string[];
       people?: string[];
       locationIds?: string[];
       dateFrom?: string;

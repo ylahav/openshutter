@@ -617,7 +617,7 @@ Operational notes:
 - **Photo editing capabilities** ✅ (rotate: 90° CW/CCW, 180° from photo edit; crop planned)
 - **Welcome email on user creation**: Mail server config + configurable welcome message; send when admin creates a new user
 - **Social sharing features** ✅: Share buttons (X, Facebook, WhatsApp, Copy link) on album and in photo lightbox; configurable in Site Config (which options, album vs photo level); single-photo URL `#p=index`; elegant template supports share on album grid per photo
-- Enhanced tag analytics
+- **Enhanced tag analytics** ✅ (search/tag-filter metrics: admin Analytics → Search `tagFilterStats`, owner `/owner/analytics`, `ownerScopeId` on search events; see `docs/ADVANCED_ANALYTICS_DESIGN.md`)
 - Tag-based recommendations
 
 ### Phase 3 (Next 12 months) ✅ Complete

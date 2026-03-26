@@ -234,6 +234,15 @@ OpenShutter automatically detects when Google Drive tokens expire or become inva
 - **Check Network**: Ensure server can reach storage provider
 - **Check Permissions**: Verify access keys have proper permissions
 - **Check Bucket**: Ensure bucket exists and is accessible
+- **Non-JSON / "Unexpected token '<'" errors (proxy/auth issue)**:
+  - Symptom: the UI tries to parse the response as JSON but receives an HTML page (often starts with `<html>`), e.g. `Unexpected token '<', "<html>..." is not valid JSON`.
+  - Common causes:
+    - Reverse proxy routes `/api/admin/storage/*` to the wrong upstream (frontend instead of backend).
+    - Request is not authenticated (redirect/login HTML page) even though the UI expects JSON.
+  - What to do:
+    - Verify that `/api/admin/storage/:providerId/test` is proxied to the backend server.
+    - Ensure cookies/session are included (admin UI uses `credentials: include`).
+    - Use `curl -i` on the deployed server to confirm the endpoint returns `application/json` (not HTML) on failure cases.
 
 #### Photo Upload Failures
 - **Check Storage Provider**: Verify the album's storage provider is configured

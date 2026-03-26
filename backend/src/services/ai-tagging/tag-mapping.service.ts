@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { connectDB } from '../../config/db';
 import mongoose, { Types } from 'mongoose';
+import { SUPPORTED_LANGUAGES } from '../../types/multi-lang';
 
 export interface TagMatch {
   tagId: string;
@@ -121,11 +122,21 @@ export class TagMappingService {
     }
 
     const normalizedLabel = label.toLowerCase().trim();
+    const escapedLabel = normalizedLabel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     
     // Try exact match (case-insensitive)
     const exactMatch = await db.collection('tags').findOne({
-      name: { $regex: new RegExp(`^${normalizedLabel}$`, 'i') },
-      isActive: true
+      $and: [
+        { isActive: true },
+        {
+          $or: [
+            { name: { $regex: new RegExp(`^${escapedLabel}$`, 'i') } },
+            ...SUPPORTED_LANGUAGES.map((lang) => ({
+              [`name.${lang.code}`]: { $regex: new RegExp(`^${escapedLabel}$`, 'i') },
+            })),
+          ],
+        },
+      ],
     });
 
     if (exactMatch) {

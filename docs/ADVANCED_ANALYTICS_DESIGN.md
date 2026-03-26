@@ -65,29 +65,42 @@ Provide comprehensive analytics and reporting for admins/owners: usage metrics, 
 - Search filters usage
 
 **Data Source:**
-- Event log entries with type `search`:
+- Event log entries with type `search` (stored in `analytics_events` under `metadata`):
   ```typescript
   {
     type: 'search',
-    query?: string, // search term (normalized)
-    searchType: 'photos' | 'albums' | 'people' | 'locations' | 'all',
-    resultCount: number,
-    filters?: {
-      tags?: string[],
-      people?: string[],
-      locationIds?: string[],
-      dateFrom?: string,
-      dateTo?: string,
-    },
+    userId?: string,
     timestamp: Date,
-    userId?: ObjectId,
+    metadata: {
+      query?: string, // normalized lowercase trim
+      searchType: 'photos' | 'albums' | 'people' | 'locations' | 'all',
+      resultCount: number,
+      /** Set for owner custom-domain (and v1 API on that host): attribute traffic to that gallery owner. */
+      ownerScopeId?: string,
+      filters?: {
+        tags?: string[],
+        /** Canonical unordered tag-pair keys derived from `tags` (pairs-only). Format: `minId|maxId`. */
+        tagPairKeys?: string[],
+        people?: string[],
+        locationIds?: string[],
+        dateFrom?: string,
+        dateTo?: string,
+      },
+    },
   }
   ```
 
 **Implementation:**
-- Log search events in search controller
-- Normalize queries (lowercase, trim) for aggregation
-- Aggregate by query, type, date range
+- Log search events from **`POST/GET /api/search`** and **`POST/GET /api/v1/search`** (optional auth / API key).
+- Normalize queries (lowercase, trim) for aggregation.
+- Aggregate by query, type, date range.
+- **Tag filter behavior:** `GET /api/admin/analytics/search` includes:
+  - **`tagFilterStats`**: summary (searches with any tag filter, share of all searches, zero-result count with tag filter, average `resultCount` when a tag filter was used) and **`topFilterTags`** (per-tag filter use counts, zero-result counts, averages).
+  - **`tagFilterTrends`**: time-series trends for tag-filter usage (bucketed by `period`).
+  - **`tagFilterByType`**: tag-filter usage counts split by `searchType`.
+  - **`topTagPairs`**: most used tag pairs in filters (pairs-only; derived from `metadata.filters.tagPairKeys`).
+  - CSV export for `type=search` includes the above tag-filter sections.
+- **Owner scope:** `metadata.ownerScopeId` is set when the request runs in an **owner-site** context (host resolves to an owner domain). Logged-in users still set `userId`. Owner analytics (below) matches events where `userId === ownerId` **or** `metadata.ownerScopeId === ownerId`.
 
 ### 3.3 Tag Usage Over Time
 
@@ -211,6 +224,7 @@ Provide comprehensive analytics and reporting for admins/owners: usage metrics, 
 - `dateFrom` (optional): ISO date string
 - `dateTo` (optional): ISO date string
 - `limit` (optional): Number, default: 20
+- `period` (optional): `'day' | 'week' | 'month'`, default: `'day'`
 
 **Response:**
 ```json
@@ -238,9 +252,65 @@ Provide comprehensive analytics and reporting for admins/owners: usage metrics, 
   "trends": [
     { "date": "2025-02-01", "searches": 45 },
     // ...
-  ]
+  ],
+  "tagFilterStats": {
+    "summary": {
+      "searchesWithTagFilter": 120,
+      "shareOfSearchesPercent": 9.7,
+      "zeroResultWithTagFilter": 8,
+      "averageResultsWhenTagFilter": 12.4
+    },
+    "topFilterTags": [
+      {
+        "tagId": "…",
+        "name": "sunset",
+        "filterUses": 45,
+        "zeroResultCount": 2,
+        "averageResults": 11.2
+      }
+    ]
+  },
+  "tagFilterTrends": [
+    { "date": "2025-02-01", "searches": 45, "zeroResultCount": 2, "averageResults": 12.4 },
+    // ...
+  ],
+  "tagFilterByType": {
+    "photos": { "searches": 100, "zeroResultCount": 5, "averageResults": 12.0 },
+    "albums": { "searches": 20, "zeroResultCount": 1, "averageResults": 8.0 },
+    "people": { "searches": 10, "zeroResultCount": 0, "averageResults": 6.5 },
+    "locations": { "searches": 5, "zeroResultCount": 0, "averageResults": 4.2 },
+    "all": { "searches": 135, "zeroResultCount": 6, "averageResults": 10.9 }
+  },
+  "topTagPairs": [
+    {
+      "pairKey": "minId|maxId",
+      "tagAId": "…",
+      "tagBId": "…",
+      "tagAName": "sunset",
+      "tagBName": "vacation",
+      "filterUses": 12,
+      "zeroResultCount": 1,
+      "averageResults": 9.3
+    }
+  }
 }
 ```
+
+**Note:** `resultCount` on each logged search is the **total match count** for the selected `searchType` (or the sum for `searchType=all`), not the current page size.
+
+### 4.3.1 Owner search tag-filter analytics
+
+**Endpoint:** `GET /api/owner/analytics/search-tag-filters`
+
+**Auth:** Gallery **owner** only (JWT cookie or Bearer; same guard family as other owner APIs). Admins should use **`GET /api/admin/analytics/search`**.
+
+**Query parameters:** `dateFrom`, `dateTo` (optional ISO dates), `limit` (optional, default 20) for the top-tag breakdown, and `period` (optional) for time-bucket granularity.
+
+**Response:** `{ "data": { "summary": { "totalSearches": number }, "tagFilterStats": { … }, "tagFilterTrends": [ … ], "tagFilterByType": { … }, "topTagPairs": [ … ] } }`
+
+Events included: `type === 'search'` in the date range where **`userId`** equals the authenticated owner **or** **`metadata.ownerScopeId`** equals that owner (custom-domain anonymous searches).
+
+**UI:** Owner dashboard card links to **`/owner/analytics`**; SvelteKit proxies via **`GET /api/owner/analytics/search-tag-filters`**.
 
 ### 4.4 Tags Analytics
 
@@ -382,6 +452,7 @@ Provide comprehensive analytics and reporting for admins/owners: usage metrics, 
 - `dateFrom` (optional): ISO date string
 - `dateTo` (optional): ISO date string
 - `format` (optional): `'csv' | 'json'`, default: `'csv'`
+- `period` (optional): for `type=search`, bucket granularity for `tagFilterTrends` (default `'day'`)
 
 **Response:**
 - CSV file download or JSON response

@@ -14,6 +14,11 @@
 	// svelte-ignore export_let_unused - Required by SvelteKit page component
 	export let data: PageData;
 
+	// Provide a safe default in case reactive assignment hasn't run yet.
+	// Otherwise, calling translate(...) during initialization can throw.
+	let translate: (key: string, fallback?: string) => string = (key, fallback) => fallback || key;
+	$: translate = $t;
+
 	interface Tag {
 		_id: string;
 		name: string | MultiLangText;
@@ -25,13 +30,13 @@
 	}
 
 	const TAG_CATEGORIES = [
-		{ value: 'general', label: 'General' },
-		{ value: 'location', label: 'Location' },
-		{ value: 'event', label: 'Event' },
-		{ value: 'object', label: 'Object' },
-		{ value: 'mood', label: 'Mood' },
-		{ value: 'technical', label: 'Technical' },
-		{ value: 'custom', label: 'Custom' }
+		{ value: 'general', labelKey: 'admin.tagsCategoryGeneral' },
+		{ value: 'location', labelKey: 'admin.tagsCategoryLocation' },
+		{ value: 'event', labelKey: 'admin.tagsCategoryEvent' },
+		{ value: 'object', labelKey: 'admin.tagsCategoryObject' },
+		{ value: 'mood', labelKey: 'admin.tagsCategoryMood' },
+		{ value: 'technical', labelKey: 'admin.tagsCategoryTechnical' },
+		{ value: 'custom', labelKey: 'admin.tagsCategoryCustom' }
 	];
 
 	const COLOR_PRESETS = [
@@ -59,9 +64,9 @@
 	type TagPayload = Pick<Partial<Tag>, 'name' | 'description' | 'color' | 'category' | 'isActive'>;
 
 	const crudOps = useCrudOperations<Tag>('/api/admin/tags', {
-		createSuccessMessage: 'Tag created successfully!',
-		updateSuccessMessage: 'Tag updated successfully!',
-		deleteSuccessMessage: 'Tag deleted successfully!',
+		createSuccessMessage: translate('admin.tagsCreatedSuccessfully', 'Tag created successfully!'),
+		updateSuccessMessage: translate('admin.tagsUpdatedSuccessfully', 'Tag updated successfully!'),
+		deleteSuccessMessage: translate('admin.tagsDeletedSuccessfully', 'Tag deleted successfully!'),
 		transformPayload: (data: Partial<Tag>): TagPayload => {
 			const rawName = data.name && typeof data.name === 'object' ? data.name : {};
 			const rawDescription = data.description && typeof data.description === 'object' ? data.description : {};
@@ -174,7 +179,7 @@
 				bySourceAction: {}
 			};
 		} catch (err) {
-			feedbackStatsError = err instanceof Error ? err.message : 'Failed to load feedback stats';
+			feedbackStatsError = err instanceof Error ? err.message : translate('admin.tagsFeedbackSignalsLoadError', 'Failed to load feedback stats');
 		} finally {
 			feedbackStatsLoading = false;
 		}
@@ -241,7 +246,16 @@
 	}
 
 	function getCategoryLabel(category: string): string {
-		return TAG_CATEGORIES.find((c) => c.value === category)?.label || category;
+		const cat = TAG_CATEGORIES.find((c) => c.value === category);
+		return (cat?.labelKey ? translate(cat.labelKey) : undefined) || category;
+	}
+
+	function getTimeLabel(count: number): string {
+		return translate(count === 1 ? 'admin.tagsTimeSingular' : 'admin.tagsTimePlural');
+	}
+
+	function getPhotoLabel(count: number): string {
+		return translate(count === 1 ? 'admin.tagsPhotoSingular' : 'admin.tagsPhotoPlural');
 	}
 
 	function getTagName(tag: Tag): string {
@@ -287,39 +301,39 @@
 			<div class="mb-6 p-4 rounded-md border border-gray-200 bg-gray-50">
 				<div class="flex items-center justify-between gap-3">
 					<div>
-						<h2 class="text-sm font-semibold text-gray-900">Tag Feedback Signals</h2>
-						<p class="text-xs text-gray-600 mt-1">Observed apply/dismiss activity from AI and context suggestions.</p>
+						<h2 class="text-sm font-semibold text-gray-900">{$t('admin.tagsFeedbackSignalsTitle')}</h2>
+						<p class="text-xs text-gray-600 mt-1">{$t('admin.tagsFeedbackSignalsSubtitle')}</p>
 					</div>
 					<button
 						type="button"
 						on:click={loadFeedbackStats}
 						class="px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-100"
 					>
-						Refresh
+						{$t('admin.tagsFeedbackSignalsRefresh')}
 					</button>
 				</div>
 
 				{#if feedbackStatsLoading}
-					<p class="mt-3 text-xs text-gray-500">Loading feedback stats...</p>
+					<p class="mt-3 text-xs text-gray-500">{$t('admin.tagsFeedbackSignalsLoading')}</p>
 				{:else if feedbackStatsError}
 					<p class="mt-3 text-xs text-red-600">{feedbackStatsError}</p>
 				{:else}
 					<div class="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3">
 						<div class="p-3 bg-white border border-gray-200 rounded">
-							<p class="text-xs text-gray-500">Total Events</p>
+							<p class="text-xs text-gray-500">{$t('admin.tagsFeedbackSignalsTotalEvents')}</p>
 							<p class="text-xl font-semibold text-gray-900">{feedbackStats.total || 0}</p>
 						</div>
 						<div class="p-3 bg-white border border-gray-200 rounded">
-							<p class="text-xs text-gray-500">By Source</p>
-							<p class="text-sm text-gray-800">AI: {feedbackStats.bySource.ai || 0}</p>
-							<p class="text-sm text-gray-800">Context: {feedbackStats.bySource.context || 0}</p>
-							<p class="text-sm text-gray-800">Manual: {feedbackStats.bySource.manual || 0}</p>
+							<p class="text-xs text-gray-500">{$t('admin.tagsFeedbackSignalsBySource')}</p>
+							<p class="text-sm text-gray-800">{$t('admin.tagsFeedbackSignalsAI')}: {feedbackStats.bySource.ai || 0}</p>
+							<p class="text-sm text-gray-800">{$t('admin.tagsFeedbackSignalsContext')}: {feedbackStats.bySource.context || 0}</p>
+							<p class="text-sm text-gray-800">{$t('admin.tagsFeedbackSignalsManual')}: {feedbackStats.bySource.manual || 0}</p>
 						</div>
 						<div class="p-3 bg-white border border-gray-200 rounded">
-							<p class="text-xs text-gray-500">By Action</p>
-							<p class="text-sm text-gray-800">Applied: {feedbackStats.byAction.applied || 0}</p>
-							<p class="text-sm text-gray-800">Dismissed: {feedbackStats.byAction.dismissed || 0}</p>
-							<p class="text-sm text-gray-800">Removed: {feedbackStats.byAction.removed || 0}</p>
+							<p class="text-xs text-gray-500">{$t('admin.tagsFeedbackSignalsByAction')}</p>
+							<p class="text-sm text-gray-800">{$t('admin.tagsFeedbackSignalsApplied')}: {feedbackStats.byAction.applied || 0}</p>
+							<p class="text-sm text-gray-800">{$t('admin.tagsFeedbackSignalsDismissed')}: {feedbackStats.byAction.dismissed || 0}</p>
+							<p class="text-sm text-gray-800">{$t('admin.tagsFeedbackSignalsRemoved')}: {feedbackStats.byAction.removed || 0}</p>
 						</div>
 					</div>
 				{/if}
@@ -358,7 +372,7 @@
 					>
 						<option value="all">{$t('admin.allCategories')}</option>
 						{#each TAG_CATEGORIES as cat}
-							<option value={cat.value}>{cat.label}</option>
+							<option value={cat.value}>{$t(cat.labelKey)}</option>
 						{/each}
 					</select>
 				</div>
@@ -437,7 +451,7 @@
 										type="button"
 										on:click={() => openDeleteDialog(tag)}
 										class="p-1 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded"
-										aria-label="Delete tag"
+										aria-label={$t('admin.tagsDeleteAriaLabel')}
 									>
 										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 											<path
@@ -463,7 +477,8 @@
 								</span>
 								{#if tag.usageCount !== undefined}
 									<span class="text-xs text-gray-500">
-										Used {tag.usageCount} {tag.usageCount === 1 ? 'time' : 'times'}
+										{$t('admin.tagsUsedLabel')} {tag.usageCount}
+										{tag.usageCount === 1 ? $t('admin.tagsTimeSingular') : $t('admin.tagsTimePlural')}
 									</span>
 								{/if}
 							</div>
@@ -479,7 +494,7 @@
 {#if showCreateDialog}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
 		<div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
-			<h2 class="text-xl font-bold text-gray-900 mb-4">Add New Tag</h2>
+			<h2 class="text-xl font-bold text-gray-900 mb-4">{$t('admin.tagsAddNewTagTitle')}</h2>
 
 			{#if error}
 				<div class="mb-4 p-4 bg-red-50 text-red-700 rounded-md">{error}</div>
@@ -488,28 +503,28 @@
 			<div class="space-y-4">
 				<div>
 					<p class="block text-sm font-medium text-gray-700 mb-2">
-						Tag Name *
+						{$t('admin.tagsTagNameLabel')}
 					</p>
 					<MultiLangInput
 						bind:value={formData.name}
-						placeholder="e.g., Family, Vacation, Nature"
+						placeholder={$t('admin.tagsTagNamePlaceholder')}
 						required
 					/>
 				</div>
 
 				<div>
 					<p class="block text-sm font-medium text-gray-700 mb-2">
-						Description
+						{$t('admin.tagsDescriptionLabel')}
 					</p>
 					<MultiLangInput
 						bind:value={formData.description}
-						placeholder="Optional description..."
+						placeholder={$t('admin.tagsDescriptionPlaceholder')}
 					/>
 				</div>
 
 				<div>
 					<label for="tag-category" class="block text-sm font-medium text-gray-700 mb-2">
-						Category
+						{$t('admin.tagsCategoryLabel')}
 					</label>
 					<select
 						id="tag-category"
@@ -517,14 +532,14 @@
 						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 					>
 						{#each TAG_CATEGORIES as cat}
-							<option value={cat.value}>{cat.label}</option>
+							<option value={cat.value}>{$t(cat.labelKey)}</option>
 						{/each}
 					</select>
 				</div>
 
 				<div>
 					<p class="block text-sm font-medium text-gray-700 mb-2">
-						Color
+						{$t('admin.tagsColorLabel')}
 					</p>
 					<div class="flex items-center gap-3">
 						<input
@@ -548,7 +563,7 @@
 									? 'border-gray-800'
 									: 'border-gray-300'} hover:border-gray-500"
 								style="background-color: {preset}"
-								aria-label="Select color {preset}"
+								aria-label={`${$t('admin.tagsSelectColorAriaLabel')} ${preset}`}
 							></button>
 						{/each}
 					</div>
@@ -563,7 +578,7 @@
 						}}
 						class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm font-medium"
 					>
-						Cancel
+						{$t('admin.tagsCancelButton')}
 					</button>
 					<button
 						type="button"
@@ -572,9 +587,9 @@
 						class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm font-medium"
 					>
 						{#if saving}
-							Creating...
+							{$t('admin.tagsCreatingButton')}
 						{:else}
-							Create Tag
+							{$t('admin.tagsCreateTagButton')}
 						{/if}
 					</button>
 				</div>
@@ -587,7 +602,7 @@
 {#if showEditDialog && editingTag}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
 		<div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
-			<h2 class="text-xl font-bold text-gray-900 mb-4">Edit Tag</h2>
+			<h2 class="text-xl font-bold text-gray-900 mb-4">{$t('admin.tagsEditTagTitle')}</h2>
 
 			{#if error}
 				<div class="mb-4 p-4 bg-red-50 text-red-700 rounded-md">{error}</div>
@@ -596,42 +611,42 @@
 			<div class="space-y-4">
 				<div>
 					<p class="block text-sm font-medium text-gray-700 mb-2">
-						Tag Name *
+						{$t('admin.tagsTagNameLabel')}
 					</p>
 					<MultiLangInput
 						bind:value={formData.name}
-						placeholder="e.g., Family, Vacation, Nature"
+						placeholder={$t('admin.tagsTagNamePlaceholder')}
 						required
 					/>
 				</div>
 
 				<div>
 					<p class="block text-sm font-medium text-gray-700 mb-2">
-						Description
+						{$t('admin.tagsDescriptionLabel')}
 					</p>
 					<MultiLangInput
 						bind:value={formData.description}
-						placeholder="Optional description..."
+						placeholder={$t('admin.tagsDescriptionPlaceholder')}
 					/>
 				</div>
 
 				<div>
 					<p class="block text-sm font-medium text-gray-700 mb-2">
-						Category
+						{$t('admin.tagsCategoryLabel')}
 					</p>
 					<select
 						bind:value={formData.category}
 						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 					>
 						{#each TAG_CATEGORIES as cat}
-							<option value={cat.value}>{cat.label}</option>
+							<option value={cat.value}>{$t(cat.labelKey)}</option>
 						{/each}
 					</select>
 				</div>
 
 				<div>
 					<p class="block text-sm font-medium text-gray-700 mb-2">
-						Color
+						{$t('admin.tagsColorLabel')}
 					</p>
 					<div class="flex items-center gap-3">
 						<input
@@ -655,7 +670,7 @@
 									? 'border-gray-800'
 									: 'border-gray-300'} hover:border-gray-500"
 								style="background-color: {preset}"
-								aria-label="Select color {preset}"
+								aria-label={`${$t('admin.tagsSelectColorAriaLabel')} ${preset}`}
 							></button>
 						{/each}
 					</div>
@@ -672,7 +687,7 @@
 							class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"
 						></div>
 						<span class="ml-3 text-sm font-medium text-gray-700">
-							Active
+							{$t('admin.tagsActiveLabel')}
 						</span>
 					</label>
 				</div>
@@ -687,7 +702,7 @@
 						}}
 						class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm font-medium"
 					>
-						Cancel
+						{$t('admin.tagsCancelButton')}
 					</button>
 					<button
 						type="button"
@@ -696,9 +711,9 @@
 						class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm font-medium"
 					>
 						{#if saving}
-							Updating...
+							{$t('admin.tagsUpdatingButton')}
 						{:else}
-							Update Tag
+							{$t('admin.tagsUpdateTagButton')}
 						{/if}
 					</button>
 				</div>
@@ -711,7 +726,7 @@
 {#if showDeleteDialog && tagToDelete}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
 		<div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
-			<h2 class="text-xl font-bold text-gray-900 mb-4">Delete Tag</h2>
+			<h2 class="text-xl font-bold text-gray-900 mb-4">{$t('admin.tagsDeleteTagTitle')}</h2>
 
 			{#if error}
 				<div class="mb-4 p-4 bg-red-50 text-red-700 rounded-md">{error}</div>
@@ -719,15 +734,15 @@
 
 			<div class="space-y-4">
 				<p class="text-gray-600">
-					Are you sure you want to delete <strong>{tagToDelete.name}</strong>? This action
-					cannot be undone.
+					{$t('admin.tagsDeleteConfirmPrefix')}
+					<strong>{tagToDelete.name}</strong>
+					{$t('admin.tagsDeleteConfirmSuffix')}
 				</p>
 				{#if tagToDelete.usageCount && tagToDelete.usageCount > 0}
 					<div class="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
 						<p class="text-sm text-yellow-800">
-							⚠️ This tag is used in {tagToDelete.usageCount}{' '}
-							{tagToDelete.usageCount === 1 ? 'photo' : 'photos'}. Deleting it will remove
-							the tag from all photos.
+							{$t('admin.tagsDeleteUsedWarningPrefix')} {tagToDelete.usageCount}
+							{' '}{tagToDelete.usageCount === 1 ? $t('admin.tagsPhotoSingular') : $t('admin.tagsPhotoPlural')}{$t('admin.tagsDeleteUsedWarningSuffix')}
 						</p>
 					</div>
 				{/if}
@@ -740,7 +755,7 @@
 						}}
 						class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm font-medium"
 					>
-						Cancel
+						{$t('admin.tagsCancelButton')}
 					</button>
 					<button
 						type="button"
@@ -749,9 +764,9 @@
 						class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 text-sm font-medium"
 					>
 						{#if saving}
-							Deleting...
+							{$t('admin.tagsDeletingButton')}
 						{:else}
-							Delete Tag
+							{$t('admin.tagsDeleteButton')}
 						{/if}
 					</button>
 				</div>

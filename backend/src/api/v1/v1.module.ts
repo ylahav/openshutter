@@ -16,6 +16,7 @@ import { V1BlogController } from './blog/v1-blog.controller';
 import { V1SearchController } from './search/v1-search.controller';
 import { CommentsModule } from '../../comments/comments.module';
 import { V1CommentsController } from './comments/v1-comments.controller';
+import { AnalyticsModule } from '../../analytics/analytics.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { V1CommentsController } from './comments/v1-comments.controller';
     AlbumsModule,
     PhotosModule,
     SearchModule,
+    AnalyticsModule,
     CommentsModule,
     MongooseModule.forFeature([{ name: 'User', schema: UserSchema }]),
   ],

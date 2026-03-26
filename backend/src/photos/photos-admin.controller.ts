@@ -2300,11 +2300,32 @@ export class PhotosAdminController {
 				if (!userId) {
 					throw new BadRequestException('User ID is required to create tags');
 				}
+				const seenEnglishNames = new Set<string>();
 
 				for (const newTag of body.createNewTags) {
-					// Check if tag already exists
+					const normalizedName =
+						typeof newTag.name === 'string' ? newTag.name.trim() : '';
+					if (!normalizedName) {
+						continue;
+					}
+					const toEnglishTitleCase = (value: string): string =>
+						value
+							.toLowerCase()
+							.replace(/\b[a-z]/g, (char) => char.toUpperCase());
+					const englishName = toEnglishTitleCase(normalizedName);
+					const englishNameKey = englishName.toLowerCase();
+					if (seenEnglishNames.has(englishNameKey)) {
+						continue;
+					}
+					seenEnglishNames.add(englishNameKey);
+					const escapedEnglishName = englishName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+					// Check if tag already exists by English value (case-insensitive).
+					// Keep legacy string-name support for older rows.
 					const existingTag = await db.collection('tags').findOne({
-						name: { $regex: new RegExp(`^${newTag.name}$`, 'i') },
+						$or: [
+							{ name: { $regex: new RegExp(`^${escapedEnglishName}$`, 'i') } },
+							{ 'name.en': { $regex: new RegExp(`^${escapedEnglishName}$`, 'i') } },
+						],
 					});
 
 					if (existingTag) {
@@ -2312,7 +2333,7 @@ export class PhotosAdminController {
 					} else {
 						// Create new tag
 						const tagDoc = {
-							name: newTag.name,
+							name: { en: englishName },
 							category: newTag.category || 'general',
 							isActive: true,
 							usageCount: 0,

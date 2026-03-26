@@ -187,6 +187,33 @@
 					</a>
 				</div>
 
+				<!-- Search insights (tag filters in search) -->
+				<div class="bg-white rounded-lg shadow-md p-6">
+					<div class="flex items-center mb-4">
+						<div class="w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center">
+							<svg class="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+								/>
+							</svg>
+						</div>
+						<h2 class="text-xl font-semibold text-gray-900 ml-3">{$t('owner.searchInsightsTitle')}</h2>
+					</div>
+					<p class="text-gray-600 mb-4">{$t('owner.searchInsightsDescription')}</p>
+					<a
+						href="/owner/analytics"
+						class="inline-flex items-center px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700"
+					>
+						{$t('owner.viewSearchInsights')}
+						<svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+						</svg>
+					</a>
+				</div>
+
 				<!-- Storage management: own credentials or dedicated per-owner storage -->
 				{#if profileLoaded && showStorageManagementCard}
 					<div class="bg-white rounded-lg shadow-md p-6" data-testid="owner-dashboard-storage-card">
