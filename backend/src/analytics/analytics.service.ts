@@ -972,7 +972,28 @@ export class AnalyticsService {
         name: t.name || '',
         usageCount: t.usageCount || 0,
         category: t.category || 'general',
-        createdAt: t.createdAt?.toISOString() || new Date().toISOString(),
+        createdAt: (() => {
+          // Mongo data can contain Date, string, or missing createdAt (legacy tags).
+          const v = t.createdAt;
+          if (v instanceof Date) return v.toISOString();
+          if (typeof v === 'string') {
+            const d = new Date(v);
+            return isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
+          }
+          if (typeof v === 'number') {
+            const d = new Date(v);
+            return isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
+          }
+          // Try common Mongo driver shapes (e.g. {$date: ...}) without crashing.
+          if (v && typeof v === 'object') {
+            const maybeDate = (v as any).$date;
+            if (typeof maybeDate === 'string' || typeof maybeDate === 'number') {
+              const d = new Date(maybeDate);
+              return isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
+            }
+          }
+          return new Date().toISOString();
+        })(),
       })),
     };
   }
