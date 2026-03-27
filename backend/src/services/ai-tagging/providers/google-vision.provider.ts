@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { BaseAIProvider } from './base.provider';
 import { TagSuggestion, SuggestTagsOptions } from '../types';
 import * as fs from 'fs/promises';
+import sharp from 'sharp';
 
 /**
  * Google Cloud Vision API provider for AI tagging.
@@ -19,6 +20,8 @@ import * as fs from 'fs/promises';
 @Injectable()
 export class GoogleVisionProvider extends BaseAIProvider {
   private readonly logger = new Logger(GoogleVisionProvider.name);
+  private readonly maxVisionDimension = 1600;
+  private readonly maxVisionBytes = 4 * 1024 * 1024; // Keep payload comfortably below API limits once base64 encoded.
   private readonly stopTerms = new Set([
     'photography',
     'photo caption',
@@ -51,49 +54,106 @@ export class GoogleVisionProvider extends BaseAIProvider {
 
     try {
       const imageBuffer = await fs.readFile(imagePath);
-      const maxResults = options.maxSuggestions || 10;
-      const url = `https://vision.googleapis.com/v1/images:annotate?key=${encodeURIComponent(apiKey)}`;
-      const body = {
-        requests: [
-          {
-            image: { content: imageBuffer.toString('base64') },
-            features: [
-              { type: 'LABEL_DETECTION', maxResults: Math.max(maxResults, 25) },
-              { type: 'OBJECT_LOCALIZATION', maxResults: Math.max(maxResults, 15) },
-              { type: 'LANDMARK_DETECTION', maxResults: 10 },
-              { type: 'WEB_DETECTION', maxResults: Math.max(maxResults, 20) },
-            ],
-          },
-        ],
+      const prepareForVision = async (buffer: Buffer): Promise<Buffer> => {
+        let out = buffer;
+
+        // First pass: normalize orientation and cap dimensions.
+        out = await sharp(out)
+          .rotate()
+          .resize({
+            width: this.maxVisionDimension,
+            height: this.maxVisionDimension,
+            fit: 'inside',
+            withoutEnlargement: true,
+          })
+          .jpeg({ quality: 85, mozjpeg: true })
+          .toBuffer();
+
+        // Second pass: if still too large, reduce dimensions/quality further.
+        if (out.length > this.maxVisionBytes) {
+          out = await sharp(out)
+            .resize({
+              width: 1200,
+              height: 1200,
+              fit: 'inside',
+              withoutEnlargement: true,
+            })
+            .jpeg({ quality: 75, mozjpeg: true })
+            .toBuffer();
+        }
+
+        return out;
       };
 
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
+      const normalizedBuffer = await prepareForVision(imageBuffer);
+      this.logger.debug(
+        `Vision preprocess: ${imageBuffer.length} -> ${normalizedBuffer.length} bytes (${imagePath})`,
+      );
+      const maxResults = options.maxSuggestions || 10;
+      const url = `https://vision.googleapis.com/v1/images:annotate?key=${encodeURIComponent(apiKey)}`;
+      const callVision = async (buffer: Buffer): Promise<any> => {
+        const body = {
+          requests: [
+            {
+              image: { content: buffer.toString('base64') },
+              features: [
+                { type: 'LABEL_DETECTION', maxResults: Math.max(maxResults, 25) },
+                { type: 'OBJECT_LOCALIZATION', maxResults: Math.max(maxResults, 15) },
+                { type: 'LANDMARK_DETECTION', maxResults: 10 },
+                { type: 'WEB_DETECTION', maxResults: Math.max(maxResults, 20) },
+              ],
+            },
+          ],
+        };
 
-      const rawText = await res.text();
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+
+        const rawText = await res.text();
+        let data: any;
+        try {
+          data = JSON.parse(rawText);
+        } catch {
+          this.logger.error(`Vision API non-JSON response (${res.status}): ${rawText.slice(0, 500)}`);
+          throw new Error(`Google Vision API returned invalid JSON (HTTP ${res.status})`);
+        }
+
+        if (!res.ok) {
+          const msg = data?.error?.message || rawText.slice(0, 300);
+          this.logger.error(`Vision API HTTP ${res.status}: ${msg}`);
+          throw new Error(
+            `Google Vision API error (${res.status}): ${msg}. Ensure Cloud Vision API is enabled and the key is allowed to call it.`,
+          );
+        }
+
+        const err = data.responses?.[0]?.error;
+        if (err) {
+          this.logger.error(`Vision API response error: ${err.message || JSON.stringify(err)}`);
+          throw new Error(err.message || 'Google Vision API returned an error in the response body');
+        }
+        return data;
+      };
+
       let data: any;
       try {
-        data = JSON.parse(rawText);
-      } catch {
-        this.logger.error(`Vision API non-JSON response (${res.status}): ${rawText.slice(0, 500)}`);
-        throw new Error(`Google Vision API returned invalid JSON (HTTP ${res.status})`);
-      }
-
-      if (!res.ok) {
-        const msg = data?.error?.message || rawText.slice(0, 300);
-        this.logger.error(`Vision API HTTP ${res.status}: ${msg}`);
-        throw new Error(
-          `Google Vision API error (${res.status}): ${msg}. Ensure Cloud Vision API is enabled and the key is allowed to call it.`,
-        );
-      }
-
-      const err = data.responses?.[0]?.error;
-      if (err) {
-        this.logger.error(`Vision API response error: ${err.message || JSON.stringify(err)}`);
-        throw new Error(err.message || 'Google Vision API returned an error in the response body');
+        data = await callVision(normalizedBuffer);
+      } catch (firstError) {
+        const msg = firstError instanceof Error ? firstError.message : String(firstError);
+        // Some images downloaded from remote storage are valid files but not accepted by Vision as-is.
+        // Transcode to baseline RGB JPEG and retry once.
+        if (/bad image data/i.test(msg)) {
+          this.logger.warn(`Vision rejected original bytes, retrying with JPEG transcode: ${imagePath}`);
+          const transcoded = await sharp(normalizedBuffer)
+            .rotate() // respect orientation metadata
+            .jpeg({ quality: 92, mozjpeg: true })
+            .toBuffer();
+          data = await callVision(transcoded);
+        } else {
+          throw firstError;
+        }
       }
 
       const response = data.responses?.[0] || {};
