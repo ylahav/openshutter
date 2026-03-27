@@ -1,13 +1,10 @@
 <script lang="ts">
 	import { siteConfigData } from '$stores/siteConfig';
 	import PageRenderer from '$lib/page-builder/PageRenderer.svelte';
-	import DefaultFooter from '$lib/templates/default/components/Footer.svelte';
-	import ModernFooter from '$lib/templates/modern/components/Footer.svelte';
-	import MinimalFooter from '$lib/templates/minimal/components/Footer.svelte';
-	import ElegantFooter from '$lib/templates/elegant/components/Footer.svelte';
 	import { activeTemplate } from '$stores/template';
 	import { logger } from '$lib/utils/logger';
 	import { DEFAULT_PAGE_MODULES, DEFAULT_PAGE_LAYOUTS } from '$lib/constants/default-page-layouts';
+	import { getTemplatePack } from '$lib/template-packs/registry';
 
 	// Check if we have pageModules for footer - if so, use PageRenderer instead of template switcher
 	// Fall back to default footer modules if not configured in siteConfig
@@ -58,6 +55,8 @@
 		subtitle: {} as any,
 		layout: effectiveLayout
 	} as any) : null;
+
+	$: pack = getTemplatePack($activeTemplate);
 </script>
 
 {#if usePageRenderer}
@@ -69,16 +68,9 @@
 	</footer>
 {:else}
 	<!-- Fallback to template switcher for legacy templates -->
-	{#if $activeTemplate === 'minimal'}
-		<MinimalFooter />
-	{:else if $activeTemplate === 'modern'}
-		<ModernFooter />
-	{:else if $activeTemplate === 'elegant'}
-		<ElegantFooter />
-	{:else if $activeTemplate === 'default'}
-		<DefaultFooter />
+	{#if pack.components?.Footer}
+		<svelte:component this={pack.components.Footer} />
 	{:else}
-		<!-- Fallback: use default template -->
-		<DefaultFooter />
+		<svelte:component this={getTemplatePack('default').components?.Footer} />
 	{/if}
 {/if}

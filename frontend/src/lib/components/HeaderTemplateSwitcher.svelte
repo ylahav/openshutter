@@ -1,19 +1,19 @@
 <script lang="ts">
 	import { siteConfigData } from '$stores/siteConfig';
 	import PageRenderer from '$lib/page-builder/PageRenderer.svelte';
-	import DefaultHeader from '$lib/templates/default/components/Header.svelte';
-	import ModernHeader from '$lib/templates/modern/components/Header.svelte';
-	import MinimalHeader from '$lib/templates/minimal/components/Header.svelte';
-	import ElegantHeader from '$lib/templates/elegant/components/Header.svelte';
 	import { activeTemplate } from '$stores/template';
 	import { logger } from '$lib/utils/logger';
+	import { getTemplatePack } from '$lib/template-packs/registry';
+	import type { PageModuleData } from '$lib/types/page-builder';
 
 	// Check if we have pageModules for header - if so, use PageRenderer instead of template switcher
 	$: hasPageModules = $siteConfigData?.template?.pageModules?.header && 
 		Array.isArray($siteConfigData.template.pageModules.header) && 
 		$siteConfigData.template.pageModules.header.length > 0;
 	$: pageLayout = $siteConfigData?.template?.pageLayout?.header;
-	$: pageModules = hasPageModules && $siteConfigData?.template?.pageModules?.header ? $siteConfigData.template.pageModules.header : [];
+	$: pageModules = (hasPageModules && $siteConfigData?.template?.pageModules?.header
+		? ($siteConfigData.template.pageModules.header as PageModuleData[])
+		: []) as PageModuleData[];
 
 	// Debug logging
 	$: if ($siteConfigData?.template?.pageModules?.header !== undefined) {
@@ -32,6 +32,8 @@
 		subtitle: {} as any,
 		layout: pageLayout ? { gridRows: pageLayout.gridRows, gridColumns: pageLayout.gridColumns } : undefined
 	} as any) : null;
+
+	$: pack = getTemplatePack($activeTemplate);
 </script>
 
 {#if hasPageModules}
@@ -43,16 +45,10 @@
 	</header>
 {:else}
 	<!-- Fallback to template switcher for legacy templates -->
-	{#if $activeTemplate === 'minimal'}
-		<MinimalHeader />
-	{:else if $activeTemplate === 'modern'}
-		<ModernHeader />
-	{:else if $activeTemplate === 'elegant'}
-		<ElegantHeader />
-	{:else if $activeTemplate === 'default'}
-		<DefaultHeader />
+	{#if pack.components?.Header}
+		<svelte:component this={pack.components.Header} />
 	{:else}
-		<!-- Fallback: use default template -->
-		<DefaultHeader />
+		<!-- Fallback: ensure header always renders -->
+		<svelte:component this={getTemplatePack('default').components?.Header} />
 	{/if}
 {/if}

@@ -4,6 +4,16 @@ import type { TemplateWithOverrides } from './template-overrides'
 import type { SiteConfig } from '$lib/types/site-config'
 import { logger } from '$lib/utils/logger'
 
+const TEMPLATE_PACK_LOADER_FLAG = 'PUBLIC_ENABLE_TEMPLATE_PACK_LOADER'
+const TEMPLATE_PACK_LOADER_ENABLED =
+  String((import.meta as any)?.env?.[TEMPLATE_PACK_LOADER_FLAG] ?? '').toLowerCase() === 'true'
+
+type TemplateConfigValidationResult = {
+  valid: boolean
+  missingComponents: string[]
+  missingPages: string[]
+}
+
 export class TemplateService {
   private static instance: TemplateService
   private templateCache: Map<string, TemplateConfig> = new Map()
@@ -299,9 +309,54 @@ export class TemplateService {
         pages: { home: 'pages/Home.tsx', gallery: 'pages/Gallery.tsx', album: 'pages/Album.tsx', search: 'pages/Search.tsx' },
       }
     }
-    
-    // Return the requested template or default
-    return staticTemplates[templateName] || staticTemplates['default']
+
+    // Keep existing behavior during rollout unless explicitly enabled.
+    if (!TEMPLATE_PACK_LOADER_ENABLED) {
+      return staticTemplates[templateName] || staticTemplates['default']
+    }
+
+    const selectedTemplate = staticTemplates[templateName]
+    if (!selectedTemplate) {
+      logger.warn(
+        `[TemplatePackLoader] Unknown template "${templateName}", falling back to default template`
+      )
+      return staticTemplates['default']
+    }
+
+    const validation = this.validateTemplateConfig(selectedTemplate)
+    if (validation.valid) {
+      return selectedTemplate
+    }
+
+    logger.error(
+      `[TemplatePackLoader] Invalid template "${templateName}". Missing components: ${validation.missingComponents.join(', ') || 'none'}. Missing pages: ${validation.missingPages.join(', ') || 'none'}. Falling back to default template.`
+    )
+    return staticTemplates['default']
+  }
+
+  private validateTemplateConfig(template: TemplateConfig): TemplateConfigValidationResult {
+    const requiredComponents = [
+      'hero',
+      'albumCard',
+      'photoCard',
+      'albumList',
+      'gallery',
+      'navigation',
+      'footer'
+    ] as const
+
+    const requiredPages = ['home', 'gallery', 'album', 'search'] as const
+
+    const missingComponents = requiredComponents.filter(
+      (component) => !template.components?.[component]
+    )
+    const missingPages = requiredPages.filter((page) => !template.pages?.[page])
+
+    return {
+      valid: missingComponents.length === 0 && missingPages.length === 0,
+      missingComponents,
+      missingPages
+    }
   }
 
   /**
