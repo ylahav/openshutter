@@ -97,7 +97,7 @@
 ## 7. Security / best practices (brief)
 
 - **Guards:** Admin and AdminOrOwner guards are used on user/admin endpoints; keep enforcing them on any new admin routes.
-- **Passwords:** User creation/update uses bcrypt and salt; ensure no plaintext passwords are logged (current code doesn’t log them).
+- **Passwords:** User creation/update uses bcrypt and salt; ensure no plaintext passwords are logged (current code does not log them).
 - **Storage config:** Sensitive fields (e.g. `clientSecret`, `serviceAccountJson`, `secretAccessKey`) are stored in DB; ensure DB and backups are restricted and encrypted at rest per your security policy.
 
 ---

@@ -1,4 +1,4 @@
-עןא # Template Builder — Scenario & User Flow
+# Template Builder — Scenario & User Flow
 
 ### OpenShutter · NestJS + SvelteKit · TypeScript · MongoDB
 
@@ -20,7 +20,7 @@ The template builder is an **admin-only tool**. It outputs a structured design t
 
 ## What Is a Theme?
 
-A theme is a **design token set** scoped across OpenShutter’s page types. This is the core data structure:
+A theme is a **design token set** scoped across OpenShutter's page types. This is the core data structure:
 
 ```ts
 Theme {
@@ -47,7 +47,7 @@ DesignTokens {
 }
 ```
 
-This aligns with OpenShutter’s existing `template.customColors`, `template.customFonts`, and `template.customLayout` in site config, extended with per-page overrides.
+This aligns with OpenShutter's existing `template.customColors`, `template.customFonts`, and `template.customLayout` in site config, extended with per-page overrides.
 
 ---
 
@@ -67,7 +67,7 @@ This aligns with OpenShutter’s existing `template.customColors`, `template.cus
 ## Admin User Flow
 
 ### 1. Enter the Template Builder
-- Accessible from the admin dashboard under **"Templates"** (`/admin/templates`) or **"Site Config"** (`/admin/site-config`) → Templates tab
+- Accessible from the admin dashboard under **"Templates"** (`/admin/templates`) or **"Site Config"** (`/admin/site-config`) -> Templates tab
 - Admin sees existing templates (default, minimal, elegant, modern) and any saved theme overrides
 - Call to action: **"Create new theme"** or **"Customize theme"**
 
@@ -141,8 +141,8 @@ This is intentionally minimal — the design work is done entirely by the admin.
 
 1. User navigates to their **Display Settings** or uses the **template selector** in the header (if enabled via `siteConfig.template.headerConfig.showTemplateSelector`)
 2. A visual grid of all published themes is shown (thumbnail + name)
-3. User clicks a theme → live preview renders with their own gallery content
-4. User confirms → theme is saved to their account or `localStorage` (`preferredTemplate`)
+3. User clicks a theme -> live preview renders with their own gallery content
+4. User confirms -> theme is saved to their account or `localStorage` (`preferredTemplate`)
 5. All page types update instantly with the new theme applied
 
 ---
@@ -174,7 +174,7 @@ This is intentionally minimal — the design work is done entirely by the admin.
 
 ## Summary
 
-The template builder is a **theme token editor for admins** paired with a **template/theme picker for end users**, connected by a CSS variable injection system (or template config merge) in SvelteKit. NestJS serves structured token data via a clean API, and the SvelteKit frontend applies it at runtime — making theme changes instant and consistent across all page types. It builds on OpenShutter’s existing template system and site config overrides.
+The template builder is a **theme token editor for admins** paired with a **template/theme picker for end users**, connected by a CSS variable injection system (or template config merge) in SvelteKit. NestJS serves structured token data via a clean API, and the SvelteKit frontend applies it at runtime — making theme changes instant and consistent across all page types. It builds on OpenShutter's existing template system and site config overrides.
 
 ---
 

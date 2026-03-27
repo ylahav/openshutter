@@ -22,7 +22,6 @@ Welcome to the OpenShutter documentation. This comprehensive guide covers all as
 - [Face Recognition Setup](./FACE_RECOGNITION_SETUP.md) - Face detection and matching
 
 ### Development & API
-- [Code Review Summary](./CODE_REVIEW.md) - Backend and frontend review notes and recommendations
 - [API Testing](./API_TESTING.md) - How to test NestJS API endpoints
 - [Manual test: dedicated owner storage](./MANUAL_TEST_DEDICATED_STORAGE.md) - QA checklist (admin flags, owner dashboard card, `/owner/storage`); Playwright spec in [`e2e/`](../e2e/README.md)
 - [Performance Improvements](./PERFORMANCE_IMPROVEMENTS.md) - Query optimizations and recommended indexes
@@ -35,6 +34,9 @@ Welcome to the OpenShutter documentation. This comprehensive guide covers all as
 ### Phase workflows & design (reference)
 - [Phase 3 Workflow](./PHASE_3_WORKFLOW.md) - Import/sync, AI tagging, analytics, API marketplace, smart tags
 - [Phase 4 Workflow](./PHASE_4_WORKFLOW.md) - White-label, integration marketplace, collaboration, etc.
+- [Community-first roadmap](./ROADMAP_COMMUNITY.md) - Adoption-focused priorities and release themes
+- [Templating task list](./TEMPLATING_TASKS.md) - High-priority template pack implementation checklist
+- [Video support task list](./VIDEO_TASKS.md) - Video MVP and expansion checklist
 - [Collaboration Phase 4 Stage 3](./COLLABORATION_PHASE4_STAGE3.md) - Album collaboration (comments, tasks, notifications, v1)
 - [Tag optimization Phase 4 Stage 4](./TAG_OPTIMIZATION_PHASE4.md) - ML signals, related tags, feedback pipeline
 - [Import/Sync Design](./IMPORT_SYNC_DESIGN.md) - Export/import packages, storage migration
@@ -62,6 +64,8 @@ Welcome to the OpenShutter documentation. This comprehensive guide covers all as
 ### Archived
 - [SvelteKit Migration Progress](./archive/SVELTEKIT_PROGRESS.md) - Migration completed; frontend is SvelteKit.
 - [SvelteKit Migration](./archive/SVELTEKIT_MIGRATION.md) - Historical migration notes.
+- [Code Review Summary](./archive/CODE_REVIEW.md) - One-time code review snapshot from March 2025.
+- [Template Builder Scenario](./archive/TEMPLATE_BUILDER_SCENARIO.md) - Earlier scenario/flow draft archived after roadmap/task-list split.
 
 ## 🎯 Current Features
 
