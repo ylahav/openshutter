@@ -11,22 +11,22 @@
 	import Menu from '$components/Menu.svelte';
 	import NotificationNavLink from '$lib/components/NotificationNavLink.svelte';
 	import { t } from '$stores/i18n';
+	import { resolveHeaderVisibilityForPack } from '$lib/template-packs/header-visibility';
 
 	const year = new Date().getFullYear();
 
 	const headerConfig = derived(siteConfigData, ($config) => $config?.template?.headerConfig ?? {});
-	
-	// Check headerConfig values - explicitly check for false to respect overrides
-	$: showLogo = $headerConfig?.showLogo !== undefined ? $headerConfig.showLogo : true;
-	$: showSiteTitle = $headerConfig?.showSiteTitle !== undefined ? $headerConfig.showSiteTitle : true;
-	$: showMenu = $headerConfig?.showMenu !== undefined ? $headerConfig.showMenu : true;
-	$: showTemplateSelector = $headerConfig?.showTemplateSelector !== undefined ? $headerConfig.showTemplateSelector : true;
-	$: showLanguageSelector = ($headerConfig?.showLanguageSelector ?? $headerConfig?.enableLanguageSelector) !== undefined 
-		? ($headerConfig.showLanguageSelector ?? $headerConfig.enableLanguageSelector) 
-		: true;
-	$: showThemeToggle = $headerConfig?.enableThemeToggle !== undefined ? $headerConfig.enableThemeToggle : true;
-	$: showAuthButtons = $headerConfig?.showAuthButtons !== undefined ? $headerConfig.showAuthButtons : true;
-	$: showGreeting = $headerConfig?.showGreeting !== undefined ? $headerConfig.showGreeting : true;
+
+	$: ({
+		showLogo,
+		showSiteTitle,
+		showMenu,
+		showTemplateSelector,
+		showLanguageSelector,
+		showThemeToggle,
+		showAuthButtons,
+		showGreeting
+	} = resolveHeaderVisibilityForPack('minimal', $headerConfig));
 
 	const title = derived(
 		[siteConfigData, currentLanguage],

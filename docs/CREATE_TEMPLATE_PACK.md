@@ -13,7 +13,13 @@ Under `frontend/src/lib/templates/<packId>/`:
 
 Use Tailwind classes; site **colors/fonts/layout** can come from `siteConfigData` / CSS variables where the app already applies them (`ThemeColorApplier`, etc.).
 
-## 2. Register the pack
+## 2. Header chrome (per pack)
+
+Public headers read `siteConfig.template.headerConfig`, but **each pack supplies defaults** when a key is omitted (`frontend/src/lib/template-packs/header-visibility.ts`). That way switching **modern / elegant / minimal / default** changes what appears without copying JSON into site config.
+
+Explicit values in **Site configuration → Navigation** (or raw `headerConfig` in the DB) still override the corresponding flag for all packs.
+
+## 3. Register the pack
 
 Edit `frontend/src/lib/template-packs/registry.ts`:
 
@@ -24,7 +30,7 @@ Edit `frontend/src/lib/template-packs/registry.ts`:
 
 Export list `TEMPLATE_PACK_IDS` must include your id if it is a first-class built-in.
 
-## 3. Align backend allowlists
+## 4. Align backend allowlists
 
 Keep these in sync whenever you add a pack id:
 
@@ -33,18 +39,18 @@ Keep these in sync whenever you add a pack id:
 - Theme DTOs: `backend/src/themes/dto/create-theme.dto.ts` / `update-theme.dto.ts` — `@IsIn([...])` for `baseTemplate`
 - Static templates for metadata: `backend/src/templates/templates.controller.ts` (and `frontend` `TemplateService` static map if used)
 
-## 4. Themes / site config
+## 5. Themes / site config
 
 - **Themes** in the DB reference a **base template** (`baseTemplate`) that must be one of the built-in ids.
 - **Site configuration** stores `template.frontendTemplate` and `template.adminTemplate` for which pack the public site and admin UI use.
 
 Invalid ids are rejected on **PUT** `/api/admin/site-config` (built-in names only). The public UI **falls back** to the default pack and can show a small banner if the stored name is unknown (until config is fixed).
 
-## 5. Optional: loader validation
+## 6. Optional: loader validation
 
 `PUBLIC_ENABLE_TEMPLATE_PACK_LOADER=true` enables stricter checks in `frontend/src/services/template.ts` (`validateTemplateConfig`) for static `TemplateConfig` shapes (legacy metadata paths). Built-in Svelte routing uses the **registry**, not dynamic imports, for the main shells.
 
-## 6. Verify
+## 7. Verify
 
 - Switch **base theme** under **Admin → Templates** (or **Site configuration → Theme & layout**) and reload public home, `/albums`, an album, and `/login`.
 - Toggle **light/dark** if your pack supports it.
