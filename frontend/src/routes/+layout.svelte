@@ -5,6 +5,7 @@
 	import { siteConfig, publicSiteFavicon } from '$stores/siteConfig';
 	import { loadSession } from '$lib/stores/auth';
 	import HeaderTemplateSwitcher from '$lib/components/HeaderTemplateSwitcher.svelte';
+	import PackFallbackBanner from '$lib/components/PackFallbackBanner.svelte';
 	import FooterTemplateSwitcher from '$lib/components/FooterTemplateSwitcher.svelte';
 	import BodyTemplateWrapper from '$lib/components/BodyTemplateWrapper.svelte';
 	import ThemeProvider from '$lib/components/ThemeProvider.svelte';
@@ -68,6 +69,7 @@
 	<PhotoCopyProtection />
 	<ThemeColorApplier />
 	<TokenRenewalNotification />
+	<PackFallbackBanner />
 	<HeaderTemplateSwitcher />
 
 	<BodyTemplateWrapper>

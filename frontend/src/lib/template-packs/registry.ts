@@ -29,6 +29,18 @@ import ElegantLogin from '$lib/templates/elegant/Login.svelte'
 import ElegantHeader from '$lib/templates/elegant/components/Header.svelte'
 import ElegantFooter from '$lib/templates/elegant/components/Footer.svelte'
 
+/** Built-in pack ids (must match registry keys and backend theme baseTemplate allowlist). */
+export const TEMPLATE_PACK_IDS = ['default', 'minimal', 'modern', 'elegant'] as const
+
+export type TemplatePackId = (typeof TEMPLATE_PACK_IDS)[number]
+
+export function isKnownTemplatePack(name: string | null | undefined): boolean {
+	const k = String(name ?? '')
+		.trim()
+		.toLowerCase()
+	return (TEMPLATE_PACK_IDS as readonly string[]).includes(k)
+}
+
 const packs: Record<string, TemplatePack> = {
   default: {
     name: 'default',
@@ -53,12 +65,14 @@ const packs: Record<string, TemplatePack> = {
 }
 
 export function getTemplatePack(templateName: string | null | undefined): TemplatePack {
-  const key = String(templateName || 'default').toLowerCase()
-  const pack = packs[key]
-  if (pack) return pack
+	const key = String(templateName || 'default')
+		.trim()
+		.toLowerCase()
+	const pack = packs[key]
+	if (pack) return pack
 
-  logger.warn(`[TemplatePacks] Unknown pack "${templateName}", falling back to default`)
-  return packs.default
+	logger.warn(`[TemplatePacks] Unknown pack "${templateName}", falling back to default`)
+	return packs.default
 }
 
 export function listTemplatePacks(): TemplatePack[] {

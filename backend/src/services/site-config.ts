@@ -1,4 +1,4 @@
-import { Logger } from '@nestjs/common'
+import { BadRequestException, Logger } from '@nestjs/common'
 import { connectDB } from '../config/db'
 import { SiteConfig, SiteConfigUpdate } from '../types/site-config'
 import { MultiLangUtils } from '../types/multi-lang'
@@ -6,6 +6,8 @@ import mongoose from 'mongoose'
 
 export class SiteConfigService {
   private readonly logger = new Logger(SiteConfigService.name)
+  /** Must stay aligned with frontend `TEMPLATE_PACK_IDS` / themes `baseTemplate`. */
+  private static readonly BUILTIN_TEMPLATE_IDS = new Set(['default', 'minimal', 'modern', 'elegant'])
   private static instance: SiteConfigService
   private configCache: SiteConfig | null = null
   private cacheExpiry: number = 5 * 60 * 1000 // 5 minutes
@@ -89,10 +91,30 @@ export class SiteConfigService {
     return item && typeof item === 'object' && !Array.isArray(item) && item !== null
   }
 
+  private validateBuiltinTemplateId(value: string | undefined, field: string): void {
+    if (value === undefined || value === null || value === '') return
+    const v = String(value).trim().toLowerCase()
+    if (!SiteConfigService.BUILTIN_TEMPLATE_IDS.has(v)) {
+      throw new BadRequestException(
+        `Invalid template.${field}: "${value}". Must be one of: ${[...SiteConfigService.BUILTIN_TEMPLATE_IDS].join(', ')}`
+      )
+    }
+  }
+
+  private validateTemplateUpdate(updates: SiteConfigUpdate): void {
+    const t = updates.template
+    if (!t) return
+    if (t.frontendTemplate !== undefined) this.validateBuiltinTemplateId(t.frontendTemplate, 'frontendTemplate')
+    if (t.adminTemplate !== undefined) this.validateBuiltinTemplateId(t.adminTemplate, 'adminTemplate')
+    if (t.activeTemplate !== undefined) this.validateBuiltinTemplateId(t.activeTemplate, 'activeTemplate')
+  }
+
   /**
    * Update site configuration
    */
   async updateConfig(updates: SiteConfigUpdate): Promise<SiteConfig> {
+    this.validateTemplateUpdate(updates)
+
       await connectDB()
       const db = mongoose.connection.db
       if (!db) throw new Error('Database connection not established')

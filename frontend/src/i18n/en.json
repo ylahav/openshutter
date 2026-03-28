@@ -7,6 +7,10 @@
     "contact": "Contact",
     "admin": "Admin"
   },
+  "templatePack": {
+    "unknownFallback": "The site theme \"{name}\" is not recognized. The default layout is shown until you pick a valid theme under Site configuration.",
+    "dismiss": "Dismiss"
+  },
   "header": {
     "logout": "Logout",
     "myGallery": "My Gallery",

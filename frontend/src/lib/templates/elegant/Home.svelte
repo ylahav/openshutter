@@ -42,7 +42,9 @@
 	$: isHeroVisible = $siteConfigData?.template?.componentsConfig?.hero?.visible !== false;
 </script>
 
-<div class="min-h-screen bg-black relative overflow-hidden">
+<div
+	class="min-h-screen bg-black relative overflow-hidden selection:bg-purple-500/30 selection:text-white"
+>
 	<!-- Animated background -->
 	<div class="fixed inset-0 opacity-30 pointer-events-none">
 		<div class="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500 rounded-full filter blur-3xl animate-pulse"></div>

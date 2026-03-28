@@ -42,7 +42,9 @@
 	$: isHeroVisible = $siteConfigData?.template?.componentsConfig?.hero?.visible !== false;
 </script>
 
-<div class="min-h-screen">
+<div
+	class="min-h-screen bg-gradient-to-b from-white via-slate-50/90 to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 text-slate-900 dark:text-slate-100"
+>
 	{#if isHeroVisible}
 		<Hero />
 	{/if}

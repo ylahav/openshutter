@@ -46,7 +46,9 @@
 	}
 </script>
 
-<header class="bg-white dark:bg-gray-900 shadow-sm border-b border-gray-200 dark:border-gray-700">
+<header
+	class="bg-white/95 dark:bg-slate-950/95 backdrop-blur-md shadow-sm border-b border-slate-200/90 dark:border-slate-700/80"
+>
 	<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 		<div class="flex justify-between items-center h-16">
 			<!-- Logo and title -->

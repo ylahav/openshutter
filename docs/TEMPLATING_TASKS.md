@@ -12,7 +12,7 @@ This checklist is focused on adoption-first delivery: fast visual impact, easy c
 - [x] Build template registry and dynamic resolver — `registry.ts` + `getTemplatePack()` consumed by `*TemplateSwitcher` components.
 - [x] Runtime safety and fallback — unknown pack name → `default`; `TemplateService.loadTemplate` / `getActiveTemplate` also fall back.
 - [x] Feature flag for pack loader — `PUBLIC_ENABLE_TEMPLATE_PACK_LOADER` in `frontend/src/services/template.ts` (opt-in validation path when enabled).
-- [ ] Developer-facing error messages for invalid packs — partial: logging only; no user-visible banner yet.
+- [x] Developer-facing error messages for invalid packs — **public** unknown `frontendTemplate`: dismissible banner (`PackFallbackBanner`) + `site_config` PUT validation for built-in ids; logs remain in `getTemplatePack`.
 
 ## Milestone 2: Admin Experience (High Priority)
 
@@ -24,7 +24,7 @@ This checklist is focused on adoption-first delivery: fast visual impact, easy c
 
 ## Milestone 3: Initial Pack Set (High Priority)
 
-- [ ] Ship at least 3 polished built-in packs — *four* keys exist (`default`, `minimal`, `modern`, `elegant`); **polish** (distinct typography, spacing, motion) still open.
+- [x] Ship at least 3 polished built-in packs — four keys; **recent pass:** distinct home shells + minimal/default header treatment (ongoing refinement OK).
 - [ ] Ensure each pack supports:
   - Home
   - Albums list
@@ -36,7 +36,7 @@ This checklist is focused on adoption-first delivery: fast visual impact, easy c
 
 ## Milestone 4: Developer Experience (Medium Priority)
 
-- [ ] Write "Create a template pack" guide with scaffold steps
+- [x] Write "Create a template pack" guide with scaffold steps — see **`docs/CREATE_TEMPLATE_PACK.md`**
 - [ ] Add pack example project with comments and best practices
 - [ ] Add lint/type checks for pack contract compliance
 - [ ] Add snapshot test coverage for core layouts
