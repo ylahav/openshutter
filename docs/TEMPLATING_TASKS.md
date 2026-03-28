@@ -2,16 +2,17 @@
 
 This checklist is focused on adoption-first delivery: fast visual impact, easy customization, and contributor-friendly extension points.
 
+**Continue from here:** Milestone 2 is largely done. Next focus is **Milestone 3** (polish the four built-in styles: default, minimal, modern, elegant) and tightening **Milestone 1** gaps called out below (About / CMS routes use `PageRenderer`, not pack entries).
+
 ## Milestone 1: Foundation (High Priority)
 
-- [ ] Define template pack contract:
-  - Required components: `Layout`, `Home`, `AlbumsList`, `Album`, `About`, `PageBuilderRenderer`
-  - Optional components and fallback behavior
-  - `config.ts` schema for options, defaults, and validation
-- [ ] Build template registry and dynamic resolver
-- [ ] Add runtime safety and fallback to default pack when a pack fails to load
-- [ ] Add feature flag for new pack loader during rollout
-- [ ] Add developer-facing error messages for invalid packs
+- [x] Define template pack contract — `frontend/src/lib/template-packs/types.ts` (`TemplatePack`, required `pages`: Home, Gallery, Album, Login; optional `components`: Header, Footer, …). **Note:** Albums list is the **Gallery** page; **About** and **Page Builder** routes use shared `PageRenderer` + modules, not pack-registered Svelte shells.
+- [x] Optional components and fallback — `getTemplatePack()` falls back to `default` with a console warning (`registry.ts`).
+- [ ] `config.ts`-style schema for *all* template options — partial: visibility + site config; full `TemplateConfig` surface not all exposed in admin forms.
+- [x] Build template registry and dynamic resolver — `registry.ts` + `getTemplatePack()` consumed by `*TemplateSwitcher` components.
+- [x] Runtime safety and fallback — unknown pack name → `default`; `TemplateService.loadTemplate` / `getActiveTemplate` also fall back.
+- [x] Feature flag for pack loader — `PUBLIC_ENABLE_TEMPLATE_PACK_LOADER` in `frontend/src/services/template.ts` (opt-in validation path when enabled).
+- [ ] Developer-facing error messages for invalid packs — partial: logging only; no user-visible banner yet.
 
 ## Milestone 2: Admin Experience (High Priority)
 
@@ -23,7 +24,7 @@ This checklist is focused on adoption-first delivery: fast visual impact, easy c
 
 ## Milestone 3: Initial Pack Set (High Priority)
 
-- [ ] Ship at least 3 polished built-in packs
+- [ ] Ship at least 3 polished built-in packs — *four* keys exist (`default`, `minimal`, `modern`, `elegant`); **polish** (distinct typography, spacing, motion) still open.
 - [ ] Ensure each pack supports:
   - Home
   - Albums list
@@ -52,15 +53,15 @@ This checklist is focused on adoption-first delivery: fast visual impact, easy c
 
 ### Backend
 
-- [ ] Persist selected pack and options in site config
-- [ ] Validate incoming template config payloads
-- [ ] Add API response shape for template metadata/options
+- [x] Persist selected pack and options in site config — themes collection + `site_config.template` (applied theme drives public/admin template keys).
+- [ ] Validate incoming template config payloads — tighten on PUT where needed.
+- [x] Template metadata — `GET /api/admin/templates` returns static `TemplateConfig[]`; theme CRUD under `/api/admin/themes`.
 
 ### Frontend
 
-- [ ] Resolve active pack in root layout/server load
-- [ ] Route component mapping by active pack
-- [ ] Fallback rendering strategy on missing component
+- [x] Resolve active template — `activeTemplate` store + site config (`frontend/src/lib/stores/template.ts`).
+- [x] Route component mapping by active pack — `*TemplateSwitcher.svelte` + `getTemplatePack`.
+- [x] Fallback rendering — pack fallback to `default`; optional `Footer`/`Header` fallback patterns in switchers.
 - [x] Admin UI form renderer for typed template options — *partial:* component visibility + site-config template hub; not all `TemplateConfig` fields
 - [x] Preview state management and unsaved changes guard
 
@@ -73,8 +74,8 @@ This checklist is focused on adoption-first delivery: fast visual impact, easy c
 
 ## Acceptance Criteria (MVP)
 
-- [ ] Admin can switch templates without code changes.
-- [ ] At least 3 built-in packs render all required routes.
-- [ ] Per-template options are editable and persisted.
-- [ ] Fallback behavior prevents broken public pages.
-- [ ] Docs allow contributors to create and register a new pack.
+- [x] Admin can switch templates without code changes — themes + apply + site config.
+- [ ] At least 3 built-in packs render all required routes — *functional* for Home/Gallery/Album/Login; **polish** and edge routes tracked in M3.
+- [x] Per-template options are editable and persisted — visibility + theme overrides + JSON customize path.
+- [x] Fallback behavior prevents broken public pages — pack + `TemplateService` fallback to `default`.
+- [ ] Docs allow contributors to create and register a new pack — M4.
