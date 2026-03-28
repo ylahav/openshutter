@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { beforeNavigate } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { siteConfigData, siteConfig } from '$stores/siteConfig';
 	import { handleAuthError } from '$lib/utils/auth-error-handler';
@@ -140,13 +141,31 @@
 		}
 	}
 
-	onMount(async () => {
-		await siteConfig.load();
-		if (themeId) {
-			await loadTheme(themeId);
+	onMount(() => {
+		const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+			if (!hasChanges) return;
+			event.preventDefault();
+			event.returnValue = '';
+		};
+		window.addEventListener('beforeunload', handleBeforeUnload);
+		void (async () => {
+			await siteConfig.load();
+			if (themeId) {
+				await loadTheme(themeId);
+			}
+			await loadTemplates();
+			initializeLocalOverrides();
+		})();
+		return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+	});
+
+	beforeNavigate((navigation) => {
+		if (!hasChanges) return;
+		if (navigation.to?.url.pathname === navigation.from?.url.pathname) return;
+		const leave = confirm('You have unsaved changes. Leave without saving?');
+		if (!leave) {
+			navigation.cancel();
 		}
-		await loadTemplates();
-		initializeLocalOverrides();
 	});
 
 	async function loadTheme(id: string) {

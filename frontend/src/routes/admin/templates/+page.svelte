@@ -3,13 +3,16 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { siteConfigData, siteConfig } from '$stores/siteConfig';
+	import {
+		clearAdminPreviewTemplate,
+		getAdminPreviewTemplate,
+		getAdminPreviewThemeId,
+		setAdminPreviewTemplate
+	} from '$stores/template';
 	import { t } from '$stores/i18n';
 	import { handleAuthError } from '$lib/utils/auth-error-handler';
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
-	import type { PageData } from './$types';
-
-	export let data: PageData;
 
 	interface Theme {
 		_id: string;
@@ -41,10 +44,39 @@
 	let duplicateThemeId: string | null = null;
 	let deleteThemeId: string | null = null;
 	let applyThemeId: string | null = null;
+	let previewTemplate: string | null = null;
+	let previewThemeId: string | null = null;
+
+	const BASE_TEMPLATE_PREVIEW: Record<
+		string,
+		{
+			colors: { primary: string; secondary: string; accent: string; background: string };
+			label: string;
+		}
+	> = {
+		minimal: {
+			colors: { primary: '#111111', secondary: '#9CA3AF', accent: '#111111', background: '#FFFFFF' },
+			label: 'Clean monochrome'
+		},
+		modern: {
+			colors: { primary: '#2563EB', secondary: '#334155', accent: '#22D3EE', background: '#0F172A' },
+			label: 'Bold contrast'
+		},
+		elegant: {
+			colors: { primary: '#7C3AED', secondary: '#C4B5FD', accent: '#F59E0B', background: '#1F1437' },
+			label: 'Luxury serif'
+		},
+		default: {
+			colors: { primary: '#3B82F6', secondary: '#6B7280', accent: '#F59E0B', background: '#FFFFFF' },
+			label: 'Balanced classic'
+		}
+	};
 
 	$: frontendTemplate = $siteConfigData?.template?.frontendTemplate || $siteConfigData?.template?.activeTemplate || 'modern';
 
 	onMount(async () => {
+		previewTemplate = getAdminPreviewTemplate();
+		previewThemeId = getAdminPreviewThemeId();
 		await loadThemes();
 	});
 
@@ -178,6 +210,9 @@
 				})
 			});
 			if (!response.ok) await handleApiErrorResponse(response);
+			clearAdminPreviewTemplate();
+			previewTemplate = null;
+			previewThemeId = null;
 			applyThemeId = null;
 			message = $t('admin.themeApplied').replace('{name}', theme.name);
 			await siteConfig.load();
@@ -211,7 +246,31 @@
 	}
 
 	function getColor(theme: Theme, key: string): string {
-		return theme.customColors?.[key] || '#999';
+		const fallback = BASE_TEMPLATE_PREVIEW[theme.baseTemplate]?.colors as Record<string, string> | undefined;
+		return theme.customColors?.[key] || fallback?.[key] || '#999';
+	}
+
+	function getTemplateStyleLabel(theme: Theme): string {
+		return BASE_TEMPLATE_PREVIEW[theme.baseTemplate]?.label || 'Custom style';
+	}
+
+	function previewTheme(theme: Theme): void {
+		setAdminPreviewTemplate(theme.baseTemplate, theme._id);
+		previewTemplate = theme.baseTemplate;
+		previewThemeId = theme._id;
+		message = `Previewing ${theme.name}. Use Apply or Apply Preview to save, or Revert Preview to discard.`;
+		error = '';
+	}
+
+	function clearPreview(): void {
+		clearAdminPreviewTemplate();
+		previewTemplate = null;
+		previewThemeId = null;
+		message = 'Preview reverted to saved template.';
+	}
+
+	function openApplyPreview(): void {
+		if (previewThemeId) applyThemeId = previewThemeId;
 	}
 </script>
 
@@ -228,10 +287,18 @@
 					<p class="text-gray-600 mt-1">
 						{$t('admin.manageThemesDescription')}
 					</p>
+					<p id="templates-preview-help" class="text-sm text-gray-500 mt-2 max-w-2xl">
+						{$t('admin.previewCurrentPageHelp')}
+					</p>
 					<p class="mt-2 text-sm">
 						<span class="font-medium text-gray-700">{$t('admin.activeTemplate')}:</span>
 						<span class="ml-1 px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 font-medium">{frontendTemplate}</span>
 					</p>
+					{#if previewTemplate}
+						<p class="mt-1 text-xs text-amber-700">
+							Preview mode: <span class="font-semibold">{previewTemplate}</span> (not saved yet)
+						</p>
+					{/if}
 				</div>
 				<div class="flex gap-2">
 					<button
@@ -253,6 +320,26 @@
 					>
 						{$t('admin.backToAdmin')}
 					</a>
+					{#if previewTemplate && previewThemeId}
+						<button
+							type="button"
+							on:click={openApplyPreview}
+							class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm font-medium"
+							title={$t('admin.applyPreview')}
+						>
+							{$t('admin.applyPreview')}
+						</button>
+					{/if}
+					{#if previewTemplate}
+						<button
+							type="button"
+							on:click={clearPreview}
+							class="px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 text-sm font-medium"
+							title={$t('admin.revertPreview')}
+						>
+							{$t('admin.revertPreview')}
+						</button>
+					{/if}
 				</div>
 			</div>
 
@@ -296,12 +383,18 @@
 											{$t('admin.active')}
 										</span>
 									{/if}
+									{#if previewTemplate === theme.baseTemplate}
+										<span class="px-2 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-800">
+											Previewing
+										</span>
+									{/if}
 								</div>
 								<p class="text-xs text-gray-500 mt-1">
 									{$t('admin.baseTemplateLabel')}: {theme.baseTemplate}{' '}
 									{theme.basePalette ? `· ${theme.basePalette}` : ''}{' '}
 									{theme.isBuiltIn ? `· ${$t('admin.builtIn')}` : ''}
 								</p>
+								<p class="text-xs text-gray-600 mt-1">{getTemplateStyleLabel(theme)}</p>
 								<div class="flex flex-wrap gap-2 mt-3">
 									<a
 										href="/admin/templates/overrides?themeId={theme._id}"
@@ -315,6 +408,16 @@
 										class="text-xs px-2 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200"
 									>
 										{$t('admin.apply')}
+									</button>
+									<button
+										type="button"
+										on:click={() => previewTheme(theme)}
+										class="text-xs px-2 py-1 bg-amber-100 text-amber-700 rounded hover:bg-amber-200"
+										title={$t('admin.previewCurrentPageTitle')}
+										aria-label={$t('admin.previewCurrentPageTitle')}
+										aria-describedby="templates-preview-help"
+									>
+										{$t('admin.previewThemeAction')}
 									</button>
 									<button
 										type="button"

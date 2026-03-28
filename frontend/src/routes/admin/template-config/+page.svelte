@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
 	import Header from '$lib/components/Header.svelte';
 	import Footer from '$lib/components/Footer.svelte';
+	import type { SiteConfig } from '$lib/types/site-config';
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 	import { t } from '$stores/i18n';
@@ -22,7 +22,9 @@
 	let saving = false;
 	let message: string | null = null;
 	let error: string | null = null;
+	/** Effective public-site template key (matches backend merge rules). */
 	let activeTemplate = 'default';
+	let templateSectionSnapshot: SiteConfig['template'] | undefined = undefined;
 	let localVisibility: TemplateComponentVisibility = {
 		hero: true,
 		languageSelector: true,
@@ -31,6 +33,35 @@
 		statistics: true,
 		promotion: true
 	};
+
+	function defaultsFromTemplateVisibility(
+		v: Record<string, boolean | undefined> | undefined
+	): TemplateComponentVisibility {
+		return {
+			hero: v?.hero ?? true,
+			languageSelector: v?.languageSelector ?? true,
+			authButtons: v?.authButtons ?? true,
+			footerMenu: v?.footerMenu ?? true,
+			statistics: v?.statistics ?? true,
+			promotion: v?.promotion ?? true
+		};
+	}
+
+	function mergeVisibility(
+		defaults: TemplateComponentVisibility,
+		overrides: Partial<TemplateComponentVisibility> | undefined
+	): TemplateComponentVisibility {
+		if (!overrides) return defaults;
+		return {
+			hero: overrides.hero !== undefined ? overrides.hero : defaults.hero,
+			languageSelector:
+				overrides.languageSelector !== undefined ? overrides.languageSelector : defaults.languageSelector,
+			authButtons: overrides.authButtons !== undefined ? overrides.authButtons : defaults.authButtons,
+			footerMenu: overrides.footerMenu !== undefined ? overrides.footerMenu : defaults.footerMenu,
+			statistics: overrides.statistics !== undefined ? overrides.statistics : defaults.statistics,
+			promotion: overrides.promotion !== undefined ? overrides.promotion : defaults.promotion
+		};
+	}
 
 	const componentLabels = {
 		hero: $t('admin.templateConfig.heroLabel'),
@@ -57,17 +88,34 @@
 	async function loadConfig() {
 		try {
 			loading = true;
-			const response = await fetch('/api/admin/site-config');
-			if (response.ok) {
-				const result = await response.json();
-				if (result.success && result.data) {
-					const config = result.data;
-					activeTemplate = config.template?.activeTemplate || 'default';
-					if (config.template?.componentVisibility) {
-						localVisibility = { ...localVisibility, ...config.template.componentVisibility };
-					}
+			const [cfgRes, tplRes] = await Promise.all([
+				fetch('/api/admin/site-config'),
+				fetch('/api/admin/templates', { cache: 'no-store' })
+			]);
+			if (!cfgRes.ok) {
+				error = 'Failed to load site configuration';
+				return;
+			}
+			const result = await cfgRes.json();
+			if (!result.success || !result.data) {
+				error = result.error || 'Failed to load site configuration';
+				return;
+			}
+			const config = result.data as SiteConfig;
+			templateSectionSnapshot = config.template ? { ...config.template } : undefined;
+			activeTemplate =
+				config.template?.frontendTemplate || config.template?.activeTemplate || 'default';
+
+			let templates: Array<{ templateName: string; visibility?: Record<string, boolean> }> = [];
+			if (tplRes.ok) {
+				const tplJson = await tplRes.json();
+				if (tplJson?.success && Array.isArray(tplJson.data)) {
+					templates = tplJson.data;
 				}
 			}
+			const base = templates.find((t) => t.templateName === activeTemplate);
+			const defaults = defaultsFromTemplateVisibility(base?.visibility);
+			localVisibility = mergeVisibility(defaults, config.template?.componentVisibility);
 		} catch (err) {
 			logger.error('Failed to load config:', err);
 			error = handleError(err, 'Failed to load template configuration');
@@ -83,6 +131,18 @@
 		};
 	}
 
+	function buildTemplatePayload(visibility: TemplateComponentVisibility) {
+		const prev = templateSectionSnapshot || {};
+		const fe = prev.frontendTemplate || prev.activeTemplate || activeTemplate;
+		const ac = prev.activeTemplate || activeTemplate;
+		return {
+			...prev,
+			frontendTemplate: fe,
+			activeTemplate: ac,
+			componentVisibility: visibility
+		};
+	}
+
 	async function handleSave() {
 		try {
 			saving = true;
@@ -95,10 +155,7 @@
 					'Content-Type': 'application/json'
 				},
 				body: JSON.stringify({
-					template: {
-						activeTemplate: activeTemplate,
-						componentVisibility: localVisibility
-					}
+					template: buildTemplatePayload(localVisibility)
 				})
 			});
 
@@ -109,6 +166,9 @@
 			const result = await response.json();
 			if (result.success) {
 				message = 'Template configuration saved successfully!';
+				if (result.data?.template) {
+					templateSectionSnapshot = { ...result.data.template };
+				}
 			} else {
 				throw new Error(result.error || 'Failed to save template configuration');
 			}
@@ -126,16 +186,24 @@
 			message = null;
 			error = null;
 
+			const tplRes = await fetch('/api/admin/templates', { cache: 'no-store' });
+			let templates: Array<{ templateName: string; visibility?: Record<string, boolean> }> = [];
+			if (tplRes.ok) {
+				const tplJson = await tplRes.json();
+				if (tplJson?.success && Array.isArray(tplJson.data)) {
+					templates = tplJson.data;
+				}
+			}
+			const base = templates.find((t) => t.templateName === activeTemplate);
+			const resetVisibility = defaultsFromTemplateVisibility(base?.visibility);
+
 			const response = await fetch('/api/admin/site-config', {
 				method: 'PUT',
 				headers: {
 					'Content-Type': 'application/json'
 				},
 				body: JSON.stringify({
-					template: {
-						activeTemplate: activeTemplate,
-						componentVisibility: undefined
-					}
+					template: buildTemplatePayload(resetVisibility)
 				})
 			});
 
@@ -146,14 +214,10 @@
 			const result = await response.json();
 			if (result.success) {
 				message = 'Template configuration reset to defaults!';
-				localVisibility = {
-					hero: true,
-					languageSelector: true,
-					authButtons: true,
-					footerMenu: true,
-					statistics: true,
-					promotion: true
-				};
+				localVisibility = resetVisibility;
+				if (result.data?.template) {
+					templateSectionSnapshot = { ...result.data.template };
+				}
 			} else {
 				throw new Error(result.error || 'Failed to reset template configuration');
 			}
@@ -198,10 +262,17 @@
 							<h1 class="text-2xl font-bold text-gray-900">{$t('admin.templateConfigTitle')}</h1>
 							<p class="text-gray-600 mt-1">{$t('admin.templateConfigSubtitle')}</p>
 						</div>
-						<a href="/admin" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm font-medium">
-							{$t('admin.backToAdmin')}
-						</a>
-					</div>
+						<div class="flex flex-wrap gap-2 justify-end">
+							<a
+								href="/admin/site-config?tab=template"
+								class="px-4 py-2 bg-white border border-gray-300 text-gray-800 rounded-md hover:bg-gray-50 text-sm font-medium"
+							>
+								{$t('admin.siteConfigTemplateTab')}
+							</a>
+							<a href="/admin" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm font-medium">
+								{$t('admin.backToAdmin')}
+							</a>
+						</div>
 					</div>
 				</div>
 
@@ -293,6 +364,7 @@
 				</div>
 			</div>
 		</div>
+	</div>
 	{/if}
 
 	<Footer />

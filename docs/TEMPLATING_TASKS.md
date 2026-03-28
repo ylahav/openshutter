@@ -15,11 +15,11 @@ This checklist is focused on adoption-first delivery: fast visual impact, easy c
 
 ## Milestone 2: Admin Experience (High Priority)
 
-- [ ] Add Site Config section for active template selection
-- [ ] Add per-template option editor from `config.ts`
-- [ ] Add preview mode (quick switch + safe save)
-- [ ] Add reset-to-default per-template option controls
-- [ ] Add permissions and audit events for template changes
+- [x] Add Site Config section for active template selection — **Theme & layout** tab on `/admin/site-config` (and `?tab=template` deep link); admin home quick link under Site configuration
+- [x] Add per-template option editor from `config.ts` — **Component visibility** on `/admin/template-config` loads defaults from `GET /api/admin/templates` (template `visibility`) merged with site overrides; full JSON editing remains on `/admin/templates/customize`
+- [x] Add preview mode (quick switch + safe save) — admin templates list + preview store + apply/revert
+- [x] Add reset-to-default per-template option controls — visibility reset writes built-in defaults for the active template (same source as backend merge)
+- [ ] Add permissions and audit events for template changes — *deferred* (admin-guarded APIs only today)
 
 ## Milestone 3: Initial Pack Set (High Priority)
 
@@ -61,8 +61,8 @@ This checklist is focused on adoption-first delivery: fast visual impact, easy c
 - [ ] Resolve active pack in root layout/server load
 - [ ] Route component mapping by active pack
 - [ ] Fallback rendering strategy on missing component
-- [ ] Admin UI form renderer for typed template options
-- [ ] Preview state management and unsaved changes guard
+- [x] Admin UI form renderer for typed template options — *partial:* component visibility + site-config template hub; not all `TemplateConfig` fields
+- [x] Preview state management and unsaved changes guard
 
 ### Testing
 
