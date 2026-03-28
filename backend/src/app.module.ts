@@ -25,7 +25,6 @@ import { AdminGuard } from './common/guards/admin.guard';
 import { AdminOrOwnerGuard } from './common/guards/admin-or-owner.guard';
 import { FaceDetectionModule } from './face-detection/face-detection.module';
 import { TranslationsModule } from './translations/translations.module';
-import { ThemeBuilderModule } from './theme-builder/theme-builder.module';
 import { SearchModule } from './search/search.module';
 import { MigrationModule } from './migration/migration.module';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -70,7 +69,6 @@ import { AIProvidersHealthController } from './ai/ai-providers-health.controller
     DeploymentModule,
     FaceDetectionModule,
     TranslationsModule,
-    ThemeBuilderModule,
     SearchModule,
     MigrationModule,
     StorageModule,
