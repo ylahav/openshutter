@@ -3,6 +3,7 @@ import { connectDB } from '../config/db'
 import { SiteConfig, SiteConfigUpdate } from '../types/site-config'
 import { MultiLangUtils } from '../types/multi-lang'
 import mongoose from 'mongoose'
+import { validateTemplatePagesLayer } from '../template/validate-pages-layer'
 
 export class SiteConfigService {
   private readonly logger = new Logger(SiteConfigService.name)
@@ -113,7 +114,12 @@ export class SiteConfigService {
    * Update site configuration
    */
   async updateConfig(updates: SiteConfigUpdate): Promise<SiteConfig> {
-    this.validateTemplateUpdate(updates)
+    const replaceTemplateFromTheme = (updates as SiteConfigUpdate & { replaceTemplateFromTheme?: boolean })
+      .replaceTemplateFromTheme
+    const mergePayload: SiteConfigUpdate = { ...updates }
+    delete (mergePayload as { replaceTemplateFromTheme?: boolean }).replaceTemplateFromTheme
+
+    this.validateTemplateUpdate(mergePayload)
 
       await connectDB()
       const db = mongoose.connection.db
@@ -124,13 +130,76 @@ export class SiteConfigService {
     const currentConfig = await this.getConfig()
     
     // Deep merge updates with current config to preserve nested objects
-    const mergedConfig = this.deepMerge(currentConfig, updates)
+    const mergedConfig = this.deepMerge(currentConfig, mergePayload)
+
+    /**
+     * `deepMerge` recursively merges `template.pageLayout` / `pageModules` with existing DB values.
+     * That leaves stale legacy keys (e.g. flat `gridRows` on a page) next to breakpoint maps
+     * (`xs`, `lg`, …), so clients treat the node as legacy and ignore responsive data — grids
+     * appear not to save. When the client sends these fields, replace them entirely.
+     */
+    if (mergePayload.template && mergedConfig.template) {
+      const t = mergePayload.template as Record<string, unknown>
+      const out = mergedConfig.template as Record<string, unknown>
+      const replaceWhole = [
+        'pageLayout',
+        'pageModules',
+        'pageLayoutByBreakpoint',
+        'pageModulesByBreakpoint',
+        'customLayout',
+        'customLayoutByBreakpoint',
+        'customColors',
+        'customFonts',
+        'componentVisibility',
+        'headerConfig',
+      ] as const
+      for (const k of replaceWhole) {
+        if (Object.prototype.hasOwnProperty.call(t, k)) {
+          out[k] = t[k]
+        }
+      }
+    }
+
+    // Applying a theme must replace module/layout/colors from the theme row, not merge with
+    // leftover site_config keys (otherwise old pageModules positions persist invisibly).
+    if (replaceTemplateFromTheme && mergePayload.template) {
+      const t = mergePayload.template
+      mergedConfig.template = mergedConfig.template || {}
+      mergedConfig.template.pageModules = { ...(t.pageModules ?? {}) }
+      mergedConfig.template.pageLayout = { ...(t.pageLayout ?? {}) }
+      mergedConfig.template.customColors = { ...(t.customColors ?? {}) }
+      mergedConfig.template.customFonts = { ...(t.customFonts ?? {}) }
+      mergedConfig.template.customLayout = { ...(t.customLayout ?? {}) }
+      if (Object.prototype.hasOwnProperty.call(t, 'customLayoutByBreakpoint')) {
+        mergedConfig.template.customLayoutByBreakpoint = { ...(t.customLayoutByBreakpoint ?? {}) }
+      }
+      if (Object.prototype.hasOwnProperty.call(t, 'pageLayoutByBreakpoint')) {
+        mergedConfig.template.pageLayoutByBreakpoint = { ...(t.pageLayoutByBreakpoint ?? {}) }
+      }
+      if (Object.prototype.hasOwnProperty.call(t, 'pageModulesByBreakpoint')) {
+        mergedConfig.template.pageModulesByBreakpoint = { ...(t.pageModulesByBreakpoint ?? {}) }
+      }
+      if (Object.prototype.hasOwnProperty.call(t, 'headerConfig')) {
+        mergedConfig.template.headerConfig = t.headerConfig ?? null
+      }
+      if (Object.prototype.hasOwnProperty.call(t, 'componentVisibility')) {
+        mergedConfig.template.componentVisibility = t.componentVisibility ?? null
+      }
+      if (t.frontendTemplate !== undefined) mergedConfig.template.frontendTemplate = t.frontendTemplate
+      if (t.adminTemplate !== undefined) mergedConfig.template.adminTemplate = t.adminTemplate
+      if (t.activeTemplate !== undefined) mergedConfig.template.activeTemplate = t.activeTemplate
+      if (t.activeThemeId !== undefined) mergedConfig.template.activeThemeId = t.activeThemeId
+    }
     // Don't overwrite mail password with masked value; keep existing if update sent "****" or empty
-    if (updates.mail?.password === '****' || updates.mail?.password === '') {
+    if (mergePayload.mail?.password === '****' || mergePayload.mail?.password === '') {
       if (mergedConfig.mail && currentConfig.mail?.password) {
         mergedConfig.mail.password = currentConfig.mail.password
       }
     }
+
+    // Server-side safety: reject invalid grids or overlapping module rectangles
+    // before persisting template page placements.
+    validateTemplatePagesLayer(mergedConfig.template, { source: 'PUT /api/admin/site-config' })
     // Add updatedAt timestamp
     mergedConfig.updatedAt = new Date()
     

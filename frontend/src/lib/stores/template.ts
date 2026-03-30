@@ -42,7 +42,7 @@ export const activeTemplate = derived(
 		if (isAdminRoute) {
 			const previewTemplate = $adminPreviewTemplate;
 			if (previewTemplate && ['minimal', 'modern', 'elegant', 'default'].includes(previewTemplate)) {
-				return previewTemplate === 'default' ? 'minimal' : previewTemplate;
+				return previewTemplate;
 			}
 			return getTemplateForArea($config, 'admin');
 		}
@@ -50,9 +50,8 @@ export const activeTemplate = derived(
 		// Frontend area: check localStorage first for non-admin users
 		if (browser && (!$auth.authenticated || $auth.user?.role !== 'admin')) {
 			const preferredTemplate = localStorage.getItem('preferredTemplate');
-			// Map 'default' to 'minimal' since they're essentially the same
 			if (preferredTemplate && ['minimal', 'modern', 'elegant', 'default'].includes(preferredTemplate)) {
-				return preferredTemplate === 'default' ? 'minimal' : preferredTemplate;
+				return preferredTemplate;
 			}
 		}
 

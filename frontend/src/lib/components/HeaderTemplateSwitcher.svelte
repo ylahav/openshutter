@@ -4,16 +4,15 @@
 	import { activeTemplate } from '$stores/template';
 	import { logger } from '$lib/utils/logger';
 	import { getTemplatePack } from '$lib/template-packs/registry';
+	import { pageBuilderHeaderShellClass } from '$lib/template-packs/page-builder-chrome';
 	import type { PageModuleData } from '$lib/types/page-builder';
+	import { getEffectivePageModules, getEffectivePageGrid } from '$lib/template/breakpoints';
+	import { viewportWidth } from '$lib/stores/viewport';
 
-	// Check if we have pageModules for header - if so, use PageRenderer instead of template switcher
-	$: hasPageModules = $siteConfigData?.template?.pageModules?.header && 
-		Array.isArray($siteConfigData.template.pageModules.header) && 
-		$siteConfigData.template.pageModules.header.length > 0;
-	$: pageLayout = $siteConfigData?.template?.pageLayout?.header;
-	$: pageModules = (hasPageModules && $siteConfigData?.template?.pageModules?.header
-		? ($siteConfigData.template.pageModules.header as PageModuleData[])
-		: []) as PageModuleData[];
+	$: pageModulesRaw = getEffectivePageModules($siteConfigData?.template, 'header', $viewportWidth);
+	$: hasPageModules = Array.isArray(pageModulesRaw) && pageModulesRaw.length > 0;
+	$: pageLayout = getEffectivePageGrid($siteConfigData?.template, 'header', $viewportWidth);
+	$: pageModules = (hasPageModules ? pageModulesRaw : []) as PageModuleData[];
 
 	// Debug logging
 	$: if ($siteConfigData?.template?.pageModules?.header !== undefined) {
@@ -34,11 +33,13 @@
 	} as any) : null;
 
 	$: pack = getTemplatePack($activeTemplate);
+	/** Match active pack chrome when using page builder (otherwise switching packs did not change the header strip). */
+	$: headerPbShellClass = pageBuilderHeaderShellClass($activeTemplate);
 </script>
 
 {#if hasPageModules}
 	<!-- Use PageRenderer when pageModules are configured -->
-	<header class="w-full bg-white dark:bg-gray-900 shadow-sm border-b border-gray-200 dark:border-gray-700">
+	<header class="w-full {headerPbShellClass}">
 		<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 			<PageRenderer page={pageForRenderer} modules={pageModules} compact={true} />
 		</div>

@@ -24,6 +24,7 @@ import { StorageError, StorageProviderId } from '../services/storage/types';
 import { resolveOwnerStorageContext } from '../services/storage/owner-storage-context';
 import { appendStorageOwnerQuery } from '../services/storage/storage-serve-url';
 import type { MulterIncomingFile } from '../common/types/multer-incoming-file';
+import { validateTemplatePagesLayer } from '../template/validate-pages-layer';
 
 const COLLECTION = 'owner_site_settings';
 const ALLOWED_LOGO_MIME = [
@@ -140,7 +141,11 @@ export class OwnerSiteSettingsController {
     if (body.seo !== undefined) update.seo = body.seo && typeof body.seo === 'object' ? body.seo : body.seo;
     if (body.contact !== undefined) update.contact = body.contact && typeof body.contact === 'object' ? body.contact : body.contact;
     if (body.footer !== undefined) update.footer = body.footer && typeof body.footer === 'object' ? body.footer : body.footer;
-    if (body.template !== undefined) update.template = body.template;
+    if (body.template !== undefined) {
+      // Server-side safety: reject invalid grids / overlaps so the effective merged site remains safe.
+      validateTemplatePagesLayer(body.template, { source: 'PATCH /api/owner/site-settings' });
+      update.template = body.template;
+    }
 
     const result = await collection.findOneAndUpdate(
       { ownerId },

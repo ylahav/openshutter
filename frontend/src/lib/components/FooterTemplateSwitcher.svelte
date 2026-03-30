@@ -5,14 +5,13 @@
 	import { logger } from '$lib/utils/logger';
 	import { DEFAULT_PAGE_MODULES, DEFAULT_PAGE_LAYOUTS } from '$lib/constants/default-page-layouts';
 	import { getTemplatePack } from '$lib/template-packs/registry';
+	import { pageBuilderFooterShellClass } from '$lib/template-packs/page-builder-chrome';
+	import { getEffectivePageModules, getEffectivePageGrid } from '$lib/template/breakpoints';
+	import { viewportWidth } from '$lib/stores/viewport';
 
-	// Check if we have pageModules for footer - if so, use PageRenderer instead of template switcher
-	// Fall back to default footer modules if not configured in siteConfig
-	$: configFooterModules = $siteConfigData?.template?.pageModules?.footer;
-	$: hasPageModules = configFooterModules && 
-		Array.isArray(configFooterModules) && 
-		configFooterModules.length > 0;
-	$: pageLayout = $siteConfigData?.template?.pageLayout?.footer || DEFAULT_PAGE_LAYOUTS.footer;
+	$: configFooterModules = getEffectivePageModules($siteConfigData?.template, 'footer', $viewportWidth);
+	$: hasPageModules = configFooterModules && Array.isArray(configFooterModules) && configFooterModules.length > 0;
+	$: pageLayout = getEffectivePageGrid($siteConfigData?.template, 'footer', $viewportWidth) || DEFAULT_PAGE_LAYOUTS.footer;
 
 	// Default footer modules (social + copyright); ensure we always include social media
 	const defaultFooterModules = DEFAULT_PAGE_MODULES.footer || [];
@@ -57,11 +56,12 @@
 	} as any) : null;
 
 	$: pack = getTemplatePack($activeTemplate);
+	$: footerPbShellClass = pageBuilderFooterShellClass($activeTemplate);
 </script>
 
 {#if usePageRenderer}
-	<!-- Use PageRenderer when pageModules are configured; light background so no black bar -->
-	<footer class="w-full bg-gray-100 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-auto">
+	<!-- Use PageRenderer when pageModules are configured; shell follows active pack -->
+	<footer class="w-full mt-auto {footerPbShellClass}">
 		<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
 			<PageRenderer page={pageForRenderer} modules={pageModules} compact={true} />
 		</div>

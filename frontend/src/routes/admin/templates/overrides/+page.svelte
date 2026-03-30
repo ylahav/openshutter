@@ -21,6 +21,45 @@
 	import { t } from '$stores/i18n';
 	import type { PageData } from './$types';
 	import type { MultiLangText, MultiLangHTML } from '$lib/types/multi-lang';
+	import {
+		TEMPLATE_BREAKPOINTS,
+		BREAKPOINT_MIN_WIDTH_PX,
+		SHELL_HINT_BY_BREAKPOINT,
+		DEFAULT_SHELL,
+		seedShellFromDb,
+		shellByBreakpointToCustomLayoutField,
+		seedPageLayoutByBreakpoint,
+		normalizePageLayoutRowForPersistence,
+		pageLayoutByBreakpointToPageLayoutField,
+		pageModulesByBreakpointToPageModulesField,
+		isLegacyCustomLayout,
+		isBreakpointMapCustomLayout,
+		isPageLayoutBreakpointMapForPage,
+		isLegacyPageLayoutEntry,
+		isPageModulesBreakpointMapForPage,
+		getPageGridForBreakpoint,
+		getPageModulesForBreakpoint,
+		mergePageLayoutRowForBreakpointEdit,
+		type TemplateBreakpointId,
+		type ShellLayout
+	} from '$lib/template/breakpoints';
+	import { DEFAULT_PAGE_LAYOUTS, DEFAULT_PAGE_MODULES } from '$lib/constants/default-page-layouts';
+
+	/** Readable defaults when template / overrides omit a key (also fixes invisible #000 on white fields). */
+	const DEFAULT_COLOR_HEX: Record<string, string> = {
+		primary: '#3B82F6',
+		secondary: '#6B7280',
+		accent: '#F59E0B',
+		background: '#FFFFFF',
+		text: '#111827',
+		muted: '#6B7280'
+	};
+
+	/** Force light inputs + readable text (fixes invisible text under dark `html` / admin themes). */
+	const ADMIN_TEXT_INPUT_BASE =
+		'min-h-[2.5rem] px-3 py-2 border border-gray-300 rounded-md shadow-sm !bg-white !text-gray-900 placeholder:text-gray-500 [color-scheme:light] focus:ring-2 focus:ring-blue-500 focus:border-blue-500';
+	const ADMIN_TEXT_INPUT_CLASS = `w-full ${ADMIN_TEXT_INPUT_BASE}`;
+	const ADMIN_TEXT_INPUT_FLEX_CLASS = `flex-1 min-w-0 ${ADMIN_TEXT_INPUT_BASE}`;
 
 	export let data: PageData;
 
@@ -90,11 +129,22 @@
 	let hasChanges = false;
 	let previewPageType: 'home' | 'gallery' | 'album' | 'search' | 'pageBuilder' = 'home';
 	let editingPageType: 'home' | 'gallery' | 'album' | 'search' | 'header' | 'footer' = 'home';
+	/** Shell + page grid/modules edit target (mobile-first breakpoints). */
+	let editingBreakpoint: TemplateBreakpointId = 'lg';
+	const PAGE_KEYS = ['home', 'gallery', 'album', 'search', 'header', 'footer'] as const;
 	// Multi-select like page builder: Set of "row:col" keys
 	let selectedCells = new Set<string>();
-	// Reactive: recalc when page type or pageLayout changes
+	// Must read editingBreakpoint + localOverrides here — Svelte does not track vars only used inside helper closures.
 	$: pageGrid = (() => {
-		const layout = localOverrides?.pageLayout?.[editingPageType];
+		const lo = localOverrides;
+		const layout = getPageGridForBreakpoint(
+			{
+				pageLayout: lo.pageLayout,
+				pageLayoutByBreakpoint: lo.pageLayoutByBreakpoint
+			},
+			editingPageType,
+			editingBreakpoint
+		);
 		return {
 			gridRows: layout?.gridRows ?? 3,
 			gridColumns: layout?.gridColumns ?? 1
@@ -105,14 +155,34 @@
 	let localOverrides: {
 		customColors?: Record<string, string>;
 		customFonts?: Record<string, string | FontSetting>;
-		customLayout?: Record<string, string>;
+		/** Legacy flat `{ maxWidth, … }` or full breakpoint map (preferred when saved). */
+		customLayout?: Record<string, unknown>;
+		customLayoutByBreakpoint?: Record<string, { maxWidth?: string; containerPadding?: string; gridGap?: string }>;
 		componentVisibility?: Record<string, boolean>;
 		headerConfig?: Record<string, any>;
-		pageModules?: Record<string, any[]>;
-		pageLayout?: Record<string, { gridRows: number; gridColumns: number }>;
+		/** Legacy flat per page, or full `{ pageKey: { xs: …, lg: … } }` map when saved from Admin. */
+		pageModules?: Record<string, unknown>;
+		pageLayout?: Record<string, unknown>;
+		pageLayoutByBreakpoint?: Record<string, Partial<Record<string, { gridRows: number; gridColumns: number }>>>;
+		pageModulesByBreakpoint?: Record<string, Partial<Record<string, any[]>>>;
 	} = {};
 
-	let editingTheme: { _id: string; name?: string; baseTemplate: string; customColors?: Record<string, string>; customFonts?: Record<string, string | FontSetting>; customLayout?: Record<string, string>; componentVisibility?: Record<string, boolean>; headerConfig?: Record<string, unknown>; pageModules?: Record<string, any[]>; pageLayout?: Record<string, { gridRows: number; gridColumns: number }> } | null = null;
+	let editingTheme: {
+		_id: string;
+		name?: string;
+		baseTemplate: string;
+		customColors?: Record<string, string>;
+		customFonts?: Record<string, string | FontSetting>;
+		customLayout?: Record<string, unknown>;
+		customLayoutByBreakpoint?: Record<string, { maxWidth?: string; containerPadding?: string; gridGap?: string }>;
+		componentVisibility?: Record<string, boolean>;
+		headerConfig?: Record<string, unknown>;
+		/** Legacy flat per page, or full `{ pageKey: { xs: …, lg: … } }` map when saved from Admin. */
+		pageModules?: Record<string, unknown>;
+		pageLayout?: Record<string, unknown>;
+		pageLayoutByBreakpoint?: Record<string, Partial<Record<string, { gridRows: number; gridColumns: number }>>>;
+		pageModulesByBreakpoint?: Record<string, Partial<Record<string, any[]>>>;
+	} | null = null;
 	$: currentTemplateName = editingTheme?.baseTemplate ||
 		$siteConfigData?.template?.frontendTemplate ||
 		$siteConfigData?.template?.activeTemplate ||
@@ -180,47 +250,94 @@
 		}
 	}
 
-	import { DEFAULT_PAGE_LAYOUTS, DEFAULT_PAGE_MODULES } from '$lib/constants/default-page-layouts';
-
 	function initializeLocalOverrides() {
 		if (editingTheme) {
-			const migrated = migratePageModules(editingTheme.pageModules);
+			const migrated = migratePageModules(editingTheme.pageModules as Record<string, unknown> | undefined);
 			logger.debug('[Overrides] Loading theme pageModules:', {
 				raw: editingTheme.pageModules,
 				migrated: migrated,
 				homeModules: migrated.home,
-				firstHomeModule: migrated.home?.[0],
-				firstHomeModuleProps: migrated.home?.[0]?.props
+				firstHomeModule: Array.isArray(migrated.home) ? migrated.home?.[0] : undefined,
+				firstHomeModuleProps: Array.isArray(migrated.home) ? migrated.home?.[0]?.props : undefined
 			});
-			// Merge with defaults if pageModules/pageLayout are empty
-			const pageModules = Object.keys(migrated).length > 0 ? migrated : DEFAULT_PAGE_MODULES;
-			const pageLayout = editingTheme.pageLayout && Object.keys(editingTheme.pageLayout).length > 0
-				? JSON.parse(JSON.stringify(editingTheme.pageLayout))
-				: DEFAULT_PAGE_LAYOUTS;
+			const pageModules =
+				Object.keys(migrated).length > 0 ? migrated : (DEFAULT_PAGE_MODULES as Record<string, unknown>);
+			const rawPl =
+				editingTheme.pageLayout && Object.keys(editingTheme.pageLayout).length > 0
+					? (JSON.parse(JSON.stringify(editingTheme.pageLayout)) as Record<string, unknown>)
+					: {};
+			const shellByBp = seedShellFromDb(
+				editingTheme.customLayout,
+				editingTheme.customLayoutByBreakpoint
+			);
+			const seeded = seedPageLayoutByBreakpoint(
+				[...PAGE_KEYS],
+				rawPl,
+				pageModules,
+				{
+					pageLayoutByBreakpoint: editingTheme.pageLayoutByBreakpoint,
+					pageModulesByBreakpoint: editingTheme.pageModulesByBreakpoint
+				}
+			);
 			localOverrides = {
 				customColors: editingTheme.customColors ? { ...editingTheme.customColors } : {},
 				customFonts: editingTheme.customFonts ? { ...editingTheme.customFonts } : {},
-				customLayout: editingTheme.customLayout ? { ...editingTheme.customLayout } : {},
+				customLayoutByBreakpoint: shellByBp as Record<string, { maxWidth?: string; containerPadding?: string; gridGap?: string }>,
+				customLayout: shellByBreakpointToCustomLayoutField(shellByBp),
 				componentVisibility: editingTheme.componentVisibility ? { ...editingTheme.componentVisibility } : {},
 				headerConfig: editingTheme.headerConfig ? { ...editingTheme.headerConfig } : {},
-				pageModules,
-				pageLayout
+				pageLayoutByBreakpoint: seeded.pageLayoutByBreakpoint,
+				pageModulesByBreakpoint: seeded.pageModulesByBreakpoint,
+				pageLayout: pageLayoutByBreakpointToPageLayoutField(seeded.pageLayoutByBreakpoint),
+				pageModules: pageModulesByBreakpointToPageModulesField(seeded.pageModulesByBreakpoint)
 			};
 		} else {
+			const sitePm = migratePageModules(siteTemplateOverrides.pageModules as Record<string, unknown> | undefined);
+			const basePm = Object.keys(sitePm).length > 0 ? sitePm : (DEFAULT_PAGE_MODULES as Record<string, unknown>);
+			const rawPl =
+				siteTemplateOverrides.pageLayout && Object.keys(siteTemplateOverrides.pageLayout).length > 0
+					? (JSON.parse(JSON.stringify(siteTemplateOverrides.pageLayout)) as Record<string, unknown>)
+					: {};
+			const shellByBp = seedShellFromDb(
+				siteTemplateOverrides.customLayout,
+				siteTemplateOverrides.customLayoutByBreakpoint
+			);
+			const seeded = seedPageLayoutByBreakpoint(
+				[...PAGE_KEYS],
+				rawPl,
+				basePm,
+				{
+					pageLayoutByBreakpoint: siteTemplateOverrides.pageLayoutByBreakpoint,
+					pageModulesByBreakpoint: siteTemplateOverrides.pageModulesByBreakpoint
+				}
+			);
 			localOverrides = {
 				customColors: siteTemplateOverrides.customColors ? { ...siteTemplateOverrides.customColors } : {},
 				customFonts: siteTemplateOverrides.customFonts ? { ...siteTemplateOverrides.customFonts } : {},
-				customLayout: siteTemplateOverrides.customLayout ? { ...siteTemplateOverrides.customLayout } : {},
-				componentVisibility: siteTemplateOverrides.componentVisibility ? { ...siteTemplateOverrides.componentVisibility } : {},
+				customLayoutByBreakpoint: shellByBp as Record<string, { maxWidth?: string; containerPadding?: string; gridGap?: string }>,
+				customLayout: shellByBreakpointToCustomLayoutField(shellByBp),
+				componentVisibility: siteTemplateOverrides.componentVisibility
+					? { ...siteTemplateOverrides.componentVisibility }
+					: {},
 				headerConfig: siteTemplateOverrides.headerConfig ? { ...siteTemplateOverrides.headerConfig } : {},
-				pageModules: DEFAULT_PAGE_MODULES,
-				pageLayout: DEFAULT_PAGE_LAYOUTS
+				pageLayoutByBreakpoint: seeded.pageLayoutByBreakpoint,
+				pageModulesByBreakpoint: seeded.pageModulesByBreakpoint,
+				pageLayout: pageLayoutByBreakpointToPageLayoutField(seeded.pageLayoutByBreakpoint),
+				pageModules: pageModulesByBreakpointToPageModulesField(seeded.pageModulesByBreakpoint)
 			};
 		}
-		logger.debug('[Overrides] Initialized local overrides:', { 
+		logger.debug('[Overrides] Initialized local overrides:', {
 			editingTheme: !!editingTheme,
 			pageModulesKeys: Object.keys(localOverrides.pageModules || {}),
-			homeModulesCount: localOverrides.pageModules?.home?.length || 0
+			homeModulesCount: (() => {
+				const h = localOverrides.pageModules?.home;
+				if (Array.isArray(h)) return h.length;
+				if (h && isPageModulesBreakpointMapForPage(h)) {
+					const a = h.lg ?? h.md ?? h.sm;
+					return Array.isArray(a) ? a.length : 0;
+				}
+				return 0;
+			})()
 		});
 	}
 
@@ -235,11 +352,16 @@
 		['richText', 'cta', 'socialMedia', 'themeSelect'].includes(m.type)
 	);
 
-	function migratePageModules(pm: Record<string, any[]> | undefined): Record<string, any[]> {
+	function migratePageModules(pm: Record<string, unknown> | undefined): Record<string, unknown> {
 		if (!pm) return {};
-		const out: Record<string, any[]> = {};
-		for (const [pt, arr] of Object.entries(pm)) {
-			out[pt] = arr.map((m, i) => {
+		const out: Record<string, unknown> = {};
+		for (const [pt, val] of Object.entries(pm)) {
+			if (isPageModulesBreakpointMapForPage(val)) {
+				out[pt] = JSON.parse(JSON.stringify(val));
+				continue;
+			}
+			if (!Array.isArray(val)) continue;
+			out[pt] = val.map((m, i) => {
 				if (m.rowOrder !== undefined && m.columnIndex !== undefined) return m;
 				return { ...m, rowOrder: i, columnIndex: 0 };
 			});
@@ -247,27 +369,62 @@
 		return out;
 	}
 
-	function getModulesForPageType(pt: string) {
-		const modules = localOverrides.pageModules?.[pt];
-		if (modules && modules.length > 0) {
-			return modules;
+	function syncLegacyFromBreakpoints() {
+		const shell = localOverrides.customLayoutByBreakpoint;
+		const customLayout = shell
+			? shellByBreakpointToCustomLayoutField(shell as Record<TemplateBreakpointId, ShellLayout>)
+			: localOverrides.customLayout;
+		const plByIn = { ...(localOverrides.pageLayoutByBreakpoint || {}) };
+		for (const pk of Object.keys(plByIn)) {
+			const row = plByIn[pk];
+			if (!row || Object.keys(row).length === 0) {
+				delete plByIn[pk];
+				continue;
+			}
+			plByIn[pk] = normalizePageLayoutRowForPersistence(pk, row) as (typeof plByIn)[string];
 		}
-		// Fall back to defaults
+		const pl = pageLayoutByBreakpointToPageLayoutField(plByIn);
+		const pm = pageModulesByBreakpointToPageModulesField(localOverrides.pageModulesByBreakpoint || {});
+		localOverrides = {
+			...localOverrides,
+			customLayout,
+			pageLayout: pl,
+			pageModules: pm,
+			...(Object.keys(plByIn).length > 0 ? { pageLayoutByBreakpoint: plByIn } : {})
+		};
+	}
+
+	function getModulesForPageType(pt: string, bp: TemplateBreakpointId) {
+		const resolved = getPageModulesForBreakpoint(
+			{
+				pageModules: localOverrides.pageModules,
+				pageModulesByBreakpoint: localOverrides.pageModulesByBreakpoint
+			},
+			pt,
+			bp
+		);
+		if (resolved.length > 0) return resolved;
+		const hasAnyPageModulesConfig =
+			localOverrides.pageModules?.[pt] != null ||
+			localOverrides.pageModulesByBreakpoint?.[pt] != null;
+		if (hasAnyPageModulesConfig) return resolved;
 		return DEFAULT_PAGE_MODULES[pt] || [];
 	}
 
-	function getGridForPageType(pt: string): { gridRows: number; gridColumns: number } {
-		const layout = localOverrides.pageLayout?.[pt];
-		if (layout?.gridRows && layout?.gridColumns) {
-			return { gridRows: layout.gridRows, gridColumns: layout.gridColumns };
-		}
-		// Fall back to defaults
-		return DEFAULT_PAGE_LAYOUTS[pt] || { gridRows: 3, gridColumns: 1 };
+	function getGridForPageType(pt: string, bp: TemplateBreakpointId): { gridRows: number; gridColumns: number } {
+		return getPageGridForBreakpoint(
+			{
+				pageLayout: localOverrides.pageLayout,
+				pageLayoutByBreakpoint: localOverrides.pageLayoutByBreakpoint
+			},
+			pt,
+			bp
+		);
 	}
 
 	function updateGridForPageType(pt: string, gridRows?: number, gridColumns?: number) {
-		const pl = localOverrides.pageLayout ?? {};
-		const current = getGridForPageType(pt);
+		const bp = editingBreakpoint;
+		const current = getGridForPageType(pt, bp);
 		const next = {
 			gridRows: gridRows ?? current.gridRows,
 			gridColumns: gridColumns ?? current.gridColumns
@@ -276,31 +433,133 @@
 		if (next.gridRows > 20) next.gridRows = 20;
 		if (next.gridColumns < 1) next.gridColumns = 1;
 		if (next.gridColumns > 20) next.gridColumns = 20;
-		// Remove modules that fall outside the new grid (including span)
-		const arr = localOverrides.pageModules?.[pt] ?? [];
-		const keep = arr.filter((m) => {
+		const arr = getModulesForPageType(pt, bp) ?? [];
+		const keep = arr.filter((m: any) => {
 			const r = m.rowOrder ?? 0;
 			const c = m.columnIndex ?? 0;
 			const rs = m.rowSpan ?? 1;
 			const cs = m.colSpan ?? 1;
 			return r >= 0 && c >= 0 && r + rs <= next.gridRows && c + cs <= next.gridColumns;
 		});
-		localOverrides = {
-			...localOverrides,
-			pageLayout: { ...pl, [pt]: next },
-			pageModules: { ...localOverrides.pageModules, [pt]: keep }
-		};
+		const plBy = { ...(localOverrides.pageLayoutByBreakpoint || {}) };
+		const existingRow = plBy[pt];
+		const fullRow = mergePageLayoutRowForBreakpointEdit(
+			{
+				pageLayout: localOverrides.pageLayout,
+				pageLayoutByBreakpoint: localOverrides.pageLayoutByBreakpoint
+			},
+			pt,
+			bp,
+			next,
+			existingRow
+		);
+		plBy[pt] = fullRow;
+		const pmBy = { ...(localOverrides.pageModulesByBreakpoint || {}) };
+		const rowM = { ...(pmBy[pt] || {}), [bp]: keep };
+		pmBy[pt] = rowM;
+		localOverrides = { ...localOverrides, pageLayoutByBreakpoint: plBy, pageModulesByBreakpoint: pmBy };
+		syncLegacyFromBreakpoints();
 		hasChanges = true;
 	}
 
+	/** Copy current breakpoint’s grid and module placements to xs…xl for the active page (TEMPLATING_REQUIREMENTS 2.2.4). */
+	function applyCurrentBreakpointToAllForEditingPage() {
+		const pt = editingPageType;
+		const bp = editingBreakpoint;
+		let grid = { ...getGridForPageType(pt, bp) };
+		if (grid.gridRows < 1) grid.gridRows = 1;
+		if (grid.gridRows > 20) grid.gridRows = 20;
+		if (grid.gridColumns < 1) grid.gridColumns = 1;
+		if (grid.gridColumns > 20) grid.gridColumns = 20;
+		const modsRaw = (getModulesForPageType(pt, bp) ?? []) as any[];
+		const modsFit = modsRaw.filter((m) => {
+			const r = m.rowOrder ?? 0;
+			const c = m.columnIndex ?? 0;
+			const rs = m.rowSpan ?? 1;
+			const cs = m.colSpan ?? 1;
+			return r >= 0 && c >= 0 && r + rs <= grid.gridRows && c + cs <= grid.gridColumns;
+		});
+		const modsJson = JSON.stringify(modsFit);
+		const fullRow = {} as Record<TemplateBreakpointId, { gridRows: number; gridColumns: number }>;
+		for (const b of TEMPLATE_BREAKPOINTS) {
+			fullRow[b] = { gridRows: grid.gridRows, gridColumns: grid.gridColumns };
+		}
+		const plBy = { ...(localOverrides.pageLayoutByBreakpoint || {}) };
+		plBy[pt] = fullRow;
+		const pmBy = { ...(localOverrides.pageModulesByBreakpoint || {}) };
+		const rowM: Partial<Record<TemplateBreakpointId, any[]>> = {
+			...((pmBy[pt] as Partial<Record<TemplateBreakpointId, any[]>> | undefined) || {})
+		};
+		for (const b of TEMPLATE_BREAKPOINTS) {
+			rowM[b] = JSON.parse(modsJson) as any[];
+		}
+		pmBy[pt] = rowM;
+		localOverrides = { ...localOverrides, pageLayoutByBreakpoint: plBy, pageModulesByBreakpoint: pmBy };
+		syncLegacyFromBreakpoints();
+		hasChanges = true;
+		clearSelection();
+	}
+
+	function stableStringify(value: any): string {
+		if (value === null || value === undefined) return JSON.stringify(value);
+		const t = typeof value;
+		if (t === 'number' || t === 'boolean' || t === 'string') return JSON.stringify(value);
+		if (Array.isArray(value)) return `[${value.map((v) => stableStringify(v)).join(',')}]`;
+		if (t !== 'object') return JSON.stringify(value);
+
+		const keys = Object.keys(value).sort();
+		return `{${keys.map((k) => `${JSON.stringify(k)}:${stableStringify(value[k])}`).join(',')}}`;
+	}
+
+	function modulePlacementSignature(mods: any[]): string {
+		const normalized = (mods ?? [])
+			.map((m) => {
+				const props = m?.props && typeof m.props === 'object' ? m.props : {};
+				return {
+					type: m?.type ?? '',
+					rowOrder: m?.rowOrder ?? 0,
+					columnIndex: m?.columnIndex ?? 0,
+					rowSpan: m?.rowSpan ?? 1,
+					colSpan: m?.colSpan ?? 1,
+					props
+				};
+			})
+			.sort((a, b) => {
+				const orderA = [a.type, a.rowOrder, a.columnIndex, a.rowSpan, a.colSpan];
+				const orderB = [b.type, b.rowOrder, b.columnIndex, b.rowSpan, b.colSpan];
+				for (let i = 0; i < orderA.length; i++) {
+					// strings vs numbers both compare via < >
+					if (orderA[i] !== orderB[i]) return orderA[i] < orderB[i] ? -1 : 1;
+				}
+				return stableStringify(a.props).localeCompare(stableStringify(b.props));
+			});
+
+		return stableStringify(normalized);
+	}
+
+	$: showApplyCurrentBreakpointToAllBreakpoints = (() => {
+		const pt = editingPageType;
+		const curBp = editingBreakpoint;
+		const baseGrid = getGridForPageType(pt, curBp);
+		const baseModsSig = modulePlacementSignature(getModulesForPageType(pt, curBp) ?? []);
+
+		for (const bp of TEMPLATE_BREAKPOINTS) {
+			const g = getGridForPageType(pt, bp);
+			if (g.gridRows !== baseGrid.gridRows || g.gridColumns !== baseGrid.gridColumns) return true;
+			const sig = modulePlacementSignature(getModulesForPageType(pt, bp) ?? []);
+			if (sig !== baseModsSig) return true;
+		}
+		return false;
+	})();
+
 	function getModuleAtCell(pt: string, row: number, col: number) {
-		const arr = getModulesForPageType(pt);
+		const arr = getModulesForPageType(pt, editingBreakpoint);
 		return arr.find((m) => (m.rowOrder ?? 0) === row && (m.columnIndex ?? 0) === col);
 	}
 
 	/** Check if cell (r,c) is covered by a module span but not the origin */
 	function isCellCovered(pt: string, r: number, c: number) {
-		for (const m of getModulesForPageType(pt)) {
+		for (const m of getModulesForPageType(pt, editingBreakpoint)) {
 			if (m.rowOrder === undefined || m.columnIndex === undefined) continue;
 			const rs = m.rowSpan ?? 1;
 			const cs = m.colSpan ?? 1;
@@ -324,7 +583,7 @@
 	}
 
 	function selectAllEmptyCells() {
-		const grid = getGridForPageType(editingPageType);
+		const grid = getGridForPageType(editingPageType, editingBreakpoint);
 		const next = new Set<string>();
 		for (let r = 0; r < grid.gridRows; r++) {
 			for (let c = 0; c < grid.gridColumns; c++) {
@@ -343,15 +602,16 @@
 
 	function saveModuleChanges() {
 		if (!editingModule) return;
-		const idx = getModulesForPageType(editingPageType).findIndex((m) => m._id === editingModule._id);
+		const idx = getModulesForPageType(editingPageType, editingBreakpoint).findIndex((m) => m._id === editingModule._id);
 		if (idx >= 0) {
-			const arr = localOverrides.pageModules?.[editingPageType] ?? [];
+			const arr = [...(getModulesForPageType(editingPageType, editingBreakpoint) ?? [])];
 			const updated = [...arr];
 			updated[idx] = { ...editingModule };
-			localOverrides = {
-				...localOverrides,
-				pageModules: { ...localOverrides.pageModules, [editingPageType]: updated }
-			};
+			const bp = editingBreakpoint;
+			const pmBy = { ...(localOverrides.pageModulesByBreakpoint || {}) };
+			pmBy[editingPageType] = { ...(pmBy[editingPageType] || {}), [bp]: updated };
+			localOverrides = { ...localOverrides, pageModulesByBreakpoint: pmBy };
+			syncLegacyFromBreakpoints();
 			hasChanges = true;
 		}
 		editingModule = null;
@@ -399,17 +659,22 @@
 	}
 
 	function addModuleToPage(pageType: string, moduleType: string, rowOrder?: number, columnIndex?: number, rowSpan?: number, colSpan?: number) {
-		const grid = getGridForPageType(pageType);
-		const pl = localOverrides.pageLayout ?? {};
-		const pm = localOverrides.pageModules ?? {};
-		const arr = pm[pageType] ?? [];
-		
-		// Ensure pageLayout exists for this page type when adding first module
-		const updatedPageLayout = !pl[pageType] 
-			? { ...pl, [pageType]: { gridRows: grid.gridRows, gridColumns: grid.gridColumns } }
-			: pl;
-		
-		// If no position given, find first empty cell or append
+		const bp = editingBreakpoint;
+		const grid = getGridForPageType(pageType, bp);
+		const arr = [...(getModulesForPageType(pageType, bp) ?? [])];
+		const plBy = { ...(localOverrides.pageLayoutByBreakpoint || {}) };
+		const fullRowPl = mergePageLayoutRowForBreakpointEdit(
+			{
+				pageLayout: localOverrides.pageLayout,
+				pageLayoutByBreakpoint: localOverrides.pageLayoutByBreakpoint
+			},
+			pageType,
+			bp,
+			{ gridRows: grid.gridRows, gridColumns: grid.gridColumns },
+			plBy[pageType]
+		);
+		plBy[pageType] = fullRowPl;
+
 		let r = rowOrder;
 		let c = columnIndex ?? 0;
 		if (r === undefined) {
@@ -440,36 +705,44 @@
 		const newMod: Record<string, any> = { _id: id, type: moduleType, props: defaultProps, rowOrder: r, columnIndex: c };
 		if (rowSpan && rowSpan > 1) newMod.rowSpan = rowSpan;
 		if (colSpan && colSpan > 1) newMod.colSpan = colSpan;
-		
-		// Update both pageLayout and pageModules in one operation
-		localOverrides = {
-			...localOverrides,
-			pageLayout: updatedPageLayout,
-			pageModules: { ...pm, [pageType]: [...arr, newMod] }
-		};
+
+		const pmBy = { ...(localOverrides.pageModulesByBreakpoint || {}) };
+		const rowM = { ...(pmBy[pageType] || {}), [bp]: [...arr, newMod] };
+		pmBy[pageType] = rowM;
+		localOverrides = { ...localOverrides, pageLayoutByBreakpoint: plBy, pageModulesByBreakpoint: pmBy };
+		syncLegacyFromBreakpoints();
 		hasChanges = true;
 		logger.debug('[Overrides] Added module:', { pageType, moduleType, rowOrder: r, columnIndex: c, rowSpan, colSpan });
 	}
 
 	function removeModuleFromPage(pageType: string, index: number) {
-		const arr = localOverrides.pageModules?.[pageType];
-		if (!arr) return;
-		localOverrides = { ...localOverrides, pageModules: { ...localOverrides.pageModules, [pageType]: arr.filter((_, i) => i !== index) } };
+		const arr = [...(getModulesForPageType(pageType, editingBreakpoint) ?? [])];
+		if (!arr.length) return;
+		const bp = editingBreakpoint;
+		const next = arr.filter((_, i) => i !== index);
+		const pmBy = { ...(localOverrides.pageModulesByBreakpoint || {}) };
+		pmBy[pageType] = { ...(pmBy[pageType] || {}), [bp]: next };
+		localOverrides = { ...localOverrides, pageModulesByBreakpoint: pmBy };
+		syncLegacyFromBreakpoints();
 		hasChanges = true;
 	}
 
 	function removeModuleFromCell(pageType: string, row: number, col: number) {
-		const arr = localOverrides.pageModules?.[pageType];
-		if (!arr) return;
-		localOverrides = { ...localOverrides, pageModules: { ...localOverrides.pageModules, [pageType]: arr.filter((m) => (m.rowOrder ?? 0) !== row || (m.columnIndex ?? 0) !== col) } };
+		const arr = [...(getModulesForPageType(pageType, editingBreakpoint) ?? [])];
+		const bp = editingBreakpoint;
+		const filtered = arr.filter((m) => (m.rowOrder ?? 0) !== row || (m.columnIndex ?? 0) !== col);
+		const pmBy = { ...(localOverrides.pageModulesByBreakpoint || {}) };
+		pmBy[pageType] = { ...(pmBy[pageType] || {}), [bp]: filtered };
+		localOverrides = { ...localOverrides, pageModulesByBreakpoint: pmBy };
+		syncLegacyFromBreakpoints();
 		hasChanges = true;
 	}
 
 	function replaceModuleInCell(pageType: string, row: number, col: number, newType: string) {
-		const arr = localOverrides.pageModules?.[pageType];
-		if (!arr) return;
+		const arr = [...(getModulesForPageType(pageType, editingBreakpoint) ?? [])];
 		const idx = arr.findIndex((m) => (m.rowOrder ?? 0) === row && (m.columnIndex ?? 0) === col);
 		if (idx < 0) return;
+		const bp = editingBreakpoint;
 		const old = arr[idx];
 		const defaultProps: Record<string, any> = {};
 		if (newType === 'albumsGrid' || newType === 'albumGallery') {
@@ -477,17 +750,24 @@
 		}
 		const updated = [...arr];
 		updated[idx] = { ...old, type: newType, props: defaultProps };
-		localOverrides = { ...localOverrides, pageModules: { ...localOverrides.pageModules, [pageType]: updated } };
+		const pmBy = { ...(localOverrides.pageModulesByBreakpoint || {}) };
+		pmBy[pageType] = { ...(pmBy[pageType] || {}), [bp]: updated };
+		localOverrides = { ...localOverrides, pageModulesByBreakpoint: pmBy };
+		syncLegacyFromBreakpoints();
 		hasChanges = true;
 	}
 
 	function moveModule(pageType: string, index: number, direction: number) {
-		const arr = localOverrides.pageModules?.[pageType];
-		if (!arr || index + direction < 0 || index + direction >= arr.length) return;
+		const arr = [...(getModulesForPageType(pageType, editingBreakpoint) ?? [])];
+		if (index + direction < 0 || index + direction >= arr.length) return;
+		const bp = editingBreakpoint;
 		const next = index + direction;
 		const copy = [...arr];
 		[copy[index], copy[next]] = [copy[next], copy[index]];
-		localOverrides = { ...localOverrides, pageModules: { ...localOverrides.pageModules, [pageType]: copy } };
+		const pmBy = { ...(localOverrides.pageModulesByBreakpoint || {}) };
+		pmBy[pageType] = { ...(pmBy[pageType] || {}), [bp]: copy };
+		localOverrides = { ...localOverrides, pageModulesByBreakpoint: pmBy };
+		syncLegacyFromBreakpoints();
 		hasChanges = true;
 	}
 
@@ -504,26 +784,40 @@
 	}
 
 	function updateModuleProp(pageType: string, index: number, key: string, value: any) {
-		const arr = localOverrides.pageModules?.[pageType];
-		if (!arr || !arr[index]) return;
+		const arr = [...(getModulesForPageType(pageType, editingBreakpoint) ?? [])];
+		if (!arr[index]) return;
 		const mod = arr[index];
 		const newProps = { ...(mod.props ?? {}), [key]: value };
 		const updated = [...arr];
 		updated[index] = { ...mod, props: newProps };
-		localOverrides = { ...localOverrides, pageModules: { ...localOverrides.pageModules, [pageType]: updated } };
+		const bp = editingBreakpoint;
+		const pmBy = { ...(localOverrides.pageModulesByBreakpoint || {}) };
+		pmBy[pageType] = { ...(pmBy[pageType] || {}), [bp]: updated };
+		localOverrides = { ...localOverrides, pageModulesByBreakpoint: pmBy };
+		syncLegacyFromBreakpoints();
 		hasChanges = true;
 	}
 
 	function applyDefaultLayout(pageType: string) {
-		const pm = localOverrides.pageModules ?? {};
-		const pl = localOverrides.pageLayout ?? {};
+		const bp = editingBreakpoint;
 		const defaultModules = DEFAULT_PAGE_MODULES[pageType] || [];
 		const defaultLayout = DEFAULT_PAGE_LAYOUTS[pageType] || { gridRows: 3, gridColumns: 1 };
-		localOverrides = {
-			...localOverrides,
-			pageModules: { ...pm, [pageType]: [...defaultModules] },
-			pageLayout: { ...pl, [pageType]: { ...defaultLayout } }
-		};
+		const plBy = { ...(localOverrides.pageLayoutByBreakpoint || {}) };
+		const fullRowDef = mergePageLayoutRowForBreakpointEdit(
+			{
+				pageLayout: localOverrides.pageLayout,
+				pageLayoutByBreakpoint: localOverrides.pageLayoutByBreakpoint
+			},
+			pageType,
+			bp,
+			{ ...defaultLayout },
+			plBy[pageType]
+		);
+		plBy[pageType] = fullRowDef;
+		const pmBy = { ...(localOverrides.pageModulesByBreakpoint || {}) };
+		pmBy[pageType] = { ...(pmBy[pageType] || {}), [bp]: [...defaultModules] };
+		localOverrides = { ...localOverrides, pageLayoutByBreakpoint: plBy, pageModulesByBreakpoint: pmBy };
+		syncLegacyFromBreakpoints();
 		hasChanges = true;
 	}
 
@@ -689,11 +983,15 @@
 	}
 
 	function updateLayout(layoutType: string, value: string) {
-		if (!localOverrides.customLayout) {
-			localOverrides.customLayout = {};
-		}
-		localOverrides.customLayout[layoutType] = value;
-		localOverrides = { ...localOverrides };
+		const bp = editingBreakpoint;
+		const shell = { ...(localOverrides.customLayoutByBreakpoint || {}) };
+		const prev = shell[bp] || {};
+		shell[bp] = { ...prev, [layoutType]: value };
+		localOverrides = {
+			...localOverrides,
+			customLayoutByBreakpoint: shell,
+			customLayout: shellByBreakpointToCustomLayoutField(shell as Record<TemplateBreakpointId, ShellLayout>)
+		};
 		hasChanges = true;
 	}
 
@@ -718,16 +1016,32 @@
 	// Reactive color values to ensure inputs update when palette is applied
 	let colorValues: Record<string, string> = {};
 	$: colorValues = {
-		primary: localOverrides.customColors?.primary || activeTemplate?.colors?.primary || '#000000',
-		secondary: localOverrides.customColors?.secondary || activeTemplate?.colors?.secondary || '#000000',
-		accent: localOverrides.customColors?.accent || activeTemplate?.colors?.accent || '#000000',
-		background: localOverrides.customColors?.background || activeTemplate?.colors?.background || '#000000',
-		text: localOverrides.customColors?.text || activeTemplate?.colors?.text || '#000000',
-		muted: localOverrides.customColors?.muted || activeTemplate?.colors?.muted || '#000000'
+		primary:
+			localOverrides.customColors?.primary ||
+			activeTemplate?.colors?.primary ||
+			DEFAULT_COLOR_HEX.primary,
+		secondary:
+			localOverrides.customColors?.secondary ||
+			activeTemplate?.colors?.secondary ||
+			DEFAULT_COLOR_HEX.secondary,
+		accent:
+			localOverrides.customColors?.accent || activeTemplate?.colors?.accent || DEFAULT_COLOR_HEX.accent,
+		background:
+			localOverrides.customColors?.background ||
+			activeTemplate?.colors?.background ||
+			DEFAULT_COLOR_HEX.background,
+		text: localOverrides.customColors?.text || activeTemplate?.colors?.text || DEFAULT_COLOR_HEX.text,
+		muted: localOverrides.customColors?.muted || activeTemplate?.colors?.muted || DEFAULT_COLOR_HEX.muted
 	};
 
 	function getEffectiveColor(colorType: string): string {
-		return colorValues[colorType] || localOverrides.customColors?.[colorType] || activeTemplate?.colors?.[colorType as keyof typeof activeTemplate.colors] || '#000000';
+		const fallback = DEFAULT_COLOR_HEX[colorType] ?? DEFAULT_COLOR_HEX.primary;
+		return (
+			colorValues[colorType] ||
+			localOverrides.customColors?.[colorType] ||
+			activeTemplate?.colors?.[colorType as keyof typeof activeTemplate.colors] ||
+			fallback
+		);
 	}
 
 	function getEffectiveFontSetting(role: FontRole): FontSetting {
@@ -766,8 +1080,27 @@
 		return (t as FontSetting).family ?? 'Inter';
 	}
 
-	function getEffectiveLayout(layoutType: string): string {
-		return localOverrides.customLayout?.[layoutType] || activeTemplate?.layout[layoutType] || '';
+	function getEffectiveLayout(layoutType: 'maxWidth' | 'containerPadding' | 'gridGap'): string {
+		const bp = editingBreakpoint;
+		const key = layoutType as keyof ShellLayout;
+		const shell = localOverrides.customLayoutByBreakpoint?.[bp];
+		if (shell && shell[key] != null && String(shell[key]).trim() !== '') {
+			return String(shell[key]);
+		}
+		const raw = localOverrides.customLayout;
+		if (raw && isBreakpointMapCustomLayout(raw)) {
+			const cell = raw[bp];
+			if (cell?.[key] != null && String(cell[key]).trim() !== '') return String(cell[key]);
+		}
+		if (raw && isLegacyCustomLayout(raw)) {
+			const v = raw[layoutType];
+			if (v != null && String(v).trim() !== '') return String(v);
+		}
+		const pack = activeTemplate?.layout[layoutType];
+		if (pack != null && String(pack).trim() !== '') return String(pack);
+		const hint = SHELL_HINT_BY_BREAKPOINT[bp]?.[key];
+		if (hint != null && String(hint).trim() !== '') return String(hint);
+		return DEFAULT_SHELL[key] ?? '';
 	}
 
 	function getEffectiveVisibility(component: string): boolean {
@@ -818,19 +1151,39 @@
 		}
 	} : null;
 
+	function pageModulesFieldHasContent(v: unknown): boolean {
+		if (Array.isArray(v)) return v.length > 0;
+		if (isPageModulesBreakpointMapForPage(v)) {
+			return TEMPLATE_BREAKPOINTS.some(
+				(bp) => Array.isArray(v[bp]) && (v[bp] as unknown[]).length > 0
+			);
+		}
+		return false;
+	}
+
 	function hasOverrides(): boolean {
-		const hasPageModules = localOverrides.pageModules && Object.keys(localOverrides.pageModules).some(
-			(k) => (localOverrides.pageModules![k]?.length ?? 0) > 0
-		);
+		const hasPageModules =
+			localOverrides.pageModules &&
+			Object.keys(localOverrides.pageModules).some((k) =>
+				pageModulesFieldHasContent(localOverrides.pageModules![k])
+			);
 		const hasPageLayout = localOverrides.pageLayout && Object.keys(localOverrides.pageLayout).length > 0;
+		const hasBpShell =
+			localOverrides.customLayoutByBreakpoint &&
+			Object.keys(localOverrides.customLayoutByBreakpoint).length > 0;
+		const hasBpPages =
+			localOverrides.pageModulesByBreakpoint &&
+			Object.keys(localOverrides.pageModulesByBreakpoint).length > 0;
 		return !!(
 			(localOverrides.customColors && Object.keys(localOverrides.customColors).length > 0) ||
 			(localOverrides.customFonts && Object.keys(localOverrides.customFonts).length > 0) ||
 			(localOverrides.customLayout && Object.keys(localOverrides.customLayout).length > 0) ||
+			hasBpShell ||
 			(localOverrides.componentVisibility && Object.keys(localOverrides.componentVisibility).length > 0) ||
 			(localOverrides.headerConfig && Object.keys(localOverrides.headerConfig).length > 0) ||
 			hasPageModules ||
-			hasPageLayout
+			hasPageLayout ||
+			hasBpPages
 		);
 	}
 
@@ -840,14 +1193,18 @@
 		error = '';
 
 		try {
+			syncLegacyFromBreakpoints();
 			const payload = {
 				customColors: localOverrides.customColors || {},
 				customFonts: localOverrides.customFonts || {},
 				customLayout: localOverrides.customLayout || {},
+				customLayoutByBreakpoint: localOverrides.customLayoutByBreakpoint || {},
 				componentVisibility: localOverrides.componentVisibility || {},
 				headerConfig: localOverrides.headerConfig || {},
 				pageModules: localOverrides.pageModules || {},
-				pageLayout: localOverrides.pageLayout || {}
+				pageLayout: localOverrides.pageLayout || {},
+				pageLayoutByBreakpoint: localOverrides.pageLayoutByBreakpoint || {},
+				pageModulesByBreakpoint: localOverrides.pageModulesByBreakpoint || {}
 			};
 
 			if (themeId && editingTheme) {
@@ -860,14 +1217,23 @@
 				});
 				if (!response.ok) await handleApiErrorResponse(response);
 				const result = await response.json();
-				editingTheme = result.data || result;
-				
-				// If this theme is currently active, also update siteConfig
-				const isActiveTheme = editingTheme.baseTemplate === ($siteConfigData?.template?.frontendTemplate || $siteConfigData?.template?.activeTemplate);
-				if (isActiveTheme) {
+				const savedTheme = (result.data || result) as NonNullable<typeof editingTheme>;
+				editingTheme = savedTheme;
+				initializeLocalOverrides();
+
+				// Sync live site only when this row is the applied theme (same base pack is not enough).
+				const activeId = $siteConfigData?.template?.activeThemeId;
+				const isActiveTheme =
+					!!savedTheme._id && !!activeId && String(savedTheme._id) === String(activeId);
+				const isActiveThemeLegacy =
+					!activeId &&
+					savedTheme.baseTemplate ===
+						($siteConfigData?.template?.frontendTemplate || $siteConfigData?.template?.activeTemplate);
+
+				if (isActiveTheme || isActiveThemeLegacy) {
 					const templateData: any = {
-						activeTemplate: editingTheme.baseTemplate,
-						frontendTemplate: editingTheme.baseTemplate,
+						activeTemplate: savedTheme.baseTemplate,
+						frontendTemplate: savedTheme.baseTemplate,
 						...payload
 					};
 					const configResponse = await fetch('/api/admin/site-config', {
@@ -1139,7 +1505,7 @@
 
 				<!-- Tab Content -->
 				{#if activeTab === 'colors'}
-					<div class="space-y-6">
+					<div class="space-y-6 [color-scheme:light]">
 						<h2 class="text-xl font-semibold text-gray-900">Color Customization</h2>
 						<p class="text-sm text-gray-600 mb-4">
 							Customize the color scheme for your site. Each color is used by specific UI elements as described below.
@@ -1178,30 +1544,35 @@
 								}
 							] as colorInfo}
 								{@const currentColor = colorValues[colorInfo.type] || getEffectiveColor(colorInfo.type)}
-								<div class="border border-gray-200 rounded-lg p-4 bg-white">
+								<div class="border border-gray-200 rounded-lg p-4 bg-white text-gray-900">
 									<label class="block text-sm font-medium text-gray-900 mb-2">
 										{colorInfo.label}
 									</label>
 									<p class="text-xs text-gray-600 mb-3">
 										{colorInfo.description}
 									</p>
-									<div class="flex gap-2">
-										<input
-											type="color"
-											value={colorValues[colorInfo.type] || getEffectiveColor(colorInfo.type)}
-											on:input={(e) => updateColor(colorInfo.type, (e.target as HTMLInputElement).value)}
-											class="w-16 h-10 border border-gray-300 rounded cursor-pointer"
-										/>
+									<div class="flex gap-2 items-stretch">
+										<div class="shrink-0 flex items-center rounded-md border border-gray-300 bg-white p-1 shadow-sm">
+											<input
+												type="color"
+												value={currentColor}
+												on:input={(e) => updateColor(colorInfo.type, (e.target as HTMLInputElement).value)}
+												class="h-9 w-14 cursor-pointer rounded border-0 bg-transparent p-0"
+												title="Pick color"
+											/>
+										</div>
 										<input
 											type="text"
-											value={colorValues[colorInfo.type] || getEffectiveColor(colorInfo.type)}
+											value={currentColor}
 											on:input={(e) => updateColor(colorInfo.type, (e.target as HTMLInputElement).value)}
-											placeholder="#000000"
-											class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+											placeholder={DEFAULT_COLOR_HEX[colorInfo.type] ?? '#3B82F6'}
+											autocomplete="off"
+											spellcheck="false"
+											class={ADMIN_TEXT_INPUT_FLEX_CLASS}
 										/>
 									</div>
 									<p class="mt-2 text-xs text-gray-500">
-										Default: {activeTemplate.colors[colorInfo.type]}
+										Template default: {activeTemplate.colors[colorInfo.type] ?? DEFAULT_COLOR_HEX[colorInfo.type]}
 									</p>
 								</div>
 							{/each}
@@ -1461,81 +1832,217 @@
 						</div>
 					</div>
 				{:else if activeTab === 'layout'}
-					<div class="space-y-6">
-						<h2 class="text-xl font-semibold text-gray-900">Layout Customization</h2>
-						<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-							<div>
-								<label class="block text-sm font-medium text-gray-700 mb-2">
-									Max Width
-								</label>
-								<input
-									type="text"
-									value={getEffectiveLayout('maxWidth')}
-									on:input={(e) => updateLayout('maxWidth', e.target.value)}
-									placeholder="1200px"
-									class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-								/>
-								<p class="mt-1 text-xs text-gray-500">Default: {activeTemplate.layout.maxWidth}</p>
+					<div class="space-y-4">
+						<div>
+							<h2 class="text-xl font-semibold text-gray-900">Layout Customization</h2>
+							<p class="text-sm text-gray-600 mt-1">
+								Choose a breakpoint tab. Each tab has its own max width, padding, and grid gap (stored per breakpoint).
+							</p>
+						</div>
+
+						<div
+							class="rounded-lg border border-gray-200 bg-white overflow-hidden [color-scheme:light]"
+						>
+							<div
+								class="border-b border-gray-200 bg-gray-50 px-2 pt-2"
+								role="tablist"
+								aria-label="Breakpoint"
+							>
+								<nav class="-mb-px flex flex-wrap gap-0.5 sm:gap-1">
+									{#each TEMPLATE_BREAKPOINTS as bp}
+										<button
+											type="button"
+											role="tab"
+											id="layout-tab-{bp}"
+											aria-selected={editingBreakpoint === bp}
+											aria-controls="layout-panel-shell"
+											tabindex={editingBreakpoint === bp ? 0 : -1}
+											on:click={() => (editingBreakpoint = bp)}
+											class="min-w-0 flex-1 sm:flex-none px-3 py-2.5 text-sm font-medium border-b-2 transition-colors rounded-t-md
+												{editingBreakpoint === bp
+													? 'border-blue-600 text-blue-700 bg-white border-b-blue-600 z-10'
+													: 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'}"
+										>
+											<span class="uppercase tracking-wide">{bp}</span>
+											<span
+												class="block text-[10px] sm:inline sm:ml-1 sm:text-xs font-normal text-gray-400"
+												>≥{BREAKPOINT_MIN_WIDTH_PX[bp]}px</span
+											>
+										</button>
+									{/each}
+								</nav>
 							</div>
-							<div>
-								<label class="block text-sm font-medium text-gray-700 mb-2">
-									Container Padding
-								</label>
-								<input
-									type="text"
-									value={getEffectiveLayout('containerPadding')}
-									on:input={(e) => updateLayout('containerPadding', e.target.value)}
-									placeholder="1rem"
-									class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-								/>
-								<p class="mt-1 text-xs text-gray-500">
-									Default: {activeTemplate.layout.containerPadding}
-								</p>
-							</div>
-							<div>
-								<label class="block text-sm font-medium text-gray-700 mb-2">
-									Grid Gap
-								</label>
-								<input
-									type="text"
-									value={getEffectiveLayout('gridGap')}
-									on:input={(e) => updateLayout('gridGap', e.target.value)}
-									placeholder="1.5rem"
-									class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-								/>
-								<p class="mt-1 text-xs text-gray-500">Default: {activeTemplate.layout.gridGap}</p>
+
+							<div
+								id="layout-panel-shell"
+								class="p-4 sm:p-6"
+								role="tabpanel"
+								aria-labelledby="layout-tab-{editingBreakpoint}"
+							>
+								{#key editingBreakpoint}
+									<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+										<div>
+											<label class="block text-sm font-medium text-gray-700 mb-2" for="layout-mw-{editingBreakpoint}">
+												Max width
+											</label>
+											<input
+												id="layout-mw-{editingBreakpoint}"
+												type="text"
+												value={getEffectiveLayout('maxWidth')}
+												on:input={(e) => updateLayout('maxWidth', (e.target as HTMLInputElement).value)}
+												placeholder={SHELL_HINT_BY_BREAKPOINT[editingBreakpoint].maxWidth}
+												class={ADMIN_TEXT_INPUT_CLASS}
+											/>
+											<p class="mt-1 text-xs text-gray-500">
+												Pack default: {activeTemplate.layout.maxWidth} · Suggested at {editingBreakpoint}: {SHELL_HINT_BY_BREAKPOINT[editingBreakpoint].maxWidth}
+											</p>
+										</div>
+										<div>
+											<label class="block text-sm font-medium text-gray-700 mb-2" for="layout-pad-{editingBreakpoint}">
+												Container padding
+											</label>
+											<input
+												id="layout-pad-{editingBreakpoint}"
+												type="text"
+												value={getEffectiveLayout('containerPadding')}
+												on:input={(e) => updateLayout('containerPadding', (e.target as HTMLInputElement).value)}
+												placeholder={SHELL_HINT_BY_BREAKPOINT[editingBreakpoint].containerPadding}
+												class={ADMIN_TEXT_INPUT_CLASS}
+											/>
+											<p class="mt-1 text-xs text-gray-500">
+												Pack default: {activeTemplate.layout.containerPadding} · Suggested: {SHELL_HINT_BY_BREAKPOINT[editingBreakpoint].containerPadding}
+											</p>
+										</div>
+										<div>
+											<label class="block text-sm font-medium text-gray-700 mb-2" for="layout-gap-{editingBreakpoint}">
+												Grid gap
+											</label>
+											<input
+												id="layout-gap-{editingBreakpoint}"
+												type="text"
+												value={getEffectiveLayout('gridGap')}
+												on:input={(e) => updateLayout('gridGap', (e.target as HTMLInputElement).value)}
+												placeholder={SHELL_HINT_BY_BREAKPOINT[editingBreakpoint].gridGap}
+												class={ADMIN_TEXT_INPUT_CLASS}
+											/>
+											<p class="mt-1 text-xs text-gray-500">
+												Pack default: {activeTemplate.layout.gridGap} · Suggested: {SHELL_HINT_BY_BREAKPOINT[editingBreakpoint].gridGap}
+											</p>
+										</div>
+									</div>
+								{/key}
 							</div>
 						</div>
 					</div>
 				{:else if activeTab === 'pages'}
 					<div class="space-y-6">
 						<h2 class="text-xl font-semibold text-gray-900">Page structure</h2>
-						<p class="text-sm text-gray-600">
-							Select cells in the grid and assign modules to them. Grid: {pageGrid.gridRows} row{pageGrid.gridRows !== 1 ? 's' : ''} × {pageGrid.gridColumns} column{pageGrid.gridColumns !== 1 ? 's' : ''}
+						<p class="text-sm text-gray-600 max-w-3xl">
+							Use the <strong>page</strong> tabs to pick a route region, then the <strong>breakpoint</strong> tabs to
+							edit that page at each viewport width. Set <strong>grid</strong> rows/columns and <strong>place modules</strong>
+							per breakpoint — the live site uses the layout that matches the visitor’s screen.
 						</p>
-						<div class="flex flex-wrap gap-2 mb-4">
-							{#each ['home', 'gallery', 'album', 'search', 'header', 'footer'] as pt}
-								<button
-									type="button"
-									on:click={() => { editingPageType = pt as typeof editingPageType; selectedCells = new Set(); assignedModuleType = ''; editingModule = null; }}
-									class="px-3 py-2 text-sm rounded font-medium {editingPageType === pt
-										? 'bg-blue-600 text-white'
-										: 'bg-gray-100 text-gray-700 hover:bg-gray-200'}"
-								>
-									{pt.charAt(0).toUpperCase() + pt.slice(1)}
-								</button>
-							{/each}
-						</div>
 
-						{#key editingPageType}
+						<div
+							class="rounded-lg border border-gray-200 bg-white overflow-hidden [color-scheme:light]"
+						>
+							<!-- Outer tabs: pages -->
+							<div
+								class="border-b border-gray-200 bg-slate-50 px-2 pt-2"
+								role="tablist"
+								aria-label="Page"
+							>
+								<nav class="-mb-px flex flex-wrap gap-0.5 sm:gap-1">
+									{#each PAGE_KEYS as pt}
+										<button
+											type="button"
+											role="tab"
+											id="pages-tab-{pt}"
+											aria-selected={editingPageType === pt}
+											aria-controls="pages-editor-panel"
+											tabindex={editingPageType === pt ? 0 : -1}
+											on:click={() => {
+												editingPageType = pt;
+												selectedCells = new Set();
+												assignedModuleType = '';
+												editingModule = null;
+											}}
+											class="min-w-0 flex-1 sm:flex-none px-3 py-2.5 text-sm font-medium border-b-2 transition-colors rounded-t-md capitalize
+												{editingPageType === pt
+													? 'border-violet-600 text-violet-800 bg-white border-b-violet-600 z-10'
+													: 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'}"
+										>
+											{pt}
+										</button>
+									{/each}
+								</nav>
+							</div>
+							<!-- Inner tabs: breakpoints -->
+							<div
+								class="border-b border-gray-200 bg-gray-50/80 px-2 pt-2"
+								role="tablist"
+								aria-label="Breakpoint for {editingPageType}"
+							>
+								<nav class="-mb-px flex flex-wrap gap-0.5 sm:gap-1">
+									{#each TEMPLATE_BREAKPOINTS as bp}
+										<button
+											type="button"
+											role="tab"
+											id="pages-bp-tab-{editingPageType}-{bp}"
+											aria-selected={editingBreakpoint === bp}
+											aria-controls="pages-editor-panel"
+											tabindex={editingBreakpoint === bp ? 0 : -1}
+											on:click={() => (editingBreakpoint = bp)}
+											class="min-w-0 flex-1 sm:flex-none px-3 py-2 text-sm font-medium border-b-2 transition-colors rounded-t-md
+												{editingBreakpoint === bp
+													? 'border-blue-600 text-blue-700 bg-white border-b-blue-600 z-10'
+													: 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'}"
+										>
+											<span class="uppercase tracking-wide">{bp}</span>
+											<span
+												class="block text-[10px] sm:inline sm:ml-1 sm:text-xs font-normal text-gray-400"
+												>≥{BREAKPOINT_MIN_WIDTH_PX[bp]}px</span
+											>
+										</button>
+									{/each}
+								</nav>
+							</div>
+
+							<div
+								id="pages-editor-panel"
+								role="tabpanel"
+								aria-labelledby="pages-tab-{editingPageType}"
+								class="p-4 sm:p-5 space-y-6"
+							>
+								<p class="text-xs text-gray-500">
+									<span class="font-medium text-gray-700 capitalize">{editingPageType}</span>
+									·
+									<span class="uppercase">{editingBreakpoint}</span>
+									<span class="text-gray-500">
+										(≥{BREAKPOINT_MIN_WIDTH_PX[editingBreakpoint]}px) — grid {pageGrid.gridRows} × {pageGrid.gridColumns}
+									</span>
+								</p>
+
+						{#key `${editingPageType}-${editingBreakpoint}`}
 						<!-- Grid configuration (like template builder) -->
 						<div class="bg-gray-50 p-4 rounded-lg">
 							<h3 class="text-sm font-semibold text-gray-900 mb-3">Grid configuration</h3>
+							{#if !showApplyCurrentBreakpointToAllBreakpoints}
+								<p class="text-xs text-gray-500 mt-2">
+									{$t('admin.allBreakpointsAlreadyMatchForPage')}
+								</p>
+								<p class="text-xs text-gray-500 mt-1">
+									{$t('admin.switchBreakpointToMakeDifferent')}
+								</p>
+							{/if}
 							<div class="grid grid-cols-2 gap-4 max-w-xs">
 								<div>
-									<label for="grid-rows" class="block text-sm font-medium text-gray-700 mb-1">Rows</label>
+									<label
+										for="grid-rows-{editingPageType}-{editingBreakpoint}"
+										class="block text-sm font-medium text-gray-700 mb-1"
+									>Rows</label>
 									<input
-										id="grid-rows"
+										id="grid-rows-{editingPageType}-{editingBreakpoint}"
 										type="number"
 										min="1"
 										max="20"
@@ -1545,9 +2052,12 @@
 									/>
 								</div>
 								<div>
-									<label for="grid-cols" class="block text-sm font-medium text-gray-700 mb-1">Columns</label>
+									<label
+										for="grid-cols-{editingPageType}-{editingBreakpoint}"
+										class="block text-sm font-medium text-gray-700 mb-1"
+									>Columns</label>
 									<input
-										id="grid-cols"
+										id="grid-cols-{editingPageType}-{editingBreakpoint}"
 										type="number"
 										min="1"
 										max="20"
@@ -1557,7 +2067,17 @@
 									/>
 								</div>
 							</div>
-							{#if editingPageType === 'home' && getModulesForPageType(editingPageType).length === 0}
+							{#if showApplyCurrentBreakpointToAllBreakpoints}
+								<button
+									type="button"
+									title={$t('admin.applyCurrentBreakpointToAllBreakpointsHelp')}
+									on:click={() => applyCurrentBreakpointToAllForEditingPage()}
+									class="mt-3 text-sm px-3 py-1.5 border border-gray-300 text-gray-800 rounded-md hover:bg-gray-100"
+								>
+									{$t('admin.applyCurrentBreakpointToAllBreakpoints')}
+								</button>
+							{/if}
+							{#if editingPageType === 'home' && getModulesForPageType(editingPageType, editingBreakpoint).length === 0}
 								<button
 									type="button"
 									on:click={() => applyDefaultLayout(editingPageType)}
@@ -1568,7 +2088,7 @@
 							{/if}
 						</div>
 
-						{#key pageGrid.gridRows + '-' + pageGrid.gridColumns + '-' + getModulesForPageType(editingPageType).length}
+						{#key pageGrid.gridRows + '-' + pageGrid.gridColumns + '-' + editingBreakpoint + '-' + getModulesForPageType(editingPageType, editingBreakpoint).length}
 						<!-- Layout grid (like page builder: select cells, assign module) -->
 						<div>
 							<h3 class="text-sm font-semibold text-gray-900 mb-3">Layout grid</h3>
@@ -1576,7 +2096,7 @@
 								class="gap-2 border-2 border-gray-300 p-2 bg-white select-none rounded-lg"
 								style="display: grid; grid-template-columns: repeat({pageGrid.gridColumns}, 1fr); grid-template-rows: repeat({pageGrid.gridRows}, minmax(80px, auto));"
 							>
-								{#each getModulesForPageType(editingPageType) as mod (mod._id)}
+								{#each getModulesForPageType(editingPageType, editingBreakpoint) as mod (mod._id)}
 									{@const r = mod.rowOrder ?? 0}
 									{@const c = mod.columnIndex ?? 0}
 									{@const rs = mod.rowSpan ?? 1}
@@ -1863,6 +2383,8 @@
 						</div>
 						{/key}
 						{/key}
+							</div>
+						</div>
 					</div>
 				{/if}
 					</div>
@@ -1889,8 +2411,8 @@
 								<ThemeBuilderPreview 
 									tokens={previewTokens} 
 									pageType={previewPageType}
-									pageModules={getModulesForPageType(previewPageType)}
-									pageLayout={getGridForPageType(previewPageType)}
+									pageModules={getModulesForPageType(previewPageType, editingBreakpoint)}
+									pageLayout={getGridForPageType(previewPageType, editingBreakpoint)}
 								/>
 							{:else}
 								<div class="h-64 rounded-lg border border-gray-200 bg-gray-50 flex items-center justify-center text-gray-500">

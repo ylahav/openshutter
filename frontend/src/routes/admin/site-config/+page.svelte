@@ -2150,6 +2150,7 @@ on:click={() => {
 									{$t('admin.siteConfigTemplateSectionIntro')}
 								</p>
 							</div>
+
 							<dl class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
 								<div class="p-4 bg-gray-50 rounded-lg border border-gray-100">
 									<dt class="font-medium text-gray-700">

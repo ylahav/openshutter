@@ -27,7 +27,7 @@ export class CreateThemeDto {
 
   @IsOptional()
   @IsObject()
-  customLayout?: Record<string, string>;
+  customLayout?: Record<string, unknown>;
 
   @IsOptional()
   @IsObject()

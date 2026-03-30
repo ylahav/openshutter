@@ -5,6 +5,16 @@ import type { TemplateConfig, FontSetting } from '../types/template';
 const font = (family: string, size?: string, weight?: string): FontSetting =>
   size || weight ? { family, size, weight } : { family };
 
+/** Aligns with frontend `DEFAULT_PAGE_LAYOUTS` — default rows/columns per page key when a pack does not override. */
+const DEFAULT_PACK_PAGE_LAYOUT: Record<string, { gridRows: number; gridColumns: number }> = {
+  home: { gridRows: 2, gridColumns: 1 },
+  gallery: { gridRows: 1, gridColumns: 1 },
+  album: { gridRows: 1, gridColumns: 1 },
+  search: { gridRows: 1, gridColumns: 1 },
+  header: { gridRows: 1, gridColumns: 5 },
+  footer: { gridRows: 2, gridColumns: 1 },
+};
+
 // Import static templates directly
 const staticTemplates: Record<string, TemplateConfig> = {
   'default': {
@@ -26,6 +36,7 @@ const staticTemplates: Record<string, TemplateConfig> = {
       formLabels: font('Inter'),
     },
     layout: { maxWidth: '1200px', containerPadding: '1rem', gridGap: '1.5rem' },
+    pageLayout: { ...DEFAULT_PACK_PAGE_LAYOUT },
     components: {
       hero: 'components/Hero.tsx',
       albumCard: 'components/AlbumCard.tsx',
@@ -57,6 +68,7 @@ const staticTemplates: Record<string, TemplateConfig> = {
       formLabels: font('Inter'),
     },
     layout: { maxWidth: '1280px', containerPadding: '1.5rem', gridGap: '1.75rem' },
+    pageLayout: { ...DEFAULT_PACK_PAGE_LAYOUT },
     components: {
       hero: 'components/Hero.tsx',
       albumCard: 'components/AlbumCard.tsx',
@@ -88,6 +100,7 @@ const staticTemplates: Record<string, TemplateConfig> = {
       formLabels: font('Inter'),
     },
     layout: { maxWidth: '1100px', containerPadding: '2rem', gridGap: '2rem' },
+    pageLayout: { ...DEFAULT_PACK_PAGE_LAYOUT },
     components: {
       hero: 'components/Hero.tsx',
       albumCard: 'components/AlbumCard.tsx',
@@ -119,6 +132,7 @@ const staticTemplates: Record<string, TemplateConfig> = {
       formLabels: font('Inter'),
     },
     layout: { maxWidth: '980px', containerPadding: '0.75rem', gridGap: '0.75rem' },
+    pageLayout: { ...DEFAULT_PACK_PAGE_LAYOUT },
     components: {
       hero: 'components/Hero.tsx',
       albumCard: 'components/AlbumCard.tsx',

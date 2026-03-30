@@ -6,6 +6,9 @@
 	import { browser } from '$app/environment';
 	import { buildGoogleFontsUrl } from '$lib/constants/google-fonts';
 	import { FONT_ROLES, getFontFamily, normalizeFontSetting } from '$lib/types/fonts';
+	import { get } from 'svelte/store';
+	import { resolveShellLayout } from '$lib/template/breakpoints';
+	import { viewportWidth } from '$lib/stores/viewport';
 
 	let styleElement: HTMLStyleElement | null = null;
 	let googleFontsLink: HTMLLinkElement | null = null;
@@ -32,7 +35,8 @@
 		const config = $siteConfigData;
 		const customColors = config?.template?.customColors;
 		const customFonts = config?.template?.customFonts;
-		const customLayout = config?.template?.customLayout;
+		const w = browser ? get(viewportWidth) : 1280;
+		const shell = resolveShellLayout(config?.template, w);
 
 		// Inject Google Fonts stylesheet: collect family from each role (string or FontSetting)
 		const fontFamilies = FONT_ROLES.map((role) => getFontFamily(customFonts?.[role])).filter(
@@ -92,11 +96,9 @@
 			}
 		}
 
-		if (customLayout) {
-			if (customLayout.maxWidth) cssVars += `  --os-max-width: ${customLayout.maxWidth};\n`;
-			if (customLayout.containerPadding) cssVars += `  --os-padding: ${customLayout.containerPadding};\n`;
-			if (customLayout.gridGap) cssVars += `  --os-gap: ${customLayout.gridGap};\n`;
-		}
+		if (shell.maxWidth) cssVars += `  --os-max-width: ${shell.maxWidth};\n`;
+		if (shell.containerPadding) cssVars += `  --os-padding: ${shell.containerPadding};\n`;
+		if (shell.gridGap) cssVars += `  --os-gap: ${shell.gridGap};\n`;
 
 		cssVars += '}\n';
 
@@ -166,7 +168,7 @@
 		styleElement.textContent = cssVars;
 	}
 
-	$: if (browser && $siteConfigData) {
+	$: if (browser && $siteConfigData && $viewportWidth >= 0) {
 		applyCustomColors();
 	}
 

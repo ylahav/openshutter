@@ -32,11 +32,15 @@ export interface SiteConfig {
       heading?: string
       body?: string
     }
-    customLayout?: {
-      maxWidth?: string
-      containerPadding?: string
-      gridGap?: string
-    }
+    customLayout?:
+      | {
+          maxWidth?: string
+          containerPadding?: string
+          gridGap?: string
+        }
+      | Record<string, { maxWidth?: string; containerPadding?: string; gridGap?: string }>
+    pageModules?: Record<string, unknown[] | Record<string, unknown[]>>
+    pageLayout?: Record<string, { gridRows?: number; gridColumns?: number } | Record<string, { gridRows?: number; gridColumns?: number }>>
     componentVisibility?: {
       hero?: boolean
       languageSelector?: boolean

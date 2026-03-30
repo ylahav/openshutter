@@ -1,5 +1,19 @@
 # Creating a New Template
 
+**DEPRECATED:** This legacy doc no longer reflects the current OpenShutter template/packs model. Use `TEMPLATING_REQUIREMENTS.md`, `TEMPLATING_TASKS.md`, `CREATE_TEMPLATE_PACK.md`, and `TEMPLATE_CONTROL.md`.
+
+## Legacy / Outdated
+
+This guide describes an older “template” system shape (including TSX/dynamic loader style guidance) that is **not** the current OpenShutter direction.
+
+Use these docs instead:
+- [`docs/TEMPLATING_REQUIREMENTS.md`](./TEMPLATING_REQUIREMENTS.md) — canonical requirements + data model
+- [`docs/TEMPLATING_TASKS.md`](./TEMPLATING_TASKS.md) — phased implementation checklist
+- [`docs/CREATE_TEMPLATE_PACK.md`](./CREATE_TEMPLATE_PACK.md) — how to add/update built-in packs (Svelte registry)
+- [`docs/TEMPLATE_CONTROL.md`](./TEMPLATE_CONTROL.md) — operator guide for what can be changed in Admin today
+
+---
+
 This guide explains how to create and register a new gallery template in OpenShutter.
 
 ## Overview

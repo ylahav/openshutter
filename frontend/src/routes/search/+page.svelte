@@ -1,22 +1,41 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { t } from '$stores/i18n';
-	import { productName } from '$stores/siteConfig';
+	import { productName, siteConfigData } from '$stores/siteConfig';
+	import { viewportWidth } from '$lib/stores/viewport';
+	import { getEffectivePageGrid, getEffectivePageModules } from '$lib/template/breakpoints';
 	import type { PageData } from './$types';
 	import PageRenderer from '$lib/page-builder/PageRenderer.svelte';
+	import type { PageModuleData } from '$lib/types/page-builder';
 	import AdvancedFilterSearch from '$lib/components/search/AdvancedFilterSearch.svelte';
 
 	export let data: PageData;
 
 	let initialQuery = $page.url.searchParams.get('q') || '';
-	$: hasPageModules = data.pageModules && Array.isArray(data.pageModules) && data.pageModules.length > 0;
-	$: pageLayout = data.pageLayout;
+
+	$: searchTemplate =
+		$siteConfigData?.template ??
+		(data.pageModules?.length || data.pageLayout
+			? {
+					pageModules: data.pageModules?.length ? { search: data.pageModules } : undefined,
+					pageLayout: data.pageLayout ? { search: data.pageLayout } : undefined
+				}
+			: undefined);
+
+	$: searchModules = (searchTemplate
+		? getEffectivePageModules(searchTemplate, 'search', $viewportWidth)
+		: []) as PageModuleData[];
+	$: searchLayout = searchTemplate
+		? getEffectivePageGrid(searchTemplate, 'search', $viewportWidth)
+		: { gridRows: 1, gridColumns: 1 };
+
+	$: hasPageModules = Array.isArray(searchModules) && searchModules.length > 0;
 	$: pageForRenderer = hasPageModules
 		? ({
 				_id: 'search',
 				title: {} as any,
 				subtitle: {} as any,
-				layout: pageLayout ? { gridRows: pageLayout.gridRows, gridColumns: pageLayout.gridColumns } : undefined
+				layout: { gridRows: searchLayout.gridRows, gridColumns: searchLayout.gridColumns }
 			} as any)
 		: null;
 </script>
@@ -26,7 +45,7 @@
 </svelte:head>
 
 {#if hasPageModules}
-	<PageRenderer page={pageForRenderer} modules={data.pageModules || []} />
+	<PageRenderer page={pageForRenderer as any} modules={searchModules} />
 {:else}
 	<AdvancedFilterSearch {initialQuery} />
 {/if}

@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 import { logger } from '$lib/utils/logger';
+	import { getEffectivePageGrid } from '$lib/template/breakpoints';
 import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 import { t } from '$stores/i18n';
 	import type { PageData } from './$types';
@@ -40,7 +41,11 @@ import { t } from '$stores/i18n';
 			const result = await response.json();
 			const raw = result.data ?? result;
 			const t = raw.template && typeof raw.template === 'object' ? raw.template : {};
-			pageLayout = t.pageLayout && typeof t.pageLayout === 'object' ? { home: { gridRows: t.pageLayout.home?.gridRows ?? 2, gridColumns: t.pageLayout.home?.gridColumns ?? 1 }, ...t.pageLayout } : { home: { gridRows: 2, gridColumns: 1 } };
+			const homeGrid = getEffectivePageGrid(t, 'home', 1024);
+			pageLayout =
+				t.pageLayout && typeof t.pageLayout === 'object'
+					? { ...t.pageLayout, home: homeGrid }
+					: { home: homeGrid };
 			const hc = t.headerConfig && typeof t.headerConfig === 'object' ? t.headerConfig : {};
 			headerConfig = { showLogo: true, showSiteTitle: true, showMenu: true, ...hc };
 			menuItems = Array.isArray(hc.menu) ? hc.menu.map((i: MenuItem) => ({ ...i })) : [];

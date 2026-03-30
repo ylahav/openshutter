@@ -1,6 +1,10 @@
 import type { PageLoad } from './$types';
 import type { TemplateAlbum } from '$types';
 import { logger } from '$lib/utils/logger';
+import { getEffectivePageGrid, getEffectivePageModules } from '$lib/template/breakpoints';
+
+/** SSR / first paint: match `lg` breakpoint (1024px) for page builder grids. */
+const SITE_CONFIG_PAGE_VIEWPORT_PX = 1024;
 
 export const load: PageLoad = async ({ fetch, parent }) => {
   // Get data from parent (server load)
@@ -45,14 +49,11 @@ export const load: PageLoad = async ({ fetch, parent }) => {
         hasHomeModules: !!siteConfig?.template?.pageModules?.home,
         homeModulesCount: siteConfig?.template?.pageModules?.home?.length || 0
       });
-      if (siteConfig?.template?.pageModules?.home) {
-        pageModules = Array.isArray(siteConfig.template.pageModules.home) 
-          ? siteConfig.template.pageModules.home 
-          : [];
+      const tmpl = siteConfig?.template;
+      if (tmpl) {
+        pageModules = getEffectivePageModules(tmpl, 'home', SITE_CONFIG_PAGE_VIEWPORT_PX) as any[];
+        pageLayout = getEffectivePageGrid(tmpl, 'home', SITE_CONFIG_PAGE_VIEWPORT_PX);
         logger.debug('[Home] Loaded pageModules:', pageModules);
-      }
-      if (siteConfig?.template?.pageLayout?.home) {
-        pageLayout = siteConfig.template.pageLayout.home;
         logger.debug('[Home] Loaded pageLayout:', pageLayout);
       }
     }

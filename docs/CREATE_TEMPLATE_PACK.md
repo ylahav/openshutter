@@ -2,6 +2,21 @@
 
 OpenShutter maps each **base theme** (`default`, `minimal`, `modern`, `elegant`) to a **template pack**: a set of Svelte shells for public pages (home, gallery, album, login) plus header/footer.
 
+For the authoritative data model behind Admin “Pages” editing and persistence (canonical placement + breakpoint cascade rules), see:
+- [`docs/TEMPLATING_REQUIREMENTS.md`](./TEMPLATING_REQUIREMENTS.md)
+
+## Rough mapping from Joomla (mental model)
+
+| Joomla | OpenShutter |
+|--------|-------------|
+| `index.php` + layout structure | Svelte pack pages (`Home.svelte`, …), `+layout.svelte`, `BodyTemplateWrapper` |
+| `templateDetails.xml` (name, version, parameters) | Static template metadata + **themes** collection (`baseTemplate`, colors, fonts, `pageModules`, …) |
+| **Module positions** (e.g. `header`, `footer`, `home`) | `site_config.template.pageModules` keyed by page/region (`home`, `gallery`, `header`, `footer`, …). When `pageModules.header` is non-empty, the global header uses the **page builder** (`PageRenderer`) instead of the pack’s `Header.svelte`. Placement uses anchor cell + spans (`rowOrder`, `columnIndex`, `rowSpan`, `colSpan`). |
+| **Template overrides** (copy views into `/html/`) | Admin → **Templates → Overrides** (per-theme overrides stored on the theme row; **Apply theme** copies into live `site_config` with **replace** semantics for modules/layout so old positions do not linger). |
+| Breakpoints | Page grid/modules can be breakpoint-keyed overlays; runtime resolves the active band with the cascade rules in `TEMPLATING_REQUIREMENTS.md` (§2.2.3). |
+
+If you apply a theme and “nothing changes,” check whether an old `pageModules` still had entries from a previous theme: only **Apply theme** with replace semantics (or clearing those keys) updates positions fully; a plain deep-merge would keep leftover keys.
+
 ## 1. Add Svelte components
 
 Under `frontend/src/lib/templates/<packId>/`:

@@ -39,6 +39,11 @@ export interface TemplateConfig {
     containerPadding: string
     gridGap: string
   }
+  /**
+   * Default per-page grid (legacy flat shape) for new themes / docs.
+   * Live sites use `themes` / `site_config.template.pageLayout` (often per-breakpoint maps).
+   */
+  pageLayout?: Record<string, { gridRows: number; gridColumns: number }>
   components: {
     hero: string
     albumCard: string

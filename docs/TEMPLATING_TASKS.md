@@ -1,6 +1,20 @@
 # Templating Task List
 
+**Canonical requirements:** [`TEMPLATING_REQUIREMENTS.md`](./TEMPLATING_REQUIREMENTS.md)
+
 This checklist is focused on adoption-first delivery: fast visual impact, easy customization, and contributor-friendly extension points.
+
+### Cell-based module assignment — phased implementation
+
+Cross-reference: **§2.2.1** (spans + anchor), **§2.2.3** (breakpoints/cascade rules), and **§2.2.4** (cell-based module assignment workflow) in `TEMPLATING_REQUIREMENTS.md`. This phased plan assumes **modules are assigned to grid cell(s)** (anchor + `rowSpan`/`colSpan`), not named positions-first.
+
+| Phase | Scope | Outcome |
+|-------|--------|---------|
+| **P0 — Canonical placement types** | Consolidate placement as **anchor + spans** (`rowOrder`, `columnIndex`, `rowSpan`, `colSpan`) across frontend and persistence; add/extend validators for positive integers + in-bounds rules. | One canonical placement format and consistent runtime behavior. |
+| **P1 — Admin: grid + spans authoring (per breakpoint)** | Ensure overrides editing fully supports editing **grid dimensions** and module placements (including spans) for the selected breakpoint, without corrupting other breakpoints. | Editors can build per-breakpoint layouts confidently. |
+| **P2 — Breakpoint utilities + persistence sync** | Provide tools like **“Same for all breakpoints”** (copy current breakpoint’s grid + module placements across `xs..xl` for the same page), and ensure persistence stays aligned (legacy sync + normalize rules). | Breakpoint changes are repeatable and saved consistently. |
+| **P3 — Template pack defaults for cell grids** | Packs ship initial per-page grids + module placements per breakpoint band, so fresh installs render without manual grid math. | New sites have sensible defaults immediately. |
+| **P4 — Migration / compatibility & safety** | Migrate legacy flat `pageLayout` / `pageModules` to the breakpoint-aware editor model (or overlays), and enforce validation/safety to prevent broken pages. | Old themes still work; invalid configs fail safely. |
 
 **Continue from here:** Milestone 2 is largely done. Next focus is **Milestone 3** (polish the four built-in styles: default, minimal, modern, elegant) and tightening **Milestone 1** gaps called out below (About / CMS routes use `PageRenderer`, not pack entries).
 

@@ -10,6 +10,7 @@ import { StorageController } from './storage/storage.controller';
 import { StorageAdminController } from './storage/storage-admin.controller';
 import { TemplatesController } from './templates/templates.controller';
 import { ThemesController } from './themes/themes.controller';
+import { ThemesPublicController } from './themes/themes-public.controller';
 import { PeopleModule } from './people/people.module';
 import { TagsModule } from './tags/tags.module';
 import { LocationsModule } from './locations/locations.module';
@@ -84,6 +85,7 @@ import { AIProvidersHealthController } from './ai/ai-providers-health.controller
     StorageAdminController,
     TemplatesController,
     ThemesController,
+    ThemesPublicController,
     OwnerDomainsController,
     OwnerSiteSettingsController,
     SiteContextController,
