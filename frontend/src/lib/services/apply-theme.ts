@@ -7,6 +7,28 @@ export type ApplyThemeResult =
 	| { ok: false; error: string };
 
 /**
+ * Preserve a custom Admin theme when it intentionally differs from the current public default.
+ * Rule: if current adminTemplate !== current frontendTemplate, keep adminTemplate on apply.
+ */
+async function resolveAdminTemplateForApply(nextFrontendTemplate: string): Promise<string> {
+	try {
+		const currentRes = await fetch('/api/admin/site-config', { credentials: 'include' });
+		if (!currentRes.ok) return nextFrontendTemplate;
+		const currentJson = await currentRes.json();
+		const current = currentJson?.data ?? currentJson;
+		const currentFrontend = String(
+			current?.template?.frontendTemplate || current?.template?.activeTemplate || nextFrontendTemplate
+		);
+		const currentAdmin = String(
+			current?.template?.adminTemplate || current?.template?.activeTemplate || currentFrontend
+		);
+		return currentAdmin !== currentFrontend ? currentAdmin : nextFrontendTemplate;
+	} catch {
+		return nextFrontendTemplate;
+	}
+}
+
+/**
  * Copies the full theme row from Mongo into live `site_config.template`
  * (colors, fonts, layout, pageModules, pageLayout, headerConfig, etc.).
  */
@@ -25,6 +47,8 @@ export async function applyThemeById(themeId: string): Promise<ApplyThemeResult>
 	if (!theme?._id) {
 		return { ok: false, error: 'Theme not found' };
 	}
+	const nextFrontendTemplate = String(theme.baseTemplate || 'default');
+	const nextAdminTemplate = await resolveAdminTemplateForApply(nextFrontendTemplate);
 
 	const response = await fetch('/api/admin/site-config', {
 		method: 'PUT',
@@ -33,9 +57,9 @@ export async function applyThemeById(themeId: string): Promise<ApplyThemeResult>
 		body: JSON.stringify({
 			replaceTemplateFromTheme: true,
 			template: {
-				frontendTemplate: theme.baseTemplate,
-				adminTemplate: theme.baseTemplate,
-				activeTemplate: theme.baseTemplate,
+				frontendTemplate: nextFrontendTemplate,
+				adminTemplate: nextAdminTemplate,
+				activeTemplate: nextFrontendTemplate,
 				activeThemeId: theme._id,
 				customColors: theme.customColors || {},
 				customFonts: theme.customFonts || {},
@@ -93,6 +117,7 @@ export async function applyBuiltInThemeForPack(baseTemplate: string): Promise<Ap
 	if (builtIn?._id) {
 		return applyThemeById(builtIn._id);
 	}
+	const nextAdminTemplate = await resolveAdminTemplateForApply(pack);
 
 	const response = await fetch('/api/admin/site-config', {
 		method: 'PUT',
@@ -101,7 +126,7 @@ export async function applyBuiltInThemeForPack(baseTemplate: string): Promise<Ap
 		body: JSON.stringify({
 			template: {
 				frontendTemplate: pack,
-				adminTemplate: pack,
+				adminTemplate: nextAdminTemplate,
 				activeTemplate: pack,
 				activeThemeId: null
 			}

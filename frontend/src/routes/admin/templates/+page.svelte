@@ -47,6 +47,9 @@
 	let applyThemeId: string | null = null;
 	let previewTemplate: string | null = null;
 	let previewThemeId: string | null = null;
+	let adminTemplateDraft = 'default';
+	let savingAdminTemplate = false;
+	let lastSyncedAdminTemplate = '';
 
 	const BASE_TEMPLATE_PREVIEW: Record<
 		string,
@@ -76,6 +79,15 @@
 	$: frontendTemplate = $siteConfigData?.template?.frontendTemplate || $siteConfigData?.template?.activeTemplate || 'modern';
 	$: adminTemplateName =
 		$siteConfigData?.template?.adminTemplate || $siteConfigData?.template?.activeTemplate || 'default';
+	$: if (
+		!savingAdminTemplate &&
+		adminTemplateName &&
+		adminTemplateName !== lastSyncedAdminTemplate
+	) {
+		adminTemplateDraft = adminTemplateName;
+		lastSyncedAdminTemplate = adminTemplateName;
+	}
+	$: adminTemplateDirty = adminTemplateDraft !== adminTemplateName;
 	$: liveThemeId = $siteConfigData?.template?.activeThemeId;
 	/** Resolved preset name from DB for the default public theme */
 	$: defaultPublicThemeLabel =
@@ -250,6 +262,32 @@
 	function openApplyPreview(): void {
 		if (previewThemeId) applyThemeId = previewThemeId;
 	}
+
+	async function saveAdminTemplateOnly(): Promise<void> {
+		if (!adminTemplateDraft || !adminTemplateDirty || savingAdminTemplate) return;
+		savingAdminTemplate = true;
+		error = '';
+		try {
+			const response = await fetch('/api/admin/site-config', {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				credentials: 'include',
+				body: JSON.stringify({
+					template: {
+						adminTemplate: adminTemplateDraft
+					}
+				})
+			});
+			if (!response.ok) await handleApiErrorResponse(response);
+			await siteConfig.load();
+			message = $t('admin.configurationSaved');
+			setTimeout(() => (message = ''), 2500);
+		} catch (err) {
+			error = handleError(err, $t('admin.failedToSave'));
+		} finally {
+			savingAdminTemplate = false;
+		}
+	}
 </script>
 
 <svelte:head>
@@ -280,6 +318,31 @@
 							<span class="text-gray-600">{$t('admin.templatesDefaultAdmin')}:</span>
 							<span class="ml-1 font-mono font-medium text-gray-900">{adminTemplateName}</span>
 						</p>
+					</div>
+					<div class="mt-3 flex flex-wrap items-end gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 max-w-xl">
+						<div class="min-w-48">
+							<label for="admin-template-select" class="block text-xs font-medium text-gray-700 mb-1">
+								{$t('admin.siteConfigTemplateAdminTheme')}
+							</label>
+							<select
+								id="admin-template-select"
+								bind:value={adminTemplateDraft}
+								class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+							>
+								<option value="default">default</option>
+								<option value="minimal">minimal</option>
+								<option value="modern">modern</option>
+								<option value="elegant">elegant</option>
+							</select>
+						</div>
+						<button
+							type="button"
+							on:click={saveAdminTemplateOnly}
+							disabled={!adminTemplateDirty || savingAdminTemplate}
+							class="px-3 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm font-medium disabled:opacity-50"
+						>
+							{savingAdminTemplate ? `${$t('admin.save')}...` : $t('admin.save')}
+						</button>
 					</div>
 					{#if previewTemplate}
 						<p class="mt-1 text-xs text-amber-700">
