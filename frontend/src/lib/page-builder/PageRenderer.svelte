@@ -6,6 +6,7 @@
 import HeroModule from './modules/HeroModule.svelte';
 import RichTextModule from './modules/RichTextModule.svelte';
 import FeatureGridModule from './modules/FeatureGridModule.svelte';
+import AlbumsGridModule from './modules/AlbumsGridModule.svelte';
 import AlbumGalleryModule from './modules/AlbumGalleryModule.svelte';
 import CtaModule from './modules/CtaModule.svelte';
 import LogoModule from './modules/LogoModule.svelte';
@@ -43,7 +44,7 @@ import BlogArticleModule from './modules/BlogArticleModule.svelte';
 		hero: HeroModule,
 		richText: RichTextModule,
 		featureGrid: FeatureGridModule,
-		albumsGrid: AlbumGalleryModule,
+		albumsGrid: AlbumsGridModule,
 		albumGallery: AlbumGalleryModule, // Backward compatibility
 		cta: CtaModule,
 		logo: LogoModule,

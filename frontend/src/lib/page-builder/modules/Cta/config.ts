@@ -6,9 +6,9 @@ export const ctaConfig = {
 	fields: [
 		{ key: 'title', type: 'multilangText', label: 'Title', required: false },
 		{ key: 'description', type: 'multilangText', label: 'Description', required: false },
-		{ key: 'primaryLabel', type: 'string', label: 'Primary button label', default: 'Get Started' },
+		{ key: 'primaryLabel', type: 'multilangText', label: 'Primary button label', default: 'Get Started' },
 		{ key: 'primaryHref', type: 'string', label: 'Primary button URL', default: '/' },
-		{ key: 'secondaryLabel', type: 'string', label: 'Secondary button label', required: false },
+		{ key: 'secondaryLabel', type: 'multilangText', label: 'Secondary button label', required: false },
 		{ key: 'secondaryHref', type: 'string', label: 'Secondary button URL', required: false },
 	],
 } as const;

@@ -2,19 +2,41 @@
 <script lang="ts">
 	import Layout from './AlbumGallery/Layout.svelte';
 
-	export let title: string | Record<string, string> = '';
-	export let description: string | Record<string, string> | undefined;
-	export let selectedAlbums: string[] | undefined = undefined;
-	export let rootAlbumId: string | undefined = undefined;
-	export let rootGallery: string | undefined = undefined;
-	export let includeRoot: boolean = true;
-
-	// Support legacy: props or props.config; otherwise use individual props from spread
-	export let props: any = undefined;
-	export let data: any = null; // Page context (e.g., URL params like alias)
-	$: config = props?.config ?? (props && typeof props === 'object' ? props : null) ?? {
-		title, description, selectedAlbums, rootAlbumId, rootGallery, includeRoot
+	type AlbumGalleryProps = {
+		title?: string | Record<string, string>;
+		description?: string | Record<string, string>;
+		albumSource?: 'root' | 'featured' | 'selected' | 'current';
+		selectedAlbums?: string[];
+		rootAlbumId?: string;
+		rootGallery?: string;
+		includeRoot?: boolean;
 	};
+
+	type LegacyAlbumGalleryProps = {
+		config?: AlbumGalleryProps;
+	} & AlbumGalleryProps;
+
+	export let title: NonNullable<AlbumGalleryProps['title']> = '';
+	export let description: AlbumGalleryProps['description'] = undefined;
+	export let albumSource: NonNullable<AlbumGalleryProps['albumSource']> = 'root';
+	export let selectedAlbums: AlbumGalleryProps['selectedAlbums'] = undefined;
+	export let rootAlbumId: AlbumGalleryProps['rootAlbumId'] = undefined;
+	export let rootGallery: AlbumGalleryProps['rootGallery'] = undefined;
+	export let includeRoot: NonNullable<AlbumGalleryProps['includeRoot']> = true;
+
+	// Temporary migration fallback for legacy nested props.config payloads
+	export let props: LegacyAlbumGalleryProps | undefined = undefined;
+	export let data: unknown = null; // Page context (e.g., URL params like alias)
+	$: config = (props?.config ??
+		(props && typeof props === 'object' ? props : undefined) ?? {
+			title,
+			description,
+			albumSource,
+			selectedAlbums,
+			rootAlbumId,
+			rootGallery,
+			includeRoot
+		}) satisfies AlbumGalleryProps;
 	const templateConfig = {};
 </script>
 

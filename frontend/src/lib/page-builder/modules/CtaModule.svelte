@@ -2,18 +2,37 @@
 <script lang="ts">
 	import Layout from './Cta/Layout.svelte';
 
-	export let title: string | Record<string, string> = '';
-	export let description: string | Record<string, string> | undefined;
-	export let primaryLabel = 'Get Started';
-	export let primaryHref = '/';
-	export let secondaryLabel: string | undefined;
-	export let secondaryHref: string | undefined;
-
-	// Support legacy: props or props.config; otherwise use individual props from spread
-	export let props: any = undefined;
-	$: config = props?.config ?? (props && typeof props === 'object' ? props : null) ?? {
-		title, description, primaryLabel, primaryHref, secondaryLabel, secondaryHref
+	type CtaProps = {
+		title?: string | Record<string, string>;
+		description?: string | Record<string, string>;
+		primaryLabel?: string | Record<string, string>;
+		primaryHref?: string;
+		secondaryLabel?: string | Record<string, string>;
+		secondaryHref?: string;
 	};
+
+	type LegacyCtaProps = {
+		config?: CtaProps;
+	} & CtaProps;
+
+	export let title: NonNullable<CtaProps['title']> = '';
+	export let description: CtaProps['description'] = undefined;
+	export let primaryLabel: NonNullable<CtaProps['primaryLabel']> = 'Get Started';
+	export let primaryHref: NonNullable<CtaProps['primaryHref']> = '/';
+	export let secondaryLabel: CtaProps['secondaryLabel'] = undefined;
+	export let secondaryHref: CtaProps['secondaryHref'] = undefined;
+
+	// Temporary migration fallback for legacy nested props.config payloads
+	export let props: LegacyCtaProps | undefined = undefined;
+	$: config = (props?.config ??
+		(props && typeof props === 'object' ? props : undefined) ?? {
+			title,
+			description,
+			primaryLabel,
+			primaryHref,
+			secondaryLabel,
+			secondaryHref
+		}) satisfies CtaProps;
 	const data = null;
 	const templateConfig = {};
 </script>

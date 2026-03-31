@@ -6,7 +6,9 @@
 	import { getProductName } from '$lib/utils/productName';
 
 	export let config: any = {};
+	// svelte-ignore export_let_unused - kept for module layout API consistency
 	export let data: any = null;
+	// svelte-ignore export_let_unused - kept for module layout API consistency
 	export let templateConfig: Record<string, any> = {};
 	export let compact: boolean = false;
 
@@ -15,11 +17,11 @@
 	$: bodyStr = typeof rawBody === 'string' ? rawBody : MultiLangUtils.getHTMLValue(rawBody, $currentLanguage) || '';
 	$: bodyHtml = bodyStr.replace(/\{\{productName\}\}/g, getProductName($siteConfigData ?? null, $currentLanguage));
 	$: background = config?.background ?? 'white';
-	$: paddingClass = compact ? 'py-1 px-1 sm:px-1 lg:px-1' : 'py-16 px-4 sm:px-6 lg:px-8';
+	$: paddingClass = compact ? 'py-1' : 'py-16';
 </script>
 
 <section class={paddingClass + " " + (background === 'gray' ? 'bg-gray-50 dark:bg-gray-800/50' : background === 'transparent' ? 'bg-transparent' : 'bg-white dark:bg-gray-900')}>
-	<div class="max-w-4xl mx-auto">
+	<div class="w-full">
 		{#if titleText}
 			<h2 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6">{titleText}</h2>
 		{/if}

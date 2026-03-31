@@ -9,6 +9,7 @@
 
 	export let config: any = {};
 	export let data: any = null;
+	// svelte-ignore export_let_unused - kept for module layout API consistency
 	export let templateConfig: Record<string, any> = {};
 
 	$: titleText = MultiLangUtils.getTextValue(config?.title, $currentLanguage) || '';
@@ -191,15 +192,15 @@
 	}
 </script>
 
-<section class="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50 dark:bg-gray-800/50">
-	<div class="max-w-6xl mx-auto">
+<section class="py-20 bg-gray-50 dark:bg-gray-800/50">
+	<div class="w-full">
 		{#if titleText || descriptionHTML}
 			<div class="text-center mb-16">
 				{#if titleText}
 					<h2 class="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4">{titleText}</h2>
 				{/if}
 				{#if descriptionHTML}
-					<div class="text-lg text-gray-600 dark:text-gray-300 max-w-3xl mx-auto prose prose-lg">
+					<div class="text-lg text-gray-600 dark:text-gray-300 prose prose-lg">
 						{@html descriptionHTML}
 					</div>
 				{/if}
