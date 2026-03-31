@@ -70,6 +70,28 @@ export function isBreakpointMapCustomLayout(obj: unknown): obj is Record<string,
 	});
 }
 
+/** When a breakpoint map omits the current band, cascade like page modules (narrower first, then wider). */
+function pickShellCellFromBreakpointMap(
+	raw: Partial<Record<TemplateBreakpointId, ShellLayout>>,
+	bp: TemplateBreakpointId
+): ShellLayout | undefined {
+	const c = raw[bp];
+	if (c && typeof c === 'object' && !Array.isArray(c)) return c as ShellLayout;
+	const order = TEMPLATE_BREAKPOINTS as readonly TemplateBreakpointId[];
+	const idx = order.indexOf(bp);
+	for (let i = idx - 1; i >= 0; i--) {
+		const b = order[i]!;
+		const v = raw[b];
+		if (v && typeof v === 'object' && !Array.isArray(v)) return v as ShellLayout;
+	}
+	for (let i = idx + 1; i < order.length; i++) {
+		const b = order[i]!;
+		const v = raw[b];
+		if (v && typeof v === 'object' && !Array.isArray(v)) return v as ShellLayout;
+	}
+	return undefined;
+}
+
 /** Clone shell-by-breakpoint map for persistence on `template.customLayout`. */
 export function shellByBreakpointToCustomLayoutField(
 	map: Record<TemplateBreakpointId, ShellLayout>
@@ -144,17 +166,20 @@ export function resolveShellLayout(
 	if (cl && isLegacyCustomLayout(cl)) {
 		legacy = cl;
 	} else if (cl && isBreakpointMapCustomLayout(cl)) {
-		const cell = cl[bp];
-		if (cell && typeof cell === 'object' && !Array.isArray(cell)) {
-			fromMap = cell as ShellLayout;
-		}
+		fromMap = pickShellCellFromBreakpointMap(
+			cl as Partial<Record<TemplateBreakpointId, ShellLayout>>,
+			bp
+		);
 	}
-	const fromSeparate = template?.customLayoutByBreakpoint?.[bp];
-	return fillShellDefaults({
-		...fillShellDefaults(legacy),
-		...fillShellDefaults(fromMap),
-		...fillShellDefaults(fromSeparate)
-	});
+	const fromSeparate = pickShellCellFromBreakpointMap(
+		(template?.customLayoutByBreakpoint ?? {}) as Partial<Record<TemplateBreakpointId, ShellLayout>>,
+		bp
+	);
+	const merged: ShellLayout = {};
+	if (legacy) Object.assign(merged, fillShellDefaults(legacy));
+	if (fromMap) Object.assign(merged, fillShellDefaults(fromMap));
+	if (fromSeparate) Object.assign(merged, fillShellDefaults(fromSeparate));
+	return fillShellDefaults(merged);
 }
 
 export interface PageGrid {
@@ -394,7 +419,13 @@ function pickModulesCellFromBreakpointMap(
 	if (raw[bp] !== undefined) return raw[bp] as unknown[];
 	const order = TEMPLATE_BREAKPOINTS as readonly TemplateBreakpointId[];
 	const idx = order.indexOf(bp);
+	// Narrower breakpoints first (mobile-first fill-in)
 	for (let i = idx - 1; i >= 0; i--) {
+		const b = order[i]!;
+		if ((raw as any)[b] !== undefined) return (raw as any)[b] as unknown[];
+	}
+	// Wider breakpoints: Admin often saves only `lg`; xs/md must still resolve or home drops modules.
+	for (let i = idx + 1; i < order.length; i++) {
 		const b = order[i]!;
 		if ((raw as any)[b] !== undefined) return (raw as any)[b] as unknown[];
 	}
@@ -517,6 +548,14 @@ export function getPageModulesForBreakpoint(
 		if (picked !== undefined) return picked;
 	}
 	if (Array.isArray(raw)) {
+		const rowOverlay = template?.pageModulesByBreakpoint?.[pageKey];
+		if (rowOverlay && typeof rowOverlay === 'object' && !Array.isArray(rowOverlay)) {
+			const overlayPick = pickModulesCellFromBreakpointMap(
+				rowOverlay as Partial<Record<TemplateBreakpointId, unknown[]>>,
+				bp
+			);
+			if (overlayPick !== undefined) return overlayPick;
+		}
 		return raw;
 	}
 	const rowOverlay = template?.pageModulesByBreakpoint?.[pageKey];

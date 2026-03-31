@@ -18,6 +18,7 @@ import { UsersModule } from './users/users.module';
 import { GroupsModule } from './groups/groups.module';
 import { PagesModule } from './pages/pages.module';
 import { BlogCategoriesModule } from './blog-categories/blog-categories.module';
+import { AdminBlogArticlesModule } from './admin-blog-articles/admin-blog-articles.module';
 import { BlogModule } from './blog/blog.module';
 import { BackupModule } from './backup/backup.module';
 import { AnalyticsModule } from './analytics/analytics.module';
@@ -64,6 +65,7 @@ import { AIProvidersHealthController } from './ai/ai-providers-health.controller
     GroupsModule,
     PagesModule,
     BlogCategoriesModule,
+    AdminBlogArticlesModule,
     BlogModule,
     BackupModule,
     AnalyticsModule,

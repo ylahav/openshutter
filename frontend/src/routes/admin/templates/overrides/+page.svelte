@@ -224,6 +224,7 @@
 				await loadTheme(themeId);
 			}
 			await loadTemplates();
+			await loadBlogCategoriesForOverrides();
 			initializeLocalOverrides();
 		})();
 		return () => window.removeEventListener('beforeunload', handleBeforeUnload);
@@ -341,9 +342,20 @@
 		});
 	}
 
+	// Keep in sync with PAGE_MODULE_TYPES and PageRenderer moduleMap.
+	// Missing an alias here can hide a registered module from Admin pickers.
 	// Use same module types as page builder / PageRenderer
 	const PAGE_CONTENT_MODULES = PAGE_MODULE_TYPES.filter((m) =>
-		['hero', 'richText', 'featureGrid', 'albumsGrid', 'albumGallery', 'cta'].includes(m.type)
+		[
+			'hero',
+			'richText',
+			'featureGrid',
+			'albumsGrid',
+			'albumGallery',
+			'cta',
+			'blogCategory',
+			'blogArticle'
+		].includes(m.type)
 	);
 	const HEADER_MODULES = PAGE_MODULE_TYPES.filter((m) =>
 		['logo', 'siteTitle', 'menu', 'languageSelector', 'themeToggle', 'themeSelect', 'userGreeting', 'authButtons', 'socialMedia'].includes(m.type)
@@ -633,6 +645,32 @@
 
 	let assignedModuleType = '';
 	let editingModule: any | null = null;
+	let availableBlogCategories: Array<{ alias: string; title: string }> = [];
+
+	async function loadBlogCategoriesForOverrides() {
+		try {
+			const response = await fetch('/api/admin/blog-categories?limit=200&isActive=true', {
+				credentials: 'include'
+			});
+			if (!response.ok) return;
+			const result = await response.json();
+			const rows = Array.isArray(result?.data) ? result.data : Array.isArray(result) ? result : [];
+			availableBlogCategories = rows
+				.map((c: { alias?: string; title?: unknown }) => {
+					const alias = String(c.alias || '').trim();
+					const titleObj = c.title as MultiLangText | string | undefined;
+					const title =
+						typeof titleObj === 'string' ? titleObj : titleObj?.en || titleObj?.he || alias;
+					return { alias, title };
+				})
+				.filter((c: { alias: string }) => Boolean(c.alias))
+				.sort((a, b) =>
+					a.title.localeCompare(b.title, undefined, { sensitivity: 'base' })
+				);
+		} catch (err) {
+			logger.warn('Failed to load blog categories for template overrides:', err);
+		}
+	}
 
 	function handleAssignToSelected(moduleType?: string) {
 		const type = moduleType || assignedModuleType;
@@ -2252,6 +2290,46 @@
 																editingModule.props.gap = 'normal';
 															}
 														}
+														if (editingModule.type === 'blogCategory') {
+															if (
+																editingModule.props.title === null ||
+																editingModule.props.title === undefined
+															) {
+																editingModule.props.title = {};
+															} else if (typeof editingModule.props.title === 'string') {
+																editingModule.props.title = { en: editingModule.props.title };
+															}
+															if (
+																!editingModule.props.layout ||
+																!['chips', 'list'].includes(editingModule.props.layout)
+															) {
+																editingModule.props.layout = 'chips';
+															}
+															if (editingModule.props.showCount === undefined) {
+																editingModule.props.showCount = false;
+															}
+															if (
+																editingModule.props.maxItems === undefined ||
+																editingModule.props.maxItems === null
+															) {
+																editingModule.props.maxItems = 10;
+															}
+															if (
+																!editingModule.props.sortBy ||
+																!['name', 'count'].includes(editingModule.props.sortBy)
+															) {
+																editingModule.props.sortBy = 'name';
+															}
+															if (editingModule.props.linkToArticles === undefined) {
+																editingModule.props.linkToArticles = false;
+															}
+															if (
+																!editingModule.props.articlesListPath ||
+																typeof editingModule.props.articlesListPath !== 'string'
+															) {
+																editingModule.props.articlesListPath = '/blog';
+															}
+														}
 														logger.debug('[Overrides] After initialization:', { 
 															type: editingModule.type, 
 															props: editingModule.props,
@@ -3244,6 +3322,171 @@
 									editingModule = {
 										...editingModule,
 										props: { ...editingModule.props, className: (e.currentTarget as HTMLInputElement).value }
+									};
+								}}
+							/>
+						</div>
+					</div>
+				{:else if editingModule.type === 'blogCategory'}
+					<div class="space-y-4 border-t border-gray-200 pt-4">
+						<div>
+							<label for="override-blog-category-title" class="block text-sm font-medium text-gray-700 mb-2">
+								Section title (optional)
+							</label>
+							<MultiLangInput id="override-blog-category-title" bind:value={editingModule.props.title} />
+						</div>
+						<div>
+							<label for="override-blog-category-alias" class="block text-sm font-medium text-gray-700 mb-2">
+								Show only this category
+							</label>
+							<select
+								id="override-blog-category-alias"
+								class={ADMIN_TEXT_INPUT_CLASS}
+								value={editingModule.props?.categoryAlias ?? ''}
+								on:change={(e) => {
+									const v = (e.currentTarget as HTMLSelectElement).value.trim();
+									const next = { ...editingModule.props };
+									if (v) next.categoryAlias = v;
+									else delete next.categoryAlias;
+									editingModule = { ...editingModule, props: next };
+								}}
+							>
+								<option value="">All categories</option>
+								{#if editingModule.props?.categoryAlias && !availableBlogCategories.some((c) => c.alias === editingModule.props.categoryAlias)}
+									<option value={editingModule.props.categoryAlias}>
+										{editingModule.props.categoryAlias} (saved)
+									</option>
+								{/if}
+								{#each availableBlogCategories as category}
+									<option value={category.alias}>{category.title} ({category.alias})</option>
+								{/each}
+							</select>
+							<p class="mt-1 text-xs text-gray-500">
+								Leave empty to list every active blog category (up to max items).
+							</p>
+						</div>
+						<div>
+							<label for="override-blog-category-layout" class="block text-sm font-medium text-gray-700 mb-2">
+								Layout
+							</label>
+							<select
+								id="override-blog-category-layout"
+								class={ADMIN_TEXT_INPUT_CLASS}
+								value={editingModule.props?.layout ?? 'chips'}
+								on:change={(e) => {
+									editingModule = {
+										...editingModule,
+										props: {
+											...editingModule.props,
+											layout: (e.currentTarget as HTMLSelectElement).value as 'chips' | 'list'
+										}
+									};
+								}}
+							>
+								<option value="chips">Chips</option>
+								<option value="list">List</option>
+							</select>
+						</div>
+						<div>
+							<label class="flex items-center gap-2">
+								<input
+									type="checkbox"
+									class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+									checked={editingModule.props?.showCount === true}
+									on:change={(e) => {
+										editingModule = {
+											...editingModule,
+											props: {
+												...editingModule.props,
+												showCount: (e.currentTarget as HTMLInputElement).checked
+											}
+										};
+									}}
+								/>
+								<span class="text-sm font-medium text-gray-700">Show article counts</span>
+							</label>
+							<p class="mt-1 text-xs text-gray-500">Requires an extra aggregation on the server.</p>
+						</div>
+						<div>
+							<label for="override-blog-category-max" class="block text-sm font-medium text-gray-700 mb-2">
+								Max items
+							</label>
+							<input
+								id="override-blog-category-max"
+								type="number"
+								min="1"
+								max="100"
+								class={ADMIN_TEXT_INPUT_CLASS}
+								value={editingModule.props?.maxItems ?? 10}
+								on:input={(e) => {
+									const n = parseInt((e.currentTarget as HTMLInputElement).value, 10);
+									const maxItems = Number.isFinite(n) ? Math.min(100, Math.max(1, n)) : 10;
+									editingModule = {
+										...editingModule,
+										props: { ...editingModule.props, maxItems }
+									};
+								}}
+							/>
+						</div>
+						<div>
+							<label for="override-blog-category-sort" class="block text-sm font-medium text-gray-700 mb-2">
+								Sort by
+							</label>
+							<select
+								id="override-blog-category-sort"
+								class={ADMIN_TEXT_INPUT_CLASS}
+								value={editingModule.props?.sortBy ?? 'name'}
+								on:change={(e) => {
+									editingModule = {
+										...editingModule,
+										props: {
+											...editingModule.props,
+											sortBy: (e.currentTarget as HTMLSelectElement).value as 'name' | 'count'
+										}
+									};
+								}}
+							>
+								<option value="name">Name</option>
+								<option value="count">Article count</option>
+							</select>
+						</div>
+						<div>
+							<label class="flex items-center gap-2">
+								<input
+									type="checkbox"
+									class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+									checked={editingModule.props?.linkToArticles === true}
+									on:change={(e) => {
+										editingModule = {
+											...editingModule,
+											props: {
+												...editingModule.props,
+												linkToArticles: (e.currentTarget as HTMLInputElement).checked
+											}
+										};
+									}}
+								/>
+								<span class="text-sm font-medium text-gray-700">Link each category to the article list</span>
+							</label>
+							<p class="mt-1 text-xs text-gray-500">Uses the path below with <code class="text-xs">?category=</code> alias.</p>
+						</div>
+						<div>
+							<label for="override-blog-articles-path" class="block text-sm font-medium text-gray-700 mb-2">
+								Articles list path
+							</label>
+							<input
+								id="override-blog-articles-path"
+								type="text"
+								class={ADMIN_TEXT_INPUT_CLASS}
+								value={editingModule.props?.articlesListPath ?? '/blog'}
+								placeholder="/blog"
+								on:input={(e) => {
+									editingModule = {
+										...editingModule,
+										props: {
+											...editingModule.props,
+											articlesListPath: (e.currentTarget as HTMLInputElement).value || '/blog'
+										}
 									};
 								}}
 							/>

@@ -27,20 +27,36 @@ export class BlogCategoriesController {
       if (!db) throw new InternalServerErrorException('Database connection not established');
       const collection = db.collection('blogcategories');
 
-      // Build query
+      // Build query (combine clauses with $and so search $or and active filter don't clobber each other)
       const query: any = {};
+      const clauses: any[] = [];
 
       if (search) {
         const langs = SUPPORTED_LANGUAGES.map((l) => l.code);
-        query.$or = [
-          { alias: { $regex: search, $options: 'i' } },
-          ...langs.map((code) => ({ [`title.${code}`]: { $regex: search, $options: 'i' } })),
-          ...langs.map((code) => ({ [`description.${code}`]: { $regex: search, $options: 'i' } })),
-        ];
+        clauses.push({
+          $or: [
+            { alias: { $regex: search, $options: 'i' } },
+            ...langs.map((code) => ({ [`title.${code}`]: { $regex: search, $options: 'i' } })),
+            ...langs.map((code) => ({ [`description.${code}`]: { $regex: search, $options: 'i' } })),
+          ],
+        });
       }
 
       if (isActive !== undefined && isActive !== null && isActive !== '') {
-        query.isActive = isActive === 'true';
+        if (isActive === 'true') {
+          // Treat missing isActive as active (legacy / pre-default documents were missing the field)
+          clauses.push({
+            $or: [{ isActive: true }, { isActive: 'true' }, { isActive: { $exists: false } }],
+          });
+        } else {
+          clauses.push({ $or: [{ isActive: false }, { isActive: 'false' }] });
+        }
+      }
+
+      if (clauses.length === 1) {
+        Object.assign(query, clauses[0]);
+      } else if (clauses.length > 1) {
+        query.$and = clauses;
       }
 
       // Pagination

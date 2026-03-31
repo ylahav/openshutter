@@ -95,7 +95,9 @@
 		{ value: 'richText', label: 'Rich Text' },
 		{ value: 'featureGrid', label: 'Feature Grid' },
 		{ value: 'albumsGrid', label: 'Albums Grid' },
-		{ value: 'cta', label: 'Call To Action' }
+		{ value: 'cta', label: 'Call To Action' },
+		{ value: 'blogCategory', label: 'Blog categories' },
+		{ value: 'blogArticle', label: 'Blog articles' }
 	];
 
 	// Use CRUD composables
@@ -243,8 +245,30 @@
 	let gridInitialized = false;
 
 	onMount(async () => {
-		await Promise.all([crudLoader.loadItems(), loadAlbums()]);
+		await Promise.all([crudLoader.loadItems(), loadAlbums(), loadBlogCategories()]);
 	});
+
+	async function loadBlogCategories() {
+		try {
+			const response = await fetch('/api/admin/blog-categories?limit=200&isActive=true');
+			if (!response.ok) return;
+			const result = await response.json();
+			const rows = Array.isArray(result?.data) ? result.data : Array.isArray(result) ? result : [];
+			availableBlogCategories = rows
+				.map((c: { alias?: string; title?: unknown }) => {
+					const alias = String(c.alias || '').trim();
+					const titleObj = c.title as MultiLangText | string | undefined;
+					const title = typeof titleObj === 'string' ? titleObj : titleObj?.en || titleObj?.he || alias;
+					return { alias, title };
+				})
+				.filter((c: { alias: string }) => Boolean(c.alias))
+				.sort((a: { alias: string; title: string }, b: { alias: string; title: string }) =>
+					a.title.localeCompare(b.title, undefined, { sensitivity: 'base' })
+				);
+		} catch (err) {
+			logger.warn('Failed to load blog categories for module editor:', err);
+		}
+	}
 
 	async function loadAlbums() {
 		albumsLoading = true;
@@ -547,6 +571,8 @@
 	let albumsGridSelectedAlbums: string[] = []; // Array of album IDs
 	let availableAlbums: Array<{ _id: string; name: string | MultiLangText; alias: string; level?: number }> = [];
 	let albumsLoading = false;
+	let blogCategoryAlias = '';
+	let availableBlogCategories: Array<{ alias: string; title: string }> = [];
 
 	function editModule(module: PageModuleData) {
 		editingModule = module;
@@ -644,6 +670,13 @@
 			albumsGridDescription = { en: '', he: '' };
 			albumsGridSelectedAlbums = [];
 		}
+
+		if (module.type === 'blogCategory') {
+			const props = module.props || {};
+			blogCategoryAlias = typeof props.categoryAlias === 'string' ? props.categoryAlias : '';
+		} else {
+			blogCategoryAlias = '';
+		}
 		
 		editingFeatureIndex = null;
 		showModuleEditDialog = true;
@@ -708,6 +741,12 @@
 					description: albumsGridDescription,
 					selectedAlbums: albumsGridSelectedAlbums
 				} as AlbumsGridProps;
+			} else if (moduleForm.type === 'blogCategory') {
+				const parsed = moduleForm.propsJson.trim() ? JSON.parse(moduleForm.propsJson) as Record<string, unknown> : {};
+				props = {
+					...parsed,
+					categoryAlias: blogCategoryAlias || undefined
+				};
 			} else {
 				props = moduleForm.propsJson.trim() ? JSON.parse(moduleForm.propsJson) as Record<string, unknown> : {};
 			}
@@ -801,6 +840,12 @@
 					description: albumsGridDescription,
 					selectedAlbums: albumsGridSelectedAlbums
 				} as AlbumsGridProps;
+			} else if (moduleForm.type === 'blogCategory') {
+				const parsed = moduleForm.propsJson.trim() ? JSON.parse(moduleForm.propsJson) as Record<string, unknown> : {};
+				props = {
+					...parsed,
+					categoryAlias: blogCategoryAlias || undefined
+				};
 			} else {
 				props = moduleForm.propsJson.trim() ? JSON.parse(moduleForm.propsJson) as Record<string, unknown> : {};
 			}
@@ -1569,6 +1614,69 @@
 									{albumsGridSelectedAlbums.length} album{albumsGridSelectedAlbums.length !== 1 ? 's' : ''} selected
 								</p>
 							{/if}
+						</div>
+					</div>
+				{:else if moduleForm.type === 'blogCategory'}
+					<div class="space-y-4 border-t border-gray-200 pt-4">
+						<div>
+							<label for="module-blog-category-alias" class="block text-sm font-medium text-gray-700 mb-2">
+								Blog Category
+							</label>
+							<select
+								id="module-blog-category-alias"
+								bind:value={blogCategoryAlias}
+								class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+							>
+								<option value="">All categories</option>
+								{#each availableBlogCategories as category}
+									<option value={category.alias}>{category.title} ({category.alias})</option>
+								{/each}
+							</select>
+							<p class="mt-1 text-xs text-gray-500">
+								Optional: show only one specific blog category in this module.
+							</p>
+						</div>
+					</div>
+				{:else if moduleForm.type === 'blogCategory'}
+					<div class="space-y-4 border-t border-gray-200 pt-4">
+						<div>
+							<label for="module-blog-category-alias" class="block text-sm font-medium text-gray-700 mb-2">
+								Blog Category
+							</label>
+							<select
+								id="module-blog-category-alias"
+								bind:value={blogCategoryAlias}
+								class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+							>
+								<option value="">All categories</option>
+								{#each availableBlogCategories as category}
+									<option value={category.alias}>{category.title} ({category.alias})</option>
+								{/each}
+							</select>
+							<p class="mt-1 text-xs text-gray-500">
+								Optional: show only one specific blog category in this module.
+							</p>
+						</div>
+					</div>
+				{:else if moduleForm.type === 'blogCategory'}
+					<div class="space-y-4 border-t border-gray-200 pt-4">
+						<div>
+							<label for="module-blog-category-alias" class="block text-sm font-medium text-gray-700 mb-2">
+								Blog Category
+							</label>
+							<select
+								id="module-blog-category-alias"
+								bind:value={blogCategoryAlias}
+								class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+							>
+								<option value="">All categories</option>
+								{#each availableBlogCategories as category}
+									<option value={category.alias}>{category.title} ({category.alias})</option>
+								{/each}
+							</select>
+							<p class="mt-1 text-xs text-gray-500">
+								Optional: show only one specific blog category in this module.
+							</p>
 						</div>
 					</div>
 				{:else}

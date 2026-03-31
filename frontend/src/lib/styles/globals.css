@@ -96,6 +96,21 @@ html.dark body {
   --os-font-form-labels: var(--os-font-body);
   --os-font-form-labels-size: 0.875rem;
   --os-font-form-labels-weight: 500;
+  /* Layout shell (ThemeColorApplier overrides from site template.customLayout) */
+  --os-max-width: 1200px;
+  --os-padding: 1rem;
+  --os-gap: 1.5rem;
+}
+
+/* Max width + horizontal padding from site layout customization */
+.os-shell-container {
+  width: 100%;
+  max-width: var(--os-max-width);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--os-padding);
+  padding-right: var(--os-padding);
+  box-sizing: border-box;
 }
 
 @layer base {

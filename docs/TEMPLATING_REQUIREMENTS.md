@@ -341,6 +341,7 @@ Until Phase 2 is implemented, these rules are **design intent**, with the follow
 - **FR-LIVE-1:** Public routes resolve the active pack from `frontendTemplate` / `activeTemplate` (legacy) and render pack pages/components accordingly.
 - **FR-LIVE-2:** **`componentVisibility`** and **`headerConfig`** (and pack-level defaults where coded) control which chrome blocks appear; site config overrides pack defaults per field where specified.
 - **FR-LIVE-3:** **Pages layer** — `pageModules` is keyed by page/region (`home`, `gallery`, `album`, `header`, `footer`, …). Each module instance selects a **UI component** (`type` + `props`) and placement (`rowOrder`, `columnIndex`, `rowSpan`, `colSpan`). `pageLayout[pageKey]` supplies **gridRows** / **gridColumns** for that page.
+- **FR-LIVE-4:** Public route content is wrapped by a shared shell container (`BodyTemplateWrapper` + `.os-shell-container`) that uses CSS variables from **Layout Customization**: `--os-max-width`, `--os-padding`, `--os-gap`. These variables are resolved per breakpoint (`xs..xl`) from `template.customLayout` / `template.customLayoutByBreakpoint` and applied via CSS media queries (mobile-first).
 
 ### 3.4 Header and footer rendering (two modes)
 
@@ -398,6 +399,7 @@ Until Phase 2 is implemented, these rules are **design intent**, with the follow
 | Document | Role |
 |----------|------|
 | `docs/CREATE_TEMPLATE_PACK.md` | How to add/register a pack, Joomla-oriented mapping, verification |
+| `docs/UI_COMPONENT_MODULES.md` | Module authoring contract: structure, registration, props rules, and examples |
 | `docs/TEMPLATING_TASKS.md` | Milestones, backlog, MVP acceptance |
 | `docs/templates.md` | Legacy/extended “new template” notes (some paths overlap; prefer registry + requirements above for current truth) |
 | `docs/TEMPLATE_CONTROL.md` | **Operator guide:** where to click to control colors, fonts, pages, header/footer; Admin URL map |
@@ -421,3 +423,7 @@ When behavior changes (e.g. new built-in pack, new theme fields, or chrome resol
 **2026-03:** **Pages layer (structure)** — Grid configuration called out as **per breakpoint**; added **component vs template responsiveness** (e.g. menu / hamburger inside one module vs changing the page grid per breakpoint).
 
 **2026-03 (doc structure):** Added **§0 Decisions log**; **canonical wire format** for placement (anchor + span only at persistence); **normative breakpoint cascade** in **§2.2.3**; **interim props documentation** rule in **§2.4**; **FR-VAL-3…5** for pages-layer validation; moved **P0–P4** phased cell-based module assignment work to **`TEMPLATING_TASKS.md`**; clarified **§2** vs **§3** roles in the intro.
+
+**2026-03:** Added `docs/UI_COMPONENT_MODULES.md` with a standard module file structure, authoring/registration rules, and starter examples for `blogCategory` and `blogArticle`.
+
+**2026-03 (layout shell):** Clarified live rendering requirement that public content is wrapped by a shared shell container and that `maxWidth` / `containerPadding` / `gridGap` are sourced from **Layout Customization** per breakpoint via CSS variables.
