@@ -66,7 +66,6 @@ export default defineConfig({
 						// /api/admin/storage is proxied to backend (no SvelteKit handler)
 						url.startsWith('/api/admin/storage-options') ||
 						url.startsWith('/api/admin/translations') ||
-						url.startsWith('/api/admin/template-builder') ||
 						url.startsWith('/api/owner/storage-options') ||
 						(url.startsWith('/api/albums') && method === 'POST') ||
 						url.startsWith('/api/albums/hierarchy') ||

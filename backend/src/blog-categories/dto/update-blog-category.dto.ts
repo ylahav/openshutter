@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsBoolean, IsNumber } from 'class-validator';
+import { Allow, IsString, IsOptional, IsBoolean, IsNumber } from 'class-validator';
 import { MultiLangText, MultiLangHTML } from '../../types/multi-lang';
 
 /**
@@ -6,15 +6,17 @@ import { MultiLangText, MultiLangHTML } from '../../types/multi-lang';
  * Used by PUT /api/admin/blog-categories/:id.
  */
 export class UpdateBlogCategoryDto {
+	@Allow()
 	@IsOptional()
 	title?: string | MultiLangText;
-	
+
+	@Allow()
 	@IsOptional()
 	description?: string | MultiLangHTML;
-	
-	@IsString()
+
+	@Allow()
 	@IsOptional()
-	leadingImage?: string;
+	leadingImage?: string | Record<string, unknown>;
 	
 	@IsBoolean()
 	@IsOptional()

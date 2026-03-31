@@ -24,7 +24,7 @@ export class UpdateThemeDto {
 
   @IsOptional()
   @IsObject()
-  customLayout?: Record<string, string>;
+  customLayout?: Record<string, unknown>;
 
   @IsOptional()
   @IsObject()
@@ -34,15 +34,27 @@ export class UpdateThemeDto {
   @IsObject()
   headerConfig?: Record<string, unknown>;
 
-  /** Per-page modules: { home: [...], gallery: [...], album: [...], search: [...], header: [...], footer: [...] } */
+  /** Per-page modules: legacy flat arrays or breakpoint map per page. */
   @IsOptional()
   @IsObject()
-  pageModules?: Record<string, any[]>;
+  pageModules?: Record<string, unknown>;
 
-  /** Per-page grid layout: { home: { gridRows: 3, gridColumns: 1 }, ... } */
+  /** Per-page grid: legacy flat grids or breakpoint map per page. */
   @IsOptional()
   @IsObject()
-  pageLayout?: Record<string, { gridRows?: number; gridColumns?: number }>;
+  pageLayout?: Record<string, unknown>;
+
+  @IsOptional()
+  @IsObject()
+  customLayoutByBreakpoint?: Record<string, Record<string, string>>;
+
+  @IsOptional()
+  @IsObject()
+  pageLayoutByBreakpoint?: Record<string, Record<string, { gridRows?: number; gridColumns?: number }>>;
+
+  @IsOptional()
+  @IsObject()
+  pageModulesByBreakpoint?: Record<string, Record<string, unknown[]>>;
 
   @IsOptional()
   @IsBoolean()

@@ -17,6 +17,8 @@ export interface SiteConfig {
     textColor: string
   }
   template?: {
+    /** Mongo themes collection id last applied from Admin → Templates (optional, for display/debug) */
+    activeThemeId?: string
     activeTemplate?: string // Deprecated: use frontendTemplate instead, kept for backward compatibility
     frontendTemplate?: string // Template for public-facing frontend pages
     adminTemplate?: string // Template for admin area pages
@@ -30,11 +32,20 @@ export interface SiteConfig {
     }
     /** Per-role font: string (family) or { family?, size?, weight? }. */
     customFonts?: Record<string, string | { family?: string; size?: string; weight?: string }>
-    customLayout?: {
-      maxWidth?: string
-      containerPadding?: string
-      gridGap?: string
-    }
+    /** Legacy flat shell or breakpoint-keyed map (xs … xl). */
+    customLayout?:
+      | {
+          maxWidth?: string
+          containerPadding?: string
+          gridGap?: string
+        }
+      | Record<string, { maxWidth?: string; containerPadding?: string; gridGap?: string }>
+    customLayoutByBreakpoint?: Record<string, { maxWidth?: string; containerPadding?: string; gridGap?: string }>
+    pageLayoutByBreakpoint?: Record<
+      string,
+      Record<string, { gridRows?: number; gridColumns?: number }>
+    >
+    pageModulesByBreakpoint?: Record<string, Record<string, any[]>>
     componentVisibility?: {
       hero?: boolean
       languageSelector?: boolean
@@ -42,7 +53,7 @@ export interface SiteConfig {
       footerMenu?: boolean
       statistics?: boolean
       promotion?: boolean
-    }
+    } | null
     headerConfig?: {
       showLogo?: boolean
       showSiteTitle?: boolean
@@ -54,11 +65,10 @@ export interface SiteConfig {
       showGreeting?: boolean
       showAuthButtons?: boolean
       showTemplateSelector?: boolean
-    }
-    /** Per-page modules from theme: { home: [...], gallery: [...], etc. } */
-    pageModules?: Record<string, any[]>
-    /** Per-page grid layout: { home: { gridRows: 3, gridColumns: 1 }, ... } */
-    pageLayout?: Record<string, { gridRows?: number; gridColumns?: number }>
+    } | null
+    /** Legacy flat per page, or `{ pageKey: { xs: …, lg: … } }` map. */
+    pageModules?: Record<string, any[] | Record<string, any[]>>
+    pageLayout?: Record<string, { gridRows?: number; gridColumns?: number } | Record<string, { gridRows?: number; gridColumns?: number }>>
   }
   seo: {
     metaTitle: MultiLangText
@@ -151,6 +161,12 @@ export interface SiteConfig {
 }
 
 export interface SiteConfigUpdate {
+  /**
+   * When true (e.g. Admin → Apply theme), `template` fields that come from a theme document
+   * replace the stored values entirely instead of deep-merging with existing `pageModules` /
+   * `pageLayout` / colors — so old "positions" do not stick around.
+   */
+  replaceTemplateFromTheme?: boolean
   title?: MultiLangText
   description?: MultiLangHTML
   logo?: string

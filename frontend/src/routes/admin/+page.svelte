@@ -78,7 +78,15 @@
 					</div>
 					<h2 class="text-xl font-semibold text-gray-900 ml-3">{$t('admin.siteConfiguration')}</h2>
 				</div>
-				<p class="text-gray-600 mb-4">{$t('admin.configureGallery')}</p>
+				<p class="text-gray-600 mb-2">{$t('admin.configureGallery')}</p>
+				<p class="text-sm text-gray-500 mb-4">
+					<a
+						href="/admin/site-config?tab=template"
+						class="text-blue-600 hover:underline"
+					>
+						{$t('admin.siteConfigTemplateQuickLink')}
+					</a>
+				</p>
 				<a
 					href="/admin/site-config"
 					class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
@@ -374,7 +382,7 @@
 				</a>
 			</div>
 
-			<!-- Blog Categories Management -->
+			<!-- Blog management (categories + articles) -->
 			<div class="bg-white rounded-lg shadow-md p-6">
 				<div class="flex items-center mb-4">
 					<div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
@@ -383,18 +391,18 @@
 								stroke-linecap="round"
 								stroke-linejoin="round"
 								stroke-width="2"
-								d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
+								d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h8l6 6v10a2 2 0 01-2 2zM7 7h.01M7 3h5v4H7V3z"
 							/>
 						</svg>
 					</div>
-					<h2 class="text-xl font-semibold text-gray-900 ml-3">{$t('admin.blogCategories')}</h2>
+					<h2 class="text-xl font-semibold text-gray-900 ml-3">{$t('admin.blogWorkspaceTitle')}</h2>
 				</div>
-				<p class="text-gray-600 mb-4">{$t('admin.manageBlogCategories')}</p>
+				<p class="text-gray-600 mb-4">{$t('admin.blogWorkspaceSubtitle')}</p>
 				<a
-					href="/admin/blog-categories"
+					href="/admin/blogs"
 					class="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
 				>
-					{$t('admin.manageBlogCategories')}
+					{$t('admin.goToBlogWorkspace')}
 					<svg class="ml-2 w-4 h-4 rtl-flip" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
 					</svg>

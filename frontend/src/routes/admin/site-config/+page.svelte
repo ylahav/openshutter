@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { get } from 'svelte/store';
+	import { page } from '$app/stores';
 	import type { SiteConfig } from '$lib/types/site-config';
 	import MultiLangInput from '$lib/components/MultiLangInput.svelte';
 	import MultiLangHTMLEditor from '$lib/components/MultiLangHTMLEditor.svelte';
@@ -33,6 +35,7 @@
 		{ id: 'exifMetadata', labelKey: 'admin.exifMetadata' },
 		{ id: 'iptcXmpMetadata', labelKey: 'admin.iptcXmpMetadata' },
 		{ id: 'sharing', labelKey: 'admin.sharing' },
+		{ id: 'template', labelKey: 'admin.siteConfigTemplateTab' },
 		{ id: 'email', labelKey: 'admin.email' }
 	];
 
@@ -129,6 +132,10 @@
 
 	onMount(async () => {
 		await Promise.all([loadConfig(), loadAvailableLanguages()]);
+		const tab = get(page).url.searchParams.get('tab');
+		if (tab && configTabs.some((t) => t.id === tab)) {
+			activeTab = tab;
+		}
 	});
 
 	async function loadConfig() {
@@ -2132,6 +2139,69 @@ on:click={() => {
 								</div>
 							</div>
 							</div>
+						</div>
+					{:else if activeTab === 'template'}
+						<div class="space-y-6">
+							<div>
+								<h3 class="text-lg font-semibold text-gray-900">
+									{$t('admin.siteConfigTemplateSectionTitle')}
+								</h3>
+								<p class="text-sm text-gray-600 mt-1">
+									{$t('admin.siteConfigTemplateSectionIntro')}
+								</p>
+							</div>
+
+							<dl class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+								<div class="p-4 bg-gray-50 rounded-lg border border-gray-100">
+									<dt class="font-medium text-gray-700">
+										{$t('admin.siteConfigTemplatePublicTheme')}
+									</dt>
+									<dd class="mt-1 text-gray-900 font-mono">
+										{config?.template?.frontendTemplate ||
+											config?.template?.activeTemplate ||
+											'—'}
+									</dd>
+								</div>
+								<div class="p-4 bg-gray-50 rounded-lg border border-gray-100">
+									<dt class="font-medium text-gray-700">
+										{$t('admin.siteConfigTemplateAdminTheme')}
+									</dt>
+									<dd class="mt-1 text-gray-900 font-mono">
+										{config?.template?.adminTemplate ||
+											config?.template?.activeTemplate ||
+											'—'}
+									</dd>
+								</div>
+							</dl>
+							<div class="flex flex-wrap gap-3">
+								<a
+									href="/admin/templates"
+									class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm font-medium"
+								>
+									{$t('admin.manageTemplates')}
+								</a>
+								<a
+									href="/admin/template-config"
+									class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
+								>
+									{$t('admin.siteConfigTemplateLinkVisibility')}
+								</a>
+								<a
+									href="/admin/templates/overrides"
+									class="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 text-sm font-medium"
+								>
+									{$t('admin.themeBuilder')}
+								</a>
+								<a
+									href="/admin/templates/customize"
+									class="inline-flex items-center px-4 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-800 text-sm font-medium"
+								>
+									{$t('admin.siteConfigTemplateLinkAdvanced')}
+								</a>
+							</div>
+							<p class="text-xs text-gray-500">
+								{$t('admin.siteConfigTemplateFooterHint')}
+							</p>
 						</div>
 					{:else if activeTab === 'email'}
 						<div class="grid grid-cols-1 gap-6">

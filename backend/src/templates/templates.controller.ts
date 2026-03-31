@@ -5,6 +5,16 @@ import type { TemplateConfig, FontSetting } from '../types/template';
 const font = (family: string, size?: string, weight?: string): FontSetting =>
   size || weight ? { family, size, weight } : { family };
 
+/** Aligns with frontend `DEFAULT_PAGE_LAYOUTS` — default rows/columns per page key when a pack does not override. */
+const DEFAULT_PACK_PAGE_LAYOUT: Record<string, { gridRows: number; gridColumns: number }> = {
+  home: { gridRows: 2, gridColumns: 1 },
+  gallery: { gridRows: 1, gridColumns: 1 },
+  album: { gridRows: 1, gridColumns: 1 },
+  search: { gridRows: 1, gridColumns: 1 },
+  header: { gridRows: 1, gridColumns: 5 },
+  footer: { gridRows: 2, gridColumns: 1 },
+};
+
 // Import static templates directly
 const staticTemplates: Record<string, TemplateConfig> = {
   'default': {
@@ -26,6 +36,7 @@ const staticTemplates: Record<string, TemplateConfig> = {
       formLabels: font('Inter'),
     },
     layout: { maxWidth: '1200px', containerPadding: '1rem', gridGap: '1.5rem' },
+    pageLayout: { ...DEFAULT_PACK_PAGE_LAYOUT },
     components: {
       hero: 'components/Hero.tsx',
       albumCard: 'components/AlbumCard.tsx',
@@ -47,7 +58,7 @@ const staticTemplates: Record<string, TemplateConfig> = {
     thumbnail: '/templates/modern/thumbnail.jpg',
     category: 'modern',
     features: { responsive: true, darkMode: true, animations: true, seoOptimized: true },
-    colors: { primary: '#3b82f6', secondary: '#6b7280', accent: '#10b981', background: '#ffffff', text: '#111827', muted: '#6b7280' },
+    colors: { primary: '#2563EB', secondary: '#334155', accent: '#22D3EE', background: '#0F172A', text: '#E2E8F0', muted: '#94A3B8' },
     fonts: {
       heading: font('Inter', '1.25rem', '600'),
       body: font('Inter', '1rem', '400'),
@@ -56,7 +67,8 @@ const staticTemplates: Record<string, TemplateConfig> = {
       formInputs: font('Inter'),
       formLabels: font('Inter'),
     },
-    layout: { maxWidth: '1200px', containerPadding: '1rem', gridGap: '1.5rem' },
+    layout: { maxWidth: '1280px', containerPadding: '1.5rem', gridGap: '1.75rem' },
+    pageLayout: { ...DEFAULT_PACK_PAGE_LAYOUT },
     components: {
       hero: 'components/Hero.tsx',
       albumCard: 'components/AlbumCard.tsx',
@@ -78,16 +90,17 @@ const staticTemplates: Record<string, TemplateConfig> = {
     thumbnail: '/templates/elegant/thumbnail.jpg',
     category: 'elegant',
     features: { responsive: true, darkMode: true, animations: true, seoOptimized: true },
-    colors: { primary: '#8b5cf6', secondary: '#a78bfa', accent: '#f59e0b', background: '#ffffff', text: '#1f2937', muted: '#6b7280' },
+    colors: { primary: '#7C3AED', secondary: '#C4B5FD', accent: '#F59E0B', background: '#1F1437', text: '#F5F3FF', muted: '#C4B5FD' },
     fonts: {
       heading: font('Playfair Display', '1.25rem', '600'),
-      body: font('Inter', '1rem', '400'),
+      body: font('Lora', '1rem', '400'),
       links: font('Inter'),
       lists: font('Inter'),
       formInputs: font('Inter'),
       formLabels: font('Inter'),
     },
-    layout: { maxWidth: '1200px', containerPadding: '1rem', gridGap: '1.5rem' },
+    layout: { maxWidth: '1100px', containerPadding: '2rem', gridGap: '2rem' },
+    pageLayout: { ...DEFAULT_PACK_PAGE_LAYOUT },
     components: {
       hero: 'components/Hero.tsx',
       albumCard: 'components/AlbumCard.tsx',
@@ -109,16 +122,17 @@ const staticTemplates: Record<string, TemplateConfig> = {
     thumbnail: '/templates/minimal/thumbnail.jpg',
     category: 'minimal',
     features: { responsive: true, darkMode: false, animations: false, seoOptimized: true },
-    colors: { primary: '#000000', secondary: '#6b7280', accent: '#000000', background: '#ffffff', text: '#000000', muted: '#6b7280' },
+    colors: { primary: '#111111', secondary: '#9CA3AF', accent: '#111111', background: '#FFFFFF', text: '#111111', muted: '#9CA3AF' },
     fonts: {
-      heading: font('Inter', '1.25rem', '600'),
-      body: font('Inter', '1rem', '400'),
+      heading: font('Inter', '1.125rem', '500'),
+      body: font('Inter', '0.95rem', '400'),
       links: font('Inter'),
       lists: font('Inter'),
       formInputs: font('Inter'),
       formLabels: font('Inter'),
     },
-    layout: { maxWidth: '1200px', containerPadding: '1rem', gridGap: '1rem' },
+    layout: { maxWidth: '980px', containerPadding: '0.75rem', gridGap: '0.75rem' },
+    pageLayout: { ...DEFAULT_PACK_PAGE_LAYOUT },
     components: {
       hero: 'components/Hero.tsx',
       albumCard: 'components/AlbumCard.tsx',

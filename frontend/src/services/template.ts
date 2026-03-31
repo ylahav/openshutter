@@ -4,6 +4,16 @@ import type { TemplateWithOverrides } from './template-overrides'
 import type { SiteConfig } from '$lib/types/site-config'
 import { logger } from '$lib/utils/logger'
 
+const TEMPLATE_PACK_LOADER_FLAG = 'PUBLIC_ENABLE_TEMPLATE_PACK_LOADER'
+const TEMPLATE_PACK_LOADER_ENABLED =
+  String((import.meta as any)?.env?.[TEMPLATE_PACK_LOADER_FLAG] ?? '').toLowerCase() === 'true'
+
+type TemplateConfigValidationResult = {
+  valid: boolean
+  missingComponents: string[]
+  missingPages: string[]
+}
+
 export class TemplateService {
   private static instance: TemplateService
   private templateCache: Map<string, TemplateConfig> = new Map()
@@ -235,9 +245,9 @@ export class TemplateService {
         thumbnail: '/templates/modern/thumbnail.jpg',
         category: 'modern',
         features: { responsive: true, darkMode: true, animations: true, seoOptimized: true },
-        colors: { primary: '#3b82f6', secondary: '#6b7280', accent: '#10b981', background: '#ffffff', text: '#111827', muted: '#6b7280' },
+        colors: { primary: '#2563EB', secondary: '#334155', accent: '#22D3EE', background: '#0F172A', text: '#E2E8F0', muted: '#94A3B8' },
         fonts: { heading: 'Inter', body: 'Inter' },
-        layout: { maxWidth: '1200px', containerPadding: '1rem', gridGap: '1.5rem' },
+        layout: { maxWidth: '1280px', containerPadding: '1.5rem', gridGap: '1.75rem' },
         components: {
           hero: 'components/Hero.tsx',
           albumCard: 'components/AlbumCard.tsx',
@@ -259,9 +269,9 @@ export class TemplateService {
         thumbnail: '/templates/elegant/thumbnail.jpg',
         category: 'elegant',
         features: { responsive: true, darkMode: true, animations: true, seoOptimized: true },
-        colors: { primary: '#8b5cf6', secondary: '#a78bfa', accent: '#f59e0b', background: '#ffffff', text: '#1f2937', muted: '#6b7280' },
-        fonts: { heading: 'Playfair Display', body: 'Inter' },
-        layout: { maxWidth: '1200px', containerPadding: '1rem', gridGap: '1.5rem' },
+        colors: { primary: '#7C3AED', secondary: '#C4B5FD', accent: '#F59E0B', background: '#1F1437', text: '#F5F3FF', muted: '#C4B5FD' },
+        fonts: { heading: 'Playfair Display', body: 'Lora' },
+        layout: { maxWidth: '1100px', containerPadding: '2rem', gridGap: '2rem' },
         components: {
           hero: 'components/Hero.tsx',
           albumCard: 'components/AlbumCard.tsx',
@@ -283,9 +293,9 @@ export class TemplateService {
         thumbnail: '/templates/minimal/thumbnail.jpg',
         category: 'minimal',
         features: { responsive: true, darkMode: false, animations: false, seoOptimized: true },
-        colors: { primary: '#000000', secondary: '#6b7280', accent: '#000000', background: '#ffffff', text: '#000000', muted: '#6b7280' },
+        colors: { primary: '#111111', secondary: '#9CA3AF', accent: '#111111', background: '#FFFFFF', text: '#111111', muted: '#9CA3AF' },
         fonts: { heading: 'Inter', body: 'Inter' },
-        layout: { maxWidth: '1200px', containerPadding: '1rem', gridGap: '1rem' },
+        layout: { maxWidth: '980px', containerPadding: '0.75rem', gridGap: '0.75rem' },
         components: {
           hero: 'components/Hero.tsx',
           albumCard: 'components/AlbumCard.tsx',
@@ -299,9 +309,54 @@ export class TemplateService {
         pages: { home: 'pages/Home.tsx', gallery: 'pages/Gallery.tsx', album: 'pages/Album.tsx', search: 'pages/Search.tsx' },
       }
     }
-    
-    // Return the requested template or default
-    return staticTemplates[templateName] || staticTemplates['default']
+
+    // Keep existing behavior during rollout unless explicitly enabled.
+    if (!TEMPLATE_PACK_LOADER_ENABLED) {
+      return staticTemplates[templateName] || staticTemplates['default']
+    }
+
+    const selectedTemplate = staticTemplates[templateName]
+    if (!selectedTemplate) {
+      logger.warn(
+        `[TemplatePackLoader] Unknown template "${templateName}", falling back to default template`
+      )
+      return staticTemplates['default']
+    }
+
+    const validation = this.validateTemplateConfig(selectedTemplate)
+    if (validation.valid) {
+      return selectedTemplate
+    }
+
+    logger.error(
+      `[TemplatePackLoader] Invalid template "${templateName}". Missing components: ${validation.missingComponents.join(', ') || 'none'}. Missing pages: ${validation.missingPages.join(', ') || 'none'}. Falling back to default template.`
+    )
+    return staticTemplates['default']
+  }
+
+  private validateTemplateConfig(template: TemplateConfig): TemplateConfigValidationResult {
+    const requiredComponents = [
+      'hero',
+      'albumCard',
+      'photoCard',
+      'albumList',
+      'gallery',
+      'navigation',
+      'footer'
+    ] as const
+
+    const requiredPages = ['home', 'gallery', 'album', 'search'] as const
+
+    const missingComponents = requiredComponents.filter(
+      (component) => !template.components?.[component]
+    )
+    const missingPages = requiredPages.filter((page) => !template.pages?.[page])
+
+    return {
+      valid: missingComponents.length === 0 && missingPages.length === 0,
+      missingComponents,
+      missingPages
+    }
   }
 
   /**

@@ -1,6 +1,9 @@
 import { Logger } from '@nestjs/common'
 import { TemplateConfig } from '../types/template'
 import { SiteConfig } from '../types/site-config'
+import { isLegacyCustomLayout, resolveShellLayout } from '../template/shell-layout'
+
+const LAYOUT_MERGE_VIEWPORT_PX = 1024
 
 export interface TemplateWithOverrides extends TemplateConfig {
   // Mark that this template has been processed with overrides
@@ -41,11 +44,24 @@ export class TemplateOverridesService {
       }
     }
 
-    // Merge custom layout
-    if (overrides.customLayout) {
-      merged.layout = {
-        ...baseTemplate.layout,
-        ...overrides.customLayout
+    if (overrides.customLayout || overrides.customLayoutByBreakpoint) {
+      if (overrides.customLayout && isLegacyCustomLayout(overrides.customLayout)) {
+        merged.layout = {
+          ...baseTemplate.layout,
+          ...overrides.customLayout
+        }
+      } else {
+        const resolved = resolveShellLayout(
+          {
+            customLayout: overrides.customLayout,
+            customLayoutByBreakpoint: overrides.customLayoutByBreakpoint
+          },
+          LAYOUT_MERGE_VIEWPORT_PX
+        )
+        merged.layout = {
+          ...baseTemplate.layout,
+          ...resolved
+        }
       }
     }
 

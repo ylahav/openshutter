@@ -3,13 +3,17 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { siteConfigData, siteConfig } from '$stores/siteConfig';
+	import {
+		clearAdminPreviewTemplate,
+		getAdminPreviewTemplate,
+		getAdminPreviewThemeId,
+		setAdminPreviewTemplate
+	} from '$stores/template';
 	import { t } from '$stores/i18n';
 	import { handleAuthError } from '$lib/utils/auth-error-handler';
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
-	import type { PageData } from './$types';
-
-	export let data: PageData;
+	import { applyThemeById } from '$lib/services/apply-theme';
 
 	interface Theme {
 		_id: string;
@@ -19,7 +23,7 @@
 		basePalette?: string;
 		customColors?: Record<string, string>;
 		customFonts?: Record<string, string>;
-		customLayout?: Record<string, string>;
+		customLayout?: Record<string, unknown>;
 		pageModules?: Record<string, any[]>;
 		pageLayout?: Record<string, { gridRows?: number; gridColumns?: number }>;
 		isPublished?: boolean;
@@ -41,10 +45,60 @@
 	let duplicateThemeId: string | null = null;
 	let deleteThemeId: string | null = null;
 	let applyThemeId: string | null = null;
+	let previewTemplate: string | null = null;
+	let previewThemeId: string | null = null;
+	let adminTemplateDraft = 'default';
+	let savingAdminTemplate = false;
+	let lastSyncedAdminTemplate = '';
+
+	const BASE_TEMPLATE_PREVIEW: Record<
+		string,
+		{
+			colors: { primary: string; secondary: string; accent: string; background: string };
+			label: string;
+		}
+	> = {
+		minimal: {
+			colors: { primary: '#111111', secondary: '#9CA3AF', accent: '#111111', background: '#FFFFFF' },
+			label: 'Clean monochrome'
+		},
+		modern: {
+			colors: { primary: '#2563EB', secondary: '#334155', accent: '#22D3EE', background: '#0F172A' },
+			label: 'Bold contrast'
+		},
+		elegant: {
+			colors: { primary: '#7C3AED', secondary: '#C4B5FD', accent: '#F59E0B', background: '#1F1437' },
+			label: 'Luxury serif'
+		},
+		default: {
+			colors: { primary: '#3B82F6', secondary: '#6B7280', accent: '#F59E0B', background: '#FFFFFF' },
+			label: 'Balanced classic'
+		}
+	};
 
 	$: frontendTemplate = $siteConfigData?.template?.frontendTemplate || $siteConfigData?.template?.activeTemplate || 'modern';
+	$: adminTemplateName =
+		$siteConfigData?.template?.adminTemplate || $siteConfigData?.template?.activeTemplate || 'default';
+	$: if (
+		!savingAdminTemplate &&
+		adminTemplateName &&
+		adminTemplateName !== lastSyncedAdminTemplate
+	) {
+		adminTemplateDraft = adminTemplateName;
+		lastSyncedAdminTemplate = adminTemplateName;
+	}
+	$: adminTemplateDirty = adminTemplateDraft !== adminTemplateName;
+	$: liveThemeId = $siteConfigData?.template?.activeThemeId;
+	/** Resolved preset name from DB for the default public theme */
+	$: defaultPublicThemeLabel =
+		liveThemeId && themes.length > 0
+			? themes.find((t) => t._id === liveThemeId)?.name ?? '—'
+			: '—';
 
 	onMount(async () => {
+		await siteConfig.load();
+		previewTemplate = getAdminPreviewTemplate();
+		previewThemeId = getAdminPreviewThemeId();
 		await loadThemes();
 	});
 
@@ -147,48 +201,19 @@
 
 	async function applyTheme(themeId: string) {
 		try {
-			// Fetch the full theme to ensure we have pageModules and pageLayout
-			const themeRes = await fetch(`/api/admin/themes/${themeId}`, { credentials: 'include' });
-			if (!themeRes.ok) {
-				await handleApiErrorResponse(themeRes);
+			const result = await applyThemeById(themeId);
+			if (!result.ok) {
+				error = result.error;
 				return;
 			}
-			const themeResult = await themeRes.json();
-			const theme = themeResult.data || themeResult;
-			
-			if (!theme) {
-				error = $t('admin.themeNotFound');
-				return;
-			}
-
-			const response = await fetch('/api/admin/site-config', {
-				method: 'PUT',
-				headers: { 'Content-Type': 'application/json' },
-				credentials: 'include',
-				body: JSON.stringify({
-					template: {
-						frontendTemplate: theme.baseTemplate,
-						activeTemplate: theme.baseTemplate,
-						customColors: theme.customColors || {},
-						customFonts: theme.customFonts || {},
-						customLayout: theme.customLayout || {},
-						pageModules: theme.pageModules || {},
-						pageLayout: theme.pageLayout || {}
-					}
-				})
-			});
-			if (!response.ok) await handleApiErrorResponse(response);
+			previewTemplate = null;
+			previewThemeId = null;
 			applyThemeId = null;
-			message = $t('admin.themeApplied').replace('{name}', theme.name);
-			await siteConfig.load();
-			// Reload after a short delay to ensure siteConfig is updated
+			message = $t('admin.themeApplied').replace('{name}', result.themeName);
 			setTimeout(() => {
 				message = '';
-				// If we're not on the admin page, reload to see changes
-				if (!window.location.pathname.startsWith('/admin')) {
-					window.location.reload();
-				}
-			}, 1000);
+				window.location.reload();
+			}, 600);
 		} catch (err) {
 			error = handleError(err, $t('admin.failedToApplyTheme'));
 		}
@@ -211,7 +236,57 @@
 	}
 
 	function getColor(theme: Theme, key: string): string {
-		return theme.customColors?.[key] || '#999';
+		const fallback = BASE_TEMPLATE_PREVIEW[theme.baseTemplate]?.colors as Record<string, string> | undefined;
+		return theme.customColors?.[key] || fallback?.[key] || '#999';
+	}
+
+	function getTemplateStyleLabel(theme: Theme): string {
+		return BASE_TEMPLATE_PREVIEW[theme.baseTemplate]?.label || 'Custom style';
+	}
+
+	function previewTheme(theme: Theme): void {
+		setAdminPreviewTemplate(theme.baseTemplate, theme._id);
+		previewTemplate = theme.baseTemplate;
+		previewThemeId = theme._id;
+		message = `Previewing ${theme.name}. Use Set as default or Apply Preview to save, or Revert Preview to discard.`;
+		error = '';
+	}
+
+	function clearPreview(): void {
+		clearAdminPreviewTemplate();
+		previewTemplate = null;
+		previewThemeId = null;
+		message = 'Preview reverted to saved template.';
+	}
+
+	function openApplyPreview(): void {
+		if (previewThemeId) applyThemeId = previewThemeId;
+	}
+
+	async function saveAdminTemplateOnly(): Promise<void> {
+		if (!adminTemplateDraft || !adminTemplateDirty || savingAdminTemplate) return;
+		savingAdminTemplate = true;
+		error = '';
+		try {
+			const response = await fetch('/api/admin/site-config', {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				credentials: 'include',
+				body: JSON.stringify({
+					template: {
+						adminTemplate: adminTemplateDraft
+					}
+				})
+			});
+			if (!response.ok) await handleApiErrorResponse(response);
+			await siteConfig.load();
+			message = $t('admin.configurationSaved');
+			setTimeout(() => (message = ''), 2500);
+		} catch (err) {
+			error = handleError(err, $t('admin.failedToSave'));
+		} finally {
+			savingAdminTemplate = false;
+		}
 	}
 </script>
 
@@ -228,10 +303,52 @@
 					<p class="text-gray-600 mt-1">
 						{$t('admin.manageThemesDescription')}
 					</p>
-					<p class="mt-2 text-sm">
-						<span class="font-medium text-gray-700">{$t('admin.activeTemplate')}:</span>
-						<span class="ml-1 px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 font-medium">{frontendTemplate}</span>
+					<p id="templates-preview-help" class="text-sm text-gray-500 mt-2 max-w-2xl">
+						{$t('admin.previewCurrentPageHelp')}
 					</p>
+					<div class="mt-3 text-sm space-y-1 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 max-w-xl">
+						<p class="font-medium text-gray-800">{$t('admin.templatesDefaultsHeading')}</p>
+						<p>
+							<span class="text-gray-600">{$t('admin.templatesDefaultPublic')}:</span>
+							<span class="ml-1 font-medium text-gray-900">{defaultPublicThemeLabel}</span>
+							<span class="text-gray-500"> · {$t('admin.templatesDefaultPack')}</span>
+							<span class="font-mono text-gray-800">{frontendTemplate}</span>
+						</p>
+						<p>
+							<span class="text-gray-600">{$t('admin.templatesDefaultAdmin')}:</span>
+							<span class="ml-1 font-mono font-medium text-gray-900">{adminTemplateName}</span>
+						</p>
+					</div>
+					<div class="mt-3 flex flex-wrap items-end gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 max-w-xl">
+						<div class="min-w-48">
+							<label for="admin-template-select" class="block text-xs font-medium text-gray-700 mb-1">
+								{$t('admin.siteConfigTemplateAdminTheme')}
+							</label>
+							<select
+								id="admin-template-select"
+								bind:value={adminTemplateDraft}
+								class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+							>
+								<option value="default">default</option>
+								<option value="minimal">minimal</option>
+								<option value="modern">modern</option>
+								<option value="elegant">elegant</option>
+							</select>
+						</div>
+						<button
+							type="button"
+							on:click={saveAdminTemplateOnly}
+							disabled={!adminTemplateDirty || savingAdminTemplate}
+							class="px-3 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm font-medium disabled:opacity-50"
+						>
+							{savingAdminTemplate ? `${$t('admin.save')}...` : $t('admin.save')}
+						</button>
+					</div>
+					{#if previewTemplate}
+						<p class="mt-1 text-xs text-amber-700">
+							Preview mode: <span class="font-semibold">{previewTemplate}</span> (not saved yet)
+						</p>
+					{/if}
 				</div>
 				<div class="flex gap-2">
 					<button
@@ -253,6 +370,26 @@
 					>
 						{$t('admin.backToAdmin')}
 					</a>
+					{#if previewTemplate && previewThemeId}
+						<button
+							type="button"
+							on:click={openApplyPreview}
+							class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm font-medium"
+							title={$t('admin.applyPreview')}
+						>
+							{$t('admin.applyPreview')}
+						</button>
+					{/if}
+					{#if previewTemplate}
+						<button
+							type="button"
+							on:click={clearPreview}
+							class="px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 text-sm font-medium"
+							title={$t('admin.revertPreview')}
+						>
+							{$t('admin.revertPreview')}
+						</button>
+					{/if}
 				</div>
 			</div>
 
@@ -291,9 +428,14 @@
 							<div class="p-4">
 								<div class="flex items-center gap-2">
 									<h3 class="font-semibold text-gray-900">{theme.name}</h3>
-									{#if theme.baseTemplate === frontendTemplate}
+									{#if liveThemeId ? liveThemeId === theme._id : theme.baseTemplate === frontendTemplate}
 										<span class="px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800">
-											{$t('admin.active')}
+											{$t('admin.defaultThemeBadge')}
+										</span>
+									{/if}
+									{#if previewTemplate === theme.baseTemplate}
+										<span class="px-2 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-800">
+											Previewing
 										</span>
 									{/if}
 								</div>
@@ -302,6 +444,7 @@
 									{theme.basePalette ? `· ${theme.basePalette}` : ''}{' '}
 									{theme.isBuiltIn ? `· ${$t('admin.builtIn')}` : ''}
 								</p>
+								<p class="text-xs text-gray-600 mt-1">{getTemplateStyleLabel(theme)}</p>
 								<div class="flex flex-wrap gap-2 mt-3">
 									<a
 										href="/admin/templates/overrides?themeId={theme._id}"
@@ -314,7 +457,17 @@
 										on:click={() => (applyThemeId = theme._id)}
 										class="text-xs px-2 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200"
 									>
-										{$t('admin.apply')}
+										{$t('admin.setAsDefaultTheme')}
+									</button>
+									<button
+										type="button"
+										on:click={() => previewTheme(theme)}
+										class="text-xs px-2 py-1 bg-amber-100 text-amber-700 rounded hover:bg-amber-200"
+										title={$t('admin.previewCurrentPageTitle')}
+										aria-label={$t('admin.previewCurrentPageTitle')}
+										aria-describedby="templates-preview-help"
+									>
+										{$t('admin.previewThemeAction')}
 									</button>
 									<button
 										type="button"
@@ -455,10 +608,10 @@
 	<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-labelledby="apply-theme-title">
 		<div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
 			<h2 id="apply-theme-title" class="text-lg font-semibold text-gray-900 mb-4">
-				{$t('admin.applyThemeQuestion')}
+				{$t('admin.setDefaultThemeQuestion')}
 			</h2>
 			<p class="text-gray-600 mb-4">
-				{$t('admin.applyThemeDescription')}
+				{$t('admin.setDefaultThemeDescription')}
 			</p>
 			<div class="flex justify-end gap-2">
 				<button
@@ -473,7 +626,7 @@
 					on:click={() => applyTheme(applyThemeId!)}
 					class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
 				>
-					{$t('admin.apply')}
+					{$t('admin.setAsDefaultTheme')}
 				</button>
 			</div>
 		</div>

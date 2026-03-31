@@ -28,6 +28,8 @@ export interface TemplateConfig {
     containerPadding: string
     gridGap: string
   }
+  /** Default per-page grid from pack registry (`GET /api/admin/templates`). Live overrides live on themes / site_config. */
+  pageLayout?: Record<string, { gridRows: number; gridColumns: number }>
   components: {
     hero: string
     albumCard: string

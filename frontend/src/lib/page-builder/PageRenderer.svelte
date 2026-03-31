@@ -17,6 +17,8 @@ import ThemeSelectModule from './modules/ThemeSelectModule.svelte';
 import UserGreetingModule from './modules/UserGreetingModule.svelte';
 import AuthButtonsModule from './modules/AuthButtonsModule.svelte';
 import SocialMediaModule from './modules/SocialMediaModule.svelte';
+import BlogCategoryModule from './modules/BlogCategoryModule.svelte';
+import BlogArticleModule from './modules/BlogArticleModule.svelte';
 
 	export let page: PageData | null = null;
 	export let modules: PageModuleData[] = [];
@@ -36,6 +38,7 @@ import SocialMediaModule from './modules/SocialMediaModule.svelte';
 		? MultiLangUtils.getTextValue(page.subtitle, $currentLanguage)
 		: '';
 
+	// Keep in sync with PAGE_MODULE_TYPES and Admin picker filters in templates/overrides.
 	const moduleMap: Record<string, any> = {
 		hero: HeroModule,
 		richText: RichTextModule,
@@ -51,7 +54,11 @@ import SocialMediaModule from './modules/SocialMediaModule.svelte';
 		themeSelect: ThemeSelectModule,
 		userGreeting: UserGreetingModule,
 		authButtons: AuthButtonsModule,
-		socialMedia: SocialMediaModule
+		socialMedia: SocialMediaModule,
+		// blogCategory: title?, categoryAlias?, layout? ('chips'|'list'), showCount?, maxItems?, sortBy? ('name'|'count'), linkToArticles?, articlesListPath?
+		blogCategory: BlogCategoryModule,
+		// blogArticle: title?, mode? ('list'|'single'), categoryAlias?, syncCategoryFromPageUrl?, slug?, limit?, showImage?, showExcerpt?, showMeta?, articlePathPrefix?
+		blogArticle: BlogArticleModule
 	};
 
 	// Build rows from modules
@@ -109,6 +116,12 @@ import SocialMediaModule from './modules/SocialMediaModule.svelte';
 		rowMap.forEach((row) => row.columns.sort((a, b) => a.columnIndex - b.columnIndex));
 		return Array.from(rowMap.values()).sort((a, b) => a.rowOrder - b.rowOrder);
 	}
+
+	/** Header/footer wrap in `.os-shell-container`; home/CMS pages constrain here. */
+	$: contentMax = compact
+		? 'w-full'
+		: 'w-full max-w-[var(--os-max-width)] mx-auto px-[var(--os-padding)] box-border';
+	$: contentGap = 'gap-[var(--os-gap)]';
 </script>
 
 {#if !page}
@@ -127,12 +140,12 @@ import SocialMediaModule from './modules/SocialMediaModule.svelte';
 		{/if}
 
 		{#if rows.length === 0}
-			<div class="max-w-3xl mx-auto px-4 {compact ? 'py-2' : 'py-16'} text-center text-gray-500 dark:text-gray-400">
+			<div class="{compact ? 'w-full px-0' : contentMax} {compact ? 'py-2' : 'py-16'} text-center text-gray-500 dark:text-gray-400">
 				No modules configured for this page yet.
 			</div>
 		{:else if hasSpanning}
 			<div
-				class="max-w-6xl mx-auto px-4 {compact ? 'py-2' : 'py-6'} gap-4"
+				class="{compact ? 'w-full' : contentMax} {compact ? 'py-2' : 'py-6'} {contentGap}"
 				style="display: grid; grid-template-columns: repeat({gridCols}, 1fr); grid-template-rows: repeat({gridRows}, auto);"
 			>
 				{#each modules.filter((m) => m.rowOrder !== undefined && m.columnIndex !== undefined) as module (module._id)}
@@ -160,7 +173,7 @@ import SocialMediaModule from './modules/SocialMediaModule.svelte';
 								{#if moduleMap[col.module.type]}
 									<svelte:component this={moduleMap[col.module.type]} {...col.module.props} data={pageContext} compact={compact} />
 								{:else}
-									<div class="max-w-4xl mx-auto px-4 py-6 text-sm text-gray-500 dark:text-gray-400">
+									<div class="{compact ? 'w-full' : contentMax} py-6 text-sm text-gray-500 dark:text-gray-400">
 										Unknown module type: {col.module.type}
 									</div>
 								{/if}

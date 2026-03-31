@@ -1,42 +1,106 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
+	import { browser } from '$app/environment';
 	import { activeTemplate } from '$stores/template';
-	import { siteConfigData, siteConfig } from '$stores/siteConfig';
+	import { siteConfigData } from '$stores/siteConfig';
 	import { auth } from '$lib/stores/auth';
 	import { logger } from '$lib/utils/logger';
-	import { handleApiErrorResponse } from '$lib/utils/errorHandler';
+	import { applyThemeById } from '$lib/services/apply-theme';
 
-	interface TemplateConfig {
-		templateName: string;
+	interface ThemeOption {
+		id: string;
+		baseTemplate: string;
 		displayName: string;
 		description?: string;
 		category: string;
 	}
 
-	// Static template list (since templates are defined statically in backend)
-	// Note: 'default' is excluded as it's a fallback and duplicates 'minimal'
-	const AVAILABLE_TEMPLATES: TemplateConfig[] = [
-		{ templateName: 'minimal', displayName: 'Minimal', description: 'Ultra-minimal and clean design', category: 'minimal' },
-		{ templateName: 'modern', displayName: 'Modern', description: 'Contemporary and sleek design', category: 'modern' },
-		{ templateName: 'elegant', displayName: 'Elegant', description: 'Elegant and sophisticated design', category: 'elegant' }
-	];
-
 	export let className = '';
 	export let compact = false;
+
+	let themeOptions: ThemeOption[] = [];
+	let themesLoading = true;
+	let themesError = '';
 
 	let isOpen = false;
 	let isSwitching = false;
 	let buttonElement: HTMLButtonElement | null = null;
 	let dropdownStyle = '';
 
-	$: currentTemplateName = $activeTemplate;
-	// If current template is 'default', show it as 'Minimal' since they're essentially the same
-	$: displayTemplateName = currentTemplateName === 'default' ? 'minimal' : currentTemplateName;
-	$: currentTemplate = AVAILABLE_TEMPLATES.find((t) => t.templateName === displayTemplateName) || AVAILABLE_TEMPLATES[0];
+	$: liveThemeId = $siteConfigData?.template?.activeThemeId ?? null;
+	$: activePack = $activeTemplate;
 	$: isAdmin = $auth.authenticated && $auth.user?.role === 'admin';
 
-	async function handleTemplateSelect(templateName: string) {
-		if (templateName === currentTemplateName || isSwitching) {
+	$: selectedThemeId = (() => {
+		if (!browser || themeOptions.length === 0) return null;
+		if (isAdmin) {
+			if (liveThemeId && themeOptions.some((t) => t.id === liveThemeId)) return liveThemeId;
+			const matches = themeOptions.filter((t) => t.baseTemplate === activePack);
+			if (matches.length >= 1) return matches[0].id;
+			return themeOptions[0].id;
+		}
+		const pref = localStorage.getItem('preferredThemeId');
+		if (pref && themeOptions.some((t) => t.id === pref)) return pref;
+		if (liveThemeId && themeOptions.some((t) => t.id === liveThemeId)) {
+			const row = themeOptions.find((x) => x.id === liveThemeId);
+			if (row?.baseTemplate === activePack) return liveThemeId;
+		}
+		const matches = themeOptions.filter((t) => t.baseTemplate === activePack);
+		if (matches.length >= 1) return matches[0].id;
+		return themeOptions[0]?.id ?? null;
+	})();
+
+	$: currentTemplate =
+		(themeOptions.find((t) => t.id === selectedThemeId) ||
+			themeOptions.find((t) => t.baseTemplate === activePack) ||
+			themeOptions[0] || {
+				id: '',
+				baseTemplate: activePack,
+				displayName: themesLoading ? 'Loading…' : themesError ? 'Themes unavailable' : 'Theme',
+				description: undefined,
+				category: activePack
+			}) satisfies ThemeOption;
+
+	async function loadThemes() {
+		themesLoading = true;
+		themesError = '';
+		try {
+			let res = await fetch('/api/admin/themes', { credentials: 'include' });
+			if (res.status === 401 || res.status === 403) {
+				res = await fetch('/api/themes');
+			}
+			if (!res.ok) {
+				throw new Error(`Failed to load themes (${res.status})`);
+			}
+			const result = await res.json();
+			const raw = Array.isArray(result) ? result : result.data || [];
+			const order = ['default', 'modern', 'elegant', 'minimal'];
+			const sorted = [...raw].sort((a: any, b: any) => {
+				const aIdx = a.isBuiltIn ? order.indexOf(a.baseTemplate) : -1;
+				const bIdx = b.isBuiltIn ? order.indexOf(b.baseTemplate) : -1;
+				if (aIdx >= 0 && bIdx >= 0) return aIdx - bIdx;
+				if (aIdx >= 0) return -1;
+				if (bIdx >= 0) return 1;
+				return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+			});
+			themeOptions = sorted.map((t: any) => ({
+				id: String(t._id),
+				baseTemplate: t.baseTemplate || 'modern',
+				displayName: typeof t.name === 'string' && t.name.trim() ? t.name.trim() : t.baseTemplate || 'Theme',
+				description: typeof t.description === 'string' ? t.description : undefined,
+				category: t.isBuiltIn ? t.baseTemplate || 'custom' : 'custom'
+			}));
+		} catch (e) {
+			themesError = e instanceof Error ? e.message : 'Failed to load themes';
+			themeOptions = [];
+			logger.error('Template themes load failed:', e);
+		} finally {
+			themesLoading = false;
+		}
+	}
+
+	async function handleTemplateSelect(theme: ThemeOption) {
+		if (theme.id === selectedThemeId || isSwitching || !theme.id) {
 			return;
 		}
 
@@ -45,35 +109,16 @@
 
 		try {
 			if (isAdmin) {
-				// Admin users: update site config (global change).
-				// Set both frontendTemplate and activeTemplate so the store uses the new theme
-				// (activeTemplate reads frontendTemplate first, then activeTemplate).
-				const response = await fetch('/api/admin/site-config', {
-					method: 'PUT',
-					headers: {
-						'Content-Type': 'application/json'
-					},
-					body: JSON.stringify({
-						template: {
-							activeTemplate: templateName,
-							frontendTemplate: templateName
-						}
-					})
-				});
-
-				if (response.ok) {
-					// Reload site config to reflect the change
-					await siteConfig.load();
-					// Reload page to apply new template
+				const result = await applyThemeById(theme.id);
+				if (result.ok) {
 					window.location.reload();
 				} else {
-					await handleApiErrorResponse(response);
+					logger.error('Template switch failed:', result.error);
 					isSwitching = false;
 				}
 			} else {
-				// Non-admin users: store in localStorage (client-side only)
-				localStorage.setItem('preferredTemplate', templateName);
-				// Reload page to apply new template (needed because template components are loaded at build time)
+				localStorage.setItem('preferredTemplate', theme.baseTemplate);
+				localStorage.setItem('preferredThemeId', theme.id);
 				window.location.reload();
 			}
 		} catch (err) {
@@ -96,16 +141,15 @@
 	function updateDropdownPosition() {
 		if (!buttonElement) return;
 		const rect = buttonElement.getBoundingClientRect();
-		const dropdownWidth = 256; // w-64 = 16rem = 256px
-		const dropdownHeight = 250; // approximate height
+		const dropdownWidth = 256;
+		const dropdownHeight = 250;
 		const right = window.innerWidth - rect.right;
-		let top = rect.bottom + 4; // mt-1 = 4px
-		
-		// If dropdown would go off bottom of screen, position it above the button
+		let top = rect.bottom + 4;
+
 		if (top + dropdownHeight > window.innerHeight && rect.top > dropdownHeight) {
 			top = rect.top - dropdownHeight - 4;
 		}
-		
+
 		dropdownStyle = `position: fixed; top: ${top}px; right: ${right}px; width: ${dropdownWidth}px; z-index: 9999;`;
 	}
 
@@ -116,6 +160,7 @@
 	let resizeHandler: (() => void) | null = null;
 
 	onMount(() => {
+		loadThemes();
 		resizeHandler = () => {
 			if (isOpen) {
 				updateDropdownPosition();
@@ -134,6 +179,7 @@
 
 	function getCategoryColor(category: string): string {
 		const colors: Record<string, string> = {
+			default: 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200',
 			minimal: 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200',
 			modern: 'bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200',
 			elegant: 'bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-200',
@@ -144,18 +190,17 @@
 </script>
 
 <div class={`relative ${className}`}>
-	<!-- Current Template Display -->
 	<button
 		bind:this={buttonElement}
 		type="button"
 		on:click={toggle}
-		disabled={isSwitching}
+		disabled={isSwitching || themesLoading}
 		class={`
           flex items-center gap-2 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm
           bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
           transition-colors text-gray-900 dark:text-gray-100
           ${compact ? 'text-sm' : 'text-base'}
-          ${isSwitching ? 'opacity-50 cursor-not-allowed' : ''}
+          ${isSwitching || themesLoading ? 'opacity-50 cursor-not-allowed' : ''}
         `}
 		aria-haspopup="listbox"
 		aria-expanded={isOpen}
@@ -188,9 +233,7 @@
 		</svg>
 	</button>
 
-	<!-- Template Dropdown -->
 	{#if isOpen}
-		<!-- Backdrop -->
 		<div
 			class="fixed inset-0"
 			style="z-index: 9998;"
@@ -200,7 +243,6 @@
 			on:keydown={(e) => e.key === 'Escape' && close()}
 		></div>
 
-		<!-- Dropdown Menu -->
 		<div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg dark:shadow-gray-900/50" style={dropdownStyle}>
 			<div class="py-1">
 				<div class="px-4 py-2 border-b border-gray-200 dark:border-gray-600">
@@ -211,52 +253,58 @@
 						<p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Changes apply to your view only</p>
 					{/if}
 				</div>
-				<ul class="py-1">
-					{#each AVAILABLE_TEMPLATES as template}
-						{@const isSelected = template.templateName === displayTemplateName || (currentTemplateName === 'default' && template.templateName === 'minimal')}
+				{#if themesError}
+					<p class="px-4 py-3 text-sm text-red-600 dark:text-red-400">{themesError}</p>
+				{:else if themeOptions.length === 0}
+					<p class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">No themes available</p>
+				{:else}
+					<ul class="py-1">
+						{#each themeOptions as template}
+							{@const isSelected = template.id === selectedThemeId}
 
-						<li>
-							<button
-								type="button"
-								on:click={() => handleTemplateSelect(template.templateName)}
-								disabled={isSwitching}
-								class={`
+							<li>
+								<button
+									type="button"
+									on:click={() => handleTemplateSelect(template)}
+									disabled={isSwitching}
+									class={`
                           w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700
                           transition-colors
                           ${isSelected ? 'bg-blue-50 dark:bg-blue-900/40' : ''}
                           ${compact ? 'text-sm' : 'text-base'}
                           ${isSwitching ? 'opacity-50 cursor-not-allowed' : ''}
                         `}
-							>
-								<div class="flex-1 min-w-0">
-									<div class="flex items-center justify-between mb-1">
-										<span class={`font-medium ${isSelected ? 'text-blue-700 dark:text-blue-300' : 'text-gray-900 dark:text-gray-100'}`}>
-											{template.displayName}
-										</span>
-										<span class={`text-xs px-2 py-0.5 rounded ${getCategoryColor(template.category)}`}>
-											{template.category}
-										</span>
+								>
+									<div class="flex-1 min-w-0">
+										<div class="flex items-center justify-between mb-1">
+											<span class={`font-medium ${isSelected ? 'text-blue-700 dark:text-blue-300' : 'text-gray-900 dark:text-gray-100'}`}>
+												{template.displayName}
+											</span>
+											<span class={`text-xs px-2 py-0.5 rounded ${getCategoryColor(template.category)}`}>
+												{template.category}
+											</span>
+										</div>
+										{#if template.description}
+											<p class="text-xs text-gray-500 dark:text-gray-400 line-clamp-1">
+												{template.description}
+											</p>
+										{/if}
 									</div>
-									{#if template.description}
-										<p class="text-xs text-gray-500 dark:text-gray-400 line-clamp-1">
-											{template.description}
-										</p>
-									{/if}
-								</div>
 
-								{#if isSelected}
-									<svg class="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-										<path
-											fill-rule="evenodd"
-											d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-											clip-rule="evenodd"
-										/>
-									</svg>
-								{/if}
-							</button>
-						</li>
-					{/each}
-				</ul>
+									{#if isSelected}
+										<svg class="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+											<path
+												fill-rule="evenodd"
+												d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+												clip-rule="evenodd"
+											/>
+										</svg>
+									{/if}
+								</button>
+							</li>
+						{/each}
+					</ul>
+				{/if}
 			</div>
 		</div>
 	{/if}

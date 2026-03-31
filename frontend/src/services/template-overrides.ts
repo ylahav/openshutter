@@ -1,7 +1,11 @@
 import type { TemplateConfig } from '$lib/types/template'
 import type { SiteConfig } from '$lib/types/site-config'
+import { isLegacyCustomLayout, resolveShellLayout } from '$lib/template/breakpoints'
 import { logger } from '$lib/utils/logger'
 import { handleApiErrorResponse } from '$lib/utils/errorHandler'
+
+/** Canonical width (px) for collapsing responsive shell into flat `TemplateConfig.layout`. */
+const LAYOUT_MERGE_VIEWPORT_PX = 1024
 
 export interface TemplateWithOverrides extends TemplateConfig {
   // Mark that this template has been processed with overrides
@@ -42,11 +46,25 @@ export class TemplateOverridesService {
       }
     }
 
-    // Merge custom layout
-    if (overrides.customLayout) {
-      merged.layout = {
-        ...baseTemplate.layout,
-        ...overrides.customLayout
+    // Merge custom layout (legacy flat shell, or responsive map resolved at lg)
+    if (overrides.customLayout || overrides.customLayoutByBreakpoint) {
+      if (overrides.customLayout && isLegacyCustomLayout(overrides.customLayout)) {
+        merged.layout = {
+          ...baseTemplate.layout,
+          ...overrides.customLayout
+        }
+      } else {
+        const resolved = resolveShellLayout(
+          {
+            customLayout: overrides.customLayout,
+            customLayoutByBreakpoint: overrides.customLayoutByBreakpoint
+          },
+          LAYOUT_MERGE_VIEWPORT_PX
+        )
+        merged.layout = {
+          ...baseTemplate.layout,
+          ...resolved
+        }
       }
     }
 

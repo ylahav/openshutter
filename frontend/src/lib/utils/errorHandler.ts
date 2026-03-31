@@ -145,11 +145,19 @@ export async function handleApiErrorResponse(response: Response): Promise<never>
 		errorData = { error: response.statusText || `HTTP ${response.status}` };
 	}
 
+	const nestMessage = errorData.message;
+	const messageFromBackend =
+		typeof nestMessage === 'string'
+			? nestMessage
+			: Array.isArray(nestMessage)
+				? nestMessage.map(String).join(' ')
+				: undefined;
+
 	const error = new ApiError(
 		response.status,
 		errorData.code || 'HTTP_ERROR',
-		errorData.message || errorData.error || response.statusText || `HTTP ${response.status}`,
-		errorData.userMessage || getDefaultUserMessage(response.status),
+		messageFromBackend || errorData.error || response.statusText || `HTTP ${response.status}`,
+		errorData.userMessage || messageFromBackend || getDefaultUserMessage(response.status),
 		errorData.details
 	);
 

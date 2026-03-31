@@ -10,6 +10,7 @@ import { StorageController } from './storage/storage.controller';
 import { StorageAdminController } from './storage/storage-admin.controller';
 import { TemplatesController } from './templates/templates.controller';
 import { ThemesController } from './themes/themes.controller';
+import { ThemesPublicController } from './themes/themes-public.controller';
 import { PeopleModule } from './people/people.module';
 import { TagsModule } from './tags/tags.module';
 import { LocationsModule } from './locations/locations.module';
@@ -17,6 +18,7 @@ import { UsersModule } from './users/users.module';
 import { GroupsModule } from './groups/groups.module';
 import { PagesModule } from './pages/pages.module';
 import { BlogCategoriesModule } from './blog-categories/blog-categories.module';
+import { AdminBlogArticlesModule } from './admin-blog-articles/admin-blog-articles.module';
 import { BlogModule } from './blog/blog.module';
 import { BackupModule } from './backup/backup.module';
 import { AnalyticsModule } from './analytics/analytics.module';
@@ -25,7 +27,6 @@ import { AdminGuard } from './common/guards/admin.guard';
 import { AdminOrOwnerGuard } from './common/guards/admin-or-owner.guard';
 import { FaceDetectionModule } from './face-detection/face-detection.module';
 import { TranslationsModule } from './translations/translations.module';
-import { ThemeBuilderModule } from './theme-builder/theme-builder.module';
 import { SearchModule } from './search/search.module';
 import { MigrationModule } from './migration/migration.module';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -64,13 +65,13 @@ import { AIProvidersHealthController } from './ai/ai-providers-health.controller
     GroupsModule,
     PagesModule,
     BlogCategoriesModule,
+    AdminBlogArticlesModule,
     BlogModule,
     BackupModule,
     AnalyticsModule,
     DeploymentModule,
     FaceDetectionModule,
     TranslationsModule,
-    ThemeBuilderModule,
     SearchModule,
     MigrationModule,
     StorageModule,
@@ -86,6 +87,7 @@ import { AIProvidersHealthController } from './ai/ai-providers-health.controller
     StorageAdminController,
     TemplatesController,
     ThemesController,
+    ThemesPublicController,
     OwnerDomainsController,
     OwnerSiteSettingsController,
     SiteContextController,

@@ -6,6 +6,11 @@
 	import { browser } from '$app/environment';
 	import { buildGoogleFontsUrl } from '$lib/constants/google-fonts';
 	import { FONT_ROLES, getFontFamily, normalizeFontSetting } from '$lib/types/fonts';
+	import {
+		BREAKPOINT_MIN_WIDTH_PX,
+		TEMPLATE_BREAKPOINTS,
+		seedShellFromDb
+	} from '$lib/template/breakpoints';
 
 	let styleElement: HTMLStyleElement | null = null;
 	let googleFontsLink: HTMLLinkElement | null = null;
@@ -26,13 +31,45 @@
 		}
 	}
 
+	function buildShellRootVars(config: any): string {
+		const shellByBp = seedShellFromDb(
+			config?.template?.customLayout,
+			config?.template?.customLayoutByBreakpoint
+		);
+		let css = '';
+		const xs = shellByBp.xs;
+		css += `  --os-max-width: ${xs.maxWidth};\n`;
+		css += `  --os-padding: ${xs.containerPadding};\n`;
+		css += `  --os-gap: ${xs.gridGap};\n`;
+		return css;
+	}
+
+	function buildShellMediaQueries(config: any): string {
+		const shellByBp = seedShellFromDb(
+			config?.template?.customLayout,
+			config?.template?.customLayoutByBreakpoint
+		);
+		let css = '';
+		for (const bp of TEMPLATE_BREAKPOINTS) {
+			if (bp === 'xs') continue;
+			const shell = shellByBp[bp];
+			css += `@media (min-width: ${BREAKPOINT_MIN_WIDTH_PX[bp]}px) {\n`;
+			css += `  :root {\n`;
+			css += `    --os-max-width: ${shell.maxWidth};\n`;
+			css += `    --os-padding: ${shell.containerPadding};\n`;
+			css += `    --os-gap: ${shell.gridGap};\n`;
+			css += `  }\n`;
+			css += `}\n`;
+		}
+		return css;
+	}
+
 	function applyCustomColors() {
 		if (!browser) return;
 		
 		const config = $siteConfigData;
 		const customColors = config?.template?.customColors;
 		const customFonts = config?.template?.customFonts;
-		const customLayout = config?.template?.customLayout;
 
 		// Inject Google Fonts stylesheet: collect family from each role (string or FontSetting)
 		const fontFamilies = FONT_ROLES.map((role) => getFontFamily(customFonts?.[role])).filter(
@@ -92,13 +129,9 @@
 			}
 		}
 
-		if (customLayout) {
-			if (customLayout.maxWidth) cssVars += `  --os-max-width: ${customLayout.maxWidth};\n`;
-			if (customLayout.containerPadding) cssVars += `  --os-padding: ${customLayout.containerPadding};\n`;
-			if (customLayout.gridGap) cssVars += `  --os-gap: ${customLayout.gridGap};\n`;
-		}
-
+		cssVars += buildShellRootVars(config);
 		cssVars += '}\n';
+		cssVars += buildShellMediaQueries(config);
 
 		// Apply same custom colors to dark mode as well
 		if (customColors) {

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
+	import { beforeNavigate, goto } from '$app/navigation';
 	import NotificationDialog from '$lib/components/NotificationDialog.svelte';
 // PageData is loaded via +page.server.ts; this component does not
 // currently consume it directly, so we omit the prop to avoid unused-export warnings.
@@ -21,6 +21,7 @@
 	let saving = false;
 	let error: string | null = null;
 	let message: string | null = null;
+	$: hasUnsavedChanges = raw !== originalRaw;
 
 	let notification = {
 		isOpen: false,
@@ -29,8 +30,24 @@
 		message: ''
 	};
 
-	onMount(async () => {
-		await loadTemplates();
+	onMount(() => {
+		const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+			if (!hasUnsavedChanges) return;
+			event.preventDefault();
+			event.returnValue = '';
+		};
+		window.addEventListener('beforeunload', handleBeforeUnload);
+		void loadTemplates();
+		return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+	});
+
+	beforeNavigate((navigation) => {
+		if (!hasUnsavedChanges) return;
+		if (navigation.to?.url.pathname === navigation.from?.url.pathname) return;
+		const leave = confirm('You have unsaved changes. Leave without saving?');
+		if (!leave) {
+			navigation.cancel();
+		}
 	});
 
 	async function loadTemplates() {
@@ -145,6 +162,9 @@
 	}
 
 	function cancel() {
+		if (hasUnsavedChanges && !confirm('You have unsaved changes. Discard them?')) {
+			return;
+		}
 		raw = originalRaw;
 		goto('/admin/templates');
 	}

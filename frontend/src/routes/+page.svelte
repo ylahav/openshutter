@@ -3,34 +3,49 @@
 	import HomeTemplateSwitcher from '$components/HomeTemplateSwitcher.svelte';
 	import PageRenderer from '$lib/page-builder/PageRenderer.svelte';
 	import { siteConfigData, productName } from '$stores/siteConfig';
+	import { viewportWidth } from '$lib/stores/viewport';
+	import { getEffectivePageGrid, getEffectivePageModules } from '$lib/template/breakpoints';
+	import type { PageModuleData } from '$lib/types/page-builder';
 
 	export let data: PageData;
 
 	import { logger } from '$lib/utils/logger';
-	
-	// Check if we have pageModules for home - if so, use PageRenderer instead of template switcher
-	$: hasPageModules = data.pageModules && Array.isArray(data.pageModules) && data.pageModules.length > 0;
-	$: pageLayout = data.pageLayout;
-	
-	// Debug logging
-	$: if (data.pageModules !== undefined) {
+
+	/** Full template from store when loaded; else minimal shape from SSR `load()` for first paint. */
+	$: homeTemplate =
+		$siteConfigData?.template ??
+		(data.pageModules?.length || data.pageLayout
+			? {
+					pageModules: data.pageModules?.length ? { home: data.pageModules } : undefined,
+					pageLayout: data.pageLayout ? { home: data.pageLayout } : undefined
+				}
+			: undefined);
+
+	$: homeModules = (homeTemplate
+		? getEffectivePageModules(homeTemplate, 'home', $viewportWidth)
+		: []) as PageModuleData[];
+	$: homeLayout = homeTemplate
+		? getEffectivePageGrid(homeTemplate, 'home', $viewportWidth)
+		: { gridRows: 2, gridColumns: 1 };
+
+	$: hasPageModules = Array.isArray(homeModules) && homeModules.length > 0;
+
+	$: if (data.pageModules !== undefined || homeModules.length) {
 		logger.debug('[Home] Page modules check:', {
 			hasPageModules,
-			pageModulesCount: data.pageModules?.length || 0,
-			pageModules: data.pageModules,
-			pageLayout
+			pageModulesCount: homeModules.length,
+			viewportWidth: $viewportWidth
 		});
 	}
-	
-	// Create a page object for PageRenderer
-	// Don't automatically pull title/subtitle from siteConfig - let page modules control the content
-	$: pageForRenderer = hasPageModules ? {
-		_id: 'home',
-		// Only set title/subtitle if explicitly defined in page data (not from siteConfig)
-		title: undefined,
-		subtitle: undefined,
-		layout: pageLayout ? { gridRows: pageLayout.gridRows, gridColumns: pageLayout.gridColumns } : undefined
-	} : null;
+
+	$: pageForRenderer = hasPageModules
+		? {
+				_id: 'home',
+				title: undefined,
+				subtitle: undefined,
+				layout: { gridRows: homeLayout.gridRows, gridColumns: homeLayout.gridColumns }
+			}
+		: null;
 </script>
 
 <svelte:head>
@@ -39,7 +54,7 @@
 
 {#if hasPageModules}
 	<!-- Use PageRenderer when pageModules are configured -->
-	<PageRenderer page={pageForRenderer} modules={data.pageModules || []} />
+	<PageRenderer page={pageForRenderer as any} modules={homeModules} />
 {:else}
 	<!-- Fallback to template switcher for legacy templates -->
 	<HomeTemplateSwitcher {data} />

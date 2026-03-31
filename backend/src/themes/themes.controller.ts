@@ -18,6 +18,8 @@ import { AdminGuard } from '../common/guards/admin.guard';
 import { Types } from 'mongoose';
 import { UpdateThemeDto } from './dto/update-theme.dto';
 import type { FontSetting } from '../types/template';
+import { mergeThemeCustomLayoutForCreate } from '../template/shell-layout';
+import { validateTemplatePagesLayer } from '../template/validate-pages-layer';
 
 const PALETTE_PRESETS: Record<string, { colors: Record<string, string> }> = {
   light: {
@@ -358,9 +360,7 @@ export class ThemesController {
         customFonts: body?.customFonts && typeof body.customFonts === 'object'
           ? { ...base.fonts, ...body.customFonts }
           : { ...base.fonts },
-        customLayout: body?.customLayout && typeof body.customLayout === 'object'
-          ? { ...base.layout, ...body.customLayout }
-          : { ...base.layout },
+        customLayout: mergeThemeCustomLayoutForCreate(base.layout, body?.customLayout),
         componentVisibility: body?.componentVisibility && typeof body.componentVisibility === 'object'
           ? body.componentVisibility
           : {},
@@ -407,11 +407,18 @@ export class ThemesController {
       if (dto.customColors !== undefined) updateData.customColors = dto.customColors;
       if (dto.customFonts !== undefined) updateData.customFonts = dto.customFonts;
       if (dto.customLayout !== undefined) updateData.customLayout = dto.customLayout;
+      if (dto.customLayoutByBreakpoint !== undefined) updateData.customLayoutByBreakpoint = dto.customLayoutByBreakpoint;
       if (dto.componentVisibility !== undefined) updateData.componentVisibility = dto.componentVisibility;
       if (dto.headerConfig !== undefined) updateData.headerConfig = dto.headerConfig;
       if (dto.pageModules !== undefined) updateData.pageModules = dto.pageModules;
       if (dto.pageLayout !== undefined) updateData.pageLayout = dto.pageLayout;
+      if (dto.pageLayoutByBreakpoint !== undefined) updateData.pageLayoutByBreakpoint = dto.pageLayoutByBreakpoint;
+      if (dto.pageModulesByBreakpoint !== undefined) updateData.pageModulesByBreakpoint = dto.pageModulesByBreakpoint;
       if (dto.isPublished !== undefined) updateData.isPublished = dto.isPublished;
+
+      // Server-side safety: reject invalid grids/overlaps before persisting.
+      // Validate against the *final* theme document (existing + updates).
+      validateTemplatePagesLayer({ ...(existing as any), ...(updateData as any) }, { source: `PUT /api/admin/themes/${id}` });
 
       await collection.updateOne({ _id: new Types.ObjectId(id) }, { $set: updateData });
       const updated = await collection.findOne({ _id: new Types.ObjectId(id) });

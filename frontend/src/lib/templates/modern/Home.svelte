@@ -63,7 +63,9 @@
 <!-- Modern template home layout -->
 <HomeHero />
 
-<section class="bg-linear-to-b from-slate-900 via-purple-900 to-slate-900">
+<section
+	class="bg-linear-to-b from-slate-900 via-purple-900 to-slate-900 shadow-[0_-12px_40px_-12px_rgba(88,28,135,0.45)]"
+>
 	<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
 		<div class="flex items-center justify-between mb-10">
 			<div>

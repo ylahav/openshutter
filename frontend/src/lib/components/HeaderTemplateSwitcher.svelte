@@ -1,19 +1,18 @@
 <script lang="ts">
 	import { siteConfigData } from '$stores/siteConfig';
 	import PageRenderer from '$lib/page-builder/PageRenderer.svelte';
-	import DefaultHeader from '$lib/templates/default/components/Header.svelte';
-	import ModernHeader from '$lib/templates/modern/components/Header.svelte';
-	import MinimalHeader from '$lib/templates/minimal/components/Header.svelte';
-	import ElegantHeader from '$lib/templates/elegant/components/Header.svelte';
 	import { activeTemplate } from '$stores/template';
 	import { logger } from '$lib/utils/logger';
+	import { getTemplatePack } from '$lib/template-packs/registry';
+	import { pageBuilderHeaderShellClass } from '$lib/template-packs/page-builder-chrome';
+	import type { PageModuleData } from '$lib/types/page-builder';
+	import { getEffectivePageModules, getEffectivePageGrid } from '$lib/template/breakpoints';
+	import { viewportWidth } from '$lib/stores/viewport';
 
-	// Check if we have pageModules for header - if so, use PageRenderer instead of template switcher
-	$: hasPageModules = $siteConfigData?.template?.pageModules?.header && 
-		Array.isArray($siteConfigData.template.pageModules.header) && 
-		$siteConfigData.template.pageModules.header.length > 0;
-	$: pageLayout = $siteConfigData?.template?.pageLayout?.header;
-	$: pageModules = hasPageModules && $siteConfigData?.template?.pageModules?.header ? $siteConfigData.template.pageModules.header : [];
+	$: pageModulesRaw = getEffectivePageModules($siteConfigData?.template, 'header', $viewportWidth);
+	$: hasPageModules = Array.isArray(pageModulesRaw) && pageModulesRaw.length > 0;
+	$: pageLayout = getEffectivePageGrid($siteConfigData?.template, 'header', $viewportWidth);
+	$: pageModules = (hasPageModules ? pageModulesRaw : []) as PageModuleData[];
 
 	// Debug logging
 	$: if ($siteConfigData?.template?.pageModules?.header !== undefined) {
@@ -32,27 +31,25 @@
 		subtitle: {} as any,
 		layout: pageLayout ? { gridRows: pageLayout.gridRows, gridColumns: pageLayout.gridColumns } : undefined
 	} as any) : null;
+
+	$: pack = getTemplatePack($activeTemplate);
+	/** Match active pack chrome when using page builder (otherwise switching packs did not change the header strip). */
+	$: headerPbShellClass = pageBuilderHeaderShellClass($activeTemplate);
 </script>
 
 {#if hasPageModules}
 	<!-- Use PageRenderer when pageModules are configured -->
-	<header class="w-full bg-white dark:bg-gray-900 shadow-sm border-b border-gray-200 dark:border-gray-700">
-		<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+	<header class="w-full {headerPbShellClass}">
+		<div class="os-shell-container">
 			<PageRenderer page={pageForRenderer} modules={pageModules} compact={true} />
 		</div>
 	</header>
 {:else}
 	<!-- Fallback to template switcher for legacy templates -->
-	{#if $activeTemplate === 'minimal'}
-		<MinimalHeader />
-	{:else if $activeTemplate === 'modern'}
-		<ModernHeader />
-	{:else if $activeTemplate === 'elegant'}
-		<ElegantHeader />
-	{:else if $activeTemplate === 'default'}
-		<DefaultHeader />
+	{#if pack.components?.Header}
+		<svelte:component this={pack.components.Header} />
 	{:else}
-		<!-- Fallback: use default template -->
-		<DefaultHeader />
+		<!-- Fallback: ensure header always renders -->
+		<svelte:component this={getTemplatePack('default').components?.Header} />
 	{/if}
 {/if}

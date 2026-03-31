@@ -18,6 +18,8 @@ export interface SiteConfig {
     textColor: string
   }
   template?: {
+    /** Mongo themes collection id last applied from Admin → Templates (optional) */
+    activeThemeId?: string
     activeTemplate?: string // Deprecated: use frontendTemplate instead, kept for backward compatibility
     frontendTemplate?: string // Template for public-facing frontend pages
     adminTemplate?: string // Template for admin area pages
@@ -31,11 +33,31 @@ export interface SiteConfig {
     }
     /** Per-role font: family (string) or { family, size?, weight? }. Legacy: string = family only. */
     customFonts?: Partial<Record<FontRole, string | FontSetting>>
-    customLayout?: {
-      maxWidth?: string
-      containerPadding?: string
-      gridGap?: string
-    }
+    /**
+     * Shell layout: either legacy flat `{ maxWidth, containerPadding, gridGap }` or a full
+     * breakpoint map `{ xs: { … }, sm: { … }, … }` (same data as `customLayoutByBreakpoint` when saved from Admin).
+     */
+    customLayout?:
+      | {
+          maxWidth?: string
+          containerPadding?: string
+          gridGap?: string
+        }
+      | Record<string, { maxWidth?: string; containerPadding?: string; gridGap?: string }>
+    /** Shell metrics per breakpoint: max width, container padding, grid gap. */
+    customLayoutByBreakpoint?: Partial<
+      Record<
+        string,
+        { maxWidth?: string; containerPadding?: string; gridGap?: string }
+      >
+    >
+    /** Per page × breakpoint: grid rows/columns. */
+    pageLayoutByBreakpoint?: Record<
+      string,
+      Partial<Record<string, { gridRows?: number; gridColumns?: number }>>
+    >
+    /** Per page × breakpoint: module list. */
+    pageModulesByBreakpoint?: Record<string, Partial<Record<string, unknown[]>>>
     componentVisibility?: {
       hero?: boolean
       languageSelector?: boolean
@@ -43,7 +65,7 @@ export interface SiteConfig {
       footerMenu?: boolean
       statistics?: boolean
       promotion?: boolean
-    }
+    } | null
     headerConfig?: {
       showLogo?: boolean
       showSiteTitle?: boolean
@@ -63,11 +85,10 @@ export interface SiteConfig {
       showGreeting?: boolean
       showAuthButtons?: boolean
       showTemplateSelector?: boolean
-    }
-    /** Per-page modules from theme: { home: [...], gallery: [...], etc. } */
-    pageModules?: Record<string, unknown[]>
-    /** Per-page grid layout: { home: { gridRows: 3, gridColumns: 1 }, ... } */
-    pageLayout?: Record<string, { gridRows?: number; gridColumns?: number }>
+    } | null
+    /** Legacy flat per page or `{ pageKey: { xs: …, lg: … } }` (Admin saves full map here). */
+    pageModules?: Record<string, unknown>
+    pageLayout?: Record<string, unknown>
   }
   seo: {
     metaTitle: MultiLangText
@@ -154,6 +175,8 @@ export interface SiteConfig {
 }
 
 export interface SiteConfigUpdate {
+  /** When true (apply theme), replace template module/layout/colors from payload instead of deep-merge */
+  replaceTemplateFromTheme?: boolean
   title?: MultiLangText
   description?: MultiLangHTML
   logo?: string

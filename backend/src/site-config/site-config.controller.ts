@@ -104,7 +104,19 @@ export class SiteConfigController {
       }
     }
     if (doc.hero && typeof doc.hero === 'object') {
-      const homeModules = Array.isArray(config.template?.pageModules?.home) ? [...config.template.pageModules.home] : [];
+      if (!config.template) config.template = {};
+      if (!config.template.pageModules) config.template.pageModules = {};
+      const homeRaw = (config.template.pageModules as any).home;
+      const homeIsMap =
+        homeRaw &&
+        typeof homeRaw === 'object' &&
+        !Array.isArray(homeRaw) &&
+        Array.isArray((homeRaw as Record<string, unknown>).lg);
+      const homeModules = Array.isArray(homeRaw)
+        ? [...homeRaw]
+        : homeIsMap
+          ? [...((homeRaw as Record<string, unknown[]>).lg as unknown[])]
+          : [];
       const heroIndex = homeModules.findIndex((m: any) => m && m.type === 'hero');
       if (heroIndex >= 0) {
         homeModules[heroIndex] = {
@@ -122,9 +134,12 @@ export class SiteConfigController {
           colSpan: 1,
         });
       }
-      if (!config.template) config.template = {};
-      if (!config.template.pageModules) config.template.pageModules = {};
-      config.template.pageModules = { ...config.template.pageModules, home: homeModules };
+      const nextHome = Array.isArray(homeRaw)
+        ? homeModules
+        : homeIsMap
+          ? { ...(homeRaw as object), lg: homeModules }
+          : homeModules;
+      config.template.pageModules = { ...config.template.pageModules, home: nextHome };
     }
   }
 

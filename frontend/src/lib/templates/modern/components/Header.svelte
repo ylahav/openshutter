@@ -11,23 +11,22 @@
 	import Menu from '$components/Menu.svelte';
 	import NotificationNavLink from '$lib/components/NotificationNavLink.svelte';
 	import { t } from '$stores/i18n';
+	import { resolveHeaderVisibilityForPack } from '$lib/template-packs/header-visibility';
 
 	const year = new Date().getFullYear();
 
 	const headerConfig = derived(siteConfigData, ($config) => $config?.template?.headerConfig ?? {});
-	
-	// Check headerConfig values - explicitly check for false to respect overrides
-	// Use !== undefined check to distinguish between false (hide) and undefined (default/show)
-	$: showLogo = $headerConfig?.showLogo !== undefined ? $headerConfig.showLogo : true;
-	$: showSiteTitle = $headerConfig?.showSiteTitle !== undefined ? $headerConfig.showSiteTitle : true;
-	$: showMenu = $headerConfig?.showMenu !== undefined ? $headerConfig.showMenu : true;
-	$: showTemplateSelector = $headerConfig?.showTemplateSelector !== undefined ? $headerConfig.showTemplateSelector : true;
-	$: showLanguageSelector = ($headerConfig?.showLanguageSelector ?? $headerConfig?.enableLanguageSelector) !== undefined 
-		? ($headerConfig.showLanguageSelector ?? $headerConfig.enableLanguageSelector) 
-		: true;
-	$: showThemeToggle = $headerConfig?.enableThemeToggle !== undefined ? $headerConfig.enableThemeToggle : true;
-	$: showAuthButtons = $headerConfig?.showAuthButtons !== undefined ? $headerConfig.showAuthButtons : true;
-	$: showGreeting = $headerConfig?.showGreeting !== undefined ? $headerConfig.showGreeting : true;
+
+	$: ({
+		showLogo,
+		showSiteTitle,
+		showMenu,
+		showTemplateSelector,
+		showLanguageSelector,
+		showThemeToggle,
+		showAuthButtons,
+		showGreeting
+	} = resolveHeaderVisibilityForPack('modern', $headerConfig));
 
 	const title = derived(
 		[siteConfigData, currentLanguage],
@@ -54,28 +53,57 @@
 			<div class="flex items-center space-x-3">
 				{#if showLogo}
 					{#if $logo}
-						<img
-							src={$logo}
-							alt={$title}
-							class="w-10 h-10 object-contain shrink-0"
-						/>
+						{#if showSiteTitle}
+							<img
+								src={$logo}
+								alt={$title}
+								class="w-10 h-10 object-contain shrink-0"
+							/>
+						{:else}
+							<a href="/" class="shrink-0 block" aria-label={$title}>
+								<img src={$logo} alt="" class="w-10 h-10 object-contain" />
+							</a>
+						{/if}
 					{:else}
-						<div class="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center shrink-0 shadow-lg">
-							<svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									stroke-width="2"
-									d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
-								/>
-								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									stroke-width="2"
-									d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
-								/>
-							</svg>
-						</div>
+						{#if showSiteTitle}
+							<div class="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center shrink-0 shadow-lg">
+								<svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
+									/>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
+									/>
+								</svg>
+							</div>
+						{:else}
+							<a
+								href="/"
+								class="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center shrink-0 shadow-lg"
+								aria-label={$title}
+							>
+								<svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
+									/>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
+									/>
+								</svg>
+							</a>
+						{/if}
 					{/if}
 				{/if}
 
