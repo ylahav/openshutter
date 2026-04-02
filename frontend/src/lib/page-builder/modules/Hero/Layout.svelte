@@ -5,7 +5,9 @@
     import { MultiLangUtils } from '$lib/utils/multiLang';
 
     export let config: any = {};
+    // svelte-ignore export_let_unused - kept for module layout API consistency
     export let data: any = null;
+    // svelte-ignore export_let_unused - kept for module layout API consistency
     export let templateConfig: Record<string, any> = {};
 
     $: titleText = MultiLangUtils.getTextValue(config?.title, $currentLanguage);
@@ -91,7 +93,7 @@
         
         <!-- Content overlay -->
         <div class="absolute inset-0 flex items-center">
-          <div class="relative w-full max-w-5xl mx-auto px-4 py-16 md:py-24">
+          <div class="relative w-full py-16 md:py-24">
             {#if titleText}
               <h1 class="text-3xl md:text-5xl font-bold mb-4">
                 {titleText}
@@ -115,7 +117,7 @@
       </div>
     {:else}
       <!-- No background image - normal layout -->
-      <div class="relative max-w-5xl mx-auto px-4 py-16 md:py-24">
+      <div class="relative w-full py-16 md:py-24">
         {#if titleText}
           <h1 class="text-3xl md:text-5xl font-bold mb-4">
             {titleText}

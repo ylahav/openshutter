@@ -3,20 +3,31 @@
 	import { currentLanguage } from '$stores/language';
 	import { MultiLangUtils } from '$lib/utils/multiLang';
 
-	export let config: any = {};
+	type CtaLayoutConfig = {
+		title?: string | Record<string, string>;
+		description?: string | Record<string, string>;
+		primaryLabel?: string | Record<string, string>;
+		primaryHref?: string;
+		secondaryLabel?: string | Record<string, string>;
+		secondaryHref?: string;
+	};
+
+	export let config: CtaLayoutConfig = {};
+	// svelte-ignore export_let_unused - kept for module layout API consistency
 	export let data: any = null;
+	// svelte-ignore export_let_unused - kept for module layout API consistency
 	export let templateConfig: Record<string, any> = {};
 
 	$: titleText = MultiLangUtils.getTextValue(config?.title, $currentLanguage) || '';
 	$: descriptionText = config?.description ? MultiLangUtils.getTextValue(config.description, $currentLanguage) : '';
-	$: primaryLabel = config?.primaryLabel ?? 'Get Started';
-	$: primaryHref = config?.primaryHref ?? '/';
-	$: secondaryLabel = config?.secondaryLabel;
-	$: secondaryHref = config?.secondaryHref;
+	$: primaryLabel = MultiLangUtils.getTextValue(config?.primaryLabel, $currentLanguage) || 'Get Started';
+	$: primaryHref = typeof config?.primaryHref === 'string' && config.primaryHref.trim() ? config.primaryHref : '/';
+	$: secondaryLabel = MultiLangUtils.getTextValue(config?.secondaryLabel, $currentLanguage) || '';
+	$: secondaryHref = typeof config?.secondaryHref === 'string' && config.secondaryHref.trim() ? config.secondaryHref : '';
 </script>
 
-<section class="py-20 px-4 sm:px-6 lg:px-8 bg-linear-to-b from-blue-600 to-indigo-700 dark:from-blue-800 dark:to-indigo-900">
-	<div class="max-w-4xl mx-auto text-center">
+<section class="py-20 bg-linear-to-b from-blue-600 to-indigo-700 dark:from-blue-800 dark:to-indigo-900">
+	<div class="w-full text-center">
 		<h2 class="text-4xl font-bold text-white mb-6">{titleText}</h2>
 		{#if descriptionText}
 			<p class="text-xl text-blue-100 dark:text-blue-200 mb-8">{descriptionText}</p>

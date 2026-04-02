@@ -221,9 +221,21 @@ export function isLegacyPageModulesEntry(obj: unknown): obj is unknown[] {
 	return Array.isArray(obj);
 }
 
+type PageModulesResponsiveEntry = {
+	activeBreakpoints: boolean;
+	modules?: unknown[];
+	breakpoints?: Partial<Record<TemplateBreakpointId, unknown[]>>;
+};
+
+function isPageModulesResponsiveEntry(obj: unknown): obj is PageModulesResponsiveEntry {
+	if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return false;
+	return typeof (obj as { activeBreakpoints?: unknown }).activeBreakpoints === 'boolean';
+}
+
 /** `template.pageModules[pageKey]` is `{ xs: modules[], … }`. */
 export function isPageModulesBreakpointMapForPage(obj: unknown): obj is Partial<Record<TemplateBreakpointId, unknown[]>> {
 	if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return false;
+	if (isPageModulesResponsiveEntry(obj)) return false;
 	return TEMPLATE_BREAKPOINTS.some((bp) => {
 		const v = (obj as Record<string, unknown>)[bp];
 		return Array.isArray(v);
@@ -280,6 +292,15 @@ function pickPageGridFromLayoutEntry(val: unknown, pk: string): PageGrid {
 
 function pickModulesFlatFromEntry(val: unknown, pk: string): unknown[] {
 	if (isLegacyPageModulesEntry(val)) return val;
+	if (isPageModulesResponsiveEntry(val)) {
+		if (val.activeBreakpoints) {
+			const bpMap = val.breakpoints || {};
+			const pick = bpMap.lg ?? bpMap.md ?? bpMap.sm ?? bpMap.xs ?? bpMap.xl;
+			if (Array.isArray(pick)) return pick;
+		} else if (Array.isArray(val.modules)) {
+			return val.modules;
+		}
+	}
 	if (isPageModulesBreakpointMapForPage(val)) {
 		const pick = val.lg ?? val.md ?? val.sm ?? val.xs ?? val.xl;
 		if (Array.isArray(pick)) return pick;
@@ -376,12 +397,35 @@ export function pageLayoutByBreakpointToPageLayoutField(
 
 /** Persist full per-page breakpoint module lists on `template.pageModules`. */
 export function pageModulesByBreakpointToPageModulesField(
-	pmBy: Record<string, Partial<Record<TemplateBreakpointId, unknown[]>> | undefined>
-): Record<string, Record<string, unknown[]>> {
-	const out: Record<string, Record<string, unknown[]>> = {};
+	pmBy: Record<string, Partial<Record<TemplateBreakpointId, unknown[]>> | undefined>,
+	activeBreakpointsByPage?: Record<string, boolean>
+): Record<string, PageModulesResponsiveEntry> {
+	const out: Record<string, PageModulesResponsiveEntry> = {};
+	const stable = (v: unknown) => JSON.stringify(v ?? []);
 	for (const [pk, row] of Object.entries(pmBy)) {
 		if (!row || Object.keys(row).length === 0) continue;
-		out[pk] = JSON.parse(JSON.stringify(row)) as Record<string, unknown[]>;
+		const bpRow = JSON.parse(JSON.stringify(row)) as Partial<Record<TemplateBreakpointId, unknown[]>>;
+		const first =
+			bpRow.lg ??
+			bpRow.md ??
+			bpRow.sm ??
+			bpRow.xl ??
+			bpRow.xs ??
+			[];
+		const forcedActive = activeBreakpointsByPage?.[pk];
+		const allSame = TEMPLATE_BREAKPOINTS.every((bp) => stable(bpRow[bp] ?? first) === stable(first));
+		const useBreakpoints = typeof forcedActive === 'boolean' ? forcedActive : !allSame;
+		if (!useBreakpoints) {
+			out[pk] = {
+				activeBreakpoints: false,
+				modules: first
+			};
+		} else {
+			out[pk] = {
+				activeBreakpoints: true,
+				breakpoints: bpRow
+			};
+		}
 	}
 	return out;
 }
@@ -540,6 +584,14 @@ export function getPageModulesForBreakpoint(
 	bp: TemplateBreakpointId
 ): unknown[] {
 	const raw = template?.pageModules?.[pageKey];
+	if (isPageModulesResponsiveEntry(raw)) {
+		if (raw.activeBreakpoints) {
+			const bpMap = (raw.breakpoints || {}) as Partial<Record<TemplateBreakpointId, unknown[]>>;
+			const picked = pickModulesCellFromBreakpointMap(bpMap, bp);
+			return picked ?? [];
+		}
+		return Array.isArray(raw.modules) ? raw.modules : [];
+	}
 	if (isPageModulesBreakpointMapForPage(raw)) {
 		const picked = pickModulesCellFromBreakpointMap(
 			raw as Partial<Record<TemplateBreakpointId, unknown[]>>,
@@ -548,23 +600,7 @@ export function getPageModulesForBreakpoint(
 		if (picked !== undefined) return picked;
 	}
 	if (Array.isArray(raw)) {
-		const rowOverlay = template?.pageModulesByBreakpoint?.[pageKey];
-		if (rowOverlay && typeof rowOverlay === 'object' && !Array.isArray(rowOverlay)) {
-			const overlayPick = pickModulesCellFromBreakpointMap(
-				rowOverlay as Partial<Record<TemplateBreakpointId, unknown[]>>,
-				bp
-			);
-			if (overlayPick !== undefined) return overlayPick;
-		}
 		return raw;
-	}
-	const rowOverlay = template?.pageModulesByBreakpoint?.[pageKey];
-	if (rowOverlay && typeof rowOverlay === 'object' && !Array.isArray(rowOverlay)) {
-		const picked = pickModulesCellFromBreakpointMap(
-			rowOverlay as Partial<Record<TemplateBreakpointId, unknown[]>>,
-			bp
-		);
-		if (picked !== undefined) return picked;
 	}
 	return [];
 }

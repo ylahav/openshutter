@@ -9,7 +9,7 @@ export const PAGE_MODULE_TYPES = [
 	{ type: 'richText', label: 'Rich Text' },
 	{ type: 'featureGrid', label: 'Feature Grid' },
 	{ type: 'albumsGrid', label: 'Albums Grid' },
-	{ type: 'albumGallery', label: 'Album Gallery' },
+	{ type: 'albumView', label: 'Album view' },
 	{ type: 'cta', label: 'Call to Action' },
 	{ type: 'blogCategory', label: 'Blog categories' },
 	{ type: 'blogArticle', label: 'Blog articles' },

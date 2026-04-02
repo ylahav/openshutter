@@ -215,9 +215,10 @@ All templates should integrate the `PhotoLightbox` component for consistent phot
 
 Features provided by PhotoLightbox:
 - Previous/Next navigation (buttons, arrow keys, swipe)
-- EXIF data display (toggle with button or "I" key)
+- Photo details panel (title/description + metadata + EXIF) toggled with the Info button or the "I" key. The details panel does not include sharing or comments.
 - Autoplay slideshow (toggle with button or spacebar)
 - Fullscreen support (F key)
+- Share buttons (configurable via site config) are available via the separate Share icon. Sharing is not part of the "I" details panel.
 - Keyboard shortcuts (Arrow keys, Space, Escape, F, I)
 
 ## Template Discovery
@@ -255,6 +256,23 @@ OpenShutter includes a page builder system (`lib/page-builder/`) for creating cu
 - **Page Builder**: Allows admins to create custom content pages with modules (Hero, RichText, FeatureGrid, AlbumsGrid, CTA)
 
 Templates can optionally integrate with the page builder by using the `PageRenderer` component.
+
+### Core pages can be overridden by page modules
+
+Some core routes can render page-builder modules when configured in **Admin → Templates → Overrides**:
+
+- **Album** (`/albums/[alias]`): `frontend/src/lib/components/AlbumTemplateSwitcher.svelte` will render `PageRenderer` when `siteConfig.template.pageModules.album` is present for the active breakpoint; otherwise it falls back to the active template pack’s `pages.Album`.
+
+This allows operators to drive the album page layout using page-builder modules (including `Album view`) without editing the template pack page.
+
+### Album view: album header + lightbox
+
+When using the `Album view` module (`type: albumView`) with `albumSource: current`:
+
+- **Album header**: the module can render the *current album* title/description/stats above the cards. Admin controls:
+  - show flags: `showAlbumPageTitle`, `showAlbumPageDescription`, `showAlbumPageStats`
+  - order: `albumHeaderFieldOrder` (drag-and-drop)
+- **Photo lightbox**: clicking a `PhotoCard` opens `PhotoLightbox` using the same photo ordering as the rendered stream.
 
 ### Module Structure
 

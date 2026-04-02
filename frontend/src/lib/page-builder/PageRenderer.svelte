@@ -6,6 +6,7 @@
 import HeroModule from './modules/HeroModule.svelte';
 import RichTextModule from './modules/RichTextModule.svelte';
 import FeatureGridModule from './modules/FeatureGridModule.svelte';
+import AlbumsGridModule from './modules/AlbumsGridModule.svelte';
 import AlbumGalleryModule from './modules/AlbumGalleryModule.svelte';
 import CtaModule from './modules/CtaModule.svelte';
 import LogoModule from './modules/LogoModule.svelte';
@@ -43,8 +44,8 @@ import BlogArticleModule from './modules/BlogArticleModule.svelte';
 		hero: HeroModule,
 		richText: RichTextModule,
 		featureGrid: FeatureGridModule,
-		albumsGrid: AlbumGalleryModule,
-		albumGallery: AlbumGalleryModule, // Backward compatibility
+		albumsGrid: AlbumsGridModule,
+		albumView: AlbumGalleryModule,
 		cta: CtaModule,
 		logo: LogoModule,
 		siteTitle: SiteTitleModule,
@@ -71,7 +72,9 @@ import BlogArticleModule from './modules/BlogArticleModule.svelte';
 		}>;
 	}
 
-	$: rows = buildRows(modules);
+	const normalizeModuleType = (t: unknown): string => (t === 'albumGallery' ? 'albumView' : String(t ?? ''));
+	$: normalizedModules = modules.map((m) => ({ ...m, type: normalizeModuleType((m as any).type) }));
+	$: rows = buildRows(normalizedModules);
 
 	/** Infer grid size from modules (for spanning support) */
 	$: gridCols = page?.layout && typeof (page.layout as any).gridColumns === 'number'
@@ -81,7 +84,7 @@ import BlogArticleModule from './modules/BlogArticleModule.svelte';
 		? (page.layout as any).gridRows
 		: Math.max(1, ...modules.filter((m) => m.rowOrder !== undefined).map((m) => (m.rowOrder ?? 0) + (m.rowSpan ?? 1)));
 
-	$: hasSpanning = modules.some((m) => (m.rowSpan ?? 1) > 1 || (m.colSpan ?? 1) > 1);
+	$: hasSpanning = normalizedModules.some((m) => (m.rowSpan ?? 1) > 1 || (m.colSpan ?? 1) > 1);
 
 	function buildRows(moduleList: PageModuleData[]): RowData[] {
 		const rowMap = new Map<number, RowData>();
@@ -148,7 +151,7 @@ import BlogArticleModule from './modules/BlogArticleModule.svelte';
 				class="{compact ? 'w-full' : contentMax} {compact ? 'py-2' : 'py-6'} {contentGap}"
 				style="display: grid; grid-template-columns: repeat({gridCols}, 1fr); grid-template-rows: repeat({gridRows}, auto);"
 			>
-				{#each modules.filter((m) => m.rowOrder !== undefined && m.columnIndex !== undefined) as module (module._id)}
+				{#each normalizedModules.filter((m) => m.rowOrder !== undefined && m.columnIndex !== undefined) as module (module._id)}
 					<div
 						style="grid-column: {module.columnIndex! + 1} / span {module.colSpan ?? 1}; grid-row: {module.rowOrder! + 1} / span {module.rowSpan ?? 1}"
 					>

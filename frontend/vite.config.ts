@@ -1,6 +1,6 @@
 import tailwindcss from '@tailwindcss/vite'
 import { sveltekit } from '@sveltejs/kit/vite';
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 import path from 'path';
 
 // Get configuration from environment variables (for development)
@@ -93,5 +93,10 @@ export default defineConfig({
 	},
 	css: {
 		postcss: './postcss.config.js',
+	},
+	test: {
+		environment: 'jsdom',
+		include: ['src/**/*.test.ts'],
+		setupFiles: ['src/test/setup.ts'],
 	},
 });

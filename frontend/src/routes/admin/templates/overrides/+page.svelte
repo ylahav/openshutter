@@ -132,6 +132,7 @@
 	/** Shell + page grid/modules edit target (mobile-first breakpoints). */
 	let editingBreakpoint: TemplateBreakpointId = 'lg';
 	const PAGE_KEYS = ['home', 'gallery', 'album', 'search', 'header', 'footer'] as const;
+	let pageModulesActiveBreakpoints: Record<string, boolean> = {};
 	// Multi-select like page builder: Set of "row:col" keys
 	let selectedCells = new Set<string>();
 	// Must read editingBreakpoint + localOverrides here — Svelte does not track vars only used inside helper closures.
@@ -327,6 +328,7 @@
 				pageModules: pageModulesByBreakpointToPageModulesField(seeded.pageModulesByBreakpoint)
 			};
 		}
+		refreshPageModulesActiveBreakpointsMap();
 		logger.debug('[Overrides] Initialized local overrides:', {
 			editingTheme: !!editingTheme,
 			pageModulesKeys: Object.keys(localOverrides.pageModules || {}),
@@ -351,7 +353,7 @@
 			'richText',
 			'featureGrid',
 			'albumsGrid',
-			'albumGallery',
+			'albumView',
 			'cta',
 			'blogCategory',
 			'blogArticle'
@@ -367,18 +369,47 @@
 	function migratePageModules(pm: Record<string, unknown> | undefined): Record<string, unknown> {
 		if (!pm) return {};
 		const out: Record<string, unknown> = {};
+		const normalizeModuleType = (t: unknown): string => (t === 'albumGallery' ? 'albumView' : String(t ?? ''));
 		for (const [pt, val] of Object.entries(pm)) {
+			if (
+				val &&
+				typeof val === 'object' &&
+				!Array.isArray(val) &&
+				typeof (val as { activeBreakpoints?: unknown }).activeBreakpoints === 'boolean'
+			) {
+				out[pt] = JSON.parse(JSON.stringify(val));
+				continue;
+			}
 			if (isPageModulesBreakpointMapForPage(val)) {
 				out[pt] = JSON.parse(JSON.stringify(val));
 				continue;
 			}
 			if (!Array.isArray(val)) continue;
-			out[pt] = val.map((m, i) => {
+			out[pt] = val.map((m: any, i) => {
 				if (m.rowOrder !== undefined && m.columnIndex !== undefined) return m;
-				return { ...m, rowOrder: i, columnIndex: 0 };
+				const normalizedType = normalizeModuleType(m?.type);
+				return { ...m, type: normalizedType, rowOrder: i, columnIndex: 0 };
 			});
 		}
 		return out;
+	}
+
+	function refreshPageModulesActiveBreakpointsMap(): void {
+		const next: Record<string, boolean> = {};
+		for (const pk of PAGE_KEYS) {
+			const row = localOverrides.pageModules?.[pk];
+			if (
+				row &&
+				typeof row === 'object' &&
+				!Array.isArray(row) &&
+				typeof (row as { activeBreakpoints?: unknown }).activeBreakpoints === 'boolean'
+			) {
+				next[pk] = (row as { activeBreakpoints: boolean }).activeBreakpoints;
+			} else {
+				next[pk] = true;
+			}
+		}
+		pageModulesActiveBreakpoints = next;
 	}
 
 	function syncLegacyFromBreakpoints() {
@@ -396,7 +427,10 @@
 			plByIn[pk] = normalizePageLayoutRowForPersistence(pk, row) as (typeof plByIn)[string];
 		}
 		const pl = pageLayoutByBreakpointToPageLayoutField(plByIn);
-		const pm = pageModulesByBreakpointToPageModulesField(localOverrides.pageModulesByBreakpoint || {});
+		const pm = pageModulesByBreakpointToPageModulesField(
+			localOverrides.pageModulesByBreakpoint || {},
+			pageModulesActiveBreakpoints
+		);
 		localOverrides = {
 			...localOverrides,
 			customLayout,
@@ -406,19 +440,19 @@
 		};
 	}
 
+	$: sameGridToAllBreakpoints = pageModulesActiveBreakpoints[editingPageType] === false;
+
 	function getModulesForPageType(pt: string, bp: TemplateBreakpointId) {
 		const resolved = getPageModulesForBreakpoint(
 			{
-				pageModules: localOverrides.pageModules,
-				pageModulesByBreakpoint: localOverrides.pageModulesByBreakpoint
+				pageModules: localOverrides.pageModules
 			},
 			pt,
 			bp
 		);
 		if (resolved.length > 0) return resolved;
 		const hasAnyPageModulesConfig =
-			localOverrides.pageModules?.[pt] != null ||
-			localOverrides.pageModulesByBreakpoint?.[pt] != null;
+			localOverrides.pageModules?.[pt] != null;
 		if (hasAnyPageModulesConfig) return resolved;
 		return DEFAULT_PAGE_MODULES[pt] || [];
 	}
@@ -510,6 +544,19 @@
 		syncLegacyFromBreakpoints();
 		hasChanges = true;
 		clearSelection();
+	}
+
+	function setSameGridToAllBreakpointsForEditingPage(enabled: boolean) {
+		pageModulesActiveBreakpoints = {
+			...pageModulesActiveBreakpoints,
+			[editingPageType]: !enabled
+		};
+		if (enabled) {
+			applyCurrentBreakpointToAllForEditingPage();
+			editingBreakpoint = 'lg';
+		} else {
+			hasChanges = true;
+		}
 	}
 
 	function stableStringify(value: any): string {
@@ -614,9 +661,21 @@
 
 	function saveModuleChanges() {
 		if (!editingModule) return;
-		const idx = getModulesForPageType(editingPageType, editingBreakpoint).findIndex((m) => m._id === editingModule._id);
+		if (editingModule.type === 'albumGallery') {
+			editingModule = { ...editingModule, type: 'albumView' };
+		}
+		const modulesForPage = getModulesForPageType(editingPageType, editingBreakpoint) ?? [];
+		let idx = modulesForPage.findIndex((m) => editingModule._id && m._id === editingModule._id);
+		// Backward compatibility: older saved modules may not have _id; match by placement + type.
+		if (idx < 0) {
+			idx = modulesForPage.findIndex((m) =>
+				m.type === editingModule.type &&
+				(m.rowOrder ?? 0) === (editingModule.rowOrder ?? 0) &&
+				(m.columnIndex ?? 0) === (editingModule.columnIndex ?? 0)
+			);
+		}
 		if (idx >= 0) {
-			const arr = [...(getModulesForPageType(editingPageType, editingBreakpoint) ?? [])];
+			const arr = [...modulesForPage];
 			const updated = [...arr];
 			updated[idx] = { ...editingModule };
 			const bp = editingBreakpoint;
@@ -645,6 +704,9 @@
 
 	let assignedModuleType = '';
 	let editingModule: any | null = null;
+let draggedAlbumField: string | null = null;
+let draggedPhotoField: string | null = null;
+let draggedAlbumHeaderField: string | null = null;
 	let availableBlogCategories: Array<{ alias: string; title: string }> = [];
 
 	async function loadBlogCategoriesForOverrides() {
@@ -733,8 +795,34 @@
 		}
 		const id = `mod_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 		const defaultProps: Record<string, any> = {};
-		if (moduleType === 'albumsGrid' || moduleType === 'albumGallery') {
+		if (moduleType === 'albumsGrid' || moduleType === 'albumView' || moduleType === 'albumGallery') {
 			defaultProps.albumSource = 'root';
+			defaultProps.showTitle = true;
+			defaultProps.showAlbumTitle = true;
+			defaultProps.showPhotoTitle = true;
+			defaultProps.albumHeaderFieldOrder = ['albumTitle', 'albumDescription', 'albumStats'];
+			defaultProps.showAlbumPageTitle = true;
+			defaultProps.showAlbumPageDescription = true;
+			defaultProps.showAlbumPageStats = true;
+			defaultProps.showCover = true;
+			defaultProps.coverAspect = 'video';
+			defaultProps.showDescription = true;
+			defaultProps.showAlbumDescription = true;
+			defaultProps.showPhotoDescription = true;
+			defaultProps.descriptionLines = 2;
+			defaultProps.cardFieldOrder = ['cover', 'title', 'description', 'photoCount', 'featuredBadge'];
+			defaultProps.albumCardFieldOrder = ['cover', 'title', 'description', 'photoCount', 'featuredBadge'];
+			defaultProps.photoCardFieldOrder = ['cover', 'title', 'description', 'featuredBadge'];
+			defaultProps.showPhotoCount = true;
+			defaultProps.showFeaturedBadge = true;
+			defaultProps.showAlbumFeaturedBadge = true;
+			defaultProps.showPhotoFeaturedBadge = true;
+			defaultProps.cardDataType = moduleType === 'albumView' || moduleType === 'albumGallery' ? 'both' : 'subAlbums';
+			defaultProps.mixedDisplayMode = 'grouped';
+			defaultProps.showSectionLabels = true;
+			defaultProps.sortBy = 'manual';
+			defaultProps.sortDirection = 'asc';
+			defaultProps.limit = 12;
 		} else if (moduleType === 'hero') {
 			defaultProps.backgroundStyle = 'light';
 		} else if (moduleType === 'richText') {
@@ -783,8 +871,44 @@
 		const bp = editingBreakpoint;
 		const old = arr[idx];
 		const defaultProps: Record<string, any> = {};
-		if (newType === 'albumsGrid' || newType === 'albumGallery') {
+		if (newType === 'albumsGrid' || newType === 'albumView' || newType === 'albumGallery') {
 			defaultProps.albumSource = old.props?.albumSource ?? 'root';
+			defaultProps.showTitle = old.props?.showTitle ?? true;
+			defaultProps.showAlbumTitle = old.props?.showAlbumTitle ?? old.props?.showTitle ?? true;
+			defaultProps.showPhotoTitle = old.props?.showPhotoTitle ?? old.props?.showTitle ?? true;
+			defaultProps.albumHeaderFieldOrder = Array.isArray(old.props?.albumHeaderFieldOrder)
+				? old.props.albumHeaderFieldOrder
+				: ['albumTitle', 'albumDescription', 'albumStats'];
+			defaultProps.showAlbumPageTitle = old.props?.showAlbumPageTitle ?? true;
+			defaultProps.showAlbumPageDescription = old.props?.showAlbumPageDescription ?? true;
+			defaultProps.showAlbumPageStats = old.props?.showAlbumPageStats ?? true;
+			defaultProps.showCover = old.props?.showCover ?? true;
+			defaultProps.coverAspect = old.props?.coverAspect ?? 'video';
+			defaultProps.showDescription = old.props?.showDescription ?? true;
+			defaultProps.showAlbumDescription = old.props?.showAlbumDescription ?? old.props?.showDescription ?? true;
+			defaultProps.showPhotoDescription = old.props?.showPhotoDescription ?? old.props?.showDescription ?? true;
+			defaultProps.descriptionLines = old.props?.descriptionLines ?? 2;
+			defaultProps.cardFieldOrder = Array.isArray(old.props?.cardFieldOrder)
+				? old.props.cardFieldOrder
+				: ['cover', 'title', 'description', 'photoCount', 'featuredBadge'];
+			defaultProps.albumCardFieldOrder = Array.isArray(old.props?.albumCardFieldOrder)
+				? old.props.albumCardFieldOrder
+				: (Array.isArray(old.props?.cardFieldOrder) ? old.props.cardFieldOrder : ['cover', 'title', 'description', 'photoCount', 'featuredBadge']);
+			defaultProps.photoCardFieldOrder = Array.isArray(old.props?.photoCardFieldOrder)
+				? old.props.photoCardFieldOrder
+				: (Array.isArray(old.props?.cardFieldOrder)
+					? old.props.cardFieldOrder.filter((k: string) => k !== 'photoCount')
+					: ['cover', 'title', 'description', 'featuredBadge']);
+			defaultProps.showPhotoCount = old.props?.showPhotoCount ?? true;
+			defaultProps.showFeaturedBadge = old.props?.showFeaturedBadge ?? true;
+			defaultProps.showAlbumFeaturedBadge = old.props?.showAlbumFeaturedBadge ?? old.props?.showFeaturedBadge ?? true;
+			defaultProps.showPhotoFeaturedBadge = old.props?.showPhotoFeaturedBadge ?? old.props?.showFeaturedBadge ?? true;
+			defaultProps.cardDataType = old.props?.cardDataType ?? (newType === 'albumView' || newType === 'albumGallery' ? 'both' : 'subAlbums');
+			defaultProps.mixedDisplayMode = old.props?.mixedDisplayMode ?? 'grouped';
+			defaultProps.showSectionLabels = old.props?.showSectionLabels ?? true;
+			defaultProps.sortBy = old.props?.sortBy ?? 'manual';
+			defaultProps.sortDirection = old.props?.sortDirection ?? 'asc';
+			defaultProps.limit = old.props?.limit ?? 12;
 		}
 		const updated = [...arr];
 		updated[idx] = { ...old, type: newType, props: defaultProps };
@@ -817,7 +941,8 @@
 
 	function getModuleLabel(type: string): string {
 		const all = [...PAGE_CONTENT_MODULES, ...HEADER_MODULES, ...FOOTER_MODULES];
-		const m = all.find((x) => x.type === type) ?? all.find((x) => (x.type === 'albumsGrid' && type === 'albumGallery') || (x.type === 'albumGallery' && type === 'albumsGrid'));
+		const normalizedType = type === 'albumGallery' ? 'albumView' : type;
+		const m = all.find((x) => x.type === normalizedType) ?? all.find((x) => x.type === 'albumsGrid' && normalizedType === 'albumView');
 		return m?.label ?? type;
 	}
 
@@ -1191,6 +1316,13 @@
 
 	function pageModulesFieldHasContent(v: unknown): boolean {
 		if (Array.isArray(v)) return v.length > 0;
+		if (v && typeof v === 'object' && !Array.isArray(v) && typeof (v as any).activeBreakpoints === 'boolean') {
+			if ((v as any).activeBreakpoints) {
+				const b = (v as any).breakpoints || {};
+				return TEMPLATE_BREAKPOINTS.some((bp) => Array.isArray(b[bp]) && b[bp].length > 0);
+			}
+			return Array.isArray((v as any).modules) && (v as any).modules.length > 0;
+		}
 		if (isPageModulesBreakpointMapForPage(v)) {
 			return TEMPLATE_BREAKPOINTS.some(
 				(bp) => Array.isArray(v[bp]) && (v[bp] as unknown[]).length > 0
@@ -1241,8 +1373,7 @@
 				headerConfig: localOverrides.headerConfig || {},
 				pageModules: localOverrides.pageModules || {},
 				pageLayout: localOverrides.pageLayout || {},
-				pageLayoutByBreakpoint: localOverrides.pageLayoutByBreakpoint || {},
-				pageModulesByBreakpoint: localOverrides.pageModulesByBreakpoint || {}
+				pageLayoutByBreakpoint: localOverrides.pageLayoutByBreakpoint || {}
 			};
 
 			if (themeId && editingTheme) {
@@ -2030,11 +2161,16 @@
 											aria-selected={editingBreakpoint === bp}
 											aria-controls="pages-editor-panel"
 											tabindex={editingBreakpoint === bp ? 0 : -1}
-											on:click={() => (editingBreakpoint = bp)}
+											disabled={sameGridToAllBreakpoints}
+											on:click={() => {
+												if (sameGridToAllBreakpoints) return;
+												editingBreakpoint = bp;
+											}}
 											class="min-w-0 flex-1 sm:flex-none px-3 py-2 text-sm font-medium border-b-2 transition-colors rounded-t-md
 												{editingBreakpoint === bp
 													? 'border-blue-600 text-blue-700 bg-white border-b-blue-600 z-10'
-													: 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'}"
+													: 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'}
+												{sameGridToAllBreakpoints ? ' opacity-50 cursor-not-allowed hover:text-gray-500 hover:border-transparent' : ''}"
 										>
 											<span class="uppercase tracking-wide">{bp}</span>
 											<span
@@ -2064,6 +2200,22 @@
 						{#key `${editingPageType}-${editingBreakpoint}`}
 						<!-- Grid configuration (like template builder) -->
 						<div class="bg-gray-50 p-4 rounded-lg">
+							<div class="mb-3">
+								<label class="inline-flex items-center gap-2 text-sm font-medium text-gray-700">
+									<input
+										type="checkbox"
+										checked={sameGridToAllBreakpoints}
+										on:change={(e) =>
+											setSameGridToAllBreakpointsForEditingPage(
+												(e.currentTarget as HTMLInputElement).checked
+											)}
+									/>
+									Same grid to all breakpoints
+								</label>
+								<p class="mt-1 text-xs text-gray-500">
+									When enabled, breakpoint tabs are locked and the current grid/modules are copied to all breakpoints.
+								</p>
+							</div>
 							<h3 class="text-sm font-semibold text-gray-900 mb-3">Grid configuration</h3>
 							{#if !showApplyCurrentBreakpointToAllBreakpoints}
 								<p class="text-xs text-gray-500 mt-2">
@@ -2155,6 +2307,9 @@
 													on:click|stopPropagation={() => {
 														// Deep clone the module to avoid mutating the original
 														editingModule = JSON.parse(JSON.stringify(mod));
+														if (!editingModule._id) {
+															editingModule._id = `mod_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+														}
 														logger.debug('[Overrides] Editing module (before init):', { 
 															type: editingModule.type, 
 															props: editingModule.props,
@@ -2527,7 +2682,7 @@
 			<div class="p-6 space-y-4">
 				<div>
 					<p class="text-sm text-gray-600 mb-4">
-						Module: <span class="font-medium text-gray-900">{editingModule.type}</span>
+						Module: <span class="font-medium text-gray-900">{editingModule.type === 'albumGallery' ? 'albumView' : editingModule.type}</span>
 						<br />
 						Position: Row {editingModule.rowOrder + 1}, Col {editingModule.columnIndex + 1}
 						{#if (editingModule.rowSpan ?? 1) > 1 || (editingModule.colSpan ?? 1) > 1}
@@ -2537,35 +2692,571 @@
 					</p>
 				</div>
 
-				{#if editingModule.type === 'albumsGrid' || editingModule.type === 'albumGallery'}
-					<div>
-						<label for="edit-album-source" class="block text-sm font-medium text-gray-700 mb-2">
-							Albums source
-						</label>
-						<select
-							id="edit-album-source"
-							class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-							value={editingModule.props?.albumSource ?? 'root'}
-							on:change={(e) => {
-								editingModule = {
-									...editingModule,
-									props: { ...editingModule.props, albumSource: (e.currentTarget as HTMLSelectElement).value }
-								};
-							}}
-						>
-							<option value="root">Root albums only</option>
-							<option value="featured">Featured albums (all levels)</option>
-							<option value="selected">Specific albums</option>
-							<option value="current">Current album (from URL)</option>
-						</select>
-						{#if editingModule.props?.albumSource === 'selected'}
-							<p class="mt-2 text-sm text-gray-500">Album picker for specific albums coming soon.</p>
+				{#if editingModule.type === 'albumsGrid' || editingModule.type === 'albumView' || editingModule.type === 'albumGallery'}
+					<div class="space-y-4">
+						<div>
+							<label for="edit-album-source" class="block text-sm font-medium text-gray-700 mb-2">
+								Albums source
+							</label>
+							<select
+								id="edit-album-source"
+								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								value={editingModule.props?.albumSource ?? 'root'}
+								on:change={(e) => {
+									editingModule = {
+										...editingModule,
+										props: { ...editingModule.props, albumSource: (e.currentTarget as HTMLSelectElement).value }
+									};
+								}}
+							>
+								<option value="root">Root albums only</option>
+								<option value="featured">Featured albums (all levels)</option>
+								<option value="selected">Specific albums</option>
+								<option value="current">Current album (from URL)</option>
+							</select>
+							{#if editingModule.props?.albumSource === 'selected'}
+								<p class="mt-2 text-sm text-gray-500">Album picker for specific albums coming soon.</p>
+							{/if}
+							{#if editingModule.props?.albumSource === 'current'}
+								<p class="mt-2 text-xs text-gray-500">
+									For Album view, this source can render sub-albums, photos, or both from the current album (URL alias).
+								</p>
+							{/if}
+						</div>
+
+						{#if editingModule.type === 'albumView' || editingModule.type === 'albumGallery'}
+							<div class="rounded-md border border-gray-200 bg-gray-50 p-4 space-y-3">
+								<div class="text-sm font-semibold text-gray-900">Album header (current album)</div>
+								<p class="text-xs text-gray-600">
+									Shown when Albums source is <span class="font-medium">Current album (from URL)</span>.
+								</p>
+
+								<div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+									<label class="flex items-center gap-2 text-sm text-gray-700">
+										<input
+											type="checkbox"
+											checked={editingModule.props?.showAlbumPageTitle !== false}
+											on:change={(e) => {
+												editingModule = {
+													...editingModule,
+													props: { ...editingModule.props, showAlbumPageTitle: (e.currentTarget as HTMLInputElement).checked }
+												};
+											}}
+										/>
+										Title
+									</label>
+									<label class="flex items-center gap-2 text-sm text-gray-700">
+										<input
+											type="checkbox"
+											checked={editingModule.props?.showAlbumPageDescription !== false}
+											on:change={(e) => {
+												editingModule = {
+													...editingModule,
+													props: { ...editingModule.props, showAlbumPageDescription: (e.currentTarget as HTMLInputElement).checked }
+												};
+											}}
+										/>
+										Description
+									</label>
+									<label class="flex items-center gap-2 text-sm text-gray-700">
+										<input
+											type="checkbox"
+											checked={editingModule.props?.showAlbumPageStats !== false}
+											on:change={(e) => {
+												editingModule = {
+													...editingModule,
+													props: { ...editingModule.props, showAlbumPageStats: (e.currentTarget as HTMLInputElement).checked }
+												};
+											}}
+										/>
+										Stats (counts)
+									</label>
+								</div>
+
+								<div>
+									<label class="block text-sm font-medium text-gray-700 mb-2">Album header order (drag to reorder)</label>
+									<div class="space-y-2">
+										{#each (Array.isArray(editingModule.props?.albumHeaderFieldOrder)
+											? editingModule.props.albumHeaderFieldOrder
+											: ['albumTitle', 'albumDescription', 'albumStats']) as fieldKey, idx (fieldKey)}
+											<div
+												class="flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md bg-white cursor-move"
+												draggable="true"
+												on:dragstart={(e) => {
+													draggedAlbumHeaderField = fieldKey;
+													e.dataTransfer?.setData('text/plain', fieldKey);
+													e.dataTransfer!.effectAllowed = 'move';
+												}}
+												on:dragend={() => {
+													draggedAlbumHeaderField = null;
+												}}
+												on:dragover={(e) => e.preventDefault()}
+												on:drop={(e) => {
+													e.preventDefault();
+													const fromKey =
+														e.dataTransfer?.getData('text/plain') || draggedAlbumHeaderField || null;
+													if (!fromKey || fromKey === fieldKey) return;
+													const current = Array.isArray(editingModule.props?.albumHeaderFieldOrder)
+														? [...editingModule.props.albumHeaderFieldOrder]
+														: ['albumTitle', 'albumDescription', 'albumStats'];
+													const from = current.indexOf(fromKey);
+													const to = current.indexOf(fieldKey);
+													if (from < 0 || to < 0) return;
+													const [moved] = current.splice(from, 1);
+													const adjustedTo = from < to ? to - 1 : to;
+													current.splice(adjustedTo, 0, moved);
+													editingModule = {
+														...editingModule,
+														props: { ...editingModule.props, albumHeaderFieldOrder: current }
+													};
+													draggedAlbumHeaderField = null;
+												}}
+											>
+												<span class="text-sm text-gray-800">
+													{fieldKey === 'albumTitle' ? 'Title' :
+													 fieldKey === 'albumDescription' ? 'Description' :
+													 'Stats (counts)'}
+												</span>
+												<span class="text-xs text-gray-400">#{idx + 1}</span>
+											</div>
+										{/each}
+									</div>
+								</div>
+							</div>
+
 						{/if}
-						{#if editingModule.props?.albumSource === 'current'}
-							<p class="mt-2 text-xs text-gray-500">
-								Shows sub-albums of the album specified in the URL (album-alias parameter). Use this for album pages.
-							</p>
+
+						{#if editingModule.type === 'albumView' || editingModule.type === 'albumGallery'}
+							<div>
+								<label for="edit-card-data-type" class="block text-sm font-medium text-gray-700 mb-2">Card data type</label>
+								<select
+									id="edit-card-data-type"
+									class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+									value={editingModule.props?.cardDataType ?? 'both'}
+									on:change={(e) => {
+										editingModule = {
+											...editingModule,
+											props: { ...editingModule.props, cardDataType: (e.currentTarget as HTMLSelectElement).value }
+										};
+									}}
+								>
+									<option value="subAlbums">Sub-albums cards</option>
+									<option value="photos">Photo cards</option>
+									<option value="both">Sub-albums + photos</option>
+								</select>
+							</div>
+							{#if (editingModule.props?.cardDataType ?? 'both') === 'both'}
+								<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+									<div>
+										<label for="edit-mixed-display-mode" class="block text-sm font-medium text-gray-700 mb-2">Mixed display mode</label>
+										<select
+											id="edit-mixed-display-mode"
+											class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+											value={editingModule.props?.mixedDisplayMode ?? 'grouped'}
+											on:change={(e) => {
+												editingModule = {
+													...editingModule,
+													props: { ...editingModule.props, mixedDisplayMode: (e.currentTarget as HTMLSelectElement).value }
+												};
+											}}
+										>
+											<option value="grouped">Grouped (sub-albums, then photos)</option>
+											<option value="interleaved">Interleaved (single ordered stream)</option>
+										</select>
+									</div>
+									<label class="flex items-center gap-2 text-sm text-gray-700 mt-8">
+										<input
+											type="checkbox"
+											checked={editingModule.props?.showSectionLabels !== false}
+											on:change={(e) => {
+												editingModule = {
+													...editingModule,
+													props: { ...editingModule.props, showSectionLabels: (e.currentTarget as HTMLInputElement).checked }
+												};
+											}}
+										/>
+										Show section labels
+									</label>
+								</div>
+							{/if}
 						{/if}
+
+						{#if editingModule.type === 'albumView' || editingModule.type === 'albumGallery'}
+							<div class="space-y-3">
+								<label class="flex items-center gap-2 text-sm text-gray-700">
+									<input
+										type="checkbox"
+										checked={editingModule.props?.showCover !== false}
+										on:change={(e) => {
+											editingModule = {
+												...editingModule,
+												props: { ...editingModule.props, showCover: (e.currentTarget as HTMLInputElement).checked }
+											};
+										}}
+									/>
+									Show image (both)
+								</label>
+
+								<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+									<div class="rounded-md border border-gray-200 bg-gray-50 p-3">
+										<div class="text-sm font-semibold text-gray-900 mb-2">Sub-album card</div>
+										<div class="space-y-2">
+											<label class="flex items-center gap-2 text-sm text-gray-700">
+												<input
+													type="checkbox"
+													checked={editingModule.props?.showAlbumTitle ?? true}
+													on:change={(e) => {
+														editingModule = {
+															...editingModule,
+															props: { ...editingModule.props, showAlbumTitle: (e.currentTarget as HTMLInputElement).checked }
+														};
+													}}
+												/>
+												Title
+											</label>
+											<label class="flex items-center gap-2 text-sm text-gray-700">
+												<input
+													type="checkbox"
+													checked={editingModule.props?.showAlbumDescription ?? true}
+													on:change={(e) => {
+														editingModule = {
+															...editingModule,
+															props: { ...editingModule.props, showAlbumDescription: (e.currentTarget as HTMLInputElement).checked }
+														};
+													}}
+												/>
+												Description
+											</label>
+											<label class="flex items-center gap-2 text-sm text-gray-700">
+												<input
+													type="checkbox"
+													checked={editingModule.props?.showPhotoCount !== false}
+													on:change={(e) => {
+														editingModule = {
+															...editingModule,
+															props: { ...editingModule.props, showPhotoCount: (e.currentTarget as HTMLInputElement).checked }
+														};
+													}}
+												/>
+												Photo count
+											</label>
+											<label class="flex items-center gap-2 text-sm text-gray-700">
+												<input
+													type="checkbox"
+													checked={editingModule.props?.showAlbumFeaturedBadge ?? true}
+													on:change={(e) => {
+														editingModule = {
+															...editingModule,
+															props: { ...editingModule.props, showAlbumFeaturedBadge: (e.currentTarget as HTMLInputElement).checked }
+														};
+													}}
+												/>
+												Featured badge
+											</label>
+										</div>
+									</div>
+
+									<div class="rounded-md border border-gray-200 bg-gray-50 p-3">
+										<div class="text-sm font-semibold text-gray-900 mb-2">Photo card</div>
+										<div class="space-y-2">
+											<label class="flex items-center gap-2 text-sm text-gray-700">
+												<input
+													type="checkbox"
+													checked={editingModule.props?.showPhotoTitle ?? true}
+													on:change={(e) => {
+														editingModule = {
+															...editingModule,
+															props: { ...editingModule.props, showPhotoTitle: (e.currentTarget as HTMLInputElement).checked }
+														};
+													}}
+												/>
+												Title
+											</label>
+											<label class="flex items-center gap-2 text-sm text-gray-700">
+												<input
+													type="checkbox"
+													checked={editingModule.props?.showPhotoDescription ?? true}
+													on:change={(e) => {
+														editingModule = {
+															...editingModule,
+															props: { ...editingModule.props, showPhotoDescription: (e.currentTarget as HTMLInputElement).checked }
+														};
+													}}
+												/>
+												Description
+											</label>
+											<label class="flex items-center gap-2 text-sm text-gray-700">
+												<input
+													type="checkbox"
+													checked={editingModule.props?.showPhotoFeaturedBadge ?? true}
+													on:change={(e) => {
+														editingModule = {
+															...editingModule,
+															props: { ...editingModule.props, showPhotoFeaturedBadge: (e.currentTarget as HTMLInputElement).checked }
+														};
+													}}
+												/>
+												Featured badge
+											</label>
+										</div>
+									</div>
+								</div>
+							</div>
+						{:else}
+							<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+								<label class="flex items-center gap-2 text-sm text-gray-700">
+									<input
+										type="checkbox"
+										checked={editingModule.props?.showCover !== false}
+										on:change={(e) => {
+											editingModule = {
+												...editingModule,
+												props: { ...editingModule.props, showCover: (e.currentTarget as HTMLInputElement).checked }
+											};
+										}}
+									/>
+									Show cover image
+								</label>
+								<label class="flex items-center gap-2 text-sm text-gray-700">
+									<input
+										type="checkbox"
+										checked={editingModule.props?.showDescription !== false}
+										on:change={(e) => {
+											editingModule = {
+												...editingModule,
+												props: { ...editingModule.props, showDescription: (e.currentTarget as HTMLInputElement).checked }
+											};
+										}}
+									/>
+									Show description
+								</label>
+								<label class="flex items-center gap-2 text-sm text-gray-700">
+									<input
+										type="checkbox"
+										checked={editingModule.props?.showPhotoCount !== false}
+										on:change={(e) => {
+											editingModule = {
+												...editingModule,
+												props: { ...editingModule.props, showPhotoCount: (e.currentTarget as HTMLInputElement).checked }
+											};
+										}}
+									/>
+									Show photo count
+								</label>
+								<label class="flex items-center gap-2 text-sm text-gray-700">
+									<input
+										type="checkbox"
+										checked={editingModule.props?.showFeaturedBadge !== false}
+										on:change={(e) => {
+											editingModule = {
+												...editingModule,
+												props: { ...editingModule.props, showFeaturedBadge: (e.currentTarget as HTMLInputElement).checked }
+											};
+										}}
+									/>
+									Show featured badge
+								</label>
+							</div>
+						{/if}
+
+						<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+							<div>
+								<label for="edit-cover-aspect" class="block text-sm font-medium text-gray-700 mb-2">Cover aspect</label>
+								<select
+									id="edit-cover-aspect"
+									class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+									value={editingModule.props?.coverAspect ?? 'video'}
+									on:change={(e) => {
+										editingModule = {
+											...editingModule,
+											props: { ...editingModule.props, coverAspect: (e.currentTarget as HTMLSelectElement).value }
+										};
+									}}
+								>
+									<option value="video">Video (16:9)</option>
+									<option value="square">Square (1:1)</option>
+									<option value="portrait">Portrait (3:4)</option>
+								</select>
+							</div>
+
+							<div>
+								<label for="edit-description-lines" class="block text-sm font-medium text-gray-700 mb-2">Description lines</label>
+								<input
+									id="edit-description-lines"
+									type="number"
+									min="1"
+									max="6"
+									class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+									value={String(editingModule.props?.descriptionLines ?? 2)}
+									on:input={(e) => {
+										const parsed = Math.max(1, Math.min(6, Number((e.currentTarget as HTMLInputElement).value) || 2));
+										editingModule = {
+											...editingModule,
+											props: { ...editingModule.props, descriptionLines: parsed }
+										};
+									}}
+								/>
+							</div>
+
+							<div>
+								<label class="block text-sm font-medium text-gray-700 mb-2">Album card content order (drag to reorder)</label>
+								<div class="space-y-2">
+									{#each (Array.isArray(editingModule.props?.albumCardFieldOrder)
+										? editingModule.props.albumCardFieldOrder
+										: Array.isArray(editingModule.props?.cardFieldOrder)
+											? editingModule.props.cardFieldOrder
+										: ['cover', 'title', 'description', 'photoCount', 'featuredBadge']) as fieldKey, idx (fieldKey)}
+										<div
+											class="flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md bg-white cursor-move"
+											draggable="true"
+											on:dragstart={() => {
+												draggedAlbumField = fieldKey;
+											}}
+											on:dragover={(e) => e.preventDefault()}
+											on:drop={(e) => {
+												e.preventDefault();
+												if (!draggedAlbumField || draggedAlbumField === fieldKey) return;
+												const current = Array.isArray(editingModule.props?.albumCardFieldOrder)
+													? [...editingModule.props.albumCardFieldOrder]
+													: Array.isArray(editingModule.props?.cardFieldOrder)
+														? [...editingModule.props.cardFieldOrder]
+													: ['cover', 'title', 'description', 'photoCount', 'featuredBadge'];
+												const from = current.indexOf(draggedAlbumField);
+												const to = current.indexOf(fieldKey);
+												if (from < 0 || to < 0) return;
+												const [moved] = current.splice(from, 1);
+												current.splice(to, 0, moved);
+												editingModule = {
+													...editingModule,
+													props: { ...editingModule.props, albumCardFieldOrder: current }
+												};
+												draggedAlbumField = null;
+											}}
+										>
+											<span class="text-sm text-gray-800">
+												{fieldKey === 'title' ? 'Title' :
+												 fieldKey === 'cover' ? 'Leading photo' :
+												 fieldKey === 'description' ? 'Description' :
+												 fieldKey === 'photoCount' ? 'Photo count' :
+												 'Featured badge'}
+											</span>
+											<span class="text-xs text-gray-400">#{idx + 1}</span>
+										</div>
+									{/each}
+								</div>
+							</div>
+							{#if editingModule.type === 'albumView' || editingModule.type === 'albumGallery'}
+								<div>
+									<label class="block text-sm font-medium text-gray-700 mb-2">Photo card content order (drag to reorder)</label>
+									<div class="space-y-2">
+										{#each (Array.isArray(editingModule.props?.photoCardFieldOrder)
+											? editingModule.props.photoCardFieldOrder
+											: ['cover', 'title', 'description', 'featuredBadge']) as fieldKey, idx (fieldKey)}
+											<div
+												class="flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md bg-white cursor-move"
+												draggable="true"
+										on:dragstart={(e) => {
+											draggedPhotoField = fieldKey;
+											e.dataTransfer?.setData('text/plain', fieldKey);
+											e.dataTransfer!.effectAllowed = 'move';
+										}}
+										on:dragend={() => {
+											draggedPhotoField = null;
+										}}
+												on:dragover={(e) => e.preventDefault()}
+												on:drop={(e) => {
+													e.preventDefault();
+											const fromKey =
+												e.dataTransfer?.getData('text/plain') || draggedPhotoField || null;
+											if (!fromKey || fromKey === fieldKey) return;
+													const current = Array.isArray(editingModule.props?.photoCardFieldOrder)
+														? [...editingModule.props.photoCardFieldOrder]
+														: ['cover', 'title', 'description', 'featuredBadge'];
+											const from = current.indexOf(fromKey);
+													const to = current.indexOf(fieldKey);
+													if (from < 0 || to < 0) return;
+													const [moved] = current.splice(from, 1);
+											const adjustedTo = from < to ? to - 1 : to;
+											current.splice(adjustedTo, 0, moved);
+													editingModule = {
+														...editingModule,
+														props: { ...editingModule.props, photoCardFieldOrder: current }
+													};
+											draggedPhotoField = null;
+												}}
+											>
+												<span class="text-sm text-gray-800">
+													{fieldKey === 'title' ? 'Title' :
+													 fieldKey === 'cover' ? 'Photo' :
+													 fieldKey === 'description' ? 'Description' :
+													 'Featured badge'}
+												</span>
+												<span class="text-xs text-gray-400">#{idx + 1}</span>
+											</div>
+										{/each}
+									</div>
+								</div>
+							{/if}
+
+							<div>
+								<label for="edit-sort-by" class="block text-sm font-medium text-gray-700 mb-2">Sort by</label>
+								<select
+									id="edit-sort-by"
+									class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+									value={editingModule.props?.sortBy ?? 'manual'}
+									on:change={(e) => {
+										editingModule = {
+											...editingModule,
+											props: { ...editingModule.props, sortBy: (e.currentTarget as HTMLSelectElement).value }
+										};
+									}}
+								>
+									<option value="manual">Manual/source order</option>
+									<option value="order">Album order</option>
+									<option value="name">Name</option>
+									<option value="photoCount">Photo count</option>
+									<option value="createdAt">Created date</option>
+									<option value="lastPhotoDate">Last photo date</option>
+								</select>
+							</div>
+
+							<div>
+								<label for="edit-sort-direction" class="block text-sm font-medium text-gray-700 mb-2">Sort direction</label>
+								<select
+									id="edit-sort-direction"
+									class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+									value={editingModule.props?.sortDirection ?? 'asc'}
+									on:change={(e) => {
+										editingModule = {
+											...editingModule,
+											props: { ...editingModule.props, sortDirection: (e.currentTarget as HTMLSelectElement).value }
+										};
+									}}
+								>
+									<option value="asc">Ascending</option>
+									<option value="desc">Descending</option>
+								</select>
+							</div>
+						</div>
+
+						<div>
+							<label for="edit-limit" class="block text-sm font-medium text-gray-700 mb-2">Maximum items</label>
+							<input
+								id="edit-limit"
+								type="number"
+								min="1"
+								max="60"
+								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								value={String(editingModule.props?.limit ?? 12)}
+								on:input={(e) => {
+									const parsed = Math.max(1, Math.min(60, Number((e.currentTarget as HTMLInputElement).value) || 12));
+									editingModule = {
+										...editingModule,
+										props: { ...editingModule.props, limit: parsed }
+									};
+								}}
+							/>
+						</div>
 					</div>
 				{:else if editingModule.type === 'hero'}
 					<div class="space-y-4">

@@ -9,6 +9,8 @@
     "build": "vite build",
     "preview": "vite preview --port 4000",
     "start": "node build/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "lint": "eslint .",
     "type-check": "tsc --noEmit",
     "migrate:objectid": "node src/scripts/migrate-to-objectid-references.js",
@@ -69,6 +71,7 @@
     "@sveltejs/vite-plugin-svelte": "^7.0.0",
     "@tailwindcss/postcss": "^4.2.2",
     "@tailwindcss/vite": "^4.2.2",
+    "@testing-library/svelte": "^5.3.1",
     "@types/archiver": "^7.0.0",
     "@types/node": "^25.5.0",
     "@types/yauzl": "^2.10.3",
@@ -77,11 +80,13 @@
     "dotenv": "^17.3.1",
     "eslint": "^10.1.0",
     "eslint-plugin-svelte": "^3.16.0",
+    "jsdom": "^29.0.1",
     "sass": "^1.98.0",
     "svelte": "^5.55.1",
     "svelte-eslint-parser": "^1.6.0",
     "typescript": "^6.0.2",
-    "vite": "^8.0.3"
+    "vite": "^8.0.3",
+    "vitest": "^4.1.2"
   },
   "packageManager": "pnpm@10.33.0"
 }

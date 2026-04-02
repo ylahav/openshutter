@@ -2,19 +2,38 @@
 <script lang="ts">
 	import Layout from './Hero/Layout.svelte';
 
-	// PageRenderer passes {...module.props} so we receive individual props
-	export let title: string | Record<string, string> | undefined;
-	export let subtitle: string | Record<string, string> | undefined;
-	export let ctaLabel: string | Record<string, string> | undefined;
-	export let ctaUrl: string | undefined;
-	export let backgroundStyle: 'light' | 'dark' | 'image' | 'galleryLeading' = 'light';
-	export let backgroundImage: string | undefined;
-
-	// Support legacy: props or props.config; otherwise use individual props from spread
-	export let props: any = undefined;
-	$: config = props?.config ?? (props && typeof props === 'object' ? props : null) ?? {
-		title, subtitle, ctaLabel, ctaUrl, backgroundStyle, backgroundImage
+	type HeroProps = {
+		title?: string | Record<string, string>;
+		subtitle?: string | Record<string, string>;
+		ctaLabel?: string | Record<string, string>;
+		ctaUrl?: string;
+		backgroundStyle?: 'light' | 'dark' | 'image' | 'galleryLeading';
+		backgroundImage?: string;
 	};
+
+	type LegacyHeroProps = {
+		config?: HeroProps;
+	} & HeroProps;
+
+	// PageRenderer passes flat props via {...module.props}
+	export let title: HeroProps['title'] = undefined;
+	export let subtitle: HeroProps['subtitle'] = undefined;
+	export let ctaLabel: HeroProps['ctaLabel'] = undefined;
+	export let ctaUrl: HeroProps['ctaUrl'] = undefined;
+	export let backgroundStyle: NonNullable<HeroProps['backgroundStyle']> = 'light';
+	export let backgroundImage: HeroProps['backgroundImage'] = undefined;
+
+	// Temporary migration fallback for legacy nested props.config payloads
+	export let props: LegacyHeroProps | undefined = undefined;
+	$: config = (props?.config ??
+		(props && typeof props === 'object' ? props : undefined) ?? {
+			title,
+			subtitle,
+			ctaLabel,
+			ctaUrl,
+			backgroundStyle,
+			backgroundImage
+		}) satisfies HeroProps;
 	const data = null;
 	const templateConfig = {};
 </script>

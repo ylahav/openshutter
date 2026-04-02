@@ -4,21 +4,39 @@
 	import { MultiLangUtils } from '$lib/utils/multiLang';
 	import IconRenderer from '$lib/components/IconRenderer.svelte';
 
-	export let config: any = {};
+	type FeatureItem = {
+		title?: string | Record<string, string>;
+		description?: string | Record<string, string>;
+		icon?: string;
+	};
+
+	type FeatureGridLayoutConfig = {
+		title?: string | Record<string, string>;
+		subtitle?: string | Record<string, string>;
+		features?: FeatureItem[];
+	};
+
+	export let config: FeatureGridLayoutConfig = {};
+	// svelte-ignore export_let_unused - kept for module layout API consistency
 	export let data: any = null;
+	// svelte-ignore export_let_unused - kept for module layout API consistency
 	export let templateConfig: Record<string, any> = {};
 
 	$: titleText = MultiLangUtils.getTextValue(config?.title, $currentLanguage) || '';
 	$: subtitleText = config?.subtitle ? MultiLangUtils.getTextValue(config.subtitle, $currentLanguage) : '';
-	$: features = Array.isArray(config?.features) ? config.features : [];
+	$: features = (Array.isArray(config?.features) ? config.features : []).filter((feature) => {
+		const hasTitle = MultiLangUtils.getTextValue(feature?.title, $currentLanguage)?.trim();
+		const hasDescription = MultiLangUtils.getHTMLValue(feature?.description, $currentLanguage)?.trim();
+		return Boolean(hasTitle || hasDescription);
+	});
 </script>
 
-<section class="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50 dark:bg-gray-800/50">
-	<div class="max-w-6xl mx-auto">
+<section class="py-20 bg-gray-50 dark:bg-gray-800/50">
+	<div class="w-full">
 		<div class="text-center mb-16">
 			<h2 class="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4">{titleText}</h2>
 			{#if subtitleText}
-				<p class="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">{subtitleText}</p>
+				<p class="text-xl text-gray-600 dark:text-gray-300">{subtitleText}</p>
 			{/if}
 		</div>
 
