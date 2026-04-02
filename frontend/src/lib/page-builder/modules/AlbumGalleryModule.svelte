@@ -5,6 +5,10 @@
 	type AlbumGalleryProps = {
 		title?: string | Record<string, string>;
 		description?: string | Record<string, string>;
+		albumHeaderFieldOrder?: Array<'albumTitle' | 'albumDescription' | 'albumStats'>;
+		showAlbumPageTitle?: boolean;
+		showAlbumPageDescription?: boolean;
+		showAlbumPageStats?: boolean;
 		albumSource?: 'root' | 'featured' | 'selected' | 'current';
 		selectedAlbums?: string[];
 		rootAlbumId?: string;
@@ -40,6 +44,10 @@
 
 	export let title: NonNullable<AlbumGalleryProps['title']> = '';
 	export let description: AlbumGalleryProps['description'] = undefined;
+	export let albumHeaderFieldOrder: NonNullable<AlbumGalleryProps['albumHeaderFieldOrder']> = ['albumTitle', 'albumDescription', 'albumStats'];
+	export let showAlbumPageTitle: NonNullable<AlbumGalleryProps['showAlbumPageTitle']> = true;
+	export let showAlbumPageDescription: NonNullable<AlbumGalleryProps['showAlbumPageDescription']> = true;
+	export let showAlbumPageStats: NonNullable<AlbumGalleryProps['showAlbumPageStats']> = true;
 	export let albumSource: NonNullable<AlbumGalleryProps['albumSource']> = 'root';
 	export let selectedAlbums: AlbumGalleryProps['selectedAlbums'] = undefined;
 	export let rootAlbumId: AlbumGalleryProps['rootAlbumId'] = undefined;
@@ -71,10 +79,19 @@
 	// Temporary migration fallback for legacy nested props.config payloads
 	export let props: LegacyAlbumGalleryProps | undefined = undefined;
 	export let data: unknown = null; // Page context (e.g., URL params like alias)
-	$: config = (props?.config ??
-		(props && typeof props === 'object' ? props : undefined) ?? {
+	$: config = (() => {
+		// Legacy merge:
+		// Some old saved payloads stored album view fields under `props.config`.
+		// If that exists AND the editor also stores flat fields on `props`,
+		// we must merge so editor changes take effect.
+		const p: any = props && typeof props === 'object' ? props : undefined;
+		const defaults: AlbumGalleryProps = {
 			title,
 			description,
+			albumHeaderFieldOrder,
+			showAlbumPageTitle,
+			showAlbumPageDescription,
+			showAlbumPageStats,
 			albumSource,
 			selectedAlbums,
 			rootAlbumId,
@@ -102,7 +119,10 @@
 			sortBy,
 			sortDirection,
 			limit
-		}) satisfies AlbumGalleryProps;
+		};
+		const legacyConfig = p?.config && typeof p.config === 'object' ? p.config : undefined;
+		return { ...defaults, ...(legacyConfig ?? {}), ...(p ?? {}) } satisfies AlbumGalleryProps;
+	})();
 	const templateConfig = {};
 </script>
 

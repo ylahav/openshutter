@@ -6,6 +6,15 @@ export const albumGalleryConfig = {
 	fields: [
 		{ key: 'title', type: 'multilangText', label: 'Title', required: false },
 		{ key: 'description', type: 'multilangHTML', label: 'Description', required: false },
+		{
+			key: 'albumHeaderFieldOrder',
+			type: 'list',
+			label: 'Album header field order',
+			default: ['albumTitle', 'albumDescription', 'albumStats']
+		},
+		{ key: 'showAlbumPageTitle', type: 'boolean', label: 'Show album page title', default: true },
+		{ key: 'showAlbumPageDescription', type: 'boolean', label: 'Show album page description', default: true },
+		{ key: 'showAlbumPageStats', type: 'boolean', label: 'Show album page stats', default: true },
 		{ key: 'albumSource', type: 'select', label: 'Albums source', options: ['root', 'featured', 'selected', 'current'], default: 'root' },
 		{ key: 'selectedAlbums', type: 'albumPicker', label: 'Selected albums', required: false },
 		{ key: 'showTitle', type: 'boolean', label: 'Show title (legacy/global)', default: true },

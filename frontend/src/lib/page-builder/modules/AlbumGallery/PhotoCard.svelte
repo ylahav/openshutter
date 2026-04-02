@@ -1,6 +1,10 @@
 <script lang="ts">
+	import { createEventDispatcher } from 'svelte';
 	import { currentLanguage } from '$stores/language';
 	import { MultiLangUtils } from '$lib/utils/multiLang';
+	import { getPhotoUrl } from '$lib/utils/photoUrl';
+
+	const dispatch = createEventDispatcher<{ open: undefined }>();
 
 	export let photo: any;
 	export let coverAspectClass: string = 'aspect-video';
@@ -11,11 +15,33 @@
 	export let descriptionLines = 2;
 	export let showFeaturedBadge = true;
 
-	$: photoTitle = photo?.name ?? photo?.title ?? photo?.originalName ?? 'Photo';
-	$: photoUrl = photo?.coverUrl ?? photo?.thumbnailUrl ?? photo?.previewUrl ?? photo?.url ?? photo?.imageUrl ?? '';
+	function resolveTitle(v: unknown): string {
+		if (typeof v === 'string') return v;
+		if (v && typeof v === 'object') return MultiLangUtils.getTextValue(v as Record<string, string>, $currentLanguage) || '';
+		return '';
+	}
+
+	$: photoTitle =
+		resolveTitle(photo?.title) ||
+		resolveTitle(photo?.name) ||
+		(typeof photo?.originalName === 'string' ? photo.originalName : '') ||
+		(typeof photo?.filename === 'string' ? photo.filename : '') ||
+		'Photo';
+
+	$: photoUrl =
+		(typeof photo?.coverUrl === 'string' && photo.coverUrl) ||
+		(typeof photo?.thumbnailUrl === 'string' && photo.thumbnailUrl) ||
+		(typeof photo?.previewUrl === 'string' && photo.previewUrl) ||
+		(typeof photo?.url === 'string' && photo.url) ||
+		(typeof photo?.imageUrl === 'string' && photo.imageUrl) ||
+		getPhotoUrl(photo ?? {}, { preferThumbnail: true, fallback: '' });
 </script>
 
-<div class="group bg-white dark:bg-gray-800 rounded-xl shadow-md dark:shadow-gray-900/50 overflow-hidden hover:shadow-xl dark:hover:shadow-gray-900/70 transition-all duration-300 transform hover:-translate-y-1">
+<button
+	type="button"
+	on:click={() => dispatch('open')}
+	class="group w-full text-left bg-white dark:bg-gray-800 rounded-xl shadow-md dark:shadow-gray-900/50 overflow-hidden hover:shadow-xl dark:hover:shadow-gray-900/70 transition-all duration-300 transform hover:-translate-y-1 focus:outline-hidden focus:ring-2 focus:ring-blue-500/60"
+>
 	<div class="p-6">
 		{#each cardFieldOrder as field}
 			{#if field === 'title' && showTitle}
@@ -53,4 +79,4 @@
 			{/if}
 		{/each}
 	</div>
-</div>
+</button>

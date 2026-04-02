@@ -369,6 +369,7 @@
 	function migratePageModules(pm: Record<string, unknown> | undefined): Record<string, unknown> {
 		if (!pm) return {};
 		const out: Record<string, unknown> = {};
+		const normalizeModuleType = (t: unknown): string => (t === 'albumGallery' ? 'albumView' : String(t ?? ''));
 		for (const [pt, val] of Object.entries(pm)) {
 			if (
 				val &&
@@ -384,9 +385,10 @@
 				continue;
 			}
 			if (!Array.isArray(val)) continue;
-			out[pt] = val.map((m, i) => {
+			out[pt] = val.map((m: any, i) => {
 				if (m.rowOrder !== undefined && m.columnIndex !== undefined) return m;
-				return { ...m, rowOrder: i, columnIndex: 0 };
+				const normalizedType = normalizeModuleType(m?.type);
+				return { ...m, type: normalizedType, rowOrder: i, columnIndex: 0 };
 			});
 		}
 		return out;
@@ -659,6 +661,9 @@
 
 	function saveModuleChanges() {
 		if (!editingModule) return;
+		if (editingModule.type === 'albumGallery') {
+			editingModule = { ...editingModule, type: 'albumView' };
+		}
 		const modulesForPage = getModulesForPageType(editingPageType, editingBreakpoint) ?? [];
 		let idx = modulesForPage.findIndex((m) => editingModule._id && m._id === editingModule._id);
 		// Backward compatibility: older saved modules may not have _id; match by placement + type.
@@ -701,6 +706,7 @@
 	let editingModule: any | null = null;
 let draggedAlbumField: string | null = null;
 let draggedPhotoField: string | null = null;
+let draggedAlbumHeaderField: string | null = null;
 	let availableBlogCategories: Array<{ alias: string; title: string }> = [];
 
 	async function loadBlogCategoriesForOverrides() {
@@ -794,6 +800,10 @@ let draggedPhotoField: string | null = null;
 			defaultProps.showTitle = true;
 			defaultProps.showAlbumTitle = true;
 			defaultProps.showPhotoTitle = true;
+			defaultProps.albumHeaderFieldOrder = ['albumTitle', 'albumDescription', 'albumStats'];
+			defaultProps.showAlbumPageTitle = true;
+			defaultProps.showAlbumPageDescription = true;
+			defaultProps.showAlbumPageStats = true;
 			defaultProps.showCover = true;
 			defaultProps.coverAspect = 'video';
 			defaultProps.showDescription = true;
@@ -866,6 +876,12 @@ let draggedPhotoField: string | null = null;
 			defaultProps.showTitle = old.props?.showTitle ?? true;
 			defaultProps.showAlbumTitle = old.props?.showAlbumTitle ?? old.props?.showTitle ?? true;
 			defaultProps.showPhotoTitle = old.props?.showPhotoTitle ?? old.props?.showTitle ?? true;
+			defaultProps.albumHeaderFieldOrder = Array.isArray(old.props?.albumHeaderFieldOrder)
+				? old.props.albumHeaderFieldOrder
+				: ['albumTitle', 'albumDescription', 'albumStats'];
+			defaultProps.showAlbumPageTitle = old.props?.showAlbumPageTitle ?? true;
+			defaultProps.showAlbumPageDescription = old.props?.showAlbumPageDescription ?? true;
+			defaultProps.showAlbumPageStats = old.props?.showAlbumPageStats ?? true;
 			defaultProps.showCover = old.props?.showCover ?? true;
 			defaultProps.coverAspect = old.props?.coverAspect ?? 'video';
 			defaultProps.showDescription = old.props?.showDescription ?? true;
@@ -2709,6 +2725,108 @@ let draggedPhotoField: string | null = null;
 						</div>
 
 						{#if editingModule.type === 'albumView' || editingModule.type === 'albumGallery'}
+							<div class="rounded-md border border-gray-200 bg-gray-50 p-4 space-y-3">
+								<div class="text-sm font-semibold text-gray-900">Album header (current album)</div>
+								<p class="text-xs text-gray-600">
+									Shown when Albums source is <span class="font-medium">Current album (from URL)</span>.
+								</p>
+
+								<div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+									<label class="flex items-center gap-2 text-sm text-gray-700">
+										<input
+											type="checkbox"
+											checked={editingModule.props?.showAlbumPageTitle !== false}
+											on:change={(e) => {
+												editingModule = {
+													...editingModule,
+													props: { ...editingModule.props, showAlbumPageTitle: (e.currentTarget as HTMLInputElement).checked }
+												};
+											}}
+										/>
+										Title
+									</label>
+									<label class="flex items-center gap-2 text-sm text-gray-700">
+										<input
+											type="checkbox"
+											checked={editingModule.props?.showAlbumPageDescription !== false}
+											on:change={(e) => {
+												editingModule = {
+													...editingModule,
+													props: { ...editingModule.props, showAlbumPageDescription: (e.currentTarget as HTMLInputElement).checked }
+												};
+											}}
+										/>
+										Description
+									</label>
+									<label class="flex items-center gap-2 text-sm text-gray-700">
+										<input
+											type="checkbox"
+											checked={editingModule.props?.showAlbumPageStats !== false}
+											on:change={(e) => {
+												editingModule = {
+													...editingModule,
+													props: { ...editingModule.props, showAlbumPageStats: (e.currentTarget as HTMLInputElement).checked }
+												};
+											}}
+										/>
+										Stats (counts)
+									</label>
+								</div>
+
+								<div>
+									<label class="block text-sm font-medium text-gray-700 mb-2">Album header order (drag to reorder)</label>
+									<div class="space-y-2">
+										{#each (Array.isArray(editingModule.props?.albumHeaderFieldOrder)
+											? editingModule.props.albumHeaderFieldOrder
+											: ['albumTitle', 'albumDescription', 'albumStats']) as fieldKey, idx (fieldKey)}
+											<div
+												class="flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md bg-white cursor-move"
+												draggable="true"
+												on:dragstart={(e) => {
+													draggedAlbumHeaderField = fieldKey;
+													e.dataTransfer?.setData('text/plain', fieldKey);
+													e.dataTransfer!.effectAllowed = 'move';
+												}}
+												on:dragend={() => {
+													draggedAlbumHeaderField = null;
+												}}
+												on:dragover={(e) => e.preventDefault()}
+												on:drop={(e) => {
+													e.preventDefault();
+													const fromKey =
+														e.dataTransfer?.getData('text/plain') || draggedAlbumHeaderField || null;
+													if (!fromKey || fromKey === fieldKey) return;
+													const current = Array.isArray(editingModule.props?.albumHeaderFieldOrder)
+														? [...editingModule.props.albumHeaderFieldOrder]
+														: ['albumTitle', 'albumDescription', 'albumStats'];
+													const from = current.indexOf(fromKey);
+													const to = current.indexOf(fieldKey);
+													if (from < 0 || to < 0) return;
+													const [moved] = current.splice(from, 1);
+													const adjustedTo = from < to ? to - 1 : to;
+													current.splice(adjustedTo, 0, moved);
+													editingModule = {
+														...editingModule,
+														props: { ...editingModule.props, albumHeaderFieldOrder: current }
+													};
+													draggedAlbumHeaderField = null;
+												}}
+											>
+												<span class="text-sm text-gray-800">
+													{fieldKey === 'albumTitle' ? 'Title' :
+													 fieldKey === 'albumDescription' ? 'Description' :
+													 'Stats (counts)'}
+												</span>
+												<span class="text-xs text-gray-400">#{idx + 1}</span>
+											</div>
+										{/each}
+									</div>
+								</div>
+							</div>
+
+						{/if}
+
+						{#if editingModule.type === 'albumView' || editingModule.type === 'albumGallery'}
 							<div>
 								<label for="edit-card-data-type" class="block text-sm font-medium text-gray-700 mb-2">Card data type</label>
 								<select
@@ -2763,157 +2881,183 @@ let draggedPhotoField: string | null = null;
 							{/if}
 						{/if}
 
-						<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-							<label class="flex items-center gap-2 text-sm text-gray-700">
-								<input
-									type="checkbox"
-									checked={editingModule.props?.showTitle !== false}
-									on:change={(e) => {
-										editingModule = {
-											...editingModule,
-											props: { ...editingModule.props, showTitle: (e.currentTarget as HTMLInputElement).checked }
-										};
-									}}
-								/>
-								Show title
-							</label>
-							{#if editingModule.type === 'albumView' || editingModule.type === 'albumGallery'}
+						{#if editingModule.type === 'albumView' || editingModule.type === 'albumGallery'}
+							<div class="space-y-3">
 								<label class="flex items-center gap-2 text-sm text-gray-700">
 									<input
 										type="checkbox"
-										checked={editingModule.props?.showAlbumTitle ?? editingModule.props?.showTitle !== false}
+										checked={editingModule.props?.showCover !== false}
 										on:change={(e) => {
 											editingModule = {
 												...editingModule,
-												props: { ...editingModule.props, showAlbumTitle: (e.currentTarget as HTMLInputElement).checked }
+												props: { ...editingModule.props, showCover: (e.currentTarget as HTMLInputElement).checked }
 											};
 										}}
 									/>
-									Show album title
+									Show image (both)
+								</label>
+
+								<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+									<div class="rounded-md border border-gray-200 bg-gray-50 p-3">
+										<div class="text-sm font-semibold text-gray-900 mb-2">Sub-album card</div>
+										<div class="space-y-2">
+											<label class="flex items-center gap-2 text-sm text-gray-700">
+												<input
+													type="checkbox"
+													checked={editingModule.props?.showAlbumTitle ?? true}
+													on:change={(e) => {
+														editingModule = {
+															...editingModule,
+															props: { ...editingModule.props, showAlbumTitle: (e.currentTarget as HTMLInputElement).checked }
+														};
+													}}
+												/>
+												Title
+											</label>
+											<label class="flex items-center gap-2 text-sm text-gray-700">
+												<input
+													type="checkbox"
+													checked={editingModule.props?.showAlbumDescription ?? true}
+													on:change={(e) => {
+														editingModule = {
+															...editingModule,
+															props: { ...editingModule.props, showAlbumDescription: (e.currentTarget as HTMLInputElement).checked }
+														};
+													}}
+												/>
+												Description
+											</label>
+											<label class="flex items-center gap-2 text-sm text-gray-700">
+												<input
+													type="checkbox"
+													checked={editingModule.props?.showPhotoCount !== false}
+													on:change={(e) => {
+														editingModule = {
+															...editingModule,
+															props: { ...editingModule.props, showPhotoCount: (e.currentTarget as HTMLInputElement).checked }
+														};
+													}}
+												/>
+												Photo count
+											</label>
+											<label class="flex items-center gap-2 text-sm text-gray-700">
+												<input
+													type="checkbox"
+													checked={editingModule.props?.showAlbumFeaturedBadge ?? true}
+													on:change={(e) => {
+														editingModule = {
+															...editingModule,
+															props: { ...editingModule.props, showAlbumFeaturedBadge: (e.currentTarget as HTMLInputElement).checked }
+														};
+													}}
+												/>
+												Featured badge
+											</label>
+										</div>
+									</div>
+
+									<div class="rounded-md border border-gray-200 bg-gray-50 p-3">
+										<div class="text-sm font-semibold text-gray-900 mb-2">Photo card</div>
+										<div class="space-y-2">
+											<label class="flex items-center gap-2 text-sm text-gray-700">
+												<input
+													type="checkbox"
+													checked={editingModule.props?.showPhotoTitle ?? true}
+													on:change={(e) => {
+														editingModule = {
+															...editingModule,
+															props: { ...editingModule.props, showPhotoTitle: (e.currentTarget as HTMLInputElement).checked }
+														};
+													}}
+												/>
+												Title
+											</label>
+											<label class="flex items-center gap-2 text-sm text-gray-700">
+												<input
+													type="checkbox"
+													checked={editingModule.props?.showPhotoDescription ?? true}
+													on:change={(e) => {
+														editingModule = {
+															...editingModule,
+															props: { ...editingModule.props, showPhotoDescription: (e.currentTarget as HTMLInputElement).checked }
+														};
+													}}
+												/>
+												Description
+											</label>
+											<label class="flex items-center gap-2 text-sm text-gray-700">
+												<input
+													type="checkbox"
+													checked={editingModule.props?.showPhotoFeaturedBadge ?? true}
+													on:change={(e) => {
+														editingModule = {
+															...editingModule,
+															props: { ...editingModule.props, showPhotoFeaturedBadge: (e.currentTarget as HTMLInputElement).checked }
+														};
+													}}
+												/>
+												Featured badge
+											</label>
+										</div>
+									</div>
+								</div>
+							</div>
+						{:else}
+							<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+								<label class="flex items-center gap-2 text-sm text-gray-700">
+									<input
+										type="checkbox"
+										checked={editingModule.props?.showCover !== false}
+										on:change={(e) => {
+											editingModule = {
+												...editingModule,
+												props: { ...editingModule.props, showCover: (e.currentTarget as HTMLInputElement).checked }
+											};
+										}}
+									/>
+									Show cover image
 								</label>
 								<label class="flex items-center gap-2 text-sm text-gray-700">
 									<input
 										type="checkbox"
-										checked={editingModule.props?.showPhotoTitle ?? editingModule.props?.showTitle !== false}
+										checked={editingModule.props?.showDescription !== false}
 										on:change={(e) => {
 											editingModule = {
 												...editingModule,
-												props: { ...editingModule.props, showPhotoTitle: (e.currentTarget as HTMLInputElement).checked }
+												props: { ...editingModule.props, showDescription: (e.currentTarget as HTMLInputElement).checked }
 											};
 										}}
 									/>
-									Show photo title
-								</label>
-							{/if}
-							<label class="flex items-center gap-2 text-sm text-gray-700">
-								<input
-									type="checkbox"
-									checked={editingModule.props?.showCover !== false}
-									on:change={(e) => {
-										editingModule = {
-											...editingModule,
-											props: { ...editingModule.props, showCover: (e.currentTarget as HTMLInputElement).checked }
-										};
-									}}
-								/>
-								Show cover image
-							</label>
-							<label class="flex items-center gap-2 text-sm text-gray-700">
-								<input
-									type="checkbox"
-									checked={editingModule.props?.showDescription !== false}
-									on:change={(e) => {
-										editingModule = {
-											...editingModule,
-											props: { ...editingModule.props, showDescription: (e.currentTarget as HTMLInputElement).checked }
-										};
-									}}
-								/>
-								Show description
-							</label>
-							{#if editingModule.type === 'albumView' || editingModule.type === 'albumGallery'}
-								<label class="flex items-center gap-2 text-sm text-gray-700">
-									<input
-										type="checkbox"
-										checked={editingModule.props?.showAlbumDescription ?? editingModule.props?.showDescription !== false}
-										on:change={(e) => {
-											editingModule = {
-												...editingModule,
-												props: { ...editingModule.props, showAlbumDescription: (e.currentTarget as HTMLInputElement).checked }
-											};
-										}}
-									/>
-									Show album description
+									Show description
 								</label>
 								<label class="flex items-center gap-2 text-sm text-gray-700">
 									<input
 										type="checkbox"
-										checked={editingModule.props?.showPhotoDescription ?? editingModule.props?.showDescription !== false}
+										checked={editingModule.props?.showPhotoCount !== false}
 										on:change={(e) => {
 											editingModule = {
 												...editingModule,
-												props: { ...editingModule.props, showPhotoDescription: (e.currentTarget as HTMLInputElement).checked }
+												props: { ...editingModule.props, showPhotoCount: (e.currentTarget as HTMLInputElement).checked }
 											};
 										}}
 									/>
-									Show photo description
-								</label>
-							{/if}
-							<label class="flex items-center gap-2 text-sm text-gray-700">
-								<input
-									type="checkbox"
-									checked={editingModule.props?.showPhotoCount !== false}
-									on:change={(e) => {
-										editingModule = {
-											...editingModule,
-											props: { ...editingModule.props, showPhotoCount: (e.currentTarget as HTMLInputElement).checked }
-										};
-									}}
-								/>
-								Show photo count
-							</label>
-							<label class="flex items-center gap-2 text-sm text-gray-700">
-								<input
-									type="checkbox"
-									checked={editingModule.props?.showFeaturedBadge !== false}
-									on:change={(e) => {
-										editingModule = {
-											...editingModule,
-											props: { ...editingModule.props, showFeaturedBadge: (e.currentTarget as HTMLInputElement).checked }
-										};
-									}}
-								/>
-								Show featured badge
-							</label>
-							{#if editingModule.type === 'albumView' || editingModule.type === 'albumGallery'}
-								<label class="flex items-center gap-2 text-sm text-gray-700">
-									<input
-										type="checkbox"
-										checked={editingModule.props?.showAlbumFeaturedBadge ?? editingModule.props?.showFeaturedBadge !== false}
-										on:change={(e) => {
-											editingModule = {
-												...editingModule,
-												props: { ...editingModule.props, showAlbumFeaturedBadge: (e.currentTarget as HTMLInputElement).checked }
-											};
-										}}
-									/>
-									Show album featured badge
+									Show photo count
 								</label>
 								<label class="flex items-center gap-2 text-sm text-gray-700">
 									<input
 										type="checkbox"
-										checked={editingModule.props?.showPhotoFeaturedBadge ?? editingModule.props?.showFeaturedBadge !== false}
+										checked={editingModule.props?.showFeaturedBadge !== false}
 										on:change={(e) => {
 											editingModule = {
 												...editingModule,
-												props: { ...editingModule.props, showPhotoFeaturedBadge: (e.currentTarget as HTMLInputElement).checked }
+												props: { ...editingModule.props, showFeaturedBadge: (e.currentTarget as HTMLInputElement).checked }
 											};
 										}}
 									/>
-									Show photo featured badge
+									Show featured badge
 								</label>
-							{/if}
-						</div>
+							</div>
+						{/if}
 
 						<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 							<div>
@@ -3011,31 +3155,39 @@ let draggedPhotoField: string | null = null;
 											<div
 												class="flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md bg-white cursor-move"
 												draggable="true"
-												on:dragstart={() => {
-													draggedPhotoField = fieldKey;
-												}}
+										on:dragstart={(e) => {
+											draggedPhotoField = fieldKey;
+											e.dataTransfer?.setData('text/plain', fieldKey);
+											e.dataTransfer!.effectAllowed = 'move';
+										}}
+										on:dragend={() => {
+											draggedPhotoField = null;
+										}}
 												on:dragover={(e) => e.preventDefault()}
 												on:drop={(e) => {
 													e.preventDefault();
-													if (!draggedPhotoField || draggedPhotoField === fieldKey) return;
+											const fromKey =
+												e.dataTransfer?.getData('text/plain') || draggedPhotoField || null;
+											if (!fromKey || fromKey === fieldKey) return;
 													const current = Array.isArray(editingModule.props?.photoCardFieldOrder)
 														? [...editingModule.props.photoCardFieldOrder]
 														: ['cover', 'title', 'description', 'featuredBadge'];
-													const from = current.indexOf(draggedPhotoField);
+											const from = current.indexOf(fromKey);
 													const to = current.indexOf(fieldKey);
 													if (from < 0 || to < 0) return;
 													const [moved] = current.splice(from, 1);
-													current.splice(to, 0, moved);
+											const adjustedTo = from < to ? to - 1 : to;
+											current.splice(adjustedTo, 0, moved);
 													editingModule = {
 														...editingModule,
 														props: { ...editingModule.props, photoCardFieldOrder: current }
 													};
-													draggedPhotoField = null;
+											draggedPhotoField = null;
 												}}
 											>
 												<span class="text-sm text-gray-800">
 													{fieldKey === 'title' ? 'Title' :
-													 fieldKey === 'cover' ? 'Leading photo' :
+													 fieldKey === 'cover' ? 'Photo' :
 													 fieldKey === 'description' ? 'Description' :
 													 'Featured badge'}
 												</span>

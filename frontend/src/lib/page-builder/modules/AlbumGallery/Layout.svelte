@@ -6,6 +6,8 @@
 	import { MultiLangUtils } from '$lib/utils/multiLang';
 	import { getAlbumName } from '$lib/utils/albumUtils';
 	import { logger } from '$lib/utils/logger';
+	import PhotoLightbox from '$lib/components/PhotoLightbox.svelte';
+	import { getPhotoFullUrl, getPhotoUrl } from '$lib/utils/photoUrl';
 	import AlbumCard from './AlbumCard.svelte';
 	import PhotoCard from './PhotoCard.svelte';
 
@@ -15,6 +17,10 @@
 	type AlbumGalleryLayoutConfig = {
 		title?: string | Record<string, string>;
 		description?: string | Record<string, string>;
+		albumHeaderFieldOrder?: Array<'albumTitle' | 'albumDescription' | 'albumStats'>;
+		showAlbumPageTitle?: boolean;
+		showAlbumPageDescription?: boolean;
+		showAlbumPageStats?: boolean;
 		albumSource?: 'root' | 'featured' | 'selected' | 'current';
 		selectedAlbums?: string[];
 		rootAlbumId?: string;
@@ -70,6 +76,19 @@
 
 	$: titleText = MultiLangUtils.getTextValue(config?.title, $currentLanguage) || '';
 	$: descriptionHTML = config?.description ? MultiLangUtils.getHTMLValue(config.description, $currentLanguage) : '';
+	$: albumHeaderFieldOrder = (() => {
+		const def: Array<'albumTitle' | 'albumDescription' | 'albumStats'> = ['albumTitle', 'albumDescription', 'albumStats'];
+		const raw = Array.isArray(config?.albumHeaderFieldOrder) ? config.albumHeaderFieldOrder : def;
+		const valid = raw.filter(
+			(f): f is 'albumTitle' | 'albumDescription' | 'albumStats' =>
+				f === 'albumTitle' || f === 'albumDescription' || f === 'albumStats'
+		);
+		const unique = Array.from(new Set(valid));
+		return unique.length ? unique : def;
+	})();
+	$: showAlbumPageTitle = config?.showAlbumPageTitle !== false;
+	$: showAlbumPageDescription = config?.showAlbumPageDescription !== false;
+	$: showAlbumPageStats = config?.showAlbumPageStats !== false;
 	/** 'root' = root-level albums only (no children), 'featured' = all featured albums (flattened), 'selected' = specific album IDs, 'current' = album from URL (alias) */
 	$: albumSource = config?.albumSource ?? 'root';
 	$: selectedAlbums = Array.isArray(config?.selectedAlbums)
@@ -184,6 +203,44 @@
 	let coverImages: Record<string, string> = {};
 	let lastSelectedAlbums: string[] = [];
 	let lastAlbumSource: string = '';
+	let currentAlbum: any = null;
+
+	$: currentAlbumTitleText = currentAlbum ? MultiLangUtils.getTextValue(currentAlbum?.name, $currentLanguage) : '';
+	$: currentAlbumDescriptionHTML = currentAlbum?.description
+		? MultiLangUtils.getHTMLValue(currentAlbum.description, $currentLanguage)
+		: '';
+	$: currentAlbumPhotoCount = Number(currentAlbum?.photoCount) || 0;
+	// Prefer sub-albums count from the fetched payload (we store it on `currentAlbum` when available).
+	$: currentAlbumSubAlbumCount = Number((currentAlbum as any)?.childAlbumCount) || 0;
+
+	let lightboxOpen = false;
+	let lightboxIndex = 0;
+
+	// Lightbox should follow the same photo order as what's currently displayed (manual/interleaved included).
+	$: lightboxPhotosSource = sortedAlbums.filter((a) => a.cardType === 'photo');
+	$: lightboxIndexById = (() => {
+		const m = new Map<string, number>();
+		lightboxPhotosSource.forEach((p, idx) => {
+			const id = (p as any)?._id;
+			if (id != null) m.set(String(id), idx);
+		});
+		return m;
+	})();
+
+	$: lightboxPhotos = lightboxPhotosSource.map((p: any) => ({
+		_id: p?._id,
+		url: getPhotoFullUrl(p),
+		thumbnailUrl: getPhotoUrl(p, { preferThumbnail: true }),
+		title: p?.title ?? p?.name ?? p?.filename ?? p?.originalName ?? '',
+		description: p?.description,
+		takenAt: p?.exif?.dateTimeOriginal,
+		exif: p?.exif,
+		iptcXmp: p?.iptcXmp,
+		rotation: p?.rotation,
+		metadata: p?.metadata,
+		storage: p?.storage,
+		faceRecognition: p?.faceRecognition
+	}));
 
 	$: effectiveSelectedAlbums = albumSource === 'selected'
 		? (Array.isArray(selectedAlbums) ? selectedAlbums : selectedAlbums ? [selectedAlbums] : [])
@@ -217,6 +274,8 @@
 						const result = await response.json();
 						const albumData = result.success ? result.data : result;
 						if (albumData?.album) {
+							// Keep a stable "current album" object for header rendering.
+							currentAlbum = { ...albumData.album, childAlbumCount: Array.isArray(albumData.subAlbums) ? albumData.subAlbums.length : (albumData.album as any)?.childAlbumCount };
 							const subAlbums = Array.isArray(albumData.subAlbums)
 								? albumData.subAlbums.map((item: any) => ({ ...item, cardType: 'subAlbum' as const }))
 								: [];
@@ -240,12 +299,15 @@
 					} else if (response.status === 404) {
 						logger.warn(`Album not found: ${currentAlbumAlias}`);
 						albums = [];
+						currentAlbum = null;
 					}
 				} catch (err) {
 					logger.error(`Failed to fetch current album ${currentAlbumAlias}:`, err);
 					albums = [];
+					currentAlbum = null;
 				}
 			} else if (albumSource === 'selected' && effectiveSelectedAlbums && effectiveSelectedAlbums.length > 0) {
+				currentAlbum = null;
 				const albumPromises = effectiveSelectedAlbums.map(async (albumId) => {
 					try {
 						const response = await fetch(`/api/albums/${albumId}`);
@@ -267,6 +329,7 @@
 					await fetchCoverImages();
 				}
 			} else {
+				currentAlbum = null;
 				if (albumSource === 'root') {
 					// For 'root', fetch only root-level albums (parentAlbumId=null)
 					try {
@@ -384,6 +447,38 @@
 				<p class="mt-4 text-gray-600 dark:text-gray-400">Loading galleries...</p>
 			</div>
 		{:else if sortedAlbums.length > 0}
+			{#if albumSource === 'current' && currentAlbum}
+				<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mb-10">
+					<div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+						{#each albumHeaderFieldOrder as field (field)}
+							{#if field === 'albumTitle' && showAlbumPageTitle}
+								{#if currentAlbumTitleText}
+									<h1 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-3">
+										{currentAlbumTitleText}
+									</h1>
+								{/if}
+							{:else if field === 'albumDescription' && showAlbumPageDescription}
+								{#if currentAlbumDescriptionHTML}
+									<div class="prose prose-lg dark:prose-invert max-w-none text-gray-700 dark:text-gray-200 mb-3">
+										{@html currentAlbumDescriptionHTML}
+									</div>
+								{/if}
+							{:else if field === 'albumStats' && showAlbumPageStats}
+								<div class="text-sm text-gray-600 dark:text-gray-300">
+									{#if currentAlbumPhotoCount > 0}
+										<span>{currentAlbumPhotoCount} {currentAlbumPhotoCount === 1 ? 'photo' : 'photos'}</span>
+									{/if}
+									{#if currentAlbumSubAlbumCount > 0}
+										{#if currentAlbumPhotoCount > 0}<span class="mx-2">•</span>{/if}
+										<span>{currentAlbumSubAlbumCount} {currentAlbumSubAlbumCount === 1 ? 'sub-album' : 'sub-albums'}</span>
+									{/if}
+								</div>
+							{/if}
+						{/each}
+					</div>
+				</div>
+			{/if}
+
 			{#if cardDataType === 'both' && mixedDisplayMode === 'grouped'}
 				{#if albumItems.length > 0}
 					{#if showSectionLabels}
@@ -422,6 +517,11 @@
 								showDescription={showPhotoDescription}
 								{descriptionLines}
 								showFeaturedBadge={showPhotoFeaturedBadge}
+								on:open={() => {
+									const idx = album?._id != null ? lightboxIndexById.get(String(album._id)) : undefined;
+									lightboxIndex = typeof idx === 'number' ? idx : 0;
+									lightboxOpen = true;
+								}}
 							/>
 						{/each}
 					</div>
@@ -439,6 +539,11 @@
 								showDescription={showPhotoDescription}
 								{descriptionLines}
 								showFeaturedBadge={showPhotoFeaturedBadge}
+								on:open={() => {
+									const idx = album?._id != null ? lightboxIndexById.get(String(album._id)) : undefined;
+									lightboxIndex = typeof idx === 'number' ? idx : 0;
+									lightboxOpen = true;
+								}}
 							/>
 						{:else}
 							<AlbumCard
@@ -471,3 +576,14 @@
 		{/if}
 	</div>
 </section>
+
+{#if lightboxOpen && lightboxPhotos.length > 0}
+	<PhotoLightbox
+		photos={lightboxPhotos}
+		startIndex={lightboxIndex}
+		isOpen={lightboxOpen}
+		onClose={() => (lightboxOpen = false)}
+		autoPlay={false}
+		intervalMs={4000}
+	/>
+{/if}
