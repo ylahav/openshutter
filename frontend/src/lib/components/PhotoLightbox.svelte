@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { createEventDispatcher } from 'svelte';
+	import { createEventDispatcher, tick } from 'svelte';
 	import { page } from '$app/stores';
 	import { currentLanguage } from '$stores/language';
 	import { siteConfigData } from '$stores/siteConfig';
@@ -135,7 +135,9 @@
 	let current = $state(initialIndex);
 	let playing = $state(autoPlay);
 	let showInfo = $state(false);
+	let showShare = $state(false);
 	let showFaces = $state(false);
+	let panelRef: HTMLDivElement | null = null;
 	let selectedFaceIndex = $state<number | null>(null);
 	let faceData = $state<{
 		faces: Array<{
@@ -159,6 +161,14 @@
 	$effect(() => {
 		actualIndex = startIndex ?? initialIndex ?? 0;
 		current = actualIndex;
+	});
+
+	// Ensure the overlay panel starts at the top when opening/toggling it.
+	$effect(() => {
+		if (!showInfo && !showShare) return;
+		tick().then(() => {
+			panelRef?.scrollTo({ top: 0, behavior: 'auto' });
+		});
 	});
 
 	// Show loading when photo index changes (user switched to another photo)
@@ -359,7 +369,11 @@
 				playing = !playing;
 			}
 			if (e.key.toLowerCase() === 'f') toggleFullscreen();
-			if (e.key.toLowerCase() === 'i') showInfo = !showInfo;
+			if (e.key.toLowerCase() === 'i') {
+				const next = !showInfo;
+				showInfo = next;
+				if (next) showShare = false;
+			}
 		};
 		window.addEventListener('keydown', onKey);
 		return () => window.removeEventListener('keydown', onKey);
@@ -617,21 +631,43 @@
 					{playing ? 'Pause' : 'Play'}
 				</button>
 				<button
-					onclick={() => (showInfo = !showInfo)}
-					class="p-2 rounded hover:bg-white/10 shrink-0"
-					aria-label="Toggle Info"
+					type="button"
+					onclick={() => {
+						const next = !showInfo;
+						showInfo = next;
+						if (next) showShare = false;
+					}}
+					class="p-2 rounded hover:bg-white/10 shrink-0 {showInfo ? 'bg-white/15 ring-1 ring-white/25' : ''}"
+					aria-label={showInfo ? 'Hide photo details' : 'Show photo details'}
+					aria-pressed={showInfo}
+					title={showInfo ? 'Hide details' : 'Show details'}
 				>
-					{#if showInfo}
-						<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
-					{:else}
-						<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-					{/if}
+					<!-- Always use the info icon; avoid clipboard icon (users confuse it with share/copy) -->
+					<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+						/>
+					</svg>
 				</button>
 				{#if $siteConfigData?.features?.enableSharing !== false && $siteConfigData?.features?.sharingOnPhoto !== false}
 					<button
-						onclick={() => (showInfo = true)}
-						class="p-2 rounded hover:bg-white/10 shrink-0"
+						type="button"
+						onclick={async () => {
+							if (showShare) {
+								showShare = false;
+								return;
+							}
+							showShare = true;
+							showInfo = false;
+							await tick();
+							document.getElementById('lightbox-share-block')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+						}}
+						class="p-2 rounded hover:bg-white/10 shrink-0 {showShare ? 'bg-white/15 ring-1 ring-white/25' : ''}"
 						aria-label="Share this photo"
+						aria-pressed={showShare}
 						title="Share this photo"
 					>
 						<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
@@ -700,7 +736,8 @@
 				<!-- Info Overlay -->
 				{#if showInfo}
 					<div
-						class="ml-4 bg-black/90 text-white p-4 rounded-lg max-w-[400px] max-h-[85vh] overflow-y-auto z-10 shrink-0"
+						class="ml-4 bg-black/90 text-white p-4 rounded-lg max-w-[400px] max-h-[85vh] overflow-y-auto z-10 shrink-0 photo-lightbox-info-panel"
+						bind:this={panelRef}
 					>
 						<div class="space-y-3">
 							<!-- Photo Title -->
@@ -717,43 +754,18 @@
 
 							<!-- Basic Info -->
 							<div class="grid grid-cols-2 gap-2 text-sm">
-								<div class="opacity-60">Photo {current + 1} of {photos.length}</div>
+								<div class="opacity-80">Photo {current + 1} of {photos.length}</div>
 								{#if photo.metadata?.width && photo.metadata?.height}
-									<div class="opacity-60">
+									<div class="opacity-80">
 										{photo.metadata.width} × {photo.metadata.height}
 									</div>
 								{/if}
 							</div>
 
-							<!-- Social Sharing (single photo: link includes #p=index so shared URL opens this photo) -->
-							{#if $siteConfigData?.features?.enableSharing !== false && $siteConfigData?.features?.sharingOnPhoto !== false}
-								<div class="mt-3">
-									<div class="text-xs font-medium opacity-70 mb-1">Share this photo</div>
-									<SocialShareButtons
-										url={typeof window !== 'undefined' ? `${window.location.origin}${$page.url.pathname}#p=${current ?? 0}` : undefined}
-										title={photoTitle || 'Photo'}
-										size="sm"
-									/>
-								</div>
-							{/if}
-
-							{#if albumCollaboration && photo?._id}
-								<div class="border-t border-white/20 pt-3 mt-2">
-									<AlbumComments
-										albumId={albumCollaboration.albumId}
-										albumCreatorId={albumCollaboration.albumCreatorId}
-										albumAlias={albumCollaboration.albumAlias}
-										photoId={photo._id}
-										variant="dark"
-										compact={true}
-									/>
-								</div>
-							{/if}
-
 							<!-- Date/Time -->
 							{#if photo.takenAt || photo.exif?.dateTime || photo.exif?.dateTimeOriginal}
 								<div class="text-sm">
-									<span class="opacity-60">📅 Taken:</span>
+									<span class="opacity-80">📅 Taken:</span>
 									{formatDate(photo.takenAt || photo.exif?.dateTime || photo.exif?.dateTimeOriginal)}
 								</div>
 							{/if}
@@ -770,14 +782,14 @@
 										<div class="space-y-1">
 											<div class="text-xs font-medium opacity-70">Camera</div>
 											{#if displayExif.make}
-												<div class="text-sm"><span class="opacity-60">Make:</span> {displayExif.make}</div>
+												<div class="text-sm"><span class="opacity-70">Make:</span> {displayExif.make}</div>
 											{/if}
 											{#if displayExif.model}
-												<div class="text-sm"><span class="opacity-60">Model:</span> {displayExif.model}</div>
+												<div class="text-sm"><span class="opacity-70">Model:</span> {displayExif.model}</div>
 											{/if}
 											{#if displayExif.serialNumber}
 												<div class="text-sm">
-													<span class="opacity-60">Serial:</span> {displayExif.serialNumber}
+													<span class="opacity-70">Serial:</span> {displayExif.serialNumber}
 												</div>
 											{/if}
 										</div>
@@ -789,15 +801,15 @@
 											<div class="text-xs font-medium opacity-70">Lens</div>
 											{#if displayExif.lensModel}
 												<div class="text-sm">
-													<span class="opacity-60">Model:</span> {displayExif.lensModel}
+													<span class="opacity-70">Model:</span> {displayExif.lensModel}
 												</div>
 											{/if}
 											{#if displayExif.lensInfo}
-												<div class="text-sm"><span class="opacity-60">Info:</span> {displayExif.lensInfo}</div>
+												<div class="text-sm"><span class="opacity-70">Info:</span> {displayExif.lensInfo}</div>
 											{/if}
 											{#if displayExif.lensSerialNumber}
 												<div class="text-sm">
-													<span class="opacity-60">Serial:</span> {displayExif.lensSerialNumber}
+													<span class="opacity-70">Serial:</span> {displayExif.lensSerialNumber}
 												</div>
 											{/if}
 										</div>
@@ -814,31 +826,31 @@
 											<div class="text-xs font-medium opacity-70">Exposure</div>
 											<div class="grid grid-cols-2 gap-2 text-sm">
 												{#if displayExif.fNumber}
-													<div><span class="opacity-60">f/</span>{displayExif.fNumber}</div>
+													<div><span class="opacity-70">f/</span>{displayExif.fNumber}</div>
 												{/if}
 												{#if displayExif.exposureTime}
-													<div><span class="opacity-60">1/</span>{displayExif.exposureTime}</div>
+													<div><span class="opacity-70">1/</span>{displayExif.exposureTime}</div>
 												{/if}
 												{#if displayExif.iso}
-													<div><span class="opacity-60">ISO</span> {displayExif.iso}</div>
+													<div><span class="opacity-70">ISO</span> {displayExif.iso}</div>
 												{/if}
 												{#if displayExif.focalLength}
-													<div><span class="opacity-60">{displayExif.focalLength}mm</span></div>
+													<div><span class="opacity-70">{displayExif.focalLength}mm</span></div>
 												{/if}
 											</div>
 											{#if displayExif.exposureProgram}
 												<div class="text-sm">
-													<span class="opacity-60">Program:</span> {displayExif.exposureProgram}
+													<span class="opacity-70">Program:</span> {displayExif.exposureProgram}
 												</div>
 											{/if}
 											{#if displayExif.exposureMode}
 												<div class="text-sm">
-													<span class="opacity-60">Mode:</span> {displayExif.exposureMode}
+													<span class="opacity-70">Mode:</span> {displayExif.exposureMode}
 												</div>
 											{/if}
 											{#if displayExif.exposureBiasValue}
 												<div class="text-sm">
-													<span class="opacity-60">Bias:</span> {displayExif.exposureBiasValue} EV
+													<span class="opacity-70">Bias:</span> {displayExif.exposureBiasValue} EV
 												</div>
 											{/if}
 										</div>
@@ -853,27 +865,27 @@
 											<div class="text-xs font-medium opacity-70">Image Quality</div>
 											{#if displayExif.whiteBalance}
 												<div class="text-sm">
-													<span class="opacity-60">White Balance:</span> {displayExif.whiteBalance}
+													<span class="opacity-70">White Balance:</span> {displayExif.whiteBalance}
 												</div>
 											{/if}
 											{#if displayExif.meteringMode}
 												<div class="text-sm">
-													<span class="opacity-60">Metering:</span> {displayExif.meteringMode}
+													<span class="opacity-70">Metering:</span> {displayExif.meteringMode}
 												</div>
 											{/if}
 											{#if displayExif.flash}
 												<div class="text-sm">
-													<span class="opacity-60">Flash:</span> {displayExif.flash}
+													<span class="opacity-70">Flash:</span> {displayExif.flash}
 												</div>
 											{/if}
 											{#if displayExif.colorSpace}
 												<div class="text-sm">
-													<span class="opacity-60">Color Space:</span> {displayExif.colorSpace}
+													<span class="opacity-70">Color Space:</span> {displayExif.colorSpace}
 												</div>
 											{/if}
 											{#if displayExif.sceneCaptureType}
 												<div class="text-sm">
-													<span class="opacity-60">Scene:</span> {displayExif.sceneCaptureType}
+													<span class="opacity-70">Scene:</span> {displayExif.sceneCaptureType}
 												</div>
 											{/if}
 										</div>
@@ -886,7 +898,7 @@
 										<div class="space-y-1">
 											<div class="text-xs font-medium opacity-70">Location</div>
 											<div class="text-sm">
-												<span class="opacity-60">📍 GPS:</span>
+												<span class="opacity-70">📍 GPS:</span>
 												{#if gps?.latitude != null && gps?.longitude != null}
 													{gps.latitude.toFixed(6)}, {gps.longitude.toFixed(6)}
 												{:else}
@@ -912,7 +924,7 @@
 											{#each Object.entries(displayIptcXmp) as [key, value]}
 												{#if value != null && value !== ''}
 													<div class="text-sm">
-														<span class="opacity-60">{$t('admin.iptcXmpFields.' + key, iptcXmpFieldLabelFallback(key))}:</span>
+														<span class="opacity-70">{$t('admin.iptcXmpFields.' + key, iptcXmpFieldLabelFallback(key))}:</span>
 														{#if Array.isArray(value)}
 															{value.join(', ')}
 														{:else if typeof value === 'object'}
@@ -966,6 +978,24 @@
 							{/if}
 						</div>
 					</div>
+				{:else if showShare}
+					<div
+						class="ml-4 bg-black/90 text-white p-4 rounded-lg max-w-[400px] max-h-[85vh] overflow-y-auto z-10 shrink-0 photo-lightbox-share-panel"
+						bind:this={panelRef}
+					>
+						<div class="space-y-3">
+							{#if $siteConfigData?.features?.enableSharing !== false && $siteConfigData?.features?.sharingOnPhoto !== false}
+								<div id="lightbox-share-block" class="mt-3 scroll-mt-2">
+									<div class="text-xs font-medium opacity-70 mb-1">Share this photo</div>
+									<SocialShareButtons
+										url={typeof window !== 'undefined' ? `${window.location.origin}${$page.url.pathname}#p=${current ?? 0}` : undefined}
+										title={photoTitle || 'Photo'}
+										size="sm"
+									/>
+								</div>
+							{/if}
+						</div>
+					</div>
 				{/if}
 			</div>
 			<button
@@ -989,5 +1019,26 @@
 	/* Force toolbar icons white so they are visible in all templates (e.g. elegant with custom fonts) */
 	:global(.photo-lightbox-root .photo-lightbox-toolbar svg) {
 		stroke: white !important;
+	}
+
+	/* Ensure info/share panel text stays readable on dark background. */
+	:global(.photo-lightbox-info-panel),
+	:global(.photo-lightbox-share-panel) {
+		color: rgba(255, 255, 255, 0.98) !important;
+	}
+
+	:global(.photo-lightbox-info-panel) * {
+		color: rgba(255, 255, 255, 0.98) !important;
+	}
+
+	/* Bump label opacities used throughout the panel (they were too faint). */
+	:global(.photo-lightbox-info-panel) .opacity-60 {
+		opacity: 0.95 !important;
+	}
+	:global(.photo-lightbox-info-panel) .opacity-70 {
+		opacity: 0.98 !important;
+	}
+	:global(.photo-lightbox-info-panel) .opacity-80 {
+		opacity: 1 !important;
 	}
 </style>

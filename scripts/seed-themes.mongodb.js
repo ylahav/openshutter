@@ -59,7 +59,7 @@ const DEFAULT_PAGE_MODULES = {
   album: [
     {
       _id: 'mod_default_album_gallery',
-      type: 'albumGallery',
+      type: 'albumView',
       props: { albumSource: 'current' },
       rowOrder: 0,
       columnIndex: 0,

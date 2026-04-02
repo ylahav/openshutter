@@ -45,7 +45,7 @@ const smokeCases: SmokeCase[] = [
 		invalidProps: { albumSource: 'bad-value', selectedAlbums: 'not-array' }
 	},
 	{
-		name: 'Album Gallery',
+		name: 'Album view',
 		component: AlbumGalleryModule,
 		defaultProps: {},
 		invalidProps: { albumSource: 'bad-value', selectedAlbums: 123 }
@@ -117,7 +117,7 @@ describe('page-builder registry consistency', () => {
 		const moduleMapAliases = getAliasesFromMap(pageRendererSrc);
 		const contentAliases = getFilterAliases(overridesSrc, 'PAGE_CONTENT_MODULES');
 
-		const contentRequired = ['hero', 'richText', 'featureGrid', 'albumsGrid', 'albumGallery', 'cta', 'blogCategory', 'blogArticle'];
+		const contentRequired = ['hero', 'richText', 'featureGrid', 'albumsGrid', 'albumView', 'cta', 'blogCategory', 'blogArticle'];
 
 		for (const alias of contentRequired) {
 			expect(moduleTypeAliases).toContain(alias);
@@ -126,12 +126,12 @@ describe('page-builder registry consistency', () => {
 		}
 	});
 
-	it('maps albumsGrid and albumGallery to different module components', () => {
+	it('maps albumsGrid and albumView to different module components', () => {
 		const albumsGridLine = pageRendererSrc.match(/albumsGrid:\s*([A-Za-z0-9_]+)/)?.[1];
-		const albumGalleryLine = pageRendererSrc.match(/albumGallery:\s*([A-Za-z0-9_]+)/)?.[1];
+		const albumViewLine = pageRendererSrc.match(/albumView:\s*([A-Za-z0-9_]+)/)?.[1];
 
 		expect(albumsGridLine).toBe('AlbumsGridModule');
-		expect(albumGalleryLine).toBe('AlbumGalleryModule');
-		expect(albumsGridLine).not.toBe(albumGalleryLine);
+		expect(albumViewLine).toBe('AlbumGalleryModule');
+		expect(albumsGridLine).not.toBe(albumViewLine);
 	});
 });

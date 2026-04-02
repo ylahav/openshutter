@@ -45,6 +45,7 @@ import BlogArticleModule from './modules/BlogArticleModule.svelte';
 		richText: RichTextModule,
 		featureGrid: FeatureGridModule,
 		albumsGrid: AlbumsGridModule,
+		albumView: AlbumGalleryModule,
 		albumGallery: AlbumGalleryModule, // Backward compatibility
 		cta: CtaModule,
 		logo: LogoModule,

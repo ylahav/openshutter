@@ -215,9 +215,10 @@ All templates should integrate the `PhotoLightbox` component for consistent phot
 
 Features provided by PhotoLightbox:
 - Previous/Next navigation (buttons, arrow keys, swipe)
-- EXIF data display (toggle with button or "I" key)
+- Photo details panel (title/description + metadata + EXIF) toggled with the Info button or the "I" key. The details panel does not include sharing or comments.
 - Autoplay slideshow (toggle with button or spacebar)
 - Fullscreen support (F key)
+- Share buttons (configurable via site config) are available via the separate Share icon. Sharing is not part of the "I" details panel.
 - Keyboard shortcuts (Arrow keys, Space, Escape, F, I)
 
 ## Template Discovery

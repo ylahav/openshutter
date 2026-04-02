@@ -244,7 +244,7 @@ export class ThemesController {
         album: [
           {
             _id: 'mod_default_album_gallery',
-            type: 'albumGallery',
+            type: 'albumView',
             props: { albumSource: 'current' },
             rowOrder: 0,
             columnIndex: 0,
@@ -413,14 +413,18 @@ export class ThemesController {
       if (dto.pageModules !== undefined) updateData.pageModules = dto.pageModules;
       if (dto.pageLayout !== undefined) updateData.pageLayout = dto.pageLayout;
       if (dto.pageLayoutByBreakpoint !== undefined) updateData.pageLayoutByBreakpoint = dto.pageLayoutByBreakpoint;
-      if (dto.pageModulesByBreakpoint !== undefined) updateData.pageModulesByBreakpoint = dto.pageModulesByBreakpoint;
+      // pageModulesByBreakpoint is deprecated: persist only pageModules.
       if (dto.isPublished !== undefined) updateData.isPublished = dto.isPublished;
 
       // Server-side safety: reject invalid grids/overlaps before persisting.
       // Validate against the *final* theme document (existing + updates).
       validateTemplatePagesLayer({ ...(existing as any), ...(updateData as any) }, { source: `PUT /api/admin/themes/${id}` });
 
-      await collection.updateOne({ _id: new Types.ObjectId(id) }, { $set: updateData });
+      const updateOps: any = { $set: updateData };
+      if (dto.pageModules !== undefined) {
+        updateOps.$unset = { ...(updateOps.$unset || {}), pageModulesByBreakpoint: '' };
+      }
+      await collection.updateOne({ _id: new Types.ObjectId(id) }, updateOps);
       const updated = await collection.findOne({ _id: new Types.ObjectId(id) });
       return this.serialize(updated);
     } catch (error) {

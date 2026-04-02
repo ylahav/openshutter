@@ -27,7 +27,8 @@
 		richText: richTextConfig,
 		featureGrid: featureGridConfig,
 		albumsGrid: albumGalleryConfig,
-		albumGallery: albumGalleryConfig, // Alias
+		albumView: albumGalleryConfig,
+		albumGallery: albumGalleryConfig, // Legacy alias
 		cta: ctaConfig,
 		logo: logoConfig,
 		siteTitle: siteTitleConfig,

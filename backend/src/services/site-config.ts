@@ -158,6 +158,10 @@ export class SiteConfigService {
           out[k] = t[k]
         }
       }
+      // pageModulesByBreakpoint is deprecated: keep a single source in pageModules.
+      if (Object.prototype.hasOwnProperty.call(t, 'pageModules')) {
+        delete out.pageModulesByBreakpoint
+      }
     }
 
     // Applying a theme must replace module/layout/colors from the theme row, not merge with
@@ -177,7 +181,8 @@ export class SiteConfigService {
         mergedConfig.template.pageLayoutByBreakpoint = { ...(t.pageLayoutByBreakpoint ?? {}) }
       }
       if (Object.prototype.hasOwnProperty.call(t, 'pageModulesByBreakpoint')) {
-        mergedConfig.template.pageModulesByBreakpoint = { ...(t.pageModulesByBreakpoint ?? {}) }
+        // intentionally ignored; pageModules is the only persisted source now
+        delete (mergedConfig.template as any).pageModulesByBreakpoint
       }
       if (Object.prototype.hasOwnProperty.call(t, 'headerConfig')) {
         mergedConfig.template.headerConfig = t.headerConfig ?? null
