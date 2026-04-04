@@ -9,6 +9,30 @@ const themeStore = writable<Theme>('system');
 // Resolved theme (light or dark, never system)
 const resolvedTheme = writable<'light' | 'dark'>('light');
 
+/** Sync `document.documentElement` light/dark class and `resolvedTheme`. Used by admin chrome + site theme. */
+export function applyHtmlThemeClass(resolved: 'light' | 'dark') {
+	if (!browser) return;
+	const root = document.documentElement;
+	if (resolved === 'dark') {
+		root.classList.add('dark');
+		root.classList.remove('light');
+	} else {
+		root.classList.add('light');
+		root.classList.remove('dark');
+	}
+	resolvedTheme.set(resolved);
+}
+
+/** Resolve public-site theme (system → light/dark). Safe on server (returns light). */
+export function getResolvedSiteThemeFromStore(): 'light' | 'dark' {
+	if (!browser) return 'light';
+	const t = get(themeStore);
+	if (t === 'system') {
+		return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+	}
+	return t;
+}
+
 // Initialize theme from localStorage or system preference
 if (browser) {
 	// Get stored theme or default to system
@@ -20,17 +44,9 @@ if (browser) {
 		return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 	};
 
-	// Function to apply theme to document
+	// Function to apply theme to document (html.light / html.dark for Tailwind `dark:`)
 	const applyTheme = (theme: 'light' | 'dark') => {
-		const root = document.documentElement;
-		if (theme === 'dark') {
-			root.classList.add('dark');
-			root.classList.remove('light');
-		} else {
-			root.classList.add('light');
-			root.classList.remove('dark');
-		}
-		resolvedTheme.set(theme);
+		applyHtmlThemeClass(theme);
 	};
 
 	// Function to resolve theme (system -> light/dark)

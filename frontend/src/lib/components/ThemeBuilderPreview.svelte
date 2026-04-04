@@ -85,9 +85,12 @@
 	{/if}
 </svelte:head>
 
-<div class="theme-preview-root rounded-lg overflow-hidden border border-gray-300 bg-white" style={cssVars}>
+<div
+	class="@container theme-preview-root rounded-lg overflow-hidden border border-gray-300 bg-white min-w-0 max-w-full"
+	style={cssVars}
+>
 	<div
-		class="preview-content min-h-[400px] p-4"
+		class="preview-content min-h-[400px] min-w-0 max-w-full overflow-x-auto p-2 sm:p-4"
 		style="
 			background: var(--os-background);
 			color: var(--os-text);

@@ -7,16 +7,15 @@
 	<title>{$t('admin.blogWorkspaceTitle')} - {$productName}</title>
 </svelte:head>
 
-<div class="min-h-screen bg-gray-50 py-8">
+<div class="py-8">
 	<div class="max-w-4xl mx-auto px-4">
 		<div class="mb-10">
-			<a href="/admin" class="text-sm text-blue-600 hover:underline">{$t('admin.backToDashboard')}</a>
-			<h1 class="text-3xl font-bold text-gray-900 mt-4">{$t('admin.blogWorkspaceTitle')}</h1>
-			<p class="text-gray-600 mt-2">{$t('admin.blogWorkspaceSubtitle')}</p>
+			<h1 class="text-3xl font-bold text-[var(--color-surface-950-50)]">{$t('admin.blogWorkspaceTitle')}</h1>
+			<p class="text-[var(--color-surface-600-400)] mt-2">{$t('admin.blogWorkspaceSubtitle')}</p>
 		</div>
 
 		<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-			<div class="bg-white rounded-lg shadow-md p-6 border border-gray-100">
+			<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
 				<div class="flex items-center mb-4">
 					<div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
 						<svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -28,9 +27,9 @@
 							/>
 						</svg>
 					</div>
-					<h2 class="text-xl font-semibold text-gray-900 ml-3">{$t('admin.blogCategories')}</h2>
+					<h2 class="text-xl font-semibold text-[var(--color-surface-950-50)] ml-3">{$t('admin.blogCategories')}</h2>
 				</div>
-				<p class="text-gray-600 mb-4 text-sm">{$t('admin.manageBlogCategories')}</p>
+				<p class="text-[var(--color-surface-600-400)] mb-4 text-sm">{$t('admin.manageBlogCategories')}</p>
 				<a
 					href="/admin/blog-categories"
 					class="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
@@ -42,7 +41,7 @@
 				</a>
 			</div>
 
-			<div class="bg-white rounded-lg shadow-md p-6 border border-gray-100">
+			<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
 				<div class="flex items-center mb-4">
 					<div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
 						<svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -54,9 +53,9 @@
 							/>
 						</svg>
 					</div>
-					<h2 class="text-xl font-semibold text-gray-900 ml-3">{$t('admin.blogArticles')}</h2>
+					<h2 class="text-xl font-semibold text-[var(--color-surface-950-50)] ml-3">{$t('admin.blogArticles')}</h2>
 				</div>
-				<p class="text-gray-600 mb-4 text-sm">{$t('admin.manageBlogArticlesCard')}</p>
+				<p class="text-[var(--color-surface-600-400)] mb-4 text-sm">{$t('admin.manageBlogArticlesCard')}</p>
 				<a
 					href="/admin/blog-articles"
 					class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
@@ -69,8 +68,8 @@
 			</div>
 		</div>
 
-		<p class="mt-8 text-sm text-gray-500">
-			Public preview: <a class="text-blue-600 hover:underline" href="/blog">/blog</a>
+		<p class="mt-8 text-sm text-[var(--color-surface-600-400)]">
+			Public preview: <a class="text-[var(--color-primary-600)] hover:underline" href="/blog">/blog</a>
 		</p>
 	</div>
 </div>

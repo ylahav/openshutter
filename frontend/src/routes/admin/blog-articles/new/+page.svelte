@@ -163,22 +163,22 @@
 	<title>{$t('owner.createNewArticle')} — {$productName}</title>
 </svelte:head>
 
-<div class="min-h-screen bg-gray-50 py-8">
+<div class="py-8">
 	<div class="max-w-4xl mx-auto px-4">
 		<div class="flex justify-between items-center mb-8">
 			<div>
-				<h1 class="text-3xl font-bold text-gray-900">{$t('owner.createNewArticle')}</h1>
-				<p class="text-gray-600 mt-2">{$t('owner.createArticleDescription')}</p>
+				<h1 class="text-3xl font-bold text-[var(--color-surface-950-50)]">{$t('owner.createNewArticle')}</h1>
+				<p class="text-[var(--color-surface-600-400)] mt-2">{$t('owner.createArticleDescription')}</p>
 			</div>
 			<button
 				on:click={() => goto('/admin/blog-articles')}
-				class="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
+				class="btn preset-filled-primary-500 inline-flex items-center"
 			>
 				{$t('admin.backToBlogWorkspace')}
 			</button>
 		</div>
 
-		<div class="bg-white rounded-lg shadow-md p-6">
+		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
 			{#if error}
 				<div class="mb-6 bg-red-50 border border-red-200 rounded-md p-4">
 					<p class="text-sm text-red-800">{error}</p>
@@ -193,10 +193,10 @@
 
 			<form on:submit={handleSubmit} class="space-y-6">
 				<div>
-					<h3 class="text-lg font-medium text-gray-900 mb-4">{$t('owner.basicInformation')}</h3>
+					<h3 class="text-lg font-medium text-[var(--color-surface-950-50)] mb-4">{$t('owner.basicInformation')}</h3>
 					<div class="space-y-4">
 						<div>
-							<label for="title" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="title" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								{$t('owner.title')} *
 							</label>
 							<MultiLangInput
@@ -208,14 +208,14 @@
 
 						<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 							<div>
-								<label for="category-select" class="block text-sm font-medium text-gray-700 mb-2">
+								<label for="category-select" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 									{$t('owner.category')} *
 								</label>
 								<select
 									id="category-select"
 									bind:value={formData.category}
 									required
-									class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-white focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+									class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm bg-[var(--color-surface-50-950)] focus:outline-none focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 								>
 									<option value="">{$t('admin.selectBlogCategory')}</option>
 									{#each categoryOptions as c (c.alias)}
@@ -235,7 +235,7 @@
 							</div>
 
 							<div>
-								<label for="tags" class="block text-sm font-medium text-gray-700 mb-2">
+								<label for="tags" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 									{$t('owner.tags')}
 								</label>
 								<div class="flex">
@@ -249,13 +249,13 @@
 												handleAddTag();
 											}
 										}}
-										class="flex-1 px-3 py-2 border border-gray-300 rounded-l-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+										class="flex-1 px-3 py-2 border border-surface-300-700 rounded-l-md shadow-sm focus:outline-none focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 										placeholder={$t('owner.addTag')}
 									/>
 									<button
 										type="button"
 										on:click={handleAddTag}
-										class="px-3 py-2 bg-blue-600 text-white rounded-r-md hover:bg-blue-700"
+										class="px-3 py-2 bg-[var(--color-primary-600)] text-white rounded-r-md hover:bg-[var(--color-primary-700)]"
 									>
 										{$t('owner.add')}
 									</button>
@@ -264,13 +264,13 @@
 									<div class="mt-2 flex flex-wrap gap-2">
 										{#each formData.tags as tag}
 											<span
-												class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+												class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[color-mix(in_oklab,var(--color-primary-500)_22%,transparent)] text-[var(--color-primary-800)]"
 											>
 												{tag}
 												<button
 													type="button"
 													on:click={() => handleRemoveTag(tag)}
-													class="ml-1.5 inline-flex items-center justify-center w-4 h-4 rounded-full text-blue-400 hover:bg-blue-200 hover:text-blue-500"
+													class="ml-1.5 inline-flex items-center justify-center w-4 h-4 rounded-full text-[var(--color-primary-400)] hover:bg-[color-mix(in_oklab,var(--color-primary-500)_28%,transparent)] hover:text-[var(--color-primary-500)]"
 													aria-label="Remove tag"
 												>
 													<svg class="w-2 h-2" fill="currentColor" viewBox="0 0 8 8">
@@ -289,9 +289,9 @@
 				</div>
 
 				<div>
-					<h3 class="text-lg font-medium text-gray-900 mb-4">{$t('owner.leadingImage')}</h3>
+					<h3 class="text-lg font-medium text-[var(--color-surface-950-50)] mb-4">{$t('owner.leadingImage')}</h3>
 					<div>
-						<label for="leading-image-url-admin" class="block text-sm font-medium text-gray-700 mb-2">
+						<label for="leading-image-url-admin" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 							{$t('owner.profileImageUrl')}
 						</label>
 						<input
@@ -306,20 +306,20 @@
 									storagePath: ''
 								};
 							}}
-							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+							class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:outline-none focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 							placeholder={$t('owner.enterImageUrl')}
 						/>
-						<p class="mt-1 text-sm text-gray-500">
+						<p class="mt-1 text-sm text-[var(--color-surface-600-400)]">
 							{$t('owner.profileImageNote')}
 						</p>
 					</div>
 				</div>
 
 				<div>
-					<h3 class="text-lg font-medium text-gray-900 mb-4">{$t('owner.content')}</h3>
+					<h3 class="text-lg font-medium text-[var(--color-surface-950-50)] mb-4">{$t('owner.content')}</h3>
 					<div class="space-y-4">
 						<div>
-							<label for="excerpt" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="excerpt" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								{$t('owner.excerpt')}
 							</label>
 							<MultiLangInput
@@ -330,7 +330,7 @@
 						</div>
 
 						<div>
-							<span class="block text-sm font-medium text-gray-700 mb-2">
+							<span class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								{$t('owner.content')} *
 							</span>
 							<MultiLangHTMLEditor
@@ -338,7 +338,7 @@
 								placeholder={$t('owner.enterContent')}
 								height={300}
 							/>
-							<p class="mt-1 text-sm text-gray-500">
+							<p class="mt-1 text-sm text-[var(--color-surface-600-400)]">
 								{$t('owner.contentHelp')}
 							</p>
 						</div>
@@ -346,17 +346,17 @@
 				</div>
 
 				<div>
-					<h3 class="text-lg font-medium text-gray-900 mb-4">{$t('owner.seo')}</h3>
+					<h3 class="text-lg font-medium text-[var(--color-surface-950-50)] mb-4">{$t('owner.seo')}</h3>
 					<div class="space-y-4">
 						<div>
-							<label for="seoTitle" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="seoTitle" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								{$t('owner.seoTitle')}
 							</label>
 							<MultiLangInput bind:value={formData.seoTitle} placeholder={$t('owner.enterSeoTitle')} />
 						</div>
 
 						<div>
-							<label for="seoDescription" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="seoDescription" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								{$t('owner.seoDescription')}
 							</label>
 							<MultiLangInput
@@ -369,16 +369,16 @@
 				</div>
 
 				<div>
-					<h3 class="text-lg font-medium text-gray-900 mb-4">{$t('owner.settings')}</h3>
+					<h3 class="text-lg font-medium text-[var(--color-surface-950-50)] mb-4">{$t('owner.settings')}</h3>
 					<div class="space-y-4">
 						<div class="flex items-center">
 							<input
 								type="checkbox"
 								id="isPublished"
 								bind:checked={formData.isPublished}
-								class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+								class="h-4 w-4 text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)] border-surface-300-700 rounded"
 							/>
-							<label for="isPublished" class="ml-2 block text-sm text-gray-900">
+							<label for="isPublished" class="ml-2 block text-sm text-[var(--color-surface-950-50)]">
 								{$t('owner.publishArticle')}
 							</label>
 						</div>
@@ -388,9 +388,9 @@
 								type="checkbox"
 								id="isFeatured"
 								bind:checked={formData.isFeatured}
-								class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+								class="h-4 w-4 text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)] border-surface-300-700 rounded"
 							/>
-							<label for="isFeatured" class="ml-2 block text-sm text-gray-900">
+							<label for="isFeatured" class="ml-2 block text-sm text-[var(--color-surface-950-50)]">
 								{$t('owner.featureArticle')}
 							</label>
 						</div>

@@ -8,6 +8,7 @@
 	import PackFallbackBanner from '$lib/components/PackFallbackBanner.svelte';
 	import FooterTemplateSwitcher from '$lib/components/FooterTemplateSwitcher.svelte';
 	import BodyTemplateWrapper from '$lib/components/BodyTemplateWrapper.svelte';
+	import AdminAppChrome from '$lib/components/AdminAppChrome.svelte';
 	import ThemeProvider from '$lib/components/ThemeProvider.svelte';
 	import ThemeColorApplier from '$lib/components/ThemeColorApplier.svelte';
 	import TokenRenewalNotification from '$lib/components/TokenRenewalNotification.svelte';
@@ -29,6 +30,7 @@
 			? String($publicSiteFavicon).trim()
 			: '';
 	$: faviconHref = faviconFromConfig || DEFAULT_FAVICON;
+	$: isAdminRoute = $page.url.pathname.startsWith('/admin');
 
 	// Initialize site config and auth on mount (skip on login page)
 	onMount(() => {
@@ -66,15 +68,23 @@
 </svelte:head>
 
 <ThemeProvider defaultTheme="system" enableSystem={true} disableTransitionOnChange={false}>
-	<PhotoCopyProtection />
-	<ThemeColorApplier />
-	<TokenRenewalNotification />
-	<PackFallbackBanner />
-	<HeaderTemplateSwitcher />
+	{#if isAdminRoute}
+		<!-- Admin: static shell only — see docs/ADMIN_UI_ROADMAP.md Phase 1 -->
+		<TokenRenewalNotification />
+		<AdminAppChrome>
+			<slot />
+		</AdminAppChrome>
+	{:else}
+		<PhotoCopyProtection />
+		<ThemeColorApplier />
+		<TokenRenewalNotification />
+		<PackFallbackBanner />
+		<HeaderTemplateSwitcher />
 
-	<BodyTemplateWrapper>
-		<slot />
-	</BodyTemplateWrapper>
+		<BodyTemplateWrapper>
+			<slot />
+		</BodyTemplateWrapper>
 
-	<FooterTemplateSwitcher />
+		<FooterTemplateSwitcher />
+	{/if}
 </ThemeProvider>

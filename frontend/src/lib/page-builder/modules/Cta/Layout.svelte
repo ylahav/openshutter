@@ -32,7 +32,7 @@
 		{#if descriptionText}
 			<p class="text-xl text-blue-100 dark:text-blue-200 mb-8">{descriptionText}</p>
 		{/if}
-		<div class="flex flex-col sm:flex-row gap-4 justify-center">
+		<div class="flex flex-col @sm:flex-row gap-4 justify-center">
 			<a
 				href={primaryHref}
 				class="inline-flex items-center justify-center px-8 py-4 bg-white dark:bg-gray-100 text-blue-600 dark:text-blue-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-200 transition-colors font-semibold text-lg"

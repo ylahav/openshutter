@@ -19,7 +19,8 @@ export interface SiteConfig {
   template?: {
     activeTemplate?: string // Deprecated: use frontendTemplate instead, kept for backward compatibility
     frontendTemplate?: string // Template for public-facing frontend pages
-    adminTemplate?: string // Template for admin area pages
+    /** @deprecated Always `default` from API. Admin UI is not pack-driven. */
+    adminTemplate?: string
     customColors?: {
       primary?: string
       secondary?: string
@@ -65,7 +66,7 @@ export interface SiteConfig {
   seo: {
     metaTitle: string
     metaDescription: string
-    metaKeywords: string[]
+    metaKeywords: MultiLangText
     ogImage?: string
   }
   contact: {

@@ -1058,17 +1058,12 @@
 	<title>{$t('admin.pagesManagement')} - {$t('navigation.admin')}</title>
 </svelte:head>
 
-<div class="min-h-screen bg-gray-50 py-8">
+<div class="py-8">
 	<div class="max-w-6xl mx-auto px-4">
-		<div class="bg-white rounded-lg shadow-md p-6">
-			<div class="flex items-center justify-between mb-6">
-				<div>
-					<h1 class="text-2xl font-bold text-gray-900">{$t('admin.pagesManagement')}</h1>
-					<p class="text-gray-600 mt-2">{$t('admin.pagesManagementDescription')}</p>
-				</div>
-				<a href="/admin" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm font-medium">
-					{$t('admin.backToAdmin')}
-				</a>
+		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
+			<div class="mb-6">
+				<h1 class="text-2xl font-bold text-[var(--color-surface-950-50)]">{$t('admin.pagesManagement')}</h1>
+				<p class="text-[var(--color-surface-600-400)] mt-2">{$t('admin.pagesManagementDescription')}</p>
 			</div>
 
 			{#if message}
@@ -1092,13 +1087,13 @@
 			<!-- Pages List -->
 			{#if loading}
 				<div class="text-center py-8">
-					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-					<p class="mt-2 text-gray-600">{$t('admin.loadingPages')}</p>
+					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--color-primary-600)]"></div>
+					<p class="mt-2 text-[var(--color-surface-600-400)]">{$t('admin.loadingPages')}</p>
 				</div>
 			{:else if pages.length === 0}
 				<div class="text-center py-8">
 					<svg
-						class="h-12 w-12 text-gray-400 mx-auto mb-4"
+						class="h-12 w-12 text-[var(--color-surface-400-600)] mx-auto mb-4"
 						fill="none"
 						stroke="currentColor"
 						viewBox="0 0 24 24"
@@ -1110,8 +1105,8 @@
 							d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
 						/>
 					</svg>
-					<h3 class="text-lg font-semibold text-gray-900 mb-2">{$t('admin.noPagesFound')}</h3>
-					<p class="text-gray-600">{$t('admin.startByCreatingFirstPage')}</p>
+					<h3 class="text-lg font-semibold text-[var(--color-surface-950-50)] mb-2">{$t('admin.noPagesFound')}</h3>
+					<p class="text-[var(--color-surface-600-400)]">{$t('admin.startByCreatingFirstPage')}</p>
 				</div>
 			{:else}
 				<PageList
@@ -1128,8 +1123,8 @@
 <!-- Create Dialog -->
 {#if showCreateDialog}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-		<div class="bg-white rounded-lg shadow-xl w-full max-w-4xl p-6 max-h-[90vh] overflow-y-auto">
-			<h2 class="text-xl font-bold text-gray-900 mb-4">Add New Page</h2>
+		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full max-w-4xl p-6 max-h-[90vh] overflow-y-auto">
+			<h2 class="text-xl font-bold text-[var(--color-surface-950-50)] mb-4">Add New Page</h2>
 
 			{#if error}
 				<div class="mb-4 p-4 bg-red-50 text-red-700 rounded-md">{error}</div>
@@ -1138,14 +1133,14 @@
 			<div class="space-y-4">
 				<div class="grid grid-cols-2 gap-4">
 					<div>
-						<label for="create-title" class="block text-sm font-medium text-gray-700 mb-2">
+						<label for="create-title" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 							Title *
 						</label>
 						<MultiLangInput id="create-title" bind:value={formData.title} />
 					</div>
 
 					<div>
-						<label for="create-alias" class="block text-sm font-medium text-gray-700 mb-2">
+						<label for="create-alias" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 							Alias *
 						</label>
 						<input
@@ -1154,13 +1149,13 @@
 							bind:value={formData.alias}
 							placeholder="page-url-slug"
 							required
-							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+							class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 						/>
 					</div>
 				</div>
 
 				<div>
-					<label for="create-subtitle" class="block text-sm font-medium text-gray-700 mb-2">
+					<label for="create-subtitle" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 						Subtitle
 					</label>
 					<MultiLangInput id="create-subtitle" bind:value={formData.subtitle} />
@@ -1168,13 +1163,13 @@
 
 				<div class="grid grid-cols-2 gap-4">
 					<div>
-						<label for="create-category" class="block text-sm font-medium text-gray-700 mb-2">
+						<label for="create-category" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 							Category
 						</label>
 						<select
 							id="create-category"
 							bind:value={formData.category}
-							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+							class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 						>
 							{#each CATEGORIES as cat}
 								<option value={cat.value}>{cat.label}</option>
@@ -1183,7 +1178,7 @@
 					</div>
 
 					<div>
-						<label for="create-leading-image" class="block text-sm font-medium text-gray-700 mb-2">
+						<label for="create-leading-image" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 							Leading Image URL
 						</label>
 						<input
@@ -1191,14 +1186,14 @@
 							type="text"
 							bind:value={formData.leadingImage}
 							placeholder="https://..."
-							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+							class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 						/>
 					</div>
 				</div>
 
 				<div class="grid grid-cols-2 gap-4">
 					<div>
-						<label for="create-grid-rows" class="block text-sm font-medium text-gray-700 mb-2">
+						<label for="create-grid-rows" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 							Grid Rows *
 						</label>
 						<input
@@ -1209,13 +1204,13 @@
 							bind:value={formData.gridRows}
 							placeholder="1"
 							required
-							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+							class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 						/>
-						<p class="mt-1 text-xs text-gray-500">Number of rows in the page grid.</p>
+						<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">Number of rows in the page grid.</p>
 					</div>
 
 					<div>
-						<label for="create-grid-cols" class="block text-sm font-medium text-gray-700 mb-2">
+						<label for="create-grid-cols" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 							Grid Columns *
 						</label>
 						<input
@@ -1226,14 +1221,14 @@
 							bind:value={formData.gridColumns}
 							placeholder="1"
 							required
-							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+							class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 						/>
-						<p class="mt-1 text-xs text-gray-500">Number of columns in the page grid.</p>
+						<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">Number of columns in the page grid.</p>
 					</div>
 				</div>
 
 				<div>
-					<label for="create-url-params" class="block text-sm font-medium text-gray-700 mb-2">
+					<label for="create-url-params" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 						URL Parameters (optional)
 					</label>
 					<input
@@ -1241,9 +1236,9 @@
 						type="text"
 						bind:value={formData.urlParams}
 						placeholder="param1=value1&param2=value2"
-						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+						class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 					/>
-					<p class="mt-1 text-xs text-gray-500">Query parameters for the page URL (e.g., ?id=123&type=photo).</p>
+					<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">Query parameters for the page URL (e.g., ?id=123&type=photo).</p>
 				</div>
 
 				{#if !showGridBuilder}
@@ -1260,9 +1255,9 @@
 				{/if}
 
 				{#if showGridBuilder}
-					<div class="border-t border-gray-200 pt-6">
-						<h3 class="text-lg font-semibold text-gray-900 mb-4">Page Grid Layout</h3>
-						<p class="text-sm text-gray-600 mb-4">
+					<div class="border-t border-surface-200-800 pt-6">
+						<h3 class="text-lg font-semibold text-[var(--color-surface-950-50)] mb-4">Page Grid Layout</h3>
+						<p class="text-sm text-[var(--color-surface-600-400)] mb-4">
 							Select cells in the grid and assign modules to them. Grid: {formData.gridRows} row{formData.gridRows !== 1 ? 's' : ''} × {formData.gridColumns} column{formData.gridColumns !== 1 ? 's' : ''}
 						</p>
 						
@@ -1271,7 +1266,7 @@
 						{/if}
 
 						{#if modulesLoading}
-							<p class="text-sm text-gray-500">Loading layout...</p>
+							<p class="text-sm text-[var(--color-surface-600-400)]">Loading layout...</p>
 						{:else}
 							<RowColumnLayoutBuilder
 								modules={modules}
@@ -1293,9 +1288,9 @@
 							class="sr-only peer"
 						/>
 						<div
-							class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"
+							class="w-11 h-6 bg-[var(--color-surface-200-800)] peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[color-mix(in_oklab,var(--color-primary-500)_35%,transparent)] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-[var(--color-surface-50-950)] after:border-surface-300-700 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--color-primary-600)]"
 						></div>
-						<span class="ml-3 text-sm font-medium text-gray-700">
+						<span class="ml-3 text-sm font-medium text-[var(--color-surface-800-200)]">
 							Published
 						</span>
 					</label>
@@ -1308,7 +1303,7 @@
 							showCreateDialog = false;
 							resetForm();
 						}}
-						class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm font-medium"
+						class="px-4 py-2 bg-[var(--color-surface-200-800)] text-[var(--color-surface-800-200)] rounded-md hover:bg-[var(--color-surface-300-700)] text-sm font-medium"
 					>
 						Cancel
 					</button>
@@ -1316,7 +1311,7 @@
 						type="button"
 						on:click={handleCreate}
 						disabled={saving || !formData.title || !formData.alias.trim() || !gridInitialized}
-						class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm font-medium"
+						class="px-4 py-2 bg-[var(--color-primary-600)] text-white rounded-md hover:bg-[var(--color-primary-700)] disabled:opacity-50 text-sm font-medium"
 					>
 						{#if saving}
 							Creating...
@@ -1333,8 +1328,8 @@
 <!-- Module Edit Dialog -->
 {#if showModuleEditDialog && editingModule}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-		<div class="bg-white rounded-lg shadow-xl w-full {moduleForm.type === 'featureGrid' || moduleForm.type === 'richText' || moduleForm.type === 'hero' || moduleForm.type === 'albumsGrid' ? 'max-w-4xl' : 'max-w-2xl'} p-6 max-h-[90vh] overflow-y-auto">
-			<h2 class="text-xl font-bold text-gray-900 mb-4">Edit Module</h2>
+		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full {moduleForm.type === 'featureGrid' || moduleForm.type === 'richText' || moduleForm.type === 'hero' || moduleForm.type === 'albumsGrid' ? 'max-w-4xl' : 'max-w-2xl'} p-6 max-h-[90vh] overflow-y-auto">
+			<h2 class="text-xl font-bold text-[var(--color-surface-950-50)] mb-4">Edit Module</h2>
 
 			{#if modulesError}
 				<div class="mb-4 p-4 bg-red-50 text-red-700 rounded-md text-sm">{modulesError}</div>
@@ -1342,13 +1337,13 @@
 
 			<div class="space-y-4">
 				<div>
-					<label for="module-type" class="block text-sm font-medium text-gray-700 mb-2">
+					<label for="module-type" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 						Module Type
 					</label>
 					<select
 						id="module-type"
 						bind:value={moduleForm.type}
-						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+						class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 					>
 						{#each MODULE_TYPES as moduleType}
 							<option value={moduleType.value}>{moduleType.label}</option>
@@ -1358,45 +1353,45 @@
 
 				{#if moduleForm.type === 'featureGrid'}
 					<!-- Feature Grid Form -->
-					<div class="space-y-4 border-t border-gray-200 pt-4">
+					<div class="space-y-4 border-t border-surface-200-800 pt-4">
 						<div>
-							<label for="module-feature-title" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-feature-title" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Title
 							</label>
 							<MultiLangInput id="module-feature-title" bind:value={featureGridTitle} />
 						</div>
 
 						<div>
-							<label for="module-feature-subtitle" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-feature-subtitle" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Subtitle
 							</label>
 							<MultiLangInput id="module-feature-subtitle" bind:value={featureGridSubtitle} />
 						</div>
 
-						<div class="border-t border-gray-200 pt-4">
+						<div class="border-t border-surface-200-800 pt-4">
 							<div class="flex items-center justify-between mb-4">
-								<span class="block text-sm font-medium text-gray-700">
+								<span class="block text-sm font-medium text-[var(--color-surface-800-200)]">
 									Features
 								</span>
 								<button
 									type="button"
 									on:click={addFeatureItem}
-									class="px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
+									class="px-3 py-1.5 bg-[var(--color-primary-600)] text-white rounded-md hover:bg-[var(--color-primary-700)] text-sm font-medium"
 								>
 									+ Add Item
 								</button>
 							</div>
 
 							{#if featureGridItems.length === 0}
-								<p class="text-sm text-gray-500 py-4 text-center border-2 border-dashed border-gray-300 rounded">
+								<p class="text-sm text-[var(--color-surface-600-400)] py-4 text-center border-2 border-dashed border-surface-300-700 rounded">
 									No features yet. Click "Add Item" to add a feature.
 								</p>
 							{:else}
 								<div class="space-y-4">
 									{#each featureGridItems as item, index (index)}
-										<div class="border border-gray-300 rounded-lg p-4 bg-gray-50">
+										<div class="border border-surface-300-700 rounded-lg p-4 bg-[var(--color-surface-50-950)]">
 											<div class="flex items-center justify-between mb-3">
-												<span class="text-sm font-medium text-gray-700">Feature {index + 1}</span>
+												<span class="text-sm font-medium text-[var(--color-surface-800-200)]">Feature {index + 1}</span>
 												<button
 													type="button"
 													on:click={() => removeFeatureItem(index)}
@@ -1408,7 +1403,7 @@
 
 											<div class="space-y-3">
 												<div>
-													<span class="block text-xs font-medium text-gray-600 mb-1">
+													<span class="block text-xs font-medium text-[var(--color-surface-600-400)] mb-1">
 														Icon
 													</span>
 													<div class="flex gap-2">
@@ -1424,26 +1419,26 @@
 																type="text"
 																bind:value={item.icon}
 																placeholder="🎨 or custom text"
-																class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+																class="flex-1 px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)] text-sm"
 																on:click|stopPropagation
 																on:mousedown|stopPropagation
 															/>
 														{/if}
 													</div>
-													<p class="mt-1 text-xs text-gray-500">
+													<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">
 														Select an icon from the list, or choose "Custom..." to enter an emoji or custom text.
 													</p>
 												</div>
 
 												<div>
-													<label for="module-feature-item-{index}-title" class="block text-xs font-medium text-gray-600 mb-1">
+													<label for="module-feature-item-{index}-title" class="block text-xs font-medium text-[var(--color-surface-600-400)] mb-1">
 														Title
 													</label>
 													<MultiLangInput id="module-feature-item-{index}-title" bind:value={item.title} />
 												</div>
 
 												<div>
-													<label for="module-feature-item-{index}-desc" class="block text-xs font-medium text-gray-600 mb-1">
+													<label for="module-feature-item-{index}-desc" class="block text-xs font-medium text-[var(--color-surface-600-400)] mb-1">
 														Description (Rich Text)
 													</label>
 													<MultiLangHTMLEditor id="module-feature-item-{index}-desc" bind:value={item.description} />
@@ -1457,29 +1452,29 @@
 					</div>
 				{:else if moduleForm.type === 'richText'}
 					<!-- Rich Text Form -->
-					<div class="space-y-4 border-t border-gray-200 pt-4">
+					<div class="space-y-4 border-t border-surface-200-800 pt-4">
 						<div>
-							<label for="module-richtext-title" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-richtext-title" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Title (optional)
 							</label>
 							<MultiLangInput id="module-richtext-title" bind:value={richTextTitle} />
 						</div>
 
 						<div>
-							<label for="module-richtext-body" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-richtext-body" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Body Content
 							</label>
 							<MultiLangHTMLEditor id="module-richtext-body" bind:value={richTextBody} />
 						</div>
 
 						<div>
-							<label for="module-richtext-bg" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-richtext-bg" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Background Color
 							</label>
 							<select
 								id="module-richtext-bg"
 								bind:value={richTextBackground}
-								class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 							>
 								<option value="white">White</option>
 								<option value="gray">Gray</option>
@@ -1488,30 +1483,30 @@
 					</div>
 				{:else if moduleForm.type === 'hero'}
 					<!-- Hero Form -->
-					<div class="space-y-4 border-t border-gray-200 pt-4">
+					<div class="space-y-4 border-t border-surface-200-800 pt-4">
 						<div>
-							<label for="module-hero-title" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-hero-title" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Title
 							</label>
 							<MultiLangInput id="module-hero-title" bind:value={heroTitle} />
 						</div>
 
 						<div>
-							<label for="module-hero-subtitle" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-hero-subtitle" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Subtitle
 							</label>
 							<MultiLangInput id="module-hero-subtitle" bind:value={heroSubtitle} />
 						</div>
 
 						<div>
-							<label for="module-hero-cta-label" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-hero-cta-label" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								CTA Label (optional)
 							</label>
 							<MultiLangInput id="module-hero-cta-label" bind:value={heroCtaLabel} />
 						</div>
 
 						<div>
-							<label for="module-hero-cta-url" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-hero-cta-url" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								CTA URL (optional)
 							</label>
 							<input
@@ -1519,18 +1514,18 @@
 								type="url"
 								bind:value={heroCtaUrl}
 								placeholder="https://..."
-								class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 							/>
 						</div>
 
 						<div>
-							<label for="module-hero-bg-style" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-hero-bg-style" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Background Style
 							</label>
 							<select
 								id="module-hero-bg-style"
 								bind:value={heroBackgroundStyle}
-								class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 							>
 								<option value="light">Light</option>
 								<option value="dark">Dark</option>
@@ -1541,7 +1536,7 @@
 
 						{#if heroBackgroundStyle === 'image'}
 							<div>
-								<label for="module-hero-bg-image" class="block text-sm font-medium text-gray-700 mb-2">
+								<label for="module-hero-bg-image" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 									Background Image URL
 								</label>
 								<input
@@ -1549,42 +1544,42 @@
 									type="text"
 									bind:value={heroBackgroundImage}
 									placeholder="https://..."
-									class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+									class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 								/>
 							</div>
 						{/if}
 					</div>
 				{:else if moduleForm.type === 'albumsGrid'}
 					<!-- Albums Grid Module Form -->
-					<div class="space-y-4 border-t border-gray-200 pt-4">
+					<div class="space-y-4 border-t border-surface-200-800 pt-4">
 						<div>
-							<label for="module-albums-title" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-albums-title" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Title
 							</label>
 							<MultiLangInput id="module-albums-title" bind:value={albumsGridTitle} />
 						</div>
 
 						<div>
-							<label for="module-albums-desc" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-albums-desc" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Description (Rich Text)
 							</label>
 							<MultiLangHTMLEditor id="module-albums-desc" bind:value={albumsGridDescription} />
 						</div>
 
 						<div>
-							<span class="block text-sm font-medium text-gray-700 mb-2">
+							<span class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Select Albums
 							</span>
 							{#if albumsLoading}
-								<div class="text-sm text-gray-500">Loading albums...</div>
+								<div class="text-sm text-[var(--color-surface-600-400)]">Loading albums...</div>
 							{:else}
-								<div class="border border-gray-300 rounded-md p-3 max-h-64 overflow-y-auto bg-white">
+								<div class="border border-surface-300-700 rounded-md p-3 max-h-64 overflow-y-auto bg-[var(--color-surface-50-950)]">
 									{#if availableAlbums.length === 0}
-										<p class="text-sm text-gray-500">No albums available.</p>
+										<p class="text-sm text-[var(--color-surface-600-400)]">No albums available.</p>
 									{:else}
 										<div class="space-y-2">
 											{#each availableAlbums as album}
-												<label class="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer">
+												<label class="flex items-center gap-2 p-2 hover:bg-[var(--color-surface-50-950)] rounded cursor-pointer">
 													<input
 														type="checkbox"
 														checked={albumsGridSelectedAlbums.includes(album._id)}
@@ -1595,9 +1590,9 @@
 																albumsGridSelectedAlbums = albumsGridSelectedAlbums.filter(id => id !== album._id);
 															}
 														}}
-														class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+														class="w-4 h-4 text-[var(--color-primary-600)] border-surface-300-700 rounded focus:ring-[var(--color-primary-500)]"
 													/>
-													<span class="text-sm text-gray-700 flex-1">
+													<span class="text-sm text-[var(--color-surface-800-200)] flex-1">
 														{'  '.repeat(album.level || 0)}{getAlbumDisplayName(album)}
 													</span>
 												</label>
@@ -1606,75 +1601,75 @@
 									{/if}
 								</div>
 							{/if}
-							<p class="mt-1 text-xs text-gray-500">
+							<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">
 								Select one or more albums to display in the grid. Only the selected albums will be shown.
 							</p>
 							{#if albumsGridSelectedAlbums.length > 0}
-								<p class="mt-1 text-xs text-blue-600">
+								<p class="mt-1 text-xs text-[var(--color-primary-600)]">
 									{albumsGridSelectedAlbums.length} album{albumsGridSelectedAlbums.length !== 1 ? 's' : ''} selected
 								</p>
 							{/if}
 						</div>
 					</div>
 				{:else if moduleForm.type === 'blogCategory'}
-					<div class="space-y-4 border-t border-gray-200 pt-4">
+					<div class="space-y-4 border-t border-surface-200-800 pt-4">
 						<div>
-							<label for="module-blog-category-alias" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-blog-category-alias" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Blog Category
 							</label>
 							<select
 								id="module-blog-category-alias"
 								bind:value={blogCategoryAlias}
-								class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 							>
 								<option value="">All categories</option>
 								{#each availableBlogCategories as category}
 									<option value={category.alias}>{category.title} ({category.alias})</option>
 								{/each}
 							</select>
-							<p class="mt-1 text-xs text-gray-500">
+							<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">
 								Optional: show only one specific blog category in this module.
 							</p>
 						</div>
 					</div>
 				{:else if moduleForm.type === 'blogCategory'}
-					<div class="space-y-4 border-t border-gray-200 pt-4">
+					<div class="space-y-4 border-t border-surface-200-800 pt-4">
 						<div>
-							<label for="module-blog-category-alias" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-blog-category-alias" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Blog Category
 							</label>
 							<select
 								id="module-blog-category-alias"
 								bind:value={blogCategoryAlias}
-								class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 							>
 								<option value="">All categories</option>
 								{#each availableBlogCategories as category}
 									<option value={category.alias}>{category.title} ({category.alias})</option>
 								{/each}
 							</select>
-							<p class="mt-1 text-xs text-gray-500">
+							<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">
 								Optional: show only one specific blog category in this module.
 							</p>
 						</div>
 					</div>
 				{:else if moduleForm.type === 'blogCategory'}
-					<div class="space-y-4 border-t border-gray-200 pt-4">
+					<div class="space-y-4 border-t border-surface-200-800 pt-4">
 						<div>
-							<label for="module-blog-category-alias" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-blog-category-alias" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Blog Category
 							</label>
 							<select
 								id="module-blog-category-alias"
 								bind:value={blogCategoryAlias}
-								class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 							>
 								<option value="">All categories</option>
 								{#each availableBlogCategories as category}
 									<option value={category.alias}>{category.title} ({category.alias})</option>
 								{/each}
 							</select>
-							<p class="mt-1 text-xs text-gray-500">
+							<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">
 								Optional: show only one specific blog category in this module.
 							</p>
 						</div>
@@ -1682,16 +1677,16 @@
 				{:else}
 					<!-- JSON Editor for other module types -->
 					<div>
-						<label for="module-props-json" class="block text-sm font-medium text-gray-700 mb-2">
+						<label for="module-props-json" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 							Props (JSON)
 						</label>
 						<textarea
 							id="module-props-json"
 							bind:value={moduleForm.propsJson}
 							rows={10}
-							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
+							class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)] font-mono text-sm"
 						></textarea>
-						<p class="mt-1 text-xs text-gray-500">
+						<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">
 							Enter module properties as JSON. Example: <code class="text-xs">{'{'}"title": {'{'}"en": "Hello"{'}'}, "description": {'{'}"en": "World"{'}'}{'}'}</code>
 						</p>
 					</div>
@@ -1705,14 +1700,14 @@
 							editingModule = null;
 							resetModuleForm();
 						}}
-						class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm font-medium"
+						class="px-4 py-2 bg-[var(--color-surface-200-800)] text-[var(--color-surface-800-200)] rounded-md hover:bg-[var(--color-surface-300-700)] text-sm font-medium"
 					>
 						Cancel
 					</button>
 					<button
 						type="button"
 						on:click={saveModuleEdit}
-						class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
+						class="px-4 py-2 bg-[var(--color-primary-600)] text-white rounded-md hover:bg-[var(--color-primary-700)] text-sm font-medium"
 					>
 						Save Module
 					</button>
@@ -1725,8 +1720,8 @@
 <!-- Edit Dialog -->
 {#if showEditDialog && editingPage}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-		<div class="bg-white rounded-lg shadow-xl w-full max-w-4xl p-6 max-h-[90vh] overflow-y-auto">
-			<h2 class="text-xl font-bold text-gray-900 mb-4">Edit Page</h2>
+		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full max-w-4xl p-6 max-h-[90vh] overflow-y-auto">
+			<h2 class="text-xl font-bold text-[var(--color-surface-950-50)] mb-4">Edit Page</h2>
 
 			{#if error}
 				<div class="mb-4 p-4 bg-red-50 text-red-700 rounded-md">{error}</div>
@@ -1735,14 +1730,14 @@
 			<div class="space-y-4">
 				<div class="grid grid-cols-2 gap-4">
 					<div>
-						<label for="edit-title" class="block text-sm font-medium text-gray-700 mb-2">
+						<label for="edit-title" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 							Title *
 						</label>
 						<MultiLangInput id="edit-title" bind:value={formData.title} />
 					</div>
 
 					<div>
-						<label for="edit-alias" class="block text-sm font-medium text-gray-700 mb-2">
+						<label for="edit-alias" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 							Alias *
 						</label>
 						<input
@@ -1751,13 +1746,13 @@
 							bind:value={formData.alias}
 							placeholder="page-url-slug"
 							required
-							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+							class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 						/>
 					</div>
 				</div>
 
 				<div>
-					<label for="edit-subtitle" class="block text-sm font-medium text-gray-700 mb-2">
+					<label for="edit-subtitle" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 						Subtitle
 					</label>
 					<MultiLangInput id="edit-subtitle" bind:value={formData.subtitle} />
@@ -1765,13 +1760,13 @@
 
 				<div class="grid grid-cols-2 gap-4">
 					<div>
-						<label for="edit-category" class="block text-sm font-medium text-gray-700 mb-2">
+						<label for="edit-category" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 							Category
 						</label>
 						<select
 							id="edit-category"
 							bind:value={formData.category}
-							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+							class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 						>
 							{#each CATEGORIES as cat}
 								<option value={cat.value}>{cat.label}</option>
@@ -1780,7 +1775,7 @@
 					</div>
 
 					<div>
-						<label for="edit-leading-image" class="block text-sm font-medium text-gray-700 mb-2">
+						<label for="edit-leading-image" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 							Leading Image URL
 						</label>
 						<input
@@ -1788,14 +1783,14 @@
 							type="text"
 							bind:value={formData.leadingImage}
 							placeholder="https://..."
-							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+							class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 						/>
 					</div>
 				</div>
 
 				<div class="grid grid-cols-2 gap-4">
 					<div>
-						<label for="edit-grid-rows" class="block text-sm font-medium text-gray-700 mb-2">
+						<label for="edit-grid-rows" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 							Grid Rows
 						</label>
 						<input
@@ -1805,12 +1800,12 @@
 							max="20"
 							bind:value={formData.gridRows}
 							placeholder="1"
-							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+							class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 						/>
 					</div>
 
 					<div>
-						<label for="edit-grid-cols" class="block text-sm font-medium text-gray-700 mb-2">
+						<label for="edit-grid-cols" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 							Grid Columns
 						</label>
 						<input
@@ -1820,13 +1815,13 @@
 							max="12"
 							bind:value={formData.gridColumns}
 							placeholder="1"
-							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+							class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 						/>
 					</div>
 				</div>
 
 				<div>
-					<label for="edit-url-params" class="block text-sm font-medium text-gray-700 mb-2">
+					<label for="edit-url-params" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 						URL Parameters (optional)
 					</label>
 					<input
@@ -1834,14 +1829,14 @@
 						type="text"
 						bind:value={formData.urlParams}
 						placeholder="param1=value1&param2=value2"
-						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+						class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 					/>
-					<p class="mt-1 text-xs text-gray-500">Query parameters for the page URL.</p>
+					<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">Query parameters for the page URL.</p>
 				</div>
 
-				<div class="border-t border-gray-200 pt-6">
-					<h3 class="text-lg font-semibold text-gray-900 mb-4">Page Grid Layout</h3>
-					<p class="text-sm text-gray-600 mb-4">
+				<div class="border-t border-surface-200-800 pt-6">
+					<h3 class="text-lg font-semibold text-[var(--color-surface-950-50)] mb-4">Page Grid Layout</h3>
+					<p class="text-sm text-[var(--color-surface-600-400)] mb-4">
 						Grid: {formData.gridRows} row{formData.gridRows !== 1 ? 's' : ''} × {formData.gridColumns} column{formData.gridColumns !== 1 ? 's' : ''}
 					</p>
 					{#if modulesError}
@@ -1849,7 +1844,7 @@
 					{/if}
 
 					{#if modulesLoading}
-						<p class="text-sm text-gray-500">Loading layout...</p>
+						<p class="text-sm text-[var(--color-surface-600-400)]">Loading layout...</p>
 					{:else}
 						<RowColumnLayoutBuilder
 							modules={modules}
@@ -1870,9 +1865,9 @@
 							class="sr-only peer"
 						/>
 						<div
-							class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"
+							class="w-11 h-6 bg-[var(--color-surface-200-800)] peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[color-mix(in_oklab,var(--color-primary-500)_35%,transparent)] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-[var(--color-surface-50-950)] after:border-surface-300-700 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--color-primary-600)]"
 						></div>
-						<span class="ml-3 text-sm font-medium text-gray-700">
+						<span class="ml-3 text-sm font-medium text-[var(--color-surface-800-200)]">
 							Published
 						</span>
 					</label>
@@ -1886,7 +1881,7 @@
 							editingPage = null;
 							resetForm();
 						}}
-						class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm font-medium"
+						class="px-4 py-2 bg-[var(--color-surface-200-800)] text-[var(--color-surface-800-200)] rounded-md hover:bg-[var(--color-surface-300-700)] text-sm font-medium"
 					>
 						Cancel
 					</button>
@@ -1894,7 +1889,7 @@
 						type="button"
 						on:click={handleEdit}
 						disabled={saving || !formData.title || !formData.alias.trim()}
-						class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm font-medium"
+						class="px-4 py-2 bg-[var(--color-primary-600)] text-white rounded-md hover:bg-[var(--color-primary-700)] disabled:opacity-50 text-sm font-medium"
 					>
 						{#if saving}
 							Updating...
@@ -1911,8 +1906,8 @@
 <!-- Module Edit Dialog -->
 {#if showModuleEditDialog && editingModule}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-		<div class="bg-white rounded-lg shadow-xl w-full {moduleForm.type === 'featureGrid' || moduleForm.type === 'richText' || moduleForm.type === 'hero' || moduleForm.type === 'albumsGrid' ? 'max-w-4xl' : 'max-w-2xl'} p-6 max-h-[90vh] overflow-y-auto">
-			<h2 class="text-xl font-bold text-gray-900 mb-4">Edit Module</h2>
+		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full {moduleForm.type === 'featureGrid' || moduleForm.type === 'richText' || moduleForm.type === 'hero' || moduleForm.type === 'albumsGrid' ? 'max-w-4xl' : 'max-w-2xl'} p-6 max-h-[90vh] overflow-y-auto">
+			<h2 class="text-xl font-bold text-[var(--color-surface-950-50)] mb-4">Edit Module</h2>
 
 			{#if modulesError}
 				<div class="mb-4 p-4 bg-red-50 text-red-700 rounded-md text-sm">{modulesError}</div>
@@ -1920,13 +1915,13 @@
 
 			<div class="space-y-4">
 				<div>
-					<label for="module-type" class="block text-sm font-medium text-gray-700 mb-2">
+					<label for="module-type" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 						Module Type
 					</label>
 					<select
 						id="module-type"
 						bind:value={moduleForm.type}
-						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+						class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 					>
 						{#each MODULE_TYPES as moduleType}
 							<option value={moduleType.value}>{moduleType.label}</option>
@@ -1936,45 +1931,45 @@
 
 				{#if moduleForm.type === 'featureGrid'}
 					<!-- Feature Grid Form -->
-					<div class="space-y-4 border-t border-gray-200 pt-4">
+					<div class="space-y-4 border-t border-surface-200-800 pt-4">
 						<div>
-							<label for="module-feature-title" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-feature-title" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Title
 							</label>
 							<MultiLangInput id="module-feature-title" bind:value={featureGridTitle} />
 						</div>
 
 						<div>
-							<label for="module-feature-subtitle" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-feature-subtitle" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Subtitle
 							</label>
 							<MultiLangInput id="module-feature-subtitle" bind:value={featureGridSubtitle} />
 						</div>
 
-						<div class="border-t border-gray-200 pt-4">
+						<div class="border-t border-surface-200-800 pt-4">
 							<div class="flex items-center justify-between mb-4">
-								<span class="block text-sm font-medium text-gray-700">
+								<span class="block text-sm font-medium text-[var(--color-surface-800-200)]">
 									Features
 								</span>
 								<button
 									type="button"
 									on:click={addFeatureItem}
-									class="px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
+									class="px-3 py-1.5 bg-[var(--color-primary-600)] text-white rounded-md hover:bg-[var(--color-primary-700)] text-sm font-medium"
 								>
 									+ Add Item
 								</button>
 							</div>
 
 							{#if featureGridItems.length === 0}
-								<p class="text-sm text-gray-500 py-4 text-center border-2 border-dashed border-gray-300 rounded">
+								<p class="text-sm text-[var(--color-surface-600-400)] py-4 text-center border-2 border-dashed border-surface-300-700 rounded">
 									No features yet. Click "Add Item" to add a feature.
 								</p>
 							{:else}
 								<div class="space-y-4">
 									{#each featureGridItems as item, index (index)}
-										<div class="border border-gray-300 rounded-lg p-4 bg-gray-50">
+										<div class="border border-surface-300-700 rounded-lg p-4 bg-[var(--color-surface-50-950)]">
 											<div class="flex items-center justify-between mb-3">
-												<span class="text-sm font-medium text-gray-700">Feature {index + 1}</span>
+												<span class="text-sm font-medium text-[var(--color-surface-800-200)]">Feature {index + 1}</span>
 												<button
 													type="button"
 													on:click={() => removeFeatureItem(index)}
@@ -1986,7 +1981,7 @@
 
 											<div class="space-y-3">
 												<div>
-													<span class="block text-xs font-medium text-gray-600 mb-1">
+													<span class="block text-xs font-medium text-[var(--color-surface-600-400)] mb-1">
 														Icon
 													</span>
 													<div class="flex gap-2">
@@ -2002,26 +1997,26 @@
 																type="text"
 																bind:value={item.icon}
 																placeholder="🎨 or custom text"
-																class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+																class="flex-1 px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)] text-sm"
 																on:click|stopPropagation
 																on:mousedown|stopPropagation
 															/>
 														{/if}
 													</div>
-													<p class="mt-1 text-xs text-gray-500">
+													<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">
 														Select an icon from the list, or choose "Custom..." to enter an emoji or custom text.
 													</p>
 												</div>
 
 												<div>
-													<label for="module-feature-item-{index}-title" class="block text-xs font-medium text-gray-600 mb-1">
+													<label for="module-feature-item-{index}-title" class="block text-xs font-medium text-[var(--color-surface-600-400)] mb-1">
 														Title
 													</label>
 													<MultiLangInput id="module-feature-item-{index}-title" bind:value={item.title} />
 												</div>
 
 												<div>
-													<label for="module-feature-item-{index}-desc" class="block text-xs font-medium text-gray-600 mb-1">
+													<label for="module-feature-item-{index}-desc" class="block text-xs font-medium text-[var(--color-surface-600-400)] mb-1">
 														Description (Rich Text)
 													</label>
 													<MultiLangHTMLEditor id="module-feature-item-{index}-desc" bind:value={item.description} />
@@ -2035,29 +2030,29 @@
 					</div>
 				{:else if moduleForm.type === 'richText'}
 					<!-- Rich Text Form -->
-					<div class="space-y-4 border-t border-gray-200 pt-4">
+					<div class="space-y-4 border-t border-surface-200-800 pt-4">
 						<div>
-							<label for="module-richtext-title" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-richtext-title" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Title (optional)
 							</label>
 							<MultiLangInput id="module-richtext-title" bind:value={richTextTitle} />
 						</div>
 
 						<div>
-							<label for="module-richtext-body" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-richtext-body" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Body Content
 							</label>
 							<MultiLangHTMLEditor id="module-richtext-body" bind:value={richTextBody} />
 						</div>
 
 						<div>
-							<label for="module-richtext-bg" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-richtext-bg" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Background Color
 							</label>
 							<select
 								id="module-richtext-bg"
 								bind:value={richTextBackground}
-								class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 							>
 								<option value="white">White</option>
 								<option value="gray">Gray</option>
@@ -2066,30 +2061,30 @@
 					</div>
 				{:else if moduleForm.type === 'hero'}
 					<!-- Hero Form -->
-					<div class="space-y-4 border-t border-gray-200 pt-4">
+					<div class="space-y-4 border-t border-surface-200-800 pt-4">
 						<div>
-							<label for="module-hero-title" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-hero-title" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Title
 							</label>
 							<MultiLangInput id="module-hero-title" bind:value={heroTitle} />
 						</div>
 
 						<div>
-							<label for="module-hero-subtitle" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-hero-subtitle" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Subtitle
 							</label>
 							<MultiLangInput id="module-hero-subtitle" bind:value={heroSubtitle} />
 						</div>
 
 						<div>
-							<label for="module-hero-cta-label" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-hero-cta-label" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								CTA Label (optional)
 							</label>
 							<MultiLangInput id="module-hero-cta-label" bind:value={heroCtaLabel} />
 						</div>
 
 						<div>
-							<label for="module-hero-cta-url" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-hero-cta-url" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								CTA URL (optional)
 							</label>
 							<input
@@ -2097,18 +2092,18 @@
 								type="url"
 								bind:value={heroCtaUrl}
 								placeholder="https://..."
-								class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 							/>
 						</div>
 
 						<div>
-							<label for="module-hero-bg-style" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-hero-bg-style" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Background Style
 							</label>
 							<select
 								id="module-hero-bg-style"
 								bind:value={heroBackgroundStyle}
-								class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 							>
 								<option value="light">Light</option>
 								<option value="dark">Dark</option>
@@ -2119,7 +2114,7 @@
 
 						{#if heroBackgroundStyle === 'image'}
 							<div>
-								<label for="module-hero-bg-image" class="block text-sm font-medium text-gray-700 mb-2">
+								<label for="module-hero-bg-image" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 									Background Image URL
 								</label>
 								<input
@@ -2127,42 +2122,42 @@
 									type="text"
 									bind:value={heroBackgroundImage}
 									placeholder="https://..."
-									class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+									class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 								/>
 							</div>
 						{/if}
 					</div>
 				{:else if moduleForm.type === 'albumsGrid'}
 					<!-- Albums Grid Module Form -->
-					<div class="space-y-4 border-t border-gray-200 pt-4">
+					<div class="space-y-4 border-t border-surface-200-800 pt-4">
 						<div>
-							<label for="module-albums-title" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-albums-title" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Title
 							</label>
 							<MultiLangInput id="module-albums-title" bind:value={albumsGridTitle} />
 						</div>
 
 						<div>
-							<label for="module-albums-desc" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-albums-desc" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Description (Rich Text)
 							</label>
 							<MultiLangHTMLEditor id="module-albums-desc" bind:value={albumsGridDescription} />
 						</div>
 
 						<div>
-							<span class="block text-sm font-medium text-gray-700 mb-2">
+							<span class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Select Albums
 							</span>
 							{#if albumsLoading}
-								<div class="text-sm text-gray-500">Loading albums...</div>
+								<div class="text-sm text-[var(--color-surface-600-400)]">Loading albums...</div>
 							{:else}
-								<div class="border border-gray-300 rounded-md p-3 max-h-64 overflow-y-auto bg-white">
+								<div class="border border-surface-300-700 rounded-md p-3 max-h-64 overflow-y-auto bg-[var(--color-surface-50-950)]">
 									{#if availableAlbums.length === 0}
-										<p class="text-sm text-gray-500">No albums available.</p>
+										<p class="text-sm text-[var(--color-surface-600-400)]">No albums available.</p>
 									{:else}
 										<div class="space-y-2">
 											{#each availableAlbums as album}
-												<label class="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer">
+												<label class="flex items-center gap-2 p-2 hover:bg-[var(--color-surface-50-950)] rounded cursor-pointer">
 													<input
 														type="checkbox"
 														checked={albumsGridSelectedAlbums.includes(album._id)}
@@ -2173,9 +2168,9 @@
 																albumsGridSelectedAlbums = albumsGridSelectedAlbums.filter(id => id !== album._id);
 															}
 														}}
-														class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+														class="w-4 h-4 text-[var(--color-primary-600)] border-surface-300-700 rounded focus:ring-[var(--color-primary-500)]"
 													/>
-													<span class="text-sm text-gray-700 flex-1">
+													<span class="text-sm text-[var(--color-surface-800-200)] flex-1">
 														{'  '.repeat(album.level || 0)}{getAlbumDisplayName(album)}
 													</span>
 												</label>
@@ -2184,11 +2179,11 @@
 									{/if}
 								</div>
 							{/if}
-							<p class="mt-1 text-xs text-gray-500">
+							<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">
 								Select one or more albums to display in the grid. Only the selected albums will be shown.
 							</p>
 							{#if albumsGridSelectedAlbums.length > 0}
-								<p class="mt-1 text-xs text-blue-600">
+								<p class="mt-1 text-xs text-[var(--color-primary-600)]">
 									{albumsGridSelectedAlbums.length} album{albumsGridSelectedAlbums.length !== 1 ? 's' : ''} selected
 								</p>
 							{/if}
@@ -2197,16 +2192,16 @@
 				{:else}
 					<!-- JSON Editor for other module types -->
 					<div>
-						<label for="module-props-json" class="block text-sm font-medium text-gray-700 mb-2">
+						<label for="module-props-json" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 							Props (JSON)
 						</label>
 						<textarea
 							id="module-props-json"
 							bind:value={moduleForm.propsJson}
 							rows={10}
-							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
+							class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)] font-mono text-sm"
 						></textarea>
-						<p class="mt-1 text-xs text-gray-500">
+						<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">
 							Enter module properties as JSON. Example: <code class="text-xs">{'{'}"title": {'{'}"en": "Hello"{'}'}, "description": {'{'}"en": "World"{'}'}{'}'}</code>
 						</p>
 					</div>
@@ -2220,14 +2215,14 @@
 							editingModule = null;
 							resetModuleForm();
 						}}
-						class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm font-medium"
+						class="px-4 py-2 bg-[var(--color-surface-200-800)] text-[var(--color-surface-800-200)] rounded-md hover:bg-[var(--color-surface-300-700)] text-sm font-medium"
 					>
 						Cancel
 					</button>
 					<button
 						type="button"
 						on:click={saveModuleEdit}
-						class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
+						class="px-4 py-2 bg-[var(--color-primary-600)] text-white rounded-md hover:bg-[var(--color-primary-700)] text-sm font-medium"
 					>
 						Save Module
 					</button>
@@ -2240,15 +2235,15 @@
 <!-- Delete Dialog -->
 {#if showDeleteDialog && pageToDelete}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-		<div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
-			<h2 class="text-xl font-bold text-gray-900 mb-4">Delete Page</h2>
+		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full max-w-md p-6">
+			<h2 class="text-xl font-bold text-[var(--color-surface-950-50)] mb-4">Delete Page</h2>
 
 			{#if error}
 				<div class="mb-4 p-4 bg-red-50 text-red-700 rounded-md">{error}</div>
 			{/if}
 
 			<div class="space-y-4">
-				<p class="text-gray-600">
+				<p class="text-[var(--color-surface-600-400)]">
 					Are you sure you want to delete <strong>{getPageTitle(pageToDelete)}</strong> ({pageToDelete.alias})? This
 					action cannot be undone.
 				</p>
@@ -2259,7 +2254,7 @@
 							showDeleteDialog = false;
 							pageToDelete = null;
 						}}
-						class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm font-medium"
+						class="px-4 py-2 bg-[var(--color-surface-200-800)] text-[var(--color-surface-800-200)] rounded-md hover:bg-[var(--color-surface-300-700)] text-sm font-medium"
 					>
 						Cancel
 					</button>
@@ -2284,8 +2279,8 @@
 <!-- Module Edit Dialog -->
 {#if showModuleEditDialog && editingModule}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-		<div class="bg-white rounded-lg shadow-xl w-full {moduleForm.type === 'featureGrid' || moduleForm.type === 'richText' || moduleForm.type === 'hero' || moduleForm.type === 'albumsGrid' ? 'max-w-4xl' : 'max-w-2xl'} p-6 max-h-[90vh] overflow-y-auto">
-			<h2 class="text-xl font-bold text-gray-900 mb-4">Edit Module</h2>
+		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full {moduleForm.type === 'featureGrid' || moduleForm.type === 'richText' || moduleForm.type === 'hero' || moduleForm.type === 'albumsGrid' ? 'max-w-4xl' : 'max-w-2xl'} p-6 max-h-[90vh] overflow-y-auto">
+			<h2 class="text-xl font-bold text-[var(--color-surface-950-50)] mb-4">Edit Module</h2>
 
 			{#if modulesError}
 				<div class="mb-4 p-4 bg-red-50 text-red-700 rounded-md text-sm">{modulesError}</div>
@@ -2293,13 +2288,13 @@
 
 			<div class="space-y-4">
 				<div>
-					<label for="module-type" class="block text-sm font-medium text-gray-700 mb-2">
+					<label for="module-type" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 						Module Type
 					</label>
 					<select
 						id="module-type"
 						bind:value={moduleForm.type}
-						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+						class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 					>
 						{#each MODULE_TYPES as moduleType}
 							<option value={moduleType.value}>{moduleType.label}</option>
@@ -2309,45 +2304,45 @@
 
 				{#if moduleForm.type === 'featureGrid'}
 					<!-- Feature Grid Form -->
-					<div class="space-y-4 border-t border-gray-200 pt-4">
+					<div class="space-y-4 border-t border-surface-200-800 pt-4">
 						<div>
-							<label for="module-feature-title" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-feature-title" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Title
 							</label>
 							<MultiLangInput id="module-feature-title" bind:value={featureGridTitle} />
 						</div>
 
 						<div>
-							<label for="module-feature-subtitle" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-feature-subtitle" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Subtitle
 							</label>
 							<MultiLangInput id="module-feature-subtitle" bind:value={featureGridSubtitle} />
 						</div>
 
-						<div class="border-t border-gray-200 pt-4">
+						<div class="border-t border-surface-200-800 pt-4">
 							<div class="flex items-center justify-between mb-4">
-								<span class="block text-sm font-medium text-gray-700">
+								<span class="block text-sm font-medium text-[var(--color-surface-800-200)]">
 									Features
 								</span>
 								<button
 									type="button"
 									on:click={addFeatureItem}
-									class="px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
+									class="px-3 py-1.5 bg-[var(--color-primary-600)] text-white rounded-md hover:bg-[var(--color-primary-700)] text-sm font-medium"
 								>
 									+ Add Item
 								</button>
 							</div>
 
 							{#if featureGridItems.length === 0}
-								<p class="text-sm text-gray-500 py-4 text-center border-2 border-dashed border-gray-300 rounded">
+								<p class="text-sm text-[var(--color-surface-600-400)] py-4 text-center border-2 border-dashed border-surface-300-700 rounded">
 									No features yet. Click "Add Item" to add a feature.
 								</p>
 							{:else}
 								<div class="space-y-4">
 									{#each featureGridItems as item, index (index)}
-										<div class="border border-gray-300 rounded-lg p-4 bg-gray-50">
+										<div class="border border-surface-300-700 rounded-lg p-4 bg-[var(--color-surface-50-950)]">
 											<div class="flex items-center justify-between mb-3">
-												<span class="text-sm font-medium text-gray-700">Feature {index + 1}</span>
+												<span class="text-sm font-medium text-[var(--color-surface-800-200)]">Feature {index + 1}</span>
 												<button
 													type="button"
 													on:click={() => removeFeatureItem(index)}
@@ -2359,7 +2354,7 @@
 
 											<div class="space-y-3">
 												<div>
-													<span class="block text-xs font-medium text-gray-600 mb-1">
+													<span class="block text-xs font-medium text-[var(--color-surface-600-400)] mb-1">
 														Icon
 													</span>
 													<div class="flex gap-2">
@@ -2375,26 +2370,26 @@
 																type="text"
 																bind:value={item.icon}
 																placeholder="🎨 or custom text"
-																class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+																class="flex-1 px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)] text-sm"
 																on:click|stopPropagation
 																on:mousedown|stopPropagation
 															/>
 														{/if}
 													</div>
-													<p class="mt-1 text-xs text-gray-500">
+													<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">
 														Select an icon from the list, or choose "Custom..." to enter an emoji or custom text.
 													</p>
 												</div>
 
 												<div>
-													<label for="module-feature-item-{index}-title" class="block text-xs font-medium text-gray-600 mb-1">
+													<label for="module-feature-item-{index}-title" class="block text-xs font-medium text-[var(--color-surface-600-400)] mb-1">
 														Title
 													</label>
 													<MultiLangInput id="module-feature-item-{index}-title" bind:value={item.title} />
 												</div>
 
 												<div>
-													<label for="module-feature-item-{index}-desc" class="block text-xs font-medium text-gray-600 mb-1">
+													<label for="module-feature-item-{index}-desc" class="block text-xs font-medium text-[var(--color-surface-600-400)] mb-1">
 														Description (Rich Text)
 													</label>
 													<MultiLangHTMLEditor id="module-feature-item-{index}-desc" bind:value={item.description} />
@@ -2408,29 +2403,29 @@
 					</div>
 				{:else if moduleForm.type === 'richText'}
 					<!-- Rich Text Form -->
-					<div class="space-y-4 border-t border-gray-200 pt-4">
+					<div class="space-y-4 border-t border-surface-200-800 pt-4">
 						<div>
-							<label for="module-richtext-title" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-richtext-title" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Title (optional)
 							</label>
 							<MultiLangInput id="module-richtext-title" bind:value={richTextTitle} />
 						</div>
 
 						<div>
-							<label for="module-richtext-body" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-richtext-body" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Body Content
 							</label>
 							<MultiLangHTMLEditor id="module-richtext-body" bind:value={richTextBody} />
 						</div>
 
 						<div>
-							<label for="module-richtext-bg" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-richtext-bg" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Background Color
 							</label>
 							<select
 								id="module-richtext-bg"
 								bind:value={richTextBackground}
-								class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 							>
 								<option value="white">White</option>
 								<option value="gray">Gray</option>
@@ -2439,30 +2434,30 @@
 					</div>
 				{:else if moduleForm.type === 'hero'}
 					<!-- Hero Form -->
-					<div class="space-y-4 border-t border-gray-200 pt-4">
+					<div class="space-y-4 border-t border-surface-200-800 pt-4">
 						<div>
-							<label for="module-hero-title" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-hero-title" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Title
 							</label>
 							<MultiLangInput id="module-hero-title" bind:value={heroTitle} />
 						</div>
 
 						<div>
-							<label for="module-hero-subtitle" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-hero-subtitle" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Subtitle
 							</label>
 							<MultiLangInput id="module-hero-subtitle" bind:value={heroSubtitle} />
 						</div>
 
 						<div>
-							<label for="module-hero-cta-label" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-hero-cta-label" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								CTA Label (optional)
 							</label>
 							<MultiLangInput id="module-hero-cta-label" bind:value={heroCtaLabel} />
 						</div>
 
 						<div>
-							<label for="module-hero-cta-url" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-hero-cta-url" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								CTA URL (optional)
 							</label>
 							<input
@@ -2470,18 +2465,18 @@
 								type="url"
 								bind:value={heroCtaUrl}
 								placeholder="https://..."
-								class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 							/>
 						</div>
 
 						<div>
-							<label for="module-hero-bg-style" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-hero-bg-style" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Background Style
 							</label>
 							<select
 								id="module-hero-bg-style"
 								bind:value={heroBackgroundStyle}
-								class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 							>
 								<option value="light">Light</option>
 								<option value="dark">Dark</option>
@@ -2492,7 +2487,7 @@
 
 						{#if heroBackgroundStyle === 'image'}
 							<div>
-								<label for="module-hero-bg-image" class="block text-sm font-medium text-gray-700 mb-2">
+								<label for="module-hero-bg-image" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 									Background Image URL
 								</label>
 								<input
@@ -2500,42 +2495,42 @@
 									type="text"
 									bind:value={heroBackgroundImage}
 									placeholder="https://..."
-									class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+									class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 								/>
 							</div>
 						{/if}
 					</div>
 				{:else if moduleForm.type === 'albumsGrid'}
 					<!-- Albums Grid Module Form -->
-					<div class="space-y-4 border-t border-gray-200 pt-4">
+					<div class="space-y-4 border-t border-surface-200-800 pt-4">
 						<div>
-							<label for="module-albums-title" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-albums-title" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Title
 							</label>
 							<MultiLangInput id="module-albums-title" bind:value={albumsGridTitle} />
 						</div>
 
 						<div>
-							<label for="module-albums-desc" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="module-albums-desc" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Description (Rich Text)
 							</label>
 							<MultiLangHTMLEditor id="module-albums-desc" bind:value={albumsGridDescription} />
 						</div>
 
 						<div>
-							<span class="block text-sm font-medium text-gray-700 mb-2">
+							<span class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Select Albums
 							</span>
 							{#if albumsLoading}
-								<div class="text-sm text-gray-500">Loading albums...</div>
+								<div class="text-sm text-[var(--color-surface-600-400)]">Loading albums...</div>
 							{:else}
-								<div class="border border-gray-300 rounded-md p-3 max-h-64 overflow-y-auto bg-white">
+								<div class="border border-surface-300-700 rounded-md p-3 max-h-64 overflow-y-auto bg-[var(--color-surface-50-950)]">
 									{#if availableAlbums.length === 0}
-										<p class="text-sm text-gray-500">No albums available.</p>
+										<p class="text-sm text-[var(--color-surface-600-400)]">No albums available.</p>
 									{:else}
 										<div class="space-y-2">
 											{#each availableAlbums as album}
-												<label class="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer">
+												<label class="flex items-center gap-2 p-2 hover:bg-[var(--color-surface-50-950)] rounded cursor-pointer">
 													<input
 														type="checkbox"
 														checked={albumsGridSelectedAlbums.includes(album._id)}
@@ -2546,9 +2541,9 @@
 																albumsGridSelectedAlbums = albumsGridSelectedAlbums.filter(id => id !== album._id);
 															}
 														}}
-														class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+														class="w-4 h-4 text-[var(--color-primary-600)] border-surface-300-700 rounded focus:ring-[var(--color-primary-500)]"
 													/>
-													<span class="text-sm text-gray-700 flex-1">
+													<span class="text-sm text-[var(--color-surface-800-200)] flex-1">
 														{'  '.repeat(album.level || 0)}{getAlbumDisplayName(album)}
 													</span>
 												</label>
@@ -2557,11 +2552,11 @@
 									{/if}
 								</div>
 							{/if}
-							<p class="mt-1 text-xs text-gray-500">
+							<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">
 								Select one or more albums to display in the grid. Only the selected albums will be shown.
 							</p>
 							{#if albumsGridSelectedAlbums.length > 0}
-								<p class="mt-1 text-xs text-blue-600">
+								<p class="mt-1 text-xs text-[var(--color-primary-600)]">
 									{albumsGridSelectedAlbums.length} album{albumsGridSelectedAlbums.length !== 1 ? 's' : ''} selected
 								</p>
 							{/if}
@@ -2570,16 +2565,16 @@
 				{:else}
 					<!-- JSON Editor for other module types -->
 					<div>
-						<label for="module-props-json" class="block text-sm font-medium text-gray-700 mb-2">
+						<label for="module-props-json" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 							Props (JSON)
 						</label>
 						<textarea
 							id="module-props-json"
 							bind:value={moduleForm.propsJson}
 							rows={10}
-							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
+							class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)] font-mono text-sm"
 						></textarea>
-						<p class="mt-1 text-xs text-gray-500">
+						<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">
 							Enter module properties as JSON. Example: <code class="text-xs">{'{'}"title": {'{'}"en": "Hello"{'}'}, "description": {'{'}"en": "World"{'}'}{'}'}</code>
 						</p>
 					</div>
@@ -2593,14 +2588,14 @@
 							editingModule = null;
 							resetModuleForm();
 						}}
-						class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm font-medium"
+						class="px-4 py-2 bg-[var(--color-surface-200-800)] text-[var(--color-surface-800-200)] rounded-md hover:bg-[var(--color-surface-300-700)] text-sm font-medium"
 					>
 						Cancel
 					</button>
 					<button
 						type="button"
 						on:click={saveModuleEdit}
-						class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
+						class="px-4 py-2 bg-[var(--color-primary-600)] text-white rounded-md hover:bg-[var(--color-primary-700)] text-sm font-medium"
 					>
 						Save Module
 					</button>

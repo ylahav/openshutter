@@ -62,7 +62,7 @@
 {#if usePageRenderer}
 	<!-- Use PageRenderer when pageModules are configured; shell follows active pack -->
 	<footer class="w-full mt-auto {footerPbShellClass}">
-		<div class="os-shell-container py-6">
+		<div class="@container os-shell-container py-6">
 			<PageRenderer page={pageForRenderer} modules={pageModules} compact={true} />
 		</div>
 	</footer>

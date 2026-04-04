@@ -40,7 +40,7 @@
 			{/if}
 		</div>
 
-		<div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+		<div class="grid @md:grid-cols-2 @lg:grid-cols-3 gap-8">
 			{#each features as feature}
 				<div class="bg-white dark:bg-gray-800 rounded-xl shadow-md dark:shadow-gray-900/50 p-8 hover:shadow-lg dark:hover:shadow-gray-900/70 transition-shadow">
 					{#if feature.icon}

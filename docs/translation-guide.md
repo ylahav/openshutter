@@ -22,6 +22,10 @@ Each language file contains nested objects for different sections:
 - `loading` - Loading states
 - `errors` - Error messages
 
+## Admin panel UI language
+
+The **admin shell** (`AdminAppChrome`) includes a small language control in the header when the site has **more than one** active language configured in **Site configuration**. It switches the **same** translation bundles (`frontend/src/i18n/*.json`) and `currentLanguage` store used on the public site, and updates document `lang` / `dir` for RTL. This is independent of the visitor **LanguageSelector** component.
+
 ## Admin Language Management
 
 OpenShutter provides a comprehensive admin interface for managing languages and translations at `/admin/translations`.

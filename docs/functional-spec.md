@@ -3,7 +3,8 @@
 ### 1. Languages & RTL
 - Global `LanguageProvider` supplies `currentLanguage` and `direction` (ltr/rtl)
 - `MultiLangText` and `MultiLangHTML` used across SiteConfig, Album, Photo, User, Group
-- `LanguageSelector` shown only if more than one active language in SiteConfig
+- `LanguageSelector` (visitor chrome) shown only if more than one active language in SiteConfig
+- **Admin panel:** `AdminAppChrome` shows a compact **UI language** `<select>` when **more than one** language is enabled in site config (`languages.activeLanguages`); it uses the same `currentLanguage` store and `setLanguage` as the public site
 - `MultiLangUtils.getTextValue/getHTMLValue` extract language-specific strings
 
 ### 2. Authentication & Authorization

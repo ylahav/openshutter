@@ -4,17 +4,25 @@
 	import { get } from 'svelte/store';
 	import { page } from '$app/stores';
 	import type { SiteConfig } from '$lib/types/site-config';
+	import { adminToast } from '$lib/admin/adminToast';
 	import MultiLangInput from '$lib/components/MultiLangInput.svelte';
 	import MultiLangHTMLEditor from '$lib/components/MultiLangHTMLEditor.svelte';
 	import { SUPPORTED_LANGUAGES } from '$lib/types/multi-lang';
 	import { ROLE_OPTIONS } from '$lib/constants/roles';
 	import { siteConfig } from '$stores/siteConfig';
+	import { Switch, Tabs } from '@skeletonlabs/skeleton-svelte';
 	import { t } from '$stores/i18n';
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 	import { EXIF_DISPLAY_FIELDS } from '$lib/constants/exif-fields';
 	import { IPTC_XMP_DISPLAY_FIELDS } from '$lib/constants/iptc-xmp-fields';
 	import { resolveCollaborationVisibility } from '$lib/utils/collaboration-visibility';
+	import {
+		adminBtnPrimary,
+		adminBtnPrimarySm,
+		adminInputSmClass,
+		adminSelectSmClass,
+	} from '$lib/admin/admin-cerberus';
 
 	let config: SiteConfig | null = null;
 	let descriptionValue: any = {};
@@ -35,7 +43,6 @@
 		{ id: 'exifMetadata', labelKey: 'admin.exifMetadata' },
 		{ id: 'iptcXmpMetadata', labelKey: 'admin.iptcXmpMetadata' },
 		{ id: 'sharing', labelKey: 'admin.sharing' },
-		{ id: 'template', labelKey: 'admin.siteConfigTemplateTab' },
 		{ id: 'email', labelKey: 'admin.email' }
 	];
 
@@ -133,7 +140,10 @@
 	onMount(async () => {
 		await Promise.all([loadConfig(), loadAvailableLanguages()]);
 		const tab = get(page).url.searchParams.get('tab');
-		if (tab && configTabs.some((t) => t.id === tab)) {
+		if (tab === 'template') {
+			activeTab = 'basic';
+			goto('/admin/site-config', { replaceState: true });
+		} else if (tab && configTabs.some((t) => t.id === tab)) {
 			activeTab = tab;
 		}
 	});
@@ -164,6 +174,13 @@
 					instagram: '',
 					twitter: '',
 					linkedin: ''
+				};
+			}
+			if (data.seo && Array.isArray((data.seo as { metaKeywords?: unknown }).metaKeywords)) {
+				const def = data.languages?.defaultLanguage || 'en';
+				const arr = (data.seo as { metaKeywords: string[] }).metaKeywords;
+				(data.seo as SiteConfig['seo']).metaKeywords = {
+					[def]: arr.map((k) => String(k).trim()).filter((k) => k.length > 0).join(', ')
 				};
 			}
 			data.welcomeEmail = normalizeWelcomeEmailMultiLang(data);
@@ -264,6 +281,10 @@
 			// Reload menu items from saved config
 			menuItems = data.template?.headerConfig?.menu || [];
 			message = 'successfully';
+			adminToast.success({
+				title: get(t)('admin.configurationSaved'),
+				description: get(t)('admin.configurationSavedMessage'),
+			});
 
 			// Refresh the site config store so Header and Menu components pick up the changes
 			await siteConfig.load();
@@ -277,7 +298,12 @@
 			}, 500);
 		} catch (error) {
 			logger.error('Error saving site config:', error);
-			message = handleError(error, 'Failed to save configuration');
+			const errMsg = handleError(error, 'Failed to save configuration');
+			message = errMsg;
+			adminToast.error({
+				title: get(t)('admin.saveFailed'),
+				description: errMsg,
+			});
 		} finally {
 			saving = false;
 		}
@@ -427,33 +453,26 @@
 </svelte:head>
 
 {#if loading}
-	<div class="min-h-screen bg-gray-50 flex items-center justify-center">
+	<div class="min-h-[50vh] flex items-center justify-center">
 		<div class="text-center">
-			<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-			<p class="mt-4 text-gray-600">Loading configuration...</p>
+			<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--color-primary-600)] mx-auto"></div>
+			<p class="mt-4 text-[var(--color-surface-600-400)]">Loading configuration...</p>
 		</div>
 	</div>
 {:else if !config}
-	<div class="min-h-screen bg-gray-50 flex items-center justify-center">
+	<div class="min-h-[50vh] flex items-center justify-center">
 		<div class="text-center max-w-md px-4">
 			<p class="text-red-600 font-medium">Failed to load configuration</p>
 			{#if message}
-				<p class="mt-2 text-sm text-gray-600">{message}</p>
+				<p class="mt-2 text-sm text-[var(--color-surface-600-400)]">{message}</p>
 			{/if}
-			<a href="/admin" class="mt-4 inline-block text-blue-600 hover:text-blue-800">Back to Admin</a>
 		</div>
 	</div>
 {:else}
-	<div class="min-h-screen bg-gray-50 py-6 lg:py-8">
+	<div class="py-6 lg:py-8">
 		<div class="max-w-6xl mx-auto px-4">
-			<div class="flex items-center justify-between mb-4">
-				<h1 class="text-2xl font-bold text-gray-900">{$t('admin.siteConfiguration')}</h1>
-				<a
-					href="/admin"
-					class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm font-medium"
-				>
-					{$t('admin.backToAdmin')}
-				</a>
+			<div class="mb-4">
+				<h1 class="text-2xl font-bold text-[var(--color-surface-950-50)]">{$t('admin.siteConfiguration')}</h1>
 			</div>
 
 			{#if message}
@@ -515,44 +534,50 @@
 			{/if}
 
 			<form on:submit|preventDefault={handleSubmit} class="flex flex-col lg:flex-row gap-6">
-				<!-- Sidebar nav: dropdown on small screens, vertical list on lg+ -->
-				<aside class="lg:w-52 shrink-0">
-					<div class="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
-						<label for="site-config-tab-select" class="sr-only">
-							{$t('admin.configurationSection')}
-						</label>
-						<select
-							id="site-config-tab-select"
-							class="lg:hidden w-full py-3 px-4 text-sm font-medium text-gray-700 border-0 border-b border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-t-lg"
-							bind:value={activeTab}
-							on:change={(e) => (activeTab = (e.currentTarget as HTMLSelectElement).value)}
-						>
-							{#each configTabs as tab}
-								<option value={tab.id}>{$t(tab.labelKey)}</option>
-							{/each}
-						</select>
-						<nav class="hidden lg:block py-1" aria-label={$t('admin.configurationSections')}>
-							{#each configTabs as tab}
-								<button
-									type="button"
-									class="w-full text-left py-2.5 px-4 text-sm font-medium {activeTab === tab.id
-										? 'bg-blue-50 text-blue-700 border-l-2 border-blue-600'
-										: 'text-gray-600 hover:bg-gray-50 border-l-2 border-transparent'}"
-									on:click={() => (activeTab = tab.id)}
-								>
-									{$t(tab.labelKey)}
-								</button>
-							{/each}
-						</nav>
-					</div>
-				</aside>
+				<Tabs
+					class="flex min-w-0 flex-col gap-6 lg:flex-row w-full"
+					value={activeTab}
+					onValueChange={(d) => (activeTab = d.value)}
+					orientation="vertical"
+				>
+					<!-- Sidebar nav: dropdown on small screens, vertical list on lg+ -->
+					<aside class="lg:w-52 shrink-0">
+						<div class="card preset-outlined-surface-200-800 bg-surface-50-950 overflow-hidden">
+							<label for="site-config-tab-select" class="sr-only">
+								{$t('admin.configurationSection')}
+							</label>
+							<select
+								id="site-config-tab-select"
+								class="select lg:hidden w-full py-3 px-4 text-sm font-medium border-0 border-b border-surface-200-800 rounded-t-lg"
+								bind:value={activeTab}
+							>
+								{#each configTabs as tab}
+									<option value={tab.id}>{$t(tab.labelKey)}</option>
+								{/each}
+							</select>
+							<Tabs.List
+								class="hidden lg:flex flex-col py-1 w-full"
+								aria-label={$t('admin.configurationSections')}
+							>
+								{#each configTabs as tab}
+									<Tabs.Trigger
+										value={tab.id}
+										class="w-full text-left py-2.5 px-4 text-sm font-medium border-l-2 border-transparent text-[var(--color-surface-600-400)] hover:bg-[var(--color-surface-50-950)] data-selected:bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] data-selected:text-[var(--color-primary-700)] data-selected:border-[var(--color-primary-600)] rounded-none"
+									>
+										{$t(tab.labelKey)}
+									</Tabs.Trigger>
+								{/each}
+								<Tabs.Indicator />
+							</Tabs.List>
+						</div>
+					</aside>
 
-				<!-- Tab content -->
-				<div class="min-w-0 flex-1 bg-white rounded-lg shadow-md border border-gray-200 p-6">
-					{#if activeTab === 'basic'}
+					<!-- Tab content -->
+					<div class="min-w-0 flex-1 card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
+						<Tabs.Content value="basic">
 						<div class="grid grid-cols-1 gap-6">
 							<div>
-								<label for="site-title" class="block text-sm font-medium text-gray-700 mb-2">
+								<label for="site-title" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 									{$t('admin.siteTitle')}
 								</label>
 								<MultiLangInput
@@ -568,7 +593,7 @@
 							</div>
 
 							<div>
-								<label for="site-description" class="block text-sm font-medium text-gray-700 mb-2">
+								<label for="site-description" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 									{$t('admin.siteDescription')}
 								</label>
 								<MultiLangHTMLEditor
@@ -584,13 +609,14 @@
 								/>
 							</div>
 						</div>
-					{:else if activeTab === 'languages'}
+						</Tabs.Content>
+						<Tabs.Content value="languages">
 						<div class="space-y-4">
 							<fieldset class="space-y-2">
-								<legend class="block text-sm font-medium text-gray-700 mb-2">
+								<legend class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 									{$t('admin.activeLanguages')}
 								</legend>
-								<p class="text-sm text-gray-600 mb-3">
+								<p class="text-sm text-[var(--color-surface-600-400)] mb-3">
 									{$t('admin.selectLanguagesDescription')}
 								</p>
 								<div class="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -611,16 +637,16 @@
 														config.languages?.defaultLanguage || 'en'
 													);
 												}}
-												class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+												class="rounded border-surface-300-700 text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)]"
 											/>
 											<span class="text-lg">{lang.flag}</span>
-											<span class="text-sm text-gray-700">{lang.name}</span>
+											<span class="text-sm text-[var(--color-surface-800-200)]">{lang.name}</span>
 										</label>
 									{/each}
 								</div>
 							</fieldset>
 							<div>
-								<label for="defaultLanguage" class="block text-sm font-medium text-gray-700 mb-1">
+								<label for="defaultLanguage" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-1">
 									{$t('admin.defaultLanguage')}
 								</label>
 								<select
@@ -633,23 +659,24 @@
 											e.currentTarget.value
 										);
 									}}
-									class="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+									class={adminSelectSmClass}
 								>
 									{#each (config?.languages?.activeLanguages || ['en']) as langCode}
 										{@const lang = availableLanguages.find((l) => l.code === langCode)}
 										<option value={langCode}>{lang?.name || langCode}</option>
 									{/each}
 								</select>
-								<p class="text-xs text-gray-500 mt-1">
+								<p class="text-xs text-[var(--color-surface-600-400)] mt-1">
 									{$t('admin.defaultLanguageDescription')}
 								</p>
 							</div>
 						</div>
-					{:else if activeTab === 'branding'}
+						</Tabs.Content>
+						<Tabs.Content value="branding">
 						<div class="grid grid-cols-1 gap-6">
 							<!-- Logo -->
 							<div>
-								<label for="logo-upload" class="block text-sm font-medium text-gray-700 mb-2">
+								<label for="logo-upload" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 									{$t('admin.logo')}
 								</label>
 								<div class="flex gap-4 items-start">
@@ -659,32 +686,32 @@
 											type="file"
 											accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
 											on:change={onLogoFileChange}
-											class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+											class="block w-full text-sm text-[var(--color-surface-600-400)] file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] file:text-[var(--color-primary-700)] hover:file:bg-[color-mix(in_oklab,var(--color-primary-500)_22%,transparent)]"
 										/>
-										<p class="mt-1 text-xs text-gray-500">
+										<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">
 											{$t('admin.brandingLogoHelp')}
 										</p>
 										{#if config.logo}
 											<div class="mt-3">
-												<label for="logo-url" class="block text-xs text-gray-600 mb-2">{$t('admin.brandingCurrentLogoUrl')}</label>
+												<label for="logo-url" class="block text-xs text-[var(--color-surface-600-400)] mb-2">{$t('admin.brandingCurrentLogoUrl')}</label>
 												<input
 													id="logo-url"
 													type="text"
 													value={config.logo}
 													on:input={(e) => updateConfig('logo', e.currentTarget.value)}
 													placeholder="/api/storage/serve/..."
-													class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+													class={adminInputSmClass}
 												/>
 											</div>
 										{/if}
 									</div>
 									{#if config.logo}
 										<div class="mt-8">
-											<p class="text-xs text-gray-600 mb-2">{$t('admin.preview')}</p>
+											<p class="text-xs text-[var(--color-surface-600-400)] mb-2">{$t('admin.preview')}</p>
 											<img
 												src={config.logo}
 												alt={$t('admin.logoPreviewAlt')}
-												class="max-h-16 object-contain border border-gray-200 rounded p-2 bg-gray-50"
+												class="max-h-16 object-contain border border-surface-200-800 rounded p-2 bg-[var(--color-surface-50-950)]"
 												on:error={(e) => {
 													(e.currentTarget as HTMLImageElement).style.display = 'none';
 												}}
@@ -696,7 +723,7 @@
 
 							<!-- Favicon -->
 							<div>
-								<label for="favicon-upload" class="block text-sm font-medium text-gray-700 mb-2">
+								<label for="favicon-upload" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 									{$t('admin.favicon')}
 								</label>
 								<div class="flex gap-4 items-start">
@@ -706,32 +733,32 @@
 											type="file"
 											accept="image/x-icon,image/vnd.microsoft.icon,image/png,image/jpeg"
 											on:change={onFaviconFileChange}
-											class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+											class="block w-full text-sm text-[var(--color-surface-600-400)] file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] file:text-[var(--color-primary-700)] hover:file:bg-[color-mix(in_oklab,var(--color-primary-500)_22%,transparent)]"
 										/>
-										<p class="mt-1 text-xs text-gray-500">
+										<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">
 											{$t('admin.brandingFaviconHelp')}
 										</p>
 										{#if config.favicon}
 											<div class="mt-3">
-												<label for="favicon-url" class="block text-xs text-gray-600 mb-2">{$t('admin.brandingCurrentFaviconUrl')}</label>
+												<label for="favicon-url" class="block text-xs text-[var(--color-surface-600-400)] mb-2">{$t('admin.brandingCurrentFaviconUrl')}</label>
 												<input
 													id="favicon-url"
 													type="text"
 													value={config.favicon}
 													on:input={(e) => updateConfig('favicon', e.currentTarget.value)}
 													placeholder="/api/storage/serve/..."
-													class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+													class={adminInputSmClass}
 												/>
 											</div>
 										{/if}
 									</div>
 									{#if config.favicon}
 										<div class="mt-8">
-											<p class="text-xs text-gray-600 mb-2">{$t('admin.preview')}</p>
+											<p class="text-xs text-[var(--color-surface-600-400)] mb-2">{$t('admin.preview')}</p>
 											<img
 												src={config.favicon}
 												alt={$t('admin.brandingFaviconPreviewAlt')}
-												class="w-8 h-8 object-contain border border-gray-200 rounded p-1 bg-gray-50"
+												class="w-8 h-8 object-contain border border-surface-200-800 rounded p-1 bg-[var(--color-surface-50-950)]"
 												on:error={(e) => {
 													(e.currentTarget as HTMLImageElement).style.display = 'none';
 												}}
@@ -742,14 +769,14 @@
 							</div>
 
 							<!-- White-label -->
-							<div class="border-t border-gray-200 pt-6 mt-6">
-								<h3 class="text-sm font-medium text-gray-900 mb-3">{$t('admin.whiteLabelSectionTitle')}</h3>
-								<p class="text-xs text-gray-500 mb-4">
+							<div class="border-t border-surface-200-800 pt-6 mt-6">
+								<h3 class="text-sm font-medium text-[var(--color-surface-950-50)] mb-3">{$t('admin.whiteLabelSectionTitle')}</h3>
+								<p class="text-xs text-[var(--color-surface-600-400)] mb-4">
 									{$t('admin.whiteLabelSectionHelp')}
 								</p>
 								<div class="space-y-4">
 									<div>
-										<label for="wl-product-name" class="block text-sm font-medium text-gray-700 mb-2">
+										<label for="wl-product-name" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 											{$t('admin.whiteLabelProductName')}
 										</label>
 										<MultiLangInput
@@ -766,12 +793,12 @@
 											showLanguageTabs={true}
 											defaultLanguage={config.languages?.defaultLanguage || 'en'}
 										/>
-										<p class="mt-1 text-xs text-gray-500">{$t('admin.whiteLabelProductNameHelp')}</p>
+										<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">{$t('admin.whiteLabelProductNameHelp')}</p>
 									</div>
-									<p class="text-xs text-gray-600">{$t('admin.whiteLabelAssetsHelp')}</p>
+									<p class="text-xs text-[var(--color-surface-600-400)]">{$t('admin.whiteLabelAssetsHelp')}</p>
 									<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 										<div class="space-y-2">
-											<label for="wl-logo-url" class="block text-sm font-medium text-gray-700"
+											<label for="wl-logo-url" class="block text-sm font-medium text-[var(--color-surface-800-200)]"
 												>{$t('admin.whiteLabelLogoUrl')}</label
 											>
 											<input
@@ -785,19 +812,19 @@
 														logo: e.currentTarget.value || undefined
 													})}
 												placeholder="/api/storage/serve/..."
-												class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm"
+												class={adminInputSmClass}
 											/>
 											<input
 												type="file"
 												accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
 												on:change={onWhiteLabelLogoFileChange}
-												class="block w-full text-xs text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-gray-100"
+												class="block w-full text-xs text-[var(--color-surface-600-400)] file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-[var(--color-surface-100-900)]"
 											/>
 											{#if config?.whiteLabel?.logo}
 												<img
 													src={config.whiteLabel.logo}
 													alt=""
-													class="h-10 w-auto object-contain border border-gray-200 rounded p-1 bg-gray-50"
+													class="h-10 w-auto object-contain border border-surface-200-800 rounded p-1 bg-[var(--color-surface-50-950)]"
 													on:error={(e) => {
 														(e.currentTarget as HTMLImageElement).style.display = 'none';
 													}}
@@ -805,7 +832,7 @@
 											{/if}
 										</div>
 										<div class="space-y-2">
-											<label for="wl-favicon-url" class="block text-sm font-medium text-gray-700"
+											<label for="wl-favicon-url" class="block text-sm font-medium text-[var(--color-surface-800-200)]"
 												>{$t('admin.whiteLabelFaviconUrl')}</label
 											>
 											<input
@@ -819,19 +846,19 @@
 														favicon: e.currentTarget.value || undefined
 													})}
 												placeholder="/api/storage/serve/..."
-												class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm"
+												class={adminInputSmClass}
 											/>
 											<input
 												type="file"
 												accept="image/x-icon,image/vnd.microsoft.icon,image/png,image/jpeg"
 												on:change={onWhiteLabelFaviconFileChange}
-												class="block w-full text-xs text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-gray-100"
+												class="block w-full text-xs text-[var(--color-surface-600-400)] file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-[var(--color-surface-100-900)]"
 											/>
 											{#if config?.whiteLabel?.favicon}
 												<img
 													src={config.whiteLabel.favicon}
 													alt=""
-													class="w-8 h-8 object-contain border border-gray-200 rounded p-1 bg-gray-50"
+													class="w-8 h-8 object-contain border border-surface-200-800 rounded p-1 bg-[var(--color-surface-50-950)]"
 													on:error={(e) => {
 														(e.currentTarget as HTMLImageElement).style.display = 'none';
 													}}
@@ -844,40 +871,41 @@
 											type="checkbox"
 											checked={config?.whiteLabel?.hideOpenShutterBranding ?? false}
 											on:change={(e) => config && updateConfig('whiteLabel', { ...(config.whiteLabel || {}), hideOpenShutterBranding: e.currentTarget.checked })}
-											class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+											class="rounded border-surface-300-700 text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)]"
 										/>
-										<span class="text-sm text-gray-700">{$t('admin.whiteLabelHideOpenShutter')}</span>
+										<span class="text-sm text-[var(--color-surface-800-200)]">{$t('admin.whiteLabelHideOpenShutter')}</span>
 									</label>
 									<div>
-										<label for="terms-url" class="block text-sm font-medium text-gray-700 mb-1">{$t('admin.whiteLabelTermsUrl')}</label>
+										<label for="terms-url" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-1">{$t('admin.whiteLabelTermsUrl')}</label>
 										<input
 											id="terms-url"
 											type="url"
 											value={config?.whiteLabel?.termsOfServiceUrl ?? ''}
 											on:input={(e) => config && updateConfig('whiteLabel', { ...(config.whiteLabel || {}), termsOfServiceUrl: e.currentTarget.value || undefined })}
 											placeholder="https://..."
-											class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm"
+											class={adminInputSmClass}
 										/>
 									</div>
 									<div>
-										<label for="privacy-url" class="block text-sm font-medium text-gray-700 mb-1">{$t('admin.whiteLabelPrivacyUrl')}</label>
+										<label for="privacy-url" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-1">{$t('admin.whiteLabelPrivacyUrl')}</label>
 										<input
 											id="privacy-url"
 											type="url"
 											value={config?.whiteLabel?.privacyPolicyUrl ?? ''}
 											on:input={(e) => config && updateConfig('whiteLabel', { ...(config.whiteLabel || {}), privacyPolicyUrl: e.currentTarget.value || undefined })}
 											placeholder="https://..."
-											class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm"
+											class={adminInputSmClass}
 										/>
 									</div>
 								</div>
 							</div>
 						</div>
-					{:else if activeTab === 'seo'}
+						</Tabs.Content>
+						<Tabs.Content value="seo">
 						<div class="grid grid-cols-1 gap-6">
 							<!-- Meta Title -->
 							<div>
-								<label for="meta-title" class="block text-sm font-medium text-gray-700 mb-2">
+								<label for="meta-title" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 									{$t('admin.metaTitle')}
 								</label>
 								<MultiLangInput
@@ -898,14 +926,14 @@ onChange={(value) => {
 									showLanguageTabs={true}
 									defaultLanguage={config.languages?.defaultLanguage || 'en'}
 								/>
-								<p class="mt-1 text-xs text-gray-500">
+								<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">
 									{$t('admin.seoMetaTitleHelp')}
 								</p>
 							</div>
 
 							<!-- Meta Description -->
 							<div>
-								<label for="meta-description" class="block text-sm font-medium text-gray-700 mb-2">
+								<label for="meta-description" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 									{$t('admin.metaDescription')}
 								</label>
 								<MultiLangInput
@@ -928,45 +956,39 @@ onChange={(value) => {
 									showLanguageTabs={true}
 									defaultLanguage={config.languages?.defaultLanguage || 'en'}
 								/>
-								<p class="mt-1 text-xs text-gray-500">
+								<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">
 									{$t('admin.seoMetaDescriptionHelp')}
 								</p>
 							</div>
 
 							<!-- Meta Keywords -->
 							<div>
-								<label for="meta-keywords" class="block text-sm font-medium text-gray-700 mb-2">
+								<label for="meta-keywords" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 									{$t('admin.metaKeywords')}
 								</label>
-								<input
+								<MultiLangInput
 									id="meta-keywords"
-									type="text"
-									value={(config.seo?.metaKeywords || []).join(', ')}
-									on:input={(e) => {
+									value={config.seo?.metaKeywords || {}}
+									onChange={(value) => {
 										if (!config) return;
-										const keywords = e.currentTarget.value
-											.split(',')
-											.map((k) => k.trim())
-											.filter((k) => k.length > 0);
 										config = {
 											...(config),
 											seo: {
 												...config.seo,
-												metaKeywords: keywords
+												metaKeywords: value
 											}
 										} as SiteConfig;
 									}}
 									placeholder={$t('admin.metaKeywordsPlaceholder')}
-									class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 								/>
-								<p class="mt-1 text-xs text-gray-500">
+								<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">
 									{$t('admin.metaKeywordsHelp')}
 								</p>
 							</div>
 
 							<!-- OG Image -->
 							<div>
-								<label for="og-image" class="block text-sm font-medium text-gray-700 mb-2">
+								<label for="og-image" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 									{$t('admin.ogImageUrlLabel')}
 								</label>
 								<input
@@ -984,18 +1006,18 @@ on:input={(e) => {
 										} as SiteConfig;
 									}}
 									placeholder={$t('admin.ogImageUrlPlaceholder')}
-									class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+									class={adminInputSmClass}
 								/>
-								<p class="mt-1 text-xs text-gray-500">
+								<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">
 									{$t('admin.ogImageHelp')}
 								</p>
 								{#if config.seo?.ogImage}
 									<div class="mt-3">
-										<p class="text-xs text-gray-600 mb-2">{$t('admin.seoOgPreviewLabel')}</p>
+										<p class="text-xs text-[var(--color-surface-600-400)] mb-2">{$t('admin.seoOgPreviewLabel')}</p>
 										<img
 											src={config.seo.ogImage}
 											alt={$t('admin.seoOgPreviewAlt')}
-											class="max-w-md h-32 object-contain border border-gray-200 rounded p-2 bg-gray-50"
+											class="max-w-md h-32 object-contain border border-surface-200-800 rounded p-2 bg-[var(--color-surface-50-950)]"
 											on:error={(e) => {
 												(e.currentTarget as HTMLImageElement).style.display = 'none';
 											}}
@@ -1004,11 +1026,12 @@ on:input={(e) => {
 								{/if}
 							</div>
 						</div>
-					{:else if activeTab === 'contact'}
+						</Tabs.Content>
+						<Tabs.Content value="contact">
 						<div class="grid grid-cols-1 gap-6">
 							<!-- Email -->
 							<div>
-								<label for="contact-email" class="block text-sm font-medium text-gray-700 mb-2">
+								<label for="contact-email" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 									{$t('admin.contactEmail')}
 								</label>
 								<input
@@ -1026,13 +1049,13 @@ on:input={(e) => {
 										} as SiteConfig;
 									}}
 									placeholder="contact@example.com"
-									class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+									class={adminInputSmClass}
 								/>
 							</div>
 
 							<!-- Phone -->
 							<div>
-								<label for="contact-phone" class="block text-sm font-medium text-gray-700 mb-2">
+								<label for="contact-phone" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 									{$t('admin.contactPhone')}
 								</label>
 								<input
@@ -1050,13 +1073,13 @@ on:input={(e) => {
 										} as SiteConfig;
 									}}
 									placeholder="+1 (555) 123-4567"
-									class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+									class={adminInputSmClass}
 								/>
 							</div>
 
 							<!-- Address -->
 							<div>
-								<label for="contact-address" class="block text-sm font-medium text-gray-700 mb-2">
+								<label for="contact-address" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 									{$t('admin.contactAddress')}
 								</label>
 								<MultiLangInput
@@ -1081,12 +1104,12 @@ on:input={(e) => {
 							</div>
 
 							<!-- Social Media -->
-							<div class="border-t border-gray-200 pt-6">
-								<h3 class="text-lg font-semibold text-gray-900 mb-4">{$t('admin.contactSocialMedia')}</h3>
+							<div class="border-t border-surface-200-800 pt-6">
+								<h3 class="text-lg font-semibold text-[var(--color-surface-950-50)] mb-4">{$t('admin.contactSocialMedia')}</h3>
 								<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 									<!-- Facebook -->
 									<div>
-										<label for="social-facebook" class="block text-sm font-medium text-gray-700 mb-2">
+										<label for="social-facebook" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 											{$t('admin.contactFacebookUrl')}
 										</label>
 										<input
@@ -1107,13 +1130,13 @@ on:input={(e) => {
 												} as SiteConfig;
 											}}
 											placeholder="https://facebook.com/yourpage"
-											class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+											class={adminInputSmClass}
 										/>
 									</div>
 
 									<!-- Instagram -->
 									<div>
-										<label for="social-instagram" class="block text-sm font-medium text-gray-700 mb-2">
+										<label for="social-instagram" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 											{$t('admin.contactInstagramUrl')}
 										</label>
 										<input
@@ -1134,13 +1157,13 @@ on:input={(e) => {
 												} as SiteConfig;
 											}}
 											placeholder="https://instagram.com/yourprofile"
-											class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+											class={adminInputSmClass}
 										/>
 									</div>
 
 									<!-- Twitter -->
 									<div>
-										<label for="social-twitter" class="block text-sm font-medium text-gray-700 mb-2">
+										<label for="social-twitter" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 											{$t('admin.contactTwitterUrl')}
 										</label>
 										<input
@@ -1161,13 +1184,13 @@ on:input={(e) => {
 												} as SiteConfig;
 											}}
 											placeholder="https://twitter.com/yourhandle"
-											class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+											class={adminInputSmClass}
 										/>
 									</div>
 
 									<!-- LinkedIn -->
 									<div>
-										<label for="social-linkedin" class="block text-sm font-medium text-gray-700 mb-2">
+										<label for="social-linkedin" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 											{$t('admin.contactLinkedinUrl')}
 										</label>
 										<input
@@ -1188,17 +1211,18 @@ on:input={(e) => {
 												} as SiteConfig;
 											}}
 											placeholder="https://linkedin.com/company/yourcompany"
-											class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+											class={adminInputSmClass}
 										/>
 									</div>
 								</div>
 							</div>
 						</div>
-					{:else if activeTab === 'home'}
+						</Tabs.Content>
+						<Tabs.Content value="home">
 						<div class="grid grid-cols-1 gap-6">
 							<!-- Contact Title -->
 							<div>
-								<label for="home-contact-title" class="block text-sm font-medium text-gray-700 mb-2">
+								<label for="home-contact-title" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 									{$t('admin.contactSectionTitle')}
 								</label>
 								<MultiLangInput
@@ -1221,9 +1245,9 @@ on:input={(e) => {
 							</div>
 
 							<!-- Services -->
-							<div class="border-t border-gray-200 pt-6">
+							<div class="border-t border-surface-200-800 pt-6">
 								<div class="flex items-center justify-between mb-4">
-									<h3 class="text-lg font-semibold text-gray-900">Services</h3>
+									<h3 class="text-lg font-semibold text-[var(--color-surface-950-50)]">Services</h3>
 									<button
 										type="button"
 										on:click={() => {
@@ -1244,7 +1268,7 @@ on:input={(e) => {
 												}
 											} as SiteConfig;
 										}}
-										class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+										class={adminBtnPrimarySm}
 									>
 										+ Add Service
 									</button>
@@ -1253,9 +1277,9 @@ on:input={(e) => {
 								{#if config.homePage?.services && config.homePage.services.length > 0}
 									<div class="space-y-4">
 										{#each config.homePage.services as service, index}
-											<div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
+											<div class="border border-surface-200-800 rounded-lg p-4 bg-[var(--color-surface-50-950)]">
 												<div class="flex items-start justify-between mb-4">
-													<h4 class="text-sm font-semibold text-gray-900">Service #{index + 1}</h4>
+													<h4 class="text-sm font-semibold text-[var(--color-surface-950-50)]">Service #{index + 1}</h4>
 													<button
 														type="button"
 on:click={() => {
@@ -1278,7 +1302,7 @@ on:click={() => {
 												<div class="grid grid-cols-1 gap-4">
 													<!-- Service Number -->
 													<div>
-														<label for="service-number-{index}" class="block text-sm font-medium text-gray-700 mb-2">
+														<label for="service-number-{index}" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 															Service Number
 														</label>
 														<input
@@ -1301,13 +1325,13 @@ on:click={() => {
 																} as SiteConfig;
 															}}
 															placeholder="01"
-															class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+															class={adminInputSmClass}
 														/>
 													</div>
 
 													<!-- Service Title -->
 													<div>
-														<label for="service-title-{index}" class="block text-sm font-medium text-gray-700 mb-2">
+														<label for="service-title-{index}" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 															Service Title
 														</label>
 														<MultiLangInput
@@ -1336,7 +1360,7 @@ on:click={() => {
 
 													<!-- Service Description -->
 													<div>
-														<label for="service-desc-{index}" class="block text-sm font-medium text-gray-700 mb-2">
+														<label for="service-desc-{index}" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 															Service Description
 														</label>
 														<MultiLangHTMLEditor
@@ -1368,8 +1392,8 @@ on:click={() => {
 										{/each}
 									</div>
 								{:else}
-									<div class="text-center py-8 border border-gray-200 rounded-lg bg-gray-50">
-										<p class="text-gray-500 mb-4">No services added yet.</p>
+									<div class="text-center py-8 border border-surface-200-800 rounded-lg bg-[var(--color-surface-50-950)]">
+										<p class="text-[var(--color-surface-600-400)] mb-4">No services added yet.</p>
 										<button
 											type="button"
 											on:click={() => {
@@ -1388,7 +1412,7 @@ on:click={() => {
 												}
 											} as SiteConfig;
 										}}
-											class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700"
+											class={adminBtnPrimarySm}
 										>
 											Add First Service
 										</button>
@@ -1396,11 +1420,12 @@ on:click={() => {
 								{/if}
 							</div>
 						</div>
-					{:else if activeTab === 'navigation'}
+						</Tabs.Content>
+						<Tabs.Content value="navigation">
 						<div class="space-y-6">
 							<div>
-								<h3 class="text-lg font-semibold text-gray-900 mb-2">{$t('admin.navigationMenuTitle')}</h3>
-								<p class="text-sm text-gray-600 mb-4">
+								<h3 class="text-lg font-semibold text-[var(--color-surface-950-50)] mb-2">{$t('admin.navigationMenuTitle')}</h3>
+								<p class="text-sm text-[var(--color-surface-600-400)] mb-4">
 									{$t('admin.navigationMenuHelp')}
 								</p>
 							</div>
@@ -1408,9 +1433,9 @@ on:click={() => {
 							{#if menuItems.length > 0}
 								<div class="space-y-3">
 									{#each menuItems as item, index}
-										<div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
+										<div class="border border-surface-200-800 rounded-lg p-4 bg-[var(--color-surface-50-950)]">
 											<div class="flex items-start justify-between mb-3">
-												<span class="text-sm font-medium text-gray-700">{$t('admin.navigationMenuItemLabel', 'Menu Item')} #{index + 1}</span>
+												<span class="text-sm font-medium text-[var(--color-surface-800-200)]">{$t('admin.navigationMenuItemLabel', 'Menu Item')} #{index + 1}</span>
 												<div class="flex gap-2">
 													{#if index > 0}
 														<button
@@ -1420,7 +1445,7 @@ on:click={() => {
 																[newItems[index], newItems[index - 1]] = [newItems[index - 1], newItems[index]];
 																menuItems = newItems;
 															}}
-															class="text-gray-600 hover:text-gray-900 text-sm"
+															class="text-[var(--color-surface-600-400)] hover:text-[var(--color-surface-950-50)] text-sm"
 															title={$t('admin.navigationMoveUp')}
 														>
 															↑
@@ -1434,7 +1459,7 @@ on:click={() => {
 																[newItems[index], newItems[index + 1]] = [newItems[index + 1], newItems[index]];
 																menuItems = newItems;
 															}}
-															class="text-gray-600 hover:text-gray-900 text-sm"
+															class="text-[var(--color-surface-600-400)] hover:text-[var(--color-surface-950-50)] text-sm"
 															title={$t('admin.navigationMoveDown')}
 														>
 															↓
@@ -1454,7 +1479,7 @@ on:click={() => {
 											
 											<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 												<div>
-													<label for="menu-labelKey-{index}" class="block text-sm font-medium text-gray-700 mb-1">
+													<label for="menu-labelKey-{index}" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-1">
 														{$t('admin.navigationTranslationKeyOptional')}
 													</label>
 													<input
@@ -1466,15 +1491,15 @@ on:click={() => {
 															menuItems = [...menuItems];
 														}}
 														placeholder="navigation.home"
-														class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+														class={adminInputSmClass}
 													/>
-													<p class="mt-1 text-xs text-gray-500">
+													<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">
 														{$t('admin.navigationTranslationKeyHelp')}
 													</p>
 												</div>
 												
 												<div>
-													<label for="menu-label-{index}" class="block text-sm font-medium text-gray-700 mb-1">
+													<label for="menu-label-{index}" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-1">
 														{$t('admin.navigationDirectLabelOptional')}
 													</label>
 													<input
@@ -1486,15 +1511,15 @@ on:click={() => {
 															menuItems = [...menuItems];
 														}}
 														placeholder="About"
-														class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+														class={adminInputSmClass}
 													/>
-													<p class="mt-1 text-xs text-gray-500">
+													<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">
 														{$t('admin.navigationDirectLabelHelp')}
 													</p>
 												</div>
 												
 												<div>
-													<label for="menu-type-{index}" class="block text-sm font-medium text-gray-700 mb-1">
+													<label for="menu-type-{index}" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-1">
 														{$t('admin.navigationType')}
 													</label>
 													<select
@@ -1510,17 +1535,17 @@ on:click={() => {
 															};
 															menuItems = [...menuItems];
 														}}
-														class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+														class={adminSelectSmClass}
 													>
 														<option value="link">{$t('admin.navigationTypeLink')}</option>
 														<option value="login">{$t('admin.navigationTypeLogin')}</option>
 														<option value="logout">{$t('admin.navigationTypeLogout')}</option>
 													</select>
-													<p class="mt-1 text-xs text-gray-500">{$t('admin.navigationTypeHelp')}</p>
+													<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">{$t('admin.navigationTypeHelp')}</p>
 												</div>
 
 												<div>
-													<label for="menu-showWhen-{index}" class="block text-sm font-medium text-gray-700 mb-1">
+													<label for="menu-showWhen-{index}" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-1">
 														{$t('admin.navigationShowWhen')}
 													</label>
 													<select
@@ -1530,17 +1555,17 @@ on:click={() => {
 															menuItems[index] = { ...menuItems[index], showWhen: e.currentTarget.value as 'always' | 'loggedIn' | 'loggedOut' };
 															menuItems = [...menuItems];
 														}}
-														class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+														class={adminSelectSmClass}
 													>
 														<option value="always">{$t('admin.navigationShowWhenAlways')}</option>
 														<option value="loggedIn">{$t('admin.navigationShowWhenLoggedIn')}</option>
 														<option value="loggedOut">{$t('admin.navigationShowWhenLoggedOut')}</option>
 													</select>
-													<p class="mt-1 text-xs text-gray-500">{$t('admin.navigationShowWhenHelp')}</p>
+													<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">{$t('admin.navigationShowWhenHelp')}</p>
 												</div>
 
 												<div>
-													<label for="menu-href-{index}" class="block text-sm font-medium text-gray-700 mb-1">
+													<label for="menu-href-{index}" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-1">
 														{$t('admin.navigationLinkUrl')} <span class="text-red-500">*</span>
 													</label>
 													<input
@@ -1554,15 +1579,15 @@ on:click={() => {
 														}}
 														placeholder={item.type === 'login' ? '/login' : item.type === 'logout' ? '—' : '/about'}
 														required={item.type !== 'logout'}
-														class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm disabled:bg-gray-100 disabled:text-gray-500"
+														class={`${adminInputSmClass} disabled:bg-[var(--color-surface-100-900)] disabled:text-[var(--color-surface-600-400)]`}
 													/>
-													<p class="mt-1 text-xs text-gray-500">
+													<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">
 														{item.type === 'logout' ? $t('admin.navigationIgnoredForLogout') : $t('admin.navigationLinkUrlHelp')}
 													</p>
 												</div>
 												
 												<fieldset class="space-y-2">
-													<legend class="block text-sm font-medium text-gray-700 mb-1">
+													<legend class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-1">
 														{$t('admin.navigationVisibleToRolesOptional')}
 													</legend>
 													<div class="flex flex-wrap gap-2">
@@ -1583,13 +1608,13 @@ on:click={() => {
 																		};
 																		menuItems = [...menuItems];
 																	}}
-																	class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+																	class="h-4 w-4 text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)] border-surface-300-700 rounded"
 																/>
-																<span class="text-sm text-gray-700">{roleOpt.label}</span>
+																<span class="text-sm text-[var(--color-surface-800-200)]">{roleOpt.label}</span>
 															</label>
 														{/each}
 													</div>
-													<p class="mt-1 text-xs text-gray-500">
+													<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">
 														{$t('admin.navigationRolesHelp')}
 													</p>
 												</fieldset>
@@ -1603,9 +1628,9 @@ on:click={() => {
 																menuItems[index] = { ...menuItems[index], external: e.currentTarget.checked || undefined };
 																menuItems = [...menuItems];
 															}}
-															class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+															class="h-4 w-4 text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)] border-surface-300-700 rounded"
 														/>
-														<span class="text-sm text-gray-700">{$t('admin.navigationOpenInNewTab')}</span>
+														<span class="text-sm text-[var(--color-surface-800-200)]">{$t('admin.navigationOpenInNewTab')}</span>
 													</label>
 												</div>
 											</div>
@@ -1613,15 +1638,15 @@ on:click={() => {
 									{/each}
 								</div>
 							{:else}
-								<div class="text-center py-8 border border-gray-200 rounded-lg bg-gray-50">
-									<p class="text-gray-500 mb-4">{$t('admin.navigationNoItems')}</p>
-									<p class="text-sm text-gray-400 mb-4">
+								<div class="text-center py-8 border border-surface-200-800 rounded-lg bg-[var(--color-surface-50-950)]">
+									<p class="text-[var(--color-surface-600-400)] mb-4">{$t('admin.navigationNoItems')}</p>
+									<p class="text-sm text-[var(--color-surface-400-600)] mb-4">
 										{$t('admin.navigationNoItemsHelp')}
 									</p>
 								</div>
 							{/if}
 
-							<div class="flex flex-wrap justify-between items-center gap-2 pt-4 border-t border-gray-200">
+							<div class="flex flex-wrap justify-between items-center gap-2 pt-4 border-t border-surface-200-800">
 								<div class="flex flex-wrap gap-2">
 									<button
 										type="button"
@@ -1631,7 +1656,7 @@ on:click={() => {
 												{ href: '', label: '' }
 											];
 										}}
-										class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+										class={adminBtnPrimarySm}
 									>
 										+ {$t('admin.navigationAddMenuItem')}
 									</button>
@@ -1643,7 +1668,7 @@ on:click={() => {
 												{ type: 'login', labelKey: 'auth.signIn', href: '/login', showWhen: 'loggedOut' }
 											];
 										}}
-										class="px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+										class={adminBtnPrimarySm}
 									>
 										+ {$t('admin.navigationAddLogin')}
 									</button>
@@ -1655,7 +1680,7 @@ on:click={() => {
 												{ type: 'logout', labelKey: 'header.logout', href: '#', showWhen: 'loggedIn' }
 											];
 										}}
-										class="px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+										class={adminBtnPrimarySm}
 									>
 										+ {$t('admin.navigationAddLogout')}
 									</button>
@@ -1669,16 +1694,16 @@ on:click={() => {
 												menuItems = [];
 											}
 										}}
-										class="px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+										class="btn preset-tonal text-sm"
 									>
 										{$t('admin.navigationClearAll')}
 									</button>
 								{/if}
 							</div>
 
-							<div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-								<h4 class="text-sm font-semibold text-blue-900 mb-2">{$t('admin.navigationTipsTitle')}</h4>
-								<ul class="text-xs text-blue-800 space-y-1 list-disc list-inside">
+							<div class="mt-6 p-4 bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] border border-[color-mix(in_oklab,var(--color-primary-500)_18%,transparent)] rounded-lg">
+								<h4 class="text-sm font-semibold text-[var(--color-primary-900)] mb-2">{$t('admin.navigationTipsTitle')}</h4>
+								<ul class="text-xs text-[var(--color-primary-800)] space-y-1 list-disc list-inside">
 									<li>{$t('admin.navigationTipType')}</li>
 									<li>{$t('admin.navigationTipTranslationKey')}</li>
 									<li>{$t('admin.navigationTipDirectLabel')}</li>
@@ -1689,11 +1714,12 @@ on:click={() => {
 								</ul>
 							</div>
 						</div>
-					{:else if activeTab === 'exifMetadata'}
+						</Tabs.Content>
+						<Tabs.Content value="exifMetadata">
 						<div class="space-y-4">
 							<div>
-								<h3 class="text-lg font-semibold text-gray-900 mb-2">{$t('admin.exifDisplaySectionTitle')}</h3>
-								<p class="text-sm text-gray-600 mb-4">
+								<h3 class="text-lg font-semibold text-[var(--color-surface-950-50)] mb-2">{$t('admin.exifDisplaySectionTitle')}</h3>
+								<p class="text-sm text-[var(--color-surface-600-400)] mb-4">
 									{$t('admin.exifDisplaySectionHelp')}
 								</p>
 								<div class="flex gap-2 mb-4">
@@ -1709,7 +1735,7 @@ on:click={() => {
 												}
 											} as SiteConfig;
 										}}
-										class="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+										class="px-3 py-1.5 text-sm bg-[var(--color-surface-100-900)] text-[var(--color-surface-800-200)] rounded-md hover:bg-[var(--color-surface-200-800)]"
 									>
 										{$t('admin.metadataDisplaySelectAll')}
 									</button>
@@ -1725,12 +1751,12 @@ on:click={() => {
 												}
 											} as SiteConfig;
 										}}
-										class="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+										class="px-3 py-1.5 text-sm bg-[var(--color-surface-100-900)] text-[var(--color-surface-800-200)] rounded-md hover:bg-[var(--color-surface-200-800)]"
 									>
 										{$t('admin.metadataDisplayDeselectAll')}
 									</button>
 								</div>
-								<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 max-h-96 overflow-y-auto border border-gray-200 rounded-lg p-4 bg-gray-50">
+								<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 max-h-96 overflow-y-auto border border-surface-200-800 rounded-lg p-4 bg-[var(--color-surface-50-950)]">
 									{#each EXIF_DISPLAY_FIELDS as field}
 										{@const isChecked = (config.exifMetadata?.displayFields ?? []).includes(field.id)}
 										<label class="flex items-center gap-2 cursor-pointer">
@@ -1751,22 +1777,23 @@ on:click={() => {
 														}
 													} as SiteConfig;
 												}}
-												class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+												class="rounded border-surface-300-700 text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)]"
 											/>
-											<span class="text-sm text-gray-700">{$t('admin.exifFields.' + field.id, field.label)}</span>
+											<span class="text-sm text-[var(--color-surface-800-200)]">{$t('admin.exifFields.' + field.id, field.label)}</span>
 										</label>
 									{/each}
 								</div>
-								<p class="text-xs text-gray-500 mt-2">
+								<p class="text-xs text-[var(--color-surface-600-400)] mt-2">
 									{$t('admin.exifDisplayFooterHelp')}
 								</p>
 							</div>
 						</div>
-					{:else if activeTab === 'iptcXmpMetadata'}
+						</Tabs.Content>
+						<Tabs.Content value="iptcXmpMetadata">
 						<div class="space-y-4">
 							<div>
-								<h3 class="text-lg font-semibold text-gray-900 mb-2">{$t('admin.iptcXmpDisplaySectionTitle')}</h3>
-								<p class="text-sm text-gray-600 mb-4">
+								<h3 class="text-lg font-semibold text-[var(--color-surface-950-50)] mb-2">{$t('admin.iptcXmpDisplaySectionTitle')}</h3>
+								<p class="text-sm text-[var(--color-surface-600-400)] mb-4">
 									{$t('admin.iptcXmpDisplaySectionHelp')}
 								</p>
 								<div class="flex gap-2 mb-4">
@@ -1782,7 +1809,7 @@ on:click={() => {
 												}
 											} as SiteConfig;
 										}}
-										class="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+										class="px-3 py-1.5 text-sm bg-[var(--color-surface-100-900)] text-[var(--color-surface-800-200)] rounded-md hover:bg-[var(--color-surface-200-800)]"
 									>
 										{$t('admin.metadataDisplaySelectAll')}
 									</button>
@@ -1798,12 +1825,12 @@ on:click={() => {
 												}
 											} as SiteConfig;
 										}}
-										class="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+										class="px-3 py-1.5 text-sm bg-[var(--color-surface-100-900)] text-[var(--color-surface-800-200)] rounded-md hover:bg-[var(--color-surface-200-800)]"
 									>
 										{$t('admin.metadataDisplayDeselectAll')}
 									</button>
 								</div>
-								<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 max-h-96 overflow-y-auto border border-gray-200 rounded-lg p-4 bg-gray-50">
+								<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 max-h-96 overflow-y-auto border border-surface-200-800 rounded-lg p-4 bg-[var(--color-surface-50-950)]">
 									{#each IPTC_XMP_DISPLAY_FIELDS as field}
 										{@const isChecked = (config.iptcXmpMetadata?.displayFields ?? []).includes(field.id)}
 										<label class="flex items-center gap-2 cursor-pointer">
@@ -1824,23 +1851,24 @@ on:click={() => {
 														}
 													} as SiteConfig;
 												}}
-												class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+												class="rounded border-surface-300-700 text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)]"
 											/>
-											<span class="text-sm text-gray-700">{$t('admin.iptcXmpFields.' + field.id, field.label)}</span>
+											<span class="text-sm text-[var(--color-surface-800-200)]">{$t('admin.iptcXmpFields.' + field.id, field.label)}</span>
 										</label>
 									{/each}
 								</div>
-								<p class="text-xs text-gray-500 mt-2">
+								<p class="text-xs text-[var(--color-surface-600-400)] mt-2">
 									{$t('admin.iptcXmpDisplayFooterHelp')}
 								</p>
 							</div>
 						</div>
-					{:else if activeTab === 'sharing'}
+						</Tabs.Content>
+						<Tabs.Content value="sharing">
 						<div class="grid grid-cols-1 gap-6">
-							<h3 class="text-lg font-semibold text-gray-900">{$t('admin.collaborationSectionTitle')}</h3>
-							<p class="text-sm text-gray-600 -mt-2">{$t('admin.collaborationMatrixHelp')}</p>
-							<div class="mt-4 rounded-lg border border-gray-100 bg-gray-50 p-4 text-sm text-gray-700 space-y-2">
-								<p class="font-medium text-gray-900">{$t('admin.collabServicesExplainerTitle')}</p>
+							<h3 class="text-lg font-semibold text-[var(--color-surface-950-50)]">{$t('admin.collaborationSectionTitle')}</h3>
+							<p class="text-sm text-[var(--color-surface-600-400)] -mt-2">{$t('admin.collaborationMatrixHelp')}</p>
+							<div class="mt-4 rounded-lg border border-surface-100-900 bg-[var(--color-surface-50-950)] p-4 text-sm text-[var(--color-surface-800-200)] space-y-2">
+								<p class="font-medium text-[var(--color-surface-950-50)]">{$t('admin.collabServicesExplainerTitle')}</p>
 								<ul class="list-disc ps-5 space-y-1.5">
 									<li>{$t('admin.collabServiceCommentsDesc')}</li>
 									<li>{$t('admin.collabServiceTasksDesc')}</li>
@@ -1849,33 +1877,33 @@ on:click={() => {
 							</div>
 							{#if collabVisAdmin}
 								<div
-									class="overflow-x-auto border border-gray-200 rounded-lg mt-4"
+									class="overflow-x-auto border border-surface-200-800 rounded-lg mt-4"
 									dir="ltr"
 								>
 									<table class="min-w-full text-sm">
 										<thead>
-											<tr class="bg-gray-50 border-b border-gray-200">
-												<th class="p-3 font-medium text-gray-700 text-start align-bottom w-[min(40%,14rem)]"></th>
-												<th class="p-3 font-medium text-gray-700 text-center align-bottom">
+											<tr class="bg-[var(--color-surface-50-950)] border-b border-surface-200-800">
+												<th class="p-3 font-medium text-[var(--color-surface-800-200)] text-start align-bottom w-[min(40%,14rem)]"></th>
+												<th class="p-3 font-medium text-[var(--color-surface-800-200)] text-center align-bottom">
 													{$t('admin.collabServiceEnabledColumn')}
 												</th>
-												<th class="p-3 font-medium text-gray-700 text-center align-bottom">
+												<th class="p-3 font-medium text-[var(--color-surface-800-200)] text-center align-bottom">
 													{$t('admin.collabAudienceVisitors')}
 												</th>
-												<th class="p-3 font-medium text-gray-700 text-center align-bottom">
+												<th class="p-3 font-medium text-[var(--color-surface-800-200)] text-center align-bottom">
 													{$t('admin.collabAudienceSignedIn')}
 												</th>
 											</tr>
 										</thead>
 										<tbody>
-											<tr class="border-b border-gray-100">
-												<td class="p-3 font-medium text-gray-800 text-start align-middle">
+											<tr class="border-b border-surface-100-900">
+												<td class="p-3 font-medium text-[var(--color-surface-900-100)] text-start align-middle">
 													{$t('admin.collabServiceComments')}
 												</td>
 												<td class="p-3 align-middle text-center">
 													<input
 														type="checkbox"
-														class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+														class="h-4 w-4 rounded border-surface-300-700 text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)]"
 														checked={collabVisAdmin.comments.enabled}
 														on:change={(e) =>
 															setCollabServiceEnabled('comments', e.currentTarget.checked)}
@@ -1885,7 +1913,7 @@ on:click={() => {
 												<td class="p-3 align-middle text-center">
 													<input
 														type="checkbox"
-														class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+														class="h-4 w-4 rounded border-surface-300-700 text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)]"
 														checked={collabVisAdmin.comments.public}
 														disabled={!collabVisAdmin.comments.enabled}
 														on:change={(e) =>
@@ -1895,7 +1923,7 @@ on:click={() => {
 												<td class="p-3 align-middle text-center">
 													<input
 														type="checkbox"
-														class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+														class="h-4 w-4 rounded border-surface-300-700 text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)]"
 														checked={collabVisAdmin.comments.authenticated}
 														disabled={!collabVisAdmin.comments.enabled}
 														on:change={(e) =>
@@ -1903,14 +1931,14 @@ on:click={() => {
 													/>
 												</td>
 											</tr>
-											<tr class="border-b border-gray-100">
-												<td class="p-3 font-medium text-gray-800 text-start align-middle">
+											<tr class="border-b border-surface-100-900">
+												<td class="p-3 font-medium text-[var(--color-surface-900-100)] text-start align-middle">
 													{$t('admin.collabServiceTasks')}
 												</td>
 												<td class="p-3 align-middle text-center">
 													<input
 														type="checkbox"
-														class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+														class="h-4 w-4 rounded border-surface-300-700 text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)]"
 														checked={collabVisAdmin.tasks.enabled}
 														on:change={(e) => setCollabServiceEnabled('tasks', e.currentTarget.checked)}
 														aria-label={$t('admin.collabServiceEnabledColumn')}
@@ -1919,7 +1947,7 @@ on:click={() => {
 												<td class="p-3 align-middle text-center">
 													<input
 														type="checkbox"
-														class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+														class="h-4 w-4 rounded border-surface-300-700 text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)]"
 														checked={collabVisAdmin.tasks.public}
 														disabled={!collabVisAdmin.tasks.enabled}
 														on:change={(e) => setCollabFlag('tasks', 'public', e.currentTarget.checked)}
@@ -1928,7 +1956,7 @@ on:click={() => {
 												<td class="p-3 align-middle text-center">
 													<input
 														type="checkbox"
-														class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+														class="h-4 w-4 rounded border-surface-300-700 text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)]"
 														checked={collabVisAdmin.tasks.authenticated}
 														disabled={!collabVisAdmin.tasks.enabled}
 														on:change={(e) =>
@@ -1937,13 +1965,13 @@ on:click={() => {
 												</td>
 											</tr>
 											<tr>
-												<td class="p-3 font-medium text-gray-800 text-start align-middle">
+												<td class="p-3 font-medium text-[var(--color-surface-900-100)] text-start align-middle">
 													{$t('admin.collabServiceActivity')}
 												</td>
 												<td class="p-3 align-middle text-center">
 													<input
 														type="checkbox"
-														class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+														class="h-4 w-4 rounded border-surface-300-700 text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)]"
 														checked={collabVisAdmin.activity.enabled}
 														on:change={(e) =>
 															setCollabServiceEnabled('activity', e.currentTarget.checked)}
@@ -1953,7 +1981,7 @@ on:click={() => {
 												<td class="p-3 align-middle text-center">
 													<input
 														type="checkbox"
-														class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+														class="h-4 w-4 rounded border-surface-300-700 text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)]"
 														checked={collabVisAdmin.activity.public}
 														disabled={!collabVisAdmin.activity.enabled}
 														on:change={(e) =>
@@ -1963,7 +1991,7 @@ on:click={() => {
 												<td class="p-3 align-middle text-center">
 													<input
 														type="checkbox"
-														class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+														class="h-4 w-4 rounded border-surface-300-700 text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)]"
 														checked={collabVisAdmin.activity.authenticated}
 														disabled={!collabVisAdmin.activity.enabled}
 														on:change={(e) =>
@@ -1974,11 +2002,11 @@ on:click={() => {
 										</tbody>
 									</table>
 								</div>
-								<p class="text-xs text-gray-500 mt-2">{$t('admin.collaborationModeratorNote')}</p>
+								<p class="text-xs text-[var(--color-surface-600-400)] mt-2">{$t('admin.collaborationModeratorNote')}</p>
 							{/if}
-							<div class="border-t border-gray-200 pt-6 space-y-3">
-								<h3 class="text-lg font-semibold text-gray-900">{$t('admin.tagSearchFeedbackBoostSectionTitle')}</h3>
-								<p class="text-sm text-gray-600 -mt-1">
+							<div class="border-t border-surface-200-800 pt-6 space-y-3">
+								<h3 class="text-lg font-semibold text-[var(--color-surface-950-50)]">{$t('admin.tagSearchFeedbackBoostSectionTitle')}</h3>
+								<p class="text-sm text-[var(--color-surface-600-400)] -mt-1">
 									{$t('admin.tagSearchFeedbackBoostSectionHelp')}
 								</p>
 								<label class="flex items-center space-x-2 cursor-pointer">
@@ -1996,38 +2024,43 @@ on:click={() => {
 												}
 											} as SiteConfig;
 										}}
-										class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+										class="h-4 w-4 text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)] border-surface-300-700 rounded"
 									/>
-									<span class="text-sm font-medium text-gray-700">{$t('admin.tagSearchFeedbackBoostEnable')}</span>
+									<span class="text-sm font-medium text-[var(--color-surface-800-200)]">{$t('admin.tagSearchFeedbackBoostEnable')}</span>
 								</label>
 							</div>
-							<div class="border-t border-gray-200 pt-6 space-y-4">
-							<h3 class="text-lg font-semibold text-gray-900">{$t('admin.socialSharingSectionTitle')}</h3>
-							<p class="text-sm text-gray-600 -mt-2">
+							<div class="border-t border-surface-200-800 pt-6 space-y-4">
+							<h3 class="text-lg font-semibold text-[var(--color-surface-950-50)]">{$t('admin.socialSharingSectionTitle')}</h3>
+							<p class="text-sm text-[var(--color-surface-600-400)] -mt-2">
 								{$t('admin.socialSharingSectionHelp')}
 							</p>
 							<div class="space-y-4">
-								<label class="flex items-center space-x-2 cursor-pointer">
-									<input
-										id="sharing-enabled"
-										type="checkbox"
-										checked={config.features?.enableSharing ?? true}
-										on:change={(e) => {
-											if (!config) return;
-											config = {
-												...(config),
-												features: {
-													...config.features,
-													enableSharing: e.currentTarget.checked
-												}
-											} as SiteConfig;
-										}}
-										class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-									/>
-									<span class="text-sm font-medium text-gray-700">{$t('admin.socialSharingEnable')}</span>
-								</label>
-								<div class="border-t border-gray-200 pt-4">
-									<p class="text-sm font-medium text-gray-700 mb-2">{$t('admin.socialSharingWhereTitle')}</p>
+								<Switch
+									class="flex cursor-pointer items-center gap-3"
+									checked={config.features?.enableSharing ?? true}
+									onCheckedChange={(d) => {
+										if (!config) return;
+										config = {
+											...(config),
+											features: {
+												...config.features,
+												enableSharing: d.checked,
+											},
+										} as SiteConfig;
+									}}
+								>
+									<Switch.Control
+										class="preset-filled-secondary-50-950 data-[state=checked]:preset-filled-secondary-500"
+									>
+										<Switch.Thumb />
+									</Switch.Control>
+									<Switch.Label class="text-sm font-medium text-[var(--color-surface-800-200)]">
+										{$t('admin.socialSharingEnable')}
+									</Switch.Label>
+									<Switch.HiddenInput />
+								</Switch>
+								<div class="border-t border-surface-200-800 pt-4">
+									<p class="text-sm font-medium text-[var(--color-surface-800-200)] mb-2">{$t('admin.socialSharingWhereTitle')}</p>
 									<div class="space-y-2">
 										<label class="flex items-center space-x-2 cursor-pointer">
 											<input
@@ -2044,9 +2077,9 @@ on:click={() => {
 														}
 													} as SiteConfig;
 												}}
-												class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+												class="h-4 w-4 text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)] border-surface-300-700 rounded"
 											/>
-											<span class="text-sm text-gray-700">{$t('admin.socialSharingOnAlbum')}</span>
+											<span class="text-sm text-[var(--color-surface-800-200)]">{$t('admin.socialSharingOnAlbum')}</span>
 										</label>
 										<label class="flex items-center space-x-2 cursor-pointer">
 											<input
@@ -2063,14 +2096,14 @@ on:click={() => {
 														}
 													} as SiteConfig;
 												}}
-												class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+												class="h-4 w-4 text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)] border-surface-300-700 rounded"
 											/>
-											<span class="text-sm text-gray-700">{$t('admin.socialSharingOnPhoto')}</span>
+											<span class="text-sm text-[var(--color-surface-800-200)]">{$t('admin.socialSharingOnPhoto')}</span>
 										</label>
 									</div>
 								</div>
-								<div class="border-t border-gray-200 pt-4">
-									<p class="text-sm font-medium text-gray-700 mb-2">{$t('admin.socialSharingOptionsTitle')}</p>
+								<div class="border-t border-surface-200-800 pt-4">
+									<p class="text-sm font-medium text-[var(--color-surface-800-200)] mb-2">{$t('admin.socialSharingOptionsTitle')}</p>
 									{#if config}
 										{@const opts = config.features?.sharingOptions ?? ['twitter', 'facebook', 'whatsapp', 'copy']}
 										<div class="flex flex-wrap gap-4">
@@ -2085,9 +2118,9 @@ on:click={() => {
 													const next = e.currentTarget.checked ? [...current.filter((x: string) => x !== 'twitter'), 'twitter'] : current.filter((x: string) => x !== 'twitter');
 													config = { ...config, features: { ...config.features, sharingOptions: next } } as SiteConfig;
 												}}
-												class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+												class="h-4 w-4 text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)] border-surface-300-700 rounded"
 											/>
-											<span class="text-sm text-gray-700">{$t('admin.socialSharingX')}</span>
+											<span class="text-sm text-[var(--color-surface-800-200)]">{$t('admin.socialSharingX')}</span>
 										</label>
 										<label class="flex items-center space-x-2 cursor-pointer">
 											<input
@@ -2100,9 +2133,9 @@ on:click={() => {
 													const next = e.currentTarget.checked ? [...current.filter((x: string) => x !== 'facebook'), 'facebook'] : current.filter((x: string) => x !== 'facebook');
 													config = { ...config, features: { ...config.features, sharingOptions: next } } as SiteConfig;
 												}}
-												class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+												class="h-4 w-4 text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)] border-surface-300-700 rounded"
 											/>
-											<span class="text-sm text-gray-700">{$t('admin.socialSharingFacebook')}</span>
+											<span class="text-sm text-[var(--color-surface-800-200)]">{$t('admin.socialSharingFacebook')}</span>
 										</label>
 										<label class="flex items-center space-x-2 cursor-pointer">
 											<input
@@ -2115,9 +2148,9 @@ on:click={() => {
 													const next = e.currentTarget.checked ? [...current.filter((x: string) => x !== 'whatsapp'), 'whatsapp'] : current.filter((x: string) => x !== 'whatsapp');
 													config = { ...config, features: { ...config.features, sharingOptions: next } } as SiteConfig;
 												}}
-												class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+												class="h-4 w-4 text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)] border-surface-300-700 rounded"
 											/>
-											<span class="text-sm text-gray-700">{$t('admin.socialSharingWhatsapp')}</span>
+											<span class="text-sm text-[var(--color-surface-800-200)]">{$t('admin.socialSharingWhatsapp')}</span>
 										</label>
 										<label class="flex items-center space-x-2 cursor-pointer">
 											<input
@@ -2130,9 +2163,9 @@ on:click={() => {
 													const next = e.currentTarget.checked ? [...current.filter((x: string) => x !== 'copy'), 'copy'] : current.filter((x: string) => x !== 'copy');
 													config = { ...config, features: { ...config.features, sharingOptions: next } } as SiteConfig;
 												}}
-												class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+												class="h-4 w-4 text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)] border-surface-300-700 rounded"
 											/>
-											<span class="text-sm text-gray-700">{$t('admin.socialSharingCopyLink')}</span>
+											<span class="text-sm text-[var(--color-surface-800-200)]">{$t('admin.socialSharingCopyLink')}</span>
 										</label>
 									</div>
 									{/if}
@@ -2140,78 +2173,16 @@ on:click={() => {
 							</div>
 							</div>
 						</div>
-					{:else if activeTab === 'template'}
-						<div class="space-y-6">
-							<div>
-								<h3 class="text-lg font-semibold text-gray-900">
-									{$t('admin.siteConfigTemplateSectionTitle')}
-								</h3>
-								<p class="text-sm text-gray-600 mt-1">
-									{$t('admin.siteConfigTemplateSectionIntro')}
-								</p>
-							</div>
-
-							<dl class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-								<div class="p-4 bg-gray-50 rounded-lg border border-gray-100">
-									<dt class="font-medium text-gray-700">
-										{$t('admin.siteConfigTemplatePublicTheme')}
-									</dt>
-									<dd class="mt-1 text-gray-900 font-mono">
-										{config?.template?.frontendTemplate ||
-											config?.template?.activeTemplate ||
-											'—'}
-									</dd>
-								</div>
-								<div class="p-4 bg-gray-50 rounded-lg border border-gray-100">
-									<dt class="font-medium text-gray-700">
-										{$t('admin.siteConfigTemplateAdminTheme')}
-									</dt>
-									<dd class="mt-1 text-gray-900 font-mono">
-										{config?.template?.adminTemplate ||
-											config?.template?.activeTemplate ||
-											'—'}
-									</dd>
-								</div>
-							</dl>
-							<div class="flex flex-wrap gap-3">
-								<a
-									href="/admin/templates"
-									class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm font-medium"
-								>
-									{$t('admin.manageTemplates')}
-								</a>
-								<a
-									href="/admin/template-config"
-									class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
-								>
-									{$t('admin.siteConfigTemplateLinkVisibility')}
-								</a>
-								<a
-									href="/admin/templates/overrides"
-									class="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 text-sm font-medium"
-								>
-									{$t('admin.themeBuilder')}
-								</a>
-								<a
-									href="/admin/templates/customize"
-									class="inline-flex items-center px-4 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-800 text-sm font-medium"
-								>
-									{$t('admin.siteConfigTemplateLinkAdvanced')}
-								</a>
-							</div>
-							<p class="text-xs text-gray-500">
-								{$t('admin.siteConfigTemplateFooterHint')}
-							</p>
-						</div>
-					{:else if activeTab === 'email'}
+						</Tabs.Content>
+						<Tabs.Content value="email">
 						<div class="grid grid-cols-1 gap-6">
-							<h3 class="text-lg font-semibold text-gray-900">{$t('admin.smtpSectionTitle')}</h3>
-							<p class="text-sm text-gray-600 -mt-2">
+							<h3 class="text-lg font-semibold text-[var(--color-surface-950-50)]">{$t('admin.smtpSectionTitle')}</h3>
+							<p class="text-sm text-[var(--color-surface-600-400)] -mt-2">
 								{$t('admin.smtpSectionHelp')}
 							</p>
 							<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 								<div>
-									<label for="mail-host" class="block text-sm font-medium text-gray-700 mb-1">{$t('admin.smtpHost')}</label>
+									<label for="mail-host" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-1">{$t('admin.smtpHost')}</label>
 									<input
 										id="mail-host"
 										type="text"
@@ -2224,11 +2195,11 @@ on:click={() => {
 											} as SiteConfig;
 										}}
 										placeholder="smtp.example.com"
-										class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+										class={adminInputSmClass}
 									/>
 								</div>
 								<div>
-									<label for="mail-port" class="block text-sm font-medium text-gray-700 mb-1">{$t('admin.smtpPort')}</label>
+									<label for="mail-port" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-1">{$t('admin.smtpPort')}</label>
 									<input
 										id="mail-port"
 										type="number"
@@ -2239,12 +2210,12 @@ on:click={() => {
 											config = { ...(config), mail: { ...config.mail, port: v } } as SiteConfig;
 										}}
 										placeholder="587"
-										class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+										class={adminInputSmClass}
 									/>
-									<p class="mt-1 text-xs text-gray-500">{$t('admin.smtpPortHelp')}</p>
+									<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">{$t('admin.smtpPortHelp')}</p>
 								</div>
 								<div>
-									<label for="mail-user" class="block text-sm font-medium text-gray-700 mb-1">{$t('admin.smtpUser')}</label>
+									<label for="mail-user" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-1">{$t('admin.smtpUser')}</label>
 									<input
 										id="mail-user"
 										type="text"
@@ -2257,11 +2228,11 @@ on:click={() => {
 											} as SiteConfig;
 										}}
 										placeholder="noreply@example.com"
-										class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+										class={adminInputSmClass}
 									/>
 								</div>
 								<div>
-									<label for="mail-password" class="block text-sm font-medium text-gray-700 mb-1">{$t('admin.smtpPassword')}</label>
+									<label for="mail-password" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-1">{$t('admin.smtpPassword')}</label>
 									<input
 										id="mail-password"
 										type="password"
@@ -2274,12 +2245,12 @@ on:click={() => {
 											} as SiteConfig;
 										}}
 										placeholder={$t('admin.smtpPasswordPlaceholder')}
-										class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+										class={adminInputSmClass}
 									/>
-									<p class="mt-1 text-xs text-gray-500">{$t('admin.smtpPasswordHelp')}</p>
+									<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">{$t('admin.smtpPasswordHelp')}</p>
 								</div>
 								<div>
-									<label for="mail-from" class="block text-sm font-medium text-gray-700 mb-1">{$t('admin.smtpFromAddress')}</label>
+									<label for="mail-from" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-1">{$t('admin.smtpFromAddress')}</label>
 									<input
 										id="mail-from"
 										type="text"
@@ -2292,7 +2263,7 @@ on:click={() => {
 											} as SiteConfig;
 										}}
 										placeholder="OpenShutter &lt;noreply@example.com&gt;"
-										class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+										class={adminInputSmClass}
 									/>
 								</div>
 								<div class="flex items-end pb-2">
@@ -2307,16 +2278,16 @@ on:click={() => {
 													mail: { ...config.mail, secure: e.currentTarget.checked }
 												} as SiteConfig;
 											}}
-											class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+											class="h-4 w-4 text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)] border-surface-300-700 rounded"
 										/>
-										<span class="text-sm text-gray-700">{$t('admin.smtpUseSsl')}</span>
+										<span class="text-sm text-[var(--color-surface-800-200)]">{$t('admin.smtpUseSsl')}</span>
 									</label>
 								</div>
 							</div>
 
-							<div class="border-t border-gray-200 pt-6">
-								<h3 class="text-lg font-semibold text-gray-900 mb-2">{$t('admin.welcomeEmailSectionTitle')}</h3>
-								<p class="text-sm text-gray-600 mb-4">
+							<div class="border-t border-surface-200-800 pt-6">
+								<h3 class="text-lg font-semibold text-[var(--color-surface-950-50)] mb-2">{$t('admin.welcomeEmailSectionTitle')}</h3>
+								<p class="text-sm text-[var(--color-surface-600-400)] mb-4">
 									{$t('admin.welcomeEmailSectionHelp')}
 								</p>
 								<label class="flex items-center space-x-2 cursor-pointer mb-4">
@@ -2330,13 +2301,13 @@ on:click={() => {
 												welcomeEmail: { ...config.welcomeEmail, enabled: e.currentTarget.checked }
 											} as SiteConfig;
 										}}
-										class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+										class="h-4 w-4 text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)] border-surface-300-700 rounded"
 									/>
-									<span class="text-sm font-medium text-gray-700">{$t('admin.welcomeEmailEnabledLabel')}</span>
+									<span class="text-sm font-medium text-[var(--color-surface-800-200)]">{$t('admin.welcomeEmailEnabledLabel')}</span>
 								</label>
 								<div class="space-y-4">
 									<div>
-										<label for="welcome-email-subject" class="block text-sm font-medium text-gray-700 mb-1">{$t('admin.welcomeEmailSubject')}</label>
+										<label for="welcome-email-subject" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-1">{$t('admin.welcomeEmailSubject')}</label>
 										<MultiLangInput
 											id="welcome-email-subject"
 											value={config.welcomeEmail?.subject || {}}
@@ -2353,7 +2324,7 @@ on:click={() => {
 										/>
 									</div>
 									<div>
-										<label for="welcome-email-body" class="block text-sm font-medium text-gray-700 mb-1">{$t('admin.welcomeEmailBody')}</label>
+										<label for="welcome-email-body" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-1">{$t('admin.welcomeEmailBody')}</label>
 										<MultiLangHTMLEditor
 											id="welcome-email-body"
 											value={config.welcomeEmail?.body || {}}
@@ -2369,38 +2340,39 @@ on:click={() => {
 											showLanguageTabs={true}
 											defaultLanguage={config.languages?.defaultLanguage || 'en'}
 										/>
-										<p class="mt-1 text-xs text-gray-500">
-											{$t('admin.welcomeEmailPlaceholdersLabel')}: <code class="bg-gray-100 px-1 rounded">{'{{name}}'}</code>, <code class="bg-gray-100 px-1 rounded">{'{{username}}'}</code>, <code class="bg-gray-100 px-1 rounded">{'{{loginUrl}}'}</code>, <code class="bg-gray-100 px-1 rounded">{'{{siteTitle}}'}</code>, <code class="bg-gray-100 px-1 rounded">{'{{password}}'}</code> ({$t('admin.welcomeEmailPasswordNote')}).
+										<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">
+											{$t('admin.welcomeEmailPlaceholdersLabel')}: <code class="bg-[var(--color-surface-100-900)] px-1 rounded">{'{{name}}'}</code>, <code class="bg-[var(--color-surface-100-900)] px-1 rounded">{'{{username}}'}</code>, <code class="bg-[var(--color-surface-100-900)] px-1 rounded">{'{{loginUrl}}'}</code>, <code class="bg-[var(--color-surface-100-900)] px-1 rounded">{'{{siteTitle}}'}</code>, <code class="bg-[var(--color-surface-100-900)] px-1 rounded">{'{{password}}'}</code> ({$t('admin.welcomeEmailPasswordNote')}).
 										</p>
 									</div>
 								</div>
 							</div>
 
-							<div class="border-t border-gray-200 pt-6">
+							<div class="border-t border-surface-200-800 pt-6">
 								<button
 									type="button"
 									on:click={openTestMailModal}
-									class="px-4 py-2 bg-gray-700 text-white text-sm font-medium rounded-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+									class={adminBtnPrimarySm}
 								>
 									{$t('admin.sendTestEmail')}
 								</button>
-								<p class="mt-2 text-xs text-gray-500">{$t('admin.sendTestEmailHelp')}</p>
+								<p class="mt-2 text-xs text-[var(--color-surface-600-400)]">{$t('admin.sendTestEmailHelp')}</p>
 							</div>
 						</div>
-					{/if}
+						</Tabs.Content>
 
 					<!-- Submit Button -->
-					<div class="flex justify-end pt-6 border-t border-gray-200">
+					<div class="flex justify-end pt-6 border-t border-surface-200-800">
 						<button
 							type="submit"
 							disabled={saving}
-							class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+							class={`${adminBtnPrimary} px-6 disabled:opacity-50 disabled:cursor-not-allowed`}
 						>
 							{saving ? $t('admin.saving') : $t('admin.saveConfiguration')}
 						</button>
 					</div>
-				</div>
-				</form>
+					</div>
+				</Tabs>
+			</form>
 		</div>
 
 		<!-- Test email modal -->
@@ -2411,13 +2383,13 @@ on:click={() => {
 				aria-modal="true"
 				aria-labelledby="test-email-title"
 			>
-				<div class="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-hidden flex flex-col">
-					<div class="p-4 border-b border-gray-200 flex items-center justify-between">
-						<h2 id="test-email-title" class="text-lg font-semibold text-gray-900">Send test email</h2>
+				<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl max-w-md w-full max-h-[90vh] overflow-hidden flex flex-col">
+					<div class="p-4 border-b border-surface-200-800 flex items-center justify-between">
+						<h2 id="test-email-title" class="text-lg font-semibold text-[var(--color-surface-950-50)]">Send test email</h2>
 						<button
 							type="button"
 							on:click={closeTestMailModal}
-							class="text-gray-400 hover:text-gray-600 p-1 rounded"
+							class="text-[var(--color-surface-400-600)] hover:text-[var(--color-surface-600-400)] p-1 rounded"
 							aria-label="Close"
 						>
 							<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
@@ -2427,46 +2399,46 @@ on:click={() => {
 						{#if testMailResult === 'idle' || testMailResult === 'sending'}
 							<form on:submit|preventDefault={sendTestEmail} class="space-y-4">
 								<div>
-									<label for="test-email-to" class="block text-sm font-medium text-gray-700 mb-1">To</label>
+									<label for="test-email-to" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-1">To</label>
 									<input
 										id="test-email-to"
 										type="email"
 										bind:value={testTo}
 										placeholder="recipient@example.com"
 										required
-										class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+										class={adminInputSmClass}
 									/>
 								</div>
 								<div>
-									<label for="test-email-subject" class="block text-sm font-medium text-gray-700 mb-1">Subject</label>
+									<label for="test-email-subject" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-1">Subject</label>
 									<input
 										id="test-email-subject"
 										type="text"
 										bind:value={testSubject}
-										class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+										class={adminInputSmClass}
 									/>
 								</div>
 								<div>
-									<label for="test-email-body" class="block text-sm font-medium text-gray-700 mb-1">Body</label>
+									<label for="test-email-body" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-1">Body</label>
 									<textarea
 										id="test-email-body"
 										bind:value={testBody}
 										rows={5}
-										class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+										class={adminInputSmClass}
 									></textarea>
 								</div>
 								<div class="flex gap-2 justify-end pt-2">
 									<button
 										type="button"
 										on:click={closeTestMailModal}
-										class="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+										class="btn preset-tonal text-sm"
 									>
 										Cancel
 									</button>
 									<button
 										type="submit"
 										disabled={testMailResult === 'sending'}
-										class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+										class={`${adminBtnPrimarySm} disabled:opacity-50 disabled:cursor-not-allowed`}
 									>
 										{testMailResult === 'sending' ? 'Sending...' : 'Send'}
 									</button>
@@ -2489,7 +2461,7 @@ on:click={() => {
 									<button
 										type="button"
 										on:click={closeTestMailModal}
-										class="px-4 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+										class={adminBtnPrimary}
 									>
 										Close
 									</button>

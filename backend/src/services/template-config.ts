@@ -165,7 +165,8 @@ export class TemplateConfigService {
     // Determine which template to use based on area
     let activeTemplate: string
     if (area === 'admin') {
-      activeTemplate = siteConfig.template?.adminTemplate || siteConfig.template?.activeTemplate || 'default'
+      // Admin panel does not use template packs; legacy `adminTemplate` in DB is ignored.
+      activeTemplate = 'default'
     } else {
       activeTemplate = siteConfig.template?.frontendTemplate || siteConfig.template?.activeTemplate || 'default'
     }
@@ -271,7 +272,8 @@ export class TemplateConfigService {
     // Determine which template to use based on area
     let activeTemplate: string
     if (area === 'admin') {
-      activeTemplate = siteConfig.template?.adminTemplate || siteConfig.template?.activeTemplate || 'default'
+      // Same as getComponentVisibility: admin is not pack-configurable.
+      activeTemplate = 'default'
     } else {
       activeTemplate = siteConfig.template?.frontendTemplate || siteConfig.template?.activeTemplate || 'default'
     }

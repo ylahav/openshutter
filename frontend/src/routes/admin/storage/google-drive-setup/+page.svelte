@@ -112,25 +112,25 @@
 	<title>Google Drive Setup - Admin</title>
 </svelte:head>
 
-<div class="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-	<div class="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
+<div class="min-h-[50vh] flex items-center justify-center p-4">
+	<div class="max-w-md w-full bg-[var(--color-surface-50-950)] rounded-lg shadow-lg p-8">
 		{#if loading}
 			<div class="text-center">
-				<div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-				<h2 class="text-xl font-semibold text-gray-900 mb-2">Setting up Google Drive...</h2>
-				<p class="text-gray-600">Exchanging authorization code for refresh token...</p>
+				<div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--color-primary-600)] mb-4"></div>
+				<h2 class="text-xl font-semibold text-[var(--color-surface-950-50)] mb-2">Setting up Google Drive...</h2>
+				<p class="text-[var(--color-surface-600-400)]">Exchanging authorization code for refresh token...</p>
 			</div>
 		{:else if success}
 			<div class="text-center">
 				<div class="text-6xl mb-4">✅</div>
-				<h2 class="text-xl font-semibold text-gray-900 mb-2">Success!</h2>
-				<p class="text-gray-600 mb-6">Google Drive has been successfully configured.</p>
+				<h2 class="text-xl font-semibold text-[var(--color-surface-950-50)] mb-2">Success!</h2>
+				<p class="text-[var(--color-surface-600-400)] mb-6">Google Drive has been successfully configured.</p>
 				{#if typeof window !== 'undefined' && window.opener}
-					<p class="text-sm text-gray-500">This window will close automatically...</p>
+					<p class="text-sm text-[var(--color-surface-600-400)]">This window will close automatically...</p>
 				{:else}
 					<a
 						href="/admin/storage"
-						class="inline-block px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+						class="inline-block px-4 py-2 bg-[var(--color-primary-600)] text-white rounded-md hover:bg-[var(--color-primary-700)]"
 					>
 						Go to Storage Settings
 					</a>
@@ -139,12 +139,12 @@
 		{:else if error}
 			<div class="text-center">
 				<div class="text-6xl mb-4">❌</div>
-				<h2 class="text-xl font-semibold text-gray-900 mb-2">Setup Failed</h2>
+				<h2 class="text-xl font-semibold text-[var(--color-surface-950-50)] mb-2">Setup Failed</h2>
 				<p class="text-red-600 mb-6">{error}</p>
 				<div class="space-y-2">
 					<a
 						href="/admin/storage"
-						class="inline-block px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+						class="inline-block px-4 py-2 bg-[var(--color-primary-600)] text-white rounded-md hover:bg-[var(--color-primary-700)]"
 					>
 						Go to Storage Settings
 					</a>
@@ -155,7 +155,7 @@
 									window.close();
 								}
 							}}
-							class="block w-full px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+							class="block w-full px-4 py-2 bg-[var(--color-surface-200-800)] text-[var(--color-surface-800-200)] rounded-md hover:bg-[var(--color-surface-300-700)]"
 						>
 							Close Window
 						</button>

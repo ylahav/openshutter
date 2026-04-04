@@ -145,7 +145,7 @@ export class SiteConfigService {
       seo: {
         metaTitle: { en: 'OpenShutter Gallery - Beautiful Photo Gallery' },
         metaDescription: { en: 'Discover amazing photos in our beautiful gallery' },
-        metaKeywords: ['gallery', 'photos', 'photography', 'images', 'art']
+        metaKeywords: { en: 'gallery, photos, photography, images, art' }
       },
       contact: {
         email: '',

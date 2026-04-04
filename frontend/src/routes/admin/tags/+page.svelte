@@ -274,20 +274,12 @@
 	<title>{$t('admin.tagsManagement')} - {$t('navigation.admin')}</title>
 </svelte:head>
 
-<div class="min-h-screen bg-gray-50 py-8">
+<div class="py-8">
 	<div class="max-w-6xl mx-auto px-4">
-		<div class="bg-white rounded-lg shadow-md p-6">
-			<div class="flex items-center justify-between mb-6">
-				<div>
-					<h1 class="text-2xl font-bold text-gray-900">{$t('admin.tagsManagement')}</h1>
-					<p class="text-gray-600 mt-2">{$t('admin.manageTagsStructuredData')}</p>
-				</div>
-				<a
-					href="/admin"
-					class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm font-medium"
-				>
-					{$t('admin.backToAdmin')}
-				</a>
+		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
+			<div class="mb-6">
+				<h1 class="text-2xl font-bold text-[var(--color-surface-950-50)]">{$t('admin.tagsManagement')}</h1>
+				<p class="text-[var(--color-surface-600-400)] mt-2">{$t('admin.manageTagsStructuredData')}</p>
 			</div>
 
 			{#if message}
@@ -298,42 +290,42 @@
 				<div class="mb-4 p-4 rounded-md bg-red-50 text-red-700">{error}</div>
 			{/if}
 
-			<div class="mb-6 p-4 rounded-md border border-gray-200 bg-gray-50">
+			<div class="mb-6 p-4 rounded-md border border-surface-200-800 bg-[var(--color-surface-50-950)]">
 				<div class="flex items-center justify-between gap-3">
 					<div>
-						<h2 class="text-sm font-semibold text-gray-900">{$t('admin.tagsFeedbackSignalsTitle')}</h2>
-						<p class="text-xs text-gray-600 mt-1">{$t('admin.tagsFeedbackSignalsSubtitle')}</p>
+						<h2 class="text-sm font-semibold text-[var(--color-surface-950-50)]">{$t('admin.tagsFeedbackSignalsTitle')}</h2>
+						<p class="text-xs text-[var(--color-surface-600-400)] mt-1">{$t('admin.tagsFeedbackSignalsSubtitle')}</p>
 					</div>
 					<button
 						type="button"
 						on:click={loadFeedbackStats}
-						class="px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-100"
+						class="px-3 py-1.5 text-xs font-medium text-[var(--color-surface-800-200)] bg-[var(--color-surface-50-950)] border border-surface-300-700 rounded hover:bg-[var(--color-surface-100-900)]"
 					>
 						{$t('admin.tagsFeedbackSignalsRefresh')}
 					</button>
 				</div>
 
 				{#if feedbackStatsLoading}
-					<p class="mt-3 text-xs text-gray-500">{$t('admin.tagsFeedbackSignalsLoading')}</p>
+					<p class="mt-3 text-xs text-[var(--color-surface-600-400)]">{$t('admin.tagsFeedbackSignalsLoading')}</p>
 				{:else if feedbackStatsError}
 					<p class="mt-3 text-xs text-red-600">{feedbackStatsError}</p>
 				{:else}
 					<div class="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3">
-						<div class="p-3 bg-white border border-gray-200 rounded">
-							<p class="text-xs text-gray-500">{$t('admin.tagsFeedbackSignalsTotalEvents')}</p>
-							<p class="text-xl font-semibold text-gray-900">{feedbackStats.total || 0}</p>
+						<div class="p-3 bg-[var(--color-surface-50-950)] border border-surface-200-800 rounded">
+							<p class="text-xs text-[var(--color-surface-600-400)]">{$t('admin.tagsFeedbackSignalsTotalEvents')}</p>
+							<p class="text-xl font-semibold text-[var(--color-surface-950-50)]">{feedbackStats.total || 0}</p>
 						</div>
-						<div class="p-3 bg-white border border-gray-200 rounded">
-							<p class="text-xs text-gray-500">{$t('admin.tagsFeedbackSignalsBySource')}</p>
-							<p class="text-sm text-gray-800">{$t('admin.tagsFeedbackSignalsAI')}: {feedbackStats.bySource.ai || 0}</p>
-							<p class="text-sm text-gray-800">{$t('admin.tagsFeedbackSignalsContext')}: {feedbackStats.bySource.context || 0}</p>
-							<p class="text-sm text-gray-800">{$t('admin.tagsFeedbackSignalsManual')}: {feedbackStats.bySource.manual || 0}</p>
+						<div class="p-3 bg-[var(--color-surface-50-950)] border border-surface-200-800 rounded">
+							<p class="text-xs text-[var(--color-surface-600-400)]">{$t('admin.tagsFeedbackSignalsBySource')}</p>
+							<p class="text-sm text-[var(--color-surface-900-100)]">{$t('admin.tagsFeedbackSignalsAI')}: {feedbackStats.bySource.ai || 0}</p>
+							<p class="text-sm text-[var(--color-surface-900-100)]">{$t('admin.tagsFeedbackSignalsContext')}: {feedbackStats.bySource.context || 0}</p>
+							<p class="text-sm text-[var(--color-surface-900-100)]">{$t('admin.tagsFeedbackSignalsManual')}: {feedbackStats.bySource.manual || 0}</p>
 						</div>
-						<div class="p-3 bg-white border border-gray-200 rounded">
-							<p class="text-xs text-gray-500">{$t('admin.tagsFeedbackSignalsByAction')}</p>
-							<p class="text-sm text-gray-800">{$t('admin.tagsFeedbackSignalsApplied')}: {feedbackStats.byAction.applied || 0}</p>
-							<p class="text-sm text-gray-800">{$t('admin.tagsFeedbackSignalsDismissed')}: {feedbackStats.byAction.dismissed || 0}</p>
-							<p class="text-sm text-gray-800">{$t('admin.tagsFeedbackSignalsRemoved')}: {feedbackStats.byAction.removed || 0}</p>
+						<div class="p-3 bg-[var(--color-surface-50-950)] border border-surface-200-800 rounded">
+							<p class="text-xs text-[var(--color-surface-600-400)]">{$t('admin.tagsFeedbackSignalsByAction')}</p>
+							<p class="text-sm text-[var(--color-surface-900-100)]">{$t('admin.tagsFeedbackSignalsApplied')}: {feedbackStats.byAction.applied || 0}</p>
+							<p class="text-sm text-[var(--color-surface-900-100)]">{$t('admin.tagsFeedbackSignalsDismissed')}: {feedbackStats.byAction.dismissed || 0}</p>
+							<p class="text-sm text-[var(--color-surface-900-100)]">{$t('admin.tagsFeedbackSignalsRemoved')}: {feedbackStats.byAction.removed || 0}</p>
 						</div>
 					</div>
 				{/if}
@@ -348,10 +340,10 @@
 							placeholder={$t('admin.searchTagsPlaceholder')}
 							bind:value={searchTerm}
 							on:input={() => crudLoader.loadItems()}
-							class="pl-10 pr-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-64"
+							class="pl-10 pr-4 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)] w-64"
 						/>
 						<svg
-							class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4"
+							class="absolute left-3 top-1/2 transform -translate-y-1/2 text-[var(--color-surface-400-600)] h-4 w-4"
 							fill="none"
 							stroke="currentColor"
 							viewBox="0 0 24 24"
@@ -368,7 +360,7 @@
 					<select
 						bind:value={categoryFilter}
 						on:change={() => crudLoader.loadItems()}
-						class="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+						class="px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 					>
 						<option value="all">{$t('admin.allCategories')}</option>
 						{#each TAG_CATEGORIES as cat}
@@ -380,7 +372,7 @@
 				<button
 					type="button"
 					on:click={openCreateDialog}
-					class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium flex items-center gap-2"
+					class="px-4 py-2 bg-[var(--color-primary-600)] text-white rounded-md hover:bg-[var(--color-primary-700)] text-sm font-medium flex items-center gap-2"
 				>
 					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path
@@ -397,13 +389,13 @@
 			<!-- Tags List -->
 			{#if loading}
 				<div class="text-center py-8">
-					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-					<p class="mt-2 text-gray-600">{$t('admin.loadingTags')}</p>
+					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--color-primary-600)]"></div>
+					<p class="mt-2 text-[var(--color-surface-600-400)]">{$t('admin.loadingTags')}</p>
 				</div>
 			{:else if tags.length === 0}
 				<div class="text-center py-8">
 					<svg
-						class="h-12 w-12 text-gray-400 mx-auto mb-4"
+						class="h-12 w-12 text-[var(--color-surface-400-600)] mx-auto mb-4"
 						fill="none"
 						stroke="currentColor"
 						viewBox="0 0 24 24"
@@ -415,27 +407,27 @@
 							d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
 						/>
 					</svg>
-					<h3 class="text-lg font-semibold text-gray-900 mb-2">{$t('admin.noTagsFound')}</h3>
-					<p class="text-gray-600">{$t('admin.startByAddingFirstTag')}</p>
+					<h3 class="text-lg font-semibold text-[var(--color-surface-950-50)] mb-2">{$t('admin.noTagsFound')}</h3>
+					<p class="text-[var(--color-surface-600-400)]">{$t('admin.startByAddingFirstTag')}</p>
 				</div>
 			{:else}
 				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 					{#each tags as tag}
-						<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+						<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-4">
 							<div class="flex items-start justify-between mb-3">
 								<div class="flex items-center space-x-2 flex-1">
 									<div
-										class="w-4 h-4 rounded-full border border-gray-300"
+										class="w-4 h-4 rounded-full border border-surface-300-700"
 										style="background-color: {tag.color || '#3B82F6'}"
 									></div>
-									<h3 class="font-semibold text-gray-900">{getTagName(tag)}</h3>
+									<h3 class="font-semibold text-[var(--color-surface-950-50)]">{getTagName(tag)}</h3>
 								</div>
 
 								<div class="flex space-x-1">
 									<button
 										type="button"
 										on:click={() => openEditDialog(tag)}
-										class="p-1 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded"
+										class="p-1 text-[var(--color-surface-600-400)] hover:text-[var(--color-primary-600)] hover:bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] rounded"
 										aria-label="Edit tag"
 									>
 										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -450,7 +442,7 @@
 									<button
 										type="button"
 										on:click={() => openDeleteDialog(tag)}
-										class="p-1 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded"
+										class="p-1 text-[var(--color-surface-600-400)] hover:text-red-600 hover:bg-red-50 rounded"
 										aria-label={$t('admin.tagsDeleteAriaLabel')}
 									>
 										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -466,17 +458,17 @@
 							</div>
 
 							{#if getTagDescription(tag)}
-								<p class="text-sm text-gray-600 mb-2">{getTagDescription(tag)}</p>
+								<p class="text-sm text-[var(--color-surface-600-400)] mb-2">{getTagDescription(tag)}</p>
 							{/if}
 
 							<div class="flex items-center justify-between mt-3">
 								<span
-									class="px-2 py-1 text-xs font-medium rounded bg-gray-100 text-gray-800"
+									class="px-2 py-1 text-xs font-medium rounded bg-[var(--color-surface-100-900)] text-[var(--color-surface-900-100)]"
 								>
 									{getCategoryLabel(tag.category || 'general')}
 								</span>
 								{#if tag.usageCount !== undefined}
-									<span class="text-xs text-gray-500">
+									<span class="text-xs text-[var(--color-surface-600-400)]">
 										{$t('admin.tagsUsedLabel')} {tag.usageCount}
 										{tag.usageCount === 1 ? $t('admin.tagsTimeSingular') : $t('admin.tagsTimePlural')}
 									</span>
@@ -493,8 +485,8 @@
 <!-- Create Dialog -->
 {#if showCreateDialog}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-		<div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
-			<h2 class="text-xl font-bold text-gray-900 mb-4">{$t('admin.tagsAddNewTagTitle')}</h2>
+		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
+			<h2 class="text-xl font-bold text-[var(--color-surface-950-50)] mb-4">{$t('admin.tagsAddNewTagTitle')}</h2>
 
 			{#if error}
 				<div class="mb-4 p-4 bg-red-50 text-red-700 rounded-md">{error}</div>
@@ -502,7 +494,7 @@
 
 			<div class="space-y-4">
 				<div>
-					<p class="block text-sm font-medium text-gray-700 mb-2">
+					<p class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 						{$t('admin.tagsTagNameLabel')}
 					</p>
 					<MultiLangInput
@@ -513,7 +505,7 @@
 				</div>
 
 				<div>
-					<p class="block text-sm font-medium text-gray-700 mb-2">
+					<p class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 						{$t('admin.tagsDescriptionLabel')}
 					</p>
 					<MultiLangInput
@@ -523,13 +515,13 @@
 				</div>
 
 				<div>
-					<label for="tag-category" class="block text-sm font-medium text-gray-700 mb-2">
+					<label for="tag-category" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 						{$t('admin.tagsCategoryLabel')}
 					</label>
 					<select
 						id="tag-category"
 						bind:value={formData.category}
-						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+						class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 					>
 						{#each TAG_CATEGORIES as cat}
 							<option value={cat.value}>{$t(cat.labelKey)}</option>
@@ -538,20 +530,20 @@
 				</div>
 
 				<div>
-					<p class="block text-sm font-medium text-gray-700 mb-2">
+					<p class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 						{$t('admin.tagsColorLabel')}
 					</p>
 					<div class="flex items-center gap-3">
 						<input
 							type="color"
 							bind:value={formData.color}
-							class="w-16 h-10 border border-gray-300 rounded cursor-pointer"
+							class="w-16 h-10 border border-surface-300-700 rounded cursor-pointer"
 						/>
 						<input
 							type="text"
 							bind:value={formData.color}
 							placeholder="#3B82F6"
-							class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+							class="flex-1 px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 						/>
 					</div>
 					<div class="flex flex-wrap gap-2 mt-2">
@@ -560,8 +552,8 @@
 								type="button"
 								on:click={() => (formData.color = preset)}
 								class="w-8 h-8 rounded border-2 {formData.color === preset
-									? 'border-gray-800'
-									: 'border-gray-300'} hover:border-gray-500"
+									? 'border-[var(--color-surface-800)]'
+									: 'border-surface-300-700'} hover:border-[var(--color-surface-500)]"
 								style="background-color: {preset}"
 								aria-label={`${$t('admin.tagsSelectColorAriaLabel')} ${preset}`}
 							></button>
@@ -576,7 +568,7 @@
 							dialogs.closeAll();
 							resetForm();
 						}}
-						class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm font-medium"
+						class="px-4 py-2 bg-[var(--color-surface-200-800)] text-[var(--color-surface-800-200)] rounded-md hover:bg-[var(--color-surface-300-700)] text-sm font-medium"
 					>
 						{$t('admin.tagsCancelButton')}
 					</button>
@@ -584,7 +576,7 @@
 						type="button"
 						on:click={handleCreate}
 						disabled={saving || MultiLangUtils.getLanguagesWithContent(formData.name).length === 0}
-						class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm font-medium"
+						class="px-4 py-2 bg-[var(--color-primary-600)] text-white rounded-md hover:bg-[var(--color-primary-700)] disabled:opacity-50 text-sm font-medium"
 					>
 						{#if saving}
 							{$t('admin.tagsCreatingButton')}
@@ -601,8 +593,8 @@
 <!-- Edit Dialog -->
 {#if showEditDialog && editingTag}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-		<div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
-			<h2 class="text-xl font-bold text-gray-900 mb-4">{$t('admin.tagsEditTagTitle')}</h2>
+		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
+			<h2 class="text-xl font-bold text-[var(--color-surface-950-50)] mb-4">{$t('admin.tagsEditTagTitle')}</h2>
 
 			{#if error}
 				<div class="mb-4 p-4 bg-red-50 text-red-700 rounded-md">{error}</div>
@@ -610,7 +602,7 @@
 
 			<div class="space-y-4">
 				<div>
-					<p class="block text-sm font-medium text-gray-700 mb-2">
+					<p class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 						{$t('admin.tagsTagNameLabel')}
 					</p>
 					<MultiLangInput
@@ -621,7 +613,7 @@
 				</div>
 
 				<div>
-					<p class="block text-sm font-medium text-gray-700 mb-2">
+					<p class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 						{$t('admin.tagsDescriptionLabel')}
 					</p>
 					<MultiLangInput
@@ -631,12 +623,12 @@
 				</div>
 
 				<div>
-					<p class="block text-sm font-medium text-gray-700 mb-2">
+					<p class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 						{$t('admin.tagsCategoryLabel')}
 					</p>
 					<select
 						bind:value={formData.category}
-						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+						class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 					>
 						{#each TAG_CATEGORIES as cat}
 							<option value={cat.value}>{$t(cat.labelKey)}</option>
@@ -645,20 +637,20 @@
 				</div>
 
 				<div>
-					<p class="block text-sm font-medium text-gray-700 mb-2">
+					<p class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 						{$t('admin.tagsColorLabel')}
 					</p>
 					<div class="flex items-center gap-3">
 						<input
 							type="color"
 							bind:value={formData.color}
-							class="w-16 h-10 border border-gray-300 rounded cursor-pointer"
+							class="w-16 h-10 border border-surface-300-700 rounded cursor-pointer"
 						/>
 						<input
 							type="text"
 							bind:value={formData.color}
 							placeholder="#3B82F6"
-							class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+							class="flex-1 px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 						/>
 					</div>
 					<div class="flex flex-wrap gap-2 mt-2">
@@ -667,8 +659,8 @@
 								type="button"
 								on:click={() => (formData.color = preset)}
 								class="w-8 h-8 rounded border-2 {formData.color === preset
-									? 'border-gray-800'
-									: 'border-gray-300'} hover:border-gray-500"
+									? 'border-[var(--color-surface-800)]'
+									: 'border-surface-300-700'} hover:border-[var(--color-surface-500)]"
 								style="background-color: {preset}"
 								aria-label={`${$t('admin.tagsSelectColorAriaLabel')} ${preset}`}
 							></button>
@@ -684,9 +676,9 @@
 							class="sr-only peer"
 						/>
 						<div
-							class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"
+							class="w-11 h-6 bg-[var(--color-surface-200-800)] peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[color-mix(in_oklab,var(--color-primary-500)_35%,transparent)] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-[var(--color-surface-50-950)] after:border-surface-300-700 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--color-primary-600)]"
 						></div>
-						<span class="ml-3 text-sm font-medium text-gray-700">
+						<span class="ml-3 text-sm font-medium text-[var(--color-surface-800-200)]">
 							{$t('admin.tagsActiveLabel')}
 						</span>
 					</label>
@@ -700,7 +692,7 @@
 							editingTag = null;
 							resetForm();
 						}}
-						class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm font-medium"
+						class="px-4 py-2 bg-[var(--color-surface-200-800)] text-[var(--color-surface-800-200)] rounded-md hover:bg-[var(--color-surface-300-700)] text-sm font-medium"
 					>
 						{$t('admin.tagsCancelButton')}
 					</button>
@@ -708,7 +700,7 @@
 						type="button"
 						on:click={handleEdit}
 						disabled={saving || MultiLangUtils.getLanguagesWithContent(formData.name).length === 0}
-						class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm font-medium"
+						class="px-4 py-2 bg-[var(--color-primary-600)] text-white rounded-md hover:bg-[var(--color-primary-700)] disabled:opacity-50 text-sm font-medium"
 					>
 						{#if saving}
 							{$t('admin.tagsUpdatingButton')}
@@ -725,15 +717,15 @@
 <!-- Delete Dialog -->
 {#if showDeleteDialog && tagToDelete}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-		<div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
-			<h2 class="text-xl font-bold text-gray-900 mb-4">{$t('admin.tagsDeleteTagTitle')}</h2>
+		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full max-w-md p-6">
+			<h2 class="text-xl font-bold text-[var(--color-surface-950-50)] mb-4">{$t('admin.tagsDeleteTagTitle')}</h2>
 
 			{#if error}
 				<div class="mb-4 p-4 bg-red-50 text-red-700 rounded-md">{error}</div>
 			{/if}
 
 			<div class="space-y-4">
-				<p class="text-gray-600">
+				<p class="text-[var(--color-surface-600-400)]">
 					{$t('admin.tagsDeleteConfirmPrefix')}
 					<strong>{tagToDelete.name}</strong>
 					{$t('admin.tagsDeleteConfirmSuffix')}
@@ -753,7 +745,7 @@
 							dialogs.closeAll();
 							tagToDelete = null;
 						}}
-						class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm font-medium"
+						class="px-4 py-2 bg-[var(--color-surface-200-800)] text-[var(--color-surface-800-200)] rounded-md hover:bg-[var(--color-surface-300-700)] text-sm font-medium"
 					>
 						{$t('admin.tagsCancelButton')}
 					</button>

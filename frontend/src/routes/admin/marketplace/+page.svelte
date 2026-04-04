@@ -160,15 +160,14 @@
 <div class="space-y-6">
 	<div class="flex flex-wrap items-center justify-between gap-4">
 		<div>
-			<a href="/admin" class="text-sm text-primary-600 hover:underline">← Admin</a>
-			<h1 class="text-2xl font-bold text-gray-900 mt-1">Marketplace listings</h1>
-			<p class="text-gray-600 text-sm">Approve or remove integration submissions.</p>
+			<h1 class="text-2xl font-bold text-[var(--color-surface-950-50)]">Marketplace listings</h1>
+			<p class="text-[var(--color-surface-600-400)] text-sm">Approve or remove integration submissions.</p>
 		</div>
 		<div class="flex items-center gap-2">
 			<select
 				bind:value={filterApproved}
 				on:change={fetchListings}
-				class="rounded-md border border-gray-300 px-3 py-2 text-sm"
+				class="rounded-md border border-surface-300-700 px-3 py-2 text-sm"
 			>
 				<option value="all">All</option>
 				<option value="true">Approved only</option>
@@ -183,40 +182,40 @@
 	{/if}
 
 	{#if loading}
-		<p class="text-gray-500">Loading...</p>
+		<p class="text-[var(--color-surface-600-400)]">Loading...</p>
 	{:else if listings.length === 0}
-		<div class="rounded-lg border border-gray-200 bg-gray-50 p-8 text-center text-gray-600">
+		<div class="rounded-lg border border-surface-200-800 bg-[var(--color-surface-50-950)] p-8 text-center text-[var(--color-surface-600-400)]">
 			No listings match the filter.
 		</div>
 	{:else}
-		<div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
-			<table class="min-w-full divide-y divide-gray-200">
-				<thead class="bg-gray-50">
+		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 overflow-hidden">
+			<table class="min-w-full divide-y divide-surface-200-800">
+				<thead class="bg-[var(--color-surface-50-950)]">
 					<tr>
-						<th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-						<th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
-						<th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase min-w-48">Tags</th>
-						<th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Developer</th>
-						<th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-						<th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Featured</th>
-						<th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+						<th class="px-4 py-3 text-left text-xs font-medium text-[var(--color-surface-600-400)] uppercase">Name</th>
+						<th class="px-4 py-3 text-left text-xs font-medium text-[var(--color-surface-600-400)] uppercase">Category</th>
+						<th class="px-4 py-3 text-left text-xs font-medium text-[var(--color-surface-600-400)] uppercase min-w-48">Tags</th>
+						<th class="px-4 py-3 text-left text-xs font-medium text-[var(--color-surface-600-400)] uppercase">Developer</th>
+						<th class="px-4 py-3 text-left text-xs font-medium text-[var(--color-surface-600-400)] uppercase">Status</th>
+						<th class="px-4 py-3 text-left text-xs font-medium text-[var(--color-surface-600-400)] uppercase">Featured</th>
+						<th class="px-4 py-3 text-right text-xs font-medium text-[var(--color-surface-600-400)] uppercase">Actions</th>
 					</tr>
 				</thead>
-				<tbody class="divide-y divide-gray-200">
+				<tbody class="divide-y divide-surface-200-800">
 					{#each listings as listing}
-						<tr class="hover:bg-gray-50">
+						<tr class="hover:bg-[var(--color-surface-50-950)]">
 							<td class="px-4 py-3">
 								<a href="/marketplace/{listing._id}" target="_blank" rel="noopener noreferrer" class="font-medium text-primary-600 hover:underline">{listing.name}</a>
-								<p class="text-xs text-gray-500 line-clamp-1">{listing.description}</p>
+								<p class="text-xs text-[var(--color-surface-600-400)] line-clamp-1">{listing.description}</p>
 							</td>
-							<td class="px-4 py-3 text-sm text-gray-600">{CATEGORY_LABELS[listing.category] || listing.category}</td>
+							<td class="px-4 py-3 text-sm text-[var(--color-surface-600-400)]">{CATEGORY_LABELS[listing.category] || listing.category}</td>
 							<td class="px-4 py-3 text-sm align-top">
 								{#if editingTagsId === listing._id}
 									<div class="flex flex-col gap-1">
 										<input
 											type="text"
 											bind:value={tagEditValue}
-											class="w-full min-w-40 rounded border border-gray-300 px-2 py-1 text-xs"
+											class="w-full min-w-40 rounded border border-surface-300-700 px-2 py-1 text-xs"
 											placeholder="comma-separated"
 											disabled={savingTagsId === listing._id}
 										/>
@@ -233,14 +232,14 @@
 												type="button"
 												disabled={savingTagsId === listing._id}
 												on:click={cancelEditTags}
-												class="text-xs text-gray-500 hover:underline disabled:opacity-50"
+												class="text-xs text-[var(--color-surface-600-400)] hover:underline disabled:opacity-50"
 											>
 												Cancel
 											</button>
 										</div>
 									</div>
 								{:else}
-									<p class="text-xs text-gray-600 line-clamp-2">{listing.tags?.length ? listing.tags.join(', ') : '—'}</p>
+									<p class="text-xs text-[var(--color-surface-600-400)] line-clamp-2">{listing.tags?.length ? listing.tags.join(', ') : '—'}</p>
 									<button
 										type="button"
 										on:click={() => startEditTags(listing)}
@@ -250,7 +249,7 @@
 									</button>
 								{/if}
 							</td>
-							<td class="px-4 py-3 text-sm text-gray-600">{listing.developerName}</td>
+							<td class="px-4 py-3 text-sm text-[var(--color-surface-600-400)]">{listing.developerName}</td>
 							<td class="px-4 py-3">
 								{#if listing.isApproved}
 									<span class="inline-flex rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">Approved</span>
@@ -263,7 +262,7 @@
 									type="button"
 									disabled={togglingId === listing._id}
 									on:click={() => toggleFeatured(listing)}
-									class="text-sm {listing.featured ? 'text-primary-600' : 'text-gray-500'} hover:underline disabled:opacity-50"
+									class="text-sm {listing.featured ? 'text-primary-600' : 'text-[var(--color-surface-600-400)]'} hover:underline disabled:opacity-50"
 									title={listing.featured ? 'Remove from featured' : 'Set as featured'}
 								>
 									{listing.featured ? '★ Featured' : 'Set featured'}

@@ -21,7 +21,8 @@ export interface SiteConfig {
     activeThemeId?: string
     activeTemplate?: string // Deprecated: use frontendTemplate instead, kept for backward compatibility
     frontendTemplate?: string // Template for public-facing frontend pages
-    adminTemplate?: string // Template for admin area pages
+    /** @deprecated Ignored for UI. Always `default` in API responses and on save; admin uses a fixed Skeleton shell. */
+    adminTemplate?: string
     customColors?: {
       primary?: string
       secondary?: string
@@ -73,7 +74,8 @@ export interface SiteConfig {
   seo: {
     metaTitle: MultiLangText
     metaDescription: MultiLangText
-    metaKeywords: string[]
+    /** Comma-separated keywords per locale (same storage shape as other MultiLang text fields). */
+    metaKeywords: MultiLangText
     ogImage?: string
   }
   contact: {

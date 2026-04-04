@@ -40,6 +40,7 @@
 		getPageGridForBreakpoint,
 		getPageModulesForBreakpoint,
 		mergePageLayoutRowForBreakpointEdit,
+		resolveBreakpointForWidth,
 		type TemplateBreakpointId,
 		type ShellLayout
 	} from '$lib/template/breakpoints';
@@ -55,11 +56,19 @@
 		muted: '#6B7280'
 	};
 
-	/** Force light inputs + readable text (fixes invisible text under dark `html` / admin themes). */
-	const ADMIN_TEXT_INPUT_BASE =
-		'min-h-[2.5rem] px-3 py-2 border border-gray-300 rounded-md shadow-sm !bg-white !text-gray-900 placeholder:text-gray-500 [color-scheme:light] focus:ring-2 focus:ring-blue-500 focus:border-blue-500';
-	const ADMIN_TEXT_INPUT_CLASS = `w-full ${ADMIN_TEXT_INPUT_BASE}`;
-	const ADMIN_TEXT_INPUT_FLEX_CLASS = `flex-1 min-w-0 ${ADMIN_TEXT_INPUT_BASE}`;
+	/** Skeleton `input` / `select`; fg/bg under `[data-admin-chrome]` come from `admin-skeleton.css`. */
+	const ADMIN_TEXT_INPUT_BASE = 'input';
+	const ADMIN_TEXT_INPUT_CLASS = 'input w-full';
+	const ADMIN_TEXT_INPUT_FLEX_CLASS = 'input flex-1 min-w-0';
+	const ADMIN_SELECT_CLASS = 'select';
+	const ADMIN_SELECT_SM_CLASS = 'select text-sm';
+
+	/**
+	 * Hex #RRGGBB fields on the Color tab — `preset-filled` cards + `[color-scheme:light]` made
+	 * `--base-font-color` / generic `input` text illegible; pair explicit surface bg + fg.
+	 */
+	const ADMIN_COLOR_HEX_INPUT_CLASS =
+		'input flex-1 min-w-0 bg-[var(--color-surface-50)] text-[var(--color-surface-950)] placeholder:text-[var(--color-surface-500)] dark:bg-[var(--color-surface-900)] dark:text-[var(--color-surface-50)] dark:placeholder:text-[var(--color-surface-400)]';
 
 	export let data: PageData;
 
@@ -127,7 +136,25 @@
 	let error = '';
 	let activeTab = 'colors';
 	let hasChanges = false;
-	let previewPageType: 'home' | 'gallery' | 'album' | 'search' | 'pageBuilder' = 'home';
+	let previewPageType: 'home' | 'gallery' | 'album' | 'search' | 'header' | 'footer' = 'home';
+	type PreviewDeviceId = 'desktop' | 'tablet' | 'mobile' | 'mobileSm';
+	const PREVIEW_DEVICE_ORDER: PreviewDeviceId[] = ['desktop', 'tablet', 'mobile', 'mobileSm'];
+	const PREVIEW_DEVICE_WIDTH_PX: Record<PreviewDeviceId, number> = {
+		desktop: 1280,
+		tablet: 834,
+		mobile: 390,
+		mobileSm: 360
+	};
+	let showThemePreviewModal = false;
+	let previewDeviceId: PreviewDeviceId = 'desktop';
+	/** Match live site: same breakpoint as `viewportWidth` for this emulated width */
+	$: previewModalBreakpoint = resolveBreakpointForWidth(PREVIEW_DEVICE_WIDTH_PX[previewDeviceId]);
+	$: previewDeviceLabels = {
+		desktop: $t('admin.previewDeviceDesktop'),
+		tablet: $t('admin.previewDeviceTablet'),
+		mobile: $t('admin.previewDeviceMobile'),
+		mobileSm: $t('admin.previewDeviceMobileSmall')
+	} satisfies Record<PreviewDeviceId, string>;
 	let editingPageType: 'home' | 'gallery' | 'album' | 'search' | 'header' | 'footer' = 'home';
 	/** Shell + page grid/modules edit target (mobile-first breakpoints). */
 	let editingBreakpoint: TemplateBreakpointId = 'lg';
@@ -189,7 +216,17 @@
 		$siteConfigData?.template?.activeTemplate ||
 		'modern';
 	$: siteTemplateOverrides = $siteConfigData?.template || {};
-	
+
+	$: themeEditorDisplayName =
+		themeId && editingTheme
+			? (editingTheme.name || '').trim()
+			: (activeTemplate?.displayName || currentTemplateName || '').trim();
+
+	$: themeEditorHeadingText = $t('admin.themeEditorHeading').replace(
+		'{name}',
+		themeEditorDisplayName || $t('admin.themeFallbackName')
+	);
+
 	// Reactive: Update activeTemplate when templates or currentTemplateName changes
 	$: if (templates.length > 0 && currentTemplateName) {
 		const found = templates.find((t) => t.templateName === currentTemplateName);
@@ -1289,6 +1326,13 @@ let draggedAlbumHeaderField: string | null = null;
 		hasChanges = true;
 	}
 
+	function onThemePreviewModalKeydown(e: KeyboardEvent) {
+		if (!showThemePreviewModal || !activeTemplate) return;
+		if (e.key === 'Escape') {
+			showThemePreviewModal = false;
+		}
+	}
+
 	// Tokens for live preview (effective values)
 	$: previewTokens = activeTemplate ? {
 		colors: {
@@ -1504,39 +1548,39 @@ let draggedAlbumHeaderField: string | null = null;
 </script>
 
 <svelte:head>
-	<title>{$t('admin.themeBuilder')} - {$t('navigation.admin')}</title>
+	<title>{themeEditorHeadingText} - {$t('navigation.admin')}</title>
 </svelte:head>
 
-<div class="min-h-screen bg-gray-50 py-8">
+<svelte:window on:keydown={onThemePreviewModalKeydown} />
+
+<div class="py-8">
 	<div class="max-w-[1600px] mx-auto px-4">
-		<div class="bg-white rounded-lg shadow-md p-6">
+		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
 			<!-- Header -->
-			<div class="flex items-center justify-between mb-6">
-				<div class="flex items-center gap-4">
+			<div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-6">
+				<div>
+					<h1 class="text-2xl font-bold text-[var(--color-surface-950-50)]">{themeEditorHeadingText}</h1>
+				</div>
+				<div class="flex flex-wrap items-center gap-2 sm:justify-end">
 					<a
 						href="/admin/templates"
-						class="text-blue-600 hover:text-blue-800 text-sm font-medium"
+						class="inline-flex items-center justify-center px-4 py-2 border border-surface-300-700 rounded-md shadow-sm text-sm font-medium text-[var(--color-surface-800-200)] bg-[var(--color-surface-50-950)] hover:bg-[var(--color-surface-50-950)]"
 					>
 						{$t('admin.backToTemplates')}
 					</a>
-					<div>
-						<h1 class="text-2xl font-bold text-gray-900">{$t('admin.themeBuilder')}</h1>
-						<p class="text-gray-600 mt-1">
-							{themeId && editingTheme
-								? $t('admin.editingTheme').replace('{name}', editingTheme.name || $t('admin.themeFallbackName'))
-								: $t('admin.customizeActiveTemplate').replace(
-										'{name}',
-										activeTemplate?.displayName || currentTemplateName
-								  )}
-						</p>
-					</div>
-				</div>
-				<div class="flex gap-2">
+					<button
+						type="button"
+						disabled={loading || !activeTemplate}
+						on:click={() => (showThemePreviewModal = true)}
+						class="inline-flex items-center justify-center px-4 py-2 border border-indigo-200 rounded-md shadow-sm text-sm font-medium text-indigo-800 bg-indigo-50 hover:bg-indigo-100 disabled:opacity-50 disabled:cursor-not-allowed"
+					>
+						{$t('admin.openLivePreview')}
+					</button>
 					{#if hasChanges}
 						<button
 							type="button"
 							on:click={cancelChanges}
-							class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm font-medium"
+							class="px-4 py-2 bg-[var(--color-surface-200-800)] text-[var(--color-surface-800-200)] rounded-md hover:bg-[var(--color-surface-300-700)] text-sm font-medium"
 						>
 							{$t('admin.cancel')}
 						</button>
@@ -1559,7 +1603,7 @@ let draggedAlbumHeaderField: string | null = null;
 						type="button"
 						on:click={saveOverrides}
 						disabled={!hasChanges || saving}
-						class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm font-medium"
+						class="px-4 py-2 bg-[var(--color-primary-600)] text-white rounded-md hover:bg-[var(--color-primary-700)] disabled:opacity-50 text-sm font-medium"
 					>
 						{#if saving}
 							{$t('admin.saving')}
@@ -1579,64 +1623,31 @@ let draggedAlbumHeaderField: string | null = null;
 			{/if}
 
 			{#if hasOverrides()}
-				<div class="mb-4 p-4 rounded-md bg-blue-50 text-blue-700 text-sm">
+				<div class="mb-4 p-4 rounded-md bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] text-[var(--color-primary-700)] text-sm">
 					{$t('admin.templateHasOverridesInfo')}
 				</div>
 			{/if}
 
 			{#if loading}
 				<div class="text-center py-8">
-					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-					<p class="mt-2 text-gray-600">{$t('admin.loadingTemplateOverrides')}</p>
+					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--color-primary-600)]"></div>
+					<p class="mt-2 text-[var(--color-surface-600-400)]">{$t('admin.loadingTemplateOverrides')}</p>
 				</div>
 			{:else if !activeTemplate}
 				<div class="text-center py-8">
-					<p class="text-gray-600">{$t('admin.noActiveTemplateFound')}</p>
+					<p class="text-[var(--color-surface-600-400)]">{$t('admin.noActiveTemplateFound')}</p>
 				</div>
 			{:else}
-				<!-- Base palette presets -->
-				<div class="mb-6">
-					<h3 class="text-sm font-medium text-gray-700 mb-2">{$t('admin.basePalette')}</h3>
-					<div class="flex flex-wrap gap-2">
-						{#each ['light', 'dark', 'highContrast', 'muted'] as key}
-							{@const preset = PALETTE_PRESETS[key]}
-							<button
-								type="button"
-								on:click={() => applyPalette(key)}
-								class="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 hover:border-blue-400 hover:bg-blue-50 text-sm font-medium transition-colors"
-							>
-								<span class="flex gap-0.5">
-									{#each ['primary', 'secondary', 'accent'] as c}
-										<span
-											class="w-4 h-4 rounded-full border border-gray-300"
-											style="background-color: {preset.colors[c]}"
-										></span>
-									{/each}
-								</span>
-								{key === 'light'
-									? $t('admin.basePaletteLight')
-									: key === 'dark'
-									? $t('admin.basePaletteDark')
-									: key === 'highContrast'
-									? $t('admin.basePaletteHighContrast')
-									: $t('admin.basePaletteMuted')}
-							</button>
-						{/each}
-					</div>
-				</div>
-
-				<!-- Two-panel layout: controls left, preview right -->
-				<div class="flex gap-8 flex-col lg:flex-row">
-					<div class="flex-1 min-w-0">
+				<div class="min-w-0">
 						<!-- Tabs -->
-				<div class="border-b border-gray-200 mb-6">
+				<div class="border-b border-surface-200-800 mb-6">
 					<nav class="-mb-px flex space-x-8">
 						<button
 							type="button"
 							on:click={() => (activeTab = 'colors')}
 							class="py-4 px-1 border-b-2 font-medium text-sm {activeTab === 'colors'
-								? 'border-blue-500 text-blue-600'
-								: 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}"
+								? 'border-[var(--color-primary-500)] text-[var(--color-primary-600)]'
+								: 'border-transparent text-[var(--color-surface-600-400)] hover:text-[var(--color-surface-800-200)] hover:border-surface-300-700'}"
 						>
 							🎨 Colors
 						</button>
@@ -1644,8 +1655,8 @@ let draggedAlbumHeaderField: string | null = null;
 							type="button"
 							on:click={() => (activeTab = 'fonts')}
 							class="py-4 px-1 border-b-2 font-medium text-sm {activeTab === 'fonts'
-								? 'border-blue-500 text-blue-600'
-								: 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}"
+								? 'border-[var(--color-primary-500)] text-[var(--color-primary-600)]'
+								: 'border-transparent text-[var(--color-surface-600-400)] hover:text-[var(--color-surface-800-200)] hover:border-surface-300-700'}"
 						>
 							🔤 Fonts
 						</button>
@@ -1653,8 +1664,8 @@ let draggedAlbumHeaderField: string | null = null;
 							type="button"
 							on:click={() => (activeTab = 'layout')}
 							class="py-4 px-1 border-b-2 font-medium text-sm {activeTab === 'layout'
-								? 'border-blue-500 text-blue-600'
-								: 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}"
+								? 'border-[var(--color-primary-500)] text-[var(--color-primary-600)]'
+								: 'border-transparent text-[var(--color-surface-600-400)] hover:text-[var(--color-surface-800-200)] hover:border-surface-300-700'}"
 						>
 							📐 Layout
 						</button>
@@ -1663,8 +1674,8 @@ let draggedAlbumHeaderField: string | null = null;
 								type="button"
 								on:click={() => (activeTab = 'pages')}
 								class="py-4 px-1 border-b-2 font-medium text-sm {activeTab === 'pages'
-									? 'border-blue-500 text-blue-600'
-									: 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}"
+									? 'border-[var(--color-primary-500)] text-[var(--color-primary-600)]'
+									: 'border-transparent text-[var(--color-surface-600-400)] hover:text-[var(--color-surface-800-200)] hover:border-surface-300-700'}"
 							>
 								📄 Pages
 							</button>
@@ -1672,13 +1683,56 @@ let draggedAlbumHeaderField: string | null = null;
 					</nav>
 				</div>
 
+				<p class="text-xs text-[var(--color-surface-600-400)] mb-4 max-w-3xl leading-relaxed">
+					{$t('admin.themeEditorTabsHint')}
+				</p>
+
 				<!-- Tab Content -->
 				{#if activeTab === 'colors'}
-					<div class="space-y-6 [color-scheme:light]">
-						<h2 class="text-xl font-semibold text-gray-900">Color Customization</h2>
-						<p class="text-sm text-gray-600 mb-4">
+					<div class="space-y-6">
+						<h2 class="text-xl font-semibold text-[var(--heading-font-color)]">Color Customization</h2>
+						<p class="text-sm text-[var(--color-surface-600-400)] mb-4">
 							Customize the color scheme for your site. Each color is used by specific UI elements as described below.
 						</p>
+
+						<div
+							class="card preset-filled-surface-100-900 border border-[color:color-mix(in_oklab,var(--color-primary-500)_22%,transparent)] px-4 py-3 space-y-2"
+							aria-label={$t('admin.themeColorPresetsHeading')}
+						>
+							<h3 class="text-sm font-semibold text-[var(--heading-font-color)]">
+								{$t('admin.themeColorPresetsHeading')}
+							</h3>
+							<p class="text-xs text-[var(--color-surface-600-400)] leading-relaxed">
+								{$t('admin.themeColorPresetsHelp')}
+							</p>
+							<div class="flex flex-wrap gap-2 pt-1">
+								{#each ['light', 'dark', 'highContrast', 'muted'] as key}
+									{@const preset = PALETTE_PRESETS[key]}
+									<button
+										type="button"
+										on:click={() => applyPalette(key)}
+										class="btn btn-sm preset-outlined-surface-200-800 inline-flex items-center gap-2 shadow-sm"
+									>
+										<span class="flex gap-0.5" aria-hidden="true">
+											{#each ['primary', 'secondary', 'accent'] as c}
+												<span
+													class="w-4 h-4 rounded-full border border-surface-300-700"
+													style="background-color: {preset.colors[c]}"
+												></span>
+											{/each}
+										</span>
+										{key === 'light'
+											? $t('admin.basePaletteLight')
+											: key === 'dark'
+												? $t('admin.basePaletteDark')
+												: key === 'highContrast'
+													? $t('admin.basePaletteHighContrast')
+													: $t('admin.basePaletteMuted')}
+									</button>
+								{/each}
+							</div>
+						</div>
+
 						<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 							{#each [
 								{ 
@@ -1713,15 +1767,15 @@ let draggedAlbumHeaderField: string | null = null;
 								}
 							] as colorInfo}
 								{@const currentColor = colorValues[colorInfo.type] || getEffectiveColor(colorInfo.type)}
-								<div class="border border-gray-200 rounded-lg p-4 bg-white text-gray-900">
-									<label class="block text-sm font-medium text-gray-900 mb-2">
-										{colorInfo.label}
-									</label>
-									<p class="text-xs text-gray-600 mb-3">
+								<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-4 min-w-0">
+									<span class="label-text text-[var(--base-font-color)]">{colorInfo.label}</span>
+									<p class="text-xs text-[var(--color-surface-600-400)] mb-3 mt-1">
 										{colorInfo.description}
 									</p>
 									<div class="flex gap-2 items-stretch">
-										<div class="shrink-0 flex items-center rounded-md border border-gray-300 bg-white p-1 shadow-sm">
+										<div
+											class="[color-scheme:light] shrink-0 flex items-center rounded-[var(--radius-base)] border border-[color:color-mix(in_oklab,var(--color-surface-950)_14%,transparent)] dark:border-[color:color-mix(in_oklab,var(--color-surface-50)_16%,transparent)] preset-filled-surface-50-950 p-1"
+										>
 											<input
 												type="color"
 												value={currentColor}
@@ -1737,10 +1791,10 @@ let draggedAlbumHeaderField: string | null = null;
 											placeholder={DEFAULT_COLOR_HEX[colorInfo.type] ?? '#3B82F6'}
 											autocomplete="off"
 											spellcheck="false"
-											class={ADMIN_TEXT_INPUT_FLEX_CLASS}
+											class={ADMIN_COLOR_HEX_INPUT_CLASS}
 										/>
 									</div>
-									<p class="mt-2 text-xs text-gray-500">
+									<p class="mt-2 text-xs text-[var(--color-surface-600-400)]">
 										Template default: {activeTemplate.colors[colorInfo.type] ?? DEFAULT_COLOR_HEX[colorInfo.type]}
 									</p>
 								</div>
@@ -1749,271 +1803,355 @@ let draggedAlbumHeaderField: string | null = null;
 					</div>
 				{:else if activeTab === 'fonts'}
 					<div class="space-y-6">
-						<h2 class="text-xl font-semibold text-gray-900">Font Customization</h2>
-						<p class="text-sm text-gray-600">
-							Choose from popular Google Fonts (loaded automatically), or use <strong>Custom</strong> for a system or self-hosted font: enter the exact CSS font-family name and ensure the font is loaded on your site (e.g. in <code class="px-1 py-0.5 bg-gray-100 rounded text-xs">app.html</code> or global CSS).
+						<h2 class="text-xl font-semibold text-[var(--heading-font-color)]">Font Customization</h2>
+						<p class="text-sm text-[var(--color-surface-600-400)]">
+							Choose from popular Google Fonts (loaded automatically), or use <strong>Custom</strong> for a system or self-hosted font: enter the exact CSS font-family name and ensure the font is loaded on your site (e.g. in <code class="rounded px-1 py-0.5 text-xs preset-filled-surface-200-800">app.html</code> or global CSS).
 						</p>
 						<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 							<div>
-								<label class="block text-sm font-medium text-gray-700 mb-2">
-									Heading Font
+								<label class="label">
+									<span class="label-text">Heading Font</span>
+									<select
+										value={GOOGLE_FONT_NAMES.has(getEffectiveFont('heading')) ? getEffectiveFont('heading') : '__custom__'}
+										on:change={(e) => {
+											const v = (e.currentTarget as HTMLSelectElement).value;
+											if (v !== '__custom__') updateFontFamily('heading', v);
+										}}
+										class={ADMIN_SELECT_CLASS}
+									>
+										{#each GOOGLE_FONTS as font}
+											<option value={font.value}>{font.label}</option>
+										{/each}
+										<option value="__custom__">Custom…</option>
+									</select>
 								</label>
-								<select
-									value={GOOGLE_FONT_NAMES.has(getEffectiveFont('heading')) ? getEffectiveFont('heading') : '__custom__'}
-									on:change={(e) => {
-										const v = (e.currentTarget as HTMLSelectElement).value;
-										if (v !== '__custom__') updateFontFamily('heading', v);
-									}}
-									class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-								>
-									{#each GOOGLE_FONTS as font}
-										<option value={font.value}>{font.label}</option>
-									{/each}
-									<option value="__custom__">Custom…</option>
-								</select>
 								{#if !GOOGLE_FONT_NAMES.has(getEffectiveFont('heading'))}
 									<input
 										type="text"
 										value={getEffectiveFont('heading')}
 										on:input={(e) => updateFontFamily('heading', (e.currentTarget as HTMLInputElement).value)}
 										placeholder="e.g. Inter, My Custom Font"
-										class="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+										class={`mt-2 ${ADMIN_TEXT_INPUT_CLASS}`}
 									/>
 								{/if}
 								<div class="mt-2 grid grid-cols-2 gap-2">
 									<div>
-										<label class="block text-xs font-medium text-gray-500 mb-1">Size</label>
-										<select
-											value={getFontSizeOverride('heading')}
-											on:change={(e) => updateFontSize('heading', (e.currentTarget as HTMLSelectElement).value)}
-											class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500"
-										>
-											{#each FONT_SIZE_OPTIONS as opt}
-												<option value={opt.value}>{opt.label}</option>
-											{/each}
-										</select>
+										<label class="label">
+											<span class="label-text opacity-80">Size</span>
+											<select
+												value={getFontSizeOverride('heading')}
+												on:change={(e) => updateFontSize('heading', (e.currentTarget as HTMLSelectElement).value)}
+												class={ADMIN_SELECT_SM_CLASS}
+											>
+												{#each FONT_SIZE_OPTIONS as opt}
+													<option value={opt.value}>{opt.label}</option>
+												{/each}
+											</select>
+										</label>
 									</div>
 									<div>
-										<label class="block text-xs font-medium text-gray-500 mb-1">Weight</label>
-										<select
-											value={getFontWeightOverride('heading')}
-											on:change={(e) => updateFontWeight('heading', (e.currentTarget as HTMLSelectElement).value)}
-											class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500"
-										>
-											{#each FONT_WEIGHT_OPTIONS as opt}
-												<option value={opt.value}>{opt.label}</option>
-											{/each}
-										</select>
+										<label class="label">
+											<span class="label-text opacity-80">Weight</span>
+											<select
+												value={getFontWeightOverride('heading')}
+												on:change={(e) => updateFontWeight('heading', (e.currentTarget as HTMLSelectElement).value)}
+												class={ADMIN_SELECT_SM_CLASS}
+											>
+												{#each FONT_WEIGHT_OPTIONS as opt}
+													<option value={opt.value}>{opt.label}</option>
+												{/each}
+											</select>
+										</label>
 									</div>
 								</div>
-								<p class="mt-1 text-xs text-gray-500">Default: {getDefaultFontFamily('heading')}</p>
+								<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">Default: {getDefaultFontFamily('heading')}</p>
 							</div>
 							<div>
-								<label class="block text-sm font-medium text-gray-700 mb-2">
-									Body Font
+								<label class="label">
+									<span class="label-text">Body Font</span>
+									<select
+										value={GOOGLE_FONT_NAMES.has(getEffectiveFont('body')) ? getEffectiveFont('body') : '__custom__'}
+										on:change={(e) => {
+											const v = (e.currentTarget as HTMLSelectElement).value;
+											if (v !== '__custom__') updateFontFamily('body', v);
+										}}
+										class={ADMIN_SELECT_CLASS}
+									>
+										{#each GOOGLE_FONTS as font}
+											<option value={font.value}>{font.label}</option>
+										{/each}
+										<option value="__custom__">Custom…</option>
+									</select>
 								</label>
-								<select
-									value={GOOGLE_FONT_NAMES.has(getEffectiveFont('body')) ? getEffectiveFont('body') : '__custom__'}
-									on:change={(e) => {
-										const v = (e.currentTarget as HTMLSelectElement).value;
-										if (v !== '__custom__') updateFontFamily('body', v);
-									}}
-									class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-								>
-									{#each GOOGLE_FONTS as font}
-										<option value={font.value}>{font.label}</option>
-									{/each}
-									<option value="__custom__">Custom…</option>
-								</select>
 								{#if !GOOGLE_FONT_NAMES.has(getEffectiveFont('body'))}
 									<input
 										type="text"
 										value={getEffectiveFont('body')}
 										on:input={(e) => updateFontFamily('body', (e.currentTarget as HTMLInputElement).value)}
 										placeholder="e.g. Inter, My Custom Font"
-										class="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+										class={`mt-2 ${ADMIN_TEXT_INPUT_CLASS}`}
 									/>
 								{/if}
 								<div class="mt-2 grid grid-cols-2 gap-2">
-									<div><label class="block text-xs font-medium text-gray-500 mb-1">Size</label>
-										<select value={getFontSizeOverride('body')} on:change={(e) => updateFontSize('body', (e.currentTarget as HTMLSelectElement).value)} class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500">
-											{#each FONT_SIZE_OPTIONS as opt}<option value={opt.value}>{opt.label}</option>{/each}
-										</select></div>
-									<div><label class="block text-xs font-medium text-gray-500 mb-1">Weight</label>
-										<select value={getFontWeightOverride('body')} on:change={(e) => updateFontWeight('body', (e.currentTarget as HTMLSelectElement).value)} class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500">
-											{#each FONT_WEIGHT_OPTIONS as opt}<option value={opt.value}>{opt.label}</option>{/each}
-										</select></div>
+									<div>
+										<label class="label">
+											<span class="label-text opacity-80">Size</span>
+											<select
+												value={getFontSizeOverride('body')}
+												on:change={(e) => updateFontSize('body', (e.currentTarget as HTMLSelectElement).value)}
+												class={ADMIN_SELECT_SM_CLASS}
+											>
+												{#each FONT_SIZE_OPTIONS as opt}<option value={opt.value}>{opt.label}</option>{/each}
+											</select>
+										</label>
+									</div>
+									<div>
+										<label class="label">
+											<span class="label-text opacity-80">Weight</span>
+											<select
+												value={getFontWeightOverride('body')}
+												on:change={(e) => updateFontWeight('body', (e.currentTarget as HTMLSelectElement).value)}
+												class={ADMIN_SELECT_SM_CLASS}
+											>
+												{#each FONT_WEIGHT_OPTIONS as opt}<option value={opt.value}>{opt.label}</option>{/each}
+											</select>
+										</label>
+									</div>
 								</div>
-								<p class="mt-1 text-xs text-gray-500">Default: {getDefaultFontFamily('body')}</p>
+								<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">Default: {getDefaultFontFamily('body')}</p>
 							</div>
 							<div>
-								<label class="block text-sm font-medium text-gray-700 mb-2">
-									Links
+								<label class="label">
+									<span class="label-text">Links</span>
+									<select
+										value={GOOGLE_FONT_NAMES.has(getEffectiveFont('links')) ? getEffectiveFont('links') : '__custom__'}
+										on:change={(e) => {
+											const v = (e.currentTarget as HTMLSelectElement).value;
+											if (v !== '__custom__') updateFontFamily('links', v);
+										}}
+										class={ADMIN_SELECT_CLASS}
+									>
+										{#each GOOGLE_FONTS as font}
+											<option value={font.value}>{font.label}</option>
+										{/each}
+										<option value="__custom__">Custom…</option>
+									</select>
 								</label>
-								<select
-									value={GOOGLE_FONT_NAMES.has(getEffectiveFont('links')) ? getEffectiveFont('links') : '__custom__'}
-									on:change={(e) => {
-										const v = (e.currentTarget as HTMLSelectElement).value;
-										if (v !== '__custom__') updateFontFamily('links', v);
-									}}
-									class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-								>
-									{#each GOOGLE_FONTS as font}
-										<option value={font.value}>{font.label}</option>
-									{/each}
-									<option value="__custom__">Custom…</option>
-								</select>
 								{#if !GOOGLE_FONT_NAMES.has(getEffectiveFont('links'))}
 									<input
 										type="text"
 										value={getEffectiveFont('links')}
 										on:input={(e) => updateFontFamily('links', (e.currentTarget as HTMLInputElement).value)}
 										placeholder="e.g. Inter, My Custom Font"
-										class="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+										class={`mt-2 ${ADMIN_TEXT_INPUT_CLASS}`}
 									/>
 								{/if}
 								<div class="mt-2 grid grid-cols-2 gap-2">
-									<div><label class="block text-xs font-medium text-gray-500 mb-1">Size</label>
-										<select value={getFontSizeOverride('links')} on:change={(e) => updateFontSize('links', (e.currentTarget as HTMLSelectElement).value)} class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500">
-											{#each FONT_SIZE_OPTIONS as opt}<option value={opt.value}>{opt.label}</option>{/each}
-										</select></div>
-									<div><label class="block text-xs font-medium text-gray-500 mb-1">Weight</label>
-										<select value={getFontWeightOverride('links')} on:change={(e) => updateFontWeight('links', (e.currentTarget as HTMLSelectElement).value)} class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500">
-											{#each FONT_WEIGHT_OPTIONS as opt}<option value={opt.value}>{opt.label}</option>{/each}
-										</select></div>
+									<div>
+										<label class="label">
+											<span class="label-text opacity-80">Size</span>
+											<select
+												value={getFontSizeOverride('links')}
+												on:change={(e) => updateFontSize('links', (e.currentTarget as HTMLSelectElement).value)}
+												class={ADMIN_SELECT_SM_CLASS}
+											>
+												{#each FONT_SIZE_OPTIONS as opt}<option value={opt.value}>{opt.label}</option>{/each}
+											</select>
+										</label>
+									</div>
+									<div>
+										<label class="label">
+											<span class="label-text opacity-80">Weight</span>
+											<select
+												value={getFontWeightOverride('links')}
+												on:change={(e) => updateFontWeight('links', (e.currentTarget as HTMLSelectElement).value)}
+												class={ADMIN_SELECT_SM_CLASS}
+											>
+												{#each FONT_WEIGHT_OPTIONS as opt}<option value={opt.value}>{opt.label}</option>{/each}
+											</select>
+										</label>
+									</div>
 								</div>
-								<p class="mt-1 text-xs text-gray-500">Default: {getDefaultFontFamily('links')}</p>
+								<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">Default: {getDefaultFontFamily('links')}</p>
 							</div>
 							<div>
-								<label class="block text-sm font-medium text-gray-700 mb-2">
-									Lists
+								<label class="label">
+									<span class="label-text">Lists</span>
+									<select
+										value={GOOGLE_FONT_NAMES.has(getEffectiveFont('lists')) ? getEffectiveFont('lists') : '__custom__'}
+										on:change={(e) => {
+											const v = (e.currentTarget as HTMLSelectElement).value;
+											if (v !== '__custom__') updateFontFamily('lists', v);
+										}}
+										class={ADMIN_SELECT_CLASS}
+									>
+										{#each GOOGLE_FONTS as font}
+											<option value={font.value}>{font.label}</option>
+										{/each}
+										<option value="__custom__">Custom…</option>
+									</select>
 								</label>
-								<select
-									value={GOOGLE_FONT_NAMES.has(getEffectiveFont('lists')) ? getEffectiveFont('lists') : '__custom__'}
-									on:change={(e) => {
-										const v = (e.currentTarget as HTMLSelectElement).value;
-										if (v !== '__custom__') updateFontFamily('lists', v);
-									}}
-									class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-								>
-									{#each GOOGLE_FONTS as font}
-										<option value={font.value}>{font.label}</option>
-									{/each}
-									<option value="__custom__">Custom…</option>
-								</select>
 								{#if !GOOGLE_FONT_NAMES.has(getEffectiveFont('lists'))}
 									<input
 										type="text"
 										value={getEffectiveFont('lists')}
 										on:input={(e) => updateFontFamily('lists', (e.currentTarget as HTMLInputElement).value)}
 										placeholder="e.g. Inter, My Custom Font"
-										class="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+										class={`mt-2 ${ADMIN_TEXT_INPUT_CLASS}`}
 									/>
 								{/if}
 								<div class="mt-2 grid grid-cols-2 gap-2">
-									<div><label class="block text-xs font-medium text-gray-500 mb-1">Size</label>
-										<select value={getFontSizeOverride('lists')} on:change={(e) => updateFontSize('lists', (e.currentTarget as HTMLSelectElement).value)} class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500">
-											{#each FONT_SIZE_OPTIONS as opt}<option value={opt.value}>{opt.label}</option>{/each}
-										</select></div>
-									<div><label class="block text-xs font-medium text-gray-500 mb-1">Weight</label>
-										<select value={getFontWeightOverride('lists')} on:change={(e) => updateFontWeight('lists', (e.currentTarget as HTMLSelectElement).value)} class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500">
-											{#each FONT_WEIGHT_OPTIONS as opt}<option value={opt.value}>{opt.label}</option>{/each}
-										</select></div>
+									<div>
+										<label class="label">
+											<span class="label-text opacity-80">Size</span>
+											<select
+												value={getFontSizeOverride('lists')}
+												on:change={(e) => updateFontSize('lists', (e.currentTarget as HTMLSelectElement).value)}
+												class={ADMIN_SELECT_SM_CLASS}
+											>
+												{#each FONT_SIZE_OPTIONS as opt}<option value={opt.value}>{opt.label}</option>{/each}
+											</select>
+										</label>
+									</div>
+									<div>
+										<label class="label">
+											<span class="label-text opacity-80">Weight</span>
+											<select
+												value={getFontWeightOverride('lists')}
+												on:change={(e) => updateFontWeight('lists', (e.currentTarget as HTMLSelectElement).value)}
+												class={ADMIN_SELECT_SM_CLASS}
+											>
+												{#each FONT_WEIGHT_OPTIONS as opt}<option value={opt.value}>{opt.label}</option>{/each}
+											</select>
+										</label>
+									</div>
 								</div>
-								<p class="mt-1 text-xs text-gray-500">Default: {getDefaultFontFamily('lists')}</p>
+								<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">Default: {getDefaultFontFamily('lists')}</p>
 							</div>
 							<div>
-								<label class="block text-sm font-medium text-gray-700 mb-2">
-									Form inputs
+								<label class="label">
+									<span class="label-text">Form inputs</span>
+									<select
+										value={GOOGLE_FONT_NAMES.has(getEffectiveFont('formInputs')) ? getEffectiveFont('formInputs') : '__custom__'}
+										on:change={(e) => {
+											const v = (e.currentTarget as HTMLSelectElement).value;
+											if (v !== '__custom__') updateFontFamily('formInputs', v);
+										}}
+										class={ADMIN_SELECT_CLASS}
+									>
+										{#each GOOGLE_FONTS as font}
+											<option value={font.value}>{font.label}</option>
+										{/each}
+										<option value="__custom__">Custom…</option>
+									</select>
 								</label>
-								<select
-									value={GOOGLE_FONT_NAMES.has(getEffectiveFont('formInputs')) ? getEffectiveFont('formInputs') : '__custom__'}
-									on:change={(e) => {
-										const v = (e.currentTarget as HTMLSelectElement).value;
-										if (v !== '__custom__') updateFontFamily('formInputs', v);
-									}}
-									class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-								>
-									{#each GOOGLE_FONTS as font}
-										<option value={font.value}>{font.label}</option>
-									{/each}
-									<option value="__custom__">Custom…</option>
-								</select>
 								{#if !GOOGLE_FONT_NAMES.has(getEffectiveFont('formInputs'))}
 									<input
 										type="text"
 										value={getEffectiveFont('formInputs')}
 										on:input={(e) => updateFontFamily('formInputs', (e.currentTarget as HTMLInputElement).value)}
 										placeholder="e.g. Inter, My Custom Font"
-										class="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+										class={`mt-2 ${ADMIN_TEXT_INPUT_CLASS}`}
 									/>
 								{/if}
 								<div class="mt-2 grid grid-cols-2 gap-2">
-									<div><label class="block text-xs font-medium text-gray-500 mb-1">Size</label>
-										<select value={getFontSizeOverride('formInputs')} on:change={(e) => updateFontSize('formInputs', (e.currentTarget as HTMLSelectElement).value)} class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500">
-											{#each FONT_SIZE_OPTIONS as opt}<option value={opt.value}>{opt.label}</option>{/each}
-										</select></div>
-									<div><label class="block text-xs font-medium text-gray-500 mb-1">Weight</label>
-										<select value={getFontWeightOverride('formInputs')} on:change={(e) => updateFontWeight('formInputs', (e.currentTarget as HTMLSelectElement).value)} class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500">
-											{#each FONT_WEIGHT_OPTIONS as opt}<option value={opt.value}>{opt.label}</option>{/each}
-										</select></div>
+									<div>
+										<label class="label">
+											<span class="label-text opacity-80">Size</span>
+											<select
+												value={getFontSizeOverride('formInputs')}
+												on:change={(e) => updateFontSize('formInputs', (e.currentTarget as HTMLSelectElement).value)}
+												class={ADMIN_SELECT_SM_CLASS}
+											>
+												{#each FONT_SIZE_OPTIONS as opt}<option value={opt.value}>{opt.label}</option>{/each}
+											</select>
+										</label>
+									</div>
+									<div>
+										<label class="label">
+											<span class="label-text opacity-80">Weight</span>
+											<select
+												value={getFontWeightOverride('formInputs')}
+												on:change={(e) => updateFontWeight('formInputs', (e.currentTarget as HTMLSelectElement).value)}
+												class={ADMIN_SELECT_SM_CLASS}
+											>
+												{#each FONT_WEIGHT_OPTIONS as opt}<option value={opt.value}>{opt.label}</option>{/each}
+											</select>
+										</label>
+									</div>
 								</div>
-								<p class="mt-1 text-xs text-gray-500">Default: {getDefaultFontFamily('formInputs')}</p>
+								<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">Default: {getDefaultFontFamily('formInputs')}</p>
 							</div>
 							<div>
-								<label class="block text-sm font-medium text-gray-700 mb-2">
-									Form labels
+								<label class="label">
+									<span class="label-text">Form labels</span>
+									<select
+										value={GOOGLE_FONT_NAMES.has(getEffectiveFont('formLabels')) ? getEffectiveFont('formLabels') : '__custom__'}
+										on:change={(e) => {
+											const v = (e.currentTarget as HTMLSelectElement).value;
+											if (v !== '__custom__') updateFontFamily('formLabels', v);
+										}}
+										class={ADMIN_SELECT_CLASS}
+									>
+										{#each GOOGLE_FONTS as font}
+											<option value={font.value}>{font.label}</option>
+										{/each}
+										<option value="__custom__">Custom…</option>
+									</select>
 								</label>
-								<select
-									value={GOOGLE_FONT_NAMES.has(getEffectiveFont('formLabels')) ? getEffectiveFont('formLabels') : '__custom__'}
-									on:change={(e) => {
-										const v = (e.currentTarget as HTMLSelectElement).value;
-										if (v !== '__custom__') updateFontFamily('formLabels', v);
-									}}
-									class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-								>
-									{#each GOOGLE_FONTS as font}
-										<option value={font.value}>{font.label}</option>
-									{/each}
-									<option value="__custom__">Custom…</option>
-								</select>
 								{#if !GOOGLE_FONT_NAMES.has(getEffectiveFont('formLabels'))}
 									<input
 										type="text"
 										value={getEffectiveFont('formLabels')}
 										on:input={(e) => updateFontFamily('formLabels', (e.currentTarget as HTMLInputElement).value)}
 										placeholder="e.g. Inter, My Custom Font"
-										class="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+										class={`mt-2 ${ADMIN_TEXT_INPUT_CLASS}`}
 									/>
 								{/if}
 								<div class="mt-2 grid grid-cols-2 gap-2">
-									<div><label class="block text-xs font-medium text-gray-500 mb-1">Size</label>
-										<select value={getFontSizeOverride('formLabels')} on:change={(e) => updateFontSize('formLabels', (e.currentTarget as HTMLSelectElement).value)} class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500">
-											{#each FONT_SIZE_OPTIONS as opt}<option value={opt.value}>{opt.label}</option>{/each}
-										</select></div>
-									<div><label class="block text-xs font-medium text-gray-500 mb-1">Weight</label>
-										<select value={getFontWeightOverride('formLabels')} on:change={(e) => updateFontWeight('formLabels', (e.currentTarget as HTMLSelectElement).value)} class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md shadow-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500">
-											{#each FONT_WEIGHT_OPTIONS as opt}<option value={opt.value}>{opt.label}</option>{/each}
-										</select></div>
+									<div>
+										<label class="label">
+											<span class="label-text opacity-80">Size</span>
+											<select
+												value={getFontSizeOverride('formLabels')}
+												on:change={(e) => updateFontSize('formLabels', (e.currentTarget as HTMLSelectElement).value)}
+												class={ADMIN_SELECT_SM_CLASS}
+											>
+												{#each FONT_SIZE_OPTIONS as opt}<option value={opt.value}>{opt.label}</option>{/each}
+											</select>
+										</label>
+									</div>
+									<div>
+										<label class="label">
+											<span class="label-text opacity-80">Weight</span>
+											<select
+												value={getFontWeightOverride('formLabels')}
+												on:change={(e) => updateFontWeight('formLabels', (e.currentTarget as HTMLSelectElement).value)}
+												class={ADMIN_SELECT_SM_CLASS}
+											>
+												{#each FONT_WEIGHT_OPTIONS as opt}<option value={opt.value}>{opt.label}</option>{/each}
+											</select>
+										</label>
+									</div>
 								</div>
-								<p class="mt-1 text-xs text-gray-500">Default: {getDefaultFontFamily('formLabels')}</p>
+								<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">Default: {getDefaultFontFamily('formLabels')}</p>
 							</div>
 						</div>
 					</div>
 				{:else if activeTab === 'layout'}
 					<div class="space-y-4">
 						<div>
-							<h2 class="text-xl font-semibold text-gray-900">Layout Customization</h2>
-							<p class="text-sm text-gray-600 mt-1">
+							<h2 class="text-xl font-semibold text-[var(--color-surface-950-50)]">Layout Customization</h2>
+							<p class="text-sm text-[var(--color-surface-600-400)] mt-1">
 								Choose a breakpoint tab. Each tab has its own max width, padding, and grid gap (stored per breakpoint).
 							</p>
 						</div>
 
 						<div
-							class="rounded-lg border border-gray-200 bg-white overflow-hidden [color-scheme:light]"
+							class="rounded-lg border border-surface-200-800 bg-[var(--color-surface-50-950)] overflow-hidden [color-scheme:light]"
 						>
 							<div
-								class="border-b border-gray-200 bg-gray-50 px-2 pt-2"
+								class="border-b border-surface-200-800 bg-[var(--color-surface-50-950)] px-2 pt-2"
 								role="tablist"
 								aria-label="Breakpoint"
 							>
@@ -2029,12 +2167,12 @@ let draggedAlbumHeaderField: string | null = null;
 											on:click={() => (editingBreakpoint = bp)}
 											class="min-w-0 flex-1 sm:flex-none px-3 py-2.5 text-sm font-medium border-b-2 transition-colors rounded-t-md
 												{editingBreakpoint === bp
-													? 'border-blue-600 text-blue-700 bg-white border-b-blue-600 z-10'
-													: 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'}"
+													? 'border-[var(--color-primary-600)] text-[var(--color-primary-700)] bg-[var(--color-surface-50-950)] border-b-[var(--color-primary-600)] z-10'
+													: 'border-transparent text-[var(--color-surface-600-400)] hover:text-[var(--color-surface-900-100)] hover:border-surface-300-700'}"
 										>
 											<span class="uppercase tracking-wide">{bp}</span>
 											<span
-												class="block text-[10px] sm:inline sm:ml-1 sm:text-xs font-normal text-gray-400"
+												class="block text-[10px] sm:inline sm:ml-1 sm:text-xs font-normal text-[var(--color-surface-400-600)]"
 												>≥{BREAKPOINT_MIN_WIDTH_PX[bp]}px</span
 											>
 										</button>
@@ -2051,7 +2189,7 @@ let draggedAlbumHeaderField: string | null = null;
 								{#key editingBreakpoint}
 									<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
 										<div>
-											<label class="block text-sm font-medium text-gray-700 mb-2" for="layout-mw-{editingBreakpoint}">
+											<label class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2" for="layout-mw-{editingBreakpoint}">
 												Max width
 											</label>
 											<input
@@ -2062,12 +2200,12 @@ let draggedAlbumHeaderField: string | null = null;
 												placeholder={SHELL_HINT_BY_BREAKPOINT[editingBreakpoint].maxWidth}
 												class={ADMIN_TEXT_INPUT_CLASS}
 											/>
-											<p class="mt-1 text-xs text-gray-500">
+											<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">
 												Pack default: {activeTemplate.layout.maxWidth} · Suggested at {editingBreakpoint}: {SHELL_HINT_BY_BREAKPOINT[editingBreakpoint].maxWidth}
 											</p>
 										</div>
 										<div>
-											<label class="block text-sm font-medium text-gray-700 mb-2" for="layout-pad-{editingBreakpoint}">
+											<label class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2" for="layout-pad-{editingBreakpoint}">
 												Container padding
 											</label>
 											<input
@@ -2078,12 +2216,12 @@ let draggedAlbumHeaderField: string | null = null;
 												placeholder={SHELL_HINT_BY_BREAKPOINT[editingBreakpoint].containerPadding}
 												class={ADMIN_TEXT_INPUT_CLASS}
 											/>
-											<p class="mt-1 text-xs text-gray-500">
+											<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">
 												Pack default: {activeTemplate.layout.containerPadding} · Suggested: {SHELL_HINT_BY_BREAKPOINT[editingBreakpoint].containerPadding}
 											</p>
 										</div>
 										<div>
-											<label class="block text-sm font-medium text-gray-700 mb-2" for="layout-gap-{editingBreakpoint}">
+											<label class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2" for="layout-gap-{editingBreakpoint}">
 												Grid gap
 											</label>
 											<input
@@ -2094,7 +2232,7 @@ let draggedAlbumHeaderField: string | null = null;
 												placeholder={SHELL_HINT_BY_BREAKPOINT[editingBreakpoint].gridGap}
 												class={ADMIN_TEXT_INPUT_CLASS}
 											/>
-											<p class="mt-1 text-xs text-gray-500">
+											<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">
 												Pack default: {activeTemplate.layout.gridGap} · Suggested: {SHELL_HINT_BY_BREAKPOINT[editingBreakpoint].gridGap}
 											</p>
 										</div>
@@ -2105,19 +2243,19 @@ let draggedAlbumHeaderField: string | null = null;
 					</div>
 				{:else if activeTab === 'pages'}
 					<div class="space-y-6">
-						<h2 class="text-xl font-semibold text-gray-900">Page structure</h2>
-						<p class="text-sm text-gray-600 max-w-3xl">
+						<h2 class="text-xl font-semibold text-[var(--color-surface-950-50)]">Page structure</h2>
+						<p class="text-sm text-[var(--color-surface-600-400)] max-w-3xl">
 							Use the <strong>page</strong> tabs to pick a route region, then the <strong>breakpoint</strong> tabs to
 							edit that page at each viewport width. Set <strong>grid</strong> rows/columns and <strong>place modules</strong>
 							per breakpoint — the live site uses the layout that matches the visitor’s screen.
 						</p>
 
 						<div
-							class="rounded-lg border border-gray-200 bg-white overflow-hidden [color-scheme:light]"
+							class="rounded-lg border border-surface-200-800 bg-[var(--color-surface-50-950)] overflow-hidden [color-scheme:light]"
 						>
 							<!-- Outer tabs: pages -->
 							<div
-								class="border-b border-gray-200 bg-slate-50 px-2 pt-2"
+								class="border-b border-surface-200-800 bg-slate-50 px-2 pt-2"
 								role="tablist"
 								aria-label="Page"
 							>
@@ -2138,8 +2276,8 @@ let draggedAlbumHeaderField: string | null = null;
 											}}
 											class="min-w-0 flex-1 sm:flex-none px-3 py-2.5 text-sm font-medium border-b-2 transition-colors rounded-t-md capitalize
 												{editingPageType === pt
-													? 'border-violet-600 text-violet-800 bg-white border-b-violet-600 z-10'
-													: 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'}"
+													? 'border-violet-600 text-violet-800 bg-[var(--color-surface-50-950)] border-b-violet-600 z-10'
+													: 'border-transparent text-[var(--color-surface-600-400)] hover:text-[var(--color-surface-900-100)] hover:border-surface-300-700'}"
 										>
 											{pt}
 										</button>
@@ -2148,7 +2286,7 @@ let draggedAlbumHeaderField: string | null = null;
 							</div>
 							<!-- Inner tabs: breakpoints -->
 							<div
-								class="border-b border-gray-200 bg-gray-50/80 px-2 pt-2"
+								class="border-b border-surface-200-800 bg-[var(--color-surface-50-950)]/80 px-2 pt-2"
 								role="tablist"
 								aria-label="Breakpoint for {editingPageType}"
 							>
@@ -2168,13 +2306,13 @@ let draggedAlbumHeaderField: string | null = null;
 											}}
 											class="min-w-0 flex-1 sm:flex-none px-3 py-2 text-sm font-medium border-b-2 transition-colors rounded-t-md
 												{editingBreakpoint === bp
-													? 'border-blue-600 text-blue-700 bg-white border-b-blue-600 z-10'
-													: 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'}
-												{sameGridToAllBreakpoints ? ' opacity-50 cursor-not-allowed hover:text-gray-500 hover:border-transparent' : ''}"
+													? 'border-[var(--color-primary-600)] text-[var(--color-primary-700)] bg-[var(--color-surface-50-950)] border-b-[var(--color-primary-600)] z-10'
+													: 'border-transparent text-[var(--color-surface-600-400)] hover:text-[var(--color-surface-900-100)] hover:border-surface-300-700'}
+												{sameGridToAllBreakpoints ? ' opacity-50 cursor-not-allowed hover:text-[var(--color-surface-600-400)] hover:border-transparent' : ''}"
 										>
 											<span class="uppercase tracking-wide">{bp}</span>
 											<span
-												class="block text-[10px] sm:inline sm:ml-1 sm:text-xs font-normal text-gray-400"
+												class="block text-[10px] sm:inline sm:ml-1 sm:text-xs font-normal text-[var(--color-surface-400-600)]"
 												>≥{BREAKPOINT_MIN_WIDTH_PX[bp]}px</span
 											>
 										</button>
@@ -2188,20 +2326,20 @@ let draggedAlbumHeaderField: string | null = null;
 								aria-labelledby="pages-tab-{editingPageType}"
 								class="p-4 sm:p-5 space-y-6"
 							>
-								<p class="text-xs text-gray-500">
-									<span class="font-medium text-gray-700 capitalize">{editingPageType}</span>
+								<p class="text-xs text-[var(--color-surface-600-400)]">
+									<span class="font-medium text-[var(--color-surface-800-200)] capitalize">{editingPageType}</span>
 									·
 									<span class="uppercase">{editingBreakpoint}</span>
-									<span class="text-gray-500">
+									<span class="text-[var(--color-surface-600-400)]">
 										(≥{BREAKPOINT_MIN_WIDTH_PX[editingBreakpoint]}px) — grid {pageGrid.gridRows} × {pageGrid.gridColumns}
 									</span>
 								</p>
 
 						{#key `${editingPageType}-${editingBreakpoint}`}
 						<!-- Grid configuration (like template builder) -->
-						<div class="bg-gray-50 p-4 rounded-lg">
+						<div class="bg-[var(--color-surface-50-950)] p-4 rounded-lg">
 							<div class="mb-3">
-								<label class="inline-flex items-center gap-2 text-sm font-medium text-gray-700">
+								<label class="inline-flex items-center gap-2 text-sm font-medium text-[var(--color-surface-800-200)]">
 									<input
 										type="checkbox"
 										checked={sameGridToAllBreakpoints}
@@ -2212,16 +2350,16 @@ let draggedAlbumHeaderField: string | null = null;
 									/>
 									Same grid to all breakpoints
 								</label>
-								<p class="mt-1 text-xs text-gray-500">
+								<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">
 									When enabled, breakpoint tabs are locked and the current grid/modules are copied to all breakpoints.
 								</p>
 							</div>
-							<h3 class="text-sm font-semibold text-gray-900 mb-3">Grid configuration</h3>
+							<h3 class="text-sm font-semibold text-[var(--color-surface-950-50)] mb-3">Grid configuration</h3>
 							{#if !showApplyCurrentBreakpointToAllBreakpoints}
-								<p class="text-xs text-gray-500 mt-2">
+								<p class="text-xs text-[var(--color-surface-600-400)] mt-2">
 									{$t('admin.allBreakpointsAlreadyMatchForPage')}
 								</p>
-								<p class="text-xs text-gray-500 mt-1">
+								<p class="text-xs text-[var(--color-surface-600-400)] mt-1">
 									{$t('admin.switchBreakpointToMakeDifferent')}
 								</p>
 							{/if}
@@ -2229,7 +2367,7 @@ let draggedAlbumHeaderField: string | null = null;
 								<div>
 									<label
 										for="grid-rows-{editingPageType}-{editingBreakpoint}"
-										class="block text-sm font-medium text-gray-700 mb-1"
+										class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-1"
 									>Rows</label>
 									<input
 										id="grid-rows-{editingPageType}-{editingBreakpoint}"
@@ -2238,13 +2376,13 @@ let draggedAlbumHeaderField: string | null = null;
 										max="20"
 										value={pageGrid.gridRows}
 										on:input={(e) => updateGridForPageType(editingPageType, parseInt((e.target as HTMLInputElement).value) || 1, undefined)}
-										class="w-full px-3 py-2 border border-gray-300 rounded-md"
+										class="w-full px-3 py-2 border border-surface-300-700 rounded-md"
 									/>
 								</div>
 								<div>
 									<label
 										for="grid-cols-{editingPageType}-{editingBreakpoint}"
-										class="block text-sm font-medium text-gray-700 mb-1"
+										class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-1"
 									>Columns</label>
 									<input
 										id="grid-cols-{editingPageType}-{editingBreakpoint}"
@@ -2253,7 +2391,7 @@ let draggedAlbumHeaderField: string | null = null;
 										max="20"
 										value={pageGrid.gridColumns}
 										on:input={(e) => updateGridForPageType(editingPageType, undefined, parseInt((e.target as HTMLInputElement).value) || 1)}
-										class="w-full px-3 py-2 border border-gray-300 rounded-md"
+										class="w-full px-3 py-2 border border-surface-300-700 rounded-md"
 									/>
 								</div>
 							</div>
@@ -2262,7 +2400,7 @@ let draggedAlbumHeaderField: string | null = null;
 									type="button"
 									title={$t('admin.applyCurrentBreakpointToAllBreakpointsHelp')}
 									on:click={() => applyCurrentBreakpointToAllForEditingPage()}
-									class="mt-3 text-sm px-3 py-1.5 border border-gray-300 text-gray-800 rounded-md hover:bg-gray-100"
+									class="mt-3 text-sm px-3 py-1.5 border border-surface-300-700 text-[var(--color-surface-900-100)] rounded-md hover:bg-[var(--color-surface-100-900)]"
 								>
 									{$t('admin.applyCurrentBreakpointToAllBreakpoints')}
 								</button>
@@ -2271,7 +2409,7 @@ let draggedAlbumHeaderField: string | null = null;
 								<button
 									type="button"
 									on:click={() => applyDefaultLayout(editingPageType)}
-									class="mt-3 text-sm px-3 py-1.5 bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+									class="mt-3 text-sm px-3 py-1.5 bg-[color-mix(in_oklab,var(--color-primary-500)_22%,transparent)] text-[var(--color-primary-700)] rounded hover:bg-[color-mix(in_oklab,var(--color-primary-500)_28%,transparent)]"
 								>
 									Use default (2 rows × 1 col: Hero + Albums Grid)
 								</button>
@@ -2281,9 +2419,9 @@ let draggedAlbumHeaderField: string | null = null;
 						{#key pageGrid.gridRows + '-' + pageGrid.gridColumns + '-' + editingBreakpoint + '-' + getModulesForPageType(editingPageType, editingBreakpoint).length}
 						<!-- Layout grid (like page builder: select cells, assign module) -->
 						<div>
-							<h3 class="text-sm font-semibold text-gray-900 mb-3">Layout grid</h3>
+							<h3 class="text-sm font-semibold text-[var(--color-surface-950-50)] mb-3">Layout grid</h3>
 							<div
-								class="gap-2 border-2 border-gray-300 p-2 bg-white select-none rounded-lg"
+								class="gap-2 border-2 border-surface-300-700 p-2 bg-[var(--color-surface-50-950)] select-none rounded-lg"
 								style="display: grid; grid-template-columns: repeat({pageGrid.gridColumns}, 1fr); grid-template-rows: repeat({pageGrid.gridRows}, minmax(80px, auto));"
 							>
 								{#each getModulesForPageType(editingPageType, editingBreakpoint) as mod (mod._id)}
@@ -2296,14 +2434,14 @@ let draggedAlbumHeaderField: string | null = null;
 										style="grid-column: {c + 1} / span {cs}; grid-row: {r + 1} / span {rs}"
 									>
 										<div class="flex flex-col h-full">
-											<p class="text-sm font-medium text-gray-900">{mod.type}</p>
+											<p class="text-sm font-medium text-[var(--color-surface-950-50)]">{mod.type}</p>
 											{#if rs > 1 || cs > 1}
-												<p class="text-xs text-gray-500 mt-1">{rs}×{cs} span</p>
+												<p class="text-xs text-[var(--color-surface-600-400)] mt-1">{rs}×{cs} span</p>
 											{/if}
 											<div class="flex gap-2 mt-2">
 												<button
 													type="button"
-													class="text-xs text-blue-600 hover:text-blue-800 font-medium"
+													class="text-xs text-[var(--color-primary-600)] hover:text-[var(--color-primary-800)] font-medium"
 													on:click|stopPropagation={() => {
 														// Deep clone the module to avoid mutating the original
 														editingModule = JSON.parse(JSON.stringify(mod));
@@ -2520,16 +2658,16 @@ let draggedAlbumHeaderField: string | null = null;
 										{:else if !mod}
 											<div
 												class="border rounded-lg p-3 min-h-[80px] transition-colors flex flex-col
-													{selected ? 'ring-2 ring-blue-500 bg-blue-50 border-blue-400' : 'border-gray-300 bg-white hover:bg-gray-50 cursor-pointer'}"
+													{selected ? 'ring-2 ring-[var(--color-primary-500)] bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] border-[color-mix(in_oklab,var(--color-primary-500)_30%,transparent)]' : 'border-surface-300-700 bg-[var(--color-surface-50-950)] hover:bg-[var(--color-surface-50-950)] cursor-pointer'}"
 												style="grid-column: {col + 1}; grid-row: {row + 1}"
 												on:click|stopPropagation={() => { if (!selected) toggleCell(row, col); }}
 											>
 												{#if selected}
 													<div class="flex-1 flex flex-col items-center justify-center gap-2 p-1">
-														<span class="text-xs text-blue-900 font-bold">Selected</span>
+														<span class="text-xs text-[var(--color-primary-900)] font-bold">Selected</span>
 														<select
 															bind:value={assignedModuleType}
-															class="text-xs border-2 border-blue-500 rounded-md px-2 py-2 w-full bg-white shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium cursor-pointer text-gray-900"
+															class="text-xs border-2 border-[var(--color-primary-500)] rounded-md px-2 py-2 w-full bg-[var(--color-surface-50-950)] shadow-md focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)] font-medium cursor-pointer text-[var(--color-surface-950-50)]"
 															on:change={(e) => {
 																e.stopPropagation();
 																const v = (e.currentTarget as HTMLSelectElement).value;
@@ -2547,7 +2685,7 @@ let draggedAlbumHeaderField: string | null = null;
 															{/each}
 														</select>
 														{#if selectedCount > 1}
-															<span class="text-xs text-blue-800 mt-0.5 font-semibold">
+															<span class="text-xs text-[var(--color-primary-800)] mt-0.5 font-semibold">
 																{selectedCount} cells → 1 module
 																{#if selectionBounds && (selectionBounds.rowSpan > 1 || selectionBounds.colSpan > 1)}
 																	({selectionBounds.rowSpan}×{selectionBounds.colSpan})
@@ -2562,7 +2700,7 @@ let draggedAlbumHeaderField: string | null = null;
 														class="flex-1 flex items-center justify-center"
 														on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleCell(row, col); } }}
 													>
-														<span class="text-xs text-gray-600 font-medium">Click to select</span>
+														<span class="text-xs text-[var(--color-surface-600-400)] font-medium">Click to select</span>
 													</div>
 												{/if}
 											</div>
@@ -2572,16 +2710,16 @@ let draggedAlbumHeaderField: string | null = null;
 							</div>
 
 							<!-- Selection toolbar (like page builder) -->
-							<div class="flex flex-wrap items-center gap-3 border-t border-gray-200 pt-4 mt-4">
+							<div class="flex flex-wrap items-center gap-3 border-t border-surface-200-800 pt-4 mt-4">
 								<button
 									type="button"
 									on:click={selectAllEmptyCells}
-									class="text-sm text-gray-600 hover:text-gray-900"
+									class="text-sm text-[var(--color-surface-600-400)] hover:text-[var(--color-surface-950-50)]"
 								>
 									Select all
 								</button>
 								{#if selectedCount > 0}
-									<span class="text-sm text-gray-600">
+									<span class="text-sm text-[var(--color-surface-600-400)]">
 										{selectedCount} cell{selectedCount !== 1 ? 's' : ''} → 1 module
 										{#if selectionBounds && (selectionBounds.rowSpan > 1 || selectionBounds.colSpan > 1)}
 											({selectionBounds.rowSpan}×{selectionBounds.colSpan})
@@ -2589,7 +2727,7 @@ let draggedAlbumHeaderField: string | null = null;
 									</span>
 									<select
 										bind:value={assignedModuleType}
-										class="text-sm border border-gray-300 rounded px-3 py-1.5"
+										class="text-sm border border-surface-300-700 rounded px-3 py-1.5"
 									>
 										<option value="">Choose module...</option>
 										{#each getAvailableModulesForPageType(editingPageType) as m}
@@ -2600,14 +2738,14 @@ let draggedAlbumHeaderField: string | null = null;
 										type="button"
 										on:click={() => handleAssignToSelected()}
 										disabled={!assignedModuleType}
-										class="px-3 py-1.5 text-sm font-medium bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+										class="px-3 py-1.5 text-sm font-medium bg-[var(--color-primary-600)] text-white rounded hover:bg-[var(--color-primary-700)] disabled:opacity-50 disabled:cursor-not-allowed"
 									>
 										Assign
 									</button>
 									<button
 										type="button"
 										on:click={clearSelection}
-										class="text-sm text-gray-600 hover:text-gray-900"
+										class="text-sm text-[var(--color-surface-600-400)] hover:text-[var(--color-surface-950-50)]"
 									>
 										Clear selection
 									</button>
@@ -2621,57 +2759,119 @@ let draggedAlbumHeaderField: string | null = null;
 					</div>
 				{/if}
 					</div>
-
-					<!-- Right panel: Live preview -->
-					<div class="lg:w-[420px] flex-shrink-0">
-						<div class="sticky top-4">
-							<h3 class="text-sm font-medium text-gray-700 mb-2">Live preview</h3>
-							<div class="flex flex-wrap gap-1 mb-2">
-								{#each ['home', 'gallery', 'album', 'search', 'header', 'footer', 'pageBuilder'] as p}
-									{@const pageKey = p as typeof previewPageType}
-									<button
-										type="button"
-										on:click={() => (previewPageType = pageKey)}
-										class="px-2 py-1 text-xs rounded {previewPageType === pageKey
-											? 'bg-blue-600 text-white'
-											: 'bg-gray-100 text-gray-700 hover:bg-gray-200'}"
-									>
-										{pageKey === 'pageBuilder' ? 'Page Builder' : pageKey.charAt(0).toUpperCase() + pageKey.slice(1)}
-									</button>
-								{/each}
-							</div>
-							{#if previewTokens}
-								<ThemeBuilderPreview 
-									tokens={previewTokens} 
-									pageType={previewPageType}
-									pageModules={getModulesForPageType(previewPageType, editingBreakpoint)}
-									pageLayout={getGridForPageType(previewPageType, editingBreakpoint)}
-								/>
-							{:else}
-								<div class="h-64 rounded-lg border border-gray-200 bg-gray-50 flex items-center justify-center text-gray-500">
-									Loading preview...
-								</div>
-							{/if}
-						</div>
-					</div>
-				</div>
 			{/if}
 		</div>
 	</div>
 </div>
 
+{#if showThemePreviewModal && activeTemplate}
+	<div
+		class="fixed inset-0 z-[70] flex items-center justify-center p-3 sm:p-6 pointer-events-auto"
+		role="dialog"
+		aria-modal="true"
+		aria-labelledby="theme-preview-modal-title"
+	>
+		<button
+			type="button"
+			class="absolute inset-0 w-full h-full bg-black/50 border-0 p-0 cursor-pointer"
+			aria-label={$t('admin.close')}
+			on:click={() => (showThemePreviewModal = false)}
+		></button>
+		<div
+			class="relative flex flex-col w-full max-w-[min(100vw-1.5rem,1400px)] max-h-[min(92vh,56rem)] card preset-outlined-surface-200-800 bg-surface-50-950 shadow-2xl overflow-hidden pointer-events-auto"
+			on:click|stopPropagation
+			role="document"
+		>
+			<div class="flex flex-wrap items-center gap-3 px-4 py-3 border-b border-surface-200-800 bg-[var(--color-surface-50-950)] shrink-0">
+				<h2 id="theme-preview-modal-title" class="text-lg font-semibold text-[var(--color-surface-950-50)]">
+					{$t('admin.themePreviewModalTitle')}
+				</h2>
+				<button
+					type="button"
+					on:click={() => (showThemePreviewModal = false)}
+					class="ml-auto px-3 py-1.5 text-sm font-medium text-[var(--color-surface-800-200)] border border-surface-300-700 rounded-md bg-[var(--color-surface-50-950)] hover:bg-[var(--color-surface-50-950)]"
+				>
+					{$t('admin.close')}
+				</button>
+			</div>
+			<div
+				class="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5 border-b border-surface-100-900 bg-[var(--color-surface-50-950)] text-sm shrink-0"
+			>
+				<div class="flex flex-wrap items-center gap-2">
+					<span class="text-[var(--color-surface-600-400)] font-medium shrink-0">{$t('admin.previewDeviceLabel')}</span>
+					<div class="flex flex-wrap gap-1.5">
+						{#each PREVIEW_DEVICE_ORDER as devId}
+							<button
+								type="button"
+								on:click={() => (previewDeviceId = devId)}
+								class="px-2.5 py-1 rounded-md text-xs font-medium border transition-colors {previewDeviceId === devId
+									? 'bg-indigo-600 text-white border-indigo-600'
+									: 'bg-[var(--color-surface-50-950)] text-[var(--color-surface-800-200)] border-surface-300-700 hover:bg-[var(--color-surface-50-950)]'}"
+							>
+								{previewDeviceLabels[devId]}
+								<span class="opacity-80 font-normal">·{PREVIEW_DEVICE_WIDTH_PX[devId]}px</span>
+							</button>
+						{/each}
+					</div>
+				</div>
+				<div class="flex flex-wrap items-center gap-2">
+					<span class="text-[var(--color-surface-600-400)] font-medium shrink-0">{$t('admin.previewPageLabel')}</span>
+					<div class="flex flex-wrap gap-1">
+						{#each ['home', 'gallery', 'album', 'search', 'header', 'footer'] as p}
+							{@const pageKey = p as typeof previewPageType}
+							<button
+								type="button"
+								on:click={() => (previewPageType = pageKey)}
+								class="px-2 py-1 text-xs rounded border transition-colors {previewPageType === pageKey
+									? 'bg-[var(--color-primary-600)] text-white border-[var(--color-primary-600)]'
+									: 'bg-[var(--color-surface-50-950)] text-[var(--color-surface-800-200)] border-surface-200-800 hover:bg-[var(--color-surface-100-900)]'}"
+							>
+								{pageKey.charAt(0).toUpperCase() + pageKey.slice(1)}
+							</button>
+						{/each}
+					</div>
+				</div>
+			</div>
+			<p class="px-4 py-2 text-xs text-[var(--color-surface-600-400)] border-b border-surface-100-900 shrink-0 bg-slate-50/80">
+				{$t('admin.previewModalHint')}
+			</p>
+			<div class="flex-1 min-h-0 overflow-auto bg-slate-200/80 p-4">
+				<div class="flex justify-center">
+					<div
+						class="bg-[var(--color-surface-50-950)] shadow-lg rounded-lg border border-surface-300-700 overflow-hidden transition-[max-width] duration-200 ease-out w-full"
+						style="max-width: {PREVIEW_DEVICE_WIDTH_PX[previewDeviceId]}px;"
+					>
+						{#if previewTokens}
+							<ThemeBuilderPreview
+								tokens={previewTokens}
+								pageType={previewPageType}
+								pageModules={getModulesForPageType(previewPageType, previewModalBreakpoint)}
+								pageLayout={getGridForPageType(previewPageType, previewModalBreakpoint)}
+							/>
+						{:else}
+							<div class="h-64 flex items-center justify-center text-[var(--color-surface-600-400)] text-sm">
+								Loading…
+							</div>
+						{/if}
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+{/if}
+
 <!-- Edit Module Modal -->
 {#if editingModule}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-labelledby="edit-module-title">
-		<div class="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-			<div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-				<h2 id="edit-module-title" class="text-lg font-semibold text-gray-900">
+		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+			<div class="sticky top-0 bg-[var(--color-surface-50-950)] border-b border-surface-200-800 px-6 py-4 flex items-center justify-between">
+				<h2 id="edit-module-title" class="text-lg font-semibold text-[var(--color-surface-950-50)]">
 					Edit {getModuleLabel(editingModule.type)}
 				</h2>
 				<button
 					type="button"
 					on:click={() => editingModule = null}
-					class="text-gray-400 hover:text-gray-600"
+					class="text-[var(--color-surface-400-600)] hover:text-[var(--color-surface-600-400)]"
 					aria-label="Close"
 				>
 					<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2681,8 +2881,8 @@ let draggedAlbumHeaderField: string | null = null;
 			</div>
 			<div class="p-6 space-y-4">
 				<div>
-					<p class="text-sm text-gray-600 mb-4">
-						Module: <span class="font-medium text-gray-900">{editingModule.type === 'albumGallery' ? 'albumView' : editingModule.type}</span>
+					<p class="text-sm text-[var(--color-surface-600-400)] mb-4">
+						Module: <span class="font-medium text-[var(--color-surface-950-50)]">{editingModule.type === 'albumGallery' ? 'albumView' : editingModule.type}</span>
 						<br />
 						Position: Row {editingModule.rowOrder + 1}, Col {editingModule.columnIndex + 1}
 						{#if (editingModule.rowSpan ?? 1) > 1 || (editingModule.colSpan ?? 1) > 1}
@@ -2695,12 +2895,12 @@ let draggedAlbumHeaderField: string | null = null;
 				{#if editingModule.type === 'albumsGrid' || editingModule.type === 'albumView' || editingModule.type === 'albumGallery'}
 					<div class="space-y-4">
 						<div>
-							<label for="edit-album-source" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="edit-album-source" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Albums source
 							</label>
 							<select
 								id="edit-album-source"
-								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 								value={editingModule.props?.albumSource ?? 'root'}
 								on:change={(e) => {
 									editingModule = {
@@ -2715,24 +2915,24 @@ let draggedAlbumHeaderField: string | null = null;
 								<option value="current">Current album (from URL)</option>
 							</select>
 							{#if editingModule.props?.albumSource === 'selected'}
-								<p class="mt-2 text-sm text-gray-500">Album picker for specific albums coming soon.</p>
+								<p class="mt-2 text-sm text-[var(--color-surface-600-400)]">Album picker for specific albums coming soon.</p>
 							{/if}
 							{#if editingModule.props?.albumSource === 'current'}
-								<p class="mt-2 text-xs text-gray-500">
+								<p class="mt-2 text-xs text-[var(--color-surface-600-400)]">
 									For Album view, this source can render sub-albums, photos, or both from the current album (URL alias).
 								</p>
 							{/if}
 						</div>
 
 						{#if editingModule.type === 'albumView' || editingModule.type === 'albumGallery'}
-							<div class="rounded-md border border-gray-200 bg-gray-50 p-4 space-y-3">
-								<div class="text-sm font-semibold text-gray-900">Album header (current album)</div>
-								<p class="text-xs text-gray-600">
+							<div class="rounded-md border border-surface-200-800 bg-[var(--color-surface-50-950)] p-4 space-y-3">
+								<div class="text-sm font-semibold text-[var(--color-surface-950-50)]">Album header (current album)</div>
+								<p class="text-xs text-[var(--color-surface-600-400)]">
 									Shown when Albums source is <span class="font-medium">Current album (from URL)</span>.
 								</p>
 
 								<div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-									<label class="flex items-center gap-2 text-sm text-gray-700">
+									<label class="flex items-center gap-2 text-sm text-[var(--color-surface-800-200)]">
 										<input
 											type="checkbox"
 											checked={editingModule.props?.showAlbumPageTitle !== false}
@@ -2745,7 +2945,7 @@ let draggedAlbumHeaderField: string | null = null;
 										/>
 										Title
 									</label>
-									<label class="flex items-center gap-2 text-sm text-gray-700">
+									<label class="flex items-center gap-2 text-sm text-[var(--color-surface-800-200)]">
 										<input
 											type="checkbox"
 											checked={editingModule.props?.showAlbumPageDescription !== false}
@@ -2758,7 +2958,7 @@ let draggedAlbumHeaderField: string | null = null;
 										/>
 										Description
 									</label>
-									<label class="flex items-center gap-2 text-sm text-gray-700">
+									<label class="flex items-center gap-2 text-sm text-[var(--color-surface-800-200)]">
 										<input
 											type="checkbox"
 											checked={editingModule.props?.showAlbumPageStats !== false}
@@ -2774,13 +2974,13 @@ let draggedAlbumHeaderField: string | null = null;
 								</div>
 
 								<div>
-									<label class="block text-sm font-medium text-gray-700 mb-2">Album header order (drag to reorder)</label>
+									<label class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">Album header order (drag to reorder)</label>
 									<div class="space-y-2">
 										{#each (Array.isArray(editingModule.props?.albumHeaderFieldOrder)
 											? editingModule.props.albumHeaderFieldOrder
 											: ['albumTitle', 'albumDescription', 'albumStats']) as fieldKey, idx (fieldKey)}
 											<div
-												class="flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md bg-white cursor-move"
+												class="flex items-center justify-between px-3 py-2 border border-surface-300-700 rounded-md bg-[var(--color-surface-50-950)] cursor-move"
 												draggable="true"
 												on:dragstart={(e) => {
 													draggedAlbumHeaderField = fieldKey;
@@ -2812,12 +3012,12 @@ let draggedAlbumHeaderField: string | null = null;
 													draggedAlbumHeaderField = null;
 												}}
 											>
-												<span class="text-sm text-gray-800">
+												<span class="text-sm text-[var(--color-surface-900-100)]">
 													{fieldKey === 'albumTitle' ? 'Title' :
 													 fieldKey === 'albumDescription' ? 'Description' :
 													 'Stats (counts)'}
 												</span>
-												<span class="text-xs text-gray-400">#{idx + 1}</span>
+												<span class="text-xs text-[var(--color-surface-400-600)]">#{idx + 1}</span>
 											</div>
 										{/each}
 									</div>
@@ -2828,10 +3028,10 @@ let draggedAlbumHeaderField: string | null = null;
 
 						{#if editingModule.type === 'albumView' || editingModule.type === 'albumGallery'}
 							<div>
-								<label for="edit-card-data-type" class="block text-sm font-medium text-gray-700 mb-2">Card data type</label>
+								<label for="edit-card-data-type" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">Card data type</label>
 								<select
 									id="edit-card-data-type"
-									class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+									class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 									value={editingModule.props?.cardDataType ?? 'both'}
 									on:change={(e) => {
 										editingModule = {
@@ -2848,10 +3048,10 @@ let draggedAlbumHeaderField: string | null = null;
 							{#if (editingModule.props?.cardDataType ?? 'both') === 'both'}
 								<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 									<div>
-										<label for="edit-mixed-display-mode" class="block text-sm font-medium text-gray-700 mb-2">Mixed display mode</label>
+										<label for="edit-mixed-display-mode" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">Mixed display mode</label>
 										<select
 											id="edit-mixed-display-mode"
-											class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+											class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 											value={editingModule.props?.mixedDisplayMode ?? 'grouped'}
 											on:change={(e) => {
 												editingModule = {
@@ -2864,7 +3064,7 @@ let draggedAlbumHeaderField: string | null = null;
 											<option value="interleaved">Interleaved (single ordered stream)</option>
 										</select>
 									</div>
-									<label class="flex items-center gap-2 text-sm text-gray-700 mt-8">
+									<label class="flex items-center gap-2 text-sm text-[var(--color-surface-800-200)] mt-8">
 										<input
 											type="checkbox"
 											checked={editingModule.props?.showSectionLabels !== false}
@@ -2883,7 +3083,7 @@ let draggedAlbumHeaderField: string | null = null;
 
 						{#if editingModule.type === 'albumView' || editingModule.type === 'albumGallery'}
 							<div class="space-y-3">
-								<label class="flex items-center gap-2 text-sm text-gray-700">
+								<label class="flex items-center gap-2 text-sm text-[var(--color-surface-800-200)]">
 									<input
 										type="checkbox"
 										checked={editingModule.props?.showCover !== false}
@@ -2898,10 +3098,10 @@ let draggedAlbumHeaderField: string | null = null;
 								</label>
 
 								<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-									<div class="rounded-md border border-gray-200 bg-gray-50 p-3">
-										<div class="text-sm font-semibold text-gray-900 mb-2">Sub-album card</div>
+									<div class="rounded-md border border-surface-200-800 bg-[var(--color-surface-50-950)] p-3">
+										<div class="text-sm font-semibold text-[var(--color-surface-950-50)] mb-2">Sub-album card</div>
 										<div class="space-y-2">
-											<label class="flex items-center gap-2 text-sm text-gray-700">
+											<label class="flex items-center gap-2 text-sm text-[var(--color-surface-800-200)]">
 												<input
 													type="checkbox"
 													checked={editingModule.props?.showAlbumTitle ?? true}
@@ -2914,7 +3114,7 @@ let draggedAlbumHeaderField: string | null = null;
 												/>
 												Title
 											</label>
-											<label class="flex items-center gap-2 text-sm text-gray-700">
+											<label class="flex items-center gap-2 text-sm text-[var(--color-surface-800-200)]">
 												<input
 													type="checkbox"
 													checked={editingModule.props?.showAlbumDescription ?? true}
@@ -2927,7 +3127,7 @@ let draggedAlbumHeaderField: string | null = null;
 												/>
 												Description
 											</label>
-											<label class="flex items-center gap-2 text-sm text-gray-700">
+											<label class="flex items-center gap-2 text-sm text-[var(--color-surface-800-200)]">
 												<input
 													type="checkbox"
 													checked={editingModule.props?.showPhotoCount !== false}
@@ -2940,7 +3140,7 @@ let draggedAlbumHeaderField: string | null = null;
 												/>
 												Photo count
 											</label>
-											<label class="flex items-center gap-2 text-sm text-gray-700">
+											<label class="flex items-center gap-2 text-sm text-[var(--color-surface-800-200)]">
 												<input
 													type="checkbox"
 													checked={editingModule.props?.showAlbumFeaturedBadge ?? true}
@@ -2956,10 +3156,10 @@ let draggedAlbumHeaderField: string | null = null;
 										</div>
 									</div>
 
-									<div class="rounded-md border border-gray-200 bg-gray-50 p-3">
-										<div class="text-sm font-semibold text-gray-900 mb-2">Photo card</div>
+									<div class="rounded-md border border-surface-200-800 bg-[var(--color-surface-50-950)] p-3">
+										<div class="text-sm font-semibold text-[var(--color-surface-950-50)] mb-2">Photo card</div>
 										<div class="space-y-2">
-											<label class="flex items-center gap-2 text-sm text-gray-700">
+											<label class="flex items-center gap-2 text-sm text-[var(--color-surface-800-200)]">
 												<input
 													type="checkbox"
 													checked={editingModule.props?.showPhotoTitle ?? true}
@@ -2972,7 +3172,7 @@ let draggedAlbumHeaderField: string | null = null;
 												/>
 												Title
 											</label>
-											<label class="flex items-center gap-2 text-sm text-gray-700">
+											<label class="flex items-center gap-2 text-sm text-[var(--color-surface-800-200)]">
 												<input
 													type="checkbox"
 													checked={editingModule.props?.showPhotoDescription ?? true}
@@ -2985,7 +3185,7 @@ let draggedAlbumHeaderField: string | null = null;
 												/>
 												Description
 											</label>
-											<label class="flex items-center gap-2 text-sm text-gray-700">
+											<label class="flex items-center gap-2 text-sm text-[var(--color-surface-800-200)]">
 												<input
 													type="checkbox"
 													checked={editingModule.props?.showPhotoFeaturedBadge ?? true}
@@ -3004,7 +3204,7 @@ let draggedAlbumHeaderField: string | null = null;
 							</div>
 						{:else}
 							<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-								<label class="flex items-center gap-2 text-sm text-gray-700">
+								<label class="flex items-center gap-2 text-sm text-[var(--color-surface-800-200)]">
 									<input
 										type="checkbox"
 										checked={editingModule.props?.showCover !== false}
@@ -3017,7 +3217,7 @@ let draggedAlbumHeaderField: string | null = null;
 									/>
 									Show cover image
 								</label>
-								<label class="flex items-center gap-2 text-sm text-gray-700">
+								<label class="flex items-center gap-2 text-sm text-[var(--color-surface-800-200)]">
 									<input
 										type="checkbox"
 										checked={editingModule.props?.showDescription !== false}
@@ -3030,7 +3230,7 @@ let draggedAlbumHeaderField: string | null = null;
 									/>
 									Show description
 								</label>
-								<label class="flex items-center gap-2 text-sm text-gray-700">
+								<label class="flex items-center gap-2 text-sm text-[var(--color-surface-800-200)]">
 									<input
 										type="checkbox"
 										checked={editingModule.props?.showPhotoCount !== false}
@@ -3043,7 +3243,7 @@ let draggedAlbumHeaderField: string | null = null;
 									/>
 									Show photo count
 								</label>
-								<label class="flex items-center gap-2 text-sm text-gray-700">
+								<label class="flex items-center gap-2 text-sm text-[var(--color-surface-800-200)]">
 									<input
 										type="checkbox"
 										checked={editingModule.props?.showFeaturedBadge !== false}
@@ -3061,10 +3261,10 @@ let draggedAlbumHeaderField: string | null = null;
 
 						<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 							<div>
-								<label for="edit-cover-aspect" class="block text-sm font-medium text-gray-700 mb-2">Cover aspect</label>
+								<label for="edit-cover-aspect" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">Cover aspect</label>
 								<select
 									id="edit-cover-aspect"
-									class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+									class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 									value={editingModule.props?.coverAspect ?? 'video'}
 									on:change={(e) => {
 										editingModule = {
@@ -3080,13 +3280,13 @@ let draggedAlbumHeaderField: string | null = null;
 							</div>
 
 							<div>
-								<label for="edit-description-lines" class="block text-sm font-medium text-gray-700 mb-2">Description lines</label>
+								<label for="edit-description-lines" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">Description lines</label>
 								<input
 									id="edit-description-lines"
 									type="number"
 									min="1"
 									max="6"
-									class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+									class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 									value={String(editingModule.props?.descriptionLines ?? 2)}
 									on:input={(e) => {
 										const parsed = Math.max(1, Math.min(6, Number((e.currentTarget as HTMLInputElement).value) || 2));
@@ -3099,7 +3299,7 @@ let draggedAlbumHeaderField: string | null = null;
 							</div>
 
 							<div>
-								<label class="block text-sm font-medium text-gray-700 mb-2">Album card content order (drag to reorder)</label>
+								<label class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">Album card content order (drag to reorder)</label>
 								<div class="space-y-2">
 									{#each (Array.isArray(editingModule.props?.albumCardFieldOrder)
 										? editingModule.props.albumCardFieldOrder
@@ -3107,7 +3307,7 @@ let draggedAlbumHeaderField: string | null = null;
 											? editingModule.props.cardFieldOrder
 										: ['cover', 'title', 'description', 'photoCount', 'featuredBadge']) as fieldKey, idx (fieldKey)}
 										<div
-											class="flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md bg-white cursor-move"
+											class="flex items-center justify-between px-3 py-2 border border-surface-300-700 rounded-md bg-[var(--color-surface-50-950)] cursor-move"
 											draggable="true"
 											on:dragstart={() => {
 												draggedAlbumField = fieldKey;
@@ -3133,27 +3333,27 @@ let draggedAlbumHeaderField: string | null = null;
 												draggedAlbumField = null;
 											}}
 										>
-											<span class="text-sm text-gray-800">
+											<span class="text-sm text-[var(--color-surface-900-100)]">
 												{fieldKey === 'title' ? 'Title' :
 												 fieldKey === 'cover' ? 'Leading photo' :
 												 fieldKey === 'description' ? 'Description' :
 												 fieldKey === 'photoCount' ? 'Photo count' :
 												 'Featured badge'}
 											</span>
-											<span class="text-xs text-gray-400">#{idx + 1}</span>
+											<span class="text-xs text-[var(--color-surface-400-600)]">#{idx + 1}</span>
 										</div>
 									{/each}
 								</div>
 							</div>
 							{#if editingModule.type === 'albumView' || editingModule.type === 'albumGallery'}
 								<div>
-									<label class="block text-sm font-medium text-gray-700 mb-2">Photo card content order (drag to reorder)</label>
+									<label class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">Photo card content order (drag to reorder)</label>
 									<div class="space-y-2">
 										{#each (Array.isArray(editingModule.props?.photoCardFieldOrder)
 											? editingModule.props.photoCardFieldOrder
 											: ['cover', 'title', 'description', 'featuredBadge']) as fieldKey, idx (fieldKey)}
 											<div
-												class="flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md bg-white cursor-move"
+												class="flex items-center justify-between px-3 py-2 border border-surface-300-700 rounded-md bg-[var(--color-surface-50-950)] cursor-move"
 												draggable="true"
 										on:dragstart={(e) => {
 											draggedPhotoField = fieldKey;
@@ -3185,13 +3385,13 @@ let draggedAlbumHeaderField: string | null = null;
 											draggedPhotoField = null;
 												}}
 											>
-												<span class="text-sm text-gray-800">
+												<span class="text-sm text-[var(--color-surface-900-100)]">
 													{fieldKey === 'title' ? 'Title' :
 													 fieldKey === 'cover' ? 'Photo' :
 													 fieldKey === 'description' ? 'Description' :
 													 'Featured badge'}
 												</span>
-												<span class="text-xs text-gray-400">#{idx + 1}</span>
+												<span class="text-xs text-[var(--color-surface-400-600)]">#{idx + 1}</span>
 											</div>
 										{/each}
 									</div>
@@ -3199,10 +3399,10 @@ let draggedAlbumHeaderField: string | null = null;
 							{/if}
 
 							<div>
-								<label for="edit-sort-by" class="block text-sm font-medium text-gray-700 mb-2">Sort by</label>
+								<label for="edit-sort-by" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">Sort by</label>
 								<select
 									id="edit-sort-by"
-									class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+									class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 									value={editingModule.props?.sortBy ?? 'manual'}
 									on:change={(e) => {
 										editingModule = {
@@ -3221,10 +3421,10 @@ let draggedAlbumHeaderField: string | null = null;
 							</div>
 
 							<div>
-								<label for="edit-sort-direction" class="block text-sm font-medium text-gray-700 mb-2">Sort direction</label>
+								<label for="edit-sort-direction" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">Sort direction</label>
 								<select
 									id="edit-sort-direction"
-									class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+									class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 									value={editingModule.props?.sortDirection ?? 'asc'}
 									on:change={(e) => {
 										editingModule = {
@@ -3240,13 +3440,13 @@ let draggedAlbumHeaderField: string | null = null;
 						</div>
 
 						<div>
-							<label for="edit-limit" class="block text-sm font-medium text-gray-700 mb-2">Maximum items</label>
+							<label for="edit-limit" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">Maximum items</label>
 							<input
 								id="edit-limit"
 								type="number"
 								min="1"
 								max="60"
-								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 								value={String(editingModule.props?.limit ?? 12)}
 								on:input={(e) => {
 									const parsed = Math.max(1, Math.min(60, Number((e.currentTarget as HTMLInputElement).value) || 12));
@@ -3261,7 +3461,7 @@ let draggedAlbumHeaderField: string | null = null;
 				{:else if editingModule.type === 'hero'}
 					<div class="space-y-4">
 						<div>
-							<label for="hero-title" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="hero-title" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Title
 							</label>
 							{#if typeof editingModule.props?.title === 'object'}
@@ -3275,7 +3475,7 @@ let draggedAlbumHeaderField: string | null = null;
 								<input
 									id="hero-title"
 									type="text"
-									class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+									class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 									value={editingModule.props?.title || ''}
 									placeholder="Enter hero title"
 									on:input={(e) => {
@@ -3289,7 +3489,7 @@ let draggedAlbumHeaderField: string | null = null;
 						</div>
 
 						<div>
-							<label for="hero-subtitle" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="hero-subtitle" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Subtitle
 							</label>
 							{#if typeof editingModule.props?.subtitle === 'object'}
@@ -3303,7 +3503,7 @@ let draggedAlbumHeaderField: string | null = null;
 								<input
 									id="hero-subtitle"
 									type="text"
-									class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+									class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 									value={editingModule.props?.subtitle || ''}
 									placeholder="Enter hero subtitle"
 									on:input={(e) => {
@@ -3317,7 +3517,7 @@ let draggedAlbumHeaderField: string | null = null;
 						</div>
 
 						<div>
-							<label for="hero-cta-label" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="hero-cta-label" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Button Label (CTA)
 							</label>
 							{#if typeof editingModule.props?.ctaLabel === 'object'}
@@ -3331,7 +3531,7 @@ let draggedAlbumHeaderField: string | null = null;
 								<input
 									id="hero-cta-label"
 									type="text"
-									class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+									class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 									value={editingModule.props?.ctaLabel || ''}
 									placeholder="Enter button label"
 									on:input={(e) => {
@@ -3345,13 +3545,13 @@ let draggedAlbumHeaderField: string | null = null;
 						</div>
 
 						<div>
-							<label for="hero-cta-url" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="hero-cta-url" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Button URL (CTA)
 							</label>
 							<input
 								id="hero-cta-url"
 								type="url"
-								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 								value={editingModule.props?.ctaUrl || ''}
 								placeholder="https://example.com"
 								on:input={(e) => {
@@ -3364,12 +3564,12 @@ let draggedAlbumHeaderField: string | null = null;
 						</div>
 
 						<div>
-							<label for="hero-background-style" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="hero-background-style" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Background Style
 							</label>
 							<select
 								id="hero-background-style"
-								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 								value={editingModule.props?.backgroundStyle || 'light'}
 								on:change={(e) => {
 									const style = (e.currentTarget as HTMLSelectElement).value;
@@ -3392,13 +3592,13 @@ let draggedAlbumHeaderField: string | null = null;
 
 						{#if editingModule.props?.backgroundStyle === 'image'}
 							<div>
-								<label for="hero-background-image" class="block text-sm font-medium text-gray-700 mb-2">
+								<label for="hero-background-image" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 									Background Image URL
 								</label>
 								<input
 									id="hero-background-image"
 									type="url"
-									class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+									class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 									value={editingModule.props?.backgroundImage || ''}
 									placeholder="https://example.com/image.jpg"
 									on:input={(e) => {
@@ -3414,7 +3614,7 @@ let draggedAlbumHeaderField: string | null = null;
 				{:else if editingModule.type === 'richText'}
 					<div class="space-y-4">
 						<div>
-							<label for="richtext-title" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="richtext-title" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Title
 							</label>
 							{#if typeof editingModule.props?.title === 'object'}
@@ -3428,7 +3628,7 @@ let draggedAlbumHeaderField: string | null = null;
 								<input
 									id="richtext-title"
 									type="text"
-									class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+									class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 									value={editingModule.props?.title || ''}
 									placeholder="Enter title"
 									on:input={(e) => {
@@ -3442,7 +3642,7 @@ let draggedAlbumHeaderField: string | null = null;
 						</div>
 
 						<div>
-							<label for="richtext-body" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="richtext-body" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Body Content
 							</label>
 							{#if typeof editingModule.props?.body === 'object'}
@@ -3455,7 +3655,7 @@ let draggedAlbumHeaderField: string | null = null;
 								<textarea
 									id="richtext-body"
 									rows="6"
-									class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
+									class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)] font-mono text-sm"
 									value={editingModule.props?.body || ''}
 									placeholder="Enter HTML content"
 									on:input={(e) => {
@@ -3465,17 +3665,17 @@ let draggedAlbumHeaderField: string | null = null;
 										};
 									}}
 								></textarea>
-								<p class="mt-1 text-xs text-gray-500">HTML content editor. For rich text editing, use the multi-language editor above.</p>
+								<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">HTML content editor. For rich text editing, use the multi-language editor above.</p>
 							{/if}
 						</div>
 
 						<div>
-							<label for="richtext-background" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="richtext-background" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Background Color
 							</label>
 							<select
 								id="richtext-background"
-								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 								value={editingModule.props?.background || 'white'}
 								on:change={(e) => {
 									editingModule = {
@@ -3503,9 +3703,9 @@ let draggedAlbumHeaderField: string | null = null;
 											props: { ...editingModule.props, showFlags: (e.currentTarget as HTMLInputElement).checked }
 										};
 									}}
-									class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+									class="w-4 h-4 text-[var(--color-primary-600)] border-surface-300-700 rounded focus:ring-[var(--color-primary-500)]"
 								/>
-								<span class="text-sm font-medium text-gray-700">Show flags</span>
+								<span class="text-sm font-medium text-[var(--color-surface-800-200)]">Show flags</span>
 							</label>
 						</div>
 						<div>
@@ -3519,9 +3719,9 @@ let draggedAlbumHeaderField: string | null = null;
 											props: { ...editingModule.props, showNativeNames: (e.currentTarget as HTMLInputElement).checked }
 										};
 									}}
-									class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+									class="w-4 h-4 text-[var(--color-primary-600)] border-surface-300-700 rounded focus:ring-[var(--color-primary-500)]"
 								/>
-								<span class="text-sm font-medium text-gray-700">Show native names</span>
+								<span class="text-sm font-medium text-[var(--color-surface-800-200)]">Show native names</span>
 							</label>
 						</div>
 						<div>
@@ -3535,19 +3735,19 @@ let draggedAlbumHeaderField: string | null = null;
 											props: { ...editingModule.props, compact: (e.currentTarget as HTMLInputElement).checked }
 										};
 									}}
-									class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+									class="w-4 h-4 text-[var(--color-primary-600)] border-surface-300-700 rounded focus:ring-[var(--color-primary-500)]"
 								/>
-								<span class="text-sm font-medium text-gray-700">Compact mode</span>
+								<span class="text-sm font-medium text-[var(--color-surface-800-200)]">Compact mode</span>
 							</label>
 						</div>
 						<div>
-							<label for="lang-selector-class" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="lang-selector-class" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								CSS Classes (optional)
 							</label>
 							<input
 								id="lang-selector-class"
 								type="text"
-								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 								value={editingModule.props?.className || ''}
 								placeholder="e.g., ml-4"
 								on:input={(e) => {
@@ -3562,12 +3762,12 @@ let draggedAlbumHeaderField: string | null = null;
 				{:else if editingModule.type === 'logo'}
 					<div class="space-y-4">
 						<div>
-							<label for="logo-size" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="logo-size" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Size
 							</label>
 							<select
 								id="logo-size"
-								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 								value={editingModule.props?.size ?? 'md'}
 								on:change={(e) => {
 									editingModule = {
@@ -3580,7 +3780,7 @@ let draggedAlbumHeaderField: string | null = null;
 								<option value="md">Medium</option>
 								<option value="lg">Large</option>
 							</select>
-							<p class="mt-1 text-xs text-gray-500">Display size of the logo image</p>
+							<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">Display size of the logo image</p>
 						</div>
 						<div>
 							<label class="flex items-center gap-2">
@@ -3593,11 +3793,11 @@ let draggedAlbumHeaderField: string | null = null;
 											props: { ...editingModule.props, fallbackIcon: (e.currentTarget as HTMLInputElement).checked }
 										};
 									}}
-									class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+									class="w-4 h-4 text-[var(--color-primary-600)] border-surface-300-700 rounded focus:ring-[var(--color-primary-500)]"
 								/>
-								<span class="text-sm font-medium text-gray-700">Show icon when no logo is set</span>
+								<span class="text-sm font-medium text-[var(--color-surface-800-200)]">Show icon when no logo is set</span>
 							</label>
-							<p class="mt-1 text-xs text-gray-500">If site logo is not configured, show a camera icon placeholder</p>
+							<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">If site logo is not configured, show a camera icon placeholder</p>
 						</div>
 					</div>
 				{:else if editingModule.type === 'siteTitle'}
@@ -3613,22 +3813,22 @@ let draggedAlbumHeaderField: string | null = null;
 											props: { ...editingModule.props, showAsLink: (e.currentTarget as HTMLInputElement).checked }
 										};
 									}}
-									class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+									class="w-4 h-4 text-[var(--color-primary-600)] border-surface-300-700 rounded focus:ring-[var(--color-primary-500)]"
 								/>
-								<span class="text-sm font-medium text-gray-700">Link to home</span>
+								<span class="text-sm font-medium text-[var(--color-surface-800-200)]">Link to home</span>
 							</label>
-							<p class="mt-1 text-xs text-gray-500">When enabled, the site title is a link to the homepage</p>
+							<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">When enabled, the site title is a link to the homepage</p>
 						</div>
 					</div>
 				{:else if editingModule.type === 'menu'}
 					<div class="space-y-4">
 						<div>
-							<label for="menu-orientation" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="menu-orientation" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Orientation
 							</label>
 							<select
 								id="menu-orientation"
-								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 								value={editingModule.props?.orientation ?? 'horizontal'}
 								on:change={(e) => {
 									editingModule = {
@@ -3640,25 +3840,25 @@ let draggedAlbumHeaderField: string | null = null;
 								<option value="horizontal">Horizontal</option>
 								<option value="vertical">Vertical</option>
 							</select>
-							<p class="mt-1 text-xs text-gray-500">Horizontal: items in a row. Vertical: items stacked.</p>
+							<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">Horizontal: items in a row. Vertical: items stacked.</p>
 						</div>
 					</div>
 				{:else if editingModule.type === 'themeToggle'}
 					<div class="space-y-4">
-						<div class="text-sm text-gray-600">
+						<div class="text-sm text-[var(--color-surface-600-400)]">
 							<p>Theme toggle module has no configuration options. It automatically toggles between light and dark themes.</p>
 						</div>
 					</div>
 				{:else if editingModule.type === 'userGreeting'}
 					<div class="space-y-4">
 						<div>
-							<label for="user-greeting-text" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="user-greeting-text" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Greeting Text
 							</label>
 							<input
 								id="user-greeting-text"
 								type="text"
-								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 								value={editingModule.props?.greeting || 'Hello'}
 								placeholder="Hello"
 								on:input={(e) => {
@@ -3668,7 +3868,7 @@ let draggedAlbumHeaderField: string | null = null;
 									};
 								}}
 							/>
-							<p class="mt-1 text-xs text-gray-500">Displayed before the user's name (e.g., "Hello, John")</p>
+							<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">Displayed before the user's name (e.g., "Hello, John")</p>
 						</div>
 						<div>
 							<label class="flex items-center gap-2">
@@ -3681,21 +3881,21 @@ let draggedAlbumHeaderField: string | null = null;
 											props: { ...editingModule.props, showEmail: (e.currentTarget as HTMLInputElement).checked }
 										};
 									}}
-									class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+									class="w-4 h-4 text-[var(--color-primary-600)] border-surface-300-700 rounded focus:ring-[var(--color-primary-500)]"
 								/>
-								<span class="text-sm font-medium text-gray-700">Show email if name not available</span>
+								<span class="text-sm font-medium text-[var(--color-surface-800-200)]">Show email if name not available</span>
 							</label>
 						</div>
 						<div>
-							<label for="user-greeting-class" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="user-greeting-class" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								CSS Classes (optional)
 							</label>
 							<input
 								id="user-greeting-class"
 								type="text"
-								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 								value={editingModule.props?.className || ''}
-								placeholder="e.g., text-gray-600"
+								placeholder="e.g., text-[var(--color-surface-600-400)]"
 								on:input={(e) => {
 									editingModule = {
 										...editingModule,
@@ -3708,13 +3908,13 @@ let draggedAlbumHeaderField: string | null = null;
 				{:else if editingModule.type === 'authButtons'}
 					<div class="space-y-4">
 						<div>
-							<label for="auth-login-label" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="auth-login-label" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Login Button Label
 							</label>
 							<input
 								id="auth-login-label"
 								type="text"
-								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 								value={editingModule.props?.loginLabel || 'Login'}
 								placeholder="Login"
 								on:input={(e) => {
@@ -3726,13 +3926,13 @@ let draggedAlbumHeaderField: string | null = null;
 							/>
 						</div>
 						<div>
-							<label for="auth-logout-label" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="auth-logout-label" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Logout Button Label
 							</label>
 							<input
 								id="auth-logout-label"
 								type="text"
-								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 								value={editingModule.props?.logoutLabel || 'Logout'}
 								placeholder="Logout"
 								on:input={(e) => {
@@ -3744,13 +3944,13 @@ let draggedAlbumHeaderField: string | null = null;
 							/>
 						</div>
 						<div>
-							<label for="auth-login-url" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="auth-login-url" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Login URL
 							</label>
 							<input
 								id="auth-login-url"
 								type="text"
-								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 								value={editingModule.props?.loginUrl || '/login'}
 								placeholder="/login"
 								on:input={(e) => {
@@ -3762,13 +3962,13 @@ let draggedAlbumHeaderField: string | null = null;
 							/>
 						</div>
 						<div>
-							<label for="auth-container-class" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="auth-container-class" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Container CSS Classes (optional)
 							</label>
 							<input
 								id="auth-container-class"
 								type="text"
-								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 								value={editingModule.props?.containerClass || 'flex items-center gap-2'}
 								placeholder="flex items-center gap-2"
 								on:input={(e) => {
@@ -3782,17 +3982,17 @@ let draggedAlbumHeaderField: string | null = null;
 					</div>
 				{:else if editingModule.type === 'socialMedia'}
 					<div class="space-y-4">
-						<div class="text-sm text-gray-600 mb-4">
+						<div class="text-sm text-[var(--color-surface-600-400)] mb-4">
 							<p>Social media links are pulled from site configuration by default. You can override them here if needed.</p>
 						</div>
 						<div>
-							<label for="social-facebook" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="social-facebook" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Facebook URL (optional override)
 							</label>
 							<input
 								id="social-facebook"
 								type="url"
-								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 								value={editingModule.props?.socialMedia?.facebook || ''}
 								placeholder="Leave empty to use site config"
 								on:input={(e) => {
@@ -3811,13 +4011,13 @@ let draggedAlbumHeaderField: string | null = null;
 							/>
 						</div>
 						<div>
-							<label for="social-instagram" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="social-instagram" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Instagram URL (optional override)
 							</label>
 							<input
 								id="social-instagram"
 								type="url"
-								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 								value={editingModule.props?.socialMedia?.instagram || ''}
 								placeholder="Leave empty to use site config"
 								on:input={(e) => {
@@ -3836,13 +4036,13 @@ let draggedAlbumHeaderField: string | null = null;
 							/>
 						</div>
 						<div>
-							<label for="social-twitter" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="social-twitter" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Twitter URL (optional override)
 							</label>
 							<input
 								id="social-twitter"
 								type="url"
-								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 								value={editingModule.props?.socialMedia?.twitter || ''}
 								placeholder="Leave empty to use site config"
 								on:input={(e) => {
@@ -3861,13 +4061,13 @@ let draggedAlbumHeaderField: string | null = null;
 							/>
 						</div>
 						<div>
-							<label for="social-linkedin" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="social-linkedin" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								LinkedIn URL (optional override)
 							</label>
 							<input
 								id="social-linkedin"
 								type="url"
-								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 								value={editingModule.props?.socialMedia?.linkedin || ''}
 								placeholder="Leave empty to use site config"
 								on:input={(e) => {
@@ -3886,12 +4086,12 @@ let draggedAlbumHeaderField: string | null = null;
 							/>
 						</div>
 						<div>
-							<label for="social-icon-size" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="social-icon-size" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Icon Size
 							</label>
 							<select
 								id="social-icon-size"
-								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 								value={editingModule.props?.iconSize || 'md'}
 								on:change={(e) => {
 									editingModule = {
@@ -3906,13 +4106,13 @@ let draggedAlbumHeaderField: string | null = null;
 							</select>
 						</div>
 						<div>
-							<label for="social-icon-color" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="social-icon-color" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Icon Color
 							</label>
 							<input
 								id="social-icon-color"
 								type="text"
-								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 								value={editingModule.props?.iconColor || 'current'}
 								placeholder="current, gray-600, #000000, etc."
 								on:input={(e) => {
@@ -3922,7 +4122,7 @@ let draggedAlbumHeaderField: string | null = null;
 									};
 								}}
 							/>
-							<p class="mt-1 text-xs text-gray-500">CSS color or Tailwind color class (e.g., current, gray-600, blue-500)</p>
+							<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">CSS color or Tailwind color class (e.g., current, gray-600, blue-500)</p>
 						</div>
 						<div>
 							<label class="flex items-center gap-2">
@@ -3935,18 +4135,18 @@ let draggedAlbumHeaderField: string | null = null;
 											props: { ...editingModule.props, showLabels: (e.currentTarget as HTMLInputElement).checked }
 										};
 									}}
-									class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+									class="w-4 h-4 text-[var(--color-primary-600)] border-surface-300-700 rounded focus:ring-[var(--color-primary-500)]"
 								/>
-								<span class="text-sm font-medium text-gray-700">Show Labels</span>
+								<span class="text-sm font-medium text-[var(--color-surface-800-200)]">Show Labels</span>
 							</label>
 						</div>
 						<div>
-							<label for="social-orientation" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="social-orientation" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Orientation
 							</label>
 							<select
 								id="social-orientation"
-								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 								value={editingModule.props?.orientation || 'horizontal'}
 								on:change={(e) => {
 									editingModule = {
@@ -3960,12 +4160,12 @@ let draggedAlbumHeaderField: string | null = null;
 							</select>
 						</div>
 						<div>
-							<label for="social-align" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="social-align" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Alignment
 							</label>
 							<select
 								id="social-align"
-								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 								value={editingModule.props?.align || 'start'}
 								on:change={(e) => {
 									editingModule = {
@@ -3980,12 +4180,12 @@ let draggedAlbumHeaderField: string | null = null;
 							</select>
 						</div>
 						<div>
-							<label for="social-gap" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="social-gap" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Gap Size
 							</label>
 							<select
 								id="social-gap"
-								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 								value={editingModule.props?.gap || 'normal'}
 								on:change={(e) => {
 									editingModule = {
@@ -4000,13 +4200,13 @@ let draggedAlbumHeaderField: string | null = null;
 							</select>
 						</div>
 						<div>
-							<label for="social-class" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="social-class" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								CSS Classes (optional)
 							</label>
 							<input
 								id="social-class"
 								type="text"
-								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 								value={editingModule.props?.className || ''}
 								placeholder="e.g., mt-4"
 								on:input={(e) => {
@@ -4019,15 +4219,15 @@ let draggedAlbumHeaderField: string | null = null;
 						</div>
 					</div>
 				{:else if editingModule.type === 'blogCategory'}
-					<div class="space-y-4 border-t border-gray-200 pt-4">
+					<div class="space-y-4 border-t border-surface-200-800 pt-4">
 						<div>
-							<label for="override-blog-category-title" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="override-blog-category-title" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Section title (optional)
 							</label>
 							<MultiLangInput id="override-blog-category-title" bind:value={editingModule.props.title} />
 						</div>
 						<div>
-							<label for="override-blog-category-alias" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="override-blog-category-alias" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Show only this category
 							</label>
 							<select
@@ -4052,12 +4252,12 @@ let draggedAlbumHeaderField: string | null = null;
 									<option value={category.alias}>{category.title} ({category.alias})</option>
 								{/each}
 							</select>
-							<p class="mt-1 text-xs text-gray-500">
+							<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">
 								Leave empty to list every active blog category (up to max items).
 							</p>
 						</div>
 						<div>
-							<label for="override-blog-category-layout" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="override-blog-category-layout" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Layout
 							</label>
 							<select
@@ -4082,7 +4282,7 @@ let draggedAlbumHeaderField: string | null = null;
 							<label class="flex items-center gap-2">
 								<input
 									type="checkbox"
-									class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+									class="w-4 h-4 text-[var(--color-primary-600)] border-surface-300-700 rounded focus:ring-[var(--color-primary-500)]"
 									checked={editingModule.props?.showCount === true}
 									on:change={(e) => {
 										editingModule = {
@@ -4094,12 +4294,12 @@ let draggedAlbumHeaderField: string | null = null;
 										};
 									}}
 								/>
-								<span class="text-sm font-medium text-gray-700">Show article counts</span>
+								<span class="text-sm font-medium text-[var(--color-surface-800-200)]">Show article counts</span>
 							</label>
-							<p class="mt-1 text-xs text-gray-500">Requires an extra aggregation on the server.</p>
+							<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">Requires an extra aggregation on the server.</p>
 						</div>
 						<div>
-							<label for="override-blog-category-max" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="override-blog-category-max" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Max items
 							</label>
 							<input
@@ -4120,7 +4320,7 @@ let draggedAlbumHeaderField: string | null = null;
 							/>
 						</div>
 						<div>
-							<label for="override-blog-category-sort" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="override-blog-category-sort" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Sort by
 							</label>
 							<select
@@ -4145,7 +4345,7 @@ let draggedAlbumHeaderField: string | null = null;
 							<label class="flex items-center gap-2">
 								<input
 									type="checkbox"
-									class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+									class="w-4 h-4 text-[var(--color-primary-600)] border-surface-300-700 rounded focus:ring-[var(--color-primary-500)]"
 									checked={editingModule.props?.linkToArticles === true}
 									on:change={(e) => {
 										editingModule = {
@@ -4157,12 +4357,12 @@ let draggedAlbumHeaderField: string | null = null;
 										};
 									}}
 								/>
-								<span class="text-sm font-medium text-gray-700">Link each category to the article list</span>
+								<span class="text-sm font-medium text-[var(--color-surface-800-200)]">Link each category to the article list</span>
 							</label>
-							<p class="mt-1 text-xs text-gray-500">Uses the path below with <code class="text-xs">?category=</code> alias.</p>
+							<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">Uses the path below with <code class="text-xs">?category=</code> alias.</p>
 						</div>
 						<div>
-							<label for="override-blog-articles-path" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="override-blog-articles-path" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Articles list path
 							</label>
 							<input
@@ -4184,23 +4384,23 @@ let draggedAlbumHeaderField: string | null = null;
 						</div>
 					</div>
 				{:else}
-					<div class="text-sm text-gray-600">
+					<div class="text-sm text-[var(--color-surface-600-400)]">
 						<p>Module-specific configuration options coming soon.</p>
 					</div>
 				{/if}
 			</div>
-			<div class="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-6 py-4 flex justify-end gap-2">
+			<div class="sticky bottom-0 bg-[var(--color-surface-50-950)] border-t border-surface-200-800 px-6 py-4 flex justify-end gap-2">
 				<button
 					type="button"
 					on:click={() => editingModule = null}
-					class="px-4 py-2 text-gray-700 hover:bg-gray-200 rounded-md text-sm font-medium"
+					class="px-4 py-2 text-[var(--color-surface-800-200)] hover:bg-[var(--color-surface-200-800)] rounded-md text-sm font-medium"
 				>
 					Cancel
 				</button>
 				<button
 					type="button"
 					on:click={saveModuleChanges}
-					class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
+					class="px-4 py-2 bg-[var(--color-primary-600)] text-white rounded-md hover:bg-[var(--color-primary-700)] text-sm font-medium"
 				>
 					Save Changes
 				</button>

@@ -50,14 +50,14 @@ Export list `TEMPLATE_PACK_IDS` must include your id if it is a first-class buil
 Keep these in sync whenever you add a pack id:
 
 - `frontend/src/lib/template-packs/registry.ts` — `TEMPLATE_PACK_IDS` and `packs`
-- `backend/src/services/site-config.ts` — `BUILTIN_TEMPLATE_IDS` (site config `frontendTemplate` / `adminTemplate` / `activeTemplate`)
+- `backend/src/services/site-config.ts` — `BUILTIN_TEMPLATE_IDS` (site config `frontendTemplate` / `activeTemplate`; `adminTemplate` is legacy and normalized to `default` by the server)
 - Theme DTOs: `backend/src/themes/dto/create-theme.dto.ts` / `update-theme.dto.ts` — `@IsIn([...])` for `baseTemplate`
 - Static templates for metadata: `backend/src/templates/templates.controller.ts` (and `frontend` `TemplateService` static map if used)
 
 ## 5. Themes / site config
 
 - **Themes** in the DB reference a **base template** (`baseTemplate`) that must be one of the built-in ids.
-- **Site configuration** stores `template.frontendTemplate` and `template.adminTemplate` for which pack the public site and admin UI use.
+- **Site configuration** stores `template.frontendTemplate` (and related theme fields) for the **visitor** site. The admin panel uses a **fixed UI shell**, not template packs; `template.adminTemplate` is deprecated and should not be treated as a pack selector (see [`ADMIN_UI_ROADMAP.md`](./ADMIN_UI_ROADMAP.md)).
 
 Invalid ids are rejected on **PUT** `/api/admin/site-config` (built-in names only). The public UI **falls back** to the default pack and can show a small banner if the stored name is unknown (until config is fixed).
 

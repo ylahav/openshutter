@@ -175,30 +175,30 @@
 </svelte:head>
 
 {#if loading}
-	<div class="min-h-screen bg-gray-50 py-8">
+	<div class="py-8">
 		<div class="max-w-6xl mx-auto px-4">
 			<p>Loading...</p>
 		</div>
 	</div>
 {:else}
-	<div class="min-h-screen bg-gray-50 py-8">
+	<div class="py-8">
 		<div class="max-w-6xl mx-auto px-4 space-y-6">
 			<div class="flex items-center justify-between">
-				<h1 class="text-2xl font-semibold text-gray-900">Template Customization</h1>
+				<h1 class="text-2xl font-semibold text-[var(--color-surface-950-50)]">Template Customization</h1>
 				<button
 					on:click={() => goto('/admin/templates')}
-					class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+					class="inline-flex items-center px-4 py-2 border border-surface-300-700 rounded-md shadow-sm text-sm font-medium text-[var(--color-surface-800-200)] bg-[var(--color-surface-50-950)] hover:bg-[var(--color-surface-50-950)]"
 				>
 					Back to Templates
 				</button>
 			</div>
 
 			<div class="flex flex-wrap items-center gap-3">
-				<label for="template-select" class="text-sm font-medium text-gray-700">Select template:</label>
+				<label for="template-select" class="text-sm font-medium text-[var(--color-surface-800-200)]">Select template:</label>
 				<select
 					id="template-select"
 					bind:value={selected}
-					class="border border-gray-300 rounded-md px-2 py-1 bg-white text-gray-900 text-sm"
+					class="border border-surface-300-700 rounded-md px-2 py-1 bg-[var(--color-surface-50-950)] text-[var(--color-surface-950-50)] text-sm"
 				>
 					{#each templates as t}
 						<option value={t.templateName}>
@@ -212,7 +212,7 @@
 			</div>
 
 			{#if currentTemplate}
-				<div class="text-sm text-gray-600">
+				<div class="text-sm text-[var(--color-surface-600-400)]">
 					<div><strong>Name:</strong> {currentTemplate.displayName}</div>
 					<div><strong>Version:</strong> {currentTemplate.version}</div>
 					{#if currentTemplate.description}
@@ -232,25 +232,25 @@
 			<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
 				<!-- Editor -->
 				<div class="space-y-2">
-					<label for="template-config-editor" class="text-sm font-medium text-gray-700">template.config.json</label>
+					<label for="template-config-editor" class="text-sm font-medium text-[var(--color-surface-800-200)]">template.config.json</label>
 					<textarea
 						id="template-config-editor"
 						bind:value={raw}
-						class="w-full h-[500px] border border-gray-300 rounded-md p-3 font-mono text-sm bg-white text-gray-900"
+						class="w-full h-[500px] border border-surface-300-700 rounded-md p-3 font-mono text-sm bg-[var(--color-surface-50-950)] text-[var(--color-surface-950-50)]"
 						placeholder="Loading template config..."
 					></textarea>
 					<div class="flex gap-2">
 						<button
 							on:click={save}
 							disabled={saving}
-							class="px-4 py-2 rounded-md bg-blue-600 text-white disabled:opacity-50 hover:bg-blue-700"
+							class="px-4 py-2 rounded-md bg-[var(--color-primary-600)] text-white disabled:opacity-50 hover:bg-[var(--color-primary-700)]"
 						>
 							{saving ? 'Saving...' : 'Save'}
 						</button>
 						<button
 							on:click={cancel}
 							disabled={saving || raw === originalRaw}
-							class="px-4 py-2 rounded-md bg-gray-200 text-gray-700 disabled:opacity-50 hover:bg-gray-300"
+							class="px-4 py-2 rounded-md bg-[var(--color-surface-200-800)] text-[var(--color-surface-800-200)] disabled:opacity-50 hover:bg-[var(--color-surface-300-700)]"
 						>
 							Cancel
 						</button>
@@ -261,9 +261,9 @@
 				<div>
 					<!-- spacer to align with editor label -->
 					<div class="text-sm font-medium invisible mb-2">template.config.json</div>
-					<div class="rounded border border-gray-200 p-4 bg-gray-50">
-						<h2 class="font-semibold mb-2 text-gray-900">template.config.json quick help</h2>
-						<ul class="text-sm leading-6 list-disc pl-5 text-gray-700 space-y-1">
+					<div class="rounded border border-surface-200-800 p-4 bg-[var(--color-surface-50-950)]">
+						<h2 class="font-semibold mb-2 text-[var(--color-surface-950-50)]">template.config.json quick help</h2>
+						<ul class="text-sm leading-6 list-disc pl-5 text-[var(--color-surface-800-200)] space-y-1">
 							<li><strong>templateName</strong>: folder/name id of the template.</li>
 							<li><strong>displayName</strong>, <strong>version</strong>, <strong>author</strong>, <strong>description</strong>, <strong>category</strong>: metadata for Admin.</li>
 							<li><strong>features</strong>: {`{ responsive, darkMode, animations, seoOptimized }`} – flags only.</li>

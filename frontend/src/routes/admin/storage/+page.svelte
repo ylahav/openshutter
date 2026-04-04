@@ -457,14 +457,14 @@
 	</title>
 </svelte:head>
 
-<div class="min-h-screen bg-gray-50 py-8">
+<div class="py-8">
 	<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 		<div class="mb-6 flex items-center justify-between">
 			<div>
-				<h1 class="text-3xl font-bold text-gray-900">
+				<h1 class="text-3xl font-bold text-[var(--color-surface-950-50)]">
 					{$t('admin.storageManagement')}
 				</h1>
-				<p class="mt-2 text-sm text-gray-600">
+				<p class="mt-2 text-sm text-[var(--color-surface-600-400)]">
 					{#if data.user?.role === 'owner'}
 						{$t('admin.storageManagementDescription')}
 					{:else}
@@ -472,12 +472,14 @@
 					{/if}
 				</p>
 			</div>
-			<a
-				href={data.user?.role === 'owner' ? '/owner' : '/admin'}
-				class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm font-medium"
-			>
-				{data.user?.role === 'owner' ? $t('owner.backToOwnerDashboard') : $t('admin.backToAdmin')}
-			</a>
+			{#if data.user?.role === 'owner'}
+				<a
+					href="/owner"
+					class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm font-medium"
+				>
+					{$t('owner.backToOwnerDashboard')}
+				</a>
+			{/if}
 		</div>
 
 		{#if data.user?.role === 'owner'}
@@ -490,17 +492,17 @@
 		{/if}
 
 		{#if loading}
-			<div class="bg-white rounded-lg shadow p-6">
-				<p class="text-gray-600">Loading storage configurations...</p>
+			<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
+				<p class="text-[var(--color-surface-600-400)]">Loading storage configurations...</p>
 			</div>
 		{:else if configs.length === 0}
-			<div class="bg-white rounded-lg shadow p-6">
-				<p class="text-gray-600">No storage providers configured.</p>
+			<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
+				<p class="text-[var(--color-surface-600-400)]">No storage providers configured.</p>
 			</div>
 		{:else}
-			<div class="bg-white rounded-lg shadow">
+			<div class="bg-[var(--color-surface-50-950)] rounded-lg shadow">
 				<!-- Tabs -->
-				<div class="border-b border-gray-200">
+				<div class="border-b border-surface-200-800">
 					<nav class="-mb-px flex space-x-8 px-6" aria-label="Tabs">
 						{#each configs as config}
 							<button
@@ -523,8 +525,8 @@
 								}
 							}}
 								class="py-4 px-1 border-b-2 font-medium text-sm {activeTab === config.providerId
-									? 'border-blue-500 text-blue-600'
-									: 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}"
+									? 'border-[var(--color-primary-500)] text-[var(--color-primary-600)]'
+									: 'border-transparent text-[var(--color-surface-600-400)] hover:text-[var(--color-surface-800-200)] hover:border-surface-300-700'}"
 							>
 								{config.name}
 								{#if config.isEnabled}
@@ -543,7 +545,7 @@
 						<!-- Google Drive Configuration -->
 						<div class="space-y-6">
 							<div>
-								<h2 class="text-xl font-semibold text-gray-900 mb-4">{$t('admin.googleDriveConfiguration')}</h2>
+								<h2 class="text-xl font-semibold text-[var(--color-surface-950-50)] mb-4">{$t('admin.googleDriveConfiguration')}</h2>
 								
 								<!-- Token Invalid Warning Banner (OAuth only) -->
 								{#if tokenInvalid && (currentFormData.authMethod || 'oauth') === 'oauth'}
@@ -597,7 +599,7 @@
 														type="button"
 														on:click={checkGoogleDriveTokenValidity}
 														disabled={checkingToken}
-														class="ml-3 inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+														class="ml-3 inline-flex items-center px-3 py-2 border border-surface-300-700 text-sm font-medium rounded-md text-[var(--color-surface-800-200)] bg-[var(--color-surface-50-950)] hover:bg-[var(--color-surface-50-950)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--color-primary-500)] disabled:opacity-50"
 													>
 														{checkingToken ? 'Checking...' : 'Re-check'}
 													</button>
@@ -626,27 +628,27 @@
 											id="gd-enabled"
 											checked={currentFormData.isEnabled || false}
 											on:change={(e) => updateFormData('isEnabled', e.currentTarget.checked)}
-											class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+											class="h-4 w-4 text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)] border-surface-300-700 rounded"
 										/>
-										<label for="gd-enabled" class="ml-2 block text-sm font-medium text-gray-700">
+										<label for="gd-enabled" class="ml-2 block text-sm font-medium text-[var(--color-surface-800-200)]">
 											{$t('admin.enable')} {$t('admin.googleDrive')} {$t('admin.storageProvider')}
 										</label>
 									</div>
 
 									<div>
-										<label for="gd-auth-method" class="block text-sm font-medium text-gray-700 mb-2">
+										<label for="gd-auth-method" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 											{$t('admin.authMethod')}
 										</label>
 										<select
 											id="gd-auth-method"
 											value={currentFormData.authMethod || 'oauth'}
 											on:change={(e) => updateFormData('authMethod', e.currentTarget.value)}
-											class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+											class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)]"
 										>
 											<option value="oauth">{$t('admin.authMethodOAuth')}</option>
 											<option value="service_account">{$t('admin.authMethodServiceAccount')}</option>
 										</select>
-										<p class="mt-1 text-xs text-gray-500">
+										<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">
 											{$t('admin.serviceAccountHelp')}
 										</p>
 									</div>
@@ -654,7 +656,7 @@
 									{#if (currentFormData.authMethod || 'oauth') === 'service_account'}
 										<!-- Service account: JSON key + Folder ID -->
 										<div>
-											<label for="gd-service-account-json" class="block text-sm font-medium text-gray-700 mb-2">
+											<label for="gd-service-account-json" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 												{$t('admin.serviceAccountJson')}
 											</label>
 											<textarea
@@ -662,15 +664,15 @@
 												rows="8"
 												value={currentFormData.serviceAccountJson || ''}
 												on:input={(e) => updateFormData('serviceAccountJson', e.currentTarget.value)}
-												class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+												class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)] font-mono text-sm"
 												placeholder={$t('admin.serviceAccountJsonPlaceholder')}
 											></textarea>
-											<p class="mt-1 text-xs text-gray-500">
+											<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">
 												{$t('admin.serviceAccountJsonHelp')}
 											</p>
 										</div>
 										<div>
-											<label for="gd-sa-folder-id" class="block text-sm font-medium text-gray-700 mb-2">
+											<label for="gd-sa-folder-id" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 												{$t('admin.folderId')} <span class="text-red-600">*</span>
 											</label>
 											<input
@@ -678,17 +680,17 @@
 												id="gd-sa-folder-id"
 												value={currentFormData.folderId || ''}
 												on:input={(e) => updateFormData('folderId', e.currentTarget.value)}
-												class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+												class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)]"
 												placeholder="e.g. 1ABC123xyz"
 											/>
-											<p class="mt-1 text-xs text-gray-500">
+											<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">
 												{$t('admin.folderIdHelp')}
 											</p>
 										</div>
 									{:else}
 										<!-- OAuth: Client ID, Secret, Refresh Token, Storage type -->
 										<div>
-											<label for="gd-client-id" class="block text-sm font-medium text-gray-700 mb-2">
+											<label for="gd-client-id" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 												{$t('admin.clientId')}
 											</label>
 											<input
@@ -696,13 +698,13 @@
 												id="gd-client-id"
 												value={currentFormData.clientId || ''}
 												on:input={(e) => updateFormData('clientId', e.currentTarget.value)}
-												class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+												class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)]"
 												placeholder={$t('admin.enterGoogleClientId')}
 											/>
 										</div>
 
 										<div>
-											<label for="gd-client-secret" class="block text-sm font-medium text-gray-700 mb-2">
+											<label for="gd-client-secret" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 												{$t('admin.clientSecret')}
 											</label>
 											<input
@@ -710,13 +712,13 @@
 												id="gd-client-secret"
 												value={currentFormData.clientSecret || ''}
 												on:input={(e) => updateFormData('clientSecret', e.currentTarget.value)}
-												class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+												class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)]"
 												placeholder={$t('admin.enterGoogleClientSecret')}
 											/>
 										</div>
 
 										<div>
-											<label for="gd-refresh-token" class="block text-sm font-medium text-gray-700 mb-2">
+											<label for="gd-refresh-token" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 												{$t('admin.refreshToken')}
 											</label>
 											<div class="flex gap-3">
@@ -725,36 +727,36 @@
 													id="gd-refresh-token"
 													value={currentFormData.refreshToken || ''}
 													on:input={(e) => updateFormData('refreshToken', e.currentTarget.value)}
-													class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+													class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)]"
 													placeholder={$t('admin.enterRefreshToken')}
 												/>
 												<button
 													type="button"
 													on:click={startGoogleOAuth}
-													class="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+													class="px-3 py-2 bg-[var(--color-primary-600)] text-white rounded-md hover:bg-[var(--color-primary-700)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)]"
 												>
 													{$t('admin.renewToken')}
 												</button>
 											</div>
-											<p class="mt-1 text-xs text-gray-500">
+											<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">
 												{$t('admin.renewTokenHelp')}
 											</p>
 										</div>
 
 										<div>
-											<label for="gd-storage-type" class="block text-sm font-medium text-gray-700 mb-2">
+											<label for="gd-storage-type" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 												{$t('admin.storageType')}
 											</label>
 											<select
 												id="gd-storage-type"
 												value={currentFormData.storageType || 'appdata'}
 												on:change={(e) => updateFormData('storageType', e.currentTarget.value)}
-												class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+												class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)]"
 											>
 												<option value="appdata">{$t('admin.storageTypeAppdata')}</option>
 												<option value="visible">{$t('admin.storageTypeVisible')}</option>
 											</select>
-											<p class="mt-1 text-xs text-gray-500">
+											<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">
 												{#if (currentFormData.storageType || 'appdata') === 'appdata'}
 													{$t('admin.storageTypeAppdataDescription')}
 												{:else}
@@ -775,7 +777,7 @@
 
 										{#if (currentFormData.storageType || 'appdata') === 'visible'}
 											<div>
-												<label for="gd-folder-id" class="block text-sm font-medium text-gray-700 mb-2">
+												<label for="gd-folder-id" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 													{$t('admin.folderIdOptional')}
 												</label>
 												<input
@@ -783,10 +785,10 @@
 													id="gd-folder-id"
 													value={currentFormData.folderId || ''}
 													on:input={(e) => updateFormData('folderId', e.currentTarget.value)}
-													class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+													class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)]"
 													placeholder={$t('admin.folderIdOptional')}
 												/>
-												<p class="mt-1 text-xs text-gray-500">
+												<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">
 													{$t('admin.folderIdHelp')}
 												</p>
 											</div>
@@ -797,7 +799,7 @@
 										<button
 											type="submit"
 											disabled={saving}
-											class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+											class="px-4 py-2 bg-[var(--color-primary-600)] text-white rounded-md hover:bg-[var(--color-primary-700)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)] disabled:opacity-50 disabled:cursor-not-allowed"
 										>
 											{saving ? $t('admin.saving') : $t('admin.saveConfiguration')}
 										</button>
@@ -832,11 +834,11 @@
 
 							<!-- Tree View -->
 							{#if showTreeView && activeTab === 'google-drive'}
-								<div class="border-t border-gray-200 pt-6">
-									<h3 class="text-lg font-semibold text-gray-900 mb-4">{$t('admin.folderTree')}</h3>
+								<div class="border-t border-surface-200-800 pt-6">
+									<h3 class="text-lg font-semibold text-[var(--color-surface-950-50)] mb-4">{$t('admin.folderTree')}</h3>
 									{#if loadingTree}
 										<div class="text-center py-12">
-											<p class="text-gray-600">{$t('admin.loadingFolderTree')}</p>
+											<p class="text-[var(--color-surface-600-400)]">{$t('admin.loadingFolderTree')}</p>
 										</div>
 									{:else if treeError}
 										<div class="bg-red-50 border border-red-200 rounded-md p-4">
@@ -850,12 +852,12 @@
 											</button>
 										</div>
 									{:else if treeData}
-										<div class="overflow-auto max-h-[600px] border border-gray-200 rounded-md p-4 bg-gray-50">
+										<div class="overflow-auto max-h-[600px] border border-surface-200-800 rounded-md p-4 bg-[var(--color-surface-50-950)]">
 											<StorageTreeItem node={treeData} depth={0} />
 										</div>
 									{:else}
 										<div class="text-center py-12">
-											<p class="text-gray-600">{$t('admin.noDataAvailable')}</p>
+											<p class="text-[var(--color-surface-600-400)]">{$t('admin.noDataAvailable')}</p>
 										</div>
 									{/if}
 								</div>
@@ -865,7 +867,7 @@
 						<!-- AWS S3 Configuration -->
 						<div class="space-y-6">
 							<div>
-								<h2 class="text-xl font-semibold text-gray-900 mb-4">Amazon S3 Configuration</h2>
+								<h2 class="text-xl font-semibold text-[var(--color-surface-950-50)] mb-4">Amazon S3 Configuration</h2>
 								
 								{#if saveSuccess}
 									<div class="bg-green-50 border border-green-200 rounded-md p-4 mb-4">
@@ -886,15 +888,15 @@
 											id="s3-enabled"
 											checked={currentFormData.isEnabled || false}
 											on:change={(e) => updateFormData('isEnabled', e.currentTarget.checked)}
-											class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+											class="h-4 w-4 text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)] border-surface-300-700 rounded"
 										/>
-										<label for="s3-enabled" class="ml-2 block text-sm font-medium text-gray-700">
+										<label for="s3-enabled" class="ml-2 block text-sm font-medium text-[var(--color-surface-800-200)]">
 											Enable Amazon S3 Storage
 										</label>
 									</div>
 
 									<div>
-										<label for="s3-access-key" class="block text-sm font-medium text-gray-700 mb-2">
+										<label for="s3-access-key" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 											Access Key ID
 										</label>
 										<input
@@ -902,13 +904,13 @@
 											id="s3-access-key"
 											value={currentFormData.accessKeyId || ''}
 											on:input={(e) => updateFormData('accessKeyId', e.currentTarget.value)}
-											class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+											class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)]"
 											placeholder="Enter AWS Access Key ID"
 										/>
 									</div>
 
 									<div>
-										<label for="s3-secret-key" class="block text-sm font-medium text-gray-700 mb-2">
+										<label for="s3-secret-key" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 											Secret Access Key
 										</label>
 										<input
@@ -916,13 +918,13 @@
 											id="s3-secret-key"
 											value={currentFormData.secretAccessKey || ''}
 											on:input={(e) => updateFormData('secretAccessKey', e.currentTarget.value)}
-											class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+											class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)]"
 											placeholder="Enter AWS Secret Access Key"
 										/>
 									</div>
 
 									<div>
-										<label for="s3-region" class="block text-sm font-medium text-gray-700 mb-2">
+										<label for="s3-region" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 											Region
 										</label>
 										<input
@@ -930,13 +932,13 @@
 											id="s3-region"
 											value={currentFormData.region || 'us-east-1'}
 											on:input={(e) => updateFormData('region', e.currentTarget.value)}
-											class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+											class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)]"
 											placeholder="e.g., us-east-1"
 										/>
 									</div>
 
 									<div>
-										<label for="s3-bucket" class="block text-sm font-medium text-gray-700 mb-2">
+										<label for="s3-bucket" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 											Bucket Name
 										</label>
 										<input
@@ -944,7 +946,7 @@
 											id="s3-bucket"
 											value={currentFormData.bucketName || ''}
 											on:input={(e) => updateFormData('bucketName', e.currentTarget.value)}
-											class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+											class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)]"
 											placeholder="Enter S3 bucket name"
 										/>
 									</div>
@@ -953,7 +955,7 @@
 										<button
 											type="submit"
 											disabled={saving}
-											class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+											class="px-4 py-2 bg-[var(--color-primary-600)] text-white rounded-md hover:bg-[var(--color-primary-700)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)] disabled:opacity-50 disabled:cursor-not-allowed"
 										>
 											{saving ? 'Saving...' : 'Save Configuration'}
 										</button>
@@ -988,11 +990,11 @@
 
 							<!-- Tree View -->
 							{#if showTreeView && activeTab === 'aws-s3'}
-								<div class="border-t border-gray-200 pt-6">
-									<h3 class="text-lg font-semibold text-gray-900 mb-4">Folder Tree</h3>
+								<div class="border-t border-surface-200-800 pt-6">
+									<h3 class="text-lg font-semibold text-[var(--color-surface-950-50)] mb-4">Folder Tree</h3>
 									{#if loadingTree}
 										<div class="text-center py-12">
-											<p class="text-gray-600">Loading folder tree...</p>
+											<p class="text-[var(--color-surface-600-400)]">Loading folder tree...</p>
 										</div>
 									{:else if treeError}
 										<div class="bg-red-50 border border-red-200 rounded-md p-4">
@@ -1006,12 +1008,12 @@
 											</button>
 										</div>
 									{:else if treeData}
-										<div class="overflow-auto max-h-[600px] border border-gray-200 rounded-md p-4 bg-gray-50">
+										<div class="overflow-auto max-h-[600px] border border-surface-200-800 rounded-md p-4 bg-[var(--color-surface-50-950)]">
 											<StorageTreeItem node={treeData} depth={0} />
 										</div>
 									{:else}
 										<div class="text-center py-12">
-											<p class="text-gray-600">No data available</p>
+											<p class="text-[var(--color-surface-600-400)]">No data available</p>
 										</div>
 									{/if}
 								</div>
@@ -1021,7 +1023,7 @@
 						<!-- Backblaze Configuration -->
 						<div class="space-y-6">
 							<div>
-								<h2 class="text-xl font-semibold text-gray-900 mb-4">Backblaze B2 Configuration</h2>
+								<h2 class="text-xl font-semibold text-[var(--color-surface-950-50)] mb-4">Backblaze B2 Configuration</h2>
 								
 								{#if saveSuccess}
 									<div class="bg-green-50 border border-green-200 rounded-md p-4 mb-4">
@@ -1042,15 +1044,15 @@
 											id="bb-enabled"
 											checked={currentFormData.isEnabled || false}
 											on:change={(e) => updateFormData('isEnabled', e.currentTarget.checked)}
-											class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+											class="h-4 w-4 text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)] border-surface-300-700 rounded"
 										/>
-										<label for="bb-enabled" class="ml-2 block text-sm font-medium text-gray-700">
+										<label for="bb-enabled" class="ml-2 block text-sm font-medium text-[var(--color-surface-800-200)]">
 											Enable Backblaze B2 Storage
 										</label>
 									</div>
 
 									<div>
-										<label for="bb-key-id" class="block text-sm font-medium text-gray-700 mb-2">
+										<label for="bb-key-id" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 											Application Key ID
 										</label>
 										<input
@@ -1058,13 +1060,13 @@
 											id="bb-key-id"
 											value={currentFormData.applicationKeyId || ''}
 											on:input={(e) => updateFormData('applicationKeyId', e.currentTarget.value)}
-											class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+											class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)]"
 											placeholder="24-character key ID (starts with K)"
 										/>
 									</div>
 
 									<div>
-										<label for="bb-key" class="block text-sm font-medium text-gray-700 mb-2">
+										<label for="bb-key" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 											Application Key
 										</label>
 										<input
@@ -1072,13 +1074,13 @@
 											id="bb-key"
 											value={currentFormData.applicationKey || ''}
 											on:input={(e) => updateFormData('applicationKey', e.currentTarget.value)}
-											class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+											class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)]"
 											placeholder="32-character application key"
 										/>
 									</div>
 
 									<div>
-										<label for="bb-bucket" class="block text-sm font-medium text-gray-700 mb-2">
+										<label for="bb-bucket" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 											Bucket Name
 										</label>
 										<input
@@ -1086,13 +1088,13 @@
 											id="bb-bucket"
 											value={currentFormData.bucketName || ''}
 											on:input={(e) => updateFormData('bucketName', e.currentTarget.value)}
-											class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+											class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)]"
 											placeholder="Enter B2 bucket name"
 										/>
 									</div>
 
 									<div>
-										<label for="bb-region" class="block text-sm font-medium text-gray-700 mb-2">
+										<label for="bb-region" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 											Region
 										</label>
 										<input
@@ -1100,13 +1102,13 @@
 											id="bb-region"
 											value={currentFormData.region || ''}
 											on:input={(e) => updateFormData('region', e.currentTarget.value)}
-											class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+											class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)]"
 											placeholder="e.g., us-west-2"
 										/>
 									</div>
 
 									<div>
-										<label for="bb-endpoint" class="block text-sm font-medium text-gray-700 mb-2">
+										<label for="bb-endpoint" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 											Endpoint (Optional)
 										</label>
 										<input
@@ -1114,7 +1116,7 @@
 											id="bb-endpoint"
 											value={currentFormData.endpoint || ''}
 											on:input={(e) => updateFormData('endpoint', e.currentTarget.value)}
-											class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+											class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)]"
 											placeholder="e.g., https://s3.us-west-2.backblazeb2.com"
 										/>
 									</div>
@@ -1123,7 +1125,7 @@
 										<button
 											type="submit"
 											disabled={saving}
-											class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+											class="px-4 py-2 bg-[var(--color-primary-600)] text-white rounded-md hover:bg-[var(--color-primary-700)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)] disabled:opacity-50 disabled:cursor-not-allowed"
 										>
 											{saving ? 'Saving...' : 'Save Configuration'}
 										</button>
@@ -1158,11 +1160,11 @@
 
 							<!-- Tree View -->
 							{#if showTreeView && activeTab === 'backblaze'}
-								<div class="border-t border-gray-200 pt-6">
-									<h3 class="text-lg font-semibold text-gray-900 mb-4">Folder Tree</h3>
+								<div class="border-t border-surface-200-800 pt-6">
+									<h3 class="text-lg font-semibold text-[var(--color-surface-950-50)] mb-4">Folder Tree</h3>
 									{#if loadingTree}
 										<div class="text-center py-12">
-											<p class="text-gray-600">Loading folder tree...</p>
+											<p class="text-[var(--color-surface-600-400)]">Loading folder tree...</p>
 										</div>
 									{:else if treeError}
 										<div class="bg-red-50 border border-red-200 rounded-md p-4">
@@ -1176,12 +1178,12 @@
 											</button>
 										</div>
 									{:else if treeData}
-										<div class="overflow-auto max-h-[600px] border border-gray-200 rounded-md p-4 bg-gray-50">
+										<div class="overflow-auto max-h-[600px] border border-surface-200-800 rounded-md p-4 bg-[var(--color-surface-50-950)]">
 											<StorageTreeItem node={treeData} depth={0} />
 										</div>
 									{:else}
 										<div class="text-center py-12">
-											<p class="text-gray-600">No data available</p>
+											<p class="text-[var(--color-surface-600-400)]">No data available</p>
 										</div>
 									{/if}
 								</div>
@@ -1191,7 +1193,7 @@
 						<!-- Wasabi Configuration -->
 						<div class="space-y-6">
 							<div>
-								<h2 class="text-xl font-semibold text-gray-900 mb-4">Wasabi Configuration</h2>
+								<h2 class="text-xl font-semibold text-[var(--color-surface-950-50)] mb-4">Wasabi Configuration</h2>
 								
 								{#if saveSuccess}
 									<div class="bg-green-50 border border-green-200 rounded-md p-4 mb-4">
@@ -1212,15 +1214,15 @@
 											id="wa-enabled"
 											checked={currentFormData.isEnabled || false}
 											on:change={(e) => updateFormData('isEnabled', e.currentTarget.checked)}
-											class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+											class="h-4 w-4 text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)] border-surface-300-700 rounded"
 										/>
-										<label for="wa-enabled" class="ml-2 block text-sm font-medium text-gray-700">
+										<label for="wa-enabled" class="ml-2 block text-sm font-medium text-[var(--color-surface-800-200)]">
 											Enable Wasabi Storage
 										</label>
 									</div>
 
 									<div>
-										<label for="wa-access-key" class="block text-sm font-medium text-gray-700 mb-2">
+										<label for="wa-access-key" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 											Access Key ID
 										</label>
 										<input
@@ -1228,13 +1230,13 @@
 											id="wa-access-key"
 											value={currentFormData.accessKeyId || ''}
 											on:input={(e) => updateFormData('accessKeyId', e.currentTarget.value)}
-											class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+											class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)]"
 											placeholder="Enter Wasabi Access Key ID"
 										/>
 									</div>
 
 									<div>
-										<label for="wa-secret-key" class="block text-sm font-medium text-gray-700 mb-2">
+										<label for="wa-secret-key" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 											Secret Access Key
 										</label>
 										<input
@@ -1242,13 +1244,13 @@
 											id="wa-secret-key"
 											value={currentFormData.secretAccessKey || ''}
 											on:input={(e) => updateFormData('secretAccessKey', e.currentTarget.value)}
-											class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+											class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)]"
 											placeholder="Enter Wasabi Secret Access Key"
 										/>
 									</div>
 
 									<div>
-										<label for="wa-bucket" class="block text-sm font-medium text-gray-700 mb-2">
+										<label for="wa-bucket" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 											Bucket Name
 										</label>
 										<input
@@ -1256,13 +1258,13 @@
 											id="wa-bucket"
 											value={currentFormData.bucketName || ''}
 											on:input={(e) => updateFormData('bucketName', e.currentTarget.value)}
-											class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+											class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)]"
 											placeholder="Enter Wasabi bucket name"
 										/>
 									</div>
 
 									<div>
-										<label for="wa-region" class="block text-sm font-medium text-gray-700 mb-2">
+										<label for="wa-region" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 											Region
 										</label>
 										<input
@@ -1270,13 +1272,13 @@
 											id="wa-region"
 											value={currentFormData.region || ''}
 											on:input={(e) => updateFormData('region', e.currentTarget.value)}
-											class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+											class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)]"
 											placeholder="e.g., us-east-1"
 										/>
 									</div>
 
 									<div>
-										<label for="wa-endpoint" class="block text-sm font-medium text-gray-700 mb-2">
+										<label for="wa-endpoint" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 											Endpoint
 										</label>
 										<input
@@ -1284,7 +1286,7 @@
 											id="wa-endpoint"
 											value={currentFormData.endpoint || ''}
 											on:input={(e) => updateFormData('endpoint', e.currentTarget.value)}
-											class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+											class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)]"
 											placeholder="e.g., https://s3.wasabisys.com"
 										/>
 									</div>
@@ -1293,7 +1295,7 @@
 										<button
 											type="submit"
 											disabled={saving}
-											class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+											class="px-4 py-2 bg-[var(--color-primary-600)] text-white rounded-md hover:bg-[var(--color-primary-700)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)] disabled:opacity-50 disabled:cursor-not-allowed"
 										>
 											{saving ? 'Saving...' : 'Save Configuration'}
 										</button>
@@ -1328,11 +1330,11 @@
 
 							<!-- Tree View -->
 							{#if showTreeView && activeTab === 'wasabi'}
-								<div class="border-t border-gray-200 pt-6">
-									<h3 class="text-lg font-semibold text-gray-900 mb-4">Folder Tree</h3>
+								<div class="border-t border-surface-200-800 pt-6">
+									<h3 class="text-lg font-semibold text-[var(--color-surface-950-50)] mb-4">Folder Tree</h3>
 									{#if loadingTree}
 										<div class="text-center py-12">
-											<p class="text-gray-600">Loading folder tree...</p>
+											<p class="text-[var(--color-surface-600-400)]">Loading folder tree...</p>
 										</div>
 									{:else if treeError}
 										<div class="bg-red-50 border border-red-200 rounded-md p-4">
@@ -1346,12 +1348,12 @@
 											</button>
 										</div>
 									{:else if treeData}
-										<div class="overflow-auto max-h-[600px] border border-gray-200 rounded-md p-4 bg-gray-50">
+										<div class="overflow-auto max-h-[600px] border border-surface-200-800 rounded-md p-4 bg-[var(--color-surface-50-950)]">
 											<StorageTreeItem node={treeData} depth={0} />
 										</div>
 									{:else}
 										<div class="text-center py-12">
-											<p class="text-gray-600">No data available</p>
+											<p class="text-[var(--color-surface-600-400)]">No data available</p>
 										</div>
 									{/if}
 								</div>
@@ -1361,7 +1363,7 @@
 						<!-- Local Storage Configuration -->
 						<div class="space-y-6">
 							<div>
-								<h2 class="text-xl font-semibold text-gray-900 mb-4">Local Storage Configuration</h2>
+								<h2 class="text-xl font-semibold text-[var(--color-surface-950-50)] mb-4">Local Storage Configuration</h2>
 								
 								{#if saveSuccess}
 									<div class="bg-green-50 border border-green-200 rounded-md p-4 mb-4">
@@ -1382,15 +1384,15 @@
 											id="local-enabled"
 											checked={currentFormData.isEnabled || false}
 											on:change={(e) => updateFormData('isEnabled', e.currentTarget.checked)}
-											class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+											class="h-4 w-4 text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)] border-surface-300-700 rounded"
 										/>
-										<label for="local-enabled" class="ml-2 block text-sm font-medium text-gray-700">
+										<label for="local-enabled" class="ml-2 block text-sm font-medium text-[var(--color-surface-800-200)]">
 											Enable Local Storage
 										</label>
 									</div>
 
 									<div>
-										<label for="local-path" class="block text-sm font-medium text-gray-700 mb-2">
+										<label for="local-path" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 											Base Path
 										</label>
 										<input
@@ -1398,16 +1400,16 @@
 											id="local-path"
 											value={currentFormData.basePath || '/app/public/albums'}
 											on:input={(e) => updateFormData('basePath', e.currentTarget.value)}
-											class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+											class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)]"
 											placeholder="/app/public/albums"
 										/>
-										<p class="mt-1 text-xs text-gray-500">
+										<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">
 											Base directory path where files will be stored on the server
 										</p>
 									</div>
 
 									<div>
-										<label for="local-max-size" class="block text-sm font-medium text-gray-700 mb-2">
+										<label for="local-max-size" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 											Max File Size
 										</label>
 										<input
@@ -1415,10 +1417,10 @@
 											id="local-max-size"
 											value={currentFormData.maxFileSize || '100MB'}
 											on:input={(e) => updateFormData('maxFileSize', e.currentTarget.value)}
-											class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+											class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)]"
 											placeholder="100MB"
 										/>
-										<p class="mt-1 text-xs text-gray-500">
+										<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">
 											Maximum file size limit (e.g., 100MB, 500MB)
 										</p>
 									</div>
@@ -1427,7 +1429,7 @@
 										<button
 											type="submit"
 											disabled={saving}
-											class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+											class="px-4 py-2 bg-[var(--color-primary-600)] text-white rounded-md hover:bg-[var(--color-primary-700)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)] disabled:opacity-50 disabled:cursor-not-allowed"
 										>
 											{saving ? 'Saving...' : 'Save Configuration'}
 										</button>
@@ -1462,11 +1464,11 @@
 
 							<!-- Tree View -->
 							{#if showTreeView && activeTab === 'local'}
-								<div class="border-t border-gray-200 pt-6">
-									<h3 class="text-lg font-semibold text-gray-900 mb-4">Folder Tree</h3>
+								<div class="border-t border-surface-200-800 pt-6">
+									<h3 class="text-lg font-semibold text-[var(--color-surface-950-50)] mb-4">Folder Tree</h3>
 									{#if loadingTree}
 										<div class="text-center py-12">
-											<p class="text-gray-600">Loading folder tree...</p>
+											<p class="text-[var(--color-surface-600-400)]">Loading folder tree...</p>
 										</div>
 									{:else if treeError}
 										<div class="bg-red-50 border border-red-200 rounded-md p-4">
@@ -1480,12 +1482,12 @@
 											</button>
 										</div>
 									{:else if treeData}
-										<div class="overflow-auto max-h-[600px] border border-gray-200 rounded-md p-4 bg-gray-50">
+										<div class="overflow-auto max-h-[600px] border border-surface-200-800 rounded-md p-4 bg-[var(--color-surface-50-950)]">
 											<StorageTreeItem node={treeData} depth={0} />
 										</div>
 									{:else}
 										<div class="text-center py-12">
-											<p class="text-gray-600">No data available</p>
+											<p class="text-[var(--color-surface-600-400)]">No data available</p>
 										</div>
 									{/if}
 								</div>
@@ -1495,8 +1497,8 @@
 						<!-- Unknown provider -->
 						<div class="space-y-6">
 							<div>
-								<h2 class="text-xl font-semibold text-gray-900 mb-4">{getCurrentConfig()?.name || activeTab} Configuration</h2>
-								<p class="text-gray-600">Configuration form for {activeTab} coming soon...</p>
+								<h2 class="text-xl font-semibold text-[var(--color-surface-950-50)] mb-4">{getCurrentConfig()?.name || activeTab} Configuration</h2>
+								<p class="text-[var(--color-surface-600-400)]">Configuration form for {activeTab} coming soon...</p>
 							</div>
 						</div>
 					{/if}

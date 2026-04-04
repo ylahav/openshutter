@@ -7,7 +7,7 @@
 	import { getAlbumName, getAlbumDescription } from '$lib/utils/albumUtils';
 	import { getPhotoTitle } from '$lib/utils/photoUtils';
 	import { getPhotoUrl, getPhotoRotationStyle } from '$lib/utils/photoUrl';
-	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
+	import AdminConfirmDialog from '$lib/components/admin/AdminConfirmDialog.svelte';
 	import { logger } from '$lib/utils/logger';
 	import { handleError } from '$lib/utils/errorHandler';
 	import type { PageData } from './$types';
@@ -288,15 +288,17 @@
 	</div>
 </div>
 
-<ConfirmDialog
-	isOpen={photoDeleteDialog.isOpen}
+<AdminConfirmDialog
+	open={photoDeleteDialog.isOpen}
 	title="Delete Photo"
 	message="Are you sure you want to delete &quot;{photoDeleteDialog.photoTitle}&quot;? This action cannot be undone."
 	confirmText={photoDeleteDialog.isDeleting ? 'Deleting...' : 'Delete'}
 	cancelText="Cancel"
 	variant="danger"
-	disabled={photoDeleteDialog.isDeleting}
-	on:confirm={confirmDeletePhoto}
-	on:cancel={closePhotoDeleteDialog}
+	confirmDisabled={photoDeleteDialog.isDeleting}
+	onOpenChange={(o) => {
+		if (!o) closePhotoDeleteDialog();
+	}}
+	onConfirm={confirmDeletePhoto}
 />
 {/if}
