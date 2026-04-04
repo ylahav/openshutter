@@ -134,10 +134,10 @@ import BlogArticleModule from './modules/BlogArticleModule.svelte';
 		{#if !compact && (titleText || subtitleText)}
 			<div class="max-w-4xl mx-auto px-4 py-12 text-center border-b border-gray-200 dark:border-gray-700">
 				{#if titleText}
-					<h1 class="text-4xl md:text-5xl font-bold text-gray-900 dark:text-gray-100 mb-4">{titleText}</h1>
+					<h1 class="text-4xl @md:text-5xl font-bold text-gray-900 dark:text-gray-100 mb-4">{titleText}</h1>
 				{/if}
 				{#if subtitleText}
-					<h2 class="text-xl md:text-2xl font-semibold text-gray-700 dark:text-gray-300">{subtitleText}</h2>
+					<h2 class="text-xl @md:text-2xl font-semibold text-gray-700 dark:text-gray-300">{subtitleText}</h2>
 				{/if}
 			</div>
 		{/if}

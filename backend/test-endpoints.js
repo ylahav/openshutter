@@ -141,7 +141,7 @@ async function runTests() {
 // Check if fetch is available (Node.js 18+)
 if (typeof fetch === 'undefined') {
   console.error('❌ This script requires Node.js 18+ with built-in fetch support');
-  console.error('   Or install node-fetch: npm install node-fetch');
+  console.error('   Or install node-fetch: pnpm add node-fetch');
   process.exit(1);
 }
 

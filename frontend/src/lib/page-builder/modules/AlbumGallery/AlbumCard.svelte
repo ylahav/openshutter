@@ -18,12 +18,14 @@
 
 <a
 	href={href}
-	class="group bg-white dark:bg-gray-800 rounded-xl shadow-md dark:shadow-gray-900/50 overflow-hidden hover:shadow-xl dark:hover:shadow-gray-900/70 transition-all duration-300 transform hover:-translate-y-1"
+	class="group block min-w-0 max-w-full bg-white dark:bg-gray-800 rounded-xl shadow-md dark:shadow-gray-900/50 overflow-hidden hover:shadow-xl dark:hover:shadow-gray-900/70 transition-all duration-300 transform hover:-translate-y-1"
 >
-	<div class="p-6">
+	<div class="p-4 @sm:p-6">
 		{#each cardFieldOrder as field}
 			{#if field === 'title' && showTitle}
-				<h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+				<h3
+					class="text-lg @sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors break-words"
+				>
 					{getAlbumName(album)}
 				</h3>
 			{:else if field === 'cover' && showCover}

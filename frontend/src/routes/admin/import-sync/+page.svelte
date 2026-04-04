@@ -617,13 +617,10 @@
 	<title>Import & Sync - Admin</title>
 </svelte:head>
 
-<div class="min-h-screen bg-gray-50 py-8">
+<div class="py-8">
 	<div class="max-w-4xl mx-auto px-4">
-		<div class="flex items-center justify-between mb-6 mt-12">
-			<h1 class="text-2xl font-bold text-gray-900">Migration (Export, Import &amp; Storage)</h1>
-			<a href="/admin" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm font-medium">
-				← Back to Admin
-			</a>
+		<div class="mb-6 mt-12">
+			<h1 class="text-2xl font-bold text-[var(--color-surface-950-50)]">Migration (Export, Import &amp; Storage)</h1>
 		</div>
 
 		{#if message}
@@ -632,21 +629,21 @@
 			</div>
 		{/if}
 
-		<div class="flex gap-2 mb-6 border-b border-gray-200">
+		<div class="flex gap-2 mb-6 border-b border-surface-200-800">
 			<button
-				class="px-4 py-2 rounded-t {activeTab === 'export' ? 'bg-white border border-b-0 border-gray-200 font-medium text-gray-900' : 'bg-gray-100 text-gray-700 hover:text-gray-900'}"
+				class="px-4 py-2 rounded-t {activeTab === 'export' ? 'bg-[var(--color-surface-50-950)] border border-b-0 border-surface-200-800 font-medium text-[var(--color-surface-950-50)]' : 'bg-[var(--color-surface-100-900)] text-[var(--color-surface-800-200)] hover:text-[var(--color-surface-950-50)]'}"
 				on:click={() => (activeTab = 'export')}
 			>
 				Export
 			</button>
 			<button
-				class="px-4 py-2 rounded-t {activeTab === 'import' ? 'bg-white border border-b-0 border-gray-200 font-medium text-gray-900' : 'bg-gray-100 text-gray-700 hover:text-gray-900'}"
+				class="px-4 py-2 rounded-t {activeTab === 'import' ? 'bg-[var(--color-surface-50-950)] border border-b-0 border-surface-200-800 font-medium text-[var(--color-surface-950-50)]' : 'bg-[var(--color-surface-100-900)] text-[var(--color-surface-800-200)] hover:text-[var(--color-surface-950-50)]'}"
 				on:click={() => (activeTab = 'import')}
 			>
 				Import
 			</button>
 			<button
-				class="px-4 py-2 rounded-t {activeTab === 'storage' ? 'bg-white border border-b-0 border-gray-200 font-medium text-gray-900' : 'bg-gray-100 text-gray-700 hover:text-gray-900'}"
+				class="px-4 py-2 rounded-t {activeTab === 'storage' ? 'bg-[var(--color-surface-50-950)] border border-b-0 border-surface-200-800 font-medium text-[var(--color-surface-950-50)]' : 'bg-[var(--color-surface-100-900)] text-[var(--color-surface-800-200)] hover:text-[var(--color-surface-950-50)]'}"
 				on:click={() => (activeTab = 'storage')}
 			>
 				Storage migration
@@ -654,17 +651,17 @@
 		</div>
 
 		{#if activeTab === 'export'}
-			<div class="bg-white rounded-lg shadow p-6">
-				<p class="text-gray-600 mb-4">
+			<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
+				<p class="text-[var(--color-surface-600-400)] mb-4">
 					Export produces a portable package: database reflection (JSON) plus a photo tree mirroring the repository. Path must be under the allowed base (see MIGRATION_BASE_PATH).
 				</p>
 				<div class="mb-4">
-					<label for="export-path-input" class="block font-medium text-gray-700 mb-2">Destination path:</label>
+					<label for="export-path-input" class="block font-medium text-[var(--color-surface-800-200)] mb-2">Destination path:</label>
 					<div class="flex gap-2 items-center">
 						<input
 							id="export-path-input"
 							type="text"
-							class="flex-1 border border-gray-300 rounded px-3 py-2 text-gray-900"
+							class="flex-1 border border-surface-300-700 rounded px-3 py-2 text-[var(--color-surface-950-50)]"
 							placeholder="e.g. ./migration-data/export-1"
 							bind:value={exportPath}
 						/>
@@ -677,7 +674,7 @@
 						/>
 						<button
 							type="button"
-							class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50"
+							class="px-4 py-2 bg-[var(--color-surface-200-800)] text-[var(--color-surface-800-200)] rounded hover:bg-[var(--color-surface-300-700)] disabled:opacity-50"
 							disabled={exportLoading}
 							on:click={selectExportDirectory}
 						>
@@ -687,20 +684,20 @@
 				</div>
 				<div class="flex items-center gap-2 mb-4">
 					<input id="export-bundle" type="checkbox" bind:checked={exportBundle} />
-					<label for="export-bundle" class="text-sm text-gray-700">
+					<label for="export-bundle" class="text-sm text-[var(--color-surface-800-200)]">
 						Create ZIP bundle (.zip) of exported package
 					</label>
 				</div>
 				<div class="flex gap-2 items-center mb-4">
 					<button
-						class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
+						class="px-4 py-2 bg-[var(--color-surface-200-800)] rounded hover:bg-[var(--color-surface-300-700)] disabled:opacity-50"
 						disabled={exportLoading}
 						on:click={exportDoPreview}
 					>
 						Preview
 					</button>
 					<button
-						class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+						class="px-4 py-2 bg-[var(--color-primary-600)] text-white rounded hover:bg-[var(--color-primary-700)] disabled:opacity-50"
 						disabled={exportLoading || !!exportJobId}
 						on:click={exportStart}
 					>
@@ -708,24 +705,24 @@
 					</button>
 				</div>
 				{#if exportPreview}
-					<div class="mb-4 p-4 bg-gray-50 rounded">
+					<div class="mb-4 p-4 bg-[var(--color-surface-50-950)] rounded">
 						<p><strong>Albums:</strong> {exportPreview.albumCount} · <strong>Photos:</strong> {exportPreview.photoCount} · <strong>Est. size:</strong> {formatBytes(exportPreview.estimatedSizeBytes)}</p>
 					</div>
 				{/if}
 				{#if exportStatus}
-					<div class="p-4 bg-gray-50 rounded">
-						<p class="text-gray-700">
+					<div class="p-4 bg-[var(--color-surface-50-950)] rounded">
+						<p class="text-[var(--color-surface-800-200)]">
 							Status: <strong>{exportStatus.status}</strong>
 						</p>
 						{#if exportStatus.total > 0}
-							<p class="text-gray-700">
+							<p class="text-[var(--color-surface-800-200)]">
 								Progress: {exportStatus.progress} / {exportStatus.total}
 								{#if exportStatus.progress && exportStatus.total}
 									({Math.round((exportStatus.progress / exportStatus.total) * 100)}%)
 								{/if}
 							</p>
 							{#if exportStatus.current && exportStatus.status === 'running'}
-								<p class="text-sm text-gray-600">Current: {exportStatus.current}</p>
+								<p class="text-sm text-[var(--color-surface-600-400)]">Current: {exportStatus.current}</p>
 							{/if}
 						{/if}
 						{#if exportStatus.status === 'completed'}
@@ -768,27 +765,27 @@
 		{/if}
 
 		{#if activeTab === 'import'}
-			<div class="bg-white rounded-lg shadow p-6">
-				<p class="text-gray-600 mb-4">
+			<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
+				<p class="text-[var(--color-surface-600-400)] mb-4">
 					Import from a previously exported package (DB + tree) or from a raw folder (folders → albums, images → photos). Path must be under the allowed base.
 				</p>
 				<div class="flex gap-4 mb-4">
-					<label class="flex items-center gap-2 text-gray-700">
+					<label class="flex items-center gap-2 text-[var(--color-surface-800-200)]">
 						<input type="radio" name="importMode" value="package" bind:group={importMode} />
 						Package (exported bundle)
 					</label>
-					<label class="flex items-center gap-2 text-gray-700">
+					<label class="flex items-center gap-2 text-[var(--color-surface-800-200)]">
 						<input type="radio" name="importMode" value="raw" bind:group={importMode} />
 						Raw folder
 					</label>
 				</div>
 				<div class="mb-4">
-					<label for="import-path-input" class="block font-medium text-gray-700 mb-2">Source path:</label>
+					<label for="import-path-input" class="block font-medium text-[var(--color-surface-800-200)] mb-2">Source path:</label>
 					<div class="flex gap-2 items-center">
 						<input
 							id="import-path-input"
 							type="text"
-							class="flex-1 border border-gray-300 rounded px-3 py-2 text-gray-900"
+							class="flex-1 border border-surface-300-700 rounded px-3 py-2 text-[var(--color-surface-950-50)]"
 							placeholder={importMode === 'package' ? 'path to package directory' : 'path to folder with photos'}
 							bind:value={importPath}
 						/>
@@ -801,7 +798,7 @@
 						/>
 						<button
 							type="button"
-							class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50"
+							class="px-4 py-2 bg-[var(--color-surface-200-800)] text-[var(--color-surface-800-200)] rounded hover:bg-[var(--color-surface-300-700)] disabled:opacity-50"
 							disabled={importLoading}
 							on:click={selectImportDirectory}
 						>
@@ -811,14 +808,14 @@
 				</div>
 				<div class="flex gap-2 items-center mb-4">
 					<button
-						class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
+						class="px-4 py-2 bg-[var(--color-surface-200-800)] rounded hover:bg-[var(--color-surface-300-700)] disabled:opacity-50"
 						disabled={importLoading}
 						on:click={importDoPreview}
 					>
 						Preview
 					</button>
 					<button
-						class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+						class="px-4 py-2 bg-[var(--color-primary-600)] text-white rounded hover:bg-[var(--color-primary-700)] disabled:opacity-50"
 						disabled={importLoading || !!importJobId}
 						on:click={importStart}
 					>
@@ -826,21 +823,21 @@
 					</button>
 				</div>
 				{#if importPreview}
-					<div class="mb-4 p-4 bg-gray-50 rounded">
+					<div class="mb-4 p-4 bg-[var(--color-surface-50-950)] rounded">
 						<p><strong>Albums:</strong> {importPreview.albumCount} · <strong>Photos:</strong> {importPreview.photoCount}</p>
 					</div>
 				{/if}
 				{#if importStatus}
-					<div class="p-4 bg-gray-50 rounded">
-						<p class="text-gray-700">
+					<div class="p-4 bg-[var(--color-surface-50-950)] rounded">
+						<p class="text-[var(--color-surface-800-200)]">
 							Status: <strong>{importStatus.status}</strong>
 						</p>
 						{#if importStatus.total > 0}
-							<p class="text-gray-700">
+							<p class="text-[var(--color-surface-800-200)]">
 								Progress: {importStatus.progress} / {importStatus.total}
 							</p>
 							{#if importStatus.current}
-								<p class="text-sm text-gray-600">Current: {importStatus.current}</p>
+								<p class="text-sm text-[var(--color-surface-600-400)]">Current: {importStatus.current}</p>
 							{/if}
 						{/if}
 						{#if importStatus.error}
@@ -857,18 +854,18 @@
 		{/if}
 
 		{#if activeTab === 'storage'}
-			<div class="bg-white rounded-lg shadow p-6">
-				<p class="text-gray-600 mb-4">
+			<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
+				<p class="text-[var(--color-surface-600-400)] mb-4">
 					Copy photo assets from one storage provider to another (e.g. local → S3). DB references are updated after each copy.
 					<span class="block mt-2 text-sm">
-						<strong>Note:</strong> Configure storage providers in <a href="/admin/storage" class="text-blue-600 hover:underline">Storage Management</a> first.
+						<strong>Note:</strong> Configure storage providers in <a href="/admin/storage" class="text-[var(--color-primary-600)] hover:underline">Storage Management</a> first.
 					</span>
 				</p>
 				<div class="mb-4">
-					<label for="source-provider" class="block font-medium text-gray-700 mb-2">Source storage provider:</label>
+					<label for="source-provider" class="block font-medium text-[var(--color-surface-800-200)] mb-2">Source storage provider:</label>
 					<select
 						id="source-provider"
-						class="border border-gray-300 rounded px-3 py-2 text-gray-900 mb-3"
+						class="border border-surface-300-700 rounded px-3 py-2 text-[var(--color-surface-950-50)] mb-3"
 						bind:value={sourceProviderId}
 					>
 						<option value="">Select source provider...</option>
@@ -882,11 +879,11 @@
 					</select>
 				</div>
 				<div class="mb-4">
-					<label for="target-provider" class="block font-medium text-gray-700 mb-2">Target storage provider:</label>
+					<label for="target-provider" class="block font-medium text-[var(--color-surface-800-200)] mb-2">Target storage provider:</label>
 					<div class="flex gap-2 items-center">
 						<select
 							id="target-provider"
-							class="border border-gray-300 rounded px-3 py-2 text-gray-900"
+							class="border border-surface-300-700 rounded px-3 py-2 text-[var(--color-surface-950-50)]"
 							bind:value={targetProviderId}
 						>
 							<option value="">Select target provider...</option>
@@ -899,14 +896,14 @@
 							{/if}
 						</select>
 						<button
-							class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50"
+							class="px-4 py-2 bg-[var(--color-surface-200-800)] text-[var(--color-surface-800-200)] rounded hover:bg-[var(--color-surface-300-700)] disabled:opacity-50"
 							disabled={storageLoading || !storageProviders.length || !sourceProviderId || !targetProviderId}
 							on:click={storageDoPreview}
 						>
 							Preview
 						</button>
 						<button
-							class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+							class="px-4 py-2 bg-[var(--color-primary-600)] text-white rounded hover:bg-[var(--color-primary-700)] disabled:opacity-50"
 							disabled={storageLoading || !storageProviders.length || !sourceProviderId || !targetProviderId || !!storageJobId}
 							on:click={storageStart}
 						>
@@ -915,23 +912,23 @@
 					</div>
 				</div>
 				<div class="mb-4">
-					<p class="block font-medium text-gray-700 mb-2">
-						Scope: <span class="text-sm font-normal text-gray-600">(Optional - leave empty to migrate all photos from source)</span>
+					<p class="block font-medium text-[var(--color-surface-800-200)] mb-2">
+						Scope: <span class="text-sm font-normal text-[var(--color-surface-600-400)]">(Optional - leave empty to migrate all photos from source)</span>
 					</p>
-					<p class="text-sm text-gray-600 mb-2">
+					<p class="text-sm text-[var(--color-surface-600-400)] mb-2">
 						{#if !sourceProviderId}
 							Select a source provider to see albums.
 						{:else}
 							Select specific albums to migrate. Child albums are automatically included.
 						{/if}
 					</p>
-					<div class="border border-gray-300 rounded p-3 max-h-48 overflow-y-auto">
+					<div class="border border-surface-300-700 rounded p-3 max-h-48 overflow-y-auto">
 						{#if !sourceProviderId}
-							<p class="text-gray-500 text-sm">Select a source provider first</p>
+							<p class="text-[var(--color-surface-600-400)] text-sm">Select a source provider first</p>
 						{:else if filteredStorageAlbums.length === 0}
-							<p class="text-gray-500 text-sm">No albums found for this provider</p>
+							<p class="text-[var(--color-surface-600-400)] text-sm">No albums found for this provider</p>
 						{:else}
-							<label class="flex items-center gap-2 mb-2 text-gray-700 cursor-pointer">
+							<label class="flex items-center gap-2 mb-2 text-[var(--color-surface-800-200)] cursor-pointer">
 								<input
 									type="checkbox"
 									checked={storageSelectAll}
@@ -943,7 +940,7 @@
 							<div class="space-y-1">
 								{#each filteredStorageAlbums as album}
 									<label
-										class="flex items-center gap-2 text-gray-700 cursor-pointer"
+										class="flex items-center gap-2 text-[var(--color-surface-800-200)] cursor-pointer"
 										style="padding-left: {(album.level || 0) * 1}rem;"
 									>
 										<input
@@ -960,17 +957,17 @@
 					</div>
 				</div>
 				{#if storagePreview}
-					<div class="mb-4 p-4 bg-gray-50 rounded">
-						<p class="text-gray-700"><strong>Photos:</strong> {storagePreview.photoCount} · <strong>Est. size:</strong> {formatBytes(storagePreview.estimatedSizeBytes)}</p>
+					<div class="mb-4 p-4 bg-[var(--color-surface-50-950)] rounded">
+						<p class="text-[var(--color-surface-800-200)]"><strong>Photos:</strong> {storagePreview.photoCount} · <strong>Est. size:</strong> {formatBytes(storagePreview.estimatedSizeBytes)}</p>
 					</div>
 				{/if}
 				{#if storageStatus}
-					<div class="p-4 bg-gray-50 rounded">
-						<p class="text-gray-700">Status: <strong>{storageStatus.status}</strong></p>
+					<div class="p-4 bg-[var(--color-surface-50-950)] rounded">
+						<p class="text-[var(--color-surface-800-200)]">Status: <strong>{storageStatus.status}</strong></p>
 						{#if storageStatus.total > 0}
-							<p class="text-gray-700">Progress: {storageStatus.progress} / {storageStatus.total}</p>
+							<p class="text-[var(--color-surface-800-200)]">Progress: {storageStatus.progress} / {storageStatus.total}</p>
 							{#if storageStatus.current}
-								<p class="text-sm text-gray-600">Current: {storageStatus.current}</p>
+								<p class="text-sm text-[var(--color-surface-600-400)]">Current: {storageStatus.current}</p>
 							{/if}
 						{/if}
 						{#if storageStatus.error}

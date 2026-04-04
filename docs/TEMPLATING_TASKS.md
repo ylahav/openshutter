@@ -2,6 +2,8 @@
 
 **Canonical requirements:** [`TEMPLATING_REQUIREMENTS.md`](./TEMPLATING_REQUIREMENTS.md)
 
+**Admin UI:** The admin panel is moving to a **static shell** unrelated to template packs. There is **no** admin template selection. See [`ADMIN_UI_ROADMAP.md`](./ADMIN_UI_ROADMAP.md). Items below about themes, preview, and site config refer to the **visitor** site unless stated otherwise.
+
 This checklist is focused on adoption-first delivery: fast visual impact, easy customization, and contributor-friendly extension points.
 
 ### Cell-based module assignment — phased implementation
@@ -67,7 +69,7 @@ Cross-reference: **§2.2.1** (spans + anchor), **§2.2.3** (breakpoints/cascade 
 
 ### Backend
 
-- [x] Persist selected pack and options in site config — themes collection + `site_config.template` (applied theme drives public/admin template keys).
+- [x] Persist selected pack and options in site config — themes collection + `site_config.template` (applied theme drives **visitor** template keys; admin pack selection deprecated per [`ADMIN_UI_ROADMAP.md`](./ADMIN_UI_ROADMAP.md)).
 - [ ] Validate incoming template config payloads — tighten on PUT where needed.
 - [x] Template metadata — `GET /api/admin/templates` returns static `TemplateConfig[]`; theme CRUD under `/api/admin/themes`.
 
@@ -82,7 +84,7 @@ Cross-reference: **§2.2.1** (spans + anchor), **§2.2.3** (breakpoints/cascade 
 ### Testing
 
 - [ ] Unit tests for template resolver and option validation
-- [ ] Integration tests for admin template switching flow
+- [ ] Integration tests for **visitor** theme apply + public template resolution (admin shell decoupled — no admin template switching; see [`ADMIN_UI_ROADMAP.md`](./ADMIN_UI_ROADMAP.md))
 - [ ] E2E tests for route rendering across all built-in packs
 - [ ] Visual regression checks for top pages per pack
 

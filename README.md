@@ -75,8 +75,8 @@ A comprehensive photo gallery management system with multi-storage support, adva
 
 ## 📋 Prerequisites
 
-- Node.js 18+ 
-- pnpm (recommended) or npm
+- Node.js 18+ (includes [Corepack](https://nodejs.org/api/corepack.html) for pnpm)
+- **pnpm** — enable with `corepack enable` then `corepack prepare pnpm@10.33.0 --activate` (version matches root `package.json` `packageManager`), or see [pnpm installation](https://pnpm.io/installation)
 - MongoDB instance
 - Google Cloud Platform account (for Google Drive integration)
 - AWS account (for S3 integration, optional)

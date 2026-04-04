@@ -19,8 +19,8 @@ RUN apk add --no-cache \
     librsvg-dev \
     && ln -sf python3 /usr/bin/python
 
-# Install pnpm globally
-RUN npm install -g pnpm
+# pnpm via Corepack (no npm global install)
+RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
 
 # Copy package files
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./

@@ -1143,40 +1143,37 @@
 	</title>
 </svelte:head>
 
-<div class="min-h-screen bg-gray-50">
+<div class="py-8">
 	<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 		{#if loading}
 			<div class="text-center py-12">
-				<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-				<p class="mt-4 text-gray-600">Loading photo...!!!</p>
+				<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--color-primary-600)] mx-auto"></div>
+				<p class="mt-4 text-[var(--color-surface-600-400)]">Loading photo...!!!</p>
 			</div>
 		{:else if error && !photo}
 			<div class="text-center py-12">
-				<h1 class="text-2xl font-bold text-gray-900 mb-4">Error</h1>
-				<p class="text-gray-600 mb-4">{error}</p>
+				<h1 class="text-2xl font-bold text-[var(--color-surface-950-50)] mb-4">Error</h1>
+				<p class="text-[var(--color-surface-600-400)] mb-4">{error}</p>
 				<a href="/admin/albums" class="btn-primary">Back to Albums</a>
 			</div>
 		{:else if photo}
 			<!-- Header -->
 			<div class="flex items-center justify-between mb-8">
 				<div>
-					<h1 class="text-3xl font-bold text-gray-900">
+					<h1 class="text-3xl font-bold text-[var(--color-surface-950-50)]">
 						{MultiLangUtils.getTextValue(photo.title, $currentLanguage) || photo.filename || 'Edit Photo'}
 					</h1>
 					{#if photo.title || photo.filename}
-						<p class="mt-2 text-gray-600">
+						<p class="mt-2 text-[var(--color-surface-600-400)]">
 							{photo.filename}
 						</p>
 					{/if}
 				</div>
 				<div class="flex items-center gap-3">
-					<a href="/admin" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm font-medium">
-						← Back to Admin
-					</a>
 					{#if photo.albumId}
 						<a
 							href="/admin/albums/{photo.albumId}"
-							class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+							class="px-4 py-2 text-sm font-medium text-[var(--color-surface-800-200)] bg-[var(--color-surface-50-950)] border border-surface-300-700 rounded-md hover:bg-[var(--color-surface-50-950)]"
 						>
 							← Back to Album
 						</a>
@@ -1187,7 +1184,7 @@
 			<!-- Photo Preview -->
 			{#if photo}
 				{@const photoUrl = getPhotoUrlLocal(photo)}
-				<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+				<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6 mb-6">
 					<div class="flex items-center justify-center">
 						{#if photoUrl}
 							<img
@@ -1209,8 +1206,8 @@
 								}}
 							/>
 						{:else}
-							<div class="w-full h-64 bg-gray-200 rounded-lg flex items-center justify-center flex-col">
-								<svg class="w-12 h-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+							<div class="w-full h-64 bg-[var(--color-surface-200-800)] rounded-lg flex items-center justify-center flex-col">
+								<svg class="w-12 h-12 text-[var(--color-surface-400-600)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 									<path
 										stroke-linecap="round"
 										stroke-linejoin="round"
@@ -1218,27 +1215,27 @@
 										d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
 									/>
 								</svg>
-								<p class="text-sm text-gray-500 mt-2">No image URL available</p>
-								<p class="text-xs text-gray-400 mt-1">Storage: {JSON.stringify(photo.storage)}</p>
-								<p class="text-xs text-gray-400 mt-1">Photo ID: {photo._id}</p>
-								<p class="text-xs text-gray-400 mt-1">Filename: {photo.filename}</p>
+								<p class="text-sm text-[var(--color-surface-600-400)] mt-2">No image URL available</p>
+								<p class="text-xs text-[var(--color-surface-400-600)] mt-1">Storage: {JSON.stringify(photo.storage)}</p>
+								<p class="text-xs text-[var(--color-surface-400-600)] mt-1">Photo ID: {photo._id}</p>
+								<p class="text-xs text-[var(--color-surface-400-600)] mt-1">Filename: {photo.filename}</p>
 							</div>
 						{/if}
 					</div>
 					{#if photo.dimensions}
-						<p class="text-sm text-gray-500 text-center mt-2">
+						<p class="text-sm text-[var(--color-surface-600-400)] text-center mt-2">
 							{photo.dimensions.width} × {photo.dimensions.height} pixels
 						</p>
 					{/if}
 					<!-- Rotate -->
 					<div class="mt-4">
-						<p class="text-xs font-medium text-gray-700 mb-2">Rotate</p>
+						<p class="text-xs font-medium text-[var(--color-surface-800-200)] mb-2">Rotate</p>
 						<div class="flex flex-wrap gap-2">
 							<button
 								type="button"
 								on:click={() => handleRotate(-90)}
 								disabled={rotatingPhoto}
-								class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+								class="px-3 py-1.5 text-sm font-medium text-[var(--color-surface-800-200)] bg-[var(--color-surface-50-950)] border border-surface-300-700 rounded-md hover:bg-[var(--color-surface-50-950)] disabled:opacity-50"
 								title="90° counter-clockwise"
 							>
 								↺ 90° CCW
@@ -1247,7 +1244,7 @@
 								type="button"
 								on:click={() => handleRotate(90)}
 								disabled={rotatingPhoto}
-								class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+								class="px-3 py-1.5 text-sm font-medium text-[var(--color-surface-800-200)] bg-[var(--color-surface-50-950)] border border-surface-300-700 rounded-md hover:bg-[var(--color-surface-50-950)] disabled:opacity-50"
 								title="90° clockwise"
 							>
 								90° CW ↻
@@ -1256,35 +1253,35 @@
 								type="button"
 								on:click={() => handleRotate(180)}
 								disabled={rotatingPhoto}
-								class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+								class="px-3 py-1.5 text-sm font-medium text-[var(--color-surface-800-200)] bg-[var(--color-surface-50-950)] border border-surface-300-700 rounded-md hover:bg-[var(--color-surface-50-950)] disabled:opacity-50"
 								title="180°"
 							>
 								180°
 							</button>
 						</div>
 						{#if rotatingPhoto}
-							<p class="text-xs text-gray-500 mt-1">Rotating…</p>
+							<p class="text-xs text-[var(--color-surface-600-400)] mt-1">Rotating…</p>
 						{/if}
 					</div>
 					<!-- Crop -->
 					<div class="mt-4">
-						<p class="text-xs font-medium text-gray-700 mb-2">Crop</p>
+						<p class="text-xs font-medium text-[var(--color-surface-800-200)] mb-2">Crop</p>
 						<button
 							type="button"
 							on:click={() => (showCropModal = true)}
 							disabled={croppingPhoto || !photoUrl}
-							class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+							class="px-3 py-1.5 text-sm font-medium text-[var(--color-surface-800-200)] bg-[var(--color-surface-50-950)] border border-surface-300-700 rounded-md hover:bg-[var(--color-surface-50-950)] disabled:opacity-50"
 							title="Crop photo"
 						>
 							✂️ Crop Photo
 						</button>
 						{#if croppingPhoto}
-							<p class="text-xs text-gray-500 mt-1">Cropping…</p>
+							<p class="text-xs text-[var(--color-surface-600-400)] mt-1">Cropping…</p>
 						{/if}
 					</div>
 					<!-- Restore original (after crop or other edits) -->
 					<div class="mt-4">
-						<p class="text-xs font-medium text-gray-700 mb-2">Restore original</p>
+						<p class="text-xs font-medium text-[var(--color-surface-800-200)] mb-2">Restore original</p>
 						{#if photo.canRestoreOriginal}
 							<button
 								type="button"
@@ -1295,12 +1292,12 @@
 							>
 								↩ Restore original
 							</button>
-							<p class="text-xs text-gray-500 mt-1">Revert to the file as it was before cropping or editing.</p>
+							<p class="text-xs text-[var(--color-surface-600-400)] mt-1">Revert to the file as it was before cropping or editing.</p>
 							{#if restoringOriginal}
 								<p class="text-xs text-amber-600 mt-1">Restoring…</p>
 							{/if}
 						{:else}
-							<p class="text-xs text-gray-500">
+							<p class="text-xs text-[var(--color-surface-600-400)]">
 								Not available for this photo. Restore is only possible when the photo was cropped or edited after the feature was enabled (a backup is created then).
 							</p>
 						{/if}
@@ -1310,11 +1307,11 @@
 							type="button"
 							on:click={handleRegenerateThumbnails}
 							disabled={regeneratingThumbnails}
-							class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+							class="px-4 py-2 text-sm font-medium text-white bg-[var(--color-primary-600)] border border-transparent rounded-md hover:bg-[var(--color-primary-700)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)] disabled:opacity-50 disabled:cursor-not-allowed"
 						>
 							{regeneratingThumbnails ? 'Regenerating...' : 'Rebuild Thumbnails'}
 						</button>
-						<p class="text-xs text-gray-500 mt-2">
+						<p class="text-xs text-[var(--color-surface-600-400)] mt-2">
 							Regenerate thumbnails with correct orientation
 						</p>
 					</div>
@@ -1322,11 +1319,11 @@
 			{/if}
 
 			<!-- Form -->
-			<div class="bg-white rounded-lg shadow-sm border border-gray-200">
+			<div class="card preset-outlined-surface-200-800 bg-surface-50-950">
 				<form on:submit={handleSubmit} class="p-6 space-y-6">
 					<!-- Title -->
 					<div>
-						<div class="block text-sm font-medium text-gray-700 mb-2">
+						<div class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 							Photo Title
 						</div>
 						<MultiLangInput
@@ -1342,7 +1339,7 @@
 
 					<!-- Description -->
 					<div>
-						<div class="block text-sm font-medium text-gray-700 mb-2">
+						<div class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 							Description
 						</div>
 						{#key `${photoId}-${descriptionLanguage}`}
@@ -1364,9 +1361,9 @@
 								name="isPublished"
 								checked={formData.isPublished}
 								on:change={handleInputChange}
-								class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+								class="h-4 w-4 text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)] border-surface-300-700 rounded"
 							/>
-							<label for="isPublished" class="ml-2 block text-sm text-gray-700">
+							<label for="isPublished" class="ml-2 block text-sm text-[var(--color-surface-800-200)]">
 								Published (visible to visitors)
 							</label>
 						</div>
@@ -1377,9 +1374,9 @@
 								name="isLeading"
 								checked={formData.isLeading}
 								on:change={handleInputChange}
-								class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+								class="h-4 w-4 text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)] border-surface-300-700 rounded"
 							/>
-							<label for="isLeading" class="ml-2 block text-sm text-gray-700">
+							<label for="isLeading" class="ml-2 block text-sm text-[var(--color-surface-800-200)]">
 								Album Cover Photo
 							</label>
 						</div>
@@ -1390,9 +1387,9 @@
 								name="isGalleryLeading"
 								checked={formData.isGalleryLeading}
 								on:change={handleInputChange}
-								class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+								class="h-4 w-4 text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)] border-surface-300-700 rounded"
 							/>
-							<label for="isGalleryLeading" class="ml-2 block text-sm text-gray-700">
+							<label for="isGalleryLeading" class="ml-2 block text-sm text-[var(--color-surface-800-200)]">
 								Gallery Leading (homepage hero)
 							</label>
 						</div>
@@ -1402,11 +1399,11 @@
 					<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
 						<!-- Tags -->
 						<div>
-							<div class="block text-sm font-medium text-gray-700 mb-2">
+							<div class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Tags
 							</div>
 							{#if loadingOptions}
-								<div class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500">
+								<div class="w-full px-3 py-2 border border-surface-300-700 rounded-md bg-[var(--color-surface-50-950)] text-[var(--color-surface-600-400)]">
 									Loading tags...
 								</div>
 							{:else}
@@ -1417,7 +1414,7 @@
 											{#each formData.tags as tagId}
 												{@const tag = tags.find(t => t._id === tagId)}
 												{#if tag}
-													<span class="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 text-sm rounded-md">
+													<span class="inline-flex items-center gap-1 px-2 py-1 bg-[color-mix(in_oklab,var(--color-primary-500)_22%,transparent)] text-[var(--color-primary-800)] text-sm rounded-md">
 														{getTagName(tag)}
 														<button
 															type="button"
@@ -1425,7 +1422,7 @@
 																formData.tags = formData.tags.filter((id) => id !== tagId);
 																formData = formData;
 															}}
-															class="hover:text-blue-900"
+															class="hover:text-[var(--color-primary-900)]"
 														>
 															×
 														</button>
@@ -1438,7 +1435,7 @@
 									<button
 										type="button"
 										on:click={() => (showTagsPopup = true)}
-										class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white hover:bg-gray-50 text-gray-700 flex items-center justify-center gap-2 mb-2"
+										class="w-full px-3 py-2 text-sm border border-surface-300-700 rounded-md bg-[var(--color-surface-50-950)] hover:bg-[var(--color-surface-50-950)] text-[var(--color-surface-800-200)] flex items-center justify-center gap-2 mb-2"
 									>
 										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -1449,7 +1446,7 @@
 										<button
 											type="button"
 											on:click={handleSuggestTags}
-											class="w-full px-3 py-2 text-sm border border-blue-300 rounded-md bg-blue-50 hover:bg-blue-100 text-blue-700 flex items-center justify-center gap-2"
+											class="w-full px-3 py-2 text-sm border border-[color-mix(in_oklab,var(--color-primary-500)_24%,transparent)] rounded-md bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] hover:bg-[color-mix(in_oklab,var(--color-primary-500)_22%,transparent)] text-[var(--color-primary-700)] flex items-center justify-center gap-2"
 										>
 											<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -1468,14 +1465,14 @@
 										</button>
 									</div>
 									{#if formData.tags && formData.tags.length > 0}
-										<div class="mt-3 rounded-md border border-gray-200 bg-gray-50 p-3">
+										<div class="mt-3 rounded-md border border-surface-200-800 bg-[var(--color-surface-50-950)] p-3">
 											<div class="flex items-center justify-between gap-2">
-												<p class="text-xs font-medium text-gray-700">Related tags</p>
-												<p class="text-xs text-gray-500">Based on current tag co-occurrence</p>
+												<p class="text-xs font-medium text-[var(--color-surface-800-200)]">Related tags</p>
+												<p class="text-xs text-[var(--color-surface-600-400)]">Based on current tag co-occurrence</p>
 											</div>
 
 											{#if relatedTagsLoading}
-												<p class="mt-2 text-xs text-gray-500">Loading related tags...</p>
+												<p class="mt-2 text-xs text-[var(--color-surface-600-400)]">Loading related tags...</p>
 											{:else if relatedTagsError}
 												<p class="mt-2 text-xs text-red-600">{relatedTagsError}</p>
 											{:else if relatedTags.length > 0}
@@ -1485,7 +1482,7 @@
 															type="button"
 															on:click={() => handleApplyRelatedTag(relatedTag.tagId)}
 															disabled={applyingRelatedTagId === relatedTag.tagId}
-															class="inline-flex items-center gap-2 rounded-md border border-purple-200 bg-white px-3 py-1.5 text-sm text-purple-700 hover:bg-purple-50 disabled:opacity-50 disabled:cursor-not-allowed"
+															class="inline-flex items-center gap-2 rounded-md border border-purple-200 bg-[var(--color-surface-50-950)] px-3 py-1.5 text-sm text-purple-700 hover:bg-purple-50 disabled:opacity-50 disabled:cursor-not-allowed"
 															title={`Seen ${relatedTag.count} time${relatedTag.count === 1 ? '' : 's'} with the selected tags`}
 														>
 															<span>{getLocalizedText(relatedTag.name)}</span>
@@ -1496,7 +1493,7 @@
 													{/each}
 												</div>
 											{:else}
-												<p class="mt-2 text-xs text-gray-500">No related tags found for the current selection yet.</p>
+												<p class="mt-2 text-xs text-[var(--color-surface-600-400)]">No related tags found for the current selection yet.</p>
 											{/if}
 										</div>
 									{/if}
@@ -1506,11 +1503,11 @@
 
 						<!-- People -->
 						<div>
-							<div class="block text-sm font-medium text-gray-700 mb-2">
+							<div class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								People
 							</div>
 							{#if loadingOptions}
-								<div class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500">
+								<div class="w-full px-3 py-2 border border-surface-300-700 rounded-md bg-[var(--color-surface-50-950)] text-[var(--color-surface-600-400)]">
 									Loading people...
 								</div>
 							{:else}
@@ -1544,7 +1541,7 @@
 										on:click|preventDefault|stopPropagation={() => {
 											showPeoplePopup = true;
 										}}
-										class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white hover:bg-gray-50 text-gray-700 flex items-center justify-center gap-2"
+										class="w-full px-3 py-2 text-sm border border-surface-300-700 rounded-md bg-[var(--color-surface-50-950)] hover:bg-[var(--color-surface-50-950)] text-[var(--color-surface-800-200)] flex items-center justify-center gap-2"
 									>
 										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -1557,11 +1554,11 @@
 
 						<!-- Location -->
 						<div>
-							<div class="block text-sm font-medium text-gray-700 mb-2">
+							<div class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Location
 							</div>
 							{#if loadingOptions}
-								<div class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500">
+								<div class="w-full px-3 py-2 border border-surface-300-700 rounded-md bg-[var(--color-surface-50-950)] text-[var(--color-surface-600-400)]">
 									Loading locations...
 								</div>
 							{:else}
@@ -1591,7 +1588,7 @@
 									<button
 										type="button"
 										on:click={() => (showLocationPopup = true)}
-										class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-white hover:bg-gray-50 text-gray-700 flex items-center justify-center gap-2"
+										class="w-full px-3 py-2 text-sm border border-surface-300-700 rounded-md bg-[var(--color-surface-50-950)] hover:bg-[var(--color-surface-50-950)] text-[var(--color-surface-800-200)] flex items-center justify-center gap-2"
 									>
 										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -1671,14 +1668,14 @@
 					<!-- EXIF & Metadata -->
 					<div class="space-y-6">
 						<!-- EXIF (read-only + re-extract) -->
-						<div class="bg-gray-50 rounded-lg p-4">
+						<div class="bg-[var(--color-surface-50-950)] rounded-lg p-4">
 							<div class="flex items-center justify-between mb-3">
-								<h3 class="text-sm font-medium text-gray-700">EXIF (from camera/file)</h3>
+								<h3 class="text-sm font-medium text-[var(--color-surface-800-200)]">EXIF (from camera/file)</h3>
 								<button
 									type="button"
 									on:click={handleReExtractExif}
 									disabled={reExtractingExif}
-									class="px-3 py-1.5 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 disabled:opacity-50"
+									class="px-3 py-1.5 text-sm font-medium text-[var(--color-primary-700)] bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] border border-[color-mix(in_oklab,var(--color-primary-500)_18%,transparent)] rounded-md hover:bg-[color-mix(in_oklab,var(--color-primary-500)_22%,transparent)] disabled:opacity-50"
 								>
 									{reExtractingExif ? 'Extracting...' : 'Re-extract from file'}
 								</button>
@@ -1687,33 +1684,33 @@
 								<div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-sm max-h-48 overflow-y-auto">
 									{#each Object.entries(photo.exif).filter(([k]) => k !== 'gps') as [key, value]}
 										<div class="flex gap-2">
-											<span class="font-medium text-gray-600 shrink-0">{key}:</span>
-											<span class="text-gray-800 truncate" title={formatExifValue(value)}>{formatExifValue(value)}</span>
+											<span class="font-medium text-[var(--color-surface-600-400)] shrink-0">{key}:</span>
+											<span class="text-[var(--color-surface-900-100)] truncate" title={formatExifValue(value)}>{formatExifValue(value)}</span>
 										</div>
 									{/each}
 									{#if photo.exif.gps}
 										<div class="sm:col-span-2 flex gap-2">
-											<span class="font-medium text-gray-600 shrink-0">gps:</span>
-											<span class="text-gray-800">{formatExifValue(photo.exif.gps)}</span>
+											<span class="font-medium text-[var(--color-surface-600-400)] shrink-0">gps:</span>
+											<span class="text-[var(--color-surface-900-100)]">{formatExifValue(photo.exif.gps)}</span>
 										</div>
 									{/if}
 								</div>
 							{:else}
-								<p class="text-sm text-gray-500">No EXIF data. Use "Re-extract from file" to read from the image.</p>
+								<p class="text-sm text-[var(--color-surface-600-400)]">No EXIF data. Use "Re-extract from file" to read from the image.</p>
 							{/if}
 						</div>
 
 						<!-- Override EXIF (date/camera) – merged on save -->
-						<div class="bg-white rounded-lg border border-gray-200 p-4">
-							<h3 class="text-sm font-medium text-gray-700 mb-3">Override EXIF (date / camera)</h3>
-							<p class="text-xs text-gray-500 mb-3">Override date taken or camera info. Saved values are merged with existing EXIF.</p>
+						<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-4">
+							<h3 class="text-sm font-medium text-[var(--color-surface-800-200)] mb-3">Override EXIF (date / camera)</h3>
+							<p class="text-xs text-[var(--color-surface-600-400)] mb-3">Override date taken or camera info. Saved values are merged with existing EXIF.</p>
 							<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
 								<div>
-									<label for="exif-date" class="block text-xs font-medium text-gray-600 mb-1">Date taken</label>
+									<label for="exif-date" class="block text-xs font-medium text-[var(--color-surface-600-400)] mb-1">Date taken</label>
 									<input
 										id="exif-date"
 										type="datetime-local"
-										class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+										class="w-full px-3 py-2 border border-surface-300-700 rounded-md text-sm"
 										value={formData.exifOverrides.dateTime}
 										on:input={(e) => {
 											formData.exifOverrides = { ...formData.exifOverrides, dateTime: (e.currentTarget as HTMLInputElement).value };
@@ -1722,11 +1719,11 @@
 									/>
 								</div>
 								<div>
-									<label for="exif-make" class="block text-xs font-medium text-gray-600 mb-1">Make</label>
+									<label for="exif-make" class="block text-xs font-medium text-[var(--color-surface-600-400)] mb-1">Make</label>
 									<input
 										id="exif-make"
 										type="text"
-										class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+										class="w-full px-3 py-2 border border-surface-300-700 rounded-md text-sm"
 										placeholder="e.g. Canon"
 										value={formData.exifOverrides.make}
 										on:input={(e) => {
@@ -1736,11 +1733,11 @@
 									/>
 								</div>
 								<div>
-									<label for="exif-model" class="block text-xs font-medium text-gray-600 mb-1">Model</label>
+									<label for="exif-model" class="block text-xs font-medium text-[var(--color-surface-600-400)] mb-1">Model</label>
 									<input
 										id="exif-model"
 										type="text"
-										class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+										class="w-full px-3 py-2 border border-surface-300-700 rounded-md text-sm"
 										placeholder="e.g. EOS R5"
 										value={formData.exifOverrides.model}
 										on:input={(e) => {
@@ -1753,14 +1750,14 @@
 						</div>
 
 						<!-- Custom metadata (editable) -->
-						<div class="bg-white rounded-lg border border-gray-200 p-4">
-							<h3 class="text-sm font-medium text-gray-700 mb-3">Custom metadata</h3>
+						<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-4">
+							<h3 class="text-sm font-medium text-[var(--color-surface-800-200)] mb-3">Custom metadata</h3>
 							<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 								<div>
-									<label for="meta-rating" class="block text-xs font-medium text-gray-600 mb-1">Rating (0–5)</label>
+									<label for="meta-rating" class="block text-xs font-medium text-[var(--color-surface-600-400)] mb-1">Rating (0–5)</label>
 									<select
 										id="meta-rating"
-										class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+										class="w-full px-3 py-2 border border-surface-300-700 rounded-md text-sm"
 										value={formData.metadata?.rating ?? ''}
 										on:change={(e) => {
 											const v = (e.currentTarget as HTMLSelectElement).value;
@@ -1775,11 +1772,11 @@
 									</select>
 								</div>
 								<div>
-									<label for="meta-category" class="block text-xs font-medium text-gray-600 mb-1">Category</label>
+									<label for="meta-category" class="block text-xs font-medium text-[var(--color-surface-600-400)] mb-1">Category</label>
 									<input
 										id="meta-category"
 										type="text"
-										class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+										class="w-full px-3 py-2 border border-surface-300-700 rounded-md text-sm"
 										placeholder="e.g. Event, Project"
 										value={formData.metadata?.category ?? ''}
 										on:input={(e) => {
@@ -1790,22 +1787,22 @@
 									/>
 								</div>
 							</div>
-							<p class="text-xs text-gray-500 mt-2">Rating and category can also be set in bulk from the album page.</p>
+							<p class="text-xs text-[var(--color-surface-600-400)] mt-2">Rating and category can also be set in bulk from the album page.</p>
 						</div>
 					</div>
 
 					<!-- Read-only Information -->
-					<div class="bg-gray-50 rounded-lg p-4">
-						<h3 class="text-sm font-medium text-gray-700 mb-3">Photo Information</h3>
+					<div class="bg-[var(--color-surface-50-950)] rounded-lg p-4">
+						<h3 class="text-sm font-medium text-[var(--color-surface-800-200)] mb-3">Photo Information</h3>
 						<div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
 							<div>
-								<span class="font-medium text-gray-700">Filename:</span>
-								<span class="ml-2 text-gray-600">{photo.filename}</span>
+								<span class="font-medium text-[var(--color-surface-800-200)]">Filename:</span>
+								<span class="ml-2 text-[var(--color-surface-600-400)]">{photo.filename}</span>
 							</div>
 							{#if photo.uploadedAt}
 								<div>
-									<span class="font-medium text-gray-700">Uploaded:</span>
-									<span class="ml-2 text-gray-600">
+									<span class="font-medium text-[var(--color-surface-800-200)]">Uploaded:</span>
+									<span class="ml-2 text-[var(--color-surface-600-400)]">
 										{new Date(photo.uploadedAt).toLocaleDateString()}
 									</span>
 								</div>
@@ -1821,18 +1818,18 @@
 					{/if}
 
 					<!-- Action Buttons -->
-					<div class="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+					<div class="flex justify-end space-x-3 pt-6 border-t border-surface-200-800">
 						{#if photo.albumId}
 							<a
 								href="/admin/albums/{photo.albumId}"
-								class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+								class="px-4 py-2 text-sm font-medium text-[var(--color-surface-800-200)] bg-[var(--color-surface-50-950)] border border-surface-300-700 rounded-md hover:bg-[var(--color-surface-50-950)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)]"
 							>
 								Cancel
 							</a>
 						{:else}
 							<a
 								href="/admin/albums"
-								class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+								class="px-4 py-2 text-sm font-medium text-[var(--color-surface-800-200)] bg-[var(--color-surface-50-950)] border border-surface-300-700 rounded-md hover:bg-[var(--color-surface-50-950)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)]"
 							>
 								Cancel
 							</a>
@@ -1840,7 +1837,7 @@
 						<button
 							type="submit"
 							disabled={saving}
-							class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+							class="px-4 py-2 text-sm font-medium text-white bg-[var(--color-primary-600)] border border-transparent rounded-md hover:bg-[var(--color-primary-700)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)] disabled:opacity-50 disabled:cursor-not-allowed"
 						>
 							{saving ? 'Saving...' : 'Save Changes'}
 						</button>
@@ -1953,7 +1950,7 @@
 		<div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
 			<!-- Background overlay -->
 			<div
-				class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
+				class="fixed inset-0 transition-opacity bg-[var(--color-surface-50-950)]0 bg-opacity-75"
 				role="button"
 				tabindex="-1"
 				on:click={() => (showCropModal = false)}
@@ -1966,15 +1963,15 @@
 
 			<!-- Modal panel -->
 			<div
-				class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full"
+				class="inline-block align-bottom card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl text-left overflow-hidden transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full"
 			>
-				<div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+				<div class="bg-[var(--color-surface-50-950)] px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
 					<div class="flex items-center justify-between mb-4">
-						<h3 class="text-lg font-medium text-gray-900">Crop Photo</h3>
+						<h3 class="text-lg font-medium text-[var(--color-surface-950-50)]">Crop Photo</h3>
 						<button
 							type="button"
 							on:click={() => (showCropModal = false)}
-							class="text-gray-400 hover:text-gray-500"
+							class="text-[var(--color-surface-400-600)] hover:text-[var(--color-surface-600-400)]"
 							aria-label="Close crop modal"
 						>
 							<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1989,7 +1986,7 @@
 							onCancel={() => (showCropModal = false)}
 						/>
 					{:else}
-						<p class="text-gray-500">Unable to load image for cropping</p>
+						<p class="text-[var(--color-surface-600-400)]">Unable to load image for cropping</p>
 					{/if}
 				</div>
 			</div>

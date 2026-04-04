@@ -244,20 +244,12 @@
 	<title>{$t('admin.peopleManagement')} - {$t('navigation.admin')}</title>
 </svelte:head>
 
-<div class="min-h-screen bg-gray-50 py-8">
+<div class="py-8">
 	<div class="max-w-6xl mx-auto px-4">
-		<div class="bg-white rounded-lg shadow-md p-6">
-			<div class="flex items-center justify-between mb-6">
-				<div>
-					<h1 class="text-2xl font-bold text-gray-900">{$t('admin.peopleManagement')}</h1>
-					<p class="text-gray-600 mt-2">{$t('admin.managePeopleStructuredData')}</p>
-				</div>
-				<a
-					href="/admin"
-					class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm font-medium"
-				>
-					{$t('admin.backToAdmin')}
-				</a>
+		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
+			<div class="mb-6">
+				<h1 class="text-2xl font-bold text-[var(--color-surface-950-50)]">{$t('admin.peopleManagement')}</h1>
+				<p class="text-[var(--color-surface-600-400)] mt-2">{$t('admin.managePeopleStructuredData')}</p>
 			</div>
 
 			{#if message}
@@ -277,10 +269,10 @@
 							placeholder="Search people..."
 							bind:value={searchTerm}
 							on:input={() => crudLoader.loadItems()}
-							class="pl-10 pr-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-64"
+							class="pl-10 pr-4 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)] w-64"
 						/>
 						<svg
-							class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4"
+							class="absolute left-3 top-1/2 transform -translate-y-1/2 text-[var(--color-surface-400-600)] h-4 w-4"
 							fill="none"
 							stroke="currentColor"
 							viewBox="0 0 24 24"
@@ -298,7 +290,7 @@
 				<button
 					type="button"
 					on:click={openCreateDialog}
-					class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium flex items-center gap-2"
+					class="px-4 py-2 bg-[var(--color-primary-600)] text-white rounded-md hover:bg-[var(--color-primary-700)] text-sm font-medium flex items-center gap-2"
 				>
 					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path
@@ -315,13 +307,13 @@
 			<!-- People List -->
 			{#if loading}
 				<div class="text-center py-8">
-					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-					<p class="mt-2 text-gray-600">Loading people...</p>
+					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--color-primary-600)]"></div>
+					<p class="mt-2 text-[var(--color-surface-600-400)]">Loading people...</p>
 				</div>
 			{:else if people.length === 0}
 				<div class="text-center py-8">
 					<svg
-						class="h-12 w-12 text-gray-400 mx-auto mb-4"
+						class="h-12 w-12 text-[var(--color-surface-400-600)] mx-auto mb-4"
 						fill="none"
 						stroke="currentColor"
 						viewBox="0 0 24 24"
@@ -333,13 +325,13 @@
 							d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
 						/>
 					</svg>
-					<h3 class="text-lg font-semibold text-gray-900 mb-2">No people found</h3>
-					<p class="text-gray-600">Start by adding your first person.</p>
+					<h3 class="text-lg font-semibold text-[var(--color-surface-950-50)] mb-2">No people found</h3>
+					<p class="text-[var(--color-surface-600-400)]">Start by adding your first person.</p>
 				</div>
 			{:else}
 				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 					{#each people as person}
-						<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+						<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
 							<div class="flex items-start justify-between mb-4">
 								<div class="flex items-center space-x-3">
 									{#if person.profileImage?.url}
@@ -349,9 +341,9 @@
 											class="w-10 h-10 rounded-full object-cover"
 										/>
 									{:else}
-										<div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+										<div class="w-10 h-10 bg-[color-mix(in_oklab,var(--color-primary-500)_22%,transparent)] rounded-full flex items-center justify-center">
 											<svg
-												class="h-5 w-5 text-blue-600"
+												class="h-5 w-5 text-[var(--color-primary-600)]"
 												fill="none"
 												stroke="currentColor"
 												viewBox="0 0 24 24"
@@ -366,11 +358,11 @@
 										</div>
 									{/if}
 									<div>
-										<h3 class="font-semibold text-gray-900">
+										<h3 class="font-semibold text-[var(--color-surface-950-50)]">
 											{getPersonDisplayName(person)}
 										</h3>
 										{#if person.nickname && MultiLangUtils.getTextValue(person.nickname, $currentLanguage)}
-											<p class="text-sm text-gray-600">
+											<p class="text-sm text-[var(--color-surface-600-400)]">
 												"{MultiLangUtils.getTextValue(person.nickname, $currentLanguage)}"
 											</p>
 										{/if}
@@ -381,7 +373,7 @@
 									<button
 										type="button"
 										on:click={() => openEditDialog(person)}
-										class="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded"
+										class="p-2 text-[var(--color-surface-600-400)] hover:text-[var(--color-primary-600)] hover:bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] rounded"
 										aria-label="Edit person"
 									>
 										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -396,7 +388,7 @@
 									<button
 										type="button"
 										on:click={() => openDeleteDialog(person)}
-										class="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded"
+										class="p-2 text-[var(--color-surface-600-400)] hover:text-red-600 hover:bg-red-50 rounded"
 										aria-label="Delete person"
 									>
 										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -412,20 +404,20 @@
 							</div>
 
 							{#if person.description && MultiLangUtils.getTextValue(person.description, $currentLanguage)}
-								<p class="text-sm text-gray-600 mb-3">
+								<p class="text-sm text-[var(--color-surface-600-400)] mb-3">
 									{MultiLangUtils.getTextValue(person.description, $currentLanguage)}
 								</p>
 							{/if}
 
 							{#if person.birthDate}
-								<p class="text-sm text-gray-500 mb-3">Born: {formatDate(person.birthDate)}</p>
+								<p class="text-sm text-[var(--color-surface-600-400)] mb-3">Born: {formatDate(person.birthDate)}</p>
 							{/if}
 
 							{#if person.tags && person.tags.length > 0}
 								<div class="flex flex-wrap gap-1">
 									{#each person.tags as tag}
 										<span
-											class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800"
+											class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-[var(--color-surface-100-900)] text-[var(--color-surface-900-100)]"
 										>
 											{typeof tag === 'string' ? tag : tag.name}
 										</span>
@@ -434,7 +426,7 @@
 							{/if}
 
 							{#if person.faceRecognition?.descriptor}
-								<div class="mt-3 pt-3 border-t border-gray-200">
+								<div class="mt-3 pt-3 border-t border-surface-200-800">
 									<span
 										class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800"
 									>
@@ -453,8 +445,8 @@
 <!-- Create Dialog -->
 {#if showCreateDialog}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-		<div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
-			<h2 class="text-xl font-bold text-gray-900 mb-4">Add New Person</h2>
+		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full max-w-md p-6">
+			<h2 class="text-xl font-bold text-[var(--color-surface-950-50)] mb-4">Add New Person</h2>
 
 			{#if error}
 				<div class="mb-4 p-4 bg-red-50 text-red-700 rounded-md">{error}</div>
@@ -463,7 +455,7 @@
 			<div class="space-y-4">
 				<div class="grid grid-cols-2 gap-4">
 					<div>
-						<span class="block text-sm font-medium text-gray-700 mb-2">
+						<span class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 							First Name *
 						</span>
 						<MultiLangInput
@@ -475,7 +467,7 @@
 						/>
 					</div>
 					<div>
-						<span class="block text-sm font-medium text-gray-700 mb-2">
+						<span class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 							Last Name *
 						</span>
 						<MultiLangInput
@@ -489,7 +481,7 @@
 				</div>
 
 				<div>
-					<span class="block text-sm font-medium text-gray-700 mb-2">
+					<span class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 						Nickname
 					</span>
 					<MultiLangInput
@@ -501,19 +493,19 @@
 				</div>
 
 				<div>
-					<label for="birth-date-create" class="block text-sm font-medium text-gray-700 mb-2">
+					<label for="birth-date-create" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 						Birth Date
 					</label>
 					<input
 						type="date"
 						id="birth-date-create"
 						bind:value={formData.birthDate}
-						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+						class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 					/>
 				</div>
 
 				<div>
-					<span class="block text-sm font-medium text-gray-700 mb-2">
+					<span class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 						Description
 					</span>
 					<MultiLangInput
@@ -527,7 +519,7 @@
 				</div>
 
 				<div>
-					<label for="tags-create" class="block text-sm font-medium text-gray-700 mb-2">
+					<label for="tags-create" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 						Tags (comma-separated)
 					</label>
 					<input
@@ -535,7 +527,7 @@
 						id="tags-create"
 						bind:value={formData.tags}
 						placeholder="family, friend, colleague"
-						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+						class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 					/>
 				</div>
 
@@ -546,7 +538,7 @@
 							dialogs.closeAll();
 							resetForm();
 						}}
-						class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm font-medium"
+						class="px-4 py-2 bg-[var(--color-surface-200-800)] text-[var(--color-surface-800-200)] rounded-md hover:bg-[var(--color-surface-300-700)] text-sm font-medium"
 					>
 						Cancel
 					</button>
@@ -554,7 +546,7 @@
 						type="button"
 						on:click={handleCreate}
 						disabled={saving}
-						class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm font-medium"
+						class="px-4 py-2 bg-[var(--color-primary-600)] text-white rounded-md hover:bg-[var(--color-primary-700)] disabled:opacity-50 text-sm font-medium"
 					>
 						{#if saving}
 							Creating...
@@ -571,8 +563,8 @@
 <!-- Edit Dialog -->
 {#if showEditDialog && editingPerson}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-		<div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
-			<h2 class="text-xl font-bold text-gray-900 mb-4">Edit Person</h2>
+		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full max-w-md p-6">
+			<h2 class="text-xl font-bold text-[var(--color-surface-950-50)] mb-4">Edit Person</h2>
 
 			{#if error}
 				<div class="mb-4 p-4 bg-red-50 text-red-700 rounded-md">{error}</div>
@@ -581,7 +573,7 @@
 			<div class="space-y-4">
 				<div class="grid grid-cols-2 gap-4">
 					<div>
-						<span class="block text-sm font-medium text-gray-700 mb-2">
+						<span class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 							First Name *
 						</span>
 						<MultiLangInput
@@ -593,7 +585,7 @@
 						/>
 					</div>
 					<div>
-						<span class="block text-sm font-medium text-gray-700 mb-2">
+						<span class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 							Last Name *
 						</span>
 						<MultiLangInput
@@ -607,7 +599,7 @@
 				</div>
 
 				<div>
-					<span class="block text-sm font-medium text-gray-700 mb-2">
+					<span class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 						Nickname
 					</span>
 					<MultiLangInput
@@ -619,19 +611,19 @@
 				</div>
 
 				<div>
-					<label for="birth-date-create" class="block text-sm font-medium text-gray-700 mb-2">
+					<label for="birth-date-create" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 						Birth Date
 					</label>
 					<input
 						type="date"
 						id="birth-date-create"
 						bind:value={formData.birthDate}
-						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+						class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 					/>
 				</div>
 
 				<div>
-					<span class="block text-sm font-medium text-gray-700 mb-2">
+					<span class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 						Description
 					</span>
 					<MultiLangInput
@@ -645,7 +637,7 @@
 				</div>
 
 				<div>
-					<label for="tags-create" class="block text-sm font-medium text-gray-700 mb-2">
+					<label for="tags-create" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 						Tags (comma-separated)
 					</label>
 					<input
@@ -653,7 +645,7 @@
 						id="tags-create"
 						bind:value={formData.tags}
 						placeholder="family, friend, colleague"
-						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+						class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 					/>
 				</div>
 
@@ -665,7 +657,7 @@
 							editingPerson = null;
 							resetForm();
 						}}
-						class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm font-medium"
+						class="px-4 py-2 bg-[var(--color-surface-200-800)] text-[var(--color-surface-800-200)] rounded-md hover:bg-[var(--color-surface-300-700)] text-sm font-medium"
 					>
 						Cancel
 					</button>
@@ -673,7 +665,7 @@
 						type="button"
 						on:click={handleEdit}
 						disabled={saving}
-						class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm font-medium"
+						class="px-4 py-2 bg-[var(--color-primary-600)] text-white rounded-md hover:bg-[var(--color-primary-700)] disabled:opacity-50 text-sm font-medium"
 					>
 						{#if saving}
 							Updating...
@@ -690,15 +682,15 @@
 <!-- Delete Dialog -->
 {#if showDeleteDialog && personToDelete}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-		<div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
-			<h2 class="text-xl font-bold text-gray-900 mb-4">Delete Person</h2>
+		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full max-w-md p-6">
+			<h2 class="text-xl font-bold text-[var(--color-surface-950-50)] mb-4">Delete Person</h2>
 
 			{#if error}
 				<div class="mb-4 p-4 bg-red-50 text-red-700 rounded-md">{error}</div>
 			{/if}
 
 			<div class="space-y-4">
-				<p class="text-gray-600">
+				<p class="text-[var(--color-surface-600-400)]">
 					Are you sure you want to delete <strong>{getPersonDisplayName(personToDelete)}</strong>?
 					This action cannot be undone.
 				</p>
@@ -709,7 +701,7 @@
 							dialogs.closeAll();
 							personToDelete = null;
 						}}
-						class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm font-medium"
+						class="px-4 py-2 bg-[var(--color-surface-200-800)] text-[var(--color-surface-800-200)] rounded-md hover:bg-[var(--color-surface-300-700)] text-sm font-medium"
 					>
 						Cancel
 					</button>

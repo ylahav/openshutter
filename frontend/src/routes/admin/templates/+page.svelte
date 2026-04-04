@@ -3,12 +3,6 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { siteConfigData, siteConfig } from '$stores/siteConfig';
-	import {
-		clearAdminPreviewTemplate,
-		getAdminPreviewTemplate,
-		getAdminPreviewThemeId,
-		setAdminPreviewTemplate
-	} from '$stores/template';
 	import { t } from '$stores/i18n';
 	import { handleAuthError } from '$lib/utils/auth-error-handler';
 	import { logger } from '$lib/utils/logger';
@@ -47,9 +41,6 @@
 	let applyThemeId: string | null = null;
 	let previewTemplate: string | null = null;
 	let previewThemeId: string | null = null;
-	let adminTemplateDraft = 'default';
-	let savingAdminTemplate = false;
-	let lastSyncedAdminTemplate = '';
 
 	const BASE_TEMPLATE_PREVIEW: Record<
 		string,
@@ -77,17 +68,6 @@
 	};
 
 	$: frontendTemplate = $siteConfigData?.template?.frontendTemplate || $siteConfigData?.template?.activeTemplate || 'modern';
-	$: adminTemplateName =
-		$siteConfigData?.template?.adminTemplate || $siteConfigData?.template?.activeTemplate || 'default';
-	$: if (
-		!savingAdminTemplate &&
-		adminTemplateName &&
-		adminTemplateName !== lastSyncedAdminTemplate
-	) {
-		adminTemplateDraft = adminTemplateName;
-		lastSyncedAdminTemplate = adminTemplateName;
-	}
-	$: adminTemplateDirty = adminTemplateDraft !== adminTemplateName;
 	$: liveThemeId = $siteConfigData?.template?.activeThemeId;
 	/** Resolved preset name from DB for the default public theme */
 	$: defaultPublicThemeLabel =
@@ -97,8 +77,6 @@
 
 	onMount(async () => {
 		await siteConfig.load();
-		previewTemplate = getAdminPreviewTemplate();
-		previewThemeId = getAdminPreviewThemeId();
 		await loadThemes();
 	});
 
@@ -245,7 +223,6 @@
 	}
 
 	function previewTheme(theme: Theme): void {
-		setAdminPreviewTemplate(theme.baseTemplate, theme._id);
 		previewTemplate = theme.baseTemplate;
 		previewThemeId = theme._id;
 		message = `Previewing ${theme.name}. Use Set as default or Apply Preview to save, or Revert Preview to discard.`;
@@ -253,96 +230,38 @@
 	}
 
 	function clearPreview(): void {
-		clearAdminPreviewTemplate();
 		previewTemplate = null;
 		previewThemeId = null;
-		message = 'Preview reverted to saved template.';
+		message = 'Preview cleared.';
 	}
 
 	function openApplyPreview(): void {
 		if (previewThemeId) applyThemeId = previewThemeId;
 	}
 
-	async function saveAdminTemplateOnly(): Promise<void> {
-		if (!adminTemplateDraft || !adminTemplateDirty || savingAdminTemplate) return;
-		savingAdminTemplate = true;
-		error = '';
-		try {
-			const response = await fetch('/api/admin/site-config', {
-				method: 'PUT',
-				headers: { 'Content-Type': 'application/json' },
-				credentials: 'include',
-				body: JSON.stringify({
-					template: {
-						adminTemplate: adminTemplateDraft
-					}
-				})
-			});
-			if (!response.ok) await handleApiErrorResponse(response);
-			await siteConfig.load();
-			message = $t('admin.configurationSaved');
-			setTimeout(() => (message = ''), 2500);
-		} catch (err) {
-			error = handleError(err, $t('admin.failedToSave'));
-		} finally {
-			savingAdminTemplate = false;
-		}
-	}
 </script>
 
 <svelte:head>
 	<title>{$t('admin.templateManagement')} - {$t('navigation.admin')}</title>
 </svelte:head>
 
-<div class="min-h-screen bg-gray-50 py-8">
+<div class="py-8">
 	<div class="max-w-5xl mx-auto px-4">
-		<div class="bg-white rounded-lg shadow-md p-6">
+		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
 			<div class="flex items-center justify-between mb-6">
 				<div>
-					<h1 class="text-2xl font-bold text-gray-900">{$t('admin.templates')}</h1>
-					<p class="text-gray-600 mt-1">
-						{$t('admin.manageThemesDescription')}
-					</p>
-					<p id="templates-preview-help" class="text-sm text-gray-500 mt-2 max-w-2xl">
+					<h1 class="text-2xl font-bold text-[var(--color-surface-950-50)]">{$t('admin.templates')}</h1>
+					<p id="templates-preview-help" class="text-sm text-[var(--color-surface-600-400)] mt-2 max-w-2xl">
 						{$t('admin.previewCurrentPageHelp')}
 					</p>
-					<div class="mt-3 text-sm space-y-1 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 max-w-xl">
-						<p class="font-medium text-gray-800">{$t('admin.templatesDefaultsHeading')}</p>
+					<div class="mt-3 text-sm space-y-1 rounded-lg border border-surface-200-800 bg-[var(--color-surface-50-950)] px-3 py-2 max-w-xl">
+						<p class="font-medium text-[var(--color-surface-900-100)]">{$t('admin.templatesDefaultsHeading')}</p>
 						<p>
-							<span class="text-gray-600">{$t('admin.templatesDefaultPublic')}:</span>
-							<span class="ml-1 font-medium text-gray-900">{defaultPublicThemeLabel}</span>
-							<span class="text-gray-500"> · {$t('admin.templatesDefaultPack')}</span>
-							<span class="font-mono text-gray-800">{frontendTemplate}</span>
+							<span class="text-[var(--color-surface-600-400)]">{$t('admin.templatesDefaultPublic')}:</span>
+							<span class="ml-1 font-medium text-[var(--color-surface-950-50)]">{defaultPublicThemeLabel}</span>
+							<span class="text-[var(--color-surface-600-400)]"> · {$t('admin.templatesDefaultPack')}</span>
+							<span class="font-mono text-[var(--color-surface-900-100)]">{frontendTemplate}</span>
 						</p>
-						<p>
-							<span class="text-gray-600">{$t('admin.templatesDefaultAdmin')}:</span>
-							<span class="ml-1 font-mono font-medium text-gray-900">{adminTemplateName}</span>
-						</p>
-					</div>
-					<div class="mt-3 flex flex-wrap items-end gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 max-w-xl">
-						<div class="min-w-48">
-							<label for="admin-template-select" class="block text-xs font-medium text-gray-700 mb-1">
-								{$t('admin.siteConfigTemplateAdminTheme')}
-							</label>
-							<select
-								id="admin-template-select"
-								bind:value={adminTemplateDraft}
-								class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-							>
-								<option value="default">default</option>
-								<option value="minimal">minimal</option>
-								<option value="modern">modern</option>
-								<option value="elegant">elegant</option>
-							</select>
-						</div>
-						<button
-							type="button"
-							on:click={saveAdminTemplateOnly}
-							disabled={!adminTemplateDirty || savingAdminTemplate}
-							class="px-3 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm font-medium disabled:opacity-50"
-						>
-							{savingAdminTemplate ? `${$t('admin.save')}...` : $t('admin.save')}
-						</button>
 					</div>
 					{#if previewTemplate}
 						<p class="mt-1 text-xs text-amber-700">
@@ -363,12 +282,6 @@
 						class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 text-sm font-medium"
 					>
 						{$t('admin.themeBuilder')}
-					</a>
-					<a
-						href="/admin"
-						class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm font-medium"
-					>
-						{$t('admin.backToAdmin')}
 					</a>
 					{#if previewTemplate && previewThemeId}
 						<button
@@ -403,11 +316,11 @@
 			{#if loading}
 				<div class="text-center py-12">
 					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-					<p class="mt-2 text-gray-600">{$t('admin.loadingTemplates')}</p>
+					<p class="mt-2 text-[var(--color-surface-600-400)]">{$t('admin.loadingTemplates')}</p>
 				</div>
 			{:else if themes.length === 0}
-				<div class="text-center py-8 border-2 border-dashed border-gray-200 rounded-lg">
-					<p class="text-gray-600 mb-4">{$t('admin.noTemplatesYetRestartBackend')}</p>
+				<div class="text-center py-8 border-2 border-dashed border-surface-200-800 rounded-lg">
+					<p class="text-[var(--color-surface-600-400)] mb-4">{$t('admin.noTemplatesYetRestartBackend')}</p>
 					<button
 						type="button"
 						on:click={() => (showCreateModal = true)}
@@ -419,15 +332,15 @@
 			{:else}
 				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 					{#each themes as theme}
-						<div class="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow">
+						<div class="border border-surface-200-800 rounded-lg overflow-hidden hover:shadow-md transition-shadow">
 							<div class="h-24 flex items-center justify-center gap-1 p-2" style="background: {getColor(theme, 'background')};">
-								<span class="w-6 h-6 rounded-full border border-gray-300" style="background: {getColor(theme, 'primary')}"></span>
-								<span class="w-6 h-6 rounded-full border border-gray-300" style="background: {getColor(theme, 'secondary')}"></span>
-								<span class="w-6 h-6 rounded-full border border-gray-300" style="background: {getColor(theme, 'accent')}"></span>
+								<span class="w-6 h-6 rounded-full border border-surface-300-700" style="background: {getColor(theme, 'primary')}"></span>
+								<span class="w-6 h-6 rounded-full border border-surface-300-700" style="background: {getColor(theme, 'secondary')}"></span>
+								<span class="w-6 h-6 rounded-full border border-surface-300-700" style="background: {getColor(theme, 'accent')}"></span>
 							</div>
 							<div class="p-4">
 								<div class="flex items-center gap-2">
-									<h3 class="font-semibold text-gray-900">{theme.name}</h3>
+									<h3 class="font-semibold text-[var(--color-surface-950-50)]">{theme.name}</h3>
 									{#if liveThemeId ? liveThemeId === theme._id : theme.baseTemplate === frontendTemplate}
 										<span class="px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800">
 											{$t('admin.defaultThemeBadge')}
@@ -439,12 +352,12 @@
 										</span>
 									{/if}
 								</div>
-								<p class="text-xs text-gray-500 mt-1">
+								<p class="text-xs text-[var(--color-surface-600-400)] mt-1">
 									{$t('admin.baseTemplateLabel')}: {theme.baseTemplate}{' '}
 									{theme.basePalette ? `· ${theme.basePalette}` : ''}{' '}
 									{theme.isBuiltIn ? `· ${$t('admin.builtIn')}` : ''}
 								</p>
-								<p class="text-xs text-gray-600 mt-1">{getTemplateStyleLabel(theme)}</p>
+								<p class="text-xs text-[var(--color-surface-600-400)] mt-1">{getTemplateStyleLabel(theme)}</p>
 								<div class="flex flex-wrap gap-2 mt-3">
 									<a
 										href="/admin/templates/overrides?themeId={theme._id}"
@@ -472,7 +385,7 @@
 									<button
 										type="button"
 										on:click={() => { duplicateThemeId = theme._id; duplicateName = `${theme.name} (copy)`; }}
-										class="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+										class="text-xs px-2 py-1 bg-[var(--color-surface-100-900)] text-[var(--color-surface-800-200)] rounded hover:bg-[var(--color-surface-200-800)]"
 									>
 										{$t('admin.duplicate')}
 									</button>
@@ -496,13 +409,13 @@
 <!-- Create modal -->
 {#if showCreateModal}
 	<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-labelledby="create-theme-title">
-		<div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-			<h2 id="create-theme-title" class="text-lg font-semibold text-gray-900 mb-4">
+		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl max-w-md w-full p-6">
+			<h2 id="create-theme-title" class="text-lg font-semibold text-[var(--color-surface-950-50)] mb-4">
 				{$t('admin.createNewTheme')}
 			</h2>
 			<div class="space-y-4">
 				<div>
-					<label for="theme-name" class="block text-sm font-medium text-gray-700 mb-1">
+					<label for="theme-name" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-1">
 						{$t('admin.themeName')}
 					</label>
 					<input
@@ -510,17 +423,17 @@
 						type="text"
 						bind:value={createName}
 						placeholder={$t('admin.themeNamePlaceholder')}
-						class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+						class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-indigo-500"
 					/>
 				</div>
 				<div>
-					<label for="theme-base" class="block text-sm font-medium text-gray-700 mb-1">
+					<label for="theme-base" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-1">
 						{$t('admin.baseTheme')}
 					</label>
 					<select
 						id="theme-base"
 						bind:value={createBaseTemplate}
-						class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+						class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-indigo-500"
 					>
 						<option value="default">{$t('admin.baseThemeDefault')}</option>
 						<option value="minimal">{$t('admin.baseThemeMinimal')}</option>
@@ -529,13 +442,13 @@
 					</select>
 				</div>
 				<div>
-					<label for="theme-palette" class="block text-sm font-medium text-gray-700 mb-1">
+					<label for="theme-palette" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-1">
 						{$t('admin.basePalette')}
 					</label>
 					<select
 						id="theme-palette"
 						bind:value={createBasePalette}
-						class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+						class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-indigo-500"
 					>
 						<option value="light">{$t('admin.basePaletteLight')}</option>
 						<option value="dark">{$t('admin.basePaletteDark')}</option>
@@ -548,7 +461,7 @@
 				<button
 					type="button"
 					on:click={() => (showCreateModal = false)}
-					class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
+					class="px-4 py-2 text-[var(--color-surface-800-200)] hover:bg-[var(--color-surface-100-900)] rounded-md"
 					>
 						{$t('admin.cancel')}
 					</button>
@@ -568,26 +481,26 @@
 <!-- Duplicate modal -->
 {#if duplicateThemeId}
 	<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-labelledby="duplicate-theme-title">
-		<div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-			<h2 id="duplicate-theme-title" class="text-lg font-semibold text-gray-900 mb-4">
+		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl max-w-md w-full p-6">
+			<h2 id="duplicate-theme-title" class="text-lg font-semibold text-[var(--color-surface-950-50)] mb-4">
 				{$t('admin.duplicateTheme')}
 			</h2>
 			<div class="mb-4">
-				<label for="duplicate-name" class="block text-sm font-medium text-gray-700 mb-1">
+				<label for="duplicate-name" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-1">
 					{$t('admin.newThemeName')}
 				</label>
 				<input
 					id="duplicate-name"
 					type="text"
 					bind:value={duplicateName}
-					class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500"
+					class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-indigo-500"
 				/>
 			</div>
 			<div class="flex justify-end gap-2">
 				<button
 					type="button"
 					on:click={() => { duplicateThemeId = null; duplicateName = ''; }}
-					class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
+					class="px-4 py-2 text-[var(--color-surface-800-200)] hover:bg-[var(--color-surface-100-900)] rounded-md"
 				>
 					{$t('admin.cancel')}
 				</button>
@@ -606,18 +519,18 @@
 <!-- Apply confirm -->
 {#if applyThemeId}
 	<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-labelledby="apply-theme-title">
-		<div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-			<h2 id="apply-theme-title" class="text-lg font-semibold text-gray-900 mb-4">
+		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl max-w-md w-full p-6">
+			<h2 id="apply-theme-title" class="text-lg font-semibold text-[var(--color-surface-950-50)] mb-4">
 				{$t('admin.setDefaultThemeQuestion')}
 			</h2>
-			<p class="text-gray-600 mb-4">
+			<p class="text-[var(--color-surface-600-400)] mb-4">
 				{$t('admin.setDefaultThemeDescription')}
 			</p>
 			<div class="flex justify-end gap-2">
 				<button
 					type="button"
 					on:click={() => (applyThemeId = null)}
-					class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
+					class="px-4 py-2 text-[var(--color-surface-800-200)] hover:bg-[var(--color-surface-100-900)] rounded-md"
 				>
 					{$t('admin.cancel')}
 				</button>
@@ -636,18 +549,18 @@
 <!-- Delete confirm -->
 {#if deleteThemeId}
 	<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-labelledby="delete-theme-title">
-		<div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-			<h2 id="delete-theme-title" class="text-lg font-semibold text-gray-900 mb-4">
+		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl max-w-md w-full p-6">
+			<h2 id="delete-theme-title" class="text-lg font-semibold text-[var(--color-surface-950-50)] mb-4">
 				{$t('admin.removeThemeQuestion')}
 			</h2>
-			<p class="text-gray-600 mb-4">
+			<p class="text-[var(--color-surface-600-400)] mb-4">
 				{$t('admin.removeThemeDescription')}
 			</p>
 			<div class="flex justify-end gap-2">
 				<button
 					type="button"
 					on:click={() => (deleteThemeId = null)}
-					class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
+					class="px-4 py-2 text-[var(--color-surface-800-200)] hover:bg-[var(--color-surface-100-900)] rounded-md"
 				>
 					{$t('admin.cancel')}
 				</button>

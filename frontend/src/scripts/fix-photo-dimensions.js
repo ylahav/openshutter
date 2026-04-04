@@ -144,5 +144,5 @@ try {
   console.error('❌ Sharp package not found. Please install it first:')
   console.error('   pnpm add sharp')
   console.error('   or')
-  console.error('   npm install sharp')
+  console.error('   pnpm add sharp')
 }

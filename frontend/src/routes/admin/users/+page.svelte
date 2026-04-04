@@ -382,17 +382,12 @@
 	<title>{$t('admin.usersManagement')} - {$t('navigation.admin')}</title>
 </svelte:head>
 
-<div class="min-h-screen bg-gray-50 py-8">
+<div class="py-8">
 	<div class="max-w-6xl mx-auto px-4">
-		<div class="bg-white rounded-lg shadow-md p-6">
-			<div class="flex items-center justify-between mb-6">
-				<div>
-					<h1 class="text-2xl font-bold text-gray-900">{$t('admin.usersManagement')}</h1>
-					<p class="text-gray-600 mt-2">{$t('admin.manageUsersRoles')}</p>
-				</div>
-				<a href="/admin" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm font-medium">
-					{$t('admin.backToAdmin')}
-				</a>
+		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
+			<div class="mb-6">
+				<h1 class="text-2xl font-bold text-[var(--color-surface-950-50)]">{$t('admin.usersManagement')}</h1>
+				<p class="text-[var(--color-surface-600-400)] mt-2">{$t('admin.manageUsersRoles')}</p>
 			</div>
 
 			{#if message}
@@ -416,13 +411,13 @@
 			<!-- Users List -->
 			{#if loading}
 				<div class="text-center py-8">
-					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-					<p class="mt-2 text-gray-600">{$t('admin.loadingUsers')}</p>
+					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--color-primary-600)]"></div>
+					<p class="mt-2 text-[var(--color-surface-600-400)]">{$t('admin.loadingUsers')}</p>
 				</div>
 			{:else if users.length === 0}
 				<div class="text-center py-8">
 					<svg
-						class="h-12 w-12 text-gray-400 mx-auto mb-4"
+						class="h-12 w-12 text-[var(--color-surface-400-600)] mx-auto mb-4"
 						fill="none"
 						stroke="currentColor"
 						viewBox="0 0 24 24"
@@ -434,8 +429,8 @@
 							d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
 						/>
 					</svg>
-					<h3 class="text-lg font-semibold text-gray-900 mb-2">{$t('admin.noUsersFound')}</h3>
-					<p class="text-gray-600">{$t('admin.startByAddingFirstUser')}</p>
+					<h3 class="text-lg font-semibold text-[var(--color-surface-950-50)] mb-2">{$t('admin.noUsersFound')}</h3>
+					<p class="text-[var(--color-surface-600-400)]">{$t('admin.startByAddingFirstUser')}</p>
 				</div>
 			{:else}
 				<UserTable
@@ -452,8 +447,8 @@
 <!-- Create Dialog -->
 {#if showCreateDialog}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-		<div class="bg-white rounded-lg shadow-xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
-			<h2 class="text-xl font-bold text-gray-900 mb-4">{$t('admin.addNewUser')}</h2>
+		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
+			<h2 class="text-xl font-bold text-[var(--color-surface-950-50)] mb-4">{$t('admin.addNewUser')}</h2>
 
 			{#if error}
 				<div class="mb-4 p-4 bg-red-50 text-red-700 rounded-md">{error}</div>
@@ -479,7 +474,7 @@
 							dialogs.closeAll();
 							resetForm();
 						}}
-						class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm font-medium"
+						class="px-4 py-2 bg-[var(--color-surface-200-800)] text-[var(--color-surface-800-200)] rounded-md hover:bg-[var(--color-surface-300-700)] text-sm font-medium"
 					>
 						{$t('admin.cancel')}
 					</button>
@@ -487,7 +482,7 @@
 						type="button"
 						on:click={handleCreate}
 						disabled={saving || !formData.username.trim()}
-						class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm font-medium"
+						class="px-4 py-2 bg-[var(--color-primary-600)] text-white rounded-md hover:bg-[var(--color-primary-700)] disabled:opacity-50 text-sm font-medium"
 					>
 						{#if saving}
 							{$t('admin.creatingUser')}
@@ -504,8 +499,8 @@
 <!-- Edit Dialog -->
 {#if showEditDialog && editingUser}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-		<div class="bg-white rounded-lg shadow-xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
-			<h2 class="text-xl font-bold text-gray-900 mb-4">{$t('admin.editUser')}</h2>
+		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
+			<h2 class="text-xl font-bold text-[var(--color-surface-950-50)] mb-4">{$t('admin.editUser')}</h2>
 
 			{#if error}
 				<div class="mb-4 p-4 bg-red-50 text-red-700 rounded-md">{error}</div>
@@ -551,7 +546,7 @@
 							editingUser = null;
 							resetForm();
 						}}
-						class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm font-medium"
+						class="px-4 py-2 bg-[var(--color-surface-200-800)] text-[var(--color-surface-800-200)] rounded-md hover:bg-[var(--color-surface-300-700)] text-sm font-medium"
 					>
 						{$t('admin.cancel')}
 					</button>
@@ -560,7 +555,7 @@
 						data-testid="admin-users-save-edit"
 						on:click={handleEdit}
 						disabled={saving}
-						class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm font-medium"
+						class="px-4 py-2 bg-[var(--color-primary-600)] text-white rounded-md hover:bg-[var(--color-primary-700)] disabled:opacity-50 text-sm font-medium"
 					>
 						{#if saving}
 							{$t('admin.updatingUser')}
@@ -577,15 +572,15 @@
 <!-- Delete Dialog -->
 {#if showDeleteDialog && userToDelete}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-		<div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
-			<h2 class="text-xl font-bold text-gray-900 mb-4">{$t('admin.deleteUser')}</h2>
+		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full max-w-md p-6">
+			<h2 class="text-xl font-bold text-[var(--color-surface-950-50)] mb-4">{$t('admin.deleteUser')}</h2>
 
 			{#if error}
 				<div class="mb-4 p-4 bg-red-50 text-red-700 rounded-md">{error}</div>
 			{/if}
 
 			<div class="space-y-4">
-				<p class="text-gray-600">
+				<p class="text-[var(--color-surface-600-400)]">
 					{$t('admin.confirmDeleteUser')
 						.replace('{name}', getUserName(userToDelete))
 						.replace('{username}', userToDelete.username)}
@@ -604,7 +599,7 @@
 							dialogs.closeAll();
 							userToDelete = null;
 						}}
-						class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm font-medium"
+						class="px-4 py-2 bg-[var(--color-surface-200-800)] text-[var(--color-surface-800-200)] rounded-md hover:bg-[var(--color-surface-300-700)] text-sm font-medium"
 					>
 						{$t('admin.cancel')}
 					</button>

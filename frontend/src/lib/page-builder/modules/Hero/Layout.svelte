@@ -93,14 +93,14 @@
         
         <!-- Content overlay -->
         <div class="absolute inset-0 flex items-center">
-          <div class="relative w-full py-16 md:py-24">
+          <div class="relative w-full py-16 @md:py-24">
             {#if titleText}
-              <h1 class="text-3xl md:text-5xl font-bold mb-4">
+              <h1 class="text-3xl @md:text-5xl font-bold mb-4">
                 {titleText}
               </h1>
             {/if}
             {#if subtitleText}
-              <p class="text-base md:text-xl mb-6 {backgroundStyle === 'dark' || backgroundStyle === 'image' || backgroundStyle === 'galleryLeading' ? 'text-gray-200' : 'text-gray-600 dark:text-gray-300'}">
+              <p class="text-base @md:text-xl mb-6 {backgroundStyle === 'dark' || backgroundStyle === 'image' || backgroundStyle === 'galleryLeading' ? 'text-gray-200' : 'text-gray-600 dark:text-gray-300'}">
                 {subtitleText}
               </p>
             {/if}
@@ -117,14 +117,14 @@
       </div>
     {:else}
       <!-- No background image - normal layout -->
-      <div class="relative w-full py-16 md:py-24">
+      <div class="relative w-full py-16 @md:py-24">
         {#if titleText}
-          <h1 class="text-3xl md:text-5xl font-bold mb-4">
+          <h1 class="text-3xl @md:text-5xl font-bold mb-4">
             {titleText}
           </h1>
         {/if}
         {#if subtitleText}
-          <p class="text-base md:text-xl mb-6 {backgroundStyle === 'dark' || backgroundStyle === 'image' || backgroundStyle === 'galleryLeading' ? 'text-gray-200' : 'text-gray-600 dark:text-gray-300'}">
+          <p class="text-base @md:text-xl mb-6 {backgroundStyle === 'dark' || backgroundStyle === 'image' || backgroundStyle === 'galleryLeading' ? 'text-gray-200' : 'text-gray-600 dark:text-gray-300'}">
             {subtitleText}
           </p>
         {/if}

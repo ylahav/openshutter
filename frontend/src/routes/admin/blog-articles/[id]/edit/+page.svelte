@@ -220,23 +220,23 @@
 </svelte:head>
 
 {#if loading}
-	<div class="min-h-screen flex items-center justify-center bg-gray-50">
-		<p class="text-gray-600">{$t('loading.loading')}</p>
+	<div class="min-h-screen flex items-center justify-center bg-[var(--color-surface-50-950)]">
+		<p class="text-[var(--color-surface-600-400)]">{$t('loading.loading')}</p>
 	</div>
 {:else}
-	<div class="min-h-screen bg-gray-50 py-8">
+	<div class="py-8">
 		<div class="max-w-4xl mx-auto px-4">
 			<div class="flex justify-between items-center mb-8">
-				<h1 class="text-3xl font-bold text-gray-900">{$t('admin.edit')} — {$t('admin.blogArticles')}</h1>
+				<h1 class="text-3xl font-bold text-[var(--color-surface-950-50)]">{$t('admin.edit')} — {$t('admin.blogArticles')}</h1>
 				<button
 					on:click={() => goto('/admin/blog-articles')}
-					class="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
+					class="btn preset-filled-primary-500 inline-flex items-center"
 				>
 					{$t('admin.backToBlogWorkspace')}
 				</button>
 			</div>
 
-			<div class="bg-white rounded-lg shadow-md p-6">
+			<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
 				{#if error}
 					<div class="mb-6 bg-red-50 border border-red-200 rounded-md p-4">
 						<p class="text-sm text-red-800">{error}</p>
@@ -250,21 +250,21 @@
 
 				<form on:submit={handleSubmit} class="space-y-6">
 					<div>
-						<h3 class="text-lg font-medium text-gray-900 mb-4">{$t('owner.basicInformation')}</h3>
+						<h3 class="text-lg font-medium text-[var(--color-surface-950-50)] mb-4">{$t('owner.basicInformation')}</h3>
 						<div class="space-y-4">
 							<div>
-								<span class="block text-sm font-medium text-gray-700 mb-2">{$t('owner.title')} *</span>
+								<span class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">{$t('owner.title')} *</span>
 								<MultiLangInput bind:value={formData.title} required />
 							</div>
 							<div>
-								<label for="edit-article-category" class="block text-sm font-medium text-gray-700 mb-2"
+								<label for="edit-article-category" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2"
 									>{$t('owner.category')} *</label
 								>
 								<select
 									id="edit-article-category"
 									bind:value={formData.category}
 									required
-									class="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+									class="w-full px-3 py-2 border border-surface-300-700 rounded-md bg-[var(--color-surface-50-950)] focus:outline-none focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 								>
 									<option value="">{$t('admin.selectBlogCategory')}</option>
 									{#each categoryOptions as c (c.alias)}
@@ -283,7 +283,7 @@
 								{/if}
 							</div>
 							<div>
-								<label for="edit-article-tags" class="block text-sm font-medium text-gray-700 mb-2"
+								<label for="edit-article-tags" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2"
 									>{$t('owner.tags')}</label
 								>
 								<div class="flex">
@@ -297,16 +297,16 @@
 												handleAddTag();
 											}
 										}}
-										class="flex-1 px-3 py-2 border border-gray-300 rounded-l-md"
+										class="flex-1 px-3 py-2 border border-surface-300-700 rounded-l-md"
 									/>
-									<button type="button" on:click={handleAddTag} class="px-3 py-2 bg-blue-600 text-white rounded-r-md">
+									<button type="button" on:click={handleAddTag} class="px-3 py-2 bg-[var(--color-primary-600)] text-white rounded-r-md">
 										{$t('owner.add')}
 									</button>
 								</div>
 								{#if formData.tags.length > 0}
 									<div class="mt-2 flex flex-wrap gap-2">
 										{#each formData.tags as tag}
-											<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-blue-100 text-blue-800">
+											<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-[color-mix(in_oklab,var(--color-primary-500)_22%,transparent)] text-[var(--color-primary-800)]">
 												{tag}
 												<button type="button" on:click={() => handleRemoveTag(tag)} class="ml-1">×</button>
 											</span>
@@ -318,7 +318,7 @@
 					</div>
 
 					<div>
-						<h3 class="text-lg font-medium text-gray-900 mb-4">{$t('owner.leadingImage')}</h3>
+						<h3 class="text-lg font-medium text-[var(--color-surface-950-50)] mb-4">{$t('owner.leadingImage')}</h3>
 						<input
 							type="url"
 							value={formData.leadingImage?.url || ''}
@@ -330,12 +330,12 @@
 									storagePath: formData.leadingImage?.storagePath || ''
 								};
 							}}
-							class="w-full px-3 py-2 border border-gray-300 rounded-md"
+							class="w-full px-3 py-2 border border-surface-300-700 rounded-md"
 						/>
 					</div>
 
 					<div>
-						<h3 class="text-lg font-medium text-gray-900 mb-4">{$t('owner.content')}</h3>
+						<h3 class="text-lg font-medium text-[var(--color-surface-950-50)] mb-4">{$t('owner.content')}</h3>
 						<MultiLangInput bind:value={formData.excerpt} multiline={true} />
 						<div class="mt-4">
 							<MultiLangHTMLEditor bind:value={formData.content} height={300} />
@@ -343,7 +343,7 @@
 					</div>
 
 					<div>
-						<h3 class="text-lg font-medium text-gray-900 mb-4">{$t('owner.seo')}</h3>
+						<h3 class="text-lg font-medium text-[var(--color-surface-950-50)] mb-4">{$t('owner.seo')}</h3>
 						<MultiLangInput bind:value={formData.seoTitle} />
 						<div class="mt-4">
 							<MultiLangInput bind:value={formData.seoDescription} multiline={true} />

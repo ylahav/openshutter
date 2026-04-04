@@ -35,10 +35,10 @@ fi
 # Check if pnpm is installed on server
 echo -e "${BLUE}🔍 Checking server requirements...${NC}"
 if ! ssh $SERVER "command -v pnpm > /dev/null 2>&1"; then
-    echo -e "${YELLOW}⚠️  pnpm is not installed on the server. Installing...${NC}"
-    ssh $SERVER "npm install -g pnpm" || {
-        echo -e "${RED}❌ Failed to install pnpm on server${NC}"
-        echo -e "${YELLOW}Please install pnpm manually: npm install -g pnpm${NC}"
+    echo -e "${YELLOW}⚠️  pnpm is not installed on the server. Enabling via Corepack...${NC}"
+    ssh $SERVER "corepack enable && corepack prepare pnpm@10.33.0 --activate" || {
+        echo -e "${RED}❌ Failed to enable pnpm on server (needs Node 18+ with Corepack)${NC}"
+        echo -e "${YELLOW}Install pnpm manually: https://pnpm.io/installation${NC}"
         exit 1
     }
 fi

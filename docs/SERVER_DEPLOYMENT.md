@@ -32,9 +32,9 @@ This guide provides step-by-step commands to execute on your deployed server aft
 
 Before deploying, ensure your server has:
 - **Node.js 18+** installed
-- **pnpm** installed (`npm install -g pnpm`)
+- **pnpm** — e.g. `corepack enable && corepack prepare pnpm@10.33.0 --activate` (match the root `package.json` `packageManager` field)
 - **MongoDB** running (external instance or local)
-- **PM2** installed (`npm install -g pm2`) - Recommended for production process management
+- **PM2** — `pnpm add -g pm2` (recommended for production process management)
 
 ## Step 1: Transfer and Extract Deployment Package
 
@@ -346,7 +346,7 @@ PM2 is a production process manager that keeps your application running, handles
 
 ```bash
 # Install PM2 globally (if not installed)
-npm install -g pm2
+pnpm add -g pm2
 
 # Start backend
 cd backend

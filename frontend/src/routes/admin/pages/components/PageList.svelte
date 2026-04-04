@@ -15,12 +15,12 @@
 
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 	{#each pages as page}
-		<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-4">
 			<div class="flex items-start justify-between mb-3">
 				<div class="flex-1">
-					<h3 class="font-semibold text-gray-900 mb-1">{getPageTitle(page)}</h3>
-					<p class="text-sm text-gray-500">
-						Alias: <code class="bg-gray-100 px-1 rounded">{page.alias}</code>
+					<h3 class="font-semibold text-[var(--color-surface-950-50)] mb-1">{getPageTitle(page)}</h3>
+					<p class="text-sm text-[var(--color-surface-600-400)]">
+						Alias: <code class="bg-[var(--color-surface-100-900)] px-1 rounded">{page.alias}</code>
 					</p>
 				</div>
 
@@ -28,7 +28,7 @@
 					<button
 						type="button"
 						on:click={() => onEdit(page)}
-						class="p-1 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded"
+						class="p-1 text-[var(--color-surface-600-400)] hover:text-[var(--color-primary-600)] hover:bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] rounded"
 						aria-label="Edit page"
 					>
 						<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -43,7 +43,7 @@
 					<button
 						type="button"
 						on:click={() => onDelete(page)}
-						class="p-1 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded"
+						class="p-1 text-[var(--color-surface-600-400)] hover:text-red-600 hover:bg-red-50 rounded"
 						aria-label="Delete page"
 					>
 						<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -60,7 +60,7 @@
 
 			<div class="flex items-center justify-between mt-3">
 				<span
-					class="px-2 py-1 text-xs font-medium rounded bg-gray-100 text-gray-800"
+					class="px-2 py-1 text-xs font-medium rounded bg-[var(--color-surface-100-900)] text-[var(--color-surface-900-100)]"
 				>
 					{categories.find((c) => c.value === page.category)?.label || page.category}
 				</span>

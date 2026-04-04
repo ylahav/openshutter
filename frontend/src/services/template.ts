@@ -86,7 +86,7 @@ export class TemplateService {
           // Determine which template to use based on area
           let templateName: string
           if (area === 'admin') {
-            templateName = result.data.template?.adminTemplate || result.data.template?.activeTemplate || 'default'
+            templateName = 'default'
           } else {
             templateName = result.data.template?.frontendTemplate || result.data.template?.activeTemplate || 'modern'
           }

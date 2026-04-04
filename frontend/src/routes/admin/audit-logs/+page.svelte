@@ -60,16 +60,11 @@ import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 
 <Header />
 
-<main class="min-h-screen bg-gray-50 py-8">
+<main class="py-8">
 	<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-		<div class="flex items-center justify-between mb-6">
-			<div>
-				<h1 class="text-3xl font-bold text-gray-900">{$t('admin.auditLogs')}</h1>
-				<p class="mt-2 text-gray-600">{$t('admin.viewSystemActivity')}</p>
-			</div>
-			<a href="/admin" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm font-medium">
-				{$t('admin.backToAdmin')}
-			</a>
+		<div class="mb-6">
+			<h1 class="text-3xl font-bold text-[var(--color-surface-950-50)]">{$t('admin.auditLogs')}</h1>
+			<p class="mt-2 text-[var(--color-surface-600-400)]">{$t('admin.viewSystemActivity')}</p>
 		</div>
 
 		{#if error}
@@ -80,58 +75,58 @@ import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 
 		{#if loading}
 			<div class="flex items-center justify-center py-12">
-				<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-				<p class="ml-4 text-gray-600">{$t('admin.loadingAuditLogs')}</p>
+				<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--color-primary-600)]"></div>
+				<p class="ml-4 text-[var(--color-surface-600-400)]">{$t('admin.loadingAuditLogs')}</p>
 			</div>
 		{:else if logs.length === 0}
 			<div class="text-center py-12">
-				<p class="text-gray-500">{$t('admin.noAuditLogsFound')}</p>
+				<p class="text-[var(--color-surface-600-400)]">{$t('admin.noAuditLogsFound')}</p>
 			</div>
 		{:else}
-			<div class="bg-white rounded-lg shadow overflow-hidden">
+			<div class="card preset-outlined-surface-200-800 bg-surface-50-950 overflow-hidden">
 				<div class="overflow-x-auto">
-					<table class="min-w-full divide-y divide-gray-200">
-						<thead class="bg-gray-50">
+					<table class="min-w-full divide-y divide-surface-200-800">
+						<thead class="bg-[var(--color-surface-50-950)]">
 							<tr>
-								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+								<th class="px-6 py-3 text-left text-xs font-medium text-[var(--color-surface-600-400)] uppercase tracking-wider">
 									{$t('admin.time')}
 								</th>
-								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+								<th class="px-6 py-3 text-left text-xs font-medium text-[var(--color-surface-600-400)] uppercase tracking-wider">
 									{$t('admin.action')}
 								</th>
-								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+								<th class="px-6 py-3 text-left text-xs font-medium text-[var(--color-surface-600-400)] uppercase tracking-wider">
 									{$t('admin.user')}
 								</th>
-								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+								<th class="px-6 py-3 text-left text-xs font-medium text-[var(--color-surface-600-400)] uppercase tracking-wider">
 									{$t('admin.resource')}
 								</th>
-								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+								<th class="px-6 py-3 text-left text-xs font-medium text-[var(--color-surface-600-400)] uppercase tracking-wider">
 									{$t('admin.ipAddress')}
 								</th>
-								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+								<th class="px-6 py-3 text-left text-xs font-medium text-[var(--color-surface-600-400)] uppercase tracking-wider">
 									{$t('admin.userAgent')}
 								</th>
 							</tr>
 						</thead>
-						<tbody class="bg-white divide-y divide-gray-200">
+						<tbody class="bg-[var(--color-surface-50-950)] divide-y divide-surface-200-800">
 							{#each logs as log}
-								<tr class="hover:bg-gray-50">
-									<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+								<tr class="hover:bg-[var(--color-surface-50-950)]">
+									<td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-surface-950-50)]">
 										{new Date(log.timestamp).toLocaleString()}
 									</td>
-									<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+									<td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-surface-950-50)]">
 										{log.action}
 									</td>
-									<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+									<td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-surface-600-400)]">
 										{log.userId || 'anon'} {log.userRole ? `(${log.userRole})` : ''}
 									</td>
-									<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+									<td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-surface-600-400)]">
 										{log.resourceType}:{log.resourceAlias || log.resourceId || '-'}
 									</td>
-									<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+									<td class="px-6 py-4 whitespace-nowrap text-sm text-[var(--color-surface-600-400)]">
 										{log.ip || '-'}
 									</td>
-									<td class="px-6 py-4 text-sm text-gray-600 max-w-xs truncate" title={log.userAgent || ''}>
+									<td class="px-6 py-4 text-sm text-[var(--color-surface-600-400)] max-w-xs truncate" title={log.userAgent || ''}>
 										{log.userAgent || '-'}
 									</td>
 								</tr>

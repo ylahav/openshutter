@@ -42,7 +42,7 @@ export class SiteConfigService {
     
     // Merge with default config to ensure all fields exist
     const defaultConfig = this.getDefaultConfig()
-    return {
+    const merged: SiteConfig = {
       ...defaultConfig,
       ...this.configCache,
       // Ensure languages field exists
@@ -64,6 +64,11 @@ export class SiteConfigService {
         ...this.configCache.whiteLabel,
       }
     }
+    // Admin UI is not pack-driven; keep a single legacy sentinel in API responses.
+    if (merged.template) {
+      merged.template = { ...merged.template, adminTemplate: 'default' }
+    }
+    return merged
   }
 
   /**
@@ -106,7 +111,7 @@ export class SiteConfigService {
     const t = updates.template
     if (!t) return
     if (t.frontendTemplate !== undefined) this.validateBuiltinTemplateId(t.frontendTemplate, 'frontendTemplate')
-    if (t.adminTemplate !== undefined) this.validateBuiltinTemplateId(t.adminTemplate, 'adminTemplate')
+    // adminTemplate is legacy — not validated; persisted value is always normalized to 'default' on save.
     if (t.activeTemplate !== undefined) this.validateBuiltinTemplateId(t.activeTemplate, 'activeTemplate')
   }
 
@@ -191,7 +196,6 @@ export class SiteConfigService {
         mergedConfig.template.componentVisibility = t.componentVisibility ?? null
       }
       if (t.frontendTemplate !== undefined) mergedConfig.template.frontendTemplate = t.frontendTemplate
-      if (t.adminTemplate !== undefined) mergedConfig.template.adminTemplate = t.adminTemplate
       if (t.activeTemplate !== undefined) mergedConfig.template.activeTemplate = t.activeTemplate
       if (t.activeThemeId !== undefined) mergedConfig.template.activeThemeId = t.activeThemeId
     }
@@ -202,9 +206,17 @@ export class SiteConfigService {
       }
     }
 
+    // Ignore any client-sent adminTemplate; admin shell is fixed (see docs/ADMIN_UI_ROADMAP.md).
+    if (mergedConfig.template) {
+      mergedConfig.template.adminTemplate = 'default'
+    }
+
     // Server-side safety: reject invalid grids or overlapping module rectangles
     // before persisting template page placements.
     validateTemplatePagesLayer(mergedConfig.template, { source: 'PUT /api/admin/site-config' })
+
+    this.migrateToMultiLang(mergedConfig)
+
     // Add updatedAt timestamp
     mergedConfig.updatedAt = new Date()
     
@@ -253,6 +265,26 @@ export class SiteConfigService {
       config.seo.metaDescription = { en: config.seo.metaDescription }
     } else if (config.seo?.metaDescription && typeof config.seo.metaDescription === 'object') {
       config.seo.metaDescription = MultiLangUtils.clean(config.seo.metaDescription)
+    }
+
+    // metaKeywords: legacy string[] or string -> MultiLangText (comma-separated per locale)
+    if (config.seo) {
+      const mk = config.seo.metaKeywords
+      const defaultLang = config.languages?.defaultLanguage || 'en'
+      if (Array.isArray(mk)) {
+        const joined = mk
+          .map((k) => String(k).trim())
+          .filter((k) => k.length > 0)
+          .join(', ')
+        config.seo.metaKeywords = joined ? { [defaultLang]: joined } : {}
+      } else if (typeof mk === 'string') {
+        const s = mk.trim()
+        config.seo.metaKeywords = s ? { [defaultLang]: s } : {}
+      } else if (mk && typeof mk === 'object') {
+        config.seo.metaKeywords = MultiLangUtils.clean(mk)
+      } else {
+        config.seo.metaKeywords = {}
+      }
     }
 
     if (config.whiteLabel?.productName && typeof config.whiteLabel.productName === 'object') {
@@ -327,7 +359,7 @@ export class SiteConfigService {
       seo: {
         metaTitle: { en: 'OpenShutter Gallery - Beautiful Photo Gallery' },
         metaDescription: { en: 'Discover amazing photos in our beautiful gallery' },
-        metaKeywords: ['gallery', 'photos', 'photography', 'images', 'art']
+        metaKeywords: { en: 'gallery, photos, photography, images, art' }
       },
       contact: {
         email: '',

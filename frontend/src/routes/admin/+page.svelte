@@ -1,67 +1,29 @@
 <script lang="ts">
 	import type { PageData } from './$types';
-	import { logout } from '$lib/stores/auth';
-	import { goto } from '$app/navigation';
+	import AdminCard from '$lib/components/admin/AdminCard.svelte';
 	import { productName } from '$stores/siteConfig';
 	import { t } from '$stores/i18n';
 
-  export const data: PageData = undefined as any; // From +layout.server.ts, not used in this component
-
-	async function handleLogout() {
-		await logout();
-	}
+	export const data: PageData = undefined as any; // From +layout.server.ts, not used in this component
 </script>
 
 <svelte:head>
 	<title>{$t('admin.adminPanel')} - {$productName}</title>
 </svelte:head>
 
-<div class="min-h-screen bg-gray-50 py-8">
+<div class="py-8">
 	<div class="max-w-6xl mx-auto px-4">
-		<!-- Navigation Buttons -->
-		<div class="flex justify-between items-center mb-8">
-			<div>
-				<h1 class="text-3xl font-bold text-gray-900">{$t('admin.adminPanel')}</h1>
-				<p class="text-gray-600 mt-2">{$t('admin.manageGallerySettings')}</p>
-			</div>
-			<div class="flex space-x-3">
-				<a
-					href="/"
-					class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-				>
-					<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-						/>
-					</svg>
-					{$t('navigation.home')}
-				</a>
-				<button
-					on:click={handleLogout}
-					class="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
-				>
-					<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-						/>
-					</svg>
-					{$t('header.logout')}
-				</button>
-			</div>
+		<div class="mb-8">
+			<h1 class="text-3xl font-bold text-[var(--color-surface-950-50)]">{$t('admin.adminPanel')}</h1>
+			<p class="text-[var(--color-surface-600-400)] mt-2">{$t('admin.manageGallerySettings')}</p>
 		</div>
 
 		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 			<!-- Site Configuration -->
-			<div class="bg-white rounded-lg shadow-md p-6">
+			<AdminCard>
 				<div class="flex items-center mb-4">
-					<div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-						<svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<div class="w-10 h-10 bg-[color-mix(in_oklab,var(--color-primary-500)_22%,transparent)] rounded-lg flex items-center justify-center">
+						<svg class="w-6 h-6 text-[var(--color-primary-600)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path
 								stroke-linecap="round"
 								stroke-linejoin="round"
@@ -76,30 +38,22 @@
 							/>
 						</svg>
 					</div>
-					<h2 class="text-xl font-semibold text-gray-900 ml-3">{$t('admin.siteConfiguration')}</h2>
+					<h2 class="text-xl font-semibold text-[var(--color-surface-950-50)] ml-3">{$t('admin.siteConfiguration')}</h2>
 				</div>
-				<p class="text-gray-600 mb-2">{$t('admin.configureGallery')}</p>
-				<p class="text-sm text-gray-500 mb-4">
-					<a
-						href="/admin/site-config?tab=template"
-						class="text-blue-600 hover:underline"
-					>
-						{$t('admin.siteConfigTemplateQuickLink')}
-					</a>
-				</p>
+				<p class="text-[var(--color-surface-600-400)] mb-4">{$t('admin.configureGallery')}</p>
 				<a
 					href="/admin/site-config"
-					class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+					class="inline-flex items-center px-4 py-2 bg-[var(--color-primary-600)] text-white rounded-md hover:bg-[var(--color-primary-700)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)] focus:ring-offset-2"
 				>
 					{$t('admin.configureSite')}
 					<svg class="ml-2 w-4 h-4 rtl-flip" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
 					</svg>
 				</a>
-			</div>
+			</AdminCard>
 
 			<!-- Translation Management -->
-			<div class="bg-white rounded-lg shadow-md p-6">
+			<AdminCard>
 				<div class="flex items-center mb-4">
 					<div class="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
 						<svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -111,9 +65,9 @@
 							/>
 						</svg>
 					</div>
-					<h2 class="text-xl font-semibold text-gray-900 ml-3">{$t('admin.translationManagement')}</h2>
+					<h2 class="text-xl font-semibold text-[var(--color-surface-950-50)] ml-3">{$t('admin.translationManagement')}</h2>
 				</div>
-				<p class="text-gray-600 mb-4">{$t('admin.manageTranslationsDescription')}</p>
+				<p class="text-[var(--color-surface-600-400)] mb-4">{$t('admin.manageTranslationsDescription')}</p>
 				<a
 					href="/admin/translations"
 					class="inline-flex items-center px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2"
@@ -123,10 +77,10 @@
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
 					</svg>
 				</a>
-			</div>
+			</AdminCard>
 
 			<!-- Storage Management -->
-			<div class="bg-white rounded-lg shadow-md p-6">
+			<AdminCard>
 				<div class="flex items-center mb-4">
 					<div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
 						<svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -138,9 +92,9 @@
 							/>
 						</svg>
 					</div>
-					<h2 class="text-xl font-semibold text-gray-900 ml-3">{$t('admin.storageManagement')}</h2>
+					<h2 class="text-xl font-semibold text-[var(--color-surface-950-50)] ml-3">{$t('admin.storageManagement')}</h2>
 				</div>
-				<p class="text-gray-600 mb-4">{$t('admin.configureStorage')}</p>
+				<p class="text-[var(--color-surface-600-400)] mb-4">{$t('admin.configureStorage')}</p>
 				<a
 					href="/admin/storage"
 					class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
@@ -150,10 +104,10 @@
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
 					</svg>
 				</a>
-			</div>
+			</AdminCard>
 
 			<!-- Themes -->
-			<div class="bg-white rounded-lg shadow-md p-6">
+			<AdminCard>
 				<div class="flex items-center mb-4">
 					<div class="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
 						<svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -165,9 +119,9 @@
 							/>
 						</svg>
 					</div>
-					<h2 class="text-xl font-semibold text-gray-900 ml-3">{$t('admin.templateManagement')}</h2>
+					<h2 class="text-xl font-semibold text-[var(--color-surface-950-50)] ml-3">{$t('admin.templateManagement')}</h2>
 				</div>
-				<p class="text-gray-600 mb-4">{$t('admin.templateManagementDescription')}</p>
+				<p class="text-[var(--color-surface-600-400)] mb-4">{$t('admin.templateManagementDescription')}</p>
 				<div class="space-y-3">
 					<a
 						href="/admin/templates"
@@ -179,10 +133,10 @@
 						</svg>
 					</a>
 				</div>
-			</div>
+			</AdminCard>
 
 			<!-- Albums Management -->
-			<div class="bg-white rounded-lg shadow-md p-6">
+			<AdminCard>
 				<div class="flex items-center mb-4">
 					<div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
 						<svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -194,9 +148,9 @@
 							/>
 						</svg>
 					</div>
-					<h2 class="text-xl font-semibold text-gray-900 ml-3">{$t('admin.albumsManagement')}</h2>
+					<h2 class="text-xl font-semibold text-[var(--color-surface-950-50)] ml-3">{$t('admin.albumsManagement')}</h2>
 				</div>
-				<p class="text-gray-600 mb-4">{$t('admin.createEditAlbums')}</p>
+				<p class="text-[var(--color-surface-600-400)] mb-4">{$t('admin.createEditAlbums')}</p>
 				<a
 					href="/admin/albums"
 					class="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
@@ -206,10 +160,10 @@
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
 					</svg>
 				</a>
-			</div>
+			</AdminCard>
 
 			<!-- People Management -->
-			<div class="bg-white rounded-lg shadow-md p-6">
+			<AdminCard>
 				<div class="flex items-center mb-4">
 					<div class="w-10 h-10 bg-pink-100 rounded-lg flex items-center justify-center">
 						<svg class="w-6 h-6 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -221,9 +175,9 @@
 							/>
 						</svg>
 					</div>
-					<h2 class="text-xl font-semibold text-gray-900 ml-3">{$t('admin.peopleManagement')}</h2>
+					<h2 class="text-xl font-semibold text-[var(--color-surface-950-50)] ml-3">{$t('admin.peopleManagement')}</h2>
 				</div>
-				<p class="text-gray-600 mb-4">{$t('admin.managePeopleStructuredData')}</p>
+				<p class="text-[var(--color-surface-600-400)] mb-4">{$t('admin.managePeopleStructuredData')}</p>
 				<a
 					href="/admin/people"
 					class="inline-flex items-center px-4 py-2 bg-pink-600 text-white rounded-md hover:bg-pink-700 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2"
@@ -233,10 +187,10 @@
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
 					</svg>
 				</a>
-			</div>
+			</AdminCard>
 
 			<!-- Tags Management -->
-			<div class="bg-white rounded-lg shadow-md p-6">
+			<AdminCard>
 				<div class="flex items-center mb-4">
 					<div class="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
 						<svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -248,9 +202,9 @@
 							/>
 						</svg>
 					</div>
-					<h2 class="text-xl font-semibold text-gray-900 ml-3">{$t('admin.tagsManagement')}</h2>
+					<h2 class="text-xl font-semibold text-[var(--color-surface-950-50)] ml-3">{$t('admin.tagsManagement')}</h2>
 				</div>
-				<p class="text-gray-600 mb-4">{$t('admin.manageTagsStructuredData')}</p>
+				<p class="text-[var(--color-surface-600-400)] mb-4">{$t('admin.manageTagsStructuredData')}</p>
 				<a
 					href="/admin/tags"
 					class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
@@ -260,10 +214,10 @@
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
 					</svg>
 				</a>
-			</div>
+			</AdminCard>
 
 			<!-- Location Management -->
-			<div class="bg-white rounded-lg shadow-md p-6">
+			<AdminCard>
 				<div class="flex items-center mb-4">
 					<div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
 						<svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -281,9 +235,9 @@
 							/>
 						</svg>
 					</div>
-					<h2 class="text-xl font-semibold text-gray-900 ml-3">{$t('admin.locationsManagement')}</h2>
+					<h2 class="text-xl font-semibold text-[var(--color-surface-950-50)] ml-3">{$t('admin.locationsManagement')}</h2>
 				</div>
-				<p class="text-gray-600 mb-4">{$t('admin.manageLocationsStructuredData')}</p>
+				<p class="text-[var(--color-surface-600-400)] mb-4">{$t('admin.manageLocationsStructuredData')}</p>
 				<a
 					href="/admin/locations"
 					class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
@@ -293,10 +247,10 @@
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
 					</svg>
 				</a>
-			</div>
+			</AdminCard>
 
 			<!-- Users Management -->
-			<div class="bg-white rounded-lg shadow-md p-6">
+			<AdminCard>
 				<div class="flex items-center mb-4">
 					<div class="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center">
 						<svg class="w-6 h-6 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -314,9 +268,9 @@
 							/>
 						</svg>
 					</div>
-					<h2 class="text-xl font-semibold text-gray-900 ml-3">{$t('admin.usersManagement')}</h2>
+					<h2 class="text-xl font-semibold text-[var(--color-surface-950-50)] ml-3">{$t('admin.usersManagement')}</h2>
 				</div>
-				<p class="text-gray-600 mb-4">{$t('admin.manageUsersRoles')}</p>
+				<p class="text-[var(--color-surface-600-400)] mb-4">{$t('admin.manageUsersRoles')}</p>
 				<a
 					href="/admin/users"
 					class="inline-flex items-center px-4 py-2 bg-slate-700 text-white rounded-md hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2"
@@ -326,10 +280,10 @@
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
 					</svg>
 				</a>
-			</div>
+			</AdminCard>
 
 			<!-- Groups Management -->
-			<div class="bg-white rounded-lg shadow-md p-6">
+			<AdminCard>
 				<div class="flex items-center mb-4">
 					<div class="w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center">
 						<svg class="w-6 h-6 text-teal-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -341,9 +295,9 @@
 							/>
 						</svg>
 					</div>
-					<h2 class="text-xl font-semibold text-gray-900 ml-3">{$t('admin.groupsManagement')}</h2>
+					<h2 class="text-xl font-semibold text-[var(--color-surface-950-50)] ml-3">{$t('admin.groupsManagement')}</h2>
 				</div>
-				<p class="text-gray-600 mb-4">{$t('admin.defineUserGroups')}</p>
+				<p class="text-[var(--color-surface-600-400)] mb-4">{$t('admin.defineUserGroups')}</p>
 				<a
 					href="/admin/groups"
 					class="inline-flex items-center px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
@@ -353,13 +307,13 @@
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
 					</svg>
 				</a>
-			</div>
+			</AdminCard>
 
 			<!-- Pages Management -->
-			<div class="bg-white rounded-lg shadow-md p-6">
+			<AdminCard>
 				<div class="flex items-center mb-4">
-					<div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-						<svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<div class="w-10 h-10 bg-[color-mix(in_oklab,var(--color-primary-500)_22%,transparent)] rounded-lg flex items-center justify-center">
+						<svg class="w-6 h-6 text-[var(--color-primary-600)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path
 								stroke-linecap="round"
 								stroke-linejoin="round"
@@ -368,22 +322,22 @@
 							/>
 						</svg>
 					</div>
-					<h2 class="text-xl font-semibold text-gray-900 ml-3">{$t('admin.pagesManagement')}</h2>
+					<h2 class="text-xl font-semibold text-[var(--color-surface-950-50)] ml-3">{$t('admin.pagesManagement')}</h2>
 				</div>
-				<p class="text-gray-600 mb-4">{$t('admin.pagesManagementDescription')}</p>
+				<p class="text-[var(--color-surface-600-400)] mb-4">{$t('admin.pagesManagementDescription')}</p>
 				<a
 					href="/admin/pages"
-					class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+					class="inline-flex items-center px-4 py-2 bg-[var(--color-primary-600)] text-white rounded-md hover:bg-[var(--color-primary-700)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)] focus:ring-offset-2"
 				>
 					{$t('admin.managePages')}
 					<svg class="ml-2 w-4 h-4 rtl-flip" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
 					</svg>
 				</a>
-			</div>
+			</AdminCard>
 
 			<!-- Blog management (categories + articles) -->
-			<div class="bg-white rounded-lg shadow-md p-6">
+			<AdminCard>
 				<div class="flex items-center mb-4">
 					<div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
 						<svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -395,9 +349,9 @@
 							/>
 						</svg>
 					</div>
-					<h2 class="text-xl font-semibold text-gray-900 ml-3">{$t('admin.blogWorkspaceTitle')}</h2>
+					<h2 class="text-xl font-semibold text-[var(--color-surface-950-50)] ml-3">{$t('admin.blogWorkspaceTitle')}</h2>
 				</div>
-				<p class="text-gray-600 mb-4">{$t('admin.blogWorkspaceSubtitle')}</p>
+				<p class="text-[var(--color-surface-600-400)] mb-4">{$t('admin.blogWorkspaceSubtitle')}</p>
 				<a
 					href="/admin/blogs"
 					class="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
@@ -407,10 +361,10 @@
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
 					</svg>
 				</a>
-			</div>
+			</AdminCard>
 
 			<!-- Backup & Restore -->
-			<div class="bg-white rounded-lg shadow-md p-6">
+			<AdminCard>
 				<div class="flex items-center mb-4">
 					<div class="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
 						<svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -422,9 +376,9 @@
 							/>
 						</svg>
 					</div>
-					<h2 class="text-xl font-semibold text-gray-900 ml-3">{$t('admin.backupRestore')}</h2>
+					<h2 class="text-xl font-semibold text-[var(--color-surface-950-50)] ml-3">{$t('admin.backupRestore')}</h2>
 				</div>
-				<p class="text-gray-600 mb-4">{$t('admin.backupRestoreDescription')}</p>
+				<p class="text-[var(--color-surface-600-400)] mb-4">{$t('admin.backupRestoreDescription')}</p>
 				<a
 					href="/admin/backup-restore"
 					class="inline-flex items-center px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
@@ -434,10 +388,10 @@
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
 					</svg>
 				</a>
-			</div>
+			</AdminCard>
 
 			<!-- Import & Export (Migration) -->
-			<div class="bg-white rounded-lg shadow-md p-6">
+			<AdminCard>
 				<div class="flex items-center mb-4">
 					<div class="w-10 h-10 bg-cyan-100 rounded-lg flex items-center justify-center">
 						<svg class="w-6 h-6 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -449,9 +403,9 @@
 							/>
 						</svg>
 					</div>
-					<h2 class="text-xl font-semibold text-gray-900 ml-3">{$t('admin.importSync')}</h2>
+					<h2 class="text-xl font-semibold text-[var(--color-surface-950-50)] ml-3">{$t('admin.importSync')}</h2>
 				</div>
-				<p class="text-gray-600 mb-4">{$t('admin.importSyncDescription')}</p>
+				<p class="text-[var(--color-surface-600-400)] mb-4">{$t('admin.importSyncDescription')}</p>
 				<a
 					href="/admin/import-sync"
 					class="inline-flex items-center px-4 py-2 bg-cyan-600 text-white rounded-md hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2"
@@ -461,19 +415,19 @@
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
 					</svg>
 				</a>
-			</div>
+			</AdminCard>
 
 			<!-- Marketplace -->
-			<div class="bg-white rounded-lg shadow-md p-6">
+			<AdminCard>
 				<div class="flex items-center mb-4">
 					<div class="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
 						<svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
 						</svg>
 					</div>
-					<h2 class="text-xl font-semibold text-gray-900 ml-3">{$t('admin.marketplace')}</h2>
+					<h2 class="text-xl font-semibold text-[var(--color-surface-950-50)] ml-3">{$t('admin.marketplace')}</h2>
 				</div>
-				<p class="text-gray-600 mb-4">{$t('admin.marketplaceDescription')}</p>
+				<p class="text-[var(--color-surface-600-400)] mb-4">{$t('admin.marketplaceDescription')}</p>
 				<a
 					href="/admin/marketplace"
 					class="inline-flex items-center px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"
@@ -483,10 +437,10 @@
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
 					</svg>
 				</a>
-			</div>
+			</AdminCard>
 
 			<!-- Analytics -->
-			<div class="bg-white rounded-lg shadow-md p-6">
+			<AdminCard>
 				<div class="flex items-center mb-4">
 					<div class="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
 						<svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -498,9 +452,9 @@
 							/>
 						</svg>
 					</div>
-					<h2 class="text-xl font-semibold text-gray-900 ml-3">{$t('admin.analytics')}</h2>
+					<h2 class="text-xl font-semibold text-[var(--color-surface-950-50)] ml-3">{$t('admin.analytics')}</h2>
 				</div>
-				<p class="text-gray-600 mb-4">{$t('admin.viewStatistics')}</p>
+				<p class="text-[var(--color-surface-600-400)] mb-4">{$t('admin.viewStatistics')}</p>
 				<a
 					href="/admin/analytics"
 					class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
@@ -510,7 +464,7 @@
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
 					</svg>
 				</a>
-			</div>
+			</AdminCard>
 
 		</div>
 	</div>

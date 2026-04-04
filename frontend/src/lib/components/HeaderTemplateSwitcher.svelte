@@ -40,7 +40,7 @@
 {#if hasPageModules}
 	<!-- Use PageRenderer when pageModules are configured -->
 	<header class="w-full {headerPbShellClass}">
-		<div class="os-shell-container">
+		<div class="@container os-shell-container">
 			<PageRenderer page={pageForRenderer} modules={pageModules} compact={true} />
 		</div>
 	</header>

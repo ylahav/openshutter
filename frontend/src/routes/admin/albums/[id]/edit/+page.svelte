@@ -449,17 +449,17 @@
 	</title>
 </svelte:head>
 
-<div class="min-h-screen bg-gray-50">
+<div class="py-8">
 	<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 		{#if loading}
 			<div class="text-center py-12">
-				<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-				<p class="mt-4 text-gray-600">Loading album...</p>
+				<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--color-primary-600)] mx-auto"></div>
+				<p class="mt-4 text-[var(--color-surface-600-400)]">Loading album...</p>
 			</div>
 		{:else if error && !album}
 			<div class="text-center py-12">
-				<h1 class="text-2xl font-bold text-gray-900 mb-4">Error</h1>
-				<p class="text-gray-600 mb-4">{error}</p>
+				<h1 class="text-2xl font-bold text-[var(--color-surface-950-50)] mb-4">Error</h1>
+				<p class="text-[var(--color-surface-600-400)] mb-4">{error}</p>
 				<a href="/admin/albums" class="btn-primary">Back to Albums</a>
 			</div>
 		{:else if album}
@@ -469,15 +469,12 @@
 			<!-- Header -->
 			<div class="flex items-center justify-between mb-8">
 				<div>
-					<h1 class="text-3xl font-bold text-gray-900">Edit Album</h1>
-					<p class="mt-2 text-gray-600">
+					<h1 class="text-3xl font-bold text-[var(--color-surface-950-50)]">Edit Album</h1>
+					<p class="mt-2 text-[var(--color-surface-600-400)]">
 						{MultiLangUtils.getTextValue(album.name, $currentLanguage)}
 					</p>
 				</div>
 				<div class="flex items-center gap-3">
-					<a href="/admin" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm font-medium">
-						← Back to Admin
-					</a>
 					<a
 						href="/albums/new?parentAlbumId={albumId}"
 						class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm font-medium inline-flex items-center gap-2"
@@ -491,12 +488,12 @@
 			</div>
 
 			<!-- Form -->
-			<div class="bg-white rounded-lg shadow-sm border border-gray-200">
+			<div class="card preset-outlined-surface-200-800 bg-surface-50-950">
 				<form on:submit={handleSubmit} class="p-6 space-y-6">
 					<!-- Album Info -->
 					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 						<div>
-							<span class="block text-sm font-medium text-gray-700 mb-2">
+							<span class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Album Name
 							</span>
 							<MultiLangInput
@@ -510,23 +507,23 @@
 						</div>
 
 						<div>
-							<label for="alias" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="alias" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								URL Alias
 							</label>
 							<input
 								type="text"
 								id="alias"
 								value={album.alias}
-								class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md bg-[var(--color-surface-50-950)]"
 								disabled
 							/>
-							<p class="text-xs text-gray-500 mt-1">URL alias cannot be changed</p>
+							<p class="text-xs text-[var(--color-surface-600-400)] mt-1">URL alias cannot be changed</p>
 						</div>
 					</div>
 
 					<!-- Description -->
 					<div>
-						<span class="block text-sm font-medium text-gray-700 mb-2">
+						<span class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 							Description
 						</span>
 						<MultiLangHTMLEditor
@@ -542,7 +539,7 @@
 					<!-- Album Details -->
 					<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
 						<div>
-							<label for="order" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="order" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Display Order
 							</label>
 							<input
@@ -552,41 +549,41 @@
 								value={formData.order}
 								on:input={handleInputChange}
 								min="0"
-								class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 							/>
 						</div>
 
 						<div>
-							<label for="storage-provider" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="storage-provider" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Storage Provider
 							</label>
 							<input
 								type="text"
 								id="storage-provider"
 								value={album.storageProvider}
-								class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md bg-[var(--color-surface-50-950)]"
 								disabled
 							/>
 						</div>
 
 						<div>
-							<label for="photo-count" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="photo-count" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Photo Count
 							</label>
 							<input
 								type="text"
 								id="photo-count"
 								value={album.photoCount}
-								class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md bg-[var(--color-surface-50-950)]"
 								disabled
 							/>
 						</div>
 					</div>
 
 					<!-- Leading / cover photo -->
-					<div class="border border-gray-200 rounded-lg p-4 bg-gray-50/50">
-						<h3 class="text-sm font-medium text-gray-700 mb-2">Leading photo</h3>
-						<p class="text-xs text-gray-500 mb-3">
+					<div class="border border-surface-200-800 rounded-lg p-4 bg-[var(--color-surface-50-950)]/50">
+						<h3 class="text-sm font-medium text-[var(--color-surface-800-200)] mb-2">Leading photo</h3>
+						<p class="text-xs text-[var(--color-surface-600-400)] mb-3">
 							The leading photo is shown as the album cover in the gallery. Select a photo from this album.
 						</p>
 						<button
@@ -607,11 +604,11 @@
 								name="isPublished"
 								checked={formData.isPublished}
 								on:change={handleInputChange}
-								class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+								class="h-4 w-4 text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)] border-surface-300-700 rounded"
 							/>
-							<label for="isPublished" class="ml-2 block text-sm text-gray-700">
+							<label for="isPublished" class="ml-2 block text-sm text-[var(--color-surface-800-200)]">
 								<span class="font-medium">Published</span>
-								<span class="text-gray-500 ml-1">(Album is published and visible)</span>
+								<span class="text-[var(--color-surface-600-400)] ml-1">(Album is published and visible)</span>
 							</label>
 						</div>
 						<div class="flex items-center">
@@ -621,9 +618,9 @@
 								name="isPublic"
 								checked={formData.isPublic}
 								on:change={handleInputChange}
-								class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+								class="h-4 w-4 text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)] border-surface-300-700 rounded"
 							/>
-							<label for="isPublic" class="ml-2 block text-sm text-gray-700">
+							<label for="isPublic" class="ml-2 block text-sm text-[var(--color-surface-800-200)]">
 								Public (visible to all visitors, not just logged-in users)
 							</label>
 						</div>
@@ -634,9 +631,9 @@
 								name="isFeatured"
 								checked={formData.isFeatured}
 								on:change={handleInputChange}
-								class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+								class="h-4 w-4 text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)] border-surface-300-700 rounded"
 							/>
-							<label for="isFeatured" class="ml-2 block text-sm text-gray-700">
+							<label for="isFeatured" class="ml-2 block text-sm text-[var(--color-surface-800-200)]">
 								Featured (highlighted on homepage)
 							</label>
 						</div>
@@ -647,29 +644,29 @@
 								name="showExifData"
 								checked={formData.showExifData}
 								on:change={handleInputChange}
-								class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+								class="h-4 w-4 text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)] border-surface-300-700 rounded"
 							/>
-							<label for="showExifData" class="ml-2 block text-sm text-gray-700">
+							<label for="showExifData" class="ml-2 block text-sm text-[var(--color-surface-800-200)]">
 								Show EXIF data in photo viewer
 							</label>
 						</div>
 					</div>
 
 					<!-- Access (when private) -->
-					<div class="border border-gray-200 rounded-lg p-4 bg-gray-50/50">
-						<h3 class="text-sm font-medium text-gray-700 mb-2">Restrict access (when album is private)</h3>
-						<p class="text-xs text-gray-500 mb-4">
+					<div class="border border-surface-200-800 rounded-lg p-4 bg-[var(--color-surface-50-950)]/50">
+						<h3 class="text-sm font-medium text-[var(--color-surface-800-200)] mb-2">Restrict access (when album is private)</h3>
+						<p class="text-xs text-[var(--color-surface-600-400)] mb-4">
 							Add groups or users who can access this album. Leave empty to allow all logged-in users. Only applies when "Public" is unchecked.
 						</p>
 						<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 							<!-- Groups: chips + searchable dropdown -->
 							<div class="relative" bind:this={groupsAccessRef}>
-								<span class="block text-sm font-medium text-gray-700 mb-2">Groups</span>
+								<span class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">Groups</span>
 								<div class="flex flex-wrap gap-2 mb-2 min-h-8">
 									{#each formData.allowedGroups as alias}
 										{@const g = groups.find((x) => x.alias === alias)}
 										<span
-											class="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-blue-100 text-blue-800 text-sm"
+											class="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-[color-mix(in_oklab,var(--color-primary-500)_22%,transparent)] text-[var(--color-primary-800)] text-sm"
 										>
 											{g ? getGroupLabel(g) : alias}
 											<button
@@ -678,7 +675,7 @@
 													formData.allowedGroups = formData.allowedGroups.filter((a) => a !== alias);
 													formData = formData;
 												}}
-												class="ml-0.5 hover:text-blue-900 focus:outline-none"
+												class="ml-0.5 hover:text-[var(--color-primary-900)] focus:outline-none"
 												aria-label="Remove"
 											>
 												×
@@ -687,9 +684,9 @@
 									{/each}
 								</div>
 								{#if loadingGroups}
-									<p class="text-sm text-gray-500">Loading groups...</p>
+									<p class="text-sm text-[var(--color-surface-600-400)]">Loading groups...</p>
 								{:else if groups.length === 0}
-									<p class="text-sm text-gray-500">No groups. Create groups in Admin → Groups.</p>
+									<p class="text-sm text-[var(--color-surface-600-400)]">No groups. Create groups in Admin → Groups.</p>
 								{:else}
 									<div class="relative">
 										<button
@@ -699,21 +696,21 @@
 												if (showGroupsDropdown) showUsersDropdown = false;
 												groupSearch = '';
 											}}
-											class="w-full px-3 py-2 text-left border border-gray-300 rounded-md bg-white text-sm text-gray-700 hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+											class="w-full px-3 py-2 text-left border border-surface-300-700 rounded-md bg-[var(--color-surface-50-950)] text-sm text-[var(--color-surface-800-200)] hover:bg-[var(--color-surface-50-950)] focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 										>
 											+ Add groups
 										</button>
 										{#if showGroupsDropdown}
 											<div
-												class="absolute z-10 mt-1 w-full rounded-md border border-gray-300 bg-white shadow-lg max-h-56 overflow-hidden"
+												class="absolute z-10 mt-1 w-full rounded-md border border-surface-300-700 bg-[var(--color-surface-50-950)] shadow-lg max-h-56 overflow-hidden"
 												role="listbox"
 											>
-												<div class="p-2 border-b border-gray-200 sticky top-0 bg-white">
+												<div class="p-2 border-b border-surface-200-800 sticky top-0 bg-[var(--color-surface-50-950)]">
 													<input
 														type="text"
 														bind:value={groupSearch}
 														placeholder="Search groups..."
-														class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+														class="w-full px-2 py-1.5 text-sm border border-surface-300-700 rounded focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 													/>
 												</div>
 												<div class="overflow-y-auto max-h-44 p-1">
@@ -723,18 +720,18 @@
 															role="option"
 															aria-selected={formData.allowedGroups.includes(group.alias)}
 															on:click={() => toggleGroup(group.alias)}
-															class="w-full text-left px-2 py-1.5 text-sm rounded hover:bg-gray-100 {formData.allowedGroups.includes(group.alias)
-																? 'bg-blue-50 text-blue-800'
-																: 'text-gray-700'}"
+															class="w-full text-left px-2 py-1.5 text-sm rounded hover:bg-[var(--color-surface-100-900)] {formData.allowedGroups.includes(group.alias)
+																? 'bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] text-[var(--color-primary-800)]'
+																: 'text-[var(--color-surface-800-200)]'}"
 														>
 															{getGroupLabel(group)}
 															{#if formData.allowedGroups.includes(group.alias)}
-																<span class="ml-1 text-blue-600">✓</span>
+																<span class="ml-1 text-[var(--color-primary-600)]">✓</span>
 															{/if}
 														</button>
 													{/each}
 													{#if filteredGroups.length === 0}
-														<p class="px-2 py-2 text-sm text-gray-500">No groups match.</p>
+														<p class="px-2 py-2 text-sm text-[var(--color-surface-600-400)]">No groups match.</p>
 													{/if}
 												</div>
 											</div>
@@ -744,7 +741,7 @@
 							</div>
 							<!-- Users: chips + searchable dropdown -->
 							<div class="relative" bind:this={usersAccessRef}>
-								<span class="block text-sm font-medium text-gray-700 mb-2">Users</span>
+								<span class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">Users</span>
 								<div class="flex flex-wrap gap-2 mb-2 min-h-8">
 									{#each formData.allowedUsers as uid}
 										{@const u = users.find((x) => x._id === uid)}
@@ -767,9 +764,9 @@
 									{/each}
 								</div>
 								{#if loadingUsers}
-									<p class="text-sm text-gray-500">Loading users...</p>
+									<p class="text-sm text-[var(--color-surface-600-400)]">Loading users...</p>
 								{:else if users.length === 0}
-									<p class="text-sm text-gray-500">No users.</p>
+									<p class="text-sm text-[var(--color-surface-600-400)]">No users.</p>
 								{:else}
 									<div class="relative">
 										<button
@@ -779,21 +776,21 @@
 												if (showUsersDropdown) showGroupsDropdown = false;
 												userSearch = '';
 											}}
-											class="w-full px-3 py-2 text-left border border-gray-300 rounded-md bg-white text-sm text-gray-700 hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+											class="w-full px-3 py-2 text-left border border-surface-300-700 rounded-md bg-[var(--color-surface-50-950)] text-sm text-[var(--color-surface-800-200)] hover:bg-[var(--color-surface-50-950)] focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 										>
 											+ Add users
 										</button>
 										{#if showUsersDropdown}
 											<div
-												class="absolute z-10 mt-1 w-full rounded-md border border-gray-300 bg-white shadow-lg max-h-56 overflow-hidden"
+												class="absolute z-10 mt-1 w-full rounded-md border border-surface-300-700 bg-[var(--color-surface-50-950)] shadow-lg max-h-56 overflow-hidden"
 												role="listbox"
 											>
-												<div class="p-2 border-b border-gray-200 sticky top-0 bg-white">
+												<div class="p-2 border-b border-surface-200-800 sticky top-0 bg-[var(--color-surface-50-950)]">
 													<input
 														type="text"
 														bind:value={userSearch}
 														placeholder="Search users..."
-														class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+														class="w-full px-2 py-1.5 text-sm border border-surface-300-700 rounded focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 													/>
 												</div>
 												<div class="overflow-y-auto max-h-44 p-1">
@@ -803,9 +800,9 @@
 															role="option"
 															aria-selected={formData.allowedUsers.includes(user._id)}
 															on:click={() => toggleUser(user._id)}
-															class="w-full text-left px-2 py-1.5 text-sm rounded hover:bg-gray-100 {formData.allowedUsers.includes(user._id)
+															class="w-full text-left px-2 py-1.5 text-sm rounded hover:bg-[var(--color-surface-100-900)] {formData.allowedUsers.includes(user._id)
 																? 'bg-green-50 text-green-800'
-																: 'text-gray-700'}"
+																: 'text-[var(--color-surface-800-200)]'}"
 														>
 															{getUserLabel(user)}
 															{#if formData.allowedUsers.includes(user._id)}
@@ -814,7 +811,7 @@
 														</button>
 													{/each}
 													{#if filteredUsers.length === 0}
-														<p class="px-2 py-2 text-sm text-gray-500">No users match.</p>
+														<p class="px-2 py-2 text-sm text-[var(--color-surface-600-400)]">No users match.</p>
 													{/if}
 												</div>
 											</div>
@@ -826,29 +823,29 @@
 					</div>
 
 					<!-- Read-only Information -->
-					<div class="bg-gray-50 rounded-lg p-4">
-						<h3 class="text-sm font-medium text-gray-700 mb-3">Album Information</h3>
+					<div class="bg-[var(--color-surface-50-950)] rounded-lg p-4">
+						<h3 class="text-sm font-medium text-[var(--color-surface-800-200)] mb-3">Album Information</h3>
 						<div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
 							<div>
-								<span class="font-medium text-gray-700">Created:</span>
-								<span class="ml-2 text-gray-600">
+								<span class="font-medium text-[var(--color-surface-800-200)]">Created:</span>
+								<span class="ml-2 text-[var(--color-surface-600-400)]">
 									{new Date(album.createdAt).toLocaleDateString()}
 								</span>
 							</div>
 							<div>
-								<span class="font-medium text-gray-700">Last Updated:</span>
-								<span class="ml-2 text-gray-600">
+								<span class="font-medium text-[var(--color-surface-800-200)]">Last Updated:</span>
+								<span class="ml-2 text-[var(--color-surface-600-400)]">
 									{new Date(album.updatedAt).toLocaleDateString()}
 								</span>
 							</div>
 							<div>
-								<span class="font-medium text-gray-700">Level:</span>
-								<span class="ml-2 text-gray-600">{album.level}</span>
+								<span class="font-medium text-[var(--color-surface-800-200)]">Level:</span>
+								<span class="ml-2 text-[var(--color-surface-600-400)]">{album.level}</span>
 							</div>
 							{#if album.parentPath}
 								<div class="md:col-span-2">
-									<span class="font-medium text-gray-700">Parent Path:</span>
-									<span class="ml-2 text-gray-600">{album.parentPath}</span>
+									<span class="font-medium text-[var(--color-surface-800-200)]">Parent Path:</span>
+									<span class="ml-2 text-[var(--color-surface-600-400)]">{album.parentPath}</span>
 								</div>
 							{/if}
 						</div>
@@ -862,17 +859,17 @@
 					{/if}
 
 					<!-- Action Buttons -->
-					<div class="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+					<div class="flex justify-end space-x-3 pt-6 border-t border-surface-200-800">
 						<a
 							href="/admin/albums/{albumId}"
-							class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+							class="px-4 py-2 text-sm font-medium text-[var(--color-surface-800-200)] bg-[var(--color-surface-50-950)] border border-surface-300-700 rounded-md hover:bg-[var(--color-surface-50-950)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)]"
 						>
 							Cancel
 						</a>
 						<button
 							type="submit"
 							disabled={saving}
-							class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+							class="px-4 py-2 text-sm font-medium text-white bg-[var(--color-primary-600)] border border-transparent rounded-md hover:bg-[var(--color-primary-700)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)] disabled:opacity-50 disabled:cursor-not-allowed"
 						>
 							{saving ? 'Saving...' : 'Save Changes'}
 						</button>
@@ -885,16 +882,16 @@
 
 <!-- Select leading photo modal -->
 {#if coverPhotoModal.isOpen && album}
-	<div class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-		<div class="relative top-10 mx-auto p-5 border w-11/12 md:w-5/6 lg:w-4/5 xl:w-3/4 shadow-lg rounded-md bg-white max-w-6xl">
+	<div class="fixed inset-0 bg-[color-mix(in_oklab,var(--color-surface-950)_55%,transparent)] overflow-y-auto h-full w-full z-50">
+		<div class="relative top-10 mx-auto p-5 border w-11/12 md:w-5/6 lg:w-4/5 xl:w-3/4 shadow-lg rounded-md bg-[var(--color-surface-50-950)] max-w-6xl">
 			<div class="flex items-center justify-between mb-4">
-				<h3 class="text-lg font-medium text-gray-900">
+				<h3 class="text-lg font-medium text-[var(--color-surface-950-50)]">
 					Select leading photo – {getAlbumName(album)}
 				</h3>
 				<button
 					type="button"
 					on:click={closeCoverPhotoModal}
-					class="text-gray-400 hover:text-gray-600"
+					class="text-[var(--color-surface-400-600)] hover:text-[var(--color-surface-600-400)]"
 					aria-label="Close modal"
 				>
 					<svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -904,21 +901,21 @@
 			</div>
 
 			{#if coverPhotoModal.saving}
-				<div class="absolute inset-0 flex items-center justify-center bg-white/80 rounded-md z-10">
+				<div class="absolute inset-0 flex items-center justify-center bg-[var(--color-surface-50-950)]/80 rounded-md z-10">
 					<div class="text-center">
 						<div class="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-purple-500"></div>
-						<p class="mt-2 text-gray-700 font-medium">Saving...</p>
+						<p class="mt-2 text-[var(--color-surface-800-200)] font-medium">Saving...</p>
 					</div>
 				</div>
 			{/if}
 			{#if coverPhotoModal.loading}
 				<div class="text-center py-8">
 					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
-					<p class="mt-2 text-gray-600">Loading photos...</p>
+					<p class="mt-2 text-[var(--color-surface-600-400)]">Loading photos...</p>
 				</div>
 			{:else if coverPhotoModal.totalPhotos === 0}
 				<div class="text-center py-8">
-					<p class="text-gray-600">No photos in this album or in sub-albums. Add photos first, then choose a leading photo.</p>
+					<p class="text-[var(--color-surface-600-400)]">No photos in this album or in sub-albums. Add photos first, then choose a leading photo.</p>
 				</div>
 			{:else}
 				<div class="relative max-h-[70vh] overflow-y-auto">
@@ -927,7 +924,7 @@
 							This album has no photos. Showing photos from sub-albums. You can choose one as the leading photo.
 						</p>
 					{/if}
-					<div class="mb-4 text-sm text-gray-600">
+					<div class="mb-4 text-sm text-[var(--color-surface-600-400)]">
 						Showing {((coverPhotoModal.currentPage - 1) * coverPhotoModal.photosPerPage) + 1}–{Math.min(
 							coverPhotoModal.currentPage * coverPhotoModal.photosPerPage,
 							coverPhotoModal.totalPhotos,
@@ -956,7 +953,7 @@
 									</div>
 								{/if}
 								{#if coverPhotoModal.fromSubAlbums && photo.sourceAlbumName}
-									<p class="mt-0.5 text-xs text-gray-500 truncate" title="From: {photo.sourceAlbumName}">From: {photo.sourceAlbumName}</p>
+									<p class="mt-0.5 text-xs text-[var(--color-surface-600-400)] truncate" title="From: {photo.sourceAlbumName}">From: {photo.sourceAlbumName}</p>
 								{/if}
 							</button>
 						{/each}
@@ -968,18 +965,18 @@
 								type="button"
 								on:click={() => goToPage(coverPhotoModal.currentPage - 1)}
 								disabled={coverPhotoModal.currentPage === 1 || coverPhotoModal.saving}
-								class="px-3 py-1 text-sm font-medium text-gray-500 bg-gray-100 rounded-md hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+								class="px-3 py-1 text-sm font-medium text-[var(--color-surface-600-400)] bg-[var(--color-surface-100-900)] rounded-md hover:bg-[var(--color-surface-200-800)] disabled:opacity-50 disabled:cursor-not-allowed"
 							>
 								Previous
 							</button>
-							<span class="text-sm text-gray-600">
+							<span class="text-sm text-[var(--color-surface-600-400)]">
 								Page {coverPhotoModal.currentPage} of {getTotalPages()}
 							</span>
 							<button
 								type="button"
 								on:click={() => goToPage(coverPhotoModal.currentPage + 1)}
 								disabled={coverPhotoModal.currentPage === getTotalPages() || coverPhotoModal.saving}
-								class="px-3 py-1 text-sm font-medium text-gray-500 bg-gray-100 rounded-md hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+								class="px-3 py-1 text-sm font-medium text-[var(--color-surface-600-400)] bg-[var(--color-surface-100-900)] rounded-md hover:bg-[var(--color-surface-200-800)] disabled:opacity-50 disabled:cursor-not-allowed"
 							>
 								Next
 							</button>
@@ -992,7 +989,7 @@
 				<button
 					type="button"
 					on:click={closeCoverPhotoModal}
-					class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+					class="px-4 py-2 text-sm font-medium text-[var(--color-surface-800-200)] bg-[var(--color-surface-100-900)] rounded-md hover:bg-[var(--color-surface-200-800)]"
 				>
 					Cancel
 				</button>

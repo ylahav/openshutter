@@ -22,6 +22,7 @@ Welcome to the OpenShutter documentation. This comprehensive guide covers all as
 - [Face Recognition Setup](./FACE_RECOGNITION_SETUP.md) - Face detection and matching
 
 ### Development & API
+- [Admin UI roadmap](./ADMIN_UI_ROADMAP.md) - Static admin shell (decoupled from visitor templates); modals, drawers, toasts, forms, DnD standardization
 - [API Testing](./API_TESTING.md) - How to test NestJS API endpoints
 - [Manual test: dedicated owner storage](./MANUAL_TEST_DEDICATED_STORAGE.md) - QA checklist (admin flags, owner dashboard card, `/owner/storage`); Playwright spec in [`e2e/`](../e2e/README.md)
 - [Performance Improvements](./PERFORMANCE_IMPROVEMENTS.md) - Query optimizations and recommended indexes
@@ -78,7 +79,7 @@ Welcome to the OpenShutter documentation. This comprehensive guide covers all as
 - **Cover Photo Selection**: Admin interface for selecting album cover photos
 - **Photo Management**: Upload, organize, and display photos with metadata
 - **Advanced Photo Upload**: Duplicate detection, bulk local folder upload, and detailed upload reports
-- **Multi-Language Support**: Internationalization with RTL support
+- **Multi-Language Support**: Internationalization with RTL support; optional compact **admin header** language control when multiple site languages are enabled (see [`ADMIN_UI_ROADMAP.md`](./ADMIN_UI_ROADMAP.md))
 - **Template System**: Customizable gallery templates
 - **Admin Dashboard**: Comprehensive administrative interface
 - **Profile Management**: User profile editing and password changes

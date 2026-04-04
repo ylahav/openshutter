@@ -112,23 +112,23 @@
 </svelte:head>
 
 {#if loading}
-	<div class="min-h-screen bg-gray-50 flex items-center justify-center">
+	<div class="min-h-[50vh] flex items-center justify-center">
 		<div class="text-center">
-			<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-			<p class="mt-4 text-gray-600">Loading...</p>
+			<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--color-primary-600)] mx-auto"></div>
+			<p class="mt-4 text-[var(--color-surface-600-400)]">Loading...</p>
 		</div>
 	</div>
 {:else}
-	<div class="min-h-screen bg-gray-50 py-8">
+	<div class="py-8">
 		<div class="max-w-4xl mx-auto px-4">
 			<div class="flex justify-between items-center mb-8">
 				<div>
-					<h1 class="text-3xl font-bold text-gray-900">{$t('admin.editCategory')}</h1>
-					<p class="text-gray-600 mt-2">{$t('admin.editCategoryDescription')}</p>
+					<h1 class="text-3xl font-bold text-[var(--color-surface-950-50)]">{$t('admin.editCategory')}</h1>
+					<p class="text-[var(--color-surface-600-400)] mt-2">{$t('admin.editCategoryDescription')}</p>
 				</div>
 				<button
 					on:click={() => goto('/admin/blog-categories')}
-					class="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
+					class="btn preset-filled-primary-500 inline-flex items-center"
 				>
 					<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path
@@ -156,18 +156,18 @@
 
 			<form on:submit={handleSubmit} class="space-y-6">
 				<!-- Basic Information -->
-				<div class="bg-white rounded-lg shadow-md p-6">
-					<h3 class="text-lg font-medium text-gray-900 mb-4">{$t('admin.basicInformation')}</h3>
+				<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
+					<h3 class="text-lg font-medium text-[var(--color-surface-950-50)] mb-4">{$t('admin.basicInformation')}</h3>
 					<div class="space-y-4">
 						<div>
-							<label for="title" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="title" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								{$t('admin.title')} *
 							</label>
 							<MultiLangInput bind:value={formData.title} placeholder={$t('admin.enterCategoryTitle')} required />
 						</div>
 
 						<div>
-							<label for="description" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="description" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								{$t('admin.description')}
 							</label>
 							<MultiLangInput
@@ -180,10 +180,10 @@
 				</div>
 
 				<!-- Leading Image -->
-				<div class="bg-white rounded-lg shadow-md p-6">
-					<h3 class="text-lg font-medium text-gray-900 mb-4">{$t('admin.leadingImage')}</h3>
+				<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
+					<h3 class="text-lg font-medium text-[var(--color-surface-950-50)] mb-4">{$t('admin.leadingImage')}</h3>
 					<div>
-						<label for="leading-image-url" class="block text-sm font-medium text-gray-700 mb-2">
+						<label for="leading-image-url" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 							{$t('admin.imageUrl')}
 						</label>
 						<input
@@ -198,18 +198,18 @@
 									storagePath: ''
 								};
 							}}
-							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+							class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:outline-none focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 							placeholder={$t('admin.enterImageUrl')}
 						/>
-						<p class="mt-1 text-sm text-gray-500">
+						<p class="mt-1 text-sm text-[var(--color-surface-600-400)]">
 							{$t('admin.imageUploadNote')}
 						</p>
 					</div>
 				</div>
 
 				<!-- Settings -->
-				<div class="bg-white rounded-lg shadow-md p-6">
-					<h3 class="text-lg font-medium text-gray-900 mb-4">{$t('admin.settings')}</h3>
+				<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
+					<h3 class="text-lg font-medium text-[var(--color-surface-950-50)] mb-4">{$t('admin.settings')}</h3>
 					<div class="space-y-4">
 						<div class="flex items-center">
 							<input
@@ -217,24 +217,24 @@
 								name="isActive"
 								type="checkbox"
 								bind:checked={formData.isActive}
-								class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+								class="h-4 w-4 text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)] border-surface-300-700 rounded"
 							/>
-							<label for="isActive" class="ml-2 block text-sm text-gray-900">
+							<label for="isActive" class="ml-2 block text-sm text-[var(--color-surface-950-50)]">
 								{$t('admin.active')}
 							</label>
 						</div>
 						<div>
-							<label for="sortOrder" class="block text-sm font-medium text-gray-700 mb-2">
+							<label for="sortOrder" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								{$t('admin.sortOrder')}
 							</label>
 							<input
 								type="number"
 								id="sortOrder"
 								bind:value={formData.sortOrder}
-								class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:outline-none focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 								placeholder="0"
 							/>
-							<p class="mt-1 text-sm text-gray-500">{$t('admin.sortOrderHelp')}</p>
+							<p class="mt-1 text-sm text-[var(--color-surface-600-400)]">{$t('admin.sortOrderHelp')}</p>
 						</div>
 					</div>
 				</div>
@@ -244,7 +244,7 @@
 					<button
 						type="submit"
 						disabled={saving}
-						class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+						class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] disabled:opacity-50 disabled:cursor-not-allowed"
 					>
 						{#if saving}
 							<svg

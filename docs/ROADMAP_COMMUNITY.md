@@ -67,7 +67,7 @@ This roadmap prioritizes features that drive adoption in photographer communitie
 ### Sprint 2
 
 - 2-3 polished packs
-- Admin template switcher and per-pack options
+- **Admin:** static operator shell separate from visitor themes (see [`ADMIN_UI_ROADMAP.md`](./ADMIN_UI_ROADMAP.md)); per-pack options remain **visitor/site** only
 - Docs and starter pack guide
 
 ### Sprint 3
@@ -118,5 +118,6 @@ This roadmap prioritizes features that drive adoption in photographer communitie
 
 ## Related Task Lists
 
+- [Admin UI roadmap](./ADMIN_UI_ROADMAP.md) — static admin panel, separate from visitor template packs
 - [Templating task list](./TEMPLATING_TASKS.md)
 - [Video task list](./VIDEO_TASKS.md)
