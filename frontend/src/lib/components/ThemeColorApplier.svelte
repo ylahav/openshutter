@@ -191,9 +191,12 @@
 			cssVars += `p, span, div, h1, h2, h3, h4, h5, h6, a:not([class*="text-"]) { color: ${customColors.text}; }\n`;
 			cssVars += `html.dark p, html.dark span, html.dark div, html.dark h1, html.dark h2, html.dark h3, html.dark h4, html.dark h5, html.dark h6, html.dark a:not([class*="text-"]) { color: ${customColors.text}; }\n`;
 		}
+		// Site custom background applies to `body` only. Do not set `main` here: `!important`
+		// would override Tailwind `bg-*` on `BodyTemplateWrapper`’s `<main>` (minimal/default/elegant
+		// solids). Modern’s gradient used `background-image`, so it still showed — looked “only modern works”.
 		if (customColors?.background) {
-			cssVars += `body, main { background-color: ${customColors.background} !important; }\n`;
-			cssVars += `html.dark body, html.dark main { background-color: ${customColors.background} !important; }\n`;
+			cssVars += `body { background-color: ${customColors.background} !important; }\n`;
+			cssVars += `html.dark body { background-color: ${customColors.background} !important; }\n`;
 		}
 
 		styleElement.textContent = cssVars;
