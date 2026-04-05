@@ -129,15 +129,12 @@
 		albumCollaboration,
 	}: Props = $props();
 
-	// Support both initialIndex and startIndex for backward compatibility
-	let actualIndex = startIndex ?? initialIndex ?? 0;
-
-	let current = $state(initialIndex);
-	let playing = $state(autoPlay);
+	let current = $state(0);
+	let playing = $state(false);
 	let showInfo = $state(false);
 	let showShare = $state(false);
 	let showFaces = $state(false);
-	let panelRef: HTMLDivElement | null = null;
+	let panelRef = $state<HTMLDivElement | null>(null);
 	let selectedFaceIndex = $state<number | null>(null);
 	let faceData = $state<{
 		faces: Array<{
@@ -152,15 +149,18 @@
 	let touchStart = $state<number | null>(null);
 	let touchEnd = $state<number | null>(null);
 	let timerRef: ReturnType<typeof setInterval> | null = null;
-	let containerRef: HTMLDivElement;
-	let imageRef: HTMLImageElement;
-	let canvasRef: HTMLCanvasElement;
+	let containerRef = $state<HTMLDivElement | undefined>(undefined);
+	let imageRef = $state<HTMLImageElement | undefined>(undefined);
+	let canvasRef = $state<HTMLCanvasElement | undefined>(undefined);
 	let imageLoading = $state(true);
 
-	// Update current when index changes
+	// Sync slide index from props (startIndex and initialIndex both supported)
 	$effect(() => {
-		actualIndex = startIndex ?? initialIndex ?? 0;
-		current = actualIndex;
+		current = startIndex ?? initialIndex ?? 0;
+	});
+
+	$effect(() => {
+		playing = autoPlay;
 	});
 
 	// Ensure the overlay panel starts at the top when opening/toggling it.
@@ -689,6 +689,8 @@
 		<!-- Content -->
 		<div
 			class="flex-1 flex items-center justify-center select-none"
+			role="region"
+			aria-label="Photo viewer — swipe left or right to change photo"
 			ontouchstart={handleTouchStart}
 			ontouchmove={handleTouchMove}
 			ontouchend={handleTouchEnd}
@@ -729,7 +731,7 @@
 							class="absolute top-0 left-0 cursor-pointer"
 							style="max-width: 100%; max-height: 100%;"
 							onclick={handleCanvasClick}
-						/>
+						></canvas>
 					{/if}
 				</div>
 
