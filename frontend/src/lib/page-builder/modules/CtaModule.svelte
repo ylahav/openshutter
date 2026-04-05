@@ -33,8 +33,6 @@
 			secondaryLabel,
 			secondaryHref
 		}) satisfies CtaProps;
-	const data = null;
-	const templateConfig = {};
 </script>
 
-<Layout config={config} {data} {templateConfig} />
+<Layout config={config} />

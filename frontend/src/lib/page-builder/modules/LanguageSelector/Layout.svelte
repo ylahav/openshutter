@@ -3,8 +3,6 @@
 	import LanguageSelector from '$components/LanguageSelector.svelte';
 
 	export let config: any = {};
-	export let data: any = null;
-	export let templateConfig: Record<string, any> = {};
 
 	$: showFlags = config?.showFlags !== false;
 	$: showNativeNames = config?.showNativeNames !== false;

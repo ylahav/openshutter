@@ -123,7 +123,6 @@
 		const legacyConfig = p?.config && typeof p.config === 'object' ? p.config : undefined;
 		return { ...defaults, ...(legacyConfig ?? {}), ...(p ?? {}) } satisfies AlbumGalleryProps;
 	})();
-	const templateConfig = {};
 </script>
 
-<Layout config={config} {data} {templateConfig} />
+<Layout config={config} {data} />

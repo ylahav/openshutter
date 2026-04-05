@@ -3,8 +3,6 @@
 	import { auth } from '$lib/stores/auth';
 
 	export let config: any = {};
-	export let data: any = null;
-	export let templateConfig: Record<string, any> = {};
 
 	$: greeting = config?.greeting || 'Hello';
 	$: showEmail = config?.showEmail ?? false;

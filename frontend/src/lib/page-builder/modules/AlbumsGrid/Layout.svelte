@@ -16,4 +16,4 @@
 </script>
 
 <!-- Reuse existing album listing UI while keeping a dedicated albumsGrid module contract/file structure. -->
-<AlbumGalleryLayout {config} {data} templateConfig={{}} />
+<AlbumGalleryLayout {config} {data} />

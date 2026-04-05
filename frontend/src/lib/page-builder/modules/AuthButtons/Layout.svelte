@@ -3,8 +3,6 @@
 	import { auth, logout } from '$lib/stores/auth';
 
 	export let config: any = {};
-	export let data: any = null;
-	export let templateConfig: Record<string, any> = {};
 
 	$: loginLabel = config?.loginLabel || 'Login';
 	$: logoutLabel = config?.logoutLabel || 'Logout';

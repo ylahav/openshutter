@@ -4,7 +4,6 @@
 	import { getProductName } from '$lib/utils/productName';
 
 	export let config: any = {};
-	export let templateConfig: Record<string, any> = {};
 
 	$: title = getProductName($siteConfigData ?? null, $currentLanguage);
 	$: linkToHome = config?.showAsLink !== false;

@@ -4,8 +4,6 @@
 	import IconRenderer from '$components/IconRenderer.svelte';
 
 	export let config: any = {};
-	export let data: any = null;
-	export let templateConfig: Record<string, any> = {};
 
 	// Get social media links from config (module props) or fall back to siteConfig
 	$: socialMedia = config?.socialMedia || $siteConfigData?.contact?.socialMedia || {};

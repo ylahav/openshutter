@@ -129,8 +129,8 @@
 		albumCollaboration,
 	}: Props = $props();
 
-	let current = $state(0);
-	let playing = $state(false);
+	let current = $derived(startIndex ?? initialIndex ?? 0);
+	let playing = $derived(autoPlay);
 	let showInfo = $state(false);
 	let showShare = $state(false);
 	let showFaces = $state(false);
@@ -153,15 +153,6 @@
 	let imageRef = $state<HTMLImageElement | undefined>(undefined);
 	let canvasRef = $state<HTMLCanvasElement | undefined>(undefined);
 	let imageLoading = $state(true);
-
-	// Sync slide index from props (startIndex and initialIndex both supported)
-	$effect(() => {
-		current = startIndex ?? initialIndex ?? 0;
-	});
-
-	$effect(() => {
-		playing = autoPlay;
-	});
 
 	// Ensure the overlay panel starts at the top when opening/toggling it.
 	$effect(() => {

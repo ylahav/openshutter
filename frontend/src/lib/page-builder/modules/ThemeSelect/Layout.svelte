@@ -3,8 +3,6 @@
 	import TemplateSelector from '$lib/components/TemplateSelector.svelte';
 
 	export let config: any = {};
-	export let data: any = null;
-	export let templateConfig: Record<string, any> = {};
 
 	$: compact = config?.compact ?? false;
 	$: className = config?.className || '';

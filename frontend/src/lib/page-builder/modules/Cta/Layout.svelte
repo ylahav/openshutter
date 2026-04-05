@@ -13,10 +13,6 @@
 	};
 
 	export let config: CtaLayoutConfig = {};
-	// svelte-ignore export_let_unused - kept for module layout API consistency
-	export let data: any = null;
-	// svelte-ignore export_let_unused - kept for module layout API consistency
-	export let templateConfig: Record<string, any> = {};
 
 	$: titleText = MultiLangUtils.getTextValue(config?.title, $currentLanguage) || '';
 	$: descriptionText = config?.description ? MultiLangUtils.getTextValue(config.description, $currentLanguage) : '';

@@ -68,8 +68,6 @@
 
 	export let config: AlbumGalleryLayoutConfig = {};
 	export let data: any = null;
-	// svelte-ignore export_let_unused - kept for module layout API consistency
-	export let templateConfig: Record<string, any> = {};
 
 	let sortBy: AlbumCardSortBy = 'manual';
 	let sortDirection: 'asc' | 'desc' = 'asc';

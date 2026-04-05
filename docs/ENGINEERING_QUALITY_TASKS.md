@@ -91,8 +91,15 @@ These files generated multiple or serious warnings (a11y, invalid markup, reacti
 
 Many `Layout.svelte` files under `frontend/src/lib/page-builder/modules/**` warn on unused `data` / `templateConfig` / `config`. Pick **one** consistent pattern and apply across modules:
 
-- [ ] **E1.** Choose pattern: prefix with `_` for intentionally unused props, omit from `export let` where the renderer allows, or use `export const` / minimal interface—match existing convention after checking Svelte 5 + module loader.
-- [ ] **E2.** Sweep modules: `LanguageSelector`, `Menu`, `ThemeSelect`, `AuthButtons`, `UserGreeting`, `SiteTitle`, `SocialMedia`, `ThemeToggle`, `Logo`, `Cta`, etc.
+- [x] **E1.** Choose pattern: prefix with `_` for intentionally unused props, omit from `export let` where the renderer allows, or use `export const` / minimal interface—match existing convention after checking Svelte 5 + module loader.
+- [x] **E2.** Sweep modules: `LanguageSelector`, `Menu`, `ThemeSelect`, `AuthButtons`, `UserGreeting`, `SiteTitle`, `SocialMedia`, `ThemeToggle`, `Logo`, `Cta`, etc.
+
+### Phase E pattern (applied)
+
+- **Do not declare** `export let data`, `export let templateConfig`, or unused `export let config` on a `Layout` unless the layout **reads** that prop.
+- **`*Module.svelte` wrappers** only pass props into `Layout` that the layout uses (typically `config`, plus `data` only for **AlbumGallery** page context).
+- **`AlbumGallery` / `AlbumsGrid`:** keep `data` where used (`data?.alias`); removed unused `templateConfig` only.
+- **`ThemeToggle` Layout:** no props (underlying `ThemeToggle` has no module config yet); wrapper still accepts `props` from the page builder for forward compatibility.
 
 ---
 
@@ -113,8 +120,9 @@ Many `Layout.svelte` files under `frontend/src/lib/page-builder/modules/**` warn
 ## Suggested order
 
 1. **Phase A** (A1–A3) — **done** (baseline, CI, definition of done).  
-2. **B** (worst offenders) → **C** → **D** → **E** → **F** → **G** optional.  
-3. Merge in small PRs (e.g. one PR per phase or per component cluster) to ease review and rollback.
+2. **B** → **C** → **D** → **E** — **done**.  
+3. **F** → **G** optional.  
+4. Merge in small PRs (e.g. one PR per phase or per component cluster) to ease review and rollback.
 
 ---
 

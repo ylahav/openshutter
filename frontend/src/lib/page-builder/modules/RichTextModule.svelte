@@ -25,8 +25,6 @@
 			body,
 			background
 		}) satisfies RichTextProps;
-	const data = null;
-	const templateConfig = {};
 </script>
 
-<Layout config={config} {data} {templateConfig} {compact} />
+<Layout config={config} {compact} />
