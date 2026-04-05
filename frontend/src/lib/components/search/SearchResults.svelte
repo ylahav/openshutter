@@ -151,9 +151,11 @@
 			{#if Array.isArray(results.photos) && results.photos.length > 0}
 				<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
 					{#each results.photos as photo, index}
-						<div
+						<button
+							type="button"
 							on:click={() => openLightbox(index)}
-							class="cursor-pointer bg-white rounded-lg shadow overflow-hidden hover:shadow-lg transition-shadow"
+							class="cursor-pointer bg-white rounded-lg shadow overflow-hidden hover:shadow-lg transition-shadow w-full text-left border-0 p-0 font-inherit"
+							aria-label="{$t('search.viewPhoto')}: {photo.filename || (typeof photo.title === 'string' ? photo.title : '') || $t('search.untitled')}"
 						>
 							{#if photo.storage?.thumbnailPath || photo.storage?.url}
 								{@const imageUrl = getPhotoUrl(photo, { fallback: '' })}
@@ -174,7 +176,7 @@
 									{photo.filename || photo.title || $t('search.untitled')}
 								</p>
 							</div>
-						</div>
+						</button>
 					{/each}
 				</div>
 			{/if}

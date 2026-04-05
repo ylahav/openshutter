@@ -60,8 +60,10 @@
 					on:click={handleClear}
 					class="text-gray-400 hover:text-gray-600 focus:outline-none focus:text-gray-600"
 					disabled={loading}
+					aria-label={$t('search.clearQuery')}
+					title={$t('search.clearQuery')}
 				>
-					<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
 					</svg>
 				</button>

@@ -122,6 +122,8 @@
     "placeholder": "Search photos and albums...",
     "filters": "Filters",
     "clearFilters": "Clear",
+    "clearQuery": "Clear search",
+    "viewPhoto": "View photo in lightbox",
     "searchType": "Search Type",
     "all": "All",
     "photos": "Photos",
