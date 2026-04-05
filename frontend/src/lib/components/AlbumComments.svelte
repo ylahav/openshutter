@@ -310,7 +310,7 @@
 				class={inputClass}
 				placeholder={$t('albums.commentsPlaceholder')}
 				maxlength="4000"
-			/>
+			></textarea>
 			<p class="mt-1 text-xs opacity-60">{$t('albums.commentsMentionHint')}</p>
 			<button
 				type="button"

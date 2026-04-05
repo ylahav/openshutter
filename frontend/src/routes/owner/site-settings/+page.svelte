@@ -460,10 +460,14 @@ import { t } from '$stores/i18n';
 						</h3>
 						<div class="space-y-4">
 							<div>
-								<label class="block text-sm font-medium text-gray-700 mb-1">
+								<label
+									for="owner-site-footer-copyright"
+									class="block text-sm font-medium text-gray-700 mb-1"
+								>
 									{$t('owner.copyright')}
 								</label>
 								<input
+									id="owner-site-footer-copyright"
 									type="text"
 									bind:value={formData.footer.copyrightText}
 									class="w-full px-3 py-2 border border-gray-300 rounded-md"
@@ -471,10 +475,14 @@ import { t } from '$stores/i18n';
 								/>
 							</div>
 							<div>
-								<label class="block text-sm font-medium text-gray-700 mb-1">
+								<label
+									for="owner-site-footer-terms-url"
+									class="block text-sm font-medium text-gray-700 mb-1"
+								>
 									{$t('owner.termsOfServiceUrl')}
 								</label>
 								<input
+									id="owner-site-footer-terms-url"
 									type="url"
 									bind:value={formData.footer.termsUrl}
 									class="w-full px-3 py-2 border border-gray-300 rounded-md"
@@ -482,10 +490,14 @@ import { t } from '$stores/i18n';
 								/>
 							</div>
 							<div>
-								<label class="block text-sm font-medium text-gray-700 mb-1">
+								<label
+									for="owner-site-footer-privacy-url"
+									class="block text-sm font-medium text-gray-700 mb-1"
+								>
 									{$t('owner.privacyPolicyUrl')}
 								</label>
 								<input
+									id="owner-site-footer-privacy-url"
 									type="url"
 									bind:value={formData.footer.privacyUrl}
 									class="w-full px-3 py-2 border border-gray-300 rounded-md"

@@ -25,7 +25,22 @@ Goal: raise baseline quality—cleaner Svelte/compiler output, accessibility, pr
 
 - [x] **A1.** Run full quality suite locally and record baseline: root `pnpm lint`, `pnpm type-check`, `pnpm build`, and (optional) `pnpm test:e2e`.
 - [x] **A2.** Decide CI policy: fail PRs on new ESLint/TypeScript errors; optionally treat Svelte a11y/compiler warnings as errors once volume is manageable (`svelte.config.js` / Vite plugin options).
-- [ ] **A3.** Document “definition of done” for UI PRs: e.g. no new `a11y_*` or `export_let_unused` in touched files (or justified suppression with a comment).
+- [x] **A3.** Document “definition of done” for UI PRs: e.g. no new `a11y_*` or `export_let_unused` in touched files (or justified suppression with a comment).
+
+### Definition of done (UI / Svelte PRs)
+
+Use this as a checklist when touching components, routes, or styles. CI already enforces **ESLint errors** and **TypeScript**; these items catch what CI does not (Svelte compiler warnings, UX/a11y).
+
+| Expectation | Notes |
+|-------------|--------|
+| **No new ESLint errors** | `pnpm lint` must stay clean for errors; warnings are allowed until global cleanup. |
+| **No new TypeScript errors** | `pnpm type-check` (frontend); backend covered by `pnpm build`. |
+| **Labels and controls** | Every visible `<label>` has a matching **`for`** and control **`id`** (or label wraps the control). |
+| **Interactive non-buttons** | Clickable `<div>`/backdrop patterns: prefer **`role`**, **keyboard** handlers (or use `<button>` / `<a>`). |
+| **Icon-only controls** | **`aria-label`** (or `title` + visible text) on icon-only buttons/links. |
+| **Markup** | Avoid self-closing non-void tags (`<div />`, `<textarea />`); use explicit `</div>`, `</textarea>`, etc. |
+| **New Svelte warnings** | Avoid introducing new compiler warnings in **files you edit** (`a11y_*`, `export_let_unused`, `non_reactive_update`, …). If unavoidable, add a **one-line comment** with rationale or file a follow-up in [`ENGINEERING_QUALITY_TASKS.md`](./ENGINEERING_QUALITY_TASKS.md). |
+| **Suppressions** | Use **`svelte-ignore`** or ESLint disable **sparingly**; include a short comment why. |
 
 ### CI policy (GitHub Actions)
 
@@ -50,9 +65,9 @@ These files generated multiple or serious warnings (a11y, invalid markup, reacti
 - [ ] **B1.** `frontend/src/lib/components/PhotoLightbox.svelte` — address `state_referenced_locally`, `$state`/`bind:this` patterns (`panelRef`, `containerRef`, `imageRef`, `canvasRef`), touch target `role`, self-closing `<canvas>`, and related a11y rules.
 - [ ] **B2.** `frontend/src/lib/components/CollectionPopup.svelte` — keyboard + `role` for overlay/panel click targets; explicit labels on icon-only buttons.
 - [ ] **B3.** `frontend/src/lib/components/NotificationDialog.svelte` — backdrop: keyboard handler, valid non–self-closing markup, focus trap consistency with `AdminConfirmDialog` patterns where applicable.
-- [ ] **B4.** `frontend/src/lib/components/AlertModal.svelte` — replace self-closing non-void elements with explicit open/close tags.
+- [x] **B4.** `frontend/src/lib/components/AlertModal.svelte` — replace self-closing non-void elements with explicit open/close tags.
 - [ ] **B5.** `frontend/src/routes/photos/upload/+page.svelte` — upload dropzone: `role`, keyboard support or native `<button>`/`<label>` pattern; fix progress bar markup; remove or use `data` export per Svelte 5 guidance.
-- [ ] **B6.** `frontend/src/routes/owner/site-settings/+page.svelte` — associate `<label>` with controls for Terms of Service / Privacy Policy URL fields (`for` / `id`).
+- [x] **B6.** `frontend/src/routes/owner/site-settings/+page.svelte` — associate `<label>` with controls for Terms of Service / Privacy Policy URL fields (`for` / `id`).
 
 ---
 
@@ -61,7 +76,7 @@ These files generated multiple or serious warnings (a11y, invalid markup, reacti
 - [ ] **C1.** `frontend/src/lib/components/search/SearchResults.svelte` — photo grid cards: `role="button"` or `<button>` + keyboard for lightbox open.
 - [ ] **C2.** `frontend/src/lib/components/search/SearchBar.svelte` — `aria-label` (or visible text) on clear button.
 - [ ] **C3.** `frontend/src/lib/components/TokenRenewalNotification.svelte` — dismiss control: `aria-label` / `title`.
-- [ ] **C4.** `frontend/src/lib/components/AlbumComments.svelte` — `<textarea>` must not be self-closing.
+- [x] **C4.** `frontend/src/lib/components/AlbumComments.svelte` — `<textarea>` must not be self-closing.
 
 ---
 
@@ -97,8 +112,9 @@ Many `Layout.svelte` files under `frontend/src/lib/page-builder/modules/**` warn
 
 ## Suggested order
 
-1. **A1** (baseline) → **B** (worst offenders) → **C** → **D** → **E** → **F** → **G** optional.  
-2. Merge in small PRs (e.g. one PR per phase or per component cluster) to ease review and rollback.
+1. **Phase A** (A1–A3) — **done** (baseline, CI, definition of done).  
+2. **B** (worst offenders) → **C** → **D** → **E** → **F** → **G** optional.  
+3. Merge in small PRs (e.g. one PR per phase or per component cluster) to ease review and rollback.
 
 ---
 

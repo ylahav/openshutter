@@ -102,7 +102,7 @@
 		aria-describedby="alert-message"
 		tabindex="-1"
 	>
-		<div class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm" />
+		<div class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm"></div>
 		<div class="flex min-h-full items-center justify-center p-4" on:click|stopPropagation role="none">
 			<div
 				class="w-full max-w-md rounded-lg bg-white shadow-2xl animate-scale-in relative z-[10000] border border-gray-200"
