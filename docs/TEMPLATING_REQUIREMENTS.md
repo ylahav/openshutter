@@ -1,6 +1,6 @@
 # Templating system — requirements
 
-This document defines what the OpenShutter templating system **must** provide, how the pieces relate, and what is explicitly **out of scope** or **deferred**. It includes the **cell-based module assignment workflow** (grid anchor + spans → modules) in **§2.2.4**. It complements implementation guides (`CREATE_TEMPLATE_PACK.md`) and the working checklist (`TEMPLATING_TASKS.md`).
+This document defines what the OpenShutter templating system **must** provide, how the pieces relate, and what is explicitly **out of scope** or **deferred**. It includes the **cell-based module assignment workflow** (grid anchor + spans → modules) in **§2.2.4**. It complements **§8** (create a template pack) and the working checklist (`TEMPLATING_TASKS.md`).
 
 ---
 
@@ -328,7 +328,7 @@ Until Phase 2 is implemented, these rules are **design intent**, with the follow
 
 - **FR-PACK-1:** Each supported pack exposes at least: `Home`, `Gallery`, `Album`, `Login` in the registry (`TemplatePack.pages`).
 - **FR-PACK-2:** Unknown or invalid pack id in config must resolve to a **defined fallback** (e.g. `default`) without crashing; optional user-visible notice on the public site.
-- **FR-PACK-3:** Adding a new first-class pack requires updating the **registry**, backend **built-in id allowlist**, and theme DTO allowlists — documented in `CREATE_TEMPLATE_PACK.md`.
+- **FR-PACK-3:** Adding a new first-class pack requires updating the **registry**, backend **built-in id allowlist**, and theme DTO allowlists — documented in **§8**.
 
 ### 3.2 Themes collection (presets)
 
@@ -371,7 +371,7 @@ Until Phase 2 is implemented, these rules are **design intent**, with the follow
 ## 4. Non-functional requirements
 
 - **NFR-1 — Availability:** Public pages must render if config is partial or outdated; fallbacks apply.
-- **NFR-2 — Clarity:** Contributor docs describe pack registration, theme vs site config, and module positions vs pack chrome (`CREATE_TEMPLATE_PACK.md`, Joomla-oriented table there).
+- **NFR-2 — Clarity:** Contributor docs describe pack registration, theme vs site config, and module positions vs pack chrome (**§8**, Joomla-oriented table there).
 - **NFR-3 — Evolvability:** New routes (e.g. About, CMS pages) may use `PageRenderer` instead of pack shells; requirement is **consistent behavior** and documentation, not that every route is pack-backed.
 
 ---
@@ -398,17 +398,67 @@ Until Phase 2 is implemented, these rules are **design intent**, with the follow
 
 | Document | Role |
 |----------|------|
-| `docs/CREATE_TEMPLATE_PACK.md` | How to add/register a pack, Joomla-oriented mapping, verification |
+| **§8 below** — Create a template pack | How to add/register a pack, Joomla-oriented mapping, verification |
 | `docs/UI_COMPONENT_MODULES.md` | Module authoring contract: structure, registration, props rules, and examples |
 | `docs/TEMPLATING_TASKS.md` | Milestones, backlog, MVP acceptance |
-| `docs/templates.md` | Legacy/extended “new template” notes (some paths overlap; prefer registry + requirements above for current truth) |
 | `docs/TEMPLATE_CONTROL.md` | **Operator guide:** where to click to control colors, fonts, pages, header/footer; Admin URL map |
 
-Phase 2 may add **`docs/UI_COMPONENTS.md`** (or extend `CREATE_TEMPLATE_PACK.md`) for the contributor workflow in **§2.4**.
+Phase 2 may add **`docs/UI_COMPONENTS.md`** for the contributor workflow in **§2.4**.
 
 ---
 
-## 8. Revision
+## 8. Appendix: Create a template pack (built-in)
+
+OpenShutter maps each **base theme** (`default`, `minimal`, `modern`, `elegant`) to a **template pack**: Svelte shells for public pages (home, gallery, album, login) plus header/footer.
+
+### Rough mapping from Joomla (mental model)
+
+| Joomla | OpenShutter |
+|--------|---------------|
+| `index.php` + layout structure | Svelte pack pages (`Home.svelte`, …), `+layout.svelte`, `BodyTemplateWrapper` |
+| `templateDetails.xml` (name, version, parameters) | Static template metadata + **themes** collection (`baseTemplate`, colors, fonts, `pageModules`, …) |
+| **Module positions** | `site_config.template.pageModules` keyed by page/region. When `pageModules.header` is non-empty, the global header uses **page builder** (`PageRenderer`). Placement uses anchor cell + spans (`rowOrder`, `columnIndex`, `rowSpan`, `colSpan`). |
+| **Template overrides** | Admin → **Templates → Overrides** (per-theme overrides on the theme row; **Apply theme** copies into live `site_config` with replace semantics). |
+| Breakpoints | Page grid/modules can be breakpoint-keyed overlays; cascade rules in **§2.2.3**. |
+
+If you apply a theme and “nothing changes,” check for stale `pageModules` from a previous theme — use **Apply theme** with replace semantics or clear those keys.
+
+### 1. Add Svelte components
+
+Under `frontend/src/lib/templates/<packId>/`: `Home.svelte`, `Gallery.svelte`, `Album.svelte`, `Login.svelte`, `components/Header.svelte`, `components/Footer.svelte`, optional `Hero.svelte`, `AlbumList.svelte`, etc. Use Tailwind; colors/fonts from `siteConfigData` / CSS variables (`ThemeColorApplier`, etc.).
+
+### 2. Header chrome (per pack)
+
+Public headers read `siteConfig.template.headerConfig`; each pack supplies defaults when a key is omitted (`frontend/src/lib/template-packs/header-visibility.ts`). Site configuration → Navigation overrides apply per pack.
+
+### 3. Register the pack
+
+Edit `frontend/src/lib/template-packs/registry.ts`: import components, add `packs` entry matching `packId`, required `pages`: `Home`, `Gallery`, `Album`, `Login`; optional `components`: `Header`, `Footer`. Export `TEMPLATE_PACK_IDS` for first-class built-ins.
+
+### 4. Align backend allowlists
+
+Keep in sync when adding a pack id:
+
+- `frontend/src/lib/template-packs/registry.ts` — `TEMPLATE_PACK_IDS` and `packs`
+- `backend/src/services/site-config.ts` — `BUILTIN_TEMPLATE_IDS`
+- Theme DTOs: `create-theme.dto.ts` / `update-theme.dto.ts` — `@IsIn` for `baseTemplate`
+- `backend/src/templates/templates.controller.ts` (and frontend `TemplateService` static map if used)
+
+### 5. Themes / site config
+
+Themes reference **baseTemplate** (built-in id). **Site configuration** stores `template.frontendTemplate` for the visitor site. Admin uses a fixed shell — see [`ADMIN_UI_ROADMAP.md`](./ADMIN_UI_ROADMAP.md). Invalid ids are rejected on `PUT /api/admin/site-config`.
+
+### 6. Optional: loader validation
+
+`PUBLIC_ENABLE_TEMPLATE_PACK_LOADER=true` enables stricter checks in `frontend/src/services/template.ts` (`validateTemplateConfig`) for legacy static `TemplateConfig` shapes.
+
+### 7. Verify
+
+Switch base theme under **Admin → Templates** (or **Site configuration → Theme & layout**); reload home, `/albums`, an album, `/login`; test light/dark and RTL if applicable.
+
+---
+
+## 9. Revision
 
 When behavior changes (e.g. new built-in pack, new theme fields, or chrome resolution rules), update **this file** and the relevant implementation doc so operators and contributors share one definition of “done.”
 

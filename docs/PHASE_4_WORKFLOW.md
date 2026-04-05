@@ -115,7 +115,7 @@ Implementation: when `siteContext.type === 'owner-site'`, guards for `/admin` al
 - **SEO:** Canonical **`og:url`** use the request host (root layout). **Deferred (low priority):** per-host sitemaps; optional canonical override to **`owner_domains.isPrimary`** when multiple domains serve the same site.
 - **SSO (Phase 4 Enterprise):** When adding SSO, auth can be tied to `siteContext` so org-specific IdP can be used per domain/tenant later.
 
-**Deliverables:** Design doc (domain mapping, host resolution, security, per-owner storage); backend: `owner_domains` + host-resolution middleware + **owner storage resolution** (`useDedicatedStorage`, `owner_storage_configs`); frontend: `siteContext`, owner-scoped public routes and `/admin`; admin UI for owner domains and per-owner storage (flag + **`/owner/storage`**); DNS/TLS runbook (**`docs/WHITE_LABEL_DEPLOY.md`** for Solution 1 + owner-domain notes).
+**Deliverables:** Design doc (domain mapping, host resolution, security, per-owner storage); backend: `owner_domains` + host-resolution middleware + **owner storage resolution** (`useDedicatedStorage`, `owner_storage_configs`); frontend: `siteContext`, owner-scoped public routes and `/admin`; admin UI for owner domains and per-owner storage (flag + **`/owner/storage`**); DNS/TLS runbook (**[`docs/WHITE_LABEL.md`](./WHITE_LABEL.md)** deployment section for Solution 1 + owner-domain notes).
 
 ---
 
@@ -130,7 +130,7 @@ Implementation: when `siteContext.type === 'owner-site'`, guards for `/admin` al
   - **Site config** (`site_config` / Admin → Site config): merged on read with defaults; nested blocks (**`whiteLabel`**, **`contact.socialMedia`**, etc.) are deep-merged where implemented so partial documents survive upgrades.
   - **Theme Builder / template JSON** lives in site config; back up before major upgrades if you rely on custom layouts.
   - **Owner domains** (`owner_domains`), **dedicated storage** rows (`owner_storage_configs`), and **album/photo** data are ordinary MongoDB collections—plan migrations and backups per **`docs/SERVER_DEPLOYMENT.md`**.
-  - **Override points** for branding: **`docs/WHITE_LABEL_DESIGN.md`**, **`docs/WHITE_LABEL_DEPLOY.md`**, and **`CHANGELOG.md`** for release-to-release behavior changes.
+  - **Override points** for branding: **[`docs/WHITE_LABEL.md`](./WHITE_LABEL.md)**, and **`CHANGELOG.md`** for release-to-release behavior changes.
 
 - **Summary:** Solution 1 = one brand per install, no OpenShutter visible (optional separate public logo/favicon under **`whiteLabel`**). Solution 2 = per-owner domain and content isolation with admin at `<domain>/admin`; optional at owner creation.
 
@@ -158,7 +158,7 @@ Implementation: when `siteContext.type === 'owner-site'`, guards for `/admin` al
 - Backend: extended listing model, versioning, ratings/reviews if desired; moderation APIs.
 - Frontend: improved marketplace UI (categories, search, detail page with versions/reviews); submit/update flow; admin moderation UI.
 
-**Implementation status (March 2026 – Stage 2 scope per [`MARKETPLACE_EXPANSION_PHASE4.md`](./MARKETPLACE_EXPANSION_PHASE4.md)):**
+**Implementation status (March 2026 – Stage 2 scope; detail in [Supplementary detail](#supplementary-detail-completed-stages-2-4) below):**
 
 - **Done:** `tags` and `featured` on listings; public **`GET /api/marketplace`** with `category`, `featured`, `q`, **`limit`/`offset`**; marketplace home search, category chips, featured section; listing detail shows tags, featured badge, **screenshots**; submit form tags; admin approve/unapprove, featured toggle, **tag editing**, delete.
 - **Deferred (low priority, full §2.1):** Version history on detail, ratings/reviews, verified badges, popularity metrics, reporting, OAuth/webhook integration types.
@@ -212,7 +212,7 @@ Implementation: when `siteContext.type === 'owner-site'`, guards for `/admin` al
 - Backend: feedback collection from Phase 3 flows; related-tags or similarity API; optional search relevance tuning.
 - Frontend: "Related tags", "Similar photos" or "Refine tags" UX where applicable.
 
-**Design & implementation (March 2026):** See [`TAG_OPTIMIZATION_PHASE4.md`](./TAG_OPTIMIZATION_PHASE4.md). Stage 4 slices **A-D** are implemented: dismissed feedback logging (`POST /api/admin/photos/:id/tag-suggestion-feedback`), photo-level related tags with fallback (`GET /api/admin/photos/:id/related-tags`), admin feedback stats (`GET /api/admin/tags/feedback/stats` + Tags page panel), and config-gated search relevance boost (`features.enableTagFeedbackSearchBoost`).
+**Design & implementation (March 2026):** See [Supplementary detail — Stage 4](#stage-4--tag-optimization--ml-signals) below. Stage 4 slices **A-D** are implemented: dismissed feedback logging (`POST /api/admin/photos/:id/tag-suggestion-feedback`), photo-level related tags with fallback (`GET /api/admin/photos/:id/related-tags`), admin feedback stats (`GET /api/admin/tags/feedback/stats` + Tags page panel), and config-gated search relevance boost (`features.enableTagFeedbackSearchBoost`).
 
 ---
 
@@ -320,13 +320,83 @@ Implementation: when `siteContext.type === 'owner-site'`, guards for `/admin` al
 - [x] Prioritize and sequence initiatives (e.g. 1 → 2 → 3)
 - [x] Stage 1 (White-label solutions): design and implementation
 - [x] Stage 2 (Integration marketplace): design and implementation
-- [x] Stage 3 (Advanced collaboration): design and implementation (comments, collaboration panel, notifications, v1 comment scopes — see `COLLABORATION_PHASE4_STAGE3.md`)
-- [x] Stage 4 (Machine learning for tag optimization): design doc [`TAG_OPTIMIZATION_PHASE4.md`](./TAG_OPTIMIZATION_PHASE4.md); implementation complete for slices A-D
+- [x] Stage 3 (Advanced collaboration): design and implementation (comments, collaboration panel, notifications, v1 comment scopes — see [Supplementary detail — Stage 3](#stage-3--advanced-collaboration))
+- [x] Stage 4 (Machine learning for tag optimization): implementation complete for slices A-D — see [Supplementary detail — Stage 4](#stage-4--tag-optimization--ml-signals)
 - Stage 5 (Mobile app): design and implementation
 - Stage 6 (Video support): design and implementation
 - Stage 7 (Enterprise features): design docs and implementation
 - README and SYSTEM_PRD updated with Phase 4 progress
 - CHANGELOG updated for Phase 4 releases
+
+---
+
+## Supplementary detail (completed stages 2-4)
+
+The sections below expand on **Stages 2–4** (marketplace expansion, collaboration, tag optimization). High-level scope stays in the numbered sections above.
+
+### Stage 2 — Integration marketplace expansion
+
+**Stage:** 4.2 Design + Implementation  
+**Status:** Complete (March 2026)
+
+#### Goals
+
+1. **Discovery:** Search by name/description, filter by category and compatibility, highlight featured listings.
+2. **Listing richness:** Tags for filtering and discovery; optional featured flag for homepage/featured section.
+3. **Lifecycle:** Keep submission → review → approve flow; optional deprecation later.
+
+#### Schema additions (MarketplaceListing)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `tags` | `string[]` | Optional tags for discovery (e.g. "export", "backup", "cli"). |
+| `featured` | `boolean` | When true, listing can appear in a "Featured" section. Default: false. |
+
+#### API
+
+- **GET /api/marketplace** — Query params: `category`, `featured=true`, `q`, `limit` (default 100, max 200), `offset`.
+- **Admin:** PATCH listing for `featured`, `tags`; submission form optional tags.
+
+#### Frontend
+
+Marketplace home: search, category filter, featured section; listing detail: tags, featured badge, screenshots; admin: featured toggle and tag editing.
+
+**See also:** [API_MARKETPLACE.md](./API_MARKETPLACE.md).
+
+---
+
+### Stage 3 — Advanced collaboration
+
+**Status:** Extended MVP complete (March 2026)
+
+#### Scope delivered
+
+**Comments:** Album and per-photo (`photoId`); `AlbumCollaborationPanel` and `AlbumComments` in lightbox when `albumCollaboration` is passed to `PhotoLightbox`. Threading (`parentCommentId`), `@mentions`, reporting, moderation (`PATCH /api/comments/:id`), linkify URLs.
+
+**Tasks & activity:** `album_tasks`, `collaboration_activity`; APIs under `CollaborationController`; UI `AlbumCollaborationPanel`.
+
+**Notifications:** `InAppNotification`; `GET/PATCH /api/notifications`; `/notifications` page; `NotificationNavLink` with unread badge.
+
+**Public API (v1):** `V1CommentsController`; scopes `comments:read` / `comments:write`.
+
+**Collaboration matrix:** `features.collaboration` per service (`comments`, `tasks`, `activity`) with `enabled`, `public`, `authenticated`. Admin → Site configuration → Sharing.
+
+**Deferred:** Deeper threading, rich text, dedicated unread-count API, push notifications.
+
+---
+
+### Stage 4 — Tag optimization & ML signals
+
+**Status:** Implemented (March 2026) — slices A–D shipped  
+**Related:** [AI_TAGGING_DESIGN.md](./AI_TAGGING_DESIGN.md), [SMART_TAG_SUGGESTIONS_DESIGN.md](./SMART_TAG_SUGGESTIONS_DESIGN.md)
+
+**Goal:** Improve tag quality using user behavior (accept/dismiss), co-occurrence, and optional search ranking tweaks.
+
+**Baseline:** `tag_feedback` collection; `POST .../apply-tags` records applied tags; `TagFeedbackService.getRelatedTags`; `GET /api/admin/tags/related/by-id`.
+
+**Implemented slices:** (A) dismiss feedback + `POST .../tag-suggestion-feedback`; (B) `GET .../related-tags` with fallback from `photos.tags`; (C) admin `GET .../feedback/stats` + Tags page panel; (D) config-gated search boost (`features.enableTagFeedbackSearchBoost`).
+
+**Code:** `backend/src/services/tag-feedback.ts`, photos admin controller (`apply-tags`), tags controller (`related/by-id`).
 
 ---
 

@@ -212,7 +212,7 @@ Both upload methods provide detailed reports with:
 ### Upload Fails with "File too large"
 - Check nginx configuration: `client_max_body_size 100M;`
 - Set `BODY_SIZE_LIMIT=100M` environment variable
-- See [UPLOAD_LIMITS.md](./UPLOAD_LIMITS.md) for details
+- See [Upload size limits](#upload-size-limits) below
 
 ### Duplicate Detection Not Working
 - Ensure photos have been uploaded at least once (hash needs to be calculated)
@@ -236,6 +236,64 @@ Both upload methods provide detailed reports with:
 - **Path Validation**: Server folder paths (API endpoint) should be validated to prevent directory traversal
 - **File Type Validation**: Only image files are processed
 - **Size Limits**: File size limits prevent DoS attacks
+
+---
+
+## Upload size limits
+
+File uploads use a two-tier architecture:
+
+1. **SvelteKit Frontend Route**: `POST /api/photos/upload` (port 4000) — proxies uploads to the backend; requires admin authentication.
+2. **NestJS Backend API**: `POST /api/photos/upload` (port 5000) — accepts files up to **100MB**; stores via the configured storage provider.
+
+The SvelteKit route (`frontend/src/routes/api/photos/upload/+server.ts`) proxies FormData to the backend while handling authentication and errors.
+
+### Production configuration
+
+Configure limits at **three** levels:
+
+1. **SvelteKit `BODY_SIZE_LIMIT`** — Default is **512KB**; set e.g. `BODY_SIZE_LIMIT=100M` in PM2 env, shell, or `.env`, then restart the SvelteKit server.
+2. **Nginx** — Set `client_max_body_size 100M;` in the server block (see `docs/nginx-openshutter.conf`).
+3. **Backend** — NestJS limit **100MB** (already aligned).
+
+### Common errors
+
+- **"Content-length … exceeds limit of 524288 bytes"** — Raise SvelteKit `BODY_SIZE_LIMIT`.
+- **413 from nginx** — Raise `client_max_body_size`.
+
+---
+
+## Photo metadata (EXIF, IPTC/XMP)
+
+OpenShutter supports configurable EXIF display, per-photo and bulk re-extraction, and manual overrides for date/camera.
+
+### Configurable EXIF display
+
+- **Site config**: Admin → Site config → EXIF metadata tab. Choose which EXIF fields to show site-wide (or leave empty to show all).
+- **Display**: Photo lightbox uses `filterExifByDisplayFields()`.
+
+### Re-extract EXIF
+
+- **Per photo**: Photo edit → EXIF → "Re-extract from file".
+- **Bulk**: Album page → select photos → "Re-extract EXIF". API: `POST /api/admin/photos/bulk/re-extract-exif` with `{ photoIds: string[] }`.
+
+### Rotate & thumbnails
+
+- **Rotate**: Photo edit → 90° CCW/CW/180°. API: `POST /api/admin/photos/:id/rotate` with `{ angle: 90 | -90 | 180 }`.
+- **Regenerate thumbnails**: Per photo or bulk; bulk may use `POST /api/admin/photos/bulk/regenerate-thumbnails-stream` (NDJSON progress).
+
+### Manual EXIF overrides
+
+Photo edit "Override EXIF (date/camera)" or bulk "Set Metadata" — merged on save.
+
+### IPTC/XMP
+
+- Extracted on upload (`exifr`); stored in `iptcXmp`. **Site config → IPTC/XMP Metadata** tab controls display fields in the lightbox.
+- Re-extract updates IPTC/XMP with EXIF.
+
+### APIs (summary)
+
+- `POST /api/admin/photos/:id/re-extract-exif`, bulk variants, rotate, bulk thumbnail regenerate, `PUT /api/admin/photos/:id` (exif/iptcXmp), `POST /api/admin/photos/bulk-update`.
 
 ---
 

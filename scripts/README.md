@@ -16,7 +16,7 @@ mongosh mongodb://localhost:27017/openshutter scripts/seed-themes.mongodb.js
 MONGODB_URI=mongodb://localhost:27017/openshutter node scripts/seed-themes.js
 ```
 
-See [THEME_SEEDING.md](../docs/THEME_SEEDING.md) for detailed documentation.
+See [THEMING.md](../docs/THEMING.md) (seeding section) for detailed documentation.
 
 ## Available Scripts
 

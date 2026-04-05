@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+### Changed
+- **Documentation:** Consolidated overlapping guides — `WHITE_LABEL.md` (design + deploy), `PHASE_4_WORKFLOW.md` supplementary section (Stages 2–4 detail), `PHOTO_UPLOAD.md` (limits + metadata), `THEMING.md` (page builder + seeding), `TEMPLATING_REQUIREMENTS.md` §8 (template pack); removed deprecated `docs/templates.md` and `docs/archive/*`. See `docs/index.md`.
+
 ### Added
 - **Search tag-filter analytics:** `GET /api/admin/analytics/search` returns **`tagFilterStats`** (searches using tag filters, share of searches, zero-result counts, top tags in filters with resolved names). CSV export (`type=search`) includes tag-filter sections. **`metadata.ownerScopeId`** on `analytics_events` search rows for owner-site / v1 host context. **Owner:** `GET /api/owner/analytics/search-tag-filters`, UI **`/owner/analytics`**, dashboard card on **`/owner`**, SvelteKit **`/api/owner/analytics/search-tag-filters`**. Documented in **`docs/ADVANCED_ANALYTICS_DESIGN.md`** and **`docs/owner-dashboard.md`**. **`AlbumAccessContext`** documents optional **`ownerSiteId`**.
 - **AI providers health API:** Admin-only endpoint **`GET /api/admin/ai/providers/health`** reports configured provider, auto fallback order, active provider, and per-provider availability/reason for **`google-vision`**, **`clip`**, and **`local`**.

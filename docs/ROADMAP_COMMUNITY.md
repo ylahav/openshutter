@@ -113,7 +113,7 @@ This roadmap prioritizes features that drive adoption in photographer communitie
 
 ## Dependencies
 
-- Existing template docs and theme systems in `docs/templates.md`, `docs/THEME_PAGE_BUILDER_DESIGN.md`, and `docs/THEME_SEEDING.md`
+- Existing template docs and theme systems in `docs/TEMPLATING_REQUIREMENTS.md`, `docs/THEMING.md`, and `docs/MODULE_URL_PARAMS.md`
 - Existing phase tracking in `docs/PHASE_4_WORKFLOW.md` and `README.md`
 
 ## Related Task Lists

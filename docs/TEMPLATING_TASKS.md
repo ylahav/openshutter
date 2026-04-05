@@ -52,7 +52,7 @@ Cross-reference: **§2.2.1** (spans + anchor), **§2.2.3** (breakpoints/cascade 
 
 ## Milestone 4: Developer Experience (Medium Priority)
 
-- [x] Write "Create a template pack" guide with scaffold steps — see **`docs/CREATE_TEMPLATE_PACK.md`**
+- [x] Write "Create a template pack" guide with scaffold steps — see **`TEMPLATING_REQUIREMENTS.md` §8**
 - [ ] Add pack example project with comments and best practices
 - [ ] Add lint/type checks for pack contract compliance
 - [ ] Add snapshot test coverage for core layouts
