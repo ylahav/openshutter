@@ -20,6 +20,15 @@ Cross-reference: **§2.2.1** (spans + anchor), **§2.2.3** (breakpoints/cascade 
 
 **Continue from here:** Milestone 2 is largely done. Next focus is **Milestone 3** (polish the four built-in styles: default, minimal, modern, elegant) and tightening **Milestone 1** gaps called out below (About / CMS routes use `PageRenderer`, not pack entries).
 
+### Polish sprint (`chore/templating-polish`)
+
+| Done | Item |
+|------|------|
+| [x] | **Shell RTL:** `.os-shell-container` uses logical margin/padding (`margin-inline`, `padding-inline`) so the layout shell behaves correctly in RTL (`frontend/src/lib/styles/globals.css`). |
+| [x] | **Registry tests:** `frontend/src/lib/template-packs/registry.test.ts` — built-in ids, `isKnownTemplatePack`, fallback, `listTemplatePacks`. |
+| [ ] | **Light / dark:** manual pass on Home, Gallery, Album, Login for each pack + theme toggle. |
+| [ ] | **RTL / i18n:** spot-check Hebrew (or Arabic) on the same routes; fix pack-specific `ml-`/`mr-` that should be `ms-`/`me-` or logical equivalents. |
+
 ## Milestone 1: Foundation (High Priority)
 
 - [x] Define template pack contract — `frontend/src/lib/template-packs/types.ts` (`TemplatePack`, required `pages`: Home, Gallery, Album, Login; optional `components`: Header, Footer, …). **Note:** Albums list is the **Gallery** page; **About** and **Page Builder** routes use shared `PageRenderer` + modules, not pack-registered Svelte shells.
@@ -41,12 +50,7 @@ Cross-reference: **§2.2.1** (spans + anchor), **§2.2.3** (breakpoints/cascade 
 ## Milestone 3: Initial Pack Set (High Priority)
 
 - [x] Ship at least 3 polished built-in packs — four keys; **recent pass:** distinct home shells + minimal/default header treatment (ongoing refinement OK).
-- [ ] Ensure each pack supports:
-  - Home
-  - Albums list
-  - Album view
-  - About
-  - Page Builder pages
+- [ ] Ensure each pack’s **pack shells** (Home, Gallery, Album, Login) and shared **chrome** (header/footer/body wrapper) work consistently. **About** and **Page Builder / custom pages** use **`PageRenderer`** (not separate pack pages); requirement is that they render correctly inside each pack’s outer shell — see polish sprint above.
 - [ ] Validate light/dark theme behavior per pack
 - [ ] Validate RTL and i18n behavior per pack
 
@@ -83,7 +87,8 @@ Cross-reference: **§2.2.1** (spans + anchor), **§2.2.3** (breakpoints/cascade 
 
 ### Testing
 
-- [ ] Unit tests for template resolver and option validation
+- [x] Unit tests for **pack registry** (`registry.test.ts`) — `isKnownTemplatePack`, `getTemplatePack` fallback, `listTemplatePacks`
+- [ ] Unit tests for template resolver and option validation (beyond registry)
 - [ ] Integration tests for **visitor** theme apply + public template resolution (admin shell decoupled — no admin template switching; see [`ADMIN_UI_ROADMAP.md`](./ADMIN_UI_ROADMAP.md))
 - [ ] E2E tests for route rendering across all built-in packs
 - [ ] Visual regression checks for top pages per pack

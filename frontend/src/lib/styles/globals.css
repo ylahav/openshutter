@@ -102,14 +102,12 @@ html.dark body {
   --os-gap: 1.5rem;
 }
 
-/* Max width + horizontal padding from site layout customization */
+/* Max width + horizontal padding from site layout customization (logical props → RTL-safe) */
 .os-shell-container {
   width: 100%;
   max-width: var(--os-max-width);
-  margin-left: auto;
-  margin-right: auto;
-  padding-left: var(--os-padding);
-  padding-right: var(--os-padding);
+  margin-inline: auto;
+  padding-inline: var(--os-padding);
   box-sizing: border-box;
 }
 
