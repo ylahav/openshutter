@@ -150,21 +150,21 @@
 
 					<!-- Template selector (if enabled) -->
 					{#if showTemplateSelector}
-						<div class="ml-4">
+						<div class="ms-4">
 							<TemplateSelector compact={true} />
 						</div>
 					{/if}
 
 					<!-- Language selector (if enabled) -->
 					{#if showLanguageSelector}
-						<div class="ml-6">
+						<div class="ms-6">
 							<LanguageSelector compact={true} />
 						</div>
 					{/if}
 
 					<!-- Theme toggle (if enabled) -->
 					{#if showThemeToggle}
-						<div class="ml-6">
+						<div class="ms-6">
 							<ThemeToggle />
 						</div>
 					{/if}

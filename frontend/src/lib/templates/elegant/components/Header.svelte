@@ -157,21 +157,21 @@
 
 					<!-- Template selector (if enabled) -->
 					{#if showTemplateSelector}
-						<div class="ml-4 relative">
+						<div class="ms-4 relative">
 							<TemplateSelector compact={true} />
 						</div>
 					{/if}
 
 					<!-- Language selector (if enabled) -->
 					{#if showLanguageSelector}
-						<div class="ml-6 relative">
+						<div class="ms-6 relative">
 							<LanguageSelector compact={true} />
 						</div>
 					{/if}
 
 					<!-- Theme toggle (if enabled) -->
 					{#if showThemeToggle}
-						<div class="ml-6 relative">
+						<div class="ms-6 relative">
 							<ThemeToggle />
 						</div>
 					{/if}
@@ -208,7 +208,7 @@
 							{/if}
 							<button
 								on:click={() => { closeMobileMenu(); handleLogout(); }}
-								class="text-left py-2 hover:text-purple-600 dark:hover:text-purple-300 transition-colors font-light w-full"
+								class="text-start py-2 hover:text-purple-600 dark:hover:text-purple-300 transition-colors font-light w-full"
 								type="button"
 							>
 								{$t('header.logout')}

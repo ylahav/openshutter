@@ -133,7 +133,7 @@
 					{/if}
 				</div>
 				{#if $siteConfigData?.features?.enableSharing !== false && $siteConfigData?.features?.sharingOnAlbum !== false}
-					<div class="md:text-right">
+					<div class="md:text-end">
 						<p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Share album</p>
 						<SocialShareButtons title={MultiLangUtils.getTextValue(albumData.album.name, $currentLanguage)} size="sm" />
 					</div>

@@ -46,7 +46,7 @@
 								/>
 							</svg>
 						</div>
-						<div class="ml-3">
+						<div class="ms-3">
 							<h3 class="text-sm font-medium text-red-800 dark:text-red-300">Error</h3>
 							<div class="mt-2 text-sm text-red-700 dark:text-red-300">{error}</div>
 						</div>

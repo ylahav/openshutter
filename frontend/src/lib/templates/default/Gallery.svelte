@@ -53,7 +53,7 @@
 		{#if $siteConfigData?.features?.enableSharing !== false && $siteConfigData?.features?.sharingOnAlbum !== false}
 			<div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
 				<h1 class="text-4xl font-bold text-gray-900 dark:text-gray-100">Photo Gallery</h1>
-				<div class="md:text-right">
+				<div class="md:text-end">
 					<p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Share gallery</p>
 					<SocialShareButtons title="Photo Gallery" size="sm" />
 				</div>

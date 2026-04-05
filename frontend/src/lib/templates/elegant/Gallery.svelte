@@ -56,7 +56,7 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 			>
 				Photo Gallery
 			</h1>
-			<div class="md:text-right">
+			<div class="md:text-end">
 				<p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Share gallery</p>
 				<SocialShareButtons title="Photo Gallery" size="sm" />
 			</div>

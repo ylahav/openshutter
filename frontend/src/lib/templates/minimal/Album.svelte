@@ -156,7 +156,7 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 						</div>
 					{/if}
 				</div>
-				<div class="md:text-right">
+				<div class="md:text-end">
 					<p class="text-xs uppercase tracking-wide text-gray-500 dark:text-neutral-500 mb-1">Share album</p>
 					<SocialShareButtons
 						title={MultiLangUtils.getTextValue(albumData.album.name, $currentLanguage)}

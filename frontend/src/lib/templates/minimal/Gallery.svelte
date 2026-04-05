@@ -51,7 +51,7 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 	<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
 		<div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
 			<h1 class="text-3xl font-light text-black dark:text-neutral-100 tracking-tight">Photo Gallery</h1>
-			<div class="md:text-right">
+			<div class="md:text-end">
 				<p class="text-xs uppercase tracking-wide text-gray-500 dark:text-neutral-500 mb-1">Share gallery</p>
 				<SocialShareButtons title="Photo Gallery" size="sm" />
 			</div>

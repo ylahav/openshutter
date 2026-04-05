@@ -101,7 +101,7 @@
 			<div class="flex items-center justify-between pt-4 border-t border-gray-100 mt-auto">
 				<div class="flex items-center text-sm text-gray-500">
 					{#if typeof album.photoCount === 'number' && album.photoCount > 0}
-						<svg class="w-4 h-4 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<svg class="w-4 h-4 me-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path
 								stroke-linecap="round"
 								stroke-linejoin="round"
@@ -115,7 +115,7 @@
 						{#if typeof album.photoCount === 'number' && album.photoCount > 0}
 							<span class="mx-2">•</span>
 						{/if}
-						<svg class="w-4 h-4 mr-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<svg class="w-4 h-4 me-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path
 								stroke-linecap="round"
 								stroke-linejoin="round"

@@ -103,7 +103,7 @@
 					href="/albums"
 					class="inline-flex items-center px-8 py-4 bg-background text-foreground font-semibold rounded-lg hover:bg-muted transition-colors duration-300 shadow-lg"
 				>
-					<span class="mr-2">Explore Gallery</span>
+					<span class="me-2">Explore Gallery</span>
 					<svg class="w-5 h-5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={arrowPath} />
 					</svg>

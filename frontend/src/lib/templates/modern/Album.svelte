@@ -345,7 +345,7 @@ import { logger } from '$lib/utils/logger';
 		<section class="py-8">
 			<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
 				<div class="flex flex-col md:flex-row md:items-start md:justify-between gap-6 mb-10">
-					<div class="flex-1 text-center md:text-left">
+					<div class="flex-1 text-center md:text-start">
 						<h1 class="text-5xl font-bold text-white mb-6 tracking-tight">
 							<MultiLangText value={albumData.album.name} fallback="Untitled Album" />
 						</h1>
@@ -361,7 +361,7 @@ import { logger } from '$lib/utils/logger';
 							{/if}
 						</div>
 					</div>
-					<div class="md:text-right text-center">
+					<div class="md:text-end text-center">
 						<p class="text-xs uppercase tracking-wide text-purple-200 mb-2">Share album</p>
 						<SocialShareButtons title="Album" size="sm" />
 					</div>
