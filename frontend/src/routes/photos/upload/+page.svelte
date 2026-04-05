@@ -7,9 +7,6 @@
 	import { productName } from '$stores/siteConfig';
 	import { logger } from '$lib/utils/logger';
 	import { handleError } from '$lib/utils/errorHandler';
-	import type { PageData } from './$types';
-
-	export let data: PageData;
 
 	let albumId: string | null = null;
 	let uploads: Array<{
@@ -134,6 +131,13 @@
 		}
 	}
 
+	function handleDropzoneKeydown(e: KeyboardEvent) {
+		if (e.key === 'Enter' || e.key === ' ') {
+			e.preventDefault();
+			fileInput?.click();
+		}
+	}
+
 	const allUploadsComplete = uploads.length > 0 && uploads.every((upload) => upload.status !== 'uploading');
 </script>
 
@@ -156,20 +160,27 @@
 			<!-- Upload Area -->
 			<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
 				<div
+					role="button"
+					tabindex="0"
 					class="border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-colors {isDragActive
 						? 'border-blue-400 bg-blue-50'
 						: 'border-gray-300 hover:border-blue-400 hover:bg-gray-50'}"
+					aria-label="Upload photos. Drag and drop image files here, or press Enter or Space to choose files from your device."
 					on:dragover={handleDragOver}
 					on:dragleave={handleDragLeave}
 					on:drop={handleDrop}
 					on:click={() => fileInput?.click()}
+					on:keydown={handleDropzoneKeydown}
 				>
 					<input
+						id="photos-upload-file-input"
 						bind:this={fileInput}
 						type="file"
 						accept="image/*"
 						multiple
 						class="hidden"
+						tabindex="-1"
+						aria-hidden="true"
 						on:change={(e) => handleFilesSelected((e.currentTarget as HTMLInputElement).files)}
 					/>
 
@@ -257,7 +268,7 @@
 													? 'bg-red-600'
 													: 'bg-blue-600'}"
 											style="width: {upload.progress}%"
-										/>
+										></div>
 									</div>
 								</div>
 
@@ -288,7 +299,6 @@
 					<button
 						on:click={() => {
 							uploads = [];
-							fileInput = null;
 						}}
 						class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
 					>
