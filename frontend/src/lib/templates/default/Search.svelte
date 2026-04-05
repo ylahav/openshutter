@@ -4,7 +4,7 @@
 	let initialQuery = $page.url.searchParams.get('q') || '';
 </script>
 
-<main class="flex-1 min-h-screen bg-gray-50 dark:bg-slate-950">
+<main class="flex-1 min-h-screen w-full">
 	<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 		<div class="bg-white dark:bg-gray-900/90 rounded-lg shadow-sm p-6 border border-transparent dark:border-gray-800">
 			<h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">Search</h1>

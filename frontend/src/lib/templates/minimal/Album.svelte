@@ -124,20 +124,20 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 </script>
 
 {#if loading}
-	<div class="min-h-screen flex items-center justify-center bg-white dark:bg-neutral-950">
+	<div class="min-h-screen flex items-center justify-center">
 		<div class="text-center">
 			<div class="w-8 h-8 border-2 border-black dark:border-white border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
 			<p class="text-sm text-gray-600 dark:text-neutral-400">Loading album...</p>
 		</div>
 	</div>
 {:else if error}
-	<div class="min-h-screen flex items-center justify-center bg-white dark:bg-neutral-950">
+	<div class="min-h-screen flex items-center justify-center">
 		<div class="text-center">
 			<p class="text-sm text-black dark:text-neutral-100">{error}</p>
 		</div>
 	</div>
 {:else if albumData}
-	<div class="min-h-screen bg-white dark:bg-neutral-950">
+	<div class="min-h-screen w-full">
 		<!-- Breadcrumbs -->
 		{#if albumData.album}
 			<AlbumBreadcrumbs albumId={albumData.album._id} />

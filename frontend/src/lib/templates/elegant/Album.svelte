@@ -206,20 +206,20 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 </script>
 
 {#if loading}
-	<div class="min-h-screen flex items-center justify-center bg-linear-to-b from-purple-50 to-white dark:from-slate-950 dark:to-neutral-950">
+	<div class="min-h-screen flex items-center justify-center">
 		<div class="text-center">
 			<div class="w-10 h-10 border-3 border-purple-400 dark:border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
 			<p class="text-sm text-gray-600 dark:text-gray-400 font-light">Loading album...</p>
 		</div>
 	</div>
 {:else if error}
-	<div class="min-h-screen flex items-center justify-center bg-linear-to-b from-purple-50 to-white dark:from-slate-950 dark:to-neutral-950">
+	<div class="min-h-screen flex items-center justify-center">
 		<div class="text-center">
 			<p class="text-sm text-red-600 dark:text-red-400 font-light">{error}</p>
 		</div>
 	</div>
 {:else if albumData}
-	<div class="min-h-screen bg-linear-to-b from-purple-50 to-white dark:from-slate-950 dark:to-neutral-950">
+	<div class="min-h-screen w-full">
 		<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-12">
 			<!-- Breadcrumbs: above the title, inside template border with space from top -->
 			{#if albumData.album}

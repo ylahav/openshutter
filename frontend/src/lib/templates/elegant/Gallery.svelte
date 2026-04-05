@@ -47,17 +47,17 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 	}
 </script>
 
-<div class="min-h-screen bg-gradient-to-b from-purple-50 to-white">
+<div class="min-h-screen w-full">
 	<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
 		<div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
 			<h1
-				class="text-4xl md:text-5xl font-serif text-gray-900 tracking-wide"
+				class="text-4xl md:text-5xl font-serif text-gray-900 dark:text-gray-100 tracking-wide"
 				style="font-family: 'Playfair Display', serif;"
 			>
 				Photo Gallery
 			</h1>
 			<div class="md:text-right">
-				<p class="text-xs uppercase tracking-wide text-gray-500 mb-1">Share gallery</p>
+				<p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Share gallery</p>
 				<SocialShareButtons title="Photo Gallery" size="sm" />
 			</div>
 		</div>

@@ -24,6 +24,7 @@ Cross-reference: **§2.2.1** (spans + anchor), **§2.2.3** (breakpoints/cascade 
 
 | Done | Item |
 |------|------|
+| [x] | **Full-bleed page background:** `BodyTemplateWrapper` `<main class="min-h-screen w-full …">` holds the canvas color; pack route roots must **not** use `min-h-screen bg-*` (they sit inside max-width `.os-shell-container` and would only color the center column). |
 | [x] | **Shell RTL:** `.os-shell-container` uses logical margin/padding (`margin-inline`, `padding-inline`) so the layout shell behaves correctly in RTL (`frontend/src/lib/styles/globals.css`). |
 | [x] | **Registry tests:** `frontend/src/lib/template-packs/registry.test.ts` — built-in ids, `isKnownTemplatePack`, fallback, `listTemplatePacks`. |
 | [x] | **Light / dark:** Added `dark:` Tailwind variants across **minimal** / **default** / **elegant** album & gallery shells, Search placeholders, and default **AlbumList** (Apr 2026). Manual spot-check Home/Login still recommended. |

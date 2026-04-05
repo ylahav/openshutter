@@ -100,7 +100,7 @@
 </script>
 
 {#if loading}
-	<div class="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-950">
+	<div class="min-h-screen flex items-center justify-center">
 		<div class="text-center">
 			<div class="animate-spin rounded-full h-16 w-16 border-b-2 border-primary-600 mx-auto mb-4"></div>
 			<p class="text-gray-600 dark:text-gray-400">Loading album...</p>
@@ -113,7 +113,7 @@
 		</div>
 	</div>
 {:else if albumData}
-	<div class="min-h-screen bg-gray-50 dark:bg-slate-950">
+	<div class="min-h-screen w-full">
 		<!-- Breadcrumbs -->
 		{#if albumData.album}
 			<AlbumBreadcrumbs albumId={albumData.album._id} />
