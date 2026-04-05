@@ -124,7 +124,7 @@ import BlogArticleModule from './modules/BlogArticleModule.svelte';
 	$: contentMax = compact
 		? 'w-full'
 		: 'w-full max-w-[var(--os-max-width)] mx-auto px-[var(--os-padding)] box-border';
-	$: contentGap = 'gap-[var(--os-gap)]';
+	const contentGap = 'gap-[var(--os-gap)]';
 </script>
 
 {#if !page}

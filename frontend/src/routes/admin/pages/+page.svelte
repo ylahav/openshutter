@@ -1632,48 +1632,6 @@
 							</p>
 						</div>
 					</div>
-				{:else if moduleForm.type === 'blogCategory'}
-					<div class="space-y-4 border-t border-surface-200-800 pt-4">
-						<div>
-							<label for="module-blog-category-alias" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
-								Blog Category
-							</label>
-							<select
-								id="module-blog-category-alias"
-								bind:value={blogCategoryAlias}
-								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
-							>
-								<option value="">All categories</option>
-								{#each availableBlogCategories as category}
-									<option value={category.alias}>{category.title} ({category.alias})</option>
-								{/each}
-							</select>
-							<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">
-								Optional: show only one specific blog category in this module.
-							</p>
-						</div>
-					</div>
-				{:else if moduleForm.type === 'blogCategory'}
-					<div class="space-y-4 border-t border-surface-200-800 pt-4">
-						<div>
-							<label for="module-blog-category-alias" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
-								Blog Category
-							</label>
-							<select
-								id="module-blog-category-alias"
-								bind:value={blogCategoryAlias}
-								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
-							>
-								<option value="">All categories</option>
-								{#each availableBlogCategories as category}
-									<option value={category.alias}>{category.title} ({category.alias})</option>
-								{/each}
-							</select>
-							<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">
-								Optional: show only one specific blog category in this module.
-							</p>
-						</div>
-					</div>
 				{:else}
 					<!-- JSON Editor for other module types -->
 					<div>

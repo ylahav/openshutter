@@ -6,9 +6,24 @@ Goal: raise baseline quality—cleaner Svelte/compiler output, accessibility, pr
 
 ---
 
+## Baseline snapshot (recorded)
+
+| Check | Result (2026-04-05) |
+|--------|----------------------|
+| `pnpm type-check` | Pass |
+| `pnpm build` | Pass (backend + SvelteKit) |
+| `pnpm lint` | Pass — **0 errors**, **995 warnings** (frontend + backend; mostly `@typescript-eslint/no-explicit-any`, `no-useless-assignment`, `preserve-caught-error`, etc.) |
+| `pnpm test:e2e` | **5 tests skipped** (dedicated-storage suite; run with app + env when exercising E2E) |
+
+**Lint unblock (same session):** ESLint previously failed on **3 errors**—fixed by (1) `PageRenderer.svelte`: `contentGap` moved from a reactive literal to a top-level `const` (`svelte/no-reactive-literals`); (2) `admin/pages/+page.svelte`: removed two duplicate `{:else if moduleForm.type === 'blogCategory'}` branches (`svelte/no-dupe-else-if-blocks`). Behavior unchanged.
+
+**Svelte/Vite compiler warnings** (a11y, unused exports, etc.) are still emitted during `pnpm build` / `pnpm build:prod`; tracking continues in Phases B–F.
+
+---
+
 ## Phase A — Baseline and gates
 
-- [ ] **A1.** Run full quality suite locally and record baseline: root `pnpm lint`, `pnpm type-check`, `pnpm build`, and (optional) `pnpm test:e2e`.
+- [x] **A1.** Run full quality suite locally and record baseline: root `pnpm lint`, `pnpm type-check`, `pnpm build`, and (optional) `pnpm test:e2e`.
 - [ ] **A2.** Decide CI policy: fail PRs on new ESLint/TypeScript errors; optionally treat Svelte a11y/compiler warnings as errors once volume is manageable (`svelte.config.js` / Vite plugin options).
 - [ ] **A3.** Document “definition of done” for UI PRs: e.g. no new `a11y_*` or `export_let_unused` in touched files (or justified suppression with a comment).
 
