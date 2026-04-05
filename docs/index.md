@@ -29,6 +29,7 @@ Root [README.md](../README.md), [LICENSE](../LICENSE), and [CHANGELOG.md](../CHA
 
 **Engineering**
 
+- Next steps (post–engineering-quality merge): [development/NEXT_STEPS.md](./development/NEXT_STEPS.md)  
 - Phase 4 (active + supplementary detail): [development/PHASE_4_WORKFLOW.md](./development/PHASE_4_WORKFLOW.md)  
 - Product requirements: [development/SYSTEM_PRD.md](./development/SYSTEM_PRD.md)  
 - CI / quality bar: [development/ENGINEERING_QUALITY_TASKS.md](./development/ENGINEERING_QUALITY_TASKS.md)  

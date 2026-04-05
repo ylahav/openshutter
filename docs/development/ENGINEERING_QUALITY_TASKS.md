@@ -1,8 +1,10 @@
 # Engineering quality — task list
 
-Branch: **`chore/engineering-quality`**
+**Status:** Phases **A–G** complete; work **merged to `main`** (April 2026). This document is the **historical record** and ongoing **definition of done** for UI PRs.
 
 Goal: raise baseline quality—cleaner Svelte/compiler output, accessibility, predictable reactivity, and stronger automated checks—without changing product behavior unless fixing real bugs.
+
+**What to do next:** see [`NEXT_STEPS.md`](./NEXT_STEPS.md).
 
 ---
 
@@ -133,11 +135,12 @@ Many `Layout.svelte` files under `frontend/src/lib/page-builder/modules/**` warn
 2. **B** → **C** → **D** → **E** — **done**.  
 3. **F** — **done**.  
 4. **G** — **done** (optional items documented; no repo change required for G1/G2 beyond this tracker).  
-5. Merge in small PRs (e.g. one PR per phase or per component cluster) to ease review and rollback.
+5. **Merge to `main`** — **done** (April 2026). Follow-up tasks: [`NEXT_STEPS.md`](./NEXT_STEPS.md).
 
 ---
 
 ## References
 
 - Svelte warning codes: [https://svelte.dev/docs/svelte/compiler-warnings](https://svelte.dev/docs/svelte/compiler-warnings)  
-- Related product roadmaps stay in [`ROADMAP_COMMUNITY.md`](./ROADMAP_COMMUNITY.md) and [`ADMIN_UI_ROADMAP.md`](./ADMIN_UI_ROADMAP.md); this list is **engineering hygiene** only.
+- Related product roadmaps stay in [`ROADMAP_COMMUNITY.md`](./ROADMAP_COMMUNITY.md) and [`ADMIN_UI_ROADMAP.md`](./ADMIN_UI_ROADMAP.md); this list is **engineering hygiene** only.  
+- **Post-merge priorities:** [`NEXT_STEPS.md`](./NEXT_STEPS.md).

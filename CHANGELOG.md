@@ -1,6 +1,7 @@
 ## [Unreleased]
 
 ### Added
+- **Docs:** [`docs/development/NEXT_STEPS.md`](docs/development/NEXT_STEPS.md) — post–engineering-quality merge priorities (CI, roadmap links, optional hygiene). [`ENGINEERING_QUALITY_TASKS.md`](docs/development/ENGINEERING_QUALITY_TASKS.md) updated to reflect merge to `main`; [`docs/index.md`](docs/index.md) links the new doc.
 - **Search tag-filter analytics:** `GET /api/admin/analytics/search` returns **`tagFilterStats`** (searches using tag filters, share of searches, zero-result counts, top tags in filters with resolved names). CSV export (`type=search`) includes tag-filter sections. **`metadata.ownerScopeId`** on `analytics_events` search rows for owner-site / v1 host context. **Owner:** `GET /api/owner/analytics/search-tag-filters`, UI **`/owner/analytics`**, dashboard card on **`/owner`**, SvelteKit **`/api/owner/analytics/search-tag-filters`**. Documented in **`docs/development/design/ADVANCED_ANALYTICS_DESIGN.md`** and **`docs/guides/owner-dashboard.md`**. **`AlbumAccessContext`** documents optional **`ownerSiteId`**.
 - **AI providers health API:** Admin-only endpoint **`GET /api/admin/ai/providers/health`** reports configured provider, auto fallback order, active provider, and per-provider availability/reason for **`google-vision`**, **`clip`**, and **`local`**.
 - **Analytics visibility for AI health:** Admin Analytics overview now includes an **AI Providers Health** panel with active provider status and a manual refresh action.

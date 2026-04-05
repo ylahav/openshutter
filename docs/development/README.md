@@ -6,6 +6,7 @@ Roadmaps, requirements, templating architecture, and **design specs** for contri
 
 | Doc | Topic |
 |-----|--------|
+| [NEXT_STEPS.md](./NEXT_STEPS.md) | Priorities after engineering-quality merge to `main` |
 | [SYSTEM_PRD.md](./SYSTEM_PRD.md) | System / product requirements |
 | [functional-spec.md](./functional-spec.md) | Functional specification |
 | [PHASE_4_WORKFLOW.md](./PHASE_4_WORKFLOW.md) | Phase 4 roadmap + supplementary detail (stages 2–4) |
