@@ -3,6 +3,13 @@ import { browser } from '$app/environment';
 
 export type Theme = 'light' | 'dark' | 'system';
 
+/** When false, `prefers-color-scheme` changes are ignored (no live updates while store theme is `system`). */
+let systemPreferenceTrackingEnabled = true;
+
+export function setSystemPreferenceTrackingEnabled(enabled: boolean) {
+	systemPreferenceTrackingEnabled = enabled;
+}
+
 // Theme store
 const themeStore = writable<Theme>('system');
 
@@ -71,6 +78,7 @@ if (browser) {
 	// Listen for system theme changes
 	const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 	const handleSystemThemeChange = () => {
+		if (!systemPreferenceTrackingEnabled) return;
 		const currentTheme = get(themeStore);
 		if (currentTheme === 'system') {
 			const resolved = getSystemTheme();

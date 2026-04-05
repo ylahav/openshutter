@@ -105,8 +105,13 @@ Many `Layout.svelte` files under `frontend/src/lib/page-builder/modules/**` warn
 
 ## Phase F — Theme provider and misc
 
-- [ ] **F1.** `frontend/src/lib/components/ThemeProvider.svelte` — `enableSystem` unused: wire to behavior or remove from public API if dead.
-- [ ] **F2.** Re-scan build output after Phases B–E; fix stragglers file-by-file.
+- [x] **F1.** `frontend/src/lib/components/ThemeProvider.svelte` — `enableSystem` unused: wire to behavior or remove from public API if dead.
+- [x] **F2.** Re-scan build output after Phases B–E; fix stragglers file-by-file.
+
+### Phase F notes
+
+- **F1 — `enableSystem`:** `ThemeProvider` calls `setSystemPreferenceTrackingEnabled(enableSystem)` (reactive). The single `prefers-color-scheme` listener in `$lib/stores/theme` respects this flag: when `false`, OS theme changes no longer update the UI while the store theme is `system`. Removed the duplicate `matchMedia` listener from `ThemeProvider` (store already applies `resolvedTheme` + HTML classes on system change).
+- **F2:** Lint and type-check clean after this work. Full `pnpm build` should be re-run when the pipeline is stable; any remaining Svelte compiler noise is tracked with Phase G (plugin timings) and global ESLint warning backlog.
 
 ---
 
@@ -121,7 +126,7 @@ Many `Layout.svelte` files under `frontend/src/lib/page-builder/modules/**` warn
 
 1. **Phase A** (A1–A3) — **done** (baseline, CI, definition of done).  
 2. **B** → **C** → **D** → **E** — **done**.  
-3. **F** → **G** optional.  
+3. **F** — **done**. **G** optional.  
 4. Merge in small PRs (e.g. one PR per phase or per component cluster) to ease review and rollback.
 
 ---

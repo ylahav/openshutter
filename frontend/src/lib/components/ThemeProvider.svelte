@@ -1,12 +1,15 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { get } from 'svelte/store';
-	import { themeStore, resolvedTheme } from '$lib/stores/theme';
+	import { themeStore, resolvedTheme, setSystemPreferenceTrackingEnabled } from '$lib/stores/theme';
 	import { browser } from '$app/environment';
 
 	export let defaultTheme: 'light' | 'dark' | 'system' = 'system';
+	/** When false, OS light/dark changes are not applied while the selected theme is `system` (see `setSystemPreferenceTrackingEnabled`). */
 	export let enableSystem = true;
 	export let disableTransitionOnChange = false;
+
+	$: if (browser) setSystemPreferenceTrackingEnabled(enableSystem);
 
 	let mounted = false;
 
@@ -68,36 +71,10 @@
 				resolvedTheme.set(resolved);
 			});
 
-			// Listen for system theme changes
-			const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-			const handleSystemThemeChange = () => {
-				const currentTheme = get(themeStore);
-				if (currentTheme === 'system') {
-					const resolved = mediaQuery.matches ? 'dark' : 'light';
-					if (resolved === 'dark') {
-						root.classList.add('dark');
-						root.classList.remove('light');
-					} else {
-						root.classList.add('light');
-						root.classList.remove('dark');
-					}
-					resolvedTheme.set(resolved);
-				}
-			};
-
-			if (mediaQuery.addEventListener) {
-				mediaQuery.addEventListener('change', handleSystemThemeChange);
-			} else {
-				mediaQuery.addListener(handleSystemThemeChange);
-			}
+			// System `prefers-color-scheme` updates are handled once in `$lib/stores/theme` (see `setSystemPreferenceTrackingEnabled`).
 
 			return () => {
 				unsubscribe();
-				if (mediaQuery.removeEventListener) {
-					mediaQuery.removeEventListener('change', handleSystemThemeChange);
-				} else {
-					mediaQuery.removeListener(handleSystemThemeChange);
-				}
 			};
 		}
 	});
