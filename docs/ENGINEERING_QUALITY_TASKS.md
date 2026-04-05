@@ -24,8 +24,22 @@ Goal: raise baseline quality—cleaner Svelte/compiler output, accessibility, pr
 ## Phase A — Baseline and gates
 
 - [x] **A1.** Run full quality suite locally and record baseline: root `pnpm lint`, `pnpm type-check`, `pnpm build`, and (optional) `pnpm test:e2e`.
-- [ ] **A2.** Decide CI policy: fail PRs on new ESLint/TypeScript errors; optionally treat Svelte a11y/compiler warnings as errors once volume is manageable (`svelte.config.js` / Vite plugin options).
+- [x] **A2.** Decide CI policy: fail PRs on new ESLint/TypeScript errors; optionally treat Svelte a11y/compiler warnings as errors once volume is manageable (`svelte.config.js` / Vite plugin options).
 - [ ] **A3.** Document “definition of done” for UI PRs: e.g. no new `a11y_*` or `export_let_unused` in touched files (or justified suppression with a comment).
+
+### CI policy (GitHub Actions)
+
+| Item | Policy |
+|------|--------|
+| **Workflow** | [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) runs on **push** and **pull_request** to **`main`**. |
+| **Steps** | `pnpm install --frozen-lockfile` → **`pnpm lint`** → **`pnpm type-check`** → **`pnpm build`**. |
+| **Fail PR** | **Yes** if ESLint reports **any error**, `tsc --noEmit` fails, or Nest/Vite **build** fails. |
+| **Warnings** | **ESLint warnings** (hundreds today) **do not** fail CI. Same locally: `eslint` exits 0 when there are 0 errors. |
+| **Svelte compiler** | **a11y / unused export / etc. warnings** during `vite build` **do not** fail CI until Phases B–F reduce noise; then revisit `vite-plugin-svelte` `onwarn` or compiler options to treat selected codes as errors. |
+| **Backend TS** | No separate `tsc --noEmit`; **`pnpm build`** runs `nest build`, which typechecks the backend. |
+| **E2E** | Not in CI by default (needs app + DB + env); run manually or add a separate workflow when infrastructure exists. |
+
+**Optional later:** `eslint --max-warnings 0` (or per-package) once warning count is under control; stricter Svelte checks after compiler warning backlog shrinks.
 
 ---
 

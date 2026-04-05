@@ -1,0 +1,44 @@
+# Fails the job on ESLint errors or TypeScript compile errors. ESLint warnings and
+# Svelte compiler (a11y) warnings do not fail the build — see docs/ENGINEERING_QUALITY_TASKS.md (Phase A2).
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Lint, type-check, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: ESLint (frontend + backend)
+        run: pnpm lint
+
+      - name: TypeScript (frontend)
+        run: pnpm type-check
+
+      - name: Production build (NestJS + SvelteKit)
+        run: pnpm build

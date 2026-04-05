@@ -14,5 +14,6 @@ Describe the changes and the motivation.
 - [ ] Tested locally
 - [ ] i18n keys added in EN/HE if UI text added
 - [ ] No linter/type errors
+- [ ] CI passes on `main` PRs (lint, type-check, build — see `.github/workflows/ci.yml`)
 - [ ] Updated docs where relevant
 

@@ -22,6 +22,7 @@ Welcome to the OpenShutter documentation. This comprehensive guide covers all as
 - [Face Recognition Setup](./FACE_RECOGNITION_SETUP.md) - Face detection and matching
 
 ### Development & API
+- [CI (GitHub Actions)](../.github/workflows/ci.yml) - On PRs/pushes to `main`: `pnpm lint`, `pnpm type-check`, `pnpm build` (see [Engineering quality tasks](./ENGINEERING_QUALITY_TASKS.md) Phase A2)
 - [Admin UI roadmap](./ADMIN_UI_ROADMAP.md) - Static admin shell (decoupled from visitor templates); modals, drawers, toasts, forms, DnD standardization
 - [API Testing](./API_TESTING.md) - How to test NestJS API endpoints
 - [Manual test: dedicated owner storage](./MANUAL_TEST_DEDICATED_STORAGE.md) - QA checklist (admin flags, owner dashboard card, `/owner/storage`); Playwright spec in [`e2e/`](../e2e/README.md)
