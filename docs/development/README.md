@@ -12,11 +12,10 @@ Roadmaps, requirements, templating architecture, and **design specs** for contri
 | [PHASE_4_WORKFLOW.md](./PHASE_4_WORKFLOW.md) | Phase 4 roadmap + supplementary detail (stages 2–4) |
 | [ROADMAP_COMMUNITY.md](./ROADMAP_COMMUNITY.md) | Community-first priorities |
 | [ADMIN_UI_ROADMAP.md](./ADMIN_UI_ROADMAP.md) | Admin shell UX |
-| [TEMPLATING_REQUIREMENTS.md](./TEMPLATING_REQUIREMENTS.md) | Templating model (§8 = template pack authoring) |
-| [TEMPLATING_TASKS.md](./TEMPLATING_TASKS.md) | Templating implementation checklist |
-| [THEMING.md](./THEMING.md) | Page builder + theme seeding |
-| [UI_COMPONENT_MODULES.md](./UI_COMPONENT_MODULES.md) | Module authoring contract |
-| [MODULE_URL_PARAMS.md](./MODULE_URL_PARAMS.md) | Module URL parameters |
+| [TEMPLATING.md](./TEMPLATING.md) | **Canonical** templating: packs, themes, page builder overview, checklist, §8 pack appendix |
+| [PAGE_BUILDER_MODULES.md](./PAGE_BUILDER_MODULES.md) | Page builder modules: authoring, `data`/URL context, examples |
+| [TEMPLATING_REQUIREMENTS.md](./TEMPLATING_REQUIREMENTS.md), [TEMPLATING_TASKS.md](./TEMPLATING_TASKS.md), [THEMING.md](./THEMING.md) | Redirect stubs → **`TEMPLATING.md`** |
+| [UI_COMPONENT_MODULES.md](./UI_COMPONENT_MODULES.md), [MODULE_URL_PARAMS.md](./MODULE_URL_PARAMS.md) | Redirect stubs → **`PAGE_BUILDER_MODULES.md`** |
 | [VIDEO_TASKS.md](./VIDEO_TASKS.md) | Video feature checklist |
 | [ENGINEERING_QUALITY_TASKS.md](./ENGINEERING_QUALITY_TASKS.md) | Lint/CI/quality policy |
 | [TYPE_SYSTEM.md](./TYPE_SYSTEM.md) | Shared TypeScript types |

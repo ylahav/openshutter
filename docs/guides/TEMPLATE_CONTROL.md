@@ -1,6 +1,6 @@
 # Controlling the template today (operator guide)
 
-This describes what you can change **with the current system** — how each layer maps to **Admin** and to **`site_config.template`** / **themes**. For architecture, see `TEMPLATING_REQUIREMENTS.md`.
+This describes what you can change **with the current system** — how each layer maps to **Admin** and to **`site_config.template`** / **themes**. For architecture, see [`TEMPLATING.md`](../development/TEMPLATING.md).
 
 ---
 
@@ -103,5 +103,5 @@ To use each pack’s **full** header implementation (layout + behavior), set **`
 
 ## 6. See also
 
-- [`TEMPLATING_REQUIREMENTS.md`](../development/TEMPLATING_REQUIREMENTS.md) — full model (including Phase 2 component rules).
-- [`TEMPLATING_REQUIREMENTS.md`](../development/TEMPLATING_REQUIREMENTS.md) §8 — contributor: adding a pack, registry, allowlists.
+- [`TEMPLATING.md`](../development/TEMPLATING.md) — full model (including Phase 2 component rules), **Part III** checklist, **§8** contributor appendix (pack, registry, allowlists).
+- [`PAGE_BUILDER_MODULES.md`](../development/PAGE_BUILDER_MODULES.md) — module authoring and URL/`data` context for `PageRenderer`.

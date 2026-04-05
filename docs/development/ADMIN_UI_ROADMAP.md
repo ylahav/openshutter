@@ -77,8 +77,8 @@ Standardize implementations so every admin screen uses the same APIs:
 ## Relationship to other docs
 
 - **[`ROADMAP_COMMUNITY.md`](./ROADMAP_COMMUNITY.md)** — Community “admin template switcher” items are **obsolete**; visitor templating and packs remain in scope there.
-- **[`TEMPLATING_TASKS.md`](./TEMPLATING_TASKS.md)** — Checklist items about **public** templates and theme apply stay valid; **admin template switching** is out of scope (see Technical Backlog note there).
-- **[`TEMPLATING_REQUIREMENTS.md`](./TEMPLATING_REQUIREMENTS.md) §8** — Packs apply to the **visitor** site; admin panel does not register packs.
+- **[`TEMPLATING.md` — Part III](./TEMPLATING.md#part-iii-implementation-checklist-and-backlog)** — Checklist items about **public** templates and theme apply stay valid; **admin template switching** is out of scope (see Technical Backlog note there).
+- **[`TEMPLATING.md` §8 appendix](./TEMPLATING.md#8-appendix-create-a-template-pack-built-in)** — Packs apply to the **visitor** site; admin panel does not register packs.
 
 ## Open decisions (fill in as you implement)
 

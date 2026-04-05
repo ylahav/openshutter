@@ -545,7 +545,7 @@
 		hasChanges = true;
 	}
 
-	/** Copy current breakpoint’s grid and module placements to xs…xl for the active page (TEMPLATING_REQUIREMENTS 2.2.4). */
+	/** Copy current breakpoint’s grid and module placements to xs…xl for the active page (TEMPLATING.md §2.2.4). */
 	function applyCurrentBreakpointToAllForEditingPage() {
 		const pt = editingPageType;
 		const bp = editingBreakpoint;

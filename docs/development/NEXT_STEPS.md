@@ -24,7 +24,7 @@ Use this list to pick **immediate** follow-ups vs **product roadmap** work.
 | [`VIDEO_TASKS.md`](./VIDEO_TASKS.md) | Video feature checklist (albums, lightbox, storage). |
 | [`PHASE_4_WORKFLOW.md`](./PHASE_4_WORKFLOW.md) | Remaining Phase 4: mobile app (5), video (6), enterprise (7); tag optimization follow-ups if any. |
 | [`ADMIN_UI_ROADMAP.md`](./ADMIN_UI_ROADMAP.md) | Admin shell UX backlog. |
-| [`TEMPLATING_TASKS.md`](./TEMPLATING_TASKS.md) | Template / page-builder implementation gaps. |
+| [`TEMPLATING.md` — Part III](./TEMPLATING.md#part-iii-implementation-checklist-and-backlog) | Template / page-builder implementation gaps. |
 
 ---
 
