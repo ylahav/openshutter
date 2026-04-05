@@ -421,6 +421,6 @@ AI_TAGGING_QUEUE_ENABLED=true
 
 ## 14. References
 
-- [PHASE_3_WORKFLOW.md](./PHASE_3_WORKFLOW.md) – Stage 2 scope and acceptance criteria
-- [SYSTEM_PRD.md](./SYSTEM_PRD.md) – Tag system requirements
-- [functional-spec.md](./functional-spec.md) – API specifications
+- [PHASE_3_WORKFLOW.md](../../archive/development/PHASE_3_WORKFLOW.md) – Stage 2 scope and acceptance criteria
+- [SYSTEM_PRD.md](../SYSTEM_PRD.md) – Tag system requirements
+- [functional-spec.md](../functional-spec.md) – API specifications

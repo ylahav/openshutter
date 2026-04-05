@@ -253,7 +253,7 @@ The SvelteKit route (`frontend/src/routes/api/photos/upload/+server.ts`) proxies
 Configure limits at **three** levels:
 
 1. **SvelteKit `BODY_SIZE_LIMIT`** — Default is **512KB**; set e.g. `BODY_SIZE_LIMIT=100M` in PM2 env, shell, or `.env`, then restart the SvelteKit server.
-2. **Nginx** — Set `client_max_body_size 100M;` in the server block (see `docs/nginx-openshutter.conf`).
+2. **Nginx** — Set `client_max_body_size 100M;` in the server block (see [`nginx-openshutter.conf`](./nginx-openshutter.conf)).
 3. **Backend** — NestJS limit **100MB** (already aligned).
 
 ### Common errors

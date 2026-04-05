@@ -605,6 +605,6 @@ Use a lightweight charting library:
 
 ## 11. References
 
-- [PHASE_3_WORKFLOW.md](./PHASE_3_WORKFLOW.md) – Stage 3 scope and acceptance criteria
-- [SYSTEM_PRD.md](./SYSTEM_PRD.md) – Analytics requirements
-- [functional-spec.md](./functional-spec.md) – API specifications
+- [PHASE_3_WORKFLOW.md](../../archive/development/PHASE_3_WORKFLOW.md) – Stage 3 scope and acceptance criteria
+- [SYSTEM_PRD.md](../SYSTEM_PRD.md) – Analytics requirements
+- [functional-spec.md](../functional-spec.md) – API specifications

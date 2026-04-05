@@ -1,10 +1,7 @@
 ## [Unreleased]
 
-### Changed
-- **Documentation:** Consolidated overlapping guides — `WHITE_LABEL.md` (design + deploy), `PHASE_4_WORKFLOW.md` supplementary section (Stages 2–4 detail), `PHOTO_UPLOAD.md` (limits + metadata), `THEMING.md` (page builder + seeding), `TEMPLATING_REQUIREMENTS.md` §8 (template pack); removed deprecated `docs/templates.md` and `docs/archive/*`. See `docs/index.md`.
-
 ### Added
-- **Search tag-filter analytics:** `GET /api/admin/analytics/search` returns **`tagFilterStats`** (searches using tag filters, share of searches, zero-result counts, top tags in filters with resolved names). CSV export (`type=search`) includes tag-filter sections. **`metadata.ownerScopeId`** on `analytics_events` search rows for owner-site / v1 host context. **Owner:** `GET /api/owner/analytics/search-tag-filters`, UI **`/owner/analytics`**, dashboard card on **`/owner`**, SvelteKit **`/api/owner/analytics/search-tag-filters`**. Documented in **`docs/ADVANCED_ANALYTICS_DESIGN.md`** and **`docs/owner-dashboard.md`**. **`AlbumAccessContext`** documents optional **`ownerSiteId`**.
+- **Search tag-filter analytics:** `GET /api/admin/analytics/search` returns **`tagFilterStats`** (searches using tag filters, share of searches, zero-result counts, top tags in filters with resolved names). CSV export (`type=search`) includes tag-filter sections. **`metadata.ownerScopeId`** on `analytics_events` search rows for owner-site / v1 host context. **Owner:** `GET /api/owner/analytics/search-tag-filters`, UI **`/owner/analytics`**, dashboard card on **`/owner`**, SvelteKit **`/api/owner/analytics/search-tag-filters`**. Documented in **`docs/development/design/ADVANCED_ANALYTICS_DESIGN.md`** and **`docs/guides/owner-dashboard.md`**. **`AlbumAccessContext`** documents optional **`ownerSiteId`**.
 - **AI providers health API:** Admin-only endpoint **`GET /api/admin/ai/providers/health`** reports configured provider, auto fallback order, active provider, and per-provider availability/reason for **`google-vision`**, **`clip`**, and **`local`**.
 - **Analytics visibility for AI health:** Admin Analytics overview now includes an **AI Providers Health** panel with active provider status and a manual refresh action.
 - **Vendored BTAG core (TypeScript):** Added local STAG-style core at **`backend/src/services/stag/btag-core.ts`** (CLIP/ResNet tagging + XMP generation) so no private npm registry package is required.
@@ -16,6 +13,7 @@
 - **Integration marketplace (Phase 4 Stage 2):** Public **`GET /api/marketplace`** supports **`limit`** (default 100, max 200) and **`offset`**. Listing detail page shows **screenshots** when present. **Admin → Marketplace** can **edit tags** (comma-separated) per listing.
 
 ### Changed
+- **Documentation:** Folder layout — **`docs/guides/`** (install & operations), **`docs/development/`** (roadmaps, PRD, templating, **`design/`** specs), **`docs/archive/development/`** (completed Phase 3 workflow). Earlier file merges (white-label, photo upload, theming, templating §8, etc.) unchanged in substance. See **`docs/index.md`**.
 - **AI provider orchestration:** `auto` now resolves providers in order **`google-vision` → `clip` → `local`** (when not explicitly pinned), with better health diagnostics and operator-facing reasons.
 - **Google Vision quality:** Suggestion extraction now fuses multiple Vision signals (labels/objects/landmarks/web entities), then normalizes, de-duplicates, and re-ranks for better relevance.
 - **Clip provider implementation:** `clip` now uses the vendored BTAG core and DB-backed candidate labels, with fallback labels when needed.
@@ -43,7 +41,7 @@
 - **Dedicated per-owner storage**: Admins can enable **Use dedicated per-owner storage** per owner (Admin → Users) and restrict **Allowed Storage Providers**. Owners with this flag manage per-provider credentials on `/owner/storage` (stored separately from the shared profile `storageConfig`). Backend uses owner storage context for uploads, serving, and related flows where applicable; includes APIs and SvelteKit proxies for dedicated config.
 - **Playwright E2E**: `e2e/dedicated-storage.spec.ts` exercises admin toggle, owner dashboard card, and `/owner/storage` (dedicated banner vs site-admin panel). Run with `pnpm test:e2e` after `pnpm exec playwright install chromium` and `E2E_ADMIN_*` / `E2E_OWNER_*` env vars. See `e2e/README.md`.
 - **Docs**: `docs/MANUAL_TEST_DEDICATED_STORAGE.md` (manual QA checklist); `docs/STORAGE.md` section on dedicated storage; doc index links updated.
-- **Phase 3 complete**: All Phase 3 stages implemented (Migration, AI tagging, Advanced analytics, API marketplace, Smart tag suggestions & search optimization). See `docs/PHASE_3_WORKFLOW.md`.
+- **Phase 3 complete**: All Phase 3 stages implemented (Migration, AI tagging, Advanced analytics, API marketplace, Smart tag suggestions & search optimization). See `docs/archive/development/PHASE_3_WORKFLOW.md`.
 - **Smart Tag Suggestions & Tag-Based Search Optimization (Phase 3 Stage 6)** ✅
   - **Context-based tag suggestions**: Suggest tags based on similar photos, IPTC/XMP keywords, location, and tag co-occurrence patterns
   - **API endpoint**: `GET /api/admin/photos/:id/suggest-tags-from-context` with optional `maxSuggestions` and `sources` query parameters

@@ -3,7 +3,7 @@
 ## White-Label Solutions Design
 
 **Phase:** 4 – Stage 1  
-**Status:** **Complete** (March 2026) — Solution 1 (single-install branding) and Solution 2 (per-owner domains, scoped public APIs, owner admin). Optional follow-ups (sitemaps, primary canonical, storage model polish, schema extras in §2.1 vs code) are **low priority** and tracked in `docs/PHASE_4_WORKFLOW.md` §1.2.6–1.2.7.  
+**Status:** **Complete** (March 2026) — Solution 1 (single-install branding) and Solution 2 (per-owner domains, scoped public APIs, owner admin). Optional follow-ups (sitemaps, primary canonical, storage model polish, schema extras in §2.1 vs code) are **low priority** and tracked in [`PHASE_4_WORKFLOW.md`](../development/PHASE_4_WORKFLOW.md) §1.2.6–1.2.7.  
 
 This document describes the design and implementation plan for Phase 4 Stage 1: **White-label solutions**.
 
@@ -274,7 +274,7 @@ Each owner should have a **single, self-managed theme** for their domain. They c
 5. **Admin APIs for owner domains and storage**
    - CRUD endpoints to manage `owner_domains` (admin-only).
    - Extend existing owner/user admin APIs to show associated domains and storage config.
-   - **Status:** Implemented admin CRUD for owner domains and Owner Domains section in the Users admin page. **Storage:** global `storage_configs` + per-owner **`storageConfig`** on **`/owner/storage`**; **dedicated** path via **`useDedicatedStorage`** and **`owner_storage_configs`** (see `docs/PHASE_4_WORKFLOW.md` §1.2.6). Optional UX gap: configure dedicated storage in the same flow as **creating** an owner.
+   - **Status:** Implemented admin CRUD for owner domains and Owner Domains section in the Users admin page. **Storage:** global `storage_configs` + per-owner **`storageConfig`** on **`/owner/storage`**; **dedicated** path via **`useDedicatedStorage`** and **`owner_storage_configs`** (see [`PHASE_4_WORKFLOW.md`](../development/PHASE_4_WORKFLOW.md) §1.2.6). Optional UX gap: configure dedicated storage in the same flow as **creating** an owner.
 
 ### 5.2 Frontend
 
@@ -441,7 +441,7 @@ To test per-owner domains locally with a subdomain (e.g. **sara.localhost:4000**
 
 ## References
 
-- [PHASE_4_WORKFLOW.md](./PHASE_4_WORKFLOW.md) — White-label solutions (Section 1)
+- [PHASE_4_WORKFLOW.md](../development/PHASE_4_WORKFLOW.md) — White-label solutions (Section 1)
 - [SERVER_DEPLOYMENT.md](./SERVER_DEPLOYMENT.md) — Deployment and env vars
 
 
@@ -481,7 +481,7 @@ Short runbook for **Phase 4 Stage 1** (complete): Solution 1 (single branded ins
    In production, forward **`Host`** (or **`X-Forwarded-Host`**) from the edge to the NestJS backend so **`SiteContextMiddleware`** resolves the correct owner. The SvelteKit **`backendRequest`** helper forwards the visitor host for server-side API calls.
 
 5. **Content**  
-   Public albums, photos, search, CMS pages, and blog list/article APIs are **scoped by owner** when the request host maps to an owner domain (see **`docs/PHASE_4_WORKFLOW.md`** §1.2).
+   Public albums, photos, search, CMS pages, and blog list/article APIs are **scoped by owner** when the request host maps to an owner domain (see **[`PHASE_4_WORKFLOW.md`](../development/PHASE_4_WORKFLOW.md)** §1.2).
 
 ## Optional checks
 

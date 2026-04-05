@@ -416,10 +416,10 @@ GET /api/admin/photos/:id/suggest-tags-from-context?maxSuggestions=10&sources=si
 
 ## References
 
-- [PHASE_3_WORKFLOW.md](./PHASE_3_WORKFLOW.md) – Stage 6 scope and acceptance criteria
+- [PHASE_3_WORKFLOW.md](../../archive/development/PHASE_3_WORKFLOW.md) – Stage 6 scope and acceptance criteria
 - [AI_TAGGING_DESIGN.md](./AI_TAGGING_DESIGN.md) – Stage 2 AI tagging implementation
-- [Search Service](../backend/src/search/search.service.ts) – Current search implementation
-- [Photo Model](../backend/src/models/Photo.ts) – Photo schema with tags, location, IPTC metadata
+- [Search Service](../../../backend/src/search/search.service.ts) – Current search implementation
+- [Photo Model](../../../backend/src/models/Photo.ts) – Photo schema with tags, location, IPTC metadata
 
 ---
 

@@ -251,4 +251,4 @@ Move from scattered registration to a **module manifest** (one import) that supp
 
 That would reduce “minimal touch” to: new files + one manifest row + backend API if the module needs data.
 
-This aligns with planned Phase 2 component taxonomy and validation in `docs/TEMPLATING_REQUIREMENTS.md`.
+This aligns with planned Phase 2 component taxonomy and validation in [`TEMPLATING_REQUIREMENTS.md`](./TEMPLATING_REQUIREMENTS.md).

@@ -113,8 +113,8 @@ This roadmap prioritizes features that drive adoption in photographer communitie
 
 ## Dependencies
 
-- Existing template docs and theme systems in `docs/TEMPLATING_REQUIREMENTS.md`, `docs/THEMING.md`, and `docs/MODULE_URL_PARAMS.md`
-- Existing phase tracking in `docs/PHASE_4_WORKFLOW.md` and `README.md`
+- Existing template docs and theme systems in [`development/TEMPLATING_REQUIREMENTS.md`](./TEMPLATING_REQUIREMENTS.md), [`development/THEMING.md`](./THEMING.md), and [`development/MODULE_URL_PARAMS.md`](./MODULE_URL_PARAMS.md)
+- Existing phase tracking in [`development/PHASE_4_WORKFLOW.md`](./PHASE_4_WORKFLOW.md) and [README.md](../../README.md)
 
 ## Related Task Lists
 

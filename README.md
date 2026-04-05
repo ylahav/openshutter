@@ -163,7 +163,7 @@ The setup wizard automatically appears when you first visit the site. After comp
 
 **⚠️ IMPORTANT**: Always change default credentials immediately after first login!
 
-For detailed admin setup instructions, see [docs/ADMIN_SETUP.md](docs/ADMIN_SETUP.md).
+For detailed admin setup instructions, see [docs/guides/ADMIN_SETUP.md](docs/guides/ADMIN_SETUP.md).
 
 ## 🚀 Development
 
@@ -186,7 +186,7 @@ For detailed admin setup instructions, see [docs/ADMIN_SETUP.md](docs/ADMIN_SETU
 
 ## 🚀 Production Deployment
 
-> **📖 Full Deployment Guide**: For complete instructions including environment setup, MongoDB configuration, PM2 management, Nginx, and SSL, see **[docs/SERVER_DEPLOYMENT.md](docs/SERVER_DEPLOYMENT.md)**
+> **📖 Full Deployment Guide**: For complete instructions including environment setup, MongoDB configuration, PM2 management, Nginx, and SSL, see **[docs/guides/SERVER_DEPLOYMENT.md](docs/guides/SERVER_DEPLOYMENT.md)**
 
 ### Quick Deployment Steps
 
@@ -226,7 +226,7 @@ pnpm build          # Build for production
 pnpm start          # Start production server
 ```
 
-For detailed deployment instructions, see [docs/SERVER_DEPLOYMENT.md](docs/SERVER_DEPLOYMENT.md).
+For detailed deployment instructions, see [docs/guides/SERVER_DEPLOYMENT.md](docs/guides/SERVER_DEPLOYMENT.md).
 
 ## 📁 Project Structure
 
@@ -392,7 +392,7 @@ For comprehensive deployment instructions including:
 - SSL/HTTPS setup
 - Troubleshooting common issues
 
-See the complete guide: **[docs/SERVER_DEPLOYMENT.md](docs/SERVER_DEPLOYMENT.md)**
+See the complete guide: **[docs/guides/SERVER_DEPLOYMENT.md](docs/guides/SERVER_DEPLOYMENT.md)**
 
 ## 🤝 Contributing
 
@@ -458,7 +458,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
   - [x] Rotate photo 90° CW, 90° CCW, or 180° from photo edit page (admin and owner). Backend replaces file and regenerates thumbnails. API: `POST /api/admin/photos/:id/rotate` with body `{ angle: 90 | -90 | 180 }`.
   - [ ] Crop (future)
 - [x] **Social sharing features** – Share buttons (X, Facebook, WhatsApp, Copy link) on album and in photo lightbox; configurable in Site Config → Sharing (which options, album vs photo level); single-photo share URL with `#p=index` opens lightbox at that photo; elegant template: share on album grid per photo
-- [x] **Enhanced tag analytics** (search/tag-filter behavior) — Admin **Analytics → Search** includes `tagFilterStats` (summary + top tags in filters, CSV export). Owners: **`/owner/analytics`** and **`GET /api/owner/analytics/search-tag-filters`**. Search events set **`metadata.ownerScopeId`** on owner custom domains; **`GET/POST /api/v1/search`** logs analytics like site search. See **`docs/ADVANCED_ANALYTICS_DESIGN.md`**. Deeper admin-only insights (e.g. time series of tag filters only) remain optional.
+- [x] **Enhanced tag analytics** (search/tag-filter behavior) — Admin **Analytics → Search** includes `tagFilterStats` (summary + top tags in filters, CSV export). Owners: **`/owner/analytics`** and **`GET /api/owner/analytics/search-tag-filters`**. Search events set **`metadata.ownerScopeId`** on owner custom domains; **`GET/POST /api/v1/search`** logs analytics like site search. See **[`docs/development/design/ADVANCED_ANALYTICS_DESIGN.md`](docs/development/design/ADVANCED_ANALYTICS_DESIGN.md)**. Deeper admin-only insights (e.g. time series of tag filters only) remain optional.
 - [x] **User role management** – Admin/Owner/Guest roles, Admin → Users (role + groupAliases), Admin → Groups, owner dashboard and owner album/photo management (`/owner/albums`, `/owner/photos/[id]/edit`), AdminOrOwnerGuard and ownership enforcement
 - [x] **Welcome email on user creation** – Configurable SMTP settings and welcome email subject/body in Site Config; sent when an admin creates a new user (optional)
 - [x] **Force password change on first login** – System-generated or admin-set passwords mark the user to change password on first login; blocking modal/flow ensures password is updated before accessing protected areas
@@ -472,19 +472,19 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
   - [x] **IPTC/XMP import** – On upload and on “Re-extract from file”, IPTC and XMP metadata are extracted (exifr) and stored in the photo’s `iptcXmp` field (keywords, caption, copyright, creator, city, country, etc.); API and templates can use `iptcXmp`. Export (write back to file) optional/future.
 
 ### Phase 3 (Next 12 months) *
-- [x] Import/Sync & storage migration: export/import portable packages, import from raw folders, and migrate photo storage between providers (see `docs/IMPORT_SYNC_DESIGN.md` and `docs/PHASE_3_WORKFLOW.md`)
-- [x] **AI-powered photo tagging** – Suggest tags per photo or in bulk; supports local storage and Google Drive (downloads to temp file); **Local AI provider fully implemented** with TensorFlow.js MobileNet v2 model for on-device classification; design in `docs/AI_TAGGING_DESIGN.md`
+- [x] Import/Sync & storage migration: export/import portable packages, import from raw folders, and migrate photo storage between providers (see [`docs/development/design/IMPORT_SYNC_DESIGN.md`](docs/development/design/IMPORT_SYNC_DESIGN.md) and [`docs/archive/development/PHASE_3_WORKFLOW.md`](docs/archive/development/PHASE_3_WORKFLOW.md))
+- [x] **AI-powered photo tagging** – Suggest tags per photo or in bulk; supports local storage and Google Drive (downloads to temp file); **Local AI provider fully implemented** with TensorFlow.js MobileNet v2 model for on-device classification; design in [`docs/development/design/AI_TAGGING_DESIGN.md`](docs/development/design/AI_TAGGING_DESIGN.md)
 - [ ] Site-wide templating system: template “packs” that control layout and styling for home, albums list, album view, about, and Page Builder pages. Each pack is a folder of Svelte components (`Layout`, `Home`, `AlbumsList`, `Album`, `About`, `PageBuilderRenderer`) plus a small `config.ts` describing options. Admin selects the active template and per-template options in Site Config; routes dynamically load the active pack so creating a new template is as simple as copying a folder and tweaking Svelte/Tailwind.
-- [x] **Advanced analytics** – Admin analytics dashboard (views, search, tags, storage); event logging with privacy (hashed IPs); design in `docs/ADVANCED_ANALYTICS_DESIGN.md`
-- [x] **API marketplace** – Public API at `/api/v1/` with OpenAPI docs; API keys and scopes; developer portal (`/developers`, `/developers/keys`, `/developers/docs`); marketplace (`/marketplace`, submit, admin approval); design in `docs/API_MARKETPLACE.md`
-- [x] **Smart tag suggestions & tag-based search optimization** – Context-based tag suggestions from similar photos, IPTC keywords, location, and patterns; optimized search with compound indexes and relevance scoring; design in `docs/SMART_TAG_SUGGESTIONS_DESIGN.md`
+- [x] **Advanced analytics** – Admin analytics dashboard (views, search, tags, storage); event logging with privacy (hashed IPs); design in [`docs/development/design/ADVANCED_ANALYTICS_DESIGN.md`](docs/development/design/ADVANCED_ANALYTICS_DESIGN.md)
+- [x] **API marketplace** – Public API at `/api/v1/` with OpenAPI docs; API keys and scopes; developer portal (`/developers`, `/developers/keys`, `/developers/docs`); marketplace (`/marketplace`, submit, admin approval); design in [`docs/development/design/API_MARKETPLACE.md`](docs/development/design/API_MARKETPLACE.md)
+- [x] **Smart tag suggestions & tag-based search optimization** – Context-based tag suggestions from similar photos, IPTC keywords, location, and patterns; optimized search with compound indexes and relevance scoring; design in [`docs/development/design/SMART_TAG_SUGGESTIONS_DESIGN.md`](docs/development/design/SMART_TAG_SUGGESTIONS_DESIGN.md)
 
 ### Phase 4 (Next 18 months) *
 - [ ] Enterprise features (SSO, audit logs, quotas, multi-tenancy)
 - [ ] Video support
-- [x] Advanced collaboration — album comments (Phase 4 Stage 3 MVP — see `docs/PHASE_4_WORKFLOW.md` supplementary detail)
-- [x] Integration marketplace (Phase 4 Stage 2 — see `docs/PHASE_4_WORKFLOW.md` supplementary detail)
-- [x] White-label solutions (Phase 4 Stage 1 — see `docs/PHASE_4_WORKFLOW.md`)
+- [x] Advanced collaboration — album comments (Phase 4 Stage 3 MVP — see [`docs/development/PHASE_4_WORKFLOW.md`](docs/development/PHASE_4_WORKFLOW.md) supplementary detail)
+- [x] Integration marketplace (Phase 4 Stage 2 — see [`docs/development/PHASE_4_WORKFLOW.md`](docs/development/PHASE_4_WORKFLOW.md) supplementary detail)
+- [x] White-label solutions (Phase 4 Stage 1 — see [`docs/development/PHASE_4_WORKFLOW.md`](docs/development/PHASE_4_WORKFLOW.md))
 - [ ] Mobile app development
 
 *Note: Roadmap phases and timelines are subject to change based on user feedback, technical requirements, and development priorities.

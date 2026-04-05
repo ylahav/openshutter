@@ -46,7 +46,7 @@ Use this as a checklist when touching components, routes, or styles. CI already 
 
 | Item | Policy |
 |------|--------|
-| **Workflow** | [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) runs on **push** and **pull_request** to **`main`**. |
+| **Workflow** | [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) runs on **push** and **pull_request** to **`main`**. |
 | **Steps** | `pnpm install --frozen-lockfile` → **`pnpm lint`** → **`pnpm type-check`** → **`pnpm build`**. |
 | **Fail PR** | **Yes** if ESLint reports **any error**, `tsc --noEmit` fails, or Nest/Vite **build** fails. |
 | **Warnings** | **ESLint warnings** (hundreds today) **do not** fail CI. Same locally: `eslint` exits 0 when there are 0 errors. |

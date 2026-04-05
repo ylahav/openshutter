@@ -115,7 +115,7 @@ Implementation: when `siteContext.type === 'owner-site'`, guards for `/admin` al
 - **SEO:** Canonical **`og:url`** use the request host (root layout). **Deferred (low priority):** per-host sitemaps; optional canonical override to **`owner_domains.isPrimary`** when multiple domains serve the same site.
 - **SSO (Phase 4 Enterprise):** When adding SSO, auth can be tied to `siteContext` so org-specific IdP can be used per domain/tenant later.
 
-**Deliverables:** Design doc (domain mapping, host resolution, security, per-owner storage); backend: `owner_domains` + host-resolution middleware + **owner storage resolution** (`useDedicatedStorage`, `owner_storage_configs`); frontend: `siteContext`, owner-scoped public routes and `/admin`; admin UI for owner domains and per-owner storage (flag + **`/owner/storage`**); DNS/TLS runbook (**[`docs/WHITE_LABEL.md`](./WHITE_LABEL.md)** deployment section for Solution 1 + owner-domain notes).
+**Deliverables:** Design doc (domain mapping, host resolution, security, per-owner storage); backend: `owner_domains` + host-resolution middleware + **owner storage resolution** (`useDedicatedStorage`, `owner_storage_configs`); frontend: `siteContext`, owner-scoped public routes and `/admin`; admin UI for owner domains and per-owner storage (flag + **`/owner/storage`**); DNS/TLS runbook (**[WHITE_LABEL.md](../guides/WHITE_LABEL.md)** deployment section for Solution 1 + owner-domain notes).
 
 ---
 
@@ -129,8 +129,8 @@ Implementation: when `siteContext.type === 'owner-site'`, guards for `/admin` al
 - **Updates and upgrades**
   - **Site config** (`site_config` / Admin → Site config): merged on read with defaults; nested blocks (**`whiteLabel`**, **`contact.socialMedia`**, etc.) are deep-merged where implemented so partial documents survive upgrades.
   - **Theme Builder / template JSON** lives in site config; back up before major upgrades if you rely on custom layouts.
-  - **Owner domains** (`owner_domains`), **dedicated storage** rows (`owner_storage_configs`), and **album/photo** data are ordinary MongoDB collections—plan migrations and backups per **`docs/SERVER_DEPLOYMENT.md`**.
-  - **Override points** for branding: **[`docs/WHITE_LABEL.md`](./WHITE_LABEL.md)**, and **`CHANGELOG.md`** for release-to-release behavior changes.
+  - **Owner domains** (`owner_domains`), **dedicated storage** rows (`owner_storage_configs`), and **album/photo** data are ordinary MongoDB collections—plan migrations and backups per **[SERVER_DEPLOYMENT.md](../guides/SERVER_DEPLOYMENT.md)**.
+  - **Override points** for branding: **[WHITE_LABEL.md](../guides/WHITE_LABEL.md)**, and **`CHANGELOG.md`** for release-to-release behavior changes.
 
 - **Summary:** Solution 1 = one brand per install, no OpenShutter visible (optional separate public logo/favicon under **`whiteLabel`**). Solution 2 = per-owner domain and content isolation with admin at `<domain>/admin`; optional at owner creation.
 
@@ -361,7 +361,7 @@ The sections below expand on **Stages 2–4** (marketplace expansion, collaborat
 
 Marketplace home: search, category filter, featured section; listing detail: tags, featured badge, screenshots; admin: featured toggle and tag editing.
 
-**See also:** [API_MARKETPLACE.md](./API_MARKETPLACE.md).
+**See also:** [API_MARKETPLACE.md](./design/API_MARKETPLACE.md).
 
 ---
 
@@ -388,7 +388,7 @@ Marketplace home: search, category filter, featured section; listing detail: tag
 ### Stage 4 — Tag optimization & ML signals
 
 **Status:** Implemented (March 2026) — slices A–D shipped  
-**Related:** [AI_TAGGING_DESIGN.md](./AI_TAGGING_DESIGN.md), [SMART_TAG_SUGGESTIONS_DESIGN.md](./SMART_TAG_SUGGESTIONS_DESIGN.md)
+**Related:** [AI_TAGGING_DESIGN.md](./design/AI_TAGGING_DESIGN.md), [SMART_TAG_SUGGESTIONS_DESIGN.md](./design/SMART_TAG_SUGGESTIONS_DESIGN.md)
 
 **Goal:** Improve tag quality using user behavior (accept/dismiss), co-occurrence, and optional search ranking tweaks.
 
@@ -403,6 +403,6 @@ Marketplace home: search, category filter, featured section; listing detail: tag
 ## References
 
 - [SYSTEM_PRD.md](./SYSTEM_PRD.md) – Phase 4 roadmap
-- [README.md](../README.md) – Roadmap section
-- [PHASE_3_WORKFLOW.md](./PHASE_3_WORKFLOW.md) – Phase 3 (complete); Stage 5 Enterprise moved here
+- [README.md](../../README.md) – Roadmap section
+- [PHASE_3_WORKFLOW.md](../archive/development/PHASE_3_WORKFLOW.md) – Phase 3 (complete); Stage 5 Enterprise moved here
 

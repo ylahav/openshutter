@@ -103,5 +103,5 @@ To use each pack’s **full** header implementation (layout + behavior), set **`
 
 ## 6. See also
 
-- `docs/TEMPLATING_REQUIREMENTS.md` — full model (including Phase 2 component rules).
-- `docs/TEMPLATING_REQUIREMENTS.md` §8 — contributor: adding a pack, registry, allowlists.
+- [`TEMPLATING_REQUIREMENTS.md`](../development/TEMPLATING_REQUIREMENTS.md) — full model (including Phase 2 component rules).
+- [`TEMPLATING_REQUIREMENTS.md`](../development/TEMPLATING_REQUIREMENTS.md) §8 — contributor: adding a pack, registry, allowlists.

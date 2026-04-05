@@ -148,6 +148,6 @@ Cancellation: set a `cancelled` flag that the running job checks between items s
 
 ## 7. References
 
-- [PHASE_3_WORKFLOW.md](./PHASE_3_WORKFLOW.md) – Stage 1 scope and acceptance criteria
-- [SYSTEM_PRD.md](./SYSTEM_PRD.md) – §5 Storage, §6 Repository Import System
-- [STORAGE.md](./STORAGE.md) – Storage providers and configuration
+- [PHASE_3_WORKFLOW.md](../../archive/development/PHASE_3_WORKFLOW.md) – Stage 1 scope and acceptance criteria
+- [SYSTEM_PRD.md](../SYSTEM_PRD.md) – §5 Storage, §6 Repository Import System
+- [STORAGE.md](../../guides/STORAGE.md) – Storage providers and configuration

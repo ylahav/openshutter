@@ -38,7 +38,7 @@ This document defines the workflow and stages for Phase 3 of the OpenShutter roa
   - **Internal storage migration:** All configured backends as source/target; read from current default, write to new, update `photos` (and related) records; idempotency, resume, checksum verification.
 - **API design:** Endpoints for export (preview, start, status, cancel), import (scan for raw source, preview, start, status, cancel), and storage migration (preview, start, status, cancel).
 - **Security:** Admin-only; path allowlist/validation for import/export paths; migration restricted to configured storage providers.
-- **Deliverable:** Design doc (e.g. `docs/IMPORT_SYNC_DESIGN.md`) defining external package format (DB reflection + tree), import/export flow, and storage migration + ADR if needed.
+- **Deliverable:** Design doc (e.g. `../../development/design/IMPORT_SYNC_DESIGN.md`) defining external package format (DB reflection + tree), import/export flow, and storage migration + ADR if needed.
 
 **Alignment with original task (SYSTEM_PRD):**
 - **§6 Repository Import System:** Scan external sources, parse folder structure into albums, import photos with metadata, progress tracking, preview before execution, handle large operations, folder structure preserved — all covered by Stage 1 (import from raw path and import from package).
@@ -84,8 +84,8 @@ This document defines the workflow and stages for Phase 3 of the OpenShutter roa
 - **Scope:** Suggest tags per photo (or batch); optional auto-apply with confidence threshold; respect existing tag taxonomy (categories, existing tags).
 - **Model options:** Local model (e.g. image captioning/classification) vs. external API (e.g. vision API); cost and privacy trade-offs.
 - **Integration points:** Photo upload pipeline, photo edit page, bulk operations.
-- **Deliverable:** Design doc (e.g. `docs/AI_TAGGING_DESIGN.md`) with chosen approach and API contract.
-- **Status:** ✅ Design document created (`docs/AI_TAGGING_DESIGN.md`)
+- **Deliverable:** Design doc (e.g. `../../development/design/AI_TAGGING_DESIGN.md`) with chosen approach and API contract.
+- **Status:** ✅ Design document created (`../../development/design/AI_TAGGING_DESIGN.md`)
 
 ### 2.2 Implementation ✅
 
@@ -98,7 +98,7 @@ This document defines the workflow and stages for Phase 3 of the OpenShutter roa
   - Photo edit: “Suggest tags” button; show suggestions with accept/reject or confidence filter.
   - Bulk: select photos → “Suggest tags” → review and apply.
 - **Performance:** Job queue for bulk; temp file cleanup for remote storage.
-- **Deliverable:** Feature behind admin/owner role; see `docs/AI_TAGGING_DESIGN.md`.
+- **Deliverable:** Feature behind admin/owner role; see `../../development/design/AI_TAGGING_DESIGN.md`.
 
 ### 2.3 Acceptance Criteria
 
@@ -119,7 +119,7 @@ This document defines the workflow and stages for Phase 3 of the OpenShutter roa
 - **Metrics:** Views (albums/photos), search usage, tag usage over time, storage by album/provider, top albums/photos, user activity (if applicable).
 - **Data source:** Existing DB + event log collection (`analytics_events`) for tracking views and searches.
 - **Privacy:** Only admins (and optionally owners for their own content); no PII in exports without consent. IP addresses are hashed, user agents anonymized.
-- **Deliverable:** Analytics design doc with metric definitions and retention. ✅ See `docs/ADVANCED_ANALYTICS_DESIGN.md`
+- **Deliverable:** Analytics design doc with metric definitions and retention. ✅ See `../../development/design/ADVANCED_ANALYTICS_DESIGN.md`
 
 ### 3.2 Implementation ✅
 
@@ -153,8 +153,8 @@ This document defines the workflow and stages for Phase 3 of the OpenShutter roa
 - **API surface:** Identify endpoints to expose publicly (read-only vs. write); versioning strategy (e.g. `/v1/`).
 - **Auth:** API keys or OAuth for third-party apps; scopes (e.g. read albums, write tags).
 - **Marketplace:** Directory of approved integrations (plugins, scripts, apps) with docs and links.
-- **Deliverable:** API product doc and marketplace concept (e.g. `docs/API_MARKETPLACE.md`).
-- **Status:** ✅ Design document created (`docs/API_MARKETPLACE.md`)
+- **Deliverable:** API product doc and marketplace concept (e.g. `../../development/design/API_MARKETPLACE.md`).
+- **Status:** ✅ Design document created (`../../development/design/API_MARKETPLACE.md`)
 
 ### 4.2 Implementation ✅
 
@@ -182,8 +182,8 @@ This document defines the workflow and stages for Phase 3 of the OpenShutter roa
 
 - **Smart tag suggestions:** From existing tags on similar photos, from metadata (IPTC keywords, location), or from AI (Stage 2); UX: show in tag input or photo edit.
 - **Search optimization:** Indexing (e.g. tag IDs, full-text); query performance for tag filters; relevance tuning for tag-based queries.
-- **Deliverable:** Design doc (e.g. `docs/SMART_TAG_SUGGESTIONS_DESIGN.md`) linking to Stage 2 and existing search/tag implementation.
-- **Status:** ✅ Design document created (`docs/SMART_TAG_SUGGESTIONS_DESIGN.md`)
+- **Deliverable:** Design doc (e.g. `../../development/design/SMART_TAG_SUGGESTIONS_DESIGN.md`) linking to Stage 2 and existing search/tag implementation.
+- **Status:** ✅ Design document created (`../../development/design/SMART_TAG_SUGGESTIONS_DESIGN.md`)
 
 ### 6.2 Implementation
 

@@ -57,7 +57,7 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 			return json(
 				{ 
 					success: false, 
-					error: 'File too large: The file exceeds the server\'s upload size limit. Please configure nginx with `client_max_body_size 100M;` in your server block. See docs/PHOTO_UPLOAD.md (Upload size limits).'
+					error: 'File too large: The file exceeds the server\'s upload size limit. Please configure nginx with `client_max_body_size 100M;` in your server block. See docs/guides/PHOTO_UPLOAD.md (Upload size limits).'
 				},
 				{ status: 413 }
 			);
@@ -96,7 +96,7 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 			return json(
 				{ 
 					success: false, 
-					error: 'File too large: The file exceeds SvelteKit\'s body size limit (default 512KB). Set the BODY_SIZE_LIMIT environment variable to 100M before starting the server. Also ensure nginx has `client_max_body_size 100M;`. See docs/PHOTO_UPLOAD.md (Upload size limits).'
+					error: 'File too large: The file exceeds SvelteKit\'s body size limit (default 512KB). Set the BODY_SIZE_LIMIT environment variable to 100M before starting the server. Also ensure nginx has `client_max_body_size 100M;`. See docs/guides/PHOTO_UPLOAD.md (Upload size limits).'
 				},
 				{ status: 413 }
 			);

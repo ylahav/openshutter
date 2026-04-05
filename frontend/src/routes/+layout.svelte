@@ -69,7 +69,7 @@
 
 <ThemeProvider defaultTheme="system" enableSystem={true} disableTransitionOnChange={false}>
 	{#if isAdminRoute}
-		<!-- Admin: static shell only — see docs/ADMIN_UI_ROADMAP.md Phase 1 -->
+		<!-- Admin: static shell only — see docs/development/ADMIN_UI_ROADMAP.md Phase 1 -->
 		<TokenRenewalNotification />
 		<AdminAppChrome>
 			<slot />
