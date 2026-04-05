@@ -4,6 +4,7 @@
 	import { siteConfigData } from '$stores/siteConfig';
 	import { MultiLangUtils } from '$utils/multiLang';
 	import { logger } from '$lib/utils/logger';
+	import { t } from '$stores/i18n';
 
 	interface TemplatePhoto {
 		_id: string;
@@ -112,10 +113,15 @@
 				<div class="flex justify-center mt-16 space-x-3">
 					{#each photos as _, index}
 						<button
+							type="button"
 							on:click={() => (currentPhotoIndex = index)}
 							class="w-3 h-3 rounded-full transition-all duration-500 {index === currentPhotoIndex
 								? 'bg-white w-8'
 								: 'bg-white/40 hover:bg-white/60'}"
+							aria-label={$t('hero.carouselSlideLabel')
+								.replace('{n}', String(index + 1))
+								.replace('{total}', String(photos.length))}
+							aria-pressed={index === currentPhotoIndex}
 						></button>
 					{/each}
 				</div>

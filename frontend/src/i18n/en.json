@@ -23,7 +23,8 @@
     "browseAllAlbums": "Browse All Albums",
     "browseAlbums": "Browse Albums",
     "searchPhotos": "Search Photos",
-    "scrollToExplore": "Scroll to explore"
+    "scrollToExplore": "Scroll to explore",
+    "carouselSlideLabel": "Go to slide {n} of {total}"
   },
   "albums": {
     "noAlbumsTitle": "No albums yet",

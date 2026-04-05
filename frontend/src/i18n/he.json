@@ -23,7 +23,8 @@
     "browseAllAlbums": "עיין בכל האלבומים",
     "browseAlbums": "עיין באלבומים",
     "searchPhotos": "חפש בתמונות",
-    "scrollToExplore": "גלול כדי לחקור"
+    "scrollToExplore": "גלול כדי לחקור",
+    "carouselSlideLabel": "עבור לשקופית {n} מתוך {total}"
   },
   "albums": {
     "noAlbumsTitle": "עדיין אין אלבומים",

@@ -82,8 +82,8 @@ These files generated multiple or serious warnings (a11y, invalid markup, reacti
 
 ## Phase D — Templates and marketing surfaces
 
-- [ ] **D1.** `frontend/src/lib/templates/{default,minimal,elegant}/components/Hero.svelte` — carousel dot buttons: `aria-label` including slide index / “Slide N of M”.
-- [ ] **D2.** `frontend/src/lib/templates/{default,minimal,elegant}/Home.svelte` — resolve unused `export let data` (use `data`, or `export const data` if only for typing, or remove).
+- [x] **D1.** `frontend/src/lib/templates/{default,minimal,elegant}/components/Hero.svelte` — carousel dot buttons: `aria-label` including slide index / “Slide N of M”.
+- [x] **D2.** `frontend/src/lib/templates/{default,minimal,elegant}/Home.svelte` — resolve unused `export let data` (use `data`, or `export const data` if only for typing, or remove).
 
 ---
 

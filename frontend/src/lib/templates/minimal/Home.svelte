@@ -1,5 +1,4 @@
 <script lang="ts">
-	import type { PageData } from '../../../routes/$types';
 	import { onMount } from 'svelte';
 	import { currentLanguage } from '$stores/language';
 	import { MultiLangUtils } from '$utils/multiLang';
@@ -7,8 +6,6 @@
 	import { logger } from '$lib/utils/logger';
 	import Hero from './components/Hero.svelte';
 	import AlbumList from './components/AlbumList.svelte';
-
-	export let data: PageData;
 
 	let rootAlbums: any[] = [];
 	let loading = true;
