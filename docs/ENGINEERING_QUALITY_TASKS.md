@@ -111,14 +111,19 @@ Many `Layout.svelte` files under `frontend/src/lib/page-builder/modules/**` warn
 ### Phase F notes
 
 - **F1 — `enableSystem`:** `ThemeProvider` calls `setSystemPreferenceTrackingEnabled(enableSystem)` (reactive). The single `prefers-color-scheme` listener in `$lib/stores/theme` respects this flag: when `false`, OS theme changes no longer update the UI while the store theme is `system`. Removed the duplicate `matchMedia` listener from `ThemeProvider` (store already applies `resolvedTheme` + HTML classes on system change).
-- **F2:** Lint and type-check clean after this work. Full `pnpm build` should be re-run when the pipeline is stable; any remaining Svelte compiler noise is tracked with Phase G (plugin timings) and global ESLint warning backlog.
+- **F2:** Lint and type-check clean after this work. Full `pnpm build` should be re-run when the pipeline is stable; any remaining Svelte compiler noise and ESLint warning backlog are tracked separately (see Phase G for build-plugin timing notes).
 
 ---
 
 ## Phase G — Build and tooling (optional)
 
-- [ ] **G1.** Investigate `[PLUGIN_TIMINGS]` — `vite-plugin-sveltekit-guard` dominating build time; see if guard scope or config can be narrowed without losing safety.
-- [ ] **G2.** Consider chunk-size or lazy-loading follow-ups only if metrics show slow first load (separate from warning cleanup).
+- [x] **G1.** Investigate `[PLUGIN_TIMINGS]` — `vite-plugin-sveltekit-guard` dominating build time; see if guard scope or config can be narrowed without losing safety.
+- [x] **G2.** Consider chunk-size or lazy-loading follow-ups only if metrics show slow first load (separate from warning cleanup).
+
+### Phase G notes
+
+- **G1 — `vite-plugin-sveltekit-guard`:** Implemented inside `@sveltejs/kit` (see `plugin_guard` in the Kit Vite plugin). It records the module import graph (`resolveId`, `enforce: 'pre'`) and, for client bundles, rejects imports of server-only modules (`*.server.*`, `$app/server`, `$lib/server`, private env, etc.). There is **no** `kit` / `vite` option in current Kit to disable or narrow this without dropping the safety check. The **~70% figure** from Rolldown `[PLUGIN_TIMINGS]` is **share of time spent in Vite/Rolldown plugins**, not “most of the whole Node process”; the hook runs often because resolution is frequent. **Action:** keep upgrading `@sveltejs/kit` / Vite as releases improve plugin performance; open or follow [SvelteKit](https://github.com/sveltejs/kit) issues if build regressions appear—do not patch the guard out locally.
+- **G2 — Chunks / lazy loading:** No change in this pass. **`frontend/vite.config.ts`** already sets `build.chunkSizeWarningLimit` (1000). Prefer **Lighthouse / Web Vitals / bundle analyzer** on real routes before adding aggressive `import()` splitting—otherwise risk worse UX and cache behavior for marginal gains.
 
 ---
 
@@ -126,8 +131,9 @@ Many `Layout.svelte` files under `frontend/src/lib/page-builder/modules/**` warn
 
 1. **Phase A** (A1–A3) — **done** (baseline, CI, definition of done).  
 2. **B** → **C** → **D** → **E** — **done**.  
-3. **F** — **done**. **G** optional.  
-4. Merge in small PRs (e.g. one PR per phase or per component cluster) to ease review and rollback.
+3. **F** — **done**.  
+4. **G** — **done** (optional items documented; no repo change required for G1/G2 beyond this tracker).  
+5. Merge in small PRs (e.g. one PR per phase or per component cluster) to ease review and rollback.
 
 ---
 
