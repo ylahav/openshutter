@@ -43,6 +43,13 @@
 		}
 	}
 
+	function handleBackdropKeydown(e: KeyboardEvent) {
+		if (e.key === 'Enter' || e.key === ' ') {
+			e.preventDefault();
+			handleClose();
+		}
+	}
+
 	onDestroy(() => {
 		if (timeoutId) {
 			clearTimeout(timeoutId);
@@ -129,28 +136,34 @@
 </script>
 
 {#if mounted && isOpen}
-	<div class="fixed inset-0 z-50 overflow-y-auto">
+	<div class="fixed inset-0 z-50 overflow-y-auto" role="presentation">
 		<div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
 			<!-- Backdrop -->
 			<div
-				class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+				class="fixed inset-0 z-0 bg-gray-500 bg-opacity-75 transition-opacity"
 				on:click={handleClose}
+				on:keydown={handleBackdropKeydown}
 				role="button"
 				tabindex="-1"
-			/>
+				aria-label="Close notification"
+			></div>
 
 			<!-- Dialog -->
 			<div
-				class="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6"
+				class="relative z-10 transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6"
+				role="dialog"
+				aria-modal="true"
+				aria-labelledby="notification-dialog-title"
 			>
 				<div class="sm:flex sm:items-start">
 					<div
 						class="mx-auto flex h-12 w-12 shrink-0 items-center justify-center rounded-full {getIconBgColor()} sm:mx-0 sm:h-10 sm:w-10"
+						aria-hidden="true"
 					>
 						{@html getIcon()}
 					</div>
 					<div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
-						<h3 class="text-lg font-medium leading-6 text-gray-900">
+						<h3 id="notification-dialog-title" class="text-lg font-medium leading-6 text-gray-900">
 							{getDisplayTitle()}
 						</h3>
 						<div class="mt-2">

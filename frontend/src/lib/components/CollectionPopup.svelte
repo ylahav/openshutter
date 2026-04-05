@@ -199,6 +199,14 @@
 		return items.some(id => String(id) === String(itemId));
 	}
 
+	function handleBackdropKeydown(e: KeyboardEvent) {
+		// Match role="button": Enter/Space activate like click. Escape is handled on window above.
+		if (e.key === 'Enter' || e.key === ' ') {
+			e.preventDefault();
+			onClose();
+		}
+	}
+
 	// Force reactivity when selectedItems changes
 	$: selectedItemsCount = selectedItems.length;
 	$: selectedItems; // Track changes to selectedItems
@@ -242,27 +250,31 @@
 	<div
 		class="fixed inset-0 bg-black bg-opacity-50 z-[99]"
 		on:click={onClose}
-		on:keydown={(e) => e.key === 'Escape' && onClose()}
+		on:keydown={handleBackdropKeydown}
 		role="button"
 		tabindex="-1"
+		aria-label="Close dialog"
 		style="pointer-events: auto;"
 	></div>
 
 	<!-- Popup -->
 	<div
 		class="fixed inset-0 z-[100] flex items-center justify-center p-4"
-		on:click|stopPropagation
+		role="presentation"
 		style="pointer-events: none;"
 	>
 		<div
 			class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] flex flex-col"
-			on:click|stopPropagation
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="collection-popup-title"
+			tabindex="-1"
 			style="pointer-events: auto;"
 		>
 			<!-- Header -->
 			<div class="flex items-center justify-between p-4 border-b border-gray-200">
 				<div class="flex-1">
-					<h2 class="text-lg font-semibold text-gray-900">{title}</h2>
+					<h2 id="collection-popup-title" class="text-lg font-semibold text-gray-900">{title}</h2>
 					{#if selectedItems.length > 0}
 						{#if collectionType === 'locations'}
 							{@const selectedLocation = items.find(item => {
@@ -285,8 +297,10 @@
 					type="button"
 					on:click={onClose}
 					class="text-gray-400 hover:text-gray-600"
+					aria-label="Close"
+					title="Close"
 				>
-					<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
 					</svg>
 				</button>
