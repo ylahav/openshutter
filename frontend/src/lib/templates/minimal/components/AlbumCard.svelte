@@ -40,10 +40,10 @@
 
 <a href={`/albums/${album.alias || album._id}`}>
 		<div
-		class="group relative bg-white overflow-hidden border border-black cursor-pointer hover:border-gray-600 transition-all duration-200 flex flex-col {className}"
+		class="group relative bg-white dark:bg-neutral-900 overflow-hidden border border-black dark:border-neutral-600 cursor-pointer hover:border-gray-600 dark:hover:border-neutral-500 transition-all duration-200 flex flex-col {className}"
 	>
 		<!-- Cover Image -->
-		<div class="relative aspect-[3/2] bg-gray-100 overflow-hidden shrink-0">
+		<div class="relative aspect-[3/2] bg-gray-100 dark:bg-neutral-800 overflow-hidden shrink-0">
 			{#if !coverImageLoading && coverImageUrl}
 				<img
 					src={coverImageUrl}
@@ -55,14 +55,14 @@
 			{/if}
 
 			{#if coverImageLoading}
-				<div class="absolute inset-0 flex items-center justify-center bg-gray-100">
-					<div class="w-6 h-6 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+				<div class="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-neutral-800">
+					<div class="w-6 h-6 border-2 border-black dark:border-white border-t-transparent rounded-full animate-spin"></div>
 				</div>
 			{/if}
 
 			{#if !coverImageUrl && !coverImageLoading}
-				<div class="absolute inset-0 flex items-center justify-center bg-gray-100">
-					<svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<div class="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-neutral-800">
+					<svg class="w-12 h-12 text-gray-400 dark:text-neutral-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path
 							stroke-linecap="round"
 							stroke-linejoin="round"
@@ -75,17 +75,17 @@
 		</div>
 
 		<!-- Content -->
-		<div class="p-4 bg-white flex-1 flex flex-col">
-			<h3 class="text-lg font-normal text-black mb-2 line-clamp-1">
+		<div class="p-4 bg-white dark:bg-neutral-900 flex-1 flex flex-col">
+			<h3 class="text-lg font-normal text-black dark:text-neutral-100 mb-2 line-clamp-1">
 				{displayName}
 			</h3>
 
-			<div class="text-gray-600 text-sm mb-3 line-clamp-2 leading-relaxed flex-1">
+			<div class="text-gray-600 dark:text-neutral-400 text-sm mb-3 line-clamp-2 leading-relaxed flex-1">
 				{@html displayDesc || ''}
 			</div>
 
-			<div class="flex items-center justify-between pt-3 border-t border-gray-200 mt-auto">
-				<div class="flex items-center text-xs text-gray-500">
+			<div class="flex items-center justify-between pt-3 border-t border-gray-200 dark:border-neutral-700 mt-auto">
+				<div class="flex items-center text-xs text-gray-500 dark:text-neutral-500">
 					{#if typeof album.photoCount === 'number' && album.photoCount > 0}
 						<span>{album.photoCount} photos</span>
 					{/if}

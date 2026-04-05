@@ -48,39 +48,39 @@
 	}
 </script>
 
-<div class="min-h-screen bg-gray-50">
+<div class="min-h-screen bg-gray-50 dark:bg-slate-950">
 	<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 		{#if $siteConfigData?.features?.enableSharing !== false && $siteConfigData?.features?.sharingOnAlbum !== false}
 			<div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-				<h1 class="text-4xl font-bold text-gray-900">Photo Gallery</h1>
+				<h1 class="text-4xl font-bold text-gray-900 dark:text-gray-100">Photo Gallery</h1>
 				<div class="md:text-right">
-					<p class="text-xs uppercase tracking-wide text-gray-500 mb-1">Share gallery</p>
+					<p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Share gallery</p>
 					<SocialShareButtons title="Photo Gallery" size="sm" />
 				</div>
 			</div>
 		{:else}
-			<h1 class="text-4xl font-bold text-gray-900 mb-6">Photo Gallery</h1>
+			<h1 class="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-6">Photo Gallery</h1>
 		{/if}
 
 		{#if loading}
 			<div class="text-center py-12">
 				<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-				<p class="text-gray-600">Loading photos...</p>
+				<p class="text-gray-600 dark:text-gray-400">Loading photos...</p>
 			</div>
 		{:else if error}
 			<div class="text-center py-12">
-				<p class="text-red-600">{error}</p>
+				<p class="text-red-600 dark:text-red-400">{error}</p>
 			</div>
 		{:else if photos.length === 0}
 			<div class="text-center py-12">
-				<p class="text-gray-600">No photos available yet.</p>
+				<p class="text-gray-600 dark:text-gray-400">No photos available yet.</p>
 			</div>
 		{:else}
 			<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
 				{#each photos as photo, index}
 					<button
 						on:click={() => openLightbox(index)}
-						class="relative aspect-square bg-gray-200 rounded-lg overflow-hidden hover:opacity-90 transition-opacity"
+						class="relative aspect-square bg-gray-200 dark:bg-gray-800 rounded-lg overflow-hidden hover:opacity-90 transition-opacity"
 					>
 						{#if photo.storage?.thumbnailPath || photo.storage?.url || photo.url}
 							<img

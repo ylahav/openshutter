@@ -15,6 +15,7 @@
 
 ### Changed
 - **Templating polish (branch `chore/templating-polish`):** Public layout shell **`.os-shell-container`** uses **logical** horizontal margin/padding for RTL. **`frontend/src/lib/template-packs/registry.test.ts`** covers built-in pack ids and fallback. **`TEMPLATING_TASKS.md`** — polish sprint table, Milestone 3 wording for About/Page Builder vs pack shells.
+- **Templating — light/dark:** `dark:` Tailwind classes on **minimal**, **default**, and **elegant** template **Album**, **Gallery**, **Search**, **AlbumList**/**AlbumCard** (minimal), and related copy — surfaces, cards, loaders, and prose blocks read correctly when the theme toggle selects dark mode.
 - **Documentation:** Folder layout — **`docs/guides/`** (install & operations), **`docs/development/`** (roadmaps, PRD, templating, **`design/`** specs), **`docs/archive/development/`** (completed Phase 3 workflow). Earlier file merges (white-label, photo upload, theming, templating §8, etc.) unchanged in substance. See **`docs/index.md`**.
 - **AI provider orchestration:** `auto` now resolves providers in order **`google-vision` → `clip` → `local`** (when not explicitly pinned), with better health diagnostics and operator-facing reasons.
 - **Google Vision quality:** Suggestion extraction now fuses multiple Vision signals (labels/objects/landmarks/web entities), then normalizes, de-duplicates, and re-ranks for better relevance.

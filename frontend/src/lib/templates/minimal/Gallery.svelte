@@ -47,35 +47,35 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 	}
 </script>
 
-<div class="min-h-screen bg-white">
+<div class="min-h-screen bg-white dark:bg-neutral-950">
 	<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
 		<div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-			<h1 class="text-3xl font-light text-black tracking-tight">Photo Gallery</h1>
+			<h1 class="text-3xl font-light text-black dark:text-neutral-100 tracking-tight">Photo Gallery</h1>
 			<div class="md:text-right">
-				<p class="text-xs uppercase tracking-wide text-gray-500 mb-1">Share gallery</p>
+				<p class="text-xs uppercase tracking-wide text-gray-500 dark:text-neutral-500 mb-1">Share gallery</p>
 				<SocialShareButtons title="Photo Gallery" size="sm" />
 			</div>
 		</div>
 
 		{#if loading}
 			<div class="text-center py-12">
-				<div class="w-8 h-8 border-2 border-black border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-				<p class="text-sm text-gray-600">Loading photos...</p>
+				<div class="w-8 h-8 border-2 border-black dark:border-white border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+				<p class="text-sm text-gray-600 dark:text-neutral-400">Loading photos...</p>
 			</div>
 		{:else if error}
 			<div class="text-center py-12">
-				<p class="text-sm text-black">{error}</p>
+				<p class="text-sm text-black dark:text-neutral-100">{error}</p>
 			</div>
 		{:else if photos.length === 0}
 			<div class="text-center py-12">
-				<p class="text-sm text-gray-600">No photos available yet.</p>
+				<p class="text-sm text-gray-600 dark:text-neutral-400">No photos available yet.</p>
 			</div>
 		{:else}
 			<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
 				{#each photos as photo, index}
 					<button
 						on:click={() => openLightbox(index)}
-						class="relative aspect-square bg-gray-100 overflow-hidden hover:opacity-80 transition-opacity"
+						class="relative aspect-square bg-gray-100 dark:bg-neutral-800 overflow-hidden hover:opacity-80 transition-opacity"
 					>
 						{#if photo.storage?.thumbnailPath || photo.storage?.url || photo.url}
 							<img

@@ -124,20 +124,20 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 </script>
 
 {#if loading}
-	<div class="min-h-screen flex items-center justify-center bg-white">
+	<div class="min-h-screen flex items-center justify-center bg-white dark:bg-neutral-950">
 		<div class="text-center">
-			<div class="w-8 h-8 border-2 border-black border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-			<p class="text-sm text-gray-600">Loading album...</p>
+			<div class="w-8 h-8 border-2 border-black dark:border-white border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+			<p class="text-sm text-gray-600 dark:text-neutral-400">Loading album...</p>
 		</div>
 	</div>
 {:else if error}
-	<div class="min-h-screen flex items-center justify-center bg-white">
+	<div class="min-h-screen flex items-center justify-center bg-white dark:bg-neutral-950">
 		<div class="text-center">
-			<p class="text-sm text-black">{error}</p>
+			<p class="text-sm text-black dark:text-neutral-100">{error}</p>
 		</div>
 	</div>
 {:else if albumData}
-	<div class="min-h-screen bg-white">
+	<div class="min-h-screen bg-white dark:bg-neutral-950">
 		<!-- Breadcrumbs -->
 		{#if albumData.album}
 			<AlbumBreadcrumbs albumId={albumData.album._id} />
@@ -147,17 +147,17 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 		<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 			<div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
 				<div class="flex-1">
-					<h1 class="text-3xl font-light text-black mb-4 tracking-tight">
+					<h1 class="text-3xl font-light text-black dark:text-neutral-100 mb-4 tracking-tight">
 						{MultiLangUtils.getTextValue(albumData.album.name, $currentLanguage)}
 					</h1>
 					{#if albumData.album.description}
-						<div class="prose prose-sm max-w-4xl mb-4 text-gray-600">
+						<div class="prose prose-sm dark:prose-invert max-w-4xl mb-4 text-gray-600 dark:text-neutral-300">
 							{@html MultiLangUtils.getHTMLValue(albumData.album.description, $currentLanguage)}
 						</div>
 					{/if}
 				</div>
 				<div class="md:text-right">
-					<p class="text-xs uppercase tracking-wide text-gray-500 mb-1">Share album</p>
+					<p class="text-xs uppercase tracking-wide text-gray-500 dark:text-neutral-500 mb-1">Share album</p>
 					<SocialShareButtons
 						title={MultiLangUtils.getTextValue(albumData.album.name, $currentLanguage)}
 						size="sm"
@@ -168,18 +168,18 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 
 		<!-- Sub-albums -->
 		{#if albumData.subAlbums && albumData.subAlbums.length > 0}
-			<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 border-t border-gray-200">
-				<h2 class="text-xl font-light text-black mb-4 tracking-tight">Sub-albums</h2>
+			<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 border-t border-gray-200 dark:border-neutral-700">
+				<h2 class="text-xl font-light text-black dark:text-neutral-100 mb-4 tracking-tight">Sub-albums</h2>
 				<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
 					{#each albumData.subAlbums as subAlbum}
 						<a
 							href={`/albums/${subAlbum.alias || subAlbum._id}`}
-							class="bg-white border border-black hover:border-gray-600 transition-colors p-4"
+							class="bg-white dark:bg-neutral-900 border border-black dark:border-neutral-600 hover:border-gray-600 dark:hover:border-neutral-500 transition-colors p-4"
 						>
-							<h3 class="text-base font-normal text-black mb-1">
+							<h3 class="text-base font-normal text-black dark:text-neutral-100 mb-1">
 								{MultiLangUtils.getTextValue(subAlbum.name, $currentLanguage)}
 							</h3>
-							<p class="text-xs text-gray-600">
+							<p class="text-xs text-gray-600 dark:text-neutral-400">
 								{#if subAlbum.photoCount && subAlbum.photoCount > 0}
 									{subAlbum.photoCount} photos
 								{/if}
@@ -198,20 +198,20 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 
 		<!-- Photos Grid -->
 		{#if albumData.photos && albumData.photos.length > 0}
-			<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 border-t border-gray-200">
-				<h2 class="text-xl font-light text-black mb-4 tracking-tight">Photos</h2>
+			<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 border-t border-gray-200 dark:border-neutral-700">
+				<h2 class="text-xl font-light text-black dark:text-neutral-100 mb-4 tracking-tight">Photos</h2>
 				<div class="columns-1 sm:columns-2 lg:columns-3 gap-3">
 					{#each albumData.photos as photo, index}
 						{@const photoWidth = photo.dimensions?.width || photo.metadata?.width}
 						{@const photoHeight = photo.dimensions?.height || photo.metadata?.height}
 						{@const hasDimensions = photoWidth && photoHeight && photoWidth > 0 && photoHeight > 0}
 						{@const aspectRatio = hasDimensions ? photoWidth / photoHeight : 1}
-						<div class="bg-white border border-black p-3 hover:border-gray-600 transition-colors mb-3 break-inside-avoid">
+						<div class="bg-white dark:bg-neutral-900 border border-black dark:border-neutral-600 p-3 hover:border-gray-600 dark:hover:border-neutral-500 transition-colors mb-3 break-inside-avoid">
 							<button
 								on:click={() => openLightbox(index)}
 								class="w-full mb-3"
 							>
-								<div class="bg-gray-100 relative overflow-hidden"
+								<div class="bg-gray-100 dark:bg-neutral-800 relative overflow-hidden"
 									style={hasDimensions && aspectRatio < 1
 										? `width: 100%; max-height: 600px; aspect-ratio: ${aspectRatio};` 
 										: hasDimensions
@@ -220,12 +220,12 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 								>
 									{#if !photoLoaded[photo._id]}
 										<div
-											class="absolute inset-0 flex flex-col items-center justify-center bg-gray-200/90 z-10"
+											class="absolute inset-0 flex flex-col items-center justify-center bg-gray-200/90 dark:bg-neutral-800/90 z-10"
 											aria-live="polite"
 											aria-busy="true"
 										>
 											<div class="animate-spin rounded-full h-10 w-10 border-2 border-gray-300 border-t-gray-600 mb-2"></div>
-											<span class="text-gray-600 text-xs">Loading photo…</span>
+											<span class="text-gray-600 dark:text-neutral-400 text-xs">Loading photo…</span>
 										</div>
 									{/if}
 									<img
@@ -244,18 +244,18 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 							<!-- Photo metadata below the image -->
 							<div class="px-1">
 								{#if photo.title}
-									<h3 class="text-black font-normal text-sm mb-1">
+									<h3 class="text-black dark:text-neutral-100 font-normal text-sm mb-1">
 										<MultiLangText value={photo.title} fallback={`Photo ${index + 1}`} />
 									</h3>
 								{/if}
 								{#if photo.description}
-									<p class="text-gray-600 text-xs mb-2 line-clamp-2">
+									<p class="text-gray-600 dark:text-neutral-400 text-xs mb-2 line-clamp-2">
 										{@html (typeof photo.description === 'string' ? photo.description : MultiLangUtils.getHTMLValue(photo.description, $currentLanguage) || '').replace(/<[^>]*>/g, '')}
 									</p>
 								{/if}
 								
 								{#if photo.location || (photo.tags && photo.tags.length > 0) || (photo.people && photo.people.length > 0)}
-									<div class="flex flex-wrap gap-2 text-xs text-gray-500">
+									<div class="flex flex-wrap gap-2 text-xs text-gray-500 dark:text-neutral-500">
 										{#if photo.location}
 											<span class="flex items-center gap-1">
 												<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -323,8 +323,8 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 				</div>
 			</div>
 		{:else}
-			<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 border-t border-gray-200">
-				<p class="text-sm text-gray-600 text-center">No photos in this album yet.</p>
+			<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 border-t border-gray-200 dark:border-neutral-700">
+				<p class="text-sm text-gray-600 dark:text-neutral-400 text-center">No photos in this album yet.</p>
 			</div>
 		{/if}
 	</div>

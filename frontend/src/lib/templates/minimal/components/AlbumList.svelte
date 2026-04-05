@@ -26,8 +26,8 @@
 	<div class="py-16">
 		<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 			<div class="text-center">
-				<div class="w-8 h-8 border-2 border-black border-t-transparent rounded-full animate-spin mx-auto"></div>
-				<p class="mt-4 text-sm text-gray-600">Loading...</p>
+				<div class="w-8 h-8 border-2 border-black dark:border-white border-t-transparent rounded-full animate-spin mx-auto"></div>
+				<p class="mt-4 text-sm text-gray-600 dark:text-neutral-400">Loading...</p>
 			</div>
 		</div>
 	</div>
@@ -35,17 +35,17 @@
 	<div class="py-16">
 		<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 			<div class="text-center">
-				<p class="text-sm text-black">{error}</p>
+				<p class="text-sm text-black dark:text-neutral-100">{error}</p>
 			</div>
 		</div>
 	</div>
 {:else}
-	<section class="py-16 bg-white">
+	<section class="py-16 bg-white dark:bg-neutral-950">
 		<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 			<!-- Header -->
 			<div class="text-center mb-12">
-				<h2 class="text-3xl font-light text-black mb-2 tracking-tight">{title}</h2>
-				<p class="text-sm text-gray-600 max-w-2xl mx-auto">{subtitle}</p>
+				<h2 class="text-3xl font-light text-black dark:text-neutral-100 mb-2 tracking-tight">{title}</h2>
+				<p class="text-sm text-gray-600 dark:text-neutral-400 max-w-2xl mx-auto">{subtitle}</p>
 			</div>
 
 			<!-- Albums Grid -->
@@ -57,7 +57,7 @@
 				</div>
 			{:else}
 				<div class="text-center py-16">
-					<p class="text-sm text-gray-600">
+					<p class="text-sm text-gray-600 dark:text-neutral-400">
 						{showFeatured ? 'No featured albums' : 'No albums available'}
 					</p>
 				</div>

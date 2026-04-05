@@ -100,20 +100,20 @@
 </script>
 
 {#if loading}
-	<div class="min-h-screen flex items-center justify-center">
+	<div class="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-950">
 		<div class="text-center">
 			<div class="animate-spin rounded-full h-16 w-16 border-b-2 border-primary-600 mx-auto mb-4"></div>
-			<p class="text-gray-600">Loading album...</p>
+			<p class="text-gray-600 dark:text-gray-400">Loading album...</p>
 		</div>
 	</div>
 {:else if error}
-	<div class="min-h-screen flex items-center justify-center">
+	<div class="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-950">
 		<div class="text-center">
-			<p class="text-red-600">{error}</p>
+			<p class="text-red-600 dark:text-red-400">{error}</p>
 		</div>
 	</div>
 {:else if albumData}
-	<div class="min-h-screen bg-gray-50">
+	<div class="min-h-screen bg-gray-50 dark:bg-slate-950">
 		<!-- Breadcrumbs -->
 		{#if albumData.album}
 			<AlbumBreadcrumbs albumId={albumData.album._id} />
@@ -123,18 +123,18 @@
 		<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 			<div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
 				<div class="flex-1">
-					<h1 class="text-4xl font-bold text-gray-900 mb-4">
+					<h1 class="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4">
 						{MultiLangUtils.getTextValue(albumData.album.name, $currentLanguage)}
 					</h1>
 					{#if albumData.album.description}
-						<div class="prose prose-lg max-w-4xl mb-4">
+						<div class="prose prose-lg dark:prose-invert max-w-4xl mb-4">
 							{@html MultiLangUtils.getHTMLValue(albumData.album.description, $currentLanguage)}
 						</div>
 					{/if}
 				</div>
 				{#if $siteConfigData?.features?.enableSharing !== false && $siteConfigData?.features?.sharingOnAlbum !== false}
 					<div class="md:text-right">
-						<p class="text-xs uppercase tracking-wide text-gray-500 mb-1">Share album</p>
+						<p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Share album</p>
 						<SocialShareButtons title={MultiLangUtils.getTextValue(albumData.album.name, $currentLanguage)} size="sm" />
 					</div>
 				{/if}
@@ -144,17 +144,17 @@
 		<!-- Sub-albums -->
 		{#if albumData.subAlbums && albumData.subAlbums.length > 0}
 			<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-				<h2 class="text-2xl font-semibold text-gray-900 mb-4">Sub-albums</h2>
+				<h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Sub-albums</h2>
 				<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
 					{#each albumData.subAlbums as subAlbum}
 						<a
 							href={`/albums/${subAlbum.alias || subAlbum._id}`}
-							class="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-6"
+							class="bg-white dark:bg-gray-900/90 rounded-lg shadow-sm hover:shadow-md transition-shadow p-6 border border-transparent dark:border-gray-800"
 						>
-							<h3 class="text-lg font-semibold text-gray-900 mb-2">
+							<h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
 								{MultiLangUtils.getTextValue(subAlbum.name, $currentLanguage)}
 							</h3>
-							<p class="text-sm text-gray-600">
+							<p class="text-sm text-gray-600 dark:text-gray-400">
 								{#if subAlbum.photoCount && subAlbum.photoCount > 0}
 									{subAlbum.photoCount} photos
 								{/if}
@@ -174,19 +174,19 @@
 		<!-- Photos Grid -->
 		{#if albumData.photos && albumData.photos.length > 0}
 			<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-				<h2 class="text-2xl font-semibold text-gray-900 mb-4">Photos</h2>
+				<h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Photos</h2>
 				<div class="columns-1 sm:columns-2 lg:columns-3 gap-4">
 					{#each albumData.photos as photo, index}
 						{@const photoWidth = photo.dimensions?.width || photo.metadata?.width}
 						{@const photoHeight = photo.dimensions?.height || photo.metadata?.height}
 						{@const hasDimensions = photoWidth && photoHeight && photoWidth > 0 && photoHeight > 0}
 						{@const aspectRatio = hasDimensions ? photoWidth / photoHeight : 1}
-						<div class="bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 p-4 border border-gray-100 mb-4 break-inside-avoid">
+						<div class="bg-white dark:bg-gray-900/90 rounded-lg shadow-md hover:shadow-xl transition-all duration-300 p-4 border border-gray-100 dark:border-gray-800 mb-4 break-inside-avoid">
 							<button
 								on:click={() => openLightbox(index)}
 								class="w-full mb-3"
 							>
-								<div class="bg-gray-200 relative overflow-hidden rounded-lg"
+								<div class="bg-gray-200 dark:bg-gray-800 relative overflow-hidden rounded-lg"
 									style={hasDimensions && aspectRatio < 1
 										? `width: 100%; max-height: 600px; aspect-ratio: ${aspectRatio};` 
 										: hasDimensions
@@ -195,12 +195,12 @@
 								>
 									{#if !photoLoaded[photo._id]}
 										<div
-											class="absolute inset-0 flex flex-col items-center justify-center bg-gray-200/90 z-10 rounded-lg"
+											class="absolute inset-0 flex flex-col items-center justify-center bg-gray-200/90 dark:bg-gray-800/90 z-10 rounded-lg"
 											aria-live="polite"
 											aria-busy="true"
 										>
-											<div class="animate-spin rounded-full h-10 w-10 border-2 border-gray-300 border-t-gray-600 mb-2"></div>
-											<span class="text-gray-600 text-xs">Loading photo…</span>
+											<div class="animate-spin rounded-full h-10 w-10 border-2 border-gray-300 dark:border-gray-600 border-t-gray-600 dark:border-t-gray-300 mb-2"></div>
+											<span class="text-gray-600 dark:text-gray-400 text-xs">Loading photo…</span>
 										</div>
 									{/if}
 									<img
@@ -219,18 +219,18 @@
 							<!-- Photo metadata below the image -->
 							<div class="px-1">
 								{#if photo.title}
-									<h3 class="text-gray-900 font-semibold text-sm mb-1">
+									<h3 class="text-gray-900 dark:text-gray-100 font-semibold text-sm mb-1">
 										<MultiLangText value={photo.title} fallback={`Photo ${index + 1}`} />
 									</h3>
 								{/if}
 								{#if photo.description}
-									<p class="text-gray-600 text-xs mb-2 line-clamp-2">
+									<p class="text-gray-600 dark:text-gray-400 text-xs mb-2 line-clamp-2">
 										{@html (typeof photo.description === 'string' ? photo.description : MultiLangUtils.getHTMLValue(photo.description, $currentLanguage) || '').replace(/<[^>]*>/g, '')}
 									</p>
 								{/if}
 								
 								{#if photo.location || (photo.tags && photo.tags.length > 0) || (photo.people && photo.people.length > 0)}
-									<div class="flex flex-wrap gap-2 text-xs text-gray-500">
+									<div class="flex flex-wrap gap-2 text-xs text-gray-500 dark:text-gray-400">
 										{#if photo.location}
 											<span class="flex items-center gap-1">
 												<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -299,7 +299,7 @@
 			</div>
 		{:else}
 			<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-				<p class="text-gray-600 text-center">No photos in this album yet.</p>
+				<p class="text-gray-600 dark:text-gray-400 text-center">No photos in this album yet.</p>
 			</div>
 		{/if}
 	</div>

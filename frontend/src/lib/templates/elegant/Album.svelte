@@ -206,24 +206,24 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 </script>
 
 {#if loading}
-	<div class="min-h-screen flex items-center justify-center bg-linear-to-b from-purple-50 to-white">
+	<div class="min-h-screen flex items-center justify-center bg-linear-to-b from-purple-50 to-white dark:from-slate-950 dark:to-neutral-950">
 		<div class="text-center">
-			<div class="w-10 h-10 border-3 border-purple-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-			<p class="text-sm text-gray-600 font-light">Loading album...</p>
+			<div class="w-10 h-10 border-3 border-purple-400 dark:border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+			<p class="text-sm text-gray-600 dark:text-gray-400 font-light">Loading album...</p>
 		</div>
 	</div>
 {:else if error}
-	<div class="min-h-screen flex items-center justify-center bg-linear-to-b from-purple-50 to-white">
+	<div class="min-h-screen flex items-center justify-center bg-linear-to-b from-purple-50 to-white dark:from-slate-950 dark:to-neutral-950">
 		<div class="text-center">
-			<p class="text-sm text-red-600 font-light">{error}</p>
+			<p class="text-sm text-red-600 dark:text-red-400 font-light">{error}</p>
 		</div>
 	</div>
 {:else if albumData}
-	<div class="min-h-screen bg-linear-to-b from-purple-50 to-white">
+	<div class="min-h-screen bg-linear-to-b from-purple-50 to-white dark:from-slate-950 dark:to-neutral-950">
 		<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-12">
 			<!-- Breadcrumbs: above the title, inside template border with space from top -->
 			{#if albumData.album}
-				<div class="pb-4 mb-6 border-b border-purple-100">
+				<div class="pb-4 mb-6 border-b border-purple-100 dark:border-purple-900/50">
 					<AlbumBreadcrumbs albumId={albumData.album._id} />
 				</div>
 			{/if}
@@ -232,20 +232,20 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 			<div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
 				<div class="flex-1">
 					<h1
-						class="text-4xl md:text-5xl font-serif text-gray-900 mb-6 tracking-wide"
+						class="text-4xl md:text-5xl font-serif text-gray-900 dark:text-gray-100 mb-6 tracking-wide"
 						style="font-family: 'Playfair Display', serif;"
 					>
 						{MultiLangUtils.getTextValue(albumData.album.name, $currentLanguage)}
 					</h1>
 					{#if albumData.album.description}
-						<div class="prose prose-lg max-w-4xl mx-auto mb-4 text-gray-700">
+						<div class="prose prose-lg dark:prose-invert max-w-4xl mx-auto mb-4 text-gray-700 dark:text-gray-300">
 							{@html MultiLangUtils.getHTMLValue(albumData.album.description, $currentLanguage)}
 						</div>
 					{/if}
 				</div>
 				{#if showAlbumShare}
 					<div class="md:text-right">
-						<p class="text-xs uppercase tracking-wide text-gray-500 mb-1">Share album</p>
+						<p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Share album</p>
 						<SocialShareButtons
 							title={MultiLangUtils.getTextValue(albumData.album.name, $currentLanguage)}
 							size="sm"
@@ -257,8 +257,8 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 
 		<!-- Sub-albums -->
 		{#if albumData.subAlbums && albumData.subAlbums.length > 0}
-			<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 border-t border-purple-100">
-				<h2 class="text-2xl font-serif text-gray-900 mb-6 tracking-wide" style="font-family: 'Playfair Display', serif;">
+			<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 border-t border-purple-100 dark:border-purple-900/50">
+				<h2 class="text-2xl font-serif text-gray-900 dark:text-gray-100 mb-6 tracking-wide" style="font-family: 'Playfair Display', serif;">
 					Sub-albums
 				</h2>
 				<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -266,9 +266,9 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 						{@const coverImageUrl = subAlbumCoverImages[subAlbum._id]}
 						<a
 							href={`/albums/${subAlbum.alias || subAlbum._id}`}
-							class="group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden transform hover:-translate-y-1"
+							class="group bg-white dark:bg-gray-900/90 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden transform hover:-translate-y-1 border border-purple-100/80 dark:border-purple-900/40"
 						>
-							<div class="aspect-square bg-linear-to-b from-purple-100 to-purple-50 relative overflow-hidden">
+							<div class="aspect-square bg-linear-to-b from-purple-100 to-purple-50 dark:from-purple-950 dark:to-slate-900 relative overflow-hidden">
 								{#if coverImageUrl}
 									<img
 										src={coverImageUrl}
@@ -284,10 +284,10 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 								{/if}
 							</div>
 							<div class="p-6">
-								<h3 class="text-lg font-serif text-gray-900 mb-2" style="font-family: 'Playfair Display', serif;">
+								<h3 class="text-lg font-serif text-gray-900 dark:text-gray-100 mb-2" style="font-family: 'Playfair Display', serif;">
 									{MultiLangUtils.getTextValue(subAlbum.name, $currentLanguage)}
 								</h3>
-								<p class="text-sm text-gray-600 font-light">
+								<p class="text-sm text-gray-600 dark:text-gray-400 font-light">
 									{#if subAlbum.photoCount && subAlbum.photoCount > 0}
 										{subAlbum.photoCount} photos
 									{/if}
@@ -307,8 +307,8 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 
 		<!-- Photos Grid -->
 		{#if albumData.photos && albumData.photos.length > 0}
-			<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 border-t border-purple-100">
-				<h2 class="text-2xl font-serif text-gray-900 mb-6 tracking-wide" style="font-family: 'Playfair Display', serif;">
+			<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 border-t border-purple-100 dark:border-purple-900/50">
+				<h2 class="text-2xl font-serif text-gray-900 dark:text-gray-100 mb-6 tracking-wide" style="font-family: 'Playfair Display', serif;">
 					Photos
 				</h2>
 				<div class="columns-1 sm:columns-2 lg:columns-3 gap-6">
@@ -317,12 +317,12 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 						{@const photoHeight = photo.dimensions?.height || photo.metadata?.height}
 						{@const hasDimensions = photoWidth && photoHeight && photoWidth > 0 && photoHeight > 0}
 						{@const aspectRatio = hasDimensions ? photoWidth / photoHeight : 1}
-						<div class="bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 p-5 border border-purple-100 transform hover:-translate-y-1 mb-6 break-inside-avoid">
+						<div class="bg-white dark:bg-gray-900/90 rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 p-5 border border-purple-100 dark:border-purple-900/50 transform hover:-translate-y-1 mb-6 break-inside-avoid">
 							<button
 								on:click={() => openLightbox(index)}
 								class="w-full mb-4"
 							>
-								<div class="bg-linear-to-b from-purple-100 to-indigo-100 relative overflow-hidden rounded-lg"
+								<div class="bg-linear-to-b from-purple-100 to-indigo-100 dark:from-purple-950 dark:to-slate-900 relative overflow-hidden rounded-lg"
 									style={hasDimensions && aspectRatio < 1
 										? `width: 100%; max-height: 600px; aspect-ratio: ${aspectRatio};` 
 										: hasDimensions
@@ -331,7 +331,7 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 								>
 									{#if !photoLoaded[photo._id]}
 										<div
-											class="absolute inset-0 flex flex-col items-center justify-center bg-purple-100/90 z-10 rounded-lg"
+											class="absolute inset-0 flex flex-col items-center justify-center bg-purple-100/90 dark:bg-purple-950/90 z-10 rounded-lg"
 											aria-live="polite"
 											aria-busy="true"
 										>
@@ -355,18 +355,18 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 							<!-- Photo metadata below the image -->
 							<div class="px-1">
 								{#if photo.title}
-									<h3 class="text-gray-900 font-serif text-sm mb-1" style="font-family: 'Playfair Display', serif;">
+									<h3 class="text-gray-900 dark:text-gray-100 font-serif text-sm mb-1" style="font-family: 'Playfair Display', serif;">
 										<MultiLangText value={photo.title} fallback={`Photo ${index + 1}`} />
 									</h3>
 								{/if}
 								{#if photo.description}
-									<p class="text-gray-600 text-xs mb-2 line-clamp-2 font-light">
+									<p class="text-gray-600 dark:text-gray-400 text-xs mb-2 line-clamp-2 font-light">
 										{@html (typeof photo.description === 'string' ? photo.description : MultiLangUtils.getHTMLValue(photo.description, $currentLanguage) || '').replace(/<[^>]*>/g, '')}
 									</p>
 								{/if}
 								
 								{#if photo.location || (photo.tags && photo.tags.length > 0) || (photo.people && photo.people.length > 0)}
-									<div class="flex flex-wrap gap-2 text-xs text-gray-500 font-light">
+									<div class="flex flex-wrap gap-2 text-xs text-gray-500 dark:text-gray-400 font-light">
 										{#if photo.location}
 											<span class="flex items-center gap-1">
 												<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -429,8 +429,8 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 									</div>
 								{/if}
 								{#if showPhotoShare && typeof window !== 'undefined'}
-									<div class="mt-3 pt-3 border-t border-purple-100">
-										<p class="text-xs text-gray-500 font-light mb-1">Share this photo</p>
+									<div class="mt-3 pt-3 border-t border-purple-100 dark:border-purple-900/50">
+										<p class="text-xs text-gray-500 dark:text-gray-400 font-light mb-1">Share this photo</p>
 										<SocialShareButtons
 											url={typeof window !== 'undefined' ? `${window.location.origin}${$page.url.pathname}#p=${index}` : undefined}
 											title={MultiLangUtils.getTextValue(photo.title, $currentLanguage) || 'Photo'}
@@ -457,8 +457,8 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 			</div>
 		{:else}
 			{#if !albumData.subAlbums || albumData.subAlbums.length === 0}
-				<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 border-t border-purple-100">
-					<p class="text-sm text-gray-600 text-center font-light">No photos in this album yet.</p>
+				<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 border-t border-purple-100 dark:border-purple-900/50">
+					<p class="text-sm text-gray-600 dark:text-gray-400 text-center font-light">No photos in this album yet.</p>
 				</div>
 			{/if}
 		{/if}

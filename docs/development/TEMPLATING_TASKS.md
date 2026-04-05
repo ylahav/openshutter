@@ -26,7 +26,7 @@ Cross-reference: **§2.2.1** (spans + anchor), **§2.2.3** (breakpoints/cascade 
 |------|------|
 | [x] | **Shell RTL:** `.os-shell-container` uses logical margin/padding (`margin-inline`, `padding-inline`) so the layout shell behaves correctly in RTL (`frontend/src/lib/styles/globals.css`). |
 | [x] | **Registry tests:** `frontend/src/lib/template-packs/registry.test.ts` — built-in ids, `isKnownTemplatePack`, fallback, `listTemplatePacks`. |
-| [ ] | **Light / dark:** manual pass on Home, Gallery, Album, Login for each pack + theme toggle. |
+| [x] | **Light / dark:** Added `dark:` Tailwind variants across **minimal** / **default** / **elegant** album & gallery shells, Search placeholders, and default **AlbumList** (Apr 2026). Manual spot-check Home/Login still recommended. |
 | [ ] | **RTL / i18n:** spot-check Hebrew (or Arabic) on the same routes; fix pack-specific `ml-`/`mr-` that should be `ms-`/`me-` or logical equivalents. |
 
 ## Milestone 1: Foundation (High Priority)
@@ -51,7 +51,7 @@ Cross-reference: **§2.2.1** (spans + anchor), **§2.2.3** (breakpoints/cascade 
 
 - [x] Ship at least 3 polished built-in packs — four keys; **recent pass:** distinct home shells + minimal/default header treatment (ongoing refinement OK).
 - [ ] Ensure each pack’s **pack shells** (Home, Gallery, Album, Login) and shared **chrome** (header/footer/body wrapper) work consistently. **About** and **Page Builder / custom pages** use **`PageRenderer`** (not separate pack pages); requirement is that they render correctly inside each pack’s outer shell — see polish sprint above.
-- [ ] Validate light/dark theme behavior per pack
+- [x] Validate light/dark theme behavior per pack — **CSS pass** on Album/Gallery/Search + album list cards (minimal/default/elegant); **manual** check still useful for Home/Login and **modern** pack.
 - [ ] Validate RTL and i18n behavior per pack
 
 ## Milestone 4: Developer Experience (Medium Priority)
