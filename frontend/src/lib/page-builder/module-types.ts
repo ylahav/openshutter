@@ -5,6 +5,8 @@
  * - frontend/src/routes/admin/templates/overrides/+page.svelte (picker filter arrays)
  */
 export const PAGE_MODULE_TYPES = [
+	{ type: 'layoutShell', label: 'Layout region (named grid)' },
+	{ type: 'pageTitle', label: 'Page title' },
 	{ type: 'hero', label: 'Hero' },
 	{ type: 'richText', label: 'Rich Text' },
 	{ type: 'featureGrid', label: 'Feature Grid' },

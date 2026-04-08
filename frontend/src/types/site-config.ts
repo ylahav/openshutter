@@ -21,14 +21,7 @@ export interface SiteConfig {
     frontendTemplate?: string // Template for public-facing frontend pages
     /** @deprecated Always `default` from API. Admin UI is not pack-driven. */
     adminTemplate?: string
-    customColors?: {
-      primary?: string
-      secondary?: string
-      accent?: string
-      background?: string
-      text?: string
-      muted?: string
-    }
+    customColors?: import('$lib/theme/template-palette').TemplateCustomColors
     customFonts?: {
       heading?: string
       body?: string

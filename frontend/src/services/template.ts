@@ -86,9 +86,9 @@ export class TemplateService {
           // Determine which template to use based on area
           let templateName: string
           if (area === 'admin') {
-            templateName = 'default'
+            templateName = 'noir'
           } else {
-            templateName = result.data.template?.frontendTemplate || result.data.template?.activeTemplate || 'modern'
+            templateName = result.data.template?.frontendTemplate || result.data.template?.activeTemplate || 'noir'
           }
           const template = await this.loadTemplate(templateName)
           if (template) {
@@ -101,8 +101,7 @@ export class TemplateService {
       logger.error('Error loading active template:', error)
     }
 
-    // Fallback to default template
-    return await this.loadTemplate('default')
+    return await this.loadTemplate('noir')
   }
 
   async setActiveTemplate(templateName: string): Promise<boolean> {
@@ -140,11 +139,10 @@ export class TemplateService {
         }
       }
 
-      // Fallback to default component if not defined or import failed
-      const defaultTemplate = await this.getTemplateConfig('default')
-      const defaultPath = defaultTemplate?.components[componentName as keyof typeof defaultTemplate.components]
+      const baseTemplate = await this.getTemplateConfig('noir')
+      const defaultPath = baseTemplate?.components[componentName as keyof typeof baseTemplate.components]
       if (defaultPath) {
-        const fallback = await import(`@/templates/default/${defaultPath}`)
+        const fallback = await import(`@/templates/noir/${defaultPath}`)
         return fallback.default || fallback
       }
       return null
@@ -182,17 +180,16 @@ export class TemplateService {
         this.pageLoaders = this.buildPageLoaders()
       }
 
-      const tplKey = (templateName || 'default').toLowerCase()
+      const tplKey = (templateName || 'noir').toLowerCase()
       const pageKey = (pageName || '').toLowerCase()
-      const byTemplate = this.pageLoaders[tplKey] || this.pageLoaders['default'] || {}
+      const byTemplate = this.pageLoaders[tplKey] || this.pageLoaders['noir'] || {}
       const loader = byTemplate[pageKey]
       if (loader) {
         const mod = await loader()
         return mod.default || mod
       }
 
-      // Fallback to default template
-      const fallbackByDefault = this.pageLoaders['default'] || {}
+      const fallbackByDefault = this.pageLoaders['noir'] || {}
       const fallbackLoader = fallbackByDefault[pageKey]
       if (fallbackLoader) {
         const mod = await fallbackLoader()
@@ -208,46 +205,111 @@ export class TemplateService {
   }
 
   async getTemplateConfig(templateName: string): Promise<TemplateConfig | null> {
+    const normalizedName = (() => {
+      const t = templateName === 'default' || templateName === 'minimal' || !templateName ? 'noir' : templateName
+      const k = String(t).toLowerCase()
+      if (k === 'simple' || k === 'modern' || k === 'elegant') return 'noir'
+      return k || 'noir'
+    })()
+
     // For public pages, use static template configurations to avoid admin API calls
     // This prevents multiple admin API calls on the homepage
     // Static template configurations for public use (no admin API calls)
     const staticTemplates: Record<string, TemplateConfig> = {
-      'default': {
-      templateName: 'default',
-      displayName: 'Default',
-        description: 'Clean and minimal template',
-      version: '1.0.0',
-      author: 'OpenShutter',
-      thumbnail: '/templates/default/thumbnail.jpg',
-      category: 'minimal',
-      features: { responsive: true, darkMode: false, animations: true, seoOptimized: true },
-      colors: { primary: '#3B82F6', secondary: '#1F2937', accent: '#F59E0B', background: '#FFFFFF', text: '#1F2937', muted: '#6B7280' },
-      fonts: { heading: 'Inter', body: 'Inter' },
-      layout: { maxWidth: '1200px', containerPadding: '1rem', gridGap: '1.5rem' },
-      components: {
-        hero: 'components/Hero.tsx',
-        albumCard: 'components/AlbumCard.tsx',
-        photoCard: 'components/PhotoCard.tsx',
-        albumList: 'components/AlbumList.tsx',
-        gallery: 'components/Gallery.tsx',
-        navigation: 'components/Navigation.tsx',
-        footer: 'components/Footer.tsx',
-      },
-      visibility: { hero: true, languageSelector: true, authButtons: true, footerMenu: true },
-      pages: { home: 'pages/Home.tsx', gallery: 'pages/Gallery.tsx', album: 'pages/Album.tsx', search: 'pages/Search.tsx' },
-      },
-      'modern': {
-        templateName: 'modern',
-        displayName: 'Modern',
-        description: 'Contemporary and sleek design',
+      noir: {
+        templateName: 'noir',
+        displayName: 'Noir',
+        description: 'Cinematic dark layout — mono typography, grid hero, showcase pack',
         version: '1.0.0',
         author: 'OpenShutter',
-        thumbnail: '/templates/modern/thumbnail.jpg',
+        thumbnail: '/templates/noir/thumbnail.jpg',
+        category: 'dark',
+        features: { responsive: true, darkMode: true, animations: true, seoOptimized: true },
+        colors: {
+          primary: '#f5f5f3',
+          secondary: '#a1a1a1',
+          accent: '#f5f5f3',
+          background: '#080808',
+          text: '#f5f5f3',
+          muted: 'rgba(245,245,243,0.38)',
+          surfaceCard: '#141414',
+          surfaceCardSecondary: '#1c1c1c',
+          surfaceCardTertiary: '#232323',
+          textSubtle: 'rgba(245,245,243,0.16)',
+          borderSubtle: 'rgba(255,255,255,0.07)',
+          lightBackground: '#f5f5f3',
+          lightText: '#080808',
+          lightMuted: 'rgba(8,8,8,0.45)',
+          lightSurfaceCard: '#e8e8e5',
+          lightSurfaceCardSecondary: '#ddddd9',
+          lightSurfaceCardTertiary: '#d2d2ce',
+          lightTextSubtle: 'rgba(8,8,8,0.22)',
+          lightBorderSubtle: 'rgba(0,0,0,0.08)'
+        },
+        fonts: {
+          heading: 'DM Sans',
+          body: 'DM Mono',
+          links: 'DM Mono',
+          lists: 'DM Mono',
+          formInputs: 'DM Mono',
+          formLabels: 'DM Mono'
+        },
+        layout: { maxWidth: '1280px', containerPadding: '2rem', gridGap: '0.125rem' },
+        components: {
+          hero: 'components/Hero.tsx',
+          albumCard: 'components/AlbumCard.tsx',
+          photoCard: 'components/PhotoCard.tsx',
+          albumList: 'components/AlbumList.tsx',
+          gallery: 'components/Gallery.tsx',
+          navigation: 'components/Navigation.tsx',
+          footer: 'components/Footer.tsx',
+        },
+        visibility: { hero: true, languageSelector: true, authButtons: true, footerMenu: true },
+        pages: { home: 'pages/Home.tsx', gallery: 'pages/Gallery.tsx', album: 'pages/Album.tsx', search: 'pages/Search.tsx' },
+      },
+      studio: {
+        templateName: 'studio',
+        displayName: 'Studio',
+        description: 'Editorial portfolio layout — Syne & Outfit, hero strip, card grid',
+        version: '1.0.0',
+        author: 'OpenShutter',
+        thumbnail: '/templates/studio/thumbnail.jpg',
         category: 'modern',
         features: { responsive: true, darkMode: true, animations: true, seoOptimized: true },
-        colors: { primary: '#2563EB', secondary: '#334155', accent: '#22D3EE', background: '#0F172A', text: '#E2E8F0', muted: '#94A3B8' },
-        fonts: { heading: 'Inter', body: 'Inter' },
-        layout: { maxWidth: '1280px', containerPadding: '1.5rem', gridGap: '1.75rem' },
+        colors: {
+          primary: '#2563eb',
+          secondary: '#1d4ed8',
+          accent: '#60a5fa',
+          background: '#0f172a',
+          text: '#f1f5f9',
+          muted: '#94a3b8',
+          surfaceCard: '#1e293b',
+          surfaceCardSecondary: '#0f172a',
+          surfaceCardTertiary: '#1e293b',
+          textSubtle: 'rgba(241,245,249,0.2)',
+          borderSubtle: '#334155',
+          lightBackground: '#f8fafc',
+          lightText: '#0f172a',
+          lightMuted: '#64748b',
+          lightSurfaceCard: '#ffffff',
+          lightSurfaceCardSecondary: '#f8fafc',
+          lightSurfaceCardTertiary: '#f1f5f9',
+          lightTextSubtle: 'rgba(15,23,42,0.22)',
+          lightBorderSubtle: '#e2e8f0',
+          heroStrip: '#020617',
+          footerStrip: '#020617',
+          lightHeroStrip: '#0f172a',
+          lightFooterStrip: '#0f172a'
+        },
+        fonts: {
+          heading: 'Syne',
+          body: 'Outfit',
+          links: 'Outfit',
+          lists: 'Outfit',
+          formInputs: 'Outfit',
+          formLabels: 'Outfit'
+        },
+        layout: { maxWidth: '1200px', containerPadding: '1.75rem', gridGap: '1rem' },
         components: {
           hero: 'components/Hero.tsx',
           albumCard: 'components/AlbumCard.tsx',
@@ -255,23 +317,54 @@ export class TemplateService {
           albumList: 'components/AlbumList.tsx',
           gallery: 'components/Gallery.tsx',
           navigation: 'components/Navigation.tsx',
-          footer: 'components/Footer.tsx',
+          footer: 'components/Footer.tsx'
         },
         visibility: { hero: true, languageSelector: true, authButtons: true, footerMenu: true },
-        pages: { home: 'pages/Home.tsx', gallery: 'pages/Gallery.tsx', album: 'pages/Album.tsx', search: 'pages/Search.tsx' },
+        pages: { home: 'pages/Home.tsx', gallery: 'pages/Gallery.tsx', album: 'pages/Album.tsx', search: 'pages/Search.tsx' }
       },
-      'elegant': {
-        templateName: 'elegant',
-        displayName: 'Elegant',
-        description: 'Elegant and sophisticated design',
+      atelier: {
+        templateName: 'atelier',
+        displayName: 'Atelier',
+        description: 'Warm editorial layout — Cormorant Garamond & Jost, tall hero, list albums',
         version: '1.0.0',
         author: 'OpenShutter',
-        thumbnail: '/templates/elegant/thumbnail.jpg',
+        thumbnail: '/templates/atelier/thumbnail.jpg',
         category: 'elegant',
         features: { responsive: true, darkMode: true, animations: true, seoOptimized: true },
-        colors: { primary: '#7C3AED', secondary: '#C4B5FD', accent: '#F59E0B', background: '#1F1437', text: '#F5F3FF', muted: '#C4B5FD' },
-        fonts: { heading: 'Playfair Display', body: 'Lora' },
-        layout: { maxWidth: '1100px', containerPadding: '2rem', gridGap: '2rem' },
+        colors: {
+          primary: '#b8955a',
+          secondary: '#5c4033',
+          accent: '#d4b07a',
+          background: '#1a1008',
+          text: '#f0e8d8',
+          muted: '#7a6a58',
+          surfaceCard: '#231710',
+          surfaceCardSecondary: '#1a1008',
+          surfaceCardTertiary: '#2e1f14',
+          textSubtle: 'rgba(240,232,216,0.25)',
+          borderSubtle: '#3a2a1c',
+          lightBackground: '#faf6ef',
+          lightText: '#2c1f14',
+          lightMuted: '#9c8c7a',
+          lightSurfaceCard: '#faf6ef',
+          lightSurfaceCardSecondary: '#f2ece0',
+          lightSurfaceCardTertiary: '#e8dece',
+          lightTextSubtle: 'rgba(44,31,20,0.35)',
+          lightBorderSubtle: '#e8dece',
+          heroStrip: '#0e0804',
+          footerStrip: '#0e0804',
+          lightHeroStrip: '#2c1f14',
+          lightFooterStrip: '#2c1f14'
+        },
+        fonts: {
+          heading: 'Cormorant Garamond',
+          body: 'Jost',
+          links: 'Jost',
+          lists: 'Jost',
+          formInputs: 'Jost',
+          formLabels: 'Jost'
+        },
+        layout: { maxWidth: '960px', containerPadding: '2rem', gridGap: '1rem' },
         components: {
           hero: 'components/Hero.tsx',
           albumCard: 'components/AlbumCard.tsx',
@@ -279,48 +372,24 @@ export class TemplateService {
           albumList: 'components/AlbumList.tsx',
           gallery: 'components/Gallery.tsx',
           navigation: 'components/Navigation.tsx',
-          footer: 'components/Footer.tsx',
+          footer: 'components/Footer.tsx'
         },
         visibility: { hero: true, languageSelector: true, authButtons: true, footerMenu: true },
-        pages: { home: 'pages/Home.tsx', gallery: 'pages/Gallery.tsx', album: 'pages/Album.tsx', search: 'pages/Search.tsx' },
-      },
-      'minimal': {
-        templateName: 'minimal',
-        displayName: 'Minimal',
-        description: 'Ultra-minimal and clean design',
-        version: '1.0.0',
-        author: 'OpenShutter',
-        thumbnail: '/templates/minimal/thumbnail.jpg',
-        category: 'minimal',
-        features: { responsive: true, darkMode: false, animations: false, seoOptimized: true },
-        colors: { primary: '#111111', secondary: '#9CA3AF', accent: '#111111', background: '#FFFFFF', text: '#111111', muted: '#9CA3AF' },
-        fonts: { heading: 'Inter', body: 'Inter' },
-        layout: { maxWidth: '980px', containerPadding: '0.75rem', gridGap: '0.75rem' },
-        components: {
-          hero: 'components/Hero.tsx',
-          albumCard: 'components/AlbumCard.tsx',
-          photoCard: 'components/PhotoCard.tsx',
-          albumList: 'components/AlbumList.tsx',
-          gallery: 'components/Gallery.tsx',
-          navigation: 'components/Navigation.tsx',
-          footer: 'components/Footer.tsx',
-        },
-        visibility: { hero: true, languageSelector: true, authButtons: true, footerMenu: true },
-        pages: { home: 'pages/Home.tsx', gallery: 'pages/Gallery.tsx', album: 'pages/Album.tsx', search: 'pages/Search.tsx' },
+        pages: { home: 'pages/Home.tsx', gallery: 'pages/Gallery.tsx', album: 'pages/Album.tsx', search: 'pages/Search.tsx' }
       }
     }
 
     // Keep existing behavior during rollout unless explicitly enabled.
     if (!TEMPLATE_PACK_LOADER_ENABLED) {
-      return staticTemplates[templateName] || staticTemplates['default']
+      return staticTemplates[normalizedName] || staticTemplates['noir']
     }
 
-    const selectedTemplate = staticTemplates[templateName]
+    const selectedTemplate = staticTemplates[normalizedName]
     if (!selectedTemplate) {
       logger.warn(
-        `[TemplatePackLoader] Unknown template "${templateName}", falling back to default template`
+        `[TemplatePackLoader] Unknown template "${templateName}", falling back to noir template`
       )
-      return staticTemplates['default']
+      return staticTemplates['noir']
     }
 
     const validation = this.validateTemplateConfig(selectedTemplate)
@@ -329,9 +398,9 @@ export class TemplateService {
     }
 
     logger.error(
-      `[TemplatePackLoader] Invalid template "${templateName}". Missing components: ${validation.missingComponents.join(', ') || 'none'}. Missing pages: ${validation.missingPages.join(', ') || 'none'}. Falling back to default template.`
+      `[TemplatePackLoader] Invalid template "${templateName}". Missing components: ${validation.missingComponents.join(', ') || 'none'}. Missing pages: ${validation.missingPages.join(', ') || 'none'}. Falling back to noir template.`
     )
-    return staticTemplates['default']
+    return staticTemplates['noir']
   }
 
   private validateTemplateConfig(template: TemplateConfig): TemplateConfigValidationResult {
@@ -370,7 +439,7 @@ export class TemplateService {
    * Get active template with overrides applied
    */
   async getActiveTemplateWithOverrides(siteConfig: SiteConfig): Promise<TemplateWithOverrides | null> {
-    const activeTemplateName = siteConfig.template?.activeTemplate || 'default'
+    const activeTemplateName = siteConfig.template?.activeTemplate || 'noir'
     return this.getTemplateWithOverrides(activeTemplateName, siteConfig)
   }
 

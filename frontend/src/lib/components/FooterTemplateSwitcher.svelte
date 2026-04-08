@@ -71,6 +71,6 @@
 	{#if pack.components?.Footer}
 		<svelte:component this={pack.components.Footer} />
 	{:else}
-		<svelte:component this={getTemplatePack('default').components?.Footer} />
+		<svelte:component this={getTemplatePack('noir').components?.Footer} />
 	{/if}
 {/if}

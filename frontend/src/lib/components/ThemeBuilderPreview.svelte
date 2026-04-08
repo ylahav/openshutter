@@ -29,6 +29,8 @@
 	export let pageType: 'home' | 'gallery' | 'album' | 'search' | 'pageBuilder' | 'header' | 'footer' = 'home';
 	export let pageModules: any[] | undefined = undefined;
 	export let pageLayout: { gridRows?: number; gridColumns?: number } | undefined = undefined;
+	/** Named layout shells (merged over site template in preview). */
+	export let layoutPresets: Record<string, unknown> | null | undefined = undefined;
 
 	// Use provided modules/layout or fall back to defaults
 	$: modules = pageModules || DEFAULT_PAGE_MODULES[pageType] || [];
@@ -99,7 +101,7 @@
 	>
 		{#if modules.length > 0}
 			<!-- Use PageRenderer with actual modules -->
-			<PageRenderer page={page as PageData} modules={modules} />
+			<PageRenderer page={page as PageData} modules={modules} layoutPresetsPreview={layoutPresets} />
 		{:else}
 			<!-- Fallback for page types without modules -->
 			<div class="flex items-center justify-center h-full text-gray-400">

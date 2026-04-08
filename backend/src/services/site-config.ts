@@ -8,7 +8,17 @@ import { validateTemplatePagesLayer } from '../template/validate-pages-layer'
 export class SiteConfigService {
   private readonly logger = new Logger(SiteConfigService.name)
   /** Must stay aligned with frontend `TEMPLATE_PACK_IDS` / themes `baseTemplate`. */
-  private static readonly BUILTIN_TEMPLATE_IDS = new Set(['default', 'minimal', 'modern', 'elegant'])
+  private static readonly BUILTIN_TEMPLATE_IDS = new Set(['noir', 'studio', 'atelier'])
+
+  /** Map removed pack ids and unknown values to a valid built-in id. */
+  private normalizeFrontendTemplateId(raw: string | undefined): string {
+    const v = String(raw ?? 'noir')
+      .trim()
+      .toLowerCase()
+    if (v === 'default' || v === 'minimal' || v === 'simple' || v === 'modern' || v === 'elegant') return 'noir'
+    if (SiteConfigService.BUILTIN_TEMPLATE_IDS.has(v)) return v
+    return 'noir'
+  }
   private static instance: SiteConfigService
   private configCache: SiteConfig | null = null
   private cacheExpiry: number = 5 * 60 * 1000 // 5 minutes
@@ -66,7 +76,14 @@ export class SiteConfigService {
     }
     // Admin UI is not pack-driven; keep a single legacy sentinel in API responses.
     if (merged.template) {
-      merged.template = { ...merged.template, adminTemplate: 'default' }
+      merged.template = {
+        ...merged.template,
+        adminTemplate: 'default',
+        frontendTemplate: this.normalizeFrontendTemplateId(merged.template.frontendTemplate),
+        activeTemplate: this.normalizeFrontendTemplateId(
+          merged.template.activeTemplate ?? merged.template.frontendTemplate,
+        ),
+      }
     }
     return merged
   }
@@ -107,6 +124,29 @@ export class SiteConfigService {
     }
   }
 
+  private normalizeLegacyTemplateFields(updates: SiteConfigUpdate): void {
+    const t = updates.template
+    if (!t) return
+    if (
+      t.frontendTemplate === 'default' ||
+      t.frontendTemplate === 'minimal' ||
+      t.frontendTemplate === 'simple' ||
+      t.frontendTemplate === 'modern' ||
+      t.frontendTemplate === 'elegant'
+    ) {
+      t.frontendTemplate = 'noir'
+    }
+    if (
+      t.activeTemplate === 'default' ||
+      t.activeTemplate === 'minimal' ||
+      t.activeTemplate === 'simple' ||
+      t.activeTemplate === 'modern' ||
+      t.activeTemplate === 'elegant'
+    ) {
+      t.activeTemplate = 'noir'
+    }
+  }
+
   private validateTemplateUpdate(updates: SiteConfigUpdate): void {
     const t = updates.template
     if (!t) return
@@ -124,6 +164,7 @@ export class SiteConfigService {
     const mergePayload: SiteConfigUpdate = { ...updates }
     delete (mergePayload as { replaceTemplateFromTheme?: boolean }).replaceTemplateFromTheme
 
+    this.normalizeLegacyTemplateFields(mergePayload)
     this.validateTemplateUpdate(mergePayload)
 
       await connectDB()
@@ -151,6 +192,7 @@ export class SiteConfigService {
         'pageModules',
         'pageLayoutByBreakpoint',
         'pageModulesByBreakpoint',
+        'layoutPresets',
         'customLayout',
         'customLayoutByBreakpoint',
         'customColors',
@@ -194,6 +236,9 @@ export class SiteConfigService {
       }
       if (Object.prototype.hasOwnProperty.call(t, 'componentVisibility')) {
         mergedConfig.template.componentVisibility = t.componentVisibility ?? null
+      }
+      if (Object.prototype.hasOwnProperty.call(t, 'layoutPresets')) {
+        mergedConfig.template.layoutPresets = { ...(t.layoutPresets ?? {}) }
       }
       if (t.frontendTemplate !== undefined) mergedConfig.template.frontendTemplate = t.frontendTemplate
       if (t.activeTemplate !== undefined) mergedConfig.template.activeTemplate = t.activeTemplate
@@ -388,9 +433,9 @@ export class SiteConfigService {
         enableTagFeedbackSearchBoost: false,
       },
       template: {
-        frontendTemplate: 'modern',
+        frontendTemplate: 'noir',
         adminTemplate: 'default',
-        activeTemplate: 'modern' // Kept for backward compatibility
+        activeTemplate: 'noir' // Kept for backward compatibility
       },
       exifMetadata: { displayFields: [] },
       iptcXmpMetadata: { displayFields: [] },
@@ -487,9 +532,9 @@ export class SiteConfigService {
   }
 
   /**
-   * Invalidate cache
+   * Invalidate cache (e.g. after DB migration of themes / site_config).
    */
-  private invalidateCache(): void {
+  invalidateCache(): void {
     this.configCache = null
     this.lastCacheUpdate = 0
   }

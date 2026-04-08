@@ -1,0 +1,36 @@
+{
+	"displayName": "Atelier",
+	"colors": {
+		"primary": "#b8955a",
+		"secondary": "#5c4033",
+		"accent": "#d4b07a",
+		"background": "#1a1008",
+		"text": "#f0e8d8",
+		"muted": "#7a6a58",
+		"surfaceCard": "#231710",
+		"surfaceCardSecondary": "#1a1008",
+		"surfaceCardTertiary": "#2e1f14",
+		"textSubtle": "rgba(240,232,216,0.25)",
+		"borderSubtle": "#3a2a1c",
+		"lightBackground": "#faf6ef",
+		"lightText": "#2c1f14",
+		"lightMuted": "#9c8c7a",
+		"lightSurfaceCard": "#faf6ef",
+		"lightSurfaceCardSecondary": "#f2ece0",
+		"lightSurfaceCardTertiary": "#e8dece",
+		"lightTextSubtle": "rgba(44,31,20,0.35)",
+		"lightBorderSubtle": "#e8dece",
+		"heroStrip": "#0e0804",
+		"footerStrip": "#0e0804",
+		"lightHeroStrip": "#2c1f14",
+		"lightFooterStrip": "#2c1f14"
+	},
+	"fonts": {
+		"heading": "Cormorant Garamond",
+		"body": "Jost",
+		"links": "Jost",
+		"lists": "Jost",
+		"formInputs": "Jost",
+		"formLabels": "Jost"
+	}
+}

@@ -173,7 +173,7 @@ export class SiteConfigService {
         maxUploadSize: '10MB'
       },
       template: {
-        activeTemplate: 'modern'
+        activeTemplate: 'noir'
       },
       createdAt: new Date(),
       updatedAt: new Date()

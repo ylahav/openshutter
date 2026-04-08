@@ -23,14 +23,8 @@ export interface SiteConfig {
     frontendTemplate?: string // Template for public-facing frontend pages
     /** @deprecated Ignored for UI. Always `default` in API responses and on save; admin uses a fixed Skeleton shell. */
     adminTemplate?: string
-    customColors?: {
-      primary?: string
-      secondary?: string
-      accent?: string
-      background?: string
-      text?: string
-      muted?: string
-    }
+    /** Core + extended semantic colors (see frontend `template-palette.ts`). */
+    customColors?: Record<string, string | undefined>
     /** Per-role font: string (family) or { family?, size?, weight? }. */
     customFonts?: Record<string, string | { family?: string; size?: string; weight?: string }>
     /** Legacy flat shell or breakpoint-keyed map (xs … xl). */
@@ -70,6 +64,10 @@ export interface SiteConfig {
     /** Legacy flat per page, or `{ pageKey: { xs: …, lg: … } }` map. */
     pageModules?: Record<string, any[] | Record<string, any[]>>
     pageLayout?: Record<string, { gridRows?: number; gridColumns?: number } | Record<string, { gridRows?: number; gridColumns?: number }>>
+    /**
+     * Named grid regions (e.g. shared header strip). Referenced by page-builder modules `type: layoutShell`, `props.presetKey`.
+     */
+    layoutPresets?: Record<string, { gridRows?: number; gridColumns?: number; modules?: any[] }>
   }
   seo: {
     metaTitle: MultiLangText

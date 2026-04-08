@@ -11,6 +11,7 @@
 		TEMPLATE_BREAKPOINTS,
 		seedShellFromDb
 	} from '$lib/template/breakpoints';
+	import { buildTemplatePaletteCss } from '$lib/theme/template-palette';
 
 	let styleElement: HTMLStyleElement | null = null;
 	let googleFontsLink: HTMLLinkElement | null = null;
@@ -89,8 +90,8 @@
 		// Insert at the end of head to ensure it loads after Tailwind styles
 		document.head.appendChild(styleElement);
 
-		// Build CSS variables for both light and dark modes
-		let cssVars = ':root {\n';
+		// Semantic template palette (--tp-*) for packs (Noir, etc.) + light/dark
+		let cssVars = `${buildTemplatePaletteCss(customColors as Record<string, string | undefined>)}\n\n:root {\n`;
 		
 		if (customColors) {
 			if (customColors.primary) {
@@ -192,7 +193,7 @@
 			cssVars += `html.dark p, html.dark span, html.dark div, html.dark h1, html.dark h2, html.dark h3, html.dark h4, html.dark h5, html.dark h6, html.dark a:not([class*="text-"]) { color: ${customColors.text}; }\n`;
 		}
 		// Site custom background applies to `body` only. Do not set `main` here: `!important`
-		// would override Tailwind `bg-*` on `BodyTemplateWrapper`’s `<main>` (minimal/default/elegant
+		// would override Tailwind `bg-*` on `BodyTemplateWrapper`’s `<main>` (simple/modern/elegant
 		// solids). Modern’s gradient used `background-image`, so it still showed — looked “only modern works”.
 		if (customColors?.background) {
 			cssVars += `body { background-color: ${customColors.background} !important; }\n`;

@@ -11,7 +11,7 @@ export class UpdateThemeDto {
 
   @IsOptional()
   @IsString()
-  @IsIn(['default', 'minimal', 'elegant', 'modern'])
+  @IsIn(['noir', 'studio', 'atelier'])
   baseTemplate?: string;
 
   @IsOptional()
@@ -55,6 +55,11 @@ export class UpdateThemeDto {
   @IsOptional()
   @IsObject()
   pageModulesByBreakpoint?: Record<string, Record<string, unknown[]>>;
+
+  /** Named reusable grids (header/footer bands, etc.) — keys are preset ids; blocks use layoutShell + presetKey. */
+  @IsOptional()
+  @IsObject()
+  layoutPresets?: Record<string, unknown>;
 
   @IsOptional()
   @IsBoolean()

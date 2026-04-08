@@ -1,5 +1,6 @@
 import type { MultiLangText, MultiLangHTML } from './multi-lang';
 import type { FontSetting, FontRole } from './fonts';
+import type { TemplateCustomColors } from '$lib/theme/template-palette';
 
 export interface SiteConfig {
   _id?: string
@@ -24,14 +25,8 @@ export interface SiteConfig {
     frontendTemplate?: string // Template for public-facing frontend pages
     /** @deprecated Always `default` from API. Admin UI is not pack-driven. */
     adminTemplate?: string
-    customColors?: {
-      primary?: string
-      secondary?: string
-      accent?: string
-      background?: string
-      text?: string
-      muted?: string
-    }
+    /** Core + extended semantic colors (surfaces, light-theme overrides). See `template-palette.ts`. */
+    customColors?: TemplateCustomColors
     /** Per-role font: family (string) or { family, size?, weight? }. Legacy: string = family only. */
     customFonts?: Partial<Record<FontRole, string | FontSetting>>
     /**
@@ -90,6 +85,8 @@ export interface SiteConfig {
     /** Legacy flat per page or `{ pageKey: { xs: …, lg: … } }` (Admin saves full map here). */
     pageModules?: Record<string, unknown>
     pageLayout?: Record<string, unknown>
+    /** Named reusable grids for `layoutShell` blocks (presetKey → grid + modules). */
+    layoutPresets?: Record<string, { gridRows?: number; gridColumns?: number; modules?: unknown[] }>
   }
   seo: {
     metaTitle: MultiLangText

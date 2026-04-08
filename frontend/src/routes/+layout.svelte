@@ -4,9 +4,7 @@
 	import '$lib/styles/globals.css';
 	import { siteConfig, publicSiteFavicon } from '$stores/siteConfig';
 	import { loadSession } from '$lib/stores/auth';
-	import HeaderTemplateSwitcher from '$lib/components/HeaderTemplateSwitcher.svelte';
 	import PackFallbackBanner from '$lib/components/PackFallbackBanner.svelte';
-	import FooterTemplateSwitcher from '$lib/components/FooterTemplateSwitcher.svelte';
 	import BodyTemplateWrapper from '$lib/components/BodyTemplateWrapper.svelte';
 	import AdminAppChrome from '$lib/components/AdminAppChrome.svelte';
 	import ThemeProvider from '$lib/components/ThemeProvider.svelte';
@@ -79,12 +77,9 @@
 		<ThemeColorApplier />
 		<TokenRenewalNotification />
 		<PackFallbackBanner />
-		<HeaderTemplateSwitcher />
 
 		<BodyTemplateWrapper>
 			<slot />
 		</BodyTemplateWrapper>
-
-		<FooterTemplateSwitcher />
 	{/if}
 </ThemeProvider>

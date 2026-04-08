@@ -2,7 +2,7 @@
  * Per-pack default header chrome when `siteConfig.template.headerConfig` does not override a flag.
  * Site config still wins when an explicit value is set (per-field).
  */
-export type PackHeaderId = 'modern' | 'elegant' | 'minimal' | 'default';
+export type PackHeaderId = 'noir' | 'studio' | 'atelier';
 
 export type ResolvedHeaderVisibility = {
 	showLogo: boolean;
@@ -16,19 +16,7 @@ export type ResolvedHeaderVisibility = {
 };
 
 const PACK_DEFAULTS: Record<PackHeaderId, ResolvedHeaderVisibility> = {
-	/** Logo mark only — navigation chrome hidden unless overridden in site config */
-	modern: {
-		showLogo: true,
-		showSiteTitle: false,
-		showMenu: false,
-		showTemplateSelector: false,
-		showLanguageSelector: false,
-		showThemeToggle: false,
-		showAuthButtons: false,
-		showGreeting: false
-	},
-	/** Full header */
-	elegant: {
+	noir: {
 		showLogo: true,
 		showSiteTitle: true,
 		showMenu: true,
@@ -38,18 +26,17 @@ const PACK_DEFAULTS: Record<PackHeaderId, ResolvedHeaderVisibility> = {
 		showAuthButtons: true,
 		showGreeting: true
 	},
-	/** No inline auth / greeting in header; nav + i18n + theme + template switch */
-	minimal: {
+	studio: {
 		showLogo: true,
 		showSiteTitle: true,
 		showMenu: true,
 		showTemplateSelector: true,
 		showLanguageSelector: true,
 		showThemeToggle: true,
-		showAuthButtons: false,
-		showGreeting: false
+		showAuthButtons: true,
+		showGreeting: true
 	},
-	default: {
+	atelier: {
 		showLogo: true,
 		showSiteTitle: true,
 		showMenu: true,
@@ -63,27 +50,43 @@ const PACK_DEFAULTS: Record<PackHeaderId, ResolvedHeaderVisibility> = {
 
 type HeaderCfg = Record<string, unknown> | undefined | null;
 
+/** Legacy DB / old code may still pass removed pack ids. */
+const LEGACY_PACK_HEADER: Record<string, PackHeaderId> = {
+	default: 'noir',
+	minimal: 'noir',
+	simple: 'noir',
+	modern: 'noir',
+	elegant: 'noir'
+};
+
+function coercePackHeaderId(packId: string): PackHeaderId {
+	const k = String(packId || '').toLowerCase()
+	if (k in PACK_DEFAULTS) return k as PackHeaderId
+	return LEGACY_PACK_HEADER[k] ?? 'noir'
+}
+
 /**
  * Merge site `headerConfig` with built-in defaults for this template pack.
  */
 export function resolveHeaderVisibilityForPack(
-	packId: PackHeaderId,
+	packId: string,
 	headerConfig: HeaderCfg
 ): ResolvedHeaderVisibility {
-	const base = PACK_DEFAULTS[packId] ?? PACK_DEFAULTS.default;
-	const h = headerConfig ?? {};
+	const id = coercePackHeaderId(packId)
+	const base = PACK_DEFAULTS[id]
+	const h = headerConfig ?? {}
 
 	const pick = (key: keyof ResolvedHeaderVisibility): boolean => {
-		const direct = h[key as string];
-		if (direct !== undefined) return Boolean(direct);
+		const direct = h[key as string]
+		if (direct !== undefined) return Boolean(direct)
 		if (key === 'showLanguageSelector') {
-			if (h.enableLanguageSelector !== undefined) return Boolean(h.enableLanguageSelector);
+			if (h.enableLanguageSelector !== undefined) return Boolean(h.enableLanguageSelector)
 		}
 		if (key === 'showThemeToggle') {
-			if (h.enableThemeToggle !== undefined) return Boolean(h.enableThemeToggle);
+			if (h.enableThemeToggle !== undefined) return Boolean(h.enableThemeToggle)
 		}
-		return base[key];
-	};
+		return base[key]
+	}
 
 	return {
 		showLogo: pick('showLogo'),
@@ -94,5 +97,5 @@ export function resolveHeaderVisibilityForPack(
 		showThemeToggle: pick('showThemeToggle'),
 		showAuthButtons: pick('showAuthButtons'),
 		showGreeting: pick('showGreeting')
-	};
+	}
 }

@@ -10,6 +10,8 @@
 	import { logger } from '$lib/utils/logger';
 
 	export let initialQuery = '';
+	/** When `noir`, shell uses template tokens instead of default gray surfaces. */
+	export let variant: 'default' | 'noir' = 'default';
 
 	interface AdvancedFilters {
 		albumId: string | null;
@@ -337,7 +339,14 @@
 	})();
 </script>
 
-<div class="min-h-screen bg-gray-50">
+<div
+	class="min-h-screen"
+	class:bg-gray-50={variant === 'default'}
+	class:bg-[color:var(--tp-canvas)]={variant === 'noir'}
+	class:text-[color:var(--tp-fg)]={variant === 'noir'}
+	class:[font-family:var(--os-font-body)]={variant === 'noir'}
+	class:pt-24={variant === 'noir'}
+>
 	<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 		<!-- Search Bar + Filters -->
 		<div class="mb-6 flex flex-wrap items-center gap-3">

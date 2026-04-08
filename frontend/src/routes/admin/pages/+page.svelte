@@ -91,10 +91,12 @@
 	];
 
 	const MODULE_TYPES = [
+		{ value: 'pageTitle', label: 'Page title' },
 		{ value: 'hero', label: 'Hero' },
 		{ value: 'richText', label: 'Rich Text' },
 		{ value: 'featureGrid', label: 'Feature Grid' },
 		{ value: 'albumsGrid', label: 'Albums Grid' },
+		{ value: 'layoutShell', label: 'Layout region (named grid)' },
 		{ value: 'cta', label: 'Call To Action' },
 		{ value: 'blogCategory', label: 'Blog categories' },
 		{ value: 'blogArticle', label: 'Blog articles' }
@@ -245,8 +247,29 @@
 	let gridInitialized = false;
 
 	onMount(async () => {
-		await Promise.all([crudLoader.loadItems(), loadAlbums(), loadBlogCategories()]);
+		await Promise.all([crudLoader.loadItems(), loadAlbums(), loadBlogCategories(), loadLayoutPresetNames()]);
 	});
+
+	async function loadLayoutPresetNames() {
+		try {
+			const response = await fetch('/api/admin/themes', { credentials: 'include' });
+			if (!response.ok) return;
+			const result = await response.json();
+			const rows: any[] = Array.isArray(result) ? result : (Array.isArray(result?.data) ? result.data : []);
+			const names = new Set<string>();
+			for (const row of rows) {
+				const presets = row?.layoutPresets;
+				if (!presets || typeof presets !== 'object' || Array.isArray(presets)) continue;
+				for (const key of Object.keys(presets as Record<string, unknown>)) {
+					const k = String(key || '').trim();
+					if (k) names.add(k);
+				}
+			}
+			availableLayoutPresetNames = Array.from(names).sort((a, b) => a.localeCompare(b));
+		} catch (err) {
+			logger.warn('Failed to load layout preset names:', err);
+		}
+	}
 
 	async function loadBlogCategories() {
 		try {
@@ -536,6 +559,12 @@
 			order: 0,
 			propsJson: '{}'
 		};
+		layoutShellPresetKey = '';
+		layoutShellReusePick = '';
+		layoutShellPresetError = '';
+		pageTitleShowTitle = true;
+		pageTitleShowSubtitle = true;
+		pageTitleAlign = 'center';
 	}
 
 	let showModuleEditDialog = false;
@@ -556,6 +585,9 @@
 	let richTextTitle: MultiLangText = { en: '', he: '' };
 	let richTextBody: MultiLangHTML = { en: '', he: '' };
 	let richTextBackground: 'white' | 'gray' = 'white';
+	let pageTitleShowTitle = true;
+	let pageTitleShowSubtitle = true;
+	let pageTitleAlign: 'left' | 'center' = 'center';
 
 	// Hero form state
 	let heroTitle: MultiLangText = { en: '', he: '' };
@@ -573,6 +605,10 @@
 	let albumsLoading = false;
 	let blogCategoryAlias = '';
 	let availableBlogCategories: Array<{ alias: string; title: string }> = [];
+	let layoutShellPresetKey = '';
+	let layoutShellReusePick = '';
+	let layoutShellPresetError = '';
+	let availableLayoutPresetNames: string[] = [];
 
 	function editModule(module: PageModuleData) {
 		editingModule = module;
@@ -618,6 +654,16 @@
 			richTextTitle = { en: '', he: '' };
 			richTextBody = { en: '', he: '' };
 			richTextBackground = 'white';
+		}
+		if (module.type === 'pageTitle') {
+			const props = module.props || {};
+			pageTitleShowTitle = props.showTitle !== false;
+			pageTitleShowSubtitle = props.showSubtitle !== false;
+			pageTitleAlign = props.align === 'left' ? 'left' : 'center';
+		} else {
+			pageTitleShowTitle = true;
+			pageTitleShowSubtitle = true;
+			pageTitleAlign = 'center';
 		}
 
 		// Initialize hero form if it's a hero module
@@ -677,6 +723,16 @@
 		} else {
 			blogCategoryAlias = '';
 		}
+		if (module.type === 'layoutShell') {
+			const props = module.props || {};
+			layoutShellPresetKey = typeof props.presetKey === 'string' ? props.presetKey : '';
+			layoutShellReusePick = '';
+			layoutShellPresetError = '';
+		} else {
+			layoutShellPresetKey = '';
+			layoutShellReusePick = '';
+			layoutShellPresetError = '';
+		}
 		
 		editingFeatureIndex = null;
 		showModuleEditDialog = true;
@@ -724,6 +780,12 @@
 					body: richTextBody,
 					background: richTextBackground
 				} as RichTextProps;
+			} else if (moduleForm.type === 'pageTitle') {
+				props = {
+					showTitle: pageTitleShowTitle,
+					showSubtitle: pageTitleShowSubtitle,
+					align: pageTitleAlign
+				};
 			} else if (moduleForm.type === 'hero') {
 				// Handle hero module
 				props = {
@@ -746,6 +808,16 @@
 				props = {
 					...parsed,
 					categoryAlias: blogCategoryAlias || undefined
+				};
+			} else if (moduleForm.type === 'layoutShell') {
+				const key = layoutShellPresetKey.trim();
+				if (!key) {
+					layoutShellPresetError = 'Choose an existing preset or enter a new unique name.';
+					return;
+				}
+				layoutShellPresetError = '';
+				props = {
+					presetKey: key
 				};
 			} else {
 				props = moduleForm.propsJson.trim() ? JSON.parse(moduleForm.propsJson) as Record<string, unknown> : {};
@@ -795,6 +867,8 @@
 			showModuleEditDialog = false;
 			editingModule = null;
 			resetModuleForm();
+			// Keep Edit Page dialog open after module save.
+			showEditDialog = true;
 			await loadModules(editingPage._id);
 		} catch (err) {
 			logger.error('Error updating module:', err);
@@ -825,6 +899,12 @@
 					body: richTextBody,
 					background: richTextBackground
 				} as RichTextProps;
+			} else if (moduleForm.type === 'pageTitle') {
+				props = {
+					showTitle: pageTitleShowTitle,
+					showSubtitle: pageTitleShowSubtitle,
+					align: pageTitleAlign
+				};
 			} else if (moduleForm.type === 'hero') {
 				props = {
 					title: heroTitle,
@@ -845,6 +925,16 @@
 				props = {
 					...parsed,
 					categoryAlias: blogCategoryAlias || undefined
+				};
+			} else if (moduleForm.type === 'layoutShell') {
+				const key = layoutShellPresetKey.trim();
+				if (!key) {
+					layoutShellPresetError = 'Choose an existing preset or enter a new unique name.';
+					return;
+				}
+				layoutShellPresetError = '';
+				props = {
+					presetKey: key
 				};
 			} else {
 				props = moduleForm.propsJson.trim() ? JSON.parse(moduleForm.propsJson) as Record<string, unknown> : {};
@@ -1017,6 +1107,82 @@
 			logger.error('Error assigning module:', err);
 			modulesError = handleError(err, 'Failed to assign module');
 		}
+	}
+
+	function updateRowStructureAfterInsert(atRowOrder: number) {
+		const next = new Map<number, number[]>();
+		for (const [r, proportions] of rowStructure.entries()) {
+			next.set(r >= atRowOrder ? r + 1 : r, [...proportions]);
+		}
+		if (!next.has(atRowOrder)) {
+			const fallbackCols = Math.max(1, formData.gridColumns || rowStructure.get(0)?.length || 1);
+			next.set(atRowOrder, Array(fallbackCols).fill(1));
+		}
+		rowStructure = next;
+	}
+
+	function updateRowStructureAfterMove(fromRowOrder: number, toRowOrder: number) {
+		const next = new Map<number, number[]>();
+		for (const [r, proportions] of rowStructure.entries()) {
+			if (r === fromRowOrder) next.set(toRowOrder, [...proportions]);
+			else if (r === toRowOrder) next.set(fromRowOrder, [...proportions]);
+			else next.set(r, [...proportions]);
+		}
+		rowStructure = next;
+	}
+
+	async function persistModulesRowOrder(updatedModules: PageModuleData[]) {
+		if (!editingPage) {
+			modules = updatedModules;
+			return;
+		}
+		try {
+			for (const m of updatedModules) {
+				if (!m._id) continue;
+				const payload: Record<string, unknown> = {
+					type: m.type,
+					rowOrder: m.rowOrder ?? 0,
+					columnIndex: m.columnIndex ?? 0,
+					columnProportion: m.columnProportion ?? 1,
+					props: m.props || {}
+				};
+				if (m.rowSpan && m.rowSpan > 1) payload.rowSpan = m.rowSpan;
+				if (m.colSpan && m.colSpan > 1) payload.colSpan = m.colSpan;
+				const response = await fetch(`/api/admin/pages/${editingPage._id}/modules/${m._id}`, {
+					method: 'PUT',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(payload)
+				});
+				if (!response.ok) await handleApiErrorResponse(response);
+			}
+			modules = updatedModules;
+		} catch (err) {
+			logger.error('Error updating row order:', err);
+			modulesError = handleError(err, 'Failed to reorder rows');
+		}
+	}
+
+	async function handleMoveRow(fromRowOrder: number, toRowOrder: number) {
+		if (fromRowOrder === toRowOrder) return;
+		const updated = modules.map((m) => {
+			const r = m.rowOrder ?? 0;
+			if (r === fromRowOrder) return { ...m, rowOrder: toRowOrder };
+			if (r === toRowOrder) return { ...m, rowOrder: fromRowOrder };
+			return m;
+		});
+		updateRowStructureAfterMove(fromRowOrder, toRowOrder);
+		await persistModulesRowOrder(updated);
+	}
+
+	async function handleInsertRow(atRowOrder: number) {
+		const idx = Math.max(0, Math.min(formData.gridRows, atRowOrder));
+		const updated = modules.map((m) => {
+			const r = m.rowOrder ?? 0;
+			return r >= idx ? { ...m, rowOrder: r + 1 } : m;
+		});
+		formData.gridRows = Math.min(20, formData.gridRows + 1);
+		updateRowStructureAfterInsert(idx);
+		await persistModulesRowOrder(updated);
 	}
 
 	async function handleCreate() {
@@ -1274,6 +1440,8 @@
 								onAssignModule={handleAssignModule}
 								onRemoveModule={deleteModule}
 								onEditModule={editModule}
+								onMoveRow={handleMoveRow}
+								onInsertRow={handleInsertRow}
 								availableModuleTypes={MODULE_TYPES}
 							/>
 						{/if}
@@ -1327,7 +1495,7 @@
 
 <!-- Module Edit Dialog -->
 {#if showModuleEditDialog && editingModule}
-	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[70]">
 		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full {moduleForm.type === 'featureGrid' || moduleForm.type === 'richText' || moduleForm.type === 'hero' || moduleForm.type === 'albumsGrid' ? 'max-w-4xl' : 'max-w-2xl'} p-6 max-h-[90vh] overflow-y-auto">
 			<h2 class="text-xl font-bold text-[var(--color-surface-950-50)] mb-4">Edit Module</h2>
 
@@ -1481,6 +1649,34 @@
 							</select>
 						</div>
 					</div>
+				{:else if moduleForm.type === 'pageTitle'}
+					<div class="space-y-4 border-t border-surface-200-800 pt-4">
+						<div>
+							<label class="flex items-center gap-2">
+								<input type="checkbox" bind:checked={pageTitleShowTitle} class="w-4 h-4" />
+								<span class="text-sm text-[var(--color-surface-800-200)]">Show page title</span>
+							</label>
+						</div>
+						<div>
+							<label class="flex items-center gap-2">
+								<input type="checkbox" bind:checked={pageTitleShowSubtitle} class="w-4 h-4" />
+								<span class="text-sm text-[var(--color-surface-800-200)]">Show page subtitle</span>
+							</label>
+						</div>
+						<div>
+							<label for="module-page-title-align" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+								Alignment
+							</label>
+							<select
+								id="module-page-title-align"
+								bind:value={pageTitleAlign}
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
+							>
+								<option value="center">Center</option>
+								<option value="left">Left</option>
+							</select>
+						</div>
+					</div>
 				{:else if moduleForm.type === 'hero'}
 					<!-- Hero Form -->
 					<div class="space-y-4 border-t border-surface-200-800 pt-4">
@@ -1609,6 +1805,51 @@
 									{albumsGridSelectedAlbums.length} album{albumsGridSelectedAlbums.length !== 1 ? 's' : ''} selected
 								</p>
 							{/if}
+						</div>
+					</div>
+				{:else if moduleForm.type === 'layoutShell'}
+					<div class="space-y-4 border-t border-surface-200-800 pt-4">
+						<p class="text-sm text-[var(--color-surface-600-400)]">
+							A <strong>preset name</strong> is shared storage: multiple layoutShell modules can reuse one named grid.
+						</p>
+						<div>
+							<label for="module-layout-shell-preset" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+								Preset name
+							</label>
+							<input
+								id="module-layout-shell-preset"
+								type="text"
+								bind:value={layoutShellPresetKey}
+								placeholder="e.g. site_header"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
+								on:input={() => {
+									layoutShellPresetError = '';
+								}}
+							/>
+							{#if layoutShellPresetError}
+								<p class="mt-1 text-xs text-red-600">{layoutShellPresetError}</p>
+							{/if}
+						</div>
+						<div>
+							<label for="module-layout-shell-reuse" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+								Reuse existing preset
+							</label>
+							<select
+								id="module-layout-shell-reuse"
+								bind:value={layoutShellReusePick}
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
+								on:change={() => {
+									if (!layoutShellReusePick) return;
+									layoutShellPresetKey = layoutShellReusePick;
+									layoutShellPresetError = '';
+									layoutShellReusePick = '';
+								}}
+							>
+								<option value="">— Pick a saved name —</option>
+								{#each availableLayoutPresetNames as name}
+									<option value={name}>{name}</option>
+								{/each}
+							</select>
 						</div>
 					</div>
 				{:else if moduleForm.type === 'blogCategory'}
@@ -1810,6 +2051,8 @@
 							onAssignModule={handleAssignModule}
 							onRemoveModule={deleteModule}
 							onEditModule={editModule}
+							onMoveRow={handleMoveRow}
+							onInsertRow={handleInsertRow}
 							availableModuleTypes={MODULE_TYPES}
 						/>
 					{/if}
@@ -1862,7 +2105,7 @@
 {/if}
 
 <!-- Module Edit Dialog -->
-{#if showModuleEditDialog && editingModule}
+{#if false && showModuleEditDialog && editingModule}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
 		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full {moduleForm.type === 'featureGrid' || moduleForm.type === 'richText' || moduleForm.type === 'hero' || moduleForm.type === 'albumsGrid' ? 'max-w-4xl' : 'max-w-2xl'} p-6 max-h-[90vh] overflow-y-auto">
 			<h2 class="text-xl font-bold text-[var(--color-surface-950-50)] mb-4">Edit Module</h2>
@@ -2235,7 +2478,7 @@
 {/if}
 
 <!-- Module Edit Dialog -->
-{#if showModuleEditDialog && editingModule}
+{#if false && showModuleEditDialog && editingModule}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
 		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full {moduleForm.type === 'featureGrid' || moduleForm.type === 'richText' || moduleForm.type === 'hero' || moduleForm.type === 'albumsGrid' ? 'max-w-4xl' : 'max-w-2xl'} p-6 max-h-[90vh] overflow-y-auto">
 			<h2 class="text-xl font-bold text-[var(--color-surface-950-50)] mb-4">Edit Module</h2>

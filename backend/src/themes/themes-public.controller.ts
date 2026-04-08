@@ -35,7 +35,11 @@ export class ThemesPublicController {
   async listPublished() {
     try {
       const collection = this.getCollection();
-      const themes = await collection.find({ isPublished: { $ne: false } }).sort({ createdAt: -1 }).toArray();
+      const validPacks = ['noir', 'studio', 'atelier'];
+      const themes = await collection
+        .find({ isPublished: { $ne: false }, baseTemplate: { $in: validPacks } })
+        .sort({ createdAt: -1 })
+        .toArray();
       return themes.map((t) => this.serialize(t));
     } catch (error) {
       this.logger.error('Error fetching public themes:', error);

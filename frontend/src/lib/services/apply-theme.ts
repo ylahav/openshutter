@@ -1,5 +1,6 @@
 import { siteConfig } from '$stores/siteConfig';
 import { handleApiErrorResponse } from '$lib/utils/errorHandler';
+import { normalizeTemplatePackId } from '$lib/template-packs/registry';
 
 export type ApplyThemeResult =
 	| { ok: true; themeName: string }
@@ -24,7 +25,7 @@ export async function applyThemeById(themeId: string): Promise<ApplyThemeResult>
 	if (!theme?._id) {
 		return { ok: false, error: 'Theme not found' };
 	}
-	const nextFrontendTemplate = String(theme.baseTemplate || 'default');
+	const nextFrontendTemplate = normalizeTemplatePackId(theme.baseTemplate);
 
 	const response = await fetch('/api/admin/site-config', {
 		method: 'PUT',
@@ -45,7 +46,8 @@ export async function applyThemeById(themeId: string): Promise<ApplyThemeResult>
 				pageLayoutByBreakpoint: theme.pageLayoutByBreakpoint || {},
 				pageModulesByBreakpoint: theme.pageModulesByBreakpoint || {},
 				headerConfig: theme.headerConfig != null ? theme.headerConfig : null,
-				componentVisibility: theme.componentVisibility != null ? theme.componentVisibility : null
+				componentVisibility: theme.componentVisibility != null ? theme.componentVisibility : null,
+				layoutPresets: theme.layoutPresets && typeof theme.layoutPresets === 'object' ? theme.layoutPresets : {}
 			}
 		})
 	});
@@ -62,7 +64,7 @@ export async function applyThemeById(themeId: string): Promise<ApplyThemeResult>
 	return { ok: true, themeName: theme.name || theme.baseTemplate || 'Theme' };
 }
 
-const BUILTIN_PACK_IDS = new Set(['default', 'minimal', 'modern', 'elegant']);
+const BUILTIN_PACK_IDS = new Set(['noir', 'studio', 'atelier']);
 
 /**
  * Used by the header TemplateSelector: same behavior as "Set as default" — load the **built-in**
@@ -70,9 +72,7 @@ const BUILTIN_PACK_IDS = new Set(['default', 'minimal', 'modern', 'elegant']);
  * if no built-in row exists (e.g. DB not seeded).
  */
 export async function applyBuiltInThemeForPack(baseTemplate: string): Promise<ApplyThemeResult> {
-	const pack = String(baseTemplate || '')
-		.trim()
-		.toLowerCase();
+	const pack = normalizeTemplatePackId(baseTemplate);
 	if (!BUILTIN_PACK_IDS.has(pack)) {
 		return { ok: false, error: 'Unknown template pack' };
 	}

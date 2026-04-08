@@ -1,0 +1,36 @@
+{
+	"displayName": "Studio",
+	"colors": {
+		"primary": "#2563eb",
+		"secondary": "#1d4ed8",
+		"accent": "#60a5fa",
+		"background": "#0f172a",
+		"text": "#f1f5f9",
+		"muted": "#94a3b8",
+		"surfaceCard": "#1e293b",
+		"surfaceCardSecondary": "#0f172a",
+		"surfaceCardTertiary": "#1e293b",
+		"textSubtle": "rgba(241,245,249,0.2)",
+		"borderSubtle": "#334155",
+		"lightBackground": "#f8fafc",
+		"lightText": "#0f172a",
+		"lightMuted": "#64748b",
+		"lightSurfaceCard": "#ffffff",
+		"lightSurfaceCardSecondary": "#f8fafc",
+		"lightSurfaceCardTertiary": "#f1f5f9",
+		"lightTextSubtle": "rgba(15,23,42,0.22)",
+		"lightBorderSubtle": "#e2e8f0",
+		"heroStrip": "#020617",
+		"footerStrip": "#020617",
+		"lightHeroStrip": "#0f172a",
+		"lightFooterStrip": "#0f172a"
+	},
+	"fonts": {
+		"heading": "Syne",
+		"body": "Outfit",
+		"links": "Outfit",
+		"lists": "Outfit",
+		"formInputs": "Outfit",
+		"formLabels": "Outfit"
+	}
+}

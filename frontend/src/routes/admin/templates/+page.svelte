@@ -33,7 +33,7 @@
 	let showCreateModal = false;
 	let createSubmitting = false;
 	let createName = '';
-	let createBaseTemplate = 'modern';
+	let createBaseTemplate = 'noir';
 	let createBasePalette = 'light';
 	let duplicateName = '';
 	let duplicateThemeId: string | null = null;
@@ -49,25 +49,21 @@
 			label: string;
 		}
 	> = {
-		minimal: {
-			colors: { primary: '#111111', secondary: '#9CA3AF', accent: '#111111', background: '#FFFFFF' },
-			label: 'Clean monochrome'
+		noir: {
+			colors: { primary: '#f5f5f3', secondary: '#a1a1a1', accent: '#f5f5f3', background: '#080808' },
+			label: 'Cinematic mono'
 		},
-		modern: {
-			colors: { primary: '#2563EB', secondary: '#334155', accent: '#22D3EE', background: '#0F172A' },
-			label: 'Bold contrast'
+		studio: {
+			colors: { primary: '#2563eb', secondary: '#1d4ed8', accent: '#60a5fa', background: '#0f172a' },
+			label: 'Editorial blue'
 		},
-		elegant: {
-			colors: { primary: '#7C3AED', secondary: '#C4B5FD', accent: '#F59E0B', background: '#1F1437' },
-			label: 'Luxury serif'
-		},
-		default: {
-			colors: { primary: '#3B82F6', secondary: '#6B7280', accent: '#F59E0B', background: '#FFFFFF' },
-			label: 'Balanced classic'
+		atelier: {
+			colors: { primary: '#b8955a', secondary: '#5c4033', accent: '#d4b07a', background: '#1a1008' },
+			label: 'Warm editorial'
 		}
 	};
 
-	$: frontendTemplate = $siteConfigData?.template?.frontendTemplate || $siteConfigData?.template?.activeTemplate || 'modern';
+	$: frontendTemplate = $siteConfigData?.template?.frontendTemplate || $siteConfigData?.template?.activeTemplate || 'noir';
 	$: liveThemeId = $siteConfigData?.template?.activeThemeId;
 	/** Resolved preset name from DB for the default public theme */
 	$: defaultPublicThemeLabel =
@@ -98,9 +94,12 @@
 				throw new Error(errMsg);
 			}
 			const result = await response.json();
-			const raw = Array.isArray(result) ? result : (result.data || []);
-			// Sort: built-in first (default, modern, elegant, minimal), then custom by date
-			const order = ['default', 'modern', 'elegant', 'minimal'];
+			const validPacks = new Set(['noir', 'studio', 'atelier']);
+			const raw = (Array.isArray(result) ? result : result.data || []).filter((t: Theme) =>
+				validPacks.has(String(t.baseTemplate ?? 'noir').toLowerCase())
+			);
+			// Sort: built-in first (noir, studio, atelier), then custom by date
+			const order = ['noir', 'studio', 'atelier'];
 			themes = [...raw].sort((a, b) => {
 				const aIdx = a.isBuiltIn ? order.indexOf(a.baseTemplate) : -1;
 				const bIdx = b.isBuiltIn ? order.indexOf(b.baseTemplate) : -1;
@@ -139,7 +138,7 @@
 			const themeId = newTheme?._id;
 			showCreateModal = false;
 			createName = '';
-			createBaseTemplate = 'modern';
+			createBaseTemplate = 'noir';
 			createBasePalette = 'light';
 			message = $t('admin.themeCreatedSuccessfully');
 			if (newTheme) themes = [newTheme, ...themes];
@@ -435,10 +434,9 @@
 						bind:value={createBaseTemplate}
 						class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-indigo-500"
 					>
-						<option value="default">{$t('admin.baseThemeDefault')}</option>
-						<option value="minimal">{$t('admin.baseThemeMinimal')}</option>
-						<option value="modern">{$t('admin.baseThemeModern')}</option>
-						<option value="elegant">{$t('admin.baseThemeElegant')}</option>
+						<option value="noir">{$t('admin.baseThemeNoir')}</option>
+						<option value="studio">{$t('admin.baseThemeStudio')}</option>
+						<option value="atelier">{$t('admin.baseThemeAtelier')}</option>
 					</select>
 				</div>
 				<div>

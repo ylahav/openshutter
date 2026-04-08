@@ -68,53 +68,109 @@ const font = (family: string, size?: string, weight?: string): FontSetting =>
   size || weight ? { family, size, weight } : { family };
 
 const BASE_TEMPLATES: Record<string, { colors: Record<string, string>; fonts: Record<string, FontSetting>; layout: Record<string, string> }> = {
-  default: {
-    colors: { primary: '#3B82F6', secondary: '#1F2937', accent: '#F59E0B', background: '#FFFFFF', text: '#1F2937', muted: '#6B7280' },
-    fonts: {
-      heading: font('Inter', '1.25rem', '600'),
-      body: font('Inter', '1rem', '400'),
-      links: font('Inter'),
-      lists: font('Inter'),
-      formInputs: font('Inter'),
-      formLabels: font('Inter'),
+  noir: {
+    colors: {
+      primary: '#f5f5f3',
+      secondary: '#a1a1a1',
+      accent: '#f5f5f3',
+      background: '#080808',
+      text: '#f5f5f3',
+      muted: 'rgba(245,245,243,0.38)',
+      surfaceCard: '#141414',
+      surfaceCardSecondary: '#1c1c1c',
+      surfaceCardTertiary: '#232323',
+      textSubtle: 'rgba(245,245,243,0.16)',
+      borderSubtle: 'rgba(255,255,255,0.07)',
+      lightBackground: '#f5f5f3',
+      lightText: '#080808',
+      lightMuted: 'rgba(8,8,8,0.45)',
+      lightSurfaceCard: '#e8e8e5',
+      lightSurfaceCardSecondary: '#ddddd9',
+      lightSurfaceCardTertiary: '#d2d2ce',
+      lightTextSubtle: 'rgba(8,8,8,0.22)',
+      lightBorderSubtle: 'rgba(0,0,0,0.08)',
     },
-    layout: { maxWidth: '1200px', containerPadding: '1rem', gridGap: '1.5rem' },
+    fonts: {
+      heading: font('DM Sans', '1.25rem', '300'),
+      body: font('DM Mono', '1rem', '400'),
+      links: font('DM Mono'),
+      lists: font('DM Mono'),
+      formInputs: font('DM Mono'),
+      formLabels: font('DM Mono'),
+    },
+    layout: { maxWidth: '1280px', containerPadding: '2rem', gridGap: '0.125rem' },
   },
-  modern: {
-    colors: { primary: '#3b82f6', secondary: '#6b7280', accent: '#10b981', background: '#ffffff', text: '#111827', muted: '#6b7280' },
-    fonts: {
-      heading: font('Inter', '1.25rem', '600'),
-      body: font('Inter', '1rem', '400'),
-      links: font('Inter'),
-      lists: font('Inter'),
-      formInputs: font('Inter'),
-      formLabels: font('Inter'),
+  studio: {
+    colors: {
+      primary: '#2563eb',
+      secondary: '#1d4ed8',
+      accent: '#60a5fa',
+      background: '#0f172a',
+      text: '#f1f5f9',
+      muted: '#94a3b8',
+      surfaceCard: '#1e293b',
+      surfaceCardSecondary: '#0f172a',
+      surfaceCardTertiary: '#1e293b',
+      textSubtle: 'rgba(241,245,249,0.2)',
+      borderSubtle: '#334155',
+      lightBackground: '#f8fafc',
+      lightText: '#0f172a',
+      lightMuted: '#64748b',
+      lightSurfaceCard: '#ffffff',
+      lightSurfaceCardSecondary: '#f8fafc',
+      lightSurfaceCardTertiary: '#f1f5f9',
+      lightTextSubtle: 'rgba(15,23,42,0.22)',
+      lightBorderSubtle: '#e2e8f0',
+      heroStrip: '#020617',
+      footerStrip: '#020617',
+      lightHeroStrip: '#0f172a',
+      lightFooterStrip: '#0f172a',
     },
-    layout: { maxWidth: '1200px', containerPadding: '1rem', gridGap: '1.5rem' },
+    fonts: {
+      heading: font('Syne', '1.25rem', '700'),
+      body: font('Outfit', '1rem', '400'),
+      links: font('Outfit'),
+      lists: font('Outfit'),
+      formInputs: font('Outfit'),
+      formLabels: font('Outfit'),
+    },
+    layout: { maxWidth: '1200px', containerPadding: '1.75rem', gridGap: '1rem' },
   },
-  elegant: {
-    colors: { primary: '#8b5cf6', secondary: '#a78bfa', accent: '#f59e0b', background: '#ffffff', text: '#1f2937', muted: '#6b7280' },
-    fonts: {
-      heading: font('Playfair Display', '1.25rem', '600'),
-      body: font('Inter', '1rem', '400'),
-      links: font('Inter'),
-      lists: font('Inter'),
-      formInputs: font('Inter'),
-      formLabels: font('Inter'),
+  atelier: {
+    colors: {
+      primary: '#b8955a',
+      secondary: '#5c4033',
+      accent: '#d4b07a',
+      background: '#1a1008',
+      text: '#f0e8d8',
+      muted: '#7a6a58',
+      surfaceCard: '#231710',
+      surfaceCardSecondary: '#1a1008',
+      surfaceCardTertiary: '#2e1f14',
+      textSubtle: 'rgba(240,232,216,0.25)',
+      borderSubtle: '#3a2a1c',
+      lightBackground: '#faf6ef',
+      lightText: '#2c1f14',
+      lightMuted: '#9c8c7a',
+      lightSurfaceCard: '#faf6ef',
+      lightSurfaceCardSecondary: '#f2ece0',
+      lightSurfaceCardTertiary: '#e8dece',
+      lightTextSubtle: 'rgba(44,31,20,0.35)',
+      lightBorderSubtle: '#e8dece',
+      heroStrip: '#0e0804',
+      footerStrip: '#0e0804',
+      lightHeroStrip: '#2c1f14',
+      lightFooterStrip: '#2c1f14',
     },
-    layout: { maxWidth: '1200px', containerPadding: '1rem', gridGap: '1.5rem' },
-  },
-  minimal: {
-    colors: { primary: '#000000', secondary: '#6b7280', accent: '#000000', background: '#ffffff', text: '#000000', muted: '#6b7280' },
     fonts: {
-      heading: font('Inter', '1.25rem', '600'),
-      body: font('Inter', '1rem', '400'),
-      links: font('Inter'),
-      lists: font('Inter'),
-      formInputs: font('Inter'),
-      formLabels: font('Inter'),
+      heading: font('Cormorant Garamond', '1.35rem', '400'),
+      body: font('Jost', '1rem', '400'),
+      links: font('Jost'),
+      lists: font('Jost'),
+      formInputs: font('Jost'),
+      formLabels: font('Jost'),
     },
-    layout: { maxWidth: '1200px', containerPadding: '1rem', gridGap: '1rem' },
+    layout: { maxWidth: '960px', containerPadding: '2rem', gridGap: '1rem' },
   },
 };
 
@@ -143,7 +199,8 @@ export class ThemesController {
   async findAll() {
     try {
       const collection = this.getCollection();
-      const themes = await collection.find({}).sort({ createdAt: -1 }).toArray();
+      const validPacks = ['noir', 'studio', 'atelier'];
+      const themes = await collection.find({ baseTemplate: { $in: validPacks } }).sort({ createdAt: -1 }).toArray();
       return themes.map((t) => this.serialize(t));
     } catch (error) {
       this.logger.error('Error fetching themes:', error);
@@ -177,8 +234,8 @@ export class ThemesController {
     try {
       const name = typeof body?.name === 'string' ? body.name.trim() : '';
       const baseTemplate = typeof body?.baseTemplate === 'string'
-        ? (['default', 'minimal', 'elegant', 'modern'].includes(body.baseTemplate) ? body.baseTemplate : 'modern')
-        : 'modern';
+        ? (['noir', 'studio', 'atelier'].includes(body.baseTemplate) ? body.baseTemplate : 'noir')
+        : 'noir';
       const basePalette = typeof body?.basePalette === 'string' && PALETTE_PRESETS[body.basePalette]
         ? body.basePalette
         : null;
@@ -188,7 +245,7 @@ export class ThemesController {
       }
 
       const collection = this.getCollection();
-      const base = BASE_TEMPLATES[baseTemplate] || BASE_TEMPLATES.default;
+      const base = BASE_TEMPLATES[baseTemplate] || BASE_TEMPLATES.noir;
       const palette = basePalette && PALETTE_PRESETS[basePalette]
         ? PALETTE_PRESETS[basePalette].colors
         : base.colors;
@@ -373,6 +430,8 @@ export class ThemesController {
         pageLayout: body?.pageLayout && typeof body.pageLayout === 'object'
           ? body.pageLayout
           : DEFAULT_PAGE_LAYOUTS,
+        layoutPresets:
+          body?.layoutPresets && typeof body.layoutPresets === 'object' ? body.layoutPresets : {},
         isPublished: true,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -413,6 +472,7 @@ export class ThemesController {
       if (dto.pageModules !== undefined) updateData.pageModules = dto.pageModules;
       if (dto.pageLayout !== undefined) updateData.pageLayout = dto.pageLayout;
       if (dto.pageLayoutByBreakpoint !== undefined) updateData.pageLayoutByBreakpoint = dto.pageLayoutByBreakpoint;
+      if (dto.layoutPresets !== undefined) updateData.layoutPresets = dto.layoutPresets;
       // pageModulesByBreakpoint is deprecated: persist only pageModules.
       if (dto.isPublished !== undefined) updateData.isPublished = dto.isPublished;
 

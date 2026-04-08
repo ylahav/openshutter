@@ -63,7 +63,7 @@
 			if (tplJson?.success && Array.isArray(tplJson.data)) {
 				templates = tplJson.data;
 			}
-			const current = cfgJson?.data?.template?.activeTemplate || 'default';
+			const current = cfgJson?.data?.template?.activeTemplate || 'noir';
 			activeTemplate = current;
 			selected = current;
 			await loadTemplateConfig();

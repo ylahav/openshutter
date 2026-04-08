@@ -23,7 +23,7 @@
 	let message: string | null = null;
 	let error: string | null = null;
 	/** Effective public-site template key (matches backend merge rules). */
-	let activeTemplate = 'default';
+	let activeTemplate = 'noir';
 	let templateSectionSnapshot: SiteConfig['template'] | undefined = undefined;
 	let localVisibility: TemplateComponentVisibility = {
 		hero: true,
@@ -104,7 +104,7 @@
 			const config = result.data as SiteConfig;
 			templateSectionSnapshot = config.template ? { ...config.template } : undefined;
 			activeTemplate =
-				config.template?.frontendTemplate || config.template?.activeTemplate || 'default';
+				config.template?.frontendTemplate || config.template?.activeTemplate || 'noir';
 
 			let templates: Array<{ templateName: string; visibility?: Record<string, boolean> }> = [];
 			if (tplRes.ok) {

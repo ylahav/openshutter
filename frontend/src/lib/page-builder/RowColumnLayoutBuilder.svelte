@@ -7,6 +7,8 @@
 	export let onRemoveModule: (moduleId: string) => Promise<void>;
 	export let onEditModule: (module: PageModuleData) => void;
 	export let availableModuleTypes: Array<{ value: string; label: string }> = [];
+export let onMoveRow: (fromRowOrder: number, toRowOrder: number) => Promise<void>;
+export let onInsertRow: (atRowOrder: number) => Promise<void>;
 
 	interface RowData {
 		rowOrder: number;
@@ -171,10 +173,54 @@
 		{@const colCount = rows[0]?.columns.length ?? 1}
 		<!-- Grid with CSS Grid for spanning support -->
 		<div
-			class="gap-2"
-			style="display: grid; grid-template-columns: repeat({colCount}, 1fr); grid-template-rows: repeat({rows.length}, minmax(80px, auto));"
+			class="gap-2 border-2 border-gray-200 dark:border-gray-700 p-2 bg-white dark:bg-gray-950 rounded-lg"
+			style="display: grid; grid-template-columns: minmax(10rem, 12rem) repeat({colCount}, 1fr); grid-template-rows: repeat({rows.length}, minmax(80px, auto));"
 		>
 			{#each rows as row (row.rowOrder)}
+				{@const rowIdx = rows.findIndex((r) => r.rowOrder === row.rowOrder)}
+				<div
+					class="flex flex-col justify-center gap-1 rounded-md border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 px-2 py-2"
+					style="grid-column: 1; grid-row: {row.rowOrder + 1}"
+				>
+					<div class="text-[11px] font-semibold text-gray-800 dark:text-gray-200 leading-tight">
+						Row {rowIdx + 1}
+					</div>
+					<div class="text-[10px] text-gray-500 leading-tight">
+						Band · grid row {rowIdx + 1} of {rows.length}
+					</div>
+					<div class="mt-1 flex flex-wrap gap-1">
+						<button
+							type="button"
+							class="px-1.5 py-0.5 text-[11px] rounded border bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50"
+							disabled={rowIdx === 0}
+							on:click={() => onMoveRow(row.rowOrder, rows[rowIdx - 1]!.rowOrder)}
+						>
+							↑
+						</button>
+						<button
+							type="button"
+							class="px-1.5 py-0.5 text-[11px] rounded border bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50"
+							disabled={rowIdx >= rows.length - 1}
+							on:click={() => onMoveRow(row.rowOrder, rows[rowIdx + 1]!.rowOrder)}
+						>
+							↓
+						</button>
+						<button
+							type="button"
+							class="px-1.5 py-0.5 text-[11px] rounded border bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800"
+							on:click={() => onInsertRow(row.rowOrder)}
+						>
+							+↑
+						</button>
+						<button
+							type="button"
+							class="px-1.5 py-0.5 text-[11px] rounded border bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800"
+							on:click={() => onInsertRow(row.rowOrder + 1)}
+						>
+							+↓
+						</button>
+					</div>
+				</div>
 				{#each row.columns as col (col.columnIndex)}
 					{@const covered = isCellCovered(row.rowOrder, col.columnIndex)}
 					{@const mod = getModuleAt(row.rowOrder, col.columnIndex)}
@@ -185,7 +231,7 @@
 					{:else if mod && !mod.props?._placeholder}
 						<div
 							class="border border-green-300 rounded-lg p-3 bg-green-50/50"
-							style="grid-column: {col.columnIndex + 1} / span {mod.colSpan ?? 1}; grid-row: {row.rowOrder + 1} / span {mod.rowSpan ?? 1}"
+							style="grid-column: {col.columnIndex + 2} / span {mod.colSpan ?? 1}; grid-row: {row.rowOrder + 1} / span {mod.rowSpan ?? 1}"
 						>
 							<div class="flex flex-col h-full">
 								<p class="text-sm font-medium text-gray-900">{mod.type}</p>
@@ -214,7 +260,7 @@
 						<div
 							class="border rounded-lg p-3 min-h-[80px] cursor-pointer transition-colors
 								{selected ? 'ring-2 ring-blue-500 bg-blue-50 border-blue-400' : 'border-gray-300 bg-white hover:bg-gray-50'}"
-							style="grid-column: {col.columnIndex + 1}; grid-row: {row.rowOrder + 1}"
+							style="grid-column: {col.columnIndex + 2}; grid-row: {row.rowOrder + 1}"
 							role="button"
 							tabindex="0"
 							on:click={() => toggleCell(row.rowOrder, col.columnIndex)}

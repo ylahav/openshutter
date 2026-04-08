@@ -25,7 +25,28 @@ export interface TemplateConfig {
     background: string
     text: string
     muted: string
-  }
+  } & Partial<
+    Record<
+      | 'surfaceCard'
+      | 'surfaceCardSecondary'
+      | 'surfaceCardTertiary'
+      | 'textSubtle'
+      | 'borderSubtle'
+      | 'lightBackground'
+      | 'lightText'
+      | 'lightMuted'
+      | 'lightSurfaceCard'
+      | 'lightSurfaceCardSecondary'
+      | 'lightSurfaceCardTertiary'
+      | 'lightTextSubtle'
+      | 'lightBorderSubtle'
+      | 'heroStrip'
+      | 'footerStrip'
+      | 'lightHeroStrip'
+      | 'lightFooterStrip',
+      string
+    >
+  >
   fonts: {
     heading: FontSetting
     body: FontSetting

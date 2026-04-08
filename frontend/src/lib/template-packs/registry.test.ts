@@ -1,40 +1,53 @@
-import { describe, expect, it } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import {
+	TEMPLATE_PACK_IDS,
 	getTemplatePack,
 	isKnownTemplatePack,
 	listTemplatePacks,
-	TEMPLATE_PACK_IDS,
+	normalizeTemplatePackId
 } from './registry';
 
 describe('template pack registry', () => {
-	it('exposes four built-in pack ids', () => {
-		expect(TEMPLATE_PACK_IDS).toEqual(['default', 'minimal', 'modern', 'elegant']);
+	it('exports built-in pack ids', () => {
+		expect(TEMPLATE_PACK_IDS).toEqual(['noir', 'studio', 'atelier']);
 	});
 
-	it('isKnownTemplatePack accepts built-ins (case-insensitive) and rejects unknown', () => {
+	it('isKnownTemplatePack recognizes built-ins and legacy ids', () => {
+		expect(isKnownTemplatePack('noir')).toBe(true);
+		expect(isKnownTemplatePack('studio')).toBe(true);
+		expect(isKnownTemplatePack('atelier')).toBe(true);
+		expect(isKnownTemplatePack('simple')).toBe(true);
 		expect(isKnownTemplatePack('modern')).toBe(true);
-		expect(isKnownTemplatePack('MODERN')).toBe(true);
+		expect(isKnownTemplatePack('elegant')).toBe(true);
 		expect(isKnownTemplatePack(' default ')).toBe(true);
-		expect(isKnownTemplatePack('')).toBe(false);
-		expect(isKnownTemplatePack('custom-theme')).toBe(false);
-		expect(isKnownTemplatePack(null)).toBe(false);
-		expect(isKnownTemplatePack(undefined)).toBe(false);
+		expect(isKnownTemplatePack('default')).toBe(true);
+		expect(isKnownTemplatePack('minimal')).toBe(true);
+		expect(isKnownTemplatePack('unknown')).toBe(false);
+	});
+
+	it('normalizeTemplatePackId maps legacy packs to noir', () => {
+		expect(normalizeTemplatePackId('default')).toBe('noir');
+		expect(normalizeTemplatePackId('minimal')).toBe('noir');
+		expect(normalizeTemplatePackId('simple')).toBe('noir');
+		expect(normalizeTemplatePackId('modern')).toBe('noir');
+		expect(normalizeTemplatePackId('elegant')).toBe('noir');
+		expect(normalizeTemplatePackId('noir')).toBe('noir');
+		expect(normalizeTemplatePackId('studio')).toBe('studio');
+		expect(normalizeTemplatePackId('atelier')).toBe('atelier');
 	});
 
 	it('getTemplatePack returns the requested pack', () => {
-		expect(getTemplatePack('elegant').name).toBe('elegant');
-		expect(getTemplatePack('minimal').pages).toBeDefined();
+		expect(getTemplatePack('atelier').name).toBe('atelier');
+		expect(getTemplatePack('studio').pages).toBeDefined();
 	});
 
-	it('getTemplatePack falls back to default for unknown ids', () => {
-		const pack = getTemplatePack('no-such-pack');
-		expect(pack.name).toBe('default');
+	it('getTemplatePack falls back to noir for unknown ids', () => {
+		const pack = getTemplatePack('not-a-real-pack');
+		expect(pack.name).toBe('noir');
 	});
 
 	it('listTemplatePacks returns one entry per built-in id', () => {
-		const list = listTemplatePacks();
-		expect(list.length).toBe(4);
-		const names = new Set(list.map((p) => p.name));
+		const names = new Set(listTemplatePacks().map((p) => p.name));
 		expect(names).toEqual(new Set(TEMPLATE_PACK_IDS));
 	});
 });

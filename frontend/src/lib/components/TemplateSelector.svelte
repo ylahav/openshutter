@@ -73,8 +73,11 @@
 				throw new Error(`Failed to load themes (${res.status})`);
 			}
 			const result = await res.json();
-			const raw = Array.isArray(result) ? result : result.data || [];
-			const order = ['default', 'modern', 'elegant', 'minimal'];
+			const validPacks = new Set(['noir', 'studio', 'atelier']);
+			const raw = (Array.isArray(result) ? result : result.data || []).filter((t: any) =>
+				validPacks.has(String(t.baseTemplate ?? 'noir').toLowerCase())
+			);
+			const order = ['noir', 'studio', 'atelier'];
 			const sorted = [...raw].sort((a: any, b: any) => {
 				const aIdx = a.isBuiltIn ? order.indexOf(a.baseTemplate) : -1;
 				const bIdx = b.isBuiltIn ? order.indexOf(b.baseTemplate) : -1;
@@ -85,7 +88,7 @@
 			});
 			themeOptions = sorted.map((t: any) => ({
 				id: String(t._id),
-				baseTemplate: t.baseTemplate || 'modern',
+				baseTemplate: t.baseTemplate || 'noir',
 				displayName: typeof t.name === 'string' && t.name.trim() ? t.name.trim() : t.baseTemplate || 'Theme',
 				description: typeof t.description === 'string' ? t.description : undefined,
 				category: t.isBuiltIn ? t.baseTemplate || 'custom' : 'custom'
@@ -179,10 +182,9 @@
 
 	function getCategoryColor(category: string): string {
 		const colors: Record<string, string> = {
-			default: 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200',
-			minimal: 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200',
-			modern: 'bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200',
-			elegant: 'bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-200',
+			noir: 'bg-zinc-900 text-zinc-200 border border-zinc-700',
+			studio: 'bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200',
+			atelier: 'bg-amber-100 dark:bg-amber-900/40 text-amber-900 dark:text-amber-100',
 			custom: 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-800 dark:text-indigo-200'
 		};
 		return colors[category] || 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200';

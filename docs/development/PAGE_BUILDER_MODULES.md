@@ -48,6 +48,8 @@ These **`type`** aliases are registered today in **`PAGE_MODULE_TYPES`** (`front
 | `cta` | Call to Action | Content; Footer |
 | `blogCategory` | Blog categories | Content |
 | `blogArticle` | Blog articles | Content |
+| `layoutShell` | Layout region (named grid) | Content; Header; Footer (where exposed in picker) |
+| `pageTitle` | Page title (placement) | Content |
 | `logo` | Logo | Header |
 | `siteTitle` | Site Title | Header |
 | `menu` | Menu | Header |
@@ -372,6 +374,46 @@ Props include multilingual `title`, `description`, `primaryLabel`, `primaryHref`
 ### 12.7 Albums, album view, blog modules (`albumsGrid`, `albumView`, `blogCategory`, `blogArticle`)
 
 Quick JSON lives in **§12.3–12.4** above. For **props semantics**, URL-aware **`albumSource`**, and adapter patterns, see **§13**.
+
+### 12.8 Named grid region (`layoutShell`)
+
+**Role:** One cell on the outer page grid renders an **inner** grid whose definition is stored in **`template.layoutPresets[presetKey]`** (rows, columns, inner module list). Multiple `layoutShell` instances can share the same **`presetKey`**.
+
+**Placement props:** `presetKey` (string, required once saved).
+
+**Persistence:** Inner modules and grid shape live under **`layoutPresets`**, not in the outer `pageModules` entry (the outer entry only points at the name).
+
+**Admin cleanup:** In **Templates → Overrides**, editing a `layoutShell` exposes **Delete preset** (when unused) and **Delete all unused presets**; see [TEMPLATE_CONTROL.md §6](../guides/TEMPLATE_CONTROL.md#6-named-layout-regions-layoutshell-presets-and-cleanup).
+
+```json
+{
+  "type": "layoutShell",
+  "props": {
+    "presetKey": "site_header"
+  },
+  "rowOrder": 0,
+  "columnIndex": 0
+}
+```
+
+### 12.9 Page title placement (`pageTitle`)
+
+**Role:** Renders the route **page title / subtitle** from loader context (`data.page`) at the **chosen grid position**. When the page layout includes at least one `pageTitle` module, `PageRenderer` skips its default automatic title block so ordering vs. `layoutShell` headers stays explicit.
+
+**Props:** `showTitle` (boolean, default true), `showSubtitle` (boolean, default true), `align` (`left` | `center`, default `center`), optional `compact` (passed through to the component).
+
+```json
+{
+  "type": "pageTitle",
+  "props": {
+    "showTitle": true,
+    "showSubtitle": true,
+    "align": "left"
+  },
+  "rowOrder": 0,
+  "columnIndex": 0
+}
+```
 
 ---
 

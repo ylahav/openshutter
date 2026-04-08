@@ -1,0 +1,32 @@
+{
+	"description": "Default semantic colors and fonts for the Noir pack (see template-palette.ts / ThemeColorApplier --tp-*).",
+	"colors": {
+		"primary": "#f5f5f3",
+		"secondary": "#a1a1a1",
+		"accent": "#f5f5f3",
+		"background": "#080808",
+		"text": "#f5f5f3",
+		"muted": "rgba(245,245,243,0.38)",
+		"surfaceCard": "#141414",
+		"surfaceCardSecondary": "#1c1c1c",
+		"surfaceCardTertiary": "#232323",
+		"textSubtle": "rgba(245,245,243,0.16)",
+		"borderSubtle": "rgba(255,255,255,0.07)",
+		"lightBackground": "#f5f5f3",
+		"lightText": "#080808",
+		"lightMuted": "rgba(8,8,8,0.45)",
+		"lightSurfaceCard": "#e8e8e5",
+		"lightSurfaceCardSecondary": "#ddddd9",
+		"lightSurfaceCardTertiary": "#d2d2ce",
+		"lightTextSubtle": "rgba(8,8,8,0.22)",
+		"lightBorderSubtle": "rgba(0,0,0,0.08)"
+	},
+	"fonts": {
+		"heading": "DM Sans",
+		"body": "DM Mono",
+		"links": "DM Mono",
+		"lists": "DM Mono",
+		"formInputs": "DM Mono",
+		"formLabels": "DM Mono"
+	}
+}

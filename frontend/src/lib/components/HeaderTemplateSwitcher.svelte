@@ -8,11 +8,13 @@
 	import type { PageModuleData } from '$lib/types/page-builder';
 	import { getEffectivePageModules, getEffectivePageGrid } from '$lib/template/breakpoints';
 	import { viewportWidth } from '$lib/stores/viewport';
+	import { DEFAULT_PAGE_MODULES, DEFAULT_PAGE_LAYOUTS } from '$lib/constants/default-page-layouts';
 
 	$: pageModulesRaw = getEffectivePageModules($siteConfigData?.template, 'header', $viewportWidth);
 	$: hasPageModules = Array.isArray(pageModulesRaw) && pageModulesRaw.length > 0;
-	$: pageLayout = getEffectivePageGrid($siteConfigData?.template, 'header', $viewportWidth);
-	$: pageModules = (hasPageModules ? pageModulesRaw : []) as PageModuleData[];
+	$: pageLayout = getEffectivePageGrid($siteConfigData?.template, 'header', $viewportWidth) || DEFAULT_PAGE_LAYOUTS.header;
+	$: pageModules = ((hasPageModules ? pageModulesRaw : DEFAULT_PAGE_MODULES.header) || []) as PageModuleData[];
+	$: usePageRenderer = pageModules.length > 0;
 
 	// Debug logging
 	$: if ($siteConfigData?.template?.pageModules?.header !== undefined) {
@@ -25,7 +27,7 @@
 	}
 
 	// Create a page object for PageRenderer
-	$: pageForRenderer = hasPageModules ? ({
+	$: pageForRenderer = usePageRenderer ? ({
 		_id: 'header',
 		title: {} as any,
 		subtitle: {} as any,
@@ -37,8 +39,8 @@
 	$: headerPbShellClass = pageBuilderHeaderShellClass($activeTemplate);
 </script>
 
-{#if hasPageModules}
-	<!-- Use PageRenderer when pageModules are configured -->
+{#if usePageRenderer}
+	<!-- Use PageRenderer from page modules/defaults -->
 	<header class="w-full {headerPbShellClass}">
 		<div class="@container os-shell-container">
 			<PageRenderer page={pageForRenderer} modules={pageModules} compact={true} />
@@ -50,6 +52,6 @@
 		<svelte:component this={pack.components.Header} />
 	{:else}
 		<!-- Fallback: ensure header always renders -->
-		<svelte:component this={getTemplatePack('default').components?.Header} />
+		<svelte:component this={getTemplatePack('noir').components?.Header} />
 	{/if}
 {/if}

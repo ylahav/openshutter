@@ -45,6 +45,10 @@
 		type ShellLayout
 	} from '$lib/template/breakpoints';
 	import { DEFAULT_PAGE_LAYOUTS, DEFAULT_PAGE_MODULES } from '$lib/constants/default-page-layouts';
+	import {
+		DEFAULT_TEMPLATE_COLOR_EXTENDED,
+		EXTENDED_COLOR_FIELD_META
+	} from '$lib/theme/template-palette';
 
 	/** Readable defaults when template / overrides omit a key (also fixes invisible #000 on white fields). */
 	const DEFAULT_COLOR_HEX: Record<string, string> = {
@@ -54,6 +58,11 @@
 		background: '#FFFFFF',
 		text: '#111827',
 		muted: '#6B7280'
+	};
+
+	const DEFAULT_COLOR_FALLBACK: Record<string, string> = {
+		...DEFAULT_COLOR_HEX,
+		...DEFAULT_TEMPLATE_COLOR_EXTENDED
 	};
 
 	/** Skeleton `input` / `select`; fg/bg under `[data-admin-chrome]` come from `admin-skeleton.css`. */
@@ -128,6 +137,7 @@
 	}
 
 	let templates: TemplateConfig[] = [];
+	let sharedLayoutPresetsFromThemes: Record<string, { gridRows?: number; gridColumns?: number; modules?: unknown[] }> = {};
 	let activeTemplate: TemplateConfig | null = null;
 	let loading = true;
 	let saving = false;
@@ -136,7 +146,7 @@
 	let error = '';
 	let activeTab = 'colors';
 	let hasChanges = false;
-	let previewPageType: 'home' | 'gallery' | 'album' | 'search' | 'header' | 'footer' = 'home';
+	let previewPageType: 'home' | 'gallery' | 'album' | 'search' = 'home';
 	type PreviewDeviceId = 'desktop' | 'tablet' | 'mobile' | 'mobileSm';
 	const PREVIEW_DEVICE_ORDER: PreviewDeviceId[] = ['desktop', 'tablet', 'mobile', 'mobileSm'];
 	const PREVIEW_DEVICE_WIDTH_PX: Record<PreviewDeviceId, number> = {
@@ -155,10 +165,10 @@
 		mobile: $t('admin.previewDeviceMobile'),
 		mobileSm: $t('admin.previewDeviceMobileSmall')
 	} satisfies Record<PreviewDeviceId, string>;
-	let editingPageType: 'home' | 'gallery' | 'album' | 'search' | 'header' | 'footer' = 'home';
+	let editingPageType: 'home' | 'gallery' | 'album' | 'search' = 'home';
 	/** Shell + page grid/modules edit target (mobile-first breakpoints). */
 	let editingBreakpoint: TemplateBreakpointId = 'lg';
-	const PAGE_KEYS = ['home', 'gallery', 'album', 'search', 'header', 'footer'] as const;
+	const PAGE_KEYS = ['home', 'gallery', 'album', 'search'] as const;
 	let pageModulesActiveBreakpoints: Record<string, boolean> = {};
 	// Multi-select like page builder: Set of "row:col" keys
 	let selectedCells = new Set<string>();
@@ -193,6 +203,8 @@
 		pageLayout?: Record<string, unknown>;
 		pageLayoutByBreakpoint?: Record<string, Partial<Record<string, { gridRows: number; gridColumns: number }>>>;
 		pageModulesByBreakpoint?: Record<string, Partial<Record<string, any[]>>>;
+		/** Named reusable grids for `layoutShell` (presetKey → grid + modules). */
+		layoutPresets?: Record<string, { gridRows?: number; gridColumns?: number; modules?: unknown[] }>;
 	} = {};
 
 	let editingTheme: {
@@ -210,11 +222,12 @@
 		pageLayout?: Record<string, unknown>;
 		pageLayoutByBreakpoint?: Record<string, Partial<Record<string, { gridRows: number; gridColumns: number }>>>;
 		pageModulesByBreakpoint?: Record<string, Partial<Record<string, any[]>>>;
+		layoutPresets?: Record<string, unknown>;
 	} | null = null;
 	$: currentTemplateName = editingTheme?.baseTemplate ||
 		$siteConfigData?.template?.frontendTemplate ||
 		$siteConfigData?.template?.activeTemplate ||
-		'modern';
+		'noir';
 	$: siteTemplateOverrides = $siteConfigData?.template || {};
 
 	$: themeEditorDisplayName =
@@ -261,6 +274,7 @@
 			if (themeId) {
 				await loadTheme(themeId);
 			}
+			await loadSharedLayoutPresetsFromThemes();
 			await loadTemplates();
 			await loadBlogCategoriesForOverrides();
 			initializeLocalOverrides();
@@ -286,6 +300,27 @@
 		} catch (err) {
 			logger.error('Load theme error:', err);
 			error = handleError(err, 'Failed to load theme');
+		}
+	}
+
+	async function loadSharedLayoutPresetsFromThemes() {
+		try {
+			const response = await fetch('/api/admin/themes', { credentials: 'include' });
+			if (!response.ok) return;
+			const result = await response.json();
+			const rows: any[] = Array.isArray(result) ? result : (Array.isArray(result?.data) ? result.data : []);
+			const merged: Record<string, { gridRows?: number; gridColumns?: number; modules?: unknown[] }> = {};
+			for (const theme of rows) {
+				const presets = theme?.layoutPresets;
+				if (!presets || typeof presets !== 'object' || Array.isArray(presets)) continue;
+				for (const [k, v] of Object.entries(presets as Record<string, unknown>)) {
+					if (!v || typeof v !== 'object' || Array.isArray(v)) continue;
+					merged[k] = JSON.parse(JSON.stringify(v)) as { gridRows?: number; gridColumns?: number; modules?: unknown[] };
+				}
+			}
+			sharedLayoutPresetsFromThemes = merged;
+		} catch (err) {
+			logger.warn('Failed to load shared layout presets from themes:', err);
 		}
 	}
 
@@ -318,6 +353,22 @@
 					pageModulesByBreakpoint: editingTheme.pageModulesByBreakpoint
 				}
 			);
+			const sharedLp =
+				siteTemplateOverrides.layoutPresets && typeof siteTemplateOverrides.layoutPresets === 'object'
+					? (JSON.parse(JSON.stringify(siteTemplateOverrides.layoutPresets)) as Record<
+							string,
+							{ gridRows?: number; gridColumns?: number; modules?: unknown[] }
+						>)
+					: {};
+			const themeLp =
+				editingTheme.layoutPresets && typeof editingTheme.layoutPresets === 'object'
+					? (JSON.parse(JSON.stringify(editingTheme.layoutPresets)) as Record<
+							string,
+							{ gridRows?: number; gridColumns?: number; modules?: unknown[] }
+						>)
+					: {};
+			// Shared pool is global (all themes) + site; edited theme keys override shared values.
+			const rawLp = { ...sharedLayoutPresetsFromThemes, ...sharedLp, ...themeLp };
 			localOverrides = {
 				customColors: editingTheme.customColors ? { ...editingTheme.customColors } : {},
 				customFonts: editingTheme.customFonts ? { ...editingTheme.customFonts } : {},
@@ -328,7 +379,8 @@
 				pageLayoutByBreakpoint: seeded.pageLayoutByBreakpoint,
 				pageModulesByBreakpoint: seeded.pageModulesByBreakpoint,
 				pageLayout: pageLayoutByBreakpointToPageLayoutField(seeded.pageLayoutByBreakpoint),
-				pageModules: pageModulesByBreakpointToPageModulesField(seeded.pageModulesByBreakpoint)
+				pageModules: pageModulesByBreakpointToPageModulesField(seeded.pageModulesByBreakpoint),
+				layoutPresets: rawLp
 			};
 		} else {
 			const sitePm = migratePageModules(siteTemplateOverrides.pageModules as Record<string, unknown> | undefined);
@@ -350,6 +402,13 @@
 					pageModulesByBreakpoint: siteTemplateOverrides.pageModulesByBreakpoint
 				}
 			);
+			const siteLp =
+				siteTemplateOverrides.layoutPresets && typeof siteTemplateOverrides.layoutPresets === 'object'
+					? (JSON.parse(JSON.stringify(siteTemplateOverrides.layoutPresets)) as Record<
+							string,
+							{ gridRows?: number; gridColumns?: number; modules?: unknown[] }
+						>)
+					: {};
 			localOverrides = {
 				customColors: siteTemplateOverrides.customColors ? { ...siteTemplateOverrides.customColors } : {},
 				customFonts: siteTemplateOverrides.customFonts ? { ...siteTemplateOverrides.customFonts } : {},
@@ -362,7 +421,8 @@
 				pageLayoutByBreakpoint: seeded.pageLayoutByBreakpoint,
 				pageModulesByBreakpoint: seeded.pageModulesByBreakpoint,
 				pageLayout: pageLayoutByBreakpointToPageLayoutField(seeded.pageLayoutByBreakpoint),
-				pageModules: pageModulesByBreakpointToPageModulesField(seeded.pageModulesByBreakpoint)
+				pageModules: pageModulesByBreakpointToPageModulesField(seeded.pageModulesByBreakpoint),
+				layoutPresets: { ...sharedLayoutPresetsFromThemes, ...siteLp }
 			};
 		}
 		refreshPageModulesActiveBreakpointsMap();
@@ -386,6 +446,7 @@
 	// Use same module types as page builder / PageRenderer
 	const PAGE_CONTENT_MODULES = PAGE_MODULE_TYPES.filter((m) =>
 		[
+			'pageTitle',
 			'hero',
 			'richText',
 			'featureGrid',
@@ -393,15 +454,29 @@
 			'albumView',
 			'cta',
 			'blogCategory',
-			'blogArticle'
+			'blogArticle',
+			'layoutShell'
 		].includes(m.type)
 	);
 	const HEADER_MODULES = PAGE_MODULE_TYPES.filter((m) =>
-		['logo', 'siteTitle', 'menu', 'languageSelector', 'themeToggle', 'themeSelect', 'userGreeting', 'authButtons', 'socialMedia'].includes(m.type)
+		[
+			'logo',
+			'siteTitle',
+			'menu',
+			'languageSelector',
+			'themeToggle',
+			'themeSelect',
+			'userGreeting',
+			'authButtons',
+			'socialMedia',
+			'layoutShell'
+		].includes(m.type)
 	);
 	const FOOTER_MODULES = PAGE_MODULE_TYPES.filter((m) =>
-		['richText', 'cta', 'socialMedia', 'themeSelect'].includes(m.type)
+		['richText', 'cta', 'socialMedia', 'themeSelect', 'layoutShell'].includes(m.type)
 	);
+
+	const LAYOUT_SHELL_INNER_MODULE_TYPES = PAGE_MODULE_TYPES.filter((m) => m.type !== 'layoutShell');
 
 	function migratePageModules(pm: Record<string, unknown> | undefined): Record<string, unknown> {
 		if (!pm) return {};
@@ -475,11 +550,67 @@
 			pageModules: pm,
 			...(Object.keys(plByIn).length > 0 ? { pageLayoutByBreakpoint: plByIn } : {})
 		};
+		refreshPageModulesActiveBreakpointsMap();
 	}
 
 	$: sameGridToAllBreakpoints = pageModulesActiveBreakpoints[editingPageType] === false;
 
+	/** Reactive source for the visual layout grid (depends explicitly on localOverrides). */
+	$: layoutEditorModules = (() => {
+		const lo = localOverrides;
+		const pt = editingPageType;
+		const bp = editingBreakpoint;
+		const byBpRow = lo.pageModulesByBreakpoint?.[pt] as
+			| Partial<Record<TemplateBreakpointId, any[]>>
+			| undefined;
+		const fromByBp = pickModulesFromEditorBreakpointMap(byBpRow, bp);
+		if (Array.isArray(fromByBp)) return fromByBp;
+		const resolved = getPageModulesForBreakpoint(
+			{
+				pageModules: lo.pageModules
+			},
+			pt,
+			bp
+		);
+		if (resolved.length > 0) return resolved as any[];
+		const hasAnyPageModulesConfig = lo.pageModules?.[pt] != null;
+		if (hasAnyPageModulesConfig) return resolved as any[];
+		return (DEFAULT_PAGE_MODULES[pt] || []) as any[];
+	})();
+
+	/** Drives layout grid {#key} so row swaps re-render even when module count is unchanged. */
+	$: layoutEditorModulesKey = (layoutEditorModules ?? [])
+		.map(
+			(m: any) =>
+				`${m?._id ?? ''}:${m?.rowOrder ?? 0}:${m?.columnIndex ?? 0}:${m?.rowSpan ?? 1}:${m?.colSpan ?? 1}`
+		)
+		.join('|');
+
+	function pickModulesFromEditorBreakpointMap(
+		row: Partial<Record<TemplateBreakpointId, any[]>> | undefined,
+		bp: TemplateBreakpointId
+	): any[] | undefined {
+		if (!row) return undefined;
+		if (row[bp] !== undefined) return row[bp] as any[];
+		const order = TEMPLATE_BREAKPOINTS as readonly TemplateBreakpointId[];
+		const idx = order.indexOf(bp);
+		for (let i = idx - 1; i >= 0; i--) {
+			const b = order[i]!;
+			if (row[b] !== undefined) return row[b] as any[];
+		}
+		for (let i = idx + 1; i < order.length; i++) {
+			const b = order[i]!;
+			if (row[b] !== undefined) return row[b] as any[];
+		}
+		return undefined;
+	}
+
 	function getModulesForPageType(pt: string, bp: TemplateBreakpointId) {
+		const byBpRow = localOverrides.pageModulesByBreakpoint?.[pt] as
+			| Partial<Record<TemplateBreakpointId, any[]>>
+			| undefined;
+		const fromByBp = pickModulesFromEditorBreakpointMap(byBpRow, bp);
+		if (Array.isArray(fromByBp)) return fromByBp;
 		const resolved = getPageModulesForBreakpoint(
 			{
 				pageModules: localOverrides.pageModules
@@ -543,6 +674,154 @@
 		localOverrides = { ...localOverrides, pageLayoutByBreakpoint: plBy, pageModulesByBreakpoint: pmBy };
 		syncLegacyFromBreakpoints();
 		hasChanges = true;
+	}
+
+	/**
+	 * When `pageModules[page].activeBreakpoints === false` (“same modules for all widths”), persisted modules
+	 * collapse to a single list taken from `lg` first (`pageModulesByBreakpointToPageModulesField`). Writes
+	 * that only touch e.g. `xs` are ignored — broadcast the edited list to every breakpoint.
+	 */
+	function rowOrderNum(m: any): number {
+		const v = Number(m?.rowOrder ?? 0);
+		return Number.isFinite(v) ? Math.trunc(v) : 0;
+	}
+
+	function putPageModulesForBreakpointOrAll(
+		pt: string,
+		bp: TemplateBreakpointId,
+		nextMods: any[]
+	): void {
+		const serialized = JSON.parse(JSON.stringify(nextMods)) as any[];
+		const pmBy = { ...(localOverrides.pageModulesByBreakpoint || {}) };
+		const prev = (pmBy[pt] || {}) as Partial<Record<TemplateBreakpointId, any[]>>;
+		let row: Partial<Record<TemplateBreakpointId, any[]>>;
+		if (pageModulesActiveBreakpoints[pt] === false) {
+			row = {};
+			for (const b of TEMPLATE_BREAKPOINTS) {
+				row[b] = JSON.parse(JSON.stringify(serialized)) as any[];
+			}
+		} else {
+			row = { ...prev, [bp]: serialized };
+		}
+		pmBy[pt] = row;
+		localOverrides = { ...localOverrides, pageModulesByBreakpoint: pmBy };
+	}
+
+	/**
+	 * Swap two adjacent grid rows in a direction-safe way.
+	 * Keeps unaffected rows untouched and normalizes rowOrder to numeric indices.
+	 */
+	function movePageGridRow(pt: string, fromIndex: number, toIndex: number) {
+		const bp = editingBreakpoint;
+		const grid = getGridForPageType(pt, bp);
+		const rows = Math.max(1, grid.gridRows);
+		const from = Math.max(0, Math.min(rows - 1, Math.floor(fromIndex) || 0));
+		const to = Math.max(0, Math.min(rows - 1, Math.floor(toIndex) || 0));
+		if (from === to || Math.abs(from - to) !== 1) return;
+		const delta = to > from ? 1 : -1;
+		const arr = [...(getModulesForPageType(pt, bp) ?? [])];
+		const nextMods = arr.map((m: any) => {
+			const r = rowOrderNum(m);
+			const copy = { ...m, rowOrder: r };
+			if (r === from) copy.rowOrder = r + delta;
+			else if (r === to) copy.rowOrder = r - delta;
+			return copy;
+		});
+		putPageModulesForBreakpointOrAll(pt, bp, nextMods);
+		syncLegacyFromBreakpoints();
+		hasChanges = true;
+		clearSelection();
+	}
+
+	/** Insert an empty row at `atIndex` (0 = top); shifts modules with `rowOrder >= atIndex` down by one. */
+	function insertPageGridRow(pt: string, atIndex: number) {
+		const bp = editingBreakpoint;
+		const grid = getGridForPageType(pt, bp);
+		const rows = Math.max(1, grid.gridRows);
+		if (rows >= 20) return;
+		const idx = Math.max(0, Math.min(rows, Math.floor(atIndex) || 0));
+		const arr = [...(getModulesForPageType(pt, bp) ?? [])];
+		const nextMods = arr.map((m: any) => {
+			const r = rowOrderNum(m);
+			const copy = { ...m, rowOrder: r };
+			if (r >= idx) copy.rowOrder = r + 1;
+			return copy;
+		});
+		const nextGrid = { gridRows: rows + 1, gridColumns: grid.gridColumns };
+		const plBy = { ...(localOverrides.pageLayoutByBreakpoint || {}) };
+		let fullRow: Record<TemplateBreakpointId, { gridRows: number; gridColumns: number }>;
+		if (pageModulesActiveBreakpoints[pt] === false) {
+			fullRow = {} as Record<TemplateBreakpointId, { gridRows: number; gridColumns: number }>;
+			for (const b of TEMPLATE_BREAKPOINTS) {
+				fullRow[b] = { ...nextGrid };
+			}
+		} else {
+			fullRow = mergePageLayoutRowForBreakpointEdit(
+				{
+					pageLayout: localOverrides.pageLayout,
+					pageLayoutByBreakpoint: localOverrides.pageLayoutByBreakpoint
+				},
+				pt,
+				bp,
+				nextGrid,
+				plBy[pt]
+			);
+		}
+		plBy[pt] = fullRow;
+		putPageModulesForBreakpointOrAll(pt, bp, nextMods);
+		localOverrides = { ...localOverrides, pageLayoutByBreakpoint: plBy, pageModulesByBreakpoint: localOverrides.pageModulesByBreakpoint };
+		syncLegacyFromBreakpoints();
+		hasChanges = true;
+		clearSelection();
+	}
+
+	/** Remove one grid row: drops modules occupying that band, shifts rows below up (inverse of insert). */
+	function deletePageGridRow(pt: string, rowIndex: number) {
+		const bp = editingBreakpoint;
+		const grid = getGridForPageType(pt, bp);
+		const rows = Math.max(1, grid.gridRows);
+		if (rows <= 1) return;
+		const del = Math.max(0, Math.min(rows - 1, Math.floor(rowIndex) || 0));
+		const arr = [...(getModulesForPageType(pt, bp) ?? [])];
+		const nextMods = arr
+			.filter((m: any) => {
+				const r = rowOrderNum(m);
+				const rs = Math.max(1, Math.trunc(Number(m.rowSpan ?? 1)) || 1);
+				const overlaps = r < del + 1 && r + rs > del;
+				return !overlaps;
+			})
+			.map((m: any) => {
+				const r = rowOrderNum(m);
+				const copy = { ...m, rowOrder: r };
+				if (r > del) copy.rowOrder = r - 1;
+				return copy;
+			});
+		const nextGrid = { gridRows: rows - 1, gridColumns: grid.gridColumns };
+		const plBy = { ...(localOverrides.pageLayoutByBreakpoint || {}) };
+		let fullRow: Record<TemplateBreakpointId, { gridRows: number; gridColumns: number }>;
+		if (pageModulesActiveBreakpoints[pt] === false) {
+			fullRow = {} as Record<TemplateBreakpointId, { gridRows: number; gridColumns: number }>;
+			for (const b of TEMPLATE_BREAKPOINTS) {
+				fullRow[b] = { ...nextGrid };
+			}
+		} else {
+			fullRow = mergePageLayoutRowForBreakpointEdit(
+				{
+					pageLayout: localOverrides.pageLayout,
+					pageLayoutByBreakpoint: localOverrides.pageLayoutByBreakpoint
+				},
+				pt,
+				bp,
+				nextGrid,
+				plBy[pt]
+			);
+		}
+		plBy[pt] = fullRow;
+		putPageModulesForBreakpointOrAll(pt, bp, nextMods);
+		localOverrides = { ...localOverrides, pageLayoutByBreakpoint: plBy, pageModulesByBreakpoint: localOverrides.pageModulesByBreakpoint };
+		syncLegacyFromBreakpoints();
+		hasChanges = true;
+		clearSelection();
 	}
 
 	/** Copy current breakpoint’s grid and module placements to xs…xl for the active page (TEMPLATING.md §2.2.4). */
@@ -701,6 +980,23 @@
 		if (editingModule.type === 'albumGallery') {
 			editingModule = { ...editingModule, type: 'albumView' };
 		}
+		// Editing a module inside a named layout region (layoutShell inner grid).
+		if (editingInnerLayoutPresetKey && editingInnerLayoutModuleIndex >= 0) {
+			const k = editingInnerLayoutPresetKey.trim();
+			const cur = { ...(localOverrides.layoutPresets || {}) };
+			const prev = cur[k];
+			if (prev && Array.isArray(prev.modules) && prev.modules[editingInnerLayoutModuleIndex]) {
+				const modules = [...prev.modules];
+				modules[editingInnerLayoutModuleIndex] = { ...editingModule };
+				cur[k] = { ...prev, modules };
+				localOverrides = { ...localOverrides, layoutPresets: cur };
+				hasChanges = true;
+			}
+			editingModule = null;
+			editingInnerLayoutPresetKey = '';
+			editingInnerLayoutModuleIndex = -1;
+			return;
+		}
 		const modulesForPage = getModulesForPageType(editingPageType, editingBreakpoint) ?? [];
 		let idx = modulesForPage.findIndex((m) => editingModule._id && m._id === editingModule._id);
 		// Backward compatibility: older saved modules may not have _id; match by placement + type.
@@ -710,6 +1006,29 @@
 				(m.rowOrder ?? 0) === (editingModule.rowOrder ?? 0) &&
 				(m.columnIndex ?? 0) === (editingModule.columnIndex ?? 0)
 			);
+		}
+		if (editingModule.type === 'layoutShell') {
+			const pk = String(editingModule.props?.presetKey ?? '').trim();
+			if (!pk) {
+				layoutShellPresetKeyError = 'Choose an existing preset or enter a new unique name.';
+				return;
+			}
+			const prevPk =
+				idx >= 0
+					? String((modulesForPage[idx] as any)?.props?.presetKey ?? '').trim()
+					: '';
+			const exists = !!localOverrides.layoutPresets?.[pk];
+			if (exists && pk !== prevPk && !layoutShellUseExistingSelection) {
+				layoutShellPresetKeyError = `Preset "${pk}" already exists. Pick it from "Reuse existing preset" or enter a unique name.`;
+				return;
+			}
+			const nextPresets = { ...(localOverrides.layoutPresets || {}) } as Record<string, any>;
+			if (prevPk && prevPk !== pk && nextPresets[prevPk] && !nextPresets[pk]) {
+				nextPresets[pk] = JSON.parse(JSON.stringify(nextPresets[prevPk]));
+			}
+			if (!nextPresets[pk]) nextPresets[pk] = { gridRows: 1, gridColumns: 1, modules: [] };
+			localOverrides = { ...localOverrides, layoutPresets: nextPresets };
+			layoutShellPresetKeyError = '';
 		}
 		if (idx >= 0) {
 			const arr = [...modulesForPage];
@@ -723,6 +1042,9 @@
 			hasChanges = true;
 		}
 		editingModule = null;
+		editingInnerLayoutPresetKey = '';
+		editingInnerLayoutModuleIndex = -1;
+		layoutShellOriginalPresetKey = '';
 	}
 
 	$: selectedCount = selectedCells.size;
@@ -741,6 +1063,17 @@
 
 	let assignedModuleType = '';
 	let editingModule: any | null = null;
+let editingInnerLayoutPresetKey = '';
+let editingInnerLayoutModuleIndex = -1;
+	let layoutShellReusePick = '';
+let layoutShellOriginalPresetKey = '';
+let layoutShellUseExistingSelection = false;
+let layoutShellPresetKeyError = '';
+	let layoutShellPresetDeleteInfo = '';
+	// Layout shell editor (inner grid assignment)
+	let layoutShellInnerAssignedModuleType = '';
+	let layoutShellInnerSelectedCells = new Set<string>();
+	let layoutShellInnerEditingRow = 0;
 let draggedAlbumField: string | null = null;
 let draggedPhotoField: string | null = null;
 let draggedAlbumHeaderField: string | null = null;
@@ -795,6 +1128,44 @@ let draggedAlbumHeaderField: string | null = null;
 		assignedModuleType = '';
 	}
 
+	function getDefaultPropsForNewModule(moduleType: string): Record<string, any> {
+		const defaultProps: Record<string, any> = {};
+		if (moduleType === 'albumsGrid' || moduleType === 'albumView' || moduleType === 'albumGallery') {
+			defaultProps.albumSource = 'root';
+			defaultProps.showTitle = true;
+			defaultProps.showAlbumTitle = true;
+			defaultProps.showPhotoTitle = true;
+			defaultProps.albumHeaderFieldOrder = ['albumTitle', 'albumDescription', 'albumStats'];
+			defaultProps.showAlbumPageTitle = true;
+			defaultProps.showAlbumPageDescription = true;
+			defaultProps.showAlbumPageStats = true;
+			defaultProps.showCover = true;
+			defaultProps.coverAspect = 'video';
+			defaultProps.showDescription = true;
+			defaultProps.showAlbumDescription = true;
+			defaultProps.showPhotoDescription = true;
+			defaultProps.descriptionLines = 2;
+			defaultProps.cardFieldOrder = ['cover', 'title', 'description', 'photoCount', 'featuredBadge'];
+			defaultProps.albumCardFieldOrder = ['cover', 'title', 'description', 'photoCount', 'featuredBadge'];
+			defaultProps.photoCardFieldOrder = ['cover', 'title', 'description', 'featuredBadge'];
+			defaultProps.showPhotoCount = true;
+			defaultProps.showFeaturedBadge = true;
+			defaultProps.showAlbumFeaturedBadge = true;
+			defaultProps.showPhotoFeaturedBadge = true;
+			defaultProps.cardDataType = moduleType === 'albumView' || moduleType === 'albumGallery' ? 'both' : 'subAlbums';
+			defaultProps.mixedDisplayMode = 'grouped';
+			defaultProps.showSectionLabels = true;
+			defaultProps.sortBy = 'manual';
+			defaultProps.sortDirection = 'asc';
+			defaultProps.limit = 12;
+		} else if (moduleType === 'hero') {
+			defaultProps.backgroundStyle = 'light';
+		} else if (moduleType === 'richText') {
+			defaultProps.background = 'white';
+		}
+		return defaultProps;
+	}
+
 	function addModuleToPage(pageType: string, moduleType: string, rowOrder?: number, columnIndex?: number, rowSpan?: number, colSpan?: number) {
 		const bp = editingBreakpoint;
 		const grid = getGridForPageType(pageType, bp);
@@ -831,39 +1202,11 @@ let draggedAlbumHeaderField: string | null = null;
 			}
 		}
 		const id = `mod_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
-		const defaultProps: Record<string, any> = {};
-		if (moduleType === 'albumsGrid' || moduleType === 'albumView' || moduleType === 'albumGallery') {
-			defaultProps.albumSource = 'root';
-			defaultProps.showTitle = true;
-			defaultProps.showAlbumTitle = true;
-			defaultProps.showPhotoTitle = true;
-			defaultProps.albumHeaderFieldOrder = ['albumTitle', 'albumDescription', 'albumStats'];
-			defaultProps.showAlbumPageTitle = true;
-			defaultProps.showAlbumPageDescription = true;
-			defaultProps.showAlbumPageStats = true;
-			defaultProps.showCover = true;
-			defaultProps.coverAspect = 'video';
-			defaultProps.showDescription = true;
-			defaultProps.showAlbumDescription = true;
-			defaultProps.showPhotoDescription = true;
-			defaultProps.descriptionLines = 2;
-			defaultProps.cardFieldOrder = ['cover', 'title', 'description', 'photoCount', 'featuredBadge'];
-			defaultProps.albumCardFieldOrder = ['cover', 'title', 'description', 'photoCount', 'featuredBadge'];
-			defaultProps.photoCardFieldOrder = ['cover', 'title', 'description', 'featuredBadge'];
-			defaultProps.showPhotoCount = true;
-			defaultProps.showFeaturedBadge = true;
-			defaultProps.showAlbumFeaturedBadge = true;
-			defaultProps.showPhotoFeaturedBadge = true;
-			defaultProps.cardDataType = moduleType === 'albumView' || moduleType === 'albumGallery' ? 'both' : 'subAlbums';
-			defaultProps.mixedDisplayMode = 'grouped';
-			defaultProps.showSectionLabels = true;
-			defaultProps.sortBy = 'manual';
-			defaultProps.sortDirection = 'asc';
-			defaultProps.limit = 12;
-		} else if (moduleType === 'hero') {
-			defaultProps.backgroundStyle = 'light';
-		} else if (moduleType === 'richText') {
-			defaultProps.background = 'white';
+		const defaultProps = getDefaultPropsForNewModule(moduleType);
+		let layoutPresetPatch: Partial<typeof localOverrides> = {};
+		if (moduleType === 'layoutShell') {
+			// Must be selected from existing presets or entered as a unique name in the edit modal.
+			defaultProps.presetKey = '';
 		}
 		const newMod: Record<string, any> = { _id: id, type: moduleType, props: defaultProps, rowOrder: r, columnIndex: c };
 		if (rowSpan && rowSpan > 1) newMod.rowSpan = rowSpan;
@@ -872,7 +1215,12 @@ let draggedAlbumHeaderField: string | null = null;
 		const pmBy = { ...(localOverrides.pageModulesByBreakpoint || {}) };
 		const rowM = { ...(pmBy[pageType] || {}), [bp]: [...arr, newMod] };
 		pmBy[pageType] = rowM;
-		localOverrides = { ...localOverrides, pageLayoutByBreakpoint: plBy, pageModulesByBreakpoint: pmBy };
+		localOverrides = {
+			...localOverrides,
+			pageLayoutByBreakpoint: plBy,
+			pageModulesByBreakpoint: pmBy,
+			...(layoutPresetPatch.layoutPresets ? { layoutPresets: layoutPresetPatch.layoutPresets } : {})
+		};
 		syncLegacyFromBreakpoints();
 		hasChanges = true;
 		logger.debug('[Overrides] Added module:', { pageType, moduleType, rowOrder: r, columnIndex: c, rowSpan, colSpan });
@@ -946,14 +1294,306 @@ let draggedAlbumHeaderField: string | null = null;
 			defaultProps.sortBy = old.props?.sortBy ?? 'manual';
 			defaultProps.sortDirection = old.props?.sortDirection ?? 'asc';
 			defaultProps.limit = old.props?.limit ?? 12;
+		} else if (newType === 'layoutShell') {
+			defaultProps.presetKey = '';
 		}
 		const updated = [...arr];
 		updated[idx] = { ...old, type: newType, props: defaultProps };
 		const pmBy = { ...(localOverrides.pageModulesByBreakpoint || {}) };
 		pmBy[pageType] = { ...(pmBy[pageType] || {}), [bp]: updated };
-		localOverrides = { ...localOverrides, pageModulesByBreakpoint: pmBy };
+		const lpExtra = {};
+		localOverrides = { ...localOverrides, pageModulesByBreakpoint: pmBy, ...lpExtra };
 		syncLegacyFromBreakpoints();
 		hasChanges = true;
+	}
+
+	function ensureLayoutPresetEntry(key: string): void {
+		const k = key.trim();
+		if (!k) return;
+		const cur = localOverrides.layoutPresets || {};
+		if (cur[k]) return;
+		localOverrides = {
+			...localOverrides,
+			layoutPresets: { ...cur, [k]: { gridRows: 1, gridColumns: 1, modules: [] } }
+		};
+		hasChanges = true;
+	}
+
+	function updateLayoutShellPresetGrid(key: string, gridRows: number, gridColumns: number) {
+		const k = key.trim();
+		if (!k) return;
+		ensureLayoutPresetEntry(k);
+		const cur = { ...(localOverrides.layoutPresets || {}) };
+		const prev = cur[k] || { gridRows: 1, gridColumns: 1, modules: [] };
+		cur[k] = {
+			...prev,
+			gridRows: Math.max(1, Math.min(12, Math.floor(gridRows) || 1)),
+			gridColumns: Math.max(1, Math.min(12, Math.floor(gridColumns) || 1)),
+			modules: Array.isArray(prev.modules) ? prev.modules : []
+		};
+		localOverrides = { ...localOverrides, layoutPresets: cur };
+		hasChanges = true;
+	}
+
+	function layoutShellInnerCellKey(row: number, col: number): string {
+		return `${row}:${col}`;
+	}
+
+	function getLayoutPresetShell(pk: string): { gridRows?: number; gridColumns?: number; modules?: any[] } | null {
+		const k = pk.trim();
+		if (!k) return null;
+		const shell = localOverrides.layoutPresets?.[k];
+		if (!shell || typeof shell !== 'object') return null;
+		return shell as any;
+	}
+
+	function getInnerModulesForPreset(pk: string): any[] {
+		const shell = getLayoutPresetShell(pk);
+		if (!shell || !Array.isArray(shell.modules)) return [];
+		return shell.modules as any[];
+	}
+
+	function innerGetModuleAtCellFrom(mods: any[], row: number, col: number): any | null {
+		return mods.find((m) => (m.rowOrder ?? 0) === row && (m.columnIndex ?? 0) === col) ?? null;
+	}
+
+	function innerIsCellCoveredFrom(mods: any[], row: number, col: number): boolean {
+		for (const m of mods) {
+			const r = m.rowOrder ?? 0;
+			const c = m.columnIndex ?? 0;
+			const rs = m.rowSpan ?? 1;
+			const cs = m.colSpan ?? 1;
+			if (row >= r && row < r + rs && col >= c && col < c + cs) {
+				if (row === r && col === c) return false;
+				return true;
+			}
+		}
+		return false;
+	}
+
+	function innerToggleCell(pk: string, row: number, col: number) {
+		const mods = getInnerModulesForPreset(pk);
+		// Only allow selecting empty/uncovered cells (same UX as page grid).
+		if (innerGetModuleAtCellFrom(mods, row, col) || innerIsCellCoveredFrom(mods, row, col)) return;
+		const key = layoutShellInnerCellKey(row, col);
+		const next = new Set(layoutShellInnerSelectedCells);
+		if (next.has(key)) next.delete(key);
+		else next.add(key);
+		layoutShellInnerSelectedCells = next;
+	}
+
+	/**
+	 * Reactive source for the "Edit Layout region" modal grid.
+	 * Keeping these as explicit reactive values avoids stale UI that only refreshes after Save.
+	 */
+	$: layoutShellEditingPresetKey =
+		editingModule?.type === 'layoutShell'
+			? String(editingModule.props?.presetKey ?? '').trim()
+			: '';
+	$: layoutShellEditingDisplayKey = (() => {
+		if (layoutShellEditingPresetKey && localOverrides.layoutPresets?.[layoutShellEditingPresetKey]) {
+			return layoutShellEditingPresetKey;
+		}
+		const original = layoutShellOriginalPresetKey.trim();
+		if (original && localOverrides.layoutPresets?.[original]) return original;
+		return layoutShellEditingPresetKey;
+	})();
+	$: layoutShellEditingShell =
+		layoutShellEditingDisplayKey && localOverrides.layoutPresets
+			? ((localOverrides.layoutPresets[layoutShellEditingDisplayKey] as any) ?? null)
+			: null;
+	$: layoutShellEditingModules = Array.isArray(layoutShellEditingShell?.modules)
+		? (layoutShellEditingShell.modules as any[])
+		: [];
+	$: layoutShellActivePresetKey = (layoutShellEditingDisplayKey || '').trim();
+	$: layoutShellActivePresetExists = !!(
+		layoutShellActivePresetKey &&
+		localOverrides.layoutPresets?.[layoutShellActivePresetKey]
+	);
+	$: layoutShellCurrentPresetUsage = listLayoutPresetUsages(layoutShellEditingDisplayKey);
+	$: layoutShellUnusedPresetKeys = getUnusedLayoutPresetKeys();
+
+	$: layoutShellInnerSelectedCellsArray = Array.from(layoutShellInnerSelectedCells).map((key) => {
+		const [r, c] = key.split(':').map(Number);
+		return { row: r, col: c };
+	});
+	$: layoutShellInnerSelectionBounds = (() => {
+		if (layoutShellInnerSelectedCellsArray.length === 0) return null;
+		const minRow = Math.min(...layoutShellInnerSelectedCellsArray.map((c) => c.row));
+		const maxRow = Math.max(...layoutShellInnerSelectedCellsArray.map((c) => c.row));
+		const minCol = Math.min(...layoutShellInnerSelectedCellsArray.map((c) => c.col));
+		const maxCol = Math.max(...layoutShellInnerSelectedCellsArray.map((c) => c.col));
+		return { rowOrder: minRow, columnIndex: minCol, rowSpan: maxRow - minRow + 1, colSpan: maxCol - minCol + 1 };
+	})();
+
+	function clearLayoutShellInnerSelection() {
+		layoutShellInnerSelectedCells = new Set();
+		layoutShellInnerAssignedModuleType = '';
+	}
+
+	function insertLayoutPresetRow(presetKey: string, atIndex: number) {
+		const k = presetKey.trim();
+		if (!k) return;
+		ensureLayoutPresetEntry(k);
+		const shell = getLayoutPresetShell(k) || { gridRows: 1, gridColumns: 1, modules: [] };
+		const rows = Math.max(1, shell.gridRows ?? 1);
+		if (rows >= 12) return;
+		const idx = Math.max(0, Math.min(rows, Math.floor(atIndex) || 0));
+		const mods = getInnerModulesForPreset(k).map((m) => ({ ...m }));
+		for (const m of mods) {
+			const r = m.rowOrder ?? 0;
+			if (r >= idx) m.rowOrder = r + 1;
+		}
+		const nextShell = { ...shell, gridRows: rows + 1, modules: mods };
+		localOverrides = {
+			...localOverrides,
+			layoutPresets: { ...(localOverrides.layoutPresets || {}), [k]: nextShell }
+		};
+		hasChanges = true;
+		clearLayoutShellInnerSelection();
+	}
+
+	function moveLayoutPresetRow(presetKey: string, fromIndex: number, toIndex: number) {
+		const k = presetKey.trim();
+		if (!k) return;
+		const shell = getLayoutPresetShell(k);
+		if (!shell) return;
+		const rows = Math.max(1, shell.gridRows ?? 1);
+		const from = Math.max(0, Math.min(rows - 1, Math.floor(fromIndex) || 0));
+		const to = Math.max(0, Math.min(rows - 1, Math.floor(toIndex) || 0));
+		if (from === to) return;
+		const mods = getInnerModulesForPreset(k).map((m) => ({ ...m }));
+		for (const m of mods) {
+			const r = m.rowOrder ?? 0;
+			if (r === from) m.rowOrder = to;
+			else if (from < to && r > from && r <= to) m.rowOrder = r - 1;
+			else if (from > to && r >= to && r < from) m.rowOrder = r + 1;
+		}
+		const nextShell = { ...shell, modules: mods };
+		localOverrides = {
+			...localOverrides,
+			layoutPresets: { ...(localOverrides.layoutPresets || {}), [k]: nextShell }
+		};
+		hasChanges = true;
+		clearLayoutShellInnerSelection();
+	}
+
+	function addModuleToLayoutPreset(
+		presetKey: string,
+		moduleType: string,
+		row: number,
+		col: number,
+		rowSpan?: number,
+		colSpan?: number
+	) {
+		const k = presetKey.trim();
+		if (!k || moduleType === 'layoutShell') return;
+		ensureLayoutPresetEntry(k);
+		const cur = { ...(localOverrides.layoutPresets || {}) };
+		const prev = cur[k] || { gridRows: 1, gridColumns: 1, modules: [] };
+		const modules = [...(Array.isArray(prev.modules) ? prev.modules : [])];
+		const id = `mod_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+		const newMod: any = {
+			_id: id,
+			type: moduleType,
+			props: getDefaultPropsForNewModule(moduleType),
+			rowOrder: Math.max(0, row),
+			columnIndex: Math.max(0, col)
+		};
+		if (rowSpan && rowSpan > 1) newMod.rowSpan = rowSpan;
+		if (colSpan && colSpan > 1) newMod.colSpan = colSpan;
+		modules.push(newMod);
+		cur[k] = { ...prev, modules };
+		localOverrides = { ...localOverrides, layoutPresets: cur };
+		hasChanges = true;
+	}
+
+	function removeModuleFromLayoutPreset(presetKey: string, index: number) {
+		const k = presetKey.trim();
+		if (!k) return;
+		const cur = { ...(localOverrides.layoutPresets || {}) };
+		const prev = cur[k];
+		if (!prev || !Array.isArray(prev.modules)) return;
+		const modules = prev.modules.filter((_, i) => i !== index);
+		cur[k] = { ...prev, modules };
+		localOverrides = { ...localOverrides, layoutPresets: cur };
+		hasChanges = true;
+	}
+
+	type LayoutPresetUsage = {
+		pageType: string;
+		breakpoint: TemplateBreakpointId;
+		moduleIndex: number;
+		rowOrder: number;
+		columnIndex: number;
+	};
+
+	function listLayoutPresetUsages(presetKey: string): LayoutPresetUsage[] {
+		const key = presetKey.trim();
+		if (!key) return [];
+		const usages: LayoutPresetUsage[] = [];
+		for (const pt of PAGE_KEYS) {
+			for (const bp of TEMPLATE_BREAKPOINTS) {
+				const mods = getModulesForPageType(pt, bp) ?? [];
+				mods.forEach((m: any, moduleIndex: number) => {
+					if (m?.type !== 'layoutShell') return;
+					const pk = String(m?.props?.presetKey ?? '').trim();
+					if (pk !== key) return;
+					usages.push({
+						pageType: pt,
+						breakpoint: bp,
+						moduleIndex,
+						rowOrder: Number(m?.rowOrder ?? 0) || 0,
+						columnIndex: Number(m?.columnIndex ?? 0) || 0
+					});
+				});
+			}
+		}
+		return usages;
+	}
+
+	function getUnusedLayoutPresetKeys(): string[] {
+		const allKeys = Object.keys(localOverrides.layoutPresets || {});
+		return allKeys.filter((k) => listLayoutPresetUsages(k).length === 0);
+	}
+
+	function deleteLayoutPresetIfUnused(presetKey: string): boolean {
+		const key = presetKey.trim();
+		if (!key) {
+			layoutShellPresetDeleteInfo = 'Choose a preset name first.';
+			return false;
+		}
+		const cur = { ...(localOverrides.layoutPresets || {}) };
+		if (!cur[key]) {
+			layoutShellPresetDeleteInfo = `Preset "${key}" does not exist.`;
+			return false;
+		}
+		const usages = listLayoutPresetUsages(key);
+		if (usages.length > 0) {
+			layoutShellPresetDeleteInfo = `Cannot delete "${key}" because it is still used in ${usages.length} location${usages.length === 1 ? '' : 's'}.`;
+			return false;
+		}
+		delete cur[key];
+		localOverrides = { ...localOverrides, layoutPresets: cur };
+		hasChanges = true;
+		layoutShellPresetDeleteInfo = `Deleted unused preset "${key}".`;
+		return true;
+	}
+
+	function deleteAllUnusedLayoutPresets(): number {
+		const unused = getUnusedLayoutPresetKeys();
+		if (unused.length === 0) {
+			layoutShellPresetDeleteInfo = 'No unused presets found.';
+			return 0;
+		}
+		const cur = { ...(localOverrides.layoutPresets || {}) };
+		for (const key of unused) {
+			delete cur[key];
+		}
+		localOverrides = { ...localOverrides, layoutPresets: cur };
+		hasChanges = true;
+		layoutShellPresetDeleteInfo = `Deleted ${unused.length} unused preset${unused.length === 1 ? '' : 's'}.`;
+		return unused.length;
 	}
 
 	function moveModule(pageType: string, index: number, direction: number) {
@@ -1095,7 +1735,7 @@ let draggedAlbumHeaderField: string | null = null;
 			const templateName = editingTheme?.baseTemplate ||
 				$siteConfigData?.template?.frontendTemplate ||
 				$siteConfigData?.template?.activeTemplate ||
-				'modern';
+				'noir';
 			
 			logger.debug('[Overrides] Loading templates:', {
 				templatesCount: templates.length,
@@ -1213,33 +1853,34 @@ let draggedAlbumHeaderField: string | null = null;
 		hasChanges = true;
 	}
 
+	function colorField(key: string): string {
+		const fb = DEFAULT_COLOR_FALLBACK[key] ?? '#888888';
+		const o = localOverrides.customColors?.[key];
+		if (o != null && String(o).trim() !== '') return String(o).trim();
+		const tpl = activeTemplate?.colors as Record<string, string> | undefined;
+		const t = tpl?.[key];
+		if (t != null && String(t).trim() !== '') return String(t).trim();
+		return fb;
+	}
+
 	// Reactive color values to ensure inputs update when palette is applied
 	let colorValues: Record<string, string> = {};
 	$: colorValues = {
-		primary:
-			localOverrides.customColors?.primary ||
-			activeTemplate?.colors?.primary ||
-			DEFAULT_COLOR_HEX.primary,
-		secondary:
-			localOverrides.customColors?.secondary ||
-			activeTemplate?.colors?.secondary ||
-			DEFAULT_COLOR_HEX.secondary,
-		accent:
-			localOverrides.customColors?.accent || activeTemplate?.colors?.accent || DEFAULT_COLOR_HEX.accent,
-		background:
-			localOverrides.customColors?.background ||
-			activeTemplate?.colors?.background ||
-			DEFAULT_COLOR_HEX.background,
-		text: localOverrides.customColors?.text || activeTemplate?.colors?.text || DEFAULT_COLOR_HEX.text,
-		muted: localOverrides.customColors?.muted || activeTemplate?.colors?.muted || DEFAULT_COLOR_HEX.muted
+		primary: colorField('primary'),
+		secondary: colorField('secondary'),
+		accent: colorField('accent'),
+		background: colorField('background'),
+		text: colorField('text'),
+		muted: colorField('muted'),
+		...Object.fromEntries(EXTENDED_COLOR_FIELD_META.map(({ key }) => [key, colorField(key)]))
 	};
 
 	function getEffectiveColor(colorType: string): string {
-		const fallback = DEFAULT_COLOR_HEX[colorType] ?? DEFAULT_COLOR_HEX.primary;
+		const fallback = DEFAULT_COLOR_FALLBACK[colorType] ?? DEFAULT_COLOR_HEX.primary;
 		return (
 			colorValues[colorType] ||
 			localOverrides.customColors?.[colorType] ||
-			activeTemplate?.colors?.[colorType as keyof typeof activeTemplate.colors] ||
+			(activeTemplate?.colors as Record<string, string> | undefined)?.[colorType] ||
 			fallback
 		);
 	}
@@ -1358,6 +1999,17 @@ let draggedAlbumHeaderField: string | null = null;
 		}
 	} : null;
 
+	/** Live preview: unsaved layout presets override site template. */
+	$: previewLayoutPresets = {
+		...($siteConfigData?.template?.layoutPresets &&
+		typeof $siteConfigData.template.layoutPresets === 'object'
+			? ($siteConfigData.template.layoutPresets as Record<string, unknown>)
+			: {}),
+		...(localOverrides.layoutPresets && typeof localOverrides.layoutPresets === 'object'
+			? (localOverrides.layoutPresets as Record<string, unknown>)
+			: {})
+	};
+
 	function pageModulesFieldHasContent(v: unknown): boolean {
 		if (Array.isArray(v)) return v.length > 0;
 		if (v && typeof v === 'object' && !Array.isArray(v) && typeof (v as any).activeBreakpoints === 'boolean') {
@@ -1388,6 +2040,8 @@ let draggedAlbumHeaderField: string | null = null;
 		const hasBpPages =
 			localOverrides.pageModulesByBreakpoint &&
 			Object.keys(localOverrides.pageModulesByBreakpoint).length > 0;
+		const hasLayoutPresets =
+			localOverrides.layoutPresets && Object.keys(localOverrides.layoutPresets).length > 0;
 		return !!(
 			(localOverrides.customColors && Object.keys(localOverrides.customColors).length > 0) ||
 			(localOverrides.customFonts && Object.keys(localOverrides.customFonts).length > 0) ||
@@ -1397,7 +2051,8 @@ let draggedAlbumHeaderField: string | null = null;
 			(localOverrides.headerConfig && Object.keys(localOverrides.headerConfig).length > 0) ||
 			hasPageModules ||
 			hasPageLayout ||
-			hasBpPages
+			hasBpPages ||
+			hasLayoutPresets
 		);
 	}
 
@@ -1417,7 +2072,8 @@ let draggedAlbumHeaderField: string | null = null;
 				headerConfig: localOverrides.headerConfig || {},
 				pageModules: localOverrides.pageModules || {},
 				pageLayout: localOverrides.pageLayout || {},
-				pageLayoutByBreakpoint: localOverrides.pageLayoutByBreakpoint || {}
+				pageLayoutByBreakpoint: localOverrides.pageLayoutByBreakpoint || {},
+				layoutPresets: localOverrides.layoutPresets || {}
 			};
 
 			if (themeId && editingTheme) {
@@ -1799,6 +2455,169 @@ let draggedAlbumHeaderField: string | null = null;
 									</p>
 								</div>
 							{/each}
+						</div>
+
+						<div class="border-t border-[color:color-mix(in_oklab,var(--color-surface-950)_12%,transparent)] dark:border-[color:color-mix(in_oklab,var(--color-surface-50)_14%,transparent)] pt-8 mt-8 space-y-4">
+							<h3 class="text-lg font-semibold text-[var(--heading-font-color)]">
+								Surfaces &amp; borders (template packs)
+							</h3>
+							<p class="text-sm text-[var(--color-surface-600-400)]">
+								Optional elevated surfaces, tertiary text, and hairline borders. Used by packs such as <strong>Noir</strong> (
+								<code class="text-xs preset-filled-surface-200-800 px-1 rounded">--tp-*</code> CSS variables). You can use
+								<code class="text-xs px-1 rounded">rgba(…)</code> in the text field for transparency.
+							</p>
+							<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+								{#each EXTENDED_COLOR_FIELD_META.filter((m) => m.group === 'surfaces') as colorInfo}
+									{@const currentColor = colorValues[colorInfo.key] || getEffectiveColor(colorInfo.key)}
+									{@const hexPick = /^#[0-9A-Fa-f]{6}$/.test(String(currentColor).trim())}
+									<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-4 min-w-0">
+										<span class="label-text text-[var(--base-font-color)]">{colorInfo.label}</span>
+										<p class="text-xs text-[var(--color-surface-600-400)] mb-3 mt-1">
+											{colorInfo.description}
+										</p>
+										<div class="flex gap-2 items-stretch">
+											{#if hexPick}
+												<div
+													class="[color-scheme:light] shrink-0 flex items-center rounded-[var(--radius-base)] border border-[color:color-mix(in_oklab,var(--color-surface-950)_14%,transparent)] dark:border-[color:color-mix(in_oklab,var(--color-surface-50)_16%,transparent)] preset-filled-surface-50-950 p-1"
+												>
+													<input
+														type="color"
+														value={currentColor}
+														on:input={(e) =>
+															updateColor(colorInfo.key, (e.target as HTMLInputElement).value)}
+														class="h-9 w-14 cursor-pointer rounded border-0 bg-transparent p-0"
+														title="Pick color"
+													/>
+												</div>
+											{/if}
+											<input
+												type="text"
+												value={currentColor}
+												on:input={(e) =>
+													updateColor(colorInfo.key, (e.target as HTMLInputElement).value)}
+												placeholder={DEFAULT_COLOR_FALLBACK[colorInfo.key] ?? '#888888'}
+												autocomplete="off"
+												spellcheck="false"
+												class={ADMIN_COLOR_HEX_INPUT_CLASS}
+											/>
+										</div>
+										<p class="mt-2 text-xs text-[var(--color-surface-600-400)]">
+											Template default:
+											{(activeTemplate?.colors as Record<string, string> | undefined)?.[colorInfo.key] ??
+												DEFAULT_COLOR_FALLBACK[colorInfo.key] ??
+												'—'}
+										</p>
+									</div>
+								{/each}
+							</div>
+						</div>
+
+						<div class="border-t border-[color:color-mix(in_oklab,var(--color-surface-950)_12%,transparent)] dark:border-[color:color-mix(in_oklab,var(--color-surface-50)_14%,transparent)] pt-8 mt-8 space-y-4">
+							<h3 class="text-lg font-semibold text-[var(--heading-font-color)]">
+								Hero &amp; footer strips (Studio and similar packs)
+							</h3>
+							<p class="text-sm text-[var(--color-surface-600-400)]">
+								Optional backgrounds for dark hero bands and footers (
+								<code class="text-xs preset-filled-surface-200-800 px-1 rounded">--tp-hero-strip-bg</code>,
+								<code class="text-xs preset-filled-surface-200-800 px-1 rounded">--tp-footer-strip-bg</code>).
+							</p>
+							<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+								{#each EXTENDED_COLOR_FIELD_META.filter((m) => m.group === 'strips') as colorInfo}
+									{@const currentColor = colorValues[colorInfo.key] || getEffectiveColor(colorInfo.key)}
+									{@const hexPick = /^#[0-9A-Fa-f]{6}$/.test(String(currentColor).trim())}
+									<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-4 min-w-0">
+										<span class="label-text text-[var(--base-font-color)]">{colorInfo.label}</span>
+										<p class="text-xs text-[var(--color-surface-600-400)] mb-3 mt-1">
+											{colorInfo.description}
+										</p>
+										<div class="flex gap-2 items-stretch">
+											{#if hexPick}
+												<div
+													class="[color-scheme:light] shrink-0 flex items-center rounded-[var(--radius-base)] border border-[color:color-mix(in_oklab,var(--color-surface-950)_14%,transparent)] dark:border-[color:color-mix(in_oklab,var(--color-surface-50)_16%,transparent)] preset-filled-surface-50-950 p-1"
+												>
+													<input
+														type="color"
+														value={currentColor}
+														on:input={(e) =>
+															updateColor(colorInfo.key, (e.target as HTMLInputElement).value)}
+														class="h-9 w-14 cursor-pointer rounded border-0 bg-transparent p-0"
+														title="Pick color"
+													/>
+												</div>
+											{/if}
+											<input
+												type="text"
+												value={currentColor}
+												on:input={(e) =>
+													updateColor(colorInfo.key, (e.target as HTMLInputElement).value)}
+												placeholder={DEFAULT_COLOR_FALLBACK[colorInfo.key] ?? '#888888'}
+												autocomplete="off"
+												spellcheck="false"
+												class={ADMIN_COLOR_HEX_INPUT_CLASS}
+											/>
+										</div>
+										<p class="mt-2 text-xs text-[var(--color-surface-600-400)]">
+											Template default:
+											{(activeTemplate?.colors as Record<string, string> | undefined)?.[colorInfo.key] ??
+												DEFAULT_COLOR_FALLBACK[colorInfo.key] ??
+												'—'}
+										</p>
+									</div>
+								{/each}
+							</div>
+						</div>
+
+						<div class="border-t border-[color:color-mix(in_oklab,var(--color-surface-950)_12%,transparent)] dark:border-[color:color-mix(in_oklab,var(--color-surface-50)_14%,transparent)] pt-8 mt-8 space-y-4">
+							<h3 class="text-lg font-semibold text-[var(--heading-font-color)]">Light theme overrides</h3>
+							<p class="text-sm text-[var(--color-surface-600-400)]">
+								When visitors use <strong>light</strong> mode (<code class="text-xs px-1 rounded">html.light</code>), these
+								values drive <code class="text-xs preset-filled-surface-200-800 px-1 rounded">--tp-*</code> if set. Dark mode
+								uses the six core colors plus “Surfaces” above.
+							</p>
+							<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+								{#each EXTENDED_COLOR_FIELD_META.filter((m) => m.group === 'light') as colorInfo}
+									{@const currentColor = colorValues[colorInfo.key] || getEffectiveColor(colorInfo.key)}
+									{@const hexPick = /^#[0-9A-Fa-f]{6}$/.test(String(currentColor).trim())}
+									<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-4 min-w-0">
+										<span class="label-text text-[var(--base-font-color)]">{colorInfo.label}</span>
+										<p class="text-xs text-[var(--color-surface-600-400)] mb-3 mt-1">
+											{colorInfo.description}
+										</p>
+										<div class="flex gap-2 items-stretch">
+											{#if hexPick}
+												<div
+													class="[color-scheme:light] shrink-0 flex items-center rounded-[var(--radius-base)] border border-[color:color-mix(in_oklab,var(--color-surface-950)_14%,transparent)] dark:border-[color:color-mix(in_oklab,var(--color-surface-50)_16%,transparent)] preset-filled-surface-50-950 p-1"
+												>
+													<input
+														type="color"
+														value={currentColor}
+														on:input={(e) =>
+															updateColor(colorInfo.key, (e.target as HTMLInputElement).value)}
+														class="h-9 w-14 cursor-pointer rounded border-0 bg-transparent p-0"
+														title="Pick color"
+													/>
+												</div>
+											{/if}
+											<input
+												type="text"
+												value={currentColor}
+												on:input={(e) =>
+													updateColor(colorInfo.key, (e.target as HTMLInputElement).value)}
+												placeholder={DEFAULT_COLOR_FALLBACK[colorInfo.key] ?? '#888888'}
+												autocomplete="off"
+												spellcheck="false"
+												class={ADMIN_COLOR_HEX_INPUT_CLASS}
+											/>
+										</div>
+										<p class="mt-2 text-xs text-[var(--color-surface-600-400)]">
+											Template default:
+											{(activeTemplate?.colors as Record<string, string> | undefined)?.[colorInfo.key] ??
+												DEFAULT_COLOR_FALLBACK[colorInfo.key] ??
+												'—'}
+										</p>
+									</div>
+								{/each}
+							</div>
 						</div>
 					</div>
 				{:else if activeTab === 'fonts'}
@@ -2416,22 +3235,104 @@ let draggedAlbumHeaderField: string | null = null;
 							{/if}
 						</div>
 
-						{#key pageGrid.gridRows + '-' + pageGrid.gridColumns + '-' + editingBreakpoint + '-' + getModulesForPageType(editingPageType, editingBreakpoint).length}
+						{#key pageGrid.gridRows + '-' + pageGrid.gridColumns + '-' + editingBreakpoint + '-' + layoutEditorModulesKey}
 						<!-- Layout grid (like page builder: select cells, assign module) -->
 						<div>
 							<h3 class="text-sm font-semibold text-[var(--color-surface-950-50)] mb-3">Layout grid</h3>
+							<p class="text-xs text-[var(--color-surface-600-400)] mb-3 max-w-3xl">
+								Each row has a <span class="font-medium">row rail</span> on the left (label + reorder). Applies to
+								<span class="font-medium capitalize">{editingPageType}</span> ·
+								<span class="uppercase font-medium">{editingBreakpoint}</span>.
+								{#if sameGridToAllBreakpoints}
+									Same grid is on for all breakpoints — use “Apply current breakpoint to all…” so other widths match.
+								{/if}
+							</p>
 							<div
 								class="gap-2 border-2 border-surface-300-700 p-2 bg-[var(--color-surface-50-950)] select-none rounded-lg"
-								style="display: grid; grid-template-columns: repeat({pageGrid.gridColumns}, 1fr); grid-template-rows: repeat({pageGrid.gridRows}, minmax(80px, auto));"
+								style="display: grid; grid-template-columns: minmax(10.5rem, 12rem) repeat({pageGrid.gridColumns}, 1fr); grid-template-rows: repeat({pageGrid.gridRows}, minmax(80px, auto));"
 							>
-								{#each getModulesForPageType(editingPageType, editingBreakpoint) as mod (mod._id)}
+								{#each Array(pageGrid.gridRows) as _, rIdx (rIdx)}
+									<div
+										class="flex flex-col justify-center gap-1 rounded-md border border-surface-200-800 bg-[color-mix(in_oklab,var(--color-surface-500)_8%,var(--color-surface-50-950))] px-2 py-2"
+										style="grid-column: 1; grid-row: {rIdx + 1}"
+									>
+										<div class="text-[11px] font-semibold text-[var(--color-surface-800-200)] leading-tight">
+											Row {rIdx + 1}
+										</div>
+										<div class="text-[10px] text-[var(--color-surface-500)] leading-tight">
+											Band · grid row {rIdx + 1} of {pageGrid.gridRows}
+										</div>
+										<div class="mt-1 flex flex-wrap gap-1">
+											<button
+												type="button"
+												title="Move this row up (swap with row above)"
+												class="px-1.5 py-0.5 text-[11px] rounded border bg-[var(--color-surface-50-950)] text-[var(--color-surface-800-200)] border-surface-200-800 hover:bg-[var(--color-surface-100-900)] disabled:opacity-40"
+												disabled={rIdx === 0}
+												on:click|stopPropagation={() => movePageGridRow(editingPageType, rIdx, rIdx - 1)}
+											>
+												↑
+											</button>
+											<button
+												type="button"
+												title="Move this row down (swap with row below)"
+												class="px-1.5 py-0.5 text-[11px] rounded border bg-[var(--color-surface-50-950)] text-[var(--color-surface-800-200)] border-surface-200-800 hover:bg-[var(--color-surface-100-900)] disabled:opacity-40"
+												disabled={rIdx >= pageGrid.gridRows - 1}
+												on:click|stopPropagation={() => movePageGridRow(editingPageType, rIdx, rIdx + 1)}
+											>
+												↓
+											</button>
+											<button
+												type="button"
+												title="Insert empty row above this band"
+												class="px-1.5 py-0.5 text-[11px] rounded border bg-[var(--color-surface-50-950)] text-[var(--color-surface-800-200)] border-surface-200-800 hover:bg-[var(--color-surface-100-900)] disabled:opacity-40"
+												disabled={pageGrid.gridRows >= 20}
+												on:click|stopPropagation={() => insertPageGridRow(editingPageType, rIdx)}
+											>
+												+↑
+											</button>
+											<button
+												type="button"
+												title="Insert empty row below this band"
+												class="px-1.5 py-0.5 text-[11px] rounded border bg-[var(--color-surface-50-950)] text-[var(--color-surface-800-200)] border-surface-200-800 hover:bg-[var(--color-surface-100-900)] disabled:opacity-40"
+												disabled={pageGrid.gridRows >= 20}
+												on:click|stopPropagation={() => insertPageGridRow(editingPageType, rIdx + 1)}
+											>
+												+↓
+											</button>
+											<button
+												type="button"
+												title="Delete this row (removes modules in this band; cannot remove last row)"
+												class="px-1.5 py-0.5 text-[11px] rounded border bg-[var(--color-surface-50-950)] text-[var(--color-surface-800-200)] border-surface-200-800 hover:bg-red-500/15 hover:border-red-400/60 dark:hover:border-red-500/50 disabled:opacity-40 inline-flex items-center justify-center"
+												disabled={pageGrid.gridRows <= 1}
+												aria-label="Delete row"
+												on:click|stopPropagation={() => deletePageGridRow(editingPageType, rIdx)}
+											>
+												<svg
+													xmlns="http://www.w3.org/2000/svg"
+													viewBox="0 0 16 16"
+													class="w-3.5 h-3.5 shrink-0"
+													fill="currentColor"
+													aria-hidden="true"
+												>
+													<path
+														d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"
+													/>
+													<path
+														d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4L4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"
+													/>
+												</svg>
+											</button>
+										</div>
+									</div>
+								{/each}
+								{#each layoutEditorModules as mod (mod._id)}
 									{@const r = mod.rowOrder ?? 0}
 									{@const c = mod.columnIndex ?? 0}
 									{@const rs = mod.rowSpan ?? 1}
 									{@const cs = mod.colSpan ?? 1}
 									<div
 										class="border border-green-300 rounded-lg p-3 bg-green-50/50"
-										style="grid-column: {c + 1} / span {cs}; grid-row: {r + 1} / span {rs}"
+										style="grid-column: {c + 2} / span {cs}; grid-row: {r + 1} / span {rs}"
 									>
 										<div class="flex flex-col h-full">
 											<p class="text-sm font-medium text-[var(--color-surface-950-50)]">{mod.type}</p>
@@ -2500,6 +3401,18 @@ let draggedAlbumHeaderField: string | null = null;
 																editingModule.props.body = {};
 															} else if (typeof editingModule.props.body === 'string') {
 																editingModule.props.body = { en: editingModule.props.body };
+															}
+														}
+														// Initialize pageTitle props if needed
+														if (editingModule.type === 'pageTitle') {
+															if (editingModule.props.showTitle === undefined) {
+																editingModule.props.showTitle = true;
+															}
+															if (editingModule.props.showSubtitle === undefined) {
+																editingModule.props.showSubtitle = true;
+															}
+															if (editingModule.props.align !== 'left' && editingModule.props.align !== 'center') {
+																editingModule.props.align = 'center';
 															}
 														}
 														// Initialize languageSelector props if needed
@@ -2623,6 +3536,14 @@ let draggedAlbumHeaderField: string | null = null;
 																editingModule.props.articlesListPath = '/blog';
 															}
 														}
+														if (editingModule.type === 'layoutShell') {
+															layoutShellOriginalPresetKey = String(editingModule.props?.presetKey ?? '').trim();
+															layoutShellReusePick = '';
+															layoutShellUseExistingSelection = false;
+															layoutShellPresetKeyError = '';
+															clearLayoutShellInnerSelection();
+															layoutShellInnerEditingRow = 0;
+														}
 														logger.debug('[Overrides] After initialization:', { 
 															type: editingModule.type, 
 															props: editingModule.props,
@@ -2659,7 +3580,7 @@ let draggedAlbumHeaderField: string | null = null;
 											<div
 												class="border rounded-lg p-3 min-h-[80px] transition-colors flex flex-col
 													{selected ? 'ring-2 ring-[var(--color-primary-500)] bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] border-[color-mix(in_oklab,var(--color-primary-500)_30%,transparent)]' : 'border-surface-300-700 bg-[var(--color-surface-50-950)] hover:bg-[var(--color-surface-50-950)] cursor-pointer'}"
-												style="grid-column: {col + 1}; grid-row: {row + 1}"
+												style="grid-column: {col + 2}; grid-row: {row + 1}"
 												on:click|stopPropagation={() => { if (!selected) toggleCell(row, col); }}
 											>
 												{#if selected}
@@ -2817,7 +3738,7 @@ let draggedAlbumHeaderField: string | null = null;
 				<div class="flex flex-wrap items-center gap-2">
 					<span class="text-[var(--color-surface-600-400)] font-medium shrink-0">{$t('admin.previewPageLabel')}</span>
 					<div class="flex flex-wrap gap-1">
-						{#each ['home', 'gallery', 'album', 'search', 'header', 'footer'] as p}
+						{#each ['home', 'gallery', 'album', 'search'] as p}
 							{@const pageKey = p as typeof previewPageType}
 							<button
 								type="button"
@@ -2847,6 +3768,7 @@ let draggedAlbumHeaderField: string | null = null;
 								pageType={previewPageType}
 								pageModules={getModulesForPageType(previewPageType, previewModalBreakpoint)}
 								pageLayout={getGridForPageType(previewPageType, previewModalBreakpoint)}
+								layoutPresets={previewLayoutPresets}
 							/>
 						{:else}
 							<div class="h-64 flex items-center justify-center text-[var(--color-surface-600-400)] text-sm">
@@ -2863,7 +3785,11 @@ let draggedAlbumHeaderField: string | null = null;
 <!-- Edit Module Modal -->
 {#if editingModule}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-labelledby="edit-module-title">
-		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+		<div
+			class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full max-h-[90vh] overflow-y-auto {editingModule.type === 'layoutShell'
+				? 'max-w-2xl'
+				: 'max-w-md'}"
+		>
 			<div class="sticky top-0 bg-[var(--color-surface-50-950)] border-b border-surface-200-800 px-6 py-4 flex items-center justify-between">
 				<h2 id="edit-module-title" class="text-lg font-semibold text-[var(--color-surface-950-50)]">
 					Edit {getModuleLabel(editingModule.type)}
@@ -2891,6 +3817,318 @@ let draggedAlbumHeaderField: string | null = null;
 						{/if}
 					</p>
 				</div>
+
+				{#if editingModule.type === 'layoutShell'}
+					<div class="space-y-4 border-t border-surface-200-800 pt-4">
+						<p class="text-sm text-[var(--color-surface-600-400)]">
+							A <strong>preset name</strong> is shared storage: several layout regions can use the same name to reuse one grid
+							definition.
+						</p>
+						<div>
+							<label class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-1" for="layout-shell-preset-key">
+								Preset name
+							</label>
+							<input
+								id="layout-shell-preset-key"
+								type="text"
+								class={ADMIN_TEXT_INPUT_CLASS}
+								value={editingModule.props?.presetKey ?? ''}
+								placeholder="e.g. site_header"
+								on:input={(e) => {
+									const v = (e.currentTarget as HTMLInputElement).value;
+									editingModule = { ...editingModule, props: { ...editingModule.props, presetKey: v } };
+									layoutShellUseExistingSelection = false;
+									layoutShellPresetKeyError = '';
+									layoutShellPresetDeleteInfo = '';
+								}}
+							/>
+							{#if layoutShellPresetKeyError}
+								<p class="mt-1 text-xs text-red-600">{layoutShellPresetKeyError}</p>
+							{/if}
+						</div>
+						<div>
+							<label class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-1" for="layout-shell-reuse">
+								Reuse existing preset
+							</label>
+							<select
+								id="layout-shell-reuse"
+								class="{ADMIN_SELECT_CLASS} w-full"
+								bind:value={layoutShellReusePick}
+								on:change={() => {
+									if (!layoutShellReusePick) return;
+									editingModule = {
+										...editingModule,
+										props: { ...editingModule.props, presetKey: layoutShellReusePick }
+									};
+									layoutShellOriginalPresetKey = layoutShellReusePick;
+									layoutShellUseExistingSelection = true;
+									layoutShellPresetKeyError = '';
+									layoutShellPresetDeleteInfo = '';
+									layoutShellReusePick = '';
+								}}
+							>
+								<option value="">— Pick a saved name —</option>
+								{#each Object.keys(localOverrides.layoutPresets || {}).sort() as rk}
+									<option value={rk}>{rk}</option>
+								{/each}
+							</select>
+						</div>
+						<div class="rounded-md border border-surface-200-800 p-3 space-y-2">
+							<div class="flex flex-wrap gap-2">
+								<button
+									type="button"
+									class="px-3 py-1.5 text-xs rounded border border-red-300 text-red-700 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
+									disabled={!layoutShellActivePresetExists || layoutShellCurrentPresetUsage.length > 0}
+									on:click={() => {
+										if (!layoutShellActivePresetKey) return;
+										if (!confirm(`Delete preset "${layoutShellActivePresetKey}"? This cannot be undone before save.`)) return;
+										deleteLayoutPresetIfUnused(layoutShellActivePresetKey);
+									}}
+								>
+									Delete preset
+								</button>
+								<button
+									type="button"
+									class="px-3 py-1.5 text-xs rounded border border-amber-300 text-amber-700 hover:bg-amber-50 disabled:opacity-50 disabled:cursor-not-allowed"
+									disabled={layoutShellUnusedPresetKeys.length === 0}
+									on:click={() => {
+										if (!confirm(`Delete all unused presets (${layoutShellUnusedPresetKeys.length})?`)) return;
+										deleteAllUnusedLayoutPresets();
+									}}
+								>
+									Delete all unused presets ({layoutShellUnusedPresetKeys.length})
+								</button>
+							</div>
+							{#if layoutShellActivePresetExists}
+								{#if layoutShellCurrentPresetUsage.length > 0}
+									<p class="text-xs text-amber-700 dark:text-amber-400/90">
+										Cannot delete "{layoutShellActivePresetKey}" yet — it is used in:
+									</p>
+									<ul class="list-disc pl-5 text-xs text-[var(--color-surface-700-300)] space-y-1">
+										{#each layoutShellCurrentPresetUsage as u}
+											<li>
+												{u.pageType} / {u.breakpoint} (row {u.rowOrder + 1}, col {u.columnIndex + 1})
+											</li>
+										{/each}
+									</ul>
+								{:else}
+									<p class="text-xs text-emerald-700 dark:text-emerald-400/90">
+										"{layoutShellActivePresetKey}" is unused and can be deleted safely.
+									</p>
+								{/if}
+							{/if}
+							{#if layoutShellPresetDeleteInfo}
+								<p class="text-xs text-[var(--color-surface-700-300)]">{layoutShellPresetDeleteInfo}</p>
+							{/if}
+						</div>
+						{#key (editingModule.props?.presetKey ?? '') + ':' + (layoutShellEditingDisplayKey ?? '') + ':' + layoutShellEditingModules.length}
+							{@const pk = (editingModule.props?.presetKey ?? '').trim()}
+							{@const shell = layoutShellEditingShell}
+							{#if pk}
+								<div class="grid grid-cols-2 gap-3">
+									<label class="block text-sm">
+										<span class="font-medium text-[var(--color-surface-800-200)]">Rows</span>
+										<input
+											type="number"
+											min="1"
+											max="12"
+											class={`mt-1 ${ADMIN_TEXT_INPUT_CLASS}`}
+											value={shell?.gridRows ?? 1}
+											on:input={(e) => {
+												const gr = parseInt((e.currentTarget as HTMLInputElement).value, 10);
+												updateLayoutShellPresetGrid(pk, gr, shell?.gridColumns ?? 1);
+											}}
+										/>
+									</label>
+									<label class="block text-sm">
+										<span class="font-medium text-[var(--color-surface-800-200)]">Columns</span>
+										<input
+											type="number"
+											min="1"
+											max="12"
+											class={`mt-1 ${ADMIN_TEXT_INPUT_CLASS}`}
+											value={shell?.gridColumns ?? 1}
+											on:input={(e) => {
+												const gc = parseInt((e.currentTarget as HTMLInputElement).value, 10);
+												updateLayoutShellPresetGrid(pk, shell?.gridRows ?? 1, gc);
+											}}
+										/>
+									</label>
+								</div>
+								<div class="rounded-md border border-surface-200-800 p-3 space-y-2">
+									<div class="text-sm font-semibold text-[var(--color-surface-950-50)]">Row order</div>
+									<p class="text-xs text-[var(--color-surface-600-400)]">
+										Move rows up/down or insert a new row above/below — existing inner modules shift with the rows.
+									</p>
+									{#each Array(shell?.gridRows ?? 1) as _, rIdx (rIdx)}
+										<div class="flex items-center justify-between gap-2 py-1 border-b border-surface-100-900 last:border-0">
+											<div class="text-sm text-[var(--color-surface-800-200)]">
+												Row {rIdx + 1}
+											</div>
+											<div class="flex flex-wrap gap-1">
+												<button
+													type="button"
+													class="px-2 py-1 text-xs rounded border bg-[var(--color-surface-50-950)] text-[var(--color-surface-800-200)] border-surface-200-800 hover:bg-[var(--color-surface-100-900)] disabled:opacity-50"
+													disabled={rIdx === 0}
+													on:click={() => moveLayoutPresetRow(pk, rIdx, rIdx - 1)}
+												>
+													Up
+												</button>
+												<button
+													type="button"
+													class="px-2 py-1 text-xs rounded border bg-[var(--color-surface-50-950)] text-[var(--color-surface-800-200)] border-surface-200-800 hover:bg-[var(--color-surface-100-900)] disabled:opacity-50"
+													disabled={rIdx >= (shell?.gridRows ?? 1) - 1}
+													on:click={() => moveLayoutPresetRow(pk, rIdx, rIdx + 1)}
+												>
+													Down
+												</button>
+												<button
+													type="button"
+													class="px-2 py-1 text-xs rounded border bg-[var(--color-surface-50-950)] text-[var(--color-surface-800-200)] border-surface-200-800 hover:bg-[var(--color-surface-100-900)] disabled:opacity-50"
+													disabled={(shell?.gridRows ?? 1) >= 12}
+													on:click={() => insertLayoutPresetRow(pk, rIdx)}
+												>
+													Insert above
+												</button>
+												<button
+													type="button"
+													class="px-2 py-1 text-xs rounded border bg-[var(--color-surface-50-950)] text-[var(--color-surface-800-200)] border-surface-200-800 hover:bg-[var(--color-surface-100-900)] disabled:opacity-50"
+													disabled={(shell?.gridRows ?? 1) >= 12}
+													on:click={() => insertLayoutPresetRow(pk, rIdx + 1)}
+												>
+													Insert below
+												</button>
+											</div>
+										</div>
+									{/each}
+								</div>
+								{#if !shell}
+									<p class="text-xs text-amber-700 dark:text-amber-400/90">
+										No data for this name yet — change rows or columns to create the preset.
+									</p>
+								{/if}
+								<div class="rounded-md border border-surface-200-800 p-3 space-y-2">
+									<div class="text-sm font-semibold text-[var(--color-surface-950-50)]">Inner modules</div>
+									<p class="text-xs text-[var(--color-surface-600-400)]">
+										Select empty cells, then assign a module. (Spans work like the page grid.)
+									</p>
+
+									<div
+										class="gap-2 border-2 border-surface-300-700 p-2 bg-[var(--color-surface-50-950)] select-none rounded-lg"
+										style="display: grid; grid-template-columns: repeat({shell?.gridColumns ?? 1}, 1fr); grid-template-rows: repeat({shell?.gridRows ?? 1}, minmax(60px, auto));"
+									>
+										{#each layoutShellEditingModules as mod, idx (mod._id || idx)}
+											{@const r = mod.rowOrder ?? 0}
+											{@const c = mod.columnIndex ?? 0}
+											{@const rs = mod.rowSpan ?? 1}
+											{@const cs = mod.colSpan ?? 1}
+											<div
+												class="border border-green-300 rounded-lg p-2 bg-green-50/50"
+												style="grid-column: {c + 1} / span {cs}; grid-row: {r + 1} / span {rs}"
+											>
+												<div class="flex flex-col h-full">
+													<p class="text-xs font-medium text-[var(--color-surface-950-50)]">{mod.type}</p>
+													{#if rs > 1 || cs > 1}
+														<p class="text-[10px] text-[var(--color-surface-600-400)] mt-0.5">{rs}×{cs} span</p>
+													{/if}
+													<div class="flex gap-2 mt-2">
+														<button
+															type="button"
+															class="text-[10px] text-[var(--color-primary-600)] hover:text-[var(--color-primary-800)] font-medium"
+															on:click|stopPropagation={() => {
+																editingModule = JSON.parse(JSON.stringify(mod));
+																editingInnerLayoutPresetKey = pk;
+																editingInnerLayoutModuleIndex = idx;
+																layoutShellPresetKeyError = '';
+															}}
+														>
+															Edit
+														</button>
+														<button
+															type="button"
+															class="text-[10px] text-red-600 hover:text-red-800 font-medium"
+															on:click|stopPropagation={() => removeModuleFromLayoutPreset(pk, idx)}
+														>
+															Remove
+														</button>
+													</div>
+												</div>
+											</div>
+										{/each}
+
+										{#each Array(shell?.gridRows ?? 1) as _, rowIndex (rowIndex)}
+											{#each Array(shell?.gridColumns ?? 1) as _, colIndex (colIndex)}
+												{@const row = rowIndex}
+												{@const col = colIndex}
+												{@const covered = innerIsCellCoveredFrom(layoutShellEditingModules, row, col)}
+												{@const m = innerGetModuleAtCellFrom(layoutShellEditingModules, row, col)}
+												{@const key = layoutShellInnerCellKey(row, col)}
+												{@const selected = layoutShellInnerSelectedCells.has(key)}
+												{#if covered}
+													<!-- Covered by module span -->
+												{:else if !m}
+													<div
+														class="border rounded-lg p-2 min-h-[60px] transition-colors flex flex-col
+															{selected
+																? 'ring-2 ring-[var(--color-primary-500)] bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] border-[color-mix(in_oklab,var(--color-primary-500)_30%,transparent)]'
+																: 'border-surface-300-700 bg-[var(--color-surface-50-950)] hover:bg-[var(--color-surface-50-950)] cursor-pointer'}"
+														style="grid-column: {col + 1}; grid-row: {row + 1}"
+														on:click|stopPropagation={() => { if (!selected) innerToggleCell(pk, row, col); }}
+													>
+														<div class="text-[10px] text-[var(--color-surface-600-400)]">
+															Row {row + 1}, Col {col + 1}
+														</div>
+													</div>
+												{/if}
+											{/each}
+										{/each}
+									</div>
+
+									<div class="flex flex-wrap items-end gap-2 pt-2">
+										<label class="text-xs shrink-0">
+											<span class="block opacity-80 mb-1">Assign module</span>
+											<select class={ADMIN_SELECT_SM_CLASS} bind:value={layoutShellInnerAssignedModuleType}>
+												<option value="">— Select —</option>
+												{#each LAYOUT_SHELL_INNER_MODULE_TYPES as opt}
+													<option value={opt.type}>{opt.label}</option>
+												{/each}
+											</select>
+										</label>
+										<button
+											type="button"
+											class="mt-5 px-3 py-1.5 text-xs font-medium rounded-md bg-[var(--color-primary-600)] text-white hover:bg-[var(--color-primary-700)] disabled:opacity-50"
+											disabled={!layoutShellInnerSelectionBounds || !layoutShellInnerAssignedModuleType}
+											on:click={() => {
+												if (!layoutShellInnerSelectionBounds) return;
+												if (!layoutShellInnerAssignedModuleType) return;
+												addModuleToLayoutPreset(
+													pk,
+													layoutShellInnerAssignedModuleType,
+													layoutShellInnerSelectionBounds.rowOrder,
+													layoutShellInnerSelectionBounds.columnIndex,
+													layoutShellInnerSelectionBounds.rowSpan,
+													layoutShellInnerSelectionBounds.colSpan
+												);
+												clearLayoutShellInnerSelection();
+											}}
+										>
+											Assign to selected
+										</button>
+										<button
+											type="button"
+											class="mt-5 px-3 py-1.5 text-xs font-medium rounded-md bg-[var(--color-surface-50-950)] text-[var(--color-surface-800-200)] border border-surface-200-800 hover:bg-[var(--color-surface-100-900)]"
+											on:click={() => clearLayoutShellInnerSelection()}
+										>
+											Clear selection
+										</button>
+									</div>
+								</div>
+							{:else}
+								<p class="text-xs text-[var(--color-surface-600-400)]">Enter a preset name to configure the inner grid.</p>
+							{/if}
+						{/key}
+					</div>
+				{/if}
 
 				{#if editingModule.type === 'albumsGrid' || editingModule.type === 'albumView' || editingModule.type === 'albumGallery'}
 					<div class="space-y-4">
@@ -3617,56 +4855,23 @@ let draggedAlbumHeaderField: string | null = null;
 							<label for="richtext-title" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Title
 							</label>
-							{#if typeof editingModule.props?.title === 'object'}
-								<MultiLangInput
-									id="richtext-title"
-									bind:value={editingModule.props.title}
-									placeholder="Enter title"
-									class="w-full"
-								/>
-							{:else}
-								<input
-									id="richtext-title"
-									type="text"
-									class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
-									value={editingModule.props?.title || ''}
-									placeholder="Enter title"
-									on:input={(e) => {
-										editingModule = {
-											...editingModule,
-											props: { ...editingModule.props, title: (e.currentTarget as HTMLInputElement).value }
-										};
-									}}
-								/>
-							{/if}
+							<MultiLangInput
+								id="richtext-title"
+								bind:value={editingModule.props.title}
+								placeholder="Enter title"
+								className="w-full"
+							/>
 						</div>
 
 						<div>
 							<label for="richtext-body" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
 								Body Content
 							</label>
-							{#if typeof editingModule.props?.body === 'object'}
-								<MultiLangHTMLEditor
-									id="richtext-body"
-									bind:value={editingModule.props.body}
-									class="w-full"
-								/>
-							{:else}
-								<textarea
-									id="richtext-body"
-									rows="6"
-									class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)] font-mono text-sm"
-									value={editingModule.props?.body || ''}
-									placeholder="Enter HTML content"
-									on:input={(e) => {
-										editingModule = {
-											...editingModule,
-											props: { ...editingModule.props, body: (e.currentTarget as HTMLTextAreaElement).value }
-										};
-									}}
-								></textarea>
-								<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">HTML content editor. For rich text editing, use the multi-language editor above.</p>
-							{/if}
+							<MultiLangHTMLEditor
+								id="richtext-body"
+								bind:value={editingModule.props.body}
+								className="w-full"
+							/>
 						</div>
 
 						<div>
@@ -3687,6 +4892,58 @@ let draggedAlbumHeaderField: string | null = null;
 								<option value="white">White</option>
 								<option value="gray">Gray</option>
 								<option value="transparent">Transparent</option>
+							</select>
+						</div>
+					</div>
+				{:else if editingModule.type === 'pageTitle'}
+					<div class="space-y-4">
+						<div>
+							<label class="flex items-center gap-2">
+								<input
+									type="checkbox"
+									checked={editingModule.props?.showTitle !== false}
+									on:change={(e) => {
+										editingModule = {
+											...editingModule,
+											props: { ...editingModule.props, showTitle: (e.currentTarget as HTMLInputElement).checked }
+										};
+									}}
+								/>
+								<span class="text-sm text-[var(--color-surface-800-200)]">Show page title</span>
+							</label>
+						</div>
+						<div>
+							<label class="flex items-center gap-2">
+								<input
+									type="checkbox"
+									checked={editingModule.props?.showSubtitle !== false}
+									on:change={(e) => {
+										editingModule = {
+											...editingModule,
+											props: { ...editingModule.props, showSubtitle: (e.currentTarget as HTMLInputElement).checked }
+										};
+									}}
+								/>
+								<span class="text-sm text-[var(--color-surface-800-200)]">Show page subtitle</span>
+							</label>
+						</div>
+						<div>
+							<label for="page-title-align" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+								Alignment
+							</label>
+							<select
+								id="page-title-align"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
+								value={editingModule.props?.align === 'left' ? 'left' : 'center'}
+								on:change={(e) => {
+									editingModule = {
+										...editingModule,
+										props: { ...editingModule.props, align: (e.currentTarget as HTMLSelectElement).value }
+									};
+								}}
+							>
+								<option value="center">Center</option>
+								<option value="left">Left</option>
 							</select>
 						</div>
 					</div>
@@ -4392,7 +5649,12 @@ let draggedAlbumHeaderField: string | null = null;
 			<div class="sticky bottom-0 bg-[var(--color-surface-50-950)] border-t border-surface-200-800 px-6 py-4 flex justify-end gap-2">
 				<button
 					type="button"
-					on:click={() => editingModule = null}
+					on:click={() => {
+						editingModule = null;
+						editingInnerLayoutPresetKey = '';
+						editingInnerLayoutModuleIndex = -1;
+						layoutShellOriginalPresetKey = '';
+					}}
 					class="px-4 py-2 text-[var(--color-surface-800-200)] hover:bg-[var(--color-surface-200-800)] rounded-md text-sm font-medium"
 				>
 					Cancel

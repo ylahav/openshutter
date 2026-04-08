@@ -8,8 +8,11 @@
 	import PageRenderer from '$lib/page-builder/PageRenderer.svelte';
 	import type { PageModuleData } from '$lib/types/page-builder';
 	import AdvancedFilterSearch from '$lib/components/search/AdvancedFilterSearch.svelte';
+	import { activeTemplate } from '$stores/template';
 
 	export let data: PageData;
+
+	$: searchUiVariant = $activeTemplate === 'noir' ? 'noir' : 'default';
 
 	let initialQuery = $page.url.searchParams.get('q') || '';
 
@@ -47,5 +50,5 @@
 {#if hasPageModules}
 	<PageRenderer page={pageForRenderer as any} modules={searchModules} />
 {:else}
-	<AdvancedFilterSearch {initialQuery} />
+	<AdvancedFilterSearch {initialQuery} variant={searchUiVariant} />
 {/if}

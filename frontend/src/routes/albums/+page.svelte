@@ -1,12 +1,16 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { currentLanguage } from '$stores/language';
-	import { productName } from '$stores/siteConfig';
+	import { productName, siteConfigData } from '$stores/siteConfig';
 	import { MultiLangUtils } from '$utils/multiLang';
 	import { t } from '$stores/i18n';
 	import { getAlbumName, getAlbumDescription } from '$lib/utils/albumUtils';
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
+	import { viewportWidth } from '$lib/stores/viewport';
+	import { getEffectivePageGrid, getEffectivePageModules } from '$lib/template/breakpoints';
+	import PageRenderer from '$lib/page-builder/PageRenderer.svelte';
+	import type { PageModuleData } from '$lib/types/page-builder';
 
 	interface Album {
 		_id: string;
@@ -26,6 +30,17 @@
 	let isLoading = true;
 	let error = '';
 	let coverImages: Record<string, string> = {};
+	$: galleryModules = getEffectivePageModules($siteConfigData?.template, 'gallery', $viewportWidth) as PageModuleData[];
+	$: galleryLayout = getEffectivePageGrid($siteConfigData?.template, 'gallery', $viewportWidth);
+	$: hasPageModules = Array.isArray(galleryModules) && galleryModules.length > 0;
+	$: pageForRenderer = hasPageModules
+		? ({
+				_id: 'gallery',
+				title: {} as any,
+				subtitle: {} as any,
+				layout: { gridRows: galleryLayout.gridRows, gridColumns: galleryLayout.gridColumns }
+			} as any)
+		: null;
 
 	// Album utility functions are now imported from shared utilities
 
@@ -103,7 +118,9 @@
 	<title>Albums - {$productName}</title>
 </svelte:head>
 
-{#if isLoading}
+{#if hasPageModules}
+	<PageRenderer page={pageForRenderer as any} modules={galleryModules} />
+{:else if isLoading}
 	<section class="py-16 bg-gray-50">
 		<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 			<div class="text-center">

@@ -166,7 +166,7 @@ The following **single-document shape** is the intended interchange format for a
 
 | Field | Role |
 |--------|------|
-| **`template`** | Built-in pack id (`default`, `minimal`, `modern`, `elegant`, …) or a product-specific template id; must resolve through the **pack registry** for code-backed route shells. |
+| **`template`** | Built-in pack id (`simple`, `modern`, `elegant`, `noir`, …). Legacy values `default` / `minimal` normalize to **`simple`**. Must resolve through the **pack registry** for code-backed route shells. |
 | **`theme.fonts` / `theme.colors`** | Typography and palette only — same intent as `customFonts` and `customColors` today. |
 | **`layout[breakpoint]`** | **Shell** metrics only: **`maxWidth`**, **`containerPadding`**, **`gridGap`** — **required keys at each breakpoint** the template declares (subject to cascade rules if a breakpoint is omitted). |
 | **`pages[]`** | One entry per logical page/region (`home`, `gallery`, `album`, `header`, `footer`, …). |
@@ -563,7 +563,7 @@ Phase 2 may add a dedicated **`UI_COMPONENTS.md`** for the contributor workflow 
 
 ## 8. Appendix: Create a template pack (built-in)
 
-OpenShutter maps each **base theme** (`default`, `minimal`, `modern`, `elegant`) to a **template pack**: Svelte shells for public pages (home, gallery, album, login) plus header/footer.
+OpenShutter maps each **base theme** (`simple`, `modern`, `elegant`, `noir`) to a **template pack**: Svelte shells for public pages (home, gallery, album, login) plus header/footer. Older installs may still store `default` / `minimal`; the API normalizes those to **`simple`**.
 
 ### Rough mapping from Joomla (mental model)
 

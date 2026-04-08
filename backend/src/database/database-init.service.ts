@@ -168,13 +168,40 @@ const DEFAULT_PAGE_MODULES = {
 // Built-in themes (seeded into themes collection - all themes live in one place)
 const BUILT_IN_THEMES = [
   {
-    name: 'Default',
-    description: 'Clean and minimal design',
-    baseTemplate: 'default',
+    name: 'Noir',
+    description: 'Cinematic dark layout — mono typography, grid hero (showcase pack)',
+    baseTemplate: 'noir',
     basePalette: null,
-    customColors: { primary: '#3B82F6', secondary: '#1F2937', accent: '#F59E0B', background: '#FFFFFF', text: '#1F2937', muted: '#6B7280' },
-    customFonts: { heading: 'Inter', body: 'Inter' },
-    customLayout: { maxWidth: '1200px', containerPadding: '1rem', gridGap: '1.5rem' },
+    customColors: {
+      primary: '#f5f5f3',
+      secondary: '#a1a1a1',
+      accent: '#f5f5f3',
+      background: '#080808',
+      text: '#f5f5f3',
+      muted: 'rgba(245,245,243,0.38)',
+      surfaceCard: '#141414',
+      surfaceCardSecondary: '#1c1c1c',
+      surfaceCardTertiary: '#232323',
+      textSubtle: 'rgba(245,245,243,0.16)',
+      borderSubtle: 'rgba(255,255,255,0.07)',
+      lightBackground: '#f5f5f3',
+      lightText: '#080808',
+      lightMuted: 'rgba(8,8,8,0.45)',
+      lightSurfaceCard: '#e8e8e5',
+      lightSurfaceCardSecondary: '#ddddd9',
+      lightSurfaceCardTertiary: '#d2d2ce',
+      lightTextSubtle: 'rgba(8,8,8,0.22)',
+      lightBorderSubtle: 'rgba(0,0,0,0.08)',
+    },
+    customFonts: {
+      heading: 'DM Sans',
+      body: 'DM Mono',
+      links: 'DM Mono',
+      lists: 'DM Mono',
+      formInputs: 'DM Mono',
+      formLabels: 'DM Mono',
+    },
+    customLayout: { maxWidth: '1280px', containerPadding: '2rem', gridGap: '0.125rem' },
     componentVisibility: {},
     headerConfig: {},
     pageModules: DEFAULT_PAGE_MODULES,
@@ -183,13 +210,44 @@ const BUILT_IN_THEMES = [
     isBuiltIn: true,
   },
   {
-    name: 'Modern',
-    description: 'Contemporary and sleek design',
-    baseTemplate: 'modern',
+    name: 'Studio',
+    description: 'Editorial portfolio layout — Syne & Outfit, hero strip, card grid',
+    baseTemplate: 'studio',
     basePalette: null,
-    customColors: { primary: '#3b82f6', secondary: '#6b7280', accent: '#10b981', background: '#ffffff', text: '#111827', muted: '#6b7280' },
-    customFonts: { heading: 'Inter', body: 'Inter' },
-    customLayout: { maxWidth: '1200px', containerPadding: '1rem', gridGap: '1.5rem' },
+    customColors: {
+      primary: '#2563eb',
+      secondary: '#1d4ed8',
+      accent: '#60a5fa',
+      background: '#0f172a',
+      text: '#f1f5f9',
+      muted: '#94a3b8',
+      surfaceCard: '#1e293b',
+      surfaceCardSecondary: '#0f172a',
+      surfaceCardTertiary: '#1e293b',
+      textSubtle: 'rgba(241,245,249,0.2)',
+      borderSubtle: '#334155',
+      lightBackground: '#f8fafc',
+      lightText: '#0f172a',
+      lightMuted: '#64748b',
+      lightSurfaceCard: '#ffffff',
+      lightSurfaceCardSecondary: '#f8fafc',
+      lightSurfaceCardTertiary: '#f1f5f9',
+      lightTextSubtle: 'rgba(15,23,42,0.22)',
+      lightBorderSubtle: '#e2e8f0',
+      heroStrip: '#020617',
+      footerStrip: '#020617',
+      lightHeroStrip: '#0f172a',
+      lightFooterStrip: '#0f172a',
+    },
+    customFonts: {
+      heading: 'Syne',
+      body: 'Outfit',
+      links: 'Outfit',
+      lists: 'Outfit',
+      formInputs: 'Outfit',
+      formLabels: 'Outfit',
+    },
+    customLayout: { maxWidth: '1200px', containerPadding: '1.75rem', gridGap: '1rem' },
     componentVisibility: {},
     headerConfig: {},
     pageModules: DEFAULT_PAGE_MODULES,
@@ -198,28 +256,44 @@ const BUILT_IN_THEMES = [
     isBuiltIn: true,
   },
   {
-    name: 'Elegant',
-    description: 'Elegant and sophisticated design',
-    baseTemplate: 'elegant',
+    name: 'Atelier',
+    description: 'Warm editorial layout — Cormorant Garamond & Jost, tall hero, list albums',
+    baseTemplate: 'atelier',
     basePalette: null,
-    customColors: { primary: '#8b5cf6', secondary: '#a78bfa', accent: '#f59e0b', background: '#ffffff', text: '#1f2937', muted: '#6b7280' },
-    customFonts: { heading: 'Playfair Display', body: 'Inter' },
-    customLayout: { maxWidth: '1200px', containerPadding: '1rem', gridGap: '1.5rem' },
-    componentVisibility: {},
-    headerConfig: {},
-    pageModules: DEFAULT_PAGE_MODULES,
-    pageLayout: DEFAULT_PAGE_LAYOUTS,
-    isPublished: true,
-    isBuiltIn: true,
-  },
-  {
-    name: 'Minimal',
-    description: 'Ultra-minimal and clean design',
-    baseTemplate: 'minimal',
-    basePalette: null,
-    customColors: { primary: '#000000', secondary: '#6b7280', accent: '#000000', background: '#ffffff', text: '#000000', muted: '#6b7280' },
-    customFonts: { heading: 'Inter', body: 'Inter' },
-    customLayout: { maxWidth: '1200px', containerPadding: '1rem', gridGap: '1rem' },
+    customColors: {
+      primary: '#b8955a',
+      secondary: '#5c4033',
+      accent: '#d4b07a',
+      background: '#1a1008',
+      text: '#f0e8d8',
+      muted: '#7a6a58',
+      surfaceCard: '#231710',
+      surfaceCardSecondary: '#1a1008',
+      surfaceCardTertiary: '#2e1f14',
+      textSubtle: 'rgba(240,232,216,0.25)',
+      borderSubtle: '#3a2a1c',
+      lightBackground: '#faf6ef',
+      lightText: '#2c1f14',
+      lightMuted: '#9c8c7a',
+      lightSurfaceCard: '#faf6ef',
+      lightSurfaceCardSecondary: '#f2ece0',
+      lightSurfaceCardTertiary: '#e8dece',
+      lightTextSubtle: 'rgba(44,31,20,0.35)',
+      lightBorderSubtle: '#e8dece',
+      heroStrip: '#0e0804',
+      footerStrip: '#0e0804',
+      lightHeroStrip: '#2c1f14',
+      lightFooterStrip: '#2c1f14',
+    },
+    customFonts: {
+      heading: 'Cormorant Garamond',
+      body: 'Jost',
+      links: 'Jost',
+      lists: 'Jost',
+      formInputs: 'Jost',
+      formLabels: 'Jost',
+    },
+    customLayout: { maxWidth: '960px', containerPadding: '2rem', gridGap: '1rem' },
     componentVisibility: {},
     headerConfig: {},
     pageModules: DEFAULT_PAGE_MODULES,
@@ -391,6 +465,51 @@ export class DatabaseInitService implements OnApplicationBootstrap {
   }
 
   /**
+   * Drop legacy built-in themes (simple, modern, elegant, …) from MongoDB and remap
+   * custom themes that still reference those packs to `noir`. Fixes template pickers
+   * listing removed packs after upgrades.
+   */
+  private async pruneRetiredPackThemes(
+    collection: import('mongoose').mongo.Collection,
+    db: import('mongoose').mongo.Db,
+    now: Date,
+  ): Promise<void> {
+    const VALID = new Set(['noir', 'studio', 'atelier']);
+    const docs = await collection.find({}).toArray();
+    for (const doc of docs) {
+      const bt = String(doc.baseTemplate ?? '')
+        .trim()
+        .toLowerCase();
+      if (VALID.has(bt)) continue;
+      if (doc.isBuiltIn) {
+        await collection.deleteOne({ _id: doc._id });
+        this.logger.log(`  Removed retired built-in theme: ${doc.baseTemplate} (${doc.name})`);
+      } else {
+        await collection.updateOne({ _id: doc._id }, { $set: { baseTemplate: 'noir', updatedAt: now } });
+        this.logger.log(`  Remapped custom theme "${doc.name}" baseTemplate → noir (was ${doc.baseTemplate})`);
+      }
+    }
+
+    const idRows = await collection.find({}).project({ _id: 1 }).toArray();
+    const remaining = new Set(idRows.map((doc) => String((doc as { _id: unknown })._id)));
+    const siteColl = db.collection('site_config');
+    const sc = await siteColl.findOne({});
+    const aid = sc?.template?.activeThemeId;
+    if (aid && !remaining.has(String(aid))) {
+      const noirTheme = await collection.findOne({ isBuiltIn: true, baseTemplate: 'noir' });
+      if (noirTheme && sc?._id) {
+        await siteColl.updateOne(
+          { _id: sc._id },
+          { $set: { 'template.activeThemeId': noirTheme._id, updatedAt: now } },
+        );
+        this.logger.log('  Fixed site_config.activeThemeId after retired theme removal');
+      }
+    }
+
+    SiteConfigService.getInstance().invalidateCache();
+  }
+
+  /**
    * Seed built-in themes into themes collection.
    * All themes (built-in + custom) live in one collection.
    */
@@ -415,6 +534,9 @@ export class DatabaseInitService implements OnApplicationBootstrap {
           this.logger.log(`  Created theme: ${theme.name}`);
         }
       }
+
+      await this.pruneRetiredPackThemes(collection, db, now);
+
       this.logger.log('✅ Default themes initialized');
     } catch (error) {
       this.logger.error(`Failed to initialize themes: ${error instanceof Error ? error.message : 'Unknown error'}`);

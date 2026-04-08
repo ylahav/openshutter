@@ -68,11 +68,11 @@ So: **header/footer are defined as pages in config**, but **routing** only wraps
 
 There are **two** different switches:
 
-1. **Frontend template (pack id)** — `default` / `minimal` / `modern` / `elegant` in **Site configuration** (or `frontendTemplate` in JSON). This selects **which Svelte pack** runs for route bodies and, when header/footer **don’t** use the page builder, which **pack `Header.svelte` / `Footer.svelte`** runs.
+1. **Frontend template (pack id)** — `noir` / `studio` / `atelier` in **Site configuration** (or `frontendTemplate` in JSON). Legacy `default`, `minimal`, and removed pack ids (`simple`, `modern`, `elegant`) normalize to **`noir`**. This selects **which Svelte pack** runs for route bodies and, when header/footer **don’t** use the page builder, which **pack `Header.svelte` / `Footer.svelte`** runs.
 
 2. **Theme document + Apply** — Each row in **`themes`** can carry its own **`pageModules.header`** / **`pageModules.footer`**. **Live** `site_config` only holds **one** copy of those arrays. Changing only the pack in Site configuration **does not** pull a different theme’s `pageModules` from Mongo — you must **Apply** the theme whose header/footer layout you want (or edit `site_config` directly).
 
-If **`pageModules.header`** is **non-empty**, the global header is drawn with **`PageRenderer`** (modules), not the pack’s `Header.svelte`. Until recently the outer strip looked the same for every pack; the app now applies **pack-matched shell classes** on that strip when you change the active pack so you should at least see chrome (background/border) follow **modern / elegant / …**. The **module list** itself still comes from **`site_config`** until you apply another theme or edit modules.
+If **`pageModules.header`** is **non-empty**, the global header is drawn with **`PageRenderer`** (modules), not the pack’s `Header.svelte`. Until recently the outer strip looked the same for every pack; the app now applies **pack-matched shell classes** on that strip when you change the active pack so you should at least see chrome (background/border) follow the active pack (**noir** / **studio** / **atelier**). The **module list** itself still comes from **`site_config`** until you apply another theme or edit modules.
 
 To use each pack’s **full** header implementation (layout + behavior), set **`pageModules.header`** to **empty** (no modules) for that site — then the pack **`Header.svelte`** is used and switching the frontend template switches the whole header component.
 
@@ -101,7 +101,35 @@ To use each pack’s **full** header implementation (layout + behavior), set **`
 
 ---
 
-## 6. See also
+## 6. Named layout regions (`layoutShell`), presets, and cleanup
+
+The **`layoutShell`** module is a **named grid** inside a page cell. Its inner rows, columns, and modules are stored under **`template.layoutPresets`** keyed by **`presetKey`** (a short string you choose, e.g. `site_header`). Several **`layoutShell`** placements can reference the **same** preset name so they share one definition.
+
+**Where to edit**
+
+- **Admin → Templates → Overrides** — add/edit a `layoutShell` module, then use **Edit Layout region (named grid)** to set preset name, rows/columns, and inner modules.
+- **Admin → Pages → Edit page** — same preset model; pick or type a preset name so the page uses the shared grid.
+
+**Reusing names across themes**
+
+Preset names you save in overrides / themes accumulate in the **reuse** dropdown where the UI merges known presets (site + themes). Prefer stable names (`site_header`, `page_footer`) so switching templates stays predictable.
+
+**Deleting an unused preset**
+
+Unused entries in `layoutPresets` would otherwise stay in JSON forever. In **Templates → Overrides**, when you edit a **`layoutShell`** module, the preset panel includes:
+
+- **Delete preset** — removes the **current** preset from `layoutPresets` only if **no** `layoutShell` module (any page key, any breakpoint) still references that `presetKey`. If something still references it, the UI lists **where** (page key, breakpoint, row/column) so you can re-point or remove those modules first.
+- **Delete all unused presets** — one action removes every preset key that has **zero** references in the editor’s module lists.
+
+Changes apply to the draft overrides until you **Save**; use **Apply theme** when you want the live site row updated.
+
+**Page title in the grid (`pageTitle`)**
+
+If you rely on a header `layoutShell` **above** normal content, you may not want the renderer’s automatic page title block. Add a **`pageTitle`** module where you want the title/subtitle (**props**: show title, show subtitle, alignment). When a **`pageTitle`** module exists on the page layout, the automatic title block is suppressed so order is fully under your control.
+
+---
+
+## 7. See also
 
 - [`TEMPLATING.md`](../development/TEMPLATING.md) — full model (including Phase 2 component rules), **Part III** checklist, **§8** contributor appendix (pack, registry, allowlists).
 - [`PAGE_BUILDER_MODULES.md`](../development/PAGE_BUILDER_MODULES.md) — module authoring and URL/`data` context for `PageRenderer`.
