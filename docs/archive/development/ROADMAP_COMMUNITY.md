@@ -113,11 +113,11 @@ This roadmap prioritizes features that drive adoption in photographer communitie
 
 ## Dependencies
 
-- Existing template docs and theme systems in [`development/TEMPLATING.md`](./TEMPLATING.md) and [`development/PAGE_BUILDER_MODULES.md`](./PAGE_BUILDER_MODULES.md)
-- Existing phase tracking in [`development/PHASE_4_WORKFLOW.md`](./PHASE_4_WORKFLOW.md) and [README.md](../../README.md)
+- Existing template docs and theme systems in [`TEMPLATING.md`](../../development/TEMPLATING.md) and [`PAGE_BUILDER_MODULES.md`](../../development/PAGE_BUILDER_MODULES.md)
+- Existing phase tracking in [`PHASE_4_WORKFLOW.md`](./PHASE_4_WORKFLOW.md) and [README.md](../../../README.md)
 
 ## Related Task Lists
 
 - [Admin UI roadmap](./ADMIN_UI_ROADMAP.md) — static admin panel, separate from visitor template packs
-- [Templating — Part III checklist](./TEMPLATING.md#part-iii-implementation-checklist-and-backlog)
+- [Templating — Part III checklist](../../development/TEMPLATING.md#part-iii-implementation-checklist-and-backlog)
 - [Video task list](./VIDEO_TASKS.md)

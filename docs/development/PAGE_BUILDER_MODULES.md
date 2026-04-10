@@ -2,7 +2,7 @@
 
 This document is the **canonical guide** for modules rendered by **`PageRenderer`** and stored in **`site_config.template.pageModules`** (and theme overrides). It merges the former **UI component modules** and **module URL parameters** docs.
 
-**See also:** [Templating — architecture, tasks, and theming](./TEMPLATING.md) (packs, themes, page keys, seeding, checklist). For operators, [TEMPLATE_CONTROL.md](../guides/TEMPLATE_CONTROL.md).
+**See also:** [Templating — requirements & implementation](./TEMPLATING.md) (packs, themes, page keys, seeding, checklist, tokens). For operators, [TEMPLATING_USER_GUIDE.md](../guides/TEMPLATING_USER_GUIDE.md).
 
 ---
 
@@ -383,7 +383,7 @@ Quick JSON lives in **§12.3–12.4** above. For **props semantics**, URL-aware 
 
 **Persistence:** Inner modules and grid shape live under **`layoutPresets`**, not in the outer `pageModules` entry (the outer entry only points at the name).
 
-**Admin cleanup:** In **Templates → Overrides**, editing a `layoutShell` exposes **Delete preset** (when unused) and **Delete all unused presets**; see [TEMPLATE_CONTROL.md §6](../guides/TEMPLATE_CONTROL.md#6-named-layout-regions-layoutshell-presets-and-cleanup).
+**Admin cleanup:** In **Templates → Overrides**, editing a `layoutShell` exposes **Delete preset** (when unused) and **Delete all unused presets**; see [TEMPLATING_USER_GUIDE.md §6](../guides/TEMPLATING_USER_GUIDE.md#6-named-layout-regions-layoutshell-presets-and-cleanup).
 
 ```json
 {
@@ -588,7 +588,7 @@ Move from scattered registration to a **single manifest** (alias, title, region,
 
 ## 15) Revision
 
-**2026-04:** Consolidated **`UI_COMPONENT_MODULES.md`** and **`MODULE_URL_PARAMS.md`** into this file; expanded examples for hero, rich text, albums grid, header modules, and clarified `PageRenderer` **`data`** / **`pageContext`** shape.
+**2026-04:** Consolidated **`UI_COMPONENT_MODULES.md`** and **`MODULE_URL_PARAMS.md`** into this file; expanded examples for hero, rich text, albums grid, header modules, and clarified `PageRenderer` **`data`** / **`pageContext`** shape. Those standalone stub files were later removed from the tree.
 
 **2026-04:** Added **implemented UI components** table (§1); extended **§13** with **`albumsGrid`** and **`albumView`** narratives and JSON, plus renumbered blog examples to **§13.3–§13.4**.
 

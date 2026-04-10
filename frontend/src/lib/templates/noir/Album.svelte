@@ -3,23 +3,22 @@
 	import { page } from '$app/stores';
 	import { afterNavigate } from '$app/navigation';
 	import { browser } from '$app/environment';
-import { currentLanguage } from '$stores/language';
-import { siteConfigData } from '$stores/siteConfig';
-import { auth, loadSession } from '$lib/stores/auth';
-import {
+	import { currentLanguage } from '$stores/language';
+	import { siteConfigData } from '$stores/siteConfig';
+	import { auth, loadSession } from '$lib/stores/auth';
+	import {
 	anyCollaborationSectionVisible,
 	resolveCollaborationVisibility,
 	showCollabServiceForViewer,
-} from '$lib/utils/collaboration-visibility';
-import { t } from '$stores/i18n';
-import { MultiLangUtils } from '$utils/multiLang';
-import MultiLangText from '$lib/components/MultiLangText.svelte';
-import AlbumBreadcrumbs from '$lib/components/AlbumBreadcrumbs.svelte';
-import PhotoLightbox from '$lib/components/PhotoLightbox.svelte';
-import AlbumCollaborationPanel from '$lib/components/AlbumCollaborationPanel.svelte';
-import { getPhotoUrl, getPhotoRotationStyle } from '$lib/utils/photoUrl';
-import { logger } from '$lib/utils/logger';
-import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
+	} from '$lib/utils/collaboration-visibility';
+	import { t } from '$stores/i18n';
+	import { MultiLangUtils } from '$utils/multiLang';
+	import AlbumBreadcrumbs from '$lib/components/AlbumBreadcrumbs.svelte';
+	import PhotoLightbox from '$lib/components/PhotoLightbox.svelte';
+	import AlbumCollaborationPanel from '$lib/components/AlbumCollaborationPanel.svelte';
+	import { getPhotoUrl, getPhotoRotationStyle } from '$lib/utils/photoUrl';
+	import { logger } from '$lib/utils/logger';
+	import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 
 	interface AlbumData {
 		album: {
@@ -214,8 +213,6 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 
 	// Photo URL function is now imported from shared utility
 	$: showAlbumShare = $siteConfigData?.features?.enableSharing !== false && $siteConfigData?.features?.sharingOnAlbum !== false;
-	$: showPhotoShare = $siteConfigData?.features?.enableSharing !== false && $siteConfigData?.features?.sharingOnPhoto !== false;
-
 	$: hasMorePhotos = albumData?.photos && (
 		(albumData.pagination && albumData.pagination.page < albumData.pagination.pages) ||
 		((albumData.pagination?.total ?? albumData.album?.photoCount ?? albumData.photos.length) > albumData.photos.length)
@@ -240,31 +237,32 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 		</div>
 	</div>
 {:else if albumData}
-	<div class="noir-album min-h-screen w-full pt-24 pb-12 bg-[color:var(--tp-canvas)] text-[color:var(--tp-fg)] [font-family:var(--os-font-body)]">
-		<div class="noir-album-hero relative h-[40vh] min-h-[260px] overflow-hidden flex items-end bg-[color:var(--tp-surface-1)]">
+	<div class="min-h-screen w-full bg-[color:var(--tp-canvas)] text-[color:var(--tp-fg)] [font-family:var(--os-font-body)]">
+		<div class="alb-hero">
 			{#if albumHeroCover}
 				<img
 					src={albumHeroCover}
 					alt=""
-					class="absolute inset-0 w-full h-full object-cover"
+					class="alb-hero-img"
 				/>
-				<div
-					class="absolute inset-0 bg-gradient-to-t from-[rgba(8,8,8,0.88)] via-[rgba(8,8,8,0.35)] to-transparent"
-					aria-hidden="true"
-				></div>
+				<div class="alb-ov" aria-hidden="true"></div>
 			{:else}
 				<div
-					class="absolute inset-0 bg-gradient-to-t from-[color:var(--tp-surface-2)] to-[color:var(--tp-surface-3)] opacity-90"
+					class="absolute inset-0"
+					style="background: linear-gradient(to top, color-mix(in srgb, var(--tp-surface-2) 90%, transparent), var(--tp-surface-3)); opacity: .9;"
 					aria-hidden="true"
 				></div>
 			{/if}
-			<div class="relative z-[2] w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 md:pb-10">
-				<h1
-					class="text-[clamp(1.5rem,4vw,3rem)] font-extralight tracking-[0.04em] text-[color:var(--tp-fg)]"
-					style="font-family: var(--os-font-heading);"
-				>
+			<div class="alb-content">
+				<a class="alb-back" href="/albums">← albums</a>
+				<h1 class="alb-title">
 					{MultiLangUtils.getTextValue(albumData.album.name, $currentLanguage)}
 				</h1>
+				{#if albumData.album.description}
+					<p class="alb-desc">
+						{@html MultiLangUtils.getHTMLValue(albumData.album.description, $currentLanguage).replace(/<[^>]*>/g, '')}
+					</p>
+				{/if}
 			</div>
 		</div>
 
@@ -349,146 +347,34 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 			</div>
 		{/if}
 
-		<!-- Photos Grid (noir: tight square grid + detail below) -->
+		<!-- Photos Grid (noir reference classes) -->
 		{#if albumData.photos && albumData.photos.length > 0}
-			<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 border-t border-[color:var(--tp-border)]">
-				<div class="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-2 mb-6">
-					<h2
-						class="text-xl font-extralight tracking-tight text-[color:var(--tp-fg)] lowercase"
-						style="font-family: var(--os-font-heading);"
-					>
-						photos
-					</h2>
-					<span
-						class="text-[9px] uppercase tracking-[0.22em] text-[color:var(--tp-fg-subtle)]"
-					>
-						{String(totalPhotoCount).padStart(2, '0')} photographs
-					</span>
+			<div class="max-w-7xl mx-auto border-t border-[color:var(--tp-border)]">
+				<div class="photos-hdr">
+					<span class="photos-count">{String(totalPhotoCount).padStart(2, '0')} photographs</span>
 				</div>
-				<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-0.5 px-0.5">
+				<div class="photo-grid">
 					{#each albumData.photos as photo, index}
-						<div
-							class="mb-8 sm:mb-10 bg-[color:var(--tp-canvas)]"
-						>
-							<button
-								type="button"
-								on:click={() => openLightbox(index)}
-								class="w-full group text-left"
-							>
+						<button type="button" on:click={() => openLightbox(index)} class="ph-card group">
+							{#if !photoLoaded[photo._id]}
 								<div
-									class="relative aspect-square overflow-hidden bg-[color:var(--tp-surface-1)]"
+									class="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-10"
+									aria-live="polite"
+									aria-busy="true"
 								>
-									{#if !photoLoaded[photo._id]}
-										<div
-											class="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-10"
-											aria-live="polite"
-											aria-busy="true"
-										>
-											<div
-												class="animate-spin rounded-full h-8 w-8 border-2 mb-2 border-[color:var(--tp-border)] border-t-[color:var(--tp-fg)]"
-											></div>
-											<span class="text-[10px] uppercase tracking-[0.16em] text-[color:var(--tp-fg-muted)]">…</span>
-										</div>
-									{/if}
-									<img
-										src={getPhotoUrl(photo)}
-										alt={MultiLangUtils.getTextValue(photo.title, $currentLanguage) || 'Photo'}
-										class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.04] {photoLoaded[photo._id] ? 'opacity-100' : 'opacity-30'}"
-										style="image-orientation: from-image; {getPhotoRotationStyle(photo)}"
-										on:load={() => { photoLoaded = { ...photoLoaded, [photo._id]: true }; }}
-										on:error={() => { photoLoaded = { ...photoLoaded, [photo._id]: true }; }}
-									/>
+									<div
+										class="animate-spin rounded-full h-8 w-8 border-2 mb-2 border-[color:var(--tp-border)] border-t-[color:var(--tp-fg)]"
+									></div>
 								</div>
-							</button>
-							
-							<!-- Photo metadata below the image -->
-							<div class="px-1">
-								{#if photo.title}
-									<h3 class="text-sm mb-1 uppercase tracking-[0.08em] text-[color:var(--tp-fg)]">
-										<MultiLangText value={photo.title} fallback={`Photo ${index + 1}`} />
-									</h3>
-								{/if}
-								{#if photo.description}
-									<p class="text-xs mb-2 line-clamp-2 font-light text-[color:var(--tp-fg-muted)]">
-										{@html (typeof photo.description === 'string' ? photo.description : MultiLangUtils.getHTMLValue(photo.description, $currentLanguage) || '').replace(/<[^>]*>/g, '')}
-									</p>
-								{/if}
-								
-								{#if photo.location || (photo.tags && photo.tags.length > 0) || (photo.people && photo.people.length > 0)}
-									<div class="flex flex-wrap gap-2 text-xs font-light text-[color:var(--tp-fg-muted)]">
-										{#if photo.location}
-											<span class="flex items-center gap-1">
-												<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-												</svg>
-												{#if typeof photo.location === 'string'}
-													{photo.location}
-												{:else}
-													<MultiLangText value={(photo.location as { _id: string; name: any }).name} />
-												{/if}
-											</span>
-										{/if}
-										
-										{#if photo.tags && photo.tags.length > 0}
-											<span class="flex items-center gap-1 flex-wrap">
-												<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-												</svg>
-												{#each photo.tags.slice(0, 3) as tag}
-													<span>
-														{#if typeof tag === 'string'}
-															{tag}
-														{:else}
-															<MultiLangText value={tag.name} />
-														{/if}
-													</span>
-													{#if tag !== photo.tags[photo.tags.length - 1] && photo.tags.indexOf(tag) < 2}
-														<span>,</span>
-													{/if}
-												{/each}
-												{#if photo.tags.length > 3}
-													<span>+{photo.tags.length - 3}</span>
-												{/if}
-											</span>
-										{/if}
-										
-										{#if photo.people && photo.people.length > 0}
-											<span class="flex items-center gap-1 flex-wrap">
-												<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-												</svg>
-												{#each photo.people.slice(0, 2) as person}
-													<span>
-														{#if typeof person === 'string'}
-															{person}
-														{:else}
-															<MultiLangText value={(person as { _id: string; fullName?: any; firstName?: any }).fullName || (person as { _id: string; fullName?: any; firstName?: any }).firstName} />
-														{/if}
-													</span>
-													{#if person !== photo.people[photo.people.length - 1] && photo.people.indexOf(person) < 1}
-														<span>,</span>
-													{/if}
-												{/each}
-												{#if photo.people.length > 2}
-													<span>+{photo.people.length - 2}</span>
-												{/if}
-											</span>
-										{/if}
-									</div>
-								{/if}
-								{#if showPhotoShare && typeof window !== 'undefined'}
-									<div class="mt-3 pt-3 border-t border-[color:var(--tp-border)]">
-										<p class="text-[9px] uppercase tracking-wider mb-1 text-[color:var(--tp-fg-muted)]">Share this photo</p>
-										<SocialShareButtons
-											url={typeof window !== 'undefined' ? `${window.location.origin}${$page.url.pathname}#p=${index}` : undefined}
-											title={MultiLangUtils.getTextValue(photo.title, $currentLanguage) || 'Photo'}
-											size="sm"
-										/>
-									</div>
-								{/if}
-							</div>
-						</div>
+							{/if}
+							<img
+								src={getPhotoUrl(photo)}
+								alt={MultiLangUtils.getTextValue(photo.title, $currentLanguage) || 'Photo'}
+								style="image-orientation: from-image; {getPhotoRotationStyle(photo)}"
+								on:load={() => { photoLoaded = { ...photoLoaded, [photo._id]: true }; }}
+								on:error={() => { photoLoaded = { ...photoLoaded, [photo._id]: true }; }}
+							/>
+						</button>
 					{/each}
 				</div>
 				{#if hasMorePhotos}

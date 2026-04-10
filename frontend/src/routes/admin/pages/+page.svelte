@@ -92,6 +92,7 @@
 
 	const MODULE_TYPES = [
 		{ value: 'pageTitle', label: 'Page title' },
+		{ value: 'loginForm', label: 'Login Form' },
 		{ value: 'hero', label: 'Hero' },
 		{ value: 'richText', label: 'Rich Text' },
 		{ value: 'featureGrid', label: 'Feature Grid' },

@@ -2,12 +2,13 @@
  * Semantic colors for Template Editor / site_config.template.customColors.
  * Consumed by ThemeColorApplier as `--tp-*` CSS variables for packs (e.g. Noir) and light/dark.
  *
- * @see docs/development/THEMING.md (palette keys)
+ * @see docs/development/TEMPLATING.md#tokens-palette-and-pack-styles-implementation (palette keys)
  */
 
 /** Core keys (existing editor fields) */
 export type TemplateColorCoreKey =
 	| 'primary'
+	| 'primaryForeground'
 	| 'secondary'
 	| 'accent'
 	| 'background'
@@ -103,6 +104,15 @@ export function buildTemplatePaletteCss(
 	const darkHeroStrip = pick(c, 'heroStrip', '#020617');
 	const darkFooterStrip = pick(c, 'footerStrip', '#020617');
 
+	/** Brand / CTA — from theme editor primary & secondary (no hardcoded pack colors in SCSS). */
+	const lightBrand = pick(c, 'primary', '#2563eb');
+	const darkBrand = pick(c, 'primary', lightBrand);
+	const lightBrandHover = pick(c, 'secondary', lightBrand);
+	const darkBrandHover = pick(c, 'secondary', darkBrand);
+	const lightAccent = pick(c, 'accent', lightBrand);
+	const darkAccent = pick(c, 'accent', darkBrand);
+	const onBrand = pick(c, 'primaryForeground', '#ffffff');
+
 	return `
 :root, html.light {
   --tp-canvas: ${lightCanvas};
@@ -115,6 +125,10 @@ export function buildTemplatePaletteCss(
   --tp-border: ${lightBorder};
   --tp-hero-strip-bg: ${lightHeroStrip};
   --tp-footer-strip-bg: ${lightFooterStrip};
+  --tp-brand: ${lightBrand};
+  --tp-brand-hover: ${lightBrandHover};
+  --tp-accent: ${lightAccent};
+  --tp-on-brand: ${onBrand};
   --tp-overlay-scrim: rgba(0,0,0,0.5);
   --tp-hero-grid-opacity: 0.12;
 }
@@ -129,6 +143,10 @@ html.dark {
   --tp-border: ${darkBorder};
   --tp-hero-strip-bg: ${darkHeroStrip};
   --tp-footer-strip-bg: ${darkFooterStrip};
+  --tp-brand: ${darkBrand};
+  --tp-brand-hover: ${darkBrandHover};
+  --tp-accent: ${darkAccent};
+  --tp-on-brand: ${onBrand};
   --tp-overlay-scrim: rgba(0,0,0,0.7);
   --tp-hero-grid-opacity: 0.18;
 }

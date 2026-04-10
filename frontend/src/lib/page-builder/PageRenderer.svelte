@@ -25,6 +25,7 @@
 	import BlogArticleModule from './modules/BlogArticleModule.svelte';
 	import LayoutShellModule from './modules/LayoutShellModule.svelte';
 	import PageTitleModule from './modules/PageTitleModule.svelte';
+	import LoginFormModule from './modules/LoginFormModule.svelte';
 
 	export let page: PageData | null = null;
 	export let modules: PageModuleData[] = [];
@@ -62,7 +63,8 @@
 		blogCategory: BlogCategoryModule,
 		blogArticle: BlogArticleModule,
 		layoutShell: LayoutShellModule,
-		pageTitle: PageTitleModule
+		pageTitle: PageTitleModule,
+		loginForm: LoginFormModule
 	};
 
 	setContext('pbModuleMap', moduleMap);

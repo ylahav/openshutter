@@ -40,32 +40,22 @@
 		<p class="text-center text-sm text-red-400/90" style="font-family: var(--os-font-body);">{error}</p>
 	</div>
 {:else}
-	<div class="section-header flex items-baseline justify-between px-8 pt-12 pb-4">
-		<span
-			class="text-[9px] uppercase tracking-[0.28em] transition-colors"
-			style="font-family: var(--os-font-body); color: var(--tp-fg-muted);"
-		>
+	<div class="sec-hdr">
+		<span class="sec-label">
 			albums
 		</span>
 		<div class="flex items-baseline gap-6">
-			<span
-				class="text-[9px] uppercase tracking-[0.18em] transition-colors"
-				style="font-family: var(--os-font-body); color: var(--tp-fg-subtle);"
-			>
+			<span class="sec-count">
 				{countLabel}
 			</span>
-			<a
-				href="/albums"
-				class="text-[9px] uppercase tracking-[0.18em] no-underline transition-colors hover:opacity-90"
-				style="font-family: var(--os-font-body); color: var(--tp-fg-subtle);"
-			>
+			<a href="/albums" class="sec-link">
 				{$t('hero.browseAllAlbums')} →
 			</a>
 		</div>
 	</div>
 
 	{#if filteredAlbums.length > 0}
-		<div class="album-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-0.5 px-0.5 pb-0.5">
+		<div class="album-grid">
 			{#each filteredAlbums as album, i}
 				<AlbumCard {album} fadeIndex={i} />
 			{/each}

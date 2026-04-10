@@ -4,7 +4,7 @@
 
 {#if $activeTemplate === 'noir'}
 	<main
-		class="min-h-screen w-full relative overflow-x-hidden transition-colors duration-300 bg-[color:var(--tp-canvas)] text-[color:var(--tp-fg)] [font-family:var(--os-font-body)]"
+		class="tpl-pack-noir min-h-screen w-full relative overflow-x-hidden transition-colors duration-300 bg-[color:var(--tp-canvas)] text-[color:var(--tp-fg)] [font-family:var(--os-font-body)]"
 	>
 		<div class="@container os-shell-container max-w-none w-full">
 			<slot />
@@ -20,7 +20,7 @@
 	</main>
 {:else if $activeTemplate === 'atelier'}
 	<main
-		class="min-h-screen w-full relative overflow-x-hidden transition-colors duration-300 bg-[color:var(--tp-canvas)] text-[color:var(--tp-fg)] [font-family:var(--os-font-body)]"
+		class="tpl-pack-atelier min-h-screen w-full relative overflow-x-hidden transition-colors duration-300 bg-[color:var(--tp-canvas)] text-[color:var(--tp-fg)] [font-family:var(--os-font-body)]"
 	>
 		<div class="@container os-shell-container max-w-none w-full">
 			<slot />

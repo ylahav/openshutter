@@ -146,7 +146,7 @@
 	let error = '';
 	let activeTab = 'colors';
 	let hasChanges = false;
-	let previewPageType: 'home' | 'gallery' | 'album' | 'search' = 'home';
+	let previewPageType: 'home' | 'gallery' | 'album' | 'search' | 'login' = 'home';
 	type PreviewDeviceId = 'desktop' | 'tablet' | 'mobile' | 'mobileSm';
 	const PREVIEW_DEVICE_ORDER: PreviewDeviceId[] = ['desktop', 'tablet', 'mobile', 'mobileSm'];
 	const PREVIEW_DEVICE_WIDTH_PX: Record<PreviewDeviceId, number> = {
@@ -165,10 +165,10 @@
 		mobile: $t('admin.previewDeviceMobile'),
 		mobileSm: $t('admin.previewDeviceMobileSmall')
 	} satisfies Record<PreviewDeviceId, string>;
-	let editingPageType: 'home' | 'gallery' | 'album' | 'search' = 'home';
+	let editingPageType: 'home' | 'gallery' | 'album' | 'search' | 'login' = 'home';
 	/** Shell + page grid/modules edit target (mobile-first breakpoints). */
 	let editingBreakpoint: TemplateBreakpointId = 'lg';
-	const PAGE_KEYS = ['home', 'gallery', 'album', 'search'] as const;
+	const PAGE_KEYS = ['home', 'gallery', 'album', 'search', 'login'] as const;
 	let pageModulesActiveBreakpoints: Record<string, boolean> = {};
 	// Multi-select like page builder: Set of "row:col" keys
 	let selectedCells = new Set<string>();
@@ -447,6 +447,7 @@
 	const PAGE_CONTENT_MODULES = PAGE_MODULE_TYPES.filter((m) =>
 		[
 			'pageTitle',
+			'loginForm',
 			'hero',
 			'richText',
 			'featureGrid',

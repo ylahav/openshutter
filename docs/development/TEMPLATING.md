@@ -1,8 +1,8 @@
-# Templating — architecture, tasks, and theming
+# Templating — requirements, implementation, and architecture
 
-This is the **single canonical guide** for OpenShutter’s visitor-site templating: template **packs** (Svelte), **themes** (MongoDB presets + apply to `site_config`), **page builder** modules, and the implementation **checklist**. Older split docs (**`TEMPLATING_REQUIREMENTS.md`**, **`TEMPLATING_TASKS.md`**, **`THEMING.md`**) redirect here.
+This document is the **single development reference** for OpenShutter’s visitor-site templating: **packs** (Svelte), **themes** (MongoDB + `site_config`), **page builder**, **semantic tokens / pack SCSS**, and the implementation **checklist**. **Site operators** should use **[`../guides/TEMPLATING_USER_GUIDE.md`](../guides/TEMPLATING_USER_GUIDE.md)** (Admin workflows, including creating a theme).
 
-**Related:** [Page builder modules — authoring & URL context](./PAGE_BUILDER_MODULES.md) · [Operator: what to click in Admin](../guides/TEMPLATE_CONTROL.md) · [Admin UI vs packs](./ADMIN_UI_ROADMAP.md)
+**Related:** [Page builder modules — authoring & URL context](./PAGE_BUILDER_MODULES.md) · [Operator guide](../guides/TEMPLATING_USER_GUIDE.md)
 
 ## Contents
 
@@ -14,6 +14,8 @@ This is the **single canonical guide** for OpenShutter’s visitor-site templati
 | **[Part II — Page builder & theme seeding](#part-ii--page-builder-and-theme-seeding)** | Page keys, `PageRenderer`, [built-in theme seeding](#templating-part2-seeding) (**layout-shape note** for contributors) |
 | **[Part III — Implementation checklist](#part-iii-implementation-checklist-and-backlog)** | Phased grid work (P0–P4), polish sprint, milestones, backlog |
 | **[§8 Appendix — Create a template pack](#8-appendix-create-a-template-pack-built-in)** | Svelte shells, registry, backend allowlists, verification |
+| **[Maintainer quick reference](#maintainer-quick-reference)** | Pack/theme model, admin vs visitor, data flow, key files, manual tests |
+| **[Tokens, palette & pack styles](#tokens-palette-and-pack-styles-implementation)** | `--tp-*` / fonts, editor mapping, SCSS pack partials |
 
 **Part I — subsection map** (most navigated specs)
 
@@ -28,9 +30,171 @@ This is the **single canonical guide** for OpenShutter’s visitor-site templati
 
 *§2.2.2 (site-wide vs template-specific config), §4 (NFR), and §5 (deferred) sit between §2.2.4 and §3 in the document body.*
 
+## Maintainer quick reference
+
+Onboarding for **implementors**. Operators: **[`../guides/TEMPLATING_USER_GUIDE.md`](../guides/TEMPLATING_USER_GUIDE.md)**.
+
+### Mental model
+
+| Layer | What it is | Where it lives |
+|--------|------------|----------------|
+| **Template pack** | Code: route shells (`Home`, `Gallery`, `Album`, `Login`), optional `Header` / `Footer` | `frontend/src/lib/templates/<packId>/` |
+| **Registry** | Maps pack id → Svelte components; normalizes legacy ids | `frontend/src/lib/template-packs/registry.ts` |
+| **Live template config** | Colors, fonts, layout, `pageModules` / `pageLayout`, … | `site_config.template` → `GET /api/site-config` |
+| **Themes** | MongoDB `themes` rows with `baseTemplate` + overrides | Admin → Templates; **Apply** / **Set as default** updates live `site_config` |
+| **Page builder** | `PageRenderer` + grid / breakpoints | `frontend/src/lib/page-builder/`, `frontend/src/lib/template/` |
+
+Visitor routes use `BodyTemplateWrapper` and `activeTemplate` from [`frontend/src/lib/stores/template.ts`](../../frontend/src/lib/stores/template.ts). **Admin** uses `AdminAppChrome` only (`activeTemplate` is forced to `noir` on `/admin`).
+
+### Built-in pack IDs
+
+Authoritative list: `TEMPLATE_PACK_IDS` in `registry.ts`, mirrored in `BUILTIN_TEMPLATE_IDS` (`backend/src/services/site-config.ts`), theme DTOs (`@IsIn`), and `themes` / `templates` controllers.
+
+| Pack | Role |
+|------|------|
+| `noir` | Default |
+| `studio` | Alternate shell |
+| `atelier` | Alternate shell |
+
+Legacy values (`default`, `minimal`, `simple`, `modern`, `elegant`) normalize to **`noir`**.
+
+<a id="maintainer-admin-vs-visitor"></a>
+
+### Admin vs visitor chrome
+
+- **Visitor:** `+layout.svelte` → `BodyTemplateWrapper`, `ThemeColorApplier`, `getTemplatePack(...)`.
+- **Admin:** `AdminAppChrome`; visitor pack ids do not drive admin layout.
+
+Optional history: [`../archive/development/ADMIN_UI_ROADMAP.md`](../archive/development/ADMIN_UI_ROADMAP.md).
+
+### Data flow (simplified)
+
+1. Public app loads `GET /api/site-config`.
+2. **Owner domains:** merge `owner_site_settings` in `SiteConfigController.getConfig`.
+3. `activeTemplate` ← `frontendTemplate` / `activeTemplate` / optional non-admin `localStorage` preview → `normalizeTemplatePackId`.
+4. Pack shells render route pages; page-builder modules fill grids.
+5. **`/login`** uses `pageModules.login` or a built-in `loginForm` fallback.
+
+### Key files
+
+| Area | Path |
+|------|------|
+| Pack registry | `frontend/src/lib/template-packs/registry.ts` |
+| Body shell | `frontend/src/lib/components/BodyTemplateWrapper.svelte` |
+| Visitor template store | `frontend/src/lib/stores/template.ts` |
+| Public config API | `backend/src/site-config/site-config.controller.ts` |
+| Template normalization | `backend/src/services/site-config.ts` |
+| Theme seeding | `backend/src/database/database-init.service.ts` |
+| Header defaults | `frontend/src/lib/template-packs/header-visibility.ts` |
+| Palette → CSS | `frontend/src/lib/theme/template-palette.ts`, `ThemeColorApplier.svelte` |
+
+### Manual test checklist
+
+1. Public page loads; `GET /api/site-config` shows a normalized pack id.
+2. Switch pack under **Site configuration → Theme & layout**; verify **home**, `/albums`, an album, `/login`.
+3. Empty `login` modules → login form still appears.
+4. Owner-domain merge (if applicable).
+5. Light / dark / RTL: tokens from [§ Tokens…](#tokens-palette-and-pack-styles-implementation) behave sensibly.
+6. `/admin` chrome unchanged when the visitor pack changes.
+
+---
+
+## Tokens, palette, and pack styles (implementation)
+
+<a id="tokens-palette-and-pack-styles-implementation"></a>
+
+Admin **template / theme** fields feed **`ThemeColorApplier`** via `buildTemplatePaletteCss()` in [`template-palette.ts`](../../frontend/src/lib/theme/template-palette.ts). Pack SCSS and Svelte should use **`--tp-*`** and **`--os-font-*`**, not hard-coded brand hex.
+
+### Core `--tp-*` roles
+
+| Variable | Meaning |
+|----------|---------|
+| `--tp-canvas` | Page background |
+| `--tp-fg` | Primary text |
+| `--tp-fg-muted` | Secondary text |
+| `--tp-fg-subtle` | Tertiary / labels |
+| `--tp-surface-1` … `--tp-surface-3` | Elevated surfaces (cards, tiles) |
+| `--tp-border` | Hairline borders |
+| `--tp-overlay-scrim` | Overlays (fixed; not from editor) |
+| `--tp-hero-grid-opacity` | Hero grid (fixed) |
+| `--tp-hero-strip-bg` | Dark hero band (Studio, etc.) — optional `heroStrip` / `lightHeroStrip` |
+| `--tp-footer-strip-bg` | Matching footer band — optional `footerStrip` / `lightFooterStrip` |
+
+`ThemeColorApplier` injects rules under **`html.light`** vs **`html.dark`** (visitor theme).
+
+**Font roles** from the template editor become `--os-font-heading`, `--os-font-body`, `--os-font-links`, `--os-font-lists`, `--os-font-form-inputs`, `--os-font-form-labels` (see `ThemeColorApplier.svelte`).
+
+### Extended tokens (palette builder)
+
+| Token | Source | Typical use |
+|--------|--------|-------------|
+| `--tp-brand` | **primary** | CTAs, Studio “blue”, nav active |
+| `--tp-brand-hover` | **secondary** (fallback: primary) | Hover state for brand fills |
+| `--tp-accent` | **accent** | Atelier gold, secondary emphasis |
+| `--tp-on-brand` | **primaryForeground** (default `#ffffff`) | Text/icons on brand buttons |
+
+Fonts (injected in `ThemeColorApplier`):
+
+| Token | Role |
+|--------|------|
+| `--os-font-heading` | Display / headings |
+| `--os-font-body` | UI body / paragraphs |
+
+Configure families in **Admin → theme / site template**; Google Fonts load when families are set.
+
+### Editor field → token mapping (core)
+
+| `customColors` key | Drives |
+|--------------------|--------|
+| `background` | Dark canvas → `--tp-canvas` in `html.dark` |
+| `text` | Dark primary text → `--tp-fg` |
+| `muted` | Dark secondary text → `--tp-fg-muted` |
+| `primary`, `secondary`, `accent` | Also exposed as `--os-primary` / Tailwind primary (unchanged) |
+
+Extended keys (`surfaceCard`, `lightBackground`, …) are listed in **`EXTENDED_COLOR_FIELD_META`** in `template-palette.ts` with human-readable labels in the admin UI.
+
+### Pack defaults (JSON)
+
+Noir may ship `frontend/src/lib/templates/noir/theme.defaults.json` for documentation or tooling; **runtime** values still come from site config / theme row once applied.
+
+### Pack SCSS conventions
+
+1. **No hardcoded brand colors in pack SCSS** — use CSS custom properties from `ThemeColorApplier` (`--tp-*`, `--os-font-*`).
+2. **Structural spacing** (e.g. Noir’s grid gap) may be literals or pack-local variables such as `--os-pack-noir-gap`.
+3. **Scope** — pack rules nest under **`.tpl-pack-noir`**, **`.tpl-pack-studio`**, **`.tpl-pack-atelier`** on `<main>` ([`BodyTemplateWrapper.svelte`](../../frontend/src/lib/components/BodyTemplateWrapper.svelte)).
+
+### Class naming and SCSS layout
+
+Reference HTML uses short class names; in the app the same strings are valid **inside** the matching `.tpl-pack-*` scope.
+
+| Pack | SCSS partial |
+|------|----------------|
+| Noir | `frontend/src/lib/styles/templates/pack-noir.scss` |
+| Studio | `pack-studio.scss` |
+| Atelier | `pack-atelier.scss` |
+
+```
+frontend/src/lib/styles/templates/
+  packs.scss          # @imports all pack partials
+  pack-noir.scss
+  pack-studio.scss
+  pack-atelier.scss
+```
+
+`+layout.svelte` imports `packs.scss` after `globals.css` so `--tp-*` / `--os-font-*` from `ThemeColorApplier` override defaults at runtime.
+
+### Adding a pack stylesheet
+
+1. Add `pack-<id>.scss` with a single root selector `.tpl-pack-<id> { … }`.
+2. Import it from `packs.scss`.
+3. Add `tpl-pack-<id>` to `<main>` in `BodyTemplateWrapper.svelte`.
+4. Extend `buildTemplatePaletteCss` only if you need **new** semantic tokens — prefer reusing `--tp-*` so the theme editor stays coherent.
+
+---
+
 ## Part I — Requirements and architecture
 
-Normative model for contributors and operators. The **cell-based module assignment workflow** (grid anchor + spans → modules) is in **§2.2.4**. **§8** below is the **appendix** for adding a built-in template pack.
+Normative model for contributors. The **cell-based module assignment workflow** (grid anchor + spans → modules) is in **§2.2.4**. **§8** below is the **appendix** for adding a built-in template pack. **Operators** see **[`../guides/TEMPLATING_USER_GUIDE.md`](../guides/TEMPLATING_USER_GUIDE.md)**.
 
 <a id="templating-s0"></a>
 
@@ -166,7 +330,7 @@ The following **single-document shape** is the intended interchange format for a
 
 | Field | Role |
 |--------|------|
-| **`template`** | Built-in pack id (`simple`, `modern`, `elegant`, `noir`, …). Legacy values `default` / `minimal` normalize to **`simple`**. Must resolve through the **pack registry** for code-backed route shells. |
+| **`template`** | Built-in pack id: **`noir`**, **`studio`**, **`atelier`**. Legacy values (`default`, `minimal`, `simple`, `modern`, `elegant`) normalize to **`noir`**. Must resolve through the **pack registry** for code-backed route shells. |
 | **`theme.fonts` / `theme.colors`** | Typography and palette only — same intent as `customFonts` and `customColors` today. |
 | **`layout[breakpoint]`** | **Shell** metrics only: **`maxWidth`**, **`containerPadding`**, **`gridGap`** — **required keys at each breakpoint** the template declares (subject to cascade rules if a breakpoint is omitted). |
 | **`pages[]`** | One entry per logical page/region (`home`, `gallery`, `album`, `header`, `footer`, …). |
@@ -487,7 +651,7 @@ Seeding is **idempotent**. Empty `pageModules` / `pageLayout` are filled via **T
 
 **Canonical requirements:** [Part I](#part-i--requirements-and-architecture) above.
 
-**Admin UI:** The admin panel uses a **static shell** unrelated to template packs — no admin template selection. See [`ADMIN_UI_ROADMAP.md`](./ADMIN_UI_ROADMAP.md). Items below about themes and site config refer to the **visitor** site unless stated otherwise.
+**Admin UI:** The admin panel uses a **static shell** unrelated to template packs — no admin template selection. See [Maintainer quick reference — Admin vs visitor](#maintainer-admin-vs-visitor). Items below about themes and site config refer to the **visitor** site unless stated otherwise.
 
 ### Cell-based module assignment — phased implementation
 
@@ -517,7 +681,7 @@ Cross-reference **§2.2.1**, **§2.2.3**, and **§2.2.4** in [Part I](#part-i--r
 - [x] Optional components + fallback — `getTemplatePack()`.
 - [ ] Full `config.ts`-style schema for all template options in admin — partial today.
 - [x] Registry + `*TemplateSwitcher` components.
-- [x] Runtime fallback — unknown pack → `default`.
+- [x] Runtime fallback — unknown pack → `noir` (via `normalizeTemplatePackId`).
 - [x] `PUBLIC_ENABLE_TEMPLATE_PACK_LOADER` opt-in validation.
 - [x] Invalid pack UX — `PackFallbackBanner`, API validation.
 
@@ -530,7 +694,7 @@ Cross-reference **§2.2.1**, **§2.2.3**, and **§2.2.4** in [Part I](#part-i--r
 
 ### Milestone 3 — Pack set
 
-- [x] Four built-in packs.
+- [x] Three built-in packs (`noir`, `studio`, `atelier`).
 - [ ] **Pack shell parity** — Home / Gallery / Album / Login: all four routes exist per pack with shared shell conventions; **remaining work** is a consistency pass (spacing, typography, dark-mode parity **across** packs — not only within one pack). About / CMS-style pages correctly use **`PageRenderer`** inside the route shell where implemented.
 - [x] Light/dark and RTL **CSS passes** (manual edge cases remain).
 
@@ -555,7 +719,7 @@ Cross-reference **§2.2.1**, **§2.2.3**, and **§2.2.4** in [Part I](#part-i--r
 | **§8 below** — Create a template pack | How to add/register a pack, Joomla-oriented mapping, verification |
 | [`PAGE_BUILDER_MODULES.md`](./PAGE_BUILDER_MODULES.md) | Module authoring: structure, registration, URL context, examples |
 | **[Part III](#part-iii-implementation-checklist-and-backlog)** (this file) | Milestones, backlog, MVP acceptance |
-| [`TEMPLATE_CONTROL.md`](../guides/TEMPLATE_CONTROL.md) | **Operator guide:** where to click to control colors, fonts, pages, header/footer; Admin URL map |
+| [`TEMPLATING_USER_GUIDE.md`](../guides/TEMPLATING_USER_GUIDE.md) | **Operator guide:** Admin workflows, URLs, creating a theme |
 
 Phase 2 may add a dedicated **`UI_COMPONENTS.md`** for the contributor workflow in **§2.4** of Part I.
 
@@ -563,7 +727,7 @@ Phase 2 may add a dedicated **`UI_COMPONENTS.md`** for the contributor workflow 
 
 ## 8. Appendix: Create a template pack (built-in)
 
-OpenShutter maps each **base theme** (`simple`, `modern`, `elegant`, `noir`) to a **template pack**: Svelte shells for public pages (home, gallery, album, login) plus header/footer. Older installs may still store `default` / `minimal`; the API normalizes those to **`simple`**.
+OpenShutter ships **three** built-in **template packs**: **`noir`**, **`studio`**, and **`atelier`** — each provides Svelte shells for public routes (home, gallery, album, login) plus header/footer. Older installs may still store legacy ids (`default`, `minimal`, `simple`, `modern`, `elegant`); the API and frontend registry **normalize those to `noir`**.
 
 ### Rough mapping from Joomla (mental model)
 
@@ -600,7 +764,7 @@ Keep in sync when adding a pack id:
 
 ### 5. Themes / site config
 
-Themes reference **baseTemplate** (built-in id). **Site configuration** stores `template.frontendTemplate` for the visitor site. Admin uses a fixed shell — see [`ADMIN_UI_ROADMAP.md`](./ADMIN_UI_ROADMAP.md). Invalid ids are rejected on `PUT /api/admin/site-config`.
+Themes reference **baseTemplate** (built-in id). **Site configuration** stores `template.frontendTemplate` for the visitor site. Admin uses a fixed shell — see [Admin vs visitor](#maintainer-admin-vs-visitor). Invalid ids are rejected on `PUT /api/admin/site-config`.
 
 ### 6. Optional: loader validation
 
@@ -632,6 +796,6 @@ When behavior changes (e.g. new built-in pack, new theme fields, or chrome resol
 
 **2026-03 (layout shell):** Clarified live rendering requirement that public content is wrapped by a shared shell container and that `maxWidth` / `containerPadding` / `gridGap` are sourced from **Layout Customization** per breakpoint via CSS variables.
 
-**2026-04:** Merged **`TEMPLATING_REQUIREMENTS.md`**, **`TEMPLATING_TASKS.md`**, and **`THEMING.md`** into this file (**Parts I–III** + §8); legacy paths redirect here. Module URL and UI-module docs merged into [`PAGE_BUILDER_MODULES.md`](./PAGE_BUILDER_MODULES.md).
+**2026-04:** Merged **`TEMPLATING_REQUIREMENTS.md`** and **`TEMPLATING_TASKS.md`** into this file (**Parts I–III** + §8). Module URL and UI-module docs merged into [`PAGE_BUILDER_MODULES.md`](./PAGE_BUILDER_MODULES.md). **2026-04 (consolidation):** **`THEMING.md`**, **`TEMPLATE_STYLES.md`**, and **`TEMPLATING_SYSTEM.md`** merged into this file (maintainer quick reference + tokens/SCSS); operator docs consolidated into **[`../guides/TEMPLATING_USER_GUIDE.md`](../guides/TEMPLATING_USER_GUIDE.md)**.
 
 **2026-04 (navigation + clarity):** Expanded **Contents** with **Part I subsection map** (anchors **`templating-s0`**, **`templating-221`**, **`templating-223`**, **`templating-224`**, **`templating-s3`**, **`templating-s6`**) and link to **[seeding / layout-shape note](#templating-part2-seeding)**. Part II: contributor warning on **breakpoint-keyed** vs legacy flat layouts (**P4**). Part III: **Milestone 3** pack-shell item clarified (parity vs consistency pass).

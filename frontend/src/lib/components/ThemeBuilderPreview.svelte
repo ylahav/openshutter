@@ -26,7 +26,7 @@
 		return typeof v === 'string' ? 'inherit' : (v.weight ?? 'inherit');
 	}
 
-	export let pageType: 'home' | 'gallery' | 'album' | 'search' | 'pageBuilder' | 'header' | 'footer' = 'home';
+	export let pageType: 'home' | 'gallery' | 'album' | 'search' | 'login' | 'pageBuilder' | 'header' | 'footer' = 'home';
 	export let pageModules: any[] | undefined = undefined;
 	export let pageLayout: { gridRows?: number; gridColumns?: number } | undefined = undefined;
 	/** Named layout shells (merged over site template in preview). */

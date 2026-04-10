@@ -4,7 +4,6 @@
 	import { MultiLangUtils } from '$utils/multiLang';
 	import { siteConfigData } from '$stores/siteConfig';
 	import { logger } from '$lib/utils/logger';
-	import { t } from '$stores/i18n';
 	import Hero from './components/Hero.svelte';
 	import AlbumList from './components/AlbumList.svelte';
 
@@ -70,13 +69,7 @@
 			>
 				{aboutPlain}
 			</p>
-			<a
-				href="/albums"
-				class="inline-block text-[9px] uppercase tracking-[0.22em] border-b pb-0.5 transition-colors"
-				style="color: var(--tp-fg); border-color: var(--tp-fg-muted);"
-			>
-				{$t('hero.browseAllAlbums')}
-			</a>
+			<a href="/about" class="about-lnk">about the photographer</a>
 		</div>
 	{/if}
 </div>

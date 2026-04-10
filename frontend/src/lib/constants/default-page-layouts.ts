@@ -8,6 +8,7 @@ export const DEFAULT_PAGE_LAYOUTS: Record<string, { gridRows: number; gridColumn
 	gallery: { gridRows: 1, gridColumns: 1 },
 	album: { gridRows: 1, gridColumns: 1 },
 	search: { gridRows: 1, gridColumns: 1 },
+	login: { gridRows: 1, gridColumns: 1 },
 	header: { gridRows: 1, gridColumns: 5 },
 	footer: { gridRows: 2, gridColumns: 1 }
 };
@@ -87,6 +88,17 @@ export const DEFAULT_PAGE_MODULES: Record<string, DefaultPageModule[]> = {
 				body: { en: '<p>Use the search bar to find photos, albums, people, and locations.</p>' },
 				background: 'white'
 			},
+			rowOrder: 0,
+			columnIndex: 0,
+			rowSpan: 1,
+			colSpan: 1
+		}
+	],
+	login: [
+		{
+			_id: 'mod_default_login_form',
+			type: 'loginForm',
+			props: {},
 			rowOrder: 0,
 			columnIndex: 0,
 			rowSpan: 1,

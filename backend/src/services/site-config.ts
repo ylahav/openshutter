@@ -251,7 +251,7 @@ export class SiteConfigService {
       }
     }
 
-    // Ignore any client-sent adminTemplate; admin shell is fixed (see docs/development/ADMIN_UI_ROADMAP.md).
+    // Ignore any client-sent adminTemplate; admin shell is fixed (see docs/guides/TEMPLATING_USER_GUIDE.md).
     if (mergedConfig.template) {
       mergedConfig.template.adminTemplate = 'default'
     }

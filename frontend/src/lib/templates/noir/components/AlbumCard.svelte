@@ -46,16 +46,10 @@
 	href={`/albums/${album.alias || album._id}`}
 	class="group block outline-none focus-visible:ring-2 focus-visible:ring-[color:color-mix(in_srgb,var(--tp-fg)_45%,transparent)] transition-colors"
 >
-	<div
-		class="album-card relative aspect-square overflow-hidden cursor-pointer opacity-0 animate-[noir-fade-in_1.2s_ease_forwards]"
-		style="animation-delay: {0.1 + fadeIndex * 0.08}s;"
-	>
-		<div
-			class="album-card-bg absolute inset-0 transition-transform duration-[600ms] cubic-bezier(0.25, 0.46, 0.45, 0.94) group-hover:scale-[1.04]"
-			style="background: {placeholderBg};"
-		>
+	<div class="ac fi" style="animation-delay: {0.1 + fadeIndex * 0.08}s;">
+		<div class="absolute inset-0" style="background: {placeholderBg};">
 			{#if !coverImageLoading && coverImageUrl}
-				<img src={coverImageUrl} alt={displayName} class="w-full h-full object-cover" />
+				<img src={coverImageUrl} alt={displayName} class="ac-img" />
 			{/if}
 			{#if coverImageLoading}
 				<div class="absolute inset-0 flex items-center justify-center">
@@ -65,24 +59,13 @@
 				</div>
 			{/if}
 		</div>
-		<div
-			class="album-card-overlay absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
-			style="background: linear-gradient(to top, var(--tp-overlay-scrim), transparent 50%);"
-		></div>
-		<div
-			class="album-card-info absolute inset-x-0 bottom-0 p-5 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300"
-		>
-			<div
-				class="text-[11px] uppercase tracking-[0.14em] mb-1 transition-colors"
-				style="font-family: var(--os-font-body); color: var(--tp-fg);"
-			>
+		<div class="ac-ov"></div>
+		<div class="ac-info">
+			<div class="ac-title">
 				{displayName}
 			</div>
 			{#if photoMeta}
-				<div
-					class="text-[9px] tracking-[0.1em] transition-colors"
-					style="font-family: var(--os-font-body); color: var(--tp-fg-muted);"
-				>
+				<div class="ac-meta">
 					{photoMeta}
 				</div>
 			{/if}

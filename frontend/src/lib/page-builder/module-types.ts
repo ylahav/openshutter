@@ -7,6 +7,7 @@
 export const PAGE_MODULE_TYPES = [
 	{ type: 'layoutShell', label: 'Layout region (named grid)' },
 	{ type: 'pageTitle', label: 'Page title' },
+	{ type: 'loginForm', label: 'Login Form' },
 	{ type: 'hero', label: 'Hero' },
 	{ type: 'richText', label: 'Rich Text' },
 	{ type: 'featureGrid', label: 'Feature Grid' },

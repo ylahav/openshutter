@@ -127,7 +127,7 @@ When an owner does **not** use "Use main domain connection" (i.e. they have thei
 - **Entry:** Dashboard card **Search insights** on `/owner` (owners only).
 - **UI:** Date range, period granularity (`day|week|month`), total searches in range, tag-filter summary, tag-filter trends over time, tag-filter usage by `searchType`, and most-used tag pairs in filters.
 - **API:** `GET /api/owner/analytics/search-tag-filters?dateFrom=&dateTo=&limit=&period=` (owner JWT). SvelteKit: `GET /api/owner/analytics/search-tag-filters` (proxies to backend with cookies).
-- **Docs:** Event schema and admin response shape in **[`ADVANCED_ANALYTICS_DESIGN.md`](../development/design/ADVANCED_ANALYTICS_DESIGN.md)** (§3.2 Search analytics, §4.3 and §4.3.1).
+- **Docs:** Event schema and admin response shape in **[`ADVANCED_ANALYTICS_DESIGN.md`](../archive/development/design/ADVANCED_ANALYTICS_DESIGN.md)** (§3.2 Search analytics, §4.3 and §4.3.1).
 
 ## User Interface
 

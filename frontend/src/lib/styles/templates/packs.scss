@@ -1,0 +1,11 @@
+/**
+ * Per-template presentation (Noir / Studio / Atelier).
+ * Colors & fonts MUST use CSS variables from ThemeColorApplier:
+ *   --tp-*       semantic palette (template-palette.ts)
+ *   --os-font-*  font roles from site config (ThemeColorApplier)
+ *
+ * Scope: each pack nests under .tpl-pack-{id} on <main> (BodyTemplateWrapper).
+ */
+@use './pack-noir';
+@use './pack-studio';
+@use './pack-atelier';

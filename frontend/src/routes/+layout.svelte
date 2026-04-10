@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import '$lib/styles/globals.css';
+	import '$lib/styles/templates/packs.scss';
 	import { siteConfig, publicSiteFavicon } from '$stores/siteConfig';
 	import { loadSession } from '$lib/stores/auth';
 	import PackFallbackBanner from '$lib/components/PackFallbackBanner.svelte';
@@ -67,7 +68,7 @@
 
 <ThemeProvider defaultTheme="system" enableSystem={true} disableTransitionOnChange={false}>
 	{#if isAdminRoute}
-		<!-- Admin: static shell only — see docs/development/ADMIN_UI_ROADMAP.md Phase 1 -->
+		<!-- Admin: static shell — visitor templating: docs/guides/TEMPLATING_USER_GUIDE.md -->
 		<TokenRenewalNotification />
 		<AdminAppChrome>
 			<slot />

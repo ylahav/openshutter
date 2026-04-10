@@ -106,7 +106,7 @@
 				activeItemClass="text-[color:var(--tp-fg)]"
 				containerClass="flex items-center gap-7"
 				showActiveIndicator={false}
-				showAuthButtons={showAuthButtons}
+				showAuthButtons={false}
 			/>
 			{#if showAuthButtons && $auth.authenticated && $auth.user}
 				{#if showGreeting}
@@ -157,7 +157,7 @@
 				containerClass="flex flex-col gap-1"
 				orientation="vertical"
 				showActiveIndicator={false}
-				showAuthButtons={showAuthButtons}
+				showAuthButtons={false}
 			/>
 			{#if showAuthButtons && $auth.authenticated && $auth.user}
 				<div class="pt-2 border-t flex flex-col gap-2" style="border-color: var(--tp-border);">
