@@ -13,6 +13,7 @@ This document is the **canonical guide** for modules rendered by **`PageRenderer
 | Page keys (`home`, `gallery`, `album`, `header`, …), theme seeding, apply semantics | [Templating, Part II](./TEMPLATING.md#part-ii--page-builder-and-theme-seeding) |
 | Grid placement, breakpoints, acceptance criteria | [Templating, Part I](./TEMPLATING.md#part-i--requirements-and-architecture) |
 | Adding a **template pack** (Svelte shells, registry) | [Templating §8 appendix](./TEMPLATING.md#8-appendix-create-a-template-pack-built-in) |
+| **Underlying Svelte** for `menu`, `languageSelector`, `themeToggle`, `themeSelect` | [`frontend/src/lib/components/ui/README.md`](../../frontend/src/lib/components/ui/README.md) (per-component READMEs; **Admin →** UI docs card links to **`/admin/docs/ui`**) |
 
 ---
 

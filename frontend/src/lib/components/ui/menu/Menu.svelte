@@ -16,7 +16,7 @@
 	3. Custom styling:
 		<Menu 
 			items={menuItems}
-			itemClass="text-blue-600 hover:text-blue-800"
+			itemClass="text-[color:var(--tp-fg-muted)] hover:text-[color:var(--tp-fg)]"
 			activeItemClass="font-bold underline"
 			orientation="vertical"
 		/>
@@ -24,9 +24,10 @@
 <script lang="ts">
 	import { t } from '$stores/i18n';
 	import { page } from '$app/stores';
-	import { auth, logout } from '$lib/stores/auth';
+	import { auth } from '$lib/stores/auth';
+	import VisitorSignInLink from '$lib/components/auth/VisitorSignInLink.svelte';
+	import VisitorLogoutButton from '$lib/components/auth/VisitorLogoutButton.svelte';
 	import { siteConfigLoading } from '$stores/siteConfig';
-	import type { SiteConfig } from '$types/site-config';
 
 	export interface MenuItem {
 		labelKey?: string; // Translation key (e.g., 'navigation.home')
@@ -64,8 +65,8 @@
 	let {
 		items = [],
 		config,
-		itemClass = 'hover:text-gray-900',
-		activeItemClass = 'text-primary-600 font-medium',
+		itemClass = 'text-[color:var(--tp-fg-muted)] hover:text-[color:var(--tp-fg)]',
+		activeItemClass = 'text-[color:var(--os-primary)] font-medium',
 		containerClass = 'flex items-center gap-4',
 		separator = false,
 		orientation = 'horizontal',
@@ -180,28 +181,28 @@
 		return true;
 	}));
 
-	async function handleLogout() {
-		await logout();
-	}
 </script>
 
 	{#if !$siteConfigLoading && visibleItems.length > 0}
 	<nav class={finalContainerClass}>
 		{#each visibleItems as item, index}
 			{#if item.type === 'logout'}
-				<button
-					type="button"
-					onclick={handleLogout}
-					class={getItemClasses(item)}
-				>
-					{#if item.icon}
-						<span class="icon-{item.icon}" aria-hidden="true"></span>
-					{/if}
-					{getItemLabel(item)}
-				</button>
+				<VisitorLogoutButton
+					className={getItemClasses(item)}
+					label={getItemLabel(item)}
+					icon={item.icon}
+				/>
+			{:else if item.type === 'login'}
+				<VisitorSignInLink
+					href={item.href || '/login'}
+					className={getItemClasses(item)}
+					label={getItemLabel(item)}
+					icon={item.icon}
+					external={item.external}
+				/>
 			{:else}
 				<a
-					href={item.type === 'login' ? '/login' : item.href}
+					href={item.href}
 					class={getItemClasses(item)}
 					target={item.external ? '_blank' : undefined}
 					rel={item.external ? 'noopener noreferrer' : undefined}
@@ -214,9 +215,9 @@
 			{/if}
 			{#if separator && index < visibleItems.length - 1}
 				{#if typeof separator === 'string'}
-					<span class="text-gray-400 dark:text-gray-500">{separator}</span>
+					<span class="text-[color:var(--tp-fg-subtle)]">{separator}</span>
 				{:else}
-					<span class="text-gray-400 dark:text-gray-500">|</span>
+					<span class="text-[color:var(--tp-fg-subtle)]">|</span>
 				{/if}
 			{/if}
 		{/each}

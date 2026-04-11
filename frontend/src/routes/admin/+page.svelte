@@ -466,6 +466,33 @@
 				</a>
 			</AdminCard>
 
+			<!-- UI component docs (developer reference) -->
+			<AdminCard>
+				<div class="flex items-center mb-4">
+					<div class="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center">
+						<svg class="w-6 h-6 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
+							/>
+						</svg>
+					</div>
+					<h2 class="text-xl font-semibold text-[var(--color-surface-950-50)] ml-3">{$t('admin.uiDocsTitle')}</h2>
+				</div>
+				<p class="text-[var(--color-surface-600-400)] mb-4">{$t('admin.uiDocsDescription')}</p>
+				<a
+					href="/admin/docs/ui"
+					class="inline-flex items-center px-4 py-2 bg-slate-600 text-white rounded-md hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2"
+				>
+					{$t('admin.openUiDocs')}
+					<svg class="ml-2 w-4 h-4 rtl-flip" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+					</svg>
+				</a>
+			</AdminCard>
+
 		</div>
 	</div>
 </div>

@@ -1,6 +1,6 @@
 import { siteConfig } from '$stores/siteConfig';
 import { handleApiErrorResponse } from '$lib/utils/errorHandler';
-import { normalizeTemplatePackId } from '$lib/template-packs/registry';
+import { normalizeTemplatePackId } from '$lib/template-packs/ids';
 
 export type ApplyThemeResult =
 	| { ok: true; themeName: string }
@@ -67,7 +67,7 @@ export async function applyThemeById(themeId: string): Promise<ApplyThemeResult>
 const BUILTIN_PACK_IDS = new Set(['noir', 'studio', 'atelier']);
 
 /**
- * Used by the header TemplateSelector: same behavior as "Set as default" — load the **built-in**
+ * Used by the header template selector (`ui/template-selector`): same behavior as "Set as default" — load the **built-in**
  * theme row for this pack (fonts, colors, pageModules, …). Falls back to pack-name-only update
  * if no built-in row exists (e.g. DB not seeded).
  */
@@ -97,10 +97,22 @@ export async function applyBuiltInThemeForPack(baseTemplate: string): Promise<Ap
 		headers: { 'Content-Type': 'application/json' },
 		credentials: 'include',
 		body: JSON.stringify({
+			replaceTemplateFromTheme: true,
 			template: {
 				frontendTemplate: pack,
 				activeTemplate: pack,
-				activeThemeId: null
+				activeThemeId: null,
+				customColors: {},
+				customFonts: {},
+				customLayout: {},
+				customLayoutByBreakpoint: {},
+				pageModules: {},
+				pageLayout: {},
+				pageLayoutByBreakpoint: {},
+				pageModulesByBreakpoint: {},
+				headerConfig: null,
+				componentVisibility: null,
+				layoutPresets: {}
 			}
 		})
 	});

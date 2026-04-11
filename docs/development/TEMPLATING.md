@@ -81,11 +81,13 @@ Optional history: [`../archive/development/ADMIN_UI_ROADMAP.md`](../archive/deve
 |------|------|
 | Pack registry | `frontend/src/lib/template-packs/registry.ts` |
 | Body shell | `frontend/src/lib/components/BodyTemplateWrapper.svelte` |
+| Pack SCSS | `frontend/src/lib/templates/<pack>/styles.scss` imported from each pack **route shell** (`Home`, `Gallery`, `Album`, `Login`, `Search`) so Vite emits CSS and SvelteKit can inject `<link>` in the document head |
 | Visitor template store | `frontend/src/lib/stores/template.ts` |
 | Public config API | `backend/src/site-config/site-config.controller.ts` |
 | Template normalization | `backend/src/services/site-config.ts` |
 | Theme seeding | `backend/src/database/database-init.service.ts` |
-| Header defaults | `frontend/src/lib/template-packs/header-visibility.ts` |
+| Site chrome | **`layoutShell`** blocks + named `layoutPresets` (e.g. header/footer strips); no pack `Header.svelte` / `Footer.svelte` |
+| Shared header UI (menu, language, theme, template pickers) | `frontend/src/lib/components/ui/` — one folder per control, each with a `README.md`; admins can read the same sources at **`/admin/docs/ui`** |
 | Palette → CSS | `frontend/src/lib/theme/template-palette.ts`, `ThemeColorApplier.svelte` |
 
 ### Manual test checklist
@@ -167,27 +169,19 @@ Noir may ship `frontend/src/lib/templates/noir/theme.defaults.json` for document
 
 Reference HTML uses short class names; in the app the same strings are valid **inside** the matching `.tpl-pack-*` scope.
 
-| Pack | SCSS partial |
-|------|----------------|
-| Noir | `frontend/src/lib/styles/templates/pack-noir.scss` |
-| Studio | `pack-studio.scss` |
-| Atelier | `pack-atelier.scss` |
+| Pack | SCSS file (co-located with the pack) |
+|------|--------------------------------------|
+| Noir | `frontend/src/lib/templates/noir/styles.scss` |
+| Studio | `frontend/src/lib/templates/studio/styles.scss` |
+| Atelier | `frontend/src/lib/templates/atelier/styles.scss` |
 
-```
-frontend/src/lib/styles/templates/
-  packs.scss          # @imports all pack partials
-  pack-noir.scss
-  pack-studio.scss
-  pack-atelier.scss
-```
-
-`+layout.svelte` imports `packs.scss` after `globals.css` so `--tp-*` / `--os-font-*` from `ThemeColorApplier` override defaults at runtime.
+Each pack’s `styles.scss` is imported from that pack’s route-level `.svelte` files (not from a central loader), so the correct stylesheet is bundled with the routes that use the pack and appears as a normal Vite CSS asset (`<link rel="stylesheet" …>` in devtools / production HTML when that route is rendered). `globals.css` stays global; `--tp-*` / `--os-font-*` still come from `ThemeColorApplier` at runtime.
 
 ### Adding a pack stylesheet
 
-1. Add `pack-<id>.scss` with a single root selector `.tpl-pack-<id> { … }`.
-2. Import it from `packs.scss`.
-3. Add `tpl-pack-<id>` to `<main>` in `BodyTemplateWrapper.svelte`.
+1. Add `frontend/src/lib/templates/<packId>/styles.scss` with a single root selector `.tpl-pack-<packId> { … }`.
+2. Add `import './styles.scss'` to that pack’s `Home.svelte`, `Gallery.svelte`, `Album.svelte`, `Login.svelte`, and `Search.svelte` (same pattern as existing packs).
+3. Add `tpl-pack-<packId>` to `<main>` in `BodyTemplateWrapper.svelte` (and a conditional branch if the shell classes differ).
 4. Extend `buildTemplatePaletteCss` only if you need **new** semantic tokens — prefer reusing `--tp-*` so the theme editor stays coherent.
 
 ---
@@ -223,7 +217,7 @@ These choices affect what operators can do in Admin, what the current persistenc
 The product is built from reusable **UI components** that define how common views look and behave. Examples include (not exhaustive): **menu**, **logo**, **albums list**, **album card**, **photo card**, **hero**, **footer blocks**, etc.
 
 - In **data-driven** regions (page builder), each placed item references a component by **`type`** (and optional **`props`**) — see `PageModuleData` in the frontend.
-- In **pack-authored** regions, the same concepts appear as Svelte components inside a template pack (`Header.svelte`, `Gallery.svelte`, …).
+- In **pack-authored** regions, the same concepts appear as Svelte route shells inside a template pack (`Home.svelte`, `Gallery.svelte`, …). **Site chrome** (header/footer strips) is **`layoutShell`** + `layoutPresets`, not pack components.
 
 *Requirement:* Template configuration must be able to **assign** these building blocks to **pages** and **grid cells** as described below, in addition to pack-level shells.
 
@@ -545,13 +539,13 @@ Until Phase 2 is implemented, these rules are **design intent**, with the follow
 - **FR-LIVE-3:** **Pages layer** — `pageModules` is keyed by page/region (`home`, `gallery`, `album`, `header`, `footer`, …). Each module instance selects a **UI component** (`type` + `props`) and placement (`rowOrder`, `columnIndex`, `rowSpan`, `colSpan`). `pageLayout[pageKey]` supplies **gridRows** / **gridColumns** for that page.
 - **FR-LIVE-4:** Public route content is wrapped by a shared shell container (`BodyTemplateWrapper` + `.os-shell-container`) that uses CSS variables from **Layout Customization**: `--os-max-width`, `--os-padding`, `--os-gap`. These variables are resolved per breakpoint (`xs..xl`) from `template.customLayout` / `template.customLayoutByBreakpoint` and applied via CSS media queries (mobile-first).
 
-### 3.4 Header and footer rendering (two modes)
+### 3.4 Header and footer rendering (`layoutShell`)
 
-- **FR-CHROME-1:** If **`pageModules.header`** is non-empty, the global header is rendered with the **page builder** (`PageRenderer`) for that position — **not** the pack’s `Header.svelte`.
-- **FR-CHROME-2:** If `pageModules.header` is empty, the pack’s **`Header.svelte`** is used (with `headerConfig` + per-pack defaults as implemented).
-- **FR-CHROME-3:** Footer follows analogous logic (`pageModules.footer` vs pack `Footer.svelte`), with any documented defaults for empty footer modules.
+- **FR-CHROME-1:** Header and footer strips are **page builder** content: a **`layoutShell`** module on the relevant page references a **`presetKey`**, and **`template.layoutPresets[presetKey]`** holds the grid + modules. Inner grids are **full-bleed** (no `max-width` shell) so strips can span 100%.
+- **FR-CHROME-2:** There is **no** pack-level `Header.svelte` / `Footer.svelte` fallback; if a route has no shell block, that route shows no global chrome unless you add one.
+- **FR-CHROME-3:** `headerConfig` and branding still configure menu/logo modules inside those shells.
 
-*Rationale:* This matches a “module placements” model (e.g. Joomla): filling an explicit module area replaces the default chrome for that region.
+*Rationale:* One mechanism (named presets + `layoutShell`) replaces separate `pageModules.header` / pack component fallbacks.
 
 ### 3.5 Admin experience
 
@@ -735,7 +729,7 @@ OpenShutter ships **three** built-in **template packs**: **`noir`**, **`studio`*
 |--------|---------------|
 | `index.php` + layout structure | Svelte pack pages (`Home.svelte`, …), `+layout.svelte`, `BodyTemplateWrapper` |
 | `templateDetails.xml` (name, version, parameters) | Static template metadata + **themes** collection (`baseTemplate`, colors, fonts, `pageModules`, …) |
-| **Module positions** | `site_config.template.pageModules` keyed by page/region. When `pageModules.header` is non-empty, the global header uses **page builder** (`PageRenderer`). Placement uses anchor cell + spans (`rowOrder`, `columnIndex`, `rowSpan`, `colSpan`). |
+| **Module positions** | `site_config.template.pageModules` keyed by page/region (`PageRenderer`). Use **`layoutShell`** with a `presetKey` for reusable header/footer strips (`template.layoutPresets`). Placement uses anchor cell + spans (`rowOrder`, `columnIndex`, `rowSpan`, `colSpan`). |
 | **Template overrides** | Admin → **Templates → Overrides** (per-theme overrides on the theme row; **Apply theme** copies into live `site_config` with replace semantics). |
 | Breakpoints | Page grid/modules can be breakpoint-keyed overlays; cascade rules in **§2.2.3**. |
 
@@ -743,15 +737,15 @@ If you apply a theme and “nothing changes,” check for stale `pageModules` fr
 
 ### 1. Add Svelte components
 
-Under `frontend/src/lib/templates/<packId>/`: `Home.svelte`, `Gallery.svelte`, `Album.svelte`, `Login.svelte`, `components/Header.svelte`, `components/Footer.svelte`, optional `Hero.svelte`, `AlbumList.svelte`, etc. Use Tailwind; colors/fonts from `siteConfigData` / CSS variables (`ThemeColorApplier`, etc.).
+Under `frontend/src/lib/templates/<packId>/`: `Home.svelte`, `Gallery.svelte`, `Album.svelte`, `Login.svelte`, optional `Search.svelte`, `styles.scss`, and shared pieces under `components/` (e.g. `Hero.svelte`, `AlbumList.svelte`). **Do not** add pack-level `Header.svelte` / `Footer.svelte` — site chrome is **`layoutShell`** presets in the theme. Use Tailwind; colors/fonts from `siteConfigData` / CSS variables (`ThemeColorApplier`, etc.).
 
-### 2. Header chrome (per pack)
+### 2. Header / footer chrome
 
-Public headers read `siteConfig.template.headerConfig`; each pack supplies defaults when a key is omitted (`frontend/src/lib/template-packs/header-visibility.ts`). Site configuration → Navigation overrides apply per pack.
+Public chrome is built with **page builder modules** inside **`layoutShell`** regions, backed by **`template.layoutPresets`** (shared named grids). `headerConfig` still drives menu items, logo visibility flags, etc., for modules that read it.
 
 ### 3. Register the pack
 
-Edit `frontend/src/lib/template-packs/registry.ts`: import components, add `packs` entry matching `packId`, required `pages`: `Home`, `Gallery`, `Album`, `Login`; optional `components`: `Header`, `Footer`. Export `TEMPLATE_PACK_IDS` for first-class built-ins.
+Edit `frontend/src/lib/template-packs/registry.ts`: add a loader with required `pages`: `Home`, `Gallery`, `Album`, `Login`. Optional `components` may list shared parts only (e.g. `Hero`). Export `TEMPLATE_PACK_IDS` for first-class built-ins.
 
 ### 4. Align backend allowlists
 
