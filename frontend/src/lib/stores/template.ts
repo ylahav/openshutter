@@ -1,14 +1,13 @@
 import { derived } from 'svelte/store';
 import { siteConfigData } from '$stores/siteConfig';
-import { browser } from '$app/environment';
 import { auth } from '$lib/stores/auth';
 import { page } from '$app/stores';
 import type { SiteConfig } from '$lib/types/site-config';
-import { normalizeTemplatePackId } from '$lib/template-packs/registry';
+import { normalizeTemplatePackId } from '$lib/template-packs/ids';
 
 function getFrontendTemplateName(config: SiteConfig | null): string {
 	const raw =
-		config?.template?.frontendTemplate || config?.template?.activeTemplate || 'noir';
+		config?.template?.frontendTemplate || config?.template?.activeTemplate || 'atelier';
 	return normalizeTemplatePackId(raw);
 }
 
@@ -24,18 +23,13 @@ export const activeTemplate = derived(
 			return 'noir';
 		}
 
-		if (browser && (!$auth.authenticated || $auth.user?.role !== 'admin')) {
-			const preferredTemplate = localStorage.getItem('preferredTemplate');
-			if (
-				preferredTemplate &&
-				['noir', 'studio', 'atelier', 'default', 'minimal', 'simple', 'modern', 'elegant'].includes(
-					preferredTemplate
-				)
-			) {
-				return normalizeTemplatePackId(preferredTemplate);
-			}
+		const configured = getFrontendTemplateName($config);
+		const hasConfiguredTemplate =
+			Boolean($config?.template?.frontendTemplate) || Boolean($config?.template?.activeTemplate);
+		if (hasConfiguredTemplate) {
+			return configured;
 		}
 
-		return getFrontendTemplateName($config);
+		return configured;
 	}
 );

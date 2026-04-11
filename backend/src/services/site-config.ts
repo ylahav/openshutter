@@ -10,14 +10,17 @@ export class SiteConfigService {
   /** Must stay aligned with frontend `TEMPLATE_PACK_IDS` / themes `baseTemplate`. */
   private static readonly BUILTIN_TEMPLATE_IDS = new Set(['noir', 'studio', 'atelier'])
 
-  /** Map removed pack ids and unknown values to a valid built-in id. */
+  /** Normalize to a valid built-in id, falling back to configured default. */
   private normalizeFrontendTemplateId(raw: string | undefined): string {
-    const v = String(raw ?? 'noir')
+    const configuredDefault = String(this.getDefaultConfig().template?.frontendTemplate ?? 'atelier')
       .trim()
       .toLowerCase()
-    if (v === 'default' || v === 'minimal' || v === 'simple' || v === 'modern' || v === 'elegant') return 'noir'
+    const v = String(raw ?? configuredDefault)
+      .trim()
+      .toLowerCase()
     if (SiteConfigService.BUILTIN_TEMPLATE_IDS.has(v)) return v
-    return 'noir'
+    if (SiteConfigService.BUILTIN_TEMPLATE_IDS.has(configuredDefault)) return configuredDefault
+    return 'atelier'
   }
   private static instance: SiteConfigService
   private configCache: SiteConfig | null = null
@@ -124,29 +127,6 @@ export class SiteConfigService {
     }
   }
 
-  private normalizeLegacyTemplateFields(updates: SiteConfigUpdate): void {
-    const t = updates.template
-    if (!t) return
-    if (
-      t.frontendTemplate === 'default' ||
-      t.frontendTemplate === 'minimal' ||
-      t.frontendTemplate === 'simple' ||
-      t.frontendTemplate === 'modern' ||
-      t.frontendTemplate === 'elegant'
-    ) {
-      t.frontendTemplate = 'noir'
-    }
-    if (
-      t.activeTemplate === 'default' ||
-      t.activeTemplate === 'minimal' ||
-      t.activeTemplate === 'simple' ||
-      t.activeTemplate === 'modern' ||
-      t.activeTemplate === 'elegant'
-    ) {
-      t.activeTemplate = 'noir'
-    }
-  }
-
   private validateTemplateUpdate(updates: SiteConfigUpdate): void {
     const t = updates.template
     if (!t) return
@@ -164,7 +144,6 @@ export class SiteConfigService {
     const mergePayload: SiteConfigUpdate = { ...updates }
     delete (mergePayload as { replaceTemplateFromTheme?: boolean }).replaceTemplateFromTheme
 
-    this.normalizeLegacyTemplateFields(mergePayload)
     this.validateTemplateUpdate(mergePayload)
 
       await connectDB()
@@ -433,9 +412,9 @@ export class SiteConfigService {
         enableTagFeedbackSearchBoost: false,
       },
       template: {
-        frontendTemplate: 'noir',
+        frontendTemplate: 'atelier',
         adminTemplate: 'default',
-        activeTemplate: 'noir' // Kept for backward compatibility
+        activeTemplate: 'atelier' // Kept for backward compatibility
       },
       exifMetadata: { displayFields: [] },
       iptcXmpMetadata: { displayFields: [] },

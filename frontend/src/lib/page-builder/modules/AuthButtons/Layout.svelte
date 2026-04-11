@@ -1,6 +1,8 @@
 <!-- frontend/src/lib/page-builder/modules/AuthButtons/Layout.svelte -->
 <script lang="ts">
-	import { auth, logout } from '$lib/stores/auth';
+	import { auth } from '$lib/stores/auth';
+	import VisitorSignInLink from '$lib/components/auth/VisitorSignInLink.svelte';
+	import VisitorLogoutButton from '$lib/components/auth/VisitorLogoutButton.svelte';
 
 	export let config: any = {};
 
@@ -8,31 +10,20 @@
 	$: logoutLabel = config?.logoutLabel || 'Logout';
 	$: loginUrl = config?.loginUrl || '/login';
 	$: buttonClass = config?.buttonClass || 'px-4 py-2 rounded-md font-medium transition-colors';
-	$: loginButtonClass = config?.loginButtonClass || `${buttonClass} bg-blue-600 dark:bg-blue-500 text-white hover:bg-blue-700 dark:hover:bg-blue-600`;
-	$: logoutButtonClass = config?.logoutButtonClass || `${buttonClass} bg-gray-600 dark:bg-gray-500 text-white hover:bg-gray-700 dark:hover:bg-gray-600`;
+	$: loginButtonClass =
+		config?.loginButtonClass ||
+		`${buttonClass} bg-[color:var(--os-primary)] text-[color:var(--tp-on-brand)] hover:opacity-90 border border-transparent`;
+	$: logoutButtonClass =
+		config?.logoutButtonClass ||
+		`${buttonClass} border border-[color:var(--tp-border)] bg-[color:var(--tp-surface-2)] text-[color:var(--tp-fg)] hover:bg-[color:var(--tp-surface-3)]`;
 	$: containerClass = config?.containerClass || 'flex items-center gap-2';
 	$: authenticated = $auth.authenticated;
-
-	async function handleLogout() {
-		await logout();
-	}
 </script>
 
 <div class={containerClass}>
 	{#if authenticated}
-		<button
-			type="button"
-			on:click={handleLogout}
-			class={logoutButtonClass}
-		>
-			{logoutLabel}
-		</button>
+		<VisitorLogoutButton className={logoutButtonClass} label={logoutLabel} />
 	{:else}
-		<a
-			href={loginUrl}
-			class={loginButtonClass}
-		>
-			{loginLabel}
-		</a>
+		<VisitorSignInLink href={loginUrl} className={loginButtonClass} label={loginLabel} />
 	{/if}
 </div>

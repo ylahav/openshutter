@@ -8,6 +8,7 @@
 	import PageBuilderGrid from './PageBuilderGrid.svelte';
 	import HeroModule from './modules/HeroModule.svelte';
 	import RichTextModule from './modules/RichTextModule.svelte';
+	import DividerModule from './modules/DividerModule.svelte';
 	import FeatureGridModule from './modules/FeatureGridModule.svelte';
 	import AlbumsGridModule from './modules/AlbumsGridModule.svelte';
 	import AlbumGalleryModule from './modules/AlbumGalleryModule.svelte';
@@ -47,6 +48,7 @@
 	const moduleMap: Record<string, any> = {
 		hero: HeroModule,
 		richText: RichTextModule,
+		divider: DividerModule,
 		featureGrid: FeatureGridModule,
 		albumsGrid: AlbumsGridModule,
 		albumView: AlbumGalleryModule,
@@ -103,16 +105,20 @@
 </script>
 
 {#if !page}
-	<div class="min-h-screen flex items-center justify-center text-gray-500 dark:text-gray-400">Page not found.</div>
+	<div class="min-h-screen flex items-center justify-center text-[color:var(--tp-fg-muted)]">Page not found.</div>
 {:else}
-	<div class="{compact ? 'w-full' : 'min-h-screen'} {compact ? '' : 'bg-white dark:bg-gray-900'}">
+	<div
+		class="{compact ? 'w-full' : 'min-h-screen'} {compact ? '' : 'bg-[color:var(--tp-canvas)] text-[color:var(--tp-fg)]'}"
+	>
 		{#if !compact && !hasPageTitleModule && (titleText || subtitleText)}
-			<div class="max-w-4xl mx-auto px-4 py-12 text-center border-b border-gray-200 dark:border-gray-700">
+			<div
+				class="max-w-4xl mx-auto px-4 py-12 text-center border-b border-[color:var(--tp-border)]"
+			>
 				{#if titleText}
-					<h1 class="text-4xl @md:text-5xl font-bold text-gray-900 dark:text-gray-100 mb-4">{titleText}</h1>
+					<h1 class="text-4xl @md:text-5xl font-bold text-[color:var(--tp-fg)] mb-4">{titleText}</h1>
 				{/if}
 				{#if subtitleText}
-					<h2 class="text-xl @md:text-2xl font-semibold text-gray-700 dark:text-gray-300">{subtitleText}</h2>
+					<h2 class="text-xl @md:text-2xl font-semibold text-[color:var(--tp-fg-muted)]">{subtitleText}</h2>
 				{/if}
 			</div>
 		{/if}

@@ -16,12 +16,20 @@
 	$: paddingClass = compact ? 'py-1' : 'py-16';
 </script>
 
-<section class={paddingClass + " " + (background === 'gray' ? 'bg-gray-50 dark:bg-gray-800/50' : background === 'transparent' ? 'bg-transparent' : 'bg-white dark:bg-gray-900')}>
+<section
+	class="{paddingClass} {background === 'gray'
+		? 'bg-[color:var(--tp-surface-2)]'
+		: background === 'transparent'
+			? 'bg-transparent'
+			: 'bg-[color:var(--tp-surface-1)]'}"
+>
 	<div class="w-full">
 		{#if titleText}
-			<h2 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-6">{titleText}</h2>
+			<h2 class="text-3xl font-bold text-[color:var(--tp-fg)] mb-6">{titleText}</h2>
 		{/if}
-		<div class="prose prose-lg max-w-none text-gray-700 dark:text-gray-300">
+		<div
+			class="prose prose-lg max-w-none text-[color:var(--tp-fg-muted)] [&_a]:text-[color:var(--os-primary)]"
+		>
 			{#if bodyHtml}
 				{@html bodyHtml}
 			{/if}

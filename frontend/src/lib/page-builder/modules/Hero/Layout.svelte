@@ -62,10 +62,10 @@
   <section
     class={`relative overflow-hidden ${
       backgroundStyle === 'dark'
-        ? 'bg-gray-800 dark:bg-gray-900 text-white'
-        : (backgroundStyle === 'image' || backgroundStyle === 'galleryLeading')
-        ? 'text-white'
-        : 'bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
+        ? 'bg-[color:var(--tp-hero-strip-bg)] text-[color:var(--tp-fg)]'
+        : backgroundStyle === 'image' || backgroundStyle === 'galleryLeading'
+          ? 'text-[color:var(--tp-fg)]'
+          : 'bg-[color:var(--tp-surface-2)] text-[color:var(--tp-fg)]'
     }`}
   >
     {#if effectiveBackgroundImage}
@@ -84,7 +84,7 @@
             on:load={handleImageLoad}
             on:error={handleImageError}
           />
-          <div class="absolute inset-0 bg-black/40"></div>
+          <div class="absolute inset-0 bg-[color:var(--tp-overlay-scrim)]"></div>
         </div>
         
         <!-- Content overlay -->
@@ -96,14 +96,16 @@
               </h1>
             {/if}
             {#if subtitleText}
-              <p class="text-base @md:text-xl mb-6 {backgroundStyle === 'dark' || backgroundStyle === 'image' || backgroundStyle === 'galleryLeading' ? 'text-gray-200' : 'text-gray-600 dark:text-gray-300'}">
+              <p
+                class="text-base @md:text-xl mb-6 text-[color:var(--tp-fg-muted)]"
+              >
                 {subtitleText}
               </p>
             {/if}
             {#if ctaLabelText && config?.ctaUrl}
               <a
                 href={config.ctaUrl}
-                class="inline-flex items-center px-6 py-3 rounded-full bg-primary-600 text-white hover:bg-primary-700 text-sm font-semibold"
+                class="inline-flex items-center px-6 py-3 rounded-full bg-[color:var(--os-primary)] text-[color:var(--tp-on-brand)] hover:opacity-90 text-sm font-semibold"
               >
                 {ctaLabelText}
               </a>
@@ -120,14 +122,14 @@
           </h1>
         {/if}
         {#if subtitleText}
-          <p class="text-base @md:text-xl mb-6 {backgroundStyle === 'dark' || backgroundStyle === 'image' || backgroundStyle === 'galleryLeading' ? 'text-gray-200' : 'text-gray-600 dark:text-gray-300'}">
+          <p class="text-base @md:text-xl mb-6 text-[color:var(--tp-fg-muted)]">
             {subtitleText}
           </p>
         {/if}
         {#if ctaLabelText && config?.ctaUrl}
           <a
             href={config.ctaUrl}
-            class="inline-flex items-center px-6 py-3 rounded-full bg-primary-600 text-white hover:bg-primary-700 text-sm font-semibold"
+            class="inline-flex items-center px-6 py-3 rounded-full bg-[color:var(--os-primary)] text-[color:var(--tp-on-brand)] hover:opacity-90 text-sm font-semibold"
           >
             {ctaLabelText}
           </a>

@@ -13,8 +13,6 @@ export type TemplatePackPages = {
 }
 
 export type TemplatePackComponents = {
-  Header?: SvelteComponentConstructor
-  Footer?: SvelteComponentConstructor
   Hero?: SvelteComponentConstructor
   AlbumCard?: SvelteComponentConstructor
   AlbumList?: SvelteComponentConstructor
@@ -23,6 +21,7 @@ export type TemplatePackComponents = {
 export type TemplatePack = {
   name: TemplatePackName
   pages: TemplatePackPages
+  /** Optional shared parts (chrome uses `layoutShell` presets, not pack components). */
   components?: TemplatePackComponents
 }
 

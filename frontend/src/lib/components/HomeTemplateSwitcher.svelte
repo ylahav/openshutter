@@ -5,7 +5,9 @@
 
 	export let data: PageData;
 
-	$: pack = getTemplatePack($activeTemplate);
+	$: packPromise = getTemplatePack($activeTemplate);
 </script>
 
-<svelte:component this={pack.pages.Home} {data} />
+{#await packPromise then pack}
+	<svelte:component this={pack.pages.Home} {data} />
+{/await}

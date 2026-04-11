@@ -92,17 +92,17 @@
 	});
 </script>
 
-<section class="text-gray-900 dark:text-gray-100" aria-label={sectionTitle || 'Blog categories'}>
+<section class="text-[color:var(--tp-fg)]" aria-label={sectionTitle || 'Blog categories'}>
 	{#if sectionTitle}
 		<h2 class="text-lg font-semibold mb-3">{sectionTitle}</h2>
 	{/if}
 
 	{#if loading}
-		<p class="text-sm text-gray-500 dark:text-gray-400">Loading categories…</p>
+		<p class="text-sm text-[color:var(--tp-fg-muted)]">Loading categories…</p>
 	{:else if errorMessage}
-		<p class="text-sm text-gray-500 dark:text-gray-400">{errorMessage}</p>
+		<p class="text-sm text-[color:var(--tp-fg-muted)]">{errorMessage}</p>
 	{:else if sortedCategories.length === 0}
-		<p class="text-sm text-gray-500 dark:text-gray-400">No categories to show.</p>
+		<p class="text-sm text-[color:var(--tp-fg-muted)]">No categories to show.</p>
 	{:else if layout === 'list'}
 		<ul class="space-y-2 list-none p-0 m-0">
 			{#each sortedCategories as cat (cat.alias)}
@@ -110,18 +110,18 @@
 					{#if linkToArticles}
 						<a
 							href={hrefFor(cat)}
-							class="flex justify-between gap-2 text-primary-600 dark:text-primary-400 hover:underline"
+							class="flex justify-between gap-2 text-[color:var(--os-primary)] hover:underline"
 						>
 							<span>{normTitle(cat)}</span>
 							{#if showCount}
-								<span class="text-gray-500 dark:text-gray-400 tabular-nums">{cat.articleCount ?? 0}</span>
+								<span class="text-[color:var(--tp-fg-subtle)] tabular-nums">{cat.articleCount ?? 0}</span>
 							{/if}
 						</a>
 					{:else}
 						<span class="flex justify-between gap-2">
 							<span>{normTitle(cat)}</span>
 							{#if showCount}
-								<span class="text-gray-500 dark:text-gray-400 tabular-nums">{cat.articleCount ?? 0}</span>
+								<span class="text-[color:var(--tp-fg-subtle)] tabular-nums">{cat.articleCount ?? 0}</span>
 							{/if}
 						</span>
 					{/if}
@@ -134,20 +134,20 @@
 				{#if linkToArticles}
 					<a
 						href={hrefFor(cat)}
-						class="inline-flex items-center gap-1.5 rounded-full border border-gray-200 dark:border-gray-600 px-3 py-1 text-sm bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700"
+						class="inline-flex items-center gap-1.5 rounded-full border border-[color:var(--tp-border)] px-3 py-1 text-sm bg-[color:var(--tp-surface-2)] hover:bg-[color:var(--tp-surface-3)]"
 					>
 						{normTitle(cat)}
 						{#if showCount}
-							<span class="text-gray-500 dark:text-gray-400 tabular-nums">({cat.articleCount ?? 0})</span>
+							<span class="text-[color:var(--tp-fg-subtle)] tabular-nums">({cat.articleCount ?? 0})</span>
 						{/if}
 					</a>
 				{:else}
 					<span
-						class="inline-flex items-center gap-1.5 rounded-full border border-gray-200 dark:border-gray-600 px-3 py-1 text-sm bg-gray-50 dark:bg-gray-800"
+						class="inline-flex items-center gap-1.5 rounded-full border border-[color:var(--tp-border)] px-3 py-1 text-sm bg-[color:var(--tp-surface-2)]"
 					>
 						{normTitle(cat)}
 						{#if showCount}
-							<span class="text-gray-500 dark:text-gray-400 tabular-nums">({cat.articleCount ?? 0})</span>
+							<span class="text-[color:var(--tp-fg-subtle)] tabular-nums">({cat.articleCount ?? 0})</span>
 						{/if}
 					</span>
 				{/if}

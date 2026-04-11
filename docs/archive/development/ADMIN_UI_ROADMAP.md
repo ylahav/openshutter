@@ -27,7 +27,7 @@ Previously, admin shared visitor chrome and `activeTemplate` could follow `admin
 **Implemented (incremental):** `frontend/src/routes/+layout.svelte` branches on `/admin`; **`AdminAppChrome.svelte`** wraps admin content. A future route-group `(admin)` refactor is optional cleanup.
 
 - Introduce an **admin-only root branch** (recommended: SvelteKit route group `(admin)` under `frontend/src/routes`, or a conditional branch in `routes/+layout.svelte` as an incremental first step — **done via conditional root layout**).
-- For `/admin/**`, **do not render** visitor-only wrappers: `HeaderTemplateSwitcher`, `FooterTemplateSwitcher`, `BodyTemplateWrapper`, and **`ThemeColorApplier`** (site palette).
+- For `/admin/**`, **do not render** visitor-only wrappers: **`BodyTemplateWrapper`** and **`ThemeColorApplier`** (site palette). (Legacy pack header/footer switchers were removed; public chrome uses **`layoutShell`**.)
 - Provide a small **fixed admin chrome**: **single-row top bar** (title truncates on narrow viewports; nav stays on one line), **light/dark toggle** for the admin shell only (`admin-ui-theme` store + `color-scheme` on `body`), optional **UI language** `<select>` when **more than one** language is enabled in **site config** (`languages.activeLanguages`); uses the same **`currentLanguage`** / **`setLanguage`** store as the public site. Toasts mount under **`AdminAppChrome`**.
 - **Acceptance:** Loading `/admin` never shows public header/footer pack or module-driven header; background and typography do not follow applied **gallery** theme.
 

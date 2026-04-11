@@ -1,0 +1,640 @@
+// ============================================================
+// ATELIER — styles.scss
+// Warm cream, editorial. Cormorant Garamond / Jost.
+// Compile: sass styles.scss styles.css --no-source-map
+// ============================================================
+
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@300;400;500&display=swap');
+
+// ─── Pack color tokens → template palette (`buildTemplatePaletteCss`) ───
+// Atelier vocabulary: `--bg`, `--fg`, `--gold`, `--ft-*`, … — each aliases `--tp-*`.
+
+:root, html.light {
+  --bg:      var(--tp-canvas);
+  --bg2:     var(--tp-surface-1);
+  --bg3:     var(--tp-surface-3);
+  --fg:      var(--tp-fg);
+  --fg-mid:  var(--tp-fg-muted);
+  --fg-lt:   var(--tp-fg-subtle);
+  --fg-mut:  var(--tp-fg-subtle);
+  --gold:    var(--tp-brand);
+  --gold-lt: color-mix(in srgb, var(--tp-brand) 78%, white 22%);
+  --bdr:     var(--tp-border);
+  --ft-bg:   var(--tp-footer-strip-bg);
+  --ft-fg:   var(--tp-fg);
+  --ft-dim:  var(--tp-fg-muted);
+  --ft-dimr: var(--tp-fg-subtle);
+  --strip:   var(--tp-hero-strip-bg);
+  --scrim:   var(--tp-overlay-scrim);
+}
+
+html.dark {
+  --bg:      var(--tp-canvas);
+  --bg2:     var(--tp-surface-1);
+  --bg3:     var(--tp-surface-3);
+  --fg:      var(--tp-fg);
+  --fg-mid:  var(--tp-fg-muted);
+  --fg-lt:   var(--tp-fg-subtle);
+  --fg-mut:  var(--tp-fg-subtle);
+  --gold:    var(--tp-brand);
+  --gold-lt: color-mix(in srgb, var(--tp-brand) 78%, white 22%);
+  --bdr:     var(--tp-border);
+  --ft-bg:   var(--tp-footer-strip-bg);
+  --ft-fg:   var(--tp-fg);
+  --ft-dim:  var(--tp-fg-muted);
+  --ft-dimr: var(--tp-fg-subtle);
+  --strip:   var(--tp-hero-strip-bg);
+  --scrim:   var(--tp-overlay-scrim);
+}
+
+// SCSS vars
+$serif: 'Cormorant Garamond', Georgia, serif;
+$jost:  'Jost', sans-serif;
+$t:     0.4s;
+
+// ─── Mixins ──────────────────────────────────────────────────
+
+@mixin serif($w: 400, $s: 16px) {
+  font-family: var(--os-font-heading), $serif;
+  font-weight: $w;
+  font-size: $s;
+}
+
+@mixin jost($w: 400, $s: 14px) {
+  font-family: var(--os-font-body), $jost;
+  font-weight: $w;
+  font-size: $s;
+}
+
+@mixin small-caps($spacing: 0.22em) {
+  font-family: var(--os-font-body), $jost;
+  font-size: 10px;
+  letter-spacing: $spacing;
+  text-transform: uppercase;
+}
+
+@mixin gold-rule {
+  width: 36px;
+  height: 1px;
+  background: var(--gold);
+}
+
+// ─── Reset ───────────────────────────────────────────────────
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  background: var(--bg);
+  transition: background $t;
+}
+
+body {
+  font-family: var(--os-font-body), $jost;
+  color: var(--fg);
+  min-height: 100vh;
+  transition: background $t, color $t;
+}
+
+// ─── Header ──────────────────────────────────────────────────
+
+.a-header {
+  background: var(--bg);
+  border-bottom: 1px solid var(--bdr);
+  padding: 28px 32px 20px;
+  text-align: center;
+  position: relative;
+  transition: background $t, border-color $t;
+
+  &__btns {
+    position: absolute; top: 28px; right: 32px;
+    display: flex; gap: 8px;
+    [dir="rtl"] & { right: auto; left: 32px; }
+  }
+
+  &__btn {
+    background: none;
+    border: 1px solid var(--bdr);
+    color: var(--fg-lt);
+    font-family: $jost;
+    @include small-caps(0.14em);
+    padding: 4px 10px; cursor: pointer;
+    transition: color 0.2s, border-color 0.2s;
+    &:hover { color: var(--fg); border-color: var(--fg-lt); }
+  }
+
+  &__signin {
+    position: absolute; top: 28px; left: 32px;
+    @include small-caps(0.18em);
+    color: var(--fg-lt); text-decoration: none;
+    border-bottom: 1px solid var(--bdr); padding-bottom: 1px;
+    cursor: pointer; transition: color 0.2s;
+    &:hover { color: var(--fg-mid); }
+    [dir="rtl"] & { left: auto; right: 32px; }
+  }
+
+  &__name {
+    @include serif(400, 28px);
+    letter-spacing: 0.12em; color: var(--fg);
+    text-decoration: none; display: block; cursor: pointer;
+    transition: color $t;
+  }
+
+  &__tag {
+    @include small-caps(0.32em);
+    color: var(--fg-lt); margin-top: 4px;
+    transition: color $t;
+  }
+
+  &__rule {
+    @include gold-rule;
+    margin: 14px auto;
+  }
+
+  &__nav {
+    display: flex; justify-content: center; gap: 32px;
+    [dir="rtl"] & { flex-direction: row-reverse; }
+  }
+
+  &__link {
+    @include small-caps(0.22em);
+    color: var(--fg-mid); text-decoration: none; cursor: pointer;
+    transition: color 0.2s;
+    &:hover  { color: var(--fg); }
+    &.active { color: var(--gold); }
+  }
+}
+
+// ─── Hero ────────────────────────────────────────────────────
+
+.a-hero {
+  position: relative; height: 68vh; min-height: 420px;
+  overflow: hidden; display: flex; align-items: flex-end;
+
+  &__img {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%; object-fit: cover;
+    transition: filter $t;
+    filter: brightness(0.55) saturate(0.8);
+    html.dark & { filter: brightness(0.35) saturate(0.6); }
+  }
+
+  &__vignette {
+    position: absolute; inset: 0;
+    background: radial-gradient(
+      ellipse at center,
+      color-mix(in srgb, var(--strip) 18%, transparent) 0%,
+      color-mix(in srgb, var(--strip) 72%, black) 100%
+    );
+  }
+
+  &__gradient {
+    position: absolute; bottom: 0; left: 0; right: 0; height: 60%;
+    background: linear-gradient(
+      to top,
+      color-mix(in srgb, var(--strip) 88%, black) 0%,
+      transparent 100%
+    );
+  }
+
+  &__content {
+    position: relative; z-index: 2;
+    width: 100%; max-width: 960px;
+    margin: 0 auto; padding: 0 48px 52px;
+    text-align: center;
+  }
+
+  &__eyebrow {
+    @include small-caps(0.32em);
+    color: var(--gold-lt); margin-bottom: 14px; opacity: 0.8;
+  }
+
+  &__title {
+    @include serif(300, clamp(36px, 6vw, 64px));
+    letter-spacing: 0.06em; color: var(--bg);
+    line-height: 1.15; margin-bottom: 16px;
+  }
+
+  &__rule {
+    @include gold-rule;
+    margin: 0 auto 16px; opacity: 0.7;
+  }
+
+  &__sub {
+    @include small-caps(0.22em);
+    color: color-mix(in srgb, var(--bg) 50%, transparent);
+  }
+}
+
+// ─── Intro ───────────────────────────────────────────────────
+
+.a-intro {
+  max-width: 540px; margin: 56px auto 0;
+  padding: 0 32px; text-align: center;
+
+  &__text {
+    @include serif(300, 18px);
+    font-style: italic; line-height: 1.85;
+    color: var(--fg-mid); transition: color $t;
+  }
+
+  &__rule {
+    @include gold-rule;
+    margin: 24px auto;
+  }
+}
+
+// ─── Section ─────────────────────────────────────────────────
+
+.a-section {
+  max-width: 960px; margin: 0 auto; padding: 48px 32px;
+
+  &__header { text-align: center; margin-bottom: 36px; }
+
+  &__title {
+    @include serif(400, 24px);
+    letter-spacing: 0.08em; color: var(--fg);
+    margin-bottom: 10px; transition: color $t;
+  }
+
+  &__rule { @include gold-rule; margin: 0 auto 10px; }
+
+  &__sub { @include small-caps(0.22em); color: var(--fg-lt); }
+}
+
+// ─── Album list ──────────────────────────────────────────────
+
+.a-album-list { display: flex; flex-direction: column; }
+
+.a-album-item {
+  display: grid; grid-template-columns: 160px 1fr;
+  gap: 28px; align-items: start;
+  padding: 28px 0; border-bottom: 1px solid var(--bdr);
+  cursor: pointer; text-decoration: none;
+  transition: border-color $t;
+
+  &:first-child { border-top: 1px solid var(--bdr); }
+  [dir="rtl"] &  { direction: rtl; }
+
+  &__thumb {
+    overflow: hidden; border-radius: 2px;
+    img {
+      aspect-ratio: 4/3; width: 100%; object-fit: cover; display: block;
+      transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+  }
+
+  &:hover &__thumb img { transform: scale(1.03); }
+
+  &__body { padding-top: 4px; }
+
+  &__num { @include small-caps(0.2em); color: var(--gold); margin-bottom: 8px; }
+
+  &__title {
+    @include serif(400, 20px);
+    letter-spacing: 0.04em; color: var(--fg);
+    margin-bottom: 8px; transition: color 0.2s;
+  }
+
+  &:hover &__title { color: var(--gold); }
+
+  &__desc { @include jost(300, 13px); line-height: 1.75; color: var(--fg-lt); margin-bottom: 12px; }
+
+  &__meta { @include small-caps(0.16em); color: var(--fg-lt); }
+}
+
+// ─── Gallery grid ────────────────────────────────────────────
+
+.a-gallery-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;
+}
+
+.a-gallery-card {
+  cursor: pointer; text-decoration: none; display: block;
+
+  &__thumb {
+    overflow: hidden; border-radius: 2px; margin-bottom: 10px;
+    img {
+      aspect-ratio: 3/4; width: 100%; object-fit: cover; display: block;
+      transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+  }
+
+  &:hover &__thumb img { transform: scale(1.03); }
+
+  &__title {
+    @include serif(400, 14px);
+    color: var(--fg); text-align: center; transition: color 0.2s;
+  }
+
+  &:hover &__title { color: var(--gold); }
+}
+
+// ─── CTA ─────────────────────────────────────────────────────
+
+.a-cta {
+  background: var(--bg2);
+  border-top: 1px solid var(--bdr);
+  border-bottom: 1px solid var(--bdr);
+  padding: 56px 32px; text-align: center; margin: 48px 0;
+  transition: background $t, border-color $t;
+
+  &__quote {
+    @include serif(300, 20px);
+    font-style: italic; line-height: 1.7;
+    color: var(--fg-mid); max-width: 480px;
+    margin: 0 auto 24px; transition: color $t;
+  }
+
+  &__attr { @include small-caps(0.18em); color: var(--fg-lt); margin-bottom: 28px; }
+
+  &__btn {
+    display: inline-block;
+    border: 1px solid var(--fg-lt); color: var(--fg-mid);
+    @include small-caps(0.22em);
+    padding: 10px 28px; text-decoration: none;
+    cursor: pointer; background: transparent;
+    font-family: $jost; transition: all 0.2s;
+    &:hover { background: var(--fg); border-color: var(--fg); color: var(--bg); }
+  }
+}
+
+// ─── Album page ──────────────────────────────────────────────
+
+.a-album-header {
+  max-width: 960px; margin: 0 auto;
+  padding: 40px 32px 24px; text-align: center;
+
+  &__back {
+    @include small-caps(0.18em);
+    color: var(--fg-lt); text-decoration: none; display: block;
+    margin-bottom: 20px; cursor: pointer; transition: color 0.2s;
+    &:hover { color: var(--fg); }
+  }
+
+  &__title {
+    @include serif(400, 28px);
+    letter-spacing: 0.08em; color: var(--fg);
+  }
+
+  &__rule { @include gold-rule; margin: 10px auto; }
+
+  &__desc {
+    @include serif(300, 14px);
+    font-style: italic; color: var(--fg-mid);
+    max-width: 520px; margin: 0 auto; line-height: 1.7;
+  }
+}
+
+.a-photo-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 8px; max-width: 960px; margin: 0 auto;
+  padding: 0 32px 48px;
+}
+
+.a-photo-card {
+  overflow: hidden; border-radius: 2px; cursor: pointer;
+  img {
+    aspect-ratio: 3/4; width: 100%; object-fit: cover; display: block;
+    transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+  &:hover img { transform: scale(1.04); }
+}
+
+// ─── About page ──────────────────────────────────────────────
+
+.a-about-header {
+  text-align: center; padding: 56px 32px 32px;
+
+  &__title { @include serif(400, 28px); letter-spacing: 0.08em; color: var(--fg); }
+  &__rule  { @include gold-rule; margin: 12px auto; }
+  &__sub   { @include small-caps(0.28em); color: var(--fg-lt); }
+}
+
+.a-about-body {
+  display: grid; grid-template-columns: 260px 1fr;
+  gap: 56px; align-items: start;
+  max-width: 900px; margin: 0 auto; padding: 0 32px 64px;
+  [dir="rtl"] & { direction: rtl; }
+}
+
+.a-portrait {
+  width: 100%; aspect-ratio: 3/4; overflow: hidden; border-radius: 2px;
+  img {
+    width: 100%; height: 100%; object-fit: cover; display: block;
+    filter: sepia(15%); transition: filter 0.4s;
+  }
+  &:hover img { filter: sepia(0%); }
+}
+
+.a-about-name {
+  @include serif(400, 26px);
+  letter-spacing: 0.06em; color: var(--fg); margin-bottom: 8px;
+}
+
+.a-about-name-rule { @include gold-rule; margin-bottom: 20px; }
+
+.a-bio {
+  @include jost(300, 14px);
+  line-height: 1.85; color: var(--fg-mid);
+  margin-bottom: 24px; transition: color $t;
+}
+
+.a-email {
+  @include small-caps(0.18em);
+  color: var(--fg); text-decoration: none;
+  border-bottom: 1px solid var(--bdr); padding-bottom: 2px;
+  transition: border-color 0.2s, color $t;
+  &:hover { border-color: var(--gold); color: var(--gold); }
+}
+
+// ─── Contact page ────────────────────────────────────────────
+
+.a-contact-header {
+  text-align: center; padding: 56px 32px 32px;
+  &__title { @include serif(400, 28px); letter-spacing: 0.08em; color: var(--fg); }
+  &__rule  { @include gold-rule; margin: 12px auto; }
+  &__sub   { @include small-caps(0.28em); color: var(--fg-lt); }
+}
+
+.a-contact-body {
+  display: grid; grid-template-columns: 220px 1fr;
+  gap: 64px; max-width: 860px; margin: 0 auto;
+  padding: 0 32px 80px; align-items: start;
+  [dir="rtl"] & { direction: rtl; }
+}
+
+.a-contact-info { display: flex; flex-direction: column; gap: 28px; padding-top: 4px; }
+
+.a-contact-item { display: flex; flex-direction: column; gap: 6px; }
+
+.a-contact-label { @include small-caps(0.24em); color: var(--fg-lt); }
+
+.a-contact-value {
+  @include serif(400, 14px);
+  color: var(--fg-mid); text-decoration: none;
+  transition: color 0.2s;
+  &:hover { color: var(--gold); }
+}
+
+// ─── Form ────────────────────────────────────────────────────
+
+.a-form {
+  display: flex; flex-direction: column; gap: 28px;
+
+  &__field { display: flex; flex-direction: column; gap: 8px; }
+
+  &__label { @include small-caps(0.22em); color: var(--fg-lt); }
+
+  &__input,
+  &__textarea {
+    background: transparent;
+    border: none; border-bottom: 1px solid var(--bdr);
+    color: var(--fg); font-family: $jost; font-weight: 300; font-size: 14px;
+    padding: 8px 0; outline: none; resize: none;
+    transition: border-color 0.2s, color $t;
+    &::placeholder { color: var(--fg-lt); opacity: 0.6; }
+    &:focus        { border-color: var(--gold); }
+  }
+
+  &__submit {
+    align-self: flex-start;
+    background: transparent;
+    border: 1px solid var(--fg-lt); color: var(--fg-mid);
+    font-family: $jost; @include small-caps(0.22em);
+    padding: 10px 28px; cursor: pointer; transition: all 0.2s;
+    &:hover { background: var(--fg); border-color: var(--fg); color: var(--bg); }
+  }
+
+  &__sent {
+    padding-top: 8px;
+    &-rule  { @include gold-rule; margin-bottom: 20px; }
+    &-title { @include serif(400, 22px); letter-spacing: 0.06em; color: var(--fg); margin-bottom: 8px; }
+    &-text  { @include jost(300, 13px); color: var(--fg-mid); line-height: 1.7; }
+  }
+}
+
+// ─── Login page ──────────────────────────────────────────────
+
+.a-login {
+  background: var(--bg);
+  min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px; position: relative; overflow: hidden;
+  transition: background $t;
+
+  &__img {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%; object-fit: cover;
+    transition: filter $t;
+    filter: brightness(0.3) saturate(0.4) sepia(0.3);
+    html.dark & { filter: brightness(0.15) saturate(0.3) sepia(0.4); }
+  }
+
+  &__box {
+    width: 100%; max-width: 320px;
+    position: relative; z-index: 2;
+  }
+
+  &__brand { text-align: center; margin-bottom: 40px; }
+
+  &__logo {
+    @include serif(400, 22px);
+    letter-spacing: 0.12em; color: var(--fg);
+    text-decoration: none; display: block; cursor: pointer;
+    text-shadow: 0 1px 12px color-mix(in srgb, var(--scrim) 80%, transparent);
+  }
+
+  &__rule {
+    width: 1px; height: 32px;
+    background: color-mix(in srgb, var(--fg) 40%, transparent);
+    margin: 14px auto;
+  }
+
+  &__sub { @include small-caps(0.28em); color: color-mix(in srgb, var(--fg) 52%, transparent); }
+
+  &__form { display: flex; flex-direction: column; gap: 22px; }
+
+  &__field { display: flex; flex-direction: column; gap: 8px; }
+
+  &__label { @include small-caps(0.22em); color: color-mix(in srgb, var(--fg) 52%, transparent); }
+
+  &__input {
+    background: transparent;
+    border: none; border-bottom: 1px solid color-mix(in srgb, var(--fg) 25%, transparent);
+    color: var(--fg); font-family: var(--os-font-body), $jost; font-weight: 300; font-size: 14px;
+    padding: 8px 0; outline: none;
+    transition: border-color 0.2s;
+    &::placeholder { color: color-mix(in srgb, var(--fg) 40%, transparent); }
+    &:focus        { border-color: var(--gold-lt); }
+  }
+
+  &__submit {
+    background: color-mix(in srgb, var(--fg) 15%, transparent);
+    color: var(--fg); border: 1px solid color-mix(in srgb, var(--fg) 30%, transparent);
+    font-family: var(--os-font-body), $jost; @include small-caps(0.22em);
+    padding: 13px; cursor: pointer; margin-top: 8px;
+    backdrop-filter: blur(4px); transition: all 0.2s;
+    &:hover { background: color-mix(in srgb, var(--fg) 25%, transparent); border-color: color-mix(in srgb, var(--fg) 50%, transparent); }
+  }
+
+  &__back {
+    display: block; text-align: center; margin-top: 28px;
+    @include small-caps(0.18em);
+    color: color-mix(in srgb, var(--fg) 40%, transparent); text-decoration: none; cursor: pointer;
+    transition: color 0.2s;
+    &:hover { color: color-mix(in srgb, var(--fg) 70%, transparent); }
+  }
+}
+
+// ─── Footer ──────────────────────────────────────────────────
+
+.a-footer {
+  background: var(--ft-bg);
+  padding: 40px 32px 32px; text-align: center;
+  transition: background $t;
+
+  &__name {
+    @include serif(400, 18px);
+    letter-spacing: 0.12em; color: var(--ft-fg); margin-bottom: 6px;
+  }
+
+  &__tag { @include small-caps(0.26em); color: var(--ft-dim); margin-bottom: 20px; }
+
+  &__rule { @include gold-rule; margin: 0 auto 20px; opacity: 0.4; }
+
+  &__links {
+    display: flex; justify-content: center; gap: 24px; margin-bottom: 24px;
+    a {
+      @include small-caps(0.2em);
+      color: var(--ft-dim); text-decoration: none; cursor: pointer;
+      transition: color 0.2s;
+      &:hover { color: var(--ft-fg); opacity: 0.6; }
+    }
+  }
+
+  &__copy { @include jost(400, 10px); letter-spacing: 0.1em; color: var(--ft-dimr); }
+}
+
+// ─── Page indicator ──────────────────────────────────────────
+
+.a-page-ind {
+  position: fixed; bottom: 16px; right: 20px;
+  @include jost(400, 10px);
+  color: var(--fg-lt); pointer-events: none;
+  [dir="rtl"] & { right: auto; left: 20px; }
+}
+
+// ─── Animations ──────────────────────────────────────────────
+
+.a-reveal {
+  opacity: 0;
+  transform: translateY(20px);
+  animation: aReveal 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  @for $i from 1 through 6 {
+    &:nth-child(#{$i}) { animation-delay: #{$i * 0.1}s; }
+  }
+}
+
+@keyframes aReveal {
+  to { opacity: 1; transform: translateY(0); }
+}

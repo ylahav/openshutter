@@ -32,14 +32,14 @@ Default grids for header/footer (see `frontend/src/lib/constants/default-page-la
 
 ---
 
-## 3. Two ways the header can render
+## 3. How header / footer render
 
 | Situation | What the public site uses |
 |-----------|---------------------------|
-| **`pageModules.header` is non-empty** | **Page builder** (`PageRenderer`): modules in the grid (logo, menu, …). Logo/menu **types** still tie into **site config** (e.g. menu items from `headerConfig`, logo URL from site branding). |
-| **`pageModules.header` is empty or missing** | **Template pack** `Header.svelte` for the active pack, plus **`headerConfig`** and per-pack defaults (`header-visibility.ts`). |
+| **Theme defines a `layoutShell` for the strip** (e.g. preset `atelier_header`) | **Page builder** modules from `template.layoutPresets[presetKey]` inside a full-bleed shell. Menu/logo modules still use **`headerConfig`** and site branding from config. |
+| **No shell on a route** | No global chrome for that page unless you add a `layoutShell` block to its `pageModules`. There is no fallback pack `Header.svelte` / `Footer.svelte`. |
 
-Footer is analogous (`pageModules.footer` vs pack `Footer.svelte`), with sensible defaults if modules are empty.
+Footer uses the same pattern: a named **`layoutShell`** preset (e.g. `atelier_footer`), not a separate pack component.
 
 ---
 
@@ -59,7 +59,7 @@ Footer is analogous (`pageModules.footer` vs pack `Footer.svelte`), with sensibl
 ## 5. Practical tips
 
 1. After editing a **theme row**, use **Set as default** (or save when that theme is already active — see Overrides save behavior) so **`site_config.template`** matches. Applying a theme uses **replace** semantics for module/layout blobs where implemented.
-2. If you change **only** Site configuration and not the theme document, you are adjusting **live site config** directly (fine for logo, menu, visibility in pack-header mode).
+2. If you change **only** Site configuration and not the theme document, you are adjusting **live site config** directly (fine for logo, menu, and module visibility flags used by chrome modules).
 3. **Merged cells** — set **`rowSpan`** / **`colSpan`** on a module in Overrides; the builder and `PageRenderer` use CSS grid spanning.
 4. **Same for all breakpoints** — in **Templates → Overrides**, choose a page + breakpoint, then use **apply current breakpoint to all breakpoints** to copy grid and placements to `xs..xl` for that page.
 
@@ -67,34 +67,11 @@ Footer is analogous (`pageModules.footer` vs pack `Footer.svelte`), with sensibl
 
 There are **two** different switches:
 
-1. **Frontend template (pack id)** — `noir` / `studio` / `atelier` in **Site configuration** (or `frontendTemplate` in JSON). Legacy ids normalize to **`noir`**. This selects **which Svelte pack** runs for route bodies and, when header/footer **don’t** use the page builder, which **pack `Header.svelte` / `Footer.svelte`** runs.
+1. **Frontend template (pack id)** — `noir` / `studio` / `atelier` in **Site configuration** (or `frontendTemplate` in JSON). This selects **which Svelte pack** runs for **route bodies** (`Home`, `Album`, …) and which **pack `styles.scss`** / tokens apply. **Chrome** (header/footer) comes from your theme’s **`layoutShell`** blocks and **`layoutPresets`**, not from a pack `Header.svelte`.
 
-2. **Theme document + Set as default** — Each row in **`themes`** can carry its own **`pageModules.header`** / **`pageModules.footer`**. **Live** `site_config` holds **one** copy. Changing only the pack in Site configuration **does not** pull another theme’s `pageModules` from Mongo — use **Set as default** on the theme whose header/footer you want (or edit live `site_config`).
+2. **Theme document + Set as default** — Each row in **`themes`** can carry **`pageModules`**, **`pageLayout`**, and **`layoutPresets`**. **Live** `site_config` holds **one** copy. Changing only the pack in Site configuration **does not** swap another theme’s shells — use **Set as default** (or edit live `site_config` / Overrides).
 
-If **`pageModules.header`** is **non-empty**, the global header uses **`PageRenderer`** (modules), not the pack’s `Header.svelte`. The **module list** comes from **`site_config`** until you apply another theme or edit modules.
-
-To use each pack’s **full** header implementation, set **`pageModules.header`** to **empty** (no modules) — then the pack **`Header.svelte`** is used and switching the frontend template switches the whole header component.
-
-### How to clear `pageModules.header` (empty array)
-
-**Option A — Admin UI (Templates → Overrides)**  
-1. Open **Admin → Templates → Overrides** (with your theme selected).  
-2. Choose **header** in the page-type UI.  
-3. Remove every module until there are **no** header modules.  
-4. **Save**. The public site will use the active pack’s **`Header.svelte`**.
-
-**Option B — API**  
-`PUT /api/admin/site-config` with:
-
-```json
-{
-  "template": {
-    "pageModules": {
-      "header": []
-    }
-  }
-}
-```
+If a page has **no** `layoutShell` for the strip you expect, add one in **Templates → Overrides** and point it at a **`layoutPresets`** entry (e.g. `atelier_header`). Switching packs changes **styling** and **fallback page templates**; **module placements** still come from the active theme unless you apply a different theme.
 
 **Also update the theme document** if you rely on **Set as default** later — otherwise the next apply can restore header modules from the theme row.
 

@@ -8,6 +8,7 @@
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 	import ThemeBuilderPreview from '$lib/components/ThemeBuilderPreview.svelte';
 	import { PAGE_MODULE_TYPES } from '$lib/page-builder/module-types';
+	import ModuleCellPlacementControls from '$lib/page-builder/ModuleCellPlacementControls.svelte';
 	import { GOOGLE_FONTS, GOOGLE_FONT_NAMES } from '$lib/constants/google-fonts';
 	import {
 		normalizeFontSetting,
@@ -450,6 +451,7 @@
 			'loginForm',
 			'hero',
 			'richText',
+			'divider',
 			'featureGrid',
 			'albumsGrid',
 			'albumView',
@@ -470,11 +472,12 @@
 			'userGreeting',
 			'authButtons',
 			'socialMedia',
+			'divider',
 			'layoutShell'
 		].includes(m.type)
 	);
 	const FOOTER_MODULES = PAGE_MODULE_TYPES.filter((m) =>
-		['richText', 'cta', 'socialMedia', 'themeSelect', 'layoutShell'].includes(m.type)
+		['richText', 'divider', 'cta', 'socialMedia', 'themeSelect', 'layoutShell'].includes(m.type)
 	);
 
 	const LAYOUT_SHELL_INNER_MODULE_TYPES = PAGE_MODULE_TYPES.filter((m) => m.type !== 'layoutShell');
@@ -976,26 +979,62 @@
 		editingModule = null;
 	}
 
+	/** Ephemeral: layout-shell inner grid — must survive `editingModule = { ...editingModule, … }` from placement/orientation controls. */
+	const PB_PRESET_KEY = '__pbLayoutPresetKey';
+	const PB_MODULE_INDEX = '__pbLayoutModuleIndex';
+
+	function stripLayoutPresetEditMeta(m: Record<string, any>): Record<string, any> {
+		const o = { ...m };
+		delete o[PB_PRESET_KEY];
+		delete o[PB_MODULE_INDEX];
+		return o;
+	}
+
 	function saveModuleChanges() {
 		if (!editingModule) return;
 		if (editingModule.type === 'albumGallery') {
 			editingModule = { ...editingModule, type: 'albumView' };
 		}
 		// Editing a module inside a named layout region (layoutShell inner grid).
-		if (editingInnerLayoutPresetKey && editingInnerLayoutModuleIndex >= 0) {
-			const k = editingInnerLayoutPresetKey.trim();
+		const epk = String(
+			(editingModule as any)[PB_PRESET_KEY] ?? editingInnerLayoutPresetKey ?? ''
+		).trim();
+		const rawInnerIdx = (editingModule as any)[PB_MODULE_INDEX];
+		let eidx =
+			typeof rawInnerIdx === 'number' && Number.isFinite(rawInnerIdx)
+				? rawInnerIdx
+				: editingInnerLayoutModuleIndex;
+		if (epk && eidx < 0 && editingModule._id) {
+			const shell = (localOverrides.layoutPresets || {})[epk] as { modules?: unknown[] } | undefined;
+			const list = shell && Array.isArray(shell.modules) ? shell.modules : [];
+			const found = list.findIndex((m: any) => m && m._id === editingModule._id);
+			if (found >= 0) eidx = found;
+		}
+		if (epk && eidx >= 0) {
+			const k = epk;
 			const cur = { ...(localOverrides.layoutPresets || {}) };
 			const prev = cur[k];
-			if (prev && Array.isArray(prev.modules) && prev.modules[editingInnerLayoutModuleIndex]) {
+			const list = prev && Array.isArray(prev.modules) ? prev.modules : [];
+			let modIndex = eidx;
+			const atIdx = list[modIndex] as { _id?: string } | undefined;
+			const id = editingModule._id;
+			if (id && (!atIdx || atIdx._id !== id)) {
+				const found = list.findIndex((m: any) => m && m._id === id);
+				if (found >= 0) modIndex = found;
+			}
+			if (prev && Array.isArray(prev.modules) && prev.modules[modIndex] !== undefined) {
 				const modules = [...prev.modules];
-				modules[editingInnerLayoutModuleIndex] = { ...editingModule };
+				modules[modIndex] = stripLayoutPresetEditMeta(editingModule as Record<string, any>);
 				cur[k] = { ...prev, modules };
 				localOverrides = { ...localOverrides, layoutPresets: cur };
 				hasChanges = true;
+				editingModule = null;
+				editingInnerLayoutPresetKey = '';
+				editingInnerLayoutModuleIndex = -1;
+			} else {
+				layoutShellPresetKeyError =
+					'Could not save this inner module (preset data or module index is out of date). Close and try again.';
 			}
-			editingModule = null;
-			editingInnerLayoutPresetKey = '';
-			editingInnerLayoutModuleIndex = -1;
 			return;
 		}
 		const modulesForPage = getModulesForPageType(editingPageType, editingBreakpoint) ?? [];
@@ -1030,17 +1069,26 @@
 			if (!nextPresets[pk]) nextPresets[pk] = { gridRows: 1, gridColumns: 1, modules: [] };
 			localOverrides = { ...localOverrides, layoutPresets: nextPresets };
 			layoutShellPresetKeyError = '';
+			hasChanges = true;
 		}
 		if (idx >= 0) {
 			const arr = [...modulesForPage];
 			const updated = [...arr];
-			updated[idx] = { ...editingModule };
+			updated[idx] = stripLayoutPresetEditMeta({ ...(editingModule as Record<string, any>) });
 			const bp = editingBreakpoint;
 			const pmBy = { ...(localOverrides.pageModulesByBreakpoint || {}) };
 			pmBy[editingPageType] = { ...(pmBy[editingPageType] || {}), [bp]: updated };
 			localOverrides = { ...localOverrides, pageModulesByBreakpoint: pmBy };
 			syncLegacyFromBreakpoints();
 			hasChanges = true;
+		} else if (
+			!(editingModule as any)[PB_PRESET_KEY] &&
+			!editingInnerLayoutPresetKey &&
+			editingModule.type !== 'layoutShell'
+		) {
+			layoutShellPresetKeyError =
+				'Could not find this module on the current page grid (it may only exist inside a layout region — open the layout region and use Edit on the inner block).';
+			return;
 		}
 		editingModule = null;
 		editingInnerLayoutPresetKey = '';
@@ -3345,6 +3393,7 @@ let draggedAlbumHeaderField: string | null = null;
 													type="button"
 													class="text-xs text-[var(--color-primary-600)] hover:text-[var(--color-primary-800)] font-medium"
 													on:click|stopPropagation={() => {
+														layoutShellPresetKeyError = '';
 														// Deep clone the module to avoid mutating the original
 														editingModule = JSON.parse(JSON.stringify(mod));
 														if (!editingModule._id) {
@@ -3471,6 +3520,17 @@ let draggedAlbumHeaderField: string | null = null;
 														if (editingModule.type === 'menu') {
 															if (!editingModule.props.orientation) {
 																editingModule.props.orientation = 'horizontal';
+															}
+														}
+														if (editingModule.type === 'divider') {
+															if (!editingModule.props.thickness) {
+																editingModule.props.thickness = 'thin';
+															}
+															if (!editingModule.props.margin) {
+																editingModule.props.margin = 'sm';
+															}
+															if (!editingModule.props.lineStyle) {
+																editingModule.props.lineStyle = 'solid';
 															}
 														}
 														// Initialize socialMedia props if needed
@@ -3819,6 +3879,12 @@ let draggedAlbumHeaderField: string | null = null;
 					</p>
 				</div>
 
+				<ModuleCellPlacementControls bind:editingModule />
+
+				{#if layoutShellPresetKeyError && editingModule.type !== 'layoutShell'}
+					<p class="text-sm text-red-600" role="alert">{layoutShellPresetKeyError}</p>
+				{/if}
+
 				{#if editingModule.type === 'layoutShell'}
 					<div class="space-y-4 border-t border-surface-200-800 pt-4">
 						<p class="text-sm text-[var(--color-surface-600-400)]">
@@ -4037,7 +4103,13 @@ let draggedAlbumHeaderField: string | null = null;
 															type="button"
 															class="text-[10px] text-[var(--color-primary-600)] hover:text-[var(--color-primary-800)] font-medium"
 															on:click|stopPropagation={() => {
-																editingModule = JSON.parse(JSON.stringify(mod));
+																const cloned = JSON.parse(JSON.stringify(mod)) as Record<
+																	string,
+																	unknown
+																>;
+																cloned[PB_PRESET_KEY] = pk;
+																cloned[PB_MODULE_INDEX] = idx;
+																editingModule = cloned;
 																editingInnerLayoutPresetKey = pk;
 																editingInnerLayoutModuleIndex = idx;
 																layoutShellPresetKeyError = '';
@@ -4074,7 +4146,7 @@ let draggedAlbumHeaderField: string | null = null;
 																? 'ring-2 ring-[var(--color-primary-500)] bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] border-[color-mix(in_oklab,var(--color-primary-500)_30%,transparent)]'
 																: 'border-surface-300-700 bg-[var(--color-surface-50-950)] hover:bg-[var(--color-surface-50-950)] cursor-pointer'}"
 														style="grid-column: {col + 1}; grid-row: {row + 1}"
-														on:click|stopPropagation={() => { if (!selected) innerToggleCell(pk, row, col); }}
+														on:click|stopPropagation={() => innerToggleCell(pk, row, col)}
 													>
 														<div class="text-[10px] text-[var(--color-surface-600-400)]">
 															Row {row + 1}, Col {col + 1}
@@ -5099,6 +5171,103 @@ let draggedAlbumHeaderField: string | null = null;
 								<option value="vertical">Vertical</option>
 							</select>
 							<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">Horizontal: items in a row. Vertical: items stacked.</p>
+						</div>
+					</div>
+				{:else if editingModule.type === 'divider'}
+					<div class="space-y-4">
+						<p class="text-sm text-[var(--color-surface-600-400)]">
+							A horizontal rule using the theme border color. Use placement above to align it in the grid cell.
+						</p>
+						<div>
+							<label for="divider-thickness" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+								Thickness
+							</label>
+							<select
+								id="divider-thickness"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
+								value={editingModule.props?.thickness ?? 'thin'}
+								on:change={(e) => {
+									editingModule = {
+										...editingModule,
+										props: {
+											...editingModule.props,
+											thickness: (e.currentTarget as HTMLSelectElement).value as 'thin' | 'medium'
+										}
+									};
+								}}
+							>
+								<option value="thin">Thin</option>
+								<option value="medium">Medium</option>
+							</select>
+						</div>
+						<div>
+							<label for="divider-margin" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+								Vertical spacing
+							</label>
+							<select
+								id="divider-margin"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
+								value={editingModule.props?.margin ?? 'sm'}
+								on:change={(e) => {
+									editingModule = {
+										...editingModule,
+										props: {
+											...editingModule.props,
+											margin: (e.currentTarget as HTMLSelectElement).value as
+												'none' | 'sm' | 'md' | 'lg'
+										}
+									};
+								}}
+							>
+								<option value="none">None</option>
+								<option value="sm">Small</option>
+								<option value="md">Medium</option>
+								<option value="lg">Large</option>
+							</select>
+						</div>
+						<div>
+							<label for="divider-line-style" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+								Line style
+							</label>
+							<select
+								id="divider-line-style"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
+								value={editingModule.props?.lineStyle ?? 'solid'}
+								on:change={(e) => {
+									editingModule = {
+										...editingModule,
+										props: {
+											...editingModule.props,
+											lineStyle: (e.currentTarget as HTMLSelectElement).value as 'solid' | 'dashed' | 'dotted'
+										}
+									};
+								}}
+							>
+								<option value="solid">Solid</option>
+								<option value="dashed">Dashed</option>
+								<option value="dotted">Dotted</option>
+							</select>
+						</div>
+						<div>
+							<label for="divider-class" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+								Extra CSS classes (optional)
+							</label>
+							<input
+								id="divider-class"
+								type="text"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
+								value={editingModule.props?.className ?? ''}
+								placeholder="e.g. opacity-60"
+								on:input={(e) => {
+									editingModule = {
+										...editingModule,
+										props: {
+											...editingModule.props,
+											className: (e.currentTarget as HTMLInputElement).value
+										}
+									};
+								}}
+							/>
 						</div>
 					</div>
 				{:else if editingModule.type === 'themeToggle'}

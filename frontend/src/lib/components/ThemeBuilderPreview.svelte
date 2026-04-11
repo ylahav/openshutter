@@ -88,7 +88,7 @@
 </svelte:head>
 
 <div
-	class="@container theme-preview-root rounded-lg overflow-hidden border border-gray-300 bg-white min-w-0 max-w-full"
+	class="@container theme-preview-root rounded-lg overflow-hidden border border-border bg-background min-w-0 max-w-full"
 	style={cssVars}
 >
 	<div
@@ -101,10 +101,15 @@
 	>
 		{#if modules.length > 0}
 			<!-- Use PageRenderer with actual modules -->
-			<PageRenderer page={page as PageData} modules={modules} layoutPresetsPreview={layoutPresets} />
+			<PageRenderer
+				page={page as PageData}
+				modules={modules}
+				layoutPresetsPreview={layoutPresets}
+				compact={pageType === 'header' || pageType === 'footer'}
+			/>
 		{:else}
 			<!-- Fallback for page types without modules -->
-			<div class="flex items-center justify-center h-full text-gray-400">
+			<div class="flex items-center justify-center h-full text-muted-foreground">
 				<p>No modules configured for {pageType}</p>
 			</div>
 		{/if}

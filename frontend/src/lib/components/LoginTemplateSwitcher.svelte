@@ -12,7 +12,6 @@
 
 	import ForcePasswordChangeModal from '$lib/components/ForcePasswordChangeModal.svelte';
 
-	import { getTemplatePack } from '$lib/template-packs/registry';
 
 	import { siteConfigData } from '$stores/siteConfig';
 
@@ -38,9 +37,7 @@
 
 	$: redirectTo = $page.url.searchParams.get('redirect') || '/admin';
 
-	$: pack = getTemplatePack($activeTemplate);
-
-	$: templateName = pack.name;
+	$: templateName = $activeTemplate;
 
 	$: loginBrandName = getProductName($siteConfigData ?? null, $currentLanguage);
 
@@ -199,8 +196,6 @@
 	}
 
 </script>
-
-
 
 <main
 

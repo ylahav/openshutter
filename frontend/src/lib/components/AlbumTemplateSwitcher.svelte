@@ -7,7 +7,7 @@
 	import { getEffectivePageGrid, getEffectivePageModules } from '$lib/template/breakpoints';
 	import { viewportWidth } from '$lib/stores/viewport';
 
-	$: pack = getTemplatePack($activeTemplate);
+	$: packPromise = getTemplatePack($activeTemplate);
 
 	// Allow album page to be fully driven by page-builder modules (Admin → Templates → Overrides).
 	$: pageModulesRaw = getEffectivePageModules($siteConfigData?.template, 'album', $viewportWidth);
@@ -30,5 +30,7 @@
 {#if hasPageModules}
 	<PageRenderer page={pageForRenderer} modules={pageModules} />
 {:else}
-	<svelte:component this={pack.pages.Album} />
+	{#await packPromise then pack}
+		<svelte:component this={pack.pages.Album} />
+	{/await}
 {/if}

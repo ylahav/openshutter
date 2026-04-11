@@ -424,17 +424,19 @@
 	}
 </script>
 
-<section class="@container py-12 @sm:py-16 @md:py-20 bg-gray-50 dark:bg-gray-800/50 overflow-x-hidden min-w-0">
+<section class="@container py-12 @sm:py-16 @md:py-20 bg-[color:var(--tp-surface-2)] overflow-x-hidden min-w-0">
 	<div class="w-full max-w-7xl mx-auto px-4 @sm:px-6 @lg:px-8 min-w-0">
 		{#if titleText || descriptionHTML}
 			<div class="text-center mb-10 @sm:mb-14 @md:mb-16 px-1">
 				{#if titleText}
-					<h2 class="text-2xl @sm:text-3xl @md:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-3 @sm:mb-4 break-words">
+					<h2 class="text-2xl @sm:text-3xl @md:text-4xl font-bold text-[color:var(--tp-fg)] mb-3 @sm:mb-4 break-words">
 						{titleText}
 					</h2>
 				{/if}
 				{#if descriptionHTML}
-					<div class="text-base @sm:text-lg text-gray-600 dark:text-gray-300 prose prose-sm @sm:prose-lg max-w-3xl mx-auto">
+					<div
+						class="text-base @sm:text-lg text-[color:var(--tp-fg-muted)] prose prose-sm @sm:prose-lg max-w-3xl mx-auto [&_a]:text-[color:var(--os-primary)]"
+					>
 						{@html descriptionHTML}
 					</div>
 				{/if}
@@ -443,28 +445,32 @@
 
 		{#if loading}
 			<div class="text-center py-12">
-				<div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 dark:border-blue-400"></div>
-				<p class="mt-4 text-gray-600 dark:text-gray-400">Loading galleries...</p>
+				<div
+					class="inline-block animate-spin rounded-full h-12 w-12 border-2 border-[color:var(--tp-border)] border-t-[color:var(--os-primary)]"
+				></div>
+				<p class="mt-4 text-[color:var(--tp-fg-muted)]">Loading galleries...</p>
 			</div>
 		{:else if sortedAlbums.length > 0}
 			{#if albumSource === 'current' && currentAlbum}
 				<div class="max-w-6xl mx-auto mb-8 @sm:mb-10 min-w-0">
-					<div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4 @sm:p-6 min-w-0">
+					<div
+						class="bg-[color:var(--tp-surface-1)] rounded-xl border border-[color:var(--tp-border)] p-4 @sm:p-6 min-w-0"
+					>
 						{#each albumHeaderFieldOrder as field (field)}
 							{#if field === 'albumTitle' && showAlbumPageTitle}
 								{#if currentAlbumTitleText}
-									<h1 class="text-2xl @sm:text-3xl @md:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-3 break-words">
+									<h1 class="text-2xl @sm:text-3xl @md:text-4xl font-bold text-[color:var(--tp-fg)] mb-3 break-words">
 										{currentAlbumTitleText}
 									</h1>
 								{/if}
 							{:else if field === 'albumDescription' && showAlbumPageDescription}
 								{#if currentAlbumDescriptionHTML}
-									<div class="prose prose-lg dark:prose-invert max-w-none text-gray-700 dark:text-gray-200 mb-3">
+									<div class="prose prose-lg max-w-none text-[color:var(--tp-fg-muted)] mb-3 [&_a]:text-[color:var(--os-primary)]">
 										{@html currentAlbumDescriptionHTML}
 									</div>
 								{/if}
 							{:else if field === 'albumStats' && showAlbumPageStats}
-								<div class="text-sm text-gray-600 dark:text-gray-300">
+								<div class="text-sm text-[color:var(--tp-fg-muted)]">
 									{#if currentAlbumPhotoCount > 0}
 										<span>{currentAlbumPhotoCount} {currentAlbumPhotoCount === 1 ? 'photo' : 'photos'}</span>
 									{/if}
@@ -482,7 +488,7 @@
 			{#if cardDataType === 'both' && mixedDisplayMode === 'grouped'}
 				{#if albumItems.length > 0}
 					{#if showSectionLabels}
-						<h3 class="text-lg @sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3 @sm:mb-4">
+						<h3 class="text-lg @sm:text-xl font-semibold text-[color:var(--tp-fg)] mb-3 @sm:mb-4">
 							Sub-albums
 						</h3>
 					{/if}
@@ -508,7 +514,7 @@
 				{/if}
 				{#if photoItems.length > 0}
 					{#if showSectionLabels}
-						<h3 class="text-lg @sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3 @sm:mb-4">
+						<h3 class="text-lg @sm:text-xl font-semibold text-[color:var(--tp-fg)] mb-3 @sm:mb-4">
 							Photos
 						</h3>
 					{/if}
@@ -573,12 +579,12 @@
 			{/if}
 		{:else}
 			<div
-				class="text-center py-10 @sm:py-12 px-4 bg-white dark:bg-gray-800 rounded-xl shadow-md dark:shadow-gray-900/50 mx-auto max-w-lg"
+				class="text-center py-10 @sm:py-12 px-4 bg-[color:var(--tp-surface-1)] rounded-xl border border-[color:var(--tp-border)] mx-auto max-w-lg"
 			>
-				<p class="text-gray-600 dark:text-gray-400 text-sm @sm:text-base">No public albums available at the moment.</p>
+				<p class="text-[color:var(--tp-fg-muted)] text-sm @sm:text-base">No public albums available at the moment.</p>
 				<a
 					href="/albums"
-					class="inline-flex items-center justify-center mt-4 px-5 @sm:px-6 py-2.5 @sm:py-3 text-sm @sm:text-base bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors font-medium w-full @sm:w-auto max-w-xs"
+					class="inline-flex items-center justify-center mt-4 px-5 @sm:px-6 py-2.5 @sm:py-3 text-sm @sm:text-base bg-[color:var(--os-primary)] text-[color:var(--tp-on-brand)] rounded-lg hover:opacity-90 transition-opacity font-medium w-full @sm:w-auto max-w-xs"
 				>
 					Browse Albums
 				</a>

@@ -25,6 +25,7 @@ export interface PageModuleData {
 	columnProportion?: number; // Proportion value (e.g., 1, 2, 3) - new layout system
 	rowSpan?: number; // Number of rows this module spans (default 1)
 	colSpan?: number; // Number of columns this module spans (default 1)
+	/** Module-specific props. May include optional `placement` (see `module-cell-placement.ts`) for grid cell alignment. */
 	props: Record<string, any>;
 	createdAt?: string;
 	updatedAt?: string;

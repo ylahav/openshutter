@@ -16,6 +16,8 @@
 	import { userGreetingConfig } from '$lib/page-builder/modules/UserGreeting/config';
 	import { authButtonsConfig } from '$lib/page-builder/modules/AuthButtons/config';
 	import { socialMediaConfig } from '$lib/page-builder/modules/SocialMedia/config';
+	import type { ModulePlacement, ModulePlacementAxis } from '$lib/page-builder/module-cell-placement';
+	import { normalizePlacement } from '$lib/page-builder/module-cell-placement';
 
 	export let moduleType: string = '';
 	export let props: Record<string, any> = {};
@@ -83,6 +85,34 @@
 		const key = Object.keys(condition)[0];
 		return props[key] === condition[key];
 	}
+
+	const placementAxisOptions: ModulePlacementAxis[] = ['default', 'start', 'center', 'end', 'stretch'];
+
+	function placementAxisLabel(axis: 'horizontal' | 'vertical', value: ModulePlacementAxis): string {
+		if (axis === 'horizontal') {
+			if (value === 'start') return 'Start (left)';
+			if (value === 'end') return 'End (right)';
+		} else {
+			if (value === 'start') return 'Top';
+			if (value === 'center') return 'Middle';
+			if (value === 'end') return 'Bottom';
+			if (value === 'stretch') return 'Stretch (fill)';
+		}
+		return value.charAt(0).toUpperCase() + value.slice(1);
+	}
+
+	function setPlacementAxis(axis: 'horizontal' | 'vertical', value: ModulePlacementAxis) {
+		const nextRaw: ModulePlacement = { ...(props.placement as ModulePlacement | undefined), [axis]: value };
+		const normalized = normalizePlacement(nextRaw);
+		const updated = { ...props };
+		if (normalized) updated.placement = normalized;
+		else delete updated.placement;
+		props = updated;
+		if (onChange) onChange(updated);
+	}
+
+	$: placeH = (props.placement as ModulePlacement | undefined)?.horizontal ?? 'default';
+	$: placeV = (props.placement as ModulePlacement | undefined)?.vertical ?? 'default';
 </script>
 
 {#if config}
@@ -243,12 +273,87 @@
 		{#if fields.length === 0}
 			<p class="text-sm text-gray-500 italic">This module type has no configurable properties.</p>
 		{/if}
+
+		<div class="space-y-3 border-t border-gray-200 pt-4 mt-4">
+			<h3 class="text-sm font-semibold text-gray-800">Placement in grid cell</h3>
+			<p class="text-xs text-gray-500">
+				Optional. Used in layout shells and page builder grids (horizontal / vertical alignment in the cell).
+			</p>
+			<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+				<div>
+					<label class="block text-xs font-medium text-gray-700 mb-1" for="mpf-place-h">Horizontal</label>
+					<select
+						id="mpf-place-h"
+						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm"
+						value={placeH}
+						on:change={(e) =>
+							setPlacementAxis('horizontal', (e.currentTarget as HTMLSelectElement).value as ModulePlacementAxis)}
+					>
+						{#each placementAxisOptions as opt}
+							<option value={opt}>{placementAxisLabel('horizontal', opt)}</option>
+						{/each}
+					</select>
+				</div>
+				<div>
+					<label class="block text-xs font-medium text-gray-700 mb-1" for="mpf-place-v">Vertical</label>
+					<select
+						id="mpf-place-v"
+						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm"
+						value={placeV}
+						on:change={(e) =>
+							setPlacementAxis('vertical', (e.currentTarget as HTMLSelectElement).value as ModulePlacementAxis)}
+					>
+						{#each placementAxisOptions as opt}
+							<option value={opt}>{placementAxisLabel('vertical', opt)}</option>
+						{/each}
+					</select>
+				</div>
+			</div>
+		</div>
 	</div>
 {:else if moduleType}
-	<div class="bg-yellow-50 border border-yellow-200 rounded-md p-3">
-		<p class="text-sm text-yellow-800">
-			Module type "{moduleType}" configuration not found. You can configure properties manually after creation.
-		</p>
+	<div class="space-y-4">
+		<div class="bg-yellow-50 border border-yellow-200 rounded-md p-3">
+			<p class="text-sm text-yellow-800">
+				Module type "{moduleType}" configuration not found. You can configure properties manually after creation.
+			</p>
+		</div>
+		<div class="space-y-3 border-t border-gray-200 pt-4">
+			<h3 class="text-sm font-semibold text-gray-800">Placement in grid cell</h3>
+			<p class="text-xs text-gray-500">
+				Optional. Used in layout shells and page builder grids (horizontal / vertical alignment in the cell).
+			</p>
+			<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+				<div>
+					<label class="block text-xs font-medium text-gray-700 mb-1" for="mpf-place-h2">Horizontal</label>
+					<select
+						id="mpf-place-h2"
+						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm"
+						value={placeH}
+						on:change={(e) =>
+							setPlacementAxis('horizontal', (e.currentTarget as HTMLSelectElement).value as ModulePlacementAxis)}
+					>
+						{#each placementAxisOptions as opt}
+							<option value={opt}>{placementAxisLabel('horizontal', opt)}</option>
+						{/each}
+					</select>
+				</div>
+				<div>
+					<label class="block text-xs font-medium text-gray-700 mb-1" for="mpf-place-v2">Vertical</label>
+					<select
+						id="mpf-place-v2"
+						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm"
+						value={placeV}
+						on:change={(e) =>
+							setPlacementAxis('vertical', (e.currentTarget as HTMLSelectElement).value as ModulePlacementAxis)}
+					>
+						{#each placementAxisOptions as opt}
+							<option value={opt}>{placementAxisLabel('vertical', opt)}</option>
+						{/each}
+					</select>
+				</div>
+			</div>
+		</div>
 	</div>
 {:else}
 	<p class="text-sm text-gray-500">Select a module type to configure its properties.</p>

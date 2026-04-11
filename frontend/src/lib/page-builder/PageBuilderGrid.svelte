@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { getContext } from 'svelte';
 	import type { PageModuleData } from '$lib/types/page-builder';
+	import type { ModulePlacement } from '$lib/page-builder/module-cell-placement';
+	import { omitPlacement, placementFlexClasses } from '$lib/page-builder/module-cell-placement';
 
 	/** Modules already normalized (e.g. albumGallery → albumView). */
 	export let modules: PageModuleData[] = [];
@@ -67,6 +69,10 @@
 		? 'w-full'
 		: 'w-full max-w-[var(--os-max-width)] mx-auto px-[var(--os-padding)] box-border';
 	const contentGap = 'gap-[var(--os-gap)]';
+
+	function cellPlacement(m: PageModuleData | undefined): ModulePlacement | undefined {
+		return m?.props?.placement as ModulePlacement | undefined;
+	}
 </script>
 
 {#if !moduleMap}
@@ -82,12 +88,13 @@
 	>
 		{#each modules.filter((m) => m.rowOrder !== undefined && m.columnIndex !== undefined) as module (module._id)}
 			<div
+				class={placementFlexClasses(cellPlacement(module))}
 				style="grid-column: {module.columnIndex! + 1} / span {module.colSpan ?? 1}; grid-row: {module.rowOrder! + 1} / span {module.rowSpan ?? 1}"
 			>
 				{#if moduleMap[module.type]}
 					<svelte:component
 						this={moduleMap[module.type]}
-						{...module.props}
+						{...omitPlacement(module.props)}
 						data={pageContext}
 						{compact}
 					/>
@@ -101,12 +108,12 @@
 	{#each rows as row (row.rowOrder)}
 		<div class="flex gap-4 px-4 {compact ? 'py-2' : 'py-6'}">
 			{#each row.columns as col (col.columnIndex)}
-				<div class="flex-1" style="flex: {col.proportion}">
+				<div class="flex-1 {placementFlexClasses(cellPlacement(col.module))}" style="flex: {col.proportion}">
 					{#if col.module}
 						{#if moduleMap[col.module.type]}
 							<svelte:component
 								this={moduleMap[col.module.type]}
-								{...col.module.props}
+								{...omitPlacement(col.module.props)}
 								data={pageContext}
 								{compact}
 							/>

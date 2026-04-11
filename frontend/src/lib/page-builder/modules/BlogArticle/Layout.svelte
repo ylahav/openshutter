@@ -109,20 +109,22 @@
 	});
 </script>
 
-<section class="text-gray-900 dark:text-gray-100" aria-label={sectionTitle || 'Blog articles'}>
+<section class="text-[color:var(--tp-fg)]" aria-label={sectionTitle || 'Blog articles'}>
 	{#if sectionTitle}
 		<h2 class="text-lg font-semibold mb-4">{sectionTitle}</h2>
 	{/if}
 
 	{#if loading}
-		<p class="text-sm text-gray-500 dark:text-gray-400">Loading…</p>
+		<p class="text-sm text-[color:var(--tp-fg-muted)]">Loading…</p>
 	{:else if errorMessage}
-		<p class="text-sm text-gray-500 dark:text-gray-400">{errorMessage}</p>
+		<p class="text-sm text-[color:var(--tp-fg-muted)]">{errorMessage}</p>
 	{:else if mode === 'single'}
 		{#if !singleArticle}
-			<p class="text-sm text-gray-500 dark:text-gray-400">No article to display.</p>
+			<p class="text-sm text-[color:var(--tp-fg-muted)]">No article to display.</p>
 		{:else}
-			<article class="border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-800/50">
+			<article
+				class="border border-[color:var(--tp-border)] rounded-lg overflow-hidden bg-[color:var(--tp-surface-2)]"
+			>
 				{#if showImage && singleArticle.leadingImage && typeof singleArticle.leadingImage === 'object' && (singleArticle.leadingImage as { url?: string }).url}
 					<a href="{pathPrefix}/{singleArticle.slug}" class="block">
 						<img
@@ -134,27 +136,29 @@
 				{/if}
 				<div class="p-4">
 					<h3 class="text-base font-semibold">
-						<a href="{pathPrefix}/{singleArticle.slug}" class="hover:text-primary-600 dark:hover:text-primary-400">
+						<a href="{pathPrefix}/{singleArticle.slug}" class="hover:text-[color:var(--os-primary)]">
 							{titleOf(singleArticle)}
 						</a>
 					</h3>
 					{#if showMeta && singleArticle.publishedAt}
-						<time class="text-xs text-gray-500 dark:text-gray-400 mt-1 block">
+						<time class="text-xs text-[color:var(--tp-fg-subtle)] mt-1 block">
 							{new Date(String(singleArticle.publishedAt)).toLocaleDateString()}
 						</time>
 					{/if}
 					{#if showExcerpt && excerptPlain(singleArticle)}
-						<p class="text-sm text-gray-600 dark:text-gray-300 mt-2 line-clamp-3">{excerptPlain(singleArticle)}</p>
+						<p class="text-sm text-[color:var(--tp-fg-muted)] mt-2 line-clamp-3">{excerptPlain(singleArticle)}</p>
 					{/if}
 				</div>
 			</article>
 		{/if}
 	{:else if articles.length === 0}
-		<p class="text-sm text-gray-500 dark:text-gray-400">No articles to show.</p>
+		<p class="text-sm text-[color:var(--tp-fg-muted)]">No articles to show.</p>
 	{:else}
 		<ul class="space-y-6 list-none p-0 m-0">
 			{#each articles as article (String(article._id ?? article.slug))}
-				<li class="border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-800/50">
+				<li
+					class="border border-[color:var(--tp-border)] rounded-lg overflow-hidden bg-[color:var(--tp-surface-2)]"
+				>
 					{#if showImage && article.leadingImage && typeof article.leadingImage === 'object' && (article.leadingImage as { url?: string }).url}
 						<a href="{pathPrefix}/{article.slug}" class="block">
 							<img
@@ -166,17 +170,17 @@
 					{/if}
 					<div class="p-4">
 						<h3 class="text-base font-semibold">
-							<a href="{pathPrefix}/{article.slug}" class="hover:text-primary-600 dark:hover:text-primary-400">
+							<a href="{pathPrefix}/{article.slug}" class="hover:text-[color:var(--os-primary)]">
 								{titleOf(article)}
 							</a>
 						</h3>
 						{#if showMeta && article.publishedAt}
-							<time class="text-xs text-gray-500 dark:text-gray-400 mt-1 block">
+							<time class="text-xs text-[color:var(--tp-fg-subtle)] mt-1 block">
 								{new Date(String(article.publishedAt)).toLocaleDateString()}
 							</time>
 						{/if}
 						{#if showExcerpt && excerptPlain(article)}
-							<p class="text-sm text-gray-600 dark:text-gray-300 mt-2 line-clamp-3">{excerptPlain(article)}</p>
+							<p class="text-sm text-[color:var(--tp-fg-muted)] mt-2 line-clamp-3">{excerptPlain(article)}</p>
 						{/if}
 					</div>
 				</li>

@@ -2,7 +2,9 @@
 	import { activeTemplate } from '$stores/template';
 	import { getTemplatePack } from '$lib/template-packs/registry';
 
-	$: pack = getTemplatePack($activeTemplate);
+	$: packPromise = getTemplatePack($activeTemplate);
 </script>
 
-<svelte:component this={pack.pages.Gallery} />
+{#await packPromise then pack}
+	<svelte:component this={pack.pages.Gallery} />
+{/await}

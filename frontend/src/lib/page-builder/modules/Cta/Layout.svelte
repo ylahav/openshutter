@@ -22,23 +22,28 @@
 	$: secondaryHref = typeof config?.secondaryHref === 'string' && config.secondaryHref.trim() ? config.secondaryHref : '';
 </script>
 
-<section class="py-20 bg-linear-to-b from-blue-600 to-indigo-700 dark:from-blue-800 dark:to-indigo-900">
+<section
+	class="py-20 text-[color:var(--tp-on-brand)]"
+	style="background: linear-gradient(180deg, var(--tp-brand) 0%, color-mix(in srgb, var(--tp-brand) 72%, var(--tp-surface-3)) 100%);"
+>
 	<div class="w-full text-center">
-		<h2 class="text-4xl font-bold text-white mb-6">{titleText}</h2>
+		<h2 class="text-4xl font-bold mb-6">{titleText}</h2>
 		{#if descriptionText}
-			<p class="text-xl text-blue-100 dark:text-blue-200 mb-8">{descriptionText}</p>
+			<p class="text-xl text-[color:color-mix(in_srgb,var(--tp-on-brand)_88%,transparent)] mb-8">
+				{descriptionText}
+			</p>
 		{/if}
 		<div class="flex flex-col @sm:flex-row gap-4 justify-center">
 			<a
 				href={primaryHref}
-				class="inline-flex items-center justify-center px-8 py-4 bg-white dark:bg-gray-100 text-blue-600 dark:text-blue-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-200 transition-colors font-semibold text-lg"
+				class="inline-flex items-center justify-center px-8 py-4 rounded-lg transition-colors font-semibold text-lg bg-[color:var(--tp-surface-1)] text-[color:var(--tp-brand)] hover:opacity-95"
 			>
 				{primaryLabel}
 			</a>
 			{#if secondaryLabel && secondaryHref}
 				<a
 					href={secondaryHref}
-					class="inline-flex items-center justify-center px-8 py-4 bg-blue-500 dark:bg-blue-600 text-white rounded-lg hover:bg-blue-400 dark:hover:bg-blue-500 transition-colors font-semibold text-lg"
+					class="inline-flex items-center justify-center px-8 py-4 rounded-lg transition-colors font-semibold text-lg border-2 border-[color:var(--tp-on-brand)] text-[color:var(--tp-on-brand)] bg-transparent hover:bg-[color:color-mix(in_srgb,var(--tp-on-brand)_14%,transparent)]"
 				>
 					{secondaryLabel}
 				</a>

@@ -31,7 +31,7 @@
 	$: availablePlatforms = socialPlatforms.filter(platform => socialMedia[platform.key]);
 	
 	$: iconSizeClass = iconSize === 'sm' ? 'w-4 h-4' : iconSize === 'lg' ? 'w-8 h-8' : 'w-6 h-6';
-	// Handle icon color - if it's a hex/rgb/hsl, use inline style; otherwise use as-is (for Tailwind classes like 'text-gray-600')
+	// Handle icon color - if it's a hex/rgb/hsl, use inline style; otherwise use as-is (e.g. Tailwind or token class strings)
 	$: isCustomColor = iconColor && (iconColor.startsWith('#') || iconColor.includes('rgb') || iconColor.includes('hsl'));
 	$: iconColorStyle = isCustomColor ? `color: ${iconColor};` : '';
 	$: iconColorClass = isCustomColor ? '' : (iconColor === 'current' ? 'text-current' : iconColor);
@@ -51,7 +51,7 @@
 					<IconRenderer icon={platform.icon} />
 				</div>
 				{#if showLabels}
-					<span class="text-sm font-medium text-gray-700 dark:text-gray-300">{platform.label}</span>
+					<span class="text-sm font-medium text-[color:var(--tp-fg-muted)]">{platform.label}</span>
 				{/if}
 			</a>
 		{/each}

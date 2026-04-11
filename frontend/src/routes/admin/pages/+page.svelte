@@ -95,6 +95,7 @@
 		{ value: 'loginForm', label: 'Login Form' },
 		{ value: 'hero', label: 'Hero' },
 		{ value: 'richText', label: 'Rich Text' },
+		{ value: 'divider', label: 'Horizontal line' },
 		{ value: 'featureGrid', label: 'Feature Grid' },
 		{ value: 'albumsGrid', label: 'Albums Grid' },
 		{ value: 'layoutShell', label: 'Layout region (named grid)' },

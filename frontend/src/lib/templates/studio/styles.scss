@@ -1,0 +1,658 @@
+// ============================================================
+// STUDIO — styles.scss
+// Clean blue-accented template. Syne headings / Outfit body.
+// Compile: sass styles.scss styles.css --no-source-map
+// ============================================================
+
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Outfit:wght@300;400;500&display=swap');
+
+// ─── Pack color tokens → template palette (`buildTemplatePaletteCss`) ───
+// Use `--blue`, `--ink`, `--surf`, … in SCSS; they track `--tp-*`.
+
+:root, html.light {
+  --blue:    var(--tp-brand);
+  --blue-dk: var(--tp-brand-hover);
+  --blue-lt: color-mix(in srgb, var(--tp-brand) 12%, var(--tp-canvas));
+  --ink:     var(--tp-fg);
+  --ink-mid: var(--tp-fg-muted);
+  --ink-mut: var(--tp-fg-subtle);
+  --ink-fnt: color-mix(in srgb, var(--tp-fg-subtle) 72%, var(--tp-border));
+  --surf:    var(--tp-surface-1);
+  --surf2:   var(--tp-canvas);
+  --surf3:   var(--tp-surface-2);
+  --bdr:     var(--tp-border);
+  --ft-bg:   var(--tp-footer-strip-bg);
+  --strip:   var(--tp-hero-strip-bg);
+  --card-sh: color-mix(in srgb, var(--tp-brand) 10%, transparent);
+  --card-bd: color-mix(in srgb, var(--tp-brand) 42%, var(--tp-border));
+  --mw:      1200px;
+}
+
+html.dark {
+  --blue:    var(--tp-brand);
+  --blue-dk: var(--tp-brand-hover);
+  --blue-lt: color-mix(in srgb, var(--tp-brand) 18%, transparent);
+  --ink:     var(--tp-fg);
+  --ink-mid: var(--tp-fg-muted);
+  --ink-mut: var(--tp-fg-subtle);
+  --ink-fnt: color-mix(in srgb, var(--tp-fg-subtle) 65%, var(--tp-border));
+  --surf:    var(--tp-surface-1);
+  --surf2:   var(--tp-canvas);
+  --surf3:   var(--tp-surface-2);
+  --bdr:     var(--tp-border);
+  --ft-bg:   var(--tp-footer-strip-bg);
+  --strip:   var(--tp-hero-strip-bg);
+  --card-sh: color-mix(in srgb, var(--tp-brand) 14%, transparent);
+  --card-bd: color-mix(in srgb, var(--tp-brand) 55%, var(--tp-border));
+  --mw:      1200px;
+}
+
+// SCSS vars
+$syne:   'Syne', sans-serif;
+$outfit: 'Outfit', sans-serif;
+$t:      0.3s;
+
+// ─── Mixins ──────────────────────────────────────────────────
+
+@mixin syne($w: 700, $s: 16px) {
+  font-family: $syne;
+  font-weight: $w;
+  font-size: $s;
+}
+
+@mixin outfit($w: 400, $s: 14px) {
+  font-family: $outfit;
+  font-weight: $w;
+  font-size: $s;
+}
+
+@mixin card {
+  background: var(--surf);
+  border: 1px solid var(--bdr);
+  border-radius: 10px;
+  transition: background $t, border-color $t;
+}
+
+@mixin container {
+  max-width: var(--mw);
+  margin: 0 auto;
+  padding: 0 28px;
+}
+
+// ─── Reset ───────────────────────────────────────────────────
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  background: var(--surf2);
+  transition: background $t;
+}
+
+body {
+  font-family: $outfit;
+  color: var(--ink);
+  min-height: 100vh;
+  transition: background $t, color $t;
+}
+
+// ─── Header ──────────────────────────────────────────────────
+
+.s-header {
+  background: var(--surf);
+  border-bottom: 1px solid var(--bdr);
+  position: sticky; top: 0; z-index: 100;
+  transition: background $t, border-color $t;
+
+  &__inner {
+    @include container;
+    height: 60px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 24px;
+  }
+
+  &__logo {
+    display: flex; align-items: center; gap: 10px;
+    cursor: pointer; text-decoration: none;
+  }
+
+  &__logo-mark {
+    width: 32px; height: 32px;
+    background: var(--blue); border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    @include syne(800, 13px);
+    color: #fff; flex-shrink: 0;
+    transition: background $t;
+  }
+
+  &__logo-text {
+    @include syne(700, 16px);
+    color: var(--ink);
+    transition: color $t;
+  }
+
+  &__nav {
+    display: flex; gap: 4px;
+    flex: 1; justify-content: center;
+  }
+
+  &__link {
+    @include outfit(500, 13px);
+    color: var(--ink-mut);
+    text-decoration: none;
+    padding: 6px 14px; border-radius: 6px;
+    transition: background 0.15s, color 0.15s;
+
+    &:hover       { background: var(--surf3); color: var(--ink); }
+    &.active      { color: var(--blue); background: var(--blue-lt); }
+  }
+
+  &__actions { display: flex; align-items: center; gap: 8px; }
+
+  &__btn-ghost {
+    @include outfit(500, 12px);
+    color: var(--ink-mid);
+    padding: 6px 12px; border-radius: 7px;
+    border: 1px solid var(--bdr);
+    background: transparent; cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+    &:hover { border-color: var(--ink-mut); color: var(--ink); }
+  }
+
+  &__btn-primary {
+    @include outfit(500, 12px);
+    color: #fff; background: var(--blue);
+    padding: 6px 14px; border-radius: 7px;
+    border: none; cursor: pointer; text-decoration: none;
+    transition: background 0.15s;
+    &:hover { background: var(--blue-dk); }
+  }
+}
+
+[dir="rtl"] .s-header {
+  &__inner   { flex-direction: row-reverse; }
+  &__nav     { flex-direction: row-reverse; }
+  &__actions { flex-direction: row-reverse; }
+}
+
+// ─── Hero ────────────────────────────────────────────────────
+
+.s-hero {
+  background: var(--strip);
+  overflow: hidden; position: relative; min-height: 520px;
+
+  &__bg {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%; object-fit: cover;
+    opacity: 0.2; transition: opacity $t;
+    html.dark & { opacity: 0.12; }
+  }
+
+  &__deco {
+    position: absolute; top: -80px; right: -80px;
+    width: 480px; height: 480px; border-radius: 50%;
+    background: radial-gradient(circle, color-mix(in srgb, var(--blue) 28%, transparent) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  &__inner {
+    @include container;
+    padding-top: 72px; padding-bottom: 64px;
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 48px; align-items: center;
+    position: relative; z-index: 2;
+  }
+
+  &__tag {
+    display: inline-flex;
+    background: rgba(37,99,235,0.2);
+    border: 1px solid rgba(37,99,235,0.3);
+    color: #93c5fd;
+    @include outfit(500, 11px);
+    letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 5px 12px; border-radius: 20px;
+    margin-bottom: 20px;
+  }
+
+  &__title {
+    @include syne(800, clamp(32px, 4vw, 52px));
+    color: #fff; line-height: 1.1; margin-bottom: 16px;
+    letter-spacing: -0.02em;
+    span { color: #60a5fa; }
+  }
+
+  &__desc {
+    @include outfit(400, 15px);
+    line-height: 1.7; color: #94a3b8; margin-bottom: 28px;
+  }
+
+  &__actions { display: flex; gap: 12px; align-items: center; }
+
+  &__cta {
+    @include outfit(500, 14px);
+    color: #fff; background: var(--blue);
+    padding: 11px 24px; border-radius: 8px;
+    text-decoration: none; border: none; cursor: pointer;
+    transition: background 0.15s;
+    &:hover { background: var(--blue-dk); }
+  }
+
+  &__secondary {
+    @include outfit(400, 13px);
+    color: #64748b; text-decoration: none; cursor: pointer;
+    transition: color 0.15s;
+    &:hover { color: #94a3b8; }
+  }
+
+  &__stats {
+    display: flex; gap: 28px;
+    margin-top: 40px; padding-top: 28px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+  }
+
+  &__stat-n { @include syne(700, 22px); color: #fff; }
+  &__stat-l { @include outfit(400, 11px); color: #64748b; margin-top: 2px; }
+
+  // Visual panel (3 stacked photos)
+  &__visual {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
+    gap: 8px;
+  }
+
+  &__photo {
+    border-radius: 10px; overflow: hidden; cursor: pointer;
+    &--tall { grid-row: span 2; }
+    img {
+      width: 100%; object-fit: cover; display: block;
+      transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+    &--tall img { height: 320px; }
+    &:not(&--tall) img { height: 154px; }
+    &:hover img { transform: scale(1.04); }
+  }
+}
+
+// ─── Section ─────────────────────────────────────────────────
+
+.s-section {
+  @include container;
+  padding-top: 48px; padding-bottom: 48px;
+
+  &__top {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    margin-bottom: 24px;
+    [dir="rtl"] & { flex-direction: row-reverse; }
+  }
+
+  &__title { @include syne(700, 22px); color: var(--ink); }
+  &__sub   { @include outfit(400, 13px); color: var(--ink-fnt); margin-top: 3px; }
+
+  &__link {
+    @include outfit(500, 13px);
+    color: var(--blue); text-decoration: none; cursor: pointer;
+    &:hover { text-decoration: underline; }
+  }
+}
+
+// ─── Album cards ─────────────────────────────────────────────
+
+.s-album-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.s-album-card {
+  @include card;
+  overflow: hidden; cursor: pointer;
+  text-decoration: none; display: block;
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+
+  &:hover {
+    border-color: var(--card-bd);
+    box-shadow: 0 4px 24px var(--card-sh);
+    transform: translateY(-2px);
+  }
+
+  &__thumb {
+    aspect-ratio: 4/3; position: relative; overflow: hidden;
+    img {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+      transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+  }
+  &:hover &__thumb img { transform: scale(1.05); }
+
+  &__ov {
+    position: absolute; inset: 0;
+    background: linear-gradient(to top, rgba(15,23,42,0.5) 0%, transparent 60%);
+  }
+
+  &__count {
+    position: absolute; bottom: 10px; right: 12px;
+    background: rgba(255,255,255,0.15); color: #fff;
+    @include outfit(500, 10px);
+    padding: 3px 8px; border-radius: 4px;
+  }
+
+  &__body { padding: 14px 16px 16px; }
+  &__title { @include syne(600, 15px); color: var(--ink); margin-bottom: 4px; }
+  &__desc  { @include outfit(400, 12px); color: var(--ink-fnt); line-height: 1.5; }
+}
+
+// ─── About strip ─────────────────────────────────────────────
+
+.s-about-strip {
+  @include card;
+  border-radius: 16px;
+  padding: 40px 48px;
+  display: grid; grid-template-columns: 1fr auto;
+  gap: 32px; align-items: center;
+  @include container;
+  margin-bottom: 48px;
+
+  [dir="rtl"] & { direction: rtl; }
+
+  &__text {
+    @include outfit(400, 15px);
+    line-height: 1.75; color: var(--ink-mid);
+    strong { color: var(--ink); font-weight: 500; }
+  }
+}
+
+// ─── Banner ──────────────────────────────────────────────────
+
+.s-banner {
+  background: var(--surf);
+  border-bottom: 1px solid var(--bdr);
+  padding: 24px 28px;
+  transition: background $t;
+
+  &__inner { @include container; padding: 0; }
+  &__title { @include syne(700, 24px); color: var(--ink); }
+  &__sub   { @include outfit(400, 13px); color: var(--ink-fnt); margin-top: 2px; }
+}
+
+// ─── Album page layout ───────────────────────────────────────
+
+.s-album-layout {
+  display: grid;
+  grid-template-columns: 3fr 1fr;
+  min-height: calc(100vh - 60px);
+  [dir="rtl"] & { direction: rtl; }
+}
+
+.s-album-main-header {
+  padding: 16px;
+  border-bottom: 1px solid var(--bdr);
+  background: var(--surf);
+  transition: background $t;
+}
+
+.s-album-back {
+  @include outfit(400, 12px);
+  color: var(--blue); cursor: pointer;
+  text-decoration: none; display: block;
+  margin-bottom: 6px;
+  &:hover { text-decoration: underline; }
+}
+
+.s-album-title { @include syne(700, 18px); color: var(--ink); }
+
+.s-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px; padding: 4px;
+}
+
+.s-photo-card {
+  aspect-ratio: 4/3; overflow: hidden;
+  border-radius: 4px; background: var(--surf3); cursor: pointer;
+  img {
+    width: 100%; height: 100%; object-fit: cover; display: block;
+    transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+  &:hover img { transform: scale(1.04); }
+}
+
+.s-sidebar {
+  background: var(--surf);
+  border-left: 1px solid var(--bdr);
+  padding: 20px;
+  transition: background $t, border-color $t;
+  [dir="rtl"] & { border-left: none; border-right: 1px solid var(--bdr); }
+
+  &__cover {
+    width: 100%; aspect-ratio: 4/3;
+    border-radius: 8px; overflow: hidden; margin-bottom: 16px;
+    img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  }
+
+  &__title { @include syne(700, 15px); color: var(--ink); margin-bottom: 8px; }
+  &__desc  { @include outfit(400, 12px); color: var(--ink-mut); line-height: 1.6; margin-bottom: 16px; }
+  &__stat  { @include syne(700, 20px); color: var(--blue); }
+  &__label { @include outfit(400, 11px); color: var(--ink-fnt); margin-top: 2px; }
+}
+
+// ─── About page ──────────────────────────────────────────────
+
+.s-about-grid {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 56px; align-items: start;
+  [dir="rtl"] & { direction: rtl; }
+}
+
+.s-portrait {
+  width: 100%; aspect-ratio: 3/4;
+  overflow: hidden; border-radius: 12px;
+  img { width: 100%; height: 100%; object-fit: cover; display: block; }
+}
+
+.s-about-name { @include syne(700, 28px); color: var(--ink); margin-bottom: 16px; }
+
+.s-bio {
+  @include outfit(400, 15px);
+  line-height: 1.8; color: var(--ink-mid); margin-bottom: 28px;
+}
+
+// ─── Contact page ────────────────────────────────────────────
+
+.s-contact-grid {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 48px; align-items: start;
+  [dir="rtl"] & { direction: rtl; }
+}
+
+.s-info-card {
+  @include card;
+  border-radius: 12px; padding: 24px;
+
+  &__title { @include syne(700, 15px); color: var(--ink); margin-bottom: 16px; }
+
+  &__link {
+    display: flex; align-items: center; gap: 8px;
+    @include outfit(400, 13px);
+    color: var(--ink-mut); text-decoration: none;
+    margin-bottom: 10px; transition: color 0.15s;
+    &:hover { color: var(--blue); }
+  }
+}
+
+// ─── Form ────────────────────────────────────────────────────
+
+.s-form {
+  display: flex; flex-direction: column; gap: 20px;
+
+  &__row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+  &__field { display: flex; flex-direction: column; gap: 6px; }
+
+  &__label { @include outfit(500, 13px); color: var(--ink-mid); }
+
+  &__input,
+  &__textarea {
+    background: var(--surf2);
+    border: 1px solid var(--bdr);
+    color: var(--ink); font-family: $outfit; font-size: 14px;
+    padding: 10px 14px; border-radius: 8px;
+    outline: none; resize: none;
+    transition: border-color 0.2s, background $t;
+    &::placeholder { color: var(--ink-fnt); }
+    &:focus        { border-color: var(--blue); }
+  }
+
+  &__submit {
+    align-self: flex-start;
+    @include outfit(500, 14px);
+    color: #fff; background: var(--blue);
+    padding: 11px 24px; border-radius: 8px;
+    border: none; cursor: pointer;
+    transition: background 0.15s;
+    &:hover { background: var(--blue-dk); }
+  }
+
+  &__sent {
+    text-align: center; padding: 48px 0;
+    &-icon {
+      width: 48px; height: 48px; background: #dcfce7; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 16px; color: #16a34a; font-size: 20px;
+    }
+    &-title { @include syne(700, 20px); color: var(--ink); margin-bottom: 8px; }
+    &-text  { @include outfit(400, 14px); color: var(--ink-fnt); }
+  }
+}
+
+// ─── Login page ──────────────────────────────────────────────
+
+.s-login {
+  background: var(--surf2);
+  min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px; position: relative;
+  transition: background $t;
+
+  &__bg {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%; object-fit: cover;
+    opacity: 0.06; transition: opacity $t;
+    html.dark & { opacity: 0.03; }
+  }
+
+  &__card {
+    @include card;
+    border-radius: 16px; padding: 40px;
+    width: 100%; max-width: 380px;
+    position: relative; z-index: 2;
+  }
+
+  &__header { text-align: center; margin-bottom: 28px; }
+
+  &__mark {
+    width: 44px; height: 44px;
+    background: var(--blue); border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    @include syne(800, 16px);
+    color: #fff; margin: 0 auto 14px;
+    transition: background $t;
+  }
+
+  &__title { @include syne(700, 20px); color: var(--ink); margin-bottom: 4px; }
+  &__sub   { @include outfit(400, 13px); color: var(--ink-fnt); }
+
+  &__form { display: flex; flex-direction: column; gap: 18px; }
+
+  &__submit {
+    width: 100%;
+    @include outfit(500, 14px);
+    color: #fff; background: var(--blue);
+    padding: 11px; border-radius: 8px;
+    border: none; cursor: pointer; margin-top: 4px;
+    transition: background 0.15s;
+    &:hover { background: var(--blue-dk); }
+  }
+
+  &__back {
+    display: block; text-align: center; margin-top: 20px;
+    @include outfit(400, 13px);
+    color: var(--ink-fnt); text-decoration: none; cursor: pointer;
+    transition: color 0.15s;
+    &:hover { color: var(--ink-mut); }
+  }
+}
+
+// ─── Footer ──────────────────────────────────────────────────
+
+.s-footer {
+  background: var(--ft-bg);
+  padding: 40px 28px;
+  transition: background $t;
+
+  &__inner {
+    @include container;
+    padding: 0;
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 32px;
+    [dir="rtl"] & { direction: rtl; }
+  }
+
+  &__brand-mark {
+    width: 32px; height: 32px;
+    background: var(--blue-dk); border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    @include syne(800, 13px);
+    color: #fff; margin-bottom: 12px;
+  }
+
+  &__brand-name { @include syne(700, 15px); color: #fff; margin-bottom: 4px; }
+  &__brand-sub  { @include outfit(400, 12px); color: #475569; }
+
+  &__col-title {
+    @include outfit(500, 10px);
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: #475569; margin-bottom: 12px;
+  }
+
+  &__col a {
+    display: block;
+    @include outfit(400, 13px);
+    color: #64748b; text-decoration: none; margin-bottom: 7px;
+    cursor: pointer; transition: color 0.15s;
+    &:hover { color: #94a3b8; }
+  }
+
+  &__bottom {
+    @include container;
+    padding: 0;
+    margin-top: 24px; padding-top: 24px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+
+  &__copy { @include outfit(400, 11px); color: #334155; }
+}
+
+// ─── Page indicator ──────────────────────────────────────────
+
+.s-page-ind {
+  position: fixed; bottom: 16px; right: 20px;
+  @include outfit(400, 10px);
+  color: var(--ink-fnt); pointer-events: none;
+  [dir="rtl"] & { right: auto; left: 20px; }
+}
+
+// ─── Animations ──────────────────────────────────────────────
+
+.s-fade-up {
+  opacity: 0;
+  transform: translateY(16px);
+  animation: sFadeUp 0.6s forwards;
+  @for $i from 1 through 6 {
+    &:nth-child(#{$i}) { animation-delay: #{$i * 0.1}s; }
+  }
+}
+
+@keyframes sFadeUp {
+  to { opacity: 1; transform: translateY(0); }
+}

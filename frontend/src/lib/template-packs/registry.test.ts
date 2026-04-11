@@ -36,18 +36,29 @@ describe('template pack registry', () => {
 		expect(normalizeTemplatePackId('atelier')).toBe('atelier');
 	});
 
-	it('getTemplatePack returns the requested pack', () => {
-		expect(getTemplatePack('atelier').name).toBe('atelier');
-		expect(getTemplatePack('studio').pages).toBeDefined();
+	it(
+		'getTemplatePack returns the requested pack',
+		async () => {
+			const atelier = await getTemplatePack('atelier');
+			const studio = await getTemplatePack('studio');
+			expect(atelier.name).toBe('atelier');
+			expect(studio.pages).toBeDefined();
+		},
+		15_000,
+	);
+
+	it('getTemplatePack falls back to atelier for unknown ids', async () => {
+		const pack = await getTemplatePack('not-a-real-pack');
+		expect(pack.name).toBe('atelier');
 	});
 
-	it('getTemplatePack falls back to noir for unknown ids', () => {
-		const pack = getTemplatePack('not-a-real-pack');
-		expect(pack.name).toBe('noir');
-	});
-
-	it('listTemplatePacks returns one entry per built-in id', () => {
-		const names = new Set(listTemplatePacks().map((p) => p.name));
-		expect(names).toEqual(new Set(TEMPLATE_PACK_IDS));
-	});
+	it(
+		'listTemplatePacks returns one entry per built-in id',
+		async () => {
+			const packs = await listTemplatePacks();
+			const names = new Set(packs.map((p) => p.name));
+			expect(names).toEqual(new Set(TEMPLATE_PACK_IDS));
+		},
+		15_000,
+	);
 });
