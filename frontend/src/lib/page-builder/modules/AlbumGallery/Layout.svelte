@@ -46,6 +46,8 @@
 		showPhotoFeaturedBadge?: boolean;
 		cardDataType?: 'subAlbums' | 'photos' | 'both';
 		mixedDisplayMode?: 'grouped' | 'interleaved';
+		/** `row`: cover left, text right; full-width list (album cards only). */
+		albumCardLayout?: 'stack' | 'row';
 		showSectionLabels?: boolean;
 		sortBy?: AlbumCardSortBy;
 		sortDirection?: 'asc' | 'desc';
@@ -140,6 +142,11 @@
 			: 'both';
 	$: mixedDisplayMode = config?.mixedDisplayMode === 'interleaved' ? 'interleaved' : 'grouped';
 	$: showSectionLabels = config?.showSectionLabels !== false;
+	$: albumCardLayout = config?.albumCardLayout === 'row' ? 'row' : 'stack';
+	$: albumCardsListClass =
+		albumCardLayout === 'row'
+			? 'flex flex-col gap-4 @sm:gap-5 mb-8 min-w-0'
+			: 'grid grid-cols-1 @md:grid-cols-2 @xl:grid-cols-3 gap-5 @md:gap-6 mb-8 min-w-0';
 	$: sortBy = (
 		config?.sortBy === 'order' ||
 		config?.sortBy === 'name' ||
@@ -492,15 +499,14 @@
 							Sub-albums
 						</h3>
 					{/if}
-					<div
-						class="grid grid-cols-1 @md:grid-cols-2 @xl:grid-cols-3 gap-5 @md:gap-6 mb-8 min-w-0"
-					>
+					<div class={albumCardsListClass}>
 						{#each albumItems as album}
 							<AlbumCard
 								album={album}
 								href={`/albums/${album.alias ?? ''}`}
 								coverUrl={coverImages[album._id ?? ''] || ''}
 								{coverAspectClass}
+								layout={albumCardLayout}
 								cardFieldOrder={albumCardFieldOrder}
 								showTitle={showAlbumTitle}
 								{showCover}
@@ -541,7 +547,7 @@
 					</div>
 				{/if}
 			{:else}
-				<div class="grid grid-cols-1 @md:grid-cols-2 @xl:grid-cols-3 gap-5 @md:gap-6 mb-8 min-w-0">
+				<div class={albumCardsListClass}>
 					{#each sortedAlbums as album}
 						{#if album.cardType === 'photo'}
 							<PhotoCard
@@ -565,6 +571,7 @@
 								href={`/albums/${album.alias ?? ''}`}
 								coverUrl={coverImages[album._id ?? ''] || ''}
 								{coverAspectClass}
+								layout={albumCardLayout}
 								cardFieldOrder={albumCardFieldOrder}
 								showTitle={showAlbumTitle}
 								{showCover}

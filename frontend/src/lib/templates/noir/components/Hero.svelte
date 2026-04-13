@@ -49,18 +49,18 @@
 		'https://picsum.photos/seed/noir-hero/1600/900';
 </script>
 
-<section class="hero">
-	<img class="hero-img" src={heroImage} alt="" loading="eager" />
-	<div class="hero-content">
-		<h1 class="hero-title">
+<section class="n-hero">
+	<img class="n-hero__img" src={heroImage} alt="" loading="eager" />
+	<div class="n-hero__content">
+		<h1 class="n-hero__title">
 			{title}
 		</h1>
-		<div class="hero-rule"></div>
-		<p class="hero-sub">
+		<div class="n-hero__rule" aria-hidden="true"></div>
+		<p class="n-hero__sub">
 			{subtitle}
 		</p>
 	</div>
-	<a href="/albums" class="hero-scroll">
+	<a href="/albums" class="n-hero__scroll">
 		scroll
 	</a>
 </section>

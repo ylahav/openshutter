@@ -54,6 +54,7 @@ export interface SiteConfig {
       showGreeting?: boolean
       showAuthButtons?: boolean
       showTemplateSelector?: boolean
+      languageSelectorVariant?: 'dropdown' | 'flags'
     }
   }
   seo: {

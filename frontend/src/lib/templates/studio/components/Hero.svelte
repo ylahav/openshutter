@@ -25,7 +25,7 @@
 </script>
 
 <section
-	class="relative overflow-hidden transition-colors duration-300"
+	class="s-hero relative overflow-hidden transition-colors duration-300"
 	style="background: var(--tp-hero-strip-bg);"
 	aria-labelledby="studio-hero-title"
 >

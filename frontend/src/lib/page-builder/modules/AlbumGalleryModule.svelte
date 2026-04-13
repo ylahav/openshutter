@@ -26,6 +26,7 @@
 		cardFieldOrder?: Array<'title' | 'cover' | 'description' | 'photoCount' | 'featuredBadge'>;
 		albumCardFieldOrder?: Array<'title' | 'cover' | 'description' | 'photoCount' | 'featuredBadge'>;
 		photoCardFieldOrder?: Array<'title' | 'cover' | 'description' | 'featuredBadge'>;
+		albumCardLayout?: 'stack' | 'row';
 		showPhotoCount?: boolean;
 		showFeaturedBadge?: boolean;
 		showAlbumFeaturedBadge?: boolean;
@@ -65,6 +66,7 @@
 	export let cardFieldOrder: NonNullable<AlbumGalleryProps['cardFieldOrder']> = ['cover', 'title', 'description', 'photoCount', 'featuredBadge'];
 	export let albumCardFieldOrder: NonNullable<AlbumGalleryProps['albumCardFieldOrder']> = ['cover', 'title', 'description', 'photoCount', 'featuredBadge'];
 	export let photoCardFieldOrder: NonNullable<AlbumGalleryProps['photoCardFieldOrder']> = ['cover', 'title', 'description', 'featuredBadge'];
+	export let albumCardLayout: NonNullable<AlbumGalleryProps['albumCardLayout']> = 'stack';
 	export let showPhotoCount: NonNullable<AlbumGalleryProps['showPhotoCount']> = true;
 	export let showFeaturedBadge: NonNullable<AlbumGalleryProps['showFeaturedBadge']> = true;
 	export let showAlbumFeaturedBadge: NonNullable<AlbumGalleryProps['showAlbumFeaturedBadge']> = true;
@@ -109,6 +111,7 @@
 			cardFieldOrder,
 			albumCardFieldOrder,
 			photoCardFieldOrder,
+			albumCardLayout,
 			showPhotoCount,
 			showFeaturedBadge,
 			showAlbumFeaturedBadge,

@@ -5,6 +5,8 @@
 	import { siteConfigData } from '$stores/siteConfig';
 	import { logger } from '$lib/utils/logger';
 
+	/** `dropdown` — button + menu. `flags` — row of flag (or code) buttons using the same palette tokens. */
+	export let variant: 'dropdown' | 'flags' = 'dropdown';
 	export let className = '';
 	export let showFlags = true;
 	export let showNativeNames = true;
@@ -14,21 +16,25 @@
 	let buttonElement: HTMLButtonElement | null = null;
 	let dropdownStyle = '';
 
-	// Derived data - use reactive $ prefix for proper reactivity
 	$: config = $siteConfigData;
 	$: activeLanguages = config?.languages?.activeLanguages ?? ['en', 'he'];
 	$: availableLanguages = SUPPORTED_LANGUAGES.filter((lang) => activeLanguages.includes(lang.code));
-	
-	// Debug: Log when languages change (can be removed in production)
+
 	$: if (typeof window !== 'undefined' && window.location.search.includes('debug=lang')) {
 		logger.debug('LanguageSelector - config:', config);
 		logger.debug('LanguageSelector - activeLanguages:', activeLanguages);
-		logger.debug('LanguageSelector - availableLanguages:', availableLanguages.map(l => l.code));
+		logger.debug('LanguageSelector - availableLanguages:', availableLanguages.map((l) => l.code));
 	}
 
 	$: lang = $currentLanguage;
 	$: currentLangConfig =
 		availableLanguages.find((l) => l.code === lang) ?? SUPPORTED_LANGUAGES.find((l) => l.code === lang);
+
+	function labelFor(language: (typeof SUPPORTED_LANGUAGES)[number], viewerLang: string): string {
+		if (viewerLang === 'he') return language.name;
+		if (showNativeNames) return language.nativeName;
+		return language.name;
+	}
 
 	function handleLanguageSelect(languageCode: LanguageCode) {
 		setLanguage(languageCode);
@@ -49,20 +55,19 @@
 	function updateDropdownPosition() {
 		if (!buttonElement) return;
 		const rect = buttonElement.getBoundingClientRect();
-		const dropdownWidth = 192; // w-48 = 12rem = 192px
-		const dropdownHeight = 200; // approximate height
+		const dropdownWidth = 192;
+		const dropdownHeight = 200;
 		const right = window.innerWidth - rect.right;
-		let top = rect.bottom + 4; // mt-1 = 4px
-		
-		// If dropdown would go off bottom of screen, position it above the button
+		let top = rect.bottom + 4;
+
 		if (top + dropdownHeight > window.innerHeight && rect.top > dropdownHeight) {
 			top = rect.top - dropdownHeight - 4;
 		}
-		
+
 		dropdownStyle = `position: fixed; top: ${top}px; right: ${right}px; width: ${dropdownWidth}px; z-index: 9999;`;
 	}
 
-	$: if (isOpen) {
+	$: if (isOpen && variant === 'dropdown') {
 		updateDropdownPosition();
 	}
 
@@ -84,128 +89,161 @@
 			window.removeEventListener('scroll', resizeHandler, true);
 		}
 	});
+
+	const triggerBase =
+		'flex items-center gap-2 rounded-md border shadow-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--os-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--tp-surface-1)] ' +
+		'border-[color:var(--tp-border)] bg-[color:var(--tp-surface-1)] text-[color:var(--tp-fg)] hover:bg-[color:var(--tp-surface-2)] ';
 </script>
 
-<div class={`relative ${className}`}>
-	<!-- Current Language Display -->
-	<button
-		bind:this={buttonElement}
-		type="button"
-		on:click={toggle}
-		class={`
-          flex items-center gap-2 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm
-          bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-          transition-colors text-gray-900 dark:text-gray-100
-          ${compact ? 'text-sm' : 'text-base'}
-        `}
-		aria-haspopup="listbox"
-		aria-expanded={isOpen}
+{#if variant === 'flags'}
+	<nav
+		class={`flex flex-wrap items-center ${compact ? 'gap-0.5' : 'gap-1.5'} ${className}`}
+		aria-label="Language"
+		data-language-selector="flags"
 	>
-		{#if showFlags}
-			<span class="text-lg">{currentLangConfig?.flag}</span>
-		{/if}
-
-		<span class="font-medium text-gray-900 dark:text-gray-100">
-			{#if lang === 'he'}
-				{currentLangConfig?.name}
-			{:else if showNativeNames}
-				{currentLangConfig?.nativeName}
-			{:else}
-				{currentLangConfig?.name}
-			{/if}
-		</span>
-
-		{#if currentLangConfig?.isRTL && lang !== 'he'}
-			<span class="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-1 rounded">RTL</span>
-		{/if}
-
-		<svg
-			class={`w-4 h-4 text-gray-400 dark:text-gray-500 transition-transform ${isOpen ? 'rotate-180' : ''}`}
-			fill="none"
-			stroke="currentColor"
-			viewBox="0 0 24 24"
+		{#each availableLanguages as language}
+			{@const selected = language.code === lang}
+			<button
+				type="button"
+				class={`rounded-md border transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--os-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--tp-surface-1)] ${compact ? 'p-1 min-w-[2rem] text-base' : 'p-1.5 min-w-[2.35rem] text-lg'} ${
+					selected
+						? 'border-[color:var(--os-primary)] bg-[color:color-mix(in_oklab,var(--os-primary)_14%,var(--tp-surface-1))] ring-1 ring-[color:var(--os-primary)]'
+						: 'border-[color:var(--tp-border)] bg-[color:var(--tp-surface-1)] opacity-90 hover:opacity-100 hover:bg-[color:var(--tp-surface-2)]'
+				}`}
+				aria-current={selected ? 'true' : undefined}
+				aria-pressed={selected}
+				title={labelFor(language, lang)}
+				aria-label={labelFor(language, lang)}
+				on:click={() => handleLanguageSelect(language.code as LanguageCode)}
+			>
+				{#if showFlags}
+					<span aria-hidden="true">{language.flag}</span>
+				{:else}
+					<span
+						class={`font-medium uppercase tracking-wide text-[color:var(--tp-fg)] ${compact ? 'text-[10px]' : 'text-xs'}`}
+						>{language.code}</span
+					>
+				{/if}
+			</button>
+		{/each}
+	</nav>
+{:else}
+	<div class={`relative ${className}`} data-language-selector="dropdown">
+		<button
+			bind:this={buttonElement}
+			type="button"
+			on:click={toggle}
+			class={`${triggerBase} px-3 py-2 ${compact ? 'text-sm' : 'text-base'}`}
+			aria-haspopup="listbox"
+			aria-expanded={isOpen}
 		>
-			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-		</svg>
-	</button>
+			{#if showFlags}
+				<span class="text-lg" aria-hidden="true">{currentLangConfig?.flag}</span>
+			{/if}
 
-	<!-- Language Dropdown -->
-	{#if isOpen}
-		<!-- Backdrop -->
-		<div
-			class="fixed inset-0"
-			style="z-index: 9998;"
-			role="button"
-			tabindex="-1"
-			on:click={close}
-			on:keydown={(e) => e.key === 'Escape' && close()}
-		></div>
+			<span class="font-medium text-[color:var(--tp-fg)]">
+				{labelFor(currentLangConfig ?? SUPPORTED_LANGUAGES[0], lang)}
+			</span>
 
-		<!-- Dropdown Menu -->
-		<div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg dark:shadow-gray-900/50" style={dropdownStyle}>
-			<ul class="py-1">
-				{#each availableLanguages as language}
-					{@const isSelected = language.code === lang}
-					{@const isRTL = language.isRTL}
+			{#if currentLangConfig?.isRTL && lang !== 'he'}
+				<span
+					class="rounded px-1 text-xs text-[color:var(--tp-fg-muted)] bg-[color:var(--tp-surface-2)]"
+					>RTL</span
+				>
+			{/if}
 
-					<li>
-						<button
-							type="button"
-							on:click={() => handleLanguageSelect(language.code as LanguageCode)}
-							class={`
-                        w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-700
-                        transition-colors
-                        ${isSelected ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300' : 'text-gray-900 dark:text-gray-100'}
-                        ${compact ? 'text-sm' : 'text-base'}
-                      `}
-						>
-							{#if showFlags}
-								<span class="text-lg">{language.flag}</span>
-							{/if}
+			<svg
+				class={`h-4 w-4 shrink-0 text-[color:var(--tp-fg-muted)] transition-transform ${isOpen ? 'rotate-180' : ''}`}
+				fill="none"
+				stroke="currentColor"
+				viewBox="0 0 24 24"
+				aria-hidden="true"
+			>
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+			</svg>
+		</button>
 
-							<div class="flex-1 min-w-0">
-								<div class="flex items-center justify-between">
-									<span class={`font-medium truncate ${isSelected ? 'text-blue-700 dark:text-blue-300' : 'text-gray-900 dark:text-gray-100'}`}>
-										{#if lang === 'he'}
-											{language.name}
-										{:else if showNativeNames}
-											{language.nativeName}
-										{:else}
-											{language.name}
-										{/if}
-									</span>
+		{#if isOpen}
+			<div
+				class="fixed inset-0"
+				style="z-index: 9998;"
+				role="button"
+				tabindex="-1"
+				on:click={close}
+				on:keydown={(e) => e.key === 'Escape' && close()}
+			></div>
 
-									{#if isRTL && lang !== 'he'}
-										<span class="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-1 rounded ml-2">
-											RTL
+			<div
+				class="rounded-md border border-[color:var(--tp-border)] bg-[color:var(--tp-surface-1)] py-1 shadow-lg"
+				style={dropdownStyle}
+			>
+				<ul class="py-1" role="listbox">
+					{#each availableLanguages as language}
+						{@const isSelected = language.code === lang}
+						{@const isRTL = language.isRTL}
+
+						<li role="none">
+							<button
+								type="button"
+								role="option"
+								aria-selected={isSelected}
+								on:click={() => handleLanguageSelect(language.code as LanguageCode)}
+								class={`flex w-full items-center gap-3 px-4 py-2 text-left transition-colors ${compact ? 'text-sm' : 'text-base'} ${
+									isSelected
+										? 'bg-[color:color-mix(in_oklab,var(--os-primary)_14%,var(--tp-surface-1))] text-[color:var(--os-primary)]'
+										: 'text-[color:var(--tp-fg)] hover:bg-[color:var(--tp-surface-2)]'
+								}`}
+							>
+								{#if showFlags}
+									<span class="text-lg" aria-hidden="true">{language.flag}</span>
+								{/if}
+
+								<div class="min-w-0 flex-1">
+									<div class="flex items-center justify-between">
+										<span
+											class={`truncate font-medium ${isSelected ? 'text-[color:var(--os-primary)]' : 'text-[color:var(--tp-fg)]'}`}
+										>
+											{labelFor(language, lang)}
 										</span>
+
+										{#if isRTL && lang !== 'he'}
+											<span
+												class="ml-2 rounded px-1 text-xs text-[color:var(--tp-fg-muted)] bg-[color:var(--tp-surface-2)]"
+												>RTL</span
+											>
+										{/if}
+									</div>
+
+									{#if showNativeNames && language.nativeName !== language.name && lang !== 'he'}
+										<div class="truncate text-xs text-[color:var(--tp-fg-muted)]">
+											{language.name}
+										</div>
+									{:else if lang === 'he' && language.nativeName !== language.name}
+										<div class="truncate text-xs text-[color:var(--tp-fg-muted)]">
+											{language.nativeName}
+										</div>
 									{/if}
 								</div>
 
-								{#if showNativeNames && language.nativeName !== language.name && lang !== 'he'}
-									<div class="text-xs text-gray-500 dark:text-gray-400 truncate">
-										{language.name}
-									</div>
-								{:else if lang === 'he' && language.nativeName !== language.name}
-									<div class="text-xs text-gray-500 dark:text-gray-400 truncate">
-										{language.nativeName}
-									</div>
+								{#if isSelected}
+									<svg
+										class="h-4 w-4 shrink-0 text-[color:var(--os-primary)]"
+										fill="currentColor"
+										viewBox="0 0 20 20"
+										aria-hidden="true"
+									>
+										<path
+											fill-rule="evenodd"
+											d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+											clip-rule="evenodd"
+										/>
+									</svg>
 								{/if}
-							</div>
-
-							{#if isSelected}
-								<svg class="w-4 h-4 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-									<path
-										fill-rule="evenodd"
-										d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-										clip-rule="evenodd"
-									/>
-								</svg>
-							{/if}
-						</button>
-					</li>
-				{/each}
-			</ul>
-		</div>
-	{/if}
-</div>
+							</button>
+						</li>
+					{/each}
+				</ul>
+			</div>
+		{/if}
+	</div>
+{/if}

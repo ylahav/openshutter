@@ -10,12 +10,24 @@ Large top-of-page banner: title, subtitle, optional CTA, and configurable backgr
 |-----------|------|---------|-------------|
 | `title` | MultiLang string / object | — | Main heading |
 | `subtitle` | MultiLang | — | Subheading |
-| `ctaLabel` | MultiLang | — | Primary button label |
-| `ctaUrl` | string | — | Primary button URL |
-| `backgroundStyle` | `'light'` \| `'dark'` \| `'image'` \| `'galleryLeading'` | `'light'` | Background mode |
-| `backgroundImage` | string (URL) | — | Used when `backgroundStyle === 'image'` |
+| `showCta` | boolean | `true` | When `false`, title/subtitle only; no button (ignores `ctaLabel` / `ctaUrl` for display). |
+| `ctaLabel` | MultiLang | — | Primary button label (if `showCta` and URL set). |
+| `ctaUrl` | string | — | Primary button URL. |
+| `backgroundStyle` | `'light'` \| `'dark'` \| `'image'` \| `'galleryLeading'` | `'light'` | **`image`** = custom URL via `backgroundImage`. **`galleryLeading`** = featured library photo (no URL). |
+| `backgroundImage` | string (URL) | — | **Only** when `backgroundStyle === 'image'`. Not used for `galleryLeading`. |
 
 See also `config.ts` for form metadata.
+
+### Gallery leading background
+
+Uses `GET /api/photos/gallery-leading?limit=1`. The backend returns **published** photos, newest first:
+
+1. Prefer **`isGalleryLeading: true`** (“Gallery Leading (homepage hero)” on the photo in admin/owner).
+2. If none, fall back to **`isLeading: true`** (“Album Cover Photo”) so the hero still works when only the cover checkbox is set.
+
+If a photo is unpublished, it will not appear until **Published** is checked.
+
+Image URLs are resolved with **`getPhotoFullUrl`** so storage paths become browser-loadable **`/api/storage/serve/...`** URLs (same as the rest of the app). Fetch runs when `backgroundStyle` is `galleryLeading` after the client is active (not only on first mount), so props that hydrate late still load the photo.
 
 ## Classes & tokens for template styles
 

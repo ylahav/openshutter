@@ -81,6 +81,8 @@ export interface SiteConfig {
       showGreeting?: boolean
       showAuthButtons?: boolean
       showTemplateSelector?: boolean
+      /** Public header language control: compact dropdown (default) or flag buttons. */
+      languageSelectorVariant?: 'dropdown' | 'flags'
     } | null
     /** Legacy flat per page or `{ pageKey: { xs: …, lg: … } }` (Admin saves full map here). */
     pageModules?: Record<string, unknown>

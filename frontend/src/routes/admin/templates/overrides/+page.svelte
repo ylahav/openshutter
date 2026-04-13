@@ -1196,6 +1196,7 @@ let draggedAlbumHeaderField: string | null = null;
 			defaultProps.descriptionLines = 2;
 			defaultProps.cardFieldOrder = ['cover', 'title', 'description', 'photoCount', 'featuredBadge'];
 			defaultProps.albumCardFieldOrder = ['cover', 'title', 'description', 'photoCount', 'featuredBadge'];
+			defaultProps.albumCardLayout = 'stack';
 			defaultProps.photoCardFieldOrder = ['cover', 'title', 'description', 'featuredBadge'];
 			defaultProps.showPhotoCount = true;
 			defaultProps.showFeaturedBadge = true;

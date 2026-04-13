@@ -5,6 +5,7 @@
 	type HeroProps = {
 		title?: string | Record<string, string>;
 		subtitle?: string | Record<string, string>;
+		showCta?: boolean;
 		ctaLabel?: string | Record<string, string>;
 		ctaUrl?: string;
 		backgroundStyle?: 'light' | 'dark' | 'image' | 'galleryLeading';
@@ -18,6 +19,7 @@
 	// PageRenderer passes flat props via {...module.props}
 	export let title: HeroProps['title'] = undefined;
 	export let subtitle: HeroProps['subtitle'] = undefined;
+	export let showCta: HeroProps['showCta'] = undefined;
 	export let ctaLabel: HeroProps['ctaLabel'] = undefined;
 	export let ctaUrl: HeroProps['ctaUrl'] = undefined;
 	export let backgroundStyle: NonNullable<HeroProps['backgroundStyle']> = 'light';
@@ -29,6 +31,7 @@
 		(props && typeof props === 'object' ? props : undefined) ?? {
 			title,
 			subtitle,
+			showCta,
 			ctaLabel,
 			ctaUrl,
 			backgroundStyle,

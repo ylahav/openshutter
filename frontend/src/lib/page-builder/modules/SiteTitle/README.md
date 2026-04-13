@@ -4,6 +4,8 @@
 
 Displays the **site name** from config, optionally as a link to `/`.
 
+When **Link to home** is on, the title stays **visually the same** as plain text (heading font, size, color); it does not use the global link font or default link styling. Keyboard focus shows a small outline for accessibility.
+
 ## Configuration (`props`)
 
 | Parameter | Type | Default | Description |

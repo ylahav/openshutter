@@ -8,6 +8,7 @@ Wraps **`$components/ui/language-selector/LanguageSelector.svelte`**: language d
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
+| `variant` | `'dropdown'` \| `'flags'` | `dropdown` | **flags** = row of flag buttons; **dropdown** = classic menu |
 | `showFlags` | boolean | true | Show flag icons |
 | `showNativeNames` | boolean | true | Native language labels |
 | `compact` | boolean | false | Compact UI |

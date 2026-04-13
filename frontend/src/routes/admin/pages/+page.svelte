@@ -57,6 +57,8 @@
 	interface HeroProps {
 		title?: MultiLangText;
 		subtitle?: MultiLangText;
+		/** When false, hero does not render the CTA button. */
+		showCta?: boolean;
 		ctaLabel?: MultiLangText;
 		ctaUrl?: string;
 		backgroundStyle?: 'light' | 'dark' | 'image' | 'galleryLeading';
@@ -67,6 +69,8 @@
 		title: MultiLangText;
 		description: MultiLangHTML;
 		selectedAlbums: string[];
+		/** Matches page-builder AlbumGallery: `row` = thumbnail left, details right. */
+		albumCardLayout?: 'stack' | 'row';
 	}
 
 	interface AlbumHierarchyNode {
@@ -596,6 +600,7 @@
 	let heroSubtitle: MultiLangText = { en: '', he: '' };
 	let heroCtaLabel: MultiLangText = { en: '', he: '' };
 	let heroCtaUrl = '';
+	let heroShowCta = true;
 	let heroBackgroundStyle: 'light' | 'dark' | 'image' | 'galleryLeading' = 'light';
 	let heroBackgroundImage = '';
 
@@ -603,6 +608,7 @@
 	let albumsGridTitle: MultiLangText = { en: '', he: '' };
 	let albumsGridDescription: MultiLangHTML = { en: '', he: '' };
 	let albumsGridSelectedAlbums: string[] = []; // Array of album IDs
+	let albumsGridAlbumCardLayout: 'stack' | 'row' = 'stack';
 	let availableAlbums: Array<{ _id: string; name: string | MultiLangText; alias: string; level?: number }> = [];
 	let albumsLoading = false;
 	let blogCategoryAlias = '';
@@ -682,6 +688,7 @@
 				? { en: config.ctaLabel, he: '' }
 				: (config.ctaLabel || { en: '', he: '' });
 			heroCtaUrl = config.ctaUrl || '';
+			heroShowCta = config.showCta !== false;
 			heroBackgroundStyle = (config.backgroundStyle === 'dark' || config.backgroundStyle === 'image' || config.backgroundStyle === 'galleryLeading')
 				? config.backgroundStyle
 				: 'light';
@@ -691,6 +698,7 @@
 			heroSubtitle = { en: '', he: '' };
 			heroCtaLabel = { en: '', he: '' };
 			heroCtaUrl = '';
+			heroShowCta = true;
 			heroBackgroundStyle = 'light';
 			heroBackgroundImage = '';
 		}
@@ -713,10 +721,12 @@
 			} else {
 				albumsGridSelectedAlbums = [];
 			}
+			albumsGridAlbumCardLayout = props.albumCardLayout === 'row' ? 'row' : 'stack';
 		} else {
 			albumsGridTitle = { en: '', he: '' };
 			albumsGridDescription = { en: '', he: '' };
 			albumsGridSelectedAlbums = [];
+			albumsGridAlbumCardLayout = 'stack';
 		}
 
 		if (module.type === 'blogCategory') {
@@ -793,6 +803,7 @@
 				props = {
 					title: heroTitle,
 					subtitle: heroSubtitle,
+					showCta: heroShowCta,
 					ctaLabel: heroCtaLabel,
 					ctaUrl: heroCtaUrl || undefined,
 					backgroundStyle: heroBackgroundStyle,
@@ -803,7 +814,8 @@
 				props = {
 					title: albumsGridTitle,
 					description: albumsGridDescription,
-					selectedAlbums: albumsGridSelectedAlbums
+					selectedAlbums: albumsGridSelectedAlbums,
+					albumCardLayout: albumsGridAlbumCardLayout
 				} as AlbumsGridProps;
 			} else if (moduleForm.type === 'blogCategory') {
 				const parsed = moduleForm.propsJson.trim() ? JSON.parse(moduleForm.propsJson) as Record<string, unknown> : {};
@@ -911,6 +923,7 @@
 				props = {
 					title: heroTitle,
 					subtitle: heroSubtitle,
+					showCta: heroShowCta,
 					ctaLabel: heroCtaLabel,
 					ctaUrl: heroCtaUrl || undefined,
 					backgroundStyle: heroBackgroundStyle,
@@ -920,7 +933,8 @@
 				props = {
 					title: albumsGridTitle,
 					description: albumsGridDescription,
-					selectedAlbums: albumsGridSelectedAlbums
+					selectedAlbums: albumsGridSelectedAlbums,
+					albumCardLayout: albumsGridAlbumCardLayout
 				} as AlbumsGridProps;
 			} else if (moduleForm.type === 'blogCategory') {
 				const parsed = moduleForm.propsJson.trim() ? JSON.parse(moduleForm.propsJson) as Record<string, unknown> : {};
@@ -1696,29 +1710,48 @@
 							<MultiLangInput id="module-hero-subtitle" bind:value={heroSubtitle} />
 						</div>
 
-						<div>
-							<label for="module-hero-cta-label" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
-								CTA Label (optional)
-							</label>
-							<MultiLangInput id="module-hero-cta-label" bind:value={heroCtaLabel} />
+						<div class="flex items-start gap-3 rounded-md border border-surface-300-700 bg-[var(--color-surface-50-950)] p-3">
+							<input
+								id="module-hero-show-cta"
+								type="checkbox"
+								bind:checked={heroShowCta}
+								class="mt-1 h-4 w-4 rounded border-surface-300-700 text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)]"
+							/>
+							<div class="min-w-0 flex-1">
+								<label for="module-hero-show-cta" class="block text-sm font-medium text-[var(--color-surface-800-200)]">
+									Show call-to-action button
+								</label>
+								<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">
+									When off, the hero shows title and subtitle only (no button).
+								</p>
+							</div>
 						</div>
 
-						<div>
-							<label for="module-hero-cta-url" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
-								CTA URL (optional)
-							</label>
-							<input
-								id="module-hero-cta-url"
-								type="url"
-								bind:value={heroCtaUrl}
-								placeholder="https://..."
-								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
-							/>
-						</div>
+						{#if heroShowCta}
+							<div>
+								<label for="module-hero-cta-label" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+									Button label
+								</label>
+								<MultiLangInput id="module-hero-cta-label" bind:value={heroCtaLabel} />
+							</div>
+
+							<div>
+								<label for="module-hero-cta-url" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+									Button URL
+								</label>
+								<input
+									id="module-hero-cta-url"
+									type="url"
+									bind:value={heroCtaUrl}
+									placeholder="https://..."
+									class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
+								/>
+							</div>
+						{/if}
 
 						<div>
 							<label for="module-hero-bg-style" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
-								Background Style
+								Background style
 							</label>
 							<select
 								id="module-hero-bg-style"
@@ -1727,24 +1760,37 @@
 							>
 								<option value="light">Light</option>
 								<option value="dark">Dark</option>
-								<option value="image">Image (URL)</option>
+								<option value="image">Custom image (URL)</option>
 								<option value="galleryLeading">Gallery leading photo</option>
 							</select>
+							<p class="mt-1.5 text-xs text-[var(--color-surface-600-400)]">
+								<strong>Custom image</strong> — paste a direct link to an image file. <strong>Gallery leading photo</strong> — uses a featured
+								photo from your library (no URL field).
+							</p>
 						</div>
 
 						{#if heroBackgroundStyle === 'image'}
 							<div>
 								<label for="module-hero-bg-image" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
-									Background Image URL
+									Background image URL
 								</label>
 								<input
 									id="module-hero-bg-image"
-									type="text"
+									type="url"
 									bind:value={heroBackgroundImage}
-									placeholder="https://..."
+									placeholder="https://example.com/path/to/image.jpg"
 									class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 								/>
+								<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">
+									Use this only with <strong>Custom image (URL)</strong>. For a featured gallery photo, pick <strong>Gallery leading photo</strong> instead (no URL).
+								</p>
 							</div>
+						{/if}
+
+						{#if heroBackgroundStyle === 'galleryLeading'}
+							<p class="rounded-md border border-surface-300-700 bg-[var(--color-surface-50-950)] px-3 py-2 text-xs text-[var(--color-surface-600-400)]">
+								Background comes from your published gallery-leading or album-cover photos. No URL is used.
+							</p>
 						{/if}
 					</div>
 				{:else if moduleForm.type === 'albumsGrid'}
@@ -1762,6 +1808,23 @@
 								Description (Rich Text)
 							</label>
 							<MultiLangHTMLEditor id="module-albums-desc" bind:value={albumsGridDescription} />
+						</div>
+
+						<div>
+							<label for="module-albums-card-layout" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+								Album card layout
+							</label>
+							<select
+								id="module-albums-card-layout"
+								bind:value={albumsGridAlbumCardLayout}
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)] bg-[var(--color-surface-50-950)] text-[var(--color-surface-800-200)]"
+							>
+								<option value="stack">Image on top (grid)</option>
+								<option value="row">Image left, details right (one per row)</option>
+							</select>
+							<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">
+								Row layout lists each album as a full-width horizontal card.
+							</p>
 						</div>
 
 						<div>
@@ -2279,29 +2342,48 @@
 							<MultiLangInput id="module-hero-subtitle" bind:value={heroSubtitle} />
 						</div>
 
-						<div>
-							<label for="module-hero-cta-label" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
-								CTA Label (optional)
-							</label>
-							<MultiLangInput id="module-hero-cta-label" bind:value={heroCtaLabel} />
+						<div class="flex items-start gap-3 rounded-md border border-surface-300-700 bg-[var(--color-surface-50-950)] p-3">
+							<input
+								id="module-hero-show-cta"
+								type="checkbox"
+								bind:checked={heroShowCta}
+								class="mt-1 h-4 w-4 rounded border-surface-300-700 text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)]"
+							/>
+							<div class="min-w-0 flex-1">
+								<label for="module-hero-show-cta" class="block text-sm font-medium text-[var(--color-surface-800-200)]">
+									Show call-to-action button
+								</label>
+								<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">
+									When off, the hero shows title and subtitle only (no button).
+								</p>
+							</div>
 						</div>
 
-						<div>
-							<label for="module-hero-cta-url" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
-								CTA URL (optional)
-							</label>
-							<input
-								id="module-hero-cta-url"
-								type="url"
-								bind:value={heroCtaUrl}
-								placeholder="https://..."
-								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
-							/>
-						</div>
+						{#if heroShowCta}
+							<div>
+								<label for="module-hero-cta-label" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+									Button label
+								</label>
+								<MultiLangInput id="module-hero-cta-label" bind:value={heroCtaLabel} />
+							</div>
+
+							<div>
+								<label for="module-hero-cta-url" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+									Button URL
+								</label>
+								<input
+									id="module-hero-cta-url"
+									type="url"
+									bind:value={heroCtaUrl}
+									placeholder="https://..."
+									class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
+								/>
+							</div>
+						{/if}
 
 						<div>
 							<label for="module-hero-bg-style" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
-								Background Style
+								Background style
 							</label>
 							<select
 								id="module-hero-bg-style"
@@ -2310,24 +2392,37 @@
 							>
 								<option value="light">Light</option>
 								<option value="dark">Dark</option>
-								<option value="image">Image (URL)</option>
+								<option value="image">Custom image (URL)</option>
 								<option value="galleryLeading">Gallery leading photo</option>
 							</select>
+							<p class="mt-1.5 text-xs text-[var(--color-surface-600-400)]">
+								<strong>Custom image</strong> — paste a direct link to an image file. <strong>Gallery leading photo</strong> — uses a featured
+								photo from your library (no URL field).
+							</p>
 						</div>
 
 						{#if heroBackgroundStyle === 'image'}
 							<div>
 								<label for="module-hero-bg-image" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
-									Background Image URL
+									Background image URL
 								</label>
 								<input
 									id="module-hero-bg-image"
-									type="text"
+									type="url"
 									bind:value={heroBackgroundImage}
-									placeholder="https://..."
+									placeholder="https://example.com/path/to/image.jpg"
 									class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 								/>
+								<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">
+									Use this only with <strong>Custom image (URL)</strong>. For a featured gallery photo, pick <strong>Gallery leading photo</strong> instead (no URL).
+								</p>
 							</div>
+						{/if}
+
+						{#if heroBackgroundStyle === 'galleryLeading'}
+							<p class="rounded-md border border-surface-300-700 bg-[var(--color-surface-50-950)] px-3 py-2 text-xs text-[var(--color-surface-600-400)]">
+								Background comes from your published gallery-leading or album-cover photos. No URL is used.
+							</p>
 						{/if}
 					</div>
 				{:else if moduleForm.type === 'albumsGrid'}
@@ -2345,6 +2440,23 @@
 								Description (Rich Text)
 							</label>
 							<MultiLangHTMLEditor id="module-albums-desc" bind:value={albumsGridDescription} />
+						</div>
+
+						<div>
+							<label for="module-albums-card-layout" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+								Album card layout
+							</label>
+							<select
+								id="module-albums-card-layout"
+								bind:value={albumsGridAlbumCardLayout}
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)] bg-[var(--color-surface-50-950)] text-[var(--color-surface-800-200)]"
+							>
+								<option value="stack">Image on top (grid)</option>
+								<option value="row">Image left, details right (one per row)</option>
+							</select>
+							<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">
+								Row layout lists each album as a full-width horizontal card.
+							</p>
 						</div>
 
 						<div>
@@ -2652,29 +2764,48 @@
 							<MultiLangInput id="module-hero-subtitle" bind:value={heroSubtitle} />
 						</div>
 
-						<div>
-							<label for="module-hero-cta-label" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
-								CTA Label (optional)
-							</label>
-							<MultiLangInput id="module-hero-cta-label" bind:value={heroCtaLabel} />
+						<div class="flex items-start gap-3 rounded-md border border-surface-300-700 bg-[var(--color-surface-50-950)] p-3">
+							<input
+								id="module-hero-show-cta"
+								type="checkbox"
+								bind:checked={heroShowCta}
+								class="mt-1 h-4 w-4 rounded border-surface-300-700 text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)]"
+							/>
+							<div class="min-w-0 flex-1">
+								<label for="module-hero-show-cta" class="block text-sm font-medium text-[var(--color-surface-800-200)]">
+									Show call-to-action button
+								</label>
+								<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">
+									When off, the hero shows title and subtitle only (no button).
+								</p>
+							</div>
 						</div>
 
-						<div>
-							<label for="module-hero-cta-url" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
-								CTA URL (optional)
-							</label>
-							<input
-								id="module-hero-cta-url"
-								type="url"
-								bind:value={heroCtaUrl}
-								placeholder="https://..."
-								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
-							/>
-						</div>
+						{#if heroShowCta}
+							<div>
+								<label for="module-hero-cta-label" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+									Button label
+								</label>
+								<MultiLangInput id="module-hero-cta-label" bind:value={heroCtaLabel} />
+							</div>
+
+							<div>
+								<label for="module-hero-cta-url" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+									Button URL
+								</label>
+								<input
+									id="module-hero-cta-url"
+									type="url"
+									bind:value={heroCtaUrl}
+									placeholder="https://..."
+									class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
+								/>
+							</div>
+						{/if}
 
 						<div>
 							<label for="module-hero-bg-style" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
-								Background Style
+								Background style
 							</label>
 							<select
 								id="module-hero-bg-style"
@@ -2683,24 +2814,37 @@
 							>
 								<option value="light">Light</option>
 								<option value="dark">Dark</option>
-								<option value="image">Image (URL)</option>
+								<option value="image">Custom image (URL)</option>
 								<option value="galleryLeading">Gallery leading photo</option>
 							</select>
+							<p class="mt-1.5 text-xs text-[var(--color-surface-600-400)]">
+								<strong>Custom image</strong> — paste a direct link to an image file. <strong>Gallery leading photo</strong> — uses a featured
+								photo from your library (no URL field).
+							</p>
 						</div>
 
 						{#if heroBackgroundStyle === 'image'}
 							<div>
 								<label for="module-hero-bg-image" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
-									Background Image URL
+									Background image URL
 								</label>
 								<input
 									id="module-hero-bg-image"
-									type="text"
+									type="url"
 									bind:value={heroBackgroundImage}
-									placeholder="https://..."
+									placeholder="https://example.com/path/to/image.jpg"
 									class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
 								/>
+								<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">
+									Use this only with <strong>Custom image (URL)</strong>. For a featured gallery photo, pick <strong>Gallery leading photo</strong> instead (no URL).
+								</p>
 							</div>
+						{/if}
+
+						{#if heroBackgroundStyle === 'galleryLeading'}
+							<p class="rounded-md border border-surface-300-700 bg-[var(--color-surface-50-950)] px-3 py-2 text-xs text-[var(--color-surface-600-400)]">
+								Background comes from your published gallery-leading or album-cover photos. No URL is used.
+							</p>
 						{/if}
 					</div>
 				{:else if moduleForm.type === 'albumsGrid'}
@@ -2718,6 +2862,23 @@
 								Description (Rich Text)
 							</label>
 							<MultiLangHTMLEditor id="module-albums-desc" bind:value={albumsGridDescription} />
+						</div>
+
+						<div>
+							<label for="module-albums-card-layout" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+								Album card layout
+							</label>
+							<select
+								id="module-albums-card-layout"
+								bind:value={albumsGridAlbumCardLayout}
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)] bg-[var(--color-surface-50-950)] text-[var(--color-surface-800-200)]"
+							>
+								<option value="stack">Image on top (grid)</option>
+								<option value="row">Image left, details right (one per row)</option>
+							</select>
+							<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">
+								Row layout lists each album as a full-width horizontal card.
+							</p>
 						</div>
 
 						<div>

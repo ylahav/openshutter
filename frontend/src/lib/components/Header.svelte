@@ -25,6 +25,8 @@
 		? ($headerConfig.showLanguageSelector ?? $headerConfig.enableLanguageSelector) 
 		: true;
 	$: showThemeToggle = $headerConfig?.enableThemeToggle !== undefined ? $headerConfig.enableThemeToggle : true;
+	$: languageSelectorVariant =
+		$headerConfig?.languageSelectorVariant === 'flags' ? 'flags' : 'dropdown';
 	$: showAuthButtons = $headerConfig?.showAuthButtons !== undefined ? $headerConfig.showAuthButtons : true;
 	$: showGreeting = $headerConfig?.showGreeting !== undefined ? $headerConfig.showGreeting : true;
 
@@ -144,7 +146,7 @@
 					<!-- Language selector (if enabled) -->
 					{#if showLanguageSelector}
 						<div class="ml-6">
-							<LanguageSelector compact={true} />
+							<LanguageSelector compact={true} variant={languageSelectorVariant} />
 						</div>
 					{/if}
 

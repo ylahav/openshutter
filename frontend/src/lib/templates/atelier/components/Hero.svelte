@@ -31,7 +31,7 @@
 </script>
 
 <section
-	class="relative min-h-[420px] h-[68vh] max-h-[820px] flex items-end overflow-hidden transition-colors duration-300"
+	class="a-hero relative min-h-[420px] h-[68vh] max-h-[820px] flex items-end overflow-hidden transition-colors duration-300"
 	aria-labelledby="atelier-hero-title"
 >
 	<div class="absolute inset-0 z-0" style="background: var(--tp-hero-strip-bg);"></div>

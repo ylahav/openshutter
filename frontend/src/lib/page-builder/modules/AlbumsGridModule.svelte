@@ -14,6 +14,7 @@
 		showDescription?: boolean;
 		descriptionLines?: number;
 		cardFieldOrder?: Array<'title' | 'cover' | 'description' | 'photoCount' | 'featuredBadge'>;
+		albumCardLayout?: 'stack' | 'row';
 		showPhotoCount?: boolean;
 		showFeaturedBadge?: boolean;
 		sortBy?: 'manual' | 'order' | 'name' | 'photoCount' | 'createdAt' | 'lastPhotoDate';
@@ -37,6 +38,7 @@
 	export let showDescription: NonNullable<AlbumsGridProps['showDescription']> = true;
 	export let descriptionLines: NonNullable<AlbumsGridProps['descriptionLines']> = 2;
 	export let cardFieldOrder: NonNullable<AlbumsGridProps['cardFieldOrder']> = ['cover', 'title', 'description', 'photoCount', 'featuredBadge'];
+	export let albumCardLayout: NonNullable<AlbumsGridProps['albumCardLayout']> = 'stack';
 	export let showPhotoCount: NonNullable<AlbumsGridProps['showPhotoCount']> = true;
 	export let showFeaturedBadge: NonNullable<AlbumsGridProps['showFeaturedBadge']> = true;
 	export let sortBy: NonNullable<AlbumsGridProps['sortBy']> = 'manual';
@@ -47,8 +49,9 @@
 	export let props: LegacyAlbumsGridProps | undefined = undefined;
 	export let data: unknown = null;
 
-	$: config = (props?.config ??
-		(props && typeof props === 'object' ? props : undefined) ?? {
+	$: config = (() => {
+		const p: any = props && typeof props === 'object' ? props : undefined;
+		const defaults: AlbumsGridProps = {
 			title,
 			description,
 			albumSource,
@@ -61,12 +64,16 @@
 			showDescription,
 			descriptionLines,
 			cardFieldOrder,
+			albumCardLayout,
 			showPhotoCount,
 			showFeaturedBadge,
 			sortBy,
 			sortDirection,
 			limit
-		}) satisfies AlbumsGridProps;
+		};
+		const legacyConfig = p?.config && typeof p.config === 'object' ? p.config : undefined;
+		return { ...defaults, ...(legacyConfig ?? {}), ...(p ?? {}) } satisfies AlbumsGridProps;
+	})();
 </script>
 
 <Layout {config} {data} />

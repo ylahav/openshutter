@@ -4,10 +4,11 @@
 
 	export let config: any = {};
 
+	$: variant = config?.variant === 'flags' ? 'flags' : 'dropdown';
 	$: showFlags = config?.showFlags !== false;
 	$: showNativeNames = config?.showNativeNames !== false;
 	$: compact = config?.compact ?? false;
 	$: className = config?.className || '';
 </script>
 
-<LanguageSelector {showFlags} {showNativeNames} {compact} {className} />
+<LanguageSelector {variant} {showFlags} {showNativeNames} {compact} {className} />

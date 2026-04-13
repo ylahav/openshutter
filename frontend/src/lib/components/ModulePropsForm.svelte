@@ -83,7 +83,12 @@
 		if (!field.visibleWhen) return true;
 		const condition = field.visibleWhen;
 		const key = Object.keys(condition)[0];
-		return props[key] === condition[key];
+		const expected = condition[key];
+		// Hero CTA: default missing `showCta` to true so legacy modules still show label/url fields.
+		if (key === 'showCta' && expected === true) {
+			return props[key] !== false;
+		}
+		return props[key] === expected;
 	}
 
 	const placementAxisOptions: ModulePlacementAxis[] = ['default', 'start', 'center', 'end', 'stretch'];

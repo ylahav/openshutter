@@ -17,16 +17,25 @@ export const heroConfig = {
         required: false,
       },
       {
+        key: 'showCta',
+        type: 'boolean',
+        label: 'Show call-to-action button',
+        default: true,
+        description: 'When off, title and subtitle only (no button).',
+      },
+      {
         key: 'ctaLabel',
         type: 'multilangText',
         label: 'Button label',
         required: false,
+        visibleWhen: { showCta: true },
       },
       {
         key: 'ctaUrl',
         type: 'string',
         label: 'Button URL',
         required: false,
+        visibleWhen: { showCta: true },
       },
       {
         key: 'backgroundStyle',
@@ -34,13 +43,17 @@ export const heroConfig = {
         label: 'Background style',
         options: ['light', 'dark', 'image', 'galleryLeading'],
         default: 'light',
+        description:
+          'Custom image = paste a direct image URL. Gallery leading = featured photo from the library (no URL).',
       },
       {
         key: 'backgroundImage',
-        type: 'image',
-        label: 'Background image',
+        type: 'string',
+        label: 'Background image URL',
         required: false,
+        placeholder: 'https://…',
         visibleWhen: { backgroundStyle: 'image' },
+        description: 'Required when background is Custom image. Not used for Gallery leading.',
       },
     ],
   } as const;
