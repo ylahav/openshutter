@@ -152,7 +152,7 @@ const BASE_TEMPLATES: Record<string, { colors: Record<string, string>; fonts: Re
       lightBackground: '#faf6ef',
       lightText: '#2c1f14',
       lightMuted: '#9c8c7a',
-      lightSurfaceCard: '#faf6ef',
+      lightSurfaceCard: '#f2ece0',
       lightSurfaceCardSecondary: '#f2ece0',
       lightSurfaceCardTertiary: '#e8dece',
       lightTextSubtle: 'rgba(44,31,20,0.35)',
