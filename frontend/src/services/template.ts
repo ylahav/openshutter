@@ -14,6 +14,10 @@ type TemplateConfigValidationResult = {
   missingPages: string[]
 }
 
+/**
+ * Static template **metadata** (colors, fonts, layout) + override helpers.
+ * For runtime Svelte pack pages, use `getTemplatePack()` — not `getTemplatePage` / `getTemplateComponent`.
+ */
 export class TemplateService {
   private static instance: TemplateService
   private templateCache: Map<string, TemplateConfig> = new Map()
@@ -122,6 +126,7 @@ export class TemplateService {
     }
   }
 
+  /** @deprecated References `@/templates/...` React paths; unused in Svelte packs. */
   async getTemplateComponent(templateName: string, componentName: string): Promise<any> {
     try {
       const template = await this.loadTemplate(templateName)
@@ -152,56 +157,22 @@ export class TemplateService {
     }
   }
 
+  /**
+   * @deprecated Legacy webpack `require.context` discovery was never valid in Vite/SvelteKit.
+   * Visitor routes use `getTemplatePack()` from `$lib/template-packs/registry` instead.
+   */
   private buildPageLoaders(): Record<string, Record<string, () => Promise<any>>> {
-    // Auto-discover all template page modules using webpack context (lazy mode for code-splitting)
-    // Pattern matches: src/templates/<template>/pages/<Page>.tsx|ts
-    // Note: path here is relative to this file after compilation
-    //       '../templates' resolves to 'src/templates'
-    // @ts-ignore - webpack's require.context() is a build-time API not recognized by TypeScript
-    const ctx = require.context('../templates', true, /\/pages\/[^/]+\.(tsx|ts)$/i)
-    const loaders: Record<string, Record<string, () => Promise<any>>> = {}
-    ctx.keys().forEach((key: string) => {
-      // Key example: './modern/pages/Login.tsx'
-      const match = key.match(/^\.\/([^/]+)\/pages\/([^/.]+)\.(tsx|ts)$/i)
-      if (!match) return
-      const [, tName, pName] = match
-      const templateKey = tName.toLowerCase()
-      const pageKey = pName.toLowerCase()
-      if (!loaders[templateKey]) loaders[templateKey] = {}
-      loaders[templateKey][pageKey] = () => ctx(key)
-    })
-    return loaders
+    return {}
   }
 
-  async getTemplatePage(templateName: string, pageName: string): Promise<any> {
-    try {
-      logger.debug(`getTemplatePage: Loading ${pageName} for template ${templateName}`)
-      if (!this.pageLoaders) {
-        this.pageLoaders = this.buildPageLoaders()
-      }
-
-      const tplKey = (templateName || 'noir').toLowerCase()
-      const pageKey = (pageName || '').toLowerCase()
-      const byTemplate = this.pageLoaders[tplKey] || this.pageLoaders['noir'] || {}
-      const loader = byTemplate[pageKey]
-      if (loader) {
-        const mod = await loader()
-        return mod.default || mod
-      }
-
-      const fallbackByDefault = this.pageLoaders['noir'] || {}
-      const fallbackLoader = fallbackByDefault[pageKey]
-      if (fallbackLoader) {
-        const mod = await fallbackLoader()
-        return mod.default || mod
-      }
-
-      logger.error(`getTemplatePage: No page loader found for ${pageName}`)
-      return null
-    } catch (error) {
-      logger.error(`Error loading template page ${pageName}:`, error)
-      return null
-    }
+  /**
+   * @deprecated Unused in SvelteKit; pack pages load via `getTemplatePack()`. Always returns null.
+   */
+  async getTemplatePage(_templateName: string, pageName: string): Promise<any> {
+    logger.debug(
+      `[TemplateService] getTemplatePage("${pageName}") is deprecated; use getTemplatePack() from the template registry`
+    )
+    return null
   }
 
   async getTemplateConfig(templateName: string): Promise<TemplateConfig | null> {
@@ -439,7 +410,8 @@ export class TemplateService {
    * Get active template with overrides applied
    */
   async getActiveTemplateWithOverrides(siteConfig: SiteConfig): Promise<TemplateWithOverrides | null> {
-    const activeTemplateName = siteConfig.template?.activeTemplate || 'noir'
+    const activeTemplateName =
+      siteConfig.template?.frontendTemplate || siteConfig.template?.activeTemplate || 'noir'
     return this.getTemplateWithOverrides(activeTemplateName, siteConfig)
   }
 

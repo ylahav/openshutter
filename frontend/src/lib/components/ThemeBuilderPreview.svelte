@@ -5,11 +5,12 @@
 	import { buildGoogleFontsUrl } from '$lib/constants/google-fonts';
 	import type { FontSetting } from '$lib/types/fonts';
 	import type { PageData } from '$types/page-builder';
+	import { buildShellLayoutCssVars, type ShellLayout } from '$lib/template/breakpoints';
 
 	export let tokens: {
 		colors: { primary: string; secondary: string; accent: string; background: string; text: string; muted: string };
 		fonts: Record<string, string | FontSetting>;
-		layout: { maxWidth: string; containerPadding: string; gridGap: string };
+		layout: ShellLayout & { maxWidth: string; containerPadding: string; gridGap: string };
 	} = {
 		colors: { primary: '#3B82F6', secondary: '#6B7280', accent: '#F59E0B', background: '#FFFFFF', text: '#111827', muted: '#6B7280' },
 		fonts: { heading: 'Inter', body: 'Inter', links: 'Inter', lists: 'Inter', formInputs: 'Inter', formLabels: 'Inter' },
@@ -50,6 +51,13 @@
 			.filter(Boolean)
 	);
 
+	$: layoutShell: ShellLayout = {
+		maxWidth: tokens.layout.maxWidth,
+		containerPadding: tokens.layout.containerPadding,
+		gridGap: tokens.layout.gridGap,
+		...tokens.layout
+	};
+
 	$: cssVars = `
 		--os-primary: ${tokens.colors.primary};
 		--os-secondary: ${tokens.colors.secondary};
@@ -75,9 +83,7 @@
 		--os-font-form-labels: ${fontFamily(tokens.fonts.formLabels)}, sans-serif;
 		--os-font-form-labels-size: ${fontSize(tokens.fonts.formLabels)};
 		--os-font-form-labels-weight: ${fontWeight(tokens.fonts.formLabels)};
-		--os-max-width: ${tokens.layout.maxWidth};
-		--os-padding: ${tokens.layout.containerPadding};
-		--os-gap: ${tokens.layout.gridGap};
+		${buildShellLayoutCssVars(layoutShell).trim()}
 	`;
 </script>
 

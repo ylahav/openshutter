@@ -1,0 +1,30 @@
+// ============================================================
+// _reset.scss
+// ============================================================
+@use 'mixins' as *;
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  background: var(--bg);
+  transition: background var(--t);
+}
+
+body {
+  font-family: var(--font-body);
+  color: var(--fg);
+  min-height: 100vh;
+  @include transition-colors;
+}
+
+img, video {
+  max-width: 100%;
+  display: block;
+}
+
+a   { color: inherit; }
+button { cursor: pointer; font: inherit; }

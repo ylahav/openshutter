@@ -26,7 +26,8 @@ export class TemplateConfigService {
    * This merges template defaults with site-specific overrides
    */
   async getComponentVisibility(siteConfig: SiteConfig): Promise<TemplateComponentVisibility> {
-    const activeTemplate = siteConfig.template?.activeTemplate || 'noir'
+    const activeTemplate =
+      siteConfig.template?.frontendTemplate || siteConfig.template?.activeTemplate || 'noir'
     const templateConfig = await templateService.getTemplateConfig(activeTemplate)
     
     if (!templateConfig) {
@@ -124,7 +125,8 @@ export class TemplateConfigService {
    * Reset component visibility to template defaults
    */
   async resetToTemplateDefaults(siteConfig: SiteConfig): Promise<SiteConfig> {
-    const activeTemplate = siteConfig.template?.activeTemplate || 'noir'
+    const activeTemplate =
+      siteConfig.template?.frontendTemplate || siteConfig.template?.activeTemplate || 'noir'
     const templateConfig = await templateService.getTemplateConfig(activeTemplate)
     
     if (!templateConfig) {

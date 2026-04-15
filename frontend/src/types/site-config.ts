@@ -17,8 +17,10 @@ export interface SiteConfig {
     textColor: string
   }
   template?: {
-    activeTemplate?: string // Deprecated: use frontendTemplate instead, kept for backward compatibility
-    frontendTemplate?: string // Template for public-facing frontend pages
+    /** Legacy; effective pack is `frontendTemplate ?? activeTemplate` (see `$lib/stores/template.ts`). */
+    activeTemplate?: string
+    /** Preferred visitor pack id. */
+    frontendTemplate?: string
     /** @deprecated Always `default` from API. Admin UI is not pack-driven. */
     adminTemplate?: string
     customColors?: import('$lib/theme/template-palette').TemplateCustomColors

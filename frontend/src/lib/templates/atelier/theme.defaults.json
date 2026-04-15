@@ -1,5 +1,270 @@
 {
 	"displayName": "Atelier",
+	"googleFontsImport": "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@300;400;500&display=swap",
+	"packTokens": {
+		"fontStacks": {
+			"display": "'Cormorant Garamond', Georgia, serif",
+			"body": "'Jost', sans-serif",
+			"mono": "'Jost', sans-serif"
+		},
+		"typography": {
+			"textHero": "clamp(36px, 6vw, 64px)",
+			"heroTitleWeight": "300",
+			"heroTitleLetterSpacing": "0.06em"
+		},
+		"layout": {
+			"maxWidth": "960px",
+			"padX": "32px",
+			"gap": "24px",
+			"gapGrid": "8px"
+		},
+		"radii": {
+			"default": "2px",
+			"lg": "2px",
+			"sm": "2px"
+		},
+		"header": {
+			"height": "auto"
+		},
+		"hero": {
+			"height": "68vh",
+			"light": {
+				"imgBrightness": "0.55",
+				"imgSaturate": "0.8",
+				"imgSepia": "0",
+				"textColor": "#faf6ef",
+				"subColor": "rgba(250,246,239,0.5)",
+				"overlayGradientStart": "rgba(44,31,20,0.9)",
+				"overlayGradientEnd": "rgba(44,31,20,0.1)"
+			},
+			"dark": {
+				"imgBrightness": "0.35"
+			}
+		},
+		"card": {
+			"shadow": "rgba(44,31,20,0.06)",
+			"shadowHover": "rgba(44,31,20,0.12)",
+			"radius": "2px",
+			"imgBrightness": "1",
+			"imgGrayscale": "0"
+		},
+		"grid": {
+			"albumCols": 3,
+			"albumAspect": "3/4",
+			"photoCols": 4,
+			"photoAspect": "3/4"
+		},
+		"footer": {
+			"foreground": "#faf6ef",
+			"muted": "rgba(250,246,239,0.3)"
+		},
+		"login": {
+			"bgOpacity": "1",
+			"lightBgFilter": "brightness(0.3) saturate(0.4) sepia(0.3)",
+			"darkBgFilter": "brightness(0.15) saturate(0.3) sepia(0.4)"
+		},
+		"about": {
+			"portraitMaxWidth": "260px",
+			"portraitRadius": "2px",
+			"portraitFilter": "sepia(15%)"
+		},
+		"motion": {
+			"animDuration": "0.9s",
+			"transition": "0.4s",
+			"transitionSlow": "0.5s"
+		},
+		"colorsExtra": {
+			"lightOnly": {
+				"accentLight": "#f2ece0"
+			}
+		}
+	},
+	"colorEditor": [
+		{
+			"token": "--bg",
+			"label": "Background (page)",
+			"lightKey": "lightBackground",
+			"darkKey": "background",
+			"kind": "color"
+		},
+		{
+			"token": "--bg-2",
+			"label": "Background2 (surface)",
+			"lightKey": "lightSurfaceCard",
+			"darkKey": "surfaceCard",
+			"kind": "color"
+		},
+		{
+			"token": "--bg-3",
+			"label": "Background 3 (tertiary surface)",
+			"lightKey": "lightSurfaceCardTertiary",
+			"darkKey": "surfaceCardTertiary",
+			"kind": "color"
+		},
+		{
+			"token": "--fg",
+			"label": "Foreground (text)",
+			"lightKey": "lightText",
+			"darkKey": "text",
+			"kind": "color"
+		},
+		{
+			"token": "--fg-mid",
+			"label": "Foreground — mid (muted body)",
+			"lightKey": "lightMuted",
+			"darkKey": "muted",
+			"kind": "color"
+		},
+		{
+			"token": "--fg-muted",
+			"label": "Foreground — muted (labels)",
+			"lightKey": "lightTextSubtle",
+			"darkKey": "textSubtle",
+			"kind": "color"
+		},
+		{
+			"token": "--fg-faint",
+			"label": "Foreground — faint",
+			"lightKey": "lightTextFaint",
+			"darkKey": "textFaint",
+			"kind": "color"
+		},
+		{
+			"token": "--accent",
+			"label": "Accent",
+			"lightKey": "lightAccent",
+			"darkKey": "accent",
+			"kind": "color"
+		},
+		{
+			"token": "--accent-dark",
+			"label": "Accent dark (hover / secondary)",
+			"lightKey": "lightSecondary",
+			"darkKey": "secondary",
+			"kind": "color"
+		},
+		{
+			"token": "--gold",
+			"label": "Gold (brand)",
+			"lightKey": "lightPrimary",
+			"darkKey": "primary",
+			"kind": "color"
+		},
+		{
+			"token": "--border",
+			"label": "Border",
+			"lightKey": "lightBorderSubtle",
+			"darkKey": "borderSubtle",
+			"kind": "color"
+		},
+		{
+			"token": "--card-bg",
+			"label": "Card background",
+			"lightKey": "lightSurfaceCardSecondary",
+			"darkKey": "surfaceCardSecondary",
+			"kind": "color"
+		},
+		{
+			"token": "--card-border",
+			"label": "Card / list border",
+			"lightKey": "lightCardBorder",
+			"darkKey": "cardBorder",
+			"kind": "color"
+		},
+		{
+			"token": "--header-bg",
+			"label": "Header background",
+			"lightKey": "lightHeaderBackground",
+			"darkKey": "headerBackground",
+			"kind": "color"
+		},
+		{
+			"token": "--header-border",
+			"label": "Header border",
+			"lightKey": "lightHeaderBorder",
+			"darkKey": "headerBorder",
+			"kind": "color"
+		},
+		{
+			"token": "--footer-bg",
+			"label": "Footer band",
+			"lightKey": "lightFooterStrip",
+			"darkKey": "footerStrip",
+			"kind": "color"
+		},
+		{
+			"token": "--strip",
+			"label": "Hero strip (dark band)",
+			"lightKey": "lightHeroStrip",
+			"darkKey": "heroStrip",
+			"kind": "color"
+		},
+		{
+			"token": "--hero-img-filter",
+			"label": "Hero image (full CSS filter)",
+			"lightKey": "lightHeroImageFilter",
+			"darkKey": "heroImageFilter",
+			"kind": "filter"
+		},
+		{
+			"token": "--login-bg-filter",
+			"label": "Login backdrop (full CSS filter)",
+			"lightKey": "lightLoginBgFilter",
+			"darkKey": "loginBgFilter",
+			"kind": "filter"
+		}
+	],
+	"fontEditor": [
+		{
+			"role": "heading",
+			"token": "--os-font-heading",
+			"label": "Display / headings (titles, editorial serif)"
+		},
+		{
+			"role": "body",
+			"token": "--os-font-body",
+			"label": "Body text (UI, paragraphs)"
+		},
+		{
+			"role": "links",
+			"token": "--os-font-links",
+			"label": "Links"
+		},
+		{
+			"role": "lists",
+			"token": "--os-font-lists",
+			"label": "Lists"
+		},
+		{
+			"role": "formInputs",
+			"token": "--os-font-form-inputs",
+			"label": "Form inputs"
+		},
+		{
+			"role": "formLabels",
+			"token": "--os-font-form-labels",
+			"label": "Form labels"
+		}
+	],
+	"layoutEditor": [
+		{ "key": "maxWidth", "token": "--os-max-width", "label": "Content max width" },
+		{ "key": "containerPadding", "token": "--os-padding", "label": "Horizontal page padding" },
+		{ "key": "gridGap", "token": "--os-gap", "label": "Section / module grid gap" },
+		{ "key": "gapGrid", "token": "--os-gap-grid", "label": "Tight grid (albums, thumbnails)" },
+		{ "key": "radius", "token": "--os-radius", "label": "Default border radius" },
+		{ "key": "radiusLg", "token": "--os-radius-lg", "label": "Large radius" },
+		{ "key": "radiusSm", "token": "--os-radius-sm", "label": "Small radius" },
+		{ "key": "borderWidth", "token": "--os-border-width", "label": "Hairline border width" },
+		{ "key": "heroHeight", "token": "--os-hero-height", "label": "Hero block height" },
+		{ "key": "headerHeight", "token": "--os-header-height", "label": "Header min-height (auto or length)" },
+		{ "key": "cardRadius", "token": "--os-card-radius", "label": "Card / media corner radius" },
+		{ "key": "cardShadow", "token": "--os-card-shadow", "label": "Card shadow (CSS box-shadow)" },
+		{ "key": "cardShadowHover", "token": "--os-card-shadow-hover", "label": "Card shadow on hover" },
+		{ "key": "albumAspect", "token": "--os-album-aspect", "label": "Album tile aspect ratio (e.g. 3 / 4)" },
+		{ "key": "photoAspect", "token": "--os-photo-aspect", "label": "Photo tile aspect ratio" },
+		{ "key": "animDuration", "token": "--os-anim-duration", "label": "Long animation duration" },
+		{ "key": "transition", "token": "--os-transition", "label": "Default transition duration" }
+	],
 	"colors": {
 		"primary": "#b8955a",
 		"secondary": "#5c4033",
@@ -15,7 +280,7 @@
 		"lightBackground": "#faf6ef",
 		"lightText": "#2c1f14",
 		"lightMuted": "#9c8c7a",
-		"lightSurfaceCard": "#faf6ef",
+		"lightSurfaceCard": "#f2ece0",
 		"lightSurfaceCardSecondary": "#f2ece0",
 		"lightSurfaceCardTertiary": "#e8dece",
 		"lightTextSubtle": "rgba(44,31,20,0.35)",
@@ -23,7 +288,22 @@
 		"heroStrip": "#0e0804",
 		"footerStrip": "#0e0804",
 		"lightHeroStrip": "#2c1f14",
-		"lightFooterStrip": "#2c1f14"
+		"lightFooterStrip": "#2c1f14",
+		"lightPrimary": "#b8955a",
+		"lightSecondary": "#5c4033",
+		"lightAccent": "#d4b07a",
+		"lightTextFaint": "rgba(44,31,20,0.22)",
+		"textFaint": "rgba(240,232,216,0.18)",
+		"lightHeaderBackground": "#faf6ef",
+		"headerBackground": "#1a1008",
+		"lightHeaderBorder": "#e8dece",
+		"headerBorder": "#3a2a1c",
+		"lightCardBorder": "#e8dece",
+		"cardBorder": "#3a2a1c",
+		"lightHeroImageFilter": "brightness(0.55) saturate(0.8)",
+		"heroImageFilter": "brightness(0.35) saturate(0.6)",
+		"lightLoginBgFilter": "brightness(0.3) saturate(0.4) sepia(0.3)",
+		"loginBgFilter": "brightness(0.15) saturate(0.3) sepia(0.4)"
 	},
 	"fonts": {
 		"heading": "Cormorant Garamond",

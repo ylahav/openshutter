@@ -124,6 +124,9 @@ export interface TemplateComponent {
 }
 
 export interface SiteTemplateConfig {
+  /** Preferred visitor pack id when present. */
+  frontendTemplate?: string
+  /** @deprecated Legacy; use `frontendTemplate` when both exist. */
   activeTemplate: string
   customColors?: Partial<TemplateConfig['colors']>
   customFonts?: Partial<TemplateConfig['fonts']>

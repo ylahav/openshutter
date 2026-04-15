@@ -1,4 +1,5 @@
 import { MultiLangText, MultiLangHTML } from './multi-lang'
+import type { ShellLayout } from '../template/shell-layout'
 
 export interface SiteConfig {
   _id?: string
@@ -27,15 +28,9 @@ export interface SiteConfig {
     customColors?: Record<string, string | undefined>
     /** Per-role font: string (family) or { family?, size?, weight? }. */
     customFonts?: Record<string, string | { family?: string; size?: string; weight?: string }>
-    /** Legacy flat shell or breakpoint-keyed map (xs … xl). */
-    customLayout?:
-      | {
-          maxWidth?: string
-          containerPadding?: string
-          gridGap?: string
-        }
-      | Record<string, { maxWidth?: string; containerPadding?: string; gridGap?: string }>
-    customLayoutByBreakpoint?: Record<string, { maxWidth?: string; containerPadding?: string; gridGap?: string }>
+    /** Legacy flat shell or breakpoint-keyed map (xs … xl). Values may include pack tokens (radius, etc.). */
+    customLayout?: ShellLayout | Record<string, ShellLayout>
+    customLayoutByBreakpoint?: Record<string, ShellLayout>
     pageLayoutByBreakpoint?: Record<
       string,
       Record<string, { gridRows?: number; gridColumns?: number }>

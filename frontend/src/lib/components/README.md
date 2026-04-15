@@ -24,7 +24,9 @@ Many modules **wrap** a file from this directory—for example:
 | `languageSelector` | [`ui/language-selector/LanguageSelector.svelte`](./ui/language-selector/README.md) |
 | `themeToggle` | [`ui/theme-toggle/ThemeToggle.svelte`](./ui/theme-toggle/README.md) |
 | `themeSelect` | [`ui/template-selector/TemplateSelector.svelte`](./ui/template-selector/README.md) |
-| `loginForm` | `LoginTemplateSwitcher.svelte` |
+| `loginForm` | `LoginTemplateSwitcher.svelte` (also used inside **`pack.pages.Login`**) |
+
+**Pack routing (visitor):** `HomeTemplateSwitcher`, `GalleryTemplateSwitcher`, `AlbumTemplateSwitcher`, `AboutTemplateSwitcher`, `SearchTemplateSwitcher`, `ContactTemplateSwitcher`, and `CmsPageTemplateSwitcher` load `getTemplatePack()` and render the active pack’s page component (see `docs/development/TEMPLATING.md`).
 
 For those, the module README summarizes props; **additional markup/classes** live in the component source.
 

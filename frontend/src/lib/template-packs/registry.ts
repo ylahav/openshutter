@@ -12,10 +12,14 @@ const packCache = new Map<TemplatePackId, TemplatePack>();
 
 const packLoaders: Record<TemplatePackId, () => Promise<TemplatePack>> = {
 	noir: async () => {
-		const [Home, Gallery, Album, Login] = await Promise.all([
+		const [Home, Gallery, Album, About, Search, Contact, CmsPage, Login] = await Promise.all([
 			import('$lib/templates/noir/Home.svelte'),
 			import('$lib/templates/noir/Gallery.svelte'),
 			import('$lib/templates/noir/Album.svelte'),
+			import('$lib/templates/noir/About.svelte'),
+			import('$lib/templates/noir/Search.svelte'),
+			import('$lib/templates/noir/Contact.svelte'),
+			import('$lib/templates/noir/CmsPage.svelte'),
 			import('$lib/templates/noir/Login.svelte')
 		]);
 		return {
@@ -24,15 +28,23 @@ const packLoaders: Record<TemplatePackId, () => Promise<TemplatePack>> = {
 				Home: (Home as ModuleDefault).default,
 				Gallery: (Gallery as ModuleDefault).default,
 				Album: (Album as ModuleDefault).default,
+				About: (About as ModuleDefault).default,
+				Search: (Search as ModuleDefault).default,
+				Contact: (Contact as ModuleDefault).default,
+				CmsPage: (CmsPage as ModuleDefault).default,
 				Login: (Login as ModuleDefault).default
 			}
 		};
 	},
 	studio: async () => {
-		const [Home, Gallery, Album, Login] = await Promise.all([
+		const [Home, Gallery, Album, About, Search, Contact, CmsPage, Login] = await Promise.all([
 			import('$lib/templates/studio/Home.svelte'),
 			import('$lib/templates/studio/Gallery.svelte'),
 			import('$lib/templates/studio/Album.svelte'),
+			import('$lib/templates/studio/About.svelte'),
+			import('$lib/templates/studio/Search.svelte'),
+			import('$lib/templates/studio/Contact.svelte'),
+			import('$lib/templates/studio/CmsPage.svelte'),
 			import('$lib/templates/studio/Login.svelte')
 		]);
 		return {
@@ -41,15 +53,23 @@ const packLoaders: Record<TemplatePackId, () => Promise<TemplatePack>> = {
 				Home: (Home as ModuleDefault).default,
 				Gallery: (Gallery as ModuleDefault).default,
 				Album: (Album as ModuleDefault).default,
+				About: (About as ModuleDefault).default,
+				Search: (Search as ModuleDefault).default,
+				Contact: (Contact as ModuleDefault).default,
+				CmsPage: (CmsPage as ModuleDefault).default,
 				Login: (Login as ModuleDefault).default
 			}
 		};
 	},
 	atelier: async () => {
-		const [Home, Gallery, Album, Login] = await Promise.all([
+		const [Home, Gallery, Album, About, Search, Contact, CmsPage, Login] = await Promise.all([
 			import('$lib/templates/atelier/Home.svelte'),
 			import('$lib/templates/atelier/Gallery.svelte'),
 			import('$lib/templates/atelier/Album.svelte'),
+			import('$lib/templates/atelier/About.svelte'),
+			import('$lib/templates/atelier/Search.svelte'),
+			import('$lib/templates/atelier/Contact.svelte'),
+			import('$lib/templates/atelier/CmsPage.svelte'),
 			import('$lib/templates/atelier/Login.svelte')
 		]);
 		return {
@@ -58,6 +78,10 @@ const packLoaders: Record<TemplatePackId, () => Promise<TemplatePack>> = {
 				Home: (Home as ModuleDefault).default,
 				Gallery: (Gallery as ModuleDefault).default,
 				Album: (Album as ModuleDefault).default,
+				About: (About as ModuleDefault).default,
+				Search: (Search as ModuleDefault).default,
+				Contact: (Contact as ModuleDefault).default,
+				CmsPage: (CmsPage as ModuleDefault).default,
 				Login: (Login as ModuleDefault).default
 			}
 		};

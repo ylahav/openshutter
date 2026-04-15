@@ -16,6 +16,7 @@
 	export let albums: TemplateAlbum[] = [];
 	export let loading = false;
 	export let error: string | null = null;
+	export let pageContext: 'home' | 'gallery' = 'home';
 
 	$: filteredAlbums = albums;
 	$: countLabel = filteredAlbums.length === 1 ? '1 collection' : `${filteredAlbums.length} collections`;
@@ -42,15 +43,17 @@
 {:else}
 	<div class="sec-hdr">
 		<span class="sec-label">
-			albums
+			{pageContext === 'gallery' ? $t('navigation.albums').toLowerCase() : 'albums'}
 		</span>
 		<div class="flex items-baseline gap-6">
 			<span class="sec-count">
 				{countLabel}
 			</span>
-			<a href="/albums" class="sec-link">
-				{$t('hero.browseAllAlbums')} →
-			</a>
+			{#if pageContext !== 'gallery'}
+				<a href="/albums" class="sec-link">
+					{$t('hero.browseAllAlbums')} →
+				</a>
+			{/if}
 		</div>
 	</div>
 

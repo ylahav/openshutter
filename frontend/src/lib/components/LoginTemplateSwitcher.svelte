@@ -203,9 +203,9 @@
 
 		templateName === 'noir'
 
-			? 'bg-[color:var(--tp-canvas)] text-[color:var(--tp-fg)] [font-family:var(--os-font-body)] cursor-crosshair'
+			? 'bg-(--tp-canvas) text-(--tp-fg) [font-family:var(--os-font-body)] cursor-crosshair'
 
-			: 'bg-[color:var(--tp-canvas)] text-[color:var(--tp-fg)] [font-family:var(--os-font-body)]'
+			: 'bg-(--tp-canvas) text-(--tp-fg) [font-family:var(--os-font-body)]'
 
 	}`}
 
@@ -217,11 +217,11 @@
 
 			<div class="text-center mb-2 [font-family:var(--os-font-body)]">
 
-				<p class="text-[13px] uppercase tracking-[0.22em] text-[color:var(--tp-fg)]">{loginBrandName}</p>
+				<p class="text-[13px] uppercase tracking-[0.22em] text-(--tp-fg)">{loginBrandName}</p>
 
-				<div class="w-px h-8 mx-auto my-4 bg-[color:var(--tp-fg-muted)]" aria-hidden="true"></div>
+				<div class="w-px h-8 mx-auto my-4 bg-(--tp-fg-muted)" aria-hidden="true"></div>
 
-				<p class="text-[9px] uppercase tracking-[0.28em] text-[color:var(--tp-fg-subtle)]">sign in</p>
+				<p class="text-[9px] uppercase tracking-[0.28em] text-(--tp-fg-subtle)">sign in</p>
 
 			</div>
 
@@ -233,7 +233,7 @@
 
 					href="/"
 
-					class="block text-[22px] tracking-[0.12em] text-[color:var(--tp-fg)] no-underline [font-family:var(--os-font-heading)] font-normal"
+					class="block text-[22px] tracking-[0.12em] text-(--tp-fg) no-underline [font-family:var(--os-font-heading)] font-normal"
 
 				>
 
@@ -241,9 +241,9 @@
 
 				</a>
 
-				<div class="w-px h-8 mx-auto my-3.5 bg-[color:var(--tp-fg-muted)]" aria-hidden="true"></div>
+				<div class="w-px h-8 mx-auto my-3.5 bg-(--tp-fg-muted)" aria-hidden="true"></div>
 
-				<p class="text-[9px] uppercase tracking-[0.28em] text-[color:var(--tp-fg-muted)]">sign in</p>
+				<p class="text-[9px] uppercase tracking-[0.28em] text-(--tp-fg-muted)">sign in</p>
 
 			</div>
 
@@ -261,9 +261,9 @@
 
 						: templateName === 'studio'
 
-							? 'text-3xl font-bold tracking-tight text-[color:var(--tp-fg)] [font-family:var(--os-font-heading)]'
+							? 'text-3xl font-bold tracking-tight text-(--tp-fg) [font-family:var(--os-font-heading)]'
 
-							: 'text-3xl font-light tracking-[0.06em] text-[color:var(--tp-fg)] [font-family:var(--os-font-heading)]'
+							: 'text-3xl font-light tracking-[0.06em] text-(--tp-fg) [font-family:var(--os-font-heading)]'
 
 				}`}
 
@@ -281,7 +281,7 @@
 
 						? 'sr-only'
 
-						: 'text-[color:var(--tp-fg-muted)]'
+						: 'text-(--tp-fg-muted)'
 
 				}`}
 
@@ -335,7 +335,7 @@
 
 						class={templateName === 'atelier'
 
-							? 'block text-[9px] uppercase tracking-[0.22em] mb-2 text-[color:var(--tp-fg-muted)]'
+							? 'block text-[9px] uppercase tracking-[0.22em] mb-2 text-(--tp-fg-muted)'
 
 							: 'sr-only'}
 
@@ -359,17 +359,17 @@
 
 						bind:value={email}
 
-						class={`appearance-none relative block w-full placeholder-[color:var(--tp-fg-muted)] placeholder:opacity-60 focus:outline-none sm:text-sm ${
+						class={`appearance-none relative block w-full placeholder-(--tp-fg-muted) placeholder:opacity-60 focus:outline-none sm:text-sm ${
 
 							templateName === 'noir'
 
-								? 'px-3 py-2 border border-[color:var(--tp-border)] bg-[color:var(--tp-surface-1)] text-[color:var(--tp-fg)] focus:ring-1 focus:ring-[color:var(--tp-fg-muted)] [font-family:var(--os-font-form-inputs)]'
+								? 'px-3 py-2 border border-(--tp-border) bg-(--tp-surface-1) text-(--tp-fg) focus:ring-1 focus:ring-(--tp-fg-muted) [font-family:var(--os-font-form-inputs)]'
 
 								: templateName === 'atelier'
 
-									? 'px-0 py-2 border-0 border-b border-[color:var(--tp-border)] rounded-none bg-transparent text-[color:var(--tp-fg)] focus:border-[color:var(--os-primary)] focus:ring-0 [font-family:var(--os-font-form-inputs)]'
+									? 'px-0 py-2 border-0 border-b border-(--tp-border) rounded-none bg-transparent text-(--tp-fg) focus:border-(--os-primary) focus:ring-0 [font-family:var(--os-font-form-inputs)]'
 
-									: 'px-3 py-2 rounded-lg border border-[color:var(--tp-border)] bg-[color:var(--tp-surface-1)] text-[color:var(--tp-fg)] focus:ring-2 focus:ring-[color:color-mix(in_srgb,var(--os-primary)_35%,transparent)] [font-family:var(--os-font-form-inputs)]'
+									: 'px-3 py-2 rounded-lg border border-(--tp-border) bg-(--tp-surface-1) text-(--tp-fg) focus:ring-2 focus:ring-[color-mix(in_srgb,var(--os-primary)_35%,transparent)] [font-family:var(--os-font-form-inputs)]'
 
 						}`}
 
@@ -387,7 +387,7 @@
 
 						class={templateName === 'atelier'
 
-							? 'block text-[9px] uppercase tracking-[0.22em] mb-2 text-[color:var(--tp-fg-muted)]'
+							? 'block text-[9px] uppercase tracking-[0.22em] mb-2 text-(--tp-fg-muted)'
 
 							: 'sr-only'}
 
@@ -411,17 +411,17 @@
 
 						bind:value={password}
 
-						class={`appearance-none relative block w-full placeholder-[color:var(--tp-fg-muted)] placeholder:opacity-60 focus:outline-none sm:text-sm ${
+						class={`appearance-none relative block w-full placeholder-(--tp-fg-muted) placeholder:opacity-60 focus:outline-none sm:text-sm ${
 
 							templateName === 'noir'
 
-								? 'px-3 py-2 border border-[color:var(--tp-border)] bg-[color:var(--tp-surface-1)] text-[color:var(--tp-fg)] focus:ring-1 focus:ring-[color:var(--tp-fg-muted)] [font-family:var(--os-font-form-inputs)]'
+								? 'px-3 py-2 border border-(--tp-border) bg-(--tp-surface-1) text-(--tp-fg) focus:ring-1 focus:ring-(--tp-fg-muted) [font-family:var(--os-font-form-inputs)]'
 
 								: templateName === 'atelier'
 
-									? 'px-0 py-2 border-0 border-b border-[color:var(--tp-border)] rounded-none bg-transparent text-[color:var(--tp-fg)] focus:border-[color:var(--os-primary)] focus:ring-0 [font-family:var(--os-font-form-inputs)]'
+									? 'px-0 py-2 border-0 border-b border-(--tp-border) rounded-none bg-transparent text-(--tp-fg) focus:border-(--os-primary) focus:ring-0 [font-family:var(--os-font-form-inputs)]'
 
-									: 'px-3 py-2 rounded-lg border border-[color:var(--tp-border)] bg-[color:var(--tp-surface-1)] text-[color:var(--tp-fg)] focus:ring-2 focus:ring-[color:color-mix(in_srgb,var(--os-primary)_35%,transparent)] [font-family:var(--os-font-form-inputs)]'
+									: 'px-3 py-2 rounded-lg border border-(--tp-border) bg-(--tp-surface-1) text-(--tp-fg) focus:ring-2 focus:ring-[color-mix(in_srgb,var(--os-primary)_35%,transparent)] [font-family:var(--os-font-form-inputs)]'
 
 						}`}
 
@@ -447,13 +447,13 @@
 
 						templateName === 'noir' || templateName === 'atelier'
 
-							? 'py-3 px-4 border-transparent text-sm font-medium uppercase tracking-[0.15em] bg-[color:var(--tp-fg)] text-[color:var(--tp-canvas)] hover:opacity-90 focus:ring-2 focus:ring-[color:var(--tp-fg-muted)] [font-family:var(--os-font-body)]'
+							? 'py-3 px-4 border-transparent text-sm font-medium uppercase tracking-[0.15em] bg-(--tp-fg) text-(--tp-canvas) hover:opacity-90 focus:ring-2 focus:ring-(--tp-fg-muted) [font-family:var(--os-font-body)]'
 
 							: templateName === 'studio'
 
-								? 'py-2.5 px-4 border-transparent text-sm font-medium rounded-lg bg-[color:var(--os-primary)] text-white hover:opacity-90 focus:ring-2 focus:ring-[color:color-mix(in_srgb,var(--os-primary)_45%,transparent)] [font-family:var(--os-font-body)]'
+								? 'py-2.5 px-4 border-transparent text-sm font-medium rounded-lg bg-(--os-primary) text-white hover:opacity-90 focus:ring-2 focus:ring-[color-mix(in_srgb,var(--os-primary)_45%,transparent)] [font-family:var(--os-font-body)]'
 
-								: 'py-3 px-4 rounded-md border border-[color:var(--tp-fg-muted)] text-sm font-medium text-[10px] uppercase tracking-[0.22em] bg-transparent text-[color:var(--tp-fg-muted)] hover:bg-[color:var(--tp-fg)] hover:text-[color:var(--tp-canvas)] hover:border-[color:var(--tp-fg)] [font-family:var(--os-font-body)]'
+								: 'py-3 px-4 rounded-md border border-(--tp-fg-muted) text-sm font-medium text-[10px] uppercase tracking-[0.22em] bg-transparent text-(--tp-fg-muted) hover:bg-(--tp-fg) hover:text-(--tp-canvas) hover:border-(--tp-fg) [font-family:var(--os-font-body)]'
 
 					}`}
 
@@ -481,7 +481,7 @@
 
 				href="/"
 
-				class="block text-center mt-7 text-[9px] uppercase tracking-[0.18em] no-underline text-[color:var(--tp-fg-muted)] hover:text-[color:var(--tp-fg)] transition-colors"
+				class="block text-center mt-7 text-[9px] uppercase tracking-[0.18em] no-underline text-(--tp-fg-muted) hover:text-(--tp-fg) transition-colors"
 
 			>
 
@@ -502,5 +502,3 @@
 	<ForcePasswordChangeModal onSuccess={onPasswordChanged} />
 
 {/if}
-
-

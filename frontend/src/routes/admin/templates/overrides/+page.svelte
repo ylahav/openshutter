@@ -50,6 +50,7 @@
 		DEFAULT_TEMPLATE_COLOR_EXTENDED,
 		EXTENDED_COLOR_FIELD_META
 	} from '$lib/theme/template-palette';
+	import atelierThemePack from '$lib/templates/atelier/theme.defaults.json';
 
 	/** Readable defaults when template / overrides omit a key (also fixes invisible #000 on white fields). */
 	const DEFAULT_COLOR_HEX: Record<string, string> = {
@@ -112,11 +113,7 @@
 			muted: string;
 		};
 		fonts: Record<FontRole, FontSetting>;
-		layout: {
-			maxWidth: string;
-			containerPadding: string;
-			gridGap: string;
-		};
+		layout: ShellLayout & { maxWidth: string; containerPadding: string; gridGap: string };
 		visibility?: {
 			hero?: boolean;
 			languageSelector?: boolean;
@@ -196,7 +193,7 @@
 		customFonts?: Record<string, string | FontSetting>;
 		/** Legacy flat `{ maxWidth, … }` or full breakpoint map (preferred when saved). */
 		customLayout?: Record<string, unknown>;
-		customLayoutByBreakpoint?: Record<string, { maxWidth?: string; containerPadding?: string; gridGap?: string }>;
+		customLayoutByBreakpoint?: Record<string, ShellLayout>;
 		componentVisibility?: Record<string, boolean>;
 		headerConfig?: Record<string, any>;
 		/** Legacy flat per page, or full `{ pageKey: { xs: …, lg: … } }` map when saved from Admin. */
@@ -215,7 +212,7 @@
 		customColors?: Record<string, string>;
 		customFonts?: Record<string, string | FontSetting>;
 		customLayout?: Record<string, unknown>;
-		customLayoutByBreakpoint?: Record<string, { maxWidth?: string; containerPadding?: string; gridGap?: string }>;
+		customLayoutByBreakpoint?: Record<string, ShellLayout>;
 		componentVisibility?: Record<string, boolean>;
 		headerConfig?: Record<string, unknown>;
 		/** Legacy flat per page, or full `{ pageKey: { xs: …, lg: … } }` map when saved from Admin. */
@@ -373,7 +370,7 @@
 			localOverrides = {
 				customColors: editingTheme.customColors ? { ...editingTheme.customColors } : {},
 				customFonts: editingTheme.customFonts ? { ...editingTheme.customFonts } : {},
-				customLayoutByBreakpoint: shellByBp as Record<string, { maxWidth?: string; containerPadding?: string; gridGap?: string }>,
+				customLayoutByBreakpoint: shellByBp as Record<string, ShellLayout>,
 				customLayout: shellByBreakpointToCustomLayoutField(shellByBp),
 				componentVisibility: editingTheme.componentVisibility ? { ...editingTheme.componentVisibility } : {},
 				headerConfig: editingTheme.headerConfig ? { ...editingTheme.headerConfig } : {},
@@ -413,7 +410,7 @@
 			localOverrides = {
 				customColors: siteTemplateOverrides.customColors ? { ...siteTemplateOverrides.customColors } : {},
 				customFonts: siteTemplateOverrides.customFonts ? { ...siteTemplateOverrides.customFonts } : {},
-				customLayoutByBreakpoint: shellByBp as Record<string, { maxWidth?: string; containerPadding?: string; gridGap?: string }>,
+				customLayoutByBreakpoint: shellByBp as Record<string, ShellLayout>,
 				customLayout: shellByBreakpointToCustomLayoutField(shellByBp),
 				componentVisibility: siteTemplateOverrides.componentVisibility
 					? { ...siteTemplateOverrides.componentVisibility }
@@ -1903,8 +1900,14 @@ let draggedAlbumHeaderField: string | null = null;
 		hasChanges = true;
 	}
 
+	function packAtelierColorDefault(key: string): string | undefined {
+		if (activeTemplate?.templateName !== 'atelier') return undefined;
+		const raw = (atelierThemePack as { colors?: Record<string, string> }).colors?.[key];
+		return raw != null && String(raw).trim() !== '' ? String(raw).trim() : undefined;
+	}
+
 	function colorField(key: string): string {
-		const fb = DEFAULT_COLOR_FALLBACK[key] ?? '#888888';
+		const fb = packAtelierColorDefault(key) ?? DEFAULT_COLOR_FALLBACK[key] ?? '#888888';
 		const o = localOverrides.customColors?.[key];
 		if (o != null && String(o).trim() !== '') return String(o).trim();
 		const tpl = activeTemplate?.colors as Record<string, string> | undefined;
@@ -1971,7 +1974,64 @@ let draggedAlbumHeaderField: string | null = null;
 		return (t as FontSetting).family ?? 'Inter';
 	}
 
-	function getEffectiveLayout(layoutType: 'maxWidth' | 'containerPadding' | 'gridGap'): string {
+	/** Pack default family from `theme.defaults.json` (placeholders on Atelier font table). */
+	function atelierPackFontFamily(role: FontRole): string {
+		const raw = (atelierThemePack as { fonts?: Record<string, string> }).fonts?.[role];
+		return raw != null && String(raw).trim() !== '' ? String(raw).trim() : '';
+	}
+
+	type AtelierPackTokens = {
+		packTokens?: {
+			layout?: Record<string, string>;
+			radii?: Record<string, string>;
+			card?: Record<string, string>;
+			hero?: { height?: string };
+			header?: { height?: string };
+			grid?: Record<string, string | number>;
+			motion?: Record<string, string>;
+		};
+	};
+
+	function aspectFromPackToken(v: unknown): string {
+		if (v == null) return '';
+		const s = String(v).trim();
+		if (!s) return '';
+		return /\//.test(s) ? s.replace(/\s*\/\s*/, ' / ') : s;
+	}
+
+	function atelierPackLayoutDefault(layoutKey: string): string {
+		const pt = (atelierThemePack as AtelierPackTokens).packTokens;
+		if (!pt) return '';
+		const layout = pt.layout;
+		const radii = pt.radii;
+		const card = pt.card;
+		const hero = pt.hero;
+		const header = pt.header;
+		const grid = pt.grid;
+		const motion = pt.motion;
+		const map: Record<string, string> = {
+			maxWidth: layout?.maxWidth ?? '',
+			containerPadding: layout?.padX ?? '',
+			gridGap: layout?.gap ?? '',
+			gapGrid: layout?.gapGrid ?? '',
+			radius: radii?.default ?? '',
+			radiusLg: radii?.lg ?? '',
+			radiusSm: radii?.sm ?? '',
+			borderWidth: '1px',
+			heroHeight: hero?.height ?? '',
+			headerHeight: header?.height ?? '',
+			cardRadius: card?.radius ?? '',
+			cardShadow: card?.shadow ?? '',
+			cardShadowHover: card?.shadowHover ?? '',
+			albumAspect: aspectFromPackToken(grid?.albumAspect),
+			photoAspect: aspectFromPackToken(grid?.photoAspect),
+			animDuration: motion?.animDuration ?? '',
+			transition: motion?.transition ?? ''
+		};
+		return map[layoutKey] ?? '';
+	}
+
+	function getEffectiveLayout(layoutType: string): string {
 		const bp = editingBreakpoint;
 		const key = layoutType as keyof ShellLayout;
 		const shell = localOverrides.customLayoutByBreakpoint?.[bp];
@@ -1981,17 +2041,27 @@ let draggedAlbumHeaderField: string | null = null;
 		const raw = localOverrides.customLayout;
 		if (raw && isBreakpointMapCustomLayout(raw)) {
 			const cell = raw[bp];
-			if (cell?.[key] != null && String(cell[key]).trim() !== '') return String(cell[key]);
+			if (cell && typeof cell === 'object' && cell[key] != null && String(cell[key]).trim() !== '') {
+				return String(cell[key]);
+			}
 		}
 		if (raw && isLegacyCustomLayout(raw)) {
-			const v = raw[layoutType];
+			const legacyCell = raw as ShellLayout;
+			const v = legacyCell[key];
 			if (v != null && String(v).trim() !== '') return String(v);
 		}
-		const pack = activeTemplate?.layout[layoutType];
-		if (pack != null && String(pack).trim() !== '') return String(pack);
+		const pack = activeTemplate?.layout as Record<string, string | undefined> | undefined;
+		const pv = pack?.[layoutType];
+		if (pv != null && String(pv).trim() !== '') return String(pv);
 		const hint = SHELL_HINT_BY_BREAKPOINT[bp]?.[key];
 		if (hint != null && String(hint).trim() !== '') return String(hint);
-		return DEFAULT_SHELL[key] ?? '';
+		if (key === 'maxWidth' || key === 'containerPadding' || key === 'gridGap') {
+			const d = DEFAULT_SHELL[key];
+			if (d != null && String(d).trim() !== '') return d;
+		}
+		const ap = atelierPackLayoutDefault(layoutType);
+		if (ap != null && ap.trim() !== '') return ap;
+		return '';
 	}
 
 	function getEffectiveVisibility(component: string): boolean {
@@ -2042,11 +2112,22 @@ let draggedAlbumHeaderField: string | null = null;
 			formInputs: getEffectiveFontSetting('formInputs'),
 			formLabels: getEffectiveFontSetting('formLabels')
 		},
-		layout: {
-			maxWidth: getEffectiveLayout('maxWidth') || '1200px',
-			containerPadding: getEffectiveLayout('containerPadding') || '1rem',
-			gridGap: getEffectiveLayout('gridGap') || '1.5rem'
-		}
+		layout: (() => {
+			const base: ShellLayout & { maxWidth: string; containerPadding: string; gridGap: string } = {
+				maxWidth: getEffectiveLayout('maxWidth') || '1200px',
+				containerPadding: getEffectiveLayout('containerPadding') || '1rem',
+				gridGap: getEffectiveLayout('gridGap') || '1.5rem'
+			};
+			if (activeTemplate.templateName !== 'atelier') return base;
+			const rows = (atelierThemePack as { layoutEditor?: { key: string }[] }).layoutEditor ?? [];
+			const extra: ShellLayout = {};
+			for (const { key: k } of rows) {
+				if (k === 'maxWidth' || k === 'containerPadding' || k === 'gridGap') continue;
+				const v = getEffectiveLayout(k);
+				if (v) (extra as Record<string, string>)[k] = v;
+			}
+			return { ...base, ...extra };
+		})()
 	} : null;
 
 	/** Live preview: unsaved layout presets override site template. */
@@ -2375,17 +2456,15 @@ let draggedAlbumHeaderField: string | null = null;
 						>
 							📐 Layout
 						</button>
-						{#if themeId}
-							<button
-								type="button"
-								on:click={() => (activeTab = 'pages')}
-								class="py-4 px-1 border-b-2 font-medium text-sm {activeTab === 'pages'
-									? 'border-[var(--color-primary-500)] text-[var(--color-primary-600)]'
-									: 'border-transparent text-[var(--color-surface-600-400)] hover:text-[var(--color-surface-800-200)] hover:border-surface-300-700'}"
-							>
-								📄 Pages
-							</button>
-						{/if}
+						<button
+							type="button"
+							on:click={() => (activeTab = 'pages')}
+							class="py-4 px-1 border-b-2 font-medium text-sm {activeTab === 'pages'
+								? 'border-[var(--color-primary-500)] text-[var(--color-primary-600)]'
+								: 'border-transparent text-[var(--color-surface-600-400)] hover:text-[var(--color-surface-800-200)] hover:border-surface-300-700'}"
+						>
+							📄 Pages
+						</button>
 					</nav>
 				</div>
 
@@ -2395,6 +2474,96 @@ let draggedAlbumHeaderField: string | null = null;
 
 				<!-- Tab Content -->
 				{#if activeTab === 'colors'}
+					{#if activeTemplate?.templateName === 'atelier'}
+					<div class="space-y-6">
+						<h2 class="text-xl font-semibold text-[var(--heading-font-color)]">Color Customization</h2>
+						<p class="text-sm text-[var(--color-surface-600-400)] mb-4 max-w-3xl">
+							Each row maps a token to <strong>light</strong> (<code class="text-xs font-mono">html.light</code>) and
+							<strong>dark</strong> (<code class="text-xs font-mono">html.dark</code>). Defaults and the field list live in
+							<code class="text-xs font-mono">lib/templates/atelier/theme.defaults.json</code> (<code class="text-xs font-mono">colorEditor</code>).
+						</p>
+						<div class="overflow-x-auto rounded-lg border border-surface-200-800 bg-[var(--color-surface-50-950)]">
+							<table class="w-full text-sm min-w-[640px]">
+								<thead>
+									<tr class="bg-[var(--color-surface-100-900)] border-b border-surface-200-800 text-left">
+										<th class="p-3 font-semibold text-[var(--color-surface-800-200)] w-0 whitespace-nowrap">Token</th>
+										<th class="p-3 font-semibold text-[var(--color-surface-800-200)]">Description</th>
+										<th class="p-3 font-semibold text-[var(--color-surface-800-200)]">Light</th>
+										<th class="p-3 font-semibold text-[var(--color-surface-800-200)]">Dark</th>
+									</tr>
+								</thead>
+								<tbody>
+									{#each atelierThemePack.colorEditor as row}
+										<tr class="border-b border-surface-200-800 align-top">
+											<td class="p-3 font-mono text-xs text-[var(--color-primary-600)] whitespace-nowrap align-middle">{row.token}</td>
+											<td class="p-3 text-[var(--color-surface-700-300)] align-middle">{row.label}</td>
+											<td class="p-3">
+												{#if row.kind === 'filter'}
+													<input
+														type="text"
+														value={colorField(row.lightKey)}
+														on:input={(e) => updateColor(row.lightKey, (e.currentTarget as HTMLInputElement).value)}
+														class={ADMIN_TEXT_INPUT_CLASS}
+														placeholder={(atelierThemePack.colors as Record<string, string>)[row.lightKey] ?? ''}
+													/>
+												{:else}
+													<div class="flex gap-2 items-stretch">
+														{#if /^#[0-9A-Fa-f]{6}$/.test(String(colorField(row.lightKey)).trim())}
+															<div class="shrink-0 flex items-center rounded-md border border-surface-300-700 p-0.5 bg-[var(--color-surface-50)] dark:bg-[var(--color-surface-900)]">
+																<input
+																	type="color"
+																	value={colorField(row.lightKey)}
+																	on:input={(e) => updateColor(row.lightKey, (e.currentTarget as HTMLInputElement).value)}
+																	class="h-9 w-11 cursor-pointer rounded border-0 bg-transparent p-0"
+																/>
+															</div>
+														{/if}
+														<input
+															type="text"
+															value={colorField(row.lightKey)}
+															on:input={(e) => updateColor(row.lightKey, (e.currentTarget as HTMLInputElement).value)}
+															class={ADMIN_COLOR_HEX_INPUT_CLASS}
+														/>
+													</div>
+												{/if}
+											</td>
+											<td class="p-3">
+												{#if row.kind === 'filter'}
+													<input
+														type="text"
+														value={colorField(row.darkKey)}
+														on:input={(e) => updateColor(row.darkKey, (e.currentTarget as HTMLInputElement).value)}
+														class={ADMIN_TEXT_INPUT_CLASS}
+														placeholder={(atelierThemePack.colors as Record<string, string>)[row.darkKey] ?? ''}
+													/>
+												{:else}
+													<div class="flex gap-2 items-stretch">
+														{#if /^#[0-9A-Fa-f]{6}$/.test(String(colorField(row.darkKey)).trim())}
+															<div class="shrink-0 flex items-center rounded-md border border-surface-300-700 p-0.5 bg-[var(--color-surface-50)] dark:bg-[var(--color-surface-900)]">
+																<input
+																	type="color"
+																	value={colorField(row.darkKey)}
+																	on:input={(e) => updateColor(row.darkKey, (e.currentTarget as HTMLInputElement).value)}
+																	class="h-9 w-11 cursor-pointer rounded border-0 bg-transparent p-0"
+																/>
+															</div>
+														{/if}
+														<input
+															type="text"
+															value={colorField(row.darkKey)}
+															on:input={(e) => updateColor(row.darkKey, (e.currentTarget as HTMLInputElement).value)}
+															class={ADMIN_COLOR_HEX_INPUT_CLASS}
+														/>
+													</div>
+												{/if}
+											</td>
+										</tr>
+									{/each}
+								</tbody>
+							</table>
+						</div>
+					</div>
+					{:else}
 					<div class="space-y-6">
 						<h2 class="text-xl font-semibold text-[var(--heading-font-color)]">Color Customization</h2>
 						<p class="text-sm text-[var(--color-surface-600-400)] mb-4">
@@ -2670,8 +2839,96 @@ let draggedAlbumHeaderField: string | null = null;
 							</div>
 						</div>
 					</div>
+					{/if}
 				{:else if activeTab === 'fonts'}
-					<div class="space-y-6">
+					{#if activeTemplate?.templateName === 'atelier'}
+						<div class="space-y-6">
+							<h2 class="text-xl font-semibold text-[var(--heading-font-color)]">Font Customization</h2>
+							<p class="text-sm text-[var(--color-surface-600-400)] mb-4 max-w-3xl">
+								Each row maps a role to the CSS variables used on the site (e.g. in
+								<code class="text-xs font-mono">ThemeColorApplier</code>). The field list and pack defaults live in
+								<code class="text-xs font-mono">lib/templates/atelier/theme.defaults.json</code>
+								(<code class="text-xs font-mono">fontEditor</code> /
+								<code class="text-xs font-mono">fonts</code>). Choose a Google Font or
+								<strong>Custom</strong> and enter the exact <code class="text-xs font-mono">font-family</code> name.
+							</p>
+							<div class="overflow-x-auto rounded-lg border border-surface-200-800 bg-[var(--color-surface-50-950)]">
+								<table class="w-full text-sm min-w-[720px]">
+									<thead>
+										<tr class="bg-[var(--color-surface-100-900)] border-b border-surface-200-800 text-left">
+											<th class="p-3 font-semibold text-[var(--color-surface-800-200)] w-0 whitespace-nowrap">Token</th>
+											<th class="p-3 font-semibold text-[var(--color-surface-800-200)]">Role</th>
+											<th class="p-3 font-semibold text-[var(--color-surface-800-200)] min-w-[200px]">Family</th>
+											<th class="p-3 font-semibold text-[var(--color-surface-800-200)] w-0 whitespace-nowrap">Size</th>
+											<th class="p-3 font-semibold text-[var(--color-surface-800-200)] w-0 whitespace-nowrap">Weight</th>
+										</tr>
+									</thead>
+									<tbody>
+										{#each atelierThemePack.fontEditor as row}
+											{@const role = row.role as FontRole}
+											<tr class="border-b border-surface-200-800 align-top">
+												<td class="p-3 font-mono text-xs text-[var(--color-primary-600)] whitespace-nowrap align-middle">{row.token}</td>
+												<td class="p-3 text-[var(--color-surface-700-300)] align-middle">
+													<div class="font-medium text-[var(--color-surface-800-200)]">{role}</div>
+													<div class="text-xs text-[var(--color-surface-600-400)] mt-0.5">{row.label}</div>
+												</td>
+												<td class="p-3 min-w-0">
+													<select
+														value={GOOGLE_FONT_NAMES.has(getEffectiveFont(role)) ? getEffectiveFont(role) : '__custom__'}
+														on:change={(e) => {
+															const v = (e.currentTarget as HTMLSelectElement).value;
+															if (v !== '__custom__') updateFontFamily(role, v);
+														}}
+														class="{ADMIN_SELECT_CLASS} w-full max-w-full"
+													>
+														{#each GOOGLE_FONTS as font}
+															<option value={font.value}>{font.label}</option>
+														{/each}
+														<option value="__custom__">Custom…</option>
+													</select>
+													{#if !GOOGLE_FONT_NAMES.has(getEffectiveFont(role))}
+														<input
+															type="text"
+															value={getEffectiveFont(role)}
+															on:input={(e) => updateFontFamily(role, (e.currentTarget as HTMLInputElement).value)}
+															placeholder={atelierPackFontFamily(role)}
+															class={`mt-2 ${ADMIN_TEXT_INPUT_CLASS}`}
+														/>
+													{/if}
+													<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">
+														Template default: {getDefaultFontFamily(role)}
+													</p>
+												</td>
+												<td class="p-3 align-middle">
+													<select
+														value={getFontSizeOverride(role)}
+														on:change={(e) => updateFontSize(role, (e.currentTarget as HTMLSelectElement).value)}
+														class="{ADMIN_SELECT_SM_CLASS} w-full min-w-[9rem]"
+													>
+														{#each FONT_SIZE_OPTIONS as opt}
+															<option value={opt.value}>{opt.label}</option>
+														{/each}
+													</select>
+												</td>
+												<td class="p-3 align-middle">
+													<select
+														value={getFontWeightOverride(role)}
+														on:change={(e) => updateFontWeight(role, (e.currentTarget as HTMLSelectElement).value)}
+														class="{ADMIN_SELECT_SM_CLASS} w-full min-w-[9rem]"
+													>
+														{#each FONT_WEIGHT_OPTIONS as opt}
+															<option value={opt.value}>{opt.label}</option>
+														{/each}
+													</select>
+												</td>
+											</tr>
+										{/each}
+									</tbody>
+								</table>
+							</div>
+						</div>
+					{:else}
+						<div class="space-y-6">
 						<h2 class="text-xl font-semibold text-[var(--heading-font-color)]">Font Customization</h2>
 						<p class="text-sm text-[var(--color-surface-600-400)]">
 							Choose from popular Google Fonts (loaded automatically), or use <strong>Custom</strong> for a system or self-hosted font: enter the exact CSS font-family name and ensure the font is loaded on your site (e.g. in <code class="rounded px-1 py-0.5 text-xs preset-filled-surface-200-800">app.html</code> or global CSS).
@@ -3006,110 +3263,212 @@ let draggedAlbumHeaderField: string | null = null;
 								<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">Default: {getDefaultFontFamily('formLabels')}</p>
 							</div>
 						</div>
-					</div>
+						</div>
+					{/if}
 				{:else if activeTab === 'layout'}
-					<div class="space-y-4">
-						<div>
-							<h2 class="text-xl font-semibold text-[var(--color-surface-950-50)]">Layout Customization</h2>
-							<p class="text-sm text-[var(--color-surface-600-400)] mt-1">
-								Choose a breakpoint tab. Each tab has its own max width, padding, and grid gap (stored per breakpoint).
-							</p>
-						</div>
+					{#if activeTemplate?.templateName === 'atelier'}
+						<div class="space-y-4">
+							<div>
+								<h2 class="text-xl font-semibold text-[var(--color-surface-950-50)]">Layout & spacing</h2>
+								<p class="text-sm text-[var(--color-surface-600-400)] mt-1 max-w-3xl">
+									Values are stored <strong>per breakpoint</strong>. The field list lives in
+									<code class="text-xs font-mono">lib/templates/atelier/theme.defaults.json</code>
+									(<code class="text-xs font-mono">layoutEditor</code>); defaults also reference
+									<code class="text-xs font-mono">packTokens</code>. Applied on the site as
+									<code class="text-xs font-mono">--os-*</code> via <code class="text-xs font-mono">ThemeColorApplier</code>.
+								</p>
+							</div>
 
-						<div
-							class="rounded-lg border border-surface-200-800 bg-[var(--color-surface-50-950)] overflow-hidden [color-scheme:light]"
-						>
 							<div
-								class="border-b border-surface-200-800 bg-[var(--color-surface-50-950)] px-2 pt-2"
-								role="tablist"
-								aria-label="Breakpoint"
+								class="rounded-lg border border-surface-200-800 bg-[var(--color-surface-50-950)] overflow-hidden [color-scheme:light]"
 							>
-								<nav class="-mb-px flex flex-wrap gap-0.5 sm:gap-1">
-									{#each TEMPLATE_BREAKPOINTS as bp}
-										<button
-											type="button"
-											role="tab"
-											id="layout-tab-{bp}"
-											aria-selected={editingBreakpoint === bp}
-											aria-controls="layout-panel-shell"
-											tabindex={editingBreakpoint === bp ? 0 : -1}
-											on:click={() => (editingBreakpoint = bp)}
-											class="min-w-0 flex-1 sm:flex-none px-3 py-2.5 text-sm font-medium border-b-2 transition-colors rounded-t-md
-												{editingBreakpoint === bp
-													? 'border-[var(--color-primary-600)] text-[var(--color-primary-700)] bg-[var(--color-surface-50-950)] border-b-[var(--color-primary-600)] z-10'
-													: 'border-transparent text-[var(--color-surface-600-400)] hover:text-[var(--color-surface-900-100)] hover:border-surface-300-700'}"
-										>
-											<span class="uppercase tracking-wide">{bp}</span>
-											<span
-												class="block text-[10px] sm:inline sm:ml-1 sm:text-xs font-normal text-[var(--color-surface-400-600)]"
-												>≥{BREAKPOINT_MIN_WIDTH_PX[bp]}px</span
+								<div
+									class="border-b border-surface-200-800 bg-[var(--color-surface-50-950)] px-2 pt-2"
+									role="tablist"
+									aria-label="Breakpoint"
+								>
+									<nav class="-mb-px flex flex-wrap gap-0.5 sm:gap-1">
+										{#each TEMPLATE_BREAKPOINTS as bp}
+											<button
+												type="button"
+												role="tab"
+												id="layout-tab-atelier-{bp}"
+												aria-selected={editingBreakpoint === bp}
+												aria-controls="layout-panel-atelier-shell"
+												tabindex={editingBreakpoint === bp ? 0 : -1}
+												on:click={() => (editingBreakpoint = bp)}
+												class="min-w-0 flex-1 sm:flex-none px-3 py-2.5 text-sm font-medium border-b-2 transition-colors rounded-t-md
+													{editingBreakpoint === bp
+														? 'border-[var(--color-primary-600)] text-[var(--color-primary-700)] bg-[var(--color-surface-50-950)] border-b-[var(--color-primary-600)] z-10'
+														: 'border-transparent text-[var(--color-surface-600-400)] hover:text-[var(--color-surface-900-100)] hover:border-surface-300-700'}"
 											>
-										</button>
-									{/each}
-								</nav>
+												<span class="uppercase tracking-wide">{bp}</span>
+												<span
+													class="block text-[10px] sm:inline sm:ml-1 sm:text-xs font-normal text-[var(--color-surface-400-600)]"
+													>≥{BREAKPOINT_MIN_WIDTH_PX[bp]}px</span
+												>
+											</button>
+										{/each}
+									</nav>
+								</div>
+
+								<div
+									id="layout-panel-atelier-shell"
+									class="p-4 sm:p-6"
+									role="tabpanel"
+									aria-labelledby="layout-tab-atelier-{editingBreakpoint}"
+								>
+									{#key editingBreakpoint}
+										<div class="overflow-x-auto rounded-lg border border-surface-200-800 bg-[var(--color-surface-50-950)]">
+											<table class="w-full text-sm min-w-[640px]">
+												<thead>
+													<tr class="bg-[var(--color-surface-100-900)] border-b border-surface-200-800 text-left">
+														<th class="p-3 font-semibold text-[var(--color-surface-800-200)] w-0 whitespace-nowrap">Token</th>
+														<th class="p-3 font-semibold text-[var(--color-surface-800-200)]">Description</th>
+														<th class="p-3 font-semibold text-[var(--color-surface-800-200)] min-w-[200px]">Value</th>
+														<th class="p-3 font-semibold text-[var(--color-surface-800-200)]">Hint</th>
+													</tr>
+												</thead>
+												<tbody>
+													{#each atelierThemePack.layoutEditor as row}
+														<tr class="border-b border-surface-200-800 align-top">
+															<td class="p-3 font-mono text-xs text-[var(--color-primary-600)] whitespace-nowrap align-middle">{row.token}</td>
+															<td class="p-3 text-[var(--color-surface-700-300)] align-middle">{row.label}</td>
+															<td class="p-3 min-w-0">
+																<input
+																	type="text"
+																	value={getEffectiveLayout(row.key)}
+																	on:input={(e) =>
+																		updateLayout(row.key, (e.currentTarget as HTMLInputElement).value)}
+																	placeholder={atelierPackLayoutDefault(row.key)}
+																	autocomplete="off"
+																	spellcheck="false"
+																	class={ADMIN_TEXT_INPUT_CLASS}
+																/>
+															</td>
+															<td class="p-3 text-xs text-[var(--color-surface-600-400)] align-middle">
+																{#if row.key === 'maxWidth' || row.key === 'containerPadding' || row.key === 'gridGap'}
+																	Suggested ({editingBreakpoint}):
+																	{SHELL_HINT_BY_BREAKPOINT[editingBreakpoint][row.key] ?? '—'}
+																{:else}
+																	Pack default:
+																	{((activeTemplate.layout as unknown as Record<string, string | undefined>)[row.key] ??
+																	atelierPackLayoutDefault(row.key)) || '—'}
+																{/if}
+															</td>
+														</tr>
+													{/each}
+												</tbody>
+											</table>
+										</div>
+									{/key}
+								</div>
+							</div>
+						</div>
+					{:else}
+						<div class="space-y-4">
+							<div>
+								<h2 class="text-xl font-semibold text-[var(--color-surface-950-50)]">Layout Customization</h2>
+								<p class="text-sm text-[var(--color-surface-600-400)] mt-1">
+									Choose a breakpoint tab. Each tab has its own max width, padding, and grid gap (stored per breakpoint).
+								</p>
 							</div>
 
 							<div
-								id="layout-panel-shell"
-								class="p-4 sm:p-6"
-								role="tabpanel"
-								aria-labelledby="layout-tab-{editingBreakpoint}"
+								class="rounded-lg border border-surface-200-800 bg-[var(--color-surface-50-950)] overflow-hidden [color-scheme:light]"
 							>
-								{#key editingBreakpoint}
-									<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-										<div>
-											<label class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2" for="layout-mw-{editingBreakpoint}">
-												Max width
-											</label>
-											<input
-												id="layout-mw-{editingBreakpoint}"
-												type="text"
-												value={getEffectiveLayout('maxWidth')}
-												on:input={(e) => updateLayout('maxWidth', (e.target as HTMLInputElement).value)}
-												placeholder={SHELL_HINT_BY_BREAKPOINT[editingBreakpoint].maxWidth}
-												class={ADMIN_TEXT_INPUT_CLASS}
-											/>
-											<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">
-												Pack default: {activeTemplate.layout.maxWidth} · Suggested at {editingBreakpoint}: {SHELL_HINT_BY_BREAKPOINT[editingBreakpoint].maxWidth}
-											</p>
+								<div
+									class="border-b border-surface-200-800 bg-[var(--color-surface-50-950)] px-2 pt-2"
+									role="tablist"
+									aria-label="Breakpoint"
+								>
+									<nav class="-mb-px flex flex-wrap gap-0.5 sm:gap-1">
+										{#each TEMPLATE_BREAKPOINTS as bp}
+											<button
+												type="button"
+												role="tab"
+												id="layout-tab-{bp}"
+												aria-selected={editingBreakpoint === bp}
+												aria-controls="layout-panel-shell"
+												tabindex={editingBreakpoint === bp ? 0 : -1}
+												on:click={() => (editingBreakpoint = bp)}
+												class="min-w-0 flex-1 sm:flex-none px-3 py-2.5 text-sm font-medium border-b-2 transition-colors rounded-t-md
+													{editingBreakpoint === bp
+														? 'border-[var(--color-primary-600)] text-[var(--color-primary-700)] bg-[var(--color-surface-50-950)] border-b-[var(--color-primary-600)] z-10'
+														: 'border-transparent text-[var(--color-surface-600-400)] hover:text-[var(--color-surface-900-100)] hover:border-surface-300-700'}"
+											>
+												<span class="uppercase tracking-wide">{bp}</span>
+												<span
+													class="block text-[10px] sm:inline sm:ml-1 sm:text-xs font-normal text-[var(--color-surface-400-600)]"
+													>≥{BREAKPOINT_MIN_WIDTH_PX[bp]}px</span
+												>
+											</button>
+										{/each}
+									</nav>
+								</div>
+
+								<div
+									id="layout-panel-shell"
+									class="p-4 sm:p-6"
+									role="tabpanel"
+									aria-labelledby="layout-tab-{editingBreakpoint}"
+								>
+									{#key editingBreakpoint}
+										<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+											<div>
+												<label class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2" for="layout-mw-{editingBreakpoint}">
+													Max width
+												</label>
+												<input
+													id="layout-mw-{editingBreakpoint}"
+													type="text"
+													value={getEffectiveLayout('maxWidth')}
+													on:input={(e) => updateLayout('maxWidth', (e.target as HTMLInputElement).value)}
+													placeholder={SHELL_HINT_BY_BREAKPOINT[editingBreakpoint].maxWidth}
+													class={ADMIN_TEXT_INPUT_CLASS}
+												/>
+												<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">
+													Pack default: {activeTemplate.layout.maxWidth} · Suggested at {editingBreakpoint}: {SHELL_HINT_BY_BREAKPOINT[editingBreakpoint].maxWidth}
+												</p>
+											</div>
+											<div>
+												<label class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2" for="layout-pad-{editingBreakpoint}">
+													Container padding
+												</label>
+												<input
+													id="layout-pad-{editingBreakpoint}"
+													type="text"
+													value={getEffectiveLayout('containerPadding')}
+													on:input={(e) => updateLayout('containerPadding', (e.target as HTMLInputElement).value)}
+													placeholder={SHELL_HINT_BY_BREAKPOINT[editingBreakpoint].containerPadding}
+													class={ADMIN_TEXT_INPUT_CLASS}
+												/>
+												<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">
+													Pack default: {activeTemplate.layout.containerPadding} · Suggested: {SHELL_HINT_BY_BREAKPOINT[editingBreakpoint].containerPadding}
+												</p>
+											</div>
+											<div>
+												<label class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2" for="layout-gap-{editingBreakpoint}">
+													Grid gap
+												</label>
+												<input
+													id="layout-gap-{editingBreakpoint}"
+													type="text"
+													value={getEffectiveLayout('gridGap')}
+													on:input={(e) => updateLayout('gridGap', (e.target as HTMLInputElement).value)}
+													placeholder={SHELL_HINT_BY_BREAKPOINT[editingBreakpoint].gridGap}
+													class={ADMIN_TEXT_INPUT_CLASS}
+												/>
+												<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">
+													Pack default: {activeTemplate.layout.gridGap} · Suggested: {SHELL_HINT_BY_BREAKPOINT[editingBreakpoint].gridGap}
+												</p>
+											</div>
 										</div>
-										<div>
-											<label class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2" for="layout-pad-{editingBreakpoint}">
-												Container padding
-											</label>
-											<input
-												id="layout-pad-{editingBreakpoint}"
-												type="text"
-												value={getEffectiveLayout('containerPadding')}
-												on:input={(e) => updateLayout('containerPadding', (e.target as HTMLInputElement).value)}
-												placeholder={SHELL_HINT_BY_BREAKPOINT[editingBreakpoint].containerPadding}
-												class={ADMIN_TEXT_INPUT_CLASS}
-											/>
-											<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">
-												Pack default: {activeTemplate.layout.containerPadding} · Suggested: {SHELL_HINT_BY_BREAKPOINT[editingBreakpoint].containerPadding}
-											</p>
-										</div>
-										<div>
-											<label class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2" for="layout-gap-{editingBreakpoint}">
-												Grid gap
-											</label>
-											<input
-												id="layout-gap-{editingBreakpoint}"
-												type="text"
-												value={getEffectiveLayout('gridGap')}
-												on:input={(e) => updateLayout('gridGap', (e.target as HTMLInputElement).value)}
-												placeholder={SHELL_HINT_BY_BREAKPOINT[editingBreakpoint].gridGap}
-												class={ADMIN_TEXT_INPUT_CLASS}
-											/>
-											<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">
-												Pack default: {activeTemplate.layout.gridGap} · Suggested: {SHELL_HINT_BY_BREAKPOINT[editingBreakpoint].gridGap}
-											</p>
-										</div>
-									</div>
-								{/key}
+									{/key}
+								</div>
 							</div>
 						</div>
-					</div>
+					{/if}
 				{:else if activeTab === 'pages'}
 					<div class="space-y-6">
 						<h2 class="text-xl font-semibold text-[var(--color-surface-950-50)]">Page structure</h2>

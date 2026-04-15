@@ -9,6 +9,10 @@ export type TemplatePackPages = {
   Home: SvelteComponentConstructor
   Gallery: SvelteComponentConstructor
   Album: SvelteComponentConstructor
+  About: SvelteComponentConstructor
+  Search: SvelteComponentConstructor
+  Contact: SvelteComponentConstructor
+  CmsPage: SvelteComponentConstructor
   Login: SvelteComponentConstructor
 }
 

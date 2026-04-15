@@ -9,7 +9,8 @@
 	import {
 		BREAKPOINT_MIN_WIDTH_PX,
 		TEMPLATE_BREAKPOINTS,
-		seedShellFromDb
+		seedShellFromDb,
+		buildShellLayoutCssVars
 	} from '$lib/template/breakpoints';
 	import { buildTemplatePaletteCss } from '$lib/theme/template-palette';
 
@@ -37,12 +38,7 @@
 			config?.template?.customLayout,
 			config?.template?.customLayoutByBreakpoint
 		);
-		let css = '';
-		const xs = shellByBp.xs;
-		css += `  --os-max-width: ${xs.maxWidth};\n`;
-		css += `  --os-padding: ${xs.containerPadding};\n`;
-		css += `  --os-gap: ${xs.gridGap};\n`;
-		return css;
+		return buildShellLayoutCssVars(shellByBp.xs);
 	}
 
 	function buildShellMediaQueries(config: any): string {
@@ -56,9 +52,12 @@
 			const shell = shellByBp[bp];
 			css += `@media (min-width: ${BREAKPOINT_MIN_WIDTH_PX[bp]}px) {\n`;
 			css += `  :root {\n`;
-			css += `    --os-max-width: ${shell.maxWidth};\n`;
-			css += `    --os-padding: ${shell.containerPadding};\n`;
-			css += `    --os-gap: ${shell.gridGap};\n`;
+			css +=
+				buildShellLayoutCssVars(shell)
+					.split('\n')
+					.filter((l) => l.trim() !== '')
+					.map((l) => `    ${l.trim()}`)
+					.join('\n') + '\n';
 			css += `  }\n`;
 			css += `}\n`;
 		}

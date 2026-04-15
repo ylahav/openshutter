@@ -5,7 +5,6 @@
 	import { siteConfig, publicSiteFavicon } from '$stores/siteConfig';
 	import { loadSession } from '$lib/stores/auth';
 	import PackFallbackBanner from '$lib/components/PackFallbackBanner.svelte';
-	import BodyTemplateWrapper from '$lib/components/BodyTemplateWrapper.svelte';
 	import AdminAppChrome from '$lib/components/AdminAppChrome.svelte';
 	import ThemeProvider from '$lib/components/ThemeProvider.svelte';
 	import ThemeColorApplier from '$lib/components/ThemeColorApplier.svelte';
@@ -29,6 +28,9 @@
 			: '';
 	$: faviconHref = faviconFromConfig || DEFAULT_FAVICON;
 	$: isAdminRoute = $page.url.pathname.startsWith('/admin');
+	$: publicShellPromise = isAdminRoute
+		? null
+		: import('$lib/components/BodyTemplateWrapper.svelte');
 
 	// Initialize site config and auth on mount (skip on login page)
 	onMount(() => {
@@ -77,9 +79,12 @@
 		<ThemeColorApplier />
 		<TokenRenewalNotification />
 		<PackFallbackBanner />
-
-		<BodyTemplateWrapper>
-			<slot />
-		</BodyTemplateWrapper>
+		{#if publicShellPromise}
+			{#await publicShellPromise then mod}
+				<svelte:component this={mod.default}>
+					<slot />
+				</svelte:component>
+			{/await}
+		{/if}
 	{/if}
 </ThemeProvider>

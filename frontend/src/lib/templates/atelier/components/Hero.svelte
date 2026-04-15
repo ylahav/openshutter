@@ -31,33 +31,22 @@
 </script>
 
 <section
-	class="a-hero relative min-h-[420px] h-[68vh] max-h-[820px] flex items-end overflow-hidden transition-colors duration-300"
+	class="a-hero"
 	aria-labelledby="atelier-hero-title"
 >
-	<div class="absolute inset-0 z-0" style="background: var(--tp-hero-strip-bg);"></div>
-	<div class="atelier-hero-noise absolute inset-0 z-[1] opacity-[0.04] pointer-events-none" aria-hidden="true"></div>
-	<div
-		class="absolute inset-0 z-[1] pointer-events-none bg-[radial-gradient(ellipse_at_center,rgba(44,31,20,0.2)_0%,rgba(44,31,20,0.7)_100%)]"
-		aria-hidden="true"
-	></div>
-	<div
-		class="absolute bottom-0 left-0 right-0 h-[60%] z-[1] pointer-events-none bg-gradient-to-t from-[rgba(44,31,20,0.85)] to-transparent"
-		aria-hidden="true"
-	></div>
+	<div class="a-hero__vignette" aria-hidden="true"></div>
+	<div class="atelier-hero-noise" aria-hidden="true"></div>
+	<div class="a-hero__gradient" aria-hidden="true"></div>
 
-	<div class="relative z-[2] w-full max-w-[960px] mx-auto px-8 md:px-12 pb-12 md:pb-[52px] text-center hero-inner">
-		<p class="text-[9px] uppercase tracking-[0.32em] mb-3.5 opacity-80" style="color: color-mix(in srgb, var(--os-primary) 75%, #faf6ef);">
+	<div class="a-hero__content hero-inner">
+		<p class="a-hero__eyebrow">
 			{eyebrow}
 		</p>
-		<h1
-			id="atelier-hero-title"
-			class="text-[clamp(2.25rem,6vw,4rem)] font-light leading-[1.15] mb-4 tracking-[0.06em] text-[color:var(--tp-canvas)]"
-			style="font-family: var(--os-font-heading);"
-		>
+		<h1 id="atelier-hero-title" class="a-hero__title">
 			{title}
 		</h1>
-		<div class="w-12 h-px mx-auto mb-4 opacity-70" style="background: var(--os-primary);"></div>
-		<p class="text-[11px] uppercase tracking-[0.22em] text-white/50">
+		<div class="a-hero__rule"></div>
+		<p class="a-hero__sub">
 			{heroTagline}
 		</p>
 	</div>
@@ -65,6 +54,11 @@
 
 <style>
 	.atelier-hero-noise {
+		position: absolute;
+		inset: 0;
+		z-index: 1;
+		pointer-events: none;
+		opacity: 0.04;
 		background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 		background-size: 200px;
 	}

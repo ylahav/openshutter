@@ -21,8 +21,13 @@ export interface SiteConfig {
   template?: {
     /** Mongo themes collection id last applied from Admin → Templates (optional) */
     activeThemeId?: string
-    activeTemplate?: string // Deprecated: use frontendTemplate instead, kept for backward compatibility
-    frontendTemplate?: string // Template for public-facing frontend pages
+    /**
+     * Legacy field; still written by some admin flows. **Effective visitor pack** is
+     * `frontendTemplate ?? activeTemplate` (same order as `$lib/stores/template.ts` and `TemplateService.getActiveTemplateWithOverrides`).
+     */
+    activeTemplate?: string
+    /** Canonical visitor pack id (`noir` | `studio` | `atelier`). Preferred over `activeTemplate`. */
+    frontendTemplate?: string
     /** @deprecated Always `default` from API. Admin UI is not pack-driven. */
     adminTemplate?: string
     /** Core + extended semantic colors (surfaces, light-theme overrides). See `template-palette.ts`. */

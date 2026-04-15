@@ -6,15 +6,15 @@
 	import { getEffectivePageGrid, getEffectivePageModules } from '$lib/template/breakpoints';
 	import type { PageData } from './$types';
 	import PageRenderer from '$lib/page-builder/PageRenderer.svelte';
+	import SearchTemplateSwitcher from '$lib/components/SearchTemplateSwitcher.svelte';
 	import type { PageModuleData } from '$lib/types/page-builder';
-	import AdvancedFilterSearch from '$lib/components/search/AdvancedFilterSearch.svelte';
 	import { activeTemplate } from '$stores/template';
 
 	export let data: PageData;
 
-	$: searchUiVariant = $activeTemplate === 'noir' ? 'noir' : 'default';
+	$: searchUiVariant = ($activeTemplate === 'noir' ? 'noir' : 'default') as 'noir' | 'default';
 
-	let initialQuery = $page.url.searchParams.get('q') || '';
+	$: initialQuery = $page.url.searchParams.get('q') || '';
 
 	$: searchTemplate =
 		$siteConfigData?.template ??
@@ -50,5 +50,5 @@
 {#if hasPageModules}
 	<PageRenderer page={pageForRenderer as any} modules={searchModules} />
 {:else}
-	<AdvancedFilterSearch {initialQuery} variant={searchUiVariant} />
+	<SearchTemplateSwitcher {initialQuery} variant={searchUiVariant} />
 {/if}

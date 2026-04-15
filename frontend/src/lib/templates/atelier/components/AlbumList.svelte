@@ -15,6 +15,8 @@
 	export let albums: TemplateAlbum[] = [];
 	export let loading = false;
 	export let error: string | null = null;
+	/** `gallery` = full /albums page (different heading, no “browse all” link). */
+	export let pageContext: 'home' | 'gallery' = 'home';
 
 	const thumbBg = [
 		'color-mix(in srgb, var(--os-primary) 25%, #2c1f14)',
@@ -59,66 +61,59 @@
 </script>
 
 {#if loading}
-	<div class="py-20 px-8 text-center">
-		<div
-			class="w-8 h-8 rounded-full animate-spin mx-auto border-2 border-[color:var(--tp-border)] border-t-[color:var(--os-primary)]"
-		></div>
-		<p class="mt-4 text-[11px] uppercase tracking-[0.2em]" style="color: var(--tp-fg-muted);">
+	<div class="tpl-loading">
+		<div class="tpl-loading__spinner"></div>
+		<p class="tpl-loading__label">
 			{$t('loading.loading')}
 		</p>
 	</div>
 {:else if error}
-	<p class="py-16 text-center text-sm text-red-500/90 px-8">{error}</p>
+	<p class="tpl-error">{error}</p>
 {:else}
-	<div class="max-w-[960px] mx-auto px-8 py-12">
-		<div class="text-center mb-9">
-			<h2 class="text-2xl tracking-[0.08em] mb-2.5" style="font-family: var(--os-font-heading); color: var(--tp-fg);">
-				{$t('admin.featuredAlbums')}
+	<div class="a-section">
+		<div class="a-section__header">
+			<h2 class="a-section__title">
+				{pageContext === 'gallery' ? $t('navigation.albums') : $t('admin.featuredAlbums')}
 			</h2>
-			<div class="w-9 h-px mx-auto mb-2.5" style="background: var(--os-primary);"></div>
-			<p class="text-[10px] uppercase tracking-[0.22em]" style="color: var(--tp-fg-muted);">
-				{$t('albums.rootLevelAlbumsDescription')}
+			<div class="a-section__rule"></div>
+			<p class="a-section__sub">
+				{pageContext === 'gallery'
+					? $t('albums.browsePhotoCollections')
+					: $t('albums.rootLevelAlbumsDescription')}
 			</p>
 		</div>
 
 		{#if filtered.length > 0}
-			<div class="flex flex-col">
+			<div class="a-album-list">
 				{#each filtered as album, i}
 					<a
 						href={`/albums/${album.alias || album._id}`}
-						class="group grid grid-cols-1 md:grid-cols-[160px_1fr] gap-7 py-7 border-b transition-colors first:border-t border-[color:var(--tp-border)] no-underline opacity-0 translate-y-5 animate-[atelier-reveal_0.8s_ease_forwards]"
-						style="animation-delay: {0.05 + i * 0.1}s;"
+						class="a-album-item a-reveal"
+						style="animation-delay: {0.05 + i * 0.1}s"
 					>
-						<div class="overflow-hidden rounded-sm">
+						<div class="a-album-item__thumb">
 							<div
-								class="aspect-[4/3] transition-transform duration-500 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] group-hover:scale-[1.03]"
+								class="a-album-item__thumb-inner"
 								style="background: {thumbBg[i % 3]};"
 							>
 								{#if coverUrls[album._id]}
-									<img
-										src={coverUrls[album._id]!}
-										alt=""
-										class="w-full h-full object-cover"
-									/>
+									<img src={coverUrls[album._id]!} alt="" />
 								{/if}
 							</div>
 						</div>
-						<div class="pt-1">
-							<div class="text-[10px] tracking-[0.2em] mb-2" style="color: var(--os-primary);">
+						<div class="a-album-item__body">
+							<div class="a-album-item__num">
 								{padNum(i + 1)}
 							</div>
-							<h3
-								class="text-xl tracking-[0.04em] mb-2 transition-colors group-hover:text-[color:var(--os-primary)]"
-								style="font-family: var(--os-font-heading); color: var(--tp-fg);"
-							>
+							<h3 class="a-album-item__title">
 								{MultiLangUtils.getTextValue(album.name, $currentLanguage)}
 							</h3>
 							{#if album.description}
-								<p class="text-[13px] leading-relaxed mb-3 line-clamp-4" style="color: var(--tp-fg-muted);">
+								<p class="a-album-item__desc">
 									{MultiLangUtils.getHTMLValue(album.description, $currentLanguage).replace(/<[^>]*>/g, '')}
 								</p>
 							{/if}
-							<div class="flex flex-wrap gap-4 text-[10px] uppercase tracking-[0.16em]" style="color: var(--tp-fg-muted);">
+							<div class="a-album-item__meta">
 								{#if typeof album.photoCount === 'number' && album.photoCount > 0}
 									<span>{album.photoCount} {$t('albums.photos')}</span>
 								{/if}
@@ -128,18 +123,9 @@
 				{/each}
 			</div>
 		{:else}
-			<p class="text-center py-16 text-[13px]" style="color: var(--tp-fg-muted);">
+			<p class="a-bio" style="text-align: center; margin-bottom: 0;">
 				{$t('albums.noAlbumsText')}
 			</p>
 		{/if}
 	</div>
 {/if}
-
-<style>
-	@keyframes atelier-reveal {
-		to {
-			opacity: 1;
-			transform: translateY(0);
-		}
-	}
-</style>

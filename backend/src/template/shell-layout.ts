@@ -17,19 +17,55 @@ export interface ShellLayout {
   maxWidth?: string;
   containerPadding?: string;
   gridGap?: string;
+  gapGrid?: string;
+  radius?: string;
+  radiusLg?: string;
+  radiusSm?: string;
+  borderWidth?: string;
+  heroHeight?: string;
+  headerHeight?: string;
+  cardRadius?: string;
+  cardShadow?: string;
+  cardShadowHover?: string;
+  albumAspect?: string;
+  photoAspect?: string;
+  animDuration?: string;
+  transition?: string;
 }
 
-const DEFAULT_SHELL: Required<ShellLayout> = {
+const SHELL_LEGACY_STRING_KEYS: (keyof ShellLayout)[] = [
+  'maxWidth',
+  'containerPadding',
+  'gridGap',
+  'gapGrid',
+  'radius',
+  'radiusLg',
+  'radiusSm',
+  'borderWidth',
+  'heroHeight',
+  'headerHeight',
+  'cardRadius',
+  'cardShadow',
+  'cardShadowHover',
+  'albumAspect',
+  'photoAspect',
+  'animDuration',
+  'transition',
+];
+
+const DEFAULT_SHELL: Pick<ShellLayout, 'maxWidth' | 'containerPadding' | 'gridGap'> = {
   maxWidth: '1200px',
   containerPadding: '1rem',
   gridGap: '1.5rem',
 };
 
 function fillShellDefaults(partial?: ShellLayout): ShellLayout {
+  const p = partial ?? {};
   return {
-    maxWidth: partial?.maxWidth ?? DEFAULT_SHELL.maxWidth,
-    containerPadding: partial?.containerPadding ?? DEFAULT_SHELL.containerPadding,
-    gridGap: partial?.gridGap ?? DEFAULT_SHELL.gridGap,
+    ...p,
+    maxWidth: p.maxWidth ?? DEFAULT_SHELL.maxWidth,
+    containerPadding: p.containerPadding ?? DEFAULT_SHELL.containerPadding,
+    gridGap: p.gridGap ?? DEFAULT_SHELL.gridGap,
   };
 }
 
@@ -44,10 +80,7 @@ export function resolveBreakpointForWidth(widthPx: number): TemplateBreakpointId
 export function isLegacyCustomLayout(obj: unknown): obj is ShellLayout {
   if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return false;
   const o = obj as Record<string, unknown>;
-  const hasShellField =
-    typeof o.maxWidth === 'string' ||
-    typeof o.containerPadding === 'string' ||
-    typeof o.gridGap === 'string';
+  const hasShellField = SHELL_LEGACY_STRING_KEYS.some((k) => typeof o[k as string] === 'string');
   const looksLikeBreakpointMap = TEMPLATE_BREAKPOINTS.some(
     (bp) => o[bp] != null && typeof o[bp] === 'object' && !Array.isArray(o[bp]),
   );
@@ -86,11 +119,11 @@ export function resolveShellLayout(
     }
   }
   const fromSeparate = template?.customLayoutByBreakpoint?.[bp];
-  return fillShellDefaults({
-    ...fillShellDefaults(legacy),
-    ...fillShellDefaults(fromMap),
-    ...fillShellDefaults(fromSeparate),
-  });
+  const merged: ShellLayout = {};
+  if (legacy) Object.assign(merged, fillShellDefaults(legacy));
+  if (fromMap) Object.assign(merged, fillShellDefaults(fromMap));
+  if (fromSeparate) Object.assign(merged, fillShellDefaults(fromSeparate));
+  return fillShellDefaults(merged);
 }
 
 /** When creating a theme: merge pack `base.layout` with legacy flat overrides, or persist a breakpoint map as-is. */

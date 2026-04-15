@@ -1,3 +1,5 @@
+import type { ShellLayout } from '../template/shell-layout'
+
 export interface FontSetting {
   family: string
   size?: string
@@ -43,7 +45,22 @@ export interface TemplateConfig {
       | 'heroStrip'
       | 'footerStrip'
       | 'lightHeroStrip'
-      | 'lightFooterStrip',
+      | 'lightFooterStrip'
+      | 'lightPrimary'
+      | 'lightSecondary'
+      | 'lightAccent'
+      | 'lightTextFaint'
+      | 'textFaint'
+      | 'lightHeaderBackground'
+      | 'headerBackground'
+      | 'lightHeaderBorder'
+      | 'headerBorder'
+      | 'lightCardBorder'
+      | 'cardBorder'
+      | 'lightHeroImageFilter'
+      | 'heroImageFilter'
+      | 'lightLoginBgFilter'
+      | 'loginBgFilter',
       string
     >
   >
@@ -55,11 +72,8 @@ export interface TemplateConfig {
     formInputs: FontSetting
     formLabels: FontSetting
   }
-  layout: {
-    maxWidth: string
-    containerPadding: string
-    gridGap: string
-  }
+  /** Pack defaults; core trio required for every template, extras optional (e.g. Atelier). */
+  layout: ShellLayout & { maxWidth: string; containerPadding: string; gridGap: string }
   /**
    * Default per-page grid (legacy flat shape) for new themes / docs.
    * Live sites use `themes` / `site_config.template.pageLayout` (often per-breakpoint maps).

@@ -1,0 +1,38 @@
+// ============================================================
+// _animations.scss
+// ============================================================
+
+.sys-animate {
+  opacity: 0;
+  animation-fill-mode: forwards;
+  animation-duration: var(--anim-duration, 0.7s);
+  animation-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+
+  @for $i from 1 through 8 {
+    &:nth-child(#{$i}) { animation-delay: #{$i * 0.08}s; }
+  }
+}
+
+[data-anim="fade"] .sys-animate,
+.sys-animate[data-anim="fade"] {
+  animation-name: animFade;
+}
+@keyframes animFade { to { opacity: 1; } }
+
+[data-anim="fade-up"] .sys-animate,
+.sys-animate[data-anim="fade-up"] {
+  transform: translateY(16px);
+  animation-name: animFadeUp;
+}
+@keyframes animFadeUp { to { opacity: 1; transform: translateY(0); } }
+
+[data-anim="reveal"] .sys-animate,
+.sys-animate[data-anim="reveal"] {
+  transform: translateY(24px);
+  animation-name: animReveal;
+  animation-duration: 0.9s;
+}
+@keyframes animReveal { to { opacity: 1; transform: translateY(0); } }
+
+.sys-pulse { animation: heroPulse 2s infinite; }
+@keyframes heroPulse { 0%,100% { opacity: 0.3; } 50% { opacity: 0.8; } }

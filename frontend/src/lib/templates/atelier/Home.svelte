@@ -49,26 +49,18 @@
 	})();
 </script>
 
-<div
-	class="min-h-screen w-full antialiased transition-colors duration-300 bg-[color:var(--tp-canvas)] text-[color:var(--tp-fg)] [font-family:var(--os-font-body)]"
->
+<div class="tpl-page">
 	{#if isHeroVisible}
 		<Hero />
 	{/if}
 
-	<div class="max-w-[540px] mx-auto px-8 pt-14 text-center">
-		<p
-			class="text-lg md:text-[18px] font-light italic leading-[1.85]"
-			style="font-family: var(--os-font-heading); color: var(--tp-fg-muted);"
-		>
+	<div class="a-intro">
+		<p class="a-intro__text">
 			“{heroQuoteText}”
 		</p>
-		<div class="w-9 h-px mx-auto my-6" style="background: var(--os-primary);"></div>
+		<div class="a-intro__rule"></div>
 		{#if introPlain && introPlain !== heroQuoteText.replace(/\s+/g, ' ').trim()}
-			<div
-				class="text-base md:text-[15px] font-light leading-relaxed mt-2"
-				style="font-family: var(--os-font-body); color: var(--tp-fg-muted);"
-			>
+			<div class="a-bio">
 				{@html introHtml}
 			</div>
 		{/if}
@@ -76,24 +68,14 @@
 
 	<AlbumList albums={rootAlbums} {loading} {error} />
 
-	<div
-		class="border-y my-12 py-14 px-8 text-center transition-colors"
-		style="background: var(--tp-surface-2); border-color: var(--tp-border);"
-	>
-		<p
-			class="text-xl font-light italic leading-relaxed max-w-[480px] mx-auto mb-6"
-			style="font-family: var(--os-font-heading); color: var(--tp-fg-muted);"
-		>
+	<div class="a-cta">
+		<p class="a-cta__quote">
 			“{$t('hero.atelierCtaQuote')}”
 		</p>
-		<p class="text-[10px] uppercase tracking-[0.18em] mb-7" style="color: var(--tp-fg-muted);">
+		<p class="a-cta__attr">
 			— {$t('hero.atelierCtaAttr')}
 		</p>
-		<a
-			href="/albums"
-			class="inline-block text-[10px] uppercase tracking-[0.22em] px-7 py-2.5 border no-underline transition-colors hover:bg-[color:var(--tp-fg)] hover:text-[color:var(--tp-canvas)] hover:border-[color:var(--tp-fg)]"
-			style="color: var(--tp-fg-muted); border-color: var(--tp-fg-muted);"
-		>
+		<a href="/albums" class="a-cta__btn">
 			{$t('hero.browseAllAlbums')}
 		</a>
 	</div>

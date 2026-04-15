@@ -1,0 +1,97 @@
+// ============================================================
+// _tokens.scss  —  CSS custom property declarations only.
+// No rules. No mixins. Safe to @use from anywhere.
+// ============================================================
+
+:root {
+  // ── Colour ──────────────────────────────────────────────
+  --bg:           #ffffff;
+  --bg-2:         #f8f8f8;
+  --bg-3:         #efefef;
+  --fg:           #111111;
+  --fg-mid:       #444444;
+  --fg-muted:     #777777;
+  --fg-faint:     #aaaaaa;
+  --accent:       #111111;
+  --accent-dark:  #000000;
+  --accent-light: #eeeeee;
+  --border:       rgba(0,0,0,0.10);
+  --gold:         transparent;
+
+  // ── Typography ──────────────────────────────────────────
+  --font-display: sans-serif;
+  --font-body:    sans-serif;
+  --font-mono:    monospace;
+
+  --text-hero:  clamp(40px, 8vw, 96px);
+  --text-title: clamp(24px, 4vw, 52px);
+  --text-h2:    24px;
+  --text-h3:    18px;
+  --text-base:  15px;
+  --text-sm:    13px;
+  --text-xs:    11px;
+  --text-label: 10px;
+
+  // ── Layout ──────────────────────────────────────────────
+  --max-w:       1200px;
+  --pad-x:       32px;
+  --gap:         16px;
+  --gap-grid:    2px;
+  --radius:      8px;
+  --radius-lg:   16px;
+  --radius-sm:   4px;
+
+  // ── Header ──────────────────────────────────────────────
+  --header-height:  60px;
+  --header-bg:      var(--bg);
+  --header-border:  var(--border);
+
+  // ── Hero ────────────────────────────────────────────────
+  --hero-height:           100vh;
+  --hero-img-brightness:   0.4;
+  --hero-img-saturate:     0.8;
+  --hero-img-sepia:        0;
+  --hero-text-color:       #ffffff;
+  --hero-sub-color:        rgba(255,255,255,0.55);
+  --hero-overlay-start:    rgba(0,0,0,0.85);
+  --hero-overlay-end:      rgba(0,0,0,0.1);
+  --hero-title-weight:     300;
+  --hero-title-spacing:    -0.02em;
+  --hero-split-img-opacity:0.2;
+
+  // ── Cards ───────────────────────────────────────────────
+  --card-bg:             var(--bg);
+  --card-border:         var(--border);
+  --card-shadow:         rgba(0,0,0,0.06);
+  --card-shadow-hover:   rgba(0,0,0,0.12);
+  --card-radius:         var(--radius);
+  --card-img-brightness: 1;
+  --card-img-grayscale:  0;
+
+  // ── Grids ───────────────────────────────────────────────
+  --album-cols:   3;
+  --album-aspect: 1/1;
+  --photo-cols:   5;
+  --photo-aspect: 1/1;
+
+  // ── Login ───────────────────────────────────────────────
+  --login-bg-opacity: 0.06;
+  --login-bg-filter:  none;
+
+  // ── About ───────────────────────────────────────────────
+  --about-portrait-w: 280px;
+  --portrait-radius:  var(--radius);
+  --portrait-filter:  none;
+
+  // ── Footer ──────────────────────────────────────────────
+  --footer-bg:    #111111;
+  --footer-fg:    #ffffff;
+  --footer-muted: rgba(255,255,255,0.35);
+
+  // ── Animation ───────────────────────────────────────────
+  --anim-duration: 0.7s;
+
+  // ── Transitions ─────────────────────────────────────────
+  --t:      0.3s;
+  --t-slow: 0.5s;
+}

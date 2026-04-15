@@ -104,14 +104,38 @@ export function buildTemplatePaletteCss(
 	const darkHeroStrip = pick(c, 'heroStrip', '#020617');
 	const darkFooterStrip = pick(c, 'footerStrip', '#020617');
 
-	/** Brand / CTA — from theme editor primary & secondary (no hardcoded pack colors in SCSS). */
-	const lightBrand = pick(c, 'primary', '#2563eb');
+	const lightFaint = pick(c, 'lightTextFaint', lightSubtle);
+	const darkFaint = pick(c, 'textFaint', darkSubtle);
+
+	const lightHeaderBg = pick(c, 'lightHeaderBackground', lightCanvas);
+	const darkHeaderBg = pick(c, 'headerBackground', darkCanvas);
+	const lightHeaderBorder = pick(c, 'lightHeaderBorder', lightBorder);
+	const darkHeaderBorder = pick(c, 'headerBorder', darkBorder);
+
+	const lightCardBorder = pick(c, 'lightCardBorder', lightBorder);
+	const darkCardBorder = pick(c, 'cardBorder', darkBorder);
+
+	/** Brand / CTA — optional per-mode overrides (`lightPrimary` / `lightSecondary` / `lightAccent`). */
+	const lightBrand = pick(c, 'lightPrimary', pick(c, 'primary', '#2563eb'));
 	const darkBrand = pick(c, 'primary', lightBrand);
-	const lightBrandHover = pick(c, 'secondary', lightBrand);
+	const lightBrandHover = pick(c, 'lightSecondary', pick(c, 'secondary', lightBrand));
 	const darkBrandHover = pick(c, 'secondary', darkBrand);
-	const lightAccent = pick(c, 'accent', lightBrand);
+	const lightAccent = pick(c, 'lightAccent', pick(c, 'accent', lightBrand));
 	const darkAccent = pick(c, 'accent', darkBrand);
 	const onBrand = pick(c, 'primaryForeground', '#ffffff');
+
+	const lightHeroFilter = pick(c, 'lightHeroImageFilter', 'brightness(0.55) saturate(0.8)');
+	const darkHeroFilter = pick(c, 'heroImageFilter', 'brightness(0.35) saturate(0.6)');
+	const lightLoginFilter = pick(
+		c,
+		'lightLoginBgFilter',
+		'brightness(0.3) saturate(0.4) sepia(0.3)'
+	);
+	const darkLoginFilter = pick(
+		c,
+		'loginBgFilter',
+		'brightness(0.15) saturate(0.3) sepia(0.4)'
+	);
 
 	return `
 :root, html.light {
@@ -119,10 +143,14 @@ export function buildTemplatePaletteCss(
   --tp-fg: ${lightFg};
   --tp-fg-muted: ${lightMuted};
   --tp-fg-subtle: ${lightSubtle};
+  --tp-fg-faint: ${lightFaint};
   --tp-surface-1: ${lightS1};
   --tp-surface-2: ${lightS2};
   --tp-surface-3: ${lightS3};
   --tp-border: ${lightBorder};
+  --tp-card-border: ${lightCardBorder};
+  --tp-header-bg: ${lightHeaderBg};
+  --tp-header-border: ${lightHeaderBorder};
   --tp-hero-strip-bg: ${lightHeroStrip};
   --tp-footer-strip-bg: ${lightFooterStrip};
   --tp-brand: ${lightBrand};
@@ -131,16 +159,22 @@ export function buildTemplatePaletteCss(
   --tp-on-brand: ${onBrand};
   --tp-overlay-scrim: rgba(0,0,0,0.5);
   --tp-hero-grid-opacity: 0.12;
+  --os-hero-image-filter: ${lightHeroFilter};
+  --os-login-bg-filter: ${lightLoginFilter};
 }
 html.dark {
   --tp-canvas: ${darkCanvas};
   --tp-fg: ${darkFg};
   --tp-fg-muted: ${darkMuted};
   --tp-fg-subtle: ${darkSubtle};
+  --tp-fg-faint: ${darkFaint};
   --tp-surface-1: ${darkS1};
   --tp-surface-2: ${darkS2};
   --tp-surface-3: ${darkS3};
   --tp-border: ${darkBorder};
+  --tp-card-border: ${darkCardBorder};
+  --tp-header-bg: ${darkHeaderBg};
+  --tp-header-border: ${darkHeaderBorder};
   --tp-hero-strip-bg: ${darkHeroStrip};
   --tp-footer-strip-bg: ${darkFooterStrip};
   --tp-brand: ${darkBrand};
@@ -149,6 +183,8 @@ html.dark {
   --tp-on-brand: ${onBrand};
   --tp-overlay-scrim: rgba(0,0,0,0.7);
   --tp-hero-grid-opacity: 0.18;
+  --os-hero-image-filter: ${darkHeroFilter};
+  --os-login-bg-filter: ${darkLoginFilter};
 }
 `.trim();
 }

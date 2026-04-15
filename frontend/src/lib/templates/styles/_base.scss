@@ -1,0 +1,45 @@
+.tpl-page {
+	min-height: 100vh;
+	width: 100%;
+	-webkit-font-smoothing: antialiased;
+	background: var(--tp-canvas);
+	color: var(--tp-fg);
+	font-family: var(--os-font-body);
+	transition: background 0.3s ease, color 0.3s ease;
+}
+
+.tpl-loading {
+	padding: 5rem 2rem;
+	text-align: center;
+}
+
+.tpl-loading__spinner {
+	width: 2rem;
+	height: 2rem;
+	margin: 0 auto;
+	border-radius: 9999px;
+	border: 2px solid var(--tp-border);
+	border-top-color: var(--os-primary);
+	animation: tpl-spin 1s linear infinite;
+}
+
+.tpl-loading__label {
+	margin-top: 1rem;
+	font-size: 11px;
+	letter-spacing: 0.2em;
+	text-transform: uppercase;
+	color: var(--tp-fg-muted);
+}
+
+.tpl-error {
+	padding: 4rem 2rem;
+	text-align: center;
+	font-size: 0.875rem;
+	color: #dc2626;
+}
+
+@keyframes tpl-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}

@@ -16,13 +16,48 @@ export const BREAKPOINT_MIN_WIDTH_PX: Record<TemplateBreakpointId, number> = {
 	xl: 1280
 };
 
+/** Shell + pack layout tokens (per breakpoint). Extra keys emit as `--os-*` when set. */
 export interface ShellLayout {
 	maxWidth?: string;
 	containerPadding?: string;
 	gridGap?: string;
+	gapGrid?: string;
+	radius?: string;
+	radiusLg?: string;
+	radiusSm?: string;
+	borderWidth?: string;
+	heroHeight?: string;
+	headerHeight?: string;
+	cardRadius?: string;
+	cardShadow?: string;
+	cardShadowHover?: string;
+	albumAspect?: string;
+	photoAspect?: string;
+	animDuration?: string;
+	transition?: string;
 }
 
-export const DEFAULT_SHELL: Required<ShellLayout> = {
+const SHELL_LEGACY_STRING_KEYS: (keyof ShellLayout)[] = [
+	'maxWidth',
+	'containerPadding',
+	'gridGap',
+	'gapGrid',
+	'radius',
+	'radiusLg',
+	'radiusSm',
+	'borderWidth',
+	'heroHeight',
+	'headerHeight',
+	'cardRadius',
+	'cardShadow',
+	'cardShadowHover',
+	'albumAspect',
+	'photoAspect',
+	'animDuration',
+	'transition'
+];
+
+export const DEFAULT_SHELL: Pick<ShellLayout, 'maxWidth' | 'containerPadding' | 'gridGap'> = {
 	maxWidth: '1200px',
 	containerPadding: '1rem',
 	gridGap: '1.5rem'
@@ -49,10 +84,7 @@ export function resolveBreakpointForWidth(widthPx: number): TemplateBreakpointId
 export function isLegacyCustomLayout(obj: unknown): obj is ShellLayout {
 	if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return false;
 	const o = obj as Record<string, unknown>;
-	const hasShellField =
-		typeof o.maxWidth === 'string' ||
-		typeof o.containerPadding === 'string' ||
-		typeof o.gridGap === 'string';
+	const hasShellField = SHELL_LEGACY_STRING_KEYS.some((k) => typeof o[k as string] === 'string');
 	const looksLikeBreakpointMap = TEMPLATE_BREAKPOINTS.some(
 		(bp) => o[bp] != null && typeof o[bp] === 'object' && !Array.isArray(o[bp])
 	);
@@ -122,10 +154,12 @@ export function seedShellFromDb(
 }
 
 function fillShellDefaults(partial?: ShellLayout): ShellLayout {
+	const p = partial ?? {};
 	return {
-		maxWidth: partial?.maxWidth ?? DEFAULT_SHELL.maxWidth,
-		containerPadding: partial?.containerPadding ?? DEFAULT_SHELL.containerPadding,
-		gridGap: partial?.gridGap ?? DEFAULT_SHELL.gridGap
+		...p,
+		maxWidth: p.maxWidth ?? DEFAULT_SHELL.maxWidth,
+		containerPadding: p.containerPadding ?? DEFAULT_SHELL.containerPadding,
+		gridGap: p.gridGap ?? DEFAULT_SHELL.gridGap
 	};
 }
 
@@ -180,6 +214,38 @@ export function resolveShellLayout(
 	if (fromMap) Object.assign(merged, fillShellDefaults(fromMap));
 	if (fromSeparate) Object.assign(merged, fillShellDefaults(fromSeparate));
 	return fillShellDefaults(merged);
+}
+
+/** Emit optional `--os-*` lines for ThemeColorApplier (one resolved shell cell). */
+export function buildShellLayoutCssVars(shell: ShellLayout): string {
+	const s = fillShellDefaults(shell);
+	const gapGrid = s.gapGrid?.trim() || s.gridGap;
+	const lines: string[] = [
+		`  --os-max-width: ${s.maxWidth};`,
+		`  --os-padding: ${s.containerPadding};`,
+		`  --os-gap: ${s.gridGap};`,
+		`  --os-gap-grid: ${gapGrid};`
+	];
+	const opt: [keyof ShellLayout, string][] = [
+		['radius', '--os-radius'],
+		['radiusLg', '--os-radius-lg'],
+		['radiusSm', '--os-radius-sm'],
+		['borderWidth', '--os-border-width'],
+		['heroHeight', '--os-hero-height'],
+		['headerHeight', '--os-header-height'],
+		['cardRadius', '--os-card-radius'],
+		['cardShadow', '--os-card-shadow'],
+		['cardShadowHover', '--os-card-shadow-hover'],
+		['albumAspect', '--os-album-aspect'],
+		['photoAspect', '--os-photo-aspect'],
+		['animDuration', '--os-anim-duration'],
+		['transition', '--os-transition']
+	];
+	for (const [key, cssVar] of opt) {
+		const v = s[key];
+		if (v != null && String(v).trim() !== '') lines.push(`  ${cssVar}: ${String(v).trim()};`);
+	}
+	return lines.join('\n') + '\n';
 }
 
 export interface PageGrid {

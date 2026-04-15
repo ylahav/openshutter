@@ -1,0 +1,285 @@
+// ============================================================
+// _layout.scss  —  structural geometry only, no colour values
+// ============================================================
+@use 'mixins' as *;
+
+// ── Header ───────────────────────────────────────────────────
+
+.sys-header {
+  position: sticky;
+  top: 0; z-index: 100;
+  height: var(--header-height);
+  background: var(--header-bg);
+  border-bottom: 1px solid var(--header-border);
+  transition: background var(--t), border-color var(--t);
+
+  &__inner {
+    @include container;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    [dir="rtl"] & { flex-direction: row-reverse; }
+  }
+
+  &__logo {
+    display: flex; align-items: center; gap: 10px;
+    text-decoration: none; flex-shrink: 0;
+  }
+
+  &__logo-mark {
+    width: 32px; height: 32px;
+    background: var(--accent);
+    border-radius: var(--radius);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-display);
+    font-weight: 800; font-size: 13px; color: #fff;
+    transition: background var(--t);
+  }
+
+  &__logo-text {
+    font-family: var(--font-display);
+    font-weight: 700; font-size: 16px;
+    color: var(--fg);
+    transition: color var(--t);
+  }
+
+  &__nav {
+    display: flex; gap: 4px;
+    flex: 1; justify-content: center;
+    [dir="rtl"] & { flex-direction: row-reverse; }
+  }
+
+  &__link {
+    font-family: var(--font-body);
+    font-weight: 500; font-size: var(--text-sm);
+    color: var(--fg-muted);
+    text-decoration: none;
+    padding: 6px 14px; border-radius: var(--radius);
+    transition: background 0.15s, color 0.15s;
+    &:hover { background: var(--bg-3); color: var(--fg); }
+    &.active { color: var(--accent); background: var(--accent-light); }
+  }
+
+  &__actions {
+    display: flex; align-items: center; gap: 8px;
+    [dir="rtl"] & { flex-direction: row-reverse; }
+  }
+
+  &__btn-ghost {
+    font-family: var(--font-body);
+    font-size: 12px; font-weight: 500;
+    color: var(--fg-mid);
+    padding: 6px 12px; border-radius: var(--radius);
+    border: 1px solid var(--border); background: transparent;
+    transition: border-color 0.15s, color 0.15s;
+    &:hover { border-color: var(--fg-muted); color: var(--fg); }
+  }
+
+  // Centered header (Atelier)
+  &__name {
+    font-family: var(--font-display);
+    font-size: 28px; font-weight: 400;
+    letter-spacing: 0.12em;
+    color: var(--fg); text-decoration: none;
+    cursor: pointer; display: block;
+    transition: color var(--t);
+  }
+
+  &__tagline {
+    font-family: var(--font-body);
+    font-size: 10px; letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--fg-faint); margin-top: 4px;
+  }
+
+  &__rule {
+    @include gold-rule;
+    margin: 14px auto;
+  }
+
+  &__signin {
+    @include label(0.18em);
+    color: var(--fg-faint);
+    text-decoration: none;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 1px; cursor: pointer;
+    transition: color 0.2s;
+    &:hover { color: var(--fg-muted); }
+  }
+
+  &__aside-start {
+    position: absolute; top: 28px;
+    inset-inline-start: var(--pad-x);
+  }
+
+  &__aside-end {
+    position: absolute; top: 28px;
+    inset-inline-end: var(--pad-x);
+    display: flex; gap: 8px;
+  }
+}
+
+// Fixed header variant (Noir)
+.sys-header[data-header="fixed"] {
+  position: fixed; height: auto;
+  padding: 20px var(--pad-x);
+  background: transparent;
+  border-bottom: none;
+
+  .sys-header__inner { padding: 0; }
+
+  .sys-header__logo,
+  .sys-header__nav,
+  .sys-header__actions { mix-blend-mode: difference; }
+}
+
+// Centered header variant (Atelier)
+.sys-header[data-header="centered"] {
+  position: relative;
+  height: auto;
+  text-align: center;
+  padding: 28px var(--pad-x) 20px;
+
+  .sys-header__inner {
+    display: none; // hide the inline layout
+  }
+}
+
+// ── Section ──────────────────────────────────────────────────
+
+.sys-section {
+  @include container;
+  @include section-padding;
+}
+
+.sys-section-header {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  margin-bottom: 24px;
+  [dir="rtl"] & { flex-direction: row-reverse; }
+
+  &__title { font-family: var(--font-display); font-weight: 700; font-size: var(--text-h2); color: var(--fg); }
+  &__sub   { font-family: var(--font-body); font-size: var(--text-sm); color: var(--fg-faint); margin-top: 3px; }
+  &__link  { font-family: var(--font-body); font-weight: 500; font-size: var(--text-sm); color: var(--accent); text-decoration: none; cursor: pointer; &:hover { text-decoration: underline; } }
+}
+
+// ── Banner ───────────────────────────────────────────────────
+
+.sys-banner {
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  padding: 24px var(--pad-x);
+  transition: background var(--t), border-color var(--t);
+
+  &__inner { @include container; padding-inline: 0; }
+  &__title { font-family: var(--font-display); font-weight: 700; font-size: var(--text-h2); color: var(--fg); }
+  &__sub   { font-family: var(--font-body); font-size: var(--text-sm); color: var(--fg-faint); margin-top: 2px; }
+}
+
+// ── Footer ───────────────────────────────────────────────────
+
+.sys-footer {
+  background: var(--footer-bg);
+  padding: 40px var(--pad-x) 32px;
+  transition: background var(--t);
+
+  &__inner {
+    @include container;
+    padding-inline: 0;
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 32px;
+    [dir="rtl"] & { direction: rtl; }
+  }
+
+  &__brand-mark {
+    width: 32px; height: 32px;
+    background: var(--accent);
+    border-radius: var(--radius);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-display); font-weight: 800; font-size: 13px; color: #fff;
+    margin-bottom: 12px;
+  }
+
+  &__brand-name { font-family: var(--font-display); font-weight: 700; font-size: 15px; color: var(--footer-fg); margin-bottom: 4px; }
+  &__brand-sub  { font-family: var(--font-body); font-size: 12px; color: var(--footer-muted); }
+
+  &__col-title {
+    @include label(0.12em);
+    color: var(--footer-muted); margin-bottom: 12px;
+  }
+
+  &__col a {
+    display: block;
+    font-family: var(--font-body); font-size: var(--text-sm);
+    color: rgba(255,255,255,0.45); text-decoration: none; margin-bottom: 7px;
+    transition: color 0.15s;
+    &:hover { color: rgba(255,255,255,0.75); }
+  }
+
+  &__bottom {
+    @include container;
+    padding-inline: 0; margin-top: 24px; padding-top: 24px;
+    border-top: 1px solid rgba(255,255,255,0.07);
+    font-family: var(--font-body); font-size: var(--text-xs);
+    color: rgba(255,255,255,0.25);
+  }
+
+  // Centered footer variant (Atelier)
+  &__name  { font-family: var(--font-display); font-size: 18px; letter-spacing: 0.12em; color: var(--footer-fg); margin-bottom: 6px; }
+  &__rule  { @include gold-rule; margin: 12px auto; opacity: 0.4; }
+  &__links {
+    display: flex; justify-content: center; gap: 24px; margin-bottom: 20px;
+    a { @include label(0.2em); color: var(--footer-muted); text-decoration: none; transition: color 0.2s; &:hover { color: rgba(255,255,255,0.65); } }
+  }
+}
+
+.sys-footer[data-footer="centered"] {
+  text-align: center;
+  .sys-footer__inner { display: none; }
+}
+
+.sys-footer[data-footer="columns"] {
+  .sys-footer__name,
+  .sys-footer__rule,
+  .sys-footer__links { display: none; }
+}
+
+// ── Page indicator ───────────────────────────────────────────
+
+.sys-page-ind {
+  position: fixed; bottom: 16px; inset-inline-end: 20px;
+  font-family: var(--font-mono); font-size: 9px;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--fg-faint); pointer-events: none; opacity: 0.7;
+}
+
+// ── Shared buttons ───────────────────────────────────────────
+
+.sys-btn {
+  display: inline-block;
+  font-family: var(--font-body); font-weight: 500; font-size: var(--text-sm);
+  text-decoration: none; cursor: pointer;
+  padding: 8px 18px; border-radius: var(--radius);
+  border: 1px solid transparent;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+
+  &--primary {
+    background: var(--accent); color: #fff;
+    &:hover { background: var(--accent-dark); }
+  }
+
+  &--ghost {
+    background: transparent; color: var(--fg-mid);
+    border-color: var(--border);
+    &:hover { border-color: var(--fg-muted); color: var(--fg); }
+  }
+
+  &--text {
+    background: transparent; color: var(--fg-muted); padding-inline: 0;
+    &:hover { color: var(--fg); }
+  }
+}
+
+// ── Gold rule utility ────────────────────────────────────────
+
+.sys-gold-rule { @include gold-rule; }

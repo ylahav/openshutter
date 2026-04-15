@@ -14,6 +14,7 @@
 	export let albums: TemplateAlbum[] = [];
 	export let loading = false;
 	export let error: string | null = null;
+	export let pageContext: 'home' | 'gallery' = 'home';
 
 	$: filteredAlbums = albums;
 </script>
@@ -38,19 +39,23 @@
 		<div class="flex flex-wrap items-end justify-between gap-4 mb-6">
 			<div>
 				<h2 class="text-[22px] font-bold tracking-tight" style="font-family: var(--os-font-heading); color: var(--tp-fg);">
-					{$t('admin.featuredAlbums')}
+					{pageContext === 'gallery' ? $t('navigation.albums') : $t('admin.featuredAlbums')}
 				</h2>
 				<p class="text-[13px] mt-1" style="color: var(--tp-fg-muted);">
-					{$t('albums.rootLevelAlbumsDescription')}
+					{pageContext === 'gallery'
+						? $t('albums.browsePhotoCollections')
+						: $t('albums.rootLevelAlbumsDescription')}
 				</p>
 			</div>
-			<a
-				href="/albums"
-				class="text-[13px] font-medium no-underline transition-opacity hover:opacity-80"
-				style="color: var(--os-primary);"
-			>
-				{$t('hero.browseAllAlbums')} →
-			</a>
+			{#if pageContext !== 'gallery'}
+				<a
+					href="/albums"
+					class="text-[13px] font-medium no-underline transition-opacity hover:opacity-80"
+					style="color: var(--os-primary);"
+				>
+					{$t('hero.browseAllAlbums')} →
+				</a>
+			{/if}
 		</div>
 
 		{#if filteredAlbums.length > 0}

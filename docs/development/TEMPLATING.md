@@ -38,7 +38,7 @@ Onboarding for **implementors**. Operators: **[`../guides/TEMPLATING_USER_GUIDE.
 
 | Layer | What it is | Where it lives |
 |--------|------------|----------------|
-| **Template pack** | Code: route shells (`Home`, `Gallery`, `Album`, `Login`), optional `Header` / `Footer` | `frontend/src/lib/templates/<packId>/` |
+| **Template pack** | Code: route shells (`Home`, `Gallery`, `Album`, `Login`, `About`, `Search`, `Contact`, `CmsPage`), optional shared `components/` | `frontend/src/lib/templates/<packId>/` |
 | **Registry** | Maps pack id → Svelte components; normalizes legacy ids | `frontend/src/lib/template-packs/registry.ts` |
 | **Live template config** | Colors, fonts, layout, `pageModules` / `pageLayout`, … | `site_config.template` → `GET /api/site-config` |
 | **Themes** | MongoDB `themes` rows with `baseTemplate` + overrides | Admin → Templates; **Apply** / **Set as default** updates live `site_config` |
@@ -71,17 +71,18 @@ Optional history: [`../archive/development/ADMIN_UI_ROADMAP.md`](../archive/deve
 
 1. Public app loads `GET /api/site-config`.
 2. **Owner domains:** merge `owner_site_settings` in `SiteConfigController.getConfig`.
-3. `activeTemplate` ← `frontendTemplate` / `activeTemplate` / optional non-admin `localStorage` preview → `normalizeTemplatePackId`.
-4. Pack shells render route pages; page-builder modules fill grids.
-5. **`/login`** uses `pageModules.login` or a built-in `loginForm` fallback.
+3. **`activeTemplate` store** ← `template.frontendTemplate` **first**, then `template.activeTemplate` (legacy), then optional non-admin `localStorage` preview → `normalizeTemplatePackId` (see `frontend/src/lib/stores/template.ts`).
+4. Pack shells render route pages; page-builder modules fill grids when `pageModules` for that page key is non-empty.
+5. **Route fallbacks (no modules for that page key):** **`/albums`** → `GalleryTemplateSwitcher` (album list mode; passes loaded albums / loading / error into `pack.pages.Gallery`). **`/login`** → `pack.pages.Login` (imports pack SCSS and embeds `LoginTemplateSwitcher`). **`/about`**, **`/contact`**, **`/search`**, dynamic **`/[alias]`**, and **`/page?alias=`** use the matching `*TemplateSwitcher` → pack `About`, `Contact`, `Search`, or `CmsPage` so fresh installs get pack styling instead of generic Tailwind-only placeholders.
 
 ### Key files
 
 | Area | Path |
 |------|------|
 | Pack registry | `frontend/src/lib/template-packs/registry.ts` |
+| Pack switchers (visitor) | `HomeTemplateSwitcher`, `GalleryTemplateSwitcher`, `AlbumTemplateSwitcher`, `AboutTemplateSwitcher`, `SearchTemplateSwitcher`, `ContactTemplateSwitcher`, `CmsPageTemplateSwitcher` in `frontend/src/lib/components/` |
 | Body shell | `frontend/src/lib/components/BodyTemplateWrapper.svelte` |
-| Pack SCSS | `frontend/src/lib/templates/<pack>/styles.scss` imported from each pack **route shell** (`Home`, `Gallery`, `Album`, `Login`, `Search`) so Vite emits CSS and SvelteKit can inject `<link>` in the document head |
+| Pack SCSS | `frontend/src/lib/templates/<pack>/styles.scss` imported from each pack **route shell** (`Home`, `Gallery`, `Album`, `Login`, `About`, `Search`, `Contact`, `CmsPage`) so Vite emits CSS and SvelteKit can inject `<link>` in the document head |
 | Visitor template store | `frontend/src/lib/stores/template.ts` |
 | Public config API | `backend/src/site-config/site-config.controller.ts` |
 | Template normalization | `backend/src/services/site-config.ts` |
@@ -93,11 +94,12 @@ Optional history: [`../archive/development/ADMIN_UI_ROADMAP.md`](../archive/deve
 ### Manual test checklist
 
 1. Public page loads; `GET /api/site-config` shows a normalized pack id.
-2. Switch pack under **Site configuration → Theme & layout**; verify **home**, `/albums`, an album, `/login`.
-3. Empty `login` modules → login form still appears.
-4. Owner-domain merge (if applicable).
-5. Light / dark / RTL: tokens from [§ Tokens…](#tokens-palette-and-pack-styles-implementation) behave sensibly.
-6. `/admin` chrome unchanged when the visitor pack changes.
+2. Switch pack under **Site configuration → Theme & layout**; verify **home**, `/albums`, an album, `/login`, `/search`, `/about`, `/contact` (CMS page must exist for about/contact), and a published CMS page under **`/[alias]`** with **no** `pageModules` → pack `CmsPage` shell.
+3. Empty **`login`** `pageModules` → **`pack.pages.Login`** (pack-styled sign-in), not only a bare `loginForm` module in `PageRenderer`.
+4. Empty **`gallery`** `pageModules` → **`GalleryTemplateSwitcher`** / pack album list (not generic Tailwind-only listing).
+5. Owner-domain merge (if applicable).
+6. Light / dark / RTL: tokens from [§ Tokens…](#tokens-palette-and-pack-styles-implementation) behave sensibly.
+7. `/admin` chrome unchanged when the visitor pack changes.
 
 ---
 
@@ -605,9 +607,11 @@ Themes customize content per **page key** using the page builder. Each theme can
 | Page key | Role | Common module types |
 |----------|------|---------------------|
 | `home` | Home | `hero`, `richText`, `featureGrid`, `albumsGrid`, `cta`, … |
-| `gallery` | Albums list | `albumsGrid`, `richText`, `cta` |
+| `gallery` | Albums list (`/albums`) | `albumsGrid`, `richText`, `cta` — if empty, **`GalleryTemplateSwitcher`** drives `pack.pages.Gallery` in **albums** mode |
 | `album` | Single album | `albumView`, `albumsGrid`, `richText`, `cta` |
-| `search` | Search | `richText`, `albumsGrid`, `cta` |
+| `search` | Search | `richText`, `albumsGrid`, `cta` — if empty, **`SearchTemplateSwitcher`** wraps `AdvancedFilterSearch` in pack chrome |
+| *(CMS)* | `/about`, `/contact`, `/[alias]`, `/page` | Loaded from **`/api/pages/…`**; if **no modules**, pack **`About`**, **`Contact`**, or **`CmsPage`** renders title/body with tokens |
+| `login` | Sign-in (`/login`) | `loginForm`, … — if **no** configured modules, **`pack.pages.Login`** (not an implicit single-module fallback) |
 | `header` | Site header strip | `logo`, `siteTitle`, `menu`, `languageSelector`, `authButtons`, … |
 | `footer` | Site footer | `footerMenu` / copyright / `socialMedia` patterns (see code) |
 
@@ -689,7 +693,7 @@ Cross-reference **§2.2.1**, **§2.2.3**, and **§2.2.4** in [Part I](#part-i--r
 ### Milestone 3 — Pack set
 
 - [x] Three built-in packs (`noir`, `studio`, `atelier`).
-- [ ] **Pack shell parity** — Home / Gallery / Album / Login: all four routes exist per pack with shared shell conventions; **remaining work** is a consistency pass (spacing, typography, dark-mode parity **across** packs — not only within one pack). About / CMS-style pages correctly use **`PageRenderer`** inside the route shell where implemented.
+- [ ] **Pack shell parity** — All eight registry pages per pack (`Home`, `Gallery`, `Album`, `Login`, `About`, `Search`, `Contact`, `CmsPage`) share shell/token conventions; **remaining work** is a consistency pass (spacing, typography, dark-mode parity **across** packs). CMS routes use **`PageRenderer`** when `pageModules` is non-empty; otherwise pack **`About` / `Contact` / `CmsPage`**.
 - [x] Light/dark and RTL **CSS passes** (manual edge cases remain).
 
 ### Milestones 4–5 — Community / DX
@@ -721,7 +725,7 @@ Phase 2 may add a dedicated **`UI_COMPONENTS.md`** for the contributor workflow 
 
 ## 8. Appendix: Create a template pack (built-in)
 
-OpenShutter ships **three** built-in **template packs**: **`noir`**, **`studio`**, and **`atelier`** — each provides Svelte shells for public routes (home, gallery, album, login) plus header/footer. Older installs may still store legacy ids (`default`, `minimal`, `simple`, `modern`, `elegant`); the API and frontend registry **normalize those to `noir`**.
+OpenShutter ships **three** built-in **template packs**: **`noir`**, **`studio`**, and **`atelier`** — each provides Svelte shells for **Home**, **Gallery**, **Album**, **Login**, **About**, **Search**, **Contact**, and **CmsPage** (registered in `registry.ts`). Site header/footer chrome remains **`layoutShell`** / **`layoutPresets`**, not pack `Header.svelte` / `Footer.svelte`. Older installs may still store legacy ids (`default`, `minimal`, `simple`, `modern`, `elegant`); the API and frontend registry **normalize those to `noir`**.
 
 ### Rough mapping from Joomla (mental model)
 
@@ -737,7 +741,7 @@ If you apply a theme and “nothing changes,” check for stale `pageModules` fr
 
 ### 1. Add Svelte components
 
-Under `frontend/src/lib/templates/<packId>/`: `Home.svelte`, `Gallery.svelte`, `Album.svelte`, `Login.svelte`, optional `Search.svelte`, `styles.scss`, and shared pieces under `components/` (e.g. `Hero.svelte`, `AlbumList.svelte`). **Do not** add pack-level `Header.svelte` / `Footer.svelte` — site chrome is **`layoutShell`** presets in the theme. Use Tailwind; colors/fonts from `siteConfigData` / CSS variables (`ThemeColorApplier`, etc.).
+Under `frontend/src/lib/templates/<packId>/`: `Home.svelte`, `Gallery.svelte`, `Album.svelte`, `Login.svelte`, `About.svelte`, `Search.svelte`, `Contact.svelte`, `CmsPage.svelte`, `styles.scss`, and shared pieces under `components/` (e.g. `Hero.svelte`, `AlbumList.svelte`). **`Gallery.svelte`** supports **`mode="photos"`** (default: loads photos client-side) and **`mode="albums"`** (album list; receives `albums` / `loading` / `error` from the route via `GalleryTemplateSwitcher`). **Do not** add pack-level `Header.svelte` / `Footer.svelte` — site chrome is **`layoutShell`** presets in the theme. Use Tailwind; colors/fonts from `siteConfigData` / CSS variables (`ThemeColorApplier`, etc.).
 
 ### 2. Header / footer chrome
 
@@ -745,7 +749,7 @@ Public chrome is built with **page builder modules** inside **`layoutShell`** re
 
 ### 3. Register the pack
 
-Edit `frontend/src/lib/template-packs/registry.ts`: add a loader with required `pages`: `Home`, `Gallery`, `Album`, `Login`. Optional `components` may list shared parts only (e.g. `Hero`). Export `TEMPLATE_PACK_IDS` for first-class built-ins.
+Edit `frontend/src/lib/template-packs/registry.ts`: add a loader with required `pages`: **`Home`**, **`Gallery`**, **`Album`**, **`Login`**, **`About`**, **`Search`**, **`Contact`**, **`CmsPage`**. Update `frontend/src/lib/template-packs/types.ts` (`TemplatePackPages`) in lockstep. Optional `components` may list shared parts only (e.g. `Hero`). Export `TEMPLATE_PACK_IDS` for first-class built-ins.
 
 ### 4. Align backend allowlists
 
@@ -754,11 +758,12 @@ Keep in sync when adding a pack id:
 - `frontend/src/lib/template-packs/registry.ts` — `TEMPLATE_PACK_IDS` and `packs`
 - `backend/src/services/site-config.ts` — `BUILTIN_TEMPLATE_IDS`
 - Theme DTOs: `create-theme.dto.ts` / `update-theme.dto.ts` — `@IsIn` for `baseTemplate`
-- `backend/src/templates/templates.controller.ts` (and frontend `TemplateService` static map if used)
+- `backend/src/templates/templates.controller.ts`
+- **Frontend:** `frontend/src/services/template.ts` — **`TemplateService`** supplies **static template metadata** (`getTemplateConfig`, overrides helpers) for admin/theme code paths. **`getTemplatePage` / `getTemplateComponent`** are **deprecated** (legacy React/webpack assumptions); **visitor Svelte pages** load only via **`getTemplatePack()`** in `registry.ts`.
 
 ### 5. Themes / site config
 
-Themes reference **baseTemplate** (built-in id). **Site configuration** stores `template.frontendTemplate` for the visitor site. Admin uses a fixed shell — see [Admin vs visitor](#maintainer-admin-vs-visitor). Invalid ids are rejected on `PUT /api/admin/site-config`.
+Themes reference **baseTemplate** (built-in id). **Site configuration** should set **`template.frontendTemplate`** for the visitor pack; **`template.activeTemplate`** remains for backward compatibility. Resolution order everywhere that matters: **`frontendTemplate ?? activeTemplate`** (matches `activeTemplate` store and `TemplateService.getActiveTemplateWithOverrides`). Admin uses a fixed shell — see [Admin vs visitor](#maintainer-admin-vs-visitor). Invalid ids are rejected on `PUT /api/admin/site-config`.
 
 ### 6. Optional: loader validation
 
@@ -793,3 +798,5 @@ When behavior changes (e.g. new built-in pack, new theme fields, or chrome resol
 **2026-04:** Merged **`TEMPLATING_REQUIREMENTS.md`** and **`TEMPLATING_TASKS.md`** into this file (**Parts I–III** + §8). Module URL and UI-module docs merged into [`PAGE_BUILDER_MODULES.md`](./PAGE_BUILDER_MODULES.md). **2026-04 (consolidation):** **`THEMING.md`**, **`TEMPLATE_STYLES.md`**, and **`TEMPLATING_SYSTEM.md`** merged into this file (maintainer quick reference + tokens/SCSS); operator docs consolidated into **[`../guides/TEMPLATING_USER_GUIDE.md`](../guides/TEMPLATING_USER_GUIDE.md)**.
 
 **2026-04 (navigation + clarity):** Expanded **Contents** with **Part I subsection map** (anchors **`templating-s0`**, **`templating-221`**, **`templating-223`**, **`templating-224`**, **`templating-s3`**, **`templating-s6`**) and link to **[seeding / layout-shape note](#templating-part2-seeding)**. Part II: contributor warning on **breakpoint-keyed** vs legacy flat layouts (**P4**). Part III: **Milestone 3** pack-shell item clarified (parity vs consistency pass).
+
+**2026-04 (pack routes):** Registry and packs include **`About`**, **`Search`**, **`Contact`**, **`CmsPage`**; visitor routes **`/albums`**, **`/login`**, **`/about`**, **`/contact`**, **`/search`**, **`/[alias]`**, **`/page`** use `*TemplateSwitcher` fallbacks when `pageModules` is empty. **`Gallery`** supports **`mode: 'albums' | 'photos'`** with parent-passed album list data. **`TemplateService`**: removed webpack **`require.context`** usage; **`getTemplatePage`** deprecated in favor of **`getTemplatePack()`**. Docs: **`frontendTemplate` preferred over `activeTemplate`** for the live visitor pack id.

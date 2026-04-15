@@ -2,6 +2,7 @@
 	import { currentLanguage } from '$stores/language';
 	import { MultiLangUtils } from '$lib/utils/multiLang';
 	import PageRenderer from '$lib/page-builder/PageRenderer.svelte';
+	import AboutTemplateSwitcher from '$lib/components/AboutTemplateSwitcher.svelte';
 	import type { PageData, PageModuleData } from '$lib/types/page-builder';
 
 	export let data: {
@@ -15,6 +16,7 @@
 	$: descriptionText = data?.page?.subtitle
 		? MultiLangUtils.getTextValue(data.page.subtitle, $currentLanguage)
 		: '';
+	$: hasModules = Array.isArray(data.modules) && data.modules.length > 0;
 </script>
 
 <svelte:head>
@@ -24,4 +26,8 @@
 	{/if}
 </svelte:head>
 
-<PageRenderer page={data.page} modules={data.modules} />
+{#if hasModules}
+	<PageRenderer page={data.page} modules={data.modules} />
+{:else}
+	<AboutTemplateSwitcher page={data.page} />
+{/if}

@@ -95,3 +95,30 @@
 		color: var(--tp-fg);
 	}
 }
+
+// ─── Shared module: Auth buttons (scoped to pack root `<main class="tpl-pack-*">`) ───
+
+.tpl-pack-noir {
+	.auth-btns {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+	}
+
+	.auth-btn {
+		font-size: 9px;
+		letter-spacing: 0.18em;
+		text-transform: uppercase;
+		color: var(--tp-fg-subtle);
+		cursor: pointer;
+		text-decoration: none;
+		border: 0;
+		border-bottom: 1px solid var(--tp-border);
+		padding: 0 0 1px;
+		background: transparent;
+		transition: color 0.2s;
+		&:hover {
+			color: var(--tp-fg);
+		}
+	}
+}

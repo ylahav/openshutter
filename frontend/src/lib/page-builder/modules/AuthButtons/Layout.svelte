@@ -9,14 +9,10 @@
 	$: loginLabel = config?.loginLabel || 'Login';
 	$: logoutLabel = config?.logoutLabel || 'Logout';
 	$: loginUrl = config?.loginUrl || '/login';
-	$: buttonClass = config?.buttonClass || 'px-4 py-2 rounded-md font-medium transition-colors';
-	$: loginButtonClass =
-		config?.loginButtonClass ||
-		`${buttonClass} bg-[color:var(--os-primary)] text-[color:var(--tp-on-brand)] hover:opacity-90 border border-transparent`;
-	$: logoutButtonClass =
-		config?.logoutButtonClass ||
-		`${buttonClass} border border-[color:var(--tp-border)] bg-[color:var(--tp-surface-2)] text-[color:var(--tp-fg)] hover:bg-[color:var(--tp-surface-3)]`;
-	$: containerClass = config?.containerClass || 'flex items-center gap-2';
+	$: buttonClass = config?.buttonClass || 'auth-btn';
+	$: loginButtonClass = config?.loginButtonClass || `${buttonClass} auth-btn--login`;
+	$: logoutButtonClass = config?.logoutButtonClass || `${buttonClass} auth-btn--logout`;
+	$: containerClass = config?.containerClass || 'auth-btns';
 	$: authenticated = $auth.authenticated;
 </script>
 
