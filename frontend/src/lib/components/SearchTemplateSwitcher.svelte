@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { activeTemplate } from '$stores/template';
-	import { getTemplatePack } from '$lib/template-packs/registry';
+	import { getTemplatePack } from '$lib/template/packs/registry';
 
 	export let initialQuery = '';
 	export let variant: 'noir' | 'default' = 'default';

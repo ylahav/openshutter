@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { activeTemplate } from '$stores/template';
-	import { getTemplatePack } from '$lib/template-packs/registry';
+	import { getTemplatePack } from '$lib/template/packs/registry';
 
 	export let mode: 'photos' | 'albums' = 'photos';
 	export let albums: any[] = [];

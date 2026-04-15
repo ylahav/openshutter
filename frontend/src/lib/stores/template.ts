@@ -3,7 +3,7 @@ import { siteConfigData } from '$stores/siteConfig';
 import { auth } from '$lib/stores/auth';
 import { page } from '$app/stores';
 import type { SiteConfig } from '$lib/types/site-config';
-import { normalizeTemplatePackId } from '$lib/template-packs/ids';
+import { normalizeTemplatePackId } from '$lib/template/packs/ids';
 
 function getFrontendTemplateName(config: SiteConfig | null): string {
 	const raw =

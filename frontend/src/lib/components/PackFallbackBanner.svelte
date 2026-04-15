@@ -2,7 +2,7 @@
 	import { browser } from '$app/environment';
 	import { page } from '$app/stores';
 	import { activeTemplate } from '$stores/template';
-	import { isKnownTemplatePack } from '$lib/template-packs/ids';
+	import { isKnownTemplatePack } from '$lib/template/packs/ids';
 	import { t } from '$stores/i18n';
 
 	let dismissed = false;

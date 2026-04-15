@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { activeTemplate } from '$stores/template';
 	import { siteConfigData } from '$stores/siteConfig';
-	import { getTemplatePack } from '$lib/template-packs/registry';
+	import { getTemplatePack } from '$lib/template/packs/registry';
 	import PageRenderer from '$lib/page-builder/PageRenderer.svelte';
 	import type { PageModuleData } from '$lib/types/page-builder';
 	import { getEffectivePageGrid, getEffectivePageModules } from '$lib/template/breakpoints';

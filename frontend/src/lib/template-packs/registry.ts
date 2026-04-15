@@ -13,14 +13,14 @@ const packCache = new Map<TemplatePackId, TemplatePack>();
 const packLoaders: Record<TemplatePackId, () => Promise<TemplatePack>> = {
 	noir: async () => {
 		const [Home, Gallery, Album, About, Search, Contact, CmsPage, Login] = await Promise.all([
-			import('$lib/templates/noir/Home.svelte'),
-			import('$lib/templates/noir/Gallery.svelte'),
-			import('$lib/templates/noir/Album.svelte'),
-			import('$lib/templates/noir/About.svelte'),
-			import('$lib/templates/noir/Search.svelte'),
-			import('$lib/templates/noir/Contact.svelte'),
-			import('$lib/templates/noir/CmsPage.svelte'),
-			import('$lib/templates/noir/Login.svelte')
+			import('$templates/noir/Home.svelte'),
+			import('$templates/noir/Gallery.svelte'),
+			import('$templates/noir/Album.svelte'),
+			import('$templates/noir/About.svelte'),
+			import('$templates/noir/Search.svelte'),
+			import('$templates/noir/Contact.svelte'),
+			import('$templates/noir/CmsPage.svelte'),
+			import('$templates/noir/Login.svelte')
 		]);
 		return {
 			name: 'noir',
@@ -38,14 +38,14 @@ const packLoaders: Record<TemplatePackId, () => Promise<TemplatePack>> = {
 	},
 	studio: async () => {
 		const [Home, Gallery, Album, About, Search, Contact, CmsPage, Login] = await Promise.all([
-			import('$lib/templates/studio/Home.svelte'),
-			import('$lib/templates/studio/Gallery.svelte'),
-			import('$lib/templates/studio/Album.svelte'),
-			import('$lib/templates/studio/About.svelte'),
-			import('$lib/templates/studio/Search.svelte'),
-			import('$lib/templates/studio/Contact.svelte'),
-			import('$lib/templates/studio/CmsPage.svelte'),
-			import('$lib/templates/studio/Login.svelte')
+			import('$templates/studio/Home.svelte'),
+			import('$templates/studio/Gallery.svelte'),
+			import('$templates/studio/Album.svelte'),
+			import('$templates/studio/About.svelte'),
+			import('$templates/studio/Search.svelte'),
+			import('$templates/studio/Contact.svelte'),
+			import('$templates/studio/CmsPage.svelte'),
+			import('$templates/studio/Login.svelte')
 		]);
 		return {
 			name: 'studio',
@@ -63,14 +63,14 @@ const packLoaders: Record<TemplatePackId, () => Promise<TemplatePack>> = {
 	},
 	atelier: async () => {
 		const [Home, Gallery, Album, About, Search, Contact, CmsPage, Login] = await Promise.all([
-			import('$lib/templates/atelier/Home.svelte'),
-			import('$lib/templates/atelier/Gallery.svelte'),
-			import('$lib/templates/atelier/Album.svelte'),
-			import('$lib/templates/atelier/About.svelte'),
-			import('$lib/templates/atelier/Search.svelte'),
-			import('$lib/templates/atelier/Contact.svelte'),
-			import('$lib/templates/atelier/CmsPage.svelte'),
-			import('$lib/templates/atelier/Login.svelte')
+			import('$templates/atelier/Home.svelte'),
+			import('$templates/atelier/Gallery.svelte'),
+			import('$templates/atelier/Album.svelte'),
+			import('$templates/atelier/About.svelte'),
+			import('$templates/atelier/Search.svelte'),
+			import('$templates/atelier/Contact.svelte'),
+			import('$templates/atelier/CmsPage.svelte'),
+			import('$templates/atelier/Login.svelte')
 		]);
 		return {
 			name: 'atelier',

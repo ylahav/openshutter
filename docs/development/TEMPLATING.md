@@ -38,8 +38,8 @@ Onboarding for **implementors**. Operators: **[`../guides/TEMPLATING_USER_GUIDE.
 
 | Layer | What it is | Where it lives |
 |--------|------------|----------------|
-| **Template pack** | Code: route shells (`Home`, `Gallery`, `Album`, `Login`, `About`, `Search`, `Contact`, `CmsPage`), optional shared `components/` | `frontend/src/lib/templates/<packId>/` |
-| **Registry** | Maps pack id → Svelte components; normalizes legacy ids | `frontend/src/lib/template-packs/registry.ts` |
+| **Template pack** | Code: route shells (`Home`, `Gallery`, `Album`, `Login`, `About`, `Search`, `Contact`, `CmsPage`), optional shared `components/` | `frontend/src/templates/<packId>/` |
+| **Registry** | Maps pack id → Svelte components; normalizes legacy ids | `frontend/src/lib/template/packs/registry.ts` |
 | **Live template config** | Colors, fonts, layout, `pageModules` / `pageLayout`, … | `site_config.template` → `GET /api/site-config` |
 | **Themes** | MongoDB `themes` rows with `baseTemplate` + overrides | Admin → Templates; **Apply** / **Set as default** updates live `site_config` |
 | **Page builder** | `PageRenderer` + grid / breakpoints | `frontend/src/lib/page-builder/`, `frontend/src/lib/template/` |
@@ -79,17 +79,17 @@ Optional history: [`../archive/development/ADMIN_UI_ROADMAP.md`](../archive/deve
 
 | Area | Path |
 |------|------|
-| Pack registry | `frontend/src/lib/template-packs/registry.ts` |
+| Pack registry | `frontend/src/lib/template/packs/registry.ts` |
 | Pack switchers (visitor) | `HomeTemplateSwitcher`, `GalleryTemplateSwitcher`, `AlbumTemplateSwitcher`, `AboutTemplateSwitcher`, `SearchTemplateSwitcher`, `ContactTemplateSwitcher`, `CmsPageTemplateSwitcher` in `frontend/src/lib/components/` |
 | Body shell | `frontend/src/lib/components/BodyTemplateWrapper.svelte` |
-| Pack SCSS | `frontend/src/lib/templates/<pack>/styles.scss` imported from each pack **route shell** (`Home`, `Gallery`, `Album`, `Login`, `About`, `Search`, `Contact`, `CmsPage`) so Vite emits CSS and SvelteKit can inject `<link>` in the document head |
+| Pack SCSS | `frontend/src/templates/<pack>/styles.scss` imported from each pack **route shell** (`Home`, `Gallery`, `Album`, `Login`, `About`, `Search`, `Contact`, `CmsPage`) so Vite emits CSS and SvelteKit can inject `<link>` in the document head |
 | Visitor template store | `frontend/src/lib/stores/template.ts` |
 | Public config API | `backend/src/site-config/site-config.controller.ts` |
 | Template normalization | `backend/src/services/site-config.ts` |
 | Theme seeding | `backend/src/database/database-init.service.ts` |
 | Site chrome | **`layoutShell`** blocks + named `layoutPresets` (e.g. header/footer strips); no pack `Header.svelte` / `Footer.svelte` |
 | Shared header UI (menu, language, theme, template pickers) | `frontend/src/lib/components/ui/` — one folder per control, each with a `README.md`; admins can read the same sources at **`/admin/docs/ui`** |
-| Palette → CSS | `frontend/src/lib/theme/template-palette.ts`, `ThemeColorApplier.svelte` |
+| Palette → CSS | `frontend/src/lib/template/theme/template-palette.ts`, `ThemeColorApplier.svelte` |
 
 ### Manual test checklist
 
@@ -107,7 +107,7 @@ Optional history: [`../archive/development/ADMIN_UI_ROADMAP.md`](../archive/deve
 
 <a id="tokens-palette-and-pack-styles-implementation"></a>
 
-Admin **template / theme** fields feed **`ThemeColorApplier`** via `buildTemplatePaletteCss()` in [`template-palette.ts`](../../frontend/src/lib/theme/template-palette.ts). Pack SCSS and Svelte should use **`--tp-*`** and **`--os-font-*`**, not hard-coded brand hex.
+Admin **template / theme** fields feed **`ThemeColorApplier`** via `buildTemplatePaletteCss()` in [`template-palette.ts`](../../frontend/src/lib/template/theme/template-palette.ts). Pack SCSS and Svelte should use **`--tp-*`** and **`--os-font-*`**, not hard-coded brand hex.
 
 ### Core `--tp-*` roles
 
@@ -159,7 +159,7 @@ Extended keys (`surfaceCard`, `lightBackground`, …) are listed in **`EXTENDED_
 
 ### Pack defaults (JSON)
 
-Noir may ship `frontend/src/lib/templates/noir/theme.defaults.json` for documentation or tooling; **runtime** values still come from site config / theme row once applied.
+Noir may ship `frontend/src/templates/noir/theme.defaults.json` for documentation or tooling; **runtime** values still come from site config / theme row once applied.
 
 ### Pack SCSS conventions
 
@@ -173,15 +173,15 @@ Reference HTML uses short class names; in the app the same strings are valid **i
 
 | Pack | SCSS file (co-located with the pack) |
 |------|--------------------------------------|
-| Noir | `frontend/src/lib/templates/noir/styles.scss` |
-| Studio | `frontend/src/lib/templates/studio/styles.scss` |
-| Atelier | `frontend/src/lib/templates/atelier/styles.scss` |
+| Noir | `frontend/src/templates/noir/styles.scss` |
+| Studio | `frontend/src/templates/studio/styles.scss` |
+| Atelier | `frontend/src/templates/atelier/styles.scss` |
 
 Each pack’s `styles.scss` is imported from that pack’s route-level `.svelte` files (not from a central loader), so the correct stylesheet is bundled with the routes that use the pack and appears as a normal Vite CSS asset (`<link rel="stylesheet" …>` in devtools / production HTML when that route is rendered). `globals.css` stays global; `--tp-*` / `--os-font-*` still come from `ThemeColorApplier` at runtime.
 
 ### Adding a pack stylesheet
 
-1. Add `frontend/src/lib/templates/<packId>/styles.scss` with a single root selector `.tpl-pack-<packId> { … }`.
+1. Add `frontend/src/templates/<packId>/styles.scss` with a single root selector `.tpl-pack-<packId> { … }`.
 2. Add `import './styles.scss'` to that pack’s `Home.svelte`, `Gallery.svelte`, `Album.svelte`, `Login.svelte`, and `Search.svelte` (same pattern as existing packs).
 3. Add `tpl-pack-<packId>` to `<main>` in `BodyTemplateWrapper.svelte` (and a conditional branch if the shell classes differ).
 4. Extend `buildTemplatePaletteCss` only if you need **new** semantic tokens — prefer reusing `--tp-*` so the theme editor stays coherent.
@@ -669,13 +669,13 @@ Cross-reference **§2.2.1**, **§2.2.3**, and **§2.2.4** in [Part I](#part-i--r
 |------|------|
 | [x] | **Full-bleed** page background on `BodyTemplateWrapper` `<main>`; pack route roots must not paint `min-h-screen bg-*` only inside `.os-shell-container`. |
 | [x] | **Shell RTL:** `.os-shell-container` logical margin/padding. |
-| [x] | **Registry tests:** `frontend/src/lib/template-packs/registry.test.ts`. |
+| [x] | **Registry tests:** `frontend/src/lib/template-packs/registry.test.ts` (legacy location; canonical runtime import path is `lib/template/packs/registry.ts`). |
 | [x] | **Light/dark** CSS pass on album/gallery/search shells (spot-check Home/Login). |
 | [x] | **RTL:** `ms`/`me`/`text-start`/`text-end` in pack chrome where updated. |
 
 ### Milestone 1 — Foundation
 
-- [x] Template pack contract — `frontend/src/lib/template-packs/types.ts`.
+- [x] Template pack contract — `frontend/src/lib/template/packs/types.ts` (re-exported from legacy `template-packs/types.ts` during migration).
 - [x] Optional components + fallback — `getTemplatePack()`.
 - [ ] Full `config.ts`-style schema for all template options in admin — partial today.
 - [x] Registry + `*TemplateSwitcher` components.
@@ -741,7 +741,7 @@ If you apply a theme and “nothing changes,” check for stale `pageModules` fr
 
 ### 1. Add Svelte components
 
-Under `frontend/src/lib/templates/<packId>/`: `Home.svelte`, `Gallery.svelte`, `Album.svelte`, `Login.svelte`, `About.svelte`, `Search.svelte`, `Contact.svelte`, `CmsPage.svelte`, `styles.scss`, and shared pieces under `components/` (e.g. `Hero.svelte`, `AlbumList.svelte`). **`Gallery.svelte`** supports **`mode="photos"`** (default: loads photos client-side) and **`mode="albums"`** (album list; receives `albums` / `loading` / `error` from the route via `GalleryTemplateSwitcher`). **Do not** add pack-level `Header.svelte` / `Footer.svelte` — site chrome is **`layoutShell`** presets in the theme. Use Tailwind; colors/fonts from `siteConfigData` / CSS variables (`ThemeColorApplier`, etc.).
+Under `frontend/src/templates/<packId>/`: `Home.svelte`, `Gallery.svelte`, `Album.svelte`, `Login.svelte`, `About.svelte`, `Search.svelte`, `Contact.svelte`, `CmsPage.svelte`, `styles.scss`, and shared pieces under `components/` (e.g. `Hero.svelte`, `AlbumList.svelte`). **`Gallery.svelte`** supports **`mode="photos"`** (default: loads photos client-side) and **`mode="albums"`** (album list; receives `albums` / `loading` / `error` from the route via `GalleryTemplateSwitcher`). **Do not** add pack-level `Header.svelte` / `Footer.svelte` — site chrome is **`layoutShell`** presets in the theme. Use Tailwind; colors/fonts from `siteConfigData` / CSS variables (`ThemeColorApplier`, etc.).
 
 ### 2. Header / footer chrome
 
@@ -749,13 +749,13 @@ Public chrome is built with **page builder modules** inside **`layoutShell`** re
 
 ### 3. Register the pack
 
-Edit `frontend/src/lib/template-packs/registry.ts`: add a loader with required `pages`: **`Home`**, **`Gallery`**, **`Album`**, **`Login`**, **`About`**, **`Search`**, **`Contact`**, **`CmsPage`**. Update `frontend/src/lib/template-packs/types.ts` (`TemplatePackPages`) in lockstep. Optional `components` may list shared parts only (e.g. `Hero`). Export `TEMPLATE_PACK_IDS` for first-class built-ins.
+Edit `frontend/src/lib/template/packs/registry.ts`: add a loader with required `pages`: **`Home`**, **`Gallery`**, **`Album`**, **`Login`**, **`About`**, **`Search`**, **`Contact`**, **`CmsPage`**. Update `frontend/src/lib/template/packs/types.ts` (`TemplatePackPages`) in lockstep. Optional `components` may list shared parts only (e.g. `Hero`). Export `TEMPLATE_PACK_IDS` for first-class built-ins.
 
 ### 4. Align backend allowlists
 
 Keep in sync when adding a pack id:
 
-- `frontend/src/lib/template-packs/registry.ts` — `TEMPLATE_PACK_IDS` and `packs`
+- `frontend/src/lib/template/packs/registry.ts` — `TEMPLATE_PACK_IDS` and `packs`
 - `backend/src/services/site-config.ts` — `BUILTIN_TEMPLATE_IDS`
 - Theme DTOs: `create-theme.dto.ts` / `update-theme.dto.ts` — `@IsIn` for `baseTemplate`
 - `backend/src/templates/templates.controller.ts`
@@ -800,3 +800,5 @@ When behavior changes (e.g. new built-in pack, new theme fields, or chrome resol
 **2026-04 (navigation + clarity):** Expanded **Contents** with **Part I subsection map** (anchors **`templating-s0`**, **`templating-221`**, **`templating-223`**, **`templating-224`**, **`templating-s3`**, **`templating-s6`**) and link to **[seeding / layout-shape note](#templating-part2-seeding)**. Part II: contributor warning on **breakpoint-keyed** vs legacy flat layouts (**P4**). Part III: **Milestone 3** pack-shell item clarified (parity vs consistency pass).
 
 **2026-04 (pack routes):** Registry and packs include **`About`**, **`Search`**, **`Contact`**, **`CmsPage`**; visitor routes **`/albums`**, **`/login`**, **`/about`**, **`/contact`**, **`/search`**, **`/[alias]`**, **`/page`** use `*TemplateSwitcher` fallbacks when `pageModules` is empty. **`Gallery`** supports **`mode: 'albums' | 'photos'`** with parent-passed album list data. **`TemplateService`**: removed webpack **`require.context`** usage; **`getTemplatePage`** deprecated in favor of **`getTemplatePack()`**. Docs: **`frontendTemplate` preferred over `activeTemplate`** for the live visitor pack id.
+
+**2026-04 (folder simplification):** Templating service/runtime paths consolidated under **`frontend/src/lib/template/`** (`packs/`, `breakpoints`, `theme/`). Pack implementation files moved to **`frontend/src/templates/`** and consumed via the **`$templates`** alias.

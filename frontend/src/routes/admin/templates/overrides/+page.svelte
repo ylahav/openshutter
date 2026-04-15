@@ -49,8 +49,8 @@
 	import {
 		DEFAULT_TEMPLATE_COLOR_EXTENDED,
 		EXTENDED_COLOR_FIELD_META
-	} from '$lib/theme/template-palette';
-	import atelierThemePack from '$lib/templates/atelier/theme.defaults.json';
+	} from '$lib/template/theme/template-palette';
+	import atelierThemePack from '$templates/atelier/theme.defaults.json';
 
 	/** Readable defaults when template / overrides omit a key (also fixes invisible #000 on white fields). */
 	const DEFAULT_COLOR_HEX: Record<string, string> = {

@@ -159,7 +159,7 @@ export class TemplateService {
 
   /**
    * @deprecated Legacy webpack `require.context` discovery was never valid in Vite/SvelteKit.
-   * Visitor routes use `getTemplatePack()` from `$lib/template-packs/registry` instead.
+   * Visitor routes use `getTemplatePack()` from `$lib/template/packs/registry` instead.
    */
   private buildPageLoaders(): Record<string, Record<string, () => Promise<any>>> {
     return {}

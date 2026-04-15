@@ -1,6 +1,6 @@
 import { siteConfig } from '$stores/siteConfig';
 import { handleApiErrorResponse } from '$lib/utils/errorHandler';
-import { normalizeTemplatePackId } from '$lib/template-packs/ids';
+import { normalizeTemplatePackId } from '$lib/template/packs/ids';
 
 export type ApplyThemeResult =
 	| { ok: true; themeName: string }

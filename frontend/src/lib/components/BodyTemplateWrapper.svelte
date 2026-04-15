@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { activeTemplate } from '$stores/template';
-	import '$lib/templates/styles/main.scss';
+	import '$templates/styles/main.scss';
 </script>
 
 {#if $activeTemplate === 'noir'}

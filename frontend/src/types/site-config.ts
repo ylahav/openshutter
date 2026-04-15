@@ -23,7 +23,7 @@ export interface SiteConfig {
     frontendTemplate?: string
     /** @deprecated Always `default` from API. Admin UI is not pack-driven. */
     adminTemplate?: string
-    customColors?: import('$lib/theme/template-palette').TemplateCustomColors
+    customColors?: import('$lib/template/theme/template-palette').TemplateCustomColors
     customFonts?: {
       heading?: string
       body?: string

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { activeTemplate } from '$stores/template';
-	import { getTemplatePack } from '$lib/template-packs/registry';
+	import { getTemplatePack } from '$lib/template/packs/registry';
 	import type { PageData } from '$lib/types/page-builder';
 
 	export let page: PageData | null = null;

@@ -1,6 +1,6 @@
 import type { MultiLangText, MultiLangHTML } from './multi-lang';
 import type { FontSetting, FontRole } from './fonts';
-import type { TemplateCustomColors } from '$lib/theme/template-palette';
+import type { TemplateCustomColors } from '$lib/template/theme/template-palette';
 
 export interface SiteConfig {
   _id?: string

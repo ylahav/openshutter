@@ -5,7 +5,7 @@
 	import { siteConfigData } from '$stores/siteConfig';
 	import { MultiLangUtils } from '$lib/utils/multiLang';
 	import { getPhotoFullUrl } from '$lib/utils/photoUrl';
-	import { normalizeTemplatePackId } from '$lib/template-packs/ids';
+	import { normalizeTemplatePackId } from '$lib/template/packs/ids';
 
 	export let config: any = {};
 

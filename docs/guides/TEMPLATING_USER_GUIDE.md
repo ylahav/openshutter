@@ -116,7 +116,7 @@ In OpenShutter, a **theme** is a saved preset (MongoDB row) with a **name**, **b
 
 ### New **pack** (developer task)
 
-A **pack** is a new set of Svelte shells under `frontend/src/lib/templates/<packId>/` plus registry and backend allowlists. That is **not** done from Admin. See **[`TEMPLATING.md` §8 — Create a template pack](../development/TEMPLATING.md#8-appendix-create-a-template-pack-built-in)**.
+A **pack** is a new set of Svelte shells under `frontend/src/templates/<packId>/` plus registry and backend allowlists. That is **not** done from Admin. See **[`TEMPLATING.md` §8 — Create a template pack](../development/TEMPLATING.md#8-appendix-create-a-template-pack-built-in)**.
 
 ---
 

@@ -4,7 +4,7 @@
 	import { siteConfig, siteConfigData, productName } from '$stores/siteConfig';
 	import { activeTemplate } from '$stores/template';
 	import { getPageGridForBreakpoint, getPageModulesForBreakpoint } from '$lib/template/breakpoints';
-	import { getTemplatePack } from '$lib/template-packs/registry';
+	import { getTemplatePack } from '$lib/template/packs/registry';
 
 	onMount(() => {
 		siteConfig.load().catch(() => {});

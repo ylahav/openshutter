@@ -12,7 +12,7 @@
 		seedShellFromDb,
 		buildShellLayoutCssVars
 	} from '$lib/template/breakpoints';
-	import { buildTemplatePaletteCss } from '$lib/theme/template-palette';
+	import { buildTemplatePaletteCss } from '$lib/template/theme/template-palette';
 
 	let styleElement: HTMLStyleElement | null = null;
 	let googleFontsLink: HTMLLinkElement | null = null;
