@@ -653,6 +653,99 @@ body {
 // ─── Shared module: Auth buttons (scoped to pack root `<main class="tpl-pack-*">`) ───
 
 .tpl-pack-atelier {
+  // LayoutShell-powered header strip (used in production routes)
+  // mirrors Atelier static header proportions/typography.
+  .layout-shell[data-layout-preset$='header'],
+  .layout-shell[data-layout-preset='header'] {
+    background: var(--tp-header-bg, var(--bg));
+    border-bottom: var(--os-border-width, 1px) solid var(--tp-header-border, var(--bdr));
+    transition: background $t, border-color $t;
+
+    > .flex {
+      min-height: var(--os-header-height, 96px);
+      padding: 20px 32px 14px;
+      gap: 16px;
+      align-items: center;
+    }
+
+    // Site title module
+    span.font-semibold.text-lg {
+      @include serif(400, 28px);
+      letter-spacing: 0.12em;
+      color: var(--fg);
+      text-align: center;
+      width: 100%;
+      display: block;
+    }
+
+    span.font-semibold.text-lg a {
+      color: inherit;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    // Menu module defaults to a plain <nav> with links.
+    nav {
+      justify-content: center;
+      gap: 28px;
+      width: 100%;
+    }
+
+    nav a {
+      @include small-caps(0.22em);
+      color: var(--fg-mid);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    nav a:hover {
+      color: var(--fg);
+    }
+
+    nav a[class*='var(--os-primary)'] {
+      color: var(--gold);
+      font-weight: 400;
+    }
+
+    // Theme toggle button (icon-only control)
+    button[aria-label='Toggle theme'] {
+      border: 1px solid var(--bdr);
+      border-radius: 0;
+      color: var(--fg-lt);
+      background: transparent;
+      transition: color 0.2s, border-color 0.2s, background 0.2s;
+    }
+
+    button[aria-label='Toggle theme']:hover {
+      color: var(--fg);
+      border-color: var(--fg-lt);
+      background: transparent;
+    }
+
+    // Language selector trigger button (dropdown mode)
+    [data-language-selector='dropdown'] > button {
+      border: 1px solid var(--bdr);
+      border-radius: 0;
+      background: transparent;
+      color: var(--fg-lt);
+      padding: 4px 10px;
+      min-height: 0;
+      @include small-caps(0.14em);
+      box-shadow: none;
+    }
+
+    [data-language-selector='dropdown'] > button:hover {
+      border-color: var(--fg-lt);
+      color: var(--fg);
+      background: transparent;
+    }
+
+    // Keep sign-in/out module consistent with the static Atelier link style.
+    .auth-btns {
+      justify-content: flex-start;
+    }
+  }
+
   .auth-btns {
     display: flex;
     align-items: center;
