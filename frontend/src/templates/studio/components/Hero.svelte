@@ -41,7 +41,7 @@
 	></div>
 
 	<div
-		class="relative z-[2] max-w-[var(--os-max-width)] mx-auto px-7 py-16 md:py-[72px] grid grid-cols-1 lg:grid-cols-2 gap-12 items-center"
+		class="relative z-[2] max-w-(--os-max-width) mx-auto px-7 py-16 md:py-[72px] grid grid-cols-1 lg:grid-cols-2 gap-12 items-center"
 	>
 		<div class="hero-content space-y-5">
 			<div

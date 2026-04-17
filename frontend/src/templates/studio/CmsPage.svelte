@@ -13,7 +13,7 @@
 	class="min-h-screen w-full bg-[color:var(--tp-canvas)] text-[color:var(--tp-fg)] [font-family:var(--os-font-body)] pt-24 pb-16"
 >
 	{#if error}
-		<div class="max-w-[var(--os-max-width)] mx-auto px-7 py-24 text-center">
+		<div class="max-w-(--os-max-width) mx-auto px-7 py-24 text-center">
 			<h1 class="text-2xl font-light mb-4" style="font-family: var(--os-font-heading);">Page unavailable</h1>
 			<p class="text-[15px] mb-10" style="color: var(--tp-fg-muted);">{error}</p>
 			<button
@@ -26,7 +26,7 @@
 			</button>
 		</div>
 	{:else if page}
-		<article class="max-w-[var(--os-max-width)] mx-auto px-7">
+		<article class="max-w-(--os-max-width) mx-auto px-7">
 			<h1
 				class="text-3xl md:text-4xl font-extralight tracking-tight mb-4"
 				style="font-family: var(--os-font-heading); color: var(--tp-fg);"

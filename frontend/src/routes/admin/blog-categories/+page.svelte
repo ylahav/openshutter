@@ -236,8 +236,8 @@
 	<div class="max-w-6xl mx-auto px-4">
 		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
 			<div class="mb-6">
-				<h1 class="text-2xl font-bold text-[var(--color-surface-950-50)]">{$t('admin.blogCategories')}</h1>
-				<p class="text-[var(--color-surface-600-400)] mt-2">{$t('admin.manageBlogCategories')}</p>
+				<h1 class="text-2xl font-bold text-(--color-surface-950-50)">{$t('admin.blogCategories')}</h1>
+				<p class="text-(--color-surface-600-400) mt-2">{$t('admin.manageBlogCategories')}</p>
 			</div>
 
 			{#if message}
@@ -257,10 +257,10 @@
 							placeholder={$t('admin.searchCategories')}
 							bind:value={searchTerm}
 							on:input={() => crudLoader.loadItems()}
-							class="pl-10 pr-4 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)] w-64"
+							class="pl-10 pr-4 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500) w-64"
 						/>
 						<svg
-							class="absolute left-3 top-1/2 transform -translate-y-1/2 text-[var(--color-surface-400-600)] h-4 w-4"
+							class="absolute left-3 top-1/2 transform -translate-y-1/2 text-(--color-surface-400-600) h-4 w-4"
 							fill="none"
 							stroke="currentColor"
 							viewBox="0 0 24 24"
@@ -277,7 +277,7 @@
 					<select
 						bind:value={activeFilter}
 						on:change={() => crudLoader.loadItems()}
-						class="px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
+						class="px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 						>
 						<option value="all">{$t('admin.allStatuses')}</option>
 						<option value="true">{$t('admin.active')}</option>
@@ -288,7 +288,7 @@
 				<button
 					type="button"
 					on:click={openCreateDialog}
-					class="px-4 py-2 bg-[var(--color-primary-600)] text-white rounded-md hover:bg-[var(--color-primary-700)] text-sm font-medium flex items-center gap-2"
+					class="px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700) text-sm font-medium flex items-center gap-2"
 					>
 					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path
@@ -305,13 +305,13 @@
 			<!-- Categories List -->
 			{#if loading}
 				<div class="text-center py-8">
-					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--color-primary-600)]"></div>
-					<p class="mt-2 text-[var(--color-surface-600-400)]">{$t('admin.loadingCategories')}</p>
+					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-(--color-primary-600)"></div>
+					<p class="mt-2 text-(--color-surface-600-400)">{$t('admin.loadingCategories')}</p>
 				</div>
 			{:else if categories.length === 0}
 				<div class="text-center py-8">
 					<svg
-						class="h-12 w-12 text-[var(--color-surface-400-600)] mx-auto mb-4"
+						class="h-12 w-12 text-(--color-surface-400-600) mx-auto mb-4"
 						fill="none"
 						stroke="currentColor"
 						viewBox="0 0 24 24"
@@ -323,8 +323,8 @@
 							d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
 						/>
 					</svg>
-					<h3 class="text-lg font-semibold text-[var(--color-surface-950-50)] mb-2">{$t('admin.noCategories')}</h3>
-					<p class="text-[var(--color-surface-600-400)]">{$t('admin.getStartedByCreatingCategory')}</p>
+					<h3 class="text-lg font-semibold text-(--color-surface-950-50) mb-2">{$t('admin.noCategories')}</h3>
+					<p class="text-(--color-surface-600-400)">{$t('admin.getStartedByCreatingCategory')}</p>
 				</div>
 			{:else}
 				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -332,10 +332,10 @@
 						<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-4">
 							<div class="flex items-start justify-between mb-3">
 								<div class="flex-1">
-									<h3 class="font-semibold text-[var(--color-surface-950-50)] mb-1">{getCategoryTitle(category)}</h3>
-									<p class="text-sm text-[var(--color-surface-600-400)]">
+									<h3 class="font-semibold text-(--color-surface-950-50) mb-1">{getCategoryTitle(category)}</h3>
+									<p class="text-sm text-(--color-surface-600-400)">
 										{$t('admin.alias')}:
-										<code class="bg-[var(--color-surface-100-900)] px-1 rounded">{category.alias}</code>
+										<code class="bg-(--color-surface-100-900) px-1 rounded">{category.alias}</code>
 									</p>
 								</div>
 
@@ -343,7 +343,7 @@
 									<button
 										type="button"
 										on:click={() => openEditDialog(category)}
-										class="p-1 text-[var(--color-surface-600-400)] hover:text-[var(--color-primary-600)] hover:bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] rounded"
+										class="p-1 text-(--color-surface-600-400) hover:text-(--color-primary-600) hover:bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] rounded"
 										aria-label="Edit category"
 									>
 										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -358,7 +358,7 @@
 									<button
 										type="button"
 										on:click={() => openDeleteDialog(category)}
-										class="p-1 text-[var(--color-surface-600-400)] hover:text-red-600 hover:bg-red-50 rounded"
+										class="p-1 text-(--color-surface-600-400) hover:text-red-600 hover:bg-red-50 rounded"
 										aria-label="Delete category"
 									>
 										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -374,7 +374,7 @@
 							</div>
 
 							<div class="flex items-center justify-between mt-3">
-								<span class="text-xs text-[var(--color-surface-600-400)]">
+								<span class="text-xs text-(--color-surface-600-400)">
 									Order: {category.sortOrder || 0}
 								</span>
 								{#if category.isActive}
@@ -382,7 +382,7 @@
 										{$t('admin.active')}
 									</span>
 								{:else}
-									<span class="px-2 py-1 text-xs font-medium rounded bg-[var(--color-surface-100-900)] text-[var(--color-surface-900-100)]">
+									<span class="px-2 py-1 text-xs font-medium rounded bg-(--color-surface-100-900) text-(--color-surface-900-100)">
 										{$t('admin.inactive')}
 									</span>
 								{/if}
@@ -399,7 +399,7 @@
 {#if showCreateDialog}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
 		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
-			<h2 class="text-xl font-bold text-[var(--color-surface-950-50)] mb-4">Add New Blog Category</h2>
+			<h2 class="text-xl font-bold text-(--color-surface-950-50) mb-4">Add New Blog Category</h2>
 
 			{#if error}
 				<div class="mb-4 p-4 bg-red-50 text-red-700 rounded-md">{error}</div>
@@ -407,14 +407,14 @@
 
 			<div class="space-y-4">
 				<div>
-					<span class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+					<span class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
 						Title *
 					</span>
 					<MultiLangInput bind:value={formData.title} />
 				</div>
 
 				<div>
-					<label for="alias" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+					<label for="alias" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
 						Alias (optional - auto-generated if not provided)
 					</label>
 					<input
@@ -422,19 +422,19 @@
 						id="alias"
 						bind:value={formData.alias}
 						placeholder="category-slug"
-						class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
+						class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 					/>
 				</div>
 
 				<div>
-					<span class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+					<span class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
 						Description
 					</span>
 					<MultiLangHTMLEditor bind:value={formData.description} />
 				</div>
 
 				<div>
-					<label for="leading-image-url-create" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+					<label for="leading-image-url-create" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
 						Leading Image URL
 					</label>
 					<input
@@ -442,20 +442,20 @@
 						id="leading-image-url-create"
 						bind:value={formData.leadingImage.url}
 						placeholder="https://..."
-						class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
+						class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 					/>
 				</div>
 
 				<div class="grid grid-cols-2 gap-4">
 					<div>
-						<label for="sort-order-create" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+						<label for="sort-order-create" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
 							Sort Order
 						</label>
 						<input
 							type="number"
 							id="sort-order-create"
 							bind:value={formData.sortOrder}
-							class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
+							class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 						/>
 					</div>
 
@@ -467,9 +467,9 @@
 								class="sr-only peer"
 							/>
 							<div
-								class="w-11 h-6 bg-[var(--color-surface-200-800)] peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[color-mix(in_oklab,var(--color-primary-500)_35%,transparent)] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-[var(--color-surface-50-950)] after:border-surface-300-700 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--color-primary-600)]"
+								class="w-11 h-6 bg-(--color-surface-200-800) peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[color-mix(in_oklab,var(--color-primary-500)_35%,transparent)] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-(--color-surface-50-950) after:border-surface-300-700 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-(--color-primary-600)"
 							></div>
-							<span class="ml-3 text-sm font-medium text-[var(--color-surface-800-200)]">
+							<span class="ml-3 text-sm font-medium text-(--color-surface-800-200)">
 								Active
 							</span>
 						</label>
@@ -483,7 +483,7 @@
 							dialogs.closeAll();
 							resetForm();
 						}}
-						class="px-4 py-2 bg-[var(--color-surface-200-800)] text-[var(--color-surface-800-200)] rounded-md hover:bg-[var(--color-surface-300-700)] text-sm font-medium"
+						class="px-4 py-2 bg-(--color-surface-200-800) text-(--color-surface-800-200) rounded-md hover:bg-(--color-surface-300-700) text-sm font-medium"
 					>
 						Cancel
 					</button>
@@ -491,7 +491,7 @@
 						type="button"
 						on:click={handleCreate}
 						disabled={saving || !formData.title}
-						class="px-4 py-2 bg-[var(--color-primary-600)] text-white rounded-md hover:bg-[var(--color-primary-700)] disabled:opacity-50 text-sm font-medium"
+						class="px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700) disabled:opacity-50 text-sm font-medium"
 					>
 						{#if saving}
 							Creating...
@@ -509,7 +509,7 @@
 {#if showEditDialog && editingCategory}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
 		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
-			<h2 class="text-xl font-bold text-[var(--color-surface-950-50)] mb-4">Edit Blog Category</h2>
+			<h2 class="text-xl font-bold text-(--color-surface-950-50) mb-4">Edit Blog Category</h2>
 
 			{#if error}
 				<div class="mb-4 p-4 bg-red-50 text-red-700 rounded-md">{error}</div>
@@ -517,14 +517,14 @@
 
 			<div class="space-y-4">
 				<div>
-					<span class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+					<span class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
 						Title *
 					</span>
 					<MultiLangInput bind:value={formData.title} />
 				</div>
 
 				<div>
-					<label for="alias-edit" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+					<label for="alias-edit" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
 						Alias
 					</label>
 					<input
@@ -532,19 +532,19 @@
 						id="alias-edit"
 						bind:value={formData.alias}
 						placeholder="category-slug"
-						class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
+						class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 					/>
 				</div>
 
 				<div>
-					<span class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+					<span class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
 						Description
 					</span>
 					<MultiLangHTMLEditor bind:value={formData.description} />
 				</div>
 
 				<div>
-					<label for="leading-image-url-edit" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+					<label for="leading-image-url-edit" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
 						Leading Image URL
 					</label>
 					<input
@@ -552,20 +552,20 @@
 						id="leading-image-url-edit"
 						bind:value={formData.leadingImage.url}
 						placeholder="https://..."
-						class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
+						class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 					/>
 				</div>
 
 				<div class="grid grid-cols-2 gap-4">
 					<div>
-						<label for="sort-order-edit" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+						<label for="sort-order-edit" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
 							Sort Order
 						</label>
 						<input
 							type="number"
 							id="sort-order-edit"
 							bind:value={formData.sortOrder}
-							class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
+							class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 						/>
 					</div>
 
@@ -577,9 +577,9 @@
 								class="sr-only peer"
 							/>
 							<div
-								class="w-11 h-6 bg-[var(--color-surface-200-800)] peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[color-mix(in_oklab,var(--color-primary-500)_35%,transparent)] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-[var(--color-surface-50-950)] after:border-surface-300-700 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--color-primary-600)]"
+								class="w-11 h-6 bg-(--color-surface-200-800) peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[color-mix(in_oklab,var(--color-primary-500)_35%,transparent)] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-(--color-surface-50-950) after:border-surface-300-700 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-(--color-primary-600)"
 							></div>
-							<span class="ml-3 text-sm font-medium text-[var(--color-surface-800-200)]">
+							<span class="ml-3 text-sm font-medium text-(--color-surface-800-200)">
 								Active
 							</span>
 						</label>
@@ -594,7 +594,7 @@
 							editingCategory = null;
 							resetForm();
 						}}
-						class="px-4 py-2 bg-[var(--color-surface-200-800)] text-[var(--color-surface-800-200)] rounded-md hover:bg-[var(--color-surface-300-700)] text-sm font-medium"
+						class="px-4 py-2 bg-(--color-surface-200-800) text-(--color-surface-800-200) rounded-md hover:bg-(--color-surface-300-700) text-sm font-medium"
 					>
 						Cancel
 					</button>
@@ -602,7 +602,7 @@
 						type="button"
 						on:click={handleEdit}
 						disabled={saving || !formData.title}
-						class="px-4 py-2 bg-[var(--color-primary-600)] text-white rounded-md hover:bg-[var(--color-primary-700)] disabled:opacity-50 text-sm font-medium"
+						class="px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700) disabled:opacity-50 text-sm font-medium"
 					>
 						{#if saving}
 							Updating...
@@ -620,14 +620,14 @@
 {#if showDeleteDialog && categoryToDelete}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
 		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full max-w-md p-6">
-			<h2 class="text-xl font-bold text-[var(--color-surface-950-50)] mb-4">Delete Blog Category</h2>
+			<h2 class="text-xl font-bold text-(--color-surface-950-50) mb-4">Delete Blog Category</h2>
 
 			{#if error}
 				<div class="mb-4 p-4 bg-red-50 text-red-700 rounded-md">{error}</div>
 			{/if}
 
 			<div class="space-y-4">
-				<p class="text-[var(--color-surface-600-400)]">
+				<p class="text-(--color-surface-600-400)">
 					Are you sure you want to delete <strong>{getCategoryTitle(categoryToDelete)}</strong> ({categoryToDelete.alias})? This
 					action cannot be undone.
 				</p>
@@ -643,7 +643,7 @@
 							dialogs.closeAll();
 							categoryToDelete = null;
 						}}
-						class="px-4 py-2 bg-[var(--color-surface-200-800)] text-[var(--color-surface-800-200)] rounded-md hover:bg-[var(--color-surface-300-700)] text-sm font-medium"
+						class="px-4 py-2 bg-(--color-surface-200-800) text-(--color-surface-800-200) rounded-md hover:bg-(--color-surface-300-700) text-sm font-medium"
 					>
 						Cancel
 					</button>

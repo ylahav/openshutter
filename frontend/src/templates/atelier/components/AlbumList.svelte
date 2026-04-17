@@ -3,16 +3,9 @@
 	import { MultiLangUtils } from '$utils/multiLang';
 	import { logger } from '$lib/utils/logger';
 	import { t } from '$stores/i18n';
+	import type { PackGalleryAlbumListItem } from '$lib/template-packs/pack-page-props';
 
-	interface TemplateAlbum {
-		_id: string;
-		name?: any;
-		description?: any;
-		alias?: string;
-		photoCount?: number;
-	}
-
-	export let albums: TemplateAlbum[] = [];
+	export let albums: PackGalleryAlbumListItem[] = [];
 	export let loading = false;
 	export let error: string | null = null;
 	/** `gallery` = full /albums page (different heading, no “browse all” link). */
@@ -30,23 +23,25 @@
 	$: filtered = albums;
 
 	$: {
-		const key = albums.map((a) => a._id).join(',');
+		const key = albums.map((a) => a._id ?? '').filter(Boolean).join(',');
 		if (key && key !== coverFetchKey) {
 			coverFetchKey = key;
 			void fetchCoversFor(albums);
 		}
 	}
 
-	async function fetchCoversFor(list: TemplateAlbum[]) {
+	async function fetchCoversFor(list: PackGalleryAlbumListItem[]) {
 		const next = { ...coverUrls };
 		for (const a of list) {
-			if (next[a._id] !== undefined) continue;
-			next[a._id] = null;
+			const id = a._id;
+			if (!id) continue;
+			if (next[id] !== undefined) continue;
+			next[id] = null;
 			try {
-				const res = await fetch(`/api/albums/${a._id}/cover-image`);
+				const res = await fetch(`/api/albums/${id}/cover-image`);
 				if (res.ok) {
 					const data = await res.json();
-					next[a._id] = data.url || null;
+					next[id] = data.url || null;
 				}
 			} catch (e) {
 				logger.error('atelier cover fetch', e);
@@ -87,7 +82,7 @@
 			<div class="a-album-list">
 				{#each filtered as album, i}
 					<a
-						href={`/albums/${album.alias || album._id}`}
+						href={`/albums/${album.alias || album._id || ''}`}
 						class="a-album-item a-reveal"
 						style="animation-delay: {0.05 + i * 0.1}s"
 					>
@@ -96,7 +91,7 @@
 								class="a-album-item__thumb-inner"
 								style="background: {thumbBg[i % 3]};"
 							>
-								{#if coverUrls[album._id]}
+								{#if album._id && coverUrls[album._id]}
 									<img src={coverUrls[album._id]!} alt="" />
 								{/if}
 							</div>

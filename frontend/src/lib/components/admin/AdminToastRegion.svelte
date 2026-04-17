@@ -14,11 +14,11 @@
 					class="card preset-outlined-surface-200-800 bg-surface-50-950 flex min-w-0 flex-1 gap-3 p-4 shadow-lg {toastAnim}"
 				>
 					<div class="min-w-0 flex-1 space-y-0.5">
-						<Toast.Title class="text-sm font-semibold text-[var(--base-font-color)]">
+						<Toast.Title class="text-sm font-semibold text-(--base-font-color)">
 							{toast.title}
 						</Toast.Title>
 						{#if toast.description}
-							<Toast.Description class="text-sm text-[var(--color-surface-600-400)]">
+							<Toast.Description class="text-sm text-(--color-surface-600-400)">
 								{toast.description}
 							</Toast.Description>
 						{/if}

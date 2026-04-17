@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { activeTemplate } from '$stores/template';
 	import { getTemplatePack } from '$lib/template/packs/registry';
-	import type { PageData } from '$lib/types/page-builder';
+	import type { PackContactPageProps } from '$lib/template-packs/pack-page-props';
 
-	export let page: PageData | null = null;
+	export let page: PackContactPageProps['page'] = null;
 
 	$: packPromise = getTemplatePack($activeTemplate);
 </script>

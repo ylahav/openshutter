@@ -4,16 +4,9 @@
 	import { MultiLangUtils } from '$utils/multiLang';
 	import { logger } from '$lib/utils/logger';
 	import { t } from '$stores/i18n';
+	import type { PackGalleryAlbumListItem } from '$lib/template-packs/pack-page-props';
 
-	interface TemplateAlbum {
-		_id: string;
-		name?: any;
-		description?: any;
-		alias?: string;
-		photoCount?: number;
-	}
-
-	export let album: TemplateAlbum;
+	export let album: PackGalleryAlbumListItem;
 	export let fadeIndex = 0;
 
 	const gradients = [
@@ -36,6 +29,10 @@
 			: '';
 
 	onMount(async () => {
+		if (!album._id) {
+			coverImageLoading = false;
+			return;
+		}
 		try {
 			const res = await fetch(`/api/albums/${album._id}/cover-image`);
 			if (res.ok) {

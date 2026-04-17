@@ -46,14 +46,14 @@
 </script>
 
 <div class="space-y-3 border-t border-surface-200-800 pt-4">
-	<h3 class="text-sm font-semibold text-[var(--color-surface-800-200)]">Placement in grid cell</h3>
-	<p class="text-xs text-[var(--color-surface-600-400)]">
+	<h3 class="text-sm font-semibold text-(--color-surface-800-200)">Placement in grid cell</h3>
+	<p class="text-xs text-(--color-surface-600-400)">
 		Optional. Align this block inside its row/column (layout shells and page grids). Does not change module-specific
 		options.
 	</p>
 	<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
 		<div>
-			<label class="block text-xs font-medium text-[var(--color-surface-800-200)] mb-1" for="cell-place-h">
+			<label class="block text-xs font-medium text-(--color-surface-800-200) mb-1" for="cell-place-h">
 				Horizontal
 			</label>
 			<select
@@ -69,7 +69,7 @@
 			</select>
 		</div>
 		<div>
-			<label class="block text-xs font-medium text-[var(--color-surface-800-200)] mb-1" for="cell-place-v">
+			<label class="block text-xs font-medium text-(--color-surface-800-200) mb-1" for="cell-place-v">
 				Vertical
 			</label>
 			<select

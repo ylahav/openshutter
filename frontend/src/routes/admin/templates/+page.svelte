@@ -249,17 +249,17 @@
 		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
 			<div class="flex items-center justify-between mb-6">
 				<div>
-					<h1 class="text-2xl font-bold text-[var(--color-surface-950-50)]">{$t('admin.templates')}</h1>
-					<p id="templates-preview-help" class="text-sm text-[var(--color-surface-600-400)] mt-2 max-w-2xl">
+					<h1 class="text-2xl font-bold text-(--color-surface-950-50)">{$t('admin.templates')}</h1>
+					<p id="templates-preview-help" class="text-sm text-(--color-surface-600-400) mt-2 max-w-2xl">
 						{$t('admin.previewCurrentPageHelp')}
 					</p>
-					<div class="mt-3 text-sm space-y-1 rounded-lg border border-surface-200-800 bg-[var(--color-surface-50-950)] px-3 py-2 max-w-xl">
-						<p class="font-medium text-[var(--color-surface-900-100)]">{$t('admin.templatesDefaultsHeading')}</p>
+					<div class="mt-3 text-sm space-y-1 rounded-lg border border-surface-200-800 bg-(--color-surface-50-950) px-3 py-2 max-w-xl">
+						<p class="font-medium text-(--color-surface-900-100)">{$t('admin.templatesDefaultsHeading')}</p>
 						<p>
-							<span class="text-[var(--color-surface-600-400)]">{$t('admin.templatesDefaultPublic')}:</span>
-							<span class="ml-1 font-medium text-[var(--color-surface-950-50)]">{defaultPublicThemeLabel}</span>
-							<span class="text-[var(--color-surface-600-400)]"> · {$t('admin.templatesDefaultPack')}</span>
-							<span class="font-mono text-[var(--color-surface-900-100)]">{frontendTemplate}</span>
+							<span class="text-(--color-surface-600-400)">{$t('admin.templatesDefaultPublic')}:</span>
+							<span class="ml-1 font-medium text-(--color-surface-950-50)">{defaultPublicThemeLabel}</span>
+							<span class="text-(--color-surface-600-400)"> · {$t('admin.templatesDefaultPack')}</span>
+							<span class="font-mono text-(--color-surface-900-100)">{frontendTemplate}</span>
 						</p>
 					</div>
 					{#if previewTemplate}
@@ -315,11 +315,11 @@
 			{#if loading}
 				<div class="text-center py-12">
 					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-					<p class="mt-2 text-[var(--color-surface-600-400)]">{$t('admin.loadingTemplates')}</p>
+					<p class="mt-2 text-(--color-surface-600-400)">{$t('admin.loadingTemplates')}</p>
 				</div>
 			{:else if themes.length === 0}
 				<div class="text-center py-8 border-2 border-dashed border-surface-200-800 rounded-lg">
-					<p class="text-[var(--color-surface-600-400)] mb-4">{$t('admin.noTemplatesYetRestartBackend')}</p>
+					<p class="text-(--color-surface-600-400) mb-4">{$t('admin.noTemplatesYetRestartBackend')}</p>
 					<button
 						type="button"
 						on:click={() => (showCreateModal = true)}
@@ -339,7 +339,7 @@
 							</div>
 							<div class="p-4">
 								<div class="flex items-center gap-2">
-									<h3 class="font-semibold text-[var(--color-surface-950-50)]">{theme.name}</h3>
+									<h3 class="font-semibold text-(--color-surface-950-50)">{theme.name}</h3>
 									{#if liveThemeId ? liveThemeId === theme._id : theme.baseTemplate === frontendTemplate}
 										<span class="px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800">
 											{$t('admin.defaultThemeBadge')}
@@ -351,12 +351,12 @@
 										</span>
 									{/if}
 								</div>
-								<p class="text-xs text-[var(--color-surface-600-400)] mt-1">
+								<p class="text-xs text-(--color-surface-600-400) mt-1">
 									{$t('admin.baseTemplateLabel')}: {theme.baseTemplate}{' '}
 									{theme.basePalette ? `· ${theme.basePalette}` : ''}{' '}
 									{theme.isBuiltIn ? `· ${$t('admin.builtIn')}` : ''}
 								</p>
-								<p class="text-xs text-[var(--color-surface-600-400)] mt-1">{getTemplateStyleLabel(theme)}</p>
+								<p class="text-xs text-(--color-surface-600-400) mt-1">{getTemplateStyleLabel(theme)}</p>
 								<div class="flex flex-wrap gap-2 mt-3">
 									<a
 										href="/admin/templates/overrides?themeId={theme._id}"
@@ -384,7 +384,7 @@
 									<button
 										type="button"
 										on:click={() => { duplicateThemeId = theme._id; duplicateName = `${theme.name} (copy)`; }}
-										class="text-xs px-2 py-1 bg-[var(--color-surface-100-900)] text-[var(--color-surface-800-200)] rounded hover:bg-[var(--color-surface-200-800)]"
+										class="text-xs px-2 py-1 bg-(--color-surface-100-900) text-(--color-surface-800-200) rounded hover:bg-(--color-surface-200-800)"
 									>
 										{$t('admin.duplicate')}
 									</button>
@@ -409,12 +409,12 @@
 {#if showCreateModal}
 	<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-labelledby="create-theme-title">
 		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl max-w-md w-full p-6">
-			<h2 id="create-theme-title" class="text-lg font-semibold text-[var(--color-surface-950-50)] mb-4">
+			<h2 id="create-theme-title" class="text-lg font-semibold text-(--color-surface-950-50) mb-4">
 				{$t('admin.createNewTheme')}
 			</h2>
 			<div class="space-y-4">
 				<div>
-					<label for="theme-name" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-1">
+					<label for="theme-name" class="block text-sm font-medium text-(--color-surface-800-200) mb-1">
 						{$t('admin.themeName')}
 					</label>
 					<input
@@ -426,7 +426,7 @@
 					/>
 				</div>
 				<div>
-					<label for="theme-base" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-1">
+					<label for="theme-base" class="block text-sm font-medium text-(--color-surface-800-200) mb-1">
 						{$t('admin.baseTheme')}
 					</label>
 					<select
@@ -440,7 +440,7 @@
 					</select>
 				</div>
 				<div>
-					<label for="theme-palette" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-1">
+					<label for="theme-palette" class="block text-sm font-medium text-(--color-surface-800-200) mb-1">
 						{$t('admin.basePalette')}
 					</label>
 					<select
@@ -459,7 +459,7 @@
 				<button
 					type="button"
 					on:click={() => (showCreateModal = false)}
-					class="px-4 py-2 text-[var(--color-surface-800-200)] hover:bg-[var(--color-surface-100-900)] rounded-md"
+					class="px-4 py-2 text-(--color-surface-800-200) hover:bg-(--color-surface-100-900) rounded-md"
 					>
 						{$t('admin.cancel')}
 					</button>
@@ -480,11 +480,11 @@
 {#if duplicateThemeId}
 	<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-labelledby="duplicate-theme-title">
 		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl max-w-md w-full p-6">
-			<h2 id="duplicate-theme-title" class="text-lg font-semibold text-[var(--color-surface-950-50)] mb-4">
+			<h2 id="duplicate-theme-title" class="text-lg font-semibold text-(--color-surface-950-50) mb-4">
 				{$t('admin.duplicateTheme')}
 			</h2>
 			<div class="mb-4">
-				<label for="duplicate-name" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-1">
+				<label for="duplicate-name" class="block text-sm font-medium text-(--color-surface-800-200) mb-1">
 					{$t('admin.newThemeName')}
 				</label>
 				<input
@@ -498,7 +498,7 @@
 				<button
 					type="button"
 					on:click={() => { duplicateThemeId = null; duplicateName = ''; }}
-					class="px-4 py-2 text-[var(--color-surface-800-200)] hover:bg-[var(--color-surface-100-900)] rounded-md"
+					class="px-4 py-2 text-(--color-surface-800-200) hover:bg-(--color-surface-100-900) rounded-md"
 				>
 					{$t('admin.cancel')}
 				</button>
@@ -518,17 +518,17 @@
 {#if applyThemeId}
 	<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-labelledby="apply-theme-title">
 		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl max-w-md w-full p-6">
-			<h2 id="apply-theme-title" class="text-lg font-semibold text-[var(--color-surface-950-50)] mb-4">
+			<h2 id="apply-theme-title" class="text-lg font-semibold text-(--color-surface-950-50) mb-4">
 				{$t('admin.setDefaultThemeQuestion')}
 			</h2>
-			<p class="text-[var(--color-surface-600-400)] mb-4">
+			<p class="text-(--color-surface-600-400) mb-4">
 				{$t('admin.setDefaultThemeDescription')}
 			</p>
 			<div class="flex justify-end gap-2">
 				<button
 					type="button"
 					on:click={() => (applyThemeId = null)}
-					class="px-4 py-2 text-[var(--color-surface-800-200)] hover:bg-[var(--color-surface-100-900)] rounded-md"
+					class="px-4 py-2 text-(--color-surface-800-200) hover:bg-(--color-surface-100-900) rounded-md"
 				>
 					{$t('admin.cancel')}
 				</button>
@@ -548,17 +548,17 @@
 {#if deleteThemeId}
 	<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-labelledby="delete-theme-title">
 		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl max-w-md w-full p-6">
-			<h2 id="delete-theme-title" class="text-lg font-semibold text-[var(--color-surface-950-50)] mb-4">
+			<h2 id="delete-theme-title" class="text-lg font-semibold text-(--color-surface-950-50) mb-4">
 				{$t('admin.removeThemeQuestion')}
 			</h2>
-			<p class="text-[var(--color-surface-600-400)] mb-4">
+			<p class="text-(--color-surface-600-400) mb-4">
 				{$t('admin.removeThemeDescription')}
 			</p>
 			<div class="flex justify-end gap-2">
 				<button
 					type="button"
 					on:click={() => (deleteThemeId = null)}
-					class="px-4 py-2 text-[var(--color-surface-800-200)] hover:bg-[var(--color-surface-100-900)] rounded-md"
+					class="px-4 py-2 text-(--color-surface-800-200) hover:bg-(--color-surface-100-900) rounded-md"
 				>
 					{$t('admin.cancel')}
 				</button>

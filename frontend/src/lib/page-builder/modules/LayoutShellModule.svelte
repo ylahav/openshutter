@@ -6,8 +6,11 @@
 	import type { PageModuleData } from '$lib/types/page-builder';
 	import PageBuilderGrid from '../PageBuilderGrid.svelte';
 
-	/** Key into `siteConfig.template.layoutPresets` — shared across pages. */
+	/** Legacy reference key into `siteConfig.template.layoutPresets`. */
 	export let presetKey = '';
+	/** Shared instance alias (preferred). Falls back to `presetKey` for legacy data. */
+	export let instanceRef = '';
+	export let className = '';
 	export let data: Record<string, unknown> = {};
 	// svelte-ignore export_let_unused - passed by PageBuilderGrid; inner shell grid always uses compact width
 	export let compact = false;
@@ -17,14 +20,19 @@
 
 	const layoutPresetsPreviewStore = getContext<Writable<Record<string, unknown> | null> | undefined>('pbLayoutPresetsPreview');
 
+	$: resolvedRef = String(instanceRef || presetKey || '').trim();
+	$: templateBag = ($siteConfigData?.template ?? {}) as Record<string, unknown>;
+	$: presetRegistry = ((templateBag.layoutShellInstances || templateBag.layoutPresets) ?? null) as
+		| Record<string, { gridRows?: number; gridColumns?: number; modules?: PageModuleData[] }>
+		| null;
 	$: presetFromSite =
-		presetKey && $siteConfigData?.template?.layoutPresets
-			? ($siteConfigData.template.layoutPresets as Record<string, { gridRows?: number; gridColumns?: number; modules?: PageModuleData[] }>)[presetKey]
+		resolvedRef && presetRegistry
+			? presetRegistry[resolvedRef]
 			: null;
 	$: previewMap = layoutPresetsPreviewStore ? $layoutPresetsPreviewStore : null;
 	$: presetFromPreview =
-		presetKey && previewMap && previewMap[presetKey]
-			? (previewMap[presetKey] as { gridRows?: number; gridColumns?: number; modules?: PageModuleData[] })
+		resolvedRef && previewMap && previewMap[resolvedRef]
+			? (previewMap[resolvedRef] as { gridRows?: number; gridColumns?: number; modules?: PageModuleData[] })
 			: null;
 	$: preset = presetFromPreview ?? presetFromSite;
 
@@ -42,16 +50,24 @@
 
 {#if parentDepth > 6}
 	<div class="p-3 text-sm text-amber-600 border border-dashed rounded">Layout region nested too deeply.</div>
-{:else if !presetKey?.trim()}
+{:else if !resolvedRef}
 	<div class="p-3 text-sm opacity-60 border border-dashed rounded">Layout shell: set a preset name in the theme editor.</div>
 {:else if !preset && isAdminRoute}
 	<div class="p-3 text-sm opacity-60 border border-dashed rounded">
-		Preset <strong>{presetKey}</strong> is not defined under template layout presets.
+		Layout shell <strong>{resolvedRef}</strong> is not defined in shared instances.
 	</div>
 {:else if !preset}
-	<section class="layout-shell w-full" aria-hidden="true" data-layout-preset={presetKey}></section>
+	<section
+		class="layout-shell w-full {className}"
+		aria-hidden="true"
+		data-layout-preset={resolvedRef}
+	></section>
 {:else}
-	<section class="layout-shell w-full" aria-label={`Layout ${presetKey}`} data-layout-preset={presetKey}>
+	<section
+		class="layout-shell w-full {className}"
+		aria-label={`Layout ${resolvedRef}`}
+		data-layout-preset={resolvedRef}
+	>
 		<!-- Full-bleed: do not inherit page `compact`/max-width; shells are used for header/footer bars. -->
 		<PageBuilderGrid modules={normalizedChildren} {layout} compact={true} pageContext={data} />
 	</section>

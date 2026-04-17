@@ -79,21 +79,21 @@
 
 <!-- Cerberus CSS variables are defined on this node; body on public routes stays unchanged. -->
 <main
-	class="min-h-screen antialiased bg-[var(--body-background-color)] text-[var(--base-font-color)] dark:bg-[var(--body-background-color-dark)] dark:text-[var(--base-font-color-dark)] {$adminUiColorMode === 'dark'
+	class="min-h-screen antialiased bg-(--body-background-color) text-(--base-font-color) dark:bg-(--body-background-color-dark) dark:text-(--base-font-color-dark) {$adminUiColorMode === 'dark'
 		? '[color-scheme:dark]'
 		: '[color-scheme:light]'}"
 	class:dark={$adminUiColorMode === 'dark'}
 	data-admin-chrome
 	data-theme="cerberus"
 >
-	<div class="os-shell-container max-w-[var(--os-max-width)]">
+	<div class="os-shell-container max-w-(--os-max-width)">
 		<header
 			class="border-b border-[color:color-mix(in_oklab,var(--color-surface-950)_12%,transparent)] dark:border-[color:color-mix(in_oklab,var(--color-surface-50)_14%,transparent)] pt-4 pb-3 mb-6"
 			aria-label={chromeHeading}
 		>
 			<div class="flex flex-nowrap items-center justify-between gap-2 sm:gap-3 min-w-0">
 				<h1
-					class="text-base sm:text-lg font-semibold text-[var(--heading-font-color)] dark:text-[var(--heading-font-color-dark)] tracking-tight min-w-0 flex-1 truncate pr-2"
+					class="text-base sm:text-lg font-semibold text-(--heading-font-color) dark:text-(--heading-font-color-dark) tracking-tight min-w-0 flex-1 truncate pr-2"
 				>
 					{chromeHeading}
 				</h1>

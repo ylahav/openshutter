@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { activeTemplate } from '$stores/template';
 	import { getTemplatePack } from '$lib/template/packs/registry';
+	import type { PackSearchPageProps } from '$lib/template-packs/pack-page-props';
 
 	export let initialQuery = '';
-	export let variant: 'noir' | 'default' = 'default';
+	export let variant: NonNullable<PackSearchPageProps['variant']> = 'default';
 
 	$: packPromise = getTemplatePack($activeTemplate);
 </script>

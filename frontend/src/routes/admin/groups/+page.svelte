@@ -168,8 +168,8 @@
 	<div class="max-w-6xl mx-auto px-4">
 		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
 			<div class="mb-6">
-				<h1 class="text-2xl font-bold text-[var(--color-surface-950-50)]">Groups Management</h1>
-				<p class="text-[var(--color-surface-600-400)] mt-2">Define and manage user groups for access control</p>
+				<h1 class="text-2xl font-bold text-(--color-surface-950-50)">Groups Management</h1>
+				<p class="text-(--color-surface-600-400) mt-2">Define and manage user groups for access control</p>
 			</div>
 
 			{#if message}
@@ -181,11 +181,11 @@
 			{/if}
 
 			<!-- Create Group Form -->
-			<div class="bg-[var(--color-surface-50-950)] rounded-lg p-4 mb-6">
-				<h2 class="text-lg font-semibold text-[var(--color-surface-950-50)] mb-3">Create New Group</h2>
+			<div class="bg-(--color-surface-50-950) rounded-lg p-4 mb-6">
+				<h2 class="text-lg font-semibold text-(--color-surface-950-50) mb-3">Create New Group</h2>
 				<div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
 					<div>
-						<label for="alias-create" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+						<label for="alias-create" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
 							Alias *
 						</label>
 						<input
@@ -193,12 +193,12 @@
 							id="alias-create"
 							bind:value={formData.alias}
 							placeholder="e.g., family, friends, team"
-							class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
+							class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 						/>
-						<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">Unique identifier (lowercase, no spaces)</p>
+						<p class="mt-1 text-xs text-(--color-surface-600-400)">Unique identifier (lowercase, no spaces)</p>
 					</div>
 					<div>
-						<span class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+						<span class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
 							Name *
 						</span>
 						<MultiLangInput bind:value={formData.name} />
@@ -208,7 +208,7 @@
 							type="button"
 							on:click={handleCreate}
 							disabled={saving || !formData.alias.trim()}
-							class="w-full px-4 py-2 bg-[var(--color-primary-600)] text-white rounded-md hover:bg-[var(--color-primary-700)] disabled:opacity-50 text-sm font-medium"
+							class="w-full px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700) disabled:opacity-50 text-sm font-medium"
 						>
 							{#if saving}
 								Creating...
@@ -223,13 +223,13 @@
 			<!-- Groups List -->
 			{#if loading}
 				<div class="text-center py-8">
-					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--color-primary-600)]"></div>
-					<p class="mt-2 text-[var(--color-surface-600-400)]">Loading groups...</p>
+					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-(--color-primary-600)"></div>
+					<p class="mt-2 text-(--color-surface-600-400)">Loading groups...</p>
 				</div>
 			{:else if groups.length === 0}
 				<div class="text-center py-8">
 					<svg
-						class="h-12 w-12 text-[var(--color-surface-400-600)] mx-auto mb-4"
+						class="h-12 w-12 text-(--color-surface-400-600) mx-auto mb-4"
 						fill="none"
 						stroke="currentColor"
 						viewBox="0 0 24 24"
@@ -241,8 +241,8 @@
 							d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
 						/>
 					</svg>
-					<h3 class="text-lg font-semibold text-[var(--color-surface-950-50)] mb-2">No groups found</h3>
-					<p class="text-[var(--color-surface-600-400)]">Start by creating your first group.</p>
+					<h3 class="text-lg font-semibold text-(--color-surface-950-50) mb-2">No groups found</h3>
+					<p class="text-(--color-surface-600-400)">Start by creating your first group.</p>
 				</div>
 			{:else}
 				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -250,15 +250,15 @@
 						<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-4">
 							<div class="flex items-start justify-between mb-3">
 								<div class="flex-1">
-									<h3 class="font-semibold text-[var(--color-surface-950-50)] mb-1">{getGroupName(group)}</h3>
-									<p class="text-sm text-[var(--color-surface-600-400)]">Alias: <code class="bg-[var(--color-surface-100-900)] px-1 rounded">{group.alias}</code></p>
+									<h3 class="font-semibold text-(--color-surface-950-50) mb-1">{getGroupName(group)}</h3>
+									<p class="text-sm text-(--color-surface-600-400)">Alias: <code class="bg-(--color-surface-100-900) px-1 rounded">{group.alias}</code></p>
 								</div>
 
 								<div class="flex space-x-1">
 									<button
 										type="button"
 										on:click={() => openEditDialog(group)}
-										class="p-1 text-[var(--color-surface-600-400)] hover:text-[var(--color-primary-600)] hover:bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] rounded"
+										class="p-1 text-(--color-surface-600-400) hover:text-(--color-primary-600) hover:bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] rounded"
 										aria-label="Edit group"
 									>
 										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -273,7 +273,7 @@
 									<button
 										type="button"
 										on:click={() => openDeleteDialog(group)}
-										class="p-1 text-[var(--color-surface-600-400)] hover:text-red-600 hover:bg-red-50 rounded"
+										class="p-1 text-(--color-surface-600-400) hover:text-red-600 hover:bg-red-50 rounded"
 										aria-label="Delete group"
 									>
 										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -299,7 +299,7 @@
 {#if showEditDialog && editingGroup}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
 		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full max-w-md p-6">
-			<h2 class="text-xl font-bold text-[var(--color-surface-950-50)] mb-4">Edit Group</h2>
+			<h2 class="text-xl font-bold text-(--color-surface-950-50) mb-4">Edit Group</h2>
 
 			{#if error}
 				<div class="mb-4 p-4 bg-red-50 text-red-700 rounded-md">{error}</div>
@@ -307,7 +307,7 @@
 
 			<div class="space-y-4">
 				<div>
-					<label for="alias-edit" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+					<label for="alias-edit" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
 						Alias
 					</label>
 					<input
@@ -315,13 +315,13 @@
 						id="alias-edit"
 						value={formData.alias}
 						disabled
-						class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm bg-[var(--color-surface-100-900)] text-[var(--color-surface-600-400)]"
+						class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm bg-(--color-surface-100-900) text-(--color-surface-600-400)"
 					/>
-					<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">Alias cannot be changed</p>
+					<p class="mt-1 text-xs text-(--color-surface-600-400)">Alias cannot be changed</p>
 				</div>
 
 				<div>
-					<span class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+					<span class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
 						Name *
 					</span>
 					<MultiLangInput bind:value={formData.name} />
@@ -335,7 +335,7 @@
 							editingGroup = null;
 							resetForm();
 						}}
-						class="px-4 py-2 bg-[var(--color-surface-200-800)] text-[var(--color-surface-800-200)] rounded-md hover:bg-[var(--color-surface-300-700)] text-sm font-medium"
+						class="px-4 py-2 bg-(--color-surface-200-800) text-(--color-surface-800-200) rounded-md hover:bg-(--color-surface-300-700) text-sm font-medium"
 					>
 						Cancel
 					</button>
@@ -343,7 +343,7 @@
 						type="button"
 						on:click={handleEdit}
 						disabled={saving}
-						class="px-4 py-2 bg-[var(--color-primary-600)] text-white rounded-md hover:bg-[var(--color-primary-700)] disabled:opacity-50 text-sm font-medium"
+						class="px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700) disabled:opacity-50 text-sm font-medium"
 					>
 						{#if saving}
 							Updating...
@@ -361,14 +361,14 @@
 {#if showDeleteDialog && groupToDelete}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
 		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full max-w-md p-6">
-			<h2 class="text-xl font-bold text-[var(--color-surface-950-50)] mb-4">Delete Group</h2>
+			<h2 class="text-xl font-bold text-(--color-surface-950-50) mb-4">Delete Group</h2>
 
 			{#if error}
 				<div class="mb-4 p-4 bg-red-50 text-red-700 rounded-md">{error}</div>
 			{/if}
 
 			<div class="space-y-4">
-				<p class="text-[var(--color-surface-600-400)]">
+				<p class="text-(--color-surface-600-400)">
 					Are you sure you want to delete <strong>{getGroupName(groupToDelete)}</strong> ({groupToDelete.alias})? This
 					action cannot be undone.
 				</p>
@@ -384,7 +384,7 @@
 							dialogs.closeAll();
 							groupToDelete = null;
 						}}
-						class="px-4 py-2 bg-[var(--color-surface-200-800)] text-[var(--color-surface-800-200)] rounded-md hover:bg-[var(--color-surface-300-700)] text-sm font-medium"
+						class="px-4 py-2 bg-(--color-surface-200-800) text-(--color-surface-800-200) rounded-md hover:bg-(--color-surface-300-700) text-sm font-medium"
 					>
 						Cancel
 					</button>

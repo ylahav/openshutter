@@ -727,18 +727,18 @@
 		<!-- Header -->
 		<div class="flex items-center justify-between mb-8">
 			<div>
-				<h1 class="text-3xl font-bold text-[var(--color-surface-950-50)]">
+				<h1 class="text-3xl font-bold text-(--color-surface-950-50)">
 					Upload Photos
 					{#if albumName}
-						<span class="text-2xl font-semibold text-[var(--color-surface-800-200)]"> - {albumName}</span>
+						<span class="text-2xl font-semibold text-(--color-surface-800-200)"> - {albumName}</span>
 					{/if}
 				</h1>
 				{#if albumName}
-					<p class="mt-2 text-[var(--color-surface-600-400)]">
+					<p class="mt-2 text-(--color-surface-600-400)">
 						Uploading to album: <span class="font-medium">{albumName}</span>
 					</p>
 				{:else if albumId}
-					<p class="mt-2 text-sm text-[var(--color-surface-600-400)]">Loading album information...</p>
+					<p class="mt-2 text-sm text-(--color-surface-600-400)">Loading album information...</p>
 				{/if}
 			</div>
 			<div class="flex space-x-3">
@@ -748,7 +748,7 @@
 						else if (albumId) goto(data?.user?.role === 'owner' ? `/owner/albums/${albumId}` : `/admin/albums/${albumId}`);
 						else goto(data?.user?.role === 'owner' ? '/owner/albums' : '/admin');
 					}}
-					class="px-4 py-2 border border-surface-300-700 rounded-md text-sm font-medium text-[var(--color-surface-800-200)] bg-[var(--color-surface-50-950)] hover:bg-[var(--color-surface-50-950)]"
+					class="px-4 py-2 border border-surface-300-700 rounded-md text-sm font-medium text-(--color-surface-800-200) bg-(--color-surface-50-950) hover:bg-(--color-surface-50-950)"
 				>
 					{albumId ? 'Back to Album' : 'Back to Photos'}
 				</button>
@@ -774,16 +774,16 @@
 				<button
 					on:click={() => uploadMode = 'files'}
 					class="flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors {uploadMode === 'files'
-						? 'bg-[var(--color-primary-600)] text-white'
-						: 'text-[var(--color-surface-800-200)] hover:bg-[var(--color-surface-100-900)]'}"
+						? 'bg-(--color-primary-600) text-white'
+						: 'text-(--color-surface-800-200) hover:bg-(--color-surface-100-900)'}"
 				>
 					Upload Files
 				</button>
 				<button
 					on:click={() => uploadMode = 'folder'}
 					class="flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors {uploadMode === 'folder'
-						? 'bg-[var(--color-primary-600)] text-white'
-						: 'text-[var(--color-surface-800-200)] hover:bg-[var(--color-surface-100-900)]'}"
+						? 'bg-(--color-primary-600) text-white'
+						: 'text-(--color-surface-800-200) hover:bg-(--color-surface-100-900)'}"
 				>
 					Upload from Folder
 				</button>
@@ -796,11 +796,11 @@
 				<input
 					type="checkbox"
 					bind:checked={replaceIfExists}
-					class="w-4 h-4 text-[var(--color-primary-600)] border-surface-300-700 rounded focus:ring-[var(--color-primary-500)]"
+					class="w-4 h-4 text-(--color-primary-600) border-surface-300-700 rounded focus:ring-(--color-primary-500)"
 				/>
 				<div>
-					<span class="text-sm font-medium text-[var(--color-surface-950-50)]">Replace existing files</span>
-					<p class="text-xs text-[var(--color-surface-600-400)] mt-1">
+					<span class="text-sm font-medium text-(--color-surface-950-50)">Replace existing files</span>
+					<p class="text-xs text-(--color-surface-600-400) mt-1">
 						If a file with the same name or hash already exists, it will be replaced instead of skipped.
 					</p>
 				</div>
@@ -810,14 +810,14 @@
 		<!-- Folder Upload Section -->
 		{#if uploadMode === 'folder'}
 			<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-8 mb-8">
-				<h2 class="text-xl font-semibold text-[var(--color-surface-950-50)] mb-4">Upload from Local Folder</h2>
-				<p class="text-sm text-[var(--color-surface-600-400)] mb-6">
+				<h2 class="text-xl font-semibold text-(--color-surface-950-50) mb-4">Upload from Local Folder</h2>
+				<p class="text-sm text-(--color-surface-600-400) mb-6">
 					Select a folder from your computer containing images to upload. The system will automatically detect duplicates and skip them.
 				</p>
 
 				<div class="space-y-4">
 					<div>
-						<label for="folderInput" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+						<label for="folderInput" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
 							Select Folder
 						</label>
 						<input
@@ -834,7 +834,7 @@
 							type="button"
 							on:click={() => folderInput?.click()}
 							disabled={isUploadingFolder || !albumId}
-							class="w-full px-4 py-3 text-sm font-medium text-white bg-[var(--color-primary-600)] border border-transparent rounded-md hover:bg-[var(--color-primary-700)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+							class="w-full px-4 py-3 text-sm font-medium text-white bg-(--color-primary-600) border border-transparent rounded-md hover:bg-(--color-primary-700) disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
 						>
 							<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
@@ -842,11 +842,11 @@
 							{selectedFolderName ? `Selected: ${selectedFolderName}` : 'Choose Folder'}
 						</button>
 						{#if selectedFolderName}
-							<p class="mt-2 text-sm text-[var(--color-surface-600-400)]">
+							<p class="mt-2 text-sm text-(--color-surface-600-400)">
 								Folder: <span class="font-medium">{selectedFolderName}</span>
 							</p>
 						{/if}
-						<p class="mt-2 text-xs text-[var(--color-surface-600-400)]">
+						<p class="mt-2 text-xs text-(--color-surface-600-400)">
 							Click the button above to select a folder from your computer. All images in the folder will be uploaded.
 						</p>
 					</div>
@@ -866,33 +866,33 @@
 					{@const currentFileIndex = completedFiles + 1}
 					
 					<div class="mt-8 border-t border-surface-200-800 pt-6">
-						<h3 class="text-lg font-semibold text-[var(--color-surface-950-50)] mb-4">Upload Progress</h3>
+						<h3 class="text-lg font-semibold text-(--color-surface-950-50) mb-4">Upload Progress</h3>
 						<div class="bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] border border-[color-mix(in_oklab,var(--color-primary-500)_18%,transparent)] rounded-lg p-6">
 							<div class="flex items-center justify-between mb-4">
 								<div class="flex items-center gap-3">
-									<svg class="w-6 h-6 text-[var(--color-primary-600)] animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<svg class="w-6 h-6 text-(--color-primary-600) animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
 									</svg>
 									<div>
-										<p class="text-sm font-medium text-[var(--color-surface-950-50)]">
+										<p class="text-sm font-medium text-(--color-surface-950-50)">
 											{#if uploadingFiles > 0}
 												Uploading {currentFileIndex} of {totalFiles} photos
 											{:else}
 												Processing {completedFiles} of {totalFiles} photos
 											{/if}
 										</p>
-										<p class="text-sm text-[var(--color-surface-600-400)] mt-1">
+										<p class="text-sm text-(--color-surface-600-400) mt-1">
 											Uploaded {completedFiles} of {totalFiles} photos ({overallProgress}%)
 										</p>
 									</div>
 								</div>
 								<div class="text-right">
-									<span class="text-2xl font-bold text-[var(--color-primary-600)]">{overallProgress}%</span>
+									<span class="text-2xl font-bold text-(--color-primary-600)">{overallProgress}%</span>
 								</div>
 							</div>
-							<div class="w-full bg-[var(--color-surface-200-800)] rounded-full h-3">
+							<div class="w-full bg-(--color-surface-200-800) rounded-full h-3">
 								<div
-									class="h-3 rounded-full bg-[var(--color-primary-600)] transition-all duration-300"
+									class="h-3 rounded-full bg-(--color-primary-600) transition-all duration-300"
 									style="width: {overallProgress}%"
 								></div>
 							</div>
@@ -903,13 +903,13 @@
 				<!-- Upload Report -->
 				{#if folderUploadReport}
 					<div class="mt-8 border-t border-surface-200-800 pt-6">
-						<h3 class="text-lg font-semibold text-[var(--color-surface-950-50)] mb-4">Upload Report</h3>
+						<h3 class="text-lg font-semibold text-(--color-surface-950-50) mb-4">Upload Report</h3>
 						
 						<!-- Summary -->
 						<div class="grid grid-cols-4 gap-4 mb-6">
-							<div class="bg-[var(--color-surface-50-950)] rounded-lg p-4">
-								<div class="text-2xl font-bold text-[var(--color-surface-950-50)]">{folderUploadReport.total}</div>
-								<div class="text-sm text-[var(--color-surface-600-400)]">Total Files</div>
+							<div class="bg-(--color-surface-50-950) rounded-lg p-4">
+								<div class="text-2xl font-bold text-(--color-surface-950-50)">{folderUploadReport.total}</div>
+								<div class="text-sm text-(--color-surface-600-400)">Total Files</div>
 							</div>
 							<div class="bg-green-50 rounded-lg p-4">
 								<div class="text-2xl font-bold text-green-600">{folderUploadReport.successful}</div>
@@ -996,7 +996,7 @@
 				tabindex="0"
 				class="border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-colors {isDragActive
 					? 'border-[color-mix(in_oklab,var(--color-primary-500)_30%,transparent)] bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)]'
-					: 'border-surface-300-700 hover:border-[color-mix(in_oklab,var(--color-primary-500)_30%,transparent)] hover:bg-[var(--color-surface-50-950)]'}"
+					: 'border-surface-300-700 hover:border-[color-mix(in_oklab,var(--color-primary-500)_30%,transparent)] hover:bg-(--color-surface-50-950)'}"
 				on:dragover={handleDragOver}
 				on:dragleave={handleDragLeave}
 				on:drop={handleDrop}
@@ -1018,8 +1018,8 @@
 				/>
 
 				<div class="space-y-4">
-					<div class="mx-auto w-16 h-16 bg-[var(--color-surface-100-900)] rounded-full flex items-center justify-center">
-						<svg class="w-8 h-8 text-[var(--color-surface-400-600)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<div class="mx-auto w-16 h-16 bg-(--color-surface-100-900) rounded-full flex items-center justify-center">
+						<svg class="w-8 h-8 text-(--color-surface-400-600)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path
 								stroke-linecap="round"
 								stroke-linejoin="round"
@@ -1030,13 +1030,13 @@
 					</div>
 
 					<div>
-						<p class="text-lg font-medium text-[var(--color-surface-950-50)]">
+						<p class="text-lg font-medium text-(--color-surface-950-50)">
 							{isDragActive ? 'Drop photos here' : 'Drag & drop photos here'}
 						</p>
-						<p class="text-sm text-[var(--color-surface-600-400)] mt-1">or click to select files</p>
+						<p class="text-sm text-(--color-surface-600-400) mt-1">or click to select files</p>
 					</div>
 
-					<div class="text-xs text-[var(--color-surface-400-600)]">Supports: JPEG, PNG, GIF, BMP, WebP</div>
+					<div class="text-xs text-(--color-surface-400-600)">Supports: JPEG, PNG, GIF, BMP, WebP</div>
 				</div>
 			</div>
 		</div>
@@ -1050,33 +1050,33 @@
 			{@const currentFileIndex = completedFiles + 1}
 			
 			<div class="mt-8 card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
-				<h3 class="text-lg font-semibold text-[var(--color-surface-950-50)] mb-4">Upload Progress</h3>
+				<h3 class="text-lg font-semibold text-(--color-surface-950-50) mb-4">Upload Progress</h3>
 				<div class="bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] border border-[color-mix(in_oklab,var(--color-primary-500)_18%,transparent)] rounded-lg p-6">
 					<div class="flex items-center justify-between mb-4">
 						<div class="flex items-center gap-3">
-							<svg class="w-6 h-6 text-[var(--color-primary-600)] animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<svg class="w-6 h-6 text-(--color-primary-600) animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
 							</svg>
 							<div>
-								<p class="text-sm font-medium text-[var(--color-surface-950-50)]">
+								<p class="text-sm font-medium text-(--color-surface-950-50)">
 									{#if uploadingFiles > 0}
 										Uploading {currentFileIndex} of {totalFiles} photos
 									{:else}
 										Processing {completedFiles} of {totalFiles} photos
 									{/if}
 								</p>
-								<p class="text-sm text-[var(--color-surface-600-400)] mt-1">
+								<p class="text-sm text-(--color-surface-600-400) mt-1">
 									Uploaded {completedFiles} of {totalFiles} photos ({overallProgress}%)
 								</p>
 							</div>
 						</div>
 						<div class="text-right">
-							<span class="text-2xl font-bold text-[var(--color-primary-600)]">{overallProgress}%</span>
+							<span class="text-2xl font-bold text-(--color-primary-600)">{overallProgress}%</span>
 						</div>
 					</div>
-					<div class="w-full bg-[var(--color-surface-200-800)] rounded-full h-3">
+					<div class="w-full bg-(--color-surface-200-800) rounded-full h-3">
 						<div
-							class="h-3 rounded-full bg-[var(--color-primary-600)] transition-all duration-300"
+							class="h-3 rounded-full bg-(--color-primary-600) transition-all duration-300"
 							style="width: {overallProgress}%"
 						></div>
 					</div>
@@ -1093,13 +1093,13 @@
 		<!-- File Upload Report -->
 		{#if fileUploadReport}
 			<div class="mt-8 card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
-				<h3 class="text-lg font-semibold text-[var(--color-surface-950-50)] mb-4">Upload Report</h3>
+				<h3 class="text-lg font-semibold text-(--color-surface-950-50) mb-4">Upload Report</h3>
 				
 				<!-- Summary -->
 				<div class="grid grid-cols-4 gap-4 mb-6">
-					<div class="bg-[var(--color-surface-50-950)] rounded-lg p-4">
-						<div class="text-2xl font-bold text-[var(--color-surface-950-50)]">{fileUploadReport.total}</div>
-						<div class="text-sm text-[var(--color-surface-600-400)]">Total Files</div>
+					<div class="bg-(--color-surface-50-950) rounded-lg p-4">
+						<div class="text-2xl font-bold text-(--color-surface-950-50)">{fileUploadReport.total}</div>
+						<div class="text-sm text-(--color-surface-600-400)">Total Files</div>
 					</div>
 					<div class="bg-green-50 rounded-lg p-4">
 						<div class="text-2xl font-bold text-green-600">{fileUploadReport.successful}</div>
@@ -1186,13 +1186,13 @@
 						else if (albumId) goto(data?.user?.role === 'owner' ? `/owner/albums/${albumId}` : `/admin/albums/${albumId}`);
 						else goto(data?.user?.role === 'owner' ? '/owner/albums' : '/admin');
 					}}
-					class="px-4 py-2 text-sm font-medium text-[var(--color-surface-800-200)] bg-[var(--color-surface-50-950)] border border-surface-300-700 rounded-md hover:bg-[var(--color-surface-50-950)]"
+					class="px-4 py-2 text-sm font-medium text-(--color-surface-800-200) bg-(--color-surface-50-950) border border-surface-300-700 rounded-md hover:bg-(--color-surface-50-950)"
 				>
 					{albumId ? 'Back to Album' : 'Upload More Photos'}
 				</button>
 				<button
 					on:click={handleFinish}
-					class="px-4 py-2 text-sm font-medium text-white bg-[var(--color-primary-600)] border border-transparent rounded-md hover:bg-[var(--color-primary-700)]"
+					class="px-4 py-2 text-sm font-medium text-white bg-(--color-primary-600) border border-transparent rounded-md hover:bg-(--color-primary-700)"
 				>
 					{albumId ? 'Go to Album' : 'Go to Photos'}
 				</button>

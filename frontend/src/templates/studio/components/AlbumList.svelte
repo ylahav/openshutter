@@ -1,17 +1,9 @@
 <script lang="ts">
 	import AlbumCard from './AlbumCard.svelte';
 	import { t } from '$stores/i18n';
+	import type { PackGalleryAlbumListItem } from '$lib/template-packs/pack-page-props';
 
-	interface TemplateAlbum {
-		_id: string;
-		name?: any;
-		description?: any;
-		alias?: string;
-		isFeatured?: boolean;
-		photoCount?: number;
-	}
-
-	export let albums: TemplateAlbum[] = [];
+	export let albums: PackGalleryAlbumListItem[] = [];
 	export let loading = false;
 	export let error: string | null = null;
 	export let pageContext: 'home' | 'gallery' = 'home';
@@ -35,7 +27,7 @@
 		<p class="text-center text-sm text-red-500/90">{error}</p>
 	</div>
 {:else}
-	<div class="max-w-[var(--os-max-width)] mx-auto px-7 py-12">
+	<div class="max-w-(--os-max-width) mx-auto px-7 py-12">
 		<div class="flex flex-wrap items-end justify-between gap-4 mb-6">
 			<div>
 				<h2 class="text-[22px] font-bold tracking-tight" style="font-family: var(--os-font-heading); color: var(--tp-fg);">

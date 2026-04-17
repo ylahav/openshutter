@@ -8,10 +8,11 @@
 	import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 	import { t } from '$stores/i18n';
 	import AlbumList from './components/AlbumList.svelte';
+	import type { PackGalleryAlbumListItem } from '$lib/template-packs/pack-page-props';
 
 	/** `albums` = root album listing (e.g. /albums); `photos` = global photo grid (legacy pack default). */
 	export let mode: 'photos' | 'albums' = 'photos';
-	export let albums: any[] = [];
+	export let albums: PackGalleryAlbumListItem[] = [];
 	export let loading = false;
 	export let error: string | null = null;
 
@@ -58,11 +59,11 @@
 
 {#if mode === 'albums'}
 	<div
-		class="min-h-screen w-full bg-[color:var(--tp-canvas)] text-[color:var(--tp-fg)] [font-family:var(--os-font-body)]"
+		class="min-h-screen w-full bg-(--tp-canvas) text-(--tp-fg) [font-family:var(--os-font-body)]"
 	>
 		<div class="max-w-[960px] mx-auto px-8 pt-12 pb-6 text-center">
 			<h1
-				class="text-[28px] font-normal tracking-[0.08em] text-[color:var(--tp-fg)]"
+				class="text-[28px] font-normal tracking-[0.08em] text-(--tp-fg)"
 				style="font-family: var(--os-font-heading);"
 			>
 				{$t('navigation.albums')}

@@ -312,7 +312,7 @@
 					data-action="toggle-published"
 					class="p-1.5 rounded transition-colors ${isPublished 
 						? 'text-green-600 hover:text-green-900 hover:bg-green-50' 
-						: 'text-[var(--color-surface-400-600)] hover:text-[var(--color-surface-600-400)] hover:bg-[var(--color-surface-50-950)]'}"
+						: 'text-(--color-surface-400-600) hover:text-(--color-surface-600-400) hover:bg-(--color-surface-50-950)'}"
 					title="${isPublished ? 'Published - Click to unpublish' : 'Unpublished - Click to publish'}"
 				>
 					${isPublished ? '✓' : '○'}
@@ -321,8 +321,8 @@
 					type="button"
 					data-action="toggle-public"
 					class="p-1.5 rounded transition-colors ${isPublic 
-						? 'text-[var(--color-primary-600)] hover:text-[var(--color-primary-900)] hover:bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)]' 
-						: 'text-[var(--color-surface-400-600)] hover:text-[var(--color-surface-600-400)] hover:bg-[var(--color-surface-50-950)]'}"
+						? 'text-(--color-primary-600) hover:text-(--color-primary-900) hover:bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)]' 
+						: 'text-(--color-surface-400-600) hover:text-(--color-surface-600-400) hover:bg-(--color-surface-50-950)'}"
 					title="${isPublic ? 'Public - Click to make private' : 'Private - Click to make public'}"
 				>
 					${isPublic ? '🌐' : '🔒'}
@@ -338,7 +338,7 @@
 				<a
 					href="/albums/${node.alias}"
 					target="_blank"
-					class="text-[var(--color-surface-600-400)] hover:text-[var(--color-surface-950-50)] p-1.5 rounded hover:bg-[var(--color-surface-100-900)]"
+					class="text-(--color-surface-600-400) hover:text-(--color-surface-950-50) p-1.5 rounded hover:bg-(--color-surface-100-900)"
 					title="View"
 				>
 					👁️
@@ -556,13 +556,13 @@
 	<div class="max-w-7xl mx-auto px-4">
 		<div class="flex items-center justify-between mb-6">
 			<div>
-					<h1 class="text-2xl font-bold text-[var(--color-surface-950-50)]">{$t('admin.albumsManagement')}</h1>
-					<p class="text-[var(--color-surface-600-400)] mt-2">{$t('admin.manageAlbumsDescription')}</p>
+					<h1 class="text-2xl font-bold text-(--color-surface-950-50)">{$t('admin.albumsManagement')}</h1>
+					<p class="text-(--color-surface-600-400) mt-2">{$t('admin.manageAlbumsDescription')}</p>
 			</div>
 			<div class="flex items-center gap-3">
 				<a
 					href="/albums/new"
-					class="px-4 py-2 bg-[var(--color-primary-600)] text-white rounded-md hover:bg-[var(--color-primary-700)] text-sm font-medium"
+					class="px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700) text-sm font-medium"
 				>
 					+ {$t('admin.createAlbum')}
 				</a>
@@ -577,8 +577,8 @@
 		<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
 			<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-4">
 				<div class="text-center">
-					<div class="text-2xl font-bold text-[var(--color-primary-600)]">{albums.length}</div>
-					<div class="text-sm text-[var(--color-surface-600-400)]">{$t('admin.totalAlbums')}</div>
+					<div class="text-2xl font-bold text-(--color-primary-600)">{albums.length}</div>
+					<div class="text-sm text-(--color-surface-600-400)">{$t('admin.totalAlbums')}</div>
 				</div>
 			</div>
 			<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-4">
@@ -586,15 +586,15 @@
 					<div class="text-2xl font-bold text-green-600">
 						{albums.filter((a) => a.isPublished).length}
 					</div>
-					<div class="text-sm text-[var(--color-surface-600-400)]">{$t('admin.publishedAlbums')}</div>
+					<div class="text-sm text-(--color-surface-600-400)">{$t('admin.publishedAlbums')}</div>
 				</div>
 			</div>
 			<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-4">
 				<div class="text-center">
-					<div class="text-2xl font-bold text-[var(--color-primary-600)]">
+					<div class="text-2xl font-bold text-(--color-primary-600)">
 						{albums.filter((a) => a.isPublic).length}
 					</div>
-					<div class="text-sm text-[var(--color-surface-600-400)]">{$t('admin.publicAlbums')}</div>
+					<div class="text-sm text-(--color-surface-600-400)">{$t('admin.publicAlbums')}</div>
 				</div>
 			</div>
 			<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-4">
@@ -602,7 +602,7 @@
 					<div class="text-2xl font-bold text-purple-600">
 						{albums.filter((a) => a.isFeatured).length}
 					</div>
-					<div class="text-sm text-[var(--color-surface-600-400)]">{$t('admin.featuredAlbums')}</div>
+					<div class="text-sm text-(--color-surface-600-400)">{$t('admin.featuredAlbums')}</div>
 				</div>
 			</div>
 			<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-4">
@@ -610,7 +610,7 @@
 					<div class="text-2xl font-bold text-orange-600">
 						{albums.reduce((total, album) => total + (album.photoCount || 0), 0)}
 					</div>
-					<div class="text-sm text-[var(--color-surface-600-400)]">{$t('admin.totalPhotos')}</div>
+					<div class="text-sm text-(--color-surface-600-400)">{$t('admin.totalPhotos')}</div>
 				</div>
 			</div>
 		</div>
@@ -621,20 +621,20 @@
 				type="text"
 				bind:value={searchQuery}
 				placeholder={$t('admin.searchAlbumsPlaceholder')}
-				class="w-full md:w-64 px-4 py-2 border border-surface-300-700 rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)]"
+				class="w-full md:w-64 px-4 py-2 border border-surface-300-700 rounded-md focus:outline-none focus:ring-2 focus:ring-(--color-primary-500)"
 			/>
 		</div>
 
 		{#if loading}
 			<div class="text-center py-8">
-				<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--color-primary-600)]"></div>
-				<p class="mt-2 text-[var(--color-surface-600-400)]">{$t('admin.loadingAlbums')}</p>
+				<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-(--color-primary-600)"></div>
+				<p class="mt-2 text-(--color-surface-600-400)">{$t('admin.loadingAlbums')}</p>
 			</div>
 		{:else if getFilteredAlbums().length === 0}
 			<div class="text-center py-12 card preset-outlined-surface-200-800 bg-surface-50-950">
-				<div class="text-[var(--color-surface-400-600)] text-6xl mb-4">📁</div>
-				<h3 class="text-xl font-semibold text-[var(--color-surface-950-50)] mb-2">{$t('admin.noAlbumsFound')}</h3>
-				<p class="text-[var(--color-surface-600-400)] mb-6">
+				<div class="text-(--color-surface-400-600) text-6xl mb-4">📁</div>
+				<h3 class="text-xl font-semibold text-(--color-surface-950-50) mb-2">{$t('admin.noAlbumsFound')}</h3>
+				<p class="text-(--color-surface-600-400) mb-6">
 					{searchQuery
 						? $t('admin.noAlbumsMatchSearch')
 						: $t('admin.getStartedByCreatingFirstAlbum')}
@@ -642,7 +642,7 @@
 				{#if !searchQuery}
 					<a
 						href="/albums/new"
-						class="inline-flex items-center px-6 py-3 bg-[var(--color-primary-600)] text-white rounded-md hover:bg-[var(--color-primary-700)]"
+						class="inline-flex items-center px-6 py-3 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700)"
 					>
 						{$t('admin.createAlbum')}
 					</a>
@@ -684,14 +684,14 @@
 <!-- Cover Photo Modal -->
 {#if coverPhotoModal.isOpen}
 	<div class="fixed inset-0 bg-[color-mix(in_oklab,var(--color-surface-950)_55%,transparent)] overflow-y-auto h-full w-full z-50">
-		<div class="relative top-10 mx-auto p-5 border w-11/12 md:w-5/6 lg:w-4/5 xl:w-3/4 shadow-lg rounded-md bg-[var(--color-surface-50-950)] max-w-6xl">
+		<div class="relative top-10 mx-auto p-5 border w-11/12 md:w-5/6 lg:w-4/5 xl:w-3/4 shadow-lg rounded-md bg-(--color-surface-50-950) max-w-6xl">
 			<div class="flex items-center justify-between mb-4">
-				<h3 class="text-lg font-medium text-[var(--color-surface-950-50)]">
+				<h3 class="text-lg font-medium text-(--color-surface-950-50)">
 					{$t('admin.selectCoverPhoto')} - {coverPhotoModal.album ? getAlbumName(coverPhotoModal.album) : ''}
 				</h3>
 				<button 
 					on:click={closeCoverPhotoModal} 
-					class="text-[var(--color-surface-400-600)] hover:text-[var(--color-surface-600-400)]"
+					class="text-(--color-surface-400-600) hover:text-(--color-surface-600-400)"
 					aria-label="Close modal"
 				>
 					<svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -702,16 +702,16 @@
 
 			{#if coverPhotoModal.loading}
 					<div class="text-center py-8">
-					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--color-primary-500)]"></div>
-					<p class="mt-2 text-[var(--color-surface-600-400)]">{$t('admin.loadingPhotos')}</p>
+					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-(--color-primary-500)"></div>
+					<p class="mt-2 text-(--color-surface-600-400)">{$t('admin.loadingPhotos')}</p>
 				</div>
 			{:else if coverPhotoModal.totalPhotos === 0}
 				<div class="text-center py-8">
-					<p class="text-[var(--color-surface-600-400)]">{$t('admin.noPhotosAvailable')}</p>
+					<p class="text-(--color-surface-600-400)">{$t('admin.noPhotosAvailable')}</p>
 				</div>
 			{:else}
 				<div class="max-h-[70vh] overflow-y-auto">
-					<div class="mb-4 text-sm text-[var(--color-surface-600-400)]">
+					<div class="mb-4 text-sm text-(--color-surface-600-400)">
 						{$t('admin.showingPhotosRange')
 							.replace(
 								'{from}',
@@ -735,7 +735,7 @@
 							<button
 								type="button"
 								class="relative cursor-pointer group {isCurrentCover
-									? 'ring-4 ring-[var(--color-primary-500)] ring-opacity-75'
+									? 'ring-4 ring-(--color-primary-500) ring-opacity-75'
 									: ''}"
 								on:click={() => setCoverPhoto(photo._id)}
 								aria-label={$t('admin.setAsCoverPhoto')}
@@ -744,7 +744,7 @@
 									src={photo.storage?.thumbnailPath || photo.storage?.url || photo.url}
 									alt={getPhotoTitle(photo) || photo.filename || $t('admin.photoFallbackAlt')}
 									class="w-full h-20 object-cover rounded-lg hover:opacity-75 transition-opacity {isCurrentCover
-										? 'ring-2 ring-[var(--color-primary-500)]'
+										? 'ring-2 ring-(--color-primary-500)'
 										: ''}"
 									style="image-orientation: from-image;"
 								/>
@@ -764,11 +764,11 @@
 							<button
 								on:click={() => goToPage(coverPhotoModal.currentPage - 1)}
 								disabled={coverPhotoModal.currentPage === 1}
-								class="px-3 py-1 text-sm font-medium text-[var(--color-surface-600-400)] bg-[var(--color-surface-100-900)] rounded-md hover:bg-[var(--color-surface-200-800)] disabled:opacity-50 disabled:cursor-not-allowed"
+								class="px-3 py-1 text-sm font-medium text-(--color-surface-600-400) bg-(--color-surface-100-900) rounded-md hover:bg-(--color-surface-200-800) disabled:opacity-50 disabled:cursor-not-allowed"
 							>
 								{$t('admin.previous')}
 							</button>
-							<span class="text-sm text-[var(--color-surface-600-400)]">
+							<span class="text-sm text-(--color-surface-600-400)">
 								{$t('admin.pageOf')
 									.replace('{page}', String(coverPhotoModal.currentPage))
 									.replace('{total}', String(getTotalPages()))}
@@ -776,7 +776,7 @@
 							<button
 								on:click={() => goToPage(coverPhotoModal.currentPage + 1)}
 								disabled={coverPhotoModal.currentPage === getTotalPages()}
-								class="px-3 py-1 text-sm font-medium text-[var(--color-surface-600-400)] bg-[var(--color-surface-100-900)] rounded-md hover:bg-[var(--color-surface-200-800)] disabled:opacity-50 disabled:cursor-not-allowed"
+								class="px-3 py-1 text-sm font-medium text-(--color-surface-600-400) bg-(--color-surface-100-900) rounded-md hover:bg-(--color-surface-200-800) disabled:opacity-50 disabled:cursor-not-allowed"
 							>
 								{$t('admin.next')}
 							</button>
@@ -788,7 +788,7 @@
 			<div class="mt-6 flex justify-end">
 				<button
 					on:click={closeCoverPhotoModal}
-					class="px-4 py-2 text-sm font-medium text-[var(--color-surface-800-200)] bg-[var(--color-surface-100-900)] rounded-md hover:bg-[var(--color-surface-200-800)]"
+					class="px-4 py-2 text-sm font-medium text-(--color-surface-800-200) bg-(--color-surface-100-900) rounded-md hover:bg-(--color-surface-200-800)"
 				>
 					{$t('admin.close')}
 				</button>

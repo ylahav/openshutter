@@ -249,8 +249,8 @@
 	<div class="max-w-6xl mx-auto px-4">
 		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
 			<div class="mb-6">
-				<h1 class="text-2xl font-bold text-[var(--color-surface-950-50)]">{$t('admin.locationsManagement')}</h1>
-				<p class="text-[var(--color-surface-600-400)] mt-2">{$t('admin.manageLocationsStructuredData')}</p>
+				<h1 class="text-2xl font-bold text-(--color-surface-950-50)">{$t('admin.locationsManagement')}</h1>
+				<p class="text-(--color-surface-600-400) mt-2">{$t('admin.manageLocationsStructuredData')}</p>
 			</div>
 
 			{#if message}
@@ -270,10 +270,10 @@
 							placeholder={$t('admin.searchLocationsPlaceholder')}
 							bind:value={searchTerm}
 							on:input={() => crudLoader.loadItems()}
-							class="pl-10 pr-4 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)] w-64"
+							class="pl-10 pr-4 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500) w-64"
 						/>
 						<svg
-							class="absolute left-3 top-1/2 transform -translate-y-1/2 text-[var(--color-surface-400-600)] h-4 w-4"
+							class="absolute left-3 top-1/2 transform -translate-y-1/2 text-(--color-surface-400-600) h-4 w-4"
 							fill="none"
 							stroke="currentColor"
 							viewBox="0 0 24 24"
@@ -290,7 +290,7 @@
 					<select
 						bind:value={categoryFilter}
 						on:change={() => crudLoader.loadItems()}
-						class="px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
+						class="px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 					>
 						<option value="all">{$t('admin.allCategories')}</option>
 						{#each LOCATION_CATEGORIES as cat}
@@ -302,7 +302,7 @@
 				<button
 					type="button"
 					on:click={openCreateDialog}
-					class="px-4 py-2 bg-[var(--color-primary-600)] text-white rounded-md hover:bg-[var(--color-primary-700)] text-sm font-medium flex items-center gap-2"
+					class="px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700) text-sm font-medium flex items-center gap-2"
 				>
 					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path
@@ -319,13 +319,13 @@
 			<!-- Locations List -->
 			{#if loading}
 				<div class="text-center py-8">
-					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--color-primary-600)]"></div>
-					<p class="mt-2 text-[var(--color-surface-600-400)]">{$t('admin.loadingLocations')}</p>
+					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-(--color-primary-600)"></div>
+					<p class="mt-2 text-(--color-surface-600-400)">{$t('admin.loadingLocations')}</p>
 				</div>
 			{:else if locations.length === 0}
 				<div class="text-center py-8">
 					<svg
-						class="h-12 w-12 text-[var(--color-surface-400-600)] mx-auto mb-4"
+						class="h-12 w-12 text-(--color-surface-400-600) mx-auto mb-4"
 						fill="none"
 						stroke="currentColor"
 						viewBox="0 0 24 24"
@@ -343,8 +343,8 @@
 							d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
 						/>
 					</svg>
-					<h3 class="text-lg font-semibold text-[var(--color-surface-950-50)] mb-2">{$t('admin.noLocationsFound')}</h3>
-					<p class="text-[var(--color-surface-600-400)]">{$t('admin.startByAddingFirstLocation')}</p>
+					<h3 class="text-lg font-semibold text-(--color-surface-950-50) mb-2">{$t('admin.noLocationsFound')}</h3>
+					<p class="text-(--color-surface-600-400)">{$t('admin.startByAddingFirstLocation')}</p>
 				</div>
 			{:else}
 				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -352,9 +352,9 @@
 						<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-4">
 							<div class="flex items-start justify-between mb-3">
 								<div class="flex-1">
-									<h3 class="font-semibold text-[var(--color-surface-950-50)] mb-1">{getLocationName(location)}</h3>
+									<h3 class="font-semibold text-(--color-surface-950-50) mb-1">{getLocationName(location)}</h3>
 									{#if location.city || location.country}
-										<p class="text-sm text-[var(--color-surface-600-400)]">
+										<p class="text-sm text-(--color-surface-600-400)">
 											{#if location.city}{location.city}{/if}
 											{#if location.city && location.country}, {/if}
 											{#if location.country}{location.country}{/if}
@@ -366,7 +366,7 @@
 									<button
 										type="button"
 										on:click={() => openEditDialog(location)}
-										class="p-1 text-[var(--color-surface-600-400)] hover:text-[var(--color-primary-600)] hover:bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] rounded"
+										class="p-1 text-(--color-surface-600-400) hover:text-(--color-primary-600) hover:bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] rounded"
 										aria-label={$t('admin.editLocationAria')}
 									>
 										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -381,7 +381,7 @@
 									<button
 										type="button"
 										on:click={() => openDeleteDialog(location)}
-										class="p-1 text-[var(--color-surface-600-400)] hover:text-red-600 hover:bg-red-50 rounded"
+										class="p-1 text-(--color-surface-600-400) hover:text-red-600 hover:bg-red-50 rounded"
 										aria-label={$t('admin.deleteLocationAria')}
 									>
 										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -397,17 +397,17 @@
 							</div>
 
 							{#if location.address}
-								<p class="text-sm text-[var(--color-surface-600-400)] mb-2">{location.address}</p>
+								<p class="text-sm text-(--color-surface-600-400) mb-2">{location.address}</p>
 							{/if}
 
 							<div class="flex items-center justify-between mt-3">
 								<span
-									class="px-2 py-1 text-xs font-medium rounded bg-[var(--color-surface-100-900)] text-[var(--color-surface-900-100)]"
+									class="px-2 py-1 text-xs font-medium rounded bg-(--color-surface-100-900) text-(--color-surface-900-100)"
 								>
 									{getCategoryLabel(location.category || 'custom')}
 								</span>
 								{#if location.usageCount !== undefined}
-									<span class="text-xs text-[var(--color-surface-600-400)]">
+									<span class="text-xs text-(--color-surface-600-400)">
 										{$t('admin.locationUsage')
 											.replace('{count}', String(location.usageCount))}
 									</span>
@@ -425,7 +425,7 @@
 {#if showCreateDialog}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
 		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
-			<h2 class="text-xl font-bold text-[var(--color-surface-950-50)] mb-4">{$t('admin.locationAddNewTitle')}</h2>
+			<h2 class="text-xl font-bold text-(--color-surface-950-50) mb-4">{$t('admin.locationAddNewTitle')}</h2>
 
 			{#if error}
 				<div class="mb-4 p-4 bg-red-50 text-red-700 rounded-md">{error}</div>
@@ -433,14 +433,14 @@
 
 			<div class="space-y-4">
 				<div>
-					<span class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+					<span class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
 						{$t('admin.locationNameLabel')}
 					</span>
 					<MultiLangInput bind:value={formData.name} />
 				</div>
 
 				<div>
-					<span class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+					<span class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
 						{$t('admin.locationDescriptionLabel')}
 					</span>
 					<MultiLangHTMLEditor bind:value={formData.description} />
@@ -448,7 +448,7 @@
 
 				<div class="grid grid-cols-2 gap-4">
 					<div>
-						<label for="address-create" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+						<label for="address-create" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
 							{$t('admin.locationAddressLabel')}
 						</label>
 						<input
@@ -456,12 +456,12 @@
 							id="address-create"
 							bind:value={formData.address}
 							placeholder={$t('admin.locationStreetAddressPlaceholder')}
-							class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
+							class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 						/>
 					</div>
 
 					<div>
-						<label for="city-create" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+						<label for="city-create" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
 							{$t('admin.locationCityLabel')}
 						</label>
 						<input
@@ -469,14 +469,14 @@
 							id="city-create"
 							bind:value={formData.city}
 							placeholder={$t('admin.locationCityPlaceholder')}
-							class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
+							class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 						/>
 					</div>
 				</div>
 
 				<div class="grid grid-cols-3 gap-4">
 					<div>
-						<label for="state-create" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+						<label for="state-create" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
 							{$t('admin.locationStateProvinceLabel')}
 						</label>
 						<input
@@ -484,12 +484,12 @@
 							id="state-create"
 							bind:value={formData.state}
 							placeholder={$t('admin.locationStatePlaceholder')}
-							class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
+							class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 						/>
 					</div>
 
 					<div>
-						<label for="country-create" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+						<label for="country-create" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
 							{$t('admin.locationCountryLabel')}
 						</label>
 						<input
@@ -497,12 +497,12 @@
 							id="country-create"
 							bind:value={formData.country}
 							placeholder={$t('admin.locationCountryPlaceholder')}
-							class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
+							class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 						/>
 					</div>
 
 					<div>
-						<label for="postal-create" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+						<label for="postal-create" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
 							{$t('admin.locationPostalCodeLabel')}
 						</label>
 						<input
@@ -510,14 +510,14 @@
 							id="postal-create"
 							bind:value={formData.postalCode}
 							placeholder={$t('admin.locationPostalCodePlaceholder')}
-							class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
+							class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 						/>
 					</div>
 				</div>
 
 				<div class="grid grid-cols-2 gap-4">
 					<div>
-						<label for="lat-create" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+						<label for="lat-create" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
 							{$t('admin.locationLatitudeLabel')}
 						</label>
 						<input
@@ -526,12 +526,12 @@
 							step="any"
 							bind:value={formData.coordinates.latitude}
 							placeholder={$t('admin.locationLatitudePlaceholder')}
-							class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
+							class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 						/>
 					</div>
 
 					<div>
-						<label for="lng-create" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+						<label for="lng-create" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
 							{$t('admin.locationLongitudeLabel')}
 						</label>
 						<input
@@ -540,13 +540,13 @@
 							step="any"
 							bind:value={formData.coordinates.longitude}
 							placeholder={$t('admin.locationLongitudePlaceholder')}
-							class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
+							class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 						/>
 					</div>
 				</div>
 
 				<div>
-					<label for="place-id-create" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+					<label for="place-id-create" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
 						{$t('admin.locationPlaceIdLabel')}
 					</label>
 					<input
@@ -554,18 +554,18 @@
 						id="place-id-create"
 						bind:value={formData.placeId}
 						placeholder={$t('admin.locationPlaceIdPlaceholder')}
-						class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
+						class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 					/>
 				</div>
 
 				<div>
-					<label for="category-create" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+					<label for="category-create" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
 						{$t('admin.locationCategoryLabel')}
 					</label>
 					<select
 						id="category-create"
 						bind:value={formData.category}
-						class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
+						class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 					>
 						{#each LOCATION_CATEGORIES as cat}
 							<option value={cat.value}>{$t(cat.labelKey)}</option>
@@ -580,7 +580,7 @@
 							dialogs.closeAll();
 							resetForm();
 						}}
-						class="px-4 py-2 bg-[var(--color-surface-200-800)] text-[var(--color-surface-800-200)] rounded-md hover:bg-[var(--color-surface-300-700)] text-sm font-medium"
+						class="px-4 py-2 bg-(--color-surface-200-800) text-(--color-surface-800-200) rounded-md hover:bg-(--color-surface-300-700) text-sm font-medium"
 					>
 						{$t('admin.locationCancelButton')}
 					</button>
@@ -588,7 +588,7 @@
 						type="button"
 						on:click={handleCreate}
 						disabled={saving}
-						class="px-4 py-2 bg-[var(--color-primary-600)] text-white rounded-md hover:bg-[var(--color-primary-700)] disabled:opacity-50 text-sm font-medium"
+						class="px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700) disabled:opacity-50 text-sm font-medium"
 					>
 						{#if saving}
 							{$t('admin.locationCreatingButton')}
@@ -606,7 +606,7 @@
 {#if showEditDialog && editingLocation}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
 		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
-			<h2 class="text-xl font-bold text-[var(--color-surface-950-50)] mb-4">{$t('admin.locationEditTitle')}</h2>
+			<h2 class="text-xl font-bold text-(--color-surface-950-50) mb-4">{$t('admin.locationEditTitle')}</h2>
 
 			{#if error}
 				<div class="mb-4 p-4 bg-red-50 text-red-700 rounded-md">{error}</div>
@@ -614,14 +614,14 @@
 
 			<div class="space-y-4">
 				<div>
-					<span class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+					<span class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
 						{$t('admin.locationNameLabel')}
 					</span>
 					<MultiLangInput bind:value={formData.name} />
 				</div>
 
 				<div>
-					<span class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+					<span class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
 						{$t('admin.locationDescriptionLabel')}
 					</span>
 					<MultiLangHTMLEditor bind:value={formData.description} />
@@ -629,7 +629,7 @@
 
 				<div class="grid grid-cols-2 gap-4">
 					<div>
-						<label for="address-edit" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+						<label for="address-edit" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
 							{$t('admin.locationAddressLabel')}
 						</label>
 						<input
@@ -637,12 +637,12 @@
 							id="address-edit"
 							bind:value={formData.address}
 							placeholder={$t('admin.locationStreetAddressPlaceholder')}
-							class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
+							class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 						/>
 					</div>
 
 					<div>
-						<label for="city-edit" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+						<label for="city-edit" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
 							{$t('admin.locationCityLabel')}
 						</label>
 						<input
@@ -650,14 +650,14 @@
 							id="city-edit"
 							bind:value={formData.city}
 							placeholder={$t('admin.locationCityPlaceholder')}
-							class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
+							class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 						/>
 					</div>
 				</div>
 
 				<div class="grid grid-cols-3 gap-4">
 					<div>
-						<label for="state-edit" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+						<label for="state-edit" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
 							{$t('admin.locationStateProvinceLabel')}
 						</label>
 						<input
@@ -665,12 +665,12 @@
 							id="state-edit"
 							bind:value={formData.state}
 							placeholder={$t('admin.locationStatePlaceholder')}
-							class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
+							class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 						/>
 					</div>
 
 					<div>
-						<label for="country-edit" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+						<label for="country-edit" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
 							{$t('admin.locationCountryLabel')}
 						</label>
 						<input
@@ -678,12 +678,12 @@
 							id="country-edit"
 							bind:value={formData.country}
 							placeholder={$t('admin.locationCountryPlaceholder')}
-							class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
+							class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 						/>
 					</div>
 
 					<div>
-						<label for="postal-edit" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+						<label for="postal-edit" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
 							{$t('admin.locationPostalCodeLabel')}
 						</label>
 						<input
@@ -691,14 +691,14 @@
 							id="postal-edit"
 							bind:value={formData.postalCode}
 							placeholder={$t('admin.locationPostalCodePlaceholder')}
-							class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
+							class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 						/>
 					</div>
 				</div>
 
 				<div class="grid grid-cols-2 gap-4">
 					<div>
-						<label for="lat-edit" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+						<label for="lat-edit" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
 							{$t('admin.locationLatitudeLabel')}
 						</label>
 						<input
@@ -707,12 +707,12 @@
 							step="any"
 							bind:value={formData.coordinates.latitude}
 							placeholder={$t('admin.locationLatitudePlaceholder')}
-							class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
+							class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 						/>
 					</div>
 
 					<div>
-						<label for="lng-edit" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+						<label for="lng-edit" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
 							{$t('admin.locationLongitudeLabel')}
 						</label>
 						<input
@@ -721,13 +721,13 @@
 							step="any"
 							bind:value={formData.coordinates.longitude}
 							placeholder={$t('admin.locationLongitudePlaceholder')}
-							class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
+							class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 						/>
 					</div>
 				</div>
 
 				<div>
-					<label for="place-id-edit" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+					<label for="place-id-edit" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
 						{$t('admin.locationPlaceIdLabel')}
 					</label>
 					<input
@@ -735,18 +735,18 @@
 						id="place-id-edit"
 						bind:value={formData.placeId}
 						placeholder={$t('admin.locationPlaceIdPlaceholder')}
-						class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
+						class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 					/>
 				</div>
 
 				<div>
-					<label for="category-edit" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+					<label for="category-edit" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
 						{$t('admin.locationCategoryLabel')}
 					</label>
 					<select
 						id="category-edit"
 						bind:value={formData.category}
-						class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
+						class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 					>
 						{#each LOCATION_CATEGORIES as cat}
 							<option value={cat.value}>{$t(cat.labelKey)}</option>
@@ -762,9 +762,9 @@
 							class="sr-only peer"
 						/>
 						<div
-							class="w-11 h-6 bg-[var(--color-surface-200-800)] peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[color-mix(in_oklab,var(--color-primary-500)_35%,transparent)] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-[var(--color-surface-50-950)] after:border-surface-300-700 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--color-primary-600)]"
+							class="w-11 h-6 bg-(--color-surface-200-800) peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[color-mix(in_oklab,var(--color-primary-500)_35%,transparent)] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-(--color-surface-50-950) after:border-surface-300-700 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-(--color-primary-600)"
 						></div>
-						<span class="ml-3 text-sm font-medium text-[var(--color-surface-800-200)]">
+						<span class="ml-3 text-sm font-medium text-(--color-surface-800-200)">
 							{$t('admin.locationActiveLabel')}
 						</span>
 					</label>
@@ -778,7 +778,7 @@
 							editingLocation = null;
 							resetForm();
 						}}
-						class="px-4 py-2 bg-[var(--color-surface-200-800)] text-[var(--color-surface-800-200)] rounded-md hover:bg-[var(--color-surface-300-700)] text-sm font-medium"
+						class="px-4 py-2 bg-(--color-surface-200-800) text-(--color-surface-800-200) rounded-md hover:bg-(--color-surface-300-700) text-sm font-medium"
 					>
 						{$t('admin.locationCancelButton')}
 					</button>
@@ -786,7 +786,7 @@
 						type="button"
 						on:click={handleEdit}
 						disabled={saving}
-						class="px-4 py-2 bg-[var(--color-primary-600)] text-white rounded-md hover:bg-[var(--color-primary-700)] disabled:opacity-50 text-sm font-medium"
+						class="px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700) disabled:opacity-50 text-sm font-medium"
 					>
 						{#if saving}
 							{$t('admin.locationUpdatingButton')}
@@ -804,14 +804,14 @@
 {#if showDeleteDialog && locationToDelete}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
 		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full max-w-md p-6">
-			<h2 class="text-xl font-bold text-[var(--color-surface-950-50)] mb-4">{$t('admin.locationDeleteTitle')}</h2>
+			<h2 class="text-xl font-bold text-(--color-surface-950-50) mb-4">{$t('admin.locationDeleteTitle')}</h2>
 
 			{#if error}
 				<div class="mb-4 p-4 bg-red-50 text-red-700 rounded-md">{error}</div>
 			{/if}
 
 			<div class="space-y-4">
-				<p class="text-[var(--color-surface-600-400)]">
+				<p class="text-(--color-surface-600-400)">
 					{$t('admin.locationDeleteConfirmPrefix')}
 					<strong>{getLocationName(locationToDelete)}</strong>
 					{$t('admin.locationDeleteConfirmSuffix')}
@@ -832,7 +832,7 @@
 							dialogs.closeAll();
 							locationToDelete = null;
 						}}
-						class="px-4 py-2 bg-[var(--color-surface-200-800)] text-[var(--color-surface-800-200)] rounded-md hover:bg-[var(--color-surface-300-700)] text-sm font-medium"
+						class="px-4 py-2 bg-(--color-surface-200-800) text-(--color-surface-800-200) rounded-md hover:bg-(--color-surface-300-700) text-sm font-medium"
 					>
 						{$t('admin.locationCancelButton')}
 					</button>

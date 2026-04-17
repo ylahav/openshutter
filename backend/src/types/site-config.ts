@@ -63,6 +63,8 @@ export interface SiteConfig {
      * Named grid regions (e.g. shared header strip). Referenced by page-builder modules `type: layoutShell`, `props.presetKey`.
      */
     layoutPresets?: Record<string, { gridRows?: number; gridColumns?: number; modules?: any[] }>
+    /** Shared layout-shell instances (preferred; module points via `props.instanceRef`). */
+    layoutShellInstances?: Record<string, { gridRows?: number; gridColumns?: number; modules?: any[] }>
   }
   seo: {
     metaTitle: MultiLangText

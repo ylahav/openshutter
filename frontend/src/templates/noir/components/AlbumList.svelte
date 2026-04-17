@@ -3,17 +3,9 @@
 	import { currentLanguage } from '$stores/language';
 	import { MultiLangUtils } from '$utils/multiLang';
 	import { t } from '$stores/i18n';
+	import type { PackGalleryAlbumListItem } from '$lib/template-packs/pack-page-props';
 
-	interface TemplateAlbum {
-		_id: string;
-		name?: any;
-		description?: any;
-		alias?: string;
-		isFeatured?: boolean;
-		photoCount?: number;
-	}
-
-	export let albums: TemplateAlbum[] = [];
+	export let albums: PackGalleryAlbumListItem[] = [];
 	export let loading = false;
 	export let error: string | null = null;
 	export let pageContext: 'home' | 'gallery' = 'home';

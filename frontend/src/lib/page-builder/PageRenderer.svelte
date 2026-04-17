@@ -1,8 +1,6 @@
 <script lang="ts">
 	import { setContext } from 'svelte';
 	import { writable, type Writable } from 'svelte/store';
-	import { currentLanguage } from '$stores/language';
-	import { MultiLangUtils } from '$utils/multiLang';
 	import { page as pageStore } from '$app/stores';
 	import type { PageData, PageModuleData } from '$lib/types/page-builder';
 	import PageBuilderGrid from './PageBuilderGrid.svelte';
@@ -27,6 +25,8 @@
 	import LayoutShellModule from './modules/LayoutShellModule.svelte';
 	import PageTitleModule from './modules/PageTitleModule.svelte';
 	import LoginFormModule from './modules/LoginFormModule.svelte';
+	import { activeTemplate } from '$stores/template';
+	import { TEMPLATE_PAGE_BUILDER_OVERRIDES } from './template-module-overrides';
 
 	export let page: PageData | null = null;
 	export let modules: PageModuleData[] = [];
@@ -45,7 +45,7 @@
 		page
 	};
 
-	const moduleMap: Record<string, any> = {
+	const baseModuleMap: Record<string, any> = {
 		hero: HeroModule,
 		richText: RichTextModule,
 		divider: DividerModule,
@@ -69,22 +69,19 @@
 		loginForm: LoginFormModule
 	};
 
-	setContext('pbModuleMap', moduleMap);
-	setContext('pbNestDepth', 0);
+	const moduleMapStore: Writable<Record<string, any>> = writable(baseModuleMap);
+	setContext('pbModuleMap', moduleMapStore);
 
-	$: titleText =
-		page?.title !== undefined && page?.title !== null
-			? MultiLangUtils.getTextValue(page.title, $currentLanguage)
-			: '';
-	$: subtitleText =
-		page?.subtitle !== undefined && page?.subtitle !== null
-			? MultiLangUtils.getTextValue(page.subtitle, $currentLanguage)
-			: '';
+	$: moduleMap = {
+		...baseModuleMap,
+		...(TEMPLATE_PAGE_BUILDER_OVERRIDES[$activeTemplate] || {})
+	};
+	$: moduleMapStore.set(moduleMap);
+	setContext('pbNestDepth', 0);
 
 	const normalizeModuleType = (t: unknown): string =>
 		t === 'albumGallery' ? 'albumView' : String(t ?? '');
 	$: normalizedModules = modules.map((m) => ({ ...m, type: normalizeModuleType((m as any).type) }));
-	$: hasPageTitleModule = normalizedModules.some((m) => m.type === 'pageTitle');
 
 	$: gridCols =
 		page?.layout && typeof (page.layout as any).gridColumns === 'number'
@@ -102,27 +99,17 @@
 				);
 
 	$: gridLayout = { gridRows, gridColumns: gridCols };
+	$: pageKey = String(page?._id ?? '').trim().toLowerCase();
+	$: pageScopeClass = pageKey ? `pb-page pb-page-${pageKey}` : 'pb-page';
 </script>
 
 {#if !page}
 	<div class="min-h-screen flex items-center justify-center text-[color:var(--tp-fg-muted)]">Page not found.</div>
 {:else}
 	<div
-		class="{compact ? 'w-full' : 'min-h-screen'} {compact ? '' : 'bg-[color:var(--tp-canvas)] text-[color:var(--tp-fg)]'}"
+		class="{pageScopeClass} {compact ? 'w-full' : 'min-h-screen'} {compact ? '' : 'bg-[color:var(--tp-canvas)] text-[color:var(--tp-fg)]'}"
+		data-page-key={pageKey || undefined}
 	>
-		{#if !compact && !hasPageTitleModule && (titleText || subtitleText)}
-			<div
-				class="max-w-4xl mx-auto px-4 py-12 text-center border-b border-[color:var(--tp-border)]"
-			>
-				{#if titleText}
-					<h1 class="text-4xl @md:text-5xl font-bold text-[color:var(--tp-fg)] mb-4">{titleText}</h1>
-				{/if}
-				{#if subtitleText}
-					<h2 class="text-xl @md:text-2xl font-semibold text-[color:var(--tp-fg-muted)]">{subtitleText}</h2>
-				{/if}
-			</div>
-		{/if}
-
 		<PageBuilderGrid modules={normalizedModules} layout={gridLayout} {compact} pageContext={pageContext} />
 	</div>
 {/if}

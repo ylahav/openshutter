@@ -106,7 +106,24 @@ body {
   text-align: center;
   position: relative;
   transition: background $t, border-color $t;
+  transition: background .4s, border-color .4s;
 
+  .a-site-name {
+    transition: color .4s;
+     a {
+      color: var(--fg);
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-weight: 400;
+      font-size: 28px;
+      letter-spacing: .12em;
+      text-decoration: none;
+      display: block;
+      cursor: pointer;
+      transition: color .2s;
+      float: left;
+    }
+  }
+  
   &__btns {
     position: absolute; top: 28px; right: 32px;
     display: flex; gap: 8px;
@@ -655,8 +672,8 @@ body {
 .tpl-pack-atelier {
   // LayoutShell-powered header strip (used in production routes)
   // mirrors Atelier static header proportions/typography.
-  .layout-shell[data-layout-preset$='header'],
-  .layout-shell[data-layout-preset='header'] {
+  .layout-shell[data-layout-preset$='header']:not(.a-header),
+  .layout-shell[data-layout-preset='header']:not(.a-header) {
     background: var(--tp-header-bg, var(--bg));
     border-bottom: var(--os-border-width, 1px) solid var(--tp-header-border, var(--bdr));
     transition: background $t, border-color $t;

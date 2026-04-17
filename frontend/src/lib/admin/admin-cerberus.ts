@@ -6,13 +6,13 @@
  */
 
 /** Primary body / heading text (uses theme `light-dark()` surface pairing). */
-export const adminTextPrimary = 'text-[var(--color-surface-950-50)]';
+export const adminTextPrimary = 'text-(--color-surface-950-50)';
 
 /** Secondary lines (labels, table body). */
-export const adminTextSecondary = 'text-[var(--color-surface-800-200)]';
+export const adminTextSecondary = 'text-(--color-surface-800-200)';
 
 /** Muted / help text. */
-export const adminTextMuted = 'text-[var(--color-surface-600-400)]';
+export const adminTextMuted = 'text-(--color-surface-600-400)';
 
 /** Default border on neutral panels (pairs with Cerberus surfaces). */
 export const adminBorderDefault = 'border-surface-200-800';
@@ -22,7 +22,7 @@ export const adminBorderStrong = 'border-surface-300-700';
 
 /** Focus ring aligned with Cerberus primary. */
 export const adminRingPrimary =
-	'focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary-500)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--body-background-color)] dark:focus-visible:ring-offset-[var(--body-background-color-dark)]';
+	'focus:outline-none focus-visible:ring-2 focus-visible:ring-(--color-primary-500) focus-visible:ring-offset-2 focus-visible:ring-offset-(--body-background-color) dark:focus-visible:ring-offset-(--body-background-color-dark)';
 
 /** Primary actions — prefer Skeleton `btn` + preset (see Tailwind “Buttons” on skeleton.dev). */
 export const adminBtnPrimary = 'btn preset-filled-primary-500';

@@ -1,80 +1,22 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { productName, siteConfigData } from '$stores/siteConfig';
-	import { t } from '$stores/i18n';
-	import { logger } from '$lib/utils/logger';
-	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
-	import { viewportWidth } from '$lib/stores/viewport';
-	import { getEffectivePageGrid, getEffectivePageModules } from '$lib/template/breakpoints';
+	import type { PageData } from './$types';
+	import { productName } from '$stores/siteConfig';
 	import PageRenderer from '$lib/page-builder/PageRenderer.svelte';
-	import GalleryTemplateSwitcher from '$lib/components/GalleryTemplateSwitcher.svelte';
 	import type { PageModuleData } from '$lib/types/page-builder';
+	import type { PageData as BuilderPageData } from '$lib/types/page-builder';
 
-	interface Album {
-		_id: string;
-		name: string | { en?: string; he?: string };
-		description?: string | { en?: string; he?: string };
-		alias: string;
-		level: number;
-		isFeatured: boolean;
-		isPublic: boolean;
-		photoCount: number;
-		childAlbumCount?: number;
-		coverPhotoId?: string;
-		coverPhoto?: any;
-	}
+	export let data: PageData;
 
-	let albums: Album[] = [];
-	let isLoading = true;
-	let error = '';
-
-	$: galleryModules = getEffectivePageModules($siteConfigData?.template, 'gallery', $viewportWidth) as PageModuleData[];
-	$: galleryLayout = getEffectivePageGrid($siteConfigData?.template, 'gallery', $viewportWidth);
-	$: hasPageModules = Array.isArray(galleryModules) && galleryModules.length > 0;
-	$: pageForRenderer = hasPageModules
-		? ({
-				_id: 'gallery',
-				title: {} as any,
-				subtitle: {} as any,
-				layout: { gridRows: galleryLayout.gridRows, gridColumns: galleryLayout.gridColumns }
-			} as any)
-		: null;
-
-	async function fetchAlbums() {
-		try {
-			isLoading = true;
-			error = '';
-			const response = await fetch('/api/albums?parentId=root');
-			if (!response.ok) {
-				await handleApiErrorResponse(response);
-			}
-			const data = await response.json();
-			if (Array.isArray(data)) {
-				albums = data.sort((a: Album, b: Album) => ((a as any).order || 0) - ((b as any).order || 0));
-			} else {
-				logger.error('API returned unexpected format:', data);
-				albums = [];
-			}
-		} catch (err) {
-			logger.error('Failed to fetch albums:', err);
-			error = handleError(err, 'Failed to load albums');
-			albums = [];
-		} finally {
-			isLoading = false;
-		}
-	}
-
-	onMount(() => {
-		fetchAlbums();
-	});
+	$: page = (data.page ?? null) as BuilderPageData | null;
+	$: modules = (data.modules ?? []) as PageModuleData[];
 </script>
 
 <svelte:head>
 	<title>Albums - {$productName}</title>
 </svelte:head>
 
-{#if hasPageModules}
-	<PageRenderer page={pageForRenderer as any} modules={galleryModules} />
+{#if page}
+	<PageRenderer {page} {modules} />
 {:else}
-	<GalleryTemplateSwitcher mode="albums" {albums} loading={isLoading} error={error || null} />
+	<div class="min-h-screen flex items-center justify-center text-sm opacity-60">Gallery page not found.</div>
 {/if}

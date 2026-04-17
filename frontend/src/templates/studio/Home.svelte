@@ -56,7 +56,7 @@
 
 	{#if aboutPlain}
 		<div
-			class="max-w-[var(--os-max-width)] mx-auto px-7 pb-14 grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-8 items-center rounded-2xl border p-10 md:px-12 bg-[color:var(--tp-surface-1)] border-[color:var(--tp-border)]"
+			class="max-w-(--os-max-width) mx-auto px-7 pb-14 grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-8 items-center rounded-2xl border p-10 md:px-12 bg-[color:var(--tp-surface-1)] border-[color:var(--tp-border)]"
 		>
 			<p class="text-[15px] leading-relaxed max-w-[560px]" style="color: var(--tp-fg-muted);">
 				{aboutPlain}

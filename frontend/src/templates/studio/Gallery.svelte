@@ -8,9 +8,10 @@
 	import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 	import { t } from '$stores/i18n';
 	import AlbumList from './components/AlbumList.svelte';
+	import type { PackGalleryAlbumListItem } from '$lib/template-packs/pack-page-props';
 
 	export let mode: 'photos' | 'albums' = 'photos';
-	export let albums: any[] = [];
+	export let albums: PackGalleryAlbumListItem[] = [];
 	export let loading = false;
 	export let error: string | null = null;
 
@@ -59,7 +60,7 @@
 	<div
 		class="min-h-screen w-full pt-24 pb-16 bg-[color:var(--tp-canvas)] text-[color:var(--tp-fg)] [font-family:var(--os-font-body)]"
 	>
-		<div class="max-w-[var(--os-max-width)] mx-auto px-7 mb-10">
+		<div class="max-w-(--os-max-width) mx-auto px-7 mb-10">
 			<h1
 				class="text-3xl md:text-4xl font-extralight tracking-tight text-[color:var(--tp-fg)]"
 				style="font-family: var(--os-font-heading);"

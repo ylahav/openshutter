@@ -1,12 +1,25 @@
+import type { Component } from 'svelte';
 import type { TemplatePack } from './types';
-import type { SvelteComponentConstructor } from './types';
 import { logger } from '$lib/utils/logger';
 import { normalizeTemplatePackId } from './ids';
 import type { TemplatePackId } from './ids';
+import type {
+	PackAboutPageProps,
+	PackAlbumPageProps,
+	PackCmsPageProps,
+	PackContactPageProps,
+	PackGalleryPageProps,
+	PackHomePageProps,
+	PackLoginPageProps,
+	PackSearchPageProps
+} from './pack-page-props';
+
 export { TEMPLATE_PACK_IDS, isKnownTemplatePack, normalizeTemplatePackId } from './ids';
 export type { TemplatePackId } from './ids';
 
-type ModuleDefault = { default: SvelteComponentConstructor };
+function packPage<P extends Record<string, any>>(mod: unknown): Component<P> {
+	return (mod as { default: Component<P> }).default;
+}
 
 const packCache = new Map<TemplatePackId, TemplatePack>();
 
@@ -25,14 +38,14 @@ const packLoaders: Record<TemplatePackId, () => Promise<TemplatePack>> = {
 		return {
 			name: 'noir',
 			pages: {
-				Home: (Home as ModuleDefault).default,
-				Gallery: (Gallery as ModuleDefault).default,
-				Album: (Album as ModuleDefault).default,
-				About: (About as ModuleDefault).default,
-				Search: (Search as ModuleDefault).default,
-				Contact: (Contact as ModuleDefault).default,
-				CmsPage: (CmsPage as ModuleDefault).default,
-				Login: (Login as ModuleDefault).default
+				Home: packPage<PackHomePageProps>(Home),
+				Gallery: packPage<PackGalleryPageProps>(Gallery),
+				Album: packPage<PackAlbumPageProps>(Album),
+				About: packPage<PackAboutPageProps>(About),
+				Search: packPage<PackSearchPageProps>(Search),
+				Contact: packPage<PackContactPageProps>(Contact),
+				CmsPage: packPage<PackCmsPageProps>(CmsPage),
+				Login: packPage<PackLoginPageProps>(Login)
 			}
 		};
 	},
@@ -50,14 +63,14 @@ const packLoaders: Record<TemplatePackId, () => Promise<TemplatePack>> = {
 		return {
 			name: 'studio',
 			pages: {
-				Home: (Home as ModuleDefault).default,
-				Gallery: (Gallery as ModuleDefault).default,
-				Album: (Album as ModuleDefault).default,
-				About: (About as ModuleDefault).default,
-				Search: (Search as ModuleDefault).default,
-				Contact: (Contact as ModuleDefault).default,
-				CmsPage: (CmsPage as ModuleDefault).default,
-				Login: (Login as ModuleDefault).default
+				Home: packPage<PackHomePageProps>(Home),
+				Gallery: packPage<PackGalleryPageProps>(Gallery),
+				Album: packPage<PackAlbumPageProps>(Album),
+				About: packPage<PackAboutPageProps>(About),
+				Search: packPage<PackSearchPageProps>(Search),
+				Contact: packPage<PackContactPageProps>(Contact),
+				CmsPage: packPage<PackCmsPageProps>(CmsPage),
+				Login: packPage<PackLoginPageProps>(Login)
 			}
 		};
 	},
@@ -75,14 +88,14 @@ const packLoaders: Record<TemplatePackId, () => Promise<TemplatePack>> = {
 		return {
 			name: 'atelier',
 			pages: {
-				Home: (Home as ModuleDefault).default,
-				Gallery: (Gallery as ModuleDefault).default,
-				Album: (Album as ModuleDefault).default,
-				About: (About as ModuleDefault).default,
-				Search: (Search as ModuleDefault).default,
-				Contact: (Contact as ModuleDefault).default,
-				CmsPage: (CmsPage as ModuleDefault).default,
-				Login: (Login as ModuleDefault).default
+				Home: packPage<PackHomePageProps>(Home),
+				Gallery: packPage<PackGalleryPageProps>(Gallery),
+				Album: packPage<PackAlbumPageProps>(Album),
+				About: packPage<PackAboutPageProps>(About),
+				Search: packPage<PackSearchPageProps>(Search),
+				Contact: packPage<PackContactPageProps>(Contact),
+				CmsPage: packPage<PackCmsPageProps>(CmsPage),
+				Login: packPage<PackLoginPageProps>(Login)
 			}
 		};
 	}

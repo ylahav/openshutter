@@ -1,8 +1,11 @@
 <script lang="ts">
 	import { getContext } from 'svelte';
+	import type { Writable } from 'svelte/store';
 	import type { PageModuleData } from '$lib/types/page-builder';
 	import type { ModulePlacement } from '$lib/page-builder/module-cell-placement';
 	import { omitPlacement, placementFlexClasses } from '$lib/page-builder/module-cell-placement';
+	import { activeTemplate } from '$stores/template';
+	import { applyPackClassPrefix, packClassPrefixFor } from '$lib/template/packs/class-prefix';
 
 	/** Modules already normalized (e.g. albumGallery → albumView). */
 	export let modules: PageModuleData[] = [];
@@ -11,9 +14,10 @@
 	/** Route / page context passed to every block (alias, params). */
 	export let pageContext: Record<string, unknown> = {};
 
-	const moduleMap = getContext<Record<string, any>>('pbModuleMap');
+	const moduleMapStore = getContext<Writable<Record<string, any>> | undefined>('pbModuleMap');
+	$: moduleMap = $moduleMapStore;
 
-	if (!moduleMap) {
+	if (!moduleMapStore) {
 		console.error('[PageBuilderGrid] Missing pbModuleMap context');
 	}
 
@@ -67,15 +71,34 @@
 
 	$: contentMax = compact
 		? 'w-full'
-		: 'w-full max-w-[var(--os-max-width)] mx-auto px-[var(--os-padding)] box-border';
-	const contentGap = 'gap-[var(--os-gap)]';
+		: 'w-full max-w-(--os-max-width) mx-auto px-(--os-padding) box-border';
+	const contentGap = 'gap-(--os-gap)';
 
 	function cellPlacement(m: PageModuleData | undefined): ModulePlacement | undefined {
 		return m?.props?.placement as ModulePlacement | undefined;
 	}
+
+	function wrapperClassName(m: PageModuleData | undefined, pack: string): string {
+		const skipPrefix = m?.props?.classNameNoPackPrefix === true;
+		const prefix = skipPrefix ? '' : packClassPrefixFor(pack);
+
+		const raw = m?.props?.className;
+		let base = typeof raw === 'string' ? raw.trim() : '';
+		if (prefix && base) base = applyPackClassPrefix(base, prefix);
+
+		const byPack = m?.props?.wrapperClassByPack ?? m?.props?.classNameByPack;
+		let extra = '';
+		if (byPack && typeof byPack === 'object' && !Array.isArray(byPack) && pack in byPack) {
+			const v = (byPack as Record<string, unknown>)[pack];
+			extra = typeof v === 'string' ? v.trim() : '';
+		}
+		if (prefix && extra) extra = applyPackClassPrefix(extra, prefix);
+
+		return [base, extra].filter(Boolean).join(' ');
+	}
 </script>
 
-{#if !moduleMap}
+{#if !moduleMapStore || !moduleMap}
 	<div class="p-4 text-sm text-red-500">Page builder misconfigured (no module map).</div>
 {:else if rows.length === 0}
 	<div class="{compact ? 'w-full px-0' : contentMax} {compact ? 'py-2' : 'py-8'} text-center text-sm opacity-60">
@@ -86,9 +109,9 @@
 		class="{compact ? 'w-full' : contentMax} {compact ? 'py-2' : 'py-6'} {contentGap}"
 		style="display: grid; grid-template-columns: repeat({gridCols}, 1fr); grid-template-rows: repeat({gridRows}, auto);"
 	>
-		{#each modules.filter((m) => m.rowOrder !== undefined && m.columnIndex !== undefined) as module (module._id)}
+		{#each modules.filter((m) => m.rowOrder !== undefined && m.columnIndex !== undefined) as module, idx (module._id ?? `${module.type}-${module.rowOrder ?? 'r'}-${module.columnIndex ?? 'c'}-${idx}`)}
 			<div
-				class={placementFlexClasses(cellPlacement(module))}
+				class="{placementFlexClasses(cellPlacement(module))} {wrapperClassName(module, $activeTemplate)}"
 				style="grid-column: {module.columnIndex! + 1} / span {module.colSpan ?? 1}; grid-row: {module.rowOrder! + 1} / span {module.rowSpan ?? 1}"
 			>
 				{#if moduleMap[module.type]}
@@ -108,7 +131,10 @@
 	{#each rows as row (row.rowOrder)}
 		<div class="flex gap-4 px-4 {compact ? 'py-2' : 'py-6'}">
 			{#each row.columns as col (col.columnIndex)}
-				<div class="flex-1 {placementFlexClasses(cellPlacement(col.module))}" style="flex: {col.proportion}">
+				<div
+					class="flex-1 {placementFlexClasses(cellPlacement(col.module))} {wrapperClassName(col.module, $activeTemplate)}"
+					style="flex: {col.proportion}"
+				>
 					{#if col.module}
 						{#if moduleMap[col.module.type]}
 							<svelte:component

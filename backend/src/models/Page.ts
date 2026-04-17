@@ -18,6 +18,16 @@ export interface IPage extends Document {
   subtitle?: MultiLangText;
   alias: string;
   slug: string;
+  /** Optional application-reserved identity for predefined pages. */
+  pageRole?: 'home' | 'gallery' | 'login' | 'search' | 'blog' | 'album' | 'blog-category' | 'blog-article';
+  /** Optional parent page reference for nested page trees. */
+  parentPageId?: Types.ObjectId | null;
+  /** Optional route parameter names for dynamic path resolution. */
+  routeParams?: string[];
+  /** Optional: per-page template pack override (`noir` | `studio` | `atelier`). */
+  frontendTemplate?: string;
+  /** Optional multi-pack assignment (`noir` | `studio` | `atelier`). Empty = default variant. */
+  frontendTemplates?: string[];
   leadingImage?: string;
   introText?: MultiLangHTML;
   content?: MultiLangHTML;
@@ -53,6 +63,31 @@ export const PageSchema = new Schema<IPage>({
     unique: true,
     trim: true,
     lowercase: true,
+  },
+  pageRole: {
+    type: String,
+    enum: ['home', 'gallery', 'login', 'search', 'blog', 'album', 'blog-category', 'blog-article'],
+    sparse: true,
+    trim: true,
+    lowercase: true,
+  },
+  parentPageId: {
+    type: Schema.Types.ObjectId,
+    ref: 'Page',
+    default: null,
+  },
+  routeParams: {
+    type: [String],
+    default: undefined,
+  },
+  frontendTemplate: {
+    type: String,
+    trim: true,
+    lowercase: true,
+  },
+  frontendTemplates: {
+    type: [String],
+    default: undefined,
   },
   leadingImage: {
     type: String,
@@ -103,5 +138,10 @@ PageSchema.pre('save', function() {
 // Note: alias and slug indexes are automatically created by unique: true on those fields
 PageSchema.index({ category: 1 });
 PageSchema.index({ isPublished: 1 });
+/** Reserved-role lookups by pack happen in controller (array overlap checks are app-level validation). */
+PageSchema.index({ pageRole: 1 });
+PageSchema.index({ pageRole: 1, frontendTemplate: 1 });
+PageSchema.index({ pageRole: 1, frontendTemplates: 1 });
+PageSchema.index({ parentPageId: 1 });
 
 export const PageModel = mongoose.models.Page || mongoose.model<IPage>('Page', PageSchema);

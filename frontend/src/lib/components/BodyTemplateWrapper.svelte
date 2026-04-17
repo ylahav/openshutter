@@ -1,6 +1,27 @@
 <script lang="ts">
 	import { activeTemplate } from '$stores/template';
 	import '$templates/styles/main.scss';
+	import { browser } from '$app/environment';
+
+	const loadedPackStyles = new Set<string>();
+
+	async function ensurePackStyles(templateName: string) {
+		if (loadedPackStyles.has(templateName)) return;
+		if (templateName === 'noir') {
+			await import('$templates/noir/styles.scss');
+		} else if (templateName === 'studio') {
+			await import('$templates/studio/styles.scss');
+		} else if (templateName === 'atelier') {
+			await import('$templates/atelier/styles.scss');
+		} else {
+			await import('$templates/noir/styles.scss');
+		}
+		loadedPackStyles.add(templateName);
+	}
+
+	$: if (browser) {
+		void ensurePackStyles($activeTemplate || 'noir');
+	}
 </script>
 
 {#if $activeTemplate === 'noir'}

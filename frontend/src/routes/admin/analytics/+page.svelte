@@ -261,39 +261,39 @@
 <div class="py-8">
 	<div class="max-w-6xl mx-auto px-4">
 		<div class="mb-6">
-			<h1 class="text-2xl font-bold text-[var(--color-surface-950-50)]">{$t('admin.analyticsAndStatistics')}</h1>
-			<p class="text-[var(--color-surface-600-400)] mt-2">{$t('admin.analyticsDescription')}</p>
+			<h1 class="text-2xl font-bold text-(--color-surface-950-50)">{$t('admin.analyticsAndStatistics')}</h1>
+			<p class="text-(--color-surface-600-400) mt-2">{$t('admin.analyticsDescription')}</p>
 		</div>
 
 		<!-- Tabs -->
 		<div class="mb-6 border-b border-surface-200-800">
 			<nav class="-mb-px flex space-x-8">
 				<button
-					class="py-4 px-1 border-b-2 font-medium text-sm {activeTab === 'overview' ? 'border-[var(--color-primary-500)] text-[var(--color-primary-600)]' : 'border-transparent text-[var(--color-surface-600-400)] hover:text-[var(--color-surface-800-200)] hover:border-surface-300-700'}"
+					class="py-4 px-1 border-b-2 font-medium text-sm {activeTab === 'overview' ? 'border-(--color-primary-500) text-(--color-primary-600)' : 'border-transparent text-(--color-surface-600-400) hover:text-(--color-surface-800-200) hover:border-surface-300-700'}"
 					on:click={() => handleTabChange('overview')}
 				>
 					{$t('admin.analyticsOverviewTab')}
 				</button>
 				<button
-					class="py-4 px-1 border-b-2 font-medium text-sm {activeTab === 'views' ? 'border-[var(--color-primary-500)] text-[var(--color-primary-600)]' : 'border-transparent text-[var(--color-surface-600-400)] hover:text-[var(--color-surface-800-200)] hover:border-surface-300-700'}"
+					class="py-4 px-1 border-b-2 font-medium text-sm {activeTab === 'views' ? 'border-(--color-primary-500) text-(--color-primary-600)' : 'border-transparent text-(--color-surface-600-400) hover:text-(--color-surface-800-200) hover:border-surface-300-700'}"
 					on:click={() => handleTabChange('views')}
 				>
 					{$t('admin.analyticsViewsTab')}
 				</button>
 				<button
-					class="py-4 px-1 border-b-2 font-medium text-sm {activeTab === 'search' ? 'border-[var(--color-primary-500)] text-[var(--color-primary-600)]' : 'border-transparent text-[var(--color-surface-600-400)] hover:text-[var(--color-surface-800-200)] hover:border-surface-300-700'}"
+					class="py-4 px-1 border-b-2 font-medium text-sm {activeTab === 'search' ? 'border-(--color-primary-500) text-(--color-primary-600)' : 'border-transparent text-(--color-surface-600-400) hover:text-(--color-surface-800-200) hover:border-surface-300-700'}"
 					on:click={() => handleTabChange('search')}
 				>
 					{$t('admin.analyticsSearchTab')}
 				</button>
 				<button
-					class="py-4 px-1 border-b-2 font-medium text-sm {activeTab === 'tags' ? 'border-[var(--color-primary-500)] text-[var(--color-primary-600)]' : 'border-transparent text-[var(--color-surface-600-400)] hover:text-[var(--color-surface-800-200)] hover:border-surface-300-700'}"
+					class="py-4 px-1 border-b-2 font-medium text-sm {activeTab === 'tags' ? 'border-(--color-primary-500) text-(--color-primary-600)' : 'border-transparent text-(--color-surface-600-400) hover:text-(--color-surface-800-200) hover:border-surface-300-700'}"
 					on:click={() => handleTabChange('tags')}
 				>
 					{$t('admin.analyticsTagsTab')}
 				</button>
 				<button
-					class="py-4 px-1 border-b-2 font-medium text-sm {activeTab === 'storage' ? 'border-[var(--color-primary-500)] text-[var(--color-primary-600)]' : 'border-transparent text-[var(--color-surface-600-400)] hover:text-[var(--color-surface-800-200)] hover:border-surface-300-700'}"
+					class="py-4 px-1 border-b-2 font-medium text-sm {activeTab === 'storage' ? 'border-(--color-primary-500) text-(--color-primary-600)' : 'border-transparent text-(--color-surface-600-400) hover:text-(--color-surface-800-200) hover:border-surface-300-700'}"
 					on:click={() => handleTabChange('storage')}
 				>
 					{$t('admin.analyticsStorageTab')}
@@ -306,7 +306,7 @@
 			<div class="mb-6 card preset-outlined-surface-200-800 bg-surface-50-950 p-4">
 				<div class="flex flex-wrap items-center gap-4">
 					<div>
-						<label class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-1">{$t('admin.analyticsDateFrom')}</label>
+						<label class="block text-sm font-medium text-(--color-surface-800-200) mb-1">{$t('admin.analyticsDateFrom')}</label>
 						<input
 							type="date"
 							bind:value={dateFrom}
@@ -315,7 +315,7 @@
 						/>
 					</div>
 					<div>
-						<label class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-1">{$t('admin.analyticsDateTo')}</label>
+						<label class="block text-sm font-medium text-(--color-surface-800-200) mb-1">{$t('admin.analyticsDateTo')}</label>
 						<input
 							type="date"
 							bind:value={dateTo}
@@ -325,7 +325,7 @@
 					</div>
 					{#if activeTab === 'views' || activeTab === 'search'}
 						<div>
-							<label class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-1">{$t('admin.analyticsPeriod')}</label>
+							<label class="block text-sm font-medium text-(--color-surface-800-200) mb-1">{$t('admin.analyticsPeriod')}</label>
 							<select
 								bind:value={period}
 								class="px-3 py-2 border border-surface-300-700 rounded-md text-sm"
@@ -340,7 +340,7 @@
 					<div class="flex-1"></div>
 					<button
 						on:click={() => exportData(activeTab)}
-						class="px-4 py-2 bg-[var(--color-primary-600)] text-white rounded-md hover:bg-[var(--color-primary-700)] text-sm font-medium"
+						class="px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700) text-sm font-medium"
 					>
 						{$t('admin.analyticsExportCsv')}
 					</button>
@@ -354,8 +354,8 @@
 
 		{#if loading}
 			<div class="text-center py-8">
-				<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--color-primary-600)]"></div>
-				<p class="mt-2 text-[var(--color-surface-600-400)]">{$t('admin.analyticsLoadingAnalytics')}</p>
+				<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-(--color-primary-600)"></div>
+				<p class="mt-2 text-(--color-surface-600-400)">{$t('admin.analyticsLoadingAnalytics')}</p>
 			</div>
 		{:else if activeTab === 'overview' && analytics}
 			<!-- Overview Statistics -->
@@ -363,14 +363,14 @@
 				<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-4">
 					<div class="flex items-center justify-between">
 						<div>
-							<p class="text-sm text-[var(--color-surface-600-400)]">{$t('admin.analyticsTotalPhotos')}</p>
-							<p class="text-2xl font-bold text-[var(--color-surface-950-50)]">{analytics.overview.photos.total}</p>
-							<p class="text-xs text-[var(--color-surface-600-400)] mt-1">
+							<p class="text-sm text-(--color-surface-600-400)">{$t('admin.analyticsTotalPhotos')}</p>
+							<p class="text-2xl font-bold text-(--color-surface-950-50)">{analytics.overview.photos.total}</p>
+							<p class="text-xs text-(--color-surface-600-400) mt-1">
 								{analytics.overview.photos.published} {$t('admin.analyticsPublishedLower')}, {analytics.overview.photos.draft} {$t('admin.analyticsDraftLower')}
 							</p>
 						</div>
 						<div class="p-3 bg-[color-mix(in_oklab,var(--color-primary-500)_22%,transparent)] rounded-lg">
-							<svg class="w-6 h-6 text-[var(--color-primary-600)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<svg class="w-6 h-6 text-(--color-primary-600)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path
 									stroke-linecap="round"
 									stroke-linejoin="round"
@@ -385,9 +385,9 @@
 				<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-4">
 					<div class="flex items-center justify-between">
 						<div>
-							<p class="text-sm text-[var(--color-surface-600-400)]">{$t('admin.analyticsTotalAlbums')}</p>
-							<p class="text-2xl font-bold text-[var(--color-surface-950-50)]">{analytics.overview.albums.total}</p>
-							<p class="text-xs text-[var(--color-surface-600-400)] mt-1">
+							<p class="text-sm text-(--color-surface-600-400)">{$t('admin.analyticsTotalAlbums')}</p>
+							<p class="text-2xl font-bold text-(--color-surface-950-50)">{analytics.overview.albums.total}</p>
+							<p class="text-xs text-(--color-surface-600-400) mt-1">
 								{analytics.overview.albums.public} {$t('admin.analyticsPublicLower')}, {analytics.overview.albums.private} {$t('admin.analyticsPrivateLower')}
 							</p>
 						</div>
@@ -407,9 +407,9 @@
 				<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-4">
 					<div class="flex items-center justify-between">
 						<div>
-							<p class="text-sm text-[var(--color-surface-600-400)]">{$t('admin.analyticsTotalUsers')}</p>
-							<p class="text-2xl font-bold text-[var(--color-surface-950-50)]">{analytics.overview.users.total}</p>
-							<p class="text-xs text-[var(--color-surface-600-400)] mt-1">
+							<p class="text-sm text-(--color-surface-600-400)">{$t('admin.analyticsTotalUsers')}</p>
+							<p class="text-2xl font-bold text-(--color-surface-950-50)">{analytics.overview.users.total}</p>
+							<p class="text-xs text-(--color-surface-600-400) mt-1">
 								{analytics.overview.users.active} {$t('admin.analyticsActiveLower')}, {analytics.overview.users.blocked} {$t('admin.analyticsBlockedLower')}
 							</p>
 						</div>
@@ -429,9 +429,9 @@
 				<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-4">
 					<div class="flex items-center justify-between">
 						<div>
-							<p class="text-sm text-[var(--color-surface-600-400)]">{$t('admin.analyticsStorageUsed')}</p>
-							<p class="text-2xl font-bold text-[var(--color-surface-950-50)]">{analytics.storage.formatted}</p>
-							<p class="text-xs text-[var(--color-surface-600-400)] mt-1">
+							<p class="text-sm text-(--color-surface-600-400)">{$t('admin.analyticsStorageUsed')}</p>
+							<p class="text-2xl font-bold text-(--color-surface-950-50)">{analytics.storage.formatted}</p>
+							<p class="text-xs text-(--color-surface-600-400) mt-1">
 								{analytics.storage.totalMB.toFixed(2)} {$t('admin.analyticsMBTotal')}
 							</p>
 						</div>
@@ -452,101 +452,101 @@
 			<!-- Detailed Statistics Grid -->
 			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
 				<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-4">
-					<h3 class="text-sm font-semibold text-[var(--color-surface-800-200)] mb-3">{$t('admin.analyticsTagsHeading')}</h3>
+					<h3 class="text-sm font-semibold text-(--color-surface-800-200) mb-3">{$t('admin.analyticsTagsHeading')}</h3>
 					<div class="space-y-2">
 						<div class="flex justify-between">
-							<span class="text-[var(--color-surface-600-400)]">{$t('admin.analyticsTotal')}</span>
+							<span class="text-(--color-surface-600-400)">{$t('admin.analyticsTotal')}</span>
 							<span class="font-semibold">{analytics.overview.tags.total}</span>
 						</div>
 						<div class="flex justify-between">
-							<span class="text-[var(--color-surface-600-400)]">{$t('admin.active')}</span>
+							<span class="text-(--color-surface-600-400)">{$t('admin.active')}</span>
 							<span class="text-green-600">{analytics.overview.tags.active}</span>
 						</div>
 						<div class="flex justify-between">
-							<span class="text-[var(--color-surface-600-400)]">{$t('admin.inactive')}</span>
-							<span class="text-[var(--color-surface-400-600)]">{analytics.overview.tags.inactive}</span>
+							<span class="text-(--color-surface-600-400)">{$t('admin.inactive')}</span>
+							<span class="text-(--color-surface-400-600)">{analytics.overview.tags.inactive}</span>
 						</div>
 					</div>
 				</div>
 
 				<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-4">
-					<h3 class="text-sm font-semibold text-[var(--color-surface-800-200)] mb-3">{$t('admin.analyticsLocationsHeading')}</h3>
+					<h3 class="text-sm font-semibold text-(--color-surface-800-200) mb-3">{$t('admin.analyticsLocationsHeading')}</h3>
 					<div class="space-y-2">
 						<div class="flex justify-between">
-							<span class="text-[var(--color-surface-600-400)]">{$t('admin.analyticsTotal')}</span>
+							<span class="text-(--color-surface-600-400)">{$t('admin.analyticsTotal')}</span>
 							<span class="font-semibold">{analytics.overview.locations.total}</span>
 						</div>
 						<div class="flex justify-between">
-							<span class="text-[var(--color-surface-600-400)]">{$t('admin.active')}</span>
+							<span class="text-(--color-surface-600-400)">{$t('admin.active')}</span>
 							<span class="text-green-600">{analytics.overview.locations.active}</span>
 						</div>
 						<div class="flex justify-between">
-							<span class="text-[var(--color-surface-600-400)]">{$t('admin.inactive')}</span>
-							<span class="text-[var(--color-surface-400-600)]">{analytics.overview.locations.inactive}</span>
+							<span class="text-(--color-surface-600-400)">{$t('admin.inactive')}</span>
+							<span class="text-(--color-surface-400-600)">{analytics.overview.locations.inactive}</span>
 						</div>
 					</div>
 				</div>
 
 				<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-4">
-					<h3 class="text-sm font-semibold text-[var(--color-surface-800-200)] mb-3">{$t('admin.analyticsPeopleHeading')}</h3>
+					<h3 class="text-sm font-semibold text-(--color-surface-800-200) mb-3">{$t('admin.analyticsPeopleHeading')}</h3>
 					<div class="space-y-2">
 						<div class="flex justify-between">
-							<span class="text-[var(--color-surface-600-400)]">{$t('admin.analyticsTotal')}</span>
+							<span class="text-(--color-surface-600-400)">{$t('admin.analyticsTotal')}</span>
 							<span class="font-semibold">{analytics.overview.people.total}</span>
 						</div>
 						<div class="flex justify-between">
-							<span class="text-[var(--color-surface-600-400)]">{$t('admin.active')}</span>
+							<span class="text-(--color-surface-600-400)">{$t('admin.active')}</span>
 							<span class="text-green-600">{analytics.overview.people.active}</span>
 						</div>
 						<div class="flex justify-between">
-							<span class="text-[var(--color-surface-600-400)]">{$t('admin.inactive')}</span>
-							<span class="text-[var(--color-surface-400-600)]">{analytics.overview.people.inactive}</span>
+							<span class="text-(--color-surface-600-400)">{$t('admin.inactive')}</span>
+							<span class="text-(--color-surface-400-600)">{analytics.overview.people.inactive}</span>
 						</div>
 					</div>
 				</div>
 
 				<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-4">
-					<h3 class="text-sm font-semibold text-[var(--color-surface-800-200)] mb-3">{$t('admin.analyticsGroupsHeading')}</h3>
+					<h3 class="text-sm font-semibold text-(--color-surface-800-200) mb-3">{$t('admin.analyticsGroupsHeading')}</h3>
 					<div class="space-y-2">
 						<div class="flex justify-between">
-							<span class="text-[var(--color-surface-600-400)]">{$t('admin.analyticsTotal')}</span>
+							<span class="text-(--color-surface-600-400)">{$t('admin.analyticsTotal')}</span>
 							<span class="font-semibold">{analytics.overview.groups.total}</span>
 						</div>
 					</div>
 				</div>
 
 				<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-4">
-					<h3 class="text-sm font-semibold text-[var(--color-surface-800-200)] mb-3">{$t('admin.analyticsPagesHeading')}</h3>
+					<h3 class="text-sm font-semibold text-(--color-surface-800-200) mb-3">{$t('admin.analyticsPagesHeading')}</h3>
 					<div class="space-y-2">
 						<div class="flex justify-between">
-							<span class="text-[var(--color-surface-600-400)]">{$t('admin.analyticsTotal')}</span>
+							<span class="text-(--color-surface-600-400)">{$t('admin.analyticsTotal')}</span>
 							<span class="font-semibold">{analytics.overview.pages.total}</span>
 						</div>
 						<div class="flex justify-between">
-							<span class="text-[var(--color-surface-600-400)]">{$t('admin.analyticsPublishedTitle')}</span>
+							<span class="text-(--color-surface-600-400)">{$t('admin.analyticsPublishedTitle')}</span>
 							<span class="text-green-600">{analytics.overview.pages.published}</span>
 						</div>
 						<div class="flex justify-between">
-							<span class="text-[var(--color-surface-600-400)]">{$t('admin.analyticsDraftTitle')}</span>
-							<span class="text-[var(--color-surface-400-600)]">{analytics.overview.pages.draft}</span>
+							<span class="text-(--color-surface-600-400)">{$t('admin.analyticsDraftTitle')}</span>
+							<span class="text-(--color-surface-400-600)">{analytics.overview.pages.draft}</span>
 						</div>
 					</div>
 				</div>
 
 				<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-4">
-					<h3 class="text-sm font-semibold text-[var(--color-surface-800-200)] mb-3">{$t('admin.analyticsBlogCategoriesHeading')}</h3>
+					<h3 class="text-sm font-semibold text-(--color-surface-800-200) mb-3">{$t('admin.analyticsBlogCategoriesHeading')}</h3>
 					<div class="space-y-2">
 						<div class="flex justify-between">
-							<span class="text-[var(--color-surface-600-400)]">{$t('admin.analyticsTotal')}</span>
+							<span class="text-(--color-surface-600-400)">{$t('admin.analyticsTotal')}</span>
 							<span class="font-semibold">{analytics.overview.blogCategories.total}</span>
 						</div>
 						<div class="flex justify-between">
-							<span class="text-[var(--color-surface-600-400)]">{$t('admin.active')}</span>
+							<span class="text-(--color-surface-600-400)">{$t('admin.active')}</span>
 							<span class="text-green-600">{analytics.overview.blogCategories.active}</span>
 						</div>
 						<div class="flex justify-between">
-							<span class="text-[var(--color-surface-600-400)]">{$t('admin.inactive')}</span>
-							<span class="text-[var(--color-surface-400-600)]">{analytics.overview.blogCategories.inactive}</span>
+							<span class="text-(--color-surface-600-400)">{$t('admin.inactive')}</span>
+							<span class="text-(--color-surface-400-600)">{analytics.overview.blogCategories.inactive}</span>
 						</div>
 					</div>
 				</div>
@@ -556,12 +556,12 @@
 			<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6 mb-6">
 				<div class="flex items-center justify-between mb-4">
 					<div>
-						<h2 class="text-lg font-semibold text-[var(--color-surface-950-50)]">{$t('admin.analyticsAIProvidersHealthTitle')}</h2>
-						<p class="text-sm text-[var(--color-surface-600-400)] mt-1">{$t('admin.analyticsAIProvidersHealthSubtitle')}</p>
+						<h2 class="text-lg font-semibold text-(--color-surface-950-50)">{$t('admin.analyticsAIProvidersHealthTitle')}</h2>
+						<p class="text-sm text-(--color-surface-600-400) mt-1">{$t('admin.analyticsAIProvidersHealthSubtitle')}</p>
 					</div>
 					<button
 						on:click={loadAIHealth}
-						class="px-3 py-2 bg-[var(--color-surface-100-900)] text-[var(--color-surface-800-200)] rounded-md hover:bg-[var(--color-surface-200-800)] text-sm font-medium"
+						class="px-3 py-2 bg-(--color-surface-100-900) text-(--color-surface-800-200) rounded-md hover:bg-(--color-surface-200-800) text-sm font-medium"
 						disabled={loadingAIHealth}
 					>
 						{loadingAIHealth ? $t('admin.analyticsRefreshing') : $t('admin.analyticsRefresh')}
@@ -573,9 +573,9 @@
 				{/if}
 
 				{#if aiHealth}
-					<div class="mb-4 text-sm text-[var(--color-surface-800-200)]">
+					<div class="mb-4 text-sm text-(--color-surface-800-200)">
 						<span class="font-medium">{$t('admin.analyticsConfigured')}:</span> {aiHealth.configuredProvider}
-						<span class="mx-2 text-[var(--color-surface-400-600)]">|</span>
+						<span class="mx-2 text-(--color-surface-400-600)">|</span>
 						<span class="font-medium">{$t('admin.active')}:</span>
 						<span class="{aiHealth.activeProvider ? 'text-green-700' : 'text-red-700'}">
 							{aiHealth.activeProvider || $t('admin.analyticsNone')}
@@ -587,39 +587,39 @@
 							{@const p = aiHealth.providers[key as ProviderKey]}
 							<div class="rounded-md border p-3 {p?.available ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}">
 								<div class="flex items-center justify-between mb-1">
-									<span class="font-medium text-[var(--color-surface-950-50)]">{key}</span>
+									<span class="font-medium text-(--color-surface-950-50)">{key}</span>
 									<span class="text-xs {p?.available ? 'text-green-700' : 'text-red-700'}">
 										{p?.available ? $t('admin.analyticsAvailable') : $t('admin.analyticsUnavailable')}
 									</span>
 								</div>
-								<p class="text-xs text-[var(--color-surface-800-200)] wrap-break-word">{p?.reason || $t('admin.analyticsNoDetails')}</p>
+								<p class="text-xs text-(--color-surface-800-200) wrap-break-word">{p?.reason || $t('admin.analyticsNoDetails')}</p>
 							</div>
 						{/each}
 					</div>
 				{:else if loadingAIHealth}
-					<div class="text-sm text-[var(--color-surface-600-400)]">{$t('admin.analyticsLoadingProviderHealth')}</div>
+					<div class="text-sm text-(--color-surface-600-400)">{$t('admin.analyticsLoadingProviderHealth')}</div>
 				{:else}
-					<div class="text-sm text-[var(--color-surface-600-400)]">{$t('admin.analyticsNoProviderHealthDataYet')}</div>
+					<div class="text-sm text-(--color-surface-600-400)">{$t('admin.analyticsNoProviderHealthDataYet')}</div>
 				{/if}
 			</div>
 
 			<!-- Recent Activity -->
 			<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6 mb-6">
-				<h2 class="text-lg font-semibold text-[var(--color-surface-950-50)] mb-4">
+				<h2 class="text-lg font-semibold text-(--color-surface-950-50) mb-4">
 					{$t('admin.analyticsRecentActivityTitle')} ({$t('admin.analyticsLast')} {formatRecentActivityPeriod(analytics.recentActivity.period)})
 				</h2>
 				<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
 					<div class="text-center p-4 bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] rounded-lg">
-						<p class="text-2xl font-bold text-[var(--color-primary-600)]">{analytics.recentActivity.photos}</p>
-						<p class="text-sm text-[var(--color-surface-600-400)] mt-1">{$t('admin.analyticsNewPhotos')}</p>
+						<p class="text-2xl font-bold text-(--color-primary-600)">{analytics.recentActivity.photos}</p>
+						<p class="text-sm text-(--color-surface-600-400) mt-1">{$t('admin.analyticsNewPhotos')}</p>
 					</div>
 					<div class="text-center p-4 bg-green-50 rounded-lg">
 						<p class="text-2xl font-bold text-green-600">{analytics.recentActivity.albums}</p>
-						<p class="text-sm text-[var(--color-surface-600-400)] mt-1">{$t('admin.analyticsNewAlbums')}</p>
+						<p class="text-sm text-(--color-surface-600-400) mt-1">{$t('admin.analyticsNewAlbums')}</p>
 					</div>
 					<div class="text-center p-4 bg-purple-50 rounded-lg">
 						<p class="text-2xl font-bold text-purple-600">{analytics.recentActivity.users}</p>
-						<p class="text-sm text-[var(--color-surface-600-400)] mt-1">{$t('admin.analyticsNewUsers')}</p>
+						<p class="text-sm text-(--color-surface-600-400) mt-1">{$t('admin.analyticsNewUsers')}</p>
 					</div>
 				</div>
 			</div>
@@ -627,7 +627,7 @@
 			<!-- Enhanced Tag Analytics -->
 			{#if analytics.tagAnalytics}
 				<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6 mb-6">
-					<h2 class="text-lg font-semibold text-[var(--color-surface-950-50)] mb-4">{$t('admin.analyticsTagAnalyticsTitle')}</h2>
+					<h2 class="text-lg font-semibold text-(--color-surface-950-50) mb-4">{$t('admin.analyticsTagAnalyticsTitle')}</h2>
 
 					<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
 						<div class="p-4 bg-amber-50 rounded-lg border border-amber-100">
@@ -644,31 +644,31 @@
 
 					<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
 						<div>
-							<h3 class="text-sm font-semibold text-[var(--color-surface-800-200)] mb-3">{$t('admin.analyticsTagsByCategoryTitle')}</h3>
+							<h3 class="text-sm font-semibold text-(--color-surface-800-200) mb-3">{$t('admin.analyticsTagsByCategoryTitle')}</h3>
 							{#if analytics.tagAnalytics.byCategory.length === 0}
-								<p class="text-[var(--color-surface-600-400)] text-sm">{$t('admin.analyticsNoTags')}</p>
+								<p class="text-(--color-surface-600-400) text-sm">{$t('admin.analyticsNoTags')}</p>
 							{:else}
 								<div class="space-y-2">
 									{#each analytics.tagAnalytics.byCategory as cat}
 										<div class="flex justify-between items-center py-1.5 border-b border-surface-100-900 last:border-0">
-											<span class="text-[var(--color-surface-800-200)] capitalize">{cat.category}</span>
-											<span class="font-medium text-[var(--color-surface-950-50)]">{cat.count}</span>
+											<span class="text-(--color-surface-800-200) capitalize">{cat.category}</span>
+											<span class="font-medium text-(--color-surface-950-50)">{cat.count}</span>
 										</div>
 									{/each}
 								</div>
 							{/if}
 						</div>
 						<div>
-							<h3 class="text-sm font-semibold text-[var(--color-surface-800-200)] mb-3">{$t('admin.analyticsPhotosByTagCountTitle')}</h3>
+							<h3 class="text-sm font-semibold text-(--color-surface-800-200) mb-3">{$t('admin.analyticsPhotosByTagCountTitle')}</h3>
 							{#if analytics.tagAnalytics.photoTagDistribution.length === 0}
-								<p class="text-[var(--color-surface-600-400)] text-sm">{$t('admin.analyticsNoData')}</p>
+								<p class="text-(--color-surface-600-400) text-sm">{$t('admin.analyticsNoData')}</p>
 							{:else}
 								{@const distMap = Object.fromEntries(analytics.tagAnalytics.photoTagDistribution.map((d) => [d.bucket, d.count]))}
 								<div class="space-y-2">
 									{#each TAG_DISTRIBUTION_ORDER as bucket}
 										<div class="flex justify-between items-center py-1.5 border-b border-surface-100-900 last:border-0">
-											<span class="text-[var(--color-surface-800-200)]">{bucket} {$t('admin.analyticsTagsPlural')}</span>
-											<span class="font-medium text-[var(--color-surface-950-50)]">{distMap[bucket] ?? 0} {$t('admin.analyticsPhotosPlural')}</span>
+											<span class="text-(--color-surface-800-200)">{bucket} {$t('admin.analyticsTagsPlural')}</span>
+											<span class="font-medium text-(--color-surface-950-50)">{distMap[bucket] ?? 0} {$t('admin.analyticsPhotosPlural')}</span>
 										</div>
 									{/each}
 								</div>
@@ -678,30 +678,30 @@
 
 					<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 						<div>
-							<h3 class="text-sm font-semibold text-[var(--color-surface-800-200)] mb-3">{$t('admin.analyticsUnusedTagsCleanupTitle')}</h3>
+							<h3 class="text-sm font-semibold text-(--color-surface-800-200) mb-3">{$t('admin.analyticsUnusedTagsCleanupTitle')}</h3>
 							{#if analytics.tagAnalytics.unusedTags.length === 0}
-								<p class="text-[var(--color-surface-600-400)] text-sm">{$t('admin.analyticsAllTagsInUse')}</p>
+								<p class="text-(--color-surface-600-400) text-sm">{$t('admin.analyticsAllTagsInUse')}</p>
 							{:else}
 								<div class="space-y-2 max-h-48 overflow-y-auto">
 									{#each analytics.tagAnalytics.unusedTags as tag}
-										<div class="flex justify-between items-center py-2 px-3 bg-[var(--color-surface-50-950)] rounded text-sm">
-											<span class="font-medium text-[var(--color-surface-950-50)]">{getTagName(tag)}</span>
-											<span class="text-[var(--color-surface-600-400)] capitalize text-xs">{tag.category}</span>
+										<div class="flex justify-between items-center py-2 px-3 bg-(--color-surface-50-950) rounded text-sm">
+											<span class="font-medium text-(--color-surface-950-50)">{getTagName(tag)}</span>
+											<span class="text-(--color-surface-600-400) capitalize text-xs">{tag.category}</span>
 										</div>
 									{/each}
 								</div>
 							{/if}
 						</div>
 						<div>
-							<h3 class="text-sm font-semibold text-[var(--color-surface-800-200)] mb-3">{$t('admin.analyticsRecentlyCreatedTagsTitle')}</h3>
+							<h3 class="text-sm font-semibold text-(--color-surface-800-200) mb-3">{$t('admin.analyticsRecentlyCreatedTagsTitle')}</h3>
 							{#if analytics.tagAnalytics.recentTags.length === 0}
-								<p class="text-[var(--color-surface-600-400)] text-sm">{$t('admin.analyticsNoNewTagsLast30Days')}</p>
+								<p class="text-(--color-surface-600-400) text-sm">{$t('admin.analyticsNoNewTagsLast30Days')}</p>
 							{:else}
 								<div class="space-y-2 max-h-48 overflow-y-auto">
 									{#each analytics.tagAnalytics.recentTags as tag}
-										<div class="flex justify-between items-center py-2 px-3 bg-[var(--color-surface-50-950)] rounded text-sm">
-											<span class="font-medium text-[var(--color-surface-950-50)]">{getTagName(tag)}</span>
-											<span class="text-[var(--color-surface-600-400)]">{tag.usageCount} {$t('admin.analyticsUses')}</span>
+										<div class="flex justify-between items-center py-2 px-3 bg-(--color-surface-50-950) rounded text-sm">
+											<span class="font-medium text-(--color-surface-950-50)">{getTagName(tag)}</span>
+											<span class="text-(--color-surface-600-400)">{tag.usageCount} {$t('admin.analyticsUses')}</span>
 										</div>
 									{/each}
 								</div>
@@ -715,20 +715,20 @@
 			<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 				<!-- Top Albums -->
 				<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
-					<h2 class="text-lg font-semibold text-[var(--color-surface-950-50)] mb-4">{$t('admin.analyticsTopAlbumsTitle')}</h2>
+					<h2 class="text-lg font-semibold text-(--color-surface-950-50) mb-4">{$t('admin.analyticsTopAlbumsTitle')}</h2>
 					{#if analytics.topAlbums.length === 0}
-						<p class="text-[var(--color-surface-600-400)] text-sm">{$t('admin.analyticsNoAlbumsFound')}</p>
+						<p class="text-(--color-surface-600-400) text-sm">{$t('admin.analyticsNoAlbumsFound')}</p>
 					{:else}
 						<div class="space-y-3">
 							{#each analytics.topAlbums as album}
-								<div class="flex items-center justify-between p-3 bg-[var(--color-surface-50-950)] rounded-lg">
+								<div class="flex items-center justify-between p-3 bg-(--color-surface-50-950) rounded-lg">
 									<div class="flex-1">
-										<p class="font-medium text-[var(--color-surface-950-50)]">{getAlbumName(album)}</p>
-										<p class="text-xs text-[var(--color-surface-600-400)]">{album.alias}</p>
+										<p class="font-medium text-(--color-surface-950-50)">{getAlbumName(album)}</p>
+										<p class="text-xs text-(--color-surface-600-400)">{album.alias}</p>
 									</div>
 									<div class="text-right">
-										<p class="text-lg font-bold text-[var(--color-primary-600)]">{album.photoCount}</p>
-										<p class="text-xs text-[var(--color-surface-600-400)]">{$t('admin.analyticsPhotosPlural')}</p>
+										<p class="text-lg font-bold text-(--color-primary-600)">{album.photoCount}</p>
+										<p class="text-xs text-(--color-surface-600-400)">{$t('admin.analyticsPhotosPlural')}</p>
 									</div>
 								</div>
 							{/each}
@@ -738,20 +738,20 @@
 
 				<!-- Top Tags -->
 				<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
-					<h2 class="text-lg font-semibold text-[var(--color-surface-950-50)] mb-4">{$t('admin.analyticsTopTagsTitle')}</h2>
+					<h2 class="text-lg font-semibold text-(--color-surface-950-50) mb-4">{$t('admin.analyticsTopTagsTitle')}</h2>
 					{#if analytics.topTags.length === 0}
-						<p class="text-[var(--color-surface-600-400)] text-sm">{$t('admin.analyticsNoTagsFound')}</p>
+						<p class="text-(--color-surface-600-400) text-sm">{$t('admin.analyticsNoTagsFound')}</p>
 					{:else}
 						<div class="space-y-3">
 							{#each analytics.topTags as tag}
-								<div class="flex items-center justify-between p-3 bg-[var(--color-surface-50-950)] rounded-lg">
+								<div class="flex items-center justify-between p-3 bg-(--color-surface-50-950) rounded-lg">
 									<div class="flex-1 min-w-0">
-										<p class="font-medium text-[var(--color-surface-950-50)] truncate">{getTagName(tag)}</p>
-										<p class="text-xs text-[var(--color-surface-600-400)]">
+										<p class="font-medium text-(--color-surface-950-50) truncate">{getTagName(tag)}</p>
+										<p class="text-xs text-(--color-surface-600-400)">
 											{#if tag.isActive}
 												<span class="text-green-600">{$t('admin.active')}</span>
 											{:else}
-												<span class="text-[var(--color-surface-400-600)]">{$t('admin.inactive')}</span>
+												<span class="text-(--color-surface-400-600)">{$t('admin.inactive')}</span>
 											{/if}
 											{#if tag.category}
 												<span class="ml-1 capitalize"> · {tag.category}</span>
@@ -760,7 +760,7 @@
 									</div>
 									<div class="text-right shrink-0 ml-2">
 										<p class="text-lg font-bold text-green-600">{tag.usageCount}</p>
-										<p class="text-xs text-[var(--color-surface-600-400)]">{$t('admin.analyticsUses')}</p>
+										<p class="text-xs text-(--color-surface-600-400)">{$t('admin.analyticsUses')}</p>
 									</div>
 								</div>
 							{/each}
@@ -771,18 +771,18 @@
 		{:else if activeTab === 'views'}
 			{#if loadingTab}
 				<div class="text-center py-8">
-					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--color-primary-600)]"></div>
-					<p class="mt-2 text-[var(--color-surface-600-400)]">{$t('admin.analyticsLoadingViewsAnalytics')}</p>
+					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-(--color-primary-600)"></div>
+					<p class="mt-2 text-(--color-surface-600-400)">{$t('admin.analyticsLoadingViewsAnalytics')}</p>
 				</div>
 			{:else if viewsData}
 			<!-- Views Analytics -->
 			<div class="space-y-6">
 				<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
-					<h2 class="text-lg font-semibold text-[var(--color-surface-950-50)] mb-4">{$t('admin.analyticsViewsSummaryTitle')}</h2>
+					<h2 class="text-lg font-semibold text-(--color-surface-950-50) mb-4">{$t('admin.analyticsViewsSummaryTitle')}</h2>
 					<div class="grid grid-cols-1 md:grid-cols-4 gap-4">
 						<div class="p-4 bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] rounded-lg">
-							<p class="text-sm text-[var(--color-primary-800)]">{$t('admin.analyticsTotalViews')}</p>
-							<p class="text-2xl font-bold text-[var(--color-primary-700)]">{viewsData.summary?.total || 0}</p>
+							<p class="text-sm text-(--color-primary-800)">{$t('admin.analyticsTotalViews')}</p>
+							<p class="text-2xl font-bold text-(--color-primary-700)">{viewsData.summary?.total || 0}</p>
 						</div>
 						<div class="p-4 bg-green-50 rounded-lg">
 							<p class="text-sm text-green-800">{$t('admin.analyticsUniqueViews')}</p>
@@ -801,7 +801,7 @@
 
 				{#if viewsData.trends && viewsData.trends.length > 0}
 					<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
-						<h2 class="text-lg font-semibold text-[var(--color-surface-950-50)] mb-4">{$t('admin.analyticsViewsOverTimeTitle')}</h2>
+						<h2 class="text-lg font-semibold text-(--color-surface-950-50) mb-4">{$t('admin.analyticsViewsOverTimeTitle')}</h2>
 						<LineChart
 							data={viewsData.trends.map((t: any) => {
 								const rawDate = t.date;
@@ -817,7 +817,7 @@
 
 				{#if viewsData.topResources && viewsData.topResources.length > 0}
 					<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
-						<h2 class="text-lg font-semibold text-[var(--color-surface-950-50)] mb-4">{$t('admin.analyticsTopViewedResourcesTitle')}</h2>
+						<h2 class="text-lg font-semibold text-(--color-surface-950-50) mb-4">{$t('admin.analyticsTopViewedResourcesTitle')}</h2>
 						<BarChart
 							data={viewsData.topResources.slice(0, 10).map((r: any) => ({ label: r.name, value: r.views }))}
 							label={$t('admin.analyticsViewsLabel')}
@@ -828,23 +828,23 @@
 				{/if}
 			</div>
 			{:else}
-				<div class="text-center py-8 text-[var(--color-surface-600-400)]">{$t('admin.analyticsNoViewsDataAvailable')}</div>
+				<div class="text-center py-8 text-(--color-surface-600-400)">{$t('admin.analyticsNoViewsDataAvailable')}</div>
 			{/if}
 		{:else if activeTab === 'search'}
 			{#if loadingTab}
 				<div class="text-center py-8">
-					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--color-primary-600)]"></div>
-					<p class="mt-2 text-[var(--color-surface-600-400)]">{$t('admin.analyticsLoadingSearchAnalytics')}</p>
+					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-(--color-primary-600)"></div>
+					<p class="mt-2 text-(--color-surface-600-400)">{$t('admin.analyticsLoadingSearchAnalytics')}</p>
 				</div>
 			{:else if searchData}
 			<!-- Search Analytics -->
 			<div class="space-y-6">
 				<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
-					<h2 class="text-lg font-semibold text-[var(--color-surface-950-50)] mb-4">{$t('admin.analyticsSearchSummaryTitle')}</h2>
+					<h2 class="text-lg font-semibold text-(--color-surface-950-50) mb-4">{$t('admin.analyticsSearchSummaryTitle')}</h2>
 					<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
 						<div class="p-4 bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] rounded-lg">
-							<p class="text-sm text-[var(--color-primary-800)]">{$t('admin.analyticsTotalSearches')}</p>
-							<p class="text-2xl font-bold text-[var(--color-primary-700)]">{searchData.summary?.totalSearches || 0}</p>
+							<p class="text-sm text-(--color-primary-800)">{$t('admin.analyticsTotalSearches')}</p>
+							<p class="text-2xl font-bold text-(--color-primary-700)">{searchData.summary?.totalSearches || 0}</p>
 						</div>
 						<div class="p-4 bg-green-50 rounded-lg">
 							<p class="text-sm text-green-800">{$t('admin.analyticsUniqueQueries')}</p>
@@ -859,10 +859,10 @@
 
 				{#if searchData.tagFilterStats}
 					<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
-						<h2 class="text-lg font-semibold text-[var(--color-surface-950-50)] mb-1">
+						<h2 class="text-lg font-semibold text-(--color-surface-950-50) mb-1">
 							{$t('admin.analyticsSearchTagFiltersTitle')}
 						</h2>
-						<p class="text-sm text-[var(--color-surface-600-400)] mb-4">{$t('admin.analyticsSearchTagFiltersSubtitle')}</p>
+						<p class="text-sm text-(--color-surface-600-400) mb-4">{$t('admin.analyticsSearchTagFiltersSubtitle')}</p>
 						<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
 							<div class="p-4 bg-teal-50 rounded-lg border border-teal-100">
 								<p class="text-sm text-teal-800">{$t('admin.analyticsSearchesWithTagFilter')}</p>
@@ -890,7 +890,7 @@
 							</div>
 						</div>
 						{#if searchData.tagFilterStats.topFilterTags?.length > 0}
-							<h3 class="text-sm font-semibold text-[var(--color-surface-800-200)] mb-3">
+							<h3 class="text-sm font-semibold text-(--color-surface-800-200) mb-3">
 								{$t('admin.analyticsTopTagsInSearchFilters')}
 							</h3>
 							<BarChart
@@ -905,10 +905,10 @@
 							<div class="mt-4 space-y-2">
 								{#each searchData.tagFilterStats.topFilterTags.slice(0, 15) as row}
 									<div
-										class="flex flex-wrap items-center justify-between gap-2 p-2 bg-[var(--color-surface-50-950)] rounded-md text-sm"
+										class="flex flex-wrap items-center justify-between gap-2 p-2 bg-(--color-surface-50-950) rounded-md text-sm"
 									>
-										<span class="font-medium text-[var(--color-surface-950-50)]">{row.name}</span>
-										<span class="text-[var(--color-surface-600-400)]">
+										<span class="font-medium text-(--color-surface-950-50)">{row.name}</span>
+										<span class="text-(--color-surface-600-400)">
 											{row.filterUses}
 											{$t('admin.analyticsFilterUses')} · {row.zeroResultCount}
 											{$t('admin.analyticsZeroResultsShort')} · {row.averageResults?.toFixed?.(1) ?? row.averageResults}
@@ -918,14 +918,14 @@
 								{/each}
 							</div>
 						{:else if (searchData.tagFilterStats.summary?.searchesWithTagFilter ?? 0) === 0}
-							<p class="text-sm text-[var(--color-surface-600-400)]">{$t('admin.analyticsNoTagFilterSearchesInPeriod')}</p>
+							<p class="text-sm text-(--color-surface-600-400)">{$t('admin.analyticsNoTagFilterSearchesInPeriod')}</p>
 						{/if}
 					</div>
 				{/if}
 
 				{#if searchData.tagFilterTrends && searchData.tagFilterTrends.length > 0}
 					<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
-						<h2 class="text-lg font-semibold text-[var(--color-surface-950-50)] mb-4">{$t('admin.analyticsTagFilterTrendsTitle')}</h2>
+						<h2 class="text-lg font-semibold text-(--color-surface-950-50) mb-4">{$t('admin.analyticsTagFilterTrendsTitle')}</h2>
 						<LineChart
 							data={searchData.tagFilterTrends.map((t: any) => ({ date: t.date, value: t.searches }))}
 							label={$t('admin.analyticsSearchesWithTagFilter')}
@@ -937,7 +937,7 @@
 
 				{#if searchData.tagFilterByType}
 					<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
-						<h2 class="text-lg font-semibold text-[var(--color-surface-950-50)] mb-4">{$t('admin.analyticsTagFilterByTypeTitle')}</h2>
+						<h2 class="text-lg font-semibold text-(--color-surface-950-50) mb-4">{$t('admin.analyticsTagFilterByTypeTitle')}</h2>
 						<BarChart
 							data={[
 								{ label: $t('admin.analyticsLabelPhotos'), value: searchData.tagFilterByType.photos?.searches || 0 },
@@ -955,7 +955,7 @@
 
 				{#if searchData.topTagPairs && searchData.topTagPairs.length > 0}
 					<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
-						<h2 class="text-lg font-semibold text-[var(--color-surface-950-50)] mb-4">{$t('admin.analyticsTopTagPairsTitle')}</h2>
+						<h2 class="text-lg font-semibold text-(--color-surface-950-50) mb-4">{$t('admin.analyticsTopTagPairsTitle')}</h2>
 						<BarChart
 							data={searchData.topTagPairs.slice(0, 12).map((p: any) => ({
 								label: `${p.tagAName} + ${p.tagBName}`.length > 32
@@ -969,9 +969,9 @@
 						/>
 						<div class="mt-4 space-y-2">
 							{#each searchData.topTagPairs.slice(0, 15) as row}
-								<div class="flex flex-wrap items-center justify-between gap-2 p-2 bg-[var(--color-surface-50-950)] rounded-md text-sm">
-									<span class="font-medium text-[var(--color-surface-950-50)]">{row.tagAName} + {row.tagBName}</span>
-									<span class="text-[var(--color-surface-600-400)]">
+								<div class="flex flex-wrap items-center justify-between gap-2 p-2 bg-(--color-surface-50-950) rounded-md text-sm">
+									<span class="font-medium text-(--color-surface-950-50)">{row.tagAName} + {row.tagBName}</span>
+									<span class="text-(--color-surface-600-400)">
 										{row.filterUses} {$t('admin.analyticsFilterUses')} · {row.zeroResultCount} {$t('admin.analyticsZeroResultsShort')} · {row.averageResults?.toFixed?.(1) ?? row.averageResults} {$t('admin.analyticsAvgResultsShort')}
 									</span>
 								</div>
@@ -982,7 +982,7 @@
 
 				{#if searchData.trends && searchData.trends.length > 0}
 					<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
-						<h2 class="text-lg font-semibold text-[var(--color-surface-950-50)] mb-4">{$t('admin.analyticsSearchTrendsTitle')}</h2>
+						<h2 class="text-lg font-semibold text-(--color-surface-950-50) mb-4">{$t('admin.analyticsSearchTrendsTitle')}</h2>
 						<LineChart
 							data={searchData.trends.map((t: any) => {
 								const rawDate = t.date;
@@ -998,7 +998,7 @@
 
 				{#if searchData.byType}
 					<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
-						<h2 class="text-lg font-semibold text-[var(--color-surface-950-50)] mb-4">{$t('admin.analyticsSearchesByTypeTitle')}</h2>
+						<h2 class="text-lg font-semibold text-(--color-surface-950-50) mb-4">{$t('admin.analyticsSearchesByTypeTitle')}</h2>
 						<PieChart
 							data={[
 								{ label: $t('admin.analyticsLabelPhotos'), value: searchData.byType.photos || 0 },
@@ -1013,17 +1013,17 @@
 
 				{#if searchData.popularQueries && searchData.popularQueries.length > 0}
 					<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
-						<h2 class="text-lg font-semibold text-[var(--color-surface-950-50)] mb-4">{$t('admin.analyticsPopularSearchQueriesTitle')}</h2>
+						<h2 class="text-lg font-semibold text-(--color-surface-950-50) mb-4">{$t('admin.analyticsPopularSearchQueriesTitle')}</h2>
 						<div class="space-y-2">
 							{#each searchData.popularQueries as query}
-								<div class="flex items-center justify-between p-3 bg-[var(--color-surface-50-950)] rounded-lg">
+								<div class="flex items-center justify-between p-3 bg-(--color-surface-50-950) rounded-lg">
 									<div>
-										<p class="font-medium text-[var(--color-surface-950-50)]">"{query.query}"</p>
-										<p class="text-xs text-[var(--color-surface-600-400)]">{$t('admin.analyticsLastSearched')}: {new Date(query.lastSearched).toLocaleDateString()}</p>
+										<p class="font-medium text-(--color-surface-950-50)">"{query.query}"</p>
+										<p class="text-xs text-(--color-surface-600-400)">{$t('admin.analyticsLastSearched')}: {new Date(query.lastSearched).toLocaleDateString()}</p>
 									</div>
 									<div class="text-right">
-										<p class="text-lg font-bold text-[var(--color-primary-600)]">{query.count}</p>
-										<p class="text-xs text-[var(--color-surface-600-400)]">{$t('admin.analyticsSearchesPlural')}</p>
+										<p class="text-lg font-bold text-(--color-primary-600)">{query.count}</p>
+										<p class="text-xs text-(--color-surface-600-400)">{$t('admin.analyticsSearchesPlural')}</p>
 									</div>
 								</div>
 							{/each}
@@ -1032,20 +1032,20 @@
 				{/if}
 			</div>
 			{:else}
-				<div class="text-center py-8 text-[var(--color-surface-600-400)]">{$t('admin.analyticsNoSearchDataAvailable')}</div>
+				<div class="text-center py-8 text-(--color-surface-600-400)">{$t('admin.analyticsNoSearchDataAvailable')}</div>
 			{/if}
 		{:else if activeTab === 'tags'}
 			{#if loadingTab}
 				<div class="text-center py-8">
-					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--color-primary-600)]"></div>
-					<p class="mt-2 text-[var(--color-surface-600-400)]">{$t('admin.analyticsLoadingTagsAnalytics')}</p>
+					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-(--color-primary-600)"></div>
+					<p class="mt-2 text-(--color-surface-600-400)">{$t('admin.analyticsLoadingTagsAnalytics')}</p>
 				</div>
 			{:else if tagsData}
 			<!-- Tags Analytics -->
 			<div class="space-y-6">
 				{#if tagsData.tagsCreated && tagsData.tagsCreated.length > 0}
 					<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
-						<h2 class="text-lg font-semibold text-[var(--color-surface-950-50)] mb-4">{$t('admin.analyticsTagCreationTrendsTitle')}</h2>
+						<h2 class="text-lg font-semibold text-(--color-surface-950-50) mb-4">{$t('admin.analyticsTagCreationTrendsTitle')}</h2>
 						<LineChart
 							data={tagsData.tagsCreated.map((t: any) => ({ date: t.date, value: t.count }))}
 							label={$t('admin.analyticsTagsCreatedLabel')}
@@ -1057,7 +1057,7 @@
 
 				{#if tagsData.tagsUsed && tagsData.tagsUsed.length > 0}
 					<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
-						<h2 class="text-lg font-semibold text-[var(--color-surface-950-50)] mb-4">{$t('admin.analyticsTagUsageTrendsTitle')}</h2>
+						<h2 class="text-lg font-semibold text-(--color-surface-950-50) mb-4">{$t('admin.analyticsTagUsageTrendsTitle')}</h2>
 						<LineChart
 							data={tagsData.tagsUsed.map((t: any) => ({ date: t.date, value: t.totalUsage }))}
 							label={$t('admin.analyticsTagUsageLabel')}
@@ -1069,7 +1069,7 @@
 
 				{#if tagsData.topTags && tagsData.topTags.length > 0}
 					<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
-						<h2 class="text-lg font-semibold text-[var(--color-surface-950-50)] mb-4">{$t('admin.analyticsTopTagsByUsageTitle')}</h2>
+						<h2 class="text-lg font-semibold text-(--color-surface-950-50) mb-4">{$t('admin.analyticsTopTagsByUsageTitle')}</h2>
 						<BarChart
 							data={tagsData.topTags.slice(0, 15).map((t: any) => ({
 								label: typeof t.name === 'string' ? t.name : t.name?.en || analyticsUnknownLabel,
@@ -1083,23 +1083,23 @@
 				{/if}
 			</div>
 			{:else}
-				<div class="text-center py-8 text-[var(--color-surface-600-400)]">{$t('admin.analyticsNoTagsDataAvailable')}</div>
+				<div class="text-center py-8 text-(--color-surface-600-400)">{$t('admin.analyticsNoTagsDataAvailable')}</div>
 			{/if}
 		{:else if activeTab === 'storage'}
 			{#if loadingTab}
 				<div class="text-center py-8">
-					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--color-primary-600)]"></div>
-					<p class="mt-2 text-[var(--color-surface-600-400)]">{$t('admin.analyticsLoadingStorageAnalytics')}</p>
+					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-(--color-primary-600)"></div>
+					<p class="mt-2 text-(--color-surface-600-400)">{$t('admin.analyticsLoadingStorageAnalytics')}</p>
 				</div>
 			{:else if storageData}
 			<!-- Storage Analytics -->
 			<div class="space-y-6">
 				<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
-					<h2 class="text-lg font-semibold text-[var(--color-surface-950-50)] mb-4">{$t('admin.analyticsStorageSummaryTitle')}</h2>
+					<h2 class="text-lg font-semibold text-(--color-surface-950-50) mb-4">{$t('admin.analyticsStorageSummaryTitle')}</h2>
 					<div class="grid grid-cols-1 md:grid-cols-4 gap-4">
 						<div class="p-4 bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] rounded-lg">
-							<p class="text-sm text-[var(--color-primary-800)]">{$t('admin.analyticsTotalStorageLabel')}</p>
-							<p class="text-2xl font-bold text-[var(--color-primary-700)]">{storageData.summary?.totalGB?.toFixed(2) || 0} GB</p>
+							<p class="text-sm text-(--color-primary-800)">{$t('admin.analyticsTotalStorageLabel')}</p>
+							<p class="text-2xl font-bold text-(--color-primary-700)">{storageData.summary?.totalGB?.toFixed(2) || 0} GB</p>
 						</div>
 						<div class="p-4 bg-green-50 rounded-lg">
 							<p class="text-sm text-green-800">{$t('admin.analyticsTotalPhotosLabel')}</p>
@@ -1118,7 +1118,7 @@
 
 				{#if storageData.byProvider && storageData.byProvider.length > 0}
 					<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
-						<h2 class="text-lg font-semibold text-[var(--color-surface-950-50)] mb-4">{$t('admin.analyticsStorageByProviderTitle')}</h2>
+						<h2 class="text-lg font-semibold text-(--color-surface-950-50) mb-4">{$t('admin.analyticsStorageByProviderTitle')}</h2>
 						<PieChart
 							data={storageData.byProvider.map((p: any) => ({
 								label: p.provider,
@@ -1131,7 +1131,7 @@
 
 				{#if storageData.byAlbum && storageData.byAlbum.length > 0}
 					<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
-						<h2 class="text-lg font-semibold text-[var(--color-surface-950-50)] mb-4">{$t('admin.analyticsStorageByAlbumTop20Title')}</h2>
+						<h2 class="text-lg font-semibold text-(--color-surface-950-50) mb-4">{$t('admin.analyticsStorageByAlbumTop20Title')}</h2>
 						<BarChart
 							data={storageData.byAlbum.map((a: any) => ({
 								label: a.name.length > 20 ? a.name.substring(0, 20) + '...' : a.name,
@@ -1145,7 +1145,7 @@
 				{/if}
 			</div>
 			{:else}
-				<div class="text-center py-8 text-[var(--color-surface-600-400)]">{$t('admin.analyticsNoStorageDataAvailable')}</div>
+				<div class="text-center py-8 text-(--color-surface-600-400)">{$t('admin.analyticsNoStorageDataAvailable')}</div>
 			{/if}
 		{/if}
 	</div>

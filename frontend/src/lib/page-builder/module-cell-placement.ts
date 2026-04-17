@@ -18,10 +18,15 @@ export function normalizePlacement(p: ModulePlacement | undefined): ModulePlacem
 	return Object.keys(out).length ? out : undefined;
 }
 
-/** Remove `placement` before spreading props into module components. */
+/** Remove grid-only keys before spreading props into module components. */
 export function omitPlacement<T extends Record<string, unknown>>(props: T | undefined): Omit<T, 'placement'> {
 	if (!props) return {} as Omit<T, 'placement'>;
-	const { placement: _removed, ...rest } = props;
+	const { placement: _p, wrapperClassByPack: _w, classNameByPack: _c, classNameNoPackPrefix: _n, ...rest } =
+		props as T & {
+			wrapperClassByPack?: unknown;
+			classNameByPack?: unknown;
+			classNameNoPackPrefix?: unknown;
+		};
 	return rest as Omit<T, 'placement'>;
 }
 

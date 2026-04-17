@@ -29,13 +29,13 @@
 <div class="py-6">
 	<div class="max-w-6xl mx-auto px-4">
 		<div class="mb-6">
-			<h1 class="text-2xl font-bold text-[var(--color-surface-950-50)]">{$t('admin.uiDocsPageHeading')}</h1>
-			<p class="text-[var(--color-surface-600-400)] mt-2 text-sm">{$t('admin.uiDocsPageIntro')}</p>
+			<h1 class="text-2xl font-bold text-(--color-surface-950-50)">{$t('admin.uiDocsPageHeading')}</h1>
+			<p class="text-(--color-surface-600-400) mt-2 text-sm">{$t('admin.uiDocsPageIntro')}</p>
 		</div>
 
 		<div class="flex flex-col lg:flex-row gap-6 min-h-[50vh]">
 			<nav
-				class="shrink-0 lg:w-52 border border-[color:color-mix(in_oklab,var(--color-surface-950)_12%,transparent)] dark:border-[color:color-mix(in_oklab,var(--color-surface-50)_14%,transparent)] rounded-lg p-2 bg-[var(--color-surface-50-950)]"
+				class="shrink-0 lg:w-52 border border-[color:color-mix(in_oklab,var(--color-surface-950)_12%,transparent)] dark:border-[color:color-mix(in_oklab,var(--color-surface-50)_14%,transparent)] rounded-lg p-2 bg-(--color-surface-50-950)"
 				aria-label={$t('admin.uiDocsNavAria')}
 			>
 				<ul class="flex flex-row flex-wrap lg:flex-col gap-1">
@@ -45,8 +45,8 @@
 								type="button"
 								class="w-full text-left px-3 py-2 rounded-md text-sm transition-colors
 									{selected === d.id
-	? 'bg-[var(--color-primary-500)] text-white'
-									: 'hover:bg-[color:color-mix(in_oklab,var(--color-surface-950)_6%,transparent)] dark:hover:bg-[color:color-mix(in_oklab,var(--color-surface-50)_10%,transparent)] text-[var(--color-surface-800-200)]'}"
+	? 'bg-(--color-primary-500) text-white'
+									: 'hover:bg-[color:color-mix(in_oklab,var(--color-surface-950)_6%,transparent)] dark:hover:bg-[color:color-mix(in_oklab,var(--color-surface-50)_10%,transparent)] text-(--color-surface-800-200)'}"
 								on:click={() => (selected = d.id)}
 							>
 								{d.title}
@@ -57,14 +57,14 @@
 			</nav>
 
 			<section
-				class="flex-1 min-w-0 border border-[color:color-mix(in_oklab,var(--color-surface-950)_12%,transparent)] dark:border-[color:color-mix(in_oklab,var(--color-surface-50)_14%,transparent)] rounded-lg bg-[var(--color-surface-50-950)]"
+				class="flex-1 min-w-0 border border-[color:color-mix(in_oklab,var(--color-surface-950)_12%,transparent)] dark:border-[color:color-mix(in_oklab,var(--color-surface-50)_14%,transparent)] rounded-lg bg-(--color-surface-50-950)"
 	aria-live="polite"
 			>
 				<header class="px-4 py-3 border-b border-[color:color-mix(in_oklab,var(--color-surface-950)_10%,transparent)] dark:border-[color:color-mix(in_oklab,var(--color-surface-50)_12%,transparent)]">
-					<h2 class="text-lg font-semibold text-[var(--color-surface-950-50)]">{active.title}</h2>
+					<h2 class="text-lg font-semibold text-(--color-surface-950-50)">{active.title}</h2>
 				</header>
 				<pre
-					class="p-4 text-sm text-[var(--color-surface-800-200)] whitespace-pre-wrap font-mono overflow-x-auto max-h-[70vh] overflow-y-auto"
+					class="p-4 text-sm text-(--color-surface-800-200) whitespace-pre-wrap font-mono overflow-x-auto max-h-[70vh] overflow-y-auto"
 				>{active.body}</pre>
 			</section>
 		</div>

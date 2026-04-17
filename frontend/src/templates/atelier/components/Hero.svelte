@@ -41,9 +41,11 @@
 	<div class="a-hero__content hero-inner">
 		<p class="a-hero__eyebrow">
 			{eyebrow}
+			yoyo
 		</p>
 		<h1 id="atelier-hero-title" class="a-hero__title">
 			{title}
+			kuku
 		</h1>
 		<div class="a-hero__rule"></div>
 		<p class="a-hero__sub">

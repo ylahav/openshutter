@@ -33,6 +33,20 @@ export class CreatePageDto {
 	@IsString()
 	@IsOptional()
 	slug?: string;
+
+	@IsString()
+	@IsIn(['home', 'gallery', 'login', 'search', 'blog', 'album', 'blog-category', 'blog-article'])
+	@IsOptional()
+	pageRole?: string;
+
+	@IsString()
+	@IsOptional()
+	parentPageId?: string | null;
+
+	@IsArray()
+	@IsString({ each: true })
+	@IsOptional()
+	routeParams?: string[];
 	
 	@IsOptional()
 	subtitle?: string | MultiLangText;
@@ -40,6 +54,19 @@ export class CreatePageDto {
 	@IsString()
 	@IsOptional()
 	leadingImage?: string;
+
+	/** Optional per-page template pack override. */
+	@IsString()
+	@IsIn(['noir', 'studio', 'atelier'])
+	@IsOptional()
+	frontendTemplate?: string;
+
+	/** Optional multi-pack assignment. Empty / omitted means default fallback variant. */
+	@IsArray()
+	@IsString({ each: true })
+	@IsIn(['noir', 'studio', 'atelier'], { each: true })
+	@IsOptional()
+	frontendTemplates?: string[];
 	
 	@IsOptional()
 	introText?: string | MultiLangHTML;

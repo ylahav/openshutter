@@ -4,10 +4,16 @@ import { backendGet, parseBackendResponse } from '$lib/utils/backend-api';
 import { logger } from '$lib/utils/logger';
 import { parseError } from '$lib/utils/errorHandler';
 
-export const GET: RequestHandler = async ({ params, cookies }) => {
+export const GET: RequestHandler = async ({ params, cookies, url }) => {
 	try {
 		const { slug } = params;
-		const response = await backendGet(`/pages/${slug}`, { cookies });
+		const role = url.searchParams.get('role');
+		const pack = url.searchParams.get('pack') || url.searchParams.get('frontendTemplate');
+		const qs = new URLSearchParams();
+		if (role) qs.set('role', role);
+		if (pack) qs.set('pack', pack);
+		const qstr = qs.toString();
+		const response = await backendGet(`/pages/${slug}${qstr ? `?${qstr}` : ''}`, { cookies });
 		const pageData = await parseBackendResponse<{ page: any; modules: any[] }>(response);
 
 		return json({

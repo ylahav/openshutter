@@ -47,7 +47,11 @@ export async function applyThemeById(themeId: string): Promise<ApplyThemeResult>
 				pageModulesByBreakpoint: theme.pageModulesByBreakpoint || {},
 				headerConfig: theme.headerConfig != null ? theme.headerConfig : null,
 				componentVisibility: theme.componentVisibility != null ? theme.componentVisibility : null,
-				layoutPresets: theme.layoutPresets && typeof theme.layoutPresets === 'object' ? theme.layoutPresets : {}
+				layoutPresets: theme.layoutPresets && typeof theme.layoutPresets === 'object' ? theme.layoutPresets : {},
+				layoutShellInstances:
+					theme.layoutShellInstances && typeof theme.layoutShellInstances === 'object'
+						? theme.layoutShellInstances
+						: (theme.layoutPresets && typeof theme.layoutPresets === 'object' ? theme.layoutPresets : {})
 			}
 		})
 	});
@@ -112,7 +116,8 @@ export async function applyBuiltInThemeForPack(baseTemplate: string): Promise<Ap
 				pageModulesByBreakpoint: {},
 				headerConfig: null,
 				componentVisibility: null,
-				layoutPresets: {}
+				layoutPresets: {},
+				layoutShellInstances: {}
 			}
 		})
 	});

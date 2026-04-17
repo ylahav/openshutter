@@ -36,7 +36,7 @@
 </svelte:head>
 
 <div class="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-	<div class="os-shell-container max-w-[var(--os-max-width)] py-10">
+	<div class="os-shell-container max-w-(--os-max-width) py-10">
 		<header class="mb-10">
 			<h1 class="text-3xl font-bold">Blog</h1>
 			{#if data.category}

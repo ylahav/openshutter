@@ -34,7 +34,7 @@
 </svelte:head>
 
 <div class="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-	<div class="os-shell-container max-w-[var(--os-max-width)] py-10">
+	<div class="os-shell-container max-w-(--os-max-width) py-10">
 		<a href="/blog" class="text-sm text-primary-600 dark:text-primary-400 hover:underline mb-8 inline-block">
 			← Back to blog
 		</a>

@@ -23,7 +23,7 @@ export interface SiteConfig {
     activeThemeId?: string
     /**
      * Legacy field; still written by some admin flows. **Effective visitor pack** is
-     * `frontendTemplate ?? activeTemplate` (same order as `$lib/stores/template.ts` and `TemplateService.getActiveTemplateWithOverrides`).
+     * `frontendTemplate ?? activeTemplate` (same order as `$stores/template` / `active-template.svelte.ts` and `TemplateService.getActiveTemplateWithOverrides`).
      */
     activeTemplate?: string
     /** Canonical visitor pack id (`noir` | `studio` | `atelier`). Preferred over `activeTemplate`. */
@@ -92,8 +92,10 @@ export interface SiteConfig {
     /** Legacy flat per page or `{ pageKey: { xs: …, lg: … } }` (Admin saves full map here). */
     pageModules?: Record<string, unknown>
     pageLayout?: Record<string, unknown>
-    /** Named reusable grids for `layoutShell` blocks (presetKey → grid + modules). */
+    /** Named reusable grids for `layoutShell` blocks (legacy key). */
     layoutPresets?: Record<string, { gridRows?: number; gridColumns?: number; modules?: unknown[] }>
+    /** Shared layout-shell instances (preferred key; alias => grid + modules). */
+    layoutShellInstances?: Record<string, { gridRows?: number; gridColumns?: number; modules?: unknown[] }>
   }
   seo: {
     metaTitle: MultiLangText

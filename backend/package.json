@@ -11,15 +11,15 @@
     "lint": "eslint src/**/*.ts"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.1030.0",
-    "@aws-sdk/s3-request-presigner": "^3.1030.0",
+    "@aws-sdk/client-s3": "^3.1031.0",
+    "@aws-sdk/s3-request-presigner": "^3.1031.0",
     "@nestjs/common": "^11.1.19",
     "@nestjs/config": "^4.0.4",
     "@nestjs/core": "^11.1.19",
     "@nestjs/mongoose": "^11.0.4",
     "@nestjs/platform-express": "^11.1.19",
-    "@nestjs/schedule": "^6.1.1",
-    "@nestjs/swagger": "^11.2.7",
+    "@nestjs/schedule": "^6.1.2",
+    "@nestjs/swagger": "^11.3.0",
     "@xenova/transformers": "^2.17.2",
     "archiver": "^7.0.1",
     "bcryptjs": "^3.0.3",
@@ -45,7 +45,7 @@
     "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
-    "@nestjs/cli": "^11.0.19",
+    "@nestjs/cli": "^11.0.21",
     "@types/archiver": "^7.0.0",
     "@types/cookie-parser": "^1.4.10",
     "@types/express": "^5.0.6",
@@ -55,7 +55,7 @@
     "@typescript-eslint/eslint-plugin": "^8.58.2",
     "@typescript-eslint/parser": "^8.58.2",
     "eslint": "^10.2.0",
-    "typescript": "^6.0.2"
+    "typescript": "^6.0.3"
   },
   "packageManager": "pnpm@10.33.0"
 }

@@ -6,11 +6,127 @@ import { SUPPORTED_LANGUAGES } from '../types/multi-lang';
 import { CreatePageDto } from './dto/create-page.dto';
 import { UpdatePageDto } from './dto/update-page.dto';
 import { UpdatePageModuleDto } from './dto/update-page-module.dto';
+import { DuplicatePageDto } from './dto/duplicate-page.dto';
+import { normalizeVisitorPack, type VisitorTemplatePackId } from '../common/utils/visitor-pack.util';
+
+const RESERVED_PAGE_ROLES = ['home', 'gallery', 'login', 'search', 'blog', 'album', 'blog-category', 'blog-article'] as const;
 
 @Controller('admin/pages')
 @UseGuards(AdminGuard)
 export class PagesController {
   private readonly logger = new Logger(PagesController.name);
+
+  private normalizePageRole(value: unknown): string | undefined {
+    const v = String(value ?? '').trim().toLowerCase();
+    return RESERVED_PAGE_ROLES.includes(v as typeof RESERVED_PAGE_ROLES[number]) ? v : undefined;
+  }
+
+  private normalizeRouteParams(params: unknown): string[] | undefined {
+    if (!Array.isArray(params)) return undefined;
+    const normalized = params
+      .map((p) => String(p ?? '').trim())
+      .filter(Boolean);
+    return normalized.length ? normalized : undefined;
+  }
+
+  private normalizeParentPageId(value: unknown): Types.ObjectId | null | undefined {
+    if (value === undefined) return undefined;
+    if (value === null) return null;
+    const raw = String(value ?? '').trim();
+    if (!raw) return null;
+    if (!Types.ObjectId.isValid(raw)) {
+      throw new BadRequestException('Invalid parentPageId');
+    }
+    return new Types.ObjectId(raw);
+  }
+
+  private async pickUniqueAliasAndSlug(
+    collection: { findOne: (filter: Record<string, unknown>) => Promise<unknown> },
+    desiredBase: string,
+  ): Promise<{ alias: string; slug: string }> {
+    const clean =
+      String(desiredBase || 'page')
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9-]+/g, '-')
+        .replace(/^-+|-+$/g, '') || 'page';
+    let candidate = `${clean}-copy`;
+    let n = 1;
+    while (await collection.findOne({ $or: [{ alias: candidate }, { slug: candidate }] })) {
+      n += 1;
+      candidate = `${clean}-copy-${n}`;
+    }
+    return { alias: candidate, slug: candidate };
+  }
+
+  private normalizeFrontendTemplates(
+    frontendTemplates: unknown,
+    frontendTemplateLegacy: unknown,
+  ): VisitorTemplatePackId[] {
+    const normalized: VisitorTemplatePackId[] = [];
+    const seen = new Set<string>();
+    if (Array.isArray(frontendTemplates)) {
+      for (const raw of frontendTemplates) {
+        const p = normalizeVisitorPack(raw);
+        if (!p) {
+          throw new BadRequestException('Invalid frontendTemplates value (use noir, studio, atelier)');
+        }
+        if (!seen.has(p)) {
+          normalized.push(p);
+          seen.add(p);
+        }
+      }
+      return normalized;
+    }
+    const legacyRaw = String(frontendTemplateLegacy ?? '').trim();
+    if (!legacyRaw) return normalized;
+    const p = normalizeVisitorPack(legacyRaw);
+    if (!p) {
+      throw new BadRequestException('Invalid frontendTemplate (use noir, studio, atelier, or empty for default)');
+    }
+    return [p];
+  }
+
+  private buildRolePackOverlapFilter(pageRole: string, packs: VisitorTemplatePackId[]): Record<string, unknown>[] {
+    if (!packs.length) {
+      return [
+        { frontendTemplates: { $exists: false } },
+        { frontendTemplates: { $size: 0 } },
+        { frontendTemplate: null },
+        { frontendTemplate: '' },
+        { frontendTemplate: { $exists: false } },
+      ];
+    }
+    return [
+      { frontendTemplates: { $in: packs } },
+      { frontendTemplate: { $in: packs } },
+    ];
+  }
+
+  private async assertNoRolePackOverlap(
+    collection: { findOne: (filter: Record<string, unknown>) => Promise<any> },
+    pageRole: string | null | undefined,
+    packs: VisitorTemplatePackId[],
+    excludePageId?: Types.ObjectId,
+  ): Promise<void> {
+    if (!pageRole) return;
+    const overlapOr = this.buildRolePackOverlapFilter(pageRole, packs);
+    const filter: Record<string, unknown> = {
+      pageRole,
+      $or: overlapOr,
+    };
+    if (excludePageId) {
+      filter._id = { $ne: excludePageId };
+    }
+    const existing = await collection.findOne(filter);
+    if (!existing) return;
+    throw new BadRequestException(
+      packs.length
+        ? `A page already exists for role "${pageRole}" with one of the selected packs (${packs.join(', ')})`
+        : `A default page already exists for role "${pageRole}"`,
+    );
+  }
+
   /**
    * Get all pages with optional filters
    * Path: GET /api/admin/pages
@@ -122,7 +238,7 @@ export class PagesController {
         throw new BadRequestException('User not authenticated');
       }
 
-      const { title, subtitle, alias, slug, leadingImage, introText, content, category, isPublished, layout } = body;
+      const { title, subtitle, alias, slug, pageRole, parentPageId, routeParams, leadingImage, frontendTemplate, frontendTemplates, introText, content, category, isPublished, layout } = body;
 
       // Validate required fields
       if (!title || !alias) {
@@ -210,6 +326,9 @@ export class PagesController {
       if (!normalizedSlug) {
         throw new BadRequestException('Slug cannot be empty');
       }
+      const normalizedPageRole = this.normalizePageRole(pageRole);
+      const normalizedRouteParams = this.normalizeRouteParams(routeParams);
+      const normalizedParentPageId = this.normalizeParentPageId(parentPageId);
 
       // Validate category
       const validCategories = ['system', 'site'];
@@ -224,7 +343,8 @@ export class PagesController {
       if (existingSlug) {
         throw new BadRequestException('Page with this slug already exists');
       }
-
+      const variantPacks = this.normalizeFrontendTemplates(frontendTemplates, frontendTemplate);
+      await this.assertNoRolePackOverlap(collection, normalizedPageRole, variantPacks);
       // Build layout: zones, gridRows, gridColumns, urlParams
       const layoutZones = Array.isArray(layout?.zones)
         ? layout.zones.reduce((acc: string[], zone: string) => {
@@ -255,7 +375,12 @@ export class PagesController {
       };
 
       if (normalizedSubtitle) pageData.subtitle = normalizedSubtitle;
+      if (normalizedPageRole) pageData.pageRole = normalizedPageRole;
+      if (normalizedParentPageId !== undefined) pageData.parentPageId = normalizedParentPageId;
+      if (normalizedRouteParams) pageData.routeParams = normalizedRouteParams;
       if (leadingImage?.trim()) pageData.leadingImage = leadingImage.trim();
+      pageData.frontendTemplates = variantPacks;
+      pageData.frontendTemplate = variantPacks.length === 1 ? variantPacks[0] : null;
       if (normalizedIntroText) pageData.introText = normalizedIntroText;
       if (normalizedContent) pageData.content = normalizedContent;
       if (Object.keys(pageLayout).length > 0) pageData.layout = pageLayout;
@@ -286,6 +411,147 @@ export class PagesController {
   }
 
   /**
+   * Duplicate a page and its row/column modules (new alias/slug; optional target pack).
+   * Path: POST /api/admin/pages/:id/duplicate
+   */
+  @Post(':id/duplicate')
+  async duplicatePage(@Request() req: any, @Param('id') id: string, @Body() body: DuplicatePageDto) {
+    try {
+      await connectDB();
+      const db = mongoose.connection.db;
+      if (!db) throw new InternalServerErrorException('Database connection not established');
+      const collection = db.collection('pages');
+      const modulesCollection = db.collection('page_modules');
+
+      const user = req.user;
+      if (!user || !user.id) {
+        throw new BadRequestException('User not authenticated');
+      }
+
+      if (!Types.ObjectId.isValid(id)) {
+        throw new BadRequestException('Invalid page id');
+      }
+
+      const source = await collection.findOne({ _id: new Types.ObjectId(id) });
+      if (!source) {
+        throw new NotFoundException(`Page not found: ${id}`);
+      }
+
+      const normalizedSourceRole = this.normalizePageRole(source.pageRole);
+      const srcPacks = this.normalizeFrontendTemplates(source.frontendTemplates, source.frontendTemplate);
+      const hasExplicitPacks = body.frontendTemplates !== undefined || body.frontendTemplate !== undefined;
+
+      const newPacks = hasExplicitPacks
+        ? this.normalizeFrontendTemplates(body.frontendTemplates, body.frontendTemplate)
+        : srcPacks;
+
+      if (normalizedSourceRole && !hasExplicitPacks) {
+        throw new BadRequestException(
+          'This page has a reserved role — set frontendTemplates on the duplicate (or empty array for default variant).',
+        );
+      }
+      if (normalizedSourceRole) {
+        const sameCount = newPacks.length === srcPacks.length;
+        const sameSet = sameCount && newPacks.every((p) => srcPacks.includes(p));
+        if (sameSet) {
+          throw new BadRequestException(
+            'Pick a different template selection for the duplicate. Two pages cannot share the same reserved role and pack overlap.',
+          );
+        }
+        await this.assertNoRolePackOverlap(collection, normalizedSourceRole, newPacks);
+      }
+
+      let normalizedAlias: string;
+      let normalizedSlug: string;
+      if (body.alias !== undefined && String(body.alias).trim() !== '') {
+        normalizedAlias = String(body.alias).trim().toLowerCase();
+        normalizedSlug = String(body.slug || body.alias).trim().toLowerCase();
+        if (!normalizedAlias || !normalizedSlug) {
+          throw new BadRequestException('Alias and slug cannot be empty');
+        }
+        if (await collection.findOne({ alias: normalizedAlias })) {
+          throw new BadRequestException('Page with this alias already exists');
+        }
+        if (await collection.findOne({ slug: normalizedSlug })) {
+          throw new BadRequestException('Page with this slug already exists');
+        }
+      } else {
+        const picked = await this.pickUniqueAliasAndSlug(collection, String(source.alias || 'page'));
+        normalizedAlias = picked.alias;
+        normalizedSlug = picked.slug;
+      }
+
+      const now = new Date();
+      const userOid = new Types.ObjectId(user.id);
+
+      const pageData: Record<string, unknown> = {
+        title: source.title,
+        alias: normalizedAlias,
+        slug: normalizedSlug,
+        category: source.category || 'site',
+        isPublished: Boolean(source.isPublished),
+        createdBy: userOid,
+        updatedBy: userOid,
+        createdAt: now,
+        updatedAt: now,
+        frontendTemplates: newPacks,
+        frontendTemplate: newPacks.length === 1 ? newPacks[0] : null,
+      };
+
+      if (source.subtitle) pageData.subtitle = source.subtitle;
+      if (normalizedSourceRole) pageData.pageRole = normalizedSourceRole;
+      if (source.parentPageId !== undefined) pageData.parentPageId = source.parentPageId;
+      if (Array.isArray(source.routeParams) && source.routeParams.length) pageData.routeParams = source.routeParams;
+      if (source.leadingImage) pageData.leadingImage = source.leadingImage;
+      if (source.introText) pageData.introText = source.introText;
+      if (source.content) pageData.content = source.content;
+      if (source.layout && typeof source.layout === 'object') pageData.layout = source.layout;
+
+      const insertResult = await collection.insertOne(pageData);
+      const newPageId = insertResult.insertedId;
+
+      const sourceModules = await modulesCollection
+        .find({ pageId: source._id })
+        .sort({ rowOrder: 1, columnIndex: 1, zone: 1, order: 1, createdAt: 1 })
+        .toArray();
+
+      if (sourceModules.length) {
+        await modulesCollection.insertMany(
+          sourceModules.map((m) => {
+            const { _id, ...rest } = m as Record<string, unknown> & { _id: unknown };
+            return {
+              ...rest,
+              pageId: newPageId,
+              createdAt: now,
+              updatedAt: now,
+            };
+          }),
+        );
+      }
+
+      const page = await collection.findOne({ _id: newPageId });
+      if (!page) {
+        throw new BadRequestException('Failed to retrieve duplicated page');
+      }
+
+      return {
+        ...page,
+        _id: page._id.toString(),
+        createdBy: page.createdBy?.toString() || page.createdBy,
+        updatedBy: page.updatedBy?.toString() || page.updatedBy,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+        throw error;
+      }
+      this.logger.error('Error duplicating page:', error);
+      throw new BadRequestException(
+        `Failed to duplicate page: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+    }
+  }
+
+  /**
    * Update a page
    * Path: PUT /api/admin/pages/:id
    */
@@ -308,7 +574,7 @@ export class PagesController {
         throw new NotFoundException(`Page not found: ${id}`);
       }
 
-      const { title, subtitle, alias, slug, leadingImage, introText, content, category, isPublished, layout } = body;
+      const { title, subtitle, alias, slug, pageRole, parentPageId, routeParams, leadingImage, frontendTemplate, frontendTemplates, introText, content, category, isPublished, layout } = body;
 
       // Normalize title object if provided
       let normalizedTitle: Record<string, string> | undefined;
@@ -407,6 +673,23 @@ export class PagesController {
           throw new BadRequestException('Page with this slug already exists');
         }
       }
+      const normalizedPageRole = pageRole === null ? null : this.normalizePageRole(pageRole);
+      if (pageRole !== undefined && pageRole !== null && !normalizedPageRole) {
+        throw new BadRequestException('Invalid pageRole');
+      }
+
+      const nextPageRole: string | null | undefined = pageRole !== undefined ? normalizedPageRole ?? null : page.pageRole;
+      const hasNewTemplateInputs = frontendTemplate !== undefined || frontendTemplates !== undefined;
+      const nextVariantPacks = hasNewTemplateInputs
+        ? this.normalizeFrontendTemplates(frontendTemplates, frontendTemplate)
+        : this.normalizeFrontendTemplates(page.frontendTemplates, page.frontendTemplate);
+
+      await this.assertNoRolePackOverlap(collection, nextPageRole, nextVariantPacks, page._id);
+      const normalizedRouteParams = routeParams !== undefined ? this.normalizeRouteParams(routeParams) : undefined;
+      const normalizedParentPageId = this.normalizeParentPageId(parentPageId);
+      if (normalizedParentPageId && String(normalizedParentPageId) === String(page._id)) {
+        throw new BadRequestException('parentPageId cannot reference this page');
+      }
 
       // Build layout: zones, gridRows, gridColumns, urlParams
       const layoutZones = Array.isArray(layout?.zones)
@@ -431,7 +714,14 @@ export class PagesController {
       if (normalizedSubtitle !== undefined) updateData.subtitle = normalizedSubtitle;
       if (alias !== undefined) updateData.alias = alias.trim().toLowerCase();
       if (slug !== undefined) updateData.slug = slug.trim().toLowerCase();
+      if (pageRole !== undefined) updateData.pageRole = normalizedPageRole || null;
+      if (parentPageId !== undefined) updateData.parentPageId = normalizedParentPageId;
+      if (routeParams !== undefined) updateData.routeParams = normalizedRouteParams ?? [];
       if (leadingImage !== undefined) updateData.leadingImage = leadingImage?.trim() || null;
+      if (hasNewTemplateInputs) {
+        updateData.frontendTemplates = nextVariantPacks;
+        updateData.frontendTemplate = nextVariantPacks.length === 1 ? nextVariantPacks[0] : null;
+      }
       if (normalizedIntroText !== undefined) updateData.introText = normalizedIntroText;
       if (normalizedContent !== undefined) updateData.content = normalizedContent;
       if (category !== undefined) updateData.category = pageCategory;

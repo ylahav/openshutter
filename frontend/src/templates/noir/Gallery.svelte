@@ -8,9 +8,10 @@
 	import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 	import { t } from '$stores/i18n';
 	import AlbumList from './components/AlbumList.svelte';
+	import type { PackGalleryAlbumListItem } from '$lib/template-packs/pack-page-props';
 
 	export let mode: 'photos' | 'albums' = 'photos';
-	export let albums: any[] = [];
+	export let albums: PackGalleryAlbumListItem[] = [];
 	export let loading = false;
 	export let error: string | null = null;
 

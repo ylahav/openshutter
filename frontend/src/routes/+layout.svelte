@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
+	import type { LayoutData } from './$types';
 	import '$lib/styles/globals.css';
 	import { siteConfig, publicSiteFavicon } from '$stores/siteConfig';
 	import { loadSession } from '$lib/stores/auth';
@@ -12,6 +13,8 @@
 	import PhotoCopyProtection from '$lib/components/PhotoCopyProtection.svelte';
 	import { logger } from '$lib/utils/logger';
 	import { canonicalUrlFromPageUrl, pathShouldNoindex } from '$lib/utils/canonical-url';
+
+	export let data: LayoutData;
 
 	/** Inline fallback when site config has no favicon yet (avoids undefined href on SSR). */
 	const DEFAULT_FAVICON =
@@ -34,6 +37,9 @@
 
 	// Initialize site config and auth on mount (skip on login page)
 	onMount(() => {
+		if (data.visitorSiteConfig) {
+			siteConfig.hydrateFromServer(data.visitorSiteConfig);
+		}
 		// Only load site config if not on login page
 		if ($page.url.pathname !== '/login') {
 			siteConfig.load().catch((err) => {
@@ -76,7 +82,7 @@
 		</AdminAppChrome>
 	{:else}
 		<PhotoCopyProtection />
-		<ThemeColorApplier />
+		<ThemeColorApplier initialSiteConfig={data.visitorSiteConfig ?? null} />
 		<TokenRenewalNotification />
 		<PackFallbackBanner />
 		{#if publicShellPromise}

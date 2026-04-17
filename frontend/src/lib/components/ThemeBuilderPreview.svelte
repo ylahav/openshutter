@@ -28,6 +28,7 @@
 	}
 
 	export let pageType: 'home' | 'gallery' | 'album' | 'search' | 'login' | 'pageBuilder' | 'header' | 'footer' = 'home';
+	export let templateName: 'noir' | 'studio' | 'atelier' = 'atelier';
 	export let pageModules: any[] | undefined = undefined;
 	export let pageLayout: { gridRows?: number; gridColumns?: number } | undefined = undefined;
 	/** Named layout shells (merged over site template in preview). */
@@ -85,6 +86,7 @@
 		--os-font-form-labels-weight: ${fontWeight(tokens.fonts.formLabels)};
 		${buildShellLayoutCssVars(layoutShell).trim()}
 	`;
+	$: previewPackClass = `tpl-pack-${templateName}`;
 </script>
 
 <svelte:head>
@@ -94,7 +96,7 @@
 </svelte:head>
 
 <div
-	class="@container theme-preview-root rounded-lg overflow-hidden border border-border bg-background min-w-0 max-w-full"
+	class="@container theme-preview-root {previewPackClass} rounded-lg overflow-hidden border border-border bg-background min-w-0 max-w-full"
 	style={cssVars}
 >
 	<div

@@ -37,6 +37,8 @@ export interface SiteConfig {
       | Record<string, { maxWidth?: string; containerPadding?: string; gridGap?: string }>
     pageModules?: Record<string, unknown[] | Record<string, unknown[]>>
     pageLayout?: Record<string, { gridRows?: number; gridColumns?: number } | Record<string, { gridRows?: number; gridColumns?: number }>>
+    layoutPresets?: Record<string, { gridRows?: number; gridColumns?: number; modules?: unknown[] }>
+    layoutShellInstances?: Record<string, { gridRows?: number; gridColumns?: number; modules?: unknown[] }>
     componentVisibility?: {
       hero?: boolean
       languageSelector?: boolean

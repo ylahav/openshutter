@@ -9,7 +9,15 @@ import {
   StorageConnectionError,
   StorageOperationError
 } from '../types'
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, ListObjectsV2Command, HeadObjectCommand } from '@aws-sdk/client-s3'
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+  DeleteObjectCommand,
+  ListObjectsV2Command,
+  HeadObjectCommand,
+  type _Object
+} from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 
 export class BackblazeService implements IStorageService {
@@ -141,7 +149,7 @@ export class BackblazeService implements IStorageService {
       
       if (listResult.Contents && listResult.Contents.length > 0) {
         // Delete all objects in the folder
-        const deletePromises = listResult.Contents.map(obj => {
+        const deletePromises = listResult.Contents.map((obj: _Object) => {
           const deleteCommand = new DeleteObjectCommand({
             Bucket: this.config.bucketName,
             Key: obj.Key!

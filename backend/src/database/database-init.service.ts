@@ -7,6 +7,7 @@ import { SiteConfigService } from '../services/site-config';
 import { StorageConfigService } from '../services/storage/config';
 import { ownerStorageConfigService } from '../services/storage/owner-storage-config.service';
 import { IUserDocument } from '../models/User';
+import { PageModel } from '../models/Page';
 import * as bcrypt from 'bcryptjs';
 
 // Default page layouts and modules for all themes
@@ -14,7 +15,11 @@ const DEFAULT_PAGE_LAYOUTS = {
   home: { gridRows: 2, gridColumns: 1 },
   gallery: { gridRows: 1, gridColumns: 1 },
   album: { gridRows: 1, gridColumns: 1 },
+  login: { gridRows: 1, gridColumns: 1 },
   search: { gridRows: 1, gridColumns: 1 },
+  blog: { gridRows: 1, gridColumns: 1 },
+  'blog-category': { gridRows: 1, gridColumns: 1 },
+  'blog-article': { gridRows: 1, gridColumns: 1 },
   header: { gridRows: 1, gridColumns: 5 },
   footer: { gridRows: 2, gridColumns: 1 }
 };
@@ -68,6 +73,17 @@ const DEFAULT_PAGE_MODULES = {
       colSpan: 1
     }
   ],
+  login: [
+    {
+      _id: 'mod_default_login_form',
+      type: 'loginForm',
+      props: {},
+      rowOrder: 0,
+      columnIndex: 0,
+      rowSpan: 1,
+      colSpan: 1
+    }
+  ],
   search: [
     {
       _id: 'mod_default_search_text',
@@ -77,6 +93,39 @@ const DEFAULT_PAGE_MODULES = {
         body: { en: '<p>Use the search bar to find photos, albums, people, and locations.</p>' },
         background: 'white'
       },
+      rowOrder: 0,
+      columnIndex: 0,
+      rowSpan: 1,
+      colSpan: 1
+    }
+  ],
+  blog: [
+    {
+      _id: 'mod_default_blog_index',
+      type: 'blogArticle',
+      props: { scope: 'index' },
+      rowOrder: 0,
+      columnIndex: 0,
+      rowSpan: 1,
+      colSpan: 1
+    }
+  ],
+  'blog-category': [
+    {
+      _id: 'mod_default_blog_category',
+      type: 'blogCategory',
+      props: {},
+      rowOrder: 0,
+      columnIndex: 0,
+      rowSpan: 1,
+      colSpan: 1
+    }
+  ],
+  'blog-article': [
+    {
+      _id: 'mod_default_blog_article',
+      type: 'blogArticle',
+      props: {},
       rowOrder: 0,
       columnIndex: 0,
       rowSpan: 1,
@@ -311,6 +360,17 @@ const INITIAL_ADMIN_CREDENTIALS = {
   role: 'admin' as const,
 };
 
+const RESERVED_PAGES = [
+  { role: 'home', alias: 'home', category: 'system' as const },
+  { role: 'gallery', alias: 'gallery', category: 'system' as const },
+  { role: 'album', alias: 'album', category: 'system' as const, routeParams: ['albumAlias'] },
+  { role: 'login', alias: 'login', category: 'system' as const },
+  { role: 'search', alias: 'search', category: 'system' as const },
+  { role: 'blog', alias: 'blog', category: 'system' as const },
+  { role: 'blog-category', alias: 'blog-category', category: 'system' as const, routeParams: ['categoryAlias'] },
+  { role: 'blog-article', alias: 'blog-article', category: 'system' as const, routeParams: ['articleAlias'] },
+] as const;
+
 @Injectable()
 export class DatabaseInitService implements OnApplicationBootstrap {
   private readonly logger = new Logger(DatabaseInitService.name);
@@ -369,6 +429,8 @@ export class DatabaseInitService implements OnApplicationBootstrap {
       await this.initializeDefaultStorageConfigs();
       await ownerStorageConfigService.ensureIndexes();
       await this.initializeDefaultThemes();
+      await this.ensurePageRolePackIndex();
+      await this.initializeReservedPages();
       
       this.logger.log('✅ Database initialization completed successfully');
     } catch (error) {
@@ -540,6 +602,106 @@ export class DatabaseInitService implements OnApplicationBootstrap {
       this.logger.log('✅ Default themes initialized');
     } catch (error) {
       this.logger.error(`Failed to initialize themes: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      if (error instanceof Error && error.stack) {
+        this.logger.error(`Stack trace: ${error.stack}`);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Replace legacy unique index on `pageRole` with compound unique (pageRole + frontendTemplate)
+   * so each pack can have its own row for the same reserved role.
+   */
+  async ensurePageRolePackIndex(): Promise<void> {
+    try {
+      const db = this.connection.db;
+      if (!db) {
+        this.logger.warn('Database not connected, skipping pages index migration');
+        return;
+      }
+      const coll = db.collection('pages');
+      const indexes = await coll.indexes();
+      const legacy = indexes.find((i) => i.name === 'pageRole_1');
+      if (legacy) {
+        await coll.dropIndex('pageRole_1');
+        this.logger.log('Dropped legacy pages index pageRole_1 (role + pack variants enabled)');
+      }
+    } catch (err) {
+      this.logger.warn(
+        `Pages index migration (drop pageRole_1): ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+    try {
+      await PageModel.syncIndexes();
+    } catch (err) {
+      this.logger.error(
+        `PageModel.syncIndexes failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
+
+  async initializeReservedPages(): Promise<void> {
+    try {
+      this.logger.log('Initializing reserved pages...');
+      const db = this.connection.db;
+      if (!db) {
+        this.logger.warn('Database not connected, skipping reserved pages initialization');
+        return;
+      }
+
+      const pagesCollection = db.collection('pages');
+      const modulesCollection = db.collection('page_modules');
+      const adminUser = await this.userModel.findOne({ role: 'admin' }).sort({ createdAt: 1 }).lean();
+      if (!adminUser?._id) {
+        this.logger.warn('No admin user found, skipping reserved pages initialization');
+        return;
+      }
+
+      const now = new Date();
+      for (const page of RESERVED_PAGES) {
+        const existing = await pagesCollection.findOne({
+          $or: [{ pageRole: page.role }, { alias: page.alias }, { slug: page.alias }],
+        });
+        if (existing) continue;
+
+        const pageDoc: Record<string, unknown> = {
+          title: { en: page.alias, he: '' },
+          alias: page.alias,
+          slug: page.alias,
+          pageRole: page.role,
+          category: page.category,
+          isPublished: true,
+          createdBy: adminUser._id,
+          updatedBy: adminUser._id,
+          createdAt: now,
+          updatedAt: now,
+          layout: DEFAULT_PAGE_LAYOUTS[page.role as keyof typeof DEFAULT_PAGE_LAYOUTS] || { gridRows: 1, gridColumns: 1, zones: ['main'] },
+        };
+        const routeParams = 'routeParams' in page ? page.routeParams : undefined;
+        if (routeParams?.length) pageDoc.routeParams = [...routeParams];
+
+        const insertResult = await pagesCollection.insertOne(pageDoc);
+        const defaultModules = DEFAULT_PAGE_MODULES[page.role as keyof typeof DEFAULT_PAGE_MODULES] || [];
+        if (defaultModules.length) {
+          await modulesCollection.insertMany(
+            defaultModules.map((mod) => {
+              const { _id: _seedId, ...rest } = mod;
+              return {
+                ...rest,
+                pageId: insertResult.insertedId,
+                createdAt: now,
+                updatedAt: now,
+              };
+            }),
+          );
+        }
+        this.logger.log(`  Created reserved page: ${page.role}`);
+      }
+
+      this.logger.log('✅ Reserved pages initialized');
+    } catch (error) {
+      this.logger.error(`Failed to initialize reserved pages: ${error instanceof Error ? error.message : 'Unknown error'}`);
       if (error instanceof Error && error.stack) {
         this.logger.error(`Stack trace: ${error.stack}`);
       }

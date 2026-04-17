@@ -1,8 +1,25 @@
 import type { TemplateConfig, SiteTemplateConfig } from '$lib/types/template'
+import type { FontRole } from '$lib/types/fonts'
+import { normalizeFontSetting } from '$lib/types/fonts'
 import { TemplateOverridesService } from './template-overrides'
 import type { TemplateWithOverrides } from './template-overrides'
 import type { SiteConfig } from '$lib/types/site-config'
 import { logger } from '$lib/utils/logger'
+import noirThemeDefaults from '$templates/noir/theme.defaults.json'
+import studioThemeDefaults from '$templates/studio/theme.defaults.json'
+import atelierThemeDefaults from '$templates/atelier/theme.defaults.json'
+
+function templateFontsFromThemeJson(raw: Record<string, string | undefined>): TemplateConfig['fonts'] {
+  const role = (r: FontRole) => normalizeFontSetting(raw[r], 'sans-serif', r)
+  return {
+    heading: role('heading'),
+    body: role('body'),
+    links: role('links'),
+    lists: role('lists'),
+    formInputs: role('formInputs'),
+    formLabels: role('formLabels')
+  }
+}
 
 const TEMPLATE_PACK_LOADER_FLAG = 'PUBLIC_ENABLE_TEMPLATE_PACK_LOADER'
 const TEMPLATE_PACK_LOADER_ENABLED =
@@ -196,35 +213,8 @@ export class TemplateService {
         thumbnail: '/templates/noir/thumbnail.jpg',
         category: 'dark',
         features: { responsive: true, darkMode: true, animations: true, seoOptimized: true },
-        colors: {
-          primary: '#f5f5f3',
-          secondary: '#a1a1a1',
-          accent: '#f5f5f3',
-          background: '#080808',
-          text: '#f5f5f3',
-          muted: 'rgba(245,245,243,0.38)',
-          surfaceCard: '#141414',
-          surfaceCardSecondary: '#1c1c1c',
-          surfaceCardTertiary: '#232323',
-          textSubtle: 'rgba(245,245,243,0.16)',
-          borderSubtle: 'rgba(255,255,255,0.07)',
-          lightBackground: '#f5f5f3',
-          lightText: '#080808',
-          lightMuted: 'rgba(8,8,8,0.45)',
-          lightSurfaceCard: '#e8e8e5',
-          lightSurfaceCardSecondary: '#ddddd9',
-          lightSurfaceCardTertiary: '#d2d2ce',
-          lightTextSubtle: 'rgba(8,8,8,0.22)',
-          lightBorderSubtle: 'rgba(0,0,0,0.08)'
-        },
-        fonts: {
-          heading: 'DM Sans',
-          body: 'DM Mono',
-          links: 'DM Mono',
-          lists: 'DM Mono',
-          formInputs: 'DM Mono',
-          formLabels: 'DM Mono'
-        },
+        colors: noirThemeDefaults.colors as TemplateConfig['colors'],
+        fonts: templateFontsFromThemeJson(noirThemeDefaults.fonts as Record<string, string>),
         layout: { maxWidth: '1280px', containerPadding: '2rem', gridGap: '0.125rem' },
         components: {
           hero: 'components/Hero.tsx',
@@ -240,46 +230,15 @@ export class TemplateService {
       },
       studio: {
         templateName: 'studio',
-        displayName: 'Studio',
+        displayName: studioThemeDefaults.displayName ?? 'Studio',
         description: 'Editorial portfolio layout — Syne & Outfit, hero strip, card grid',
         version: '1.0.0',
         author: 'OpenShutter',
         thumbnail: '/templates/studio/thumbnail.jpg',
         category: 'modern',
         features: { responsive: true, darkMode: true, animations: true, seoOptimized: true },
-        colors: {
-          primary: '#2563eb',
-          secondary: '#1d4ed8',
-          accent: '#60a5fa',
-          background: '#0f172a',
-          text: '#f1f5f9',
-          muted: '#94a3b8',
-          surfaceCard: '#1e293b',
-          surfaceCardSecondary: '#0f172a',
-          surfaceCardTertiary: '#1e293b',
-          textSubtle: 'rgba(241,245,249,0.2)',
-          borderSubtle: '#334155',
-          lightBackground: '#f8fafc',
-          lightText: '#0f172a',
-          lightMuted: '#64748b',
-          lightSurfaceCard: '#ffffff',
-          lightSurfaceCardSecondary: '#f8fafc',
-          lightSurfaceCardTertiary: '#f1f5f9',
-          lightTextSubtle: 'rgba(15,23,42,0.22)',
-          lightBorderSubtle: '#e2e8f0',
-          heroStrip: '#020617',
-          footerStrip: '#020617',
-          lightHeroStrip: '#0f172a',
-          lightFooterStrip: '#0f172a'
-        },
-        fonts: {
-          heading: 'Syne',
-          body: 'Outfit',
-          links: 'Outfit',
-          lists: 'Outfit',
-          formInputs: 'Outfit',
-          formLabels: 'Outfit'
-        },
+        colors: studioThemeDefaults.colors as TemplateConfig['colors'],
+        fonts: templateFontsFromThemeJson(studioThemeDefaults.fonts as Record<string, string>),
         layout: { maxWidth: '1200px', containerPadding: '1.75rem', gridGap: '1rem' },
         components: {
           hero: 'components/Hero.tsx',
@@ -302,39 +261,8 @@ export class TemplateService {
         thumbnail: '/templates/atelier/thumbnail.jpg',
         category: 'elegant',
         features: { responsive: true, darkMode: true, animations: true, seoOptimized: true },
-        colors: {
-          primary: '#b8955a',
-          secondary: '#5c4033',
-          accent: '#d4b07a',
-          background: '#1a1008',
-          text: '#f0e8d8',
-          muted: '#7a6a58',
-          surfaceCard: '#231710',
-          surfaceCardSecondary: '#1a1008',
-          surfaceCardTertiary: '#2e1f14',
-          textSubtle: 'rgba(240,232,216,0.25)',
-          borderSubtle: '#3a2a1c',
-          lightBackground: '#faf6ef',
-          lightText: '#2c1f14',
-          lightMuted: '#9c8c7a',
-          lightSurfaceCard: '#f2ece0',
-          lightSurfaceCardSecondary: '#f2ece0',
-          lightSurfaceCardTertiary: '#e8dece',
-          lightTextSubtle: 'rgba(44,31,20,0.35)',
-          lightBorderSubtle: '#e8dece',
-          heroStrip: '#0e0804',
-          footerStrip: '#0e0804',
-          lightHeroStrip: '#2c1f14',
-          lightFooterStrip: '#2c1f14'
-        },
-        fonts: {
-          heading: 'Cormorant Garamond',
-          body: 'Jost',
-          links: 'Jost',
-          lists: 'Jost',
-          formInputs: 'Jost',
-          formLabels: 'Jost'
-        },
+        colors: atelierThemeDefaults.colors as TemplateConfig['colors'],
+        fonts: templateFontsFromThemeJson(atelierThemeDefaults.fonts as Record<string, string>),
         layout: { maxWidth: '960px', containerPadding: '2rem', gridGap: '1rem' },
         components: {
           hero: 'components/Hero.tsx',

@@ -130,6 +130,11 @@ export let onInsertRow: (atRowOrder: number) => Promise<void>;
 		return modules.find((m) => m.rowOrder === r && m.columnIndex === c) ?? null;
 	}
 
+	function getModuleInstanceName(module: PageModuleData): string {
+		const props = (module?.props || {}) as Record<string, unknown>;
+		return String(props.instanceRef ?? props.presetKey ?? '').trim();
+	}
+
 	$: selectedCount = selectedCells.size;
 	$: selectedCellsArray = Array.from(selectedCells).map((key) => {
 		const [r, c] = key.split(':').map(Number);
@@ -172,14 +177,15 @@ export let onInsertRow: (atRowOrder: number) => Promise<void>;
 	{:else}
 		{@const colCount = rows[0]?.columns.length ?? 1}
 		<!-- Grid with CSS Grid for spanning support -->
-		<div
-			class="gap-2 border-2 border-border p-2 bg-background rounded-lg"
-			style="display: grid; grid-template-columns: minmax(10rem, 12rem) repeat({colCount}, 1fr); grid-template-rows: repeat({rows.length}, minmax(80px, auto));"
-		>
-			{#each rows as row (row.rowOrder)}
+		<div class="overflow-x-auto border-2 border-border rounded-lg">
+			<div
+				class="gap-2 p-2 bg-background min-w-max"
+				style="display: grid; grid-template-columns: minmax(10rem, 12rem) repeat({colCount}, minmax(8rem, 1fr)); grid-template-rows: repeat({rows.length}, minmax(80px, auto));"
+			>
+				{#each rows as row (row.rowOrder)}
 				{@const rowIdx = rows.findIndex((r) => r.rowOrder === row.rowOrder)}
 				<div
-					class="flex flex-col justify-center gap-1 rounded-md border border-border bg-muted px-2 py-2"
+					class="sticky left-0 z-10 flex flex-col justify-center gap-1 rounded-md border border-border bg-muted px-2 py-2"
 					style="grid-column: 1; grid-row: {row.rowOrder + 1}"
 				>
 					<div class="text-[11px] font-semibold text-foreground leading-tight">
@@ -229,12 +235,16 @@ export let onInsertRow: (atRowOrder: number) => Promise<void>;
 					{#if covered}
 						<!-- Covered cell - placeholder, not rendered (spanned by module) -->
 					{:else if mod && !mod.props?._placeholder}
+						{@const instanceName = getModuleInstanceName(mod)}
 						<div
 							class="border border-primary/30 rounded-lg p-3 bg-primary/5"
 							style="grid-column: {col.columnIndex + 2} / span {mod.colSpan ?? 1}; grid-row: {row.rowOrder + 1} / span {mod.rowSpan ?? 1}"
 						>
 							<div class="flex flex-col h-full">
 								<p class="text-sm font-medium text-foreground">{mod.type}</p>
+								{#if instanceName}
+									<p class="text-xs text-muted-foreground mt-1">Instance: {instanceName}</p>
+								{/if}
 								{#if (mod.rowSpan ?? 1) > 1 || (mod.colSpan ?? 1) > 1}
 									<p class="text-xs text-muted-foreground mt-1">{mod.rowSpan ?? 1}×{mod.colSpan ?? 1} span</p>
 								{/if}
@@ -272,7 +282,8 @@ export let onInsertRow: (atRowOrder: number) => Promise<void>;
 						</div>
 					{/if}
 				{/each}
-			{/each}
+				{/each}
+			</div>
 		</div>
 
 		<!-- Selection toolbar -->
