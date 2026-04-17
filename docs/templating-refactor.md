@@ -65,6 +65,28 @@ Use this as the working document for the multi-pack/page-builder integration.
 - Removed stale duplicate architecture notes.
 - Kept this file as the active high-level refactor tracker.
 
+## Migration runbook (legacy `frontendTemplate` -> `frontendTemplates`)
+
+Use this once per environment after deploy. The migration is idempotent.
+
+1. Build backend:
+   - `cd backend`
+   - `pnpm run build`
+2. Dry run (no writes):
+   - `pnpm run migrate:frontend-templates`
+3. Apply migration:
+   - `pnpm run migrate:frontend-templates -- --apply`
+4. Optional verification (dry run should report `would_change: 0`):
+   - `pnpm run migrate:frontend-templates`
+
+### What it does
+
+- Normalizes `frontendTemplates` to valid unique packs (`atelier`, `noir`, `studio`).
+- Backfills `frontendTemplates` from legacy `frontendTemplate` when array is empty.
+- Aligns legacy `frontendTemplate`:
+  - single-pack array -> that pack
+  - multi-pack or empty array -> `null`
+
 ## Related files
 
 - Pack registry: `frontend/src/lib/template-packs/registry.ts`
