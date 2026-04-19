@@ -67,7 +67,6 @@ export const PageSchema = new Schema<IPage>({
   pageRole: {
     type: String,
     enum: ['home', 'gallery', 'login', 'search', 'blog', 'album', 'blog-category', 'blog-article'],
-    sparse: true,
     trim: true,
     lowercase: true,
   },
@@ -139,7 +138,7 @@ PageSchema.pre('save', function() {
 PageSchema.index({ category: 1 });
 PageSchema.index({ isPublished: 1 });
 /** Reserved-role lookups by pack happen in controller (array overlap checks are app-level validation). */
-PageSchema.index({ pageRole: 1 });
+PageSchema.index({ pageRole: 1 }, { sparse: true });
 PageSchema.index({ pageRole: 1, frontendTemplate: 1 });
 PageSchema.index({ pageRole: 1, frontendTemplates: 1 });
 PageSchema.index({ parentPageId: 1 });

@@ -732,6 +732,7 @@
 		menuPresetError = '';
 		menuOrientation = 'horizontal';
 		menuShowAuthButtons = false;
+		themeToggleVariant = 'icons';
 		editingLayoutShellModule = false;
 		moduleWrapperClassName = '';
 		pageTitleShowTitle = true;
@@ -811,6 +812,8 @@
 	let menuEditorError = '';
 	let menuOrientation: 'horizontal' | 'vertical' = 'horizontal';
 	let menuShowAuthButtons = false;
+	/** themeToggle module: icons vs text labels */
+	let themeToggleVariant: 'icons' | 'text' = 'icons';
 	let moduleWrapperClassName = '';
 
 	function getLayoutShellRef(props: Record<string, unknown> | undefined): string {
@@ -1318,7 +1321,13 @@
 			menuOrientation = 'horizontal';
 			menuShowAuthButtons = false;
 		}
-		
+		if (module.type === 'themeToggle') {
+			const props = module.props || {};
+			themeToggleVariant = (props as { variant?: string }).variant === 'text' ? 'text' : 'icons';
+		} else {
+			themeToggleVariant = 'icons';
+		}
+
 		editingFeatureIndex = null;
 		showModuleEditDialog = true;
 	}
@@ -1419,6 +1428,8 @@
 					orientation: menuOrientation,
 					showAuthButtons: menuShowAuthButtons
 				};
+			} else if (moduleForm.type === 'themeToggle') {
+				props = themeToggleVariant === 'text' ? { variant: 'text' } : {};
 			} else {
 				props = moduleForm.propsJson.trim() ? JSON.parse(moduleForm.propsJson) as Record<string, unknown> : {};
 			}
@@ -1564,6 +1575,8 @@
 					orientation: menuOrientation,
 					showAuthButtons: menuShowAuthButtons
 				};
+			} else if (moduleForm.type === 'themeToggle') {
+				props = themeToggleVariant === 'text' ? { variant: 'text' } : {};
 			} else {
 				props = moduleForm.propsJson.trim() ? JSON.parse(moduleForm.propsJson) as Record<string, unknown> : {};
 			}
@@ -2691,6 +2704,25 @@
 							</button>
 						</div>
 					</div>
+				{:else if moduleForm.type === 'themeToggle'}
+					<div class="space-y-4 border-t border-surface-200-800 pt-4">
+						<div>
+							<label for="module-theme-toggle-variant" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
+								Display
+							</label>
+							<select
+								id="module-theme-toggle-variant"
+								bind:value={themeToggleVariant}
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
+							>
+								<option value="icons">Icons (sun / moon)</option>
+								<option value="text">Text (Light / Dark)</option>
+							</select>
+							<p class="mt-1 text-xs text-(--color-surface-600-400)">
+								Text labels describe the theme you switch to when clicking.
+							</p>
+						</div>
+					</div>
 				{/if}
 				<div class="space-y-1 border-t border-surface-200-800 pt-4">
 					<label for="module-wrapper-class" class="block text-sm font-medium text-(--color-surface-800-200)">
@@ -2728,7 +2760,7 @@
 							</p>
 						</div>
 					</div>
-				{:else if !['featureGrid', 'richText', 'pageTitle', 'hero', 'albumsGrid', 'layoutShell', 'menu'].includes(moduleForm.type)}
+				{:else if !['featureGrid', 'richText', 'pageTitle', 'hero', 'albumsGrid', 'layoutShell', 'menu', 'themeToggle'].includes(moduleForm.type)}
 					<!-- JSON Editor for other module types -->
 					<div>
 						<label for="module-props-json" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">

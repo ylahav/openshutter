@@ -1,0 +1,298 @@
+// ============================================================
+// Noir Header — _header.scss
+//
+// Targets the actual class names produced by the layoutShell
+// system. Overrides Tailwind utilities and inline styles.
+//
+// Produced DOM tree:
+//
+//  section.layout-shell.n-header          ← shell
+//    div.flex.gap-4.px-4.py-2             ← inner row
+//      div.flex-1.n-logo                  ← cell 1 (img logo)
+//      div.flex-1.n-site-title            ← cell 2 (text title)
+//      div.flex-1.n-menu                  ← cell 3 (nav links)
+//      div.flex-1.n-toggle-mode           ← cell 4 (SVG icon btn)
+//      div.flex-1.n-langs                 ← cell 5 (full dropdown)
+//
+// NOTE: cells carry inline style="flex: 1 1 0%" which requires
+//       !important to override until the component is fixed.
+// ============================================================
+
+// ── Shared mono mixin ────────────────────────────────────────
+
+@mixin n-mono($size: 10px, $spacing: 0.18em) {
+  font-family: 'DM Mono', monospace;
+  font-size: $size;
+  letter-spacing: $spacing;
+  text-transform: uppercase;
+  font-weight: 400;
+}
+
+// ── Shell ─────────────────────────────────────────────────────
+
+section.layout-shell.n-header {
+  position: fixed !important;
+  inset-inline: 0;
+  top: 0;
+  z-index: 100;
+  background: transparent !important;
+  width: 100% !important;
+
+  // All children composite over the hero image
+  > div > * { mix-blend-mode: difference; }
+
+  // ── Inner row ─────────────────────────────────────────────
+  // flex → grid, strip gap and inner padding, apply header padding
+
+  > div {
+    display: grid !important;
+    grid-template-columns: auto auto 1fr auto auto !important;
+    grid-template-rows: 1fr;
+    align-items: center !important;
+    gap: 0 20px !important;         // override gap-4 (16px)
+    padding: 20px 32px !important;  // override px-4 py-2
+
+    [dir="rtl"] & { direction: rtl; }
+  }
+}
+
+// ── Cell sizing override ──────────────────────────────────────
+// All cells have inline style="flex: 1 1 0%" from layoutShell.
+// Grid children ignore flex-grow but we reset the wrapper
+// flex-col behaviour.
+
+section.layout-shell.n-header > div > [class*="n-"] {
+  flex: none !important;
+  width: auto !important;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+// ── Cell 1 — Logo ─────────────────────────────────────────────
+
+.n-logo {
+  grid-column: 1;
+
+  // Collapse the inner wrapper divs
+  > div,
+  > div > a {
+    display: contents;
+  }
+
+  // Logo image
+  img {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+    display: block;
+    // Invert so the image reads correctly under mix-blend-mode:difference
+    filter: invert(1);
+  }
+}
+
+// ── Cell 2 — Site title ───────────────────────────────────────
+
+.n-site-title {
+  grid-column: 2;
+
+  > span {
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 11px !important;
+    font-weight: 200 !important;
+    letter-spacing: 0.28em !important;
+    text-transform: uppercase !important;
+    color: var(--fg-dim) !important;
+
+    // Vertical separator from logo
+    padding-inline-start: 16px;
+    border-inline-start: 1px solid var(--border);
+  }
+
+  > span > a {
+    color: inherit !important;
+    font: inherit !important;
+    letter-spacing: inherit !important;
+    text-decoration: none !important;
+    &:hover { opacity: 0.75; }
+  }
+}
+
+// ── Cell 3 — Menu ─────────────────────────────────────────────
+
+.n-menu {
+  grid-column: 3;
+  justify-content: center !important; // centre links in the 1fr column
+
+  nav {
+    display: flex;
+    align-items: center;
+    gap: 24px !important; // override gap-4 (16px)
+
+    [dir="rtl"] & { flex-direction: row-reverse; }
+  }
+
+  nav a {
+    @include n-mono(10px, 0.18em);
+    color: var(--fg-dim) !important;
+    text-decoration: none !important;
+    font-weight: 400 !important;
+    position: relative;
+    transition: color 0.2s;
+
+    // Underline expands from centre on hover / active
+    &::after {
+      content: '';
+      position: absolute;
+      inset-inline: 50%;
+      bottom: -3px;
+      height: 1px;
+      background: var(--fg);
+      transition: inset-inline 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    &:hover {
+      color: var(--fg) !important;
+      &::after { inset-inline: 0; }
+    }
+
+    // Active — override --os-primary with --fg
+    &[aria-current="page"],
+    &.active {
+      color: var(--fg) !important;
+      font-weight: 400 !important; // remove font-medium
+
+      &::after { inset-inline: 0; }
+    }
+  }
+}
+
+// ── Cell 4 — Mode toggle ──────────────────────────────────────
+// Component renders SVG icon. SCSS: hides icon, styles the
+// button as a ghost pill, injects a CSS text label.
+// Permanent fix: component needs a variant="text" prop.
+
+.n-toggle-mode {
+  grid-column: 4;
+
+  button {
+    @include n-mono(9px, 0.14em);
+
+    // Ghost pill — strip Tailwind rounded and hover bg
+    background: none !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 0 !important;
+    color: var(--fg-dim) !important;
+    padding: 4px 10px !important;
+    cursor: pointer;
+    transition: color 0.2s, border-color 0.2s;
+
+    // Hide the SVG sun/moon icon
+    svg { display: none; }
+
+    // CSS text label until component renders one
+    &::after {
+      content: 'light';
+      display: inline;
+    }
+    [data-mode="dark"] &::after,
+    html.dark &::after {
+      content: 'dark';
+    }
+
+    &:hover {
+      color: var(--fg) !important;
+      border-color: var(--fg-dim) !important;
+      background: none !important;
+    }
+
+    &:active { opacity: 0.6; }
+  }
+}
+
+// ── Cell 5 — Language selector ────────────────────────────────
+// Component renders: flag emoji + full name + chevron SVG.
+// SCSS: strips to a bottom-border text link.
+// Permanent fix: component needs variant="minimal" prop
+//               that renders just the language code (EN / HE).
+
+.n-langs {
+  grid-column: 5;
+
+  // Collapse the dropdown wrapper
+  > div { display: contents; }
+
+  button {
+    @include n-mono(9px, 0.18em);
+
+    // Strip all dropdown chrome
+    background: none !important;
+    border: none !important;
+    border-bottom: 1px solid var(--border) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    padding: 0 0 1px !important;
+    color: var(--fg-dimmer) !important;
+    cursor: pointer;
+    gap: 4px !important;
+    transition: color 0.2s;
+
+    &:hover {
+      color: var(--fg-dim) !important;
+      background: none !important;
+    }
+
+    // Hide flag emoji (first span)
+    > span:first-child { display: none; }
+
+    // Hide chevron SVG
+    > svg { display: none; }
+
+    // Language name span — force mono
+    > span:not(:first-child) {
+      @include n-mono(9px, 0.18em);
+      color: inherit !important;
+      font-weight: 400 !important;
+    }
+  }
+}
+
+// ── RTL ───────────────────────────────────────────────────────
+
+[dir="rtl"] {
+  .n-site-title > span {
+    padding-inline-start: 16px;
+    border-inline-start: 1px solid var(--border);
+    padding-inline-end: 0;
+    border-inline-end: none;
+  }
+
+  .n-menu nav { flex-direction: row-reverse; }
+}
+
+// ── Scroll state ──────────────────────────────────────────────
+// Add .is-scrolled to the section via JS on scroll.
+
+section.layout-shell.n-header.is-scrolled {
+  background: rgba(8, 8, 8, 0.72) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: background 0.3s ease;
+
+  // Restore normal blending once background exists
+  > div > * { mix-blend-mode: normal; }
+}
+
+// ── Responsive ────────────────────────────────────────────────
+
+@media (max-width: 639px) {
+  section.layout-shell.n-header > div {
+    grid-template-columns: auto 1fr auto auto !important;
+    padding: 16px 20px !important;
+  }
+
+  .n-site-title  { display: none !important; }
+  .n-menu        { display: none !important; }
+  .n-toggle-mode { grid-column: 3 !important; }
+  .n-langs       { grid-column: 4 !important; }
+}

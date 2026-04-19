@@ -10,6 +10,8 @@
 	/** Modules already normalized (e.g. albumGallery → albumView). */
 	export let modules: PageModuleData[] = [];
 	export let layout: { gridRows: number; gridColumns: number };
+	/** When set (e.g. `auto auto 1fr auto auto`), non-spanning rows use CSS grid instead of equal flex columns — no inline `flex` on cells. */
+	export let gridTemplateColumns: string | undefined = undefined;
 	export let compact = false;
 	/** Route / page context passed to every block (alias, params). */
 	export let pageContext: Record<string, unknown> = {};
@@ -129,11 +131,17 @@
 	</div>
 {:else}
 	{#each rows as row (row.rowOrder)}
-		<div class="flex gap-4 px-4 {compact ? 'py-2' : 'py-6'}">
+		<div
+			class="{gridTemplateColumns ? 'grid' : 'flex'} gap-4 px-4 {compact ? 'py-2' : 'py-6'}"
+			data-pb-shell-row={gridTemplateColumns ? 'grid' : undefined}
+			style={gridTemplateColumns
+				? `grid-template-columns: var(--pb-shell-cols, ${gridTemplateColumns})`
+				: undefined}
+		>
 			{#each row.columns as col (col.columnIndex)}
 				<div
-					class="flex-1 {placementFlexClasses(cellPlacement(col.module))} {wrapperClassName(col.module, $activeTemplate)}"
-					style="flex: {col.proportion}"
+					class="{gridTemplateColumns ? '' : 'flex-1'} {placementFlexClasses(cellPlacement(col.module))} {wrapperClassName(col.module, $activeTemplate)}"
+					style={gridTemplateColumns ? undefined : `flex: ${col.proportion}`}
 				>
 					{#if col.module}
 						{#if moduleMap[col.module.type]}

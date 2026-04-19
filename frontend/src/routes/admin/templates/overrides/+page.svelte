@@ -5740,8 +5740,31 @@ let draggedAlbumHeaderField: string | null = null;
 					</div>
 				{:else if editingModule.type === 'themeToggle'}
 					<div class="space-y-4">
-						<div class="text-sm text-(--color-surface-600-400)">
-							<p>Theme toggle module has no configuration options. It automatically toggles between light and dark themes.</p>
+						<div>
+							<label for="theme-toggle-variant" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
+								Display
+							</label>
+							<select
+								id="theme-toggle-variant"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
+								value={editingModule.props?.variant ?? 'icons'}
+								on:change={(e) => {
+									const v = (e.currentTarget as HTMLSelectElement).value;
+									editingModule = {
+										...editingModule,
+										props: {
+											...editingModule.props,
+											variant: v === 'text' ? 'text' : 'icons'
+										}
+									};
+								}}
+							>
+								<option value="icons">Icons (sun / moon)</option>
+								<option value="text">Text (Light / Dark)</option>
+							</select>
+							<p class="mt-1 text-xs text-(--color-surface-600-400)">
+								Labels describe the theme you switch to when clicking.
+							</p>
 						</div>
 					</div>
 				{:else if editingModule.type === 'userGreeting'}

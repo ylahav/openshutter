@@ -11,6 +11,8 @@
 	/** Shared instance alias (preferred). Falls back to `presetKey` for legacy data. */
 	export let instanceRef = '';
 	export let className = '';
+	/** Optional CSS `grid-template-columns` for each row (non-spanning layouts), e.g. `auto auto 1fr auto auto`. Skips equal-width flex on cells. */
+	export let gridTemplateColumns = '';
 	export let data: Record<string, unknown> = {};
 	// svelte-ignore export_let_unused - passed by PageBuilderGrid; inner shell grid always uses compact width
 	export let compact = false;
@@ -69,6 +71,12 @@
 		data-layout-preset={resolvedRef}
 	>
 		<!-- Full-bleed: do not inherit page `compact`/max-width; shells are used for header/footer bars. -->
-		<PageBuilderGrid modules={normalizedChildren} {layout} compact={true} pageContext={data} />
+		<PageBuilderGrid
+			modules={normalizedChildren}
+			{layout}
+			compact={true}
+			pageContext={data}
+			gridTemplateColumns={gridTemplateColumns.trim() || undefined}
+		/>
 	</section>
 {/if}

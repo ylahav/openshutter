@@ -6,7 +6,7 @@ Used by the page builder **`themeToggle`** module and `Header.svelte`.
 
 ## Props
 
-None.
+- **`variant`**: `'icons'` (default) or `'text'` — sun/moon icons vs. `Light` / `Dark` labels.
 
 ## Markup
 
