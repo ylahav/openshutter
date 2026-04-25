@@ -52,22 +52,22 @@
 </script>
 
 {#if parentDepth > 6}
-	<div class="p-3 text-sm text-amber-600 border border-dashed rounded">Layout region nested too deeply.</div>
+	<div class="pb-layoutShell__notice pb-layoutShell__notice--warning">Layout region nested too deeply.</div>
 {:else if !resolvedRef}
-	<div class="p-3 text-sm opacity-60 border border-dashed rounded">Layout shell: set a preset name in the theme editor.</div>
+	<div class="pb-layoutShell__notice pb-layoutShell__notice--muted">Layout shell: set a preset name in the theme editor.</div>
 {:else if !preset && isAdminRoute}
-	<div class="p-3 text-sm opacity-60 border border-dashed rounded">
+	<div class="pb-layoutShell__notice pb-layoutShell__notice--muted">
 		Layout shell <strong>{resolvedRef}</strong> is not defined in shared instances.
 	</div>
 {:else if !preset}
 	<section
-		class="layout-shell w-full"
+		class="layout-shell pb-layoutShell"
 		aria-hidden="true"
 		data-layout-preset={resolvedRef}
 	></section>
 {:else}
 	<section
-		class="layout-shell w-full"
+		class="layout-shell pb-layoutShell"
 		aria-label={`Layout ${resolvedRef}`}
 		data-layout-preset={resolvedRef}
 	>
@@ -81,3 +81,27 @@
 		/>
 	</section>
 {/if}
+
+<style lang="scss">
+	.pb-layoutShell {
+		width: 100%;
+	}
+
+	.pb-layoutShell__notice {
+		padding: 0.75rem;
+		border: 1px dashed var(--tp-border);
+		border-radius: 0.25rem;
+		font-size: 0.875rem;
+		line-height: 1.25rem;
+	}
+
+	.pb-layoutShell__notice--warning {
+		color: #b45309;
+		border-color: color-mix(in srgb, #b45309 45%, var(--tp-border));
+	}
+
+	.pb-layoutShell__notice--muted {
+		opacity: 0.6;
+		color: var(--tp-fg-muted);
+	}
+</style>

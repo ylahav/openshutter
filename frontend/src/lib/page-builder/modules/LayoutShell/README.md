@@ -14,7 +14,7 @@ Grid dimensions and inner `modules[]` are edited in the theme **layout preset** 
 
 ## Classes & tokens for template styles
 
-- **Stable:** **`layout-shell`** on `<section>`
+- **Stable:** **`layout-shell pb-layoutShell`** on `<section>`
 - **Data attribute:** **`data-layout-preset="{presetKey}"`** — best hook for pack SCSS
 
 ```scss
@@ -24,7 +24,7 @@ Grid dimensions and inner `modules[]` are edited in the theme **layout preset** 
 }
 ```
 
-- **Errors / empty (admin):** dashed border utility boxes (see `LayoutShellModule.svelte`)
+- **Errors / empty (admin):** `pb-layoutShell__notice` with modifiers `--warning` / `--muted`
 
 Inner modules use the same tokens as their own READMEs; nesting increments `pbNestDepth` (max depth guard).
 
