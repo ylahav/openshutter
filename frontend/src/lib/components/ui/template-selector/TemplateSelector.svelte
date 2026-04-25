@@ -180,35 +180,38 @@
 		}
 	});
 
-	function getCategoryColor(category: string): string {
-		const colors: Record<string, string> = {
-			noir: 'bg-zinc-900 text-zinc-200 border border-zinc-700',
-			studio: 'bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200',
-			atelier: 'bg-amber-100 dark:bg-amber-900/40 text-amber-900 dark:text-amber-100',
-			custom: 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-800 dark:text-indigo-200'
-		};
-		return colors[category] || 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200';
+	function categoryBadgeClass(category: string): string {
+		const c = String(category || '').toLowerCase();
+		const base = 'pb-templateSelector__badge';
+		if (c === 'noir') return `${base} pb-templateSelector__badge--noir`;
+		if (c === 'studio') return `${base} pb-templateSelector__badge--studio`;
+		if (c === 'atelier') return `${base} pb-templateSelector__badge--atelier`;
+		if (c === 'custom') return `${base} pb-templateSelector__badge--custom`;
+		return `${base} pb-templateSelector__badge--default`;
 	}
+
+	$: triggerDisabled = isSwitching || themesLoading;
+	$: triggerClass = [
+		'pb-templateSelector__trigger',
+		compact ? 'pb-templateSelector__trigger--compact' : '',
+		triggerDisabled ? 'pb-templateSelector__trigger--disabled' : ''
+	]
+		.filter(Boolean)
+		.join(' ');
 </script>
 
-<div class={`relative ${className}`}>
+<div class={`pb-templateSelector ${className}`.trim()}>
 	<button
 		bind:this={buttonElement}
 		type="button"
 		on:click={toggle}
-		disabled={isSwitching || themesLoading}
-		class={`
-          flex items-center gap-2 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm
-          bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-          transition-colors text-gray-900 dark:text-gray-100
-          ${compact ? 'text-sm' : 'text-base'}
-          ${isSwitching || themesLoading ? 'opacity-50 cursor-not-allowed' : ''}
-        `}
+		disabled={triggerDisabled}
+		class={triggerClass}
 		aria-haspopup="listbox"
 		aria-expanded={isOpen}
 		title="Switch template"
 	>
-		<svg class="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+		<svg class="pb-templateSelector__triggerIcon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
 			<path
 				stroke-linecap="round"
 				stroke-linejoin="round"
@@ -217,19 +220,20 @@
 			/>
 		</svg>
 
-		<span class="font-medium text-gray-900 dark:text-gray-100">
+		<span class="pb-templateSelector__triggerLabel">
 			{currentTemplate.displayName}
 		</span>
 
 		{#if isAdmin}
-			<span class="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-1 rounded">Admin</span>
+			<span class="pb-templateSelector__adminPill">Admin</span>
 		{/if}
 
 		<svg
-			class={`w-4 h-4 text-gray-400 dark:text-gray-500 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+			class="pb-templateSelector__chevron {isOpen ? 'pb-templateSelector__chevron--open' : ''}"
 			fill="none"
 			stroke="currentColor"
 			viewBox="0 0 24 24"
+			aria-hidden="true"
 		>
 			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
 		</svg>
@@ -237,7 +241,7 @@
 
 	{#if isOpen}
 		<div
-			class="fixed inset-0"
+			class="pb-templateSelector__backdrop"
 			style="z-index: 9998;"
 			role="button"
 			tabindex="-1"
@@ -245,22 +249,22 @@
 			on:keydown={(e) => e.key === 'Escape' && close()}
 		></div>
 
-		<div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg dark:shadow-gray-900/50" style={dropdownStyle}>
-			<div class="py-1">
-				<div class="px-4 py-2 border-b border-gray-200 dark:border-gray-600">
-					<p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Templates</p>
+		<div class="pb-templateSelector__dropdown" style={dropdownStyle}>
+			<div class="pb-templateSelector__dropdownInner">
+				<div class="pb-templateSelector__header">
+					<p class="pb-templateSelector__headerTitle">Templates</p>
 					{#if isAdmin}
-						<p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Changes apply globally</p>
+						<p class="pb-templateSelector__headerHint">Changes apply globally</p>
 					{:else}
-						<p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Changes apply to your view only</p>
+						<p class="pb-templateSelector__headerHint">Changes apply to your view only</p>
 					{/if}
 				</div>
 				{#if themesError}
-					<p class="px-4 py-3 text-sm text-red-600 dark:text-red-400">{themesError}</p>
+					<p class="pb-templateSelector__message pb-templateSelector__message--error">{themesError}</p>
 				{:else if themeOptions.length === 0}
-					<p class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">No themes available</p>
+					<p class="pb-templateSelector__message">No themes available</p>
 				{:else}
-					<ul class="py-1">
+					<ul class="pb-templateSelector__list" role="listbox">
 						{#each themeOptions as template}
 							{@const isSelected = template.id === selectedThemeId}
 
@@ -269,32 +273,37 @@
 									type="button"
 									on:click={() => handleTemplateSelect(template)}
 									disabled={isSwitching}
-									class={`
-                          w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700
-                          transition-colors
-                          ${isSelected ? 'bg-blue-50 dark:bg-blue-900/40' : ''}
-                          ${compact ? 'text-sm' : 'text-base'}
-                          ${isSwitching ? 'opacity-50 cursor-not-allowed' : ''}
-                        `}
+									class={[
+										'pb-templateSelector__option',
+										isSelected ? 'pb-templateSelector__option--selected' : '',
+										compact ? 'pb-templateSelector__option--compact' : '',
+										isSwitching ? 'pb-templateSelector__option--disabled' : ''
+									]
+										.filter(Boolean)
+										.join(' ')}
 								>
-									<div class="flex-1 min-w-0">
-										<div class="flex items-center justify-between mb-1">
-											<span class={`font-medium ${isSelected ? 'text-blue-700 dark:text-blue-300' : 'text-gray-900 dark:text-gray-100'}`}>
+									<div class="pb-templateSelector__optionBody">
+										<div class="pb-templateSelector__optionRow">
+											<span
+												class={isSelected
+													? 'pb-templateSelector__optionName pb-templateSelector__optionName--selected'
+													: 'pb-templateSelector__optionName'}
+											>
 												{template.displayName}
 											</span>
-											<span class={`text-xs px-2 py-0.5 rounded ${getCategoryColor(template.category)}`}>
+											<span class={categoryBadgeClass(template.category)}>
 												{template.category}
 											</span>
 										</div>
 										{#if template.description}
-											<p class="text-xs text-gray-500 dark:text-gray-400 line-clamp-1">
+											<p class="pb-templateSelector__optionDesc">
 												{template.description}
 											</p>
 										{/if}
 									</div>
 
 									{#if isSelected}
-										<svg class="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+										<svg class="pb-templateSelector__check" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
 											<path
 												fill-rule="evenodd"
 												d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
@@ -311,3 +320,214 @@
 		</div>
 	{/if}
 </div>
+
+<style lang="scss">
+	.pb-templateSelector {
+		position: relative;
+		color: var(--tp-fg);
+	}
+
+	.pb-templateSelector__trigger {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.5rem 0.75rem;
+		border: 1px solid var(--tp-border);
+		border-radius: 0.375rem;
+		background: var(--tp-surface-1);
+		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+		font-size: 1rem;
+		font-weight: 500;
+		color: var(--tp-fg);
+		cursor: pointer;
+		transition:
+			background 0.15s ease,
+			border-color 0.15s ease,
+			opacity 0.15s ease;
+	}
+	.pb-templateSelector__trigger:hover:not(:disabled) {
+		background: var(--tp-surface-2);
+	}
+	.pb-templateSelector__trigger:focus-visible {
+		outline: 2px solid var(--tp-brand, #3b82f6);
+		outline-offset: 2px;
+	}
+	.pb-templateSelector__trigger--compact {
+		font-size: 0.875rem;
+	}
+	.pb-templateSelector__trigger--disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+
+	.pb-templateSelector__triggerIcon {
+		width: 1rem;
+		height: 1rem;
+		flex-shrink: 0;
+		color: var(--tp-fg-muted);
+	}
+	.pb-templateSelector__triggerLabel {
+		font-weight: 500;
+	}
+	.pb-templateSelector__adminPill {
+		font-size: 0.625rem;
+		padding: 0.125rem 0.25rem;
+		border-radius: 0.25rem;
+		background: var(--tp-surface-2);
+		color: var(--tp-fg-muted);
+	}
+
+	.pb-templateSelector__chevron {
+		width: 1rem;
+		height: 1rem;
+		flex-shrink: 0;
+		color: var(--tp-fg-muted);
+		transition: transform 0.15s ease;
+	}
+	.pb-templateSelector__chevron--open {
+		transform: rotate(180deg);
+	}
+
+	.pb-templateSelector__backdrop {
+		position: fixed;
+		inset: 0;
+	}
+
+	.pb-templateSelector__dropdown {
+		border: 1px solid var(--tp-border);
+		border-radius: 0.375rem;
+		background: var(--tp-surface-1);
+		box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+	}
+	.pb-templateSelector__dropdownInner {
+		padding: 0.25rem 0;
+	}
+
+	.pb-templateSelector__header {
+		padding: 0.5rem 1rem;
+		border-bottom: 1px solid var(--tp-border);
+	}
+	.pb-templateSelector__headerTitle {
+		margin: 0;
+		font-size: 0.6875rem;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		color: var(--tp-fg-muted);
+	}
+	.pb-templateSelector__headerHint {
+		margin: 0.25rem 0 0;
+		font-size: 0.6875rem;
+		color: var(--tp-fg-subtle, var(--tp-fg-muted));
+	}
+
+	.pb-templateSelector__message {
+		margin: 0;
+		padding: 0.75rem 1rem;
+		font-size: 0.875rem;
+		color: var(--tp-fg-muted);
+	}
+	.pb-templateSelector__message--error {
+		color: var(--tp-danger, #dc2626);
+	}
+
+	.pb-templateSelector__list {
+		margin: 0;
+		padding: 0.25rem 0;
+		list-style: none;
+	}
+
+	.pb-templateSelector__option {
+		display: flex;
+		width: 100%;
+		align-items: flex-start;
+		gap: 0.75rem;
+		padding: 0.75rem 1rem;
+		border: none;
+		background: transparent;
+		text-align: left;
+		font-size: 1rem;
+		color: var(--tp-fg);
+		cursor: pointer;
+		transition: background 0.15s ease;
+	}
+	.pb-templateSelector__option--compact {
+		font-size: 0.875rem;
+	}
+	.pb-templateSelector__option:hover:not(:disabled) {
+		background: var(--tp-surface-2);
+	}
+	.pb-templateSelector__option--selected {
+		background: color-mix(in srgb, var(--tp-brand, #3b82f6) 12%, transparent);
+	}
+	.pb-templateSelector__option--disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+
+	.pb-templateSelector__optionBody {
+		flex: 1;
+		min-width: 0;
+	}
+	.pb-templateSelector__optionRow {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.5rem;
+		margin-bottom: 0.25rem;
+	}
+	.pb-templateSelector__optionName {
+		font-weight: 500;
+		color: var(--tp-fg);
+	}
+	.pb-templateSelector__optionName--selected {
+		color: var(--tp-brand, #2563eb);
+	}
+	.pb-templateSelector__optionDesc {
+		margin: 0;
+		font-size: 0.75rem;
+		color: var(--tp-fg-muted);
+		overflow: hidden;
+		display: -webkit-box;
+		-webkit-line-clamp: 1;
+		-webkit-box-orient: vertical;
+		line-clamp: 1;
+	}
+
+	.pb-templateSelector__check {
+		width: 1.25rem;
+		height: 1.25rem;
+		flex-shrink: 0;
+		color: var(--tp-brand, #2563eb);
+	}
+
+	.pb-templateSelector__badge {
+		display: inline-block;
+		font-size: 0.625rem;
+		padding: 0.125rem 0.5rem;
+		border-radius: 0.25rem;
+		font-weight: 500;
+		text-transform: lowercase;
+	}
+	.pb-templateSelector__badge--noir {
+		background: var(--tp-surface-2);
+		color: var(--tp-fg);
+		border: 1px solid var(--tp-border);
+	}
+	.pb-templateSelector__badge--studio {
+		background: color-mix(in srgb, #3b82f6 14%, var(--tp-surface-1));
+		color: var(--tp-fg);
+	}
+	.pb-templateSelector__badge--atelier {
+		background: color-mix(in srgb, #d97706 18%, var(--tp-surface-1));
+		color: var(--tp-fg);
+	}
+	.pb-templateSelector__badge--custom {
+		background: color-mix(in srgb, #6366f1 16%, var(--tp-surface-1));
+		color: var(--tp-fg);
+	}
+	.pb-templateSelector__badge--default {
+		background: var(--tp-surface-2);
+		color: var(--tp-fg-muted);
+	}
+</style>

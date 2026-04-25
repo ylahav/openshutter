@@ -18,6 +18,11 @@
 	import type { Page } from './types';
 	import PageFilters from './components/PageFilters.svelte';
 	import PageList from './components/PageList.svelte';
+	import ModulePropsForm from '$lib/components/ModulePropsForm.svelte';
+	import {
+		legacySocialObjectToLinksJson,
+		parseLinksJson
+	} from '$lib/page-builder/modules/SocialMedia/resolveLinks';
 
 	// Available icon names from icons.ts (sorted)
 	const AVAILABLE_ICONS: string[] = [...AVAILABLE_ICON_NAMES].sort();
@@ -160,11 +165,12 @@
 		{ value: 'divider', label: 'Horizontal line' },
 		{ value: 'featureGrid', label: 'Feature Grid' },
 		{ value: 'albumsGrid', label: 'Albums Grid' },
+		{ value: 'albumView', label: 'Album View (albumView)' },
 		{ value: 'layoutShell', label: 'Layout region (named grid)' },
 		{ value: 'cta', label: 'Call To Action' },
 		{ value: 'blogCategory', label: 'Blog categories' },
 		{ value: 'blogArticle', label: 'Blog articles' }
-	];
+	].sort((a, b) => a.label.localeCompare(b.label));
 
 	// Use CRUD composables
 	const crudLoader = useCrudLoader<Page>('/api/admin/pages', {
@@ -733,6 +739,8 @@
 		menuOrientation = 'horizontal';
 		menuShowAuthButtons = false;
 		themeToggleVariant = 'icons';
+		socialMediaModuleProps = {};
+		albumViewModuleProps = {};
 		editingLayoutShellModule = false;
 		moduleWrapperClassName = '';
 		pageTitleShowTitle = true;
@@ -814,6 +822,67 @@
 	let menuShowAuthButtons = false;
 	/** themeToggle module: icons vs text labels */
 	let themeToggleVariant: 'icons' | 'text' = 'icons';
+
+	let socialMediaModuleProps: Record<string, unknown> = {};
+	let albumViewModuleProps: Record<string, unknown> = {};
+
+	function normalizeSocialMediaPropsForEditor(raw: Record<string, unknown>): Record<string, unknown> {
+		const p = { ...raw };
+		const sm = p.socialMedia;
+		if (
+			!String(p.linksJson || '').trim() &&
+			!Array.isArray(p.links) &&
+			sm &&
+			typeof sm === 'object' &&
+			!Array.isArray(sm) &&
+			Object.keys(sm as object).some(
+				(k) =>
+					typeof (sm as Record<string, unknown>)[k] === 'string' &&
+					String((sm as Record<string, unknown>)[k]).trim()
+			)
+		) {
+			p.linksJson = legacySocialObjectToLinksJson(sm);
+			delete p.socialMedia;
+		}
+		if (!Array.isArray(p.links) && typeof p.linksJson === 'string' && String(p.linksJson).trim()) {
+			const parsed = parseLinksJson(p.linksJson);
+			if (parsed?.length) {
+				p.links = parsed.map((x) => ({ platform: x.key, url: x.url }));
+				delete p.linksJson;
+			}
+		}
+		if (p.linkDisplay === undefined) p.linkDisplay = 'icon';
+		if (!p.iconSize) p.iconSize = 'md';
+		if (!p.iconColor) p.iconColor = 'current';
+		if (p.showLabels === undefined) p.showLabels = false;
+		if (!p.orientation) p.orientation = 'horizontal';
+		if (!p.align) p.align = 'start';
+		if (!p.gap) p.gap = 'normal';
+		return p;
+	}
+
+	function handleModuleTypeChangeInDialog() {
+		if (moduleForm.type === 'albumView') {
+			try {
+				albumViewModuleProps = moduleForm.propsJson.trim()
+					? (JSON.parse(moduleForm.propsJson) as Record<string, unknown>)
+					: {};
+			} catch {
+				albumViewModuleProps = {};
+			}
+		}
+		if (moduleForm.type === 'socialMedia') {
+			try {
+				socialMediaModuleProps = normalizeSocialMediaPropsForEditor(
+					moduleForm.propsJson.trim()
+						? (JSON.parse(moduleForm.propsJson) as Record<string, unknown>)
+						: {}
+				);
+			} catch {
+				socialMediaModuleProps = {};
+			}
+		}
+	}
 	let moduleWrapperClassName = '';
 
 	function getLayoutShellRef(props: Record<string, unknown> | undefined): string {
@@ -1171,6 +1240,23 @@
 		layoutShellEditorRowStructure = rowMap;
 	}
 
+	async function deleteLayoutShellRow(rowOrder: number) {
+		if (layoutShellEditorGridRows <= 1) return;
+		const next = layoutShellEditorModules
+			.filter((m) => (m.rowOrder ?? 0) !== rowOrder)
+			.map((m) => {
+				const r = m.rowOrder ?? 0;
+				return r > rowOrder ? { ...m, rowOrder: r - 1 } : m;
+			});
+		layoutShellEditorModules = next;
+		layoutShellEditorGridRows = Math.max(1, layoutShellEditorGridRows - 1);
+		const rowMap = new Map<number, number[]>();
+		for (let r = 0; r < layoutShellEditorGridRows; r++) {
+			rowMap.set(r, Array(layoutShellEditorGridColumns).fill(1));
+		}
+		layoutShellEditorRowStructure = rowMap;
+	}
+
 	function applyModuleWrapperClassName(props: Record<string, unknown>): Record<string, unknown> {
 		const next = { ...props };
 		const cls = moduleWrapperClassName.trim();
@@ -1328,6 +1414,17 @@
 			themeToggleVariant = 'icons';
 		}
 
+		if (module.type === 'socialMedia') {
+			socialMediaModuleProps = normalizeSocialMediaPropsForEditor((module.props || {}) as Record<string, unknown>);
+		} else {
+			socialMediaModuleProps = {};
+		}
+		if (module.type === 'albumView') {
+			albumViewModuleProps = { ...((module.props || {}) as Record<string, unknown>) };
+		} else {
+			albumViewModuleProps = {};
+		}
+
 		editingFeatureIndex = null;
 		showModuleEditDialog = true;
 	}
@@ -1430,6 +1527,10 @@
 				};
 			} else if (moduleForm.type === 'themeToggle') {
 				props = themeToggleVariant === 'text' ? { variant: 'text' } : {};
+			} else if (moduleForm.type === 'socialMedia') {
+				props = { ...socialMediaModuleProps } as Record<string, unknown>;
+			} else if (moduleForm.type === 'albumView') {
+				props = { ...albumViewModuleProps } as Record<string, unknown>;
 			} else {
 				props = moduleForm.propsJson.trim() ? JSON.parse(moduleForm.propsJson) as Record<string, unknown> : {};
 			}
@@ -1577,6 +1678,10 @@
 				};
 			} else if (moduleForm.type === 'themeToggle') {
 				props = themeToggleVariant === 'text' ? { variant: 'text' } : {};
+			} else if (moduleForm.type === 'socialMedia') {
+				props = { ...socialMediaModuleProps } as Record<string, unknown>;
+			} else if (moduleForm.type === 'albumView') {
+				props = { ...albumViewModuleProps } as Record<string, unknown>;
 			} else {
 				props = moduleForm.propsJson.trim() ? JSON.parse(moduleForm.propsJson) as Record<string, unknown> : {};
 			}
@@ -1773,6 +1878,19 @@
 		rowStructure = next;
 	}
 
+	function updateRowStructureAfterDelete(deletedRowOrder: number) {
+		const next = new Map<number, number[]>();
+		for (const [r, proportions] of rowStructure.entries()) {
+			if (r === deletedRowOrder) continue;
+			next.set(r > deletedRowOrder ? r - 1 : r, [...proportions]);
+		}
+		if (next.size === 0) {
+			const fallbackCols = Math.max(1, formData.gridColumns || 1);
+			next.set(0, Array(fallbackCols).fill(1));
+		}
+		rowStructure = next;
+	}
+
 	async function persistModulesRowOrder(updatedModules: PageModuleData[]) {
 		if (!editingPage) {
 			modules = updatedModules;
@@ -1825,6 +1943,39 @@
 		formData.gridRows = Math.min(20, formData.gridRows + 1);
 		updateRowStructureAfterInsert(idx);
 		await persistModulesRowOrder(updated);
+	}
+
+	async function handleDeleteRow(rowOrder: number) {
+		if (formData.gridRows <= 1) return;
+		const removedModules = modules.filter((m) => (m.rowOrder ?? 0) === rowOrder);
+		const shiftedModules = modules
+			.filter((m) => (m.rowOrder ?? 0) !== rowOrder)
+			.map((m) => {
+				const r = m.rowOrder ?? 0;
+				return r > rowOrder ? { ...m, rowOrder: r - 1 } : m;
+			});
+
+		formData.gridRows = Math.max(1, formData.gridRows - 1);
+		updateRowStructureAfterDelete(rowOrder);
+
+		if (!editingPage) {
+			modules = shiftedModules;
+			return;
+		}
+
+		try {
+			for (const m of removedModules) {
+				if (!m._id) continue;
+				const response = await fetch(`/api/admin/pages/${editingPage._id}/modules/${m._id}`, {
+					method: 'DELETE'
+				});
+				if (!response.ok) await handleApiErrorResponse(response);
+			}
+			await persistModulesRowOrder(shiftedModules);
+		} catch (err) {
+			logger.error('Error deleting row:', err);
+			modulesError = handleError(err, 'Failed to delete row');
+		}
 	}
 
 	async function handleCreate() {
@@ -2159,6 +2310,7 @@
 								onEditModule={editModule}
 								onMoveRow={handleMoveRow}
 								onInsertRow={handleInsertRow}
+								onDeleteRow={handleDeleteRow}
 								availableModuleTypes={MODULE_TYPES}
 							/>
 						{/if}
@@ -2213,7 +2365,7 @@
 <!-- Module Edit Dialog -->
 {#if showModuleEditDialog && editingModule}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-70">
-		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full {moduleForm.type === 'featureGrid' || moduleForm.type === 'richText' || moduleForm.type === 'hero' || moduleForm.type === 'albumsGrid' ? 'max-w-4xl' : 'max-w-2xl'} p-6 max-h-[90vh] overflow-y-auto">
+		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full {moduleForm.type === 'featureGrid' || moduleForm.type === 'richText' || moduleForm.type === 'hero' || moduleForm.type === 'albumsGrid' || moduleForm.type === 'albumView' || moduleForm.type === 'socialMedia' ? 'max-w-4xl' : 'max-w-2xl'} p-6 max-h-[90vh] overflow-y-auto">
 			<h2 class="text-xl font-bold text-(--color-surface-950-50) mb-4">Edit Module</h2>
 
 			{#if modulesError}
@@ -2228,6 +2380,7 @@
 					<select
 						id="module-type"
 						bind:value={moduleForm.type}
+						on:change={handleModuleTypeChangeInDialog}
 						class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 					>
 						{#each MODULE_TYPES as moduleType}
@@ -2723,6 +2876,28 @@
 							</p>
 						</div>
 					</div>
+				{:else if moduleForm.type === 'socialMedia'}
+					<div class="space-y-4 border-t border-surface-200-800 pt-4 text-(--color-surface-800-200)">
+						<ModulePropsForm
+							moduleType="socialMedia"
+							props={socialMediaModuleProps as Record<string, any>}
+							showPlacementInGrid={false}
+							onChange={(next) => {
+								socialMediaModuleProps = next;
+							}}
+						/>
+					</div>
+				{:else if moduleForm.type === 'albumView'}
+					<div class="space-y-4 border-t border-surface-200-800 pt-4 text-(--color-surface-800-200)">
+						<ModulePropsForm
+							moduleType="albumView"
+							props={albumViewModuleProps as Record<string, any>}
+							showPlacementInGrid={false}
+							onChange={(next) => {
+								albumViewModuleProps = next;
+							}}
+						/>
+					</div>
 				{/if}
 				<div class="space-y-1 border-t border-surface-200-800 pt-4">
 					<label for="module-wrapper-class" class="block text-sm font-medium text-(--color-surface-800-200)">
@@ -2760,7 +2935,7 @@
 							</p>
 						</div>
 					</div>
-				{:else if !['featureGrid', 'richText', 'pageTitle', 'hero', 'albumsGrid', 'layoutShell', 'menu', 'themeToggle'].includes(moduleForm.type)}
+				{:else if !['featureGrid', 'richText', 'pageTitle', 'hero', 'albumsGrid', 'albumView', 'layoutShell', 'menu', 'themeToggle', 'socialMedia'].includes(moduleForm.type)}
 					<!-- JSON Editor for other module types -->
 					<div>
 						<label for="module-props-json" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
@@ -3008,6 +3183,7 @@
 							onEditModule={editModule}
 							onMoveRow={handleMoveRow}
 							onInsertRow={handleInsertRow}
+							onDeleteRow={handleDeleteRow}
 							availableModuleTypes={MODULE_TYPES}
 						/>
 					{/if}
@@ -3566,6 +3742,7 @@
 				availableModuleTypes={MODULE_TYPES}
 				onMoveRow={moveLayoutShellRow}
 				onInsertRow={insertLayoutShellRow}
+				onDeleteRow={deleteLayoutShellRow}
 			/>
 			<div class="flex justify-end gap-2">
 				<button type="button" on:click={deleteLayoutShellInstance} disabled={layoutShellEditorSaving}

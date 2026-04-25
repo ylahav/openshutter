@@ -74,6 +74,7 @@ export interface SiteConfig {
     socialMedia?: {
       facebook?: string
       instagram?: string
+      flickr?: string
       twitter?: string
       linkedin?: string
     }

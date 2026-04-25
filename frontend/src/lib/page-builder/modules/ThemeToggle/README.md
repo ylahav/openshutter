@@ -10,9 +10,13 @@ None for the page-builder module (empty `props`).
 
 ## Classes & tokens for template styles
 
-Defined on the **inner button** in `ThemeToggle.svelte`:
+Layout wrapper class:
 
-- `class="p-2 rounded-md hover:bg-black/10 dark:hover:bg-white/10 transition-colors"`
-- Icon: `w-5 h-5 text-current`
+- `pb-themeToggleModule`
 
-Target `button` inside the layout region, e.g. `.layout-shell button[aria-label="Toggle theme"]` or add a wrapper class in the pack if you fork the component.
+Inner UI component (`ThemeToggle.svelte`) classes:
+
+- Root button: `pb-themeToggle` + modifier `pb-themeToggle--icons|text`
+- Icon: `pb-themeToggle__icon`
+
+Target these classes directly in pack SCSS.

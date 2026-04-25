@@ -172,6 +172,7 @@
 				data.contact.socialMedia = {
 					facebook: '',
 					instagram: '',
+					flickr: '',
 					twitter: '',
 					linkedin: ''
 				};
@@ -1157,6 +1158,33 @@ on:input={(e) => {
 												} as SiteConfig;
 											}}
 											placeholder="https://instagram.com/yourprofile"
+											class={adminInputSmClass}
+										/>
+									</div>
+
+									<!-- Flickr -->
+									<div>
+										<label for="social-flickr" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
+											Flickr
+										</label>
+										<input
+											id="social-flickr"
+											type="text"
+											value={config.contact?.socialMedia?.flickr || ''}
+											on:input={(e) => {
+												if (!config) return;
+												config = {
+													...(config),
+													contact: {
+														...config.contact,
+														socialMedia: {
+															...config.contact?.socialMedia,
+															flickr: e.currentTarget.value
+														}
+													}
+												} as SiteConfig;
+											}}
+											placeholder="https://flickr.com/photos/yourprofile"
 											class={adminInputSmClass}
 										/>
 									</div>

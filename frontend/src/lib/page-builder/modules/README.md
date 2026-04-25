@@ -2,6 +2,8 @@
 
 These Svelte modules render **site-facing** blocks placed via the theme layout grid (`PageRenderer` → `PageBuilderGrid`). Each row in `module-types.ts` maps to a `*Module.svelte` entry in `PageRenderer`’s `moduleMap`.
 
+This documentation and the current class refactor scope focus on **visitor UI output only** (module layouts and shared site-facing UI components). Admin builder/editor screens and shared renderer/grid shell scaffolding are intentionally out of scope unless explicitly requested.
+
 ## Shared behavior
 
 ### Optional grid placement

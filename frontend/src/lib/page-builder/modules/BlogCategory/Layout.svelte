@@ -92,36 +92,33 @@
 	});
 </script>
 
-<section class="text-[color:var(--tp-fg)]" aria-label={sectionTitle || 'Blog categories'}>
+<section class="pb-blogCategory" aria-label={sectionTitle || 'Blog categories'}>
 	{#if sectionTitle}
-		<h2 class="text-lg font-semibold mb-3">{sectionTitle}</h2>
+		<h2 class="pb-blogCategory__heading">{sectionTitle}</h2>
 	{/if}
 
 	{#if loading}
-		<p class="text-sm text-[color:var(--tp-fg-muted)]">Loading categories…</p>
+		<p class="pb-blogCategory__status">Loading categories…</p>
 	{:else if errorMessage}
-		<p class="text-sm text-[color:var(--tp-fg-muted)]">{errorMessage}</p>
+		<p class="pb-blogCategory__status">{errorMessage}</p>
 	{:else if sortedCategories.length === 0}
-		<p class="text-sm text-[color:var(--tp-fg-muted)]">No categories to show.</p>
+		<p class="pb-blogCategory__status">No categories to show.</p>
 	{:else if layout === 'list'}
-		<ul class="space-y-2 list-none p-0 m-0">
+		<ul class="pb-blogCategory__list">
 			{#each sortedCategories as cat (cat.alias)}
-				<li>
+				<li class="pb-blogCategory__listItem">
 					{#if linkToArticles}
-						<a
-							href={hrefFor(cat)}
-							class="flex justify-between gap-2 text-[color:var(--os-primary)] hover:underline"
-						>
+						<a href={hrefFor(cat)} class="pb-blogCategory__listLink">
 							<span>{normTitle(cat)}</span>
 							{#if showCount}
-								<span class="text-[color:var(--tp-fg-subtle)] tabular-nums">{cat.articleCount ?? 0}</span>
+								<span class="pb-blogCategory__count">{cat.articleCount ?? 0}</span>
 							{/if}
 						</a>
 					{:else}
-						<span class="flex justify-between gap-2">
+						<span class="pb-blogCategory__listRow">
 							<span>{normTitle(cat)}</span>
 							{#if showCount}
-								<span class="text-[color:var(--tp-fg-subtle)] tabular-nums">{cat.articleCount ?? 0}</span>
+								<span class="pb-blogCategory__count">{cat.articleCount ?? 0}</span>
 							{/if}
 						</span>
 					{/if}
@@ -129,25 +126,20 @@
 			{/each}
 		</ul>
 	{:else}
-		<div class="flex flex-wrap gap-2">
+		<div class="pb-blogCategory__chips">
 			{#each sortedCategories as cat (cat.alias)}
 				{#if linkToArticles}
-					<a
-						href={hrefFor(cat)}
-						class="inline-flex items-center gap-1.5 rounded-full border border-[color:var(--tp-border)] px-3 py-1 text-sm bg-[color:var(--tp-surface-2)] hover:bg-[color:var(--tp-surface-3)]"
-					>
+					<a href={hrefFor(cat)} class="pb-blogCategory__chip pb-blogCategory__chip--interactive">
 						{normTitle(cat)}
 						{#if showCount}
-							<span class="text-[color:var(--tp-fg-subtle)] tabular-nums">({cat.articleCount ?? 0})</span>
+							<span class="pb-blogCategory__count pb-blogCategory__count--chip">({cat.articleCount ?? 0})</span>
 						{/if}
 					</a>
 				{:else}
-					<span
-						class="inline-flex items-center gap-1.5 rounded-full border border-[color:var(--tp-border)] px-3 py-1 text-sm bg-[color:var(--tp-surface-2)]"
-					>
+					<span class="pb-blogCategory__chip">
 						{normTitle(cat)}
 						{#if showCount}
-							<span class="text-[color:var(--tp-fg-subtle)] tabular-nums">({cat.articleCount ?? 0})</span>
+							<span class="pb-blogCategory__count pb-blogCategory__count--chip">({cat.articleCount ?? 0})</span>
 						{/if}
 					</span>
 				{/if}
@@ -155,3 +147,84 @@
 		</div>
 	{/if}
 </section>
+
+<style lang="scss">
+	.pb-blogCategory {
+		color: var(--tp-fg);
+	}
+
+	.pb-blogCategory__heading {
+		margin: 0 0 0.75rem;
+		font-size: 1.125rem;
+		font-weight: 600;
+	}
+
+	.pb-blogCategory__status {
+		margin: 0;
+		font-size: 0.875rem;
+		color: var(--tp-fg-muted);
+	}
+
+	.pb-blogCategory__list {
+		margin: 0;
+		padding: 0;
+		list-style: none;
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+
+	.pb-blogCategory__listItem {
+		margin: 0;
+	}
+
+	.pb-blogCategory__listLink,
+	.pb-blogCategory__listRow {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.pb-blogCategory__listLink {
+		color: var(--os-primary);
+		text-decoration: none;
+	}
+	.pb-blogCategory__listLink:hover {
+		text-decoration: underline;
+	}
+
+	.pb-blogCategory__count {
+		font-variant-numeric: tabular-nums;
+		color: var(--tp-fg-subtle);
+	}
+	.pb-blogCategory__count--chip {
+		margin-left: 0.125rem;
+	}
+
+	.pb-blogCategory__chips {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+	}
+
+	.pb-blogCategory__chip {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.375rem;
+		padding: 0.25rem 0.75rem;
+		border: 1px solid var(--tp-border);
+		border-radius: 999px;
+		font-size: 0.875rem;
+		background: var(--tp-surface-2);
+	}
+	.pb-blogCategory__chip--interactive {
+		color: inherit;
+		text-decoration: none;
+		cursor: pointer;
+		transition: background 0.15s ease;
+	}
+	.pb-blogCategory__chip--interactive:hover {
+		background: var(--tp-surface-3, var(--tp-surface-2));
+	}
+</style>

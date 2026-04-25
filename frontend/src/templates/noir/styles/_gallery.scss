@@ -1,0 +1,256 @@
+// ============================================================
+// Noir Gallery Page — _gallery.scss
+//
+// Original design:
+//   .gal-page — transparent, no padding
+//   .gal-hdr  — flex space-between, padding:48px 32px 16px
+//   h1.gal-title — DM Sans 200 32px 0.04em var(--fg)
+//   span.sec-count — DM Mono 9px 0.22em uppercase var(--fg-dimmer)
+//   .album-grid — 3-col grid, gap:2px
+//   a.ac — square card, overflow hidden
+//   img — absolute inset-0, object-cover, filter dark+mono
+//   .ac-ov — gradient overlay, opacity 0→1 on hover
+//   .ac-info — absolute bottom-0, slide up on hover
+//   .ac-title — DM Mono 11px 0.14em uppercase #fff
+//   .ac-meta — DM Mono 9px 0.1em uppercase rgba(255,255,255,.6)
+//
+// Produced DOM (key structure):
+//   div.n-gallery
+//     section.@container.py-12.bg-[tp-surface-2]
+//       div.max-w-7xl.px-4
+//         div.text-center.mb-10         ← header (centred, not left)
+//           h2.text-2xl.font-bold       ← restyle as gal-title
+//           [count MISSING]
+//         div.grid.gap-5               ← gap override needed
+//           a.ac.group.aspect-square    ← ✅ correct base
+//             div.relative.h-full
+//               div.absolute.inset-0
+//                 img.object-cover      ← ✅ correct, needs filter
+//               div.ac-ov              ← ✅ IN DOM, needs gradient
+//               div.ac-info            ← ✅ IN DOM, needs typography+animation
+//                 h3.font-semibold     ← restyle as ac-title
+//                 div.prose.prose-sm   ← hide description
+//                 div.text-sm          ← restyle as ac-meta
+// ============================================================
+
+@mixin n-mono($size: 10px, $spacing: 0.18em) {
+    font-family: 'DM Mono', monospace;
+    font-size: $size;
+    letter-spacing: $spacing;
+    text-transform: uppercase;
+    font-weight: 400;
+  }
+  
+  // ── Page wrapper ──────────────────────────────────────────────
+  
+  .n-gallery {
+    display: block !important;
+    flex: none !important;
+    width: 100% !important;
+    min-height: 100vh;
+  }
+  
+  // ── Section: strip bg + padding ───────────────────────────────
+  
+  .n-gallery > section[class*="@container"],
+  .n-gallery > section {
+    background: transparent !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  
+    // Inner max-width wrapper
+    > div {
+      max-width: 100% !important;
+      padding: 0 !important;
+      margin: 0 !important;
+    }
+  }
+  
+  // ── Gallery header ────────────────────────────────────────────
+  // Original: left-aligned flex row, title left + count right.
+  // Produced: centred div with only h2, no count.
+  
+  .n-gallery div[class*="text-center"][class*="mb-"] {
+    text-align: start !important;            // left-align
+    display: flex !important;
+    align-items: baseline !important;
+    justify-content: space-between !important;
+    padding: 48px 32px 16px !important;
+    margin-bottom: 0 !important;
+  
+    [dir="rtl"] & {
+      flex-direction: row-reverse;
+      text-align: end !important;
+    }
+  }
+  
+  // ── Gallery title (h2 → styled as gal-title) ──────────────────
+  
+  .n-gallery div[class*="text-center"] h2 {
+    font-family: 'DM Sans', sans-serif !important;
+    font-weight: 200 !important;
+    font-size: 32px !important;
+    letter-spacing: 0.04em !important;
+    color: var(--fg) !important;
+    text-align: start !important;
+    margin: 0 !important;
+    // Reset @container responsive sizing
+    font-size: 32px !important;
+  }
+  
+  // ── Collection count ──────────────────────────────────────────
+  // Not in the DOM — CSS workaround via h2::after.
+  // Remove once component renders span.sec-count.
+  // To show real count, component must inject data-count attribute.
+  
+  .n-gallery div[class*="text-center"] h2::after {
+    content: attr(data-count, '');  // reads data-count if set by component
+    @include n-mono(9px, 0.22em);
+    color: var(--fg-dimmer);
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    font-weight: 400;
+    margin-inline-start: auto;
+    // Sits at far right via the flex space-between on parent
+  }
+  
+  // ── Grid ──────────────────────────────────────────────────────
+  
+  .n-gallery div[class*="grid"][class*="grid-cols"] {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: var(--gap-grid, 2px) !important;
+    padding: 0 var(--gap-grid, 2px) var(--gap-grid, 2px) !important;
+    margin-bottom: 0 !important;
+  }
+  
+  // ── Card ──────────────────────────────────────────────────────
+  // a.ac already has: relative, aspect-square, overflow-hidden.
+  // Only need transitions and cursor.
+  
+  a.ac {
+    cursor: pointer;
+    transition: none; // remove any transform/shadow Tailwind adds
+  
+    &:hover {
+      transform: none !important;
+      box-shadow: none !important;
+    }
+  }
+  
+  // ── Image container ───────────────────────────────────────────
+  // div.absolute.inset-0.z-0 wraps the img — already correctly
+  // positioned. Only need to strip the gradient bg fallback.
+  
+  a.ac div[class*="absolute"][class*="inset-0"][class*="z-0"],
+  a.ac div[class*="absolute"][class*="inset-0"]:first-child {
+    background: var(--bg-card, #141414) !important; // replace gradient fallback
+  }
+  
+  // ── Image ─────────────────────────────────────────────────────
+  
+  a.ac img {
+    // object-cover + h-full w-full already set by component ✅
+    // Add Noir filter treatment
+    filter: brightness(0.8) grayscale(0.15);
+    transition:
+      transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+      filter 0.35s ease;
+    display: block;
+  
+    [data-mode="light"] & {
+      filter: brightness(0.95) grayscale(0);
+    }
+  }
+  
+  a.ac:hover img {
+    transform: scale(1.04);
+  }
+  
+  // ── Overlay (div.ac-ov) ───────────────────────────────────────
+  // IN THE DOM ✅ — just needs the gradient and transition.
+  
+  a.ac .ac-ov {
+    background: linear-gradient(
+      to top,
+      rgba(8, 8, 8, 0.75) 0%,
+      rgba(8, 8, 8, 0.2)  45%,
+      transparent         70%
+    );
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  
+    a.ac:hover & { opacity: 1; }
+  }
+  
+  // ── Info panel (div.ac-info) ──────────────────────────────────
+  // IN THE DOM ✅ — already absolute bottom-0 left-0 right-0 z-[2].
+  // Add padding, slide-up animation, pointer-events.
+  
+  a.ac .ac-info {
+    padding: 20px;
+    transform: translateY(8px);
+    opacity: 0;
+    transition:
+      transform 0.3s ease,
+      opacity   0.3s ease;
+  
+    a.ac:hover & {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+  
+  // ── Info title (h3 → ac-title style) ─────────────────────────
+  
+  a.ac .ac-info h3 {
+    @include n-mono(11px, 0.14em);
+    color: #fff !important;
+    font-weight: 400 !important;
+    margin: 0 0 4px !important;
+  
+    // Remove group-hover colour change
+    transition: none !important;
+  
+    // Override @container responsive sizing
+    font-size: 11px !important;
+  }
+  
+  // ── Description prose — hide ──────────────────────────────────
+  
+  a.ac .ac-info .prose,
+  a.ac .ac-info [class*="prose"],
+  a.ac .ac-info [class*="fg-muted"] {
+    display: none !important;
+  }
+  
+  // ── Info meta (photo count → ac-meta style) ───────────────────
+  
+  a.ac .ac-info div[class*="text-sm"][class*="fg-subtle"],
+  a.ac .ac-info div[class*="mt-1"] {
+    @include n-mono(9px, 0.1em);
+    color: rgba(255, 255, 255, 0.6) !important;
+    margin: 0 !important;
+    font-size: 9px !important;
+  }
+  
+  // ── RTL ───────────────────────────────────────────────────────
+  
+  [dir="rtl"] {
+    .n-gallery div[class*="text-center"][class*="mb-"] {
+      flex-direction: row-reverse;
+    }
+  
+    a.ac .ac-info {
+      text-align: right;
+    }
+  }
+  
+  // ── Light mode ────────────────────────────────────────────────
+  
+  [data-mode="light"] {
+    a.ac img {
+      filter: brightness(0.95) grayscale(0);
+    }
+  }

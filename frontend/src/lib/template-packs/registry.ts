@@ -25,11 +25,10 @@ const packCache = new Map<TemplatePackId, TemplatePack>();
 
 const packLoaders: Record<TemplatePackId, () => Promise<TemplatePack>> = {
 	noir: async () => {
-		const [Home, Gallery, Album, About, Search, Contact, CmsPage, Login] = await Promise.all([
+		const [Home, Gallery, Album, Search, Contact, CmsPage, Login] = await Promise.all([
 			import('$templates/noir/Home.svelte'),
 			import('$templates/noir/Gallery.svelte'),
 			import('$templates/noir/Album.svelte'),
-			import('$templates/noir/About.svelte'),
 			import('$templates/noir/Search.svelte'),
 			import('$templates/noir/Contact.svelte'),
 			import('$templates/noir/CmsPage.svelte'),
@@ -41,7 +40,7 @@ const packLoaders: Record<TemplatePackId, () => Promise<TemplatePack>> = {
 				Home: packPage<PackHomePageProps>(Home),
 				Gallery: packPage<PackGalleryPageProps>(Gallery),
 				Album: packPage<PackAlbumPageProps>(Album),
-				About: packPage<PackAboutPageProps>(About),
+				About: packPage<PackAboutPageProps>(CmsPage),
 				Search: packPage<PackSearchPageProps>(Search),
 				Contact: packPage<PackContactPageProps>(Contact),
 				CmsPage: packPage<PackCmsPageProps>(CmsPage),

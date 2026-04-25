@@ -90,14 +90,30 @@
 		}
 	});
 
-	const triggerBase =
-		'flex items-center gap-2 rounded-md border shadow-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--os-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--tp-surface-1)] ' +
-		'border-[color:var(--tp-border)] bg-[color:var(--tp-surface-1)] text-[color:var(--tp-fg)] hover:bg-[color:var(--tp-surface-2)] ';
+	function flagsNavClass(): string {
+		return `pb-languageSelector pb-languageSelector--flags ${compact ? 'pb-languageSelector--compact' : ''} ${className}`.trim();
+	}
+
+	function flagButtonClass(selected: boolean): string {
+		return `pb-languageSelector__flagBtn ${compact ? 'pb-languageSelector__flagBtn--compact' : ''} ${
+			selected ? 'pb-languageSelector__flagBtn--selected' : 'pb-languageSelector__flagBtn--default'
+		}`.trim();
+	}
+
+	function triggerClass(): string {
+		return `pb-languageSelector__trigger ${compact ? 'pb-languageSelector__trigger--compact' : ''}`.trim();
+	}
+
+	function dropdownOptionClass(isSelected: boolean): string {
+		return `pb-languageSelector__option ${compact ? 'pb-languageSelector__option--compact' : ''} ${
+			isSelected ? 'pb-languageSelector__option--selected' : 'pb-languageSelector__option--default'
+		}`.trim();
+	}
 </script>
 
 {#if variant === 'flags'}
 	<nav
-		class={`flex flex-wrap items-center ${compact ? 'gap-0.5' : 'gap-1.5'} ${className}`}
+		class={flagsNavClass()}
 		aria-label="Language"
 		data-language-selector="flags"
 	>
@@ -105,11 +121,7 @@
 			{@const selected = language.code === lang}
 			<button
 				type="button"
-				class={`rounded-md border transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--os-primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--tp-surface-1)] ${compact ? 'p-1 min-w-[2rem] text-base' : 'p-1.5 min-w-[2.35rem] text-lg'} ${
-					selected
-						? 'border-[color:var(--os-primary)] bg-[color:color-mix(in_oklab,var(--os-primary)_14%,var(--tp-surface-1))] ring-1 ring-[color:var(--os-primary)]'
-						: 'border-[color:var(--tp-border)] bg-[color:var(--tp-surface-1)] opacity-90 hover:opacity-100 hover:bg-[color:var(--tp-surface-2)]'
-				}`}
+				class={flagButtonClass(selected)}
 				aria-current={selected ? 'true' : undefined}
 				aria-pressed={selected}
 				title={labelFor(language, lang)}
@@ -117,43 +129,38 @@
 				on:click={() => handleLanguageSelect(language.code as LanguageCode)}
 			>
 				{#if showFlags}
-					<span aria-hidden="true">{language.flag}</span>
+					<span class="pb-languageSelector__flag" aria-hidden="true">{language.flag}</span>
 				{:else}
-					<span
-						class={`font-medium uppercase tracking-wide text-[color:var(--tp-fg)] ${compact ? 'text-[10px]' : 'text-xs'}`}
-						>{language.code}</span
-					>
+					<span class="pb-languageSelector__code {compact ? 'pb-languageSelector__code--compact' : ''}"
+						>{language.code}</span>
 				{/if}
 			</button>
 		{/each}
 	</nav>
 {:else}
-	<div class={`relative ${className}`} data-language-selector="dropdown">
+	<div class={`pb-languageSelector pb-languageSelector--dropdown ${className}`} data-language-selector="dropdown">
 		<button
 			bind:this={buttonElement}
 			type="button"
 			on:click={toggle}
-			class={`${triggerBase} px-3 py-2 ${compact ? 'text-sm' : 'text-base'}`}
+			class={triggerClass()}
 			aria-haspopup="listbox"
 			aria-expanded={isOpen}
 		>
 			{#if showFlags}
-				<span class="text-lg" aria-hidden="true">{currentLangConfig?.flag}</span>
+				<span class="pb-languageSelector__currentFlag" aria-hidden="true">{currentLangConfig?.flag}</span>
 			{/if}
 
-			<span class="font-medium text-[color:var(--tp-fg)]">
+			<span class="pb-languageSelector__currentLabel">
 				{labelFor(currentLangConfig ?? SUPPORTED_LANGUAGES[0], lang)}
 			</span>
 
 			{#if currentLangConfig?.isRTL && lang !== 'he'}
-				<span
-					class="rounded px-1 text-xs text-[color:var(--tp-fg-muted)] bg-[color:var(--tp-surface-2)]"
-					>RTL</span
-				>
+				<span class="pb-languageSelector__rtlTag">RTL</span>
 			{/if}
 
 			<svg
-				class={`h-4 w-4 shrink-0 text-[color:var(--tp-fg-muted)] transition-transform ${isOpen ? 'rotate-180' : ''}`}
+				class={`pb-languageSelector__chevron ${isOpen ? 'pb-languageSelector__chevron--open' : ''}`}
 				fill="none"
 				stroke="currentColor"
 				viewBox="0 0 24 24"
@@ -165,7 +172,7 @@
 
 		{#if isOpen}
 			<div
-				class="fixed inset-0"
+				class="pb-languageSelector__backdrop"
 				style="z-index: 9998;"
 				role="button"
 				tabindex="-1"
@@ -174,10 +181,10 @@
 			></div>
 
 			<div
-				class="rounded-md border border-[color:var(--tp-border)] bg-[color:var(--tp-surface-1)] py-1 shadow-lg"
+				class="pb-languageSelector__menu"
 				style={dropdownStyle}
 			>
-				<ul class="py-1" role="listbox">
+				<ul class="pb-languageSelector__menuList" role="listbox">
 					{#each availableLanguages as language}
 						{@const isSelected = language.code === lang}
 						{@const isRTL = language.isRTL}
@@ -188,38 +195,31 @@
 								role="option"
 								aria-selected={isSelected}
 								on:click={() => handleLanguageSelect(language.code as LanguageCode)}
-								class={`flex w-full items-center gap-3 px-4 py-2 text-left transition-colors ${compact ? 'text-sm' : 'text-base'} ${
-									isSelected
-										? 'bg-[color:color-mix(in_oklab,var(--os-primary)_14%,var(--tp-surface-1))] text-[color:var(--os-primary)]'
-										: 'text-[color:var(--tp-fg)] hover:bg-[color:var(--tp-surface-2)]'
-								}`}
+								class={dropdownOptionClass(isSelected)}
 							>
 								{#if showFlags}
-									<span class="text-lg" aria-hidden="true">{language.flag}</span>
+									<span class="pb-languageSelector__optionFlag" aria-hidden="true">{language.flag}</span>
 								{/if}
 
-								<div class="min-w-0 flex-1">
-									<div class="flex items-center justify-between">
+								<div class="pb-languageSelector__optionMain">
+									<div class="pb-languageSelector__optionHead">
 										<span
-											class={`truncate font-medium ${isSelected ? 'text-[color:var(--os-primary)]' : 'text-[color:var(--tp-fg)]'}`}
+											class={`pb-languageSelector__optionLabel ${isSelected ? 'pb-languageSelector__optionLabel--selected' : ''}`}
 										>
 											{labelFor(language, lang)}
 										</span>
 
 										{#if isRTL && lang !== 'he'}
-											<span
-												class="ml-2 rounded px-1 text-xs text-[color:var(--tp-fg-muted)] bg-[color:var(--tp-surface-2)]"
-												>RTL</span
-											>
+											<span class="pb-languageSelector__rtlTag pb-languageSelector__rtlTag--inline">RTL</span>
 										{/if}
 									</div>
 
 									{#if showNativeNames && language.nativeName !== language.name && lang !== 'he'}
-										<div class="truncate text-xs text-[color:var(--tp-fg-muted)]">
+										<div class="pb-languageSelector__optionSubLabel">
 											{language.name}
 										</div>
 									{:else if lang === 'he' && language.nativeName !== language.name}
-										<div class="truncate text-xs text-[color:var(--tp-fg-muted)]">
+										<div class="pb-languageSelector__optionSubLabel">
 											{language.nativeName}
 										</div>
 									{/if}
@@ -227,7 +227,7 @@
 
 								{#if isSelected}
 									<svg
-										class="h-4 w-4 shrink-0 text-[color:var(--os-primary)]"
+										class="pb-languageSelector__check"
 										fill="currentColor"
 										viewBox="0 0 20 20"
 										aria-hidden="true"
@@ -247,3 +247,208 @@
 		{/if}
 	</div>
 {/if}
+
+<style lang="scss">
+	.pb-languageSelector {
+		position: relative;
+	}
+
+	.pb-languageSelector--flags {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.375rem;
+	}
+
+	.pb-languageSelector--compact.pb-languageSelector--flags {
+		gap: 0.125rem;
+	}
+
+	.pb-languageSelector__flagBtn {
+		border-radius: 0.375rem;
+		border: 1px solid var(--tp-border);
+		background: var(--tp-surface-1);
+		transition: background-color 0.2s ease, opacity 0.2s ease, border-color 0.2s ease;
+		padding: 0.375rem;
+		min-width: 2.35rem;
+		font-size: 1.125rem;
+	}
+
+	.pb-languageSelector__flagBtn--compact {
+		padding: 0.25rem;
+		min-width: 2rem;
+		font-size: 1rem;
+	}
+
+	.pb-languageSelector__flagBtn--selected {
+		border-color: var(--os-primary);
+		background: color-mix(in oklab, var(--os-primary) 14%, var(--tp-surface-1));
+		box-shadow: 0 0 0 1px var(--os-primary) inset;
+	}
+
+	.pb-languageSelector__flagBtn--default {
+		opacity: 0.9;
+	}
+
+	.pb-languageSelector__flagBtn--default:hover {
+		opacity: 1;
+		background: var(--tp-surface-2);
+	}
+
+	.pb-languageSelector__flagBtn:focus-visible,
+	.pb-languageSelector__trigger:focus-visible {
+		outline: none;
+		box-shadow: 0 0 0 2px var(--os-primary), 0 0 0 4px var(--tp-surface-1);
+	}
+
+	.pb-languageSelector__code {
+		font-weight: 500;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+		color: var(--tp-fg);
+		font-size: 0.75rem;
+	}
+
+	.pb-languageSelector__code--compact {
+		font-size: 10px;
+	}
+
+	.pb-languageSelector__trigger {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.5rem 0.75rem;
+		border-radius: 0.375rem;
+		border: 1px solid var(--tp-border);
+		background: var(--tp-surface-1);
+		color: var(--tp-fg);
+		box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+		font-size: 1rem;
+		transition: background-color 0.2s ease;
+	}
+
+	.pb-languageSelector__trigger:hover {
+		background: var(--tp-surface-2);
+	}
+
+	.pb-languageSelector__trigger--compact {
+		font-size: 0.875rem;
+	}
+
+	.pb-languageSelector__currentFlag,
+	.pb-languageSelector__optionFlag {
+		font-size: 1.125rem;
+	}
+
+	.pb-languageSelector__currentLabel {
+		font-weight: 500;
+		color: var(--tp-fg);
+	}
+
+	.pb-languageSelector__rtlTag {
+		border-radius: 0.25rem;
+		padding: 0 0.25rem;
+		font-size: 0.75rem;
+		background: var(--tp-surface-2);
+		color: var(--tp-fg-muted);
+	}
+
+	.pb-languageSelector__rtlTag--inline {
+		margin-left: 0.5rem;
+	}
+
+	.pb-languageSelector__chevron {
+		width: 1rem;
+		height: 1rem;
+		flex-shrink: 0;
+		color: var(--tp-fg-muted);
+		transition: transform 0.2s ease;
+	}
+
+	.pb-languageSelector__chevron--open {
+		transform: rotate(180deg);
+	}
+
+	.pb-languageSelector__backdrop {
+		position: fixed;
+		inset: 0;
+	}
+
+	.pb-languageSelector__menu {
+		border-radius: 0.375rem;
+		border: 1px solid var(--tp-border);
+		background: var(--tp-surface-1);
+		padding-block: 0.25rem;
+		box-shadow: 0 10px 26px rgb(0 0 0 / 0.2);
+	}
+
+	.pb-languageSelector__menuList {
+		padding-block: 0.25rem;
+	}
+
+	.pb-languageSelector__option {
+		display: flex;
+		width: 100%;
+		align-items: center;
+		gap: 0.75rem;
+		padding: 0.5rem 1rem;
+		text-align: left;
+		transition: background-color 0.2s ease;
+		font-size: 1rem;
+	}
+
+	.pb-languageSelector__option--compact {
+		font-size: 0.875rem;
+	}
+
+	.pb-languageSelector__option--selected {
+		background: color-mix(in oklab, var(--os-primary) 14%, var(--tp-surface-1));
+		color: var(--os-primary);
+	}
+
+	.pb-languageSelector__option--default {
+		color: var(--tp-fg);
+	}
+
+	.pb-languageSelector__option--default:hover {
+		background: var(--tp-surface-2);
+	}
+
+	.pb-languageSelector__optionMain {
+		min-width: 0;
+		flex: 1;
+	}
+
+	.pb-languageSelector__optionHead {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+	}
+
+	.pb-languageSelector__optionLabel {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		font-weight: 500;
+		color: var(--tp-fg);
+	}
+
+	.pb-languageSelector__optionLabel--selected {
+		color: var(--os-primary);
+	}
+
+	.pb-languageSelector__optionSubLabel {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		font-size: 0.75rem;
+		color: var(--tp-fg-muted);
+	}
+
+	.pb-languageSelector__check {
+		width: 1rem;
+		height: 1rem;
+		flex-shrink: 0;
+		color: var(--os-primary);
+	}
+</style>

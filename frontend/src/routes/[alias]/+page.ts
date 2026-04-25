@@ -18,7 +18,17 @@ export const load: PageLoad = async ({ params, fetch }) => {
 	}
 
 	try {
-		const response = await fetch(`/api/pages/${alias}`);
+		const siteConfigRes = await fetch('/api/site-config');
+		const siteConfigJson = siteConfigRes.ok ? await siteConfigRes.json().catch(() => null) : null;
+		const siteConfig = siteConfigJson?.success ? siteConfigJson?.data : siteConfigJson;
+		const pack =
+			typeof siteConfig?.template?.frontendTemplate === 'string' && siteConfig.template.frontendTemplate.trim()
+				? siteConfig.template.frontendTemplate.trim()
+				: undefined;
+		const pagesUrl = pack
+			? `/api/pages/${alias}?pack=${encodeURIComponent(pack)}`
+			: `/api/pages/${alias}`;
+		const response = await fetch(pagesUrl);
 		const result = await response.json();
 
 		if (!response.ok) {

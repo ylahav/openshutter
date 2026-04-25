@@ -10,6 +10,14 @@
 		ctaUrl?: string;
 		backgroundStyle?: 'light' | 'dark' | 'image' | 'galleryLeading';
 		backgroundImage?: string;
+		/** `contain` | `cover`; unset uses pack default (Noir + image → cover). */
+		imageFit?: 'contain' | 'cover';
+		/** Noir full-viewport image hero unless `false`. Other packs need `true`. */
+		fullViewportHero?: boolean;
+		showHeroRule?: boolean;
+		showScrollHint?: boolean;
+		scrollHintHref?: string;
+		scrollHintLabel?: string | Record<string, string>;
 	};
 
 	type LegacyHeroProps = {
@@ -24,6 +32,12 @@
 	export let ctaUrl: HeroProps['ctaUrl'] = undefined;
 	export let backgroundStyle: NonNullable<HeroProps['backgroundStyle']> = 'light';
 	export let backgroundImage: HeroProps['backgroundImage'] = undefined;
+	export let imageFit: HeroProps['imageFit'] = undefined;
+	export let fullViewportHero: HeroProps['fullViewportHero'] = undefined;
+	export let showHeroRule: HeroProps['showHeroRule'] = undefined;
+	export let showScrollHint: HeroProps['showScrollHint'] = undefined;
+	export let scrollHintHref: HeroProps['scrollHintHref'] = undefined;
+	export let scrollHintLabel: HeroProps['scrollHintLabel'] = undefined;
 
 	// Temporary migration fallback for legacy nested props.config payloads
 	export let props: LegacyHeroProps | undefined = undefined;
@@ -35,7 +49,13 @@
 			ctaLabel,
 			ctaUrl,
 			backgroundStyle,
-			backgroundImage
+			backgroundImage,
+			imageFit,
+			fullViewportHero,
+			showHeroRule,
+			showScrollHint,
+			scrollHintHref,
+			scrollHintLabel
 		}) satisfies HeroProps;
 </script>
 

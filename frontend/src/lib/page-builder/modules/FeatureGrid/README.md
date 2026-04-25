@@ -16,9 +16,8 @@ See `config.ts`.
 
 ## Classes & tokens for template styles
 
-- **Root:** `<section class="py-20 bg-[color:var(--tp-surface-2)]">`
-- **Cards:** `bg-[color:var(--tp-surface-1)] rounded-xl border border-[color:var(--tp-border)]`
+- **Root:** `.pb-featureGrid`
+- **Inner/header/grid:** `.pb-featureGrid__inner`, `.pb-featureGrid__header`, `.pb-featureGrid__grid`
+- **Cards:** `.pb-featureGrid__card`
 - **Icon well:** uses `--os-primary` and a mixed background from primary + `--tp-surface-2`
-- **Typography:** `--tp-fg`, `--tp-fg-muted`; prose links `--os-primary`
-
-No single root BEM class; target `section` context or add pack-specific wrappers via layout shell.
+- **Typography:** `--tp-fg`, `--tp-fg-muted`; body links `--os-primary`

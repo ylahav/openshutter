@@ -9,6 +9,7 @@
 	export let availableModuleTypes: Array<{ value: string; label: string }> = [];
 export let onMoveRow: (fromRowOrder: number, toRowOrder: number) => Promise<void>;
 export let onInsertRow: (atRowOrder: number) => Promise<void>;
+export let onDeleteRow: (rowOrder: number) => Promise<void>;
 
 	interface RowData {
 		rowOrder: number;
@@ -224,6 +225,14 @@ export let onInsertRow: (atRowOrder: number) => Promise<void>;
 							on:click={() => onInsertRow(row.rowOrder + 1)}
 						>
 							+↓
+						</button>
+						<button
+							type="button"
+							class="px-1.5 py-0.5 text-[11px] rounded border border-red-300 bg-red-50 text-red-700 hover:bg-red-100 disabled:opacity-50"
+							disabled={rows.length <= 1}
+							on:click={() => onDeleteRow(row.rowOrder)}
+						>
+							🗑
 						</button>
 					</div>
 				</div>

@@ -5,17 +5,17 @@
 
 :root {
   // ── Colour ──────────────────────────────────────────────
-  --bg:           #ffffff;
-  --bg-2:         #f8f8f8;
-  --bg-3:         #efefef;
-  --fg:           #111111;
-  --fg-mid:       #444444;
-  --fg-muted:     #777777;
-  --fg-faint:     #aaaaaa;
-  --accent:       #111111;
-  --accent-dark:  #000000;
-  --accent-light: #eeeeee;
-  --border:       rgba(0,0,0,0.10);
+  --bg:           var(--tp-canvas);
+  --bg-2:         var(--tp-surface-1);
+  --bg-3:         var(--tp-surface-2);
+  --fg:           var(--tp-fg);
+  --fg-mid:       var(--tp-fg-muted);
+  --fg-muted:     var(--tp-fg-subtle);
+  --fg-faint:     var(--tp-fg-faint);
+  --accent:       var(--tp-brand);
+  --accent-dark:  var(--tp-brand-hover);
+  --accent-light: var(--tp-accent);
+  --border:       var(--tp-border);
   --gold:         transparent;
 
   // ── Typography ──────────────────────────────────────────
@@ -51,8 +51,8 @@
   --hero-img-brightness:   0.4;
   --hero-img-saturate:     0.8;
   --hero-img-sepia:        0;
-  --hero-text-color:       #ffffff;
-  --hero-sub-color:        rgba(255,255,255,0.55);
+  --hero-text-color:       var(--tp-fg);
+  --hero-sub-color:        var(--tp-fg-muted);
   --hero-overlay-start:    rgba(0,0,0,0.85);
   --hero-overlay-end:      rgba(0,0,0,0.1);
   --hero-title-weight:     300;
@@ -84,9 +84,9 @@
   --portrait-filter:  none;
 
   // ── Footer ──────────────────────────────────────────────
-  --footer-bg:    #111111;
-  --footer-fg:    #ffffff;
-  --footer-muted: rgba(255,255,255,0.35);
+  --footer-bg:    var(--tp-footer-strip-bg);
+  --footer-fg:    var(--tp-fg);
+  --footer-muted: var(--tp-fg-muted);
 
   // ── Animation ───────────────────────────────────────────
   --anim-duration: 0.7s;

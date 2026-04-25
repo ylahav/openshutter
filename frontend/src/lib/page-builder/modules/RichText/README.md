@@ -16,8 +16,8 @@ See `config.ts`.
 
 ## Classes & tokens for template styles
 
-- **Root:** `<section>` with `paddingClass` derived from `background` plus `border-[color:var(--tp-border)]` where applicable.
-- **Title:** `text-3xl font-bold text-[color:var(--tp-fg)]`
-- **Body wrapper:** `prose prose-lg … text-[color:var(--tp-fg-muted)] [&_a]:text-[color:var(--os-primary)]`
-
-No dedicated stable class; scope with parent layout or `:global(.prose)` under your pack.
+- **Root:** `.pb-richText` with modifiers:
+  - `.pb-richText--compact` / `.pb-richText--regular`
+  - `.pb-richText--white` / `.pb-richText--gray` / `.pb-richText--transparent`
+- **Inner/title/body:** `.pb-richText__inner`, `.pb-richText__title`, `.pb-richText__body`
+- **Tokens:** body text uses `--tp-fg-muted`; links use `--os-primary`

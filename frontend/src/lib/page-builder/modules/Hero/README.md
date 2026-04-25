@@ -31,10 +31,10 @@ Image URLs are resolved with **`getPhotoFullUrl`** so storage paths become brows
 
 ## Classes & tokens for template styles
 
-- **Root:** `<section>` — dynamic classes include:
-  - Dark: `bg-[color:var(--tp-hero-strip-bg)] text-[color:var(--tp-fg)]`
-  - Light (default): `bg-[color:var(--tp-surface-2)] text-[color:var(--tp-fg)]`
-  - Image / gallery-leading: text uses `--tp-fg`; overlay uses `--tp-overlay-scrim`
-- **Inner:** `relative w-full`, flex centering stacks, CTA uses `bg-[color:var(--os-primary)] text-[color:var(--tp-on-brand)]`
-
-**Suggested pack hooks:** target the hero `section` inside your page root or layout shell, e.g. `.layout-shell section` or a wrapper you add via grid placement—not a dedicated `os-hero` class today.
+- **Root:** `.pb-hero` with modifiers:
+  - `.pb-hero--light`
+  - `.pb-hero--dark`
+  - `.pb-hero--image`
+  - `.pb-hero--fullViewport`
+- **Key internals:** `.pb-hero__imageFull`, `.pb-hero__bgImage`, `.pb-hero__overlay`, `.pb-hero__contentWrap`, `.pb-hero__headlineRow`, `.pb-hero__title`, `.pb-hero__subtitle`, `.pb-hero__cta`
+- **Tokens:** `--tp-hero-strip-bg`, `--tp-surface-2`, `--tp-overlay-scrim`, `--os-primary`, `--tp-on-brand`

@@ -19,8 +19,7 @@ See `config.ts`.
 
 ## Classes & tokens for template styles
 
-- **Root:** `<section class="py-20 text-[color:var(--tp-on-brand)]" style="background: linear-gradient(180deg, var(--tp-brand) …)">`
-- **Primary button:** `bg-[color:var(--tp-surface-1)] text-[color:var(--tp-brand)]`
-- **Secondary button:** `border-2 border-[color:var(--tp-on-brand)] text-[color:var(--tp-on-brand)]`
-
-Pack hooks: adjust `--tp-brand` / `--tp-on-brand` or target this `section` in context.
+- **Root:** `.pb-cta` (gradient background is still inline style from config tokens)
+- **Inner/title/description:** `.pb-cta__inner`, `.pb-cta__title`, `.pb-cta__description`
+- **Actions/buttons:** `.pb-cta__actions`, `.pb-cta__button`, `.pb-cta__button--primary`, `.pb-cta__button--secondary`
+- **Tokens:** `--tp-brand`, `--tp-on-brand`, `--tp-surface-1`, `--tp-surface-3`

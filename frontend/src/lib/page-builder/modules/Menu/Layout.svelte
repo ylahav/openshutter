@@ -12,14 +12,16 @@
 	};
 </script>
 
-<Menu
-	orientation={orientation}
-	config={normalizedConfig}
-	items={items}
-	itemClass={config?.itemClass}
-	activeItemClass={config?.activeItemClass}
-	containerClass={config?.containerClass}
-	separator={config?.separator}
-	showActiveIndicator={config?.showActiveIndicator}
-	showAuthButtons={config?.showAuthButtons}
-/>
+<div class="pb-menuModule">
+	<Menu
+		orientation={orientation}
+		config={normalizedConfig}
+		items={items}
+		itemClass={config?.itemClass}
+		activeItemClass={config?.activeItemClass}
+		containerClass={config?.containerClass}
+		separator={config?.separator}
+		showActiveIndicator={config?.showActiveIndicator}
+		showAuthButtons={config?.showAuthButtons}
+	/>
+</div>

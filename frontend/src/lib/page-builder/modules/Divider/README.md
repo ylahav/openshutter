@@ -17,8 +17,9 @@ Flat props from the grid (`thickness`, etc.) merge with `props` (see `DividerMod
 
 ## Classes & tokens for template styles
 
-- **Stable class:** **`os-divider`** on the `<hr>`
-- **Tokens:** `border-[color:var(--tp-border)]`
+- **Stable classes:** `pb-divider` + `os-divider` on `<hr>`
+- **Modifiers:** `pb-divider--thin|medium`, `pb-divider--solid|dashed|dotted`, `pb-divider--mNone|mSm|mMd|mLg`
+- **Tokens:** `--tp-border`
 
 Example pack override:
 

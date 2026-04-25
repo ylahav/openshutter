@@ -10,6 +10,7 @@
 	export let presetKey = '';
 	/** Shared instance alias (preferred). Falls back to `presetKey` for legacy data. */
 	export let instanceRef = '';
+	// svelte-ignore export_let_unused - className is consumed by PageBuilderGrid wrapper cell, not inner shell markup
 	export let className = '';
 	/** Optional CSS `grid-template-columns` for each row (non-spanning layouts), e.g. `auto auto 1fr auto auto`. Skips equal-width flex on cells. */
 	export let gridTemplateColumns = '';
@@ -60,13 +61,13 @@
 	</div>
 {:else if !preset}
 	<section
-		class="layout-shell w-full {className}"
+		class="layout-shell w-full"
 		aria-hidden="true"
 		data-layout-preset={resolvedRef}
 	></section>
 {:else}
 	<section
-		class="layout-shell w-full {className}"
+		class="layout-shell w-full"
 		aria-label={`Layout ${resolvedRef}`}
 		data-layout-preset={resolvedRef}
 	>

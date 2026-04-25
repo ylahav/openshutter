@@ -18,11 +18,27 @@ import { normalizeVisitorPack } from '../common/utils/visitor-pack.util';
 @Controller('pages')
 export class PagesPublicController {
   private readonly logger = new Logger(PagesPublicController.name);
-  private static readonly ROLE_QUERY_ALLOWLIST = new Set(['home', 'gallery', 'login', 'search', 'blog']);
+  private static readonly ROLE_QUERY_ALLOWLIST = new Set(['home', 'gallery', 'album', 'login', 'search', 'blog']);
+
+  private static hasPackVariant(page: any, pack: string): boolean {
+    if (!page || !pack) return false;
+    const multi = Array.isArray(page.frontendTemplates) ? page.frontendTemplates.map((p: unknown) => String(p).trim().toLowerCase()) : [];
+    const legacy = String(page.frontendTemplate ?? '').trim().toLowerCase();
+    const normalizedPack = String(pack).trim().toLowerCase();
+    return multi.includes(normalizedPack) || legacy === normalizedPack;
+  }
+
+  private static isDefaultVariant(page: any): boolean {
+    if (!page) return false;
+    const multi = Array.isArray(page.frontendTemplates) ? page.frontendTemplates : [];
+    const legacy = String(page.frontendTemplate ?? '').trim();
+    return multi.length === 0 && legacy.length === 0;
+  }
 
   private static readonly DEFAULT_PAGE_LAYOUTS: Record<string, { gridRows: number; gridColumns: number; zones: string[] }> = {
     home: { gridRows: 2, gridColumns: 1, zones: ['main'] },
     gallery: { gridRows: 1, gridColumns: 1, zones: ['main'] },
+    album: { gridRows: 1, gridColumns: 1, zones: ['main'] },
     login: { gridRows: 1, gridColumns: 1, zones: ['main'] },
     search: { gridRows: 1, gridColumns: 1, zones: ['main'] },
     blog: { gridRows: 1, gridColumns: 1, zones: ['main'] },
@@ -59,6 +75,17 @@ export class PagesPublicController {
       {
         type: 'albumsGrid',
         props: { albumSource: 'root' },
+        rowOrder: 0,
+        columnIndex: 0,
+        columnProportion: 1,
+        rowSpan: 1,
+        colSpan: 1,
+      },
+    ],
+    album: [
+      {
+        type: 'albumView',
+        props: { albumSource: 'current' },
         rowOrder: 0,
         columnIndex: 0,
         columnProportion: 1,
@@ -285,7 +312,16 @@ export class PagesPublicController {
         ) {
           pageQuery.createdBy = new Types.ObjectId(ownerUserId);
         }
-        page = await pagesCollection.findOne(pageQuery);
+        const candidates = await pagesCollection.find(pageQuery).toArray();
+        if (normalizedPack) {
+          page = candidates.find((candidate) => PagesPublicController.hasPackVariant(candidate, normalizedPack)) || null;
+        }
+        if (!page) {
+          page = candidates.find((candidate) => PagesPublicController.isDefaultVariant(candidate)) || null;
+        }
+        if (!page) {
+          page = candidates[0] || null;
+        }
       }
 
       if (!page) {

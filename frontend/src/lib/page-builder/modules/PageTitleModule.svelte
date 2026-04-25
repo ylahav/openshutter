@@ -16,13 +16,13 @@
 
 {#if hasAny}
 	<div
-		class="{compact ? 'py-2' : 'py-8'} {align === 'center' ? 'text-center' : 'text-left'} border-b border-[color:var(--tp-border)]"
+		class="pb-pageTitle {compact ? 'pb-pageTitle--compact' : ''} {align === 'center' ? 'pb-pageTitle--center' : 'pb-pageTitle--left'}"
 	>
 		{#if showTitle && titleText}
-			<h1 class="text-3xl @md:text-5xl font-bold text-[color:var(--tp-fg)] mb-3">{titleText}</h1>
+			<h1 class="pb-pageTitle__title">{titleText}</h1>
 		{/if}
 		{#if showSubtitle && subtitleText}
-			<h2 class="text-lg @md:text-2xl font-semibold text-[color:var(--tp-fg-muted)]">{subtitleText}</h2>
+			<h2 class="pb-pageTitle__subtitle">{subtitleText}</h2>
 		{/if}
 	</div>
 {/if}

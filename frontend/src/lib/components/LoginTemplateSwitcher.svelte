@@ -325,9 +325,9 @@
 
 
 
-			<div class="rounded-md shadow-sm space-y-4">
+			<div class={`rounded-md shadow-sm space-y-4 ${templateName === 'noir' ? 'login-fields' : ''}`}>
 
-				<div>
+				<div class={templateName === 'noir' ? 'login-field' : ''}>
 
 					<label
 
@@ -337,11 +337,13 @@
 
 							? 'block text-[9px] uppercase tracking-[0.22em] mb-2 text-(--tp-fg-muted)'
 
-							: 'sr-only'}
+							: templateName === 'noir'
+								? 'login-lbl'
+								: 'sr-only'}
 
 					>
 
-						Email address
+						{templateName === 'noir' ? 'email' : 'Email address'}
 
 					</label>
 
@@ -363,7 +365,7 @@
 
 							templateName === 'noir'
 
-								? 'px-3 py-2 border border-(--tp-border) bg-(--tp-surface-1) text-(--tp-fg) focus:ring-1 focus:ring-(--tp-fg-muted) [font-family:var(--os-font-form-inputs)]'
+								? 'login-inp px-3 py-2 border border-(--tp-border) bg-(--tp-surface-1) text-(--tp-fg) focus:ring-1 focus:ring-(--tp-fg-muted) [font-family:var(--os-font-form-inputs)]'
 
 								: templateName === 'atelier'
 
@@ -373,13 +375,13 @@
 
 						}`}
 
-						placeholder="Email address"
+						placeholder={templateName === 'noir' ? 'you@example.com' : 'Email address'}
 
 					/>
 
 				</div>
 
-				<div>
+				<div class={templateName === 'noir' ? 'login-field' : ''}>
 
 					<label
 
@@ -389,11 +391,13 @@
 
 							? 'block text-[9px] uppercase tracking-[0.22em] mb-2 text-(--tp-fg-muted)'
 
-							: 'sr-only'}
+							: templateName === 'noir'
+								? 'login-lbl'
+								: 'sr-only'}
 
 					>
 
-						Password
+						{templateName === 'noir' ? 'password' : 'Password'}
 
 					</label>
 
@@ -415,7 +419,7 @@
 
 							templateName === 'noir'
 
-								? 'px-3 py-2 border border-(--tp-border) bg-(--tp-surface-1) text-(--tp-fg) focus:ring-1 focus:ring-(--tp-fg-muted) [font-family:var(--os-font-form-inputs)]'
+								? 'login-inp px-3 py-2 border border-(--tp-border) bg-(--tp-surface-1) text-(--tp-fg) focus:ring-1 focus:ring-(--tp-fg-muted) [font-family:var(--os-font-form-inputs)]'
 
 								: templateName === 'atelier'
 
@@ -425,7 +429,7 @@
 
 						}`}
 
-						placeholder="Password"
+						placeholder={templateName === 'noir' ? '••••••••' : 'Password'}
 
 					/>
 
@@ -445,9 +449,13 @@
 
 					class={`group relative w-full flex justify-center border focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${
 
-						templateName === 'noir' || templateName === 'atelier'
+						templateName === 'noir'
 
-							? 'py-3 px-4 border-transparent text-sm font-medium uppercase tracking-[0.15em] bg-(--tp-fg) text-(--tp-canvas) hover:opacity-90 focus:ring-2 focus:ring-(--tp-fg-muted) [font-family:var(--os-font-body)]'
+							? 'login-submit'
+
+							: templateName === 'atelier'
+
+								? 'py-3 px-4 border-transparent text-sm font-medium uppercase tracking-[0.15em] bg-(--tp-fg) text-(--tp-canvas) hover:opacity-90 focus:ring-2 focus:ring-(--tp-fg-muted) [font-family:var(--os-font-body)]'
 
 							: templateName === 'studio'
 
@@ -502,3 +510,49 @@
 	<ForcePasswordChangeModal onSuccess={onPasswordChanged} />
 
 {/if}
+
+<style>
+	.login-fields {
+		display: flex;
+		flex-direction: column;
+		gap: 20px;
+	}
+
+	.login-field {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+
+	.login-lbl {
+		font-size: 9px;
+		letter-spacing: 0.22em;
+		text-transform: uppercase;
+		color: var(--tp-fg-muted);
+	}
+
+	.login-inp {
+		background: var(--tp-surface-1);
+		border: 1px solid var(--tp-border);
+		color: var(--tp-fg);
+		font-family: var(--os-font-form-inputs);
+		font-size: 13px;
+		padding: 10px 14px;
+		outline: none;
+		transition: border-color 0.2s, background 0.35s, color 0.35s;
+	}
+
+	.login-submit {
+		background: var(--tp-fg);
+		color: var(--tp-canvas);
+		border: none;
+		font-family: var(--os-font-form-inputs);
+		font-size: 10px;
+		letter-spacing: 0.22em;
+		text-transform: uppercase;
+		padding: 12px;
+		cursor: pointer;
+		margin-top: 16px;
+		transition: opacity 0.2s, background 0.35s, color 0.35s;
+	}
+</style>

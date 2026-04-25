@@ -55,5 +55,50 @@ export const heroConfig = {
         visibleWhen: { backgroundStyle: 'image' },
         description: 'Required when background is Custom image. Not used for Gallery leading.',
       },
+      {
+        key: 'imageFit',
+        type: 'select',
+        label: 'Image fit (image / gallery leading)',
+        options: ['contain', 'cover'],
+        required: false,
+        description:
+          'Optional. Default: Noir uses cover; other packs use contain. Controls object-fit on the hero photo.',
+      },
+      {
+        key: 'fullViewportHero',
+        type: 'boolean',
+        label: 'Full viewport height (100svh)',
+        required: false,
+        description:
+          'Optional. Noir defaults on for image heroes; set false for a shorter strip. Other packs default off unless enabled.',
+      },
+      {
+        key: 'showHeroRule',
+        type: 'boolean',
+        label: 'Show rule between title and subtitle',
+        required: false,
+        description: 'Optional. Noir defaults on when both title and subtitle exist.',
+      },
+      {
+        key: 'showScrollHint',
+        type: 'boolean',
+        label: 'Show bottom scroll hint (full-viewport image hero)',
+        required: false,
+        description: 'Optional. Noir defaults on for full-viewport image heroes.',
+      },
+      {
+        key: 'scrollHintHref',
+        type: 'string',
+        label: 'Scroll hint link (href)',
+        required: false,
+        placeholder: '/albums or #section',
+        description: 'Default /albums. Hash links use smooth scroll when clicked.',
+      },
+      {
+        key: 'scrollHintLabel',
+        type: 'multilangText',
+        label: 'Scroll hint label',
+        required: false,
+      },
     ],
   } as const;

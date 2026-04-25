@@ -16,10 +16,12 @@
 	$: authenticated = $auth.authenticated;
 </script>
 
-<div class={containerClass}>
-	{#if authenticated}
-		<VisitorLogoutButton className={logoutButtonClass} label={logoutLabel} />
-	{:else}
-		<VisitorSignInLink href={loginUrl} className={loginButtonClass} label={loginLabel} />
-	{/if}
+<div class="pb-authButtons">
+	<div class={containerClass}>
+		{#if authenticated}
+			<VisitorLogoutButton className={logoutButtonClass} label={logoutLabel} />
+		{:else}
+			<VisitorSignInLink href={loginUrl} className={loginButtonClass} label={loginLabel} />
+		{/if}
+	</div>
 </div>

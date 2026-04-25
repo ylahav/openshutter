@@ -16,7 +16,7 @@ See `config.ts`.
 
 ## Classes & tokens for template styles
 
-- **Root:** `span` or link wrapper with `font-semibold text-lg text-[color:var(--tp-fg)]`
-- **Link hover:** `hover:opacity-80 transition-opacity`
-
-No dedicated stable class; target via parent (e.g. header layout shell column).
+- **Root:** `.pb-siteTitle`
+- **Link:** `.pb-siteTitle__link` (inherits title font/size/weight/color)
+- **Interaction:** hover opacity, keyboard focus outline using `--os-primary`
+- **Tokens:** `--tp-fg`, `--os-font-heading`, `--os-primary`

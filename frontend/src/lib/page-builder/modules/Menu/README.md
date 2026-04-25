@@ -16,10 +16,10 @@ See `config.ts`.
 
 ## Classes & tokens for template styles
 
-Implemented in **`Menu.svelte`** (not in this folder’s `Layout` beyond the wrapper):
+Implemented in **`Menu.svelte`**. The page-builder wrapper adds **`pb-menuModule`** around the component.
 
-- **Root:** `<nav class={finalContainerClass}>` — default container uses `flex` + gap; vertical swaps to `flex-col items-start`
-- **Item classes:** defaults use `--tp-fg-muted` / hover `--tp-fg`; active uses `--os-primary`
-- **Separators:** `text-[color:var(--tp-fg-subtle)]`
+- **Root nav:** `pb-menu`, `pb-menu--horizontal` \| `pb-menu--vertical`, optional `containerClass`
+- **Items:** default `pb-menu__link`, active `pb-menu__link--active`
+- **Separators:** `.pb-menu__separator`
 
-Override via pack SCSS on `nav` inside `.layout-shell`, or extend header config if you add custom `itemClass` / `containerClass` support in `Menu.svelte` later.
+Override via pack SCSS under `.layout-shell`, or pass custom `itemClass` / `containerClass` from site header config.

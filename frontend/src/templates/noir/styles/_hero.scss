@@ -1,0 +1,225 @@
+// ============================================================
+// Noir Hero — _hero.scss
+//
+// Produced DOM tree:
+//
+//  div.flex-1.n-s-hero                     ← layoutShell cell wrapper
+//    section[data-hero-pack="noir"]         ← hero section (no .hero class)
+//      div.relative.w-full                  ← image + overlay wrapper
+//        div.relative.isolate               ← image inner wrapper
+//          img.max-h-[50vh].object-contain  ← THE PROBLEM: needs cover + 100vh
+//          div[tp-overlay-scrim]            ← overlay (can be styled)
+//        div.absolute.inset-0              ← content wrapper
+//          div.relative.w-full.py-16
+//            h1.text-3xl.font-bold          ← needs DM Sans 200 large
+//            p.text-base                    ← subtitle
+//            a.rounded-full                 ← CTA — hide for noir
+//
+// WHAT SCSS CAN DO: height, image sizing+filter, typography,
+//                  hide CTA, style overlay.
+// WHAT NEEDS CODE: add div.hero-rule, add span.hero-scroll,
+//                  switch object-contain → object-cover.
+// ============================================================
+
+@mixin n-mono($size: 10px, $spacing: 0.18em) {
+    font-family: 'DM Mono', monospace;
+    font-size: $size;
+    letter-spacing: $spacing;
+    text-transform: uppercase;
+    font-weight: 400;
+  }
+  
+  // ── Outer wrapper cell ────────────────────────────────────────
+  // The layoutShell wraps the section in a flex cell div.
+  
+  .n-s-hero {
+    // Collapse the wrapper so it doesn't constrain height
+    display: block !important;
+    flex: none !important;
+    width: 100% !important;
+  }
+  
+  // ── Section ───────────────────────────────────────────────────
+  
+  section[data-hero-pack="noir"] {
+    position: relative;
+    height: 100vh;           // override: was max-h-[50vh]
+    min-height: 480px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: crosshair;
+  
+    // ── Image wrapper divs — collapse to transparent passthrough ─
+  
+    > div,                   // div.relative.w-full.max-w-full
+    > div > div:first-child  // div.relative.isolate
+    {
+      position: static !important;
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+  
+    // ── Hero image ───────────────────────────────────────────────
+  
+    img {
+      // Override: object-contain + max-h-[50vh] → full-bleed cover
+      position: absolute !important;
+      inset: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      max-height: none !important;   // remove max-h-[50vh]
+      object-fit: cover !important;  // override object-contain
+      object-position: center;
+      display: block;
+  
+      // Noir image treatment: dark + desaturated
+      filter: brightness(0.35) grayscale(0.3);
+      transition: filter 0.35s ease;
+  
+      [data-mode="light"] & {
+        filter: brightness(0.55) grayscale(0.2);
+      }
+    }
+  
+    // ── Overlay scrim ─────────────────────────────────────────────
+    // The generated div uses --tp-overlay-scrim token.
+    // For Noir we want a gradient from bottom (text area) to transparent.
+    // Replace the flat scrim with a gradient so the image reads above.
+  
+    div[class*="overlay"],
+    div[style*="overlay"],
+    .pointer-events-none[class*="absolute"] {
+      background: linear-gradient(
+        to top,
+        rgba(8, 8, 8, 0.7) 0%,
+        rgba(8, 8, 8, 0.1) 60%,
+        transparent 100%
+      ) !important;
+    }
+  
+    // ── Content wrapper ───────────────────────────────────────────
+  
+    > div > div:last-child {   // div.absolute.inset-0.flex.items-center
+      position: absolute !important;
+      inset: 0 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+  
+      // Inner content div
+      > div {
+        width: 100%;
+        padding: 0 !important;       // remove py-16
+        text-align: center;
+        position: relative;
+        z-index: 2;
+      }
+    }
+  
+    // ── Title (h1) ────────────────────────────────────────────────
+  
+    h1 {
+      font-family: 'DM Sans', sans-serif !important;
+      font-weight: 200 !important;
+      font-size: clamp(42px, 8vw, 96px) !important;
+      letter-spacing: -0.02em !important;
+      line-height: 1 !important;
+      color: var(--fg) !important;
+      margin-bottom: 20px !important;  // space for rule below
+      text-transform: lowercase;       // Noir uses lowercase title
+    }
+  
+    // ── Rule (div.hero-rule) ──────────────────────────────────────
+    // If the component renders it — style it.
+    // If NOT rendered (current case) — CSS cannot create it.
+    // See code fix #3 below.
+  
+    .hero-rule {
+      width: 1px;
+      height: 48px;
+      background: var(--fg-dim);
+      margin: 0 auto 20px;
+    }
+  
+    // Workaround: fake a rule using h1::after if .hero-rule is absent
+    // Remove this once the component renders div.hero-rule.
+    h1::after {
+      content: '';
+      display: block;
+      width: 1px;
+      height: 48px;
+      background: var(--fg-dim);
+      margin: 20px auto 0;
+    }
+  
+    // ── Subtitle (p) ─────────────────────────────────────────────
+  
+    p {
+      @include n-mono(10px, 0.28em);
+      color: var(--fg-dim) !important;
+      margin-bottom: 0 !important;    // remove mb-6
+  
+      // If the subtitle says "Discover amazing…" and isn't yet
+      // customised, it will still render correctly in mono style.
+    }
+  
+    // ── CTA button — hide for Noir ────────────────────────────────
+    // Noir has no CTA button — only a scroll prompt at the bottom.
+  
+    a[class*="rounded-full"],
+    a[class*="bg-[color:var(--os-primary)]"] {
+      display: none !important;
+    }
+  
+    // ── Scroll prompt (span.hero-scroll) ─────────────────────────
+    // Not in the generated DOM. Style it when component adds it.
+    // CSS workaround below creates a visual equivalent.
+  
+    .hero-scroll {
+      position: absolute;
+      bottom: 32px;
+      left: 50%;
+      transform: translateX(-50%);
+      @include n-mono(9px, 0.22em);
+      color: var(--fg-dimmer);
+      text-decoration: none;
+      cursor: pointer;
+      animation: heroScroll 2s infinite;
+      z-index: 3;
+    }
+  
+    // Workaround: fake scroll prompt via section::after
+    // Remove once component renders span.hero-scroll.
+    &::after {
+      content: 'scroll';
+      position: absolute;
+      bottom: 32px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--fg-dimmer);
+      pointer-events: none;
+      animation: heroScroll 2s infinite;
+      z-index: 3;
+    }
+  }
+  
+  // ── Animations ────────────────────────────────────────────────
+  
+  @keyframes heroScroll {
+    0%, 100% { opacity: 0.25; }
+    50%       { opacity: 0.7; }
+  }
+  
+  // ── Light mode ────────────────────────────────────────────────
+  
+  [data-mode="light"] section[data-hero-pack="noir"] {
+    img {
+      filter: brightness(0.55) grayscale(0.2);
+    }
+  }

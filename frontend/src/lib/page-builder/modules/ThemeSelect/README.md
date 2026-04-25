@@ -15,4 +15,5 @@ See `config.ts`.
 
 ## Classes & tokens for template styles
 
-Pass-through `className`. Detailed structure lives in **`ui/template-selector/TemplateSelector.svelte`** (trigger, list, options). Style via pack `:global()` under a layout parent or extend that component with a stable root class if needed.
+- **Module wrapper:** `pb-themeSelectModule` around **`TemplateSelector`**.
+- **Selector root:** `pb-templateSelector` + pass-through `className`. Inner structure uses `pb-templateSelector__*` (trigger, dropdown, options, badges). Override from pack SCSS with `:global(.pb-templateSelector …)` if needed.

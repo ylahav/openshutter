@@ -5,4 +5,6 @@
 	export let variant: 'icons' | 'text' = 'icons';
 </script>
 
-<ThemeToggle {variant} />
+<div class="pb-themeToggleModule">
+	<ThemeToggle {variant} />
+</div>

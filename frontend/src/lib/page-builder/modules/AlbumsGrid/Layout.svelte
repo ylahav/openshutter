@@ -13,7 +13,10 @@
 
 	export let config: AlbumsGridConfig = {};
 	export let data: unknown = null;
+
+	/** Enables Noir-specific album card DOM and defaults (not used by albumView on album pages). */
+	$: galleryConfig = { ...config, albumsGridVariant: true };
 </script>
 
 <!-- Reuse existing album listing UI while keeping a dedicated albumsGrid module contract/file structure. -->
-<AlbumGalleryLayout {config} {data} />
+<AlbumGalleryLayout config={galleryConfig} {data} />

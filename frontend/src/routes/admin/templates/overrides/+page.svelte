@@ -51,6 +51,12 @@
 		EXTENDED_COLOR_FIELD_META
 	} from '$lib/template/theme/template-palette';
 	import atelierThemePack from '$templates/atelier/theme.defaults.json';
+	import noirThemePack from '$templates/noir/theme.defaults.json';
+	import {
+		legacySocialObjectToLinksJson,
+		parseLinksJson
+	} from '$lib/page-builder/modules/SocialMedia/resolveLinks';
+	import ModulePropsForm from '$lib/components/ModulePropsForm.svelte';
 
 	/** Readable defaults when template / overrides omit a key (also fixes invisible #000 on white fields). */
 	const DEFAULT_COLOR_HEX: Record<string, string> = {
@@ -133,6 +139,33 @@
 			};
 		};
 	}
+
+	type ThemePackEditorConfig = {
+		colors?: Record<string, string>;
+		fonts?: Record<string, string>;
+		packTokens?: {
+			layout?: Record<string, string>;
+			radii?: Record<string, string>;
+			card?: Record<string, string>;
+			hero?: { height?: string };
+			header?: { height?: string };
+			grid?: Record<string, string | number>;
+			motion?: Record<string, string>;
+		};
+		colorEditor?: Array<{ token: string; label: string; lightKey: string; darkKey: string; kind?: string }>;
+		fontEditor?: Array<{ role: string; token: string; label: string }>;
+		layoutEditor?: Array<{ key: string; token: string; label: string }>;
+	};
+	const THEME_PACK_EDITORS: Record<string, ThemePackEditorConfig> = {
+		atelier: atelierThemePack as ThemePackEditorConfig,
+		noir: noirThemePack as ThemePackEditorConfig
+	};
+	$: currentThemePack = activeTemplate?.templateName
+		? THEME_PACK_EDITORS[activeTemplate.templateName]
+		: undefined;
+	$: currentThemePackPath = activeTemplate?.templateName
+		? `src/templates/${activeTemplate.templateName}/theme.defaults.json`
+		: 'src/templates/<pack>/theme.defaults.json';
 
 	let templates: TemplateConfig[] = [];
 	let sharedLayoutPresetsFromThemes: Record<string, { gridRows?: number; gridColumns?: number; modules?: unknown[] }> = {};
@@ -444,7 +477,10 @@
 	// Keep in sync with PAGE_MODULE_TYPES and PageRenderer moduleMap.
 	// Missing an alias here can hide a registered module from Admin pickers.
 	// Use same module types as page builder / PageRenderer
-	const PAGE_CONTENT_MODULES = PAGE_MODULE_TYPES.filter((m) =>
+	const sortModuleOptions = <T extends { label: string }>(items: T[]): T[] =>
+		[...items].sort((a, b) => a.label.localeCompare(b.label));
+
+	const PAGE_CONTENT_MODULES = sortModuleOptions(PAGE_MODULE_TYPES.filter((m) =>
 		[
 			'pageTitle',
 			'loginForm',
@@ -459,8 +495,8 @@
 			'blogArticle',
 			'layoutShell'
 		].includes(m.type)
-	);
-	const HEADER_MODULES = PAGE_MODULE_TYPES.filter((m) =>
+	));
+	const HEADER_MODULES = sortModuleOptions(PAGE_MODULE_TYPES.filter((m) =>
 		[
 			'logo',
 			'siteTitle',
@@ -474,12 +510,14 @@
 			'divider',
 			'layoutShell'
 		].includes(m.type)
-	);
-	const FOOTER_MODULES = PAGE_MODULE_TYPES.filter((m) =>
+	));
+	const FOOTER_MODULES = sortModuleOptions(PAGE_MODULE_TYPES.filter((m) =>
 		['richText', 'divider', 'cta', 'socialMedia', 'themeSelect', 'layoutShell'].includes(m.type)
-	);
+	));
 
-	const LAYOUT_SHELL_INNER_MODULE_TYPES = PAGE_MODULE_TYPES.filter((m) => m.type !== 'layoutShell');
+	const LAYOUT_SHELL_INNER_MODULE_TYPES = sortModuleOptions(
+		PAGE_MODULE_TYPES.filter((m) => m.type !== 'layoutShell')
+	);
 
 	function migratePageModules(pm: Record<string, unknown> | undefined): Record<string, unknown> {
 		if (!pm) return {};
@@ -1672,6 +1710,24 @@ let draggedAlbumHeaderField: string | null = null;
 		return PAGE_CONTENT_MODULES;
 	}
 
+	function getAssignableModulesForPageType(pt: string) {
+		const src = getAvailableModulesForPageType(pt) as Array<{ type: string; label: string }>;
+		const byType = new Map<string, { type: string; label: string }>();
+		for (const mod of src) {
+			const normalizedType = mod.type === 'albumGallery' ? 'albumView' : mod.type;
+			if (!byType.has(normalizedType)) {
+				byType.set(normalizedType, { ...mod, type: normalizedType });
+			}
+		}
+		if (!byType.has('albumView')) {
+			const albumView = (PAGE_MODULE_TYPES as readonly { type: string; label: string }[]).find(
+				(m) => m.type === 'albumView'
+			);
+			if (albumView) byType.set('albumView', { ...albumView });
+		}
+		return [...byType.values()].sort((a, b) => a.label.localeCompare(b.label));
+	}
+
 	function getModuleLabel(type: string): string {
 		const all = [...PAGE_CONTENT_MODULES, ...HEADER_MODULES, ...FOOTER_MODULES];
 		const normalizedType = type === 'albumGallery' ? 'albumView' : type;
@@ -1946,8 +2002,7 @@ let draggedAlbumHeaderField: string | null = null;
 	}
 
 	function packAtelierColorDefault(key: string): string | undefined {
-		if (activeTemplate?.templateName !== 'atelier') return undefined;
-		const raw = (atelierThemePack as { colors?: Record<string, string> }).colors?.[key];
+		const raw = currentThemePack?.colors?.[key];
 		return raw != null && String(raw).trim() !== '' ? String(raw).trim() : undefined;
 	}
 
@@ -2021,21 +2076,9 @@ let draggedAlbumHeaderField: string | null = null;
 
 	/** Pack default family from `theme.defaults.json` (placeholders on Atelier font table). */
 	function atelierPackFontFamily(role: FontRole): string {
-		const raw = (atelierThemePack as { fonts?: Record<string, string> }).fonts?.[role];
+		const raw = currentThemePack?.fonts?.[role];
 		return raw != null && String(raw).trim() !== '' ? String(raw).trim() : '';
 	}
-
-	type AtelierPackTokens = {
-		packTokens?: {
-			layout?: Record<string, string>;
-			radii?: Record<string, string>;
-			card?: Record<string, string>;
-			hero?: { height?: string };
-			header?: { height?: string };
-			grid?: Record<string, string | number>;
-			motion?: Record<string, string>;
-		};
-	};
 
 	function aspectFromPackToken(v: unknown): string {
 		if (v == null) return '';
@@ -2045,7 +2088,7 @@ let draggedAlbumHeaderField: string | null = null;
 	}
 
 	function atelierPackLayoutDefault(layoutKey: string): string {
-		const pt = (atelierThemePack as AtelierPackTokens).packTokens;
+		const pt = currentThemePack?.packTokens;
 		if (!pt) return '';
 		const layout = pt.layout;
 		const radii = pt.radii;
@@ -2163,8 +2206,8 @@ let draggedAlbumHeaderField: string | null = null;
 				containerPadding: getEffectiveLayout('containerPadding') || '1rem',
 				gridGap: getEffectiveLayout('gridGap') || '1.5rem'
 			};
-			if (activeTemplate.templateName !== 'atelier') return base;
-			const rows = (atelierThemePack as { layoutEditor?: { key: string }[] }).layoutEditor ?? [];
+			const rows = currentThemePack?.layoutEditor ?? [];
+			if (rows.length === 0) return base;
 			const extra: ShellLayout = {};
 			for (const { key: k } of rows) {
 				if (k === 'maxWidth' || k === 'containerPadding' || k === 'gridGap') continue;
@@ -2511,13 +2554,13 @@ let draggedAlbumHeaderField: string | null = null;
 
 				<!-- Tab Content -->
 				{#if activeTab === 'colors'}
-					{#if activeTemplate?.templateName === 'atelier'}
+					{#if (currentThemePack?.colorEditor?.length ?? 0) > 0}
 					<div class="space-y-6">
 						<h2 class="text-xl font-semibold text-(--heading-font-color)">Color Customization</h2>
 						<p class="text-sm text-(--color-surface-600-400) mb-4 max-w-3xl">
 							Each row maps a token to <strong>light</strong> (<code class="text-xs font-mono">html.light</code>) and
 							<strong>dark</strong> (<code class="text-xs font-mono">html.dark</code>). Defaults and the field list live in
-							<code class="text-xs font-mono">lib/templates/atelier/theme.defaults.json</code> (<code class="text-xs font-mono">colorEditor</code>).
+							<code class="text-xs font-mono">{currentThemePackPath}</code> (<code class="text-xs font-mono">colorEditor</code>).
 						</p>
 						<div class="overflow-x-auto rounded-lg border border-surface-200-800 bg-(--color-surface-50-950)">
 							<table class="w-full text-sm min-w-[640px]">
@@ -2530,7 +2573,7 @@ let draggedAlbumHeaderField: string | null = null;
 									</tr>
 								</thead>
 								<tbody>
-									{#each atelierThemePack.colorEditor as row}
+									{#each currentThemePack.colorEditor as row}
 										<tr class="border-b border-surface-200-800 align-top">
 											<td class="p-3 font-mono text-xs text-(--color-primary-600) whitespace-nowrap align-middle">{row.token}</td>
 											<td class="p-3 text-(--color-surface-700-300) align-middle">{row.label}</td>
@@ -2541,7 +2584,7 @@ let draggedAlbumHeaderField: string | null = null;
 														value={colorField(row.lightKey)}
 														on:input={(e) => updateColor(row.lightKey, (e.currentTarget as HTMLInputElement).value)}
 														class={ADMIN_TEXT_INPUT_CLASS}
-														placeholder={(atelierThemePack.colors as Record<string, string>)[row.lightKey] ?? ''}
+														placeholder={(currentThemePack.colors as Record<string, string>)[row.lightKey] ?? ''}
 													/>
 												{:else}
 													<div class="flex gap-2 items-stretch">
@@ -2571,7 +2614,7 @@ let draggedAlbumHeaderField: string | null = null;
 														value={colorField(row.darkKey)}
 														on:input={(e) => updateColor(row.darkKey, (e.currentTarget as HTMLInputElement).value)}
 														class={ADMIN_TEXT_INPUT_CLASS}
-														placeholder={(atelierThemePack.colors as Record<string, string>)[row.darkKey] ?? ''}
+														placeholder={(currentThemePack.colors as Record<string, string>)[row.darkKey] ?? ''}
 													/>
 												{:else}
 													<div class="flex gap-2 items-stretch">
@@ -2878,13 +2921,13 @@ let draggedAlbumHeaderField: string | null = null;
 					</div>
 					{/if}
 				{:else if activeTab === 'fonts'}
-					{#if activeTemplate?.templateName === 'atelier'}
+					{#if (currentThemePack?.fontEditor?.length ?? 0) > 0}
 						<div class="space-y-6">
 							<h2 class="text-xl font-semibold text-(--heading-font-color)">Font Customization</h2>
 							<p class="text-sm text-(--color-surface-600-400) mb-4 max-w-3xl">
 								Each row maps a role to the CSS variables used on the site (e.g. in
 								<code class="text-xs font-mono">ThemeColorApplier</code>). The field list and pack defaults live in
-								<code class="text-xs font-mono">lib/templates/atelier/theme.defaults.json</code>
+								<code class="text-xs font-mono">{currentThemePackPath}</code>
 								(<code class="text-xs font-mono">fontEditor</code> /
 								<code class="text-xs font-mono">fonts</code>). Choose a Google Font or
 								<strong>Custom</strong> and enter the exact <code class="text-xs font-mono">font-family</code> name.
@@ -2901,7 +2944,7 @@ let draggedAlbumHeaderField: string | null = null;
 										</tr>
 									</thead>
 									<tbody>
-										{#each atelierThemePack.fontEditor as row}
+										{#each currentThemePack.fontEditor as row}
 											{@const role = row.role as FontRole}
 											<tr class="border-b border-surface-200-800 align-top">
 												<td class="p-3 font-mono text-xs text-(--color-primary-600) whitespace-nowrap align-middle">{row.token}</td>
@@ -3303,13 +3346,13 @@ let draggedAlbumHeaderField: string | null = null;
 						</div>
 					{/if}
 				{:else if activeTab === 'layout'}
-					{#if activeTemplate?.templateName === 'atelier'}
+					{#if (currentThemePack?.layoutEditor?.length ?? 0) > 0}
 						<div class="space-y-4">
 							<div>
 								<h2 class="text-xl font-semibold text-(--color-surface-950-50)">Layout & spacing</h2>
 								<p class="text-sm text-(--color-surface-600-400) mt-1 max-w-3xl">
 									Values are stored <strong>per breakpoint</strong>. The field list lives in
-									<code class="text-xs font-mono">lib/templates/atelier/theme.defaults.json</code>
+									<code class="text-xs font-mono">{currentThemePackPath}</code>
 									(<code class="text-xs font-mono">layoutEditor</code>); defaults also reference
 									<code class="text-xs font-mono">packTokens</code>. Applied on the site as
 									<code class="text-xs font-mono">--os-*</code> via <code class="text-xs font-mono">ThemeColorApplier</code>.
@@ -3367,7 +3410,7 @@ let draggedAlbumHeaderField: string | null = null;
 													</tr>
 												</thead>
 												<tbody>
-													{#each atelierThemePack.layoutEditor as row}
+													{#each currentThemePack.layoutEditor as row}
 														<tr class="border-b border-surface-200-800 align-top">
 															<td class="p-3 font-mono text-xs text-(--color-primary-600) whitespace-nowrap align-middle">{row.token}</td>
 															<td class="p-3 text-(--color-surface-700-300) align-middle">{row.label}</td>
@@ -3961,8 +4004,33 @@ let draggedAlbumHeaderField: string | null = null;
 														}
 														// Initialize socialMedia props if needed
 														if (editingModule.type === 'socialMedia') {
-															if (!editingModule.props.socialMedia) {
-																editingModule.props.socialMedia = {};
+															const sm = editingModule.props.socialMedia;
+															if (
+																!editingModule.props.linksJson?.trim() &&
+																!Array.isArray(editingModule.props.links) &&
+																sm &&
+																typeof sm === 'object' &&
+																Object.keys(sm).some((k) => typeof sm[k] === 'string' && String(sm[k]).trim())
+															) {
+																editingModule.props.linksJson = legacySocialObjectToLinksJson(sm);
+																delete editingModule.props.socialMedia;
+															}
+															if (
+																!Array.isArray(editingModule.props.links) &&
+																typeof editingModule.props.linksJson === 'string' &&
+																editingModule.props.linksJson.trim()
+															) {
+																const parsed = parseLinksJson(editingModule.props.linksJson);
+																if (parsed?.length) {
+																	editingModule.props.links = parsed.map((x) => ({
+																		platform: x.key,
+																		url: x.url
+																	}));
+																	delete editingModule.props.linksJson;
+																}
+															}
+															if (editingModule.props.linkDisplay === undefined) {
+																editingModule.props.linkDisplay = 'icon';
 															}
 															if (!editingModule.props.iconSize) {
 																editingModule.props.iconSize = 'md';
@@ -4088,7 +4156,7 @@ let draggedAlbumHeaderField: string | null = null;
 															on:mousedown={(e) => e.stopPropagation()}
 														>
 															<option value="">Assign module...</option>
-															{#each getAvailableModulesForPageType(editingPageType) as m}
+															{#each getAssignableModulesForPageType(editingPageType) as m}
 																<option value={m.type}>{m.label}</option>
 															{/each}
 														</select>
@@ -4138,7 +4206,7 @@ let draggedAlbumHeaderField: string | null = null;
 										class="text-sm border border-surface-300-700 rounded px-3 py-1.5"
 									>
 										<option value="">Choose module...</option>
-										{#each getAvailableModulesForPageType(editingPageType) as m}
+										{#each getAssignableModulesForPageType(editingPageType) as m}
 											<option value={m.type}>{m.label}</option>
 										{/each}
 									</select>
@@ -5899,243 +5967,14 @@ let draggedAlbumHeaderField: string | null = null;
 						</div>
 					</div>
 				{:else if editingModule.type === 'socialMedia'}
-					<div class="space-y-4">
-						<div class="text-sm text-(--color-surface-600-400) mb-4">
-							<p>Social media links are pulled from site configuration by default. You can override them here if needed.</p>
-						</div>
-						<div>
-							<label for="social-facebook" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-								Facebook URL (optional override)
-							</label>
-							<input
-								id="social-facebook"
-								type="url"
-								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
-								value={editingModule.props?.socialMedia?.facebook || ''}
-								placeholder="Leave empty to use site config"
-								on:input={(e) => {
-									if (!editingModule.props.socialMedia) editingModule.props.socialMedia = {};
-									editingModule = {
-										...editingModule,
-										props: {
-											...editingModule.props,
-											socialMedia: {
-												...editingModule.props.socialMedia,
-												facebook: (e.currentTarget as HTMLInputElement).value
-											}
-										}
-									};
-								}}
-							/>
-						</div>
-						<div>
-							<label for="social-instagram" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-								Instagram URL (optional override)
-							</label>
-							<input
-								id="social-instagram"
-								type="url"
-								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
-								value={editingModule.props?.socialMedia?.instagram || ''}
-								placeholder="Leave empty to use site config"
-								on:input={(e) => {
-									if (!editingModule.props.socialMedia) editingModule.props.socialMedia = {};
-									editingModule = {
-										...editingModule,
-										props: {
-											...editingModule.props,
-											socialMedia: {
-												...editingModule.props.socialMedia,
-												instagram: (e.currentTarget as HTMLInputElement).value
-											}
-										}
-									};
-								}}
-							/>
-						</div>
-						<div>
-							<label for="social-twitter" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-								Twitter URL (optional override)
-							</label>
-							<input
-								id="social-twitter"
-								type="url"
-								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
-								value={editingModule.props?.socialMedia?.twitter || ''}
-								placeholder="Leave empty to use site config"
-								on:input={(e) => {
-									if (!editingModule.props.socialMedia) editingModule.props.socialMedia = {};
-									editingModule = {
-										...editingModule,
-										props: {
-											...editingModule.props,
-											socialMedia: {
-												...editingModule.props.socialMedia,
-												twitter: (e.currentTarget as HTMLInputElement).value
-											}
-										}
-									};
-								}}
-							/>
-						</div>
-						<div>
-							<label for="social-linkedin" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-								LinkedIn URL (optional override)
-							</label>
-							<input
-								id="social-linkedin"
-								type="url"
-								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
-								value={editingModule.props?.socialMedia?.linkedin || ''}
-								placeholder="Leave empty to use site config"
-								on:input={(e) => {
-									if (!editingModule.props.socialMedia) editingModule.props.socialMedia = {};
-									editingModule = {
-										...editingModule,
-										props: {
-											...editingModule.props,
-											socialMedia: {
-												...editingModule.props.socialMedia,
-												linkedin: (e.currentTarget as HTMLInputElement).value
-											}
-										}
-									};
-								}}
-							/>
-						</div>
-						<div>
-							<label for="social-icon-size" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-								Icon Size
-							</label>
-							<select
-								id="social-icon-size"
-								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
-								value={editingModule.props?.iconSize || 'md'}
-								on:change={(e) => {
-									editingModule = {
-										...editingModule,
-										props: { ...editingModule.props, iconSize: (e.currentTarget as HTMLSelectElement).value }
-									};
-								}}
-							>
-								<option value="sm">Small</option>
-								<option value="md">Medium</option>
-								<option value="lg">Large</option>
-							</select>
-						</div>
-						<div>
-							<label for="social-icon-color" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-								Icon Color
-							</label>
-							<input
-								id="social-icon-color"
-								type="text"
-								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
-								value={editingModule.props?.iconColor || 'current'}
-								placeholder="current, gray-600, #000000, etc."
-								on:input={(e) => {
-									editingModule = {
-										...editingModule,
-										props: { ...editingModule.props, iconColor: (e.currentTarget as HTMLInputElement).value }
-									};
-								}}
-							/>
-							<p class="mt-1 text-xs text-(--color-surface-600-400)">CSS color or Tailwind color class (e.g., current, gray-600, blue-500)</p>
-						</div>
-						<div>
-							<label class="flex items-center gap-2">
-								<input
-									type="checkbox"
-									checked={editingModule.props?.showLabels === true}
-									on:change={(e) => {
-										editingModule = {
-											...editingModule,
-											props: { ...editingModule.props, showLabels: (e.currentTarget as HTMLInputElement).checked }
-										};
-									}}
-									class="w-4 h-4 text-(--color-primary-600) border-surface-300-700 rounded focus:ring-(--color-primary-500)"
-								/>
-								<span class="text-sm font-medium text-(--color-surface-800-200)">Show Labels</span>
-							</label>
-						</div>
-						<div>
-							<label for="social-orientation" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-								Orientation
-							</label>
-							<select
-								id="social-orientation"
-								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
-								value={editingModule.props?.orientation || 'horizontal'}
-								on:change={(e) => {
-									editingModule = {
-										...editingModule,
-										props: { ...editingModule.props, orientation: (e.currentTarget as HTMLSelectElement).value }
-									};
-								}}
-							>
-								<option value="horizontal">Horizontal</option>
-								<option value="vertical">Vertical</option>
-							</select>
-						</div>
-						<div>
-							<label for="social-align" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-								Alignment
-							</label>
-							<select
-								id="social-align"
-								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
-								value={editingModule.props?.align || 'start'}
-								on:change={(e) => {
-									editingModule = {
-										...editingModule,
-										props: { ...editingModule.props, align: (e.currentTarget as HTMLSelectElement).value }
-									};
-								}}
-							>
-								<option value="start">Start</option>
-								<option value="center">Center</option>
-								<option value="end">End</option>
-							</select>
-						</div>
-						<div>
-							<label for="social-gap" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-								Gap Size
-							</label>
-							<select
-								id="social-gap"
-								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
-								value={editingModule.props?.gap || 'normal'}
-								on:change={(e) => {
-									editingModule = {
-										...editingModule,
-										props: { ...editingModule.props, gap: (e.currentTarget as HTMLSelectElement).value }
-									};
-								}}
-							>
-								<option value="tight">Tight</option>
-								<option value="normal">Normal</option>
-								<option value="loose">Loose</option>
-							</select>
-						</div>
-						<div>
-							<label for="social-class" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-								CSS Classes (optional)
-							</label>
-							<input
-								id="social-class"
-								type="text"
-								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
-								value={editingModule.props?.className || ''}
-								placeholder="e.g., mt-4"
-								on:input={(e) => {
-									editingModule = {
-										...editingModule,
-										props: { ...editingModule.props, className: (e.currentTarget as HTMLInputElement).value }
-									};
-								}}
-							/>
-						</div>
-					</div>
+					<ModulePropsForm
+						moduleType="socialMedia"
+						props={editingModule.props || {}}
+						showPlacementInGrid={false}
+						onChange={(next) => {
+							editingModule = { ...editingModule, props: { ...next } };
+						}}
+					/>
 				{:else if editingModule.type === 'blogCategory'}
 					<div class="space-y-4 border-t border-surface-200-800 pt-4">
 						<div>

@@ -14,10 +14,11 @@
 		]} />
 	
 	3. Custom styling:
-		<Menu 
+		<Menu
 			items={menuItems}
-			itemClass="text-[color:var(--tp-fg-muted)] hover:text-[color:var(--tp-fg)]"
-			activeItemClass="font-bold underline"
+			itemClass="my-nav-link"
+			activeItemClass="my-nav-link--current"
+			containerClass="my-nav"
 			orientation="vertical"
 		/>
 -->
@@ -65,9 +66,9 @@
 	let {
 		items = [],
 		config,
-		itemClass = 'text-[color:var(--tp-fg-muted)] hover:text-[color:var(--tp-fg)]',
-		activeItemClass = 'text-[color:var(--os-primary)] font-medium',
-		containerClass = 'flex items-center gap-4',
+		itemClass = 'pb-menu__link',
+		activeItemClass = 'pb-menu__link--active',
+		containerClass = '',
 		separator = false,
 		orientation = 'horizontal',
 		showActiveIndicator = true,
@@ -154,10 +155,9 @@
 		return `${baseClasses} ${activeClasses}`.trim();
 	}
 
-	// Get container classes based on orientation
-	const finalContainerClass = $derived(orientation === 'vertical' 
-		? containerClass.replace('flex items-center', 'flex flex-col items-start')
-		: containerClass);
+	const navClass = $derived(
+		`pb-menu ${orientation === 'vertical' ? 'pb-menu--vertical' : 'pb-menu--horizontal'} ${containerClass ?? ''}`.trim()
+	);
 
 	// Filter items based on showWhen, conditions and roles
 	const visibleItems = $derived(menuItems.filter(item => {
@@ -184,7 +184,7 @@
 </script>
 
 	{#if !$siteConfigLoading && visibleItems.length > 0}
-	<nav class={finalContainerClass}>
+	<nav class={navClass}>
 		{#each visibleItems as item, index}
 			{#if item.type === 'logout'}
 				<VisitorLogoutButton
@@ -215,11 +215,44 @@
 			{/if}
 			{#if separator && index < visibleItems.length - 1}
 				{#if typeof separator === 'string'}
-					<span class="text-[color:var(--tp-fg-subtle)]">{separator}</span>
+					<span class="pb-menu__separator">{separator}</span>
 				{:else}
-					<span class="text-[color:var(--tp-fg-subtle)]">|</span>
+					<span class="pb-menu__separator">|</span>
 				{/if}
 			{/if}
 		{/each}
 	</nav>
 {/if}
+
+<style lang="scss">
+	.pb-menu {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+	}
+
+	.pb-menu--vertical {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+
+	.pb-menu__link {
+		color: var(--tp-fg-muted);
+		text-decoration: none;
+		transition: color 0.2s ease;
+
+		&:hover {
+			color: var(--tp-fg);
+		}
+	}
+
+	.pb-menu__link--active {
+		color: var(--os-primary);
+		font-weight: 500;
+	}
+
+	.pb-menu__separator {
+		color: var(--tp-fg-subtle);
+		user-select: none;
+	}
+</style>

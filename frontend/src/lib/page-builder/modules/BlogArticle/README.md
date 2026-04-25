@@ -23,7 +23,10 @@ Types: `types.ts` (`BlogArticleLayoutConfig`).
 
 ## Classes & tokens for template styles
 
-- **Root:** `<section class="text-[color:var(--tp-fg)]" aria-label="…">`
-- **Cards:** `border border-[color:var(--tp-border)] rounded-lg … bg-[color:var(--tp-surface-2)]`
-- **Links / hover:** `hover:text-[color:var(--os-primary)]`
-- **Meta:** `text-[color:var(--tp-fg-subtle)]`, body `text-[color:var(--tp-fg-muted)]`
+- **Root:** `pb-blogArticle`
+- **Section title:** `pb-blogArticle__heading`
+- **Loading / empty / error:** `pb-blogArticle__status`
+- **List:** `pb-blogArticle__list` · **Card (article or list item):** `pb-blogArticle__card`
+- **Media:** `pb-blogArticle__mediaLink`, `pb-blogArticle__image` + `--single` | `--list`
+- **Body:** `pb-blogArticle__body` · **Title:** `pb-blogArticle__title` · **Link:** `pb-blogArticle__titleLink` (hover uses `var(--os-primary)`)
+- **Date:** `pb-blogArticle__meta` · **Excerpt:** `pb-blogArticle__excerpt` (3-line clamp)

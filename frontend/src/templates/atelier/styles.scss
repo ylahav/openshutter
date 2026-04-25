@@ -29,6 +29,45 @@
   --scrim:   var(--tp-overlay-scrim);
 }
 
+// ─── Page Builder: Page Title ───────────────────────────────
+
+.pb-pageTitle {
+  border-bottom: var(--os-border-width, 1px) solid var(--bdr);
+  color: var(--fg);
+  padding: 2rem 0;
+
+  &.pb-pageTitle--compact {
+    padding: .5rem 0;
+  }
+
+  &.pb-pageTitle--center {
+    text-align: center;
+  }
+
+  &.pb-pageTitle--left {
+    text-align: left;
+  }
+}
+
+.pb-pageTitle__title {
+  font-family: var(--os-font-heading), 'Cormorant Garamond', Georgia, serif;
+  font-weight: 500;
+  font-size: clamp(34px, 5vw, 56px);
+  color: var(--fg);
+  line-height: 1.04;
+  letter-spacing: .04em;
+  margin: 0 0 .5rem;
+}
+
+.pb-pageTitle__subtitle {
+  font-family: var(--os-font-body), 'Jost', sans-serif;
+  font-weight: 400;
+  font-size: clamp(15px, 2.2vw, 26px);
+  color: var(--fg-mid);
+  line-height: 1.35;
+  margin: 0;
+}
+
 html.dark {
   --bg:      var(--tp-canvas);
   --bg2:     var(--tp-surface-1);

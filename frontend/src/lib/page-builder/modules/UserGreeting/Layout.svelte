@@ -14,7 +14,16 @@
 </script>
 
 {#if authenticated && user}
-	<span class="{className || 'text-[color:var(--tp-fg-muted)]'}">
+	<span class={`pb-userGreeting ${className || 'pb-userGreeting--muted'}`.trim()}>
 		{greeting}, {displayName}
 	</span>
 {/if}
+
+<style lang="scss">
+	.pb-userGreeting {
+		display: inline;
+	}
+	.pb-userGreeting--muted {
+		color: var(--tp-fg-muted);
+	}
+</style>

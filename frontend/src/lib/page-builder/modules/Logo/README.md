@@ -15,8 +15,8 @@ See `config.ts`.
 
 ## Classes & tokens for template styles
 
-- **Root:** `<div class="flex items-center shrink-0">`
-- **Image:** `object-contain` + dynamic `sizeClass`
-- **Fallback block:** `rounded-lg … shadow-lg` with inline `background: var(--os-primary, #3B82F6)`
-
-Target `img` or the inner fallback `div` via `.layout-shell` / parent wrappers; no `os-logo` class.
+- **Root:** `.pb-logo`
+- **Optional link wrapper:** `.pb-logo__link`
+- **Media:** `.pb-logo__media` + size modifiers `.pb-logo__media--sm|md|lg`
+- **Fallback:** `.pb-logo__fallback`, icon `.pb-logo__fallbackIcon`
+- **Token:** fallback background uses `--os-primary` (with `#3B82F6` fallback)

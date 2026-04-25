@@ -78,7 +78,8 @@ export function buildVisitorThemeStylesheet(
 	const template = siteConfig?.template;
 	const mergedColors = mergePackColorsWithCustom(packId, customColors);
 
-	let cssVars = `${buildTemplatePaletteCss(mergedColors)}\n\n:root {\n`;
+	const paletteDefaultMode = packId === 'noir' ? 'dark' : 'light';
+	let cssVars = `${buildTemplatePaletteCss(mergedColors, { defaultMode: paletteDefaultMode })}\n\n:root {\n`;
 
 	if (mergedColors.primary) {
 		cssVars += `  --os-primary: ${mergedColors.primary};\n`;
@@ -162,8 +163,6 @@ export function buildVisitorThemeStylesheet(
 	if (mergedColors.text) {
 		cssVars += `body, main, .text-gray-900, .text-gray-800, .text-gray-700, .text-black { color: ${mergedColors.text} !important; }\n`;
 		cssVars += `html.dark body, html.dark main, html.dark .text-gray-900, html.dark .text-gray-800, html.dark .text-gray-700, html.dark .text-black { color: ${mergedColors.text} !important; }\n`;
-		cssVars += `p, span, div, h1, h2, h3, h4, h5, h6, a:not([class*="text-"]) { color: ${mergedColors.text}; }\n`;
-		cssVars += `html.dark p, html.dark span, html.dark div, html.dark h1, html.dark h2, html.dark h3, html.dark h4, html.dark h5, html.dark h6, html.dark a:not([class*="text-"]) { color: ${mergedColors.text}; }\n`;
 	}
 	if (mergedColors.background) {
 		cssVars += `body { background-color: ${mergedColors.background} !important; }\n`;

@@ -9,6 +9,7 @@
 		showAlbumPageTitle?: boolean;
 		showAlbumPageDescription?: boolean;
 		showAlbumPageStats?: boolean;
+		showAlbumHero?: boolean;
 		albumSource?: 'root' | 'featured' | 'selected' | 'current';
 		selectedAlbums?: string[];
 		rootAlbumId?: string;
@@ -34,6 +35,7 @@
 		cardDataType?: 'subAlbums' | 'photos' | 'both';
 		mixedDisplayMode?: 'grouped' | 'interleaved';
 		showSectionLabels?: boolean;
+		showHeading?: boolean;
 		sortBy?: 'manual' | 'order' | 'name' | 'photoCount' | 'createdAt' | 'lastPhotoDate';
 		sortDirection?: 'asc' | 'desc';
 		limit?: number;
@@ -49,6 +51,7 @@
 	export let showAlbumPageTitle: NonNullable<AlbumGalleryProps['showAlbumPageTitle']> = true;
 	export let showAlbumPageDescription: NonNullable<AlbumGalleryProps['showAlbumPageDescription']> = true;
 	export let showAlbumPageStats: NonNullable<AlbumGalleryProps['showAlbumPageStats']> = true;
+	export let showAlbumHero: NonNullable<AlbumGalleryProps['showAlbumHero']> = false;
 	export let albumSource: NonNullable<AlbumGalleryProps['albumSource']> = 'root';
 	export let selectedAlbums: AlbumGalleryProps['selectedAlbums'] = undefined;
 	export let rootAlbumId: AlbumGalleryProps['rootAlbumId'] = undefined;
@@ -74,6 +77,7 @@
 	export let cardDataType: NonNullable<AlbumGalleryProps['cardDataType']> = 'both';
 	export let mixedDisplayMode: NonNullable<AlbumGalleryProps['mixedDisplayMode']> = 'grouped';
 	export let showSectionLabels: NonNullable<AlbumGalleryProps['showSectionLabels']> = true;
+	export let showHeading: AlbumGalleryProps['showHeading'] = undefined;
 	export let sortBy: NonNullable<AlbumGalleryProps['sortBy']> = 'manual';
 	export let sortDirection: NonNullable<AlbumGalleryProps['sortDirection']> = 'asc';
 	export let limit: NonNullable<AlbumGalleryProps['limit']> = 12;
@@ -94,6 +98,7 @@
 			showAlbumPageTitle,
 			showAlbumPageDescription,
 			showAlbumPageStats,
+			showAlbumHero,
 			albumSource,
 			selectedAlbums,
 			rootAlbumId,
@@ -119,6 +124,7 @@
 			cardDataType,
 			mixedDisplayMode,
 			showSectionLabels,
+			showHeading,
 			sortBy,
 			sortDirection,
 			limit

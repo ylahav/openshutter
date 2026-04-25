@@ -14,8 +14,13 @@ Typical fields mirror the album listing subset of album view:
 | `description` | MultiLang / HTML | Optional intro |
 | `albumSource` | `'root'` \| `'featured'` \| `'selected'` \| `'current'` | Where albums resolve from |
 | `selectedAlbums` | string[] | When source is `selected` |
+| `showHeading` | boolean | When `false`, hides section labels such as "Sub-albums" above the grid (Noir defaults hide via pack + config). |
+| `showDescription` | boolean | Card body text; Noir defaults omit descriptions unless set `true`. |
+| `coverAspect` | `'video'` \| `'square'` \| `'portrait'` | Noir album grid defaults to `square` in seed themes. |
 
 Full behavior and extra keys are documented in **[AlbumGallery/README.md](../AlbumGallery/README.md)**.
+
+On the **Noir** visitor pack, `AlbumsGrid` passes an internal `albumsGridVariant` flag into the shared layout so cards render `div.ac-ov`, `div.ac-info`, and a square full-bleed cover without an `aspect-video` wrapper.
 
 ## Classes & tokens for template styles
 

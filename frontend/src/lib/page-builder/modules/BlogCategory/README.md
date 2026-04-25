@@ -21,7 +21,7 @@ Types: `types.ts` (`BlogCategoryLayoutConfig`).
 
 ## Classes & tokens for template styles
 
-- **Root:** `<section class="text-[color:var(--tp-fg)]" aria-label="…">`
-- **Chips:** `rounded-full border border-[color:var(--tp-border)] … bg-[color:var(--tp-surface-2)]`
-- **Links:** `text-[color:var(--os-primary)]`
-- **Muted:** `--tp-fg-muted`, `--tp-fg-subtle`
+- **Root:** `pb-blogCategory`
+- **Heading / status:** `pb-blogCategory__heading`, `pb-blogCategory__status`
+- **List mode:** `pb-blogCategory__list`, `pb-blogCategory__listItem`, `pb-blogCategory__listLink`, `pb-blogCategory__listRow`, `pb-blogCategory__count`
+- **Chips:** `pb-blogCategory__chips`, `pb-blogCategory__chip`, `pb-blogCategory__chip--interactive` (links), counts use `pb-blogCategory__count--chip`

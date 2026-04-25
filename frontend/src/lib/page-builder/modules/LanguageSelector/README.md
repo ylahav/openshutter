@@ -18,4 +18,14 @@ See `config.ts`.
 
 ## Classes & tokens for template styles
 
-Layout passes `className` through. Inner markup/classes are defined on **`LanguageSelector.svelte`** (buttons, menu, flags). Use pack `:global()` rules under `.layout-shell` or inspect that component for current class names.
+Layout wrapper class:
+
+- `pb-languageSelectorModule`
+
+Inner UI component (`LanguageSelector.svelte`) classes:
+
+- Root: `pb-languageSelector` with modifiers `--dropdown|--flags` and optional `--compact`
+- Flags mode: `pb-languageSelector__flagBtn` (+ `--selected|--default|--compact`), `__flag`, `__code`
+- Dropdown mode: `pb-languageSelector__trigger`, `__menu`, `__option` (+ `--selected|--default|--compact`), `__check`, `__chevron`
+
+`className` from module config is still appended to the root selector wrapper for pack-specific hooks.

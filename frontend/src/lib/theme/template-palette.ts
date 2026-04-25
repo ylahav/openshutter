@@ -78,9 +78,11 @@ function pick(
  * Uses `customColors` from site config / theme row.
  */
 export function buildTemplatePaletteCss(
-	customColors: Record<string, string | undefined> | null | undefined
+	customColors: Record<string, string | undefined> | null | undefined,
+	options?: { defaultMode?: 'light' | 'dark' }
 ): string {
 	const c = customColors ?? {};
+	const defaultMode = options?.defaultMode ?? 'light';
 
 	const lightCanvas = pick(c, 'lightBackground', LIGHT.canvas);
 	const lightFg = pick(c, 'lightText', LIGHT.fg);
@@ -137,9 +139,7 @@ export function buildTemplatePaletteCss(
 		'brightness(0.15) saturate(0.3) sepia(0.4)'
 	);
 
-	return `
-:root, html.light {
-  --tp-canvas: ${lightCanvas};
+	const lightBlock = `--tp-canvas: ${lightCanvas};
   --tp-fg: ${lightFg};
   --tp-fg-muted: ${lightMuted};
   --tp-fg-subtle: ${lightSubtle};
@@ -160,10 +160,8 @@ export function buildTemplatePaletteCss(
   --tp-overlay-scrim: rgba(0,0,0,0.5);
   --tp-hero-grid-opacity: 0.12;
   --os-hero-image-filter: ${lightHeroFilter};
-  --os-login-bg-filter: ${lightLoginFilter};
-}
-html.dark {
-  --tp-canvas: ${darkCanvas};
+  --os-login-bg-filter: ${lightLoginFilter};`;
+	const darkBlock = `--tp-canvas: ${darkCanvas};
   --tp-fg: ${darkFg};
   --tp-fg-muted: ${darkMuted};
   --tp-fg-subtle: ${darkSubtle};
@@ -184,7 +182,19 @@ html.dark {
   --tp-overlay-scrim: rgba(0,0,0,0.7);
   --tp-hero-grid-opacity: 0.18;
   --os-hero-image-filter: ${darkHeroFilter};
-  --os-login-bg-filter: ${darkLoginFilter};
+  --os-login-bg-filter: ${darkLoginFilter};`;
+
+	const defaultSelector = defaultMode === 'dark' ? ':root, html.dark' : ':root, html.light';
+	const overrideSelector = defaultMode === 'dark' ? 'html.light' : 'html.dark';
+	const defaultBlock = defaultMode === 'dark' ? darkBlock : lightBlock;
+	const overrideBlock = defaultMode === 'dark' ? lightBlock : darkBlock;
+
+	return `
+${defaultSelector} {
+  ${defaultBlock}
+}
+${overrideSelector} {
+  ${overrideBlock}
 }
 `.trim();
 }

@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
 	import AdminConfirmDialog from '$lib/components/admin/AdminConfirmDialog.svelte';
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
@@ -881,7 +880,7 @@
 																	<div class="text-sm font-medium text-(--color-surface-950-50)">{key}</div>
 																</td>
 																<td class="px-4 py-3">
-																	<div class="text-sm text-(--color-surface-600-400) break-words max-w-md">
+																	<div class="text-sm text-(--color-surface-600-400) wrap-break-word max-w-md">
 																		{englishValue ? (typeof englishValue === 'string' ? englishValue : JSON.stringify(englishValue)) : '-'}
 																	</div>
 																</td>
@@ -910,7 +909,7 @@
 																			</button>
 																		</div>
 																	{:else}
-																		<div class="text-sm text-(--color-surface-600-400) break-words max-w-md">
+																		<div class="text-sm text-(--color-surface-600-400) wrap-break-word max-w-md">
 																			{#if isMissing}
 																				<span class="text-yellow-600 italic">
 																					{$t('admin.missingTranslation')}

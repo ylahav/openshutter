@@ -1,0 +1,37 @@
+.pb-pageTitle {
+  border-bottom: var(--os-border-width, 1px) solid var(--tp-border);
+  color: var(--tp-fg);
+  padding: 2rem 0;
+
+  &.pb-pageTitle--compact {
+    padding: 0.5rem 0;
+  }
+
+  &.pb-pageTitle--center {
+    text-align: center;
+  }
+
+  &.pb-pageTitle--left {
+    text-align: left;
+  }
+}
+
+.pb-pageTitle__title {
+  margin: 0 0 0.75rem;
+  color: var(--tp-fg);
+  font-family: var(--os-font-heading), 'Cormorant Garamond', Georgia, serif;
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 500;
+  line-height: 1.05;
+  letter-spacing: 0.04em;
+}
+
+.pb-pageTitle__subtitle {
+  margin: 0;
+  color: var(--tp-fg-muted);
+  font-family: var(--os-font-body), 'Jost', sans-serif;
+  font-size: clamp(1rem, 2.2vw, 1.35rem);
+  font-weight: 400;
+  line-height: 1.4;
+}
+

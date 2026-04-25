@@ -39,9 +39,17 @@
 	setContext('pbLayoutPresetsPreview', layoutPresetsPreviewStore);
 	$: layoutPresetsPreviewStore.set(layoutPresetsPreview && typeof layoutPresetsPreview === 'object' ? layoutPresetsPreview : null);
 
+	$: routeParams = ($pageStore.params || {}) as Record<string, string | undefined>;
+	$: routeAlias =
+		routeParams?.albumAlias ||
+		routeParams?.alias ||
+		routeParams?.id ||
+		null;
 	$: pageContext = {
-		alias: page?.alias || $pageStore.params?.alias || $pageStore.params?.id || null,
-		params: $pageStore.params || {},
+		// Route params must win over page alias for role pages (e.g. album detail page alias = "album").
+		alias: routeAlias || page?.alias || null,
+		albumAlias: routeParams?.albumAlias || routeParams?.alias || null,
+		params: routeParams,
 		page
 	};
 

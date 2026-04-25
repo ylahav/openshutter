@@ -8,4 +8,6 @@
 	$: className = config?.className || '';
 </script>
 
-<TemplateSelector {compact} {className} />
+<div class="pb-themeSelectModule">
+	<TemplateSelector {compact} {className} />
+</div>

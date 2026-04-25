@@ -14,10 +14,10 @@ Login link and logout control (or similar) with configurable labels and Tailwind
 | `buttonClass` | string | (see config) | Base button utilities |
 | `loginButtonClass` | string | — | Login-specific classes |
 | `logoutButtonClass` | string | — | Logout-specific classes |
-| `containerClass` | string | `'flex items-center gap-2'` | Wrapper flex |
+| `containerClass` | string | `'auth-btns'` | Inner row (see `config.ts`) |
 
 See `config.ts`.
 
 ## Classes & tokens for template styles
 
-- **Root:** `<div class={containerClass}>` — entirely driven by props so packs can restyle without code changes.
+- **Module root:** `pb-authButtons` wraps the inner `<div class={containerClass}>`. Inner classes remain prop-driven (`auth-btns`, `auth-btn`, etc.).

@@ -20,6 +20,8 @@
 		sortBy?: 'manual' | 'order' | 'name' | 'photoCount' | 'createdAt' | 'lastPhotoDate';
 		sortDirection?: 'asc' | 'desc';
 		limit?: number;
+		/** When false, hides "Sub-albums" / "Photos" labels above the grid. */
+		showHeading?: boolean;
 	};
 
 	type LegacyAlbumsGridProps = {
@@ -44,6 +46,7 @@
 	export let sortBy: NonNullable<AlbumsGridProps['sortBy']> = 'manual';
 	export let sortDirection: NonNullable<AlbumsGridProps['sortDirection']> = 'asc';
 	export let limit: NonNullable<AlbumsGridProps['limit']> = 12;
+	export let showHeading: AlbumsGridProps['showHeading'] = undefined;
 
 	// Temporary migration fallback for legacy nested props.config payloads
 	export let props: LegacyAlbumsGridProps | undefined = undefined;
@@ -69,7 +72,8 @@
 			showFeaturedBadge,
 			sortBy,
 			sortDirection,
-			limit
+			limit,
+			showHeading
 		};
 		const legacyConfig = p?.config && typeof p.config === 'object' ? p.config : undefined;
 		return { ...defaults, ...(legacyConfig ?? {}), ...(p ?? {}) } satisfies AlbumsGridProps;

@@ -19,10 +19,13 @@ Legacy/global keys (`showTitle`, `cardFieldOrder`, …) remain for older themes.
 
 ## Classes & tokens for template styles
 
-- **Root:** `<section class="@container py-12 @sm:py-16 @md:py-20 bg-[color:var(--tp-surface-2)] overflow-x-hidden min-w-0">`
-- **Inner shell:** `max-w-7xl mx-auto` content column
-- **Cards / panels:** `bg-[color:var(--tp-surface-1)]`, `border-[color:var(--tp-border)]`, `rounded-xl`
-- **Typography:** `--tp-fg`, `--tp-fg-muted`, links `--os-primary`
-- **Loading / empty states:** spinner uses `--tp-border` and `--os-primary`
+- **Root:** `.pb-albumGallery` (`albumView` and `albumsGrid` share `AlbumGallery/Layout.svelte`)
+- **Shell:** `.pb-albumGallery__container`
+- **Intro:** `.pb-albumGallery__intro`, `.pb-albumGallery__title`, `.pb-albumGallery__description`
+- **Lists:** `.pb-albumGallery__list`, modifiers `--row`, `--grid`, `--photos`
+- **Cover aspect (passed to cards):** `.pb-albumGallery__aspect--square` | `--portrait` | `--video`
+- **Current album header (no hero):** `.pb-albumGallery__pageHeaderWrap`, `.pb-albumGallery__pageHeaderCard`, `.pb-albumGallery__pageTitle`, …
+- **Empty / loading:** `.pb-albumGallery__empty`, `.pb-albumGallery__loading`, `.pb-albumGallery__spinner`
+- **Tokens:** `--tp-surface-*`, `--tp-fg`, `--tp-fg-muted`, `--tp-border`, `--os-primary`
 
-There is **no** dedicated `os-album-grid` class; target the outer `section` under your route wrapper or `.layout-shell` if needed.
+Pack hooks: scope under `.layout-shell` or a layout-shell `className` wrapper as needed.

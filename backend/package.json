@@ -12,15 +12,15 @@
     "migrate:frontend-templates": "node dist/scripts/migrate-frontend-templates.js"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.1032.0",
-    "@aws-sdk/s3-request-presigner": "^3.1032.0",
+    "@aws-sdk/client-s3": "^3.1037.0",
+    "@aws-sdk/s3-request-presigner": "^3.1037.0",
     "@nestjs/common": "^11.1.19",
     "@nestjs/config": "^4.0.4",
     "@nestjs/core": "^11.1.19",
     "@nestjs/mongoose": "^11.0.4",
     "@nestjs/platform-express": "^11.1.19",
     "@nestjs/schedule": "^6.1.2",
-    "@nestjs/swagger": "^11.3.0",
+    "@nestjs/swagger": "^11.4.1",
     "@xenova/transformers": "^2.17.2",
     "archiver": "^7.0.1",
     "bcryptjs": "^3.0.3",
@@ -34,15 +34,15 @@
     "face-api.js": "^0.22.2",
     "googleapis": "^171.4.0",
     "jose": "^6.2.2",
-    "mongoose": "^9.4.1",
+    "mongoose": "^9.5.0",
     "multer": "^2.1.1",
-    "nodemailer": "^8.0.5",
+    "nodemailer": "^8.0.6",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
     "sharp": "^0.34.5",
     "@tensorflow/tfjs-node": "^4.22.0",
     "@tensorflow-models/mobilenet": "^2.1.1",
-    "uuid": "^13.0.0",
+    "uuid": "^14.0.0",
     "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
@@ -53,10 +53,10 @@
     "@types/multer": "^2.1.0",
     "@types/node": "^25.6.0",
     "@types/nodemailer": "^8.0.0",
-    "@typescript-eslint/eslint-plugin": "^8.58.2",
-    "@typescript-eslint/parser": "^8.58.2",
+    "@typescript-eslint/eslint-plugin": "^8.59.0",
+    "@typescript-eslint/parser": "^8.59.0",
     "eslint": "^10.2.1",
     "typescript": "^6.0.3"
   },
-  "packageManager": "pnpm@10.33.0"
+  "packageManager": "pnpm@10.33.2+sha512.a90faf6feeab71ad6c6e57f94e0fe1a12f5dcc22cd754db40ae9593eb6a3e0b6b12e3540218bb37ae083404b1f2ce6db2a4121e979829b4aff94b99f49da1cf8"
 }

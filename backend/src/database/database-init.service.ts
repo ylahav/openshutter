@@ -9,6 +9,7 @@ import { ownerStorageConfigService } from '../services/storage/owner-storage-con
 import { IUserDocument } from '../models/User';
 import { PageModel } from '../models/Page';
 import * as bcrypt from 'bcryptjs';
+import { noirFooterLayoutShellInstances, noirFooterPageModules } from '../template/noir-footer-shell';
 
 // Default page layouts and modules for all themes
 const DEFAULT_PAGE_LAYOUTS = {
@@ -214,6 +215,42 @@ const DEFAULT_PAGE_MODULES = {
   ]
 };
 
+/** Noir home hero: full-bleed gallery leading, no CTA (scroll hint + rule come from HeroModule + pack SCSS). */
+const NOIR_PAGE_MODULES = {
+  ...DEFAULT_PAGE_MODULES,
+  footer: noirFooterPageModules,
+  home: [
+    {
+      ...DEFAULT_PAGE_MODULES.home[0],
+      props: {
+        ...DEFAULT_PAGE_MODULES.home[0].props,
+        showCta: false,
+        backgroundStyle: 'galleryLeading'
+      }
+    },
+    {
+      ...DEFAULT_PAGE_MODULES.home[1],
+      props: {
+        ...DEFAULT_PAGE_MODULES.home[1].props,
+        showHeading: false,
+        showDescription: false,
+        coverAspect: 'square'
+      }
+    }
+  ],
+  gallery: [
+    {
+      ...DEFAULT_PAGE_MODULES.gallery[0],
+      props: {
+        ...DEFAULT_PAGE_MODULES.gallery[0].props,
+        showHeading: false,
+        showDescription: false,
+        coverAspect: 'square'
+      }
+    }
+  ]
+};
+
 // Built-in themes (seeded into themes collection - all themes live in one place)
 const BUILT_IN_THEMES = [
   {
@@ -253,8 +290,13 @@ const BUILT_IN_THEMES = [
     customLayout: { maxWidth: '1280px', containerPadding: '2rem', gridGap: '0.125rem' },
     componentVisibility: {},
     headerConfig: {},
-    pageModules: DEFAULT_PAGE_MODULES,
-    pageLayout: DEFAULT_PAGE_LAYOUTS,
+    pageModules: NOIR_PAGE_MODULES,
+    pageLayout: {
+      ...DEFAULT_PAGE_LAYOUTS,
+      footer: { gridRows: 1, gridColumns: 1 },
+    },
+    layoutShellInstances: noirFooterLayoutShellInstances,
+    layoutPresets: noirFooterLayoutShellInstances,
     isPublished: true,
     isBuiltIn: true,
   },

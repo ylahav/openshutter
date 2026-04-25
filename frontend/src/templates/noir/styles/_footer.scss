@@ -1,0 +1,169 @@
+// ============================================================
+// Noir Footer — _footer.scss
+//
+// Original design:
+//   footer — flex space-between, border-top, 24px 32px pad
+//   span.ft-copy — DM Mono 9px 0.18em uppercase var(--fg-dimmer)
+//   div.ft-links > a — same style, text links (instagram, flickr)
+//
+// Produced DOM (target):
+//   layoutShell.n-footer → compact grid: .n-copyright (richText, no outer section) | .n-media (social linkDisplay:text)
+// ============================================================
+
+@mixin n-mono($size: 10px, $spacing: 0.18em) {
+    font-family: 'DM Mono', monospace;
+    font-size: $size;
+    letter-spacing: $spacing;
+    text-transform: uppercase;
+    font-weight: 400;
+  }
+  
+  // ── Outer wrapper cell (layoutShell parent div) ───────────────
+  
+  .n-footer {
+    display: block !important;
+    flex: none !important;
+    width: 100% !important;
+  }
+  
+  // ── Shell ─────────────────────────────────────────────────────
+  
+  section.layout-shell.n-footer {
+    background: transparent !important;
+    width: 100% !important;
+  
+    // Border-top — the only visual separation from content above
+    border-top: 1px solid var(--border);
+  
+    // ── Inner row: flex space-between, correct padding ──────────
+  
+    > div {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      gap: 0 !important;            // override gap-4
+      padding: 24px 32px !important; // override px-4 py-2
+  
+      [dir="rtl"] & { flex-direction: row-reverse; }
+    }
+  }
+  
+  // ── Cell sizing: auto, not equal flex ─────────────────────────
+  
+  section.layout-shell.n-footer > div > [class*="n-"] {
+    flex: none !important;
+    width: auto !important;
+  }
+  
+  // ── Cell 1 — Copyright ────────────────────────────────────────
+  
+  .n-copyright {
+    // Legacy: richText used a padded section inside shell cells
+    > section {
+      background: transparent !important;
+      padding: 0 !important;
+  
+      > div { padding: 0 !important; }
+    }
+  
+    // Strip prose sizing completely
+    .prose,
+    .prose-lg {
+      font-size: inherit !important;
+      line-height: inherit !important;
+      max-width: none !important;
+      color: inherit !important;
+  
+      // Prose resets margins on p
+      p, p span {
+        margin: 0 !important;
+      }
+    }
+  
+    // The copyright text itself
+    // RichText strips inline colour on noir; keep !important for older saved HTML.
+    p,
+    p span {
+      @include n-mono(9px, 0.18em);
+      color: var(--fg-dimmer) !important; // !important overrides inline rgb()
+      font-family: 'DM Mono', monospace !important;
+      font-size: 9px !important;
+      font-weight: 400 !important;
+    }
+  
+    // Anchors inside copyright (if any)
+    a {
+      color: var(--fg-dimmer) !important;
+      text-decoration: none !important;
+      &:hover { color: var(--fg-dim) !important; }
+    }
+  }
+  
+  // ── Cell 2 — Social / Media links ─────────────────────────────
+  
+  .n-media {
+  
+    > div {
+      display: flex !important;
+      align-items: center !important;
+      gap: 20px !important; // override gap-4 (16px)
+    }
+  
+    // Each social anchor
+    a {
+      @include n-mono(9px, 0.18em);
+      color: var(--fg-dimmer) !important;
+      text-decoration: none !important;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1px;
+      transition: color 0.2s;
+  
+      display: flex !important;
+      align-items: center !important;
+      gap: 0 !important;
+  
+      &:hover {
+        color: var(--fg-dim) !important;
+        opacity: 1 !important; // override hover:opacity-75
+      }
+  
+      // Icon mode: hide SVG, show aria-label as text (legacy / icon-only blocks)
+      &:not([data-link-display="text"]) > div {
+        display: none !important;
+      }
+  
+      &:not([data-link-display="text"])::after {
+        content: attr(aria-label);
+        @include n-mono(9px, 0.18em);
+        color: inherit;
+        text-transform: lowercase;
+      }
+
+      &[data-link-display="text"] > span {
+        @include n-mono(9px, 0.18em);
+        text-transform: lowercase;
+      }
+    }
+  }
+  
+  // ── Light mode ────────────────────────────────────────────────
+  // Tokens handle colour — only structural differences here.
+  
+  [data-mode="light"] {
+    section.layout-shell.n-footer {
+      // Border slightly stronger in light mode
+      border-top-color: var(--border);
+    }
+  }
+  
+  // ── RTL ───────────────────────────────────────────────────────
+  
+  [dir="rtl"] {
+    section.layout-shell.n-footer > div {
+      flex-direction: row-reverse;
+    }
+  
+    .n-media > div {
+      flex-direction: row-reverse;
+    }
+  }

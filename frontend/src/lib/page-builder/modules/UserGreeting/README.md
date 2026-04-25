@@ -10,12 +10,12 @@ Short greeting for authenticated users (name or email).
 |-----------|------|---------|-------------|
 | `greeting` | string | `'Hello'` | Prefix text |
 | `showEmail` | boolean | false | Fall back to email if no display name |
-| `className` | string | — | Wrapper text classes |
+| `className` | string | — | Extra classes on the greeting span |
 
 See `config.ts`.
 
 ## Classes & tokens for template styles
 
-- **Root:** `<span class="{className || 'text-[color:var(--tp-fg-muted)]'}">`
+- **Root:** `pb-userGreeting`; when `className` is empty, `pb-userGreeting--muted` applies (`color: var(--tp-fg-muted)`).
 
-Override `className` from theme editor for full control.
+Override `className` from the theme editor for full control.

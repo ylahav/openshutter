@@ -154,6 +154,7 @@ export class SiteConfigService {
         socialMedia: {
           facebook: '',
           instagram: '',
+          flickr: '',
           twitter: '',
           linkedin: ''
         }

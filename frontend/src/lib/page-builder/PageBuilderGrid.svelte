@@ -70,6 +70,13 @@
 	$: gridCols = layout?.gridColumns ?? Math.max(1, ...modules.map((m) => (m.columnIndex ?? 0) + (m.colSpan ?? 1)));
 	$: gridRows = layout?.gridRows ?? Math.max(1, ...modules.map((m) => (m.rowOrder ?? 0) + (m.rowSpan ?? 1)));
 	$: hasSpanning = modules.some((m) => (m.rowSpan ?? 1) > 1 || (m.colSpan ?? 1) > 1);
+	$: spanningRenderModules = modules.map((m) => ({
+		module: m,
+		rowOrder: m.rowOrder ?? m.order ?? 0,
+		columnIndex: m.columnIndex ?? 0,
+		rowSpan: m.rowSpan ?? 1,
+		colSpan: m.colSpan ?? 1
+	}));
 
 	$: contentMax = compact
 		? 'w-full'
@@ -111,20 +118,20 @@
 		class="{compact ? 'w-full' : contentMax} {compact ? 'py-2' : 'py-6'} {contentGap}"
 		style="display: grid; grid-template-columns: repeat({gridCols}, 1fr); grid-template-rows: repeat({gridRows}, auto);"
 	>
-		{#each modules.filter((m) => m.rowOrder !== undefined && m.columnIndex !== undefined) as module, idx (module._id ?? `${module.type}-${module.rowOrder ?? 'r'}-${module.columnIndex ?? 'c'}-${idx}`)}
+		{#each spanningRenderModules as placed, idx (placed.module._id ?? `${placed.module.type}-${placed.rowOrder}-${placed.columnIndex}-${idx}`)}
 			<div
-				class="{placementFlexClasses(cellPlacement(module))} {wrapperClassName(module, $activeTemplate)}"
-				style="grid-column: {module.columnIndex! + 1} / span {module.colSpan ?? 1}; grid-row: {module.rowOrder! + 1} / span {module.rowSpan ?? 1}"
+				class="{placementFlexClasses(cellPlacement(placed.module))} {wrapperClassName(placed.module, $activeTemplate)}"
+				style="grid-column: {placed.columnIndex + 1} / span {placed.colSpan}; grid-row: {placed.rowOrder + 1} / span {placed.rowSpan}"
 			>
-				{#if moduleMap[module.type]}
+				{#if moduleMap[placed.module.type]}
 					<svelte:component
-						this={moduleMap[module.type]}
-						{...omitPlacement(module.props)}
+						this={moduleMap[placed.module.type]}
+						{...omitPlacement(placed.module.props)}
 						data={pageContext}
 						{compact}
 					/>
 				{:else}
-					<div class="p-4 text-sm opacity-60">Unknown module: {module.type}</div>
+					<div class="p-4 text-sm opacity-60">Unknown module: {placed.module.type}</div>
 				{/if}
 			</div>
 		{/each}

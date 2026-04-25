@@ -4,6 +4,7 @@
 
 	export let config: any = {};
 
+	let variant: 'flags' | 'dropdown' = 'dropdown';
 	$: variant = config?.variant === 'flags' ? 'flags' : 'dropdown';
 	$: showFlags = config?.showFlags !== false;
 	$: showNativeNames = config?.showNativeNames !== false;
@@ -11,4 +12,6 @@
 	$: className = config?.className || '';
 </script>
 
-<LanguageSelector {variant} {showFlags} {showNativeNames} {compact} {className} />
+<div class="pb-languageSelectorModule">
+	<LanguageSelector {variant} {showFlags} {showNativeNames} {compact} {className} />
+</div>

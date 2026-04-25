@@ -20,6 +20,7 @@ import { UpdateThemeDto } from './dto/update-theme.dto';
 import type { FontSetting } from '../types/template';
 import { mergeThemeCustomLayoutForCreate } from '../template/shell-layout';
 import { validateTemplatePagesLayer } from '../template/validate-pages-layer';
+import { noirFooterLayoutShellInstances, noirFooterPageModules } from '../template/noir-footer-shell';
 
 const PALETTE_PRESETS: Record<string, { colors: Record<string, string> }> = {
   light: {
@@ -406,6 +407,49 @@ export class ThemesController {
         ]
       };
 
+      const defaultPageModulesForCreate =
+        baseTemplate === 'noir'
+          ? {
+              ...DEFAULT_PAGE_MODULES,
+              footer: noirFooterPageModules as unknown[],
+              home: [
+                {
+                  ...DEFAULT_PAGE_MODULES.home[0],
+                  props: {
+                    ...DEFAULT_PAGE_MODULES.home[0].props,
+                    showCta: false,
+                    backgroundStyle: 'galleryLeading',
+                  },
+                },
+                {
+                  ...DEFAULT_PAGE_MODULES.home[1],
+                  props: {
+                    ...DEFAULT_PAGE_MODULES.home[1].props,
+                    showHeading: false,
+                    showDescription: false,
+                    coverAspect: 'square',
+                  },
+                },
+              ],
+              gallery: [
+                {
+                  ...DEFAULT_PAGE_MODULES.gallery[0],
+                  props: {
+                    ...DEFAULT_PAGE_MODULES.gallery[0].props,
+                    showHeading: false,
+                    showDescription: false,
+                    coverAspect: 'square',
+                  },
+                },
+              ],
+            }
+          : DEFAULT_PAGE_MODULES;
+
+      const defaultPageLayoutForCreate =
+        baseTemplate === 'noir'
+          ? { ...DEFAULT_PAGE_LAYOUTS, footer: { gridRows: 1, gridColumns: 1 } }
+          : DEFAULT_PAGE_LAYOUTS;
+
       const theme: any = {
         name,
         description: typeof body?.description === 'string' ? body.description : '',
@@ -426,12 +470,22 @@ export class ThemesController {
           : {},
         pageModules: body?.pageModules && typeof body.pageModules === 'object'
           ? body.pageModules
-          : DEFAULT_PAGE_MODULES,
+          : defaultPageModulesForCreate,
         pageLayout: body?.pageLayout && typeof body.pageLayout === 'object'
           ? body.pageLayout
-          : DEFAULT_PAGE_LAYOUTS,
+          : defaultPageLayoutForCreate,
         layoutPresets:
-          body?.layoutPresets && typeof body.layoutPresets === 'object' ? body.layoutPresets : {},
+          body?.layoutPresets && typeof body.layoutPresets === 'object'
+            ? body.layoutPresets
+            : baseTemplate === 'noir'
+              ? noirFooterLayoutShellInstances
+              : {},
+        layoutShellInstances:
+          body?.layoutShellInstances && typeof body.layoutShellInstances === 'object'
+            ? body.layoutShellInstances
+            : baseTemplate === 'noir'
+              ? noirFooterLayoutShellInstances
+              : {},
         isPublished: true,
         createdAt: new Date(),
         updatedAt: new Date(),

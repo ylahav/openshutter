@@ -1,0 +1,205 @@
+// ============================================================
+// Noir Albums Grid — _albums.scss
+//
+// Original design:
+//   .album-grid — 3-col tight grid, 2px gap
+//   .ac         — square card, overflow hidden, no chrome
+//   .ac-img     — absolute cover, dark+mono filter
+//   .ac-ov      — gradient overlay, hidden until hover
+//   .ac-info    — absolute bottom, slides up on hover
+//   .ac-title   — DM Mono 11px uppercase white
+//   .ac-meta    — DM Mono 9px uppercase white/60
+//
+// Produced DOM (AlbumsGrid + Noir pack):
+//   section … @container
+//     div …
+//       (no h3 when showHeading: false)
+//       div.grid …
+//         a.ac.aspect-square …
+//           div.relative (full bleed)
+//             div absolute inset-0 — cover image
+//             div.ac-ov
+//             div.ac-info — title, optional description, photo count, badge
+//
+// WHAT SCSS HANDLES:  grid density, mono type, image filters, .ac-ov / .ac-info motion
+// ============================================================
+
+@mixin n-mono($size: 10px, $spacing: 0.18em) {
+    font-family: 'DM Mono', monospace;
+    font-size: $size;
+    letter-spacing: $spacing;
+    text-transform: uppercase;
+    font-weight: 400;
+  }
+  
+  // ── Section wrapper ───────────────────────────────────────────
+  
+  section.n-s-albums,
+  section[class*="@container"][class*="py-"] {
+    // Strip section chrome
+    background: transparent !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  
+    // Strip inner max-width wrapper padding
+    > div {
+      max-width: 100% !important;
+      padding: 0 !important;
+      margin: 0 !important;
+    }
+  }
+  
+  // ── Grid ──────────────────────────────────────────────────────
+  
+  .grid.grid-cols-1,
+  section[class*="@container"] div[class*="grid"] {
+    // Override: gap-5 (20px) → 2px tight grid
+    gap: var(--gap-grid, 2px) !important;
+    // Lock to 3 columns regardless of @container queries
+    grid-template-columns: repeat(3, 1fr) !important;
+    // Remove bottom margin
+    margin-bottom: 0 !important;
+  }
+  
+  // ── Card ──────────────────────────────────────────────────────
+  // Target the anchor cards inside the grid
+  
+  section[class*="@container"] div[class*="grid"] > a {
+    // Strip all generic card chrome
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    overflow: hidden !important;
+  
+    // Square aspect, relative for absolute children
+    position: relative;
+    aspect-ratio: 1 / 1;
+    display: block;
+    cursor: pointer;
+  
+    // Remove translate lift hover
+    &:hover {
+      transform: none !important;
+      box-shadow: none !important;
+    }
+  
+    // Remove inner padding wrapper
+    > div {
+      padding: 0 !important;
+      height: 100%;
+      position: relative;
+    }
+  }
+  
+  // ── Image ─────────────────────────────────────────────────────
+  
+  section[class*="@container"] div[class*="grid"] > a img {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    object-position: center;
+    display: block;
+  
+    // Noir image treatment: dark + slight desaturation
+    filter: brightness(0.8) grayscale(0.15);
+    transition:
+      transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+      filter 0.35s ease;
+  
+    [data-mode="light"] & {
+      filter: brightness(0.95) grayscale(0);
+    }
+  
+    // Scale on card hover
+    section[class*="@container"] div[class*="grid"] > a:hover & {
+      transform: scale(1.04);
+    }
+  }
+  
+  // ── Overlay (div.ac-ov) ───────────────────────────────────────
+
+  .ac-ov {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      to top,
+      rgba(8, 8, 8, 0.75) 0%,
+      rgba(8, 8, 8, 0.2) 45%,
+      transparent 70%
+    );
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+    z-index: 1;
+  
+    .ac:hover &,
+    a:hover & { opacity: 1; }
+  }
+
+  // ── Info wrapper (div.ac-info) ────────────────────────────────
+
+  .ac-info {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 20px;
+    transform: translateY(8px);
+    opacity: 0;
+    transition:
+      transform 0.3s ease,
+      opacity 0.3s ease;
+    z-index: 2;
+  
+    .ac:hover &,
+    a:hover & {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  // ── Title (h3 inside card) ────────────────────────────────────
+  
+  section[class*="@container"] div[class*="grid"] > a h3 {
+    @include n-mono(11px, 0.14em);
+    color: #fff !important;
+    margin-bottom: 4px !important;
+    font-weight: 400 !important;
+  
+    // Remove group-hover colour change (we don't use --os-primary here)
+    transition: none !important;
+  }
+  
+  // ── Meta / photo count ────────────────────────────────────────
+  
+  section[class*="@container"] div[class*="grid"] > a div[class*="text-sm"][class*="fg-subtle"],
+  section[class*="@container"] div[class*="grid"] > a div[class*="text-sm"]:last-child {
+    @include n-mono(9px, 0.1em);
+    color: rgba(255, 255, 255, 0.6) !important;
+    margin: 0 !important;
+  }
+  
+  // ── Light mode ────────────────────────────────────────────────
+  
+  [data-mode="light"] {
+    section[class*="@container"] div[class*="grid"] > a img {
+      filter: brightness(0.95) grayscale(0);
+    }
+  }
+  
+  // ── RTL ───────────────────────────────────────────────────────
+  
+  [dir="rtl"] {
+    section[class*="@container"] div[class*="grid"] {
+      direction: rtl;
+    }
+  
+    .ac-info {
+      left: 0;
+      right: 0;
+      text-align: right;
+    }
+  }
