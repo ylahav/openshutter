@@ -1019,6 +1019,13 @@
 	/** Ephemeral: layout-shell inner grid — must survive `editingModule = { ...editingModule, … }` from placement/orientation controls. */
 	const PB_PRESET_KEY = '__pbLayoutPresetKey';
 	const PB_MODULE_INDEX = '__pbLayoutModuleIndex';
+	type EditingModuleContext = {
+		module: any;
+		innerPresetKey: string;
+		innerModuleIndex: number;
+		layoutShellOriginalPresetKey: string;
+	};
+	let editingModuleContextStack: EditingModuleContext[] = [];
 
 	function stripLayoutPresetEditMeta(m: Record<string, any>): Record<string, any> {
 		const o = { ...m };
@@ -1029,6 +1036,39 @@
 
 	function getLayoutShellRef(props: Record<string, any> | undefined): string {
 		return String(props?.instanceRef ?? props?.presetKey ?? '').trim();
+	}
+
+	function pushEditingModuleContext() {
+		if (!editingModule) return;
+		editingModuleContextStack = [
+			...editingModuleContextStack,
+			{
+				module: JSON.parse(JSON.stringify(editingModule)),
+				innerPresetKey: editingInnerLayoutPresetKey,
+				innerModuleIndex: editingInnerLayoutModuleIndex,
+				layoutShellOriginalPresetKey
+			}
+		];
+	}
+
+	function restoreParentEditingModuleContext(): boolean {
+		if (editingModuleContextStack.length === 0) return false;
+		const parent = editingModuleContextStack[editingModuleContextStack.length - 1];
+		editingModuleContextStack = editingModuleContextStack.slice(0, -1);
+		editingModule = parent.module;
+		editingInnerLayoutPresetKey = parent.innerPresetKey;
+		editingInnerLayoutModuleIndex = parent.innerModuleIndex;
+		layoutShellOriginalPresetKey = parent.layoutShellOriginalPresetKey;
+		return true;
+	}
+
+	function closeEditingModuleEditor() {
+		if (restoreParentEditingModuleContext()) return;
+		editingModule = null;
+		editingInnerLayoutPresetKey = '';
+		editingInnerLayoutModuleIndex = -1;
+		layoutShellOriginalPresetKey = '';
+		editingModuleContextStack = [];
 	}
 
 	function saveModuleChanges() {
@@ -1069,9 +1109,7 @@
 				cur[k] = { ...prev, modules };
 				localOverrides = { ...localOverrides, layoutPresets: cur };
 				hasChanges = true;
-				editingModule = null;
-				editingInnerLayoutPresetKey = '';
-				editingInnerLayoutModuleIndex = -1;
+				closeEditingModuleEditor();
 			} else {
 				layoutShellPresetKeyError =
 					'Could not save this inner module (preset data or module index is out of date). Close and try again.';
@@ -1135,10 +1173,8 @@
 				'Could not find this module on the current page grid (it may only exist inside a layout region — open the layout region and use Edit on the inner block).';
 			return;
 		}
-		editingModule = null;
-		editingInnerLayoutPresetKey = '';
-		editingInnerLayoutModuleIndex = -1;
-		layoutShellOriginalPresetKey = '';
+		closeEditingModuleEditor();
+		editingModuleContextStack = [];
 	}
 
 	$: selectedCount = selectedCells.size;
@@ -1168,6 +1204,8 @@ let layoutShellPresetKeyError = '';
 	let layoutShellInnerAssignedModuleType = '';
 	let layoutShellInnerSelectedCells = new Set<string>();
 	let layoutShellInnerEditingRow = 0;
+let layoutShellInnerAlignHorizontal: 'default' | 'start' | 'center' | 'end' | 'stretch' = 'default';
+let layoutShellInnerAlignVertical: 'default' | 'start' | 'center' | 'end' | 'stretch' = 'default';
 let draggedAlbumField: string | null = null;
 let draggedPhotoField: string | null = null;
 let draggedAlbumHeaderField: string | null = null;
@@ -1432,6 +1470,22 @@ let draggedAlbumHeaderField: string | null = null;
 		hasChanges = true;
 	}
 
+	function updateLayoutShellRowTemplate(key: string, rowOrder: number, rawTemplate: string) {
+		const k = key.trim();
+		if (!k) return;
+		ensureLayoutInstanceEntry(k);
+		const cur = { ...(localOverrides.layoutPresets || {}) };
+		const prev = cur[k] || { gridRows: 1, gridColumns: 1, modules: [] };
+		const nextMap = { ...((prev as any).rowTemplateColumnsByRow || {}) } as Record<string, string>;
+		const normalized = String(rawTemplate || '').trim();
+		if (normalized) nextMap[String(rowOrder)] = normalized;
+		else delete nextMap[String(rowOrder)];
+		const rowTemplateColumnsByRow = Object.keys(nextMap).length > 0 ? nextMap : undefined;
+		cur[k] = { ...prev, rowTemplateColumnsByRow } as any;
+		localOverrides = { ...localOverrides, layoutPresets: cur };
+		hasChanges = true;
+	}
+
 	function layoutShellInnerCellKey(row: number, col: number): string {
 		return `${row}:${col}`;
 	}
@@ -1523,6 +1577,33 @@ let draggedAlbumHeaderField: string | null = null;
 	function clearLayoutShellInnerSelection() {
 		layoutShellInnerSelectedCells = new Set();
 		layoutShellInnerAssignedModuleType = '';
+	}
+
+	function setLayoutShellSelectedCellsPlacement(
+		presetKey: string,
+		horizontal: 'default' | 'start' | 'center' | 'end' | 'stretch',
+		vertical: 'default' | 'start' | 'center' | 'end' | 'stretch'
+	) {
+		const k = presetKey.trim();
+		if (!k || layoutShellInnerSelectedCells.size === 0) return;
+		ensureLayoutInstanceEntry(k);
+		const cur = { ...(localOverrides.layoutPresets || {}) };
+		const prev = cur[k] || { gridRows: 1, gridColumns: 1, modules: [] };
+		const nextCellMap = { ...((prev as any).cellPlacementByCell || {}) } as Record<
+			string,
+			{ horizontal?: string; vertical?: string }
+		>;
+		for (const key of layoutShellInnerSelectedCells) {
+			if (horizontal === 'default' && vertical === 'default') {
+				delete nextCellMap[key];
+			} else {
+				nextCellMap[key] = { horizontal, vertical };
+			}
+		}
+		const cellPlacementByCell = Object.keys(nextCellMap).length > 0 ? nextCellMap : undefined;
+		cur[k] = { ...prev, cellPlacementByCell } as any;
+		localOverrides = { ...localOverrides, layoutPresets: cur };
+		hasChanges = true;
 	}
 
 	function insertLayoutInstanceRow(presetKey: string, atIndex: number) {
@@ -3973,6 +4054,17 @@ let draggedAlbumHeaderField: string | null = null;
 															if (editingModule.props.linkToHome === undefined) {
 																editingModule.props.linkToHome = true;
 															}
+															if (editingModule.props.showSiteTitle === undefined) {
+																editingModule.props.showSiteTitle = false;
+															}
+															if (
+																editingModule.props.titlePosition !== 'above' &&
+																editingModule.props.titlePosition !== 'below' &&
+																editingModule.props.titlePosition !== 'left' &&
+																editingModule.props.titlePosition !== 'right'
+															) {
+																editingModule.props.titlePosition = 'right';
+															}
 														}
 														// Initialize siteTitle props if needed
 														if (editingModule.type === 'siteTitle') {
@@ -4548,8 +4640,27 @@ let draggedAlbumHeaderField: string | null = null;
 									</p>
 									{#each Array(shell?.gridRows ?? 1) as _, rIdx (rIdx)}
 										<div class="flex items-center justify-between gap-2 py-1 border-b border-surface-100-900 last:border-0">
-											<div class="text-sm text-(--color-surface-800-200)">
-												Row {rIdx + 1}
+											<div class="flex-1 min-w-0">
+												<div class="text-sm text-(--color-surface-800-200)">
+													Row {rIdx + 1}
+												</div>
+												<div class="mt-1">
+													<label class="text-[11px] text-(--color-surface-600-400)">
+														Columns template
+													</label>
+													<input
+														type="text"
+														class={`mt-1 ${ADMIN_TEXT_INPUT_CLASS}`}
+														value={(shell as any)?.rowTemplateColumnsByRow?.[String(rIdx)] ?? ''}
+														placeholder="e.g. 1-3-1 or auto 1fr auto"
+														on:input={(e) =>
+															updateLayoutShellRowTemplate(
+																pk,
+																rIdx,
+																(e.currentTarget as HTMLInputElement).value
+															)}
+													/>
+												</div>
 											</div>
 											<div class="flex flex-wrap gap-1">
 												<button
@@ -4622,6 +4733,7 @@ let draggedAlbumHeaderField: string | null = null;
 															type="button"
 															class="text-[10px] text-(--color-primary-600) hover:text-(--color-primary-800) font-medium"
 															on:click|stopPropagation={() => {
+									pushEditingModuleContext();
 																const cloned = JSON.parse(JSON.stringify(mod)) as Record<
 																	string,
 																	unknown
@@ -4712,6 +4824,41 @@ let draggedAlbumHeaderField: string | null = null;
 											on:click={() => clearLayoutShellInnerSelection()}
 										>
 											Clear selection
+										</button>
+									</div>
+									<div class="flex flex-wrap items-end gap-2 pt-2 border-t border-surface-200-800">
+										<label class="text-xs shrink-0">
+											<span class="block opacity-80 mb-1">H align</span>
+											<select class={ADMIN_SELECT_SM_CLASS} bind:value={layoutShellInnerAlignHorizontal}>
+												<option value="default">Default</option>
+												<option value="start">Left / Start</option>
+												<option value="center">Center</option>
+												<option value="end">Right / End</option>
+												<option value="stretch">Stretch</option>
+											</select>
+										</label>
+										<label class="text-xs shrink-0">
+											<span class="block opacity-80 mb-1">V align</span>
+											<select class={ADMIN_SELECT_SM_CLASS} bind:value={layoutShellInnerAlignVertical}>
+												<option value="default">Default</option>
+												<option value="start">Top / Start</option>
+												<option value="center">Middle</option>
+												<option value="end">Bottom / End</option>
+												<option value="stretch">Stretch</option>
+											</select>
+										</label>
+										<button
+											type="button"
+											class="mt-5 px-3 py-1.5 text-xs font-medium rounded-md bg-(--color-primary-600) text-white hover:bg-(--color-primary-700) disabled:opacity-50"
+											disabled={layoutShellInnerSelectedCells.size === 0}
+											on:click={() =>
+												setLayoutShellSelectedCellsPlacement(
+													pk,
+													layoutShellInnerAlignHorizontal,
+													layoutShellInnerAlignVertical
+												)}
+										>
+											Apply alignment to selected
 										</button>
 									</div>
 								</div>
@@ -5665,6 +5812,50 @@ let draggedAlbumHeaderField: string | null = null;
 							</label>
 							<p class="mt-1 text-xs text-(--color-surface-600-400)">When enabled, clicking the logo navigates to "/"</p>
 						</div>
+						<div>
+							<label class="flex items-center gap-2">
+								<input
+									type="checkbox"
+									checked={editingModule.props?.showSiteTitle === true}
+									on:change={(e) => {
+										editingModule = {
+											...editingModule,
+											props: { ...editingModule.props, showSiteTitle: (e.currentTarget as HTMLInputElement).checked }
+										};
+									}}
+									class="w-4 h-4 text-(--color-primary-600) border-surface-300-700 rounded focus:ring-(--color-primary-500)"
+								/>
+								<span class="text-sm font-medium text-(--color-surface-800-200)">Show site title</span>
+							</label>
+						</div>
+						<div>
+							<label for="logo-title-position" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
+								Title position
+							</label>
+							<select
+								id="logo-title-position"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
+								value={editingModule.props?.titlePosition ?? 'right'}
+								on:change={(e) => {
+									editingModule = {
+										...editingModule,
+										props: {
+											...editingModule.props,
+											titlePosition: (e.currentTarget as HTMLSelectElement).value as
+												| 'above'
+												| 'below'
+												| 'right'
+												| 'left'
+										}
+									};
+								}}
+							>
+								<option value="above">Above</option>
+								<option value="below">Below</option>
+								<option value="right">Right</option>
+								<option value="left">Left</option>
+							</select>
+						</div>
 					</div>
 				{:else if editingModule.type === 'siteTitle'}
 					<div class="space-y-4">
@@ -6150,10 +6341,7 @@ let draggedAlbumHeaderField: string | null = null;
 				<button
 					type="button"
 					on:click={() => {
-						editingModule = null;
-						editingInnerLayoutPresetKey = '';
-						editingInnerLayoutModuleIndex = -1;
-						layoutShellOriginalPresetKey = '';
+						closeEditingModuleEditor();
 					}}
 					class="px-4 py-2 text-(--color-surface-800-200) hover:bg-(--color-surface-200-800) rounded-md text-sm font-medium"
 				>

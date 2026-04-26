@@ -336,7 +336,16 @@
 	// Grid builder state
 	let showGridBuilder = false;
 	let gridInitialized = false;
-	let layoutShellInstances: Record<string, { gridRows?: number; gridColumns?: number; modules?: unknown[] }> = {};
+let layoutShellInstances: Record<
+	string,
+	{
+		gridRows?: number;
+		gridColumns?: number;
+		modules?: unknown[];
+		rowTemplateColumnsByRow?: Record<string, string>;
+		cellPlacementByCell?: Record<string, { horizontal?: string; vertical?: string }>;
+	}
+> = {};
 	let menuInstances: Record<string, MenuInstanceConfig> = {};
 
 	onMount(async () => {
@@ -351,7 +360,13 @@
 				const template = ((siteCfg?.template || siteCfg?.data?.template) || {}) as Record<string, unknown>;
 				const siteInstances = (template.layoutShellInstances || template.layoutPresets || {}) as Record<
 					string,
-					{ gridRows?: number; gridColumns?: number; modules?: unknown[] }
+					{
+						gridRows?: number;
+						gridColumns?: number;
+						modules?: unknown[];
+						rowTemplateColumnsByRow?: Record<string, string>;
+						cellPlacementByCell?: Record<string, { horizontal?: string; vertical?: string }>;
+					}
 				>;
 				layoutShellInstances = { ...siteInstances };
 				const siteMenuInstances = (template.menuInstances || {}) as Record<string, MenuInstanceConfig>;
@@ -741,6 +756,7 @@
 		themeToggleVariant = 'icons';
 		socialMediaModuleProps = {};
 		albumViewModuleProps = {};
+		logoModuleProps = {};
 		editingLayoutShellModule = false;
 		moduleWrapperClassName = '';
 		pageTitleShowTitle = true;
@@ -798,6 +814,12 @@
 	let layoutShellEditorGridColumns = 1;
 	let layoutShellEditorModules: PageModuleData[] = [];
 	let layoutShellEditorRowStructure: Map<number, number[]> = new Map();
+let layoutShellEditorRowTemplateColumnsByRow: Record<string, string> = {};
+let layoutShellEditorCellPlacementByCell: Record<string, { horizontal?: string; vertical?: string }> = {};
+let layoutShellEditorAlignRow = 1;
+let layoutShellEditorAlignCol = 1;
+let layoutShellEditorAlignHorizontal: 'default' | 'start' | 'center' | 'end' | 'stretch' = 'default';
+let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'stretch' = 'default';
 	let editingLayoutShellModule = false;
 	let layoutShellEditorSaving = false;
 	let layoutShellEditorError = '';
@@ -825,6 +847,7 @@
 
 	let socialMediaModuleProps: Record<string, unknown> = {};
 	let albumViewModuleProps: Record<string, unknown> = {};
+	let logoModuleProps: Record<string, unknown> = {};
 
 	function normalizeSocialMediaPropsForEditor(raw: Record<string, unknown>): Record<string, unknown> {
 		const p = { ...raw };
@@ -862,6 +885,27 @@
 	}
 
 	function handleModuleTypeChangeInDialog() {
+		if (moduleForm.type === 'logo') {
+			try {
+				logoModuleProps = moduleForm.propsJson.trim()
+					? (JSON.parse(moduleForm.propsJson) as Record<string, unknown>)
+					: {};
+			} catch {
+				logoModuleProps = {};
+			}
+			if (!logoModuleProps.size) logoModuleProps.size = 'md';
+			if (logoModuleProps.fallbackIcon === undefined) logoModuleProps.fallbackIcon = true;
+			if (logoModuleProps.linkToHome === undefined) logoModuleProps.linkToHome = true;
+			if (logoModuleProps.showSiteTitle === undefined) logoModuleProps.showSiteTitle = false;
+			if (
+				logoModuleProps.titlePosition !== 'above' &&
+				logoModuleProps.titlePosition !== 'below' &&
+				logoModuleProps.titlePosition !== 'left' &&
+				logoModuleProps.titlePosition !== 'right'
+			) {
+				logoModuleProps.titlePosition = 'right';
+			}
+		}
 		if (moduleForm.type === 'albumView') {
 			try {
 				albumViewModuleProps = moduleForm.propsJson.trim()
@@ -909,6 +953,18 @@
 		const existing = layoutShellInstances[key] || {};
 		layoutShellEditorGridRows = Math.max(1, Number(existing.gridRows || 1));
 		layoutShellEditorGridColumns = Math.max(1, Number(existing.gridColumns || 1));
+		layoutShellEditorRowTemplateColumnsByRow =
+			existing.rowTemplateColumnsByRow && typeof existing.rowTemplateColumnsByRow === 'object'
+				? { ...existing.rowTemplateColumnsByRow }
+				: {};
+		layoutShellEditorCellPlacementByCell =
+			existing.cellPlacementByCell && typeof existing.cellPlacementByCell === 'object'
+				? { ...existing.cellPlacementByCell }
+				: {};
+		layoutShellEditorAlignRow = 1;
+		layoutShellEditorAlignCol = 1;
+		layoutShellEditorAlignHorizontal = 'default';
+		layoutShellEditorAlignVertical = 'default';
 		const rawMods = Array.isArray(existing.modules) ? existing.modules : [];
 		layoutShellEditorModules = rawMods.map((m: any, idx) => ({
 			_id: String(m?._id || `shell-${Date.now()}-${idx}`),
@@ -1104,7 +1160,15 @@
 				[key]: {
 					gridRows: Math.max(1, Number(layoutShellEditorGridRows || 1)),
 					gridColumns: Math.max(1, Number(layoutShellEditorGridColumns || 1)),
-					modules: parsed
+					modules: parsed,
+					rowTemplateColumnsByRow:
+						Object.keys(layoutShellEditorRowTemplateColumnsByRow).length > 0
+							? { ...layoutShellEditorRowTemplateColumnsByRow }
+							: undefined,
+					cellPlacementByCell:
+						Object.keys(layoutShellEditorCellPlacementByCell).length > 0
+							? { ...layoutShellEditorCellPlacementByCell }
+							: undefined
 				}
 			};
 
@@ -1424,6 +1488,23 @@
 		} else {
 			albumViewModuleProps = {};
 		}
+		if (module.type === 'logo') {
+			logoModuleProps = { ...((module.props || {}) as Record<string, unknown>) };
+			if (!logoModuleProps.size) logoModuleProps.size = 'md';
+			if (logoModuleProps.fallbackIcon === undefined) logoModuleProps.fallbackIcon = true;
+			if (logoModuleProps.linkToHome === undefined) logoModuleProps.linkToHome = true;
+			if (logoModuleProps.showSiteTitle === undefined) logoModuleProps.showSiteTitle = false;
+			if (
+				logoModuleProps.titlePosition !== 'above' &&
+				logoModuleProps.titlePosition !== 'below' &&
+				logoModuleProps.titlePosition !== 'left' &&
+				logoModuleProps.titlePosition !== 'right'
+			) {
+				logoModuleProps.titlePosition = 'right';
+			}
+		} else {
+			logoModuleProps = {};
+		}
 
 		editingFeatureIndex = null;
 		showModuleEditDialog = true;
@@ -1531,6 +1612,8 @@
 				props = { ...socialMediaModuleProps } as Record<string, unknown>;
 			} else if (moduleForm.type === 'albumView') {
 				props = { ...albumViewModuleProps } as Record<string, unknown>;
+			} else if (moduleForm.type === 'logo') {
+				props = { ...logoModuleProps } as Record<string, unknown>;
 			} else {
 				props = moduleForm.propsJson.trim() ? JSON.parse(moduleForm.propsJson) as Record<string, unknown> : {};
 			}
@@ -2898,6 +2981,100 @@
 							}}
 						/>
 					</div>
+				{:else if moduleForm.type === 'logo'}
+					<div class="space-y-4 border-t border-surface-200-800 pt-4">
+						<div>
+							<label for="module-logo-size" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
+								Size
+							</label>
+							<select
+								id="module-logo-size"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
+								value={String(logoModuleProps.size ?? 'md')}
+								on:change={(e) => {
+									logoModuleProps = {
+										...logoModuleProps,
+										size: (e.currentTarget as HTMLSelectElement).value as 'sm' | 'md' | 'lg'
+									};
+								}}
+							>
+								<option value="sm">Small</option>
+								<option value="md">Medium</option>
+								<option value="lg">Large</option>
+							</select>
+						</div>
+
+						<label class="flex items-center gap-2 text-sm text-(--color-surface-800-200)">
+							<input
+								type="checkbox"
+								class="w-4 h-4 text-(--color-primary-600) border-surface-300-700 rounded focus:ring-(--color-primary-500)"
+								checked={logoModuleProps.fallbackIcon !== false}
+								on:change={(e) => {
+									logoModuleProps = {
+										...logoModuleProps,
+										fallbackIcon: (e.currentTarget as HTMLInputElement).checked
+									};
+								}}
+							/>
+							Show icon when logo is missing
+						</label>
+
+						<label class="flex items-center gap-2 text-sm text-(--color-surface-800-200)">
+							<input
+								type="checkbox"
+								class="w-4 h-4 text-(--color-primary-600) border-surface-300-700 rounded focus:ring-(--color-primary-500)"
+								checked={logoModuleProps.linkToHome !== false}
+								on:change={(e) => {
+									logoModuleProps = {
+										...logoModuleProps,
+										linkToHome: (e.currentTarget as HTMLInputElement).checked
+									};
+								}}
+							/>
+							Link logo to home page
+						</label>
+
+						<label class="flex items-center gap-2 text-sm text-(--color-surface-800-200)">
+							<input
+								type="checkbox"
+								class="w-4 h-4 text-(--color-primary-600) border-surface-300-700 rounded focus:ring-(--color-primary-500)"
+								checked={logoModuleProps.showSiteTitle === true}
+								on:change={(e) => {
+									logoModuleProps = {
+										...logoModuleProps,
+										showSiteTitle: (e.currentTarget as HTMLInputElement).checked
+									};
+								}}
+							/>
+							Show site title
+						</label>
+
+						<div>
+							<label for="module-logo-title-position" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
+								Title position
+							</label>
+							<select
+								id="module-logo-title-position"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
+								value={String(logoModuleProps.titlePosition ?? 'right')}
+								on:change={(e) => {
+									logoModuleProps = {
+										...logoModuleProps,
+										titlePosition: (e.currentTarget as HTMLSelectElement).value as
+											| 'above'
+											| 'below'
+											| 'right'
+											| 'left'
+									};
+								}}
+							>
+								<option value="above">Above</option>
+								<option value="below">Below</option>
+								<option value="right">Right</option>
+								<option value="left">Left</option>
+							</select>
+						</div>
+					</div>
 				{/if}
 				<div class="space-y-1 border-t border-surface-200-800 pt-4">
 					<label for="module-wrapper-class" class="block text-sm font-medium text-(--color-surface-800-200)">
@@ -2935,7 +3112,7 @@
 							</p>
 						</div>
 					</div>
-				{:else if !['featureGrid', 'richText', 'pageTitle', 'hero', 'albumsGrid', 'albumView', 'layoutShell', 'menu', 'themeToggle', 'socialMedia'].includes(moduleForm.type)}
+				{:else if !['featureGrid', 'richText', 'pageTitle', 'hero', 'albumsGrid', 'albumView', 'layoutShell', 'menu', 'themeToggle', 'socialMedia', 'logo'].includes(moduleForm.type)}
 					<!-- JSON Editor for other module types -->
 					<div>
 						<label for="module-props-json" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
@@ -3570,6 +3747,54 @@
 							{/if}
 						</div>
 					</div>
+				{:else if moduleForm.type === 'logo'}
+					<div class="space-y-4 border-t border-surface-200-800 pt-4">
+						<div>
+							<label for="module-logo-size" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
+								Size
+							</label>
+							<select
+								id="module-logo-size"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
+								value={String(logoModuleProps.size ?? 'md')}
+								on:change={(e) => {
+									logoModuleProps = { ...logoModuleProps, size: (e.currentTarget as HTMLSelectElement).value as 'sm' | 'md' | 'lg' };
+								}}
+							>
+								<option value="sm">Small</option>
+								<option value="md">Medium</option>
+								<option value="lg">Large</option>
+							</select>
+						</div>
+						<label class="flex items-center gap-2 text-sm text-(--color-surface-800-200)">
+							<input type="checkbox" class="w-4 h-4 text-(--color-primary-600) border-surface-300-700 rounded focus:ring-(--color-primary-500)" checked={logoModuleProps.fallbackIcon !== false} on:change={(e) => { logoModuleProps = { ...logoModuleProps, fallbackIcon: (e.currentTarget as HTMLInputElement).checked }; }} />
+							Show icon when logo is missing
+						</label>
+						<label class="flex items-center gap-2 text-sm text-(--color-surface-800-200)">
+							<input type="checkbox" class="w-4 h-4 text-(--color-primary-600) border-surface-300-700 rounded focus:ring-(--color-primary-500)" checked={logoModuleProps.linkToHome !== false} on:change={(e) => { logoModuleProps = { ...logoModuleProps, linkToHome: (e.currentTarget as HTMLInputElement).checked }; }} />
+							Link logo to home page
+						</label>
+						<label class="flex items-center gap-2 text-sm text-(--color-surface-800-200)">
+							<input type="checkbox" class="w-4 h-4 text-(--color-primary-600) border-surface-300-700 rounded focus:ring-(--color-primary-500)" checked={logoModuleProps.showSiteTitle === true} on:change={(e) => { logoModuleProps = { ...logoModuleProps, showSiteTitle: (e.currentTarget as HTMLInputElement).checked }; }} />
+							Show site title
+						</label>
+						<div>
+							<label for="module-logo-title-position" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">Title position</label>
+							<select
+								id="module-logo-title-position"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
+								value={String(logoModuleProps.titlePosition ?? 'right')}
+								on:change={(e) => {
+									logoModuleProps = { ...logoModuleProps, titlePosition: (e.currentTarget as HTMLSelectElement).value as 'above' | 'below' | 'right' | 'left' };
+								}}
+							>
+								<option value="above">Above</option>
+								<option value="below">Below</option>
+								<option value="right">Right</option>
+								<option value="left">Left</option>
+							</select>
+						</div>
+					</div>
 				{:else}
 					<!-- JSON Editor for other module types -->
 					<div>
@@ -3717,6 +3942,140 @@
 						class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)" />
 				</div>
 			</div>
+			<div class="mb-4 rounded-md border border-surface-200-800 p-3">
+				<div class="text-sm font-semibold text-(--color-surface-950-50) mb-2">Row templates</div>
+				<p class="text-xs text-(--color-surface-600-400) mb-3">
+					Optional per-row columns template. Examples: <code>1-3-1</code>, <code>auto 1fr auto</code>, <code>1fr 2fr 3fr 2fr</code>.
+				</p>
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+					{#each Array(layoutShellEditorGridRows) as _, rIdx (rIdx)}
+						<div>
+							<label for={`ls-row-template-${rIdx}`} class="block text-xs font-medium text-(--color-surface-800-200) mb-1">
+								Row {rIdx + 1} template
+							</label>
+							<input
+								id={`ls-row-template-${rIdx}`}
+								type="text"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
+								value={layoutShellEditorRowTemplateColumnsByRow[String(rIdx)] ?? ''}
+								placeholder="default (equal columns)"
+								on:input={(e) => {
+									const v = (e.currentTarget as HTMLInputElement).value.trim();
+									const next = { ...layoutShellEditorRowTemplateColumnsByRow };
+									if (v) next[String(rIdx)] = v;
+									else delete next[String(rIdx)];
+									layoutShellEditorRowTemplateColumnsByRow = next;
+								}}
+							/>
+						</div>
+					{/each}
+				</div>
+			</div>
+			<div class="mb-4 rounded-md border border-surface-200-800 p-3">
+				<div class="text-sm font-semibold text-(--color-surface-950-50) mb-2">Cell alignment</div>
+				<p class="text-xs text-(--color-surface-600-400) mb-3">
+					Set horizontal/vertical alignment for a specific cell. Use <code>Default</code> + <code>Default</code> to clear.
+				</p>
+				<div class="grid grid-cols-1 md:grid-cols-5 gap-3">
+					<div>
+						<label for="ls-align-row" class="block text-xs font-medium text-(--color-surface-800-200) mb-1">Row</label>
+						<input
+							id="ls-align-row"
+							type="number"
+							min="1"
+							max={layoutShellEditorGridRows}
+							bind:value={layoutShellEditorAlignRow}
+							class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
+						/>
+					</div>
+					<div>
+						<label for="ls-align-col" class="block text-xs font-medium text-(--color-surface-800-200) mb-1">Column</label>
+						<input
+							id="ls-align-col"
+							type="number"
+							min="1"
+							max={layoutShellEditorGridColumns}
+							bind:value={layoutShellEditorAlignCol}
+							class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
+						/>
+					</div>
+					<div>
+						<label for="ls-align-h" class="block text-xs font-medium text-(--color-surface-800-200) mb-1">H align</label>
+						<select
+							id="ls-align-h"
+							bind:value={layoutShellEditorAlignHorizontal}
+							class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
+						>
+							<option value="default">Default</option>
+							<option value="start">Start</option>
+							<option value="center">Center</option>
+							<option value="end">End</option>
+							<option value="stretch">Stretch</option>
+						</select>
+					</div>
+					<div>
+						<label for="ls-align-v" class="block text-xs font-medium text-(--color-surface-800-200) mb-1">V align</label>
+						<select
+							id="ls-align-v"
+							bind:value={layoutShellEditorAlignVertical}
+							class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
+						>
+							<option value="default">Default</option>
+							<option value="start">Start</option>
+							<option value="center">Center</option>
+							<option value="end">End</option>
+							<option value="stretch">Stretch</option>
+						</select>
+					</div>
+					<div class="flex items-end">
+						<button
+							type="button"
+							class="w-full px-3 py-2 text-xs bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700)"
+							on:click={() => {
+								const row = Math.max(1, Math.min(layoutShellEditorGridRows, Number(layoutShellEditorAlignRow || 1)));
+								const col = Math.max(1, Math.min(layoutShellEditorGridColumns, Number(layoutShellEditorAlignCol || 1)));
+								layoutShellEditorAlignRow = row;
+								layoutShellEditorAlignCol = col;
+								const key = `${row - 1}:${col - 1}`;
+								const next = { ...layoutShellEditorCellPlacementByCell };
+								if (layoutShellEditorAlignHorizontal === 'default' && layoutShellEditorAlignVertical === 'default') {
+									delete next[key];
+								} else {
+									next[key] = {
+										horizontal: layoutShellEditorAlignHorizontal,
+										vertical: layoutShellEditorAlignVertical
+									};
+								}
+								layoutShellEditorCellPlacementByCell = next;
+							}}
+						>
+							Apply to cell
+						</button>
+					</div>
+				</div>
+				{#if Object.keys(layoutShellEditorCellPlacementByCell).length > 0}
+					<div class="mt-3 rounded border border-surface-200-800">
+						{#each Object.entries(layoutShellEditorCellPlacementByCell).sort((a, b) => a[0].localeCompare(b[0])) as [cellKey, placement]}
+							<div class="flex items-center justify-between gap-2 px-3 py-2 border-b border-surface-100-900 last:border-b-0">
+								<div class="text-xs text-(--color-surface-700-300)">
+									<code>{cellKey}</code> → H: <strong>{placement.horizontal || 'default'}</strong>, V: <strong>{placement.vertical || 'default'}</strong>
+								</div>
+								<button
+									type="button"
+									class="px-2 py-1 text-[11px] rounded border border-red-300 text-red-700 hover:bg-red-50"
+									on:click={() => {
+										const next = { ...layoutShellEditorCellPlacementByCell };
+										delete next[cellKey];
+										layoutShellEditorCellPlacementByCell = next;
+									}}
+								>
+									Remove
+								</button>
+							</div>
+						{/each}
+					</div>
+				{/if}
+			</div>
 			<div class="mb-2">
 				<button
 					type="button"
@@ -3727,6 +4086,29 @@
 						for (let r = 0; r < rows; r++) rowMap.set(r, Array(cols).fill(1));
 						layoutShellEditorRowStructure = rowMap;
 						layoutShellEditorModules = layoutShellEditorModules.filter((m) => (m.rowOrder ?? 0) < rows && (m.columnIndex ?? 0) < cols);
+						const nextTemplates: Record<string, string> = {};
+						for (const [rk, rv] of Object.entries(layoutShellEditorRowTemplateColumnsByRow)) {
+							const r = Number(rk);
+							if (Number.isFinite(r) && r >= 0 && r < rows && typeof rv === 'string' && rv.trim()) {
+								nextTemplates[String(r)] = rv.trim();
+							}
+						}
+						layoutShellEditorRowTemplateColumnsByRow = nextTemplates;
+						const nextCellPlacement: Record<string, { horizontal?: string; vertical?: string }> = {};
+						for (const [key, placement] of Object.entries(layoutShellEditorCellPlacementByCell)) {
+							const [rk, ck] = key.split(':').map(Number);
+							if (
+								Number.isFinite(rk) &&
+								Number.isFinite(ck) &&
+								rk >= 0 &&
+								ck >= 0 &&
+								rk < rows &&
+								ck < cols
+							) {
+								nextCellPlacement[`${rk}:${ck}`] = placement;
+							}
+						}
+						layoutShellEditorCellPlacementByCell = nextCellPlacement;
 					}}
 					class="px-3 py-2 text-xs bg-(--color-surface-200-800) text-(--color-surface-800-200) rounded-md hover:bg-(--color-surface-300-700)"
 				>
@@ -4282,6 +4664,38 @@
 									{albumsGridSelectedAlbums.length} album{albumsGridSelectedAlbums.length !== 1 ? 's' : ''} selected
 								</p>
 							{/if}
+						</div>
+					</div>
+				{:else if moduleForm.type === 'logo'}
+					<div class="space-y-4 border-t border-surface-200-800 pt-4">
+						<div>
+							<label for="module-logo-size" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">Size</label>
+							<select id="module-logo-size" class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)" value={String(logoModuleProps.size ?? 'md')} on:change={(e) => { logoModuleProps = { ...logoModuleProps, size: (e.currentTarget as HTMLSelectElement).value as 'sm' | 'md' | 'lg' }; }}>
+								<option value="sm">Small</option>
+								<option value="md">Medium</option>
+								<option value="lg">Large</option>
+							</select>
+						</div>
+						<label class="flex items-center gap-2 text-sm text-(--color-surface-800-200)">
+							<input type="checkbox" class="w-4 h-4 text-(--color-primary-600) border-surface-300-700 rounded focus:ring-(--color-primary-500)" checked={logoModuleProps.fallbackIcon !== false} on:change={(e) => { logoModuleProps = { ...logoModuleProps, fallbackIcon: (e.currentTarget as HTMLInputElement).checked }; }} />
+							Show icon when logo is missing
+						</label>
+						<label class="flex items-center gap-2 text-sm text-(--color-surface-800-200)">
+							<input type="checkbox" class="w-4 h-4 text-(--color-primary-600) border-surface-300-700 rounded focus:ring-(--color-primary-500)" checked={logoModuleProps.linkToHome !== false} on:change={(e) => { logoModuleProps = { ...logoModuleProps, linkToHome: (e.currentTarget as HTMLInputElement).checked }; }} />
+							Link logo to home page
+						</label>
+						<label class="flex items-center gap-2 text-sm text-(--color-surface-800-200)">
+							<input type="checkbox" class="w-4 h-4 text-(--color-primary-600) border-surface-300-700 rounded focus:ring-(--color-primary-500)" checked={logoModuleProps.showSiteTitle === true} on:change={(e) => { logoModuleProps = { ...logoModuleProps, showSiteTitle: (e.currentTarget as HTMLInputElement).checked }; }} />
+							Show site title
+						</label>
+						<div>
+							<label for="module-logo-title-position" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">Title position</label>
+							<select id="module-logo-title-position" class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)" value={String(logoModuleProps.titlePosition ?? 'right')} on:change={(e) => { logoModuleProps = { ...logoModuleProps, titlePosition: (e.currentTarget as HTMLSelectElement).value as 'above' | 'below' | 'right' | 'left' }; }}>
+								<option value="above">Above</option>
+								<option value="below">Below</option>
+								<option value="right">Right</option>
+								<option value="left">Left</option>
+							</select>
 						</div>
 					</div>
 				{:else}

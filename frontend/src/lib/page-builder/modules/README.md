@@ -13,7 +13,7 @@ Any module’s `props` may include **`placement`** (see `module-cell-placement.t
 - `horizontal`: `default` | `start` | `center` | `end` | `stretch`
 - `vertical`: same set
 
-The grid wraps the module and applies flex alignment; `placement` is **not** passed through to the module component (it is stripped before spread).
+The grid wraps each module in a cell with class **`pbModuleCell`** plus your module `className` / `wrapperClassByPack`. **`placement`** is applied as **inline layout** on that wrapper (not modifier classes) and is **not** passed through to the module component (it is stripped before spread).
 
 ### Template pack styling (SCSS)
 

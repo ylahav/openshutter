@@ -4,6 +4,7 @@
 	import { page } from '$app/stores';
 	import { siteConfigData } from '$stores/siteConfig';
 	import type { PageModuleData } from '$lib/types/page-builder';
+	import type { ModulePlacement } from '$lib/page-builder/module-cell-placement';
 	import PageBuilderGrid from '../PageBuilderGrid.svelte';
 
 	/** Legacy reference key into `siteConfig.template.layoutPresets`. */
@@ -26,7 +27,16 @@
 	$: resolvedRef = String(instanceRef || presetKey || '').trim();
 	$: templateBag = ($siteConfigData?.template ?? {}) as Record<string, unknown>;
 	$: presetRegistry = ((templateBag.layoutShellInstances || templateBag.layoutPresets) ?? null) as
-		| Record<string, { gridRows?: number; gridColumns?: number; modules?: PageModuleData[] }>
+		| Record<
+				string,
+				{
+					gridRows?: number;
+					gridColumns?: number;
+					modules?: PageModuleData[];
+					rowTemplateColumnsByRow?: Record<string, string>;
+					cellPlacementByCell?: Record<string, ModulePlacement>;
+				}
+		  >
 		| null;
 	$: presetFromSite =
 		resolvedRef && presetRegistry
@@ -35,7 +45,13 @@
 	$: previewMap = layoutPresetsPreviewStore ? $layoutPresetsPreviewStore : null;
 	$: presetFromPreview =
 		resolvedRef && previewMap && previewMap[resolvedRef]
-			? (previewMap[resolvedRef] as { gridRows?: number; gridColumns?: number; modules?: PageModuleData[] })
+			? (previewMap[resolvedRef] as {
+					gridRows?: number;
+					gridColumns?: number;
+					modules?: PageModuleData[];
+					rowTemplateColumnsByRow?: Record<string, string>;
+					cellPlacementByCell?: Record<string, ModulePlacement>;
+			  })
 			: null;
 	$: preset = presetFromPreview ?? presetFromSite;
 
@@ -45,10 +61,64 @@
 	};
 
 	$: childModules = (preset?.modules ?? []) as PageModuleData[];
+	$: rowTemplateColumnsByRow = normalizeRowTemplates(preset?.rowTemplateColumnsByRow);
+	$: cellPlacementByCell = normalizeCellPlacements(preset?.cellPlacementByCell);
 
 	const normalizeType = (t: unknown): string => (t === 'albumGallery' ? 'albumView' : String(t ?? ''));
 	$: normalizedChildren = childModules.map((m) => ({ ...m, type: normalizeType((m as any).type) }));
 	$: isAdminRoute = $page.url.pathname.startsWith('/admin');
+
+	function normalizeTemplateColumns(raw: string): string {
+		const v = raw.trim();
+		if (!v) return '';
+		// Shorthand ratios like "1-3-1" -> "1fr 3fr 1fr".
+		if (/^\d+(\.\d+)?(?:-\d+(\.\d+)?)+$/.test(v)) {
+			return v
+				.split('-')
+				.map((n) => `${n}fr`)
+				.join(' ');
+		}
+		return v;
+	}
+
+	function normalizeRowTemplates(input: unknown): Record<string, string> | undefined {
+		if (!input || typeof input !== 'object' || Array.isArray(input)) return undefined;
+		const out: Record<string, string> = {};
+		for (const [k, v] of Object.entries(input as Record<string, unknown>)) {
+			if (typeof v !== 'string') continue;
+			const normalized = normalizeTemplateColumns(v);
+			if (!normalized) continue;
+			out[k] = normalized;
+		}
+		return Object.keys(out).length ? out : undefined;
+	}
+
+	function normalizeCellPlacements(input: unknown): Record<string, ModulePlacement> | undefined {
+		if (!input || typeof input !== 'object' || Array.isArray(input)) return undefined;
+		const out: Record<string, ModulePlacement> = {};
+		for (const [k, v] of Object.entries(input as Record<string, unknown>)) {
+			if (!v || typeof v !== 'object' || Array.isArray(v)) continue;
+			const row = v as Record<string, unknown>;
+			const horizontal =
+				row.horizontal === 'default' ||
+				row.horizontal === 'start' ||
+				row.horizontal === 'center' ||
+				row.horizontal === 'end' ||
+				row.horizontal === 'stretch'
+					? row.horizontal
+					: undefined;
+			const vertical =
+				row.vertical === 'default' ||
+				row.vertical === 'start' ||
+				row.vertical === 'center' ||
+				row.vertical === 'end' ||
+				row.vertical === 'stretch'
+					? row.vertical
+					: undefined;
+			if (horizontal || vertical) out[k] = { horizontal, vertical };
+		}
+		return Object.keys(out).length ? out : undefined;
+	}
 </script>
 
 {#if parentDepth > 6}
@@ -78,6 +148,8 @@
 			compact={true}
 			pageContext={data}
 			gridTemplateColumns={gridTemplateColumns.trim() || undefined}
+			rowTemplateColumnsByRow={rowTemplateColumnsByRow}
+			cellPlacementByCell={cellPlacementByCell}
 		/>
 	</section>
 {/if}

@@ -33,34 +33,35 @@ export function omitPlacement<T extends Record<string, unknown>>(props: T | unde
 /**
  * Flex column wrapper: horizontal → align-items, vertical → justify-content.
  * default horizontal → stretch (full cell width); default vertical → start.
+ *
+ * Returned as inline `style` so the DOM only needs a single marker class (`pbModuleCell`)
+ * plus user `className` from module config — no framework-owned modifier classes.
  */
-export function placementFlexClasses(placement: ModulePlacement | undefined): string {
+export function placementCellStyle(placement: ModulePlacement | undefined): string {
 	const h = placement?.horizontal ?? 'default';
 	const v = placement?.vertical ?? 'default';
 
-	const hClass =
+	const alignItems =
 		h === 'default' || h === 'stretch'
-			? 'items-stretch'
+			? 'stretch'
 			: h === 'start'
-				? 'items-start'
+				? 'flex-start'
 				: h === 'center'
-					? 'items-center'
+					? 'center'
 					: h === 'end'
-						? 'items-end'
-						: 'items-stretch';
+						? 'flex-end'
+						: 'stretch';
 
-	const vClass =
-		v === 'default'
-			? 'justify-start'
+	const justifyContent =
+		v === 'default' || v === 'start'
+			? 'flex-start'
 			: v === 'stretch'
-				? 'justify-stretch'
-				: v === 'start'
-					? 'justify-start'
-					: v === 'center'
-						? 'justify-center'
-						: v === 'end'
-							? 'justify-end'
-							: 'justify-start';
+				? 'stretch'
+				: v === 'center'
+					? 'center'
+					: v === 'end'
+						? 'flex-end'
+						: 'flex-start';
 
-	return `flex flex-col w-full min-h-0 min-w-0 ${hClass} ${vClass}`;
+	return `display:flex;flex-direction:column;width:100%;min-width:0;min-height:0;align-items:${alignItems};justify-content:${justifyContent};`;
 }
