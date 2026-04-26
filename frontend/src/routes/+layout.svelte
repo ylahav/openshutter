@@ -16,6 +16,16 @@
 
 	export let data: LayoutData;
 
+	/**
+	 * Seed site config on SSR and on navigation before child routes render.
+	 * Hydrating only in `onMount` left `siteConfigData` null during SSR, so `$activeTemplate`
+	 * fell back as if the pack were unset and `PageRenderer` could pick Atelier’s hero override
+	 * while the real pack (e.g. studio) came from `data.visitorTemplatePack`.
+	 */
+	$: if (data.visitorSiteConfig) {
+		siteConfig.hydrateFromServer(data.visitorSiteConfig);
+	}
+
 	/** Inline fallback when site config has no favicon yet (avoids undefined href on SSR). */
 	const DEFAULT_FAVICON =
 		'data:image/svg+xml,' +
@@ -35,11 +45,8 @@
 		? null
 		: import('$lib/components/BodyTemplateWrapper.svelte');
 
-	// Initialize site config and auth on mount (skip on login page)
+	// Client refresh + auth (site config already hydrated from layout `data` above)
 	onMount(() => {
-		if (data.visitorSiteConfig) {
-			siteConfig.hydrateFromServer(data.visitorSiteConfig);
-		}
 		// Only load site config if not on login page
 		if ($page.url.pathname !== '/login') {
 			siteConfig.load().catch((err) => {

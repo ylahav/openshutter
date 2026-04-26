@@ -6,10 +6,7 @@
 	import { siteConfigData } from '$stores/siteConfig';
 	import { logger } from '$lib/utils/logger';
 	import { t } from '$stores/i18n';
-	import Hero from './components/Hero.svelte';
 	import AlbumList from './components/AlbumList.svelte';
-
-	type TemplateHeroCfg = { componentsConfig?: { hero?: { visible?: boolean } } };
 
 	let rootAlbums: any[] = [];
 	let loading = true;
@@ -30,9 +27,6 @@
 		}
 	});
 
-	$: isHeroVisible =
-		($siteConfigData?.template as TemplateHeroCfg | undefined)?.componentsConfig?.hero?.visible !== false;
-
 	$: introHtml = $siteConfigData?.description
 		? MultiLangUtils.getHTMLValue($siteConfigData.description, $currentLanguage)
 		: '';
@@ -49,11 +43,8 @@
 	})();
 </script>
 
+<!-- Visitor `/` uses PageRenderer + page-builder hero. This pack Home is for registry/preview — no duplicate hero. -->
 <div class="tpl-page">
-	{#if isHeroVisible}
-		<Hero />
-	{/if}
-
 	<div class="a-intro">
 		<p class="a-intro__text">
 			“{heroQuoteText}”

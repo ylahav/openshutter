@@ -342,11 +342,59 @@ export class PagesPublicController {
         updatedBy: page.updatedBy?.toString() || page.updatedBy,
       };
 
-      const serializedModules = modules.map((module) => ({
+      let serializedModules: Record<string, unknown>[] = modules.map((module) => ({
         ...module,
         _id: module._id.toString(),
         pageId: module.pageId?.toString() || module.pageId,
-      }));
+      })) as Record<string, unknown>[];
+
+      // Owner mini-sites: editor hero settings live in `owner_site_settings.hero` and are merged into
+      // `site-config.template.pageModules` for consumers that read template — but `/` uses PageRenderer
+      // with modules from `page_modules`. Mirror `SiteConfigController.applyOwnerOverrides` so gallery
+      // leading / background / copy from owner settings apply to the published home (and any page row
+      // that includes a hero module).
+      if (ownerUserId && Types.ObjectId.isValid(ownerUserId)) {
+        const ownerDoc = await db.collection('owner_site_settings').findOne({
+          ownerId: new Types.ObjectId(ownerUserId),
+        });
+        const heroPatch =
+          ownerDoc?.hero && typeof ownerDoc.hero === 'object'
+            ? (ownerDoc.hero as Record<string, unknown>)
+            : null;
+        if (heroPatch) {
+          const merged = serializedModules.map((m) => ({ ...m }));
+          const heroIndex = merged.findIndex(
+            (m) =>
+              m &&
+              typeof m === 'object' &&
+              !Array.isArray(m) &&
+              String((m as { type?: unknown }).type ?? '') === 'hero',
+          );
+          if (heroIndex >= 0) {
+            const cur = merged[heroIndex] as Record<string, unknown>;
+            const prevRaw = cur.props;
+            const prevProps =
+              prevRaw && typeof prevRaw === 'object' && !Array.isArray(prevRaw)
+                ? (prevRaw as Record<string, unknown>)
+                : {};
+            merged[heroIndex] = {
+              ...cur,
+              props: { ...prevProps, ...heroPatch },
+            };
+          } else {
+            merged.unshift({
+              type: 'hero',
+              props: heroPatch,
+              rowOrder: 0,
+              columnIndex: 0,
+              columnProportion: 1,
+              rowSpan: 1,
+              colSpan: 1,
+            });
+          }
+          serializedModules = merged;
+        }
+      }
 
       return { page: serializedPage, modules: serializedModules };
     } catch (error) {

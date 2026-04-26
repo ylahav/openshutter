@@ -222,65 +222,8 @@ body {
   }
 }
 
-// ─── Hero ────────────────────────────────────────────────────
-
-.a-hero {
-  position: relative; height: var(--os-hero-height, 68vh); min-height: 420px;
-  overflow: hidden; display: flex; align-items: flex-end;
-
-  &__img {
-    position: absolute; inset: 0;
-    width: 100%; height: 100%; object-fit: cover;
-    transition: filter $t;
-    filter: var(--os-hero-image-filter, brightness(0.55) saturate(0.8));
-  }
-
-  &__vignette {
-    position: absolute; inset: 0;
-    background: radial-gradient(
-      ellipse at center,
-      color-mix(in srgb, var(--strip) 18%, transparent) 0%,
-      color-mix(in srgb, var(--strip) 72%, black) 100%
-    );
-  }
-
-  &__gradient {
-    position: absolute; bottom: 0; left: 0; right: 0; height: 60%;
-    background: linear-gradient(
-      to top,
-      color-mix(in srgb, var(--strip) 88%, black) 0%,
-      transparent 100%
-    );
-  }
-
-  &__content {
-    position: relative; z-index: 2;
-    width: 100%; max-width: 960px;
-    margin: 0 auto; padding: 0 48px 52px;
-    text-align: center;
-  }
-
-  &__eyebrow {
-    @include small-caps(0.32em);
-    color: var(--gold-lt); margin-bottom: 14px; opacity: 0.8;
-  }
-
-  &__title {
-    @include serif(300, clamp(36px, 6vw, 64px));
-    letter-spacing: 0.06em; color: var(--bg);
-    line-height: 1.15; margin-bottom: 16px;
-  }
-
-  &__rule {
-    @include gold-rule;
-    margin: 0 auto 16px; opacity: 0.7;
-  }
-
-  &__sub {
-    @include small-caps(0.22em);
-    color: color-mix(in srgb, var(--bg) 50%, transparent);
-  }
-}
+// ─── Hero (page builder) ─────────────────────────────────────
+// Visitor home hero: `Hero/Layout.svelte` (`.pb-hero`, `data-hero-pack="atelier"`). Legacy `.a-hero` removed.
 
 // ─── Intro ───────────────────────────────────────────────────
 

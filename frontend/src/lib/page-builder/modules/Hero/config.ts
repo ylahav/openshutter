@@ -38,6 +38,101 @@ export const heroConfig = {
         visibleWhen: { showCta: true },
       },
       {
+        key: 'heroLayout',
+        type: 'select',
+        label: 'Layout',
+        options: [
+          'fullbleed',
+          'split',
+          'editorial',
+          'stacked',
+          'mosaic',
+          'filmstrip',
+          'minimal',
+          'portrait',
+          'slideshow',
+        ],
+        required: false,
+        description:
+          'Optional. If empty: uses `template.hero.layout` when set, else pack default (Noir: fullbleed, Studio: split, Atelier: editorial, others: stacked).',
+      },
+      {
+        key: 'heroSplitLead',
+        type: 'select',
+        label: 'Split layout — column order',
+        required: false,
+        options: [
+          { value: 'media', label: 'Image column first' },
+          { value: 'copy', label: 'Text column first' },
+        ],
+        description:
+          'Only when Layout is Split. Which side appears first in reading order (LTR: left vs right).',
+        visibleWhen: { heroLayout: 'split' },
+      },
+      {
+        key: 'heroSplitGridColumns',
+        type: 'string',
+        label: 'Split layout — column widths',
+        required: false,
+        placeholder: 'e.g. 1fr 1fr or minmax(0,3fr) minmax(0,2fr)',
+        description:
+          'Optional. CSS `grid-template-columns` for the split row (image | copy). Only applies when the resolved layout is split.',
+        visibleWhen: { heroLayout: 'split' },
+      },
+      {
+        key: 'heroSplitMinHeight',
+        type: 'string',
+        label: 'Split layout — row min height',
+        required: false,
+        placeholder: 'e.g. min(70vh, 760px) or 520px',
+        description:
+          'Optional. CSS min-height for the whole split hero row. Default: min(70vh, 760px).',
+        visibleWhen: { heroLayout: 'split' },
+      },
+      {
+        key: 'heroSplitMediaMinHeight',
+        type: 'string',
+        label: 'Split layout — image column min height',
+        required: false,
+        placeholder: 'e.g. 260px or 40vh',
+        description:
+          'Optional. CSS min-height for the image side only. Default: 260px.',
+        visibleWhen: { heroLayout: 'split' },
+      },
+      {
+        key: 'heroImages',
+        type: 'string',
+        label: 'Extra image URLs (mosaic / slideshow)',
+        required: false,
+        placeholder: 'One URL per line or comma-separated',
+        description:
+          'Optional. When set, these URLs are used (with the primary background image when applicable). When empty and background is Gallery leading, mosaic/slideshow use multiple published gallery-leading photos (see Gallery leading count).',
+      },
+      {
+        key: 'heroGalleryLeadingLimit',
+        type: 'string',
+        label: 'Gallery leading count (mosaic / slideshow)',
+        required: false,
+        placeholder: '4 or 5',
+        description:
+          'When background is Gallery leading and this layout is mosaic or slideshow and Extra image URLs is empty: how many leading photos to load (2–12). Default 4 for mosaic, 5 for slideshow.',
+      },
+      {
+        key: 'slideshowIntervalMs',
+        type: 'string',
+        label: 'Slideshow interval (ms)',
+        required: false,
+        placeholder: '5000',
+        description: 'Milliseconds between slides. Default 5000. Minimum 3000.',
+      },
+      {
+        key: 'filmstripMeta',
+        type: 'string',
+        label: 'Filmstrip right caption',
+        required: false,
+        description: 'Short line on the right under the strip (e.g. album count). Defaults to subtitle if empty.',
+      },
+      {
         key: 'backgroundStyle',
         type: 'select',
         label: 'Background style',

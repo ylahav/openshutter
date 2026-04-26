@@ -5,10 +5,7 @@
 	import { MultiLangUtils } from '$utils/multiLang';
 	import { siteConfigData } from '$stores/siteConfig';
 	import { logger } from '$lib/utils/logger';
-	import Hero from './components/Hero.svelte';
 	import AlbumList from './components/AlbumList.svelte';
-
-	type TemplateHeroCfg = { componentsConfig?: { hero?: { visible?: boolean } } };
 
 	let rootAlbums: any[] = [];
 	let loading = true;
@@ -39,24 +36,17 @@
 		}
 	}
 
-	$: isHeroVisible =
-		($siteConfigData?.template as TemplateHeroCfg | undefined)?.componentsConfig?.hero?.visible !==
-		false;
-
 	$: aboutPlain = $siteConfigData?.description
 		? MultiLangUtils.getHTMLValue($siteConfigData.description, $currentLanguage).replace(/<[^>]*>/g, '').trim()
 		: '';
-
 </script>
 
-<!-- Noir: colors/fonts from site_config.template (ThemeColorApplier --tp-* / --os-font-*) -->
+<!-- Noir: colors/fonts from site_config.template (ThemeColorApplier --tp-* / --os-font-*).
+     Visitor `/` uses PageRenderer + page-builder hero (`data-hero-pack="noir"`, see styles/_hero.scss).
+     This pack Home is for registry/preview paths — hero is not duplicated here. -->
 <div
 	class="min-h-screen w-full antialiased selection:bg-black/10 dark:selection:bg-white/10 cursor-crosshair transition-colors duration-300 bg-[color:var(--tp-canvas)] text-[color:var(--tp-fg)] [font-family:var(--os-font-body)]"
 >
-	{#if isHeroVisible}
-		<Hero />
-	{/if}
-
 	<AlbumList albums={rootAlbums} {loading} {error} />
 
 	{#if aboutPlain}

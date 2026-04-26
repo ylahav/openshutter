@@ -6,7 +6,9 @@
 	import { siteConfigData } from '$stores/siteConfig';
 	import { logger } from '$lib/utils/logger';
 	import { t } from '$stores/i18n';
-	import Hero from './components/Hero.svelte';
+	import HeroModule from '$lib/page-builder/modules/HeroModule.svelte';
+	import { DEFAULT_PAGE_MODULES } from '$lib/constants/default-page-layouts';
+	import { getPageModulesForBreakpoint } from '$lib/template/breakpoints';
 	import AlbumList from './components/AlbumList.svelte';
 
 	type TemplateHeroCfg = { componentsConfig?: { hero?: { visible?: boolean } } };
@@ -43,13 +45,42 @@
 
 	$: collectionsCount = rootAlbums.length;
 	$: photosCount = rootAlbums.reduce((sum, a) => sum + (typeof a.photoCount === 'number' ? a.photoCount : 0), 0);
+
+	/** Same module list source as PageRenderer (owner hero merge lands in `template.pageModules.home`). */
+	$: homeModulesRaw = getPageModulesForBreakpoint($siteConfigData?.template, 'home', 'lg');
+	$: homeModules =
+		homeModulesRaw.length > 0
+			? homeModulesRaw
+			: (JSON.parse(JSON.stringify(DEFAULT_PAGE_MODULES.home)) as unknown[]);
+	$: heroModuleEntry = homeModules.find((m) => (m as { type?: string }).type === 'hero') as
+		| { props?: Record<string, unknown> }
+		| undefined;
+	$: baseHeroProps =
+		heroModuleEntry?.props && typeof heroModuleEntry.props === 'object'
+			? { ...heroModuleEntry.props }
+			: {};
+
+	$: dynamicHeroStats =
+		collectionsCount > 0 || photosCount > 0
+			? [
+					...(collectionsCount > 0
+						? [{ label: $t('albums.galleryTitle'), value: String(collectionsCount) }]
+						: []),
+					...(photosCount > 0 ? [{ label: $t('search.photos'), value: String(photosCount) }] : [])
+				]
+			: null;
+
+	$: studioHeroProps =
+		dynamicHeroStats && dynamicHeroStats.length > 0
+			? { ...baseHeroProps, heroStats: dynamicHeroStats }
+			: baseHeroProps;
 </script>
 
 <div
 	class="min-h-screen w-full antialiased transition-colors duration-300 bg-[color:var(--tp-canvas)] text-[color:var(--tp-fg)] [font-family:var(--os-font-body)]"
 >
-	{#if isHeroVisible}
-		<Hero {collectionsCount} {photosCount} />
+	{#if isHeroVisible && heroModuleEntry}
+		<HeroModule props={studioHeroProps} />
 	{/if}
 
 	<AlbumList albums={rootAlbums} {loading} {error} />

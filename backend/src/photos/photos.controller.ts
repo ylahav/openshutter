@@ -42,6 +42,10 @@ export class PhotosController {
   async findGalleryLeading(@Req() req: Request, @Query('limit') limit?: string) {
     const limitNum = limit ? parseInt(limit, 10) || 5 : 5;
     const ownerSiteId = this.ownerSiteIdFromReq(req);
+    const host = String(req.headers['x-forwarded-host'] || req.headers.host || '').split(',')[0]?.trim();
+    this.logger.log(
+      `gallery-leading GET limit=${limitNum} ownerSiteId=${ownerSiteId ?? 'none'} host=${host || 'unknown'}`,
+    );
     return this.photosService.findGalleryLeading(limitNum, ownerSiteId);
   }
 

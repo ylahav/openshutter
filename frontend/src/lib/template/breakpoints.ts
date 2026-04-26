@@ -668,6 +668,16 @@ export function getPageModulesForBreakpoint(
 	if (Array.isArray(raw)) {
 		return raw;
 	}
+
+	/** Same pattern as `getPageGridForBreakpoint`: use overlay when legacy flat `pageModules` has no row. */
+	const rowOverlay = template?.pageModulesByBreakpoint?.[pageKey];
+	if (rowOverlay && typeof rowOverlay === 'object' && !Array.isArray(rowOverlay)) {
+		const picked = pickModulesCellFromBreakpointMap(
+			rowOverlay as Partial<Record<TemplateBreakpointId, unknown[]>>,
+			bp
+		);
+		if (picked !== undefined) return picked;
+	}
 	return [];
 }
 

@@ -4,6 +4,8 @@
 // Compile: sass styles.scss styles.css --no-source-map
 // ============================================================
 
+@use './styles/hero';
+
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Outfit:wght@300;400;500&display=swap');
 
 // ─── Pack color tokens → template palette (`buildTemplatePaletteCss`) ───
@@ -190,6 +192,9 @@ body {
   background: var(--strip);
   overflow: hidden; position: relative; min-height: 520px;
 
+  &__split {
+    @include container;
+  }
   &__bg {
     position: absolute; inset: 0;
     width: 100%; height: 100%; object-fit: cover;

@@ -39,9 +39,12 @@
     width: 100% !important;
   }
   
-  // ── Section ───────────────────────────────────────────────────
+  // ── Section (full-bleed & image-strip only) ───────────────────
+  // Split / editorial / etc. use different DOM (e.g. `.pb-hero__split*`).
+  // Global child selectors here broke split: `splitMedia` must stay `position: relative`
+  // for `.pb-hero__bgImage` absolute fill; `splitBody` must not be `position: absolute`.
   
-  section[data-hero-pack="noir"] {
+  section[data-hero-pack="noir"][data-hero-layout="fullbleed"] {
     position: relative;
     height: 100vh;           // override: was max-h-[50vh]
     min-height: 480px;
@@ -218,7 +221,7 @@
   
   // ── Light mode ────────────────────────────────────────────────
   
-  [data-mode="light"] section[data-hero-pack="noir"] {
+  [data-mode="light"] section[data-hero-pack="noir"][data-hero-layout="fullbleed"] {
     img {
       filter: brightness(0.55) grayscale(0.2);
     }

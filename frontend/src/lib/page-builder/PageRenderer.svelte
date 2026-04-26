@@ -26,6 +26,7 @@
 	import PageTitleModule from './modules/PageTitleModule.svelte';
 	import LoginFormModule from './modules/LoginFormModule.svelte';
 	import { activeTemplate } from '$stores/template';
+	import { normalizeTemplatePackId } from '$lib/template/packs/ids';
 	import { TEMPLATE_PAGE_BUILDER_OVERRIDES } from './template-module-overrides';
 
 	export let page: PageData | null = null;
@@ -82,7 +83,7 @@
 
 	$: moduleMap = {
 		...baseModuleMap,
-		...(TEMPLATE_PAGE_BUILDER_OVERRIDES[$activeTemplate] || {})
+		...(TEMPLATE_PAGE_BUILDER_OVERRIDES[normalizeTemplatePackId(String($activeTemplate ?? ''))] || {})
 	};
 	$: moduleMapStore.set(moduleMap);
 	setContext('pbNestDepth', 0);

@@ -23,6 +23,7 @@
 		legacySocialObjectToLinksJson,
 		parseLinksJson
 	} from '$lib/page-builder/modules/SocialMedia/resolveLinks';
+	import { normalizeHeroSplitLead } from '$lib/page-builder/modules/Hero/hero-layout';
 
 	// Available icon names from icons.ts (sorted)
 	const AVAILABLE_ICONS: string[] = [...AVAILABLE_ICON_NAMES].sort();
@@ -68,6 +69,16 @@
 		ctaUrl?: string;
 		backgroundStyle?: 'light' | 'dark' | 'image' | 'galleryLeading';
 		backgroundImage?: string;
+		heroLayout?: string;
+		heroImages?: string[];
+		heroGalleryLeadingLimit?: string;
+		heroSplitGridColumns?: string;
+		heroSplitMinHeight?: string;
+		heroSplitMediaMinHeight?: string;
+		/** Split only: `copy` = text column first (LTR). Omitted or `media` = image first. */
+		heroSplitLead?: 'media' | 'copy';
+		slideshowIntervalMs?: string;
+		filmstripMeta?: string;
 	}
 
 	interface AlbumsGridProps {
@@ -794,6 +805,57 @@ let layoutShellInstances: Record<
 	let heroShowCta = true;
 	let heroBackgroundStyle: 'light' | 'dark' | 'image' | 'galleryLeading' = 'light';
 	let heroBackgroundImage = '';
+	let heroLayout = '';
+	let heroImagesText = '';
+	let heroSlideshowIntervalMs = '';
+	let heroFilmstripMeta = '';
+	let heroGalleryLeadingLimit = '';
+	let heroSplitGridColumns = '';
+	let heroSplitMinHeight = '';
+	let heroSplitMediaMinHeight = '';
+	let heroSplitLead: 'media' | 'copy' = 'media';
+
+	function heroExtraPropsFromEditor(): Pick<
+		HeroProps,
+		| 'heroLayout'
+		| 'heroImages'
+		| 'heroGalleryLeadingLimit'
+		| 'heroSplitGridColumns'
+		| 'heroSplitMinHeight'
+		| 'heroSplitMediaMinHeight'
+		| 'heroSplitLead'
+		| 'slideshowIntervalMs'
+		| 'filmstripMeta'
+	> {
+		const imgs = heroImagesText
+			.split(/[\n,]+/)
+			.map((s) => s.trim())
+			.filter(Boolean);
+		const out: Pick<
+			HeroProps,
+			| 'heroLayout'
+			| 'heroImages'
+			| 'heroGalleryLeadingLimit'
+			| 'heroSplitGridColumns'
+			| 'heroSplitMinHeight'
+			| 'heroSplitMediaMinHeight'
+			| 'heroSplitLead'
+			| 'slideshowIntervalMs'
+			| 'filmstripMeta'
+		> = {};
+		if (heroLayout.trim()) out.heroLayout = heroLayout.trim();
+		if (imgs.length) out.heroImages = imgs;
+		if (heroGalleryLeadingLimit.trim()) out.heroGalleryLeadingLimit = heroGalleryLeadingLimit.trim();
+		if (heroLayout.trim() === 'split') {
+			if (heroSplitLead === 'copy') out.heroSplitLead = 'copy';
+			if (heroSplitGridColumns.trim()) out.heroSplitGridColumns = heroSplitGridColumns.trim();
+			if (heroSplitMinHeight.trim()) out.heroSplitMinHeight = heroSplitMinHeight.trim();
+			if (heroSplitMediaMinHeight.trim()) out.heroSplitMediaMinHeight = heroSplitMediaMinHeight.trim();
+		}
+		if (heroSlideshowIntervalMs.trim()) out.slideshowIntervalMs = heroSlideshowIntervalMs.trim();
+		if (heroFilmstripMeta.trim()) out.filmstripMeta = heroFilmstripMeta.trim();
+		return out;
+	}
 
 	// Albums Grid module form state
 	let albumsGridTitle: MultiLangText = { en: '', he: '' };
@@ -1405,6 +1467,25 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 				? config.backgroundStyle
 				: 'light';
 			heroBackgroundImage = config.backgroundImage || '';
+			heroLayout = String(config.heroLayout ?? config.layoutVariant ?? '').trim();
+			heroImagesText = Array.isArray(config.heroImages)
+				? (config.heroImages as string[]).join('\n')
+				: typeof config.heroImages === 'string'
+					? config.heroImages
+					: '';
+			heroSlideshowIntervalMs =
+				config.slideshowIntervalMs !== undefined && config.slideshowIntervalMs !== null
+					? String(config.slideshowIntervalMs)
+					: '';
+			heroFilmstripMeta = String(config.filmstripMeta ?? '').trim();
+			heroGalleryLeadingLimit =
+				config.heroGalleryLeadingLimit !== undefined && config.heroGalleryLeadingLimit !== null
+					? String(config.heroGalleryLeadingLimit)
+					: '';
+			heroSplitGridColumns = String(config.heroSplitGridColumns ?? '').trim();
+			heroSplitMinHeight = String(config.heroSplitMinHeight ?? '').trim();
+			heroSplitMediaMinHeight = String(config.heroSplitMediaMinHeight ?? '').trim();
+			heroSplitLead = normalizeHeroSplitLead(config.heroSplitLead) === 'copy' ? 'copy' : 'media';
 		} else {
 			heroTitle = { en: '', he: '' };
 			heroSubtitle = { en: '', he: '' };
@@ -1413,6 +1494,15 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 			heroShowCta = true;
 			heroBackgroundStyle = 'light';
 			heroBackgroundImage = '';
+			heroLayout = '';
+			heroImagesText = '';
+			heroSlideshowIntervalMs = '';
+			heroFilmstripMeta = '';
+			heroGalleryLeadingLimit = '';
+			heroSplitGridColumns = '';
+			heroSplitMinHeight = '';
+			heroSplitMediaMinHeight = '';
+			heroSplitLead = 'media';
 		}
 
 		// Initialize albums grid module form if it's an albumsGrid module
@@ -1567,7 +1657,8 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 					ctaLabel: heroCtaLabel,
 					ctaUrl: heroCtaUrl || undefined,
 					backgroundStyle: heroBackgroundStyle,
-					backgroundImage: heroBackgroundStyle === 'image' ? heroBackgroundImage : undefined
+					backgroundImage: heroBackgroundStyle === 'image' ? heroBackgroundImage : undefined,
+					...heroExtraPropsFromEditor()
 				} as HeroProps;
 			} else if (moduleForm.type === 'albumsGrid') {
 				// Handle albumsGrid module
@@ -1721,7 +1812,8 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 					ctaLabel: heroCtaLabel,
 					ctaUrl: heroCtaUrl || undefined,
 					backgroundStyle: heroBackgroundStyle,
-					backgroundImage: heroBackgroundStyle === 'image' ? heroBackgroundImage : undefined
+					backgroundImage: heroBackgroundStyle === 'image' ? heroBackgroundImage : undefined,
+					...heroExtraPropsFromEditor()
 				} as HeroProps;
 			} else if (moduleForm.type === 'albumsGrid') {
 				props = {
@@ -2729,6 +2821,141 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 								Background comes from your published gallery-leading or album-cover photos. No URL is used.
 							</p>
 						{/if}
+
+						<div>
+							<span class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
+								Layout
+							</span>
+							<select
+								bind:value={heroLayout}
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
+							>
+								<option value="">Template default</option>
+								<option value="fullbleed">Full-bleed</option>
+								<option value="split">Split</option>
+								<option value="editorial">Editorial</option>
+								<option value="stacked">Stacked</option>
+								<option value="mosaic">Mosaic</option>
+								<option value="filmstrip">Filmstrip</option>
+								<option value="minimal">Minimal / typographic</option>
+								<option value="portrait">Portrait</option>
+								<option value="slideshow">Slideshow</option>
+							</select>
+							<p class="mt-1 text-xs text-(--color-surface-600-400)">
+								Optional. Site-wide default: <code class="text-xs">template.hero.layout</code> in site config (see Hero README).
+							</p>
+						</div>
+
+						{#if heroLayout === 'split'}
+						<div class="rounded-md border border-surface-300-700 bg-(--color-surface-50-950) p-3 space-y-3">
+							<p class="text-sm font-medium text-(--color-surface-800-200)">Split layout</p>
+							<p class="text-xs text-(--color-surface-600-400)">
+								Shown only when Layout is <strong>Split</strong>. Sizes use raw CSS.
+							</p>
+							<div>
+								<span class="block text-xs font-medium text-(--color-surface-700-300) mb-1">
+									Primary column (reading order)
+								</span>
+								<select
+									bind:value={heroSplitLead}
+									class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm text-sm"
+								>
+									<option value="media">Image first</option>
+									<option value="copy">Text first</option>
+								</select>
+							</div>
+							<div>
+								<span class="block text-xs font-medium text-(--color-surface-700-300) mb-1">
+									Column widths (grid-template-columns)
+								</span>
+								<input
+									type="text"
+									bind:value={heroSplitGridColumns}
+									placeholder="1fr 1fr"
+									class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm font-mono text-sm"
+								/>
+							</div>
+							<div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+								<div>
+									<span class="block text-xs font-medium text-(--color-surface-700-300) mb-1">
+										Row min-height
+									</span>
+									<input
+										type="text"
+										bind:value={heroSplitMinHeight}
+										placeholder="min(70vh, 760px)"
+										class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm font-mono text-sm"
+									/>
+								</div>
+								<div>
+									<span class="block text-xs font-medium text-(--color-surface-700-300) mb-1">
+										Image column min-height
+									</span>
+									<input
+										type="text"
+										bind:value={heroSplitMediaMinHeight}
+										placeholder="260px"
+										class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm font-mono text-sm"
+									/>
+								</div>
+							</div>
+						</div>
+						{/if}
+
+						<div>
+							<span class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
+								Extra image URLs (mosaic / slideshow), or gallery-leading photos
+							</span>
+							<textarea
+								bind:value={heroImagesText}
+								rows="3"
+								placeholder="One URL per line or comma-separated — leave empty to use multiple gallery-leading photos when background is Gallery leading"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500) font-mono text-sm"
+							></textarea>
+							<p class="mt-1 text-xs text-(--color-surface-600-400)">
+								If this is empty and background is <strong>Gallery leading photo</strong>, mosaic/slideshow load several published leading/cover photos automatically (see count below).
+							</p>
+						</div>
+
+						<div>
+							<span class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
+								Gallery leading count
+							</span>
+							<input
+								type="text"
+								bind:value={heroGalleryLeadingLimit}
+								placeholder="Default: 4 (mosaic) or 5 (slideshow); max 12"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
+							/>
+							<p class="mt-1 text-xs text-(--color-surface-600-400)">
+								Only applies when background is Gallery leading, layout is mosaic or slideshow, and Extra image URLs is empty.
+							</p>
+						</div>
+
+						<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+							<div>
+								<span class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
+									Slideshow interval (ms)
+								</span>
+								<input
+									type="text"
+									bind:value={heroSlideshowIntervalMs}
+									placeholder="5000"
+									class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
+								/>
+							</div>
+							<div>
+								<span class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
+									Filmstrip right caption
+								</span>
+								<input
+									type="text"
+									bind:value={heroFilmstripMeta}
+									placeholder="e.g. 24 photographs"
+									class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
+								/>
+							</div>
+						</div>
 					</div>
 				{:else if moduleForm.type === 'albumsGrid'}
 					<!-- Albums Grid Module Form -->
@@ -3667,6 +3894,141 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 								Background comes from your published gallery-leading or album-cover photos. No URL is used.
 							</p>
 						{/if}
+
+						<div>
+							<span class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
+								Layout
+							</span>
+							<select
+								bind:value={heroLayout}
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
+							>
+								<option value="">Template default</option>
+								<option value="fullbleed">Full-bleed</option>
+								<option value="split">Split</option>
+								<option value="editorial">Editorial</option>
+								<option value="stacked">Stacked</option>
+								<option value="mosaic">Mosaic</option>
+								<option value="filmstrip">Filmstrip</option>
+								<option value="minimal">Minimal / typographic</option>
+								<option value="portrait">Portrait</option>
+								<option value="slideshow">Slideshow</option>
+							</select>
+							<p class="mt-1 text-xs text-(--color-surface-600-400)">
+								Optional. Site-wide default: <code class="text-xs">template.hero.layout</code> in site config (see Hero README).
+							</p>
+						</div>
+
+						{#if heroLayout === 'split'}
+						<div class="rounded-md border border-surface-300-700 bg-(--color-surface-50-950) p-3 space-y-3">
+							<p class="text-sm font-medium text-(--color-surface-800-200)">Split layout</p>
+							<p class="text-xs text-(--color-surface-600-400)">
+								Shown only when Layout is <strong>Split</strong>. Sizes use raw CSS.
+							</p>
+							<div>
+								<span class="block text-xs font-medium text-(--color-surface-700-300) mb-1">
+									Primary column (reading order)
+								</span>
+								<select
+									bind:value={heroSplitLead}
+									class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm text-sm"
+								>
+									<option value="media">Image first</option>
+									<option value="copy">Text first</option>
+								</select>
+							</div>
+							<div>
+								<span class="block text-xs font-medium text-(--color-surface-700-300) mb-1">
+									Column widths (grid-template-columns)
+								</span>
+								<input
+									type="text"
+									bind:value={heroSplitGridColumns}
+									placeholder="1fr 1fr"
+									class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm font-mono text-sm"
+								/>
+							</div>
+							<div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+								<div>
+									<span class="block text-xs font-medium text-(--color-surface-700-300) mb-1">
+										Row min-height
+									</span>
+									<input
+										type="text"
+										bind:value={heroSplitMinHeight}
+										placeholder="min(70vh, 760px)"
+										class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm font-mono text-sm"
+									/>
+								</div>
+								<div>
+									<span class="block text-xs font-medium text-(--color-surface-700-300) mb-1">
+										Image column min-height
+									</span>
+									<input
+										type="text"
+										bind:value={heroSplitMediaMinHeight}
+										placeholder="260px"
+										class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm font-mono text-sm"
+									/>
+								</div>
+							</div>
+						</div>
+						{/if}
+
+						<div>
+							<span class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
+								Extra image URLs (mosaic / slideshow), or gallery-leading photos
+							</span>
+							<textarea
+								bind:value={heroImagesText}
+								rows="3"
+								placeholder="One URL per line or comma-separated — leave empty to use multiple gallery-leading photos when background is Gallery leading"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500) font-mono text-sm"
+							></textarea>
+							<p class="mt-1 text-xs text-(--color-surface-600-400)">
+								If this is empty and background is <strong>Gallery leading photo</strong>, mosaic/slideshow load several published leading/cover photos automatically (see count below).
+							</p>
+						</div>
+
+						<div>
+							<span class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
+								Gallery leading count
+							</span>
+							<input
+								type="text"
+								bind:value={heroGalleryLeadingLimit}
+								placeholder="Default: 4 (mosaic) or 5 (slideshow); max 12"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
+							/>
+							<p class="mt-1 text-xs text-(--color-surface-600-400)">
+								Only applies when background is Gallery leading, layout is mosaic or slideshow, and Extra image URLs is empty.
+							</p>
+						</div>
+
+						<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+							<div>
+								<span class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
+									Slideshow interval (ms)
+								</span>
+								<input
+									type="text"
+									bind:value={heroSlideshowIntervalMs}
+									placeholder="5000"
+									class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
+								/>
+							</div>
+							<div>
+								<span class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
+									Filmstrip right caption
+								</span>
+								<input
+									type="text"
+									bind:value={heroFilmstripMeta}
+									placeholder="e.g. 24 photographs"
+									class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
+								/>
+							</div>
+						</div>
 					</div>
 				{:else if moduleForm.type === 'albumsGrid'}
 					<!-- Albums Grid Module Form -->
@@ -4586,6 +4948,141 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 								Background comes from your published gallery-leading or album-cover photos. No URL is used.
 							</p>
 						{/if}
+
+						<div>
+							<span class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
+								Layout
+							</span>
+							<select
+								bind:value={heroLayout}
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
+							>
+								<option value="">Template default</option>
+								<option value="fullbleed">Full-bleed</option>
+								<option value="split">Split</option>
+								<option value="editorial">Editorial</option>
+								<option value="stacked">Stacked</option>
+								<option value="mosaic">Mosaic</option>
+								<option value="filmstrip">Filmstrip</option>
+								<option value="minimal">Minimal / typographic</option>
+								<option value="portrait">Portrait</option>
+								<option value="slideshow">Slideshow</option>
+							</select>
+							<p class="mt-1 text-xs text-(--color-surface-600-400)">
+								Optional. Site-wide default: <code class="text-xs">template.hero.layout</code> in site config (see Hero README).
+							</p>
+						</div>
+
+						{#if heroLayout === 'split'}
+						<div class="rounded-md border border-surface-300-700 bg-(--color-surface-50-950) p-3 space-y-3">
+							<p class="text-sm font-medium text-(--color-surface-800-200)">Split layout</p>
+							<p class="text-xs text-(--color-surface-600-400)">
+								Shown only when Layout is <strong>Split</strong>. Sizes use raw CSS.
+							</p>
+							<div>
+								<span class="block text-xs font-medium text-(--color-surface-700-300) mb-1">
+									Primary column (reading order)
+								</span>
+								<select
+									bind:value={heroSplitLead}
+									class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm text-sm"
+								>
+									<option value="media">Image first</option>
+									<option value="copy">Text first</option>
+								</select>
+							</div>
+							<div>
+								<span class="block text-xs font-medium text-(--color-surface-700-300) mb-1">
+									Column widths (grid-template-columns)
+								</span>
+								<input
+									type="text"
+									bind:value={heroSplitGridColumns}
+									placeholder="1fr 1fr"
+									class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm font-mono text-sm"
+								/>
+							</div>
+							<div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+								<div>
+									<span class="block text-xs font-medium text-(--color-surface-700-300) mb-1">
+										Row min-height
+									</span>
+									<input
+										type="text"
+										bind:value={heroSplitMinHeight}
+										placeholder="min(70vh, 760px)"
+										class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm font-mono text-sm"
+									/>
+								</div>
+								<div>
+									<span class="block text-xs font-medium text-(--color-surface-700-300) mb-1">
+										Image column min-height
+									</span>
+									<input
+										type="text"
+										bind:value={heroSplitMediaMinHeight}
+										placeholder="260px"
+										class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm font-mono text-sm"
+									/>
+								</div>
+							</div>
+						</div>
+						{/if}
+
+						<div>
+							<span class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
+								Extra image URLs (mosaic / slideshow), or gallery-leading photos
+							</span>
+							<textarea
+								bind:value={heroImagesText}
+								rows="3"
+								placeholder="One URL per line or comma-separated — leave empty to use multiple gallery-leading photos when background is Gallery leading"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500) font-mono text-sm"
+							></textarea>
+							<p class="mt-1 text-xs text-(--color-surface-600-400)">
+								If this is empty and background is <strong>Gallery leading photo</strong>, mosaic/slideshow load several published leading/cover photos automatically (see count below).
+							</p>
+						</div>
+
+						<div>
+							<span class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
+								Gallery leading count
+							</span>
+							<input
+								type="text"
+								bind:value={heroGalleryLeadingLimit}
+								placeholder="Default: 4 (mosaic) or 5 (slideshow); max 12"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
+							/>
+							<p class="mt-1 text-xs text-(--color-surface-600-400)">
+								Only applies when background is Gallery leading, layout is mosaic or slideshow, and Extra image URLs is empty.
+							</p>
+						</div>
+
+						<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+							<div>
+								<span class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
+									Slideshow interval (ms)
+								</span>
+								<input
+									type="text"
+									bind:value={heroSlideshowIntervalMs}
+									placeholder="5000"
+									class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
+								/>
+							</div>
+							<div>
+								<span class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
+									Filmstrip right caption
+								</span>
+								<input
+									type="text"
+									bind:value={heroFilmstripMeta}
+									placeholder="e.g. 24 photographs"
+									class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
+								/>
+							</div>
+						</div>
 					</div>
 				{:else if moduleForm.type === 'albumsGrid'}
 					<!-- Albums Grid Module Form -->

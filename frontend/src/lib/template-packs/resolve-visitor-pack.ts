@@ -6,6 +6,10 @@ export type PageDataForPack = {
 } | null | undefined;
 
 export function getConfiguredPackId(config: SiteConfig | null | undefined): TemplatePackId {
+	/** No template in load yet: avoid implying `atelier` (has page-builder hero override). */
+	if (config == null) {
+		return 'noir';
+	}
 	const raw =
 		config?.template?.frontendTemplate || config?.template?.activeTemplate || 'atelier';
 	return normalizeTemplatePackId(String(raw));

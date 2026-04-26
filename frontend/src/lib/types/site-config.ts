@@ -96,6 +96,14 @@ export interface SiteConfig {
     layoutPresets?: Record<string, { gridRows?: number; gridColumns?: number; modules?: unknown[] }>
     /** Shared layout-shell instances (preferred key; alias => grid + modules). */
     layoutShellInstances?: Record<string, { gridRows?: number; gridColumns?: number; modules?: unknown[] }>
+    /**
+     * Optional site-wide hero defaults (page-builder `hero` module can override per instance).
+     * @see `frontend/src/lib/page-builder/modules/Hero/README.md`
+     */
+    hero?: {
+      layout?: string
+      [key: string]: unknown
+    }
   }
   seo: {
     metaTitle: MultiLangText
