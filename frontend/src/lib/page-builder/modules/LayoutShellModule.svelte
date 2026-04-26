@@ -11,7 +11,6 @@
 	export let presetKey = '';
 	/** Shared instance alias (preferred). Falls back to `presetKey` for legacy data. */
 	export let instanceRef = '';
-	// svelte-ignore export_let_unused - className is consumed by PageBuilderGrid wrapper cell, not inner shell markup
 	export let className = '';
 	/** Optional CSS `grid-template-columns` for each row (non-spanning layouts), e.g. `auto auto 1fr auto auto`. Skips equal-width flex on cells. */
 	export let gridTemplateColumns = '';
@@ -54,6 +53,7 @@
 			  })
 			: null;
 	$: preset = presetFromPreview ?? presetFromSite;
+	$: shellClass = ['layout-shell', 'pb-layoutShell', String(className || '').trim()].filter(Boolean).join(' ');
 
 	$: layout = {
 		gridRows: Math.max(1, preset?.gridRows ?? 1),
@@ -131,13 +131,13 @@
 	</div>
 {:else if !preset}
 	<section
-		class="layout-shell pb-layoutShell"
+		class={shellClass}
 		aria-hidden="true"
 		data-layout-preset={resolvedRef}
 	></section>
 {:else}
 	<section
-		class="layout-shell pb-layoutShell"
+		class={shellClass}
 		aria-label={`Layout ${resolvedRef}`}
 		data-layout-preset={resolvedRef}
 	>
