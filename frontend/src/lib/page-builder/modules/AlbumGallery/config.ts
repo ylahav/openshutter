@@ -36,6 +36,33 @@ export const albumGalleryConfig = {
 			default: 'stack',
 			description: 'Stack: image on top. Row: thumbnail left, details right (one album per row).',
 		},
+		{
+			key: 'albumCard',
+			type: 'select',
+			label: 'Album card style',
+			options: ['auto', 'bare', 'cards', 'list', 'portrait', 'overlay', 'compact'],
+			default: 'auto',
+			description:
+				'Theme tokens: bare (Noir), cards (Studio), list (Atelier), portrait, overlay, compact. Auto uses pack + layout. Legacy keys (e.g. bareSquare) still work if stored.',
+		},
+		{
+			key: 'photoCard',
+			type: 'select',
+			label: 'Photo grid style',
+			options: [
+				'auto',
+				'default',
+				'square-tight',
+				'landscape',
+				'portrait',
+				'masonry',
+				'justified',
+				'large-preview',
+			],
+			default: 'auto',
+			description:
+				'Theme tokens: square-tight (Noir), landscape (Studio), portrait (Atelier). Justified uses row layout + JS. Auto uses pack default.',
+		},
 		{ key: 'albumCardFieldOrder', type: 'list', label: 'Album card field order', default: ['cover', 'title', 'description', 'photoCount', 'featuredBadge'] },
 		{ key: 'photoCardFieldOrder', type: 'list', label: 'Photo card field order', default: ['cover', 'title', 'description', 'featuredBadge'] },
 		{ key: 'showPhotoCount', type: 'boolean', label: 'Show photo count', default: true },

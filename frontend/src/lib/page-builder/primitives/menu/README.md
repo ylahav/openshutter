@@ -41,5 +41,5 @@ See also: **[page-builder `menu` module](../../../page-builder/modules/Menu/READ
 ## Import
 
 ```ts
-import Menu from '$components/ui/menu/Menu.svelte';
+import Menu from '$pageBuilder/primitives/menu/Menu.svelte';
 ```

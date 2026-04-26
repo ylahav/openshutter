@@ -7,7 +7,7 @@
 	import { getPhotoRotationStyle } from '$lib/utils/photoUrl';
 	import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 	import { t } from '$stores/i18n';
-	import AlbumList from './components/AlbumList.svelte';
+	import AlbumsGridModule from '$lib/page-builder/modules/AlbumsGridModule.svelte';
 	import type { PackGalleryAlbumListItem } from '$lib/template-packs/pack-page-props';
 
 	export let mode: 'photos' | 'albums' = 'photos';
@@ -54,6 +54,12 @@
 		lightboxIndex = index;
 		lightboxOpen = true;
 	}
+
+	const galleryAlbumsGridProps = {
+		showHeading: false,
+		limit: 120,
+		showDescription: false
+	};
 </script>
 
 {#if mode === 'albums'}
@@ -68,7 +74,7 @@
 				</p>
 			</div>
 		</div>
-		<AlbumList {albums} {loading} {error} pageContext="gallery" />
+		<AlbumsGridModule props={galleryAlbumsGridProps} data={{ albums, albumListLoading: loading, albumListError: error }} />
 	</div>
 {:else}
 	<div class="gal-page min-h-screen w-full bg-[color:var(--tp-canvas)] text-[color:var(--tp-fg)] [font-family:var(--os-font-body)]">

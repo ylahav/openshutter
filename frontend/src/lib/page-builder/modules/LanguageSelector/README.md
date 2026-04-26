@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Wraps **`$components/ui/language-selector/LanguageSelector.svelte`**: language dropdown with optional flags and native names.
+Wraps **`$pageBuilder/primitives/language-selector/LanguageSelector.svelte`**: language dropdown with optional flags and native names.
 
 ## Configuration (`props`)
 

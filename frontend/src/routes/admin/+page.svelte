@@ -481,7 +481,11 @@
 					</div>
 					<h2 class="text-xl font-semibold text-(--color-surface-950-50) ml-3">{$t('admin.uiDocsTitle')}</h2>
 				</div>
-				<p class="text-(--color-surface-600-400) mb-4">{$t('admin.uiDocsDescription')}</p>
+				<div
+					class="text-(--color-surface-600-400) mb-4 text-sm leading-relaxed [&_strong]:font-semibold [&_strong]:text-(--color-surface-800-200) [&_code]:font-mono [&_code]:text-xs [&_code]:rounded [&_code]:px-1 [&_code]:py-0.5 [&_code]:text-(--color-surface-800-200) [&_code]:bg-[color-mix(in_oklab,var(--color-surface-950)_8%,transparent)] dark:[&_code]:bg-[color-mix(in_oklab,var(--color-surface-50)_12%,transparent)]"
+				>
+					{@html $t('admin.uiDocsDescription')}
+				</div>
 				<a
 					href="/admin/docs/ui"
 					class="inline-flex items-center px-4 py-2 bg-slate-600 text-white rounded-md hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2"

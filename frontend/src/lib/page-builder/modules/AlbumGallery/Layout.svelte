@@ -13,6 +13,13 @@
 	import { getPhotoFullUrl, getPhotoUrl } from '$lib/utils/photoUrl';
 	import AlbumCard from './AlbumCard.svelte';
 	import PhotoCard from './PhotoCard.svelte';
+	import JustifiedPhotoGrid from './JustifiedPhotoGrid.svelte';
+	import {
+		photoCardPresentation,
+		resolveAlbumCardVariant,
+		resolvePhotoGridVariant,
+	} from './card-layout';
+	import './_styles.scss';
 
 	type AlbumCardSortBy = 'manual' | 'order' | 'name' | 'photoCount' | 'createdAt' | 'lastPhotoDate';
 	type AlbumCardField = 'title' | 'cover' | 'description' | 'photoCount' | 'featuredBadge';
@@ -52,6 +59,14 @@
 		mixedDisplayMode?: 'grouped' | 'interleaved';
 		/** `row`: cover left, text right; full-width list (album cards only). */
 		albumCardLayout?: 'stack' | 'row';
+		/** Theme-style album preset (spec: bare, cards, list, …). */
+		albumCard?: string;
+		/** Explicit album card visual preset; see `card-layout.ts`. */
+		albumCardVariant?: string;
+		/** Theme-style photo grid preset (spec: square-tight, landscape, …). */
+		photoCard?: string;
+		/** Photo grid preset when showing photos; see `card-layout.ts`. */
+		photoGridVariant?: string;
 		showSectionLabels?: boolean;
 		/** When false, hides "Sub-albums" / "Photos" labels above grids. Takes precedence over `showSectionLabels` when set. */
 		showHeading?: boolean;
@@ -163,18 +178,70 @@
 			? config.cardDataType
 			: 'both';
 	$: mixedDisplayMode = config?.mixedDisplayMode === 'interleaved' ? 'interleaved' : 'grouped';
-	$: showGridSectionHeadings = noirAlbumGrid
-		? config?.showHeading === true
-		: config?.showHeading === false
-			? false
-			: config?.showHeading === true
-				? true
-				: config?.showSectionLabels !== false;
+	/** AlbumsGrid sets `albumsGridVariant`; hide "Sub-albums" / "Photos" row titles unless `showHeading` is explicitly true (same for all packs). */
+	$: showGridSectionHeadings =
+		config?.albumsGridVariant === true
+			? config?.showHeading === true
+			: config?.showHeading === false
+				? false
+				: config?.showHeading === true
+					? true
+					: config?.showSectionLabels !== false;
 	$: albumCardLayout = (config?.albumCardLayout === 'row' ? 'row' : 'stack') as 'stack' | 'row';
-	$: albumCardsListClass =
-		albumCardLayout === 'row'
-			? 'pb-albumGallery__list pb-albumGallery__list--row'
-			: 'pb-albumGallery__list pb-albumGallery__list--grid';
+	$: themeAlbumCard = $siteConfigData?.template?.albumCard;
+	$: themePhotoCard = $siteConfigData?.template?.photoCard;
+	$: moduleAlbumCard = config?.albumCard ?? config?.albumCardVariant;
+	$: modulePhotoCard = config?.photoCard ?? config?.photoGridVariant;
+	$: albumCardVisual = resolveAlbumCardVariant(
+		moduleAlbumCard,
+		themeAlbumCard,
+		albumGridPack,
+		noirAlbumGrid,
+		albumCardLayout
+	);
+	$: photoGridVisual = resolvePhotoGridVariant(modulePhotoCard, themePhotoCard, albumGridPack);
+	$: photoGridForLayout =
+		mixedDisplayMode === 'interleaved' &&
+		(photoGridVisual === 'largePreview' || photoGridVisual === 'justifiedRows')
+			? 'default'
+			: photoGridVisual;
+	$: photoCardPres = photoCardPresentation(photoGridForLayout);
+
+	$: albumListBaseClass = (() => {
+		if (albumCardVisual === 'compactList') {
+			return 'pb-albumGallery__list pb-albumGallery__list--compactAlbums';
+		}
+		if (albumCardLayout === 'row' || albumCardVisual === 'editorialList') {
+			return 'pb-albumGallery__list pb-albumGallery__list--row';
+		}
+		const portraitExtra = albumCardVisual === 'portraitGrid' ? ' pb-albumGallery__list--portraitAlbums' : '';
+		return `pb-albumGallery__list pb-albumGallery__list--grid${portraitExtra}`;
+	})();
+
+	$: photosGridModifierClass = (() => {
+		const v = photoGridForLayout;
+		if (v === 'squareTight') return 'pb-albumGallery__list--photosSquareTight';
+		if (v === 'landscape43') return 'pb-albumGallery__list--photosLandscape43';
+		if (v === 'portrait34') return 'pb-albumGallery__list--photosPortrait34';
+		if (v === 'masonry') return 'pb-albumGallery__list--photosMasonry';
+		return '';
+	})();
+
+	$: groupedPhotosListClass = ['pb-albumGallery__list', 'pb-albumGallery__list--photos', photosGridModifierClass]
+		.filter(Boolean)
+		.join(' ');
+	$: interleavedListClass = [albumListBaseClass, photosGridModifierClass].filter(Boolean).join(' ');
+
+	$: albumGallerySectionClass = [
+		'pb-albumGallery',
+		noirAlbumGrid ? 'pb-albumGallery--noirGrid' : '',
+		albumCardVisual === 'bareSquare' && !noirAlbumGrid ? 'pb-albumGallery--bareSquareAlbums' : '',
+	]
+		.filter(Boolean)
+		.join(' ');
+
+	$: largePreviewHeroAspectClass = 'pb-albumGallery__aspect pb-albumGallery__aspect--video';
+
 	$: sortBy = (
 		config?.sortBy === 'order' ||
 		config?.sortBy === 'name' ||
@@ -231,6 +298,25 @@
 			: coverAspect === 'portrait'
 				? 'pb-albumGallery__aspect pb-albumGallery__aspect--portrait'
 				: 'pb-albumGallery__aspect pb-albumGallery__aspect--video';
+
+	$: albumCardCoverAspectClass =
+		albumCardVisual === 'portraitGrid'
+			? 'pb-albumGallery__aspect pb-albumGallery__aspect--portrait'
+			: albumCardVisual === 'permanentOverlay'
+				? 'pb-albumGallery__aspect pb-albumGallery__aspect--square'
+				: albumCardVisual === 'roundedCard' || albumCardVisual === 'editorialList'
+					? 'pb-albumGallery__aspect pb-albumGallery__aspect--landscape43'
+					: coverAspectClass;
+
+	$: photoCoverAspectClass =
+		photoGridForLayout === 'landscape43'
+			? 'pb-albumGallery__aspect pb-albumGallery__aspect--landscape43'
+			: photoGridForLayout === 'portrait34'
+				? 'pb-albumGallery__aspect pb-albumGallery__aspect--portrait'
+				: photoGridForLayout === 'squareTight' || photoGridForLayout === 'justifiedRows'
+					? 'pb-albumGallery__aspect pb-albumGallery__aspect--square'
+					: coverAspectClass;
+
 	$: albumItems = sortedAlbums.filter((item) => item.cardType !== 'photo');
 	$: photoItems = sortedAlbums.filter((item) => item.cardType === 'photo');
 	// Get album alias from page context (URL parameter), with URL fallback.
@@ -253,6 +339,8 @@
 
 	let albums: AlbumCard[] = [];
 	let loading = true;
+	/** Template / parent-provided list error (skips internal fetch). */
+	let listError: string | null = null;
 	let coverImages: Record<string, string> = {};
 	let lastSelectedAlbums: string[] = [];
 	let lastAlbumSource: string = '';
@@ -277,6 +365,20 @@
 
 	let lightboxOpen = false;
 	let lightboxIndex = 0;
+
+	function albumEditorialIndex(list: AlbumCard[], index: number): number {
+		let n = 0;
+		for (let j = 0; j < index; j++) {
+			if (list[j]?.cardType !== 'photo') n++;
+		}
+		return n + 1;
+	}
+
+	function openLightboxForPhoto(album: AlbumCard) {
+		const idx = album?._id != null ? lightboxIndexById.get(String(album._id)) : undefined;
+		lightboxIndex = typeof idx === 'number' ? idx : 0;
+		lightboxOpen = true;
+	}
 
 	function stripHtml(value: string): string {
 		return String(value ?? '')
@@ -349,13 +451,24 @@
 		: [];
 
 	$: currentAlbumKey = albumSource === 'current' ? `current:${currentAlbumAlias || 'none'}` : '';
+	let lastInjectedAlbumsSig = '';
+	$: injectedAlbumsSig = (() => {
+		const d = data as { albums?: unknown; albumListLoading?: boolean; albumListError?: string | null } | null | undefined;
+		if (d != null && Array.isArray(d.albums)) {
+			const ids = (d.albums as { _id?: string }[]).map((a) => a?._id ?? '');
+			return `inj:${JSON.stringify(ids)}:${d.albumListLoading === true}:${d.albumListError ?? ''}`;
+		}
+		return 'no-inj';
+	})();
 	$: if (browser && (
 		JSON.stringify(effectiveSelectedAlbums) !== JSON.stringify(lastSelectedAlbums) || 
 		albumSource !== lastAlbumSource ||
-		(albumSource === 'current' && currentAlbumKey !== lastAlbumSource)
+		(albumSource === 'current' && currentAlbumKey !== lastAlbumSource) ||
+		injectedAlbumsSig !== lastInjectedAlbumsSig
 	)) {
 		lastSelectedAlbums = [...effectiveSelectedAlbums];
 		lastAlbumSource = albumSource === 'current' ? currentAlbumKey : albumSource;
+		lastInjectedAlbumsSig = injectedAlbumsSig;
 		loadAlbums();
 	}
 
@@ -364,6 +477,40 @@
 	});
 
 	async function loadAlbums() {
+		const d = data as {
+			albums?: unknown;
+			albumListLoading?: boolean;
+			albumListError?: string | null;
+		} | null | undefined;
+		if (
+			d != null &&
+			Array.isArray(d.albums) &&
+			albumSource !== 'current' &&
+			albumSource !== 'selected'
+		) {
+			listError = typeof d.albumListError === 'string' && d.albumListError.trim() ? d.albumListError : null;
+			if (listError) {
+				albums = [];
+				loading = false;
+				currentAlbum = null;
+				return;
+			}
+			loading = d.albumListLoading === true;
+			if (loading) {
+				albums = [];
+				currentAlbum = null;
+				return;
+			}
+			albums = d.albums as AlbumCard[];
+			currentAlbum = null;
+			if (albums.some((item) => item.cardType !== 'photo')) {
+				await fetchCoverImages();
+			}
+			loading = false;
+			return;
+		}
+
+		listError = null;
 		loading = true;
 		try {
 			if (albumSource === 'current' && currentAlbumAlias) {
@@ -528,8 +675,11 @@
 	}
 </script>
 
-<section class="pb-albumGallery">
+<section class={albumGallerySectionClass}>
 	<div class="pb-albumGallery__container">
+		{#if listError}
+			<p class="pb-albumGallery__injectedError">{listError}</p>
+		{/if}
 		{#if titleText || descriptionHTML}
 			<div class="pb-albumGallery__intro">
 				{#if titleText}
@@ -608,13 +758,13 @@
 								Sub-albums
 							</h3>
 						{/if}
-						<div class={albumCardsListClass}>
-							{#each albumItems as album}
+						<div class={albumListBaseClass}>
+							{#each albumItems as album, ai}
 								<AlbumCard
 									album={album}
 									href={`/albums/${album.alias ?? ''}`}
 									coverUrl={coverImages[album._id ?? ''] || ''}
-									{coverAspectClass}
+									coverAspectClass={albumCardCoverAspectClass}
 									layout={albumCardLayout}
 									cardFieldOrder={albumCardFieldOrder}
 									showTitle={showAlbumTitle}
@@ -623,7 +773,8 @@
 									{descriptionLines}
 									{showPhotoCount}
 									showFeaturedBadge={showAlbumFeaturedBadge}
-									noirStackCard={noirAlbumGrid && albumCardLayout === 'stack'}
+									variant={albumCardVisual}
+									editorialIndex={albumCardVisual === 'editorialList' ? ai + 1 : undefined}
 								/>
 							{/each}
 						</div>
@@ -634,51 +785,93 @@
 								Photos
 							</h3>
 						{/if}
-						<div class="pb-albumGallery__list pb-albumGallery__list--photos">
-							{#each photoItems as album}
-								<PhotoCard
-									photo={album}
-									{coverAspectClass}
-									cardFieldOrder={photoCardFieldOrder}
-									showTitle={showPhotoTitle}
-									{showCover}
-									showDescription={showPhotoDescription}
-									{descriptionLines}
-									showFeaturedBadge={showPhotoFeaturedBadge}
-									on:open={() => {
-										const idx = album?._id != null ? lightboxIndexById.get(String(album._id)) : undefined;
-										lightboxIndex = typeof idx === 'number' ? idx : 0;
-										lightboxOpen = true;
-									}}
+						{#if photoGridForLayout === 'justifiedRows'}
+							<div class="pb-albumGallery__photosJustified">
+								<JustifiedPhotoGrid
+									photos={photoItems}
+									gapPx={4}
+									targetRowHeight={220}
+									on:open={(e) => openLightboxForPhoto(e.detail.photo)}
 								/>
-							{/each}
-						</div>
+							</div>
+						{:else if photoGridVisual === 'largePreview'}
+							<div class="pb-albumGallery__largePreview">
+								<div class="pb-albumGallery__largePreviewHero">
+									<PhotoCard
+										photo={photoItems[0]}
+										coverAspectClass={largePreviewHeroAspectClass}
+										cardFieldOrder={photoCardFieldOrder}
+										showTitle={showPhotoTitle}
+										{showCover}
+										showDescription={showPhotoDescription}
+										{descriptionLines}
+										showFeaturedBadge={showPhotoFeaturedBadge}
+										presentation="full"
+										on:open={() => openLightboxForPhoto(photoItems[0])}
+									/>
+								</div>
+								{#if photoItems.length > 1}
+									<div
+										class="pb-albumGallery__largePreviewRest pb-albumGallery__list pb-albumGallery__list--photos"
+									>
+										{#each photoItems.slice(1) as album}
+											<PhotoCard
+												photo={album}
+												coverAspectClass={photoCoverAspectClass}
+												cardFieldOrder={photoCardFieldOrder}
+												showTitle={showPhotoTitle}
+												{showCover}
+												showDescription={showPhotoDescription}
+												{descriptionLines}
+												showFeaturedBadge={showPhotoFeaturedBadge}
+												presentation={photoCardPres}
+												on:open={() => openLightboxForPhoto(album)}
+											/>
+										{/each}
+									</div>
+								{/if}
+							</div>
+						{:else}
+							<div class={groupedPhotosListClass}>
+								{#each photoItems as album}
+									<PhotoCard
+										photo={album}
+										coverAspectClass={photoCoverAspectClass}
+										cardFieldOrder={photoCardFieldOrder}
+										showTitle={showPhotoTitle}
+										{showCover}
+										showDescription={showPhotoDescription}
+										{descriptionLines}
+										showFeaturedBadge={showPhotoFeaturedBadge}
+										presentation={photoCardPres}
+										on:open={() => openLightboxForPhoto(album)}
+									/>
+								{/each}
+							</div>
+						{/if}
 					{/if}
 				{:else}
-					<div class={albumCardsListClass}>
-						{#each sortedAlbums as album}
+					<div class={interleavedListClass}>
+						{#each sortedAlbums as album, si}
 							{#if album.cardType === 'photo'}
 								<PhotoCard
 									photo={album}
-									{coverAspectClass}
+									coverAspectClass={photoCoverAspectClass}
 									cardFieldOrder={photoCardFieldOrder}
 									showTitle={showPhotoTitle}
 									{showCover}
 									showDescription={showPhotoDescription}
 									{descriptionLines}
 									showFeaturedBadge={showPhotoFeaturedBadge}
-									on:open={() => {
-										const idx = album?._id != null ? lightboxIndexById.get(String(album._id)) : undefined;
-										lightboxIndex = typeof idx === 'number' ? idx : 0;
-										lightboxOpen = true;
-									}}
+									presentation={photoCardPres}
+									on:open={() => openLightboxForPhoto(album)}
 								/>
 							{:else}
 								<AlbumCard
 									album={album}
 									href={`/albums/${album.alias ?? ''}`}
 									coverUrl={coverImages[album._id ?? ''] || ''}
-									{coverAspectClass}
+									coverAspectClass={albumCardCoverAspectClass}
 									layout={albumCardLayout}
 									cardFieldOrder={albumCardFieldOrder}
 									showTitle={showAlbumTitle}
@@ -687,7 +880,10 @@
 									{descriptionLines}
 									{showPhotoCount}
 									showFeaturedBadge={showAlbumFeaturedBadge}
-									noirStackCard={noirAlbumGrid && albumCardLayout === 'stack'}
+									variant={albumCardVisual}
+									editorialIndex={albumCardVisual === 'editorialList'
+										? albumEditorialIndex(sortedAlbums, si)
+										: undefined}
 								/>
 							{/if}
 						{/each}
@@ -704,310 +900,6 @@
 		{/if}
 	</div>
 </section>
-
-<style lang="scss">
-	/* Aspect tokens passed into AlbumCard / PhotoCard (children); must be global */
-	:global(.pb-albumGallery__aspect--square) {
-		aspect-ratio: 1 / 1;
-	}
-	:global(.pb-albumGallery__aspect--portrait) {
-		aspect-ratio: 3 / 4;
-	}
-	:global(.pb-albumGallery__aspect--video) {
-		aspect-ratio: 16 / 9;
-	}
-
-	.pb-albumGallery {
-		container-type: inline-size;
-		min-width: 0;
-		overflow-x: hidden;
-		background: var(--tp-surface-2);
-		padding-block: 3rem;
-	}
-
-	@media (min-width: 640px) {
-		.pb-albumGallery {
-			padding-block: 4rem;
-		}
-	}
-
-	@media (min-width: 768px) {
-		.pb-albumGallery {
-			padding-block: 5rem;
-		}
-	}
-
-	.pb-albumGallery__container {
-		width: 100%;
-		max-width: 80rem;
-		margin: 0 auto;
-		padding-inline: 1rem;
-		min-width: 0;
-	}
-
-	@media (min-width: 640px) {
-		.pb-albumGallery__container {
-			padding-inline: 1.5rem;
-		}
-	}
-
-	@media (min-width: 1024px) {
-		.pb-albumGallery__container {
-			padding-inline: 2rem;
-		}
-	}
-
-	.pb-albumGallery__intro {
-		text-align: center;
-		margin-bottom: 2.5rem;
-		padding-inline: 0.25rem;
-	}
-
-	@media (min-width: 640px) {
-		.pb-albumGallery__intro {
-			margin-bottom: 3.5rem;
-		}
-	}
-
-	@media (min-width: 768px) {
-		.pb-albumGallery__intro {
-			margin-bottom: 4rem;
-		}
-	}
-
-	.pb-albumGallery__title {
-		margin: 0 0 0.75rem;
-		font-size: clamp(1.5rem, 3vw, 2.25rem);
-		font-weight: 700;
-		color: var(--tp-fg);
-		overflow-wrap: anywhere;
-	}
-
-	@media (min-width: 640px) {
-		.pb-albumGallery__title {
-			margin-bottom: 1rem;
-			font-size: clamp(1.75rem, 3.5vw, 2.25rem);
-		}
-	}
-
-	.pb-albumGallery__description {
-		margin: 0 auto;
-		max-width: 48rem;
-		font-size: 1rem;
-		line-height: 1.65;
-		color: var(--tp-fg-muted);
-	}
-
-	@media (min-width: 640px) {
-		.pb-albumGallery__description {
-			font-size: 1.125rem;
-		}
-	}
-
-	.pb-albumGallery__description :global(a) {
-		color: var(--os-primary);
-	}
-
-	.pb-albumGallery__loading {
-		text-align: center;
-		padding-block: 3rem;
-	}
-
-	.pb-albumGallery__spinner {
-		display: inline-block;
-		width: 3rem;
-		height: 3rem;
-		border: 2px solid var(--tp-border);
-		border-top-color: var(--os-primary);
-		border-radius: 999px;
-		animation: pb-albumGallery-spin 0.8s linear infinite;
-	}
-
-	.pb-albumGallery__loadingText {
-		margin-top: 1rem;
-		color: var(--tp-fg-muted);
-	}
-
-	@keyframes pb-albumGallery-spin {
-		to {
-			transform: rotate(360deg);
-		}
-	}
-
-	.pb-albumGallery__hero {
-		margin-bottom: 2rem;
-	}
-
-	@media (min-width: 640px) {
-		.pb-albumGallery__hero {
-			margin-bottom: 2.5rem;
-		}
-	}
-
-	.pb-albumGallery__pageHeaderWrap {
-		max-width: 72rem;
-		margin: 0 auto 2rem;
-		min-width: 0;
-	}
-
-	@media (min-width: 640px) {
-		.pb-albumGallery__pageHeaderWrap {
-			margin-bottom: 2.5rem;
-		}
-	}
-
-	.pb-albumGallery__pageHeaderCard {
-		background: var(--tp-surface-1);
-		border: 1px solid var(--tp-border);
-		border-radius: 0.75rem;
-		padding: 1rem;
-		min-width: 0;
-	}
-
-	@media (min-width: 640px) {
-		.pb-albumGallery__pageHeaderCard {
-			padding: 1.5rem;
-		}
-	}
-
-	.pb-albumGallery__pageTitle {
-		margin: 0 0 0.75rem;
-		font-size: clamp(1.5rem, 3vw, 2.25rem);
-		font-weight: 700;
-		color: var(--tp-fg);
-		overflow-wrap: anywhere;
-	}
-
-	.pb-albumGallery__pageDescription {
-		margin: 0 0 0.75rem;
-		color: var(--tp-fg-muted);
-		font-size: 1.125rem;
-		line-height: 1.6;
-	}
-
-	.pb-albumGallery__pageDescription :global(a) {
-		color: var(--os-primary);
-	}
-
-	.pb-albumGallery__stats {
-		font-size: 0.875rem;
-		color: var(--tp-fg-muted);
-	}
-
-	.pb-albumGallery__statsSep {
-		margin-inline: 0.5rem;
-	}
-
-	.pb-albumGallery__sectionTitle {
-		margin: 0 0 0.75rem;
-		font-size: 1.125rem;
-		font-weight: 600;
-		color: var(--tp-fg);
-	}
-
-	@media (min-width: 640px) {
-		.pb-albumGallery__sectionTitle {
-			margin-bottom: 1rem;
-			font-size: 1.25rem;
-		}
-	}
-
-	.pb-albumGallery__list {
-		min-width: 0;
-		margin-bottom: 2rem;
-	}
-
-	.pb-albumGallery__list--row {
-		display: flex;
-		flex-direction: column;
-		gap: 1rem;
-	}
-
-	@media (min-width: 640px) {
-		.pb-albumGallery__list--row {
-			gap: 1.25rem;
-		}
-	}
-
-	.pb-albumGallery__list--grid,
-	.pb-albumGallery__list--photos {
-		display: grid;
-		grid-template-columns: 1fr;
-		gap: 1.25rem;
-	}
-
-	@media (min-width: 768px) {
-		.pb-albumGallery__list--grid,
-		.pb-albumGallery__list--photos {
-			grid-template-columns: repeat(2, minmax(0, 1fr));
-			gap: 1.5rem;
-		}
-	}
-
-	@media (min-width: 1280px) {
-		.pb-albumGallery__list--grid,
-		.pb-albumGallery__list--photos {
-			grid-template-columns: repeat(3, minmax(0, 1fr));
-		}
-	}
-
-	.pb-albumGallery__empty {
-		text-align: center;
-		padding: 2.5rem 1rem;
-		margin: 0 auto;
-		max-width: 32rem;
-		background: var(--tp-surface-1);
-		border: 1px solid var(--tp-border);
-		border-radius: 0.75rem;
-	}
-
-	@media (min-width: 640px) {
-		.pb-albumGallery__empty {
-			padding-block: 3rem;
-		}
-	}
-
-	.pb-albumGallery__emptyText {
-		margin: 0;
-		color: var(--tp-fg-muted);
-		font-size: 0.875rem;
-	}
-
-	@media (min-width: 640px) {
-		.pb-albumGallery__emptyText {
-			font-size: 1rem;
-		}
-	}
-
-	.pb-albumGallery__emptyCta {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		margin-top: 1rem;
-		padding: 0.625rem 1.25rem;
-		font-size: 0.875rem;
-		font-weight: 500;
-		width: 100%;
-		max-width: 20rem;
-		border-radius: 0.5rem;
-		background: var(--os-primary);
-		color: var(--tp-on-brand);
-		text-decoration: none;
-		transition: opacity 0.2s ease;
-	}
-
-	.pb-albumGallery__emptyCta:hover {
-		opacity: 0.9;
-	}
-
-	@media (min-width: 640px) {
-		.pb-albumGallery__emptyCta {
-			width: auto;
-			padding: 0.75rem 1.5rem;
-			font-size: 1rem;
-		}
-	}
-</style>
 
 {#if lightboxOpen && lightboxPhotos.length > 0}
 	<PhotoLightbox

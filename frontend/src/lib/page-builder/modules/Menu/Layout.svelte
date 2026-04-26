@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Menu from '$components/ui/menu/Menu.svelte';
+	import Menu from '$pageBuilder/primitives/menu/Menu.svelte';
 
 	export let config: any = {};
 

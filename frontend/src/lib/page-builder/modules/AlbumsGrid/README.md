@@ -20,7 +20,7 @@ Typical fields mirror the album listing subset of album view:
 
 Full behavior and extra keys are documented in **[AlbumGallery/README.md](../AlbumGallery/README.md)**.
 
-On the **Noir** visitor pack, `AlbumsGrid` passes an internal `albumsGridVariant` flag into the shared layout so cards render `div.ac-ov`, `div.ac-info`, and a square full-bleed cover without an `aspect-video` wrapper.
+On the **Noir** visitor pack, `AlbumsGrid` passes an internal `albumsGridVariant` flag into the shared layout so cards render `div.ac-ov`, `div.ac-info`, and a square full-bleed cover without an `aspect-video` wrapper. Noir-specific grid styling lives in **`AlbumGallery/_styles.scss`** (`.pb-albumGallery--noirGrid`), not in the template tree.
 
 ## Classes & tokens for template styles
 

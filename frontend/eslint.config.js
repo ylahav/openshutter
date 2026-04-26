@@ -109,6 +109,17 @@ export default [
         ],
         patterns: [
           { group: ['@nestjs/*'], message: 'Backend-only dependency. Move this code to .server.ts or backend package.' },
+          {
+            group: [
+              '$components/ui',
+              '$components/ui/**',
+              '$lib/components/ui',
+              '$lib/components/ui/**',
+              '**/lib/components/ui/**',
+            ],
+            message:
+              'UI primitives moved to $pageBuilder/primitives/... (see src/lib/page-builder/primitives/README.md).',
+          },
         ],
       }],
     },

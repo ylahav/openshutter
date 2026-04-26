@@ -105,7 +105,7 @@ describe('page-builder registry consistency', () => {
 	}
 
 	function getAliasesFromMap(source: string): string[] {
-		const blockMatch = source.match(/const moduleMap:[\s\S]*?=\s*\{([\s\S]*?)\n\t\};/);
+		const blockMatch = source.match(/const baseModuleMap:[\s\S]*?=\s*\{([\s\S]*?)\n\t\};/);
 		if (!blockMatch) return [];
 		return [...blockMatch[1].matchAll(/^\s*([a-zA-Z][a-zA-Z0-9]*)\s*:/gm)].map((m) => m[1]);
 	}

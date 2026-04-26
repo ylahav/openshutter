@@ -7,7 +7,7 @@
 	import { getPhotoRotationStyle } from '$lib/utils/photoUrl';
 	import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 	import { t } from '$stores/i18n';
-	import AlbumList from './components/AlbumList.svelte';
+	import AlbumsGridModule from '$lib/page-builder/modules/AlbumsGridModule.svelte';
 	import type { PackGalleryAlbumListItem } from '$lib/template-packs/pack-page-props';
 
 	/** `albums` = root album listing (e.g. /albums); `photos` = global photo grid (legacy pack default). */
@@ -55,6 +55,8 @@
 		lightboxIndex = index;
 		lightboxOpen = true;
 	}
+
+	const galleryAlbumsGridProps = { showHeading: false, limit: 120, albumCardLayout: 'stack' as const };
 </script>
 
 {#if mode === 'albums'}
@@ -76,7 +78,7 @@
 				{$t('albums.browsePhotoCollections')}
 			</p>
 		</div>
-		<AlbumList {albums} {loading} {error} pageContext="gallery" />
+		<AlbumsGridModule props={galleryAlbumsGridProps} data={{ albums, albumListLoading: loading, albumListError: error }} />
 	</div>
 {:else}
 	<div

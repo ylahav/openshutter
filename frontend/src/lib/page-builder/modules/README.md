@@ -57,6 +57,6 @@ Use **`[data-layout-preset="…"]`** on layout regions and module-specific class
 | `pageTitle` | [PageTitle/README.md](./PageTitle/README.md) |
 | `loginForm` | [LoginForm/README.md](./LoginForm/README.md) |
 
-Underlying Svelte for **`menu`**, **`languageSelector`**, **`themeToggle`**, and **`themeSelect`** lives under **[`components/ui/README.md`](../../components/ui/README.md)** (per-component READMEs).
+Underlying Svelte for **`menu`**, **`languageSelector`**, **`themeToggle`**, and **`themeSelect`** lives under **[`primitives/README.md`](../primitives/README.md)** (per-component READMEs).
 
 Keep **`module-types.ts`**, **`PageRenderer.svelte`** (`moduleMap`), and theme override pickers in sync when adding types.

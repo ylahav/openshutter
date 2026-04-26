@@ -17,5 +17,5 @@ Used by the page builder **`themeSelect`** module and `Header.svelte`.
 ## Import
 
 ```ts
-import TemplateSelector from '$components/ui/template-selector/TemplateSelector.svelte';
+import TemplateSelector from '$pageBuilder/primitives/template-selector/TemplateSelector.svelte';
 ```

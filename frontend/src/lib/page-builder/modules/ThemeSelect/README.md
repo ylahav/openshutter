@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Wraps **`$components/ui/template-selector/TemplateSelector.svelte`** so visitors can pick among published gallery themes when enabled.
+Wraps **`$pageBuilder/primitives/template-selector/TemplateSelector.svelte`** so visitors can pick among published gallery themes when enabled.
 
 ## Configuration (`props`)
 

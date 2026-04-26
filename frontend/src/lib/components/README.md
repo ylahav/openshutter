@@ -2,7 +2,7 @@
 
 This folder holds **reusable UI** for the app: admin chrome, search, auth helpers, editors, and building blocks used by **page builder modules**.
 
-**Site-facing chrome controls** used by the header and page builder live under **[`ui/`](./ui/README.md)** (each with its own README). Admins can read the same docs at **`/admin/docs/ui`**.
+**Site-facing chrome controls** used by the header and page builder live under **[`page-builder/primitives/`](../page-builder/primitives/README.md)** (each with its own README). Admins can read the same docs at **`/admin/docs/ui`**.
 
 ## Template / pack styling
 
@@ -16,14 +16,14 @@ Each module folder there includes a `README.md` with:
 2. Config / `props`  
 3. CSS classes and **`--tp-*` / `--os-*` tokens** you can rely on in template pack SCSS  
 
-Many modules **wrap** a file from this directory—for example:
+Many modules **wrap** a primitive—for example:
 
 | Page module | Underlying component(s) |
 |-------------|-------------------------|
-| `menu` | [`ui/menu/Menu.svelte`](./ui/menu/README.md) |
-| `languageSelector` | [`ui/language-selector/LanguageSelector.svelte`](./ui/language-selector/README.md) |
-| `themeToggle` | [`ui/theme-toggle/ThemeToggle.svelte`](./ui/theme-toggle/README.md) |
-| `themeSelect` | [`ui/template-selector/TemplateSelector.svelte`](./ui/template-selector/README.md) |
+| `menu` | [`primitives/menu/Menu.svelte`](../page-builder/primitives/menu/README.md) |
+| `languageSelector` | [`primitives/language-selector/LanguageSelector.svelte`](../page-builder/primitives/language-selector/README.md) |
+| `themeToggle` | [`primitives/theme-toggle/ThemeToggle.svelte`](../page-builder/primitives/theme-toggle/README.md) |
+| `themeSelect` | [`primitives/template-selector/TemplateSelector.svelte`](../page-builder/primitives/template-selector/README.md) |
 | `loginForm` | `LoginTemplateSwitcher.svelte` (also used inside **`pack.pages.Login`**) |
 
 **Pack routing (visitor):** `HomeTemplateSwitcher`, `GalleryTemplateSwitcher`, `AlbumTemplateSwitcher`, `AboutTemplateSwitcher`, `SearchTemplateSwitcher`, `ContactTemplateSwitcher`, and `CmsPageTemplateSwitcher` load `getTemplatePack()` and render the active pack’s page component (see `docs/development/TEMPLATING.md`).

@@ -104,6 +104,15 @@ export interface SiteConfig {
       layout?: string
       [key: string]: unknown
     }
+    /**
+     * Default album card preset for album / gallery modules (`auto` defers to pack + layout).
+     * Spec tokens: `bare` | `cards` | `list` | `portrait` | `overlay` | `compact`
+     */
+    albumCard?: string
+    /**
+     * Default photo grid preset. Spec: `square-tight` | `landscape` | `portrait` | `masonry` | `justified` | `large-preview`
+     */
+    photoCard?: string
   }
   seo: {
     metaTitle: MultiLangText

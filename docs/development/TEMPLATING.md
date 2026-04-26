@@ -42,7 +42,7 @@ Onboarding for **implementors**. Operators: **[`../guides/TEMPLATING_USER_GUIDE.
 | **Registry** | Maps pack id → Svelte components; normalizes legacy ids | `frontend/src/lib/template/packs/registry.ts` |
 | **Live template config** | Colors, fonts, layout, `pageModules` / `pageLayout`, … | `site_config.template` → `GET /api/site-config` |
 | **Themes** | MongoDB `themes` rows with `baseTemplate` + overrides | Admin → Templates; **Apply** / **Set as default** updates live `site_config` |
-| **Page builder** | `PageRenderer` + grid / breakpoints | `frontend/src/lib/page-builder/`, `frontend/src/lib/template/` |
+| **Page builder** | `PageRenderer` + grid / breakpoints; **primitives** (header widgets) under `page-builder/primitives/`; **modules** under `page-builder/modules/` | `frontend/src/lib/page-builder/` (alias **`$pageBuilder`** in `frontend/svelte.config.js`), `frontend/src/lib/template/` |
 
 Visitor routes use `BodyTemplateWrapper` and `activeTemplate` from [`frontend/src/lib/stores/template.ts`](../../frontend/src/lib/stores/template.ts). **Admin** uses `AdminAppChrome` only (`activeTemplate` is forced to `noir` on `/admin`).
 
@@ -88,7 +88,7 @@ Optional history: [`../archive/development/ADMIN_UI_ROADMAP.md`](../archive/deve
 | Template normalization | `backend/src/services/site-config.ts` |
 | Theme seeding | `backend/src/database/database-init.service.ts` |
 | Site chrome | **`layoutShell`** blocks + named `layoutPresets` (e.g. header/footer strips); no pack `Header.svelte` / `Footer.svelte` |
-| Shared header UI (menu, language, theme, template pickers) | `frontend/src/lib/components/ui/` — one folder per control, each with a `README.md`; admins can read the same sources at **`/admin/docs/ui`** |
+| Shared header UI (menu, language, theme, template pickers) | `frontend/src/lib/page-builder/primitives/` — one folder per control, each with a `README.md`; admins can read the same sources at **`/admin/docs/ui`** |
 | Palette → CSS | `frontend/src/lib/template/theme/template-palette.ts`, `ThemeColorApplier.svelte` |
 
 ### Manual test checklist
@@ -166,6 +166,17 @@ Noir may ship `frontend/src/templates/noir/theme.defaults.json` for documentatio
 1. **No hardcoded brand colors in pack SCSS** — use CSS custom properties from `ThemeColorApplier` (`--tp-*`, `--os-font-*`).
 2. **Structural spacing** (e.g. Noir’s grid gap) may be literals or pack-local variables such as `--os-pack-noir-gap`.
 3. **Scope** — pack rules nest under **`.tpl-pack-noir`**, **`.tpl-pack-studio`**, **`.tpl-pack-atelier`** on `<main>` ([`BodyTemplateWrapper.svelte`](../../frontend/src/lib/components/BodyTemplateWrapper.svelte)).
+
+### Noir fixed header vs page-builder content
+
+The Noir header strip (**`section.layout-shell.n-header`**) is **`position: fixed`**, so it is removed from normal document flow. Without compensation, the first **in-flow** page-builder row (for example **`/albums`** after the header row) would render **under** the bar.
+
+**Mitigation** (see [`frontend/src/templates/noir/styles/_header.scss`](../../frontend/src/templates/noir/styles/_header.scss)): when the Noir pack is active and the fixed header shell is present, **`main.tpl-pack-noir .pb-page`** gets **`padding-top`** and **`scroll-padding-top`** using:
+
+- **`--noir-fixed-header-reserve`** (default `5.5rem`)
+- **`--noir-fixed-header-reserve-sm`** (default `4.25rem` under `639px`)
+
+Override those CSS variables on `:root` if your header height differs.
 
 ### Class naming and SCSS layout
 

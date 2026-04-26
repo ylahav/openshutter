@@ -6,7 +6,7 @@
 	import { siteConfigData } from '$stores/siteConfig';
 	import { logger } from '$lib/utils/logger';
 	import { t } from '$stores/i18n';
-	import AlbumList from './components/AlbumList.svelte';
+	import AlbumsGridModule from '$lib/page-builder/modules/AlbumsGridModule.svelte';
 
 	let rootAlbums: any[] = [];
 	let loading = true;
@@ -41,6 +41,14 @@
 		const s = MultiLangUtils.getTextValue(q, $currentLanguage);
 		return s && s.trim() !== '' ? s : $t('hero.atelierIntroQuote');
 	})();
+
+	$: atelierHomeAlbumsGridProps = {
+		title: $t('admin.featuredAlbums'),
+		description: $t('albums.rootLevelAlbumsDescription'),
+		showHeading: false,
+		limit: 60,
+		albumCardLayout: 'stack' as const
+	};
 </script>
 
 <!-- Visitor `/` uses PageRenderer + page-builder hero. This pack Home is for registry/preview — no duplicate hero. -->
@@ -57,7 +65,7 @@
 		{/if}
 	</div>
 
-	<AlbumList albums={rootAlbums} {loading} {error} />
+	<AlbumsGridModule props={atelierHomeAlbumsGridProps} data={{ albums: rootAlbums, albumListLoading: loading, albumListError: error }} />
 
 	<div class="a-cta">
 		<p class="a-cta__quote">

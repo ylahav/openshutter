@@ -5,10 +5,10 @@
 	import { siteConfigData, siteConfig, publicSiteLogo } from '$stores/siteConfig';
 	import { auth } from '$lib/stores/auth';
 	import { getProductName } from '$lib/utils/productName';
-	import LanguageSelector from '$components/ui/language-selector/LanguageSelector.svelte';
-	import TemplateSelector from '$components/ui/template-selector/TemplateSelector.svelte';
-	import ThemeToggle from '$components/ui/theme-toggle/ThemeToggle.svelte';
-	import Menu from '$components/ui/menu/Menu.svelte';
+	import LanguageSelector from '$pageBuilder/primitives/language-selector/LanguageSelector.svelte';
+	import TemplateSelector from '$pageBuilder/primitives/template-selector/TemplateSelector.svelte';
+	import ThemeToggle from '$pageBuilder/primitives/theme-toggle/ThemeToggle.svelte';
+	import Menu from '$pageBuilder/primitives/menu/Menu.svelte';
 	import NotificationNavLink from '$lib/components/NotificationNavLink.svelte';
 	import { logger } from '$lib/utils/logger';
 

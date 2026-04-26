@@ -9,7 +9,7 @@
 	import HeroModule from '$lib/page-builder/modules/HeroModule.svelte';
 	import { DEFAULT_PAGE_MODULES } from '$lib/constants/default-page-layouts';
 	import { getPageModulesForBreakpoint } from '$lib/template/breakpoints';
-	import AlbumList from './components/AlbumList.svelte';
+	import AlbumsGridModule from '$lib/page-builder/modules/AlbumsGridModule.svelte';
 
 	type TemplateHeroCfg = { componentsConfig?: { hero?: { visible?: boolean } } };
 
@@ -74,6 +74,14 @@
 		dynamicHeroStats && dynamicHeroStats.length > 0
 			? { ...baseHeroProps, heroStats: dynamicHeroStats }
 			: baseHeroProps;
+
+	$: homeAlbumsGridProps = {
+		title: $t('admin.featuredAlbums'),
+		description: $t('albums.rootLevelAlbumsDescription'),
+		showHeading: false,
+		limit: 60,
+		albumCardLayout: 'stack' as const
+	};
 </script>
 
 <div
@@ -83,7 +91,7 @@
 		<HeroModule props={studioHeroProps} />
 	{/if}
 
-	<AlbumList albums={rootAlbums} {loading} {error} />
+	<AlbumsGridModule props={homeAlbumsGridProps} data={{ albums: rootAlbums, albumListLoading: loading, albumListError: error }} />
 
 	{#if aboutPlain}
 		<div

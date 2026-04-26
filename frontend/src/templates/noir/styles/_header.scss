@@ -296,3 +296,19 @@ section.layout-shell.n-header.is-scrolled {
   .n-toggle-mode { grid-column: 3 !important; }
   .n-langs       { grid-column: 4 !important; }
 }
+
+// ── Page builder: reserve space for fixed header ───────────────
+// `n-header` is `position: fixed`, so it is out of flow. Without padding,
+// the first content row (e.g. /albums album grid) sits under the bar.
+
+main.tpl-pack-noir:has(section.layout-shell.n-header) .pb-page {
+  padding-top: var(--noir-fixed-header-reserve, 5.5rem);
+  scroll-padding-top: var(--noir-fixed-header-reserve, 5.5rem);
+}
+
+@media (max-width: 639px) {
+  main.tpl-pack-noir:has(section.layout-shell.n-header) .pb-page {
+    padding-top: var(--noir-fixed-header-reserve-sm, 4.25rem);
+    scroll-padding-top: var(--noir-fixed-header-reserve-sm, 4.25rem);
+  }
+}

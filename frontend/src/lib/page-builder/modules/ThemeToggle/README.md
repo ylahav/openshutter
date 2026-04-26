@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Wraps **`$components/ui/theme-toggle/ThemeToggle.svelte`**: one button toggling light/dark resolved theme.
+Wraps **`$pageBuilder/primitives/theme-toggle/ThemeToggle.svelte`**: one button toggling light/dark resolved theme.
 
 ## Configuration (`props`)
 

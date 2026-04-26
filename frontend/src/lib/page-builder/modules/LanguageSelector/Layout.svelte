@@ -1,6 +1,6 @@
 <!-- frontend/src/lib/page-builder/modules/LanguageSelector/Layout.svelte -->
 <script lang="ts">
-	import LanguageSelector from '$components/ui/language-selector/LanguageSelector.svelte';
+	import LanguageSelector from '$pageBuilder/primitives/language-selector/LanguageSelector.svelte';
 
 	export let config: any = {};
 

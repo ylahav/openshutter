@@ -13,7 +13,20 @@ This document is the **canonical guide** for modules rendered by **`PageRenderer
 | Page keys (`home`, `gallery`, `album`, `header`, …), theme seeding, apply semantics | [Templating, Part II](./TEMPLATING.md#part-ii--page-builder-and-theme-seeding) |
 | Grid placement, breakpoints, acceptance criteria | [Templating, Part I](./TEMPLATING.md#part-i--requirements-and-architecture) |
 | Adding a **template pack** (Svelte shells, registry) | [Templating §8 appendix](./TEMPLATING.md#8-appendix-create-a-template-pack-built-in) |
-| **Underlying Svelte** for `menu`, `languageSelector`, `themeToggle`, `themeSelect` | [`frontend/src/lib/components/ui/README.md`](../../frontend/src/lib/components/ui/README.md) (per-component READMEs; **Admin →** UI docs card links to **`/admin/docs/ui`**) |
+| **Underlying Svelte** for `menu`, `languageSelector`, `themeToggle`, `themeSelect` | [`frontend/src/lib/page-builder/primitives/README.md`](../../frontend/src/lib/page-builder/primitives/README.md) (per-component READMEs; **Admin →** UI docs card links to **`/admin/docs/ui`**) |
+
+### Code layout: primitives vs modules
+
+| Path | Role | Typical import |
+|------|------|----------------|
+| `frontend/src/lib/page-builder/primitives/` | Reusable visitor controls (menu, language selector, theme toggle, template selector). Templates and module `Layout.svelte` files import these directly. | `$pageBuilder/primitives/...` |
+| `frontend/src/lib/page-builder/modules/` | Grid **modules**: `*Module.svelte`, `Layout.svelte`, optional `config.ts`, README. | `$lib/page-builder/modules/...` |
+
+**`$pageBuilder`** is defined in **`frontend/svelte.config.js`** (`kit.alias`). Vitest runs with the SvelteKit Vite plugin, so the same alias resolves in tests. Do not import the removed **`$components/ui`** tree — ESLint **`no-restricted-imports`** in `frontend/eslint.config.js` errors on those specifiers.
+
+### `albumsGrid` vs `albumView` (Album gallery)
+
+**`albumsGrid`** reuses **`AlbumGallery/Layout.svelte`** with **`albumsGridVariant: true`** in config. For that path, **“Sub-albums” / “Photos”** row headings are **off by default** so the grid does not duplicate the page title; set **`showHeading: true`** on the module if you want those section labels. Standalone **`albumView`** keeps the previous **`showSectionLabels` / `showHeading`** rules.
 
 ---
 

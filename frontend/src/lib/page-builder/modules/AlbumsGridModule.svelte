@@ -15,6 +15,10 @@
 		descriptionLines?: number;
 		cardFieldOrder?: Array<'title' | 'cover' | 'description' | 'photoCount' | 'featuredBadge'>;
 		albumCardLayout?: 'stack' | 'row';
+		albumCard?: string;
+		photoCard?: string;
+		albumCardVariant?: string;
+		photoGridVariant?: string;
 		showPhotoCount?: boolean;
 		showFeaturedBadge?: boolean;
 		sortBy?: 'manual' | 'order' | 'name' | 'photoCount' | 'createdAt' | 'lastPhotoDate';
@@ -41,6 +45,10 @@
 	export let descriptionLines: NonNullable<AlbumsGridProps['descriptionLines']> = 2;
 	export let cardFieldOrder: NonNullable<AlbumsGridProps['cardFieldOrder']> = ['cover', 'title', 'description', 'photoCount', 'featuredBadge'];
 	export let albumCardLayout: NonNullable<AlbumsGridProps['albumCardLayout']> = 'stack';
+	export let albumCard: AlbumsGridProps['albumCard'] = undefined;
+	export let photoCard: AlbumsGridProps['photoCard'] = undefined;
+	export let albumCardVariant: AlbumsGridProps['albumCardVariant'] = undefined;
+	export let photoGridVariant: AlbumsGridProps['photoGridVariant'] = undefined;
 	export let showPhotoCount: NonNullable<AlbumsGridProps['showPhotoCount']> = true;
 	export let showFeaturedBadge: NonNullable<AlbumsGridProps['showFeaturedBadge']> = true;
 	export let sortBy: NonNullable<AlbumsGridProps['sortBy']> = 'manual';
@@ -68,6 +76,10 @@
 			descriptionLines,
 			cardFieldOrder,
 			albumCardLayout,
+			albumCard,
+			photoCard,
+			albumCardVariant,
+			photoGridVariant,
 			showPhotoCount,
 			showFeaturedBadge,
 			sortBy,

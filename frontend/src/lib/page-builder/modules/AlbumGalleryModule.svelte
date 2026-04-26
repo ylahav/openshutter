@@ -28,6 +28,10 @@
 		albumCardFieldOrder?: Array<'title' | 'cover' | 'description' | 'photoCount' | 'featuredBadge'>;
 		photoCardFieldOrder?: Array<'title' | 'cover' | 'description' | 'featuredBadge'>;
 		albumCardLayout?: 'stack' | 'row';
+		albumCard?: string;
+		photoCard?: string;
+		albumCardVariant?: string;
+		photoGridVariant?: string;
 		showPhotoCount?: boolean;
 		showFeaturedBadge?: boolean;
 		showAlbumFeaturedBadge?: boolean;
@@ -70,6 +74,10 @@
 	export let albumCardFieldOrder: NonNullable<AlbumGalleryProps['albumCardFieldOrder']> = ['cover', 'title', 'description', 'photoCount', 'featuredBadge'];
 	export let photoCardFieldOrder: NonNullable<AlbumGalleryProps['photoCardFieldOrder']> = ['cover', 'title', 'description', 'featuredBadge'];
 	export let albumCardLayout: NonNullable<AlbumGalleryProps['albumCardLayout']> = 'stack';
+	export let albumCard: AlbumGalleryProps['albumCard'] = undefined;
+	export let photoCard: AlbumGalleryProps['photoCard'] = undefined;
+	export let albumCardVariant: AlbumGalleryProps['albumCardVariant'] = undefined;
+	export let photoGridVariant: AlbumGalleryProps['photoGridVariant'] = undefined;
 	export let showPhotoCount: NonNullable<AlbumGalleryProps['showPhotoCount']> = true;
 	export let showFeaturedBadge: NonNullable<AlbumGalleryProps['showFeaturedBadge']> = true;
 	export let showAlbumFeaturedBadge: NonNullable<AlbumGalleryProps['showAlbumFeaturedBadge']> = true;
@@ -117,6 +125,10 @@
 			albumCardFieldOrder,
 			photoCardFieldOrder,
 			albumCardLayout,
+			albumCard,
+			photoCard,
+			albumCardVariant,
+			photoGridVariant,
 			showPhotoCount,
 			showFeaturedBadge,
 			showAlbumFeaturedBadge,

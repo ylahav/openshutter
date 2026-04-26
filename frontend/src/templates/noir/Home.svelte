@@ -5,7 +5,7 @@
 	import { MultiLangUtils } from '$utils/multiLang';
 	import { siteConfigData } from '$stores/siteConfig';
 	import { logger } from '$lib/utils/logger';
-	import AlbumList from './components/AlbumList.svelte';
+	import AlbumsGridModule from '$lib/page-builder/modules/AlbumsGridModule.svelte';
 
 	let rootAlbums: any[] = [];
 	let loading = true;
@@ -36,6 +36,12 @@
 		}
 	}
 
+	$: noirHomeAlbumsGridProps = {
+		showHeading: false,
+		limit: 60,
+		showDescription: false
+	};
+
 	$: aboutPlain = $siteConfigData?.description
 		? MultiLangUtils.getHTMLValue($siteConfigData.description, $currentLanguage).replace(/<[^>]*>/g, '').trim()
 		: '';
@@ -47,7 +53,7 @@
 <div
 	class="min-h-screen w-full antialiased selection:bg-black/10 dark:selection:bg-white/10 cursor-crosshair transition-colors duration-300 bg-[color:var(--tp-canvas)] text-[color:var(--tp-fg)] [font-family:var(--os-font-body)]"
 >
-	<AlbumList albums={rootAlbums} {loading} {error} />
+	<AlbumsGridModule props={noirHomeAlbumsGridProps} data={{ albums: rootAlbums, albumListLoading: loading, albumListError: error }} />
 
 	{#if aboutPlain}
 		<div

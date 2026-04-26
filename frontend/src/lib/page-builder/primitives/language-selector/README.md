@@ -28,5 +28,5 @@ Used by the page builder **`languageSelector`** module and `Header.svelte`.
 ## Import
 
 ```ts
-import LanguageSelector from '$components/ui/language-selector/LanguageSelector.svelte';
+import LanguageSelector from '$pageBuilder/primitives/language-selector/LanguageSelector.svelte';
 ```

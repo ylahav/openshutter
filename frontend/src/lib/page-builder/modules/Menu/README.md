@@ -10,7 +10,7 @@ Primary navigation: pulls items from site header config (or defaults), supports 
 |-----------|------|---------|-------------|
 | `orientation` | `'horizontal'` \| `'vertical'` | `'horizontal'` | Flex direction for items |
 
-Menu item content comes from **site config** (`headerConfig.menu`), not from module props. The module passes `orientation` into `$components/ui/menu/Menu.svelte`.
+Menu item content comes from **site config** (`headerConfig.menu`), not from module props. The module passes `orientation` into `$pageBuilder/primitives/menu/Menu.svelte`.
 
 See `config.ts`.
 

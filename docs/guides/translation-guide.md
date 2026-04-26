@@ -24,7 +24,7 @@ Each language file contains nested objects for different sections:
 
 ## Admin panel UI language
 
-The **admin shell** (`AdminAppChrome`) includes a small language control in the header when the site has **more than one** active language configured in **Site configuration**. It switches the **same** translation bundles (`frontend/src/i18n/*.json`) and `currentLanguage` store used on the public site, and updates document `lang` / `dir` for RTL. This is independent of the visitor **`LanguageSelector`** in **`frontend/src/lib/components/ui/language-selector/`** (page builder module `languageSelector`).
+The **admin shell** (`AdminAppChrome`) includes a small language control in the header when the site has **more than one** active language configured in **Site configuration**. It switches the **same** translation bundles (`frontend/src/i18n/*.json`) and `currentLanguage` store used on the public site, and updates document `lang` / `dir` for RTL. This is independent of the visitor **`LanguageSelector`** in **`frontend/src/lib/page-builder/primitives/language-selector/`** (page builder module `languageSelector`).
 
 ## Admin Language Management
 

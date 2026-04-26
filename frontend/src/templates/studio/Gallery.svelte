@@ -7,7 +7,7 @@
 	import { getPhotoRotationStyle } from '$lib/utils/photoUrl';
 	import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 	import { t } from '$stores/i18n';
-	import AlbumList from './components/AlbumList.svelte';
+	import AlbumsGridModule from '$lib/page-builder/modules/AlbumsGridModule.svelte';
 	import type { PackGalleryAlbumListItem } from '$lib/template-packs/pack-page-props';
 
 	export let mode: 'photos' | 'albums' = 'photos';
@@ -71,22 +71,22 @@
 				{$t('albums.browsePhotoCollections')}
 			</p>
 		</div>
-		<AlbumList {albums} {loading} {error} pageContext="gallery" />
+		<AlbumsGridModule props={galleryAlbumsGridProps} data={{ albums, albumListLoading: loading, albumListError: error }} />
 	</div>
 {:else}
 	<div
-		class="min-h-screen w-full pt-24 pb-16 bg-[color:var(--tp-canvas)] text-[color:var(--tp-fg)] [font-family:var(--os-font-body)]"
+		class="min-h-screen w-full pt-24 pb-16 bg-(--tp-canvas) text-(--tp-fg) [font-family:var(--os-font-body)]"
 	>
 		<div class="max-w-7xl mx-auto px-6 lg:px-8">
 			<div class="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-10">
 				<h1
-					class="text-3xl md:text-4xl font-extralight tracking-tight text-[color:var(--tp-fg)]"
+					class="text-3xl md:text-4xl font-extralight tracking-tight text-(--tp-fg)"
 					style="font-family: var(--os-font-heading);"
 				>
 					{$t('albums.galleryTitle')}
 				</h1>
 				<div class="md:text-end">
-					<p class="text-[9px] uppercase tracking-[0.22em] mb-2 text-[color:var(--tp-fg-subtle)]">share</p>
+					<p class="text-[9px] uppercase tracking-[0.22em] mb-2 text-(--tp-fg-subtle)">share</p>
 					<SocialShareButtons title={$t('albums.galleryTitle')} size="sm" />
 				</div>
 			</div>

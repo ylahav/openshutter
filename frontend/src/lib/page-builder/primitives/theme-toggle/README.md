@@ -15,5 +15,5 @@ Root is a `<button>` with sun/moon SVG; uses Tailwind `dark:` variants for hover
 ## Import
 
 ```ts
-import ThemeToggle from '$components/ui/theme-toggle/ThemeToggle.svelte';
+import ThemeToggle from '$pageBuilder/primitives/theme-toggle/ThemeToggle.svelte';
 ```

@@ -1,4 +1,4 @@
-# UI components (`$lib/components/ui`)
+# Page builder primitives (`src/lib/page-builder/primitives`)
 
 Reusable, site-facing controls that are also wrapped by **page builder modules** (header chrome, menus, toggles). Each subfolder has its own `README.md` and a single primary `.svelte` file.
 
@@ -11,16 +11,18 @@ Reusable, site-facing controls that are also wrapped by **page builder modules**
 
 ## Import alias
 
-Use the existing `$components` alias:
+Use the `$pageBuilder` alias (see `svelte.config.js`):
 
 ```ts
-import Menu from '$components/ui/menu/Menu.svelte';
+import Menu from '$pageBuilder/primitives/menu/Menu.svelte';
 ```
+
+ESLint **`no-restricted-imports`** rejects the old paths (`$components/ui`, `$lib/components/ui`, and `**/lib/components/ui/**`) so new code cannot regress.
 
 ## Documentation in admin
 
 Admins can open **UI component docs** (same README sources) at **`/admin/docs/ui`**.
 
-## Broader components folder
+## Broader `components` folder
 
-Feature-specific widgets (admin, search, auth, editors) stay under [`../README.md`](../README.md) until explicitly moved here.
+Feature-specific widgets (admin, search, auth, editors) stay under [`../../components/README.md`](../../components/README.md) until explicitly moved here.

@@ -1,8 +1,28 @@
-# Page Builder Modules
+# Page builder (`src/lib/page-builder`)
 
-## Purpose
+Visitor-facing layout is driven from here: **primitives** (importable widgets), **modules** (grid blocks), and runtime (`PageRenderer`, `PageBuilderGrid`, …).
 
-A Page Builder module is the renderable unit used inside page rows/columns.
+## Import alias
+
+**`$pageBuilder`** → `src/lib/page-builder` (see `frontend/svelte.config.js`). Example:
+
+```ts
+import Menu from '$pageBuilder/primitives/menu/Menu.svelte';
+```
+
+## Primitives vs modules
+
+| | **Primitives** | **Modules** |
+|---|----------------|-------------|
+| **Path** | `frontend/src/lib/page-builder/primitives/*` | `frontend/src/lib/page-builder/modules/*` |
+| **Docs** | [primitives/README.md](./primitives/README.md) | [modules/README.md](./modules/README.md) |
+| **Purpose** | Building blocks (often used inside module layouts or `Header.svelte`) | Persisted grid cells: `*Module.svelte`, `Layout.svelte`, `config.ts` |
+
+Legacy imports under **`$components/ui`** are forbidden (ESLint).
+
+## Purpose (modules)
+
+A Page Builder **module** is the renderable unit used inside page rows/columns.
 
 Examples:
 
@@ -15,7 +35,11 @@ Examples:
 
 ## File locations
 
-Base implementation:
+**Primitives** (shared widgets):
+
+- `frontend/src/lib/page-builder/primitives/*`
+
+**Modules** (base implementation):
 
 - `frontend/src/lib/page-builder/modules/*`
 
