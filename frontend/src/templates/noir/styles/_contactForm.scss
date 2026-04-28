@@ -1,0 +1,28 @@
+.tpl-pack-noir {
+	.pb-contactForm {
+		border-radius: 0;
+		background: transparent;
+		border-color: color-mix(in srgb, var(--tp-fg-subtle) 30%, transparent);
+	}
+
+	.pb-contactForm__title {
+		font-weight: 400;
+		letter-spacing: 0.06em;
+		text-transform: lowercase;
+	}
+
+	.pb-contactForm__field input,
+	.pb-contactForm__field textarea {
+		background: transparent;
+		border-width: 0 0 1px;
+		border-radius: 0;
+		padding-inline: 0;
+	}
+
+	.pb-contactForm__submit {
+		border: 1px solid var(--tp-fg-muted);
+		border-radius: 0;
+		background: transparent;
+		color: var(--tp-fg);
+	}
+}

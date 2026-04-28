@@ -336,6 +336,28 @@
 				</a>
 			</AdminCard>
 
+			<!-- Contact Form Submissions -->
+			<AdminCard>
+				<div class="flex items-center mb-4">
+					<div class="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
+						<svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 8l-9 6-9-6m18 8H3a2 2 0 01-2-2V8a2 2 0 012-2h18a2 2 0 012 2v6a2 2 0 01-2 2z" />
+						</svg>
+					</div>
+					<h2 class="text-xl font-semibold text-(--color-surface-950-50) ml-3">Contact Submissions</h2>
+				</div>
+				<p class="text-(--color-surface-600-400) mb-4">Review messages sent from the contact form.</p>
+				<a
+					href="/admin/contact-submissions"
+					class="inline-flex items-center px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+				>
+					View Submissions
+					<svg class="ml-2 w-4 h-4 rtl-flip" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+					</svg>
+				</a>
+			</AdminCard>
+
 			<!-- Blog management (categories + articles) -->
 			<AdminCard>
 				<div class="flex items-center mb-4">

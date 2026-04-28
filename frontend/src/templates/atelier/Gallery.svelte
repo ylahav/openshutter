@@ -82,11 +82,11 @@
 	</div>
 {:else}
 	<div
-		class="min-h-screen w-full bg-[color:var(--tp-canvas)] text-[color:var(--tp-fg)] [font-family:var(--os-font-body)]"
+		class="min-h-screen w-full bg-(--tp-canvas) text-(--tp-fg) [font-family:var(--os-font-body)]"
 	>
 		<div class="max-w-[960px] mx-auto px-8 pt-12 pb-6 text-center">
 			<h1
-				class="text-[28px] font-normal tracking-[0.08em] text-[color:var(--tp-fg)]"
+				class="text-[28px] font-normal tracking-[0.08em] text-(--tp-fg)"
 				style="font-family: var(--os-font-heading);"
 			>
 				{$t('albums.galleryTitle')}
@@ -99,7 +99,7 @@
 				{$t('albums.gallerySubtitle')}
 			</p>
 			<div class="flex flex-col sm:flex-row sm:items-center sm:justify-center gap-4 mt-6">
-				<p class="text-[9px] uppercase tracking-[0.22em] text-[color:var(--tp-fg-subtle)]">
+				<p class="text-[9px] uppercase tracking-[0.22em] text-(--tp-fg-subtle)">
 					share
 				</p>
 				<SocialShareButtons title={$t('albums.galleryTitle')} size="sm" />
@@ -109,16 +109,16 @@
 		{#if photosLoading}
 			<div class="text-center py-20">
 				<div
-					class="w-8 h-8 border rounded-full animate-spin mx-auto mb-4 border-[color:var(--tp-border)] border-t-[color:var(--tp-fg)]"
+					class="w-8 h-8 border rounded-full animate-spin mx-auto mb-4 border-(--tp-border) border-t-(--tp-fg)"
 				></div>
-				<p class="text-[10px] uppercase tracking-[0.2em] text-[color:var(--tp-fg-muted)]">
+				<p class="text-[10px] uppercase tracking-[0.2em] text-(--tp-fg-muted)">
 					{$t('loading.loadingGallery')}
 				</p>
 			</div>
 		{:else if photosError}
 			<p class="text-center text-sm text-red-400/90 px-8">{photosError}</p>
 		{:else if photos.length === 0}
-			<p class="text-center text-[13px] text-[color:var(--tp-fg-muted)] px-8 pb-16">
+			<p class="text-center text-[13px] text-(--tp-fg-muted) px-8 pb-16">
 				{$t('albums.noAlbumsText')}
 			</p>
 		{:else}
@@ -128,24 +128,24 @@
 						<button
 							type="button"
 							on:click={() => openLightbox(index)}
-							class="group text-left w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--tp-fg-muted)] rounded-sm"
+							class="group text-left w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-(--tp-fg-muted) rounded-sm"
 						>
 							<div class="overflow-hidden rounded-sm mb-2.5">
 								{#if photo.storage?.thumbnailPath || photo.storage?.url || photo.url}
 									<img
 										src={photo.storage?.thumbnailPath || photo.storage?.url || photo.url}
 										alt={MultiLangUtils.getTextValue(photo.title, $currentLanguage) || 'Photo'}
-										class="w-full aspect-[3/4] object-cover transition-transform duration-500 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] group-hover:scale-[1.03]"
+										class="w-full aspect-3/4 object-cover transition-transform duration-500 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] group-hover:scale-[1.03]"
 										style="image-orientation: from-image; {getPhotoRotationStyle(photo)}"
 									/>
 								{:else}
 									<div
-										class="w-full aspect-[3/4] bg-[color:color-mix(in_srgb,var(--os-primary)_22%,var(--tp-surface-3))]"
+										class="w-full aspect-3/4 bg-[color-mix(in_srgb,var(--os-primary)_22%,var(--tp-surface-3))]"
 									></div>
 								{/if}
 							</div>
 							<div
-								class="text-sm text-center transition-colors group-hover:text-[color:var(--os-primary)]"
+								class="text-sm text-center transition-colors group-hover:text-(--os-primary)"
 								style="font-family: var(--os-font-heading); color: var(--tp-fg);"
 							>
 								{MultiLangUtils.getTextValue(photo.title, $currentLanguage) || '—'}

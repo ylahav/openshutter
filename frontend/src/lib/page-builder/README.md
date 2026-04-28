@@ -32,6 +32,10 @@ Examples:
 - `albumsGrid`
 - `albumView`
 - `loginForm`
+- `searchBar`
+- `searchFilter`
+- `searchForm`
+- `searchResults`
 
 ## File locations
 
@@ -46,6 +50,9 @@ Examples:
 Optional template override:
 
 - `frontend/src/templates/<pack>/components/page-builder/*Module.svelte`
+- Optional template styles loaded by module runtime:
+  - `frontend/src/templates/<pack>/styles/_searchForm.scss`
+  - `frontend/src/templates/<pack>/styles/_searchResults.scss`
 
 ## Current override rule
 

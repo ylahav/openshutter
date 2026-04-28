@@ -56,7 +56,23 @@ Use **`[data-layout-preset="…"]`** on layout regions and module-specific class
 | `layoutShell` | [LayoutShell/README.md](./LayoutShell/README.md) |
 | `pageTitle` | [PageTitle/README.md](./PageTitle/README.md) |
 | `loginForm` | [LoginForm/README.md](./LoginForm/README.md) |
+| `contactForm` | Contact form module (`ContactForm/Layout.svelte`) |
+| `searchBar` | Search input primitive module (`SearchBarModule.svelte`) |
+| `searchFilter` | Search filter primitive module (`SearchFilterModule.svelte`) |
+| `searchForm` | Composed search module (`SearchFormModule.svelte`) |
+| `searchResults` | Search results module (`SearchResultsModule.svelte`) |
 
 Underlying Svelte for **`menu`**, **`languageSelector`**, **`themeToggle`**, and **`themeSelect`** lives under **[`primitives/README.md`](../primitives/README.md)** (per-component READMEs).
 
 Keep **`module-types.ts`**, **`PageRenderer.svelte`** (`moduleMap`), and theme override pickers in sync when adding types.
+
+## Search module stack
+
+Search modules are split for composition:
+
+- `searchBar` → query input primitive
+- `searchFilter` → filter trigger + filter chips + popup
+- `searchForm` → composed module that uses `searchBar` + `searchFilter`
+- `searchResults` → search results/listing module
+
+Shared query/filter state is coordinated via `search-modules-store.ts`, so modules can be placed in separate grid cells and still work together.

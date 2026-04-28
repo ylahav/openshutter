@@ -16,6 +16,16 @@
 
 	$: initialQuery = $page.url.searchParams.get('q') || '';
 
+	$: aliasModules = (data.aliasModules || []) as PageModuleData[];
+	$: aliasLayout =
+		data.aliasPage?.layout && typeof data.aliasPage.layout === 'object'
+			? {
+					gridRows: Number((data.aliasPage.layout as any).gridRows) || 1,
+					gridColumns: Number((data.aliasPage.layout as any).gridColumns) || 1
+				}
+			: { gridRows: 1, gridColumns: 1 };
+	$: hasAliasModules = Array.isArray(aliasModules) && aliasModules.length > 0;
+
 	$: searchTemplate =
 		$siteConfigData?.template ??
 		(data.pageModules?.length || data.pageLayout
@@ -32,13 +42,15 @@
 		? getEffectivePageGrid(searchTemplate, 'search', $viewportWidth)
 		: { gridRows: 1, gridColumns: 1 };
 
-	$: hasPageModules = Array.isArray(searchModules) && searchModules.length > 0;
+	$: hasPageModules = hasAliasModules || (Array.isArray(searchModules) && searchModules.length > 0);
 	$: pageForRenderer = hasPageModules
 		? ({
-				_id: 'search',
+				_id: (data.aliasPage?._id as string) || 'search',
 				title: {} as any,
 				subtitle: {} as any,
-				layout: { gridRows: searchLayout.gridRows, gridColumns: searchLayout.gridColumns }
+				layout: hasAliasModules
+					? { gridRows: aliasLayout.gridRows, gridColumns: aliasLayout.gridColumns }
+					: { gridRows: searchLayout.gridRows, gridColumns: searchLayout.gridColumns }
 			} as any)
 		: null;
 </script>
@@ -48,7 +60,7 @@
 </svelte:head>
 
 {#if hasPageModules}
-	<PageRenderer page={pageForRenderer as any} modules={searchModules} />
+	<PageRenderer page={pageForRenderer as any} modules={hasAliasModules ? aliasModules : searchModules} />
 {:else}
 	<SearchTemplateSwitcher {initialQuery} variant={searchUiVariant} />
 {/if}

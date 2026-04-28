@@ -45,6 +45,7 @@ import {
   OwnerDedicatedStorageController,
 } from './owner-dedicated-storage/owner-dedicated-storage.controller';
 import { AIProvidersHealthController } from './ai/ai-providers-health.controller';
+import { ContactSubmissionsModule } from './contact-submissions/contact-submissions.module';
 
 @Module({
   imports: [
@@ -79,6 +80,7 @@ import { AIProvidersHealthController } from './ai/ai-providers-health.controller
     V1Module,
     MarketplaceModule,
     CommentsModule,
+    ContactSubmissionsModule,
   ],
   controllers: [
     HealthController,

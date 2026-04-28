@@ -162,6 +162,10 @@
 	const MODULE_TYPES = [
 		{ value: 'pageTitle', label: 'Page title' },
 		{ value: 'loginForm', label: 'Login Form' },
+		{ value: 'searchBar', label: 'Search Bar' },
+		{ value: 'searchFilter', label: 'Search Filter' },
+		{ value: 'searchForm', label: 'Search Form' },
+		{ value: 'searchResults', label: 'Search Results' },
 		{ value: 'logo', label: 'Logo' },
 		{ value: 'siteTitle', label: 'Site title' },
 		{ value: 'menu', label: 'Menu' },
@@ -179,6 +183,7 @@
 		{ value: 'albumView', label: 'Album View (albumView)' },
 		{ value: 'layoutShell', label: 'Layout region (named grid)' },
 		{ value: 'cta', label: 'Call To Action' },
+		{ value: 'contactForm', label: 'Contact Form' },
 		{ value: 'blogCategory', label: 'Blog categories' },
 		{ value: 'blogArticle', label: 'Blog articles' }
 	].sort((a, b) => a.label.localeCompare(b.label));
@@ -768,6 +773,11 @@ let layoutShellInstances: Record<
 		socialMediaModuleProps = {};
 		albumViewModuleProps = {};
 		logoModuleProps = {};
+		contactFormModuleProps = {};
+		searchBarModuleProps = {};
+		searchFilterModuleProps = {};
+		searchFormModuleProps = {};
+		searchResultsModuleProps = {};
 		editingLayoutShellModule = false;
 		moduleWrapperClassName = '';
 		pageTitleShowTitle = true;
@@ -910,6 +920,11 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 	let socialMediaModuleProps: Record<string, unknown> = {};
 	let albumViewModuleProps: Record<string, unknown> = {};
 	let logoModuleProps: Record<string, unknown> = {};
+	let contactFormModuleProps: Record<string, unknown> = {};
+	let searchBarModuleProps: Record<string, unknown> = {};
+	let searchFilterModuleProps: Record<string, unknown> = {};
+	let searchFormModuleProps: Record<string, unknown> = {};
+	let searchResultsModuleProps: Record<string, unknown> = {};
 
 	function normalizeSocialMediaPropsForEditor(raw: Record<string, unknown>): Record<string, unknown> {
 		const p = { ...raw };
@@ -986,6 +1001,42 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 				);
 			} catch {
 				socialMediaModuleProps = {};
+			}
+		}
+		if (moduleForm.type === 'searchForm') {
+			try {
+				searchFormModuleProps = moduleForm.propsJson.trim()
+					? (JSON.parse(moduleForm.propsJson) as Record<string, unknown>)
+					: {};
+			} catch {
+				searchFormModuleProps = {};
+			}
+		}
+		if (moduleForm.type === 'searchBar') {
+			try {
+				searchBarModuleProps = moduleForm.propsJson.trim()
+					? (JSON.parse(moduleForm.propsJson) as Record<string, unknown>)
+					: {};
+			} catch {
+				searchBarModuleProps = {};
+			}
+		}
+		if (moduleForm.type === 'searchFilter') {
+			try {
+				searchFilterModuleProps = moduleForm.propsJson.trim()
+					? (JSON.parse(moduleForm.propsJson) as Record<string, unknown>)
+					: {};
+			} catch {
+				searchFilterModuleProps = {};
+			}
+		}
+		if (moduleForm.type === 'searchResults') {
+			try {
+				searchResultsModuleProps = moduleForm.propsJson.trim()
+					? (JSON.parse(moduleForm.propsJson) as Record<string, unknown>)
+					: {};
+			} catch {
+				searchResultsModuleProps = {};
 			}
 		}
 	}
@@ -1595,6 +1646,31 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 		} else {
 			logoModuleProps = {};
 		}
+		if (module.type === 'contactForm') {
+			contactFormModuleProps = { ...((module.props || {}) as Record<string, unknown>) };
+		} else {
+			contactFormModuleProps = {};
+		}
+		if (module.type === 'searchForm') {
+			searchFormModuleProps = { ...((module.props || {}) as Record<string, unknown>) };
+		} else {
+			searchFormModuleProps = {};
+		}
+		if (module.type === 'searchBar') {
+			searchBarModuleProps = { ...((module.props || {}) as Record<string, unknown>) };
+		} else {
+			searchBarModuleProps = {};
+		}
+		if (module.type === 'searchFilter') {
+			searchFilterModuleProps = { ...((module.props || {}) as Record<string, unknown>) };
+		} else {
+			searchFilterModuleProps = {};
+		}
+		if (module.type === 'searchResults') {
+			searchResultsModuleProps = { ...((module.props || {}) as Record<string, unknown>) };
+		} else {
+			searchResultsModuleProps = {};
+		}
 
 		editingFeatureIndex = null;
 		showModuleEditDialog = true;
@@ -1705,6 +1781,16 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 				props = { ...albumViewModuleProps } as Record<string, unknown>;
 			} else if (moduleForm.type === 'logo') {
 				props = { ...logoModuleProps } as Record<string, unknown>;
+			} else if (moduleForm.type === 'contactForm') {
+				props = { ...contactFormModuleProps } as Record<string, unknown>;
+			} else if (moduleForm.type === 'searchForm') {
+				props = { ...searchFormModuleProps } as Record<string, unknown>;
+			} else if (moduleForm.type === 'searchBar') {
+				props = { ...searchBarModuleProps } as Record<string, unknown>;
+			} else if (moduleForm.type === 'searchFilter') {
+				props = { ...searchFilterModuleProps } as Record<string, unknown>;
+			} else if (moduleForm.type === 'searchResults') {
+				props = { ...searchResultsModuleProps } as Record<string, unknown>;
 			} else {
 				props = moduleForm.propsJson.trim() ? JSON.parse(moduleForm.propsJson) as Record<string, unknown> : {};
 			}
@@ -1857,6 +1943,16 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 				props = { ...socialMediaModuleProps } as Record<string, unknown>;
 			} else if (moduleForm.type === 'albumView') {
 				props = { ...albumViewModuleProps } as Record<string, unknown>;
+			} else if (moduleForm.type === 'contactForm') {
+				props = { ...contactFormModuleProps } as Record<string, unknown>;
+			} else if (moduleForm.type === 'searchForm') {
+				props = { ...searchFormModuleProps } as Record<string, unknown>;
+			} else if (moduleForm.type === 'searchBar') {
+				props = { ...searchBarModuleProps } as Record<string, unknown>;
+			} else if (moduleForm.type === 'searchFilter') {
+				props = { ...searchFilterModuleProps } as Record<string, unknown>;
+			} else if (moduleForm.type === 'searchResults') {
+				props = { ...searchResultsModuleProps } as Record<string, unknown>;
 			} else {
 				props = moduleForm.propsJson.trim() ? JSON.parse(moduleForm.propsJson) as Record<string, unknown> : {};
 			}
@@ -2957,6 +3053,10 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 							</div>
 						</div>
 					</div>
+				{:else if moduleForm.type === 'contactForm'}
+					<div class="space-y-4 border-t border-surface-200-800 pt-4">
+						<ModulePropsForm moduleType="contactForm" bind:props={contactFormModuleProps} />
+					</div>
 				{:else if moduleForm.type === 'albumsGrid'}
 					<!-- Albums Grid Module Form -->
 					<div class="space-y-4 border-t border-surface-200-800 pt-4">
@@ -3208,6 +3308,94 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 							}}
 						/>
 					</div>
+				{:else if moduleForm.type === 'searchBar'}
+					<div class="space-y-4 border-t border-surface-200-800 pt-4 text-(--color-surface-800-200)">
+						<ModulePropsForm
+							moduleType="searchBar"
+							props={searchBarModuleProps as Record<string, any>}
+							showPlacementInGrid={false}
+							onChange={(next) => {
+								searchBarModuleProps = next;
+							}}
+						/>
+					</div>
+				{:else if moduleForm.type === 'searchFilter'}
+					<div class="space-y-4 border-t border-surface-200-800 pt-4 text-(--color-surface-800-200)">
+						<ModulePropsForm
+							moduleType="searchFilter"
+							props={searchFilterModuleProps as Record<string, any>}
+							showPlacementInGrid={false}
+							onChange={(next) => {
+								searchFilterModuleProps = next;
+							}}
+						/>
+					</div>
+				{:else if moduleForm.type === 'searchBar'}
+					<div class="space-y-4 border-t border-surface-200-800 pt-4 text-(--color-surface-800-200)">
+						<ModulePropsForm
+							moduleType="searchBar"
+							props={searchBarModuleProps as Record<string, any>}
+							showPlacementInGrid={false}
+							onChange={(next) => {
+								searchBarModuleProps = next;
+							}}
+						/>
+					</div>
+				{:else if moduleForm.type === 'searchFilter'}
+					<div class="space-y-4 border-t border-surface-200-800 pt-4 text-(--color-surface-800-200)">
+						<ModulePropsForm
+							moduleType="searchFilter"
+							props={searchFilterModuleProps as Record<string, any>}
+							showPlacementInGrid={false}
+							onChange={(next) => {
+								searchFilterModuleProps = next;
+							}}
+						/>
+					</div>
+				{:else if moduleForm.type === 'searchBar'}
+					<div class="space-y-4 border-t border-surface-200-800 pt-4 text-(--color-surface-800-200)">
+						<ModulePropsForm
+							moduleType="searchBar"
+							props={searchBarModuleProps as Record<string, any>}
+							showPlacementInGrid={false}
+							onChange={(next) => {
+								searchBarModuleProps = next;
+							}}
+						/>
+					</div>
+				{:else if moduleForm.type === 'searchFilter'}
+					<div class="space-y-4 border-t border-surface-200-800 pt-4 text-(--color-surface-800-200)">
+						<ModulePropsForm
+							moduleType="searchFilter"
+							props={searchFilterModuleProps as Record<string, any>}
+							showPlacementInGrid={false}
+							onChange={(next) => {
+								searchFilterModuleProps = next;
+							}}
+						/>
+					</div>
+				{:else if moduleForm.type === 'searchForm'}
+					<div class="space-y-4 border-t border-surface-200-800 pt-4 text-(--color-surface-800-200)">
+						<ModulePropsForm
+							moduleType="searchForm"
+							props={searchFormModuleProps as Record<string, any>}
+							showPlacementInGrid={false}
+							onChange={(next) => {
+								searchFormModuleProps = next;
+							}}
+						/>
+					</div>
+				{:else if moduleForm.type === 'searchResults'}
+					<div class="space-y-4 border-t border-surface-200-800 pt-4 text-(--color-surface-800-200)">
+						<ModulePropsForm
+							moduleType="searchResults"
+							props={searchResultsModuleProps as Record<string, any>}
+							showPlacementInGrid={false}
+							onChange={(next) => {
+								searchResultsModuleProps = next;
+							}}
+						/>
+					</div>
 				{:else if moduleForm.type === 'logo'}
 					<div class="space-y-4 border-t border-surface-200-800 pt-4">
 						<div>
@@ -3339,7 +3527,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 							</p>
 						</div>
 					</div>
-				{:else if !['featureGrid', 'richText', 'pageTitle', 'hero', 'albumsGrid', 'albumView', 'layoutShell', 'menu', 'themeToggle', 'socialMedia', 'logo'].includes(moduleForm.type)}
+				{:else if !['featureGrid', 'richText', 'pageTitle', 'hero', 'albumsGrid', 'albumView', 'layoutShell', 'menu', 'themeToggle', 'socialMedia', 'logo', 'contactForm', 'searchBar', 'searchFilter', 'searchForm', 'searchResults'].includes(moduleForm.type)}
 					<!-- JSON Editor for other module types -->
 					<div>
 						<label for="module-props-json" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
@@ -4030,6 +4218,10 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 							</div>
 						</div>
 					</div>
+				{:else if moduleForm.type === 'contactForm'}
+					<div class="space-y-4 border-t border-surface-200-800 pt-4">
+						<ModulePropsForm moduleType="contactForm" bind:props={contactFormModuleProps} />
+					</div>
 				{:else if moduleForm.type === 'albumsGrid'}
 					<!-- Albums Grid Module Form -->
 					<div class="space-y-4 border-t border-surface-200-800 pt-4">
@@ -4157,7 +4349,29 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 							</select>
 						</div>
 					</div>
-				{:else}
+				{:else if moduleForm.type === 'searchForm'}
+					<div class="space-y-4 border-t border-surface-200-800 pt-4 text-(--color-surface-800-200)">
+						<ModulePropsForm
+							moduleType="searchForm"
+							props={searchFormModuleProps as Record<string, any>}
+							showPlacementInGrid={false}
+							onChange={(next) => {
+								searchFormModuleProps = next;
+							}}
+						/>
+					</div>
+				{:else if moduleForm.type === 'searchResults'}
+					<div class="space-y-4 border-t border-surface-200-800 pt-4 text-(--color-surface-800-200)">
+						<ModulePropsForm
+							moduleType="searchResults"
+							props={searchResultsModuleProps as Record<string, any>}
+							showPlacementInGrid={false}
+							onChange={(next) => {
+								searchResultsModuleProps = next;
+							}}
+						/>
+					</div>
+				{:else if moduleForm.type !== 'contactForm'}
 					<!-- JSON Editor for other module types -->
 					<div>
 						<label for="module-props-json" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
@@ -4577,7 +4791,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 				</div>
 				{#if menuEditorItems.length === 0}
 					<p class="text-sm text-(--color-surface-600-400)">No custom items. Defaults/menu config fallback will be used.</p>
-				{:else}
+				{:else if moduleForm.type !== 'contactForm'}
 					<div class="space-y-3">
 						{#each menuEditorItems as item, idx (`menu-item-${idx}`)}
 							<div class="border border-surface-300-700 rounded-md p-3 space-y-3">
@@ -5084,6 +5298,10 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 							</div>
 						</div>
 					</div>
+				{:else if moduleForm.type === 'contactForm'}
+					<div class="space-y-4 border-t border-surface-200-800 pt-4">
+						<ModulePropsForm moduleType="contactForm" bind:props={contactFormModuleProps} />
+					</div>
 				{:else if moduleForm.type === 'albumsGrid'}
 					<!-- Albums Grid Module Form -->
 					<div class="space-y-4 border-t border-surface-200-800 pt-4">
@@ -5194,6 +5412,28 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 								<option value="left">Left</option>
 							</select>
 						</div>
+					</div>
+				{:else if moduleForm.type === 'searchForm'}
+					<div class="space-y-4 border-t border-surface-200-800 pt-4 text-(--color-surface-800-200)">
+						<ModulePropsForm
+							moduleType="searchForm"
+							props={searchFormModuleProps as Record<string, any>}
+							showPlacementInGrid={false}
+							onChange={(next) => {
+								searchFormModuleProps = next;
+							}}
+						/>
+					</div>
+				{:else if moduleForm.type === 'searchResults'}
+					<div class="space-y-4 border-t border-surface-200-800 pt-4 text-(--color-surface-800-200)">
+						<ModulePropsForm
+							moduleType="searchResults"
+							props={searchResultsModuleProps as Record<string, any>}
+							showPlacementInGrid={false}
+							onChange={(next) => {
+								searchResultsModuleProps = next;
+							}}
+						/>
 					</div>
 				{:else}
 					<!-- JSON Editor for other module types -->

@@ -16,6 +16,11 @@
 	import { userGreetingConfig } from '$lib/page-builder/modules/UserGreeting/config';
 	import { authButtonsConfig } from '$lib/page-builder/modules/AuthButtons/config';
 	import { socialMediaConfig } from '$lib/page-builder/modules/SocialMedia/config';
+	import { contactFormConfig } from '$lib/page-builder/modules/ContactForm/config';
+	import { searchBarConfig } from '$lib/page-builder/modules/SearchBar/config';
+	import { searchFilterConfig } from '$lib/page-builder/modules/SearchFilter/config';
+	import { searchFormConfig } from '$lib/page-builder/modules/SearchForm/config';
+	import { searchResultsConfig } from '$lib/page-builder/modules/SearchResults/config';
 	import { parseLinksJson } from '$lib/page-builder/modules/SocialMedia/resolveLinks';
 	import type { ModulePlacement, ModulePlacementAxis } from '$lib/page-builder/module-cell-placement';
 	import { normalizePlacement } from '$lib/page-builder/module-cell-placement';
@@ -43,7 +48,12 @@
 		themeSelect: themeSelectConfig,
 		userGreeting: userGreetingConfig,
 		authButtons: authButtonsConfig,
-		socialMedia: socialMediaConfig
+		socialMedia: socialMediaConfig,
+		contactForm: contactFormConfig,
+		searchBar: searchBarConfig,
+		searchFilter: searchFilterConfig,
+		searchForm: searchFormConfig,
+		searchResults: searchResultsConfig
 	};
 
 	$: config = moduleConfigMap[moduleType] || null;

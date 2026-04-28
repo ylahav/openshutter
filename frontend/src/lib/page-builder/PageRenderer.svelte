@@ -25,6 +25,11 @@
 	import LayoutShellModule from './modules/LayoutShellModule.svelte';
 	import PageTitleModule from './modules/PageTitleModule.svelte';
 	import LoginFormModule from './modules/LoginFormModule.svelte';
+	import ContactFormModule from './modules/ContactFormModule.svelte';
+import SearchBarModule from './modules/SearchBarModule.svelte';
+import SearchFilterModule from './modules/SearchFilterModule.svelte';
+	import SearchFormModule from './modules/SearchFormModule.svelte';
+	import SearchResultsModule from './modules/SearchResultsModule.svelte';
 	import { activeTemplate } from '$stores/template';
 	import { normalizeTemplatePackId } from '$lib/template/packs/ids';
 	import { TEMPLATE_PAGE_BUILDER_OVERRIDES } from './template-module-overrides';
@@ -75,7 +80,12 @@
 		blogArticle: BlogArticleModule,
 		layoutShell: LayoutShellModule,
 		pageTitle: PageTitleModule,
-		loginForm: LoginFormModule
+		loginForm: LoginFormModule,
+		contactForm: ContactFormModule,
+		searchBar: SearchBarModule,
+		searchFilter: SearchFilterModule,
+		searchForm: SearchFormModule,
+		searchResults: SearchResultsModule
 	};
 
 	const moduleMapStore: Writable<Record<string, any>> = writable(baseModuleMap);

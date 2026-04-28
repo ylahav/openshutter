@@ -1,0 +1,16 @@
+.os-search-form {
+  width: 100%;
+}
+
+.os-search-filters {
+  width: 100%;
+}
+
+.os-search-filters__chip {
+  display: inline-flex;
+  align-items: center;
+}
+
+.os-search-filter-panel__dialog {
+  color: var(--tp-fg, inherit);
+}

@@ -58,11 +58,11 @@
 
 {#if mode === 'albums'}
 	<div
-		class="min-h-screen w-full pt-24 pb-16 bg-[color:var(--tp-canvas)] text-[color:var(--tp-fg)] [font-family:var(--os-font-body)]"
+		class="min-h-screen w-full pt-24 pb-16 bg-(--tp-canvas) text-(--tp-fg) [font-family:var(--os-font-body)]"
 	>
 		<div class="max-w-(--os-max-width) mx-auto px-7 mb-10">
 			<h1
-				class="text-3xl md:text-4xl font-extralight tracking-tight text-[color:var(--tp-fg)]"
+				class="text-3xl md:text-4xl font-extralight tracking-tight text-(--tp-fg)"
 				style="font-family: var(--os-font-heading);"
 			>
 				{$t('navigation.albums')}
@@ -94,16 +94,16 @@
 			{#if photosLoading}
 				<div class="text-center py-20">
 					<div
-						class="w-8 h-8 border rounded-full animate-spin mx-auto mb-4 border-[color:var(--tp-border)] border-t-[color:var(--tp-fg)]"
+						class="w-8 h-8 border rounded-full animate-spin mx-auto mb-4 border-(--tp-border) border-t-(--tp-fg)"
 					></div>
-					<p class="text-[10px] uppercase tracking-[0.2em] text-[color:var(--tp-fg-muted)]">
+					<p class="text-[10px] uppercase tracking-[0.2em] text-(--tp-fg-muted)">
 						{$t('loading.loadingGallery')}
 					</p>
 				</div>
 			{:else if photosError}
 				<p class="text-center text-sm text-red-400/90">{photosError}</p>
 			{:else if photos.length === 0}
-				<p class="text-center text-[10px] uppercase tracking-[0.2em] text-[color:var(--tp-fg-muted)]">
+				<p class="text-center text-[10px] uppercase tracking-[0.2em] text-(--tp-fg-muted)">
 					{$t('albums.noAlbumsText')}
 				</p>
 			{:else}
@@ -112,7 +112,7 @@
 						<button
 							type="button"
 							on:click={() => openLightbox(index)}
-							class="relative aspect-square overflow-hidden group focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--tp-fg-muted)] bg-[color:var(--tp-surface-1)]"
+							class="relative aspect-square overflow-hidden group focus:outline-none focus-visible:ring-2 focus-visible:ring-(--tp-fg-muted) bg-(--tp-surface-1)"
 						>
 							{#if photo.storage?.thumbnailPath || photo.storage?.url || photo.url}
 								<img
@@ -123,7 +123,7 @@
 								/>
 							{/if}
 							<div
-								class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"
+								class="absolute inset-0 bg-linear-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"
 							></div>
 						</button>
 					{/each}

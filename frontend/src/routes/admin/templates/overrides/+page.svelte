@@ -484,6 +484,10 @@
 		[
 			'pageTitle',
 			'loginForm',
+			'searchBar',
+			'searchFilter',
+			'searchForm',
+			'searchResults',
 			'hero',
 			'richText',
 			'divider',

@@ -12,10 +12,20 @@ export type PageBuilderModuleMap = Record<string, Component<any>>;
 // This file uses static imports so Vite can bundle correctly.
 
 import AtelierHeroModule from '$templates/atelier/components/page-builder/HeroModule.svelte';
+import StudioSearchBarModule from '$templates/studio/components/page-builder/SearchBarModule.svelte';
+import StudioSearchFilterModule from '$templates/studio/components/page-builder/SearchFilterModule.svelte';
+import StudioSearchFormModule from '$templates/studio/components/page-builder/SearchFormModule.svelte';
+import StudioSearchResultsModule from '$templates/studio/components/page-builder/SearchResultsModule.svelte';
 
 export const TEMPLATE_PAGE_BUILDER_OVERRIDES: Record<string, Partial<PageBuilderModuleMap>> = {
 	atelier: {
 		hero: AtelierHeroModule
+	},
+	studio: {
+		searchBar: StudioSearchBarModule,
+		searchFilter: StudioSearchFilterModule,
+		searchForm: StudioSearchFormModule,
+		searchResults: StudioSearchResultsModule
 	}
 };
 
