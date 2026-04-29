@@ -294,6 +294,8 @@
 	let searchTerm = '';
 	let categoryFilter = 'all';
 	let publishedFilter = 'all';
+	let sortBy: 'title-asc' | 'title-desc' | 'alias-asc' | 'alias-desc' = 'title-asc';
+	let groupByName = true;
 	let showCreateDialog = false;
 	let showEditDialog = false;
 	let showDeleteDialog = false;
@@ -2315,6 +2317,8 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 				bind:searchTerm
 				bind:categoryFilter
 				bind:publishedFilter
+				bind:sortBy
+				bind:groupByName
 				categories={CATEGORIES}
 				onFilterChange={() => crudLoader.loadItems()}
 				onAddPage={openCreateDialog}
@@ -2348,6 +2352,8 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 				<PageList
 					pages={pages}
 					categories={CATEGORIES}
+					{sortBy}
+					{groupByName}
 					onEdit={openEditDialog}
 					onDuplicate={openDuplicateDialog}
 					onDelete={openDeleteDialog}

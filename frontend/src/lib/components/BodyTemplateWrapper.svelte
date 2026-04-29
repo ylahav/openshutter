@@ -8,13 +8,13 @@
 	async function ensurePackStyles(templateName: string) {
 		if (loadedPackStyles.has(templateName)) return;
 		if (templateName === 'noir') {
-			await import('$templates/noir/styles.scss');
+			await import('$templates/noir/styles/styles.scss');
 		} else if (templateName === 'studio') {
-			await import('$templates/studio/styles.scss');
+			await import('$templates/studio/styles/styles.scss');
 		} else if (templateName === 'atelier') {
 			await import('$templates/atelier/styles.scss');
 		} else {
-			await import('$templates/noir/styles.scss');
+			await import('$templates/noir/styles/styles.scss');
 		}
 		loadedPackStyles.add(templateName);
 	}

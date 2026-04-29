@@ -26,7 +26,7 @@ Many modules **wrap** a primitive—for example:
 | `themeSelect` | [`primitives/template-selector/TemplateSelector.svelte`](../page-builder/primitives/template-selector/README.md) |
 | `loginForm` | `LoginTemplateSwitcher.svelte` (also used inside **`pack.pages.Login`**) |
 
-**Pack routing (visitor):** `HomeTemplateSwitcher`, `GalleryTemplateSwitcher`, `AlbumTemplateSwitcher`, `AboutTemplateSwitcher`, `SearchTemplateSwitcher`, `ContactTemplateSwitcher`, and `CmsPageTemplateSwitcher` load `getTemplatePack()` and render the active pack’s page component (see `docs/development/TEMPLATING.md`).
+**Pack routing (visitor):** `AlbumTemplateSwitcher`, `AboutTemplateSwitcher`, `SearchTemplateSwitcher`, `ContactTemplateSwitcher`, and `CmsPageTemplateSwitcher` load `getTemplatePack()` and render the active pack’s page component (see `docs/development/TEMPLATING.md`).
 
 For those, the module README summarizes props; **additional markup/classes** live in the component source.
 

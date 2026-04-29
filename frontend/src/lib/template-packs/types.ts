@@ -4,8 +4,6 @@ import type {
 	PackAlbumPageProps,
 	PackCmsPageProps,
 	PackContactPageProps,
-	PackGalleryPageProps,
-	PackHomePageProps,
 	PackLoginPageProps,
 	PackSearchPageProps
 } from './pack-page-props';
@@ -13,8 +11,6 @@ import type {
 export type TemplatePackName = string;
 
 export type TemplatePackPages = {
-	Home: Component<PackHomePageProps>;
-	Gallery: Component<PackGalleryPageProps>;
 	Album: Component<PackAlbumPageProps>;
 	About: Component<PackAboutPageProps>;
 	Search: Component<PackSearchPageProps>;

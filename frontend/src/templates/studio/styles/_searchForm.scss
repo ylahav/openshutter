@@ -62,4 +62,65 @@
     background: #fff !important;
     color: var(--ink-fnt) !important;
   }
+
+  // Search modules (page-builder): form, filter drawer, and results.
+  .tpl-pack-studio {
+    .os-search-form {
+      max-width: var(--os-max-width);
+      margin: 85px auto 20px;
+    }
+
+    .os-search-form__filters-btn {
+      color: var(--ink-fnt) !important;
+      border-color: var(--bdr) !important;
+      background: var(--bg) !important;
+    }
+
+    .os-search-filters {
+      max-width: var(--os-max-width);
+      margin: 0 auto 16px;
+    }
+
+    .os-search-filters__chip {
+      background: color-mix(in srgb, var(--acc) 12%, var(--bg));
+      color: var(--ink-fnt);
+      border: 1px solid var(--bdr);
+    }
+
+    .os-search-filter-panel__dialog {
+      background: var(--bg);
+      border: 1px solid var(--bdr);
+    }
+
+    .os-search-filter-panel__title {
+      color: var(--ink);
+    }
+
+    .os-search-filter-panel__cancel {
+      background: var(--bg-2);
+      color: var(--ink-fnt);
+      border: 1px solid var(--bdr);
+    }
+
+    .os-search-filter-panel__apply {
+      background: var(--ink);
+      color: var(--bg);
+    }
+
+    .os-search-results {
+      max-width: var(--os-max-width);
+      margin: 0 auto calc(var(--spacing) * 3);
+    }
+
+    .os-search-results__state,
+    .os-search-results__header,
+    .os-search-results__card {
+      background: var(--bg);
+      border: 1px solid var(--bdr);
+    }
+
+    .os-search-results__card-title {
+      color: var(--ink-fnt);
+    }
+  }
   

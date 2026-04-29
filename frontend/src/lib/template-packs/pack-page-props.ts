@@ -1,14 +1,7 @@
 import type { PageData } from '$lib/types/page-builder';
 
 /**
- * Props contract for pack **Home** pages (`Home.svelte`).
- * Packs load their own data (e.g. albums); no route `data` is required today.
- * `Record<string, any>` satisfies Svelte `Component<Props>`’s constraint; there are no real props yet.
- */
-export type PackHomePageProps = Record<string, any>;
-
-/**
- * Album tile / list row shape passed into gallery **albums** mode (API-shaped objects).
+ * Album tile / list row shape used by gallery templates in albums mode.
  * Kept structural so packs can narrow internally.
  */
 export interface PackGalleryAlbumListItem {
@@ -21,13 +14,6 @@ export interface PackGalleryAlbumListItem {
 	photoCount?: number;
 	isFeatured?: boolean;
 	[key: string]: unknown;
-}
-
-export interface PackGalleryPageProps {
-	mode: 'photos' | 'albums';
-	albums: PackGalleryAlbumListItem[];
-	loading: boolean;
-	error: string | null;
 }
 
 /** Pack **Album** view loads from `$page` + API; no parent props (constraint only). */

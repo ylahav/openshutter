@@ -184,8 +184,8 @@ Reference HTML uses short class names; in the app the same strings are valid **i
 
 | Pack | SCSS file (co-located with the pack) |
 |------|--------------------------------------|
-| Noir | `frontend/src/templates/noir/styles.scss` |
-| Studio | `frontend/src/templates/studio/styles.scss` |
+| Noir | `frontend/src/templates/noir/styles/styles.scss` |
+| Studio | `frontend/src/templates/studio/styles/styles.scss` |
 | Atelier | `frontend/src/templates/atelier/styles.scss` |
 
 Each pack’s `styles.scss` is imported from that pack’s route-level `.svelte` files (not from a central loader), so the correct stylesheet is bundled with the routes that use the pack and appears as a normal Vite CSS asset (`<link rel="stylesheet" …>` in devtools / production HTML when that route is rendered). `globals.css` stays global; `--tp-*` / `--os-font-*` still come from `ThemeColorApplier` at runtime.

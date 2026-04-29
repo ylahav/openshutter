@@ -8,8 +8,6 @@ import type {
 	PackAlbumPageProps,
 	PackCmsPageProps,
 	PackContactPageProps,
-	PackGalleryPageProps,
-	PackHomePageProps,
 	PackLoginPageProps,
 	PackSearchPageProps
 } from './pack-page-props';
@@ -25,9 +23,7 @@ const packCache = new Map<TemplatePackId, TemplatePack>();
 
 const packLoaders: Record<TemplatePackId, () => Promise<TemplatePack>> = {
 	noir: async () => {
-		const [Home, Gallery, Album, Search, Contact, CmsPage, Login] = await Promise.all([
-			import('$templates/noir/Home.svelte'),
-			import('$templates/noir/Gallery.svelte'),
+		const [Album, Search, Contact, CmsPage, Login] = await Promise.all([
 			import('$templates/noir/Album.svelte'),
 			import('$templates/noir/Search.svelte'),
 			import('$templates/noir/Contact.svelte'),
@@ -37,8 +33,6 @@ const packLoaders: Record<TemplatePackId, () => Promise<TemplatePack>> = {
 		return {
 			name: 'noir',
 			pages: {
-				Home: packPage<PackHomePageProps>(Home),
-				Gallery: packPage<PackGalleryPageProps>(Gallery),
 				Album: packPage<PackAlbumPageProps>(Album),
 				About: packPage<PackAboutPageProps>(CmsPage),
 				Search: packPage<PackSearchPageProps>(Search),
@@ -49,9 +43,7 @@ const packLoaders: Record<TemplatePackId, () => Promise<TemplatePack>> = {
 		};
 	},
 	studio: async () => {
-		const [Home, Gallery, Album, About, Search, Contact, CmsPage, Login] = await Promise.all([
-			import('$templates/studio/Home.svelte'),
-			import('$templates/studio/Gallery.svelte'),
+		const [Album, About, Search, Contact, CmsPage, Login] = await Promise.all([
 			import('$templates/studio/Album.svelte'),
 			import('$templates/studio/About.svelte'),
 			import('$templates/studio/Search.svelte'),
@@ -62,8 +54,6 @@ const packLoaders: Record<TemplatePackId, () => Promise<TemplatePack>> = {
 		return {
 			name: 'studio',
 			pages: {
-				Home: packPage<PackHomePageProps>(Home),
-				Gallery: packPage<PackGalleryPageProps>(Gallery),
 				Album: packPage<PackAlbumPageProps>(Album),
 				About: packPage<PackAboutPageProps>(About),
 				Search: packPage<PackSearchPageProps>(Search),
@@ -74,9 +64,7 @@ const packLoaders: Record<TemplatePackId, () => Promise<TemplatePack>> = {
 		};
 	},
 	atelier: async () => {
-		const [Home, Gallery, Album, About, Search, Contact, CmsPage, Login] = await Promise.all([
-			import('$templates/atelier/Home.svelte'),
-			import('$templates/atelier/Gallery.svelte'),
+		const [Album, About, Search, Contact, CmsPage, Login] = await Promise.all([
 			import('$templates/atelier/Album.svelte'),
 			import('$templates/atelier/About.svelte'),
 			import('$templates/atelier/Search.svelte'),
@@ -87,8 +75,6 @@ const packLoaders: Record<TemplatePackId, () => Promise<TemplatePack>> = {
 		return {
 			name: 'atelier',
 			pages: {
-				Home: packPage<PackHomePageProps>(Home),
-				Gallery: packPage<PackGalleryPageProps>(Gallery),
 				Album: packPage<PackAlbumPageProps>(Album),
 				About: packPage<PackAboutPageProps>(About),
 				Search: packPage<PackSearchPageProps>(Search),

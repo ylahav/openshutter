@@ -1,5 +1,5 @@
 <script lang="ts">
-	import './styles.scss';
+	import './styles/styles.scss';
 	import AdvancedFilterSearch from '$lib/components/search/AdvancedFilterSearch.svelte';
 
 	export let initialQuery = '';

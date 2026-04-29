@@ -4,6 +4,8 @@
 	export let searchTerm = '';
 	export let categoryFilter = 'all';
 	export let publishedFilter = 'all';
+	export let sortBy = 'title-asc';
+	export let groupByName = false;
 	export let categories: PageCategoryOption[] = [];
 	export let onFilterChange: () => void = () => {};
 	export let onAddPage: () => void = () => {};
@@ -54,6 +56,22 @@
 			<option value="true">Published</option>
 			<option value="false">Draft</option>
 		</select>
+
+		<select
+			bind:value={sortBy}
+			on:change={onFilterChange}
+			class="px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
+		>
+			<option value="title-asc">Title A-Z</option>
+			<option value="title-desc">Title Z-A</option>
+			<option value="alias-asc">Alias A-Z</option>
+			<option value="alias-desc">Alias Z-A</option>
+		</select>
+
+		<label class="inline-flex items-center gap-2 text-sm text-(--color-surface-700-300)">
+			<input type="checkbox" bind:checked={groupByName} on:change={onFilterChange} />
+			Group same name together
+		</label>
 	</div>
 
 	<button
