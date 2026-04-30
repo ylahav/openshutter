@@ -1,0 +1,34 @@
+.tpl-pack-atelier {
+	.pb-contactForm {
+		background: transparent;
+		border: 0;
+		max-width: 860px;
+		padding: 0;
+	}
+
+	.pb-contactForm__title {
+		font-family: var(--os-font-heading), 'Cormorant Garamond', Georgia, serif;
+		font-weight: 400;
+		letter-spacing: 0.08em;
+	}
+
+	.pb-contactForm__field {
+		gap: 0.45rem;
+	}
+
+	.pb-contactForm__field input,
+	.pb-contactForm__field textarea {
+		background: transparent;
+		border-width: 0 0 1px;
+		border-radius: 0;
+		padding-inline: 0;
+	}
+
+	.pb-contactForm__submit {
+		background: transparent;
+		color: var(--tp-fg);
+		border: 1px solid var(--tp-fg-subtle);
+		border-radius: 0;
+		text-transform: lowercase;
+	}
+}

@@ -136,6 +136,13 @@
   },
   "admin": {
     "adminPanel": "Panel de administración",
+    "uiDocsTitle": "Componentes de interfaz",
+    "uiDocsDescription": "Referencia para controles compartidos de cabecera y diseño (Markdown del código).",
+    "openUiDocs": "Abrir documentación de interfaz",
+    "uiDocsPageTitle": "Documentación de componentes de interfaz",
+    "uiDocsPageHeading": "Documentación de componentes de interfaz",
+    "uiDocsPageIntro": "Fuente: archivos README en src/lib/page-builder/primitives. Se muestra como Markdown para copiar y pegar al crear plantillas.",
+    "uiDocsNavAria": "Secciones de documentación de interfaz",
     "manageGallerySettings": "Administra la configuración y el contenido de tu galería",
     "siteConfiguration": "Configuración del sitio",
     "configureGallery": "Configure el título de su galería, la descripción, los colores del tema y la configuración de SEO.",

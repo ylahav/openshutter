@@ -1,0 +1,116 @@
+.pb-contactForm {
+	max-width: 720px;
+	margin: 0 auto;
+	padding: 1.5rem;
+	border: 1px solid var(--tp-border);
+	border-radius: 0.75rem;
+	background: var(--tp-surface-1);
+	color: var(--tp-fg);
+}
+
+.pb-contactForm__title {
+	margin: 0 0 0.5rem;
+	font-size: clamp(1.25rem, 2.6vw, 1.7rem);
+	font-weight: 600;
+}
+
+.pb-contactForm__description {
+	margin: 0 0 1rem;
+	color: var(--tp-fg-muted);
+}
+
+.pb-contactForm__grid {
+	display: grid;
+	grid-template-columns: minmax(180px, 260px) 1fr;
+	gap: 1.25rem;
+}
+
+.pb-contactForm__grid--single {
+	grid-template-columns: 1fr;
+}
+
+.pb-contactForm__sidebar {
+	border: 1px solid var(--tp-border);
+	border-radius: 0.65rem;
+	padding: 0.9rem;
+	background: var(--tp-surface-2);
+	display: grid;
+	align-content: start;
+	gap: 0.5rem;
+}
+
+.pb-contactForm__sidebarTitle {
+	font-weight: 600;
+	margin-bottom: 0.2rem;
+}
+
+.pb-contactForm__sidebarLink {
+	color: var(--tp-fg-muted);
+	text-decoration: none;
+	font-size: 0.93rem;
+}
+
+.pb-contactForm__sidebarLink:hover {
+	color: var(--tp-fg);
+	text-decoration: underline;
+}
+
+.pb-contactForm__sidebarAddress {
+	color: var(--tp-fg-muted);
+	font-size: 0.93rem;
+	line-height: 1.5;
+	white-space: pre-wrap;
+}
+
+.pb-contactForm__form {
+	display: grid;
+	gap: 0.9rem;
+}
+
+.pb-contactForm__field {
+	display: grid;
+	gap: 0.35rem;
+	font-size: 0.95rem;
+}
+
+.pb-contactForm__field input,
+.pb-contactForm__field textarea {
+	width: 100%;
+	border: 1px solid var(--tp-border);
+	border-radius: 0.5rem;
+	background: var(--tp-canvas);
+	color: var(--tp-fg);
+	padding: 0.65rem 0.75rem;
+}
+
+.pb-contactForm__submit {
+	border: 0;
+	border-radius: 0.5rem;
+	padding: 0.7rem 1rem;
+	font-weight: 600;
+	background: var(--tp-brand);
+	color: var(--tp-on-brand);
+	cursor: pointer;
+}
+
+.pb-contactForm__submit[disabled] {
+	opacity: 0.7;
+	cursor: not-allowed;
+}
+
+.pb-contactForm__success {
+	margin-top: 0.75rem;
+	color: #16a34a;
+	white-space: pre-line;
+}
+
+.pb-contactForm__error {
+	margin-top: 0.75rem;
+	color: #dc2626;
+}
+
+@media (max-width: 900px) {
+	.pb-contactForm__grid {
+		grid-template-columns: 1fr;
+	}
+}

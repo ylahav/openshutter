@@ -7,6 +7,7 @@ import { createWriteStream } from 'fs';
 import * as path from 'path';
 import { randomUUID } from 'crypto';
 import archiver from 'archiver';
+import AdmZip from 'adm-zip';
 import { storageManager } from '../services/storage/manager';
 import { storageConfigService } from '../services/storage/config';
 import type { StorageProviderId } from '../services/storage/types';
@@ -25,6 +26,7 @@ import { IPhoto } from '../models/Photo';
 import { ITag } from '../models/Tag';
 import { IPerson } from '../models/Person';
 import { ILocation } from '../models/Location';
+import { IPage } from '../models/Page';
 
 const PACKAGE_MANIFEST = 'manifest.json';
 const PACKAGE_ALBUMS = 'albums.json';
@@ -32,7 +34,11 @@ const PACKAGE_PHOTOS = 'photos.json';
 const PACKAGE_TAGS = 'tags.json';
 const PACKAGE_PEOPLE = 'people.json';
 const PACKAGE_LOCATIONS = 'locations.json';
+const PACKAGE_PAGES = 'pages.json';
+const PACKAGE_PAGE_MODULES = 'page-modules.json';
+const PACKAGE_TEMPLATE_CONFIG = 'template-config.json';
 const PACKAGE_PHOTOS_DIR = 'photos';
+type ExportScope = 'full' | 'templates-pages';
 
 const IMAGE_EXTENSIONS = new Set(
   ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.heic', '.bmp', '.tiff', '.tif'].map((e) => e.toLowerCase()),
@@ -69,6 +75,7 @@ export class MigrationService {
     @InjectModel('Tag') private tagModel: Model<ITag>,
     @InjectModel('Person') private personModel: Model<IPerson>,
     @InjectModel('Location') private locationModel: Model<ILocation>,
+    @InjectModel('Page') private pageModel: Model<IPage>,
     private configService: ConfigService,
   ) {}
 
@@ -82,22 +89,106 @@ export class MigrationService {
     return resolveAndValidatePath(base, candidatePath);
   }
 
+  private resolveExportDestination(destinationPath?: string): string {
+    if (destinationPath && destinationPath.trim()) {
+      return this.validatePath(destinationPath.trim());
+    }
+    const base = this.getMigrationBasePath() ?? path.join(process.cwd(), 'migration-data');
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    return this.validatePath(path.join(base, 'exports', `export-${stamp}-${randomUUID().slice(0, 8)}`));
+  }
+
+  buildImportUploadPath(originalName: string): string {
+    const safeName = String(originalName || 'package.zip')
+      .replace(/[^a-zA-Z0-9._-]+/g, '-')
+      .replace(/-+/g, '-');
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const base = this.getMigrationBasePath() ?? path.join(process.cwd(), 'migration-data');
+    const candidate = path.join(base, 'uploads', `${stamp}-${safeName.toLowerCase().endsWith('.zip') ? safeName : `${safeName}.zip`}`);
+    return this.validatePath(candidate);
+  }
+
+  private async resolvePackageSourcePath(
+    sourcePath: string,
+  ): Promise<{ packageDir: string; cleanup: () => Promise<void> }> {
+    const resolved = this.validatePath(sourcePath);
+    if (!resolved.toLowerCase().endsWith('.zip')) {
+      return { packageDir: resolved, cleanup: async () => {} };
+    }
+
+    const base = this.getMigrationBasePath() ?? path.join(process.cwd(), 'migration-data');
+    const tmpRoot = path.join(base, '.tmp-imports');
+    const extractDir = path.join(tmpRoot, `pkg-${randomUUID()}`);
+    await fs.mkdir(extractDir, { recursive: true });
+
+    try {
+      const zip = new AdmZip(resolved);
+      zip.extractAllTo(extractDir, true);
+    } catch (e) {
+      await fs.rm(extractDir, { recursive: true, force: true });
+      throw new BadRequestException(`Failed to read ZIP package: ${e instanceof Error ? e.message : String(e)}`);
+    }
+
+    const hasManifestAtRoot = await fs
+      .access(path.join(extractDir, PACKAGE_MANIFEST))
+      .then(() => true)
+      .catch(() => false);
+
+    let packageDir = extractDir;
+    if (!hasManifestAtRoot) {
+      const entries = await fs.readdir(extractDir, { withFileTypes: true });
+      for (const entry of entries) {
+        if (!entry.isDirectory()) continue;
+        const candidate = path.join(extractDir, entry.name);
+        const hasManifest = await fs
+          .access(path.join(candidate, PACKAGE_MANIFEST))
+          .then(() => true)
+          .catch(() => false);
+        if (hasManifest) {
+          packageDir = candidate;
+          break;
+        }
+      }
+    }
+
+    const hasManifest = await fs
+      .access(path.join(packageDir, PACKAGE_MANIFEST))
+      .then(() => true)
+      .catch(() => false);
+    if (!hasManifest) {
+      await fs.rm(extractDir, { recursive: true, force: true });
+      throw new BadRequestException('ZIP package does not contain a valid migration manifest');
+    }
+
+    return {
+      packageDir,
+      cleanup: async () => {
+        await fs.rm(extractDir, { recursive: true, force: true });
+      },
+    };
+  }
+
   // --- Export ---
 
   async exportPreview(
-    destinationPath: string,
+    destinationPath?: string,
     bundle?: boolean,
+    includeConfig?: boolean,
+    exportScope: ExportScope = 'full',
   ): Promise<{
     albumCount: number;
     photoCount: number;
     estimatedSizeBytes: number;
     albumTree: Array<{ alias: string; name: string; photoCount: number; children?: unknown[] }>;
+    pageCount?: number;
+    includesConfig: boolean;
     bundle?: boolean;
     bundlePath?: string;
   }> {
-    const dest = this.validatePath(destinationPath);
-    const albums = await this.albumModel.find({}).sort({ level: 1, order: 1 }).lean().exec();
-    const photos = await this.photoModel.find({}).lean().exec();
+    const dest = this.resolveExportDestination(destinationPath);
+    const templatesOnly = exportScope === 'templates-pages';
+    const albums = templatesOnly ? [] : await this.albumModel.find({}).sort({ level: 1, order: 1 }).lean().exec();
+    const photos = templatesOnly ? [] : await this.photoModel.find({}).lean().exec();
     const albumIdToCount = new Map<string, number>();
     for (const p of photos) {
       const aid = toPlainObjectId(p.albumId);
@@ -125,22 +216,34 @@ export class MigrationService {
         });
     };
     const albumTree = buildTree(null);
+    const pageCount = includeConfig || templatesOnly ? await this.pageModel.countDocuments({}).exec() : undefined;
     const bundlePath = bundle ? `${dest}.zip` : undefined;
     return {
       albumCount: albums.length,
       photoCount: photos.length,
       estimatedSizeBytes,
       albumTree,
+      pageCount,
+      includesConfig: includeConfig === true || templatesOnly,
       bundle: !!bundle,
       bundlePath,
     };
   }
 
-  async exportStart(destinationPath: string, bundle?: boolean): Promise<{ jobId: string }> {
-    const dest = this.validatePath(destinationPath);
+  async exportStart(
+    destinationPath?: string,
+    bundle?: boolean,
+    includeConfig?: boolean,
+    exportScope: ExportScope = 'full',
+  ): Promise<{ jobId: string }> {
+    const dest = this.resolveExportDestination(destinationPath);
     const jobId = randomUUID();
     const bundleFlag = !!bundle;
-    this.logger.log(`Export: Starting export job ${jobId}, destination: ${dest}, bundle requested: ${bundleFlag}`);
+    this.logger.log(
+      `Export: Starting export job ${jobId}, destination: ${dest}, bundle requested: ${bundleFlag}, includeConfig: ${
+        includeConfig === true
+      }, exportScope: ${exportScope}`,
+    );
     setJob({
       jobId,
       type: 'export',
@@ -150,21 +253,31 @@ export class MigrationService {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    this.runExportJob(jobId, dest, bundleFlag).catch((err) => {
+    this.runExportJob(jobId, dest, bundleFlag, includeConfig === true, exportScope).catch((err) => {
       this.logger.error(`Export job ${jobId} failed: ${err instanceof Error ? err.message : String(err)}`);
       updateJob(jobId, { status: 'failed', error: err instanceof Error ? err.message : String(err) });
     });
     return { jobId };
   }
 
-  private async runExportJob(jobId: string, dest: string, bundle: boolean): Promise<void> {
-    this.logger.log(`Export: Starting job ${jobId}, destination: ${dest}, bundle: ${bundle}`);
+  private async runExportJob(
+    jobId: string,
+    dest: string,
+    bundle: boolean,
+    includeConfig: boolean,
+    exportScope: ExportScope,
+  ): Promise<void> {
+    this.logger.log(
+      `Export: Starting job ${jobId}, destination: ${dest}, bundle: ${bundle}, includeConfig: ${includeConfig}`,
+    );
     updateJob(jobId, { status: 'running' });
-    const albums = await this.albumModel.find({}).sort({ level: 1, order: 1 }).lean().exec();
-    const photos = await this.photoModel.find({}).lean().exec();
-    const tags = await this.tagModel.find({}).lean().exec();
-    const people = await this.personModel.find({}).lean().exec();
-    const locations = await this.locationModel.find({}).lean().exec();
+    const templatesOnly = exportScope === 'templates-pages';
+    const effectiveIncludeConfig = includeConfig || templatesOnly;
+    const albums = templatesOnly ? [] : await this.albumModel.find({}).sort({ level: 1, order: 1 }).lean().exec();
+    const photos = templatesOnly ? [] : await this.photoModel.find({}).lean().exec();
+    const tags = templatesOnly ? [] : await this.tagModel.find({}).lean().exec();
+    const people = templatesOnly ? [] : await this.personModel.find({}).lean().exec();
+    const locations = templatesOnly ? [] : await this.locationModel.find({}).lean().exec();
 
     const albumIdToAliasPath = new Map<string, string>();
     for (const a of albums) {
@@ -208,10 +321,40 @@ export class MigrationService {
     const peopleJson = people.map((p) => serializeDoc(p));
     const locationsJson = locations.map((l) => serializeDoc(l));
 
-    await fs.writeFile(path.join(dest, PACKAGE_ALBUMS), JSON.stringify(albumsJson, null, 2));
-    await fs.writeFile(path.join(dest, PACKAGE_TAGS), JSON.stringify(tagsJson, null, 2));
-    await fs.writeFile(path.join(dest, PACKAGE_PEOPLE), JSON.stringify(peopleJson, null, 2));
-    await fs.writeFile(path.join(dest, PACKAGE_LOCATIONS), JSON.stringify(locationsJson, null, 2));
+    if (!templatesOnly) {
+      await fs.writeFile(path.join(dest, PACKAGE_ALBUMS), JSON.stringify(albumsJson, null, 2));
+      await fs.writeFile(path.join(dest, PACKAGE_TAGS), JSON.stringify(tagsJson, null, 2));
+      await fs.writeFile(path.join(dest, PACKAGE_PEOPLE), JSON.stringify(peopleJson, null, 2));
+      await fs.writeFile(path.join(dest, PACKAGE_LOCATIONS), JSON.stringify(locationsJson, null, 2));
+    }
+
+    let pagesCount = 0;
+    let pageModulesCount = 0;
+    if (effectiveIncludeConfig) {
+      const pages = await this.pageModel.find({}).sort({ createdAt: 1 }).lean().exec();
+      const pagesJson = pages.map((p) => serializeDoc(p));
+      pagesCount = pagesJson.length;
+      await fs.writeFile(path.join(dest, PACKAGE_PAGES), JSON.stringify(pagesJson, null, 2));
+
+      const db = mongoose.connection.db;
+      if (db) {
+        const pageIds = pages.map((p) => (p as any)._id).filter(Boolean);
+        const pageModules = pageIds.length
+          ? await db.collection('page_modules').find({ pageId: { $in: pageIds } }).sort({ rowOrder: 1, columnIndex: 1, order: 1 }).toArray()
+          : [];
+        const pageModulesJson = pageModules.map((m) => serializeDoc(m));
+        pageModulesCount = pageModulesJson.length;
+        await fs.writeFile(path.join(dest, PACKAGE_PAGE_MODULES), JSON.stringify(pageModulesJson, null, 2));
+      }
+      if (db) {
+        const siteConfig = await db.collection('site_config').findOne({});
+        const templateConfig = siteConfig && typeof siteConfig === 'object' ? (siteConfig as any).template ?? {} : {};
+        await fs.writeFile(
+          path.join(dest, PACKAGE_TEMPLATE_CONFIG),
+          JSON.stringify({ template: templateConfig }, null, 2),
+        );
+      }
+    }
 
     const photosForPackage = photos.map((p) => {
       const albumId = toPlainObjectId((p as any).albumId);
@@ -226,13 +369,19 @@ export class MigrationService {
         },
       };
     });
-    await fs.writeFile(path.join(dest, PACKAGE_PHOTOS), JSON.stringify(photosForPackage, null, 2));
+    if (!templatesOnly) {
+      await fs.writeFile(path.join(dest, PACKAGE_PHOTOS), JSON.stringify(photosForPackage, null, 2));
+    }
 
     const manifest = {
       version: '1.0',
       createdAt: new Date().toISOString(),
       albumCount: albums.length,
       photoCount: photos.length,
+      pageCount: pagesCount,
+      pageModulesCount,
+      includesConfig: effectiveIncludeConfig,
+      exportScope,
       photoTreePath: PACKAGE_PHOTOS_DIR,
     };
     await fs.writeFile(path.join(dest, PACKAGE_MANIFEST), JSON.stringify(manifest, null, 2));
@@ -277,14 +426,24 @@ export class MigrationService {
       updateJob(jobId, { progress, current: filename });
     }
 
-    // Mark export as completed before optional bundling
+    if (!bundle) {
+      updateJob(jobId, {
+        status: 'completed',
+        progress: total,
+        result: { destinationPath: dest, skippedCount: skipped },
+      });
+      return;
+    }
+
+    // Keep job running while ZIP is being created so UI keeps polling.
     updateJob(jobId, {
-      status: 'completed',
+      status: 'running',
       progress: total,
+      current: 'Creating ZIP bundle...',
       result: { destinationPath: dest, skippedCount: skipped },
     });
 
-    // Optionally create a ZIP bundle of the exported directory
+    // Create a ZIP bundle of the exported directory
     if (bundle) {
       // Generate date string in YYYY-MM-DD format
       const now = new Date();
@@ -379,6 +538,9 @@ export class MigrationService {
         }
 
         updateJob(jobId, {
+          status: 'completed',
+          progress: total,
+          current: undefined,
           result: {
             destinationPath: dest,
             bundlePath: zipPath,
@@ -389,6 +551,9 @@ export class MigrationService {
         const errorMsg = e instanceof Error ? e.message : String(e);
         this.logger.error(`Export: failed to create bundle for job ${jobId}: ${errorMsg}`);
         updateJob(jobId, {
+          status: 'completed',
+          progress: total,
+          current: undefined,
           result: {
             destinationPath: dest,
             skippedCount: skipped,
@@ -396,13 +561,18 @@ export class MigrationService {
           },
         });
       }
-    } else {
-      this.logger.debug(`Export: Bundle not requested for job ${jobId}`);
     }
   }
 
   getExportStatus(jobId: string): JobState | undefined {
     return getJob(jobId);
+  }
+
+  getExportDownloadPath(jobId: string): string | undefined {
+    const state = getJob(jobId);
+    if (!state || state.type !== 'export') return undefined;
+    const bundlePath = (state.result as any)?.bundlePath;
+    return typeof bundlePath === 'string' && bundlePath.trim() ? bundlePath : undefined;
   }
 
   cancelExport(jobId: string): void {
@@ -411,28 +581,54 @@ export class MigrationService {
 
   // --- Import (from package) ---
 
-  async importPreviewFromPackage(sourcePath: string): Promise<{
+  async importPreviewFromPackage(sourcePath: string, includeConfig?: boolean): Promise<{
     albumCount: number;
     photoCount: number;
     albumTree: Array<{ alias: string; photoCount: number }>;
+    pageCount?: number;
+    hasTemplateConfig?: boolean;
   }> {
-    const src = this.validatePath(sourcePath);
-    const manifestPath = path.join(src, PACKAGE_MANIFEST);
-    await fs.access(manifestPath);
-    const manifestRaw = await fs.readFile(manifestPath, 'utf-8');
-    const manifest = JSON.parse(manifestRaw);
-    const albumsPath = path.join(src, PACKAGE_ALBUMS);
-    const albumsRaw = await fs.readFile(albumsPath, 'utf-8');
-    const albumsJson = JSON.parse(albumsRaw);
-    const photosPath = path.join(src, PACKAGE_PHOTOS);
-    const photosRaw = await fs.readFile(photosPath, 'utf-8');
-    const photosJson = JSON.parse(photosRaw);
+    const packageSource = await this.resolvePackageSourcePath(sourcePath);
+    const src = packageSource.packageDir;
+    const readJsonArrayIfExists = async (filePath: string): Promise<any[]> => {
+      try {
+        const raw = await fs.readFile(filePath, 'utf-8');
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    };
+    try {
+      const manifestPath = path.join(src, PACKAGE_MANIFEST);
+      await fs.access(manifestPath);
+      const manifestRaw = await fs.readFile(manifestPath, 'utf-8');
+      const manifest = JSON.parse(manifestRaw);
+      const albumsJson = await readJsonArrayIfExists(path.join(src, PACKAGE_ALBUMS));
+      const photosJson = await readJsonArrayIfExists(path.join(src, PACKAGE_PHOTOS));
+    let pageCount: number | undefined;
+    let hasTemplateConfig: boolean | undefined;
+    if (includeConfig) {
+      try {
+        const pagesRaw = await fs.readFile(path.join(src, PACKAGE_PAGES), 'utf-8');
+        const pagesJson = JSON.parse(pagesRaw);
+        pageCount = Array.isArray(pagesJson) ? pagesJson.length : 0;
+      } catch {
+        pageCount = 0;
+      }
+      try {
+        await fs.access(path.join(src, PACKAGE_TEMPLATE_CONFIG));
+        hasTemplateConfig = true;
+      } catch {
+        hasTemplateConfig = false;
+      }
+    }
     const albumIdToCount = new Map<string, number>();
     for (const p of photosJson) {
       const aid = p.albumId ?? '';
       albumIdToCount.set(aid, (albumIdToCount.get(aid) ?? 0) + 1);
     }
-    const buildTree = (parentId: string | null): Array<{ alias: string; photoCount: number }> => {
+    const buildTree = (parentId: string | null): Array<{ alias: string; photoCount: number; children?: unknown[] }> => {
       return albumsJson
         .filter((a: any) => (a.parentAlbumId ?? null) === parentId)
         .sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0))
@@ -443,25 +639,248 @@ export class MigrationService {
         }));
     };
     const albumTree = buildTree(null);
-    return {
-      albumCount: manifest.albumCount ?? albumsJson.length,
-      photoCount: manifest.photoCount ?? photosJson.length,
-      albumTree,
-    };
+      return {
+        albumCount: manifest.albumCount ?? albumsJson.length,
+        photoCount: manifest.photoCount ?? photosJson.length,
+        albumTree,
+        pageCount,
+        hasTemplateConfig,
+      };
+    } finally {
+      await packageSource.cleanup();
+    }
   }
 
-  async importStartFromPackage(sourcePath: string, userId: string, jobId: string): Promise<void> {
-    const src = this.validatePath(sourcePath);
-    const albumsRaw = await fs.readFile(path.join(src, PACKAGE_ALBUMS), 'utf-8');
-    const photosRaw = await fs.readFile(path.join(src, PACKAGE_PHOTOS), 'utf-8');
-    const tagsRaw = await fs.readFile(path.join(src, PACKAGE_TAGS), 'utf-8');
-    const peopleRaw = await fs.readFile(path.join(src, PACKAGE_PEOPLE), 'utf-8');
-    const locationsRaw = await fs.readFile(path.join(src, PACKAGE_LOCATIONS), 'utf-8');
-    const albumsJson = JSON.parse(albumsRaw);
-    const photosJson = JSON.parse(photosRaw);
-    const tagsJson = JSON.parse(tagsRaw);
-    const peopleJson = JSON.parse(peopleRaw);
-    const locationsJson = JSON.parse(locationsRaw);
+  private async importTemplateConfigFromPackage(
+    sourcePath: string,
+    configMode: 'merge' | 'replace',
+  ): Promise<void> {
+    const filePath = path.join(sourcePath, PACKAGE_TEMPLATE_CONFIG);
+    let payload: any;
+    try {
+      const raw = await fs.readFile(filePath, 'utf-8');
+      payload = JSON.parse(raw);
+    } catch {
+      return;
+    }
+    const incomingTemplate =
+      payload && typeof payload === 'object' && payload.template && typeof payload.template === 'object'
+        ? payload.template
+        : payload;
+    if (!incomingTemplate || typeof incomingTemplate !== 'object') return;
+
+    const db = mongoose.connection.db;
+    if (!db) return;
+    const collection = db.collection('site_config');
+    const current = await collection.findOne({});
+    const currentTemplate =
+      current && typeof current === 'object' && (current as any).template && typeof (current as any).template === 'object'
+        ? (current as any).template
+        : {};
+
+    const replaceWholeKeys = [
+      'pageLayout',
+      'pageModules',
+      'pageLayoutByBreakpoint',
+      'customLayout',
+      'customLayoutByBreakpoint',
+      'customColors',
+      'customFonts',
+      'componentVisibility',
+      'headerConfig',
+      'layoutPresets',
+      'layoutShellInstances',
+    ] as const;
+
+    let nextTemplate: Record<string, unknown>;
+    if (configMode === 'replace') {
+      nextTemplate = { ...(incomingTemplate as Record<string, unknown>) };
+    } else {
+      nextTemplate = {
+        ...(currentTemplate as Record<string, unknown>),
+        ...(incomingTemplate as Record<string, unknown>),
+      };
+      for (const key of replaceWholeKeys) {
+        if (Object.prototype.hasOwnProperty.call(incomingTemplate, key)) {
+          nextTemplate[key] = (incomingTemplate as Record<string, unknown>)[key];
+        }
+      }
+    }
+
+    await collection.updateOne(
+      {},
+      {
+        $set: {
+          template: nextTemplate,
+          updatedAt: new Date(),
+        },
+      },
+      { upsert: true },
+    );
+  }
+
+  private async importPagesFromPackage(sourcePath: string, userId: string): Promise<number> {
+    const filePath = path.join(sourcePath, PACKAGE_PAGES);
+    let pagesJson: any[];
+    try {
+      const raw = await fs.readFile(filePath, 'utf-8');
+      const parsed = JSON.parse(raw);
+      pagesJson = Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return 0;
+    }
+
+    const userObjectId = new Types.ObjectId(userId);
+    const idMap = new Map<string, Types.ObjectId>();
+    const pendingParent = new Map<string, string | null>();
+    let imported = 0;
+
+    for (const page of pagesJson) {
+      const originalId = typeof page?._id === 'string' ? page._id : '';
+      const existing = await this.pageModel
+        .findOne(
+          page?.alias
+            ? { alias: page.alias }
+            : page?.slug
+              ? { slug: page.slug }
+              : { _id: new Types.ObjectId() },
+        )
+        .exec();
+
+      const docPayload: Record<string, unknown> = {
+        title: page?.title ?? { en: '', he: '' },
+        subtitle: page?.subtitle,
+        alias: page?.alias,
+        slug: page?.slug,
+        pageRole: page?.pageRole,
+        routeParams: page?.routeParams,
+        frontendTemplate: page?.frontendTemplate,
+        frontendTemplates: page?.frontendTemplates,
+        leadingImage: page?.leadingImage,
+        introText: page?.introText,
+        content: page?.content,
+        layout: page?.layout,
+        category: page?.category ?? 'site',
+        isPublished: page?.isPublished ?? false,
+        updatedBy: userObjectId,
+      };
+
+      let targetId: Types.ObjectId;
+      if (existing) {
+        Object.assign(existing, docPayload);
+        await existing.save();
+        targetId = existing._id as Types.ObjectId;
+      } else {
+        const created = await this.pageModel.create({
+          ...docPayload,
+          parentPageId: null,
+          createdBy: userObjectId,
+          updatedBy: userObjectId,
+        });
+        targetId = created._id as Types.ObjectId;
+      }
+
+      if (originalId) idMap.set(originalId, targetId);
+      pendingParent.set(targetId.toString(), page?.parentPageId ?? null);
+      imported++;
+    }
+
+    // Second pass: wire parent relations after id mapping is complete.
+    for (const [newId, oldParentId] of pendingParent.entries()) {
+      if (!oldParentId) {
+        await this.pageModel.updateOne({ _id: new Types.ObjectId(newId) }, { $set: { parentPageId: null } }).exec();
+        continue;
+      }
+      const mapped = idMap.get(String(oldParentId));
+      await this.pageModel
+        .updateOne(
+          { _id: new Types.ObjectId(newId) },
+          { $set: { parentPageId: mapped ?? null, updatedBy: userObjectId } },
+        )
+        .exec();
+    }
+
+    await this.importPageModulesFromPackage(sourcePath, idMap, userObjectId);
+
+    return imported;
+  }
+
+  private async importPageModulesFromPackage(
+    sourcePath: string,
+    pageIdMap: Map<string, Types.ObjectId>,
+    userObjectId: Types.ObjectId,
+  ): Promise<void> {
+    const filePath = path.join(sourcePath, PACKAGE_PAGE_MODULES);
+    let modulesJson: any[];
+    try {
+      const raw = await fs.readFile(filePath, 'utf-8');
+      const parsed = JSON.parse(raw);
+      modulesJson = Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return;
+    }
+
+    const db = mongoose.connection.db;
+    if (!db) return;
+    const modulesCollection = db.collection('page_modules');
+
+    const targetPageIds = new Set<string>();
+    for (const mod of modulesJson) {
+      const sourcePageId = typeof mod?.pageId === 'string' ? mod.pageId : '';
+      const mappedPageId = sourcePageId ? pageIdMap.get(sourcePageId) : undefined;
+      if (mappedPageId) targetPageIds.add(mappedPageId.toString());
+    }
+
+    // Replace modules for imported pages to keep grid/module layout identical.
+    for (const pageId of targetPageIds) {
+      await modulesCollection.deleteMany({ pageId: new Types.ObjectId(pageId) });
+    }
+
+    const now = new Date();
+    const docsToInsert: any[] = [];
+    for (const mod of modulesJson) {
+      const sourcePageId = typeof mod?.pageId === 'string' ? mod.pageId : '';
+      const mappedPageId = sourcePageId ? pageIdMap.get(sourcePageId) : undefined;
+      if (!mappedPageId) continue;
+      const { _id: _omitId, pageId: _omitPageId, ...rest } = mod;
+      docsToInsert.push({
+        ...rest,
+        pageId: mappedPageId,
+        createdBy: rest?.createdBy ? new Types.ObjectId(String(rest.createdBy)) : userObjectId,
+        updatedBy: userObjectId,
+        createdAt: rest?.createdAt ? new Date(rest.createdAt) : now,
+        updatedAt: now,
+      });
+    }
+
+    if (docsToInsert.length > 0) {
+      await modulesCollection.insertMany(docsToInsert);
+    }
+  }
+
+  async importStartFromPackage(
+    sourcePath: string,
+    userId: string,
+    jobId: string,
+    options?: { includeConfig?: boolean; configMode?: 'merge' | 'replace' },
+  ): Promise<void> {
+    const packageSource = await this.resolvePackageSourcePath(sourcePath);
+    const src = packageSource.packageDir;
+    const readJsonArrayIfExists = async (filePath: string): Promise<any[]> => {
+      try {
+        const raw = await fs.readFile(filePath, 'utf-8');
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    };
+    try {
+      const albumsJson = await readJsonArrayIfExists(path.join(src, PACKAGE_ALBUMS));
+      const photosJson = await readJsonArrayIfExists(path.join(src, PACKAGE_PHOTOS));
+      const tagsJson = await readJsonArrayIfExists(path.join(src, PACKAGE_TAGS));
+      const peopleJson = await readJsonArrayIfExists(path.join(src, PACKAGE_PEOPLE));
+      const locationsJson = await readJsonArrayIfExists(path.join(src, PACKAGE_LOCATIONS));
 
     const defaultProvider: StorageProviderId = (await storageConfigService.getActiveProviders())[0] ?? 'local';
     const tagIdMap = new Map<string, Types.ObjectId>();
@@ -639,7 +1058,23 @@ export class MigrationService {
       updateJob(jobId, { progress, current: p.filename });
     }
 
-    updateJob(jobId, { status: 'completed', progress: total });
+      let importedPages = 0;
+      if (options?.includeConfig) {
+        importedPages = await this.importPagesFromPackage(src, userId);
+        await this.importTemplateConfigFromPackage(src, options.configMode ?? 'merge');
+      }
+
+      updateJob(jobId, {
+        status: 'completed',
+        progress: total,
+        result: {
+          importedPages,
+          importedTemplateConfig: options?.includeConfig === true,
+        },
+      });
+    } finally {
+      await packageSource.cleanup();
+    }
   }
 
   // --- Import (from raw folder) ---
@@ -782,7 +1217,12 @@ export class MigrationService {
     updateJob(jobId, { status: 'completed', progress });
   }
 
-  async importStart(sourcePath: string, mode: 'package' | 'raw', userId: string): Promise<{ jobId: string }> {
+  async importStart(
+    sourcePath: string,
+    mode: 'package' | 'raw',
+    userId: string,
+    options?: { includeConfig?: boolean; configMode?: 'merge' | 'replace' },
+  ): Promise<{ jobId: string }> {
     this.validatePath(sourcePath);
     const jobId = randomUUID();
     setJob({
@@ -795,7 +1235,7 @@ export class MigrationService {
       updatedAt: new Date(),
     });
     if (mode === 'package') {
-      this.importStartFromPackage(sourcePath, userId, jobId).catch((err) => {
+      this.importStartFromPackage(sourcePath, userId, jobId, options).catch((err) => {
         this.logger.error(`Import package job ${jobId} failed: ${err instanceof Error ? err.message : String(err)}`);
         updateJob(jobId, { status: 'failed', error: err instanceof Error ? err.message : String(err) });
       });

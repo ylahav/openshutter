@@ -13,9 +13,11 @@ const config = {
 		}),
 		alias: {
 			$components: 'src/lib/components',
+			$pageBuilder: 'src/lib/page-builder',
 			$stores: 'src/lib/stores',
 			$types: 'src/lib/types',
 			$utils: 'src/lib/utils',
+			$templates: 'src/templates'
 		},
 	},
 

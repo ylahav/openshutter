@@ -85,8 +85,8 @@
 	<div class="max-w-4xl mx-auto px-4">
 		<div class="flex justify-between items-center mb-8">
 			<div>
-				<h1 class="text-3xl font-bold text-[var(--color-surface-950-50)]">{$t('admin.createNewCategory')}</h1>
-				<p class="text-[var(--color-surface-600-400)] mt-2">{$t('admin.createCategoryDescription')}</p>
+				<h1 class="text-3xl font-bold text-(--color-surface-950-50)">{$t('admin.createNewCategory')}</h1>
+				<p class="text-(--color-surface-600-400) mt-2">{$t('admin.createCategoryDescription')}</p>
 			</div>
 			<button
 				on:click={() => goto('/admin/blog-categories')}
@@ -119,17 +119,17 @@
 		<form on:submit={handleSubmit} class="space-y-6">
 			<!-- Basic Information -->
 			<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
-				<h3 class="text-lg font-medium text-[var(--color-surface-950-50)] mb-4">{$t('admin.basicInformation')}</h3>
+				<h3 class="text-lg font-medium text-(--color-surface-950-50) mb-4">{$t('admin.basicInformation')}</h3>
 				<div class="space-y-4">
 					<div>
-						<label for="title" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+						<label for="title" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
               {$t('admin.title')} *
             </label>
 						<MultiLangInput bind:value={formData.title} placeholder={$t('admin.enterCategoryTitle')} required />
 					</div>
 
 					<div>
-						<label for="description" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+						<label for="description" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
 							{$t('admin.description')}
 						</label>
 						<MultiLangInput
@@ -143,9 +143,9 @@
 
 			<!-- Leading Image -->
 			<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
-				<h3 class="text-lg font-medium text-[var(--color-surface-950-50)] mb-4">{$t('admin.leadingImage')}</h3>
+				<h3 class="text-lg font-medium text-(--color-surface-950-50) mb-4">{$t('admin.leadingImage')}</h3>
 				<div>
-          <label for="leading-image-url-new" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+          <label for="leading-image-url-new" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
 						{$t('admin.imageUrl')}
           </label>
 					<input
@@ -160,10 +160,10 @@
 								storagePath: ''
 							};
 						}}
-						class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:outline-none focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
+						class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:outline-none focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 						placeholder={$t('admin.enterImageUrl')}
 					/>
-					<p class="mt-1 text-sm text-[var(--color-surface-600-400)]">
+					<p class="mt-1 text-sm text-(--color-surface-600-400)">
 						{$t('admin.imageUploadNote')}
 					</p>
 				</div>
@@ -171,7 +171,7 @@
 
 			<!-- Settings -->
 			<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
-				<h3 class="text-lg font-medium text-[var(--color-surface-950-50)] mb-4">{$t('admin.settings')}</h3>
+				<h3 class="text-lg font-medium text-(--color-surface-950-50) mb-4">{$t('admin.settings')}</h3>
 				<div class="space-y-4">
 					<div class="flex items-center">
 						<input
@@ -179,24 +179,24 @@
 							name="isActive"
 							type="checkbox"
 							bind:checked={formData.isActive}
-							class="h-4 w-4 text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)] border-surface-300-700 rounded"
+							class="h-4 w-4 text-(--color-primary-600) focus:ring-(--color-primary-500) border-surface-300-700 rounded"
 						/>
-						<label for="isActive" class="ml-2 block text-sm text-[var(--color-surface-950-50)]">
+						<label for="isActive" class="ml-2 block text-sm text-(--color-surface-950-50)">
 							{$t('admin.active')}
 						</label>
 					</div>
 					<div>
-							<label for="sortOrder" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+							<label for="sortOrder" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
 								{$t('admin.sortOrder')}
 						</label>
 						<input
 							type="number"
 							id="sortOrder"
 							bind:value={formData.sortOrder}
-							class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:outline-none focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
+							class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:outline-none focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 							placeholder="0"
 						/>
-						<p class="mt-1 text-sm text-[var(--color-surface-600-400)]">{$t('admin.sortOrderHelp')}</p>
+						<p class="mt-1 text-sm text-(--color-surface-600-400)">{$t('admin.sortOrderHelp')}</p>
 					</div>
 				</div>
 			</div>
@@ -206,7 +206,7 @@
 				<button
 					type="submit"
 					disabled={saving}
-					class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] disabled:opacity-50 disabled:cursor-not-allowed"
+					class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-(--color-primary-600) hover:bg-(--color-primary-700) disabled:opacity-50 disabled:cursor-not-allowed"
 				>
 					{#if saving}
 						<svg

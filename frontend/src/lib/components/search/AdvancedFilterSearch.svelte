@@ -5,11 +5,13 @@
 	import { currentLanguage } from '$stores/language';
 	import { MultiLangUtils } from '$utils/multiLang';
 	import { t } from '$stores/i18n';
-	import SearchBar from './SearchBar.svelte';
+	import SearchForm from './SearchForm.svelte';
 	import SearchResults from './SearchResults.svelte';
 	import { logger } from '$lib/utils/logger';
 
 	export let initialQuery = '';
+	/** When `noir`, shell uses template tokens instead of default gray surfaces. */
+	export let variant: 'default' | 'noir' = 'default';
 
 	interface AdvancedFilters {
 		albumId: string | null;
@@ -337,82 +339,70 @@
 	})();
 </script>
 
-<div class="min-h-screen bg-gray-50">
-	<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-		<!-- Search Bar + Filters -->
-		<div class="mb-6 flex flex-wrap items-center gap-3">
-			<div class="flex-1 min-w-[200px]">
-				<SearchBar {query} {loading} on:search={(e) => handleSearch(e.detail)} />
-			</div>
-			<button
-				type="button"
-				on:click={openFilterPanel}
-				class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-			>
-				{$t('search.filters') || 'Filters'}
-			</button>
+<div class="w-full" class:text-[color:var(--tp-fg)]={variant === 'noir'}>
+	<!-- Search form module -->
+	<SearchForm {query} {loading} on:search={(e) => handleSearch(e.detail)} on:filters={openFilterPanel} />
+
+	<!-- Active Filters Display -->
+	{#if hasActiveFilters()}
+		<div class="mb-4 flex flex-wrap gap-2">
+			{#if filters.albumId}
+				{@const albumName = filterOptions.albums.find((a) => toIdString(a._id) === toIdString(filters.albumId))?.name ?? filters.albumId}
+				<span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+					{$t('search.album')}: {albumName}
+					<button
+						type="button"
+						on:click={() => updateUrlFromFilters({ ...filters, albumId: null })}
+						class="ml-2 hover:text-blue-900"
+					>
+						×
+					</button>
+				</span>
+			{/if}
+			{#each filters.tags as tagId}
+				{@const tagName = filterOptions.tags.find((t) => toIdString(t._id) === toIdString(tagId))?.name ?? tagId}
+				<span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+					{$t('search.tags')}: {tagName}
+					<button
+						type="button"
+						on:click={() => updateUrlFromFilters({ ...filters, tags: filters.tags.filter((id) => toIdString(id) !== toIdString(tagId)) })}
+						class="ml-2 hover:text-blue-900"
+					>
+						×
+					</button>
+				</span>
+			{/each}
+			{#each filters.people as personId}
+				{@const personName = getItemName(filterOptions.people.find((p) => toIdString(p._id) === toIdString(personId))) || personId}
+				<span class="px-3 py-1 bg-blue-100 rounded-full text-sm">
+					<span class="text-blue-800">{$t('search.people')}: {personName}</span>
+					<button
+						type="button"
+						on:click={() => updateUrlFromFilters({ ...filters, people: filters.people.filter((id) => toIdString(id) !== toIdString(personId)) })}
+						class="ml-2 hover:text-blue-900"
+					>
+						×
+					</button>
+				</span>
+			{/each}
+			{#each filters.locationIds as locationId}
+				{@const locName = getItemName(filterOptions.locations.find((l) => toIdString(l._id) === toIdString(locationId))) || locationId}
+				<span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+					{$t('search.locations')}: {locName}
+					<button
+						type="button"
+						on:click={() => updateUrlFromFilters({ ...filters, locationIds: filters.locationIds.filter((id) => toIdString(id) !== toIdString(locationId)) })}
+						class="ml-2 hover:text-blue-900"
+					>
+						×
+					</button>
+				</span>
+			{/each}
 		</div>
+	{/if}
 
-		<!-- Active Filters Display -->
-		{#if hasActiveFilters()}
-			<div class="mb-4 flex flex-wrap gap-2">
-				{#if filters.albumId}
-					{@const albumName = filterOptions.albums.find((a) => toIdString(a._id) === toIdString(filters.albumId))?.name ?? filters.albumId}
-					<span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
-						{$t('search.album')}: {albumName}
-						<button
-							type="button"
-							on:click={() => updateUrlFromFilters({ ...filters, albumId: null })}
-							class="ml-2 hover:text-blue-900"
-						>
-							×
-						</button>
-					</span>
-				{/if}
-				{#each filters.tags as tagId}
-					{@const tagName = filterOptions.tags.find((t) => toIdString(t._id) === toIdString(tagId))?.name ?? tagId}
-					<span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
-						{$t('search.tags')}: {tagName}
-						<button
-							type="button"
-							on:click={() => updateUrlFromFilters({ ...filters, tags: filters.tags.filter((id) => toIdString(id) !== toIdString(tagId)) })}
-							class="ml-2 hover:text-blue-900"
-						>
-							×
-						</button>
-					</span>
-				{/each}
-				{#each filters.people as personId}
-					{@const personName = getItemName(filterOptions.people.find((p) => toIdString(p._id) === toIdString(personId))) || personId}
-					<span class="px-3 py-1 bg-blue-100 rounded-full text-sm">
-						<span class="text-blue-800">{$t('search.people')}: {personName}</span>
-						<button
-							type="button"
-							on:click={() => updateUrlFromFilters({ ...filters, people: filters.people.filter((id) => toIdString(id) !== toIdString(personId)) })}
-							class="ml-2 hover:text-blue-900"
-						>
-							×
-						</button>
-					</span>
-				{/each}
-				{#each filters.locationIds as locationId}
-					{@const locName = getItemName(filterOptions.locations.find((l) => toIdString(l._id) === toIdString(locationId))) || locationId}
-					<span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
-						{$t('search.locations')}: {locName}
-						<button
-							type="button"
-							on:click={() => updateUrlFromFilters({ ...filters, locationIds: filters.locationIds.filter((id) => toIdString(id) !== toIdString(locationId)) })}
-							class="ml-2 hover:text-blue-900"
-						>
-							×
-						</button>
-					</span>
-				{/each}
-			</div>
-		{/if}
-
-		<!-- Filter Panel (drawer) -->
-		{#if showFilterPanel}
+	<!-- Filter Panel (drawer) -->
+	{#if showFilterPanel}
 			<div
 				class="fixed inset-0 z-40 overflow-y-auto"
 				aria-labelledby="filter-panel-title"
@@ -541,9 +531,8 @@
 					</div>
 				</div>
 			</div>
-		{/if}
+	{/if}
 
-		<!-- Search Results -->
-		<SearchResults {results} {loading} {error} {query} searchSummary={searchSummary} on:loadMore={handleLoadMore} />
-	</div>
+	<!-- Search results module -->
+	<SearchResults {results} {loading} {error} {query} searchSummary={searchSummary} on:loadMore={handleLoadMore} />
 </div>

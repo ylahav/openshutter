@@ -17,18 +17,13 @@ export interface SiteConfig {
     textColor: string
   }
   template?: {
-    activeTemplate?: string // Deprecated: use frontendTemplate instead, kept for backward compatibility
-    frontendTemplate?: string // Template for public-facing frontend pages
+    /** Legacy; effective pack is `frontendTemplate ?? activeTemplate` (see `$lib/stores/template.ts`). */
+    activeTemplate?: string
+    /** Preferred visitor pack id. */
+    frontendTemplate?: string
     /** @deprecated Always `default` from API. Admin UI is not pack-driven. */
     adminTemplate?: string
-    customColors?: {
-      primary?: string
-      secondary?: string
-      accent?: string
-      background?: string
-      text?: string
-      muted?: string
-    }
+    customColors?: import('$lib/template/theme/template-palette').TemplateCustomColors
     customFonts?: {
       heading?: string
       body?: string
@@ -42,6 +37,8 @@ export interface SiteConfig {
       | Record<string, { maxWidth?: string; containerPadding?: string; gridGap?: string }>
     pageModules?: Record<string, unknown[] | Record<string, unknown[]>>
     pageLayout?: Record<string, { gridRows?: number; gridColumns?: number } | Record<string, { gridRows?: number; gridColumns?: number }>>
+    layoutPresets?: Record<string, { gridRows?: number; gridColumns?: number; modules?: unknown[] }>
+    layoutShellInstances?: Record<string, { gridRows?: number; gridColumns?: number; modules?: unknown[] }>
     componentVisibility?: {
       hero?: boolean
       languageSelector?: boolean
@@ -61,6 +58,7 @@ export interface SiteConfig {
       showGreeting?: boolean
       showAuthButtons?: boolean
       showTemplateSelector?: boolean
+      languageSelectorVariant?: 'dropdown' | 'flags'
     }
   }
   seo: {
@@ -76,6 +74,7 @@ export interface SiteConfig {
     socialMedia?: {
       facebook?: string
       instagram?: string
+      flickr?: string
       twitter?: string
       linkedin?: string
     }

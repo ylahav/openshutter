@@ -63,6 +63,54 @@ html.dark {
   --color-popover-foreground: 210 40% 98%;
 }
 
+/* Fallback template-palette variables for routes that render --tp-* styles
+   before ThemeColorApplier injects site-specific values (notably admin/prod). */
+:root {
+  --tp-canvas: #ffffff;
+  --tp-fg: #0f172a;
+  --tp-fg-muted: #64748b;
+  --tp-fg-subtle: #94a3b8;
+  --tp-fg-faint: #cbd5e1;
+  --tp-surface-1: #f8fafc;
+  --tp-surface-2: #f1f5f9;
+  --tp-surface-3: #e2e8f0;
+  --tp-border: #e2e8f0;
+  --tp-card-border: #e2e8f0;
+  --tp-header-bg: #ffffff;
+  --tp-header-border: #e2e8f0;
+  --tp-hero-strip-bg: #0f172a;
+  --tp-footer-strip-bg: #0f172a;
+  --tp-brand: #0ea5e9;
+  --tp-brand-hover: #0284c7;
+  --tp-accent: #0ea5e9;
+  --tp-on-brand: #ffffff;
+  --tp-overlay-scrim: rgba(15, 23, 42, 0.55);
+  --tp-hero-grid-opacity: 0.12;
+}
+
+html.dark {
+  --tp-canvas: #080808;
+  --tp-fg: #f5f5f3;
+  --tp-fg-muted: #a1a1aa;
+  --tp-fg-subtle: #71717a;
+  --tp-fg-faint: #52525b;
+  --tp-surface-1: #18181b;
+  --tp-surface-2: #27272a;
+  --tp-surface-3: #3f3f46;
+  --tp-border: #27272a;
+  --tp-card-border: #27272a;
+  --tp-header-bg: #080808;
+  --tp-header-border: #27272a;
+  --tp-hero-strip-bg: #020617;
+  --tp-footer-strip-bg: #020617;
+  --tp-brand: #f5f5f3;
+  --tp-brand-hover: #d4d4d8;
+  --tp-accent: #f5f5f3;
+  --tp-on-brand: #09090b;
+  --tp-overlay-scrim: rgba(0, 0, 0, 0.7);
+  --tp-hero-grid-opacity: 0.18;
+}
+
 /* Force body to use theme variables so toggle always affects the view */
 html.dark body {
   background-color: hsl(var(--color-background));
@@ -102,14 +150,12 @@ html.dark body {
   --os-gap: 1.5rem;
 }
 
-/* Max width + horizontal padding from site layout customization */
+/* Max width + horizontal padding from site layout customization (logical props → RTL-safe) */
 .os-shell-container {
   width: 100%;
   max-width: var(--os-max-width);
-  margin-left: auto;
-  margin-right: auto;
-  padding-left: var(--os-padding);
-  padding-right: var(--os-padding);
+  margin-inline: auto;
+  padding-inline: var(--os-padding);
   box-sizing: border-box;
 }
 

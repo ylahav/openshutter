@@ -1,10 +1,11 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { backendGet, parseBackendResponse } from '$lib/utils/backend-api';
+import { forwardedHostHeadersFromRequest } from '$lib/server/forward-host';
 import { logger } from '$lib/utils/logger';
 import { parseError } from '$lib/utils/errorHandler';
 
-export const GET: RequestHandler = async ({ url }) => {
+export const GET: RequestHandler = async ({ url, request }) => {
 	try {
 		const searchParams = url.searchParams;
 		const limit = searchParams.get('limit') || '5';
@@ -13,7 +14,12 @@ export const GET: RequestHandler = async ({ url }) => {
 		if (limit) queryParams.set('limit', limit);
 
 		const endpoint = `/photos/gallery-leading${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-		const response = await backendGet(endpoint);
+		const headers = forwardedHostHeadersFromRequest(request);
+		logger.warn('[api] gallery-leading SvelteKit handler (dev: often bypassed by Vite proxy to Nest)', {
+			limit,
+			'X-Forwarded-Host': headers['X-Forwarded-Host'] ?? null
+		});
+		const response = await backendGet(endpoint, { headers });
 		const photos = await parseBackendResponse<any[]>(response);
 
 		return json({

@@ -1,3 +1,5 @@
+import type { ShellLayout } from '../template/shell-layout'
+
 export interface FontSetting {
   family: string
   size?: string
@@ -25,7 +27,43 @@ export interface TemplateConfig {
     background: string
     text: string
     muted: string
-  }
+  } & Partial<
+    Record<
+      | 'surfaceCard'
+      | 'surfaceCardSecondary'
+      | 'surfaceCardTertiary'
+      | 'textSubtle'
+      | 'borderSubtle'
+      | 'lightBackground'
+      | 'lightText'
+      | 'lightMuted'
+      | 'lightSurfaceCard'
+      | 'lightSurfaceCardSecondary'
+      | 'lightSurfaceCardTertiary'
+      | 'lightTextSubtle'
+      | 'lightBorderSubtle'
+      | 'heroStrip'
+      | 'footerStrip'
+      | 'lightHeroStrip'
+      | 'lightFooterStrip'
+      | 'lightPrimary'
+      | 'lightSecondary'
+      | 'lightAccent'
+      | 'lightTextFaint'
+      | 'textFaint'
+      | 'lightHeaderBackground'
+      | 'headerBackground'
+      | 'lightHeaderBorder'
+      | 'headerBorder'
+      | 'lightCardBorder'
+      | 'cardBorder'
+      | 'lightHeroImageFilter'
+      | 'heroImageFilter'
+      | 'lightLoginBgFilter'
+      | 'loginBgFilter',
+      string
+    >
+  >
   fonts: {
     heading: FontSetting
     body: FontSetting
@@ -34,11 +72,8 @@ export interface TemplateConfig {
     formInputs: FontSetting
     formLabels: FontSetting
   }
-  layout: {
-    maxWidth: string
-    containerPadding: string
-    gridGap: string
-  }
+  /** Pack defaults; core trio required for every template, extras optional (e.g. Atelier). */
+  layout: ShellLayout & { maxWidth: string; containerPadding: string; gridGap: string }
   /**
    * Default per-page grid (legacy flat shape) for new themes / docs.
    * Live sites use `themes` / `site_config.template.pageLayout` (often per-breakpoint maps).

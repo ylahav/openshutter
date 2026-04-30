@@ -8,7 +8,20 @@ import { validateTemplatePagesLayer } from '../template/validate-pages-layer'
 export class SiteConfigService {
   private readonly logger = new Logger(SiteConfigService.name)
   /** Must stay aligned with frontend `TEMPLATE_PACK_IDS` / themes `baseTemplate`. */
-  private static readonly BUILTIN_TEMPLATE_IDS = new Set(['default', 'minimal', 'modern', 'elegant'])
+  private static readonly BUILTIN_TEMPLATE_IDS = new Set(['noir', 'studio', 'atelier'])
+
+  /** Normalize to a valid built-in id, falling back to configured default. */
+  private normalizeFrontendTemplateId(raw: string | undefined): string {
+    const configuredDefault = String(this.getDefaultConfig().template?.frontendTemplate ?? 'atelier')
+      .trim()
+      .toLowerCase()
+    const v = String(raw ?? configuredDefault)
+      .trim()
+      .toLowerCase()
+    if (SiteConfigService.BUILTIN_TEMPLATE_IDS.has(v)) return v
+    if (SiteConfigService.BUILTIN_TEMPLATE_IDS.has(configuredDefault)) return configuredDefault
+    return 'atelier'
+  }
   private static instance: SiteConfigService
   private configCache: SiteConfig | null = null
   private cacheExpiry: number = 5 * 60 * 1000 // 5 minutes
@@ -66,7 +79,14 @@ export class SiteConfigService {
     }
     // Admin UI is not pack-driven; keep a single legacy sentinel in API responses.
     if (merged.template) {
-      merged.template = { ...merged.template, adminTemplate: 'default' }
+      merged.template = {
+        ...merged.template,
+        adminTemplate: 'default',
+        frontendTemplate: this.normalizeFrontendTemplateId(merged.template.frontendTemplate),
+        activeTemplate: this.normalizeFrontendTemplateId(
+          merged.template.activeTemplate ?? merged.template.frontendTemplate,
+        ),
+      }
     }
     return merged
   }
@@ -151,6 +171,7 @@ export class SiteConfigService {
         'pageModules',
         'pageLayoutByBreakpoint',
         'pageModulesByBreakpoint',
+        'layoutPresets',
         'customLayout',
         'customLayoutByBreakpoint',
         'customColors',
@@ -195,6 +216,9 @@ export class SiteConfigService {
       if (Object.prototype.hasOwnProperty.call(t, 'componentVisibility')) {
         mergedConfig.template.componentVisibility = t.componentVisibility ?? null
       }
+      if (Object.prototype.hasOwnProperty.call(t, 'layoutPresets')) {
+        mergedConfig.template.layoutPresets = { ...(t.layoutPresets ?? {}) }
+      }
       if (t.frontendTemplate !== undefined) mergedConfig.template.frontendTemplate = t.frontendTemplate
       if (t.activeTemplate !== undefined) mergedConfig.template.activeTemplate = t.activeTemplate
       if (t.activeThemeId !== undefined) mergedConfig.template.activeThemeId = t.activeThemeId
@@ -206,7 +230,7 @@ export class SiteConfigService {
       }
     }
 
-    // Ignore any client-sent adminTemplate; admin shell is fixed (see docs/development/ADMIN_UI_ROADMAP.md).
+    // Ignore any client-sent adminTemplate; admin shell is fixed (see docs/guides/TEMPLATING_USER_GUIDE.md).
     if (mergedConfig.template) {
       mergedConfig.template.adminTemplate = 'default'
     }
@@ -368,6 +392,7 @@ export class SiteConfigService {
         socialMedia: {
           facebook: '',
           instagram: '',
+          flickr: '',
           twitter: '',
           linkedin: ''
         }
@@ -388,9 +413,9 @@ export class SiteConfigService {
         enableTagFeedbackSearchBoost: false,
       },
       template: {
-        frontendTemplate: 'modern',
+        frontendTemplate: 'atelier',
         adminTemplate: 'default',
-        activeTemplate: 'modern' // Kept for backward compatibility
+        activeTemplate: 'atelier' // Kept for backward compatibility
       },
       exifMetadata: { displayFields: [] },
       iptcXmpMetadata: { displayFields: [] },
@@ -487,9 +512,9 @@ export class SiteConfigService {
   }
 
   /**
-   * Invalidate cache
+   * Invalidate cache (e.g. after DB migration of themes / site_config).
    */
-  private invalidateCache(): void {
+  invalidateCache(): void {
     this.configCache = null
     this.lastCacheUpdate = 0
   }

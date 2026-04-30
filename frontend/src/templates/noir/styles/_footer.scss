@@ -1,0 +1,176 @@
+// ============================================================
+// Noir Footer — _footer.scss
+//
+// Mirrors template-noir-full.html footer block:
+//   footer (border-top 1px var(--border), padding 24 32,
+//           flex items-center space-between)
+//     span.ft-copy (9px DM Mono, .18em uppercase, fg-dimmer)
+//     .ft-links (flex gap 20)
+//       a (9px DM Mono, .18em uppercase, fg-dimmer -> fg-dim)
+//
+// Targets both the standalone <footer> markup and the page-
+// builder layoutShell DOM:
+//   section.layout-shell.n-footer
+//     div.flex.gap-4
+//       div.n-copyright (richText)
+//       div.n-media (linkDisplay:text)
+// ============================================================
+
+@mixin n-mono($size: 10px, $spacing: 0.18em) {
+  font-family: 'DM Mono', monospace;
+  font-size: $size;
+  letter-spacing: $spacing;
+  text-transform: uppercase;
+  font-weight: 400;
+}
+
+// Standalone <footer> (mockup)
+main.tpl-pack-noir > footer,
+main.tpl-pack-noir footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid var(--border);
+  padding: 24px 32px;
+  background: transparent;
+
+  [dir="rtl"] & { flex-direction: row-reverse; }
+}
+
+.ft-copy {
+  @include n-mono(9px, 0.18em);
+  color: var(--fg-dimmer);
+}
+
+.ft-links {
+  display: flex;
+  gap: 20px;
+
+  [dir="rtl"] & { flex-direction: row-reverse; }
+
+  a {
+    @include n-mono(9px, 0.18em);
+    color: var(--fg-dimmer);
+    text-decoration: none;
+    transition: color 0.2s;
+
+    &:hover { color: var(--fg-dim); }
+  }
+}
+
+// Outer wrapper cell (layoutShell parent div)
+.n-footer {
+  display: block !important;
+  flex: none !important;
+  width: 100% !important;
+}
+
+// Shell
+section.layout-shell.n-footer {
+  background: transparent !important;
+  width: 100% !important;
+  border-top: 1px solid var(--border);
+
+  > div {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 0 !important;
+    padding: 24px 32px !important;
+
+    [dir="rtl"] & { flex-direction: row-reverse; }
+  }
+}
+
+// Cell sizing: auto, not equal flex
+section.layout-shell.n-footer > div > [class*="n-"] {
+  flex: none !important;
+  width: auto !important;
+}
+
+// Cell 1 - Copyright
+.n-copyright {
+  > section {
+    background: transparent !important;
+    padding: 0 !important;
+
+    > div { padding: 0 !important; }
+  }
+
+  .prose,
+  .prose-lg {
+    font-size: inherit !important;
+    line-height: inherit !important;
+    max-width: none !important;
+    color: inherit !important;
+
+    p, p span { margin: 0 !important; }
+  }
+
+  p,
+  p span {
+    @include n-mono(9px, 0.18em);
+    color: var(--fg-dimmer) !important;
+    font-family: 'DM Mono', monospace !important;
+    font-size: 9px !important;
+    font-weight: 400 !important;
+  }
+
+  a {
+    color: var(--fg-dimmer) !important;
+    text-decoration: none !important;
+    &:hover { color: var(--fg-dim) !important; }
+  }
+}
+
+// Cell 2 - Social / Media links
+.n-media {
+  > div {
+    display: flex !important;
+    align-items: center !important;
+    gap: 20px !important;
+  }
+
+  a {
+    @include n-mono(9px, 0.18em);
+    color: var(--fg-dimmer) !important;
+    text-decoration: none !important;
+    transition: color 0.2s;
+
+    display: flex !important;
+    align-items: center !important;
+    gap: 0 !important;
+
+    &:hover {
+      color: var(--fg-dim) !important;
+      opacity: 1 !important;
+    }
+
+    &:not([data-link-display="text"]) > div {
+      display: none !important;
+    }
+
+    &:not([data-link-display="text"])::after {
+      content: attr(aria-label);
+      @include n-mono(9px, 0.18em);
+      color: inherit;
+      text-transform: lowercase;
+    }
+
+    &[data-link-display="text"] > span {
+      @include n-mono(9px, 0.18em);
+      text-transform: lowercase;
+    }
+  }
+}
+
+// RTL
+[dir="rtl"] {
+  section.layout-shell.n-footer > div {
+    flex-direction: row-reverse;
+  }
+
+  .n-media > div {
+    flex-direction: row-reverse;
+  }
+}

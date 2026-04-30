@@ -1,0 +1,304 @@
+// ============================================================
+// Noir Gallery / Album Grid / Section Header / About Strip
+// _gallery.scss
+//
+// Mirrors template-noir-full.html:
+//   .sec-hdr   - flex baseline space-between, padding 48 32 16
+//     .sec-label (9px DM Mono, .28em fg-dim)
+//     .sec-count (9px DM Mono, .18em fg-dimmer)
+//     .sec-link  (9px DM Mono, .18em fg-dimmer -> fg-dim)
+//   .gal-page  - padding-top 80px (gallery route)
+//   .gal-hdr   - flex baseline space-between, 48 32 16
+//     .gal-title (DM Sans 200, 32px, .04em, fg)
+//   .album-grid - 3-col grid, gap var(--gap, 2px), padding 0 gap gap
+//     .ac (square card, overflow hidden, cursor pointer)
+//       .ac-img (absolute inset-0, cover, filter dark+mono,
+//                hover scale 1.04)
+//       .ac-ov  (gradient overlay opacity 0 -> 1)
+//       .ac-info (translateY 8 + opacity 0 -> 0/1, padding 20)
+//         .ac-title (DM Mono 11px .14em uppercase #fff)
+//         .ac-meta (DM Mono 9px .1em rgba(245,245,243,.6))
+//   .about-strip - border-top, padding 64 32, max-width 560
+// ============================================================
+
+@mixin n-mono($size: 10px, $spacing: 0.18em) {
+  font-family: 'DM Mono', monospace;
+  font-size: $size;
+  letter-spacing: $spacing;
+  text-transform: uppercase;
+  font-weight: 400;
+}
+
+// Page wrapper
+.n-gallery {
+  display: block !important;
+  flex: none !important;
+  width: 100% !important;
+  min-height: 100vh;
+}
+
+// Strip section chrome
+.n-gallery > section[class*="@container"],
+.n-gallery > section,
+section.n-s-album-grid,
+section.n-s-gallery {
+  background: transparent !important;
+  padding: 0 !important;
+  overflow: visible !important;
+
+  > div {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+}
+
+// Section header (sec-hdr / sec-label / sec-count / sec-link)
+.sec-hdr,
+.gal-hdr,
+.n-gallery div[class*="text-center"][class*="mb-"] {
+  display: flex !important;
+  align-items: baseline !important;
+  justify-content: space-between !important;
+  padding: 48px 32px 16px !important;
+  margin-bottom: 0 !important;
+  text-align: start !important;
+
+  [dir="rtl"] & {
+    flex-direction: row-reverse;
+    text-align: end !important;
+  }
+}
+
+.sec-label {
+  @include n-mono(9px, 0.28em);
+  color: var(--fg-dim);
+}
+
+.sec-count {
+  @include n-mono(9px, 0.18em);
+  color: var(--fg-dimmer);
+}
+
+.sec-link {
+  @include n-mono(9px, 0.18em);
+  color: var(--fg-dimmer);
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.2s;
+
+  &:hover { color: var(--fg-dim); }
+}
+
+// Gallery page padding (route shell)
+.gal-page { padding-top: 80px; }
+
+// Gallery title (h1.gal-title or h2 in page-builder header)
+.gal-title,
+.n-gallery div[class*="text-center"] h1,
+.n-gallery div[class*="text-center"] h2 {
+  font-family: 'DM Sans', sans-serif !important;
+  font-weight: 200 !important;
+  font-size: 32px !important;
+  letter-spacing: 0.04em !important;
+  color: var(--fg) !important;
+  text-align: start !important;
+  margin: 0 !important;
+}
+
+.n-gallery div[class*="text-center"] h2[data-count]::after {
+  content: attr(data-count);
+  @include n-mono(9px, 0.22em);
+  color: var(--fg-dimmer);
+  margin-inline-start: auto;
+}
+
+// Album grid (3 col, 2px gap)
+.album-grid,
+.n-gallery div[class*="grid"][class*="grid-cols"] {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: var(--gap, 2px) !important;
+  padding: 0 var(--gap, 2px) var(--gap, 2px) !important;
+  margin-bottom: 0 !important;
+}
+
+// Album card (.ac)
+.ac,
+a.ac,
+div.ac {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  cursor: pointer;
+  display: block;
+  background: var(--bg-card, #141414);
+  border: none;
+  transition: none;
+
+  &:hover {
+    transform: none !important;
+    box-shadow: none !important;
+  }
+}
+
+// Image container
+a.ac div[class*="absolute"][class*="inset-0"][class*="z-0"],
+a.ac div[class*="absolute"][class*="inset-0"]:first-child,
+.ac > div:first-child {
+  background: var(--bg-card, #141414);
+}
+
+// Image (.ac-img)
+.ac-img,
+.ac img,
+a.ac img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  filter: brightness(0.8) grayscale(0.15);
+  transition:
+    transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+    filter 0.35s ease;
+}
+
+.ac:hover .ac-img,
+a.ac:hover img,
+.ac:hover img {
+  transform: scale(1.04);
+}
+
+// Overlay (.ac-ov)
+.ac-ov,
+a.ac .ac-ov {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.75) 0%,
+    transparent 50%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.ac:hover .ac-ov,
+a.ac:hover .ac-ov { opacity: 1; }
+
+// Info panel (.ac-info)
+.ac-info,
+a.ac .ac-info {
+  position: absolute;
+  bottom: 0;
+  inset-inline: 0;
+  padding: 20px;
+  transform: translateY(8px);
+  opacity: 0;
+  transition:
+    transform 0.3s ease,
+    opacity   0.3s ease;
+}
+
+.ac:hover .ac-info,
+a.ac:hover .ac-info {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+// Info title (.ac-title)
+.ac-title,
+a.ac .ac-info h3,
+.ac .ac-info h3 {
+  @include n-mono(11px, 0.14em);
+  color: #f5f5f3 !important;
+  font-weight: 400 !important;
+  margin: 0 0 4px !important;
+  transition: none !important;
+}
+
+a.ac .ac-info .prose,
+.ac .ac-info .prose,
+a.ac .ac-info [class*="prose"],
+a.ac .ac-info [class*="fg-muted"] {
+  display: none !important;
+}
+
+// Info meta (.ac-meta - photo/album count)
+.ac-meta,
+a.ac .ac-info div[class*="text-sm"],
+a.ac .ac-info div[class*="mt-1"],
+.ac .ac-info div[class*="text-sm"] {
+  @include n-mono(9px, 0.1em);
+  color: rgba(245, 245, 243, 0.6) !important;
+  margin: 0 !important;
+}
+
+// About strip (home page)
+.about-strip {
+  padding: 64px 32px;
+  max-width: 560px;
+  border-top: 1px solid var(--border);
+}
+
+.about-text {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 15px;
+  line-height: 1.8;
+  color: var(--fg-dim);
+  margin-bottom: 24px;
+  transition: color 0.35s;
+}
+
+.about-lnk {
+  @include n-mono(9px, 0.22em);
+  color: var(--fg);
+  text-decoration: none;
+  border-bottom: 1px solid var(--fg-dim);
+  padding-bottom: 2px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+
+  &:hover { border-color: var(--fg); }
+}
+
+// RTL
+[dir="rtl"] {
+  .album-grid,
+  .n-gallery div[class*="grid"][class*="grid-cols"] {
+    direction: rtl;
+  }
+
+  a.ac .ac-info,
+  .ac .ac-info { text-align: right; }
+}
+
+// Light mode
+[data-mode="light"],
+html.light {
+  .ac-img,
+  a.ac img,
+  .ac img {
+    filter: brightness(0.95) grayscale(0);
+  }
+}
+
+// Fade-in entrance animation (mockup .fi class)
+.fi {
+  opacity: 0;
+  animation: fadeIn 1s forwards;
+}
+
+.fi:nth-child(1) { animation-delay: 0.1s; }
+.fi:nth-child(2) { animation-delay: 0.2s; }
+.fi:nth-child(3) { animation-delay: 0.3s; }
+.fi:nth-child(4) { animation-delay: 0.4s; }
+.fi:nth-child(5) { animation-delay: 0.5s; }
+.fi:nth-child(6) { animation-delay: 0.6s; }
+
+@keyframes fadeIn {
+  to { opacity: 1; }
+}

@@ -88,7 +88,7 @@
 		<Header />
 		<div class="flex-1 flex items-center justify-center">
 			<div class="text-center max-w-md mx-auto px-4">
-				<h1 class="text-4xl font-bold text-gray-900 mb-4">Page Not Found</h1>
+				<h1>Page Not Found</h1>
 				<p class="text-gray-600 mb-6">
 					{error || 'The page you are looking for does not exist or has been removed.'}
 				</p>
@@ -146,7 +146,7 @@
 					</span>
 				{/if}
 
-				<h1 class="text-4xl font-bold text-gray-900 mb-4">{getTextValue(page.title)}</h1>
+				<h1>{getTextValue(page.title)}</h1>
 
 				{#if page.subtitle}
 					<p class="text-xl text-gray-600 mb-6">{getTextValue(page.subtitle)}</p>

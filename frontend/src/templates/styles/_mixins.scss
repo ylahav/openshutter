@@ -1,0 +1,72 @@
+// ============================================================
+// _mixins.scss  —  Mixin definitions only. No CSS output.
+// Every file that needs a mixin must: @use 'mixins' as *;
+// ============================================================
+
+@mixin display-font($weight: 400, $size: var(--text-h2)) {
+  font-family: var(--font-display);
+  font-weight: $weight;
+  font-size: $size;
+}
+
+@mixin body-font($weight: 400, $size: var(--text-base)) {
+  font-family: var(--font-body);
+  font-weight: $weight;
+  font-size: $size;
+}
+
+@mixin label($spacing: 0.2em) {
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+  letter-spacing: $spacing;
+  text-transform: uppercase;
+}
+
+@mixin container {
+  max-width: var(--max-w);
+  margin-inline: auto;
+  padding-inline: var(--pad-x);
+}
+
+@mixin section-padding {
+  padding-block: 48px;
+}
+
+@mixin card-base {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--card-radius);
+  transition: background var(--t), border-color var(--t);
+}
+
+@mixin cover-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+@mixin transition-colors {
+  transition: background var(--t), color var(--t), border-color var(--t);
+}
+
+@mixin hero-img-filter {
+  filter:
+    brightness(var(--hero-img-brightness))
+    saturate(var(--hero-img-saturate))
+    sepia(var(--hero-img-sepia));
+  transition: filter var(--t);
+}
+
+@mixin card-img-filter {
+  filter:
+    brightness(var(--card-img-brightness, 1))
+    grayscale(var(--card-img-grayscale, 0));
+  transition: filter var(--t);
+}
+
+@mixin gold-rule($w: 36px) {
+  width: $w;
+  height: 1px;
+  background: var(--gold);
+}

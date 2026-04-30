@@ -109,8 +109,8 @@
 {#if loading}
 	<div class="min-h-[50vh] flex items-center justify-center">
 		<div class="text-center">
-			<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--color-primary-600)] mx-auto"></div>
-			<p class="mt-4 text-[var(--color-surface-600-400)]">{$t('loading.loading')}</p>
+			<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-(--color-primary-600) mx-auto"></div>
+			<p class="mt-4 text-(--color-surface-600-400)">{$t('loading.loading')}</p>
 		</div>
 	</div>
 {:else}
@@ -118,8 +118,8 @@
 		<div class="max-w-6xl mx-auto px-4">
 			<div class="flex justify-between items-center mb-8 flex-wrap gap-4">
 				<div>
-					<h1 class="text-3xl font-bold text-[var(--color-surface-950-50)]">{$t('admin.blogArticles')}</h1>
-					<p class="text-[var(--color-surface-600-400)] mt-2">{$t('admin.manageBlogArticlesCard')}</p>
+					<h1 class="text-3xl font-bold text-(--color-surface-950-50)">{$t('admin.blogArticles')}</h1>
+					<p class="text-(--color-surface-600-400) mt-2">{$t('admin.manageBlogArticlesCard')}</p>
 				</div>
 				<div class="flex flex-wrap gap-3">
 					<button
@@ -140,7 +140,7 @@
 			<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6 mb-6">
 				<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
 					<div>
-						<label for="search-art" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+						<label for="search-art" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
 							{$t('owner.searchArticles')}
 						</label>
 						<input
@@ -152,7 +152,7 @@
 						/>
 					</div>
 					<div>
-						<label for="cat-art" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+						<label for="cat-art" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
 							{$t('owner.category')}
 						</label>
 						<select
@@ -167,7 +167,7 @@
 						</select>
 					</div>
 					<div>
-						<label for="st-art" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+						<label for="st-art" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
 							{$t('owner.status')}
 						</label>
 						<select
@@ -183,7 +183,7 @@
 				</div>
 				<button
 					on:click={fetchArticles}
-					class="mt-4 inline-flex items-center px-4 py-2 bg-[var(--color-primary-600)] text-white rounded-md hover:bg-[var(--color-primary-700)]"
+					class="mt-4 inline-flex items-center px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700)"
 				>
 					{$t('owner.filter')}
 				</button>
@@ -197,7 +197,7 @@
 
 			<div class="card preset-outlined-surface-200-800 bg-surface-50-950 overflow-hidden">
 				{#if articles.length === 0}
-					<div class="text-center py-12 text-[var(--color-surface-600-400)]">
+					<div class="text-center py-12 text-(--color-surface-600-400)">
 						<p class="mb-4">{$t('owner.noArticles')}</p>
 						<button
 							on:click={() => goto('/admin/blog-articles/new')}
@@ -209,21 +209,21 @@
 				{:else}
 					<div class="overflow-x-auto">
 						<table class="min-w-full divide-y divide-surface-200-800">
-							<thead class="bg-[var(--color-surface-50-950)]">
+							<thead class="bg-(--color-surface-50-950)">
 								<tr>
-									<th class="px-4 py-3 text-left text-xs font-medium text-[var(--color-surface-600-400)] uppercase">Title</th>
-									<th class="px-4 py-3 text-left text-xs font-medium text-[var(--color-surface-600-400)] uppercase">
+									<th class="px-4 py-3 text-left text-xs font-medium text-(--color-surface-600-400) uppercase">Title</th>
+									<th class="px-4 py-3 text-left text-xs font-medium text-(--color-surface-600-400) uppercase">
 										Category
 									</th>
-									<th class="px-4 py-3 text-left text-xs font-medium text-[var(--color-surface-600-400)] uppercase">Status</th>
-									<th class="px-4 py-3 text-left text-xs font-medium text-[var(--color-surface-600-400)] uppercase">Created</th>
-									<th class="px-4 py-3 text-left text-xs font-medium text-[var(--color-surface-600-400)] uppercase">Views</th>
-									<th class="px-4 py-3 text-right text-xs font-medium text-[var(--color-surface-600-400)] uppercase">Actions</th>
+									<th class="px-4 py-3 text-left text-xs font-medium text-(--color-surface-600-400) uppercase">Status</th>
+									<th class="px-4 py-3 text-left text-xs font-medium text-(--color-surface-600-400) uppercase">Created</th>
+									<th class="px-4 py-3 text-left text-xs font-medium text-(--color-surface-600-400) uppercase">Views</th>
+									<th class="px-4 py-3 text-right text-xs font-medium text-(--color-surface-600-400) uppercase">Actions</th>
 								</tr>
 							</thead>
 							<tbody class="divide-y divide-surface-200-800">
 								{#each articles as article}
-									<tr class="hover:bg-[var(--color-surface-50-950)]">
+									<tr class="hover:bg-(--color-surface-50-950)">
 										<td class="px-4 py-3">
 											<div class="flex items-center gap-3">
 												{#if article.leadingImage?.url}
@@ -233,7 +233,7 @@
 														class="h-10 w-10 rounded-lg object-cover shrink-0"
 													/>
 												{/if}
-												<span class="text-sm font-medium text-[var(--color-surface-950-50)]">
+												<span class="text-sm font-medium text-(--color-surface-950-50)">
 													{MultiLangUtils.getTextValue(article.title, $currentLanguage)}
 												</span>
 											</div>
@@ -248,17 +248,17 @@
 												{article.isPublished ? 'Published' : 'Draft'}
 											</span>
 										</td>
-										<td class="px-4 py-3 text-sm text-[var(--color-surface-600-400)]">
+										<td class="px-4 py-3 text-sm text-(--color-surface-600-400)">
 											{new Date(article.createdAt).toLocaleDateString()}
 										</td>
-										<td class="px-4 py-3 text-sm text-[var(--color-surface-600-400)]">{article.viewCount ?? 0}</td>
+										<td class="px-4 py-3 text-sm text-(--color-surface-600-400)">{article.viewCount ?? 0}</td>
 										<td class="px-4 py-3 text-right text-sm space-x-2">
 											{#if article.slug}
 												<a
 													href="/blog/{article.slug}"
 													target="_blank"
 													rel="noopener noreferrer"
-													class="text-[var(--color-primary-600)] hover:underline"
+													class="text-(--color-primary-600) hover:underline"
 												>
 													View
 												</a>

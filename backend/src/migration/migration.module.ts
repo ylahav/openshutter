@@ -5,6 +5,7 @@ import { PhotoSchema } from '../models/Photo';
 import { TagSchema } from '../models/Tag';
 import { PersonSchema } from '../models/Person';
 import { LocationSchema } from '../models/Location';
+import { PageSchema } from '../models/Page';
 import { MigrationService } from './migration.service';
 import { MigrationController } from './migration.controller';
 
@@ -16,6 +17,7 @@ import { MigrationController } from './migration.controller';
       { name: 'Tag', schema: TagSchema },
       { name: 'Person', schema: PersonSchema },
       { name: 'Location', schema: LocationSchema },
+      { name: 'Page', schema: PageSchema },
     ]),
   ],
   controllers: [MigrationController],

@@ -45,6 +45,7 @@ playwright-report/
 
 # Backend build output
 backend/dist/
+backend/migration-data/exports/
 
 # Server start timestamp and PID (development only)
 .server-start-time

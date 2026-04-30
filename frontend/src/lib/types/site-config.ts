@@ -1,5 +1,6 @@
 import type { MultiLangText, MultiLangHTML } from './multi-lang';
 import type { FontSetting, FontRole } from './fonts';
+import type { TemplateCustomColors } from '$lib/template/theme/template-palette';
 
 export interface SiteConfig {
   _id?: string
@@ -20,18 +21,17 @@ export interface SiteConfig {
   template?: {
     /** Mongo themes collection id last applied from Admin → Templates (optional) */
     activeThemeId?: string
-    activeTemplate?: string // Deprecated: use frontendTemplate instead, kept for backward compatibility
-    frontendTemplate?: string // Template for public-facing frontend pages
+    /**
+     * Legacy field; still written by some admin flows. **Effective visitor pack** is
+     * `frontendTemplate ?? activeTemplate` (same order as `$stores/template` / `active-template.svelte.ts` and `TemplateService.getActiveTemplateWithOverrides`).
+     */
+    activeTemplate?: string
+    /** Canonical visitor pack id (`noir` | `studio` | `atelier`). Preferred over `activeTemplate`. */
+    frontendTemplate?: string
     /** @deprecated Always `default` from API. Admin UI is not pack-driven. */
     adminTemplate?: string
-    customColors?: {
-      primary?: string
-      secondary?: string
-      accent?: string
-      background?: string
-      text?: string
-      muted?: string
-    }
+    /** Core + extended semantic colors (surfaces, light-theme overrides). See `template-palette.ts`. */
+    customColors?: TemplateCustomColors
     /** Per-role font: family (string) or { family, size?, weight? }. Legacy: string = family only. */
     customFonts?: Partial<Record<FontRole, string | FontSetting>>
     /**
@@ -86,10 +86,33 @@ export interface SiteConfig {
       showGreeting?: boolean
       showAuthButtons?: boolean
       showTemplateSelector?: boolean
+      /** Public header language control: compact dropdown (default) or flag buttons. */
+      languageSelectorVariant?: 'dropdown' | 'flags'
     } | null
     /** Legacy flat per page or `{ pageKey: { xs: …, lg: … } }` (Admin saves full map here). */
     pageModules?: Record<string, unknown>
     pageLayout?: Record<string, unknown>
+    /** Named reusable grids for `layoutShell` blocks (legacy key). */
+    layoutPresets?: Record<string, { gridRows?: number; gridColumns?: number; modules?: unknown[] }>
+    /** Shared layout-shell instances (preferred key; alias => grid + modules). */
+    layoutShellInstances?: Record<string, { gridRows?: number; gridColumns?: number; modules?: unknown[] }>
+    /**
+     * Optional site-wide hero defaults (page-builder `hero` module can override per instance).
+     * @see `frontend/src/lib/page-builder/modules/Hero/README.md`
+     */
+    hero?: {
+      layout?: string
+      [key: string]: unknown
+    }
+    /**
+     * Default album card preset for album / gallery modules (`auto` defers to pack + layout).
+     * Spec tokens: `bare` | `cards` | `list` | `portrait` | `overlay` | `compact`
+     */
+    albumCard?: string
+    /**
+     * Default photo grid preset. Spec: `square-tight` | `landscape` | `portrait` | `masonry` | `justified` | `large-preview`
+     */
+    photoCard?: string
   }
   seo: {
     metaTitle: MultiLangText
@@ -105,6 +128,7 @@ export interface SiteConfig {
     socialMedia?: {
       facebook?: string
       instagram?: string
+      flickr?: string
       twitter?: string
       linkedin?: string
     }

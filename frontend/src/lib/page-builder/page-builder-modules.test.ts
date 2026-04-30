@@ -11,6 +11,7 @@ import AlbumGalleryModule from './modules/AlbumGalleryModule.svelte';
 import CtaModule from './modules/CtaModule.svelte';
 import BlogCategoryModule from './modules/BlogCategoryModule.svelte';
 import BlogArticleModule from './modules/BlogArticleModule.svelte';
+import DividerModule from './modules/DividerModule.svelte';
 
 type SmokeCase = {
 	name: string;
@@ -67,6 +68,12 @@ const smokeCases: SmokeCase[] = [
 		component: BlogArticleModule,
 		defaultProps: {},
 		invalidProps: { mode: 'bad-value', limit: -1, slug: 999 }
+	},
+	{
+		name: 'Divider',
+		component: DividerModule,
+		defaultProps: {},
+		invalidProps: { thickness: 'huge', margin: false, lineStyle: 1 }
 	}
 ];
 
@@ -98,7 +105,7 @@ describe('page-builder registry consistency', () => {
 	}
 
 	function getAliasesFromMap(source: string): string[] {
-		const blockMatch = source.match(/const moduleMap:[\s\S]*?=\s*\{([\s\S]*?)\n\t\};/);
+		const blockMatch = source.match(/const baseModuleMap:[\s\S]*?=\s*\{([\s\S]*?)\n\t\};/);
 		if (!blockMatch) return [];
 		return [...blockMatch[1].matchAll(/^\s*([a-zA-Z][a-zA-Z0-9]*)\s*:/gm)].map((m) => m[1]);
 	}

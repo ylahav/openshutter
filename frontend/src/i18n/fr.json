@@ -136,6 +136,13 @@
   },
   "admin": {
     "adminPanel": "Panneau d'administration",
+    "uiDocsTitle": "Composants d’interface",
+    "uiDocsDescription": "Référence pour les contrôles d’en-tête et de mise en page partagés (Markdown du dépôt).",
+    "openUiDocs": "Ouvrir la doc interface",
+    "uiDocsPageTitle": "Documentation des composants d’interface",
+    "uiDocsPageHeading": "Documentation des composants d’interface",
+    "uiDocsPageIntro": "Source : fichiers README sous src/lib/page-builder/primitives. Affichage Markdown pour copier-coller lors de la création de modèles.",
+    "uiDocsNavAria": "Sections de la documentation interface",
     "manageGallerySettings": "Gérez les paramètres et le contenu de votre galerie",
     "siteConfiguration": "Configuration du site",
     "configureGallery": "Configurez le titre, la description, les couleurs du thème et les paramètres de référencement de votre galerie.",

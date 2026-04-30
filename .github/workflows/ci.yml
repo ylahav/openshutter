@@ -1,5 +1,5 @@
 # Fails the job on ESLint errors or TypeScript compile errors. ESLint warnings and
-# Svelte compiler (a11y) warnings do not fail the build — see docs/development/ENGINEERING_QUALITY_TASKS.md (Phase A2).
+# Svelte compiler (a11y) warnings do not fail the build — see docs/archive/development/ENGINEERING_QUALITY_TASKS.md (Phase A2).
 
 name: CI
 

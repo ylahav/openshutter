@@ -1,6 +1,10 @@
 <!-- frontend/src/lib/page-builder/modules/ThemeToggle/Layout.svelte -->
 <script lang="ts">
-	import ThemeToggle from '$components/ThemeToggle.svelte';
+	import ThemeToggle from '$pageBuilder/primitives/theme-toggle/ThemeToggle.svelte';
+
+	export let variant: 'icons' | 'text' = 'icons';
 </script>
 
-<ThemeToggle />
+<div class="pb-themeToggleModule">
+	<ThemeToggle {variant} />
+</div>

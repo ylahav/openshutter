@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import { goto } from '$app/navigation';
 	import PageRenderer from '$lib/page-builder/PageRenderer.svelte';
+	import CmsPageTemplateSwitcher from '$lib/components/CmsPageTemplateSwitcher.svelte';
 	import { MultiLangUtils } from '$lib/utils/multiLang';
 	import { currentLanguage } from '$stores/language';
 	import { productName } from '$stores/siteConfig';
@@ -17,6 +17,7 @@
 	$: modules = data.modules || [];
 	$: loadError = data.error;
 	$: hasError = !!loadError || !pageData;
+	$: hasModules = modules.length > 0;
 
 	function getTextValue(value: string | { en?: string; he?: string } | undefined): string {
 		if (!value) return '';
@@ -31,29 +32,12 @@
 
 <div class="min-h-screen flex flex-col">
 	{#if hasError}
-		<div class="flex-1 flex items-center justify-center py-16">
-			<div class="text-center max-w-md mx-auto px-4">
-				<h1 class="text-4xl font-bold text-gray-900 mb-4">Page Not Found</h1>
-				<p class="text-gray-600 mb-6">
-					{loadError || 'No page alias specified. Please provide a valid page alias.'}
-				</p>
-				<div class="space-x-4">
-					<button
-						on:click={() => goto('/')}
-						class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-					>
-						Go Home
-					</button>
-					<button
-						on:click={() => goto('/albums')}
-						class="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
-					>
-						View Gallery
-					</button>
-				</div>
-			</div>
+		<div class="flex-1">
+			<CmsPageTemplateSwitcher page={pageData} error={loadError || 'Page not found'} />
 		</div>
-	{:else}
+	{:else if hasModules}
 		<PageRenderer page={pageData} modules={modules} />
+	{:else}
+		<CmsPageTemplateSwitcher page={pageData} />
 	{/if}
 </div>

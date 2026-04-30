@@ -170,7 +170,7 @@ export class TemplateOverridesService {
     return {
       ...siteConfig,
       template: {
-        activeTemplate: siteConfig.template?.activeTemplate || 'default',
+        activeTemplate: siteConfig.template?.activeTemplate || 'noir',
         customColors: undefined,
         customFonts: undefined,
         customLayout: undefined,

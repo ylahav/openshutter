@@ -21,23 +21,34 @@ export class PhotosService {
 
   /**
    * Get gallery-leading photos for hero/landing pages.
-   * Returns photos with isGalleryLeading + isPublished sorted by uploadedAt desc.
+   * Prefer **`isGalleryLeading`** (explicit “homepage hero” in admin).
+   * If none match, fall back to **`isLeading`** (album cover) so a single “leading”
+   * checkbox is enough when operators use Album Cover only.
+   * Always **`isPublished: true`**, newest first.
    */
   async findGalleryLeading(limit = 5, ownerSiteId?: string) {
-    const baseFilter: Record<string, unknown> = {
-      isGalleryLeading: true,
-      isPublished: true,
-    };
+    const base: Record<string, unknown> = { isPublished: true };
     if (ownerSiteId) {
       const albumIds = await this.albumIdsForOwner(ownerSiteId);
       if (albumIds.length === 0) return [];
-      baseFilter.albumId = { $in: albumIds };
+      base.albumId = { $in: albumIds };
     }
-    return this.photoModel
-      .find(baseFilter)
+
+    let photos = await this.photoModel
+      .find({ ...base, isGalleryLeading: true })
       .sort({ uploadedAt: -1 })
       .limit(limit)
       .exec();
+
+    if (photos.length === 0) {
+      photos = await this.photoModel
+        .find({ ...base, isLeading: true })
+        .sort({ uploadedAt: -1 })
+        .limit(limit)
+        .exec();
+    }
+
+    return photos;
   }
 
   async findAll(page = 1, limit = 20, ownerSiteId?: string) {

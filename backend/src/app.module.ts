@@ -1,4 +1,4 @@
-import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule, RequestMethod } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { DatabaseModule } from './database/database.module';
 import { PhotosModule } from './photos/photos.module';
@@ -45,6 +45,7 @@ import {
   OwnerDedicatedStorageController,
 } from './owner-dedicated-storage/owner-dedicated-storage.controller';
 import { AIProvidersHealthController } from './ai/ai-providers-health.controller';
+import { ContactSubmissionsModule } from './contact-submissions/contact-submissions.module';
 
 @Module({
   imports: [
@@ -79,6 +80,7 @@ import { AIProvidersHealthController } from './ai/ai-providers-health.controller
     V1Module,
     MarketplaceModule,
     CommentsModule,
+    ContactSubmissionsModule,
   ],
   controllers: [
     HealthController,
@@ -100,6 +102,6 @@ import { AIProvidersHealthController } from './ai/ai-providers-health.controller
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     // Apply site-context resolution to all routes so controllers/services can scope by owner domain.
-    consumer.apply(SiteContextMiddleware).forRoutes('*');
+    consumer.apply(SiteContextMiddleware).forRoutes({ path: '*path', method: RequestMethod.ALL });
   }
 }

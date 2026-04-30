@@ -18,11 +18,11 @@
 		{$t('admin.ownerDomainsRequiresOwnerRole').replace(/\{roleLabel\}/g, ROLE_LABELS.owner)}
 	</p>
 {:else}
-	<p class="text-xs text-[var(--color-surface-600-400)] mb-2">
+	<p class="text-xs text-(--color-surface-600-400) mb-2">
 		{$t('admin.ownerDomainsIntro')}
 	</p>
-	<details class="mb-3 text-xs text-[var(--color-surface-600-400)] border border-surface-200-800 rounded-md bg-[var(--color-surface-50-950)] px-3 py-2">
-		<summary class="cursor-pointer font-medium text-[var(--color-surface-800-200)] select-none">
+	<details class="mb-3 text-xs text-(--color-surface-600-400) border border-surface-200-800 rounded-md bg-(--color-surface-50-950) px-3 py-2">
+		<summary class="cursor-pointer font-medium text-(--color-surface-800-200) select-none">
 			{$t('admin.ownerDomainsDnsHelpTitle')}
 		</summary>
 		<ul class="list-disc pl-5 mt-2 space-y-1">
@@ -36,8 +36,8 @@
 		{#if ownerDomainsError}
 			<div class="p-2 bg-red-50 text-red-700 text-xs rounded">{ownerDomainsError}</div>
 		{/if}
-		<div class="{ownerDomains.length === 0 ? 'bg-[var(--color-surface-50-950)] border border-dashed border-surface-300-700 rounded-md p-3' : ''}">
-			<label for="owner-domain-hostname" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-1"
+		<div class="{ownerDomains.length === 0 ? 'bg-(--color-surface-50-950) border border-dashed border-surface-300-700 rounded-md p-3' : ''}">
+			<label for="owner-domain-hostname" class="block text-sm font-medium text-(--color-surface-800-200) mb-1"
 				>{$t('admin.ownerDomainsAddLabel')}</label
 			>
 			<div class="flex gap-2 items-center">
@@ -51,25 +51,25 @@
 				<button
 					type="button"
 					on:click={() => onAddDomain()}
-					class="px-4 py-2 bg-[var(--color-primary-600)] text-white rounded-md text-sm font-medium hover:bg-[var(--color-primary-700)] disabled:opacity-50 disabled:cursor-not-allowed"
+					class="px-4 py-2 bg-(--color-primary-600) text-white rounded-md text-sm font-medium hover:bg-(--color-primary-700) disabled:opacity-50 disabled:cursor-not-allowed"
 					disabled={loadingOwnerDomains || !newOwnerDomainHostname.trim()}
 				>
 					{$t('admin.ownerDomainsAddButton')}
 				</button>
 			</div>
 			{#if ownerDomains.length === 0}
-				<p class="text-xs text-[var(--color-surface-600-400)] mt-1">{$t('admin.ownerDomainsEmptyHint')}</p>
+				<p class="text-xs text-(--color-surface-600-400) mt-1">{$t('admin.ownerDomainsEmptyHint')}</p>
 			{/if}
 		</div>
 		{#if loadingOwnerDomains}
-			<p class="text-sm text-[var(--color-surface-600-400)]">{$t('admin.ownerDomainsLoading')}</p>
+			<p class="text-sm text-(--color-surface-600-400)">{$t('admin.ownerDomainsLoading')}</p>
 		{:else if ownerDomains.length > 0}
 			<ul class="space-y-2">
 				{#each ownerDomains as domain}
 					<li class="flex items-center justify-between border border-surface-200-800 rounded-md px-3 py-2 text-sm">
 						<div class="flex flex-col">
 							<span class="font-medium">{domain.hostname}</span>
-							<div class="flex items-center gap-3 text-xs text-[var(--color-surface-600-400)] mt-1">
+							<div class="flex items-center gap-3 text-xs text-(--color-surface-600-400) mt-1">
 								<label class="inline-flex items-center gap-1">
 									<input
 										type="checkbox"

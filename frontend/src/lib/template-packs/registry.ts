@@ -1,81 +1,108 @@
-import type { TemplatePack } from './types'
-import { logger } from '$lib/utils/logger'
+import type { Component } from 'svelte';
+import type { TemplatePack } from './types';
+import { logger } from '$lib/utils/logger';
+import { normalizeTemplatePackId } from './ids';
+import type { TemplatePackId } from './ids';
+import type {
+	PackAboutPageProps,
+	PackAlbumPageProps,
+	PackCmsPageProps,
+	PackContactPageProps,
+	PackLoginPageProps,
+	PackSearchPageProps
+} from './pack-page-props';
 
-import DefaultHome from '$lib/templates/default/Home.svelte'
-import DefaultGallery from '$lib/templates/default/Gallery.svelte'
-import DefaultAlbum from '$lib/templates/default/Album.svelte'
-import DefaultLogin from '$lib/templates/default/Login.svelte'
-import DefaultHeader from '$lib/templates/default/components/Header.svelte'
-import DefaultFooter from '$lib/templates/default/components/Footer.svelte'
+export { TEMPLATE_PACK_IDS, isKnownTemplatePack, normalizeTemplatePackId } from './ids';
+export type { TemplatePackId } from './ids';
 
-import ModernHome from '$lib/templates/modern/Home.svelte'
-import ModernGallery from '$lib/templates/modern/Gallery.svelte'
-import ModernAlbum from '$lib/templates/modern/Album.svelte'
-import ModernLogin from '$lib/templates/modern/Login.svelte'
-import ModernHeader from '$lib/templates/modern/components/Header.svelte'
-import ModernFooter from '$lib/templates/modern/components/Footer.svelte'
-
-import MinimalHome from '$lib/templates/minimal/Home.svelte'
-import MinimalGallery from '$lib/templates/minimal/Gallery.svelte'
-import MinimalAlbum from '$lib/templates/minimal/Album.svelte'
-import MinimalLogin from '$lib/templates/minimal/Login.svelte'
-import MinimalHeader from '$lib/templates/minimal/components/Header.svelte'
-import MinimalFooter from '$lib/templates/minimal/components/Footer.svelte'
-
-import ElegantHome from '$lib/templates/elegant/Home.svelte'
-import ElegantGallery from '$lib/templates/elegant/Gallery.svelte'
-import ElegantAlbum from '$lib/templates/elegant/Album.svelte'
-import ElegantLogin from '$lib/templates/elegant/Login.svelte'
-import ElegantHeader from '$lib/templates/elegant/components/Header.svelte'
-import ElegantFooter from '$lib/templates/elegant/components/Footer.svelte'
-
-/** Built-in pack ids (must match registry keys and backend theme baseTemplate allowlist). */
-export const TEMPLATE_PACK_IDS = ['default', 'minimal', 'modern', 'elegant'] as const
-
-export type TemplatePackId = (typeof TEMPLATE_PACK_IDS)[number]
-
-export function isKnownTemplatePack(name: string | null | undefined): boolean {
-	const k = String(name ?? '')
-		.trim()
-		.toLowerCase()
-	return (TEMPLATE_PACK_IDS as readonly string[]).includes(k)
+function packPage<P extends Record<string, any>>(mod: unknown): Component<P> {
+	return (mod as { default: Component<P> }).default;
 }
 
-const packs: Record<string, TemplatePack> = {
-  default: {
-    name: 'default',
-    pages: { Home: DefaultHome, Gallery: DefaultGallery, Album: DefaultAlbum, Login: DefaultLogin },
-    components: { Header: DefaultHeader, Footer: DefaultFooter }
-  },
-  minimal: {
-    name: 'minimal',
-    pages: { Home: MinimalHome, Gallery: MinimalGallery, Album: MinimalAlbum, Login: MinimalLogin },
-    components: { Header: MinimalHeader, Footer: MinimalFooter }
-  },
-  modern: {
-    name: 'modern',
-    pages: { Home: ModernHome, Gallery: ModernGallery, Album: ModernAlbum, Login: ModernLogin },
-    components: { Header: ModernHeader, Footer: ModernFooter }
-  },
-  elegant: {
-    name: 'elegant',
-    pages: { Home: ElegantHome, Gallery: ElegantGallery, Album: ElegantAlbum, Login: ElegantLogin },
-    components: { Header: ElegantHeader, Footer: ElegantFooter }
-  }
+const packCache = new Map<TemplatePackId, TemplatePack>();
+
+const packLoaders: Record<TemplatePackId, () => Promise<TemplatePack>> = {
+	noir: async () => {
+		const [Album, Search, Contact, CmsPage, Login] = await Promise.all([
+			import('$templates/noir/Album.svelte'),
+			import('$templates/noir/Search.svelte'),
+			import('$templates/noir/Contact.svelte'),
+			import('$templates/noir/CmsPage.svelte'),
+			import('$templates/noir/Login.svelte')
+		]);
+		return {
+			name: 'noir',
+			pages: {
+				Album: packPage<PackAlbumPageProps>(Album),
+				About: packPage<PackAboutPageProps>(CmsPage),
+				Search: packPage<PackSearchPageProps>(Search),
+				Contact: packPage<PackContactPageProps>(Contact),
+				CmsPage: packPage<PackCmsPageProps>(CmsPage),
+				Login: packPage<PackLoginPageProps>(Login)
+			}
+		};
+	},
+	studio: async () => {
+		const [Album, About, Search, Contact, CmsPage, Login] = await Promise.all([
+			import('$templates/studio/Album.svelte'),
+			import('$templates/studio/About.svelte'),
+			import('$templates/studio/Search.svelte'),
+			import('$templates/studio/Contact.svelte'),
+			import('$templates/studio/CmsPage.svelte'),
+			import('$templates/studio/Login.svelte')
+		]);
+		return {
+			name: 'studio',
+			pages: {
+				Album: packPage<PackAlbumPageProps>(Album),
+				About: packPage<PackAboutPageProps>(About),
+				Search: packPage<PackSearchPageProps>(Search),
+				Contact: packPage<PackContactPageProps>(Contact),
+				CmsPage: packPage<PackCmsPageProps>(CmsPage),
+				Login: packPage<PackLoginPageProps>(Login)
+			}
+		};
+	},
+	atelier: async () => {
+		const [Album, About, Search, Contact, CmsPage, Login] = await Promise.all([
+			import('$templates/atelier/Album.svelte'),
+			import('$templates/atelier/About.svelte'),
+			import('$templates/atelier/Search.svelte'),
+			import('$templates/atelier/Contact.svelte'),
+			import('$templates/atelier/CmsPage.svelte'),
+			import('$templates/atelier/Login.svelte')
+		]);
+		return {
+			name: 'atelier',
+			pages: {
+				Album: packPage<PackAlbumPageProps>(Album),
+				About: packPage<PackAboutPageProps>(About),
+				Search: packPage<PackSearchPageProps>(Search),
+				Contact: packPage<PackContactPageProps>(Contact),
+				CmsPage: packPage<PackCmsPageProps>(CmsPage),
+				Login: packPage<PackLoginPageProps>(Login)
+			}
+		};
+	}
+};
+
+export async function getTemplatePack(templateName: string | null | undefined): Promise<TemplatePack> {
+	const key = normalizeTemplatePackId(templateName);
+	const cached = packCache.get(key);
+	if (cached) return cached;
+
+	try {
+		const pack = await packLoaders[key]();
+		packCache.set(key, pack);
+		return pack;
+	} catch (err) {
+		logger.error(`[TemplatePacks] Failed loading pack "${key}", falling back to atelier`, err);
+		const fallback = await packLoaders.atelier();
+		packCache.set('atelier', fallback);
+		return fallback;
+	}
 }
 
-export function getTemplatePack(templateName: string | null | undefined): TemplatePack {
-	const key = String(templateName || 'default')
-		.trim()
-		.toLowerCase()
-	const pack = packs[key]
-	if (pack) return pack
-
-	logger.warn(`[TemplatePacks] Unknown pack "${templateName}", falling back to default`)
-	return packs.default
+export async function listTemplatePacks(): Promise<TemplatePack[]> {
+	return Promise.all(Object.keys(packLoaders).map((name) => getTemplatePack(name)));
 }
-
-export function listTemplatePacks(): TemplatePack[] {
-  return Object.values(packs)
-}
-

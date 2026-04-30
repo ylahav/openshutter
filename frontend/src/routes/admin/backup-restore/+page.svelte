@@ -204,8 +204,8 @@
 <div class="py-8">
 	<div class="max-w-4xl mx-auto px-4">
 		<div class="mb-6">
-			<h1 class="text-2xl font-bold text-[var(--color-surface-950-50)]">Backup & Restore</h1>
-			<p class="text-[var(--color-surface-600-400)] mt-2">Create backups and restore your database and files</p>
+			<h1 class="text-2xl font-bold text-(--color-surface-950-50)">Backup & Restore</h1>
+			<p class="text-(--color-surface-600-400) mt-2">Create backups and restore your database and files</p>
 		</div>
 
 		{#if message}
@@ -224,7 +224,7 @@
 				<div class="flex items-center mb-4">
 					<div class="p-2 bg-[color-mix(in_oklab,var(--color-primary-500)_22%,transparent)] rounded-lg mr-3">
 						<svg
-							class="w-6 h-6 text-[var(--color-primary-600)]"
+							class="w-6 h-6 text-(--color-primary-600)"
 							fill="none"
 							stroke="currentColor"
 							viewBox="0 0 24 24"
@@ -238,8 +238,8 @@
 						</svg>
 					</div>
 					<div>
-						<h2 class="text-xl font-semibold text-[var(--color-surface-950-50)]">Database Backup</h2>
-						<p class="text-[var(--color-surface-600-400)] text-sm">Export all database collections to JSON</p>
+						<h2 class="text-xl font-semibold text-(--color-surface-950-50)">Database Backup</h2>
+						<p class="text-(--color-surface-600-400) text-sm">Export all database collections to JSON</p>
 					</div>
 				</div>
 
@@ -248,7 +248,7 @@
 						type="button"
 						on:click={handleDatabaseBackup}
 						disabled={loading}
-						class="w-full px-4 py-2 bg-[var(--color-primary-600)] text-white rounded-md hover:bg-[var(--color-primary-700)] disabled:opacity-50 text-sm font-medium flex items-center justify-center"
+						class="w-full px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700) disabled:opacity-50 text-sm font-medium flex items-center justify-center"
 					>
 						{#if loading}
 							<svg
@@ -300,7 +300,7 @@
 						/>
 						<label
 							for="database-restore"
-							class="w-full px-4 py-2 bg-[var(--color-surface-200-800)] text-[var(--color-surface-800-200)] rounded-md hover:bg-[var(--color-surface-300-700)] disabled:opacity-50 text-sm font-medium flex items-center justify-center cursor-pointer {loading
+							class="w-full px-4 py-2 bg-(--color-surface-200-800) text-(--color-surface-800-200) rounded-md hover:bg-(--color-surface-300-700) disabled:opacity-50 text-sm font-medium flex items-center justify-center cursor-pointer {loading
 								? 'opacity-50 cursor-not-allowed'
 								: ''}"
 						>
@@ -348,8 +348,8 @@
 						</svg>
 					</div>
 					<div>
-						<h2 class="text-xl font-semibold text-[var(--color-surface-950-50)]">Files Backup</h2>
-						<p class="text-[var(--color-surface-600-400)] text-sm">Backup uploaded files and storage</p>
+						<h2 class="text-xl font-semibold text-(--color-surface-950-50)">Files Backup</h2>
+						<p class="text-(--color-surface-600-400) text-sm">Backup uploaded files and storage</p>
 					</div>
 				</div>
 
@@ -410,7 +410,7 @@
 						/>
 						<label
 							for="files-restore"
-							class="w-full px-4 py-2 bg-[var(--color-surface-200-800)] text-[var(--color-surface-800-200)] rounded-md hover:bg-[var(--color-surface-300-700)] disabled:opacity-50 text-sm font-medium flex items-center justify-center cursor-pointer {loading
+							class="w-full px-4 py-2 bg-(--color-surface-200-800) text-(--color-surface-800-200) rounded-md hover:bg-(--color-surface-300-700) disabled:opacity-50 text-sm font-medium flex items-center justify-center cursor-pointer {loading
 								? 'opacity-50 cursor-not-allowed'
 								: ''}"
 						>

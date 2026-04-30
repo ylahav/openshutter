@@ -15,25 +15,45 @@ export interface TemplateComponentVisibility {
 
 // Static template configurations (moved from template.ts)
 const staticTemplates: Record<string, TemplateConfig> = {
-  'default': {
-    templateName: 'default',
-    displayName: 'Default',
-    description: 'Clean and minimal template',
+  noir: {
+    templateName: 'noir',
+    displayName: 'Noir',
+    description: 'Cinematic dark layout — mono typography and full-bleed hero',
     version: '1.0.0',
     author: 'OpenShutter',
-    thumbnail: '/templates/default/thumbnail.jpg',
-    category: 'minimal',
-    features: { responsive: true, darkMode: false, animations: true, seoOptimized: true },
-    colors: { primary: '#3B82F6', secondary: '#1F2937', accent: '#F59E0B', background: '#FFFFFF', text: '#1F2937', muted: '#6B7280' },
-    fonts: {
-      heading: font('Inter', '1.25rem', '600'),
-      body: font('Inter', '1rem', '400'),
-      links: font('Inter'),
-      lists: font('Inter'),
-      formInputs: font('Inter'),
-      formLabels: font('Inter'),
+    thumbnail: '/templates/noir/thumbnail.jpg',
+    category: 'dark',
+    features: { responsive: true, darkMode: true, animations: true, seoOptimized: true },
+    colors: {
+      primary: '#f5f5f3',
+      secondary: '#a1a1a1',
+      accent: '#f5f5f3',
+      background: '#080808',
+      text: '#f5f5f3',
+      muted: 'rgba(245,245,243,0.38)',
+      surfaceCard: '#141414',
+      surfaceCardSecondary: '#1c1c1c',
+      surfaceCardTertiary: '#232323',
+      textSubtle: 'rgba(245,245,243,0.16)',
+      borderSubtle: 'rgba(255,255,255,0.07)',
+      lightBackground: '#f5f5f3',
+      lightText: '#080808',
+      lightMuted: 'rgba(8,8,8,0.45)',
+      lightSurfaceCard: '#e8e8e5',
+      lightSurfaceCardSecondary: '#ddddd9',
+      lightSurfaceCardTertiary: '#d2d2ce',
+      lightTextSubtle: 'rgba(8,8,8,0.22)',
+      lightBorderSubtle: 'rgba(0,0,0,0.08)',
     },
-    layout: { maxWidth: '1200px', containerPadding: '1rem', gridGap: '1.5rem' },
+    fonts: {
+      heading: font('DM Sans', '1.25rem', '300'),
+      body: font('DM Mono', '1rem', '400'),
+      links: font('DM Mono'),
+      lists: font('DM Mono'),
+      formInputs: font('DM Mono'),
+      formLabels: font('DM Mono'),
+    },
+    layout: { maxWidth: '1280px', containerPadding: '2rem', gridGap: '0.125rem' },
     components: {
       hero: 'components/Hero.tsx',
       albumCard: 'components/AlbumCard.tsx',
@@ -46,25 +66,49 @@ const staticTemplates: Record<string, TemplateConfig> = {
     visibility: { hero: true, languageSelector: true, authButtons: true, footerMenu: true },
     pages: { home: 'pages/Home.tsx', gallery: 'pages/Gallery.tsx', album: 'pages/Album.tsx', search: 'pages/Search.tsx' },
   },
-  'modern': {
-    templateName: 'modern',
-    displayName: 'Modern',
-    description: 'Contemporary and sleek design',
+  studio: {
+    templateName: 'studio',
+    displayName: 'Studio',
+    description: 'Editorial portfolio layout — Syne & Outfit, hero strip, card grid',
     version: '1.0.0',
     author: 'OpenShutter',
-    thumbnail: '/templates/modern/thumbnail.jpg',
+    thumbnail: '/templates/studio/thumbnail.jpg',
     category: 'modern',
     features: { responsive: true, darkMode: true, animations: true, seoOptimized: true },
-    colors: { primary: '#2563EB', secondary: '#334155', accent: '#22D3EE', background: '#0F172A', text: '#E2E8F0', muted: '#94A3B8' },
-    fonts: {
-      heading: font('Inter', '1.25rem', '600'),
-      body: font('Inter', '1rem', '400'),
-      links: font('Inter'),
-      lists: font('Inter'),
-      formInputs: font('Inter'),
-      formLabels: font('Inter'),
+    colors: {
+      primary: '#2563eb',
+      secondary: '#1d4ed8',
+      accent: '#60a5fa',
+      background: '#0f172a',
+      text: '#f1f5f9',
+      muted: '#94a3b8',
+      surfaceCard: '#1e293b',
+      surfaceCardSecondary: '#0f172a',
+      surfaceCardTertiary: '#1e293b',
+      textSubtle: 'rgba(241,245,249,0.2)',
+      borderSubtle: '#334155',
+      lightBackground: '#f8fafc',
+      lightText: '#0f172a',
+      lightMuted: '#64748b',
+      lightSurfaceCard: '#ffffff',
+      lightSurfaceCardSecondary: '#f8fafc',
+      lightSurfaceCardTertiary: '#f1f5f9',
+      lightTextSubtle: 'rgba(15,23,42,0.22)',
+      lightBorderSubtle: '#e2e8f0',
+      heroStrip: '#020617',
+      footerStrip: '#020617',
+      lightHeroStrip: '#0f172a',
+      lightFooterStrip: '#0f172a',
     },
-    layout: { maxWidth: '1280px', containerPadding: '1.5rem', gridGap: '1.75rem' },
+    fonts: {
+      heading: font('Syne', '1.25rem', '700'),
+      body: font('Outfit', '1rem', '400'),
+      links: font('Outfit'),
+      lists: font('Outfit'),
+      formInputs: font('Outfit'),
+      formLabels: font('Outfit'),
+    },
+    layout: { maxWidth: '1200px', containerPadding: '1.75rem', gridGap: '1rem' },
     components: {
       hero: 'components/Hero.tsx',
       albumCard: 'components/AlbumCard.tsx',
@@ -77,25 +121,82 @@ const staticTemplates: Record<string, TemplateConfig> = {
     visibility: { hero: true, languageSelector: true, authButtons: true, footerMenu: true },
     pages: { home: 'pages/Home.tsx', gallery: 'pages/Gallery.tsx', album: 'pages/Album.tsx', search: 'pages/Search.tsx' },
   },
-  'elegant': {
-    templateName: 'elegant',
-    displayName: 'Elegant',
-    description: 'Elegant and sophisticated design',
+  atelier: {
+    templateName: 'atelier',
+    displayName: 'Atelier',
+    description: 'Warm editorial layout — Cormorant Garamond & Jost, tall hero, list albums',
     version: '1.0.0',
     author: 'OpenShutter',
-    thumbnail: '/templates/elegant/thumbnail.jpg',
+    thumbnail: '/templates/atelier/thumbnail.jpg',
     category: 'elegant',
     features: { responsive: true, darkMode: true, animations: true, seoOptimized: true },
-    colors: { primary: '#7C3AED', secondary: '#C4B5FD', accent: '#F59E0B', background: '#1F1437', text: '#F5F3FF', muted: '#C4B5FD' },
-    fonts: {
-      heading: font('Playfair Display', '1.25rem', '600'),
-      body: font('Lora', '1rem', '400'),
-      links: font('Inter'),
-      lists: font('Inter'),
-      formInputs: font('Inter'),
-      formLabels: font('Inter'),
+    colors: {
+      primary: '#b8955a',
+      secondary: '#5c4033',
+      accent: '#d4b07a',
+      background: '#1a1008',
+      text: '#f0e8d8',
+      muted: '#7a6a58',
+      surfaceCard: '#231710',
+      surfaceCardSecondary: '#1a1008',
+      surfaceCardTertiary: '#2e1f14',
+      textSubtle: 'rgba(240,232,216,0.25)',
+      borderSubtle: '#3a2a1c',
+      lightBackground: '#faf6ef',
+      lightText: '#2c1f14',
+      lightMuted: '#9c8c7a',
+      lightSurfaceCard: '#f2ece0',
+      lightSurfaceCardSecondary: '#f2ece0',
+      lightSurfaceCardTertiary: '#e8dece',
+      lightTextSubtle: 'rgba(44,31,20,0.35)',
+      lightBorderSubtle: '#e8dece',
+      heroStrip: '#0e0804',
+      footerStrip: '#0e0804',
+      lightHeroStrip: '#2c1f14',
+      lightFooterStrip: '#2c1f14',
+      lightPrimary: '#b8955a',
+      lightSecondary: '#5c4033',
+      lightAccent: '#d4b07a',
+      lightTextFaint: 'rgba(44,31,20,0.22)',
+      textFaint: 'rgba(240,232,216,0.18)',
+      lightHeaderBackground: '#faf6ef',
+      headerBackground: '#1a1008',
+      lightHeaderBorder: '#e8dece',
+      headerBorder: '#3a2a1c',
+      lightCardBorder: '#e8dece',
+      cardBorder: '#3a2a1c',
+      lightHeroImageFilter: 'brightness(0.55) saturate(0.8)',
+      heroImageFilter: 'brightness(0.35) saturate(0.6)',
+      lightLoginBgFilter: 'brightness(0.3) saturate(0.4) sepia(0.3)',
+      loginBgFilter: 'brightness(0.15) saturate(0.3) sepia(0.4)',
     },
-    layout: { maxWidth: '1100px', containerPadding: '2rem', gridGap: '2rem' },
+    fonts: {
+      heading: font('Cormorant Garamond', '1.35rem', '400'),
+      body: font('Jost', '1rem', '400'),
+      links: font('Jost'),
+      lists: font('Jost'),
+      formInputs: font('Jost'),
+      formLabels: font('Jost'),
+    },
+    layout: {
+      maxWidth: '960px',
+      containerPadding: '32px',
+      gridGap: '24px',
+      gapGrid: '8px',
+      radius: '2px',
+      radiusLg: '2px',
+      radiusSm: '2px',
+      borderWidth: '1px',
+      heroHeight: '68vh',
+      headerHeight: 'auto',
+      cardRadius: '2px',
+      cardShadow: 'rgba(44,31,20,0.06)',
+      cardShadowHover: 'rgba(44,31,20,0.12)',
+      albumAspect: '3 / 4',
+      photoAspect: '3 / 4',
+      animDuration: '0.9s',
+      transition: '0.4s',
+    },
     components: {
       hero: 'components/Hero.tsx',
       albumCard: 'components/AlbumCard.tsx',
@@ -108,37 +209,6 @@ const staticTemplates: Record<string, TemplateConfig> = {
     visibility: { hero: true, languageSelector: true, authButtons: true, footerMenu: true },
     pages: { home: 'pages/Home.tsx', gallery: 'pages/Gallery.tsx', album: 'pages/Album.tsx', search: 'pages/Search.tsx' },
   },
-  'minimal': {
-    templateName: 'minimal',
-    displayName: 'Minimal',
-    description: 'Ultra-minimal and clean design',
-    version: '1.0.0',
-    author: 'OpenShutter',
-    thumbnail: '/templates/minimal/thumbnail.jpg',
-    category: 'minimal',
-    features: { responsive: true, darkMode: false, animations: false, seoOptimized: true },
-    colors: { primary: '#111111', secondary: '#9CA3AF', accent: '#111111', background: '#FFFFFF', text: '#111111', muted: '#9CA3AF' },
-    fonts: {
-      heading: font('Inter', '1.125rem', '500'),
-      body: font('Inter', '0.95rem', '400'),
-      links: font('Inter'),
-      lists: font('Inter'),
-      formInputs: font('Inter'),
-      formLabels: font('Inter'),
-    },
-    layout: { maxWidth: '980px', containerPadding: '0.75rem', gridGap: '0.75rem' },
-    components: {
-      hero: 'components/Hero.tsx',
-      albumCard: 'components/AlbumCard.tsx',
-      photoCard: 'components/PhotoCard.tsx',
-      albumList: 'components/AlbumList.tsx',
-      gallery: 'components/Gallery.tsx',
-      navigation: 'components/Navigation.tsx',
-      footer: 'components/Footer.tsx',
-    },
-    visibility: { hero: true, languageSelector: true, authButtons: true, footerMenu: true },
-    pages: { home: 'pages/Home.tsx', gallery: 'pages/Gallery.tsx', album: 'pages/Album.tsx', search: 'pages/Search.tsx' },
-  }
 }
 
 export class TemplateConfigService {
@@ -152,7 +222,11 @@ export class TemplateConfigService {
   }
 
   private getTemplateConfig(templateName: string): TemplateConfig | null {
-    return staticTemplates[templateName] || staticTemplates['default'] || null
+    let k =
+      templateName === 'default' || templateName === 'minimal' || !templateName ? 'noir' : templateName
+    k = String(k).toLowerCase()
+    if (k === 'simple' || k === 'modern' || k === 'elegant') k = 'noir'
+    return staticTemplates[k] || staticTemplates['noir'] || null
   }
 
   /**
@@ -165,10 +239,9 @@ export class TemplateConfigService {
     // Determine which template to use based on area
     let activeTemplate: string
     if (area === 'admin') {
-      // Admin panel does not use template packs; legacy `adminTemplate` in DB is ignored.
-      activeTemplate = 'default'
+      activeTemplate = 'noir'
     } else {
-      activeTemplate = siteConfig.template?.frontendTemplate || siteConfig.template?.activeTemplate || 'default'
+      activeTemplate = siteConfig.template?.frontendTemplate || siteConfig.template?.activeTemplate || 'noir'
     }
     const templateConfig = this.getTemplateConfig(activeTemplate)
     
@@ -232,7 +305,7 @@ export class TemplateConfigService {
     
     if (!updatedConfig.template) {
       updatedConfig.template = {
-        activeTemplate: 'default'
+        activeTemplate: 'noir'
       }
     }
 
@@ -272,10 +345,9 @@ export class TemplateConfigService {
     // Determine which template to use based on area
     let activeTemplate: string
     if (area === 'admin') {
-      // Same as getComponentVisibility: admin is not pack-configurable.
-      activeTemplate = 'default'
+      activeTemplate = 'noir'
     } else {
-      activeTemplate = siteConfig.template?.frontendTemplate || siteConfig.template?.activeTemplate || 'default'
+      activeTemplate = siteConfig.template?.frontendTemplate || siteConfig.template?.activeTemplate || 'noir'
     }
     const templateConfig = this.getTemplateConfig(activeTemplate)
     
@@ -287,7 +359,7 @@ export class TemplateConfigService {
     
     if (!updatedConfig.template) {
       updatedConfig.template = {
-        activeTemplate: 'default'
+        activeTemplate: 'noir'
       }
     }
 

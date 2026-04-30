@@ -158,9 +158,6 @@ export function validateTemplatePagesLayer(
     for (const pageKey of Object.keys(v)) pageKeys.add(pageKey);
   }
 
-  // If nothing is present, there's nothing to validate.
-  if (pageKeys.size === 0) return;
-
   const getGridForPageAtBp = (pageKey: string, bp: TemplateBreakpointId) => {
     const fromCanonical = isPlainObject(pageLayout) ? (pageLayout as any)[pageKey] : undefined;
     // `pageLayout[pageKey]` may be a legacy flat cell or a breakpoint map.
@@ -199,6 +196,7 @@ export function validateTemplatePagesLayer(
     return [];
   };
 
+  if (pageKeys.size > 0)
   for (const pageKey of pageKeys) {
     const bpKeys = new Set<TemplateBreakpointId>();
 
@@ -241,6 +239,21 @@ export function validateTemplatePagesLayer(
       }
       if (!grid) continue;
       validateModulesAgainstGrid(pageKey, bp, grid, modules, source);
+    }
+  }
+
+  const layoutPresets = (template as any).layoutPresets;
+  if (isPlainObject(layoutPresets)) {
+    for (const [presetKey, presetVal] of Object.entries(layoutPresets)) {
+      if (!isPlainObject(presetVal)) continue;
+      const grid = validateGridSize(
+        `layoutPresets:${presetKey}`,
+        'lg',
+        (presetVal as any).gridRows,
+        (presetVal as any).gridColumns,
+      );
+      const modules = Array.isArray((presetVal as any).modules) ? (presetVal as any).modules : [];
+      validateModulesAgainstGrid(`layoutPresets:${presetKey}`, 'lg', grid, modules, source);
     }
   }
 }

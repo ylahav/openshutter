@@ -14,8 +14,8 @@
 <div class="py-8">
 	<div class="max-w-6xl mx-auto px-4">
 		<div class="mb-8">
-			<h1 class="text-3xl font-bold text-[var(--color-surface-950-50)]">{$t('admin.adminPanel')}</h1>
-			<p class="text-[var(--color-surface-600-400)] mt-2">{$t('admin.manageGallerySettings')}</p>
+			<h1 class="text-3xl font-bold text-(--color-surface-950-50)">{$t('admin.adminPanel')}</h1>
+			<p class="text-(--color-surface-600-400) mt-2">{$t('admin.manageGallerySettings')}</p>
 		</div>
 
 		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -23,7 +23,7 @@
 			<AdminCard>
 				<div class="flex items-center mb-4">
 					<div class="w-10 h-10 bg-[color-mix(in_oklab,var(--color-primary-500)_22%,transparent)] rounded-lg flex items-center justify-center">
-						<svg class="w-6 h-6 text-[var(--color-primary-600)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<svg class="w-6 h-6 text-(--color-primary-600)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path
 								stroke-linecap="round"
 								stroke-linejoin="round"
@@ -38,12 +38,12 @@
 							/>
 						</svg>
 					</div>
-					<h2 class="text-xl font-semibold text-[var(--color-surface-950-50)] ml-3">{$t('admin.siteConfiguration')}</h2>
+					<h2 class="text-xl font-semibold text-(--color-surface-950-50) ml-3">{$t('admin.siteConfiguration')}</h2>
 				</div>
-				<p class="text-[var(--color-surface-600-400)] mb-4">{$t('admin.configureGallery')}</p>
+				<p class="text-(--color-surface-600-400) mb-4">{$t('admin.configureGallery')}</p>
 				<a
 					href="/admin/site-config"
-					class="inline-flex items-center px-4 py-2 bg-[var(--color-primary-600)] text-white rounded-md hover:bg-[var(--color-primary-700)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)] focus:ring-offset-2"
+					class="inline-flex items-center px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700) focus:outline-none focus:ring-2 focus:ring-(--color-primary-500) focus:ring-offset-2"
 				>
 					{$t('admin.configureSite')}
 					<svg class="ml-2 w-4 h-4 rtl-flip" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -65,9 +65,9 @@
 							/>
 						</svg>
 					</div>
-					<h2 class="text-xl font-semibold text-[var(--color-surface-950-50)] ml-3">{$t('admin.translationManagement')}</h2>
+					<h2 class="text-xl font-semibold text-(--color-surface-950-50) ml-3">{$t('admin.translationManagement')}</h2>
 				</div>
-				<p class="text-[var(--color-surface-600-400)] mb-4">{$t('admin.manageTranslationsDescription')}</p>
+				<p class="text-(--color-surface-600-400) mb-4">{$t('admin.manageTranslationsDescription')}</p>
 				<a
 					href="/admin/translations"
 					class="inline-flex items-center px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2"
@@ -92,9 +92,9 @@
 							/>
 						</svg>
 					</div>
-					<h2 class="text-xl font-semibold text-[var(--color-surface-950-50)] ml-3">{$t('admin.storageManagement')}</h2>
+					<h2 class="text-xl font-semibold text-(--color-surface-950-50) ml-3">{$t('admin.storageManagement')}</h2>
 				</div>
-				<p class="text-[var(--color-surface-600-400)] mb-4">{$t('admin.configureStorage')}</p>
+				<p class="text-(--color-surface-600-400) mb-4">{$t('admin.configureStorage')}</p>
 				<a
 					href="/admin/storage"
 					class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
@@ -119,9 +119,9 @@
 							/>
 						</svg>
 					</div>
-					<h2 class="text-xl font-semibold text-[var(--color-surface-950-50)] ml-3">{$t('admin.templateManagement')}</h2>
+					<h2 class="text-xl font-semibold text-(--color-surface-950-50) ml-3">{$t('admin.templateManagement')}</h2>
 				</div>
-				<p class="text-[var(--color-surface-600-400)] mb-4">{$t('admin.templateManagementDescription')}</p>
+				<p class="text-(--color-surface-600-400) mb-4">{$t('admin.templateManagementDescription')}</p>
 				<div class="space-y-3">
 					<a
 						href="/admin/templates"
@@ -148,9 +148,9 @@
 							/>
 						</svg>
 					</div>
-					<h2 class="text-xl font-semibold text-[var(--color-surface-950-50)] ml-3">{$t('admin.albumsManagement')}</h2>
+					<h2 class="text-xl font-semibold text-(--color-surface-950-50) ml-3">{$t('admin.albumsManagement')}</h2>
 				</div>
-				<p class="text-[var(--color-surface-600-400)] mb-4">{$t('admin.createEditAlbums')}</p>
+				<p class="text-(--color-surface-600-400) mb-4">{$t('admin.createEditAlbums')}</p>
 				<a
 					href="/admin/albums"
 					class="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
@@ -175,9 +175,9 @@
 							/>
 						</svg>
 					</div>
-					<h2 class="text-xl font-semibold text-[var(--color-surface-950-50)] ml-3">{$t('admin.peopleManagement')}</h2>
+					<h2 class="text-xl font-semibold text-(--color-surface-950-50) ml-3">{$t('admin.peopleManagement')}</h2>
 				</div>
-				<p class="text-[var(--color-surface-600-400)] mb-4">{$t('admin.managePeopleStructuredData')}</p>
+				<p class="text-(--color-surface-600-400) mb-4">{$t('admin.managePeopleStructuredData')}</p>
 				<a
 					href="/admin/people"
 					class="inline-flex items-center px-4 py-2 bg-pink-600 text-white rounded-md hover:bg-pink-700 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2"
@@ -202,9 +202,9 @@
 							/>
 						</svg>
 					</div>
-					<h2 class="text-xl font-semibold text-[var(--color-surface-950-50)] ml-3">{$t('admin.tagsManagement')}</h2>
+					<h2 class="text-xl font-semibold text-(--color-surface-950-50) ml-3">{$t('admin.tagsManagement')}</h2>
 				</div>
-				<p class="text-[var(--color-surface-600-400)] mb-4">{$t('admin.manageTagsStructuredData')}</p>
+				<p class="text-(--color-surface-600-400) mb-4">{$t('admin.manageTagsStructuredData')}</p>
 				<a
 					href="/admin/tags"
 					class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
@@ -235,9 +235,9 @@
 							/>
 						</svg>
 					</div>
-					<h2 class="text-xl font-semibold text-[var(--color-surface-950-50)] ml-3">{$t('admin.locationsManagement')}</h2>
+					<h2 class="text-xl font-semibold text-(--color-surface-950-50) ml-3">{$t('admin.locationsManagement')}</h2>
 				</div>
-				<p class="text-[var(--color-surface-600-400)] mb-4">{$t('admin.manageLocationsStructuredData')}</p>
+				<p class="text-(--color-surface-600-400) mb-4">{$t('admin.manageLocationsStructuredData')}</p>
 				<a
 					href="/admin/locations"
 					class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
@@ -268,9 +268,9 @@
 							/>
 						</svg>
 					</div>
-					<h2 class="text-xl font-semibold text-[var(--color-surface-950-50)] ml-3">{$t('admin.usersManagement')}</h2>
+					<h2 class="text-xl font-semibold text-(--color-surface-950-50) ml-3">{$t('admin.usersManagement')}</h2>
 				</div>
-				<p class="text-[var(--color-surface-600-400)] mb-4">{$t('admin.manageUsersRoles')}</p>
+				<p class="text-(--color-surface-600-400) mb-4">{$t('admin.manageUsersRoles')}</p>
 				<a
 					href="/admin/users"
 					class="inline-flex items-center px-4 py-2 bg-slate-700 text-white rounded-md hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2"
@@ -295,9 +295,9 @@
 							/>
 						</svg>
 					</div>
-					<h2 class="text-xl font-semibold text-[var(--color-surface-950-50)] ml-3">{$t('admin.groupsManagement')}</h2>
+					<h2 class="text-xl font-semibold text-(--color-surface-950-50) ml-3">{$t('admin.groupsManagement')}</h2>
 				</div>
-				<p class="text-[var(--color-surface-600-400)] mb-4">{$t('admin.defineUserGroups')}</p>
+				<p class="text-(--color-surface-600-400) mb-4">{$t('admin.defineUserGroups')}</p>
 				<a
 					href="/admin/groups"
 					class="inline-flex items-center px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
@@ -313,7 +313,7 @@
 			<AdminCard>
 				<div class="flex items-center mb-4">
 					<div class="w-10 h-10 bg-[color-mix(in_oklab,var(--color-primary-500)_22%,transparent)] rounded-lg flex items-center justify-center">
-						<svg class="w-6 h-6 text-[var(--color-primary-600)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<svg class="w-6 h-6 text-(--color-primary-600)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path
 								stroke-linecap="round"
 								stroke-linejoin="round"
@@ -322,14 +322,36 @@
 							/>
 						</svg>
 					</div>
-					<h2 class="text-xl font-semibold text-[var(--color-surface-950-50)] ml-3">{$t('admin.pagesManagement')}</h2>
+					<h2 class="text-xl font-semibold text-(--color-surface-950-50) ml-3">{$t('admin.pagesManagement')}</h2>
 				</div>
-				<p class="text-[var(--color-surface-600-400)] mb-4">{$t('admin.pagesManagementDescription')}</p>
+				<p class="text-(--color-surface-600-400) mb-4">{$t('admin.pagesManagementDescription')}</p>
 				<a
 					href="/admin/pages"
-					class="inline-flex items-center px-4 py-2 bg-[var(--color-primary-600)] text-white rounded-md hover:bg-[var(--color-primary-700)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)] focus:ring-offset-2"
+					class="inline-flex items-center px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700) focus:outline-none focus:ring-2 focus:ring-(--color-primary-500) focus:ring-offset-2"
 				>
 					{$t('admin.managePages')}
+					<svg class="ml-2 w-4 h-4 rtl-flip" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+					</svg>
+				</a>
+			</AdminCard>
+
+			<!-- Contact Form Submissions -->
+			<AdminCard>
+				<div class="flex items-center mb-4">
+					<div class="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
+						<svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 8l-9 6-9-6m18 8H3a2 2 0 01-2-2V8a2 2 0 012-2h18a2 2 0 012 2v6a2 2 0 01-2 2z" />
+						</svg>
+					</div>
+					<h2 class="text-xl font-semibold text-(--color-surface-950-50) ml-3">Contact Submissions</h2>
+				</div>
+				<p class="text-(--color-surface-600-400) mb-4">Review messages sent from the contact form.</p>
+				<a
+					href="/admin/contact-submissions"
+					class="inline-flex items-center px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+				>
+					View Submissions
 					<svg class="ml-2 w-4 h-4 rtl-flip" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
 					</svg>
@@ -349,9 +371,9 @@
 							/>
 						</svg>
 					</div>
-					<h2 class="text-xl font-semibold text-[var(--color-surface-950-50)] ml-3">{$t('admin.blogWorkspaceTitle')}</h2>
+					<h2 class="text-xl font-semibold text-(--color-surface-950-50) ml-3">{$t('admin.blogWorkspaceTitle')}</h2>
 				</div>
-				<p class="text-[var(--color-surface-600-400)] mb-4">{$t('admin.blogWorkspaceSubtitle')}</p>
+				<p class="text-(--color-surface-600-400) mb-4">{$t('admin.blogWorkspaceSubtitle')}</p>
 				<a
 					href="/admin/blogs"
 					class="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
@@ -376,9 +398,9 @@
 							/>
 						</svg>
 					</div>
-					<h2 class="text-xl font-semibold text-[var(--color-surface-950-50)] ml-3">{$t('admin.backupRestore')}</h2>
+					<h2 class="text-xl font-semibold text-(--color-surface-950-50) ml-3">{$t('admin.backupRestore')}</h2>
 				</div>
-				<p class="text-[var(--color-surface-600-400)] mb-4">{$t('admin.backupRestoreDescription')}</p>
+				<p class="text-(--color-surface-600-400) mb-4">{$t('admin.backupRestoreDescription')}</p>
 				<a
 					href="/admin/backup-restore"
 					class="inline-flex items-center px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
@@ -403,9 +425,9 @@
 							/>
 						</svg>
 					</div>
-					<h2 class="text-xl font-semibold text-[var(--color-surface-950-50)] ml-3">{$t('admin.importSync')}</h2>
+					<h2 class="text-xl font-semibold text-(--color-surface-950-50) ml-3">{$t('admin.importSync')}</h2>
 				</div>
-				<p class="text-[var(--color-surface-600-400)] mb-4">{$t('admin.importSyncDescription')}</p>
+				<p class="text-(--color-surface-600-400) mb-4">{$t('admin.importSyncDescription')}</p>
 				<a
 					href="/admin/import-sync"
 					class="inline-flex items-center px-4 py-2 bg-cyan-600 text-white rounded-md hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2"
@@ -425,9 +447,9 @@
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
 						</svg>
 					</div>
-					<h2 class="text-xl font-semibold text-[var(--color-surface-950-50)] ml-3">{$t('admin.marketplace')}</h2>
+					<h2 class="text-xl font-semibold text-(--color-surface-950-50) ml-3">{$t('admin.marketplace')}</h2>
 				</div>
-				<p class="text-[var(--color-surface-600-400)] mb-4">{$t('admin.marketplaceDescription')}</p>
+				<p class="text-(--color-surface-600-400) mb-4">{$t('admin.marketplaceDescription')}</p>
 				<a
 					href="/admin/marketplace"
 					class="inline-flex items-center px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"
@@ -452,15 +474,46 @@
 							/>
 						</svg>
 					</div>
-					<h2 class="text-xl font-semibold text-[var(--color-surface-950-50)] ml-3">{$t('admin.analytics')}</h2>
+					<h2 class="text-xl font-semibold text-(--color-surface-950-50) ml-3">{$t('admin.analytics')}</h2>
 				</div>
-				<p class="text-[var(--color-surface-600-400)] mb-4">{$t('admin.viewStatistics')}</p>
+				<p class="text-(--color-surface-600-400) mb-4">{$t('admin.viewStatistics')}</p>
 				<a
 					href="/admin/analytics"
 					class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
 				>
 					{$t('admin.viewAnalytics')}
 					<svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+					</svg>
+				</a>
+			</AdminCard>
+
+			<!-- UI component docs (developer reference) -->
+			<AdminCard>
+				<div class="flex items-center mb-4">
+					<div class="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center">
+						<svg class="w-6 h-6 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
+							/>
+						</svg>
+					</div>
+					<h2 class="text-xl font-semibold text-(--color-surface-950-50) ml-3">{$t('admin.uiDocsTitle')}</h2>
+				</div>
+				<div
+					class="text-(--color-surface-600-400) mb-4 text-sm leading-relaxed [&_strong]:font-semibold [&_strong]:text-(--color-surface-800-200) [&_code]:font-mono [&_code]:text-xs [&_code]:rounded [&_code]:px-1 [&_code]:py-0.5 [&_code]:text-(--color-surface-800-200) [&_code]:bg-[color-mix(in_oklab,var(--color-surface-950)_8%,transparent)] dark:[&_code]:bg-[color-mix(in_oklab,var(--color-surface-50)_12%,transparent)]"
+				>
+					{@html $t('admin.uiDocsDescription')}
+				</div>
+				<a
+					href="/admin/docs/ui"
+					class="inline-flex items-center px-4 py-2 bg-slate-600 text-white rounded-md hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2"
+				>
+					{$t('admin.openUiDocs')}
+					<svg class="ml-2 w-4 h-4 rtl-flip" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
 					</svg>
 				</a>

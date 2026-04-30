@@ -48,6 +48,12 @@
 	const colorModeBtnClass =
 		'btn btn-sm preset-outlined-surface-200-800 inline-flex items-center justify-center p-2 min-w-[2.25rem]';
 
+	let uiDebugMetrics = {
+		zoomPct: 100,
+		rootFontSize: '16px',
+		dpr: 1,
+	};
+
 	/** Snapshot site `<html>` theme so we can restore it when leaving admin. */
 	let savedSiteColorMode: 'light' | 'dark' | null = null;
 
@@ -56,6 +62,25 @@
 		savedSiteColorMode = getResolvedSiteThemeFromStore();
 		// Admin defaults to light on the document root; dark mode uses `class="dark"` on this `<main>` only.
 		applyHtmlThemeClass('light');
+
+		const refreshUiDebugMetrics = () => {
+			const vvScale = window.visualViewport?.scale ?? 1;
+			uiDebugMetrics = {
+				zoomPct: Math.round((1 / vvScale) * 100),
+				rootFontSize: getComputedStyle(document.documentElement).fontSize,
+				dpr: Number(window.devicePixelRatio || 1),
+			};
+		};
+		refreshUiDebugMetrics();
+		window.addEventListener('resize', refreshUiDebugMetrics);
+		window.visualViewport?.addEventListener('resize', refreshUiDebugMetrics);
+		window.visualViewport?.addEventListener('scroll', refreshUiDebugMetrics);
+
+		return () => {
+			window.removeEventListener('resize', refreshUiDebugMetrics);
+			window.visualViewport?.removeEventListener('resize', refreshUiDebugMetrics);
+			window.visualViewport?.removeEventListener('scroll', refreshUiDebugMetrics);
+		};
 	});
 
 	onDestroy(() => {
@@ -75,25 +100,27 @@
 			$adminUiColorMode === 'dark' ? 'dark' : 'light',
 		);
 	}
+
+	$: showUiDebug = browser && $page.url.searchParams.get('uiDebug') === '1';
 </script>
 
 <!-- Cerberus CSS variables are defined on this node; body on public routes stays unchanged. -->
 <main
-	class="min-h-screen antialiased bg-[var(--body-background-color)] text-[var(--base-font-color)] dark:bg-[var(--body-background-color-dark)] dark:text-[var(--base-font-color-dark)] {$adminUiColorMode === 'dark'
+	class="min-h-screen antialiased bg-(--body-background-color) text-(--base-font-color) dark:bg-(--body-background-color-dark) dark:text-(--base-font-color-dark) {$adminUiColorMode === 'dark'
 		? '[color-scheme:dark]'
 		: '[color-scheme:light]'}"
 	class:dark={$adminUiColorMode === 'dark'}
 	data-admin-chrome
 	data-theme="cerberus"
 >
-	<div class="os-shell-container max-w-[var(--os-max-width)]">
+	<div class="os-shell-container max-w-(--os-max-width)">
 		<header
 			class="border-b border-[color:color-mix(in_oklab,var(--color-surface-950)_12%,transparent)] dark:border-[color:color-mix(in_oklab,var(--color-surface-50)_14%,transparent)] pt-4 pb-3 mb-6"
 			aria-label={chromeHeading}
 		>
 			<div class="flex flex-nowrap items-center justify-between gap-2 sm:gap-3 min-w-0">
 				<h1
-					class="text-base sm:text-lg font-semibold text-[var(--heading-font-color)] dark:text-[var(--heading-font-color-dark)] tracking-tight min-w-0 flex-1 truncate pr-2"
+					class="text-base sm:text-lg font-semibold text-(--heading-font-color) dark:text-(--heading-font-color-dark) tracking-tight min-w-0 flex-1 truncate pr-2"
 				>
 					{chromeHeading}
 				</h1>
@@ -161,4 +188,11 @@
 		<slot />
 	</div>
 	<AdminToastRegion />
+	{#if showUiDebug}
+		<div
+			class="fixed bottom-2 right-2 z-50 rounded border border-surface-300-700 bg-surface-50-950 px-2 py-1 text-[11px] font-mono text-(--color-surface-800-200) shadow"
+		>
+			zoom {uiDebugMetrics.zoomPct}% | root {uiDebugMetrics.rootFontSize} | dpr {uiDebugMetrics.dpr.toFixed(2)}
+		</div>
+	{/if}
 </main>

@@ -16,5 +16,18 @@ export const logoConfig = {
 			label: 'Show icon when no logo',
 			default: true,
 		},
+		{
+			key: 'showSiteTitle',
+			type: 'boolean',
+			label: 'Show site title',
+			default: false,
+		},
+		{
+			key: 'titlePosition',
+			type: 'select',
+			label: 'Title position',
+			options: ['above', 'below', 'right', 'left'],
+			default: 'right',
+		},
 	],
 } as const;

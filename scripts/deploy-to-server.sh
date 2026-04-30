@@ -61,10 +61,12 @@ scp openshutter-deployment.tar.gz $SERVER:$DEPLOY_PATH/
 # Extract and deploy on server
 echo -e "${BLUE}🔧 Deploying on server...${NC}"
 ssh $SERVER "cd $DEPLOY_PATH && \
+    rm -rf openshutter && \
     tar -xzf openshutter-deployment.tar.gz && \
     cd openshutter && \
+    chmod +x build.sh start.sh && \
     pnpm install --prod --frozen-lockfile && \
-    echo '✅ Deployment files extracted and dependencies installed'"
+    echo '✅ Deployment files extracted, scripts chmodded, and dependencies installed'"
 
 # Check if .env.production exists
 if ssh $SERVER "[ ! -f $DEPLOY_PATH/openshutter/.env.production ]"; then

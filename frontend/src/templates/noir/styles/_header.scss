@@ -1,0 +1,332 @@
+// ============================================================
+// Noir Header — _header.scss
+//
+// Mirrors template-noir-full.html:
+//   header (fixed, z-100, padding 20px 32px, flex space-between)
+//     .logo-wrap (mix-blend-mode: difference, gap 10)
+//       img.logo-img (32x32, invert)
+//       span.logo-title (DM Sans 200, 13px, .18em uppercase)
+//     .hdr-r (mix-blend-mode: difference, gap 20)
+//       nav (flex gap 24, links 10px .18em fg-dim -> fg)
+//       .hdr-btns (gap 8) - mode toggle ghost pill
+//       select.lang-select (bottom-border, 9px .18em fg-dimmer)
+//       a.signin (bottom-border, 9px .18em fg-dimmer -> fg-dim)
+//
+// Targets the page-builder layout shell DOM:
+//   section.layout-shell.n-header
+//     div.flex.gap-4.px-4.py-2 (inner row)
+//       div.n-logo / div.n-site-title / div.n-menu /
+//       div.n-toggle-mode / div.n-langs / div.n-signin?
+// ============================================================
+
+@mixin n-mono($size: 10px, $spacing: 0.18em) {
+  font-family: 'DM Mono', monospace;
+  font-size: $size;
+  letter-spacing: $spacing;
+  text-transform: uppercase;
+  font-weight: 400;
+}
+
+// Shell
+section.layout-shell.n-header {
+  background: transparent !important;
+  inset-inline: 0;
+  margin: 0 auto;
+  position: fixed !important;
+  top: 0;
+  width: 100vw !important;
+  z-index: 100;
+
+  > div > * { mix-blend-mode: difference; }
+
+  > div {
+    display: grid !important;
+    grid-template-rows: 1fr;
+    grid-auto-flow: column;
+    grid-auto-columns: max-content;
+    direction: ltr;
+    align-items: center !important;
+    gap: 0 20px !important;
+    padding: 20px 32px !important;
+  }
+}
+
+// Cell sizing override
+section.layout-shell.n-header > div > [class*="n-"] {
+  flex: none !important;
+  width: auto !important;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+// Cell 1 - Logo
+.n-logo {
+  grid-column: 1;
+
+  > div,
+  > div > a { display: contents; }
+
+  img {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+    display: block;
+    filter: invert(1);
+  }
+}
+
+// Cell 2 - Site title
+.n-site-title {
+  grid-column: 2;
+
+  > span {
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 13px !important;
+    font-weight: 200 !important;
+    letter-spacing: 0.18em !important;
+    text-transform: uppercase !important;
+    color: var(--fg) !important;
+    white-space: nowrap;
+
+    padding-inline-start: 16px;
+    border-inline-start: 1px solid var(--border);
+  }
+
+  > span > a {
+    color: inherit !important;
+    font: inherit !important;
+    letter-spacing: inherit !important;
+    text-decoration: none !important;
+    &:hover { opacity: 0.75; }
+  }
+}
+
+// Cell 3 - Menu
+.n-menu {
+  grid-column: 3;
+  justify-content: center !important;
+
+  nav {
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 24px !important;
+
+    [dir="rtl"] & { flex-direction: row-reverse; }
+  }
+
+  // When auth is injected by the Menu module (`showAuthButtons`),
+  // force sign-in/sign-out action to the visual end of nav.
+  nav [data-auth-action="sign-in"],
+  nav [data-auth-action="sign-out"] {
+    order: 99;
+    margin-inline-start: auto;
+  }
+
+  nav a {
+    @include n-mono(10px, 0.18em);
+    color: var(--fg-dim) !important;
+    text-decoration: none !important;
+    font-weight: 400 !important;
+    transition: color 0.2s ease;
+
+    &:hover,
+    &[aria-current="page"],
+    &.active {
+      color: var(--fg) !important;
+    }
+  }
+
+  nav button {
+    @include n-mono(10px, 0.18em);
+    color: var(--fg-dim) !important;
+    background: none !important;
+    border: 0 !important;
+    padding: 0 !important;
+    text-decoration: none !important;
+    font-weight: 400 !important;
+    line-height: 1;
+    transition: color 0.2s ease;
+
+    &:hover { color: var(--fg) !important; }
+  }
+}
+
+// Cell 4 - Mode toggle
+.n-toggle-mode {
+  grid-column: 4;
+
+  button {
+    @include n-mono(9px, 0.14em);
+
+    background: none !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 0 !important;
+    color: var(--fg-dim) !important;
+    padding: 4px 10px !important;
+    cursor: pointer;
+    transition: color 0.2s, border-color 0.2s;
+
+    &:not(.pb-themeToggle--text) svg { display: none; }
+    &:not(.pb-themeToggle--text)::after {
+      content: 'light';
+      display: inline;
+    }
+    [data-mode="dark"] &:not(.pb-themeToggle--text)::after,
+    html.dark &:not(.pb-themeToggle--text)::after {
+      content: 'dark';
+    }
+
+    &:hover {
+      color: var(--fg) !important;
+      border-color: var(--fg-dim) !important;
+      background: none !important;
+    }
+
+    &:active { opacity: 0.6; }
+  }
+}
+
+// Cell 5 - Language selector
+.n-langs {
+  grid-column: 5;
+
+  > div { display: contents; }
+
+  button,
+  select {
+    @include n-mono(9px, 0.18em);
+
+    background: none !important;
+    border: none !important;
+    border-bottom: 1px solid var(--border) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    padding: 0 14px 1px 0 !important;
+    color: var(--fg-dimmer) !important;
+    cursor: pointer;
+    gap: 4px !important;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='rgba(245,245,243,.35)'/%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 0 center !important;
+
+    transition: color 0.2s;
+
+    &:hover {
+      color: var(--fg-dim) !important;
+      background: none !important;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='rgba(245,245,243,.35)'/%3E%3C/svg%3E") !important;
+      background-repeat: no-repeat !important;
+      background-position: right 0 center !important;
+    }
+
+    > span:first-child { display: none; }
+    > svg { display: none; }
+
+    > span:not(:first-child) {
+      @include n-mono(9px, 0.18em);
+      color: inherit !important;
+      font-weight: 400 !important;
+    }
+  }
+
+  [dir='rtl'] & button,
+  [dir='rtl'] & select {
+    padding: 0 0 1px 14px !important;
+    background-position: left 0 center !important;
+  }
+}
+
+// Cell 6 - Sign in link (optional)
+.n-signin {
+  grid-column: 6;
+
+  a, button {
+    @include n-mono(9px, 0.18em);
+    color: var(--fg-dimmer) !important;
+    text-decoration: none !important;
+    border-bottom: 1px solid var(--border) !important;
+    padding-bottom: 1px !important;
+    background: none !important;
+    transition: color 0.2s;
+
+    &:hover { color: var(--fg-dim) !important; }
+  }
+}
+
+// Fallback: if auth module cell isn't named `n-signin`,
+// still pin it to the far-right slot in the header row.
+section.layout-shell.n-header > div > [class*="n-"]:has(.pb-authButtons) {
+  grid-column: 6;
+  order: 6;
+  justify-self: end;
+  margin-inline-start: auto;
+}
+
+// Ensure sign-in/auth cell is visually last even when the shell row
+// ends up behaving like flex (inline styles from PageBuilderGrid).
+section.layout-shell.n-header > div > .n-signin {
+  order: 6;
+  justify-self: end;
+  margin-inline-start: auto;
+}
+
+// RTL
+[dir="rtl"] {
+  .n-site-title > span {
+    padding-inline-end: 16px;
+    border-inline-end: 1px solid var(--border);
+    padding-inline-start: 0;
+    border-inline-start: none;
+  }
+
+  .n-menu nav { flex-direction: row-reverse; }
+}
+
+// Scroll state
+section.layout-shell.n-header.is-scrolled {
+  background: rgba(8, 8, 8, 0.72) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: background 0.3s ease;
+
+  > div > * { mix-blend-mode: normal; }
+}
+
+// Responsive
+@media (max-width: 639px) {
+  section.layout-shell.n-header > div {
+    grid-template-columns: auto 1fr auto auto !important;
+    padding: 16px 20px !important;
+  }
+
+  .n-site-title  { display: none !important; }
+  .n-menu        { display: none !important; }
+  .n-toggle-mode { grid-column: 3 !important; }
+  .n-langs       { grid-column: 4 !important; }
+}
+
+// Page builder: reserve space for fixed header
+main.tpl-pack-noir:has(section.layout-shell.n-header) .pb-page {
+  padding-top: var(--noir-fixed-header-reserve, 5.5rem);
+  scroll-padding-top: var(--noir-fixed-header-reserve, 5.5rem);
+}
+
+// Hero pages don't need the reserve
+main.tpl-pack-noir:has(section.layout-shell.n-header) .pb-page:has(> :first-child section[data-hero-pack="noir"]),
+main.tpl-pack-noir:has(section.layout-shell.n-header) .pb-page:has(> .pb-row:first-child section[data-hero-pack="noir"]) {
+  padding-top: 0;
+  scroll-padding-top: 0;
+}
+
+@media (max-width: 639px) {
+  main.tpl-pack-noir:has(section.layout-shell.n-header) .pb-page {
+    padding-top: var(--noir-fixed-header-reserve-sm, 4.25rem);
+    scroll-padding-top: var(--noir-fixed-header-reserve-sm, 4.25rem);
+  }
+}

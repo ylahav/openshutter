@@ -1,13 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
-	import '$lib/styles/globals.css';
+	import type { LayoutData } from './$types';
 	import { siteConfig, publicSiteFavicon } from '$stores/siteConfig';
 	import { loadSession } from '$lib/stores/auth';
-	import HeaderTemplateSwitcher from '$lib/components/HeaderTemplateSwitcher.svelte';
 	import PackFallbackBanner from '$lib/components/PackFallbackBanner.svelte';
-	import FooterTemplateSwitcher from '$lib/components/FooterTemplateSwitcher.svelte';
-	import BodyTemplateWrapper from '$lib/components/BodyTemplateWrapper.svelte';
 	import AdminAppChrome from '$lib/components/AdminAppChrome.svelte';
 	import ThemeProvider from '$lib/components/ThemeProvider.svelte';
 	import ThemeColorApplier from '$lib/components/ThemeColorApplier.svelte';
@@ -15,6 +12,18 @@
 	import PhotoCopyProtection from '$lib/components/PhotoCopyProtection.svelte';
 	import { logger } from '$lib/utils/logger';
 	import { canonicalUrlFromPageUrl, pathShouldNoindex } from '$lib/utils/canonical-url';
+
+	export let data: LayoutData;
+
+	/**
+	 * Seed site config on SSR and on navigation before child routes render.
+	 * Hydrating only in `onMount` left `siteConfigData` null during SSR, so `$activeTemplate`
+	 * fell back as if the pack were unset and `PageRenderer` could pick Atelier’s hero override
+	 * while the real pack (e.g. studio) came from `data.visitorTemplatePack`.
+	 */
+	$: if (data.visitorSiteConfig) {
+		siteConfig.hydrateFromServer(data.visitorSiteConfig);
+	}
 
 	/** Inline fallback when site config has no favicon yet (avoids undefined href on SSR). */
 	const DEFAULT_FAVICON =
@@ -31,8 +40,11 @@
 			: '';
 	$: faviconHref = faviconFromConfig || DEFAULT_FAVICON;
 	$: isAdminRoute = $page.url.pathname.startsWith('/admin');
+	$: publicShellPromise = isAdminRoute
+		? null
+		: import('$lib/components/BodyTemplateWrapper.svelte');
 
-	// Initialize site config and auth on mount (skip on login page)
+	// Client refresh + auth (site config already hydrated from layout `data` above)
 	onMount(() => {
 		// Only load site config if not on login page
 		if ($page.url.pathname !== '/login') {
@@ -69,22 +81,22 @@
 
 <ThemeProvider defaultTheme="system" enableSystem={true} disableTransitionOnChange={false}>
 	{#if isAdminRoute}
-		<!-- Admin: static shell only — see docs/development/ADMIN_UI_ROADMAP.md Phase 1 -->
+		<!-- Admin: static shell — visitor templating: docs/guides/TEMPLATING_USER_GUIDE.md -->
 		<TokenRenewalNotification />
 		<AdminAppChrome>
 			<slot />
 		</AdminAppChrome>
 	{:else}
 		<PhotoCopyProtection />
-		<ThemeColorApplier />
+		<ThemeColorApplier initialSiteConfig={data.visitorSiteConfig ?? null} />
 		<TokenRenewalNotification />
 		<PackFallbackBanner />
-		<HeaderTemplateSwitcher />
-
-		<BodyTemplateWrapper>
-			<slot />
-		</BodyTemplateWrapper>
-
-		<FooterTemplateSwitcher />
+		{#if publicShellPromise}
+			{#await publicShellPromise then mod}
+				<svelte:component this={mod.default}>
+					<slot />
+				</svelte:component>
+			{/await}
+		{/if}
 	{/if}
 </ThemeProvider>

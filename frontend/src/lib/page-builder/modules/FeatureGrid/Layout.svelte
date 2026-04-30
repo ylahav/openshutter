@@ -27,27 +27,27 @@
 	});
 </script>
 
-<section class="py-20 bg-gray-50 dark:bg-gray-800/50">
-	<div class="w-full">
-		<div class="text-center mb-16">
-			<h2 class="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4">{titleText}</h2>
+<section class="pb-featureGrid">
+	<div class="pb-featureGrid__inner">
+		<div class="pb-featureGrid__header">
+			<h2 class="pb-featureGrid__title">{titleText}</h2>
 			{#if subtitleText}
-				<p class="text-xl text-gray-600 dark:text-gray-300">{subtitleText}</p>
+				<p class="pb-featureGrid__subtitle">{subtitleText}</p>
 			{/if}
 		</div>
 
-		<div class="grid @md:grid-cols-2 @lg:grid-cols-3 gap-8">
+		<div class="pb-featureGrid__grid">
 			{#each features as feature}
-				<div class="bg-white dark:bg-gray-800 rounded-xl shadow-md dark:shadow-gray-900/50 p-8 hover:shadow-lg dark:hover:shadow-gray-900/70 transition-shadow">
+				<div class="pb-featureGrid__card">
 					{#if feature.icon}
-						<div class="w-12 h-12 bg-blue-100 dark:bg-blue-900/40 rounded-lg flex items-center justify-center mb-6 text-blue-600 dark:text-blue-400">
+						<div class="pb-featureGrid__iconWrap">
 							<IconRenderer icon={feature.icon} />
 						</div>
 					{/if}
-					<h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">
+					<h3 class="pb-featureGrid__cardTitle">
 						{MultiLangUtils.getTextValue(feature.title, $currentLanguage) || ''}
 					</h3>
-					<div class="text-gray-600 dark:text-gray-300 leading-relaxed prose prose-sm max-w-none">
+					<div class="pb-featureGrid__cardBody">
 						{@html MultiLangUtils.getHTMLValue(feature.description, $currentLanguage) || ''}
 					</div>
 				</div>
@@ -55,3 +55,98 @@
 		</div>
 	</div>
 </section>
+
+<style lang="scss">
+	.pb-featureGrid {
+		padding: 5rem 0;
+		background: var(--tp-surface-2);
+	}
+
+	.pb-featureGrid__inner {
+		width: 100%;
+	}
+
+	.pb-featureGrid__header {
+		text-align: center;
+		margin-bottom: 4rem;
+	}
+
+	.pb-featureGrid__title {
+		margin: 0 0 1rem;
+		color: var(--tp-fg);
+		font-size: clamp(2rem, 4vw, 2.25rem);
+		font-weight: 700;
+		line-height: 1.2;
+	}
+
+	.pb-featureGrid__subtitle {
+		margin: 0 auto;
+		color: var(--tp-fg-muted);
+		font-size: 1.25rem;
+		line-height: 1.6;
+		max-width: 56rem;
+	}
+
+	.pb-featureGrid__grid {
+		display: grid;
+		grid-template-columns: 1fr;
+		gap: 2rem;
+	}
+
+	.pb-featureGrid__card {
+		background: var(--tp-surface-1);
+		border: 1px solid var(--tp-border);
+		border-radius: 0.75rem;
+		padding: 2rem;
+		transition: box-shadow 0.3s ease;
+	}
+
+	.pb-featureGrid__card:hover {
+		box-shadow: 0 8px 30px color-mix(in srgb, var(--tp-fg) 10%, transparent);
+	}
+
+	.pb-featureGrid__iconWrap {
+		width: 3rem;
+		height: 3rem;
+		border-radius: 0.5rem;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		margin-bottom: 1.5rem;
+		color: var(--os-primary);
+		background: color-mix(in srgb, var(--os-primary) 16%, var(--tp-surface-2));
+	}
+
+	.pb-featureGrid__cardTitle {
+		margin: 0 0 0.75rem;
+		font-size: 1.25rem;
+		font-weight: 600;
+		line-height: 1.3;
+		color: var(--tp-fg);
+	}
+
+	.pb-featureGrid__cardBody {
+		color: var(--tp-fg-muted);
+		line-height: 1.65;
+	}
+
+	.pb-featureGrid__cardBody :global(p) {
+		margin: 0;
+	}
+
+	.pb-featureGrid__cardBody :global(a) {
+		color: var(--os-primary);
+	}
+
+	@media (min-width: 768px) {
+		.pb-featureGrid__grid {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
+	}
+
+	@media (min-width: 1024px) {
+		.pb-featureGrid__grid {
+			grid-template-columns: repeat(3, minmax(0, 1fr));
+		}
+	}
+</style>

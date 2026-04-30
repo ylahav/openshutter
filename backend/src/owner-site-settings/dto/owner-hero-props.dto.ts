@@ -27,4 +27,24 @@ export class OwnerHeroPropsDto {
   @IsOptional()
   @IsString()
   backgroundImage?: string;
+
+  @IsOptional()
+  @IsString()
+  heroLayout?: string;
+
+  @IsOptional()
+  @IsString()
+  heroSplitLead?: string;
+
+  @IsOptional()
+  @IsString()
+  heroSplitGridColumns?: string;
+
+  @IsOptional()
+  @IsString()
+  heroSplitMinHeight?: string;
+
+  @IsOptional()
+  @IsString()
+  heroSplitMediaMinHeight?: string;
 }

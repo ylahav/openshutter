@@ -1,8 +1,25 @@
 import type { TemplateConfig, SiteTemplateConfig } from '$lib/types/template'
+import type { FontRole } from '$lib/types/fonts'
+import { normalizeFontSetting } from '$lib/types/fonts'
 import { TemplateOverridesService } from './template-overrides'
 import type { TemplateWithOverrides } from './template-overrides'
 import type { SiteConfig } from '$lib/types/site-config'
 import { logger } from '$lib/utils/logger'
+import noirThemeDefaults from '$templates/noir/theme.defaults.json'
+import studioThemeDefaults from '$templates/studio/theme.defaults.json'
+import atelierThemeDefaults from '$templates/atelier/theme.defaults.json'
+
+function templateFontsFromThemeJson(raw: Record<string, string | undefined>): TemplateConfig['fonts'] {
+  const role = (r: FontRole) => normalizeFontSetting(raw[r], 'sans-serif', r)
+  return {
+    heading: role('heading'),
+    body: role('body'),
+    links: role('links'),
+    lists: role('lists'),
+    formInputs: role('formInputs'),
+    formLabels: role('formLabels')
+  }
+}
 
 const TEMPLATE_PACK_LOADER_FLAG = 'PUBLIC_ENABLE_TEMPLATE_PACK_LOADER'
 const TEMPLATE_PACK_LOADER_ENABLED =
@@ -14,6 +31,10 @@ type TemplateConfigValidationResult = {
   missingPages: string[]
 }
 
+/**
+ * Static template **metadata** (colors, fonts, layout) + override helpers.
+ * For runtime Svelte pack pages, use `getTemplatePack()` — not `getTemplatePage` / `getTemplateComponent`.
+ */
 export class TemplateService {
   private static instance: TemplateService
   private templateCache: Map<string, TemplateConfig> = new Map()
@@ -86,9 +107,9 @@ export class TemplateService {
           // Determine which template to use based on area
           let templateName: string
           if (area === 'admin') {
-            templateName = 'default'
+            templateName = 'noir'
           } else {
-            templateName = result.data.template?.frontendTemplate || result.data.template?.activeTemplate || 'modern'
+            templateName = result.data.template?.frontendTemplate || result.data.template?.activeTemplate || 'noir'
           }
           const template = await this.loadTemplate(templateName)
           if (template) {
@@ -101,8 +122,7 @@ export class TemplateService {
       logger.error('Error loading active template:', error)
     }
 
-    // Fallback to default template
-    return await this.loadTemplate('default')
+    return await this.loadTemplate('noir')
   }
 
   async setActiveTemplate(templateName: string): Promise<boolean> {
@@ -123,6 +143,7 @@ export class TemplateService {
     }
   }
 
+  /** @deprecated References `@/templates/...` React paths; unused in Svelte packs. */
   async getTemplateComponent(templateName: string, componentName: string): Promise<any> {
     try {
       const template = await this.loadTemplate(templateName)
@@ -140,11 +161,10 @@ export class TemplateService {
         }
       }
 
-      // Fallback to default component if not defined or import failed
-      const defaultTemplate = await this.getTemplateConfig('default')
-      const defaultPath = defaultTemplate?.components[componentName as keyof typeof defaultTemplate.components]
+      const baseTemplate = await this.getTemplateConfig('noir')
+      const defaultPath = baseTemplate?.components[componentName as keyof typeof baseTemplate.components]
       if (defaultPath) {
-        const fallback = await import(`@/templates/default/${defaultPath}`)
+        const fallback = await import(`@/templates/noir/${defaultPath}`)
         return fallback.default || fallback
       }
       return null
@@ -154,100 +174,72 @@ export class TemplateService {
     }
   }
 
+  /**
+   * @deprecated Legacy webpack `require.context` discovery was never valid in Vite/SvelteKit.
+   * Visitor routes use `getTemplatePack()` from `$lib/template/packs/registry` instead.
+   */
   private buildPageLoaders(): Record<string, Record<string, () => Promise<any>>> {
-    // Auto-discover all template page modules using webpack context (lazy mode for code-splitting)
-    // Pattern matches: src/templates/<template>/pages/<Page>.tsx|ts
-    // Note: path here is relative to this file after compilation
-    //       '../templates' resolves to 'src/templates'
-    // @ts-ignore - webpack's require.context() is a build-time API not recognized by TypeScript
-    const ctx = require.context('../templates', true, /\/pages\/[^/]+\.(tsx|ts)$/i)
-    const loaders: Record<string, Record<string, () => Promise<any>>> = {}
-    ctx.keys().forEach((key: string) => {
-      // Key example: './modern/pages/Login.tsx'
-      const match = key.match(/^\.\/([^/]+)\/pages\/([^/.]+)\.(tsx|ts)$/i)
-      if (!match) return
-      const [, tName, pName] = match
-      const templateKey = tName.toLowerCase()
-      const pageKey = pName.toLowerCase()
-      if (!loaders[templateKey]) loaders[templateKey] = {}
-      loaders[templateKey][pageKey] = () => ctx(key)
-    })
-    return loaders
+    return {}
   }
 
-  async getTemplatePage(templateName: string, pageName: string): Promise<any> {
-    try {
-      logger.debug(`getTemplatePage: Loading ${pageName} for template ${templateName}`)
-      if (!this.pageLoaders) {
-        this.pageLoaders = this.buildPageLoaders()
-      }
-
-      const tplKey = (templateName || 'default').toLowerCase()
-      const pageKey = (pageName || '').toLowerCase()
-      const byTemplate = this.pageLoaders[tplKey] || this.pageLoaders['default'] || {}
-      const loader = byTemplate[pageKey]
-      if (loader) {
-        const mod = await loader()
-        return mod.default || mod
-      }
-
-      // Fallback to default template
-      const fallbackByDefault = this.pageLoaders['default'] || {}
-      const fallbackLoader = fallbackByDefault[pageKey]
-      if (fallbackLoader) {
-        const mod = await fallbackLoader()
-        return mod.default || mod
-      }
-
-      logger.error(`getTemplatePage: No page loader found for ${pageName}`)
-      return null
-    } catch (error) {
-      logger.error(`Error loading template page ${pageName}:`, error)
-      return null
-    }
+  /**
+   * @deprecated Unused in SvelteKit; pack pages load via `getTemplatePack()`. Always returns null.
+   */
+  async getTemplatePage(_templateName: string, pageName: string): Promise<any> {
+    logger.debug(
+      `[TemplateService] getTemplatePage("${pageName}") is deprecated; use getTemplatePack() from the template registry`
+    )
+    return null
   }
 
   async getTemplateConfig(templateName: string): Promise<TemplateConfig | null> {
+    const normalizedName = (() => {
+      const t = templateName === 'default' || templateName === 'minimal' || !templateName ? 'noir' : templateName
+      const k = String(t).toLowerCase()
+      if (k === 'simple' || k === 'modern' || k === 'elegant') return 'noir'
+      return k || 'noir'
+    })()
+
     // For public pages, use static template configurations to avoid admin API calls
     // This prevents multiple admin API calls on the homepage
     // Static template configurations for public use (no admin API calls)
     const staticTemplates: Record<string, TemplateConfig> = {
-      'default': {
-      templateName: 'default',
-      displayName: 'Default',
-        description: 'Clean and minimal template',
-      version: '1.0.0',
-      author: 'OpenShutter',
-      thumbnail: '/templates/default/thumbnail.jpg',
-      category: 'minimal',
-      features: { responsive: true, darkMode: false, animations: true, seoOptimized: true },
-      colors: { primary: '#3B82F6', secondary: '#1F2937', accent: '#F59E0B', background: '#FFFFFF', text: '#1F2937', muted: '#6B7280' },
-      fonts: { heading: 'Inter', body: 'Inter' },
-      layout: { maxWidth: '1200px', containerPadding: '1rem', gridGap: '1.5rem' },
-      components: {
-        hero: 'components/Hero.tsx',
-        albumCard: 'components/AlbumCard.tsx',
-        photoCard: 'components/PhotoCard.tsx',
-        albumList: 'components/AlbumList.tsx',
-        gallery: 'components/Gallery.tsx',
-        navigation: 'components/Navigation.tsx',
-        footer: 'components/Footer.tsx',
-      },
-      visibility: { hero: true, languageSelector: true, authButtons: true, footerMenu: true },
-      pages: { home: 'pages/Home.tsx', gallery: 'pages/Gallery.tsx', album: 'pages/Album.tsx', search: 'pages/Search.tsx' },
-      },
-      'modern': {
-        templateName: 'modern',
-        displayName: 'Modern',
-        description: 'Contemporary and sleek design',
+      noir: {
+        templateName: 'noir',
+        displayName: 'Noir',
+        description: 'Cinematic dark layout — mono typography, grid hero, showcase pack',
         version: '1.0.0',
         author: 'OpenShutter',
-        thumbnail: '/templates/modern/thumbnail.jpg',
+        thumbnail: '/templates/noir/thumbnail.jpg',
+        category: 'dark',
+        features: { responsive: true, darkMode: true, animations: true, seoOptimized: true },
+        colors: noirThemeDefaults.colors as TemplateConfig['colors'],
+        fonts: templateFontsFromThemeJson(noirThemeDefaults.fonts as Record<string, string>),
+        layout: { maxWidth: '1280px', containerPadding: '2rem', gridGap: '0.125rem' },
+        components: {
+          hero: 'components/Hero.tsx',
+          albumCard: 'components/AlbumCard.tsx',
+          photoCard: 'components/PhotoCard.tsx',
+          albumList: 'components/AlbumList.tsx',
+          gallery: 'components/Gallery.tsx',
+          navigation: 'components/Navigation.tsx',
+          footer: 'components/Footer.tsx',
+        },
+        visibility: { hero: true, languageSelector: true, authButtons: true, footerMenu: true },
+        pages: { home: 'pages/Home.tsx', gallery: 'pages/Gallery.tsx', album: 'pages/Album.tsx', search: 'pages/Search.tsx' },
+      },
+      studio: {
+        templateName: 'studio',
+        displayName: studioThemeDefaults.displayName ?? 'Studio',
+        description: 'Editorial portfolio layout — Syne & Outfit, hero strip, card grid',
+        version: '1.0.0',
+        author: 'OpenShutter',
+        thumbnail: '/templates/studio/thumbnail.jpg',
         category: 'modern',
         features: { responsive: true, darkMode: true, animations: true, seoOptimized: true },
-        colors: { primary: '#2563EB', secondary: '#334155', accent: '#22D3EE', background: '#0F172A', text: '#E2E8F0', muted: '#94A3B8' },
-        fonts: { heading: 'Inter', body: 'Inter' },
-        layout: { maxWidth: '1280px', containerPadding: '1.5rem', gridGap: '1.75rem' },
+        colors: studioThemeDefaults.colors as TemplateConfig['colors'],
+        fonts: templateFontsFromThemeJson(studioThemeDefaults.fonts as Record<string, string>),
+        layout: { maxWidth: '1200px', containerPadding: '1.75rem', gridGap: '1rem' },
         components: {
           hero: 'components/Hero.tsx',
           albumCard: 'components/AlbumCard.tsx',
@@ -255,23 +247,23 @@ export class TemplateService {
           albumList: 'components/AlbumList.tsx',
           gallery: 'components/Gallery.tsx',
           navigation: 'components/Navigation.tsx',
-          footer: 'components/Footer.tsx',
+          footer: 'components/Footer.tsx'
         },
         visibility: { hero: true, languageSelector: true, authButtons: true, footerMenu: true },
-        pages: { home: 'pages/Home.tsx', gallery: 'pages/Gallery.tsx', album: 'pages/Album.tsx', search: 'pages/Search.tsx' },
+        pages: { home: 'pages/Home.tsx', gallery: 'pages/Gallery.tsx', album: 'pages/Album.tsx', search: 'pages/Search.tsx' }
       },
-      'elegant': {
-        templateName: 'elegant',
-        displayName: 'Elegant',
-        description: 'Elegant and sophisticated design',
+      atelier: {
+        templateName: 'atelier',
+        displayName: 'Atelier',
+        description: 'Warm editorial layout — Cormorant Garamond & Jost, tall hero, list albums',
         version: '1.0.0',
         author: 'OpenShutter',
-        thumbnail: '/templates/elegant/thumbnail.jpg',
+        thumbnail: '/templates/atelier/thumbnail.jpg',
         category: 'elegant',
         features: { responsive: true, darkMode: true, animations: true, seoOptimized: true },
-        colors: { primary: '#7C3AED', secondary: '#C4B5FD', accent: '#F59E0B', background: '#1F1437', text: '#F5F3FF', muted: '#C4B5FD' },
-        fonts: { heading: 'Playfair Display', body: 'Lora' },
-        layout: { maxWidth: '1100px', containerPadding: '2rem', gridGap: '2rem' },
+        colors: atelierThemeDefaults.colors as TemplateConfig['colors'],
+        fonts: templateFontsFromThemeJson(atelierThemeDefaults.fonts as Record<string, string>),
+        layout: { maxWidth: '960px', containerPadding: '2rem', gridGap: '1rem' },
         components: {
           hero: 'components/Hero.tsx',
           albumCard: 'components/AlbumCard.tsx',
@@ -279,48 +271,24 @@ export class TemplateService {
           albumList: 'components/AlbumList.tsx',
           gallery: 'components/Gallery.tsx',
           navigation: 'components/Navigation.tsx',
-          footer: 'components/Footer.tsx',
+          footer: 'components/Footer.tsx'
         },
         visibility: { hero: true, languageSelector: true, authButtons: true, footerMenu: true },
-        pages: { home: 'pages/Home.tsx', gallery: 'pages/Gallery.tsx', album: 'pages/Album.tsx', search: 'pages/Search.tsx' },
-      },
-      'minimal': {
-        templateName: 'minimal',
-        displayName: 'Minimal',
-        description: 'Ultra-minimal and clean design',
-        version: '1.0.0',
-        author: 'OpenShutter',
-        thumbnail: '/templates/minimal/thumbnail.jpg',
-        category: 'minimal',
-        features: { responsive: true, darkMode: false, animations: false, seoOptimized: true },
-        colors: { primary: '#111111', secondary: '#9CA3AF', accent: '#111111', background: '#FFFFFF', text: '#111111', muted: '#9CA3AF' },
-        fonts: { heading: 'Inter', body: 'Inter' },
-        layout: { maxWidth: '980px', containerPadding: '0.75rem', gridGap: '0.75rem' },
-        components: {
-          hero: 'components/Hero.tsx',
-          albumCard: 'components/AlbumCard.tsx',
-          photoCard: 'components/PhotoCard.tsx',
-          albumList: 'components/AlbumList.tsx',
-          gallery: 'components/Gallery.tsx',
-          navigation: 'components/Navigation.tsx',
-          footer: 'components/Footer.tsx',
-        },
-        visibility: { hero: true, languageSelector: true, authButtons: true, footerMenu: true },
-        pages: { home: 'pages/Home.tsx', gallery: 'pages/Gallery.tsx', album: 'pages/Album.tsx', search: 'pages/Search.tsx' },
+        pages: { home: 'pages/Home.tsx', gallery: 'pages/Gallery.tsx', album: 'pages/Album.tsx', search: 'pages/Search.tsx' }
       }
     }
 
     // Keep existing behavior during rollout unless explicitly enabled.
     if (!TEMPLATE_PACK_LOADER_ENABLED) {
-      return staticTemplates[templateName] || staticTemplates['default']
+      return staticTemplates[normalizedName] || staticTemplates['noir']
     }
 
-    const selectedTemplate = staticTemplates[templateName]
+    const selectedTemplate = staticTemplates[normalizedName]
     if (!selectedTemplate) {
       logger.warn(
-        `[TemplatePackLoader] Unknown template "${templateName}", falling back to default template`
+        `[TemplatePackLoader] Unknown template "${templateName}", falling back to noir template`
       )
-      return staticTemplates['default']
+      return staticTemplates['noir']
     }
 
     const validation = this.validateTemplateConfig(selectedTemplate)
@@ -329,9 +297,9 @@ export class TemplateService {
     }
 
     logger.error(
-      `[TemplatePackLoader] Invalid template "${templateName}". Missing components: ${validation.missingComponents.join(', ') || 'none'}. Missing pages: ${validation.missingPages.join(', ') || 'none'}. Falling back to default template.`
+      `[TemplatePackLoader] Invalid template "${templateName}". Missing components: ${validation.missingComponents.join(', ') || 'none'}. Missing pages: ${validation.missingPages.join(', ') || 'none'}. Falling back to noir template.`
     )
-    return staticTemplates['default']
+    return staticTemplates['noir']
   }
 
   private validateTemplateConfig(template: TemplateConfig): TemplateConfigValidationResult {
@@ -370,7 +338,8 @@ export class TemplateService {
    * Get active template with overrides applied
    */
   async getActiveTemplateWithOverrides(siteConfig: SiteConfig): Promise<TemplateWithOverrides | null> {
-    const activeTemplateName = siteConfig.template?.activeTemplate || 'default'
+    const activeTemplateName =
+      siteConfig.template?.frontendTemplate || siteConfig.template?.activeTemplate || 'noir'
     return this.getTemplateWithOverrides(activeTemplateName, siteConfig)
   }
 

@@ -15,6 +15,8 @@ export const GOOGLE_FONTS: { value: string; label: string }[] = [
 	{ value: 'Oswald', label: 'Oswald' },
 	{ value: 'Merriweather', label: 'Merriweather' },
 	{ value: 'Playfair Display', label: 'Playfair Display' },
+	{ value: 'Cormorant Garamond', label: 'Cormorant Garamond' },
+	{ value: 'Jost', label: 'Jost' },
 	{ value: 'PT Sans', label: 'PT Sans' },
 	{ value: 'Ubuntu', label: 'Ubuntu' },
 	{ value: 'DM Sans', label: 'DM Sans' },

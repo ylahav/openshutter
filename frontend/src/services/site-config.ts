@@ -154,6 +154,7 @@ export class SiteConfigService {
         socialMedia: {
           facebook: '',
           instagram: '',
+          flickr: '',
           twitter: '',
           linkedin: ''
         }
@@ -173,7 +174,7 @@ export class SiteConfigService {
         maxUploadSize: '10MB'
       },
       template: {
-        activeTemplate: 'modern'
+        activeTemplate: 'noir'
       },
       createdAt: new Date(),
       updatedAt: new Date()

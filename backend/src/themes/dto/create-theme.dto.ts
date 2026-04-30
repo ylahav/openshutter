@@ -9,7 +9,7 @@ export class CreateThemeDto {
   description?: string;
 
   @IsString()
-  @IsIn(['default', 'minimal', 'elegant', 'modern'])
+  @IsIn(['noir', 'studio', 'atelier'])
   baseTemplate: string;
 
   @IsOptional()

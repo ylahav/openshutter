@@ -1,6 +1,6 @@
 <!-- frontend/src/lib/page-builder/modules/ThemeSelect/Layout.svelte -->
 <script lang="ts">
-	import TemplateSelector from '$lib/components/TemplateSelector.svelte';
+	import TemplateSelector from '$pageBuilder/primitives/template-selector/TemplateSelector.svelte';
 
 	export let config: any = {};
 
@@ -8,4 +8,6 @@
 	$: className = config?.className || '';
 </script>
 
-<TemplateSelector {compact} {className} />
+<div class="pb-themeSelectModule">
+	<TemplateSelector {compact} {className} />
+</div>

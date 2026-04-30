@@ -567,16 +567,16 @@
 {#if loading}
 	<div class="min-h-[50vh] flex items-center justify-center">
 			<div class="text-center">
-			<div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--color-primary-600)]"></div>
-			<p class="mt-4 text-[var(--color-surface-600-400)]">{$t('admin.loadingAlbum')}</p>
+			<div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-(--color-primary-600)"></div>
+			<p class="mt-4 text-(--color-surface-600-400)">{$t('admin.loadingAlbum')}</p>
 		</div>
 	</div>
 {:else if error || !album}
 	<div class="min-h-[50vh] flex items-center justify-center">
 		<div class="text-center">
-			<h1 class="text-2xl font-bold text-[var(--color-surface-950-50)] mb-4">{$t('admin.errorTitle')}</h1>
-			<p class="text-[var(--color-surface-600-400)] mb-4">{error || $t('admin.albumNotFound')}</p>
-			<a href="/admin/albums" class="px-4 py-2 bg-[var(--color-primary-600)] text-white rounded-md hover:bg-[var(--color-primary-700)]">
+			<h1 class="text-2xl font-bold text-(--color-surface-950-50) mb-4">{$t('admin.errorTitle')}</h1>
+			<p class="text-(--color-surface-600-400) mb-4">{error || $t('admin.albumNotFound')}</p>
+			<a href="/admin/albums" class="px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700)">
 				{$t('admin.backToAlbums')}
 			</a>
 		</div>
@@ -593,8 +593,8 @@
 			<div class="mb-6">
 				<div class="flex items-center justify-between">
 					<div>
-						<h1 class="text-3xl font-bold text-[var(--color-surface-950-50)]">{getAlbumName(album)}</h1>
-						<p class="mt-2 text-[var(--color-surface-600-400)]">
+						<h1 class="text-3xl font-bold text-(--color-surface-950-50)">{getAlbumName(album)}</h1>
+						<p class="mt-2 text-(--color-surface-600-400)">
 							{album.photoCount || 0} {album.photoCount === 1 ? $t('admin.photoSingular') : $t('admin.photosPlural')}
 							• {album.isPublic ? $t('admin.public') : $t('admin.private')}
 							{#if album.isFeatured}
@@ -605,7 +605,7 @@
 					<div class="flex items-center gap-3">
 						<a
 							href="/admin/photos/upload?albumId={albumId}"
-							class="px-4 py-2 bg-[var(--color-primary-600)] text-white rounded-md hover:bg-[var(--color-primary-700)]"
+							class="px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700)"
 						>
 							{$t('admin.uploadPhotos')}
 						</a>
@@ -627,7 +627,7 @@
 						>
 							{$t('admin.deleteAlbum')}
 						</button>
-						<a href="/admin/albums" class="px-4 py-2 text-[var(--color-surface-800-200)] bg-[var(--color-surface-100-900)] rounded-md hover:bg-[var(--color-surface-200-800)]">
+						<a href="/admin/albums" class="px-4 py-2 text-(--color-surface-800-200) bg-(--color-surface-100-900) rounded-md hover:bg-(--color-surface-200-800)">
 							{$t('admin.back')}
 						</a>
 					</div>
@@ -652,10 +652,10 @@
 			<!-- Photos Grid -->
 			<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
 				<div class="flex items-center justify-between mb-6">
-					<h2 class="text-2xl font-bold text-[var(--color-surface-950-50)]">
+					<h2 class="text-2xl font-bold text-(--color-surface-950-50)">
 						{$t('admin.photosHeading')} ({photos.length}
 						{#if album && album.photoCount !== photos.length}
-							<span class="text-sm font-normal text-[var(--color-surface-600-400)]">
+							<span class="text-sm font-normal text-(--color-surface-600-400)">
 								/ {album.photoCount} {$t('admin.totalLabel')}
 							</span>
 						{/if})
@@ -664,7 +664,7 @@
 						<div class="flex items-center gap-2">
 							<button
 								on:click={toggleSelectAll}
-								class="px-3 py-1 text-sm text-[var(--color-surface-800-200)] bg-[var(--color-surface-100-900)] rounded-md hover:bg-[var(--color-surface-200-800)]"
+								class="px-3 py-1 text-sm text-(--color-surface-800-200) bg-(--color-surface-100-900) rounded-md hover:bg-(--color-surface-200-800)"
 							>
 								{selectedPhotoIds.size === photos.length
 									? $t('admin.deselectAll')
@@ -677,7 +677,7 @@
 				{#if showBulkActions}
 					<div class="mb-4 p-4 bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] border border-[color-mix(in_oklab,var(--color-primary-500)_18%,transparent)] rounded-lg">
 						<div class="flex items-center justify-between">
-							<span class="text-sm font-medium text-[var(--color-primary-900)]">
+							<span class="text-sm font-medium text-(--color-primary-900)">
 								{selectedPhotoIds.size} photo{selectedPhotoIds.size === 1 ? '' : 's'} selected
 							</span>
 							<div class="flex gap-2">
@@ -698,7 +698,7 @@
 								<button
 									on:click={openLocationDialog}
 									disabled={isBulkUpdating}
-									class="px-3 py-1 text-sm bg-[var(--color-primary-600)] text-white rounded-md hover:bg-[var(--color-primary-700)] disabled:opacity-50"
+									class="px-3 py-1 text-sm bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700) disabled:opacity-50"
 								>
 									{$t('admin.setLocation')}
 								</button>
@@ -765,7 +765,7 @@
 				{#if photos.length === 0}
 					<div class="text-center py-12">
 						<svg
-							class="mx-auto h-12 w-12 text-[var(--color-surface-400-600)]"
+							class="mx-auto h-12 w-12 text-(--color-surface-400-600)"
 							fill="none"
 							viewBox="0 0 24 24"
 							stroke="currentColor"
@@ -777,12 +777,12 @@
 								d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
 							/>
 						</svg>
-						<h3 class="mt-2 text-sm font-medium text-[var(--color-surface-950-50)]">No photos yet</h3>
-						<p class="mt-1 text-sm text-[var(--color-surface-600-400)]">Upload photos to get started</p>
+						<h3 class="mt-2 text-sm font-medium text-(--color-surface-950-50)">No photos yet</h3>
+						<p class="mt-1 text-sm text-(--color-surface-600-400)">Upload photos to get started</p>
 						<div class="mt-6">
 							<a
 								href="/admin/photos/upload?albumId={albumId}"
-								class="inline-flex items-center px-4 py-2 bg-[var(--color-primary-600)] text-white rounded-md hover:bg-[var(--color-primary-700)]"
+								class="inline-flex items-center px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700)"
 							>
 								Upload Photos
 							</a>
@@ -799,11 +799,11 @@
 										type="checkbox"
 										checked={isSelected}
 										on:change={() => togglePhotoSelection(photo._id)}
-										class="w-5 h-5 text-[var(--color-primary-600)] border-surface-300-700 rounded focus:ring-[var(--color-primary-500)] bg-[var(--color-surface-50-950)]/90"
+										class="w-5 h-5 text-(--color-primary-600) border-surface-300-700 rounded focus:ring-(--color-primary-500) bg-(--color-surface-50-950)/90"
 										title={isSelected ? 'Deselect' : 'Select'}
 									/>
 								</div>
-								<div class="aspect-square bg-[var(--color-surface-200-800)] rounded-lg overflow-hidden {isSelected ? 'ring-4 ring-[var(--color-primary-500)]' : ''}">
+								<div class="aspect-square bg-(--color-surface-200-800) rounded-lg overflow-hidden {isSelected ? 'ring-4 ring-(--color-primary-500)' : ''}">
 									{#if photoUrl}
 										<img
 											src={photoUrl}
@@ -821,7 +821,7 @@
 										/>
 									{:else}
 										<div class="w-full h-full flex items-center justify-center">
-											<svg class="w-12 h-12 text-[var(--color-surface-400-600)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+											<svg class="w-12 h-12 text-(--color-surface-400-600)" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 												<path
 													stroke-linecap="round"
 													stroke-linejoin="round"
@@ -838,7 +838,7 @@
 									<div class="flex gap-2">
 										<a
 											href="/admin/photos/{photo._id}/edit"
-											class="px-3 py-1 bg-[var(--color-primary-600)] text-white text-sm rounded hover:bg-[var(--color-primary-700)]"
+											class="px-3 py-1 bg-(--color-primary-600) text-white text-sm rounded hover:bg-(--color-primary-700)"
 										>
 											{$t('admin.edit')}
 										</a>
@@ -915,13 +915,13 @@
 					)}
 			</h3>
 			<div class="mb-4">
-				<label for="location-select" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+				<label for="location-select" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
 					{$t('admin.selectLocation')}
 				</label>
 				<select
 					id="location-select"
 					bind:value={selectedLocationId}
-					class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)]"
+					class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:outline-none focus:ring-2 focus:ring-(--color-primary-500)"
 				>
 					<option value="">{ $t('admin.noLocation') }</option>
 					{#each locations as location}
@@ -936,14 +936,14 @@
 			<div class="flex justify-end gap-2">
 				<button
 					on:click={() => { showLocationDialog = false; selectedLocationId = null; }}
-					class="px-4 py-2 text-[var(--color-surface-800-200)] bg-[var(--color-surface-100-900)] rounded-md hover:bg-[var(--color-surface-200-800)]"
+					class="px-4 py-2 text-(--color-surface-800-200) bg-(--color-surface-100-900) rounded-md hover:bg-(--color-surface-200-800)"
 				>
 					{$t('admin.cancel')}
 				</button>
 				<button
 					on:click={applyLocation}
 					disabled={isBulkUpdating}
-					class="px-4 py-2 bg-[var(--color-primary-600)] text-white rounded-md hover:bg-[var(--color-primary-700)] disabled:opacity-50"
+					class="px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700) disabled:opacity-50"
 				>
 					{isBulkUpdating ? $t('admin.applying') : $t('admin.apply')}
 				</button>
@@ -957,25 +957,25 @@
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
 		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6 max-w-md w-full mx-4 max-h-[80vh] flex flex-col">
 			<h3 class="text-lg font-semibold mb-2">Set Tags for {selectedPhotoIds.size} Photo{selectedPhotoIds.size === 1 ? '' : 's'}</h3>
-			<p class="text-sm text-[var(--color-surface-600-400)] mb-4">
+			<p class="text-sm text-(--color-surface-600-400) mb-4">
 				{$t('admin.setTagsDescription')}
 			</p>
 			<div class="flex-1 overflow-y-auto border border-surface-200-800 rounded-md p-3 mb-4 min-h-[200px]">
 				{#if tags.length === 0}
-					<p class="text-sm text-[var(--color-surface-600-400)]">{$t('admin.loadingTags')}</p>
+					<p class="text-sm text-(--color-surface-600-400)">{$t('admin.loadingTags')}</p>
 				{:else}
 					<div class="space-y-2">
 						{#each tags as tag}
 							{@const tagName = typeof tag.name === 'string' ? tag.name : MultiLangUtils.getTextValue(tag.name, $currentLanguage) || tag._id}
-							<label class="flex items-center gap-2 cursor-pointer hover:bg-[var(--color-surface-50-950)] p-2 rounded">
+							<label class="flex items-center gap-2 cursor-pointer hover:bg-(--color-surface-50-950) p-2 rounded">
 								<input
 									type="checkbox"
 									checked={selectedTagIds.includes(tag._id)}
 									on:change={() => toggleTag(tag._id)}
 								/>
-								<span class="text-sm text-[var(--color-surface-950-50)]">{tagName}</span>
+								<span class="text-sm text-(--color-surface-950-50)">{tagName}</span>
 								{#if tag.category}
-									<span class="text-xs text-[var(--color-surface-600-400)]">({tag.category})</span>
+									<span class="text-xs text-(--color-surface-600-400)">({tag.category})</span>
 								{/if}
 							</label>
 						{/each}
@@ -985,7 +985,7 @@
 			<div class="flex justify-end gap-2">
 				<button
 					on:click={() => { showTagsDialog = false; selectedTagIds = []; }}
-					class="px-4 py-2 text-[var(--color-surface-800-200)] bg-[var(--color-surface-100-900)] rounded-md hover:bg-[var(--color-surface-200-800)]"
+					class="px-4 py-2 text-(--color-surface-800-200) bg-(--color-surface-100-900) rounded-md hover:bg-(--color-surface-200-800)"
 				>
 					{$t('admin.cancel')}
 				</button>
@@ -1013,12 +1013,12 @@
 						selectedPhotoIds.size === 1 ? $t('admin.photoSingular') : $t('admin.photosPlural')
 					)}
 			</h3>
-			<p class="text-sm text-[var(--color-surface-600-400)] mb-4">
+			<p class="text-sm text-(--color-surface-600-400) mb-4">
 				{$t('admin.setMetadataDescription')}
 			</p>
 			<div class="space-y-4 mb-4">
 				<div>
-					<label for="bulk-rating" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-1">
+					<label for="bulk-rating" class="block text-sm font-medium text-(--color-surface-800-200) mb-1">
 						{$t('admin.ratingLabel')}
 					</label>
 					<select
@@ -1033,7 +1033,7 @@
 					</select>
 				</div>
 				<div>
-					<label for="bulk-category" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-1">
+					<label for="bulk-category" class="block text-sm font-medium text-(--color-surface-800-200) mb-1">
 						{$t('admin.categoryLabel')}
 					</label>
 					<input
@@ -1045,12 +1045,12 @@
 					/>
 				</div>
 				<div class="border-t border-surface-200-800 pt-3 mt-3">
-					<span class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+					<span class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
 						{$t('admin.exifOverridesLabel')}
 					</span>
 					<div class="grid grid-cols-1 gap-3">
 						<div>
-							<label for="bulk-exif-date" class="block text-xs font-medium text-[var(--color-surface-600-400)] mb-0.5">
+							<label for="bulk-exif-date" class="block text-xs font-medium text-(--color-surface-600-400) mb-0.5">
 								{$t('admin.exifDateTakenLabel')}
 							</label>
 							<input
@@ -1061,7 +1061,7 @@
 							/>
 						</div>
 						<div>
-							<label for="bulk-exif-make" class="block text-xs font-medium text-[var(--color-surface-600-400)] mb-0.5">
+							<label for="bulk-exif-make" class="block text-xs font-medium text-(--color-surface-600-400) mb-0.5">
 								{$t('admin.exifMakeLabel')}
 							</label>
 							<input
@@ -1073,7 +1073,7 @@
 							/>
 						</div>
 						<div>
-							<label for="bulk-exif-model" class="block text-xs font-medium text-[var(--color-surface-600-400)] mb-0.5">
+							<label for="bulk-exif-model" class="block text-xs font-medium text-(--color-surface-600-400) mb-0.5">
 								{$t('admin.exifModelLabel')}
 							</label>
 							<input
@@ -1090,7 +1090,7 @@
 			<div class="flex justify-end gap-2">
 				<button
 					on:click={() => { showMetadataDialog = false; bulkMetadataRating = ''; bulkMetadataCategory = ''; bulkExifDate = ''; bulkExifMake = ''; bulkExifModel = ''; }}
-					class="px-4 py-2 text-[var(--color-surface-800-200)] bg-[var(--color-surface-100-900)] rounded-md hover:bg-[var(--color-surface-200-800)]"
+					class="px-4 py-2 text-(--color-surface-800-200) bg-(--color-surface-100-900) rounded-md hover:bg-(--color-surface-200-800)"
 				>
 					{$t('admin.cancel')}
 				</button>

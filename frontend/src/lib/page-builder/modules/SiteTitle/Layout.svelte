@@ -9,10 +9,44 @@
 	$: linkToHome = config?.showAsLink !== false;
 </script>
 
-<span class="font-semibold text-lg text-gray-900 dark:text-gray-100" style="font-family: var(--os-font-heading, inherit);">
+<span class="pb-siteTitle">
 	{#if linkToHome}
-		<a href="/" class="hover:opacity-80 transition-opacity">{title}</a>
+		<!-- Global `a { font-family: … }` targets links; inherit so this stays heading/title typography. -->
+		<a
+			href="/"
+			class="pb-siteTitle__link"
+		>{title}</a>
 	{:else}
 		{title}
 	{/if}
 </span>
+
+<style lang="scss">
+	.pb-siteTitle {
+		color: var(--tp-fg);
+		font-family: var(--os-font-heading, inherit);
+		font-size: 1.125rem;
+		font-weight: 600;
+	}
+
+	.pb-siteTitle__link {
+		color: inherit;
+		font: inherit;
+		text-decoration: none;
+		transition: opacity 0.2s ease;
+	}
+
+	.pb-siteTitle__link:hover {
+		opacity: 0.8;
+	}
+
+	.pb-siteTitle__link:visited {
+		color: inherit;
+	}
+
+	.pb-siteTitle__link:focus-visible {
+		border-radius: 0.125rem;
+		outline: 2px solid var(--os-primary);
+		outline-offset: 2px;
+	}
+</style>

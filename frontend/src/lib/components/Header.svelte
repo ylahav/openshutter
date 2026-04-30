@@ -5,10 +5,10 @@
 	import { siteConfigData, siteConfig, publicSiteLogo } from '$stores/siteConfig';
 	import { auth } from '$lib/stores/auth';
 	import { getProductName } from '$lib/utils/productName';
-	import LanguageSelector from '$components/LanguageSelector.svelte';
-	import TemplateSelector from '$components/TemplateSelector.svelte';
-	import ThemeToggle from '$components/ThemeToggle.svelte';
-	import Menu from '$components/Menu.svelte';
+	import LanguageSelector from '$pageBuilder/primitives/language-selector/LanguageSelector.svelte';
+	import TemplateSelector from '$pageBuilder/primitives/template-selector/TemplateSelector.svelte';
+	import ThemeToggle from '$pageBuilder/primitives/theme-toggle/ThemeToggle.svelte';
+	import Menu from '$pageBuilder/primitives/menu/Menu.svelte';
 	import NotificationNavLink from '$lib/components/NotificationNavLink.svelte';
 	import { logger } from '$lib/utils/logger';
 
@@ -25,6 +25,8 @@
 		? ($headerConfig.showLanguageSelector ?? $headerConfig.enableLanguageSelector) 
 		: true;
 	$: showThemeToggle = $headerConfig?.enableThemeToggle !== undefined ? $headerConfig.enableThemeToggle : true;
+	$: languageSelectorVariant =
+		$headerConfig?.languageSelectorVariant === 'flags' ? 'flags' : 'dropdown';
 	$: showAuthButtons = $headerConfig?.showAuthButtons !== undefined ? $headerConfig.showAuthButtons : true;
 	$: showGreeting = $headerConfig?.showGreeting !== undefined ? $headerConfig.showGreeting : true;
 
@@ -54,7 +56,10 @@
 	}
 </script>
 
-<header class="bg-white shadow-sm border-b border-gray-200">
+<header
+	class="shadow-sm border-b transition-colors duration-300 bg-[color:var(--tp-surface-1)] border-[color:var(--tp-border)] text-[color:var(--tp-fg)]"
+	style="font-family: var(--os-font-body);"
+>
 	<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 		<div class="flex justify-between items-center h-16">
 			<!-- Logo and title -->
@@ -67,8 +72,16 @@
 							class="w-10 h-10 object-contain shrink-0"
 						/>
 					{:else}
-						<div class="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center shrink-0">
-							<svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<div
+							class="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
+							style="background: var(--os-primary, var(--tp-brand));"
+						>
+							<svg
+								class="w-6 h-6 text-[color:var(--tp-on-brand)]"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24"
+							>
 								<path
 									stroke-linecap="round"
 									stroke-linejoin="round"
@@ -88,7 +101,10 @@
 
 				{#if showSiteTitle}
 					<div class="flex flex-col">
-						<a href="/" class="text-xl font-bold text-gray-900 hover:text-primary-600 transition-colors">
+						<a
+							href="/"
+							class="text-xl font-bold transition-colors text-[color:var(--tp-fg)] hover:text-[color:var(--os-primary)]"
+						>
 							{$title}
 						</a>
 					</div>
@@ -97,23 +113,25 @@
 
 			<!-- Navigation -->
 			{#if showMenu || showTemplateSelector || showLanguageSelector || showThemeToggle}
-				<div class="hidden md:flex items-center gap-4 text-sm text-gray-600">
+				<div class="hidden md:flex items-center gap-4 text-sm text-[color:var(--tp-fg-muted)]">
 					{#if showMenu}
 						<Menu
 							config={$headerConfig}
-							itemClass="hover:text-gray-900"
-							activeItemClass="text-primary-600 font-medium"
+							itemClass="text-[color:var(--tp-fg-muted)] hover:text-[color:var(--tp-fg)]"
+							activeItemClass="text-[color:var(--os-primary)] font-medium"
 							containerClass="flex items-center gap-4"
 							showActiveIndicator={true}
 							showAuthButtons={showAuthButtons}
 						/>
 
 						{#if showAuthButtons && $auth.authenticated && $auth.user}
-							<span class="text-gray-400">|</span>
-							<NotificationNavLink linkClass="relative text-gray-600 hover:text-gray-900" />
+							<span class="text-[color:var(--tp-fg-subtle)]">|</span>
+							<NotificationNavLink
+								linkClass="relative text-[color:var(--tp-fg-muted)] hover:text-[color:var(--tp-fg)]"
+							/>
 							{#if showGreeting}
-								<span class="text-gray-400">|</span>
-								<span class="text-gray-500">{$auth.user.name || $auth.user.email}</span>
+								<span class="text-[color:var(--tp-fg-subtle)]">|</span>
+								<span class="text-[color:var(--tp-fg-muted)]">{$auth.user.name || $auth.user.email}</span>
 							{/if}
 						{/if}
 					{/if}
@@ -128,7 +146,7 @@
 					<!-- Language selector (if enabled) -->
 					{#if showLanguageSelector}
 						<div class="ml-6">
-							<LanguageSelector compact={true} />
+							<LanguageSelector compact={true} variant={languageSelectorVariant} />
 						</div>
 					{/if}
 

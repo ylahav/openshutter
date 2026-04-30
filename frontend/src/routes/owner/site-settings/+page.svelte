@@ -8,6 +8,7 @@ import { logger } from '$lib/utils/logger';
 import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 import { t } from '$stores/i18n';
 	import type { PageData } from './$types';
+	import { normalizeHeroSplitLead } from '$lib/page-builder/modules/Hero/hero-layout';
 
 	export let data: PageData;
 
@@ -31,6 +32,11 @@ import { t } from '$stores/i18n';
 			ctaUrl: '',
 			backgroundStyle: 'light' as string,
 			backgroundImage: '',
+			heroLayout: '',
+			heroSplitLead: 'media' as 'media' | 'copy',
+			heroSplitGridColumns: '',
+			heroSplitMinHeight: '',
+			heroSplitMediaMinHeight: '',
 		},
 		seo: { metaTitle: {} as MultiLangText, metaDescription: {} as MultiLangText },
 		contact: { email: '', socialMedia: { facebook: '', instagram: '', twitter: '' } as Record<string, string> },
@@ -51,7 +57,10 @@ import { t } from '$stores/i18n';
 			}
 			const result = await response.json();
 			const raw = result.data ?? result;
-			const hero = raw.hero && typeof raw.hero === 'object' ? raw.hero : {};
+			const hero = (raw.hero && typeof raw.hero === 'object' ? raw.hero : {}) as Record<
+				string,
+				unknown
+			>;
 			const seo = raw.seo && typeof raw.seo === 'object' ? raw.seo : {};
 			const contact = raw.contact && typeof raw.contact === 'object' ? raw.contact : {};
 			const footer = raw.footer && typeof raw.footer === 'object' ? raw.footer : {};
@@ -61,12 +70,28 @@ import { t } from '$stores/i18n';
 				logo: typeof raw.logo === 'string' ? raw.logo : '',
 				favicon: typeof raw.favicon === 'string' ? raw.favicon : '',
 				hero: {
-					title: (hero.title && typeof hero.title === 'object') ? hero.title : {},
-					subtitle: (hero.subtitle && typeof hero.subtitle === 'object') ? hero.subtitle : {},
-					ctaLabel: (hero.ctaLabel && typeof hero.ctaLabel === 'object') ? hero.ctaLabel : {},
+					title:
+						hero.title && typeof hero.title === 'object' && !Array.isArray(hero.title)
+							? (hero.title as MultiLangText)
+							: {},
+					subtitle:
+						hero.subtitle && typeof hero.subtitle === 'object' && !Array.isArray(hero.subtitle)
+							? (hero.subtitle as MultiLangText)
+							: {},
+					ctaLabel:
+						hero.ctaLabel && typeof hero.ctaLabel === 'object' && !Array.isArray(hero.ctaLabel)
+							? (hero.ctaLabel as MultiLangText)
+							: {},
 					ctaUrl: typeof hero.ctaUrl === 'string' ? hero.ctaUrl : '',
 					backgroundStyle: typeof hero.backgroundStyle === 'string' ? hero.backgroundStyle : 'light',
 					backgroundImage: typeof hero.backgroundImage === 'string' ? hero.backgroundImage : '',
+					heroLayout: typeof hero.heroLayout === 'string' ? hero.heroLayout : '',
+					heroSplitLead:
+						normalizeHeroSplitLead(hero.heroSplitLead) === 'copy' ? 'copy' : 'media',
+					heroSplitGridColumns: typeof hero.heroSplitGridColumns === 'string' ? hero.heroSplitGridColumns : '',
+					heroSplitMinHeight: typeof hero.heroSplitMinHeight === 'string' ? hero.heroSplitMinHeight : '',
+					heroSplitMediaMinHeight:
+						typeof hero.heroSplitMediaMinHeight === 'string' ? hero.heroSplitMediaMinHeight : '',
 				},
 				seo: {
 					metaTitle: (seo.metaTitle && typeof seo.metaTitle === 'object') ? seo.metaTitle : {},
@@ -97,6 +122,24 @@ import { t } from '$stores/i18n';
 		success = null;
 
 		try {
+			const h = formData.hero;
+			const heroPayload =
+				h.heroLayout === 'split'
+					? (() => {
+							const { heroSplitLead, ...base } = h;
+							return heroSplitLead === 'copy' ? { ...base, heroSplitLead: 'copy' } : base;
+						})()
+					: (() => {
+							const {
+								heroSplitGridColumns,
+								heroSplitMinHeight,
+								heroSplitMediaMinHeight,
+								heroSplitLead: _lead,
+								...rest
+							} = h;
+							return rest;
+						})();
+
 			const response = await fetch('/api/owner/site-settings', {
 				method: 'PATCH',
 				headers: { 'Content-Type': 'application/json' },
@@ -105,7 +148,7 @@ import { t } from '$stores/i18n';
 					description: formData.description,
 					logo: formData.logo.trim(),
 					favicon: formData.favicon.trim(),
-					hero: formData.hero,
+					hero: heroPayload,
 					seo: formData.seo,
 					contact: formData.contact,
 					footer: formData.footer,
@@ -376,6 +419,82 @@ import { t } from '$stores/i18n';
 										placeholder="https://..."
 									/>
 								</div>
+							{/if}
+							<div>
+								<label class="block text-sm font-medium text-gray-700 mb-1">
+									{$t('owner.heroLayoutLabel')}
+								</label>
+								<select
+									bind:value={formData.hero.heroLayout}
+									class="w-full px-3 py-2 border border-gray-300 rounded-md"
+								>
+									<option value="">{$t('owner.heroLayoutTemplateDefault')}</option>
+									<option value="fullbleed">Full-bleed</option>
+									<option value="split">Split</option>
+									<option value="editorial">Editorial</option>
+									<option value="stacked">Stacked</option>
+									<option value="mosaic">Mosaic</option>
+									<option value="filmstrip">Filmstrip</option>
+									<option value="minimal">Minimal / typographic</option>
+									<option value="portrait">Portrait</option>
+									<option value="slideshow">Slideshow</option>
+								</select>
+								<p class="mt-1 text-xs text-gray-600">{$t('owner.heroLayoutHelp')}</p>
+							</div>
+							{#if formData.hero.heroLayout === 'split'}
+							<div class="pt-2 border-t border-gray-200">
+								<p class="text-sm font-medium text-gray-800 mb-1">{$t('owner.heroSplitSizingTitle')}</p>
+								<p class="text-xs text-gray-600 mb-3">{$t('owner.heroSplitSizingHelp')}</p>
+								<div class="space-y-3">
+									<div>
+										<label class="block text-xs font-medium text-gray-700 mb-1">
+											{$t('owner.heroSplitLeadLabel')}
+										</label>
+										<select
+											bind:value={formData.hero.heroSplitLead}
+											class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+										>
+											<option value="media">{$t('owner.heroSplitLeadImageFirst')}</option>
+											<option value="copy">{$t('owner.heroSplitLeadTextFirst')}</option>
+										</select>
+									</div>
+									<div>
+										<label class="block text-xs font-medium text-gray-700 mb-1">
+											{$t('owner.heroSplitGridColumns')}
+										</label>
+										<input
+											type="text"
+											bind:value={formData.hero.heroSplitGridColumns}
+											class="w-full px-3 py-2 border border-gray-300 rounded-md font-mono text-sm"
+											placeholder={$t('owner.heroSplitGridColumnsPlaceholder')}
+										/>
+									</div>
+									<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+										<div>
+											<label class="block text-xs font-medium text-gray-700 mb-1">
+												{$t('owner.heroSplitMinHeight')}
+											</label>
+											<input
+												type="text"
+												bind:value={formData.hero.heroSplitMinHeight}
+												class="w-full px-3 py-2 border border-gray-300 rounded-md font-mono text-sm"
+												placeholder={$t('owner.heroSplitMinHeightPlaceholder')}
+											/>
+										</div>
+										<div>
+											<label class="block text-xs font-medium text-gray-700 mb-1">
+												{$t('owner.heroSplitMediaMinHeight')}
+											</label>
+											<input
+												type="text"
+												bind:value={formData.hero.heroSplitMediaMinHeight}
+												class="w-full px-3 py-2 border border-gray-300 rounded-md font-mono text-sm"
+												placeholder={$t('owner.heroSplitMediaMinHeightPlaceholder')}
+											/>
+										</div>
+									</div>
+								</div>
+							</div>
 							{/if}
 						</div>
 					</div>

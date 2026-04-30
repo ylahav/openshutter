@@ -9,6 +9,7 @@
 		showAlbumPageTitle?: boolean;
 		showAlbumPageDescription?: boolean;
 		showAlbumPageStats?: boolean;
+		showAlbumHero?: boolean;
 		albumSource?: 'root' | 'featured' | 'selected' | 'current';
 		selectedAlbums?: string[];
 		rootAlbumId?: string;
@@ -26,6 +27,11 @@
 		cardFieldOrder?: Array<'title' | 'cover' | 'description' | 'photoCount' | 'featuredBadge'>;
 		albumCardFieldOrder?: Array<'title' | 'cover' | 'description' | 'photoCount' | 'featuredBadge'>;
 		photoCardFieldOrder?: Array<'title' | 'cover' | 'description' | 'featuredBadge'>;
+		albumCardLayout?: 'stack' | 'row';
+		albumCard?: string;
+		photoCard?: string;
+		albumCardVariant?: string;
+		photoGridVariant?: string;
 		showPhotoCount?: boolean;
 		showFeaturedBadge?: boolean;
 		showAlbumFeaturedBadge?: boolean;
@@ -33,6 +39,7 @@
 		cardDataType?: 'subAlbums' | 'photos' | 'both';
 		mixedDisplayMode?: 'grouped' | 'interleaved';
 		showSectionLabels?: boolean;
+		showHeading?: boolean;
 		sortBy?: 'manual' | 'order' | 'name' | 'photoCount' | 'createdAt' | 'lastPhotoDate';
 		sortDirection?: 'asc' | 'desc';
 		limit?: number;
@@ -48,6 +55,7 @@
 	export let showAlbumPageTitle: NonNullable<AlbumGalleryProps['showAlbumPageTitle']> = true;
 	export let showAlbumPageDescription: NonNullable<AlbumGalleryProps['showAlbumPageDescription']> = true;
 	export let showAlbumPageStats: NonNullable<AlbumGalleryProps['showAlbumPageStats']> = true;
+	export let showAlbumHero: NonNullable<AlbumGalleryProps['showAlbumHero']> = false;
 	export let albumSource: NonNullable<AlbumGalleryProps['albumSource']> = 'root';
 	export let selectedAlbums: AlbumGalleryProps['selectedAlbums'] = undefined;
 	export let rootAlbumId: AlbumGalleryProps['rootAlbumId'] = undefined;
@@ -65,6 +73,11 @@
 	export let cardFieldOrder: NonNullable<AlbumGalleryProps['cardFieldOrder']> = ['cover', 'title', 'description', 'photoCount', 'featuredBadge'];
 	export let albumCardFieldOrder: NonNullable<AlbumGalleryProps['albumCardFieldOrder']> = ['cover', 'title', 'description', 'photoCount', 'featuredBadge'];
 	export let photoCardFieldOrder: NonNullable<AlbumGalleryProps['photoCardFieldOrder']> = ['cover', 'title', 'description', 'featuredBadge'];
+	export let albumCardLayout: NonNullable<AlbumGalleryProps['albumCardLayout']> = 'stack';
+	export let albumCard: AlbumGalleryProps['albumCard'] = undefined;
+	export let photoCard: AlbumGalleryProps['photoCard'] = undefined;
+	export let albumCardVariant: AlbumGalleryProps['albumCardVariant'] = undefined;
+	export let photoGridVariant: AlbumGalleryProps['photoGridVariant'] = undefined;
 	export let showPhotoCount: NonNullable<AlbumGalleryProps['showPhotoCount']> = true;
 	export let showFeaturedBadge: NonNullable<AlbumGalleryProps['showFeaturedBadge']> = true;
 	export let showAlbumFeaturedBadge: NonNullable<AlbumGalleryProps['showAlbumFeaturedBadge']> = true;
@@ -72,6 +85,7 @@
 	export let cardDataType: NonNullable<AlbumGalleryProps['cardDataType']> = 'both';
 	export let mixedDisplayMode: NonNullable<AlbumGalleryProps['mixedDisplayMode']> = 'grouped';
 	export let showSectionLabels: NonNullable<AlbumGalleryProps['showSectionLabels']> = true;
+	export let showHeading: AlbumGalleryProps['showHeading'] = undefined;
 	export let sortBy: NonNullable<AlbumGalleryProps['sortBy']> = 'manual';
 	export let sortDirection: NonNullable<AlbumGalleryProps['sortDirection']> = 'asc';
 	export let limit: NonNullable<AlbumGalleryProps['limit']> = 12;
@@ -92,6 +106,7 @@
 			showAlbumPageTitle,
 			showAlbumPageDescription,
 			showAlbumPageStats,
+			showAlbumHero,
 			albumSource,
 			selectedAlbums,
 			rootAlbumId,
@@ -109,6 +124,11 @@
 			cardFieldOrder,
 			albumCardFieldOrder,
 			photoCardFieldOrder,
+			albumCardLayout,
+			albumCard,
+			photoCard,
+			albumCardVariant,
+			photoGridVariant,
 			showPhotoCount,
 			showFeaturedBadge,
 			showAlbumFeaturedBadge,
@@ -116,6 +136,7 @@
 			cardDataType,
 			mixedDisplayMode,
 			showSectionLabels,
+			showHeading,
 			sortBy,
 			sortDirection,
 			limit

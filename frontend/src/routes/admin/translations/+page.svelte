@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
 	import AdminConfirmDialog from '$lib/components/admin/AdminConfirmDialog.svelte';
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
@@ -696,13 +695,13 @@
 		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
 			<div class="flex items-center justify-between mb-6">
 				<div>
-					<h1 class="text-2xl font-bold text-[var(--color-surface-950-50)]">{$t('admin.translationManagement')}</h1>
+					<h1 class="text-2xl font-bold text-(--color-surface-950-50)">{$t('admin.translationManagement')}</h1>
 				</div>
 				<div class="flex items-center gap-2">
 					<button
 						type="button"
 						on:click={() => (showAddLanguageDialog = true)}
-						class="px-4 py-2 bg-[var(--color-primary-600)] text-white text-sm font-medium rounded-md hover:bg-[var(--color-primary-700)]"
+						class="px-4 py-2 bg-(--color-primary-600) text-white text-sm font-medium rounded-md hover:bg-(--color-primary-700)"
 					>
 						+ {$t('admin.addLanguage')}
 					</button>
@@ -724,21 +723,21 @@
 			{#if autoTranslating && translationProgress.total > 0}
 				<div class="mb-4 p-4 bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] border border-[color-mix(in_oklab,var(--color-primary-500)_24%,transparent)] rounded-lg">
 					<div class="flex items-center justify-between mb-2">
-						<span class="text-sm font-medium text-[var(--color-primary-900)]">
+						<span class="text-sm font-medium text-(--color-primary-900)">
 							Translating missing translations...
 						</span>
-						<span class="text-sm text-[var(--color-primary-700)]">
+						<span class="text-sm text-(--color-primary-700)">
 							{translationProgress.current} / {translationProgress.total}
 						</span>
 					</div>
 					<div class="w-full bg-[color-mix(in_oklab,var(--color-primary-500)_28%,transparent)] rounded-full h-2.5">
 						<div
-							class="bg-[var(--color-primary-600)] h-2.5 rounded-full transition-all duration-300"
+							class="bg-(--color-primary-600) h-2.5 rounded-full transition-all duration-300"
 							style="width: {Math.min((translationProgress.current / translationProgress.total) * 100, 100)}%"
 						></div>
 					</div>
 					{#if translationProgress.currentKey}
-						<p class="mt-2 text-xs text-[var(--color-primary-700)] truncate">
+						<p class="mt-2 text-xs text-(--color-primary-700) truncate">
 							Translating: {translationProgress.currentKey}
 						</p>
 					{/if}
@@ -747,22 +746,22 @@
 
 			{#if loading && !selectedLanguage}
 				<div class="text-center py-12">
-					<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--color-primary-600)] mx-auto"></div>
-					<p class="mt-4 text-[var(--color-surface-600-400)]">{$t('admin.loadingLanguages')}</p>
+					<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-(--color-primary-600) mx-auto"></div>
+					<p class="mt-4 text-(--color-surface-600-400)">{$t('admin.loadingLanguages')}</p>
 				</div>
 			{:else}
 				<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 					<!-- Language List -->
 					<div class="lg:col-span-1">
-						<h2 class="text-lg font-semibold text-[var(--color-surface-950-50)] mb-4">{$t('admin.languages')}</h2>
+						<h2 class="text-lg font-semibold text-(--color-surface-950-50) mb-4">{$t('admin.languages')}</h2>
 						<div class="space-y-2">
 							{#each languages as lang}
 								<div
 									role="button"
 									tabindex="0"
 									class="p-3 rounded-lg border cursor-pointer transition-colors {selectedLanguage === lang.code
-										? 'bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] border-[var(--color-primary-500)]'
-										: 'bg-[var(--color-surface-50-950)] border-surface-200-800 hover:bg-[var(--color-surface-100-900)]'}"
+										? 'bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] border-(--color-primary-500)'
+										: 'bg-(--color-surface-50-950) border-surface-200-800 hover:bg-(--color-surface-100-900)'}"
 									on:click={() => loadTranslations(lang.code)}
 									on:keydown={(e) => {
 										if (e.key === 'Enter' || e.key === ' ') {
@@ -774,8 +773,8 @@
 									<div class="flex items-center justify-between">
 										<div class="flex items-center gap-2">
 											<span class="text-xl">{lang.flag}</span>
-											<span class="font-medium text-[var(--color-surface-950-50)]">{lang.name}</span>
-											<span class="text-sm text-[var(--color-surface-600-400)]">({lang.code})</span>
+											<span class="font-medium text-(--color-surface-950-50)">{lang.name}</span>
+											<span class="text-sm text-(--color-surface-600-400)">({lang.code})</span>
 										</div>
 										{#if lang.code !== 'en'}
 											<button
@@ -798,7 +797,7 @@
 						{#if selectedLanguage}
 							<div class="mb-4">
 								<div class="flex items-center justify-between mb-4">
-									<h2 class="text-lg font-semibold text-[var(--color-surface-950-50)]">
+									<h2 class="text-lg font-semibold text-(--color-surface-950-50)">
 										{$t('admin.editingLanguage')}:{' '}
 										{languages.find((l) => l.code === selectedLanguage)?.name || selectedLanguage}
 									</h2>
@@ -831,57 +830,57 @@
 
 								{#if loading}
 									<div class="text-center py-12">
-										<div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--color-primary-600)] mx-auto"></div>
-										<p class="mt-4 text-[var(--color-surface-600-400)]">{$t('admin.loadingTranslations')}</p>
+										<div class="animate-spin rounded-full h-8 w-8 border-b-2 border-(--color-primary-600) mx-auto"></div>
+										<p class="mt-4 text-(--color-surface-600-400)">{$t('admin.loadingTranslations')}</p>
 									</div>
 								{:else}
 									<div class="border border-surface-200-800 rounded-lg overflow-hidden">
 										{#if filteredKeys.length === 0}
 											<div class="text-center py-8">
 												{#if Object.keys(translations).length === 0}
-													<p class="text-[var(--color-surface-600-400)] mb-2">{$t('admin.noTranslationsLoaded')}</p>
-													<p class="text-xs text-[var(--color-surface-400-600)]">
+													<p class="text-(--color-surface-600-400) mb-2">{$t('admin.noTranslationsLoaded')}</p>
+													<p class="text-xs text-(--color-surface-400-600)">
 														{$t('admin.translationsObjectEmptyCheckConsole')}
 													</p>
 												{:else if searchTerm}
-													<p class="text-[var(--color-surface-600-400)]">
+													<p class="text-(--color-surface-600-400)">
 														{$t('admin.noTranslationsMatchSearch')}
 													</p>
 												{:else}
-													<p class="text-[var(--color-surface-600-400)]">{$t('admin.noTranslationsFound')}</p>
+													<p class="text-(--color-surface-600-400)">{$t('admin.noTranslationsFound')}</p>
 												{/if}
 											</div>
 										{:else}
 											<div class="overflow-x-auto max-h-[600px] overflow-y-auto">
 												<table class="min-w-full divide-y divide-surface-200-800">
-													<thead class="bg-[var(--color-surface-50-950)] sticky top-0 z-10">
+													<thead class="bg-(--color-surface-50-950) sticky top-0 z-10">
 														<tr>
-															<th class="px-4 py-3 text-left text-xs font-medium text-[var(--color-surface-600-400)] uppercase tracking-wider">
+															<th class="px-4 py-3 text-left text-xs font-medium text-(--color-surface-600-400) uppercase tracking-wider">
 																{$t('admin.keyword')}
 															</th>
-															<th class="px-4 py-3 text-left text-xs font-medium text-[var(--color-surface-600-400)] uppercase tracking-wider">
+															<th class="px-4 py-3 text-left text-xs font-medium text-(--color-surface-600-400) uppercase tracking-wider">
 																{$t('admin.originalEn')}
 															</th>
-															<th class="px-4 py-3 text-left text-xs font-medium text-[var(--color-surface-600-400)] uppercase tracking-wider">
+															<th class="px-4 py-3 text-left text-xs font-medium text-(--color-surface-600-400) uppercase tracking-wider">
 																{$t('admin.translation')}
 															</th>
-															<th class="px-4 py-3 text-right text-xs font-medium text-[var(--color-surface-600-400)] uppercase tracking-wider w-20">
+															<th class="px-4 py-3 text-right text-xs font-medium text-(--color-surface-600-400) uppercase tracking-wider w-20">
 																{$t('admin.actions')}
 															</th>
 														</tr>
 													</thead>
-													<tbody class="bg-[var(--color-surface-50-950)] divide-y divide-surface-200-800">
+													<tbody class="bg-(--color-surface-50-950) divide-y divide-surface-200-800">
 														{#each filteredKeys as key}
 															{@const value = getNestedValue(translations, key)}
 															{@const englishValue = selectedLanguage !== 'en' ? getNestedValue(englishTranslations, key) : value}
 															{@const isEditing = editingKey === key}
 															{@const isMissing = !value || (typeof value === 'string' && value.trim() === '')}
-															<tr class="{isMissing ? 'bg-yellow-50' : 'hover:bg-[var(--color-surface-50-950)]'}">
+															<tr class="{isMissing ? 'bg-yellow-50' : 'hover:bg-(--color-surface-50-950)'}">
 																<td class="px-4 py-3 whitespace-nowrap">
-																	<div class="text-sm font-medium text-[var(--color-surface-950-50)]">{key}</div>
+																	<div class="text-sm font-medium text-(--color-surface-950-50)">{key}</div>
 																</td>
 																<td class="px-4 py-3">
-																	<div class="text-sm text-[var(--color-surface-600-400)] break-words max-w-md">
+																	<div class="text-sm text-(--color-surface-600-400) wrap-break-word max-w-md">
 																		{englishValue ? (typeof englishValue === 'string' ? englishValue : JSON.stringify(englishValue)) : '-'}
 																	</div>
 																</td>
@@ -897,20 +896,20 @@
 																			<button
 																				type="button"
 																				on:click={() => saveEdit(key)}
-																				class="px-2 py-1 bg-[var(--color-primary-600)] text-white text-xs rounded hover:bg-[var(--color-primary-700)]"
+																				class="px-2 py-1 bg-(--color-primary-600) text-white text-xs rounded hover:bg-(--color-primary-700)"
 																			>
 																				{$t('admin.save')}
 																			</button>
 																			<button
 																				type="button"
 																				on:click={cancelEdit}
-																				class="px-2 py-1 bg-[var(--color-surface-200-800)] text-[var(--color-surface-800-200)] text-xs rounded hover:bg-[var(--color-surface-300-700)]"
+																				class="px-2 py-1 bg-(--color-surface-200-800) text-(--color-surface-800-200) text-xs rounded hover:bg-(--color-surface-300-700)"
 																			>
 																				{$t('admin.cancel')}
 																			</button>
 																		</div>
 																	{:else}
-																		<div class="text-sm text-[var(--color-surface-600-400)] break-words max-w-md">
+																		<div class="text-sm text-(--color-surface-600-400) wrap-break-word max-w-md">
 																			{#if isMissing}
 																				<span class="text-yellow-600 italic">
 																					{$t('admin.missingTranslation')}
@@ -926,7 +925,7 @@
 																		<button
 																			type="button"
 																			on:click={() => startEdit(key, value || englishValue || '')}
-																			class="text-[var(--color-primary-600)] hover:text-[var(--color-primary-800)] p-1 rounded hover:bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)]"
+																			class="text-(--color-primary-600) hover:text-(--color-primary-800) p-1 rounded hover:bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)]"
 																			title={isMissing
 																				? $t('admin.addTranslation')
 																				: $t('admin.editTranslation')}
@@ -950,7 +949,7 @@
 											type="button"
 											on:click={saveTranslations}
 											disabled={saving}
-											class="px-6 py-2 bg-[var(--color-primary-600)] text-white font-medium rounded-md hover:bg-[var(--color-primary-700)] disabled:opacity-50 disabled:cursor-not-allowed"
+											class="px-6 py-2 bg-(--color-primary-600) text-white font-medium rounded-md hover:bg-(--color-primary-700) disabled:opacity-50 disabled:cursor-not-allowed"
 										>
 											{saving ? $t('admin.savingTranslations') : $t('admin.saveTranslations')}
 										</button>
@@ -958,7 +957,7 @@
 								{/if}
 							</div>
 						{:else}
-							<div class="text-center py-12 text-[var(--color-surface-600-400)]">
+							<div class="text-center py-12 text-(--color-surface-600-400)">
 								<p>{$t('admin.selectLanguageToEditTranslations')}</p>
 							</div>
 						{/if}
@@ -973,11 +972,11 @@
 {#if showAddLanguageDialog}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
 		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6 max-w-md w-full mx-4">
-			<h3 class="text-lg font-semibold text-[var(--color-surface-950-50)] mb-4">{$t('admin.addNewLanguage')}</h3>
+			<h3 class="text-lg font-semibold text-(--color-surface-950-50) mb-4">{$t('admin.addNewLanguage')}</h3>
 			
 			<div class="space-y-4">
 				<div>
-					<label for="new-language-code" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-1">
+					<label for="new-language-code" class="block text-sm font-medium text-(--color-surface-800-200) mb-1">
 						{$t('admin.languageCode')}
 					</label>
 					<input
@@ -995,13 +994,13 @@
 							}
 						}}
 					/>
-					<p class="text-xs text-[var(--color-surface-600-400)] mt-1">
+					<p class="text-xs text-(--color-surface-600-400) mt-1">
 						{$t('admin.languageCodeHelp')}
 					</p>
 				</div>
 
 				<div>
-					<label for="new-language-name" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-1">
+					<label for="new-language-name" class="block text-sm font-medium text-(--color-surface-800-200) mb-1">
 						{$t('admin.languageName')}
 					</label>
 					<input
@@ -1014,7 +1013,7 @@
 				</div>
 
 				<div>
-					<label for="new-language-flag" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-1">
+					<label for="new-language-flag" class="block text-sm font-medium text-(--color-surface-800-200) mb-1">
 						{$t('admin.flagEmoji')}
 					</label>
 					<input
@@ -1036,7 +1035,7 @@
 						newLanguageName = '';
 						newLanguageFlag = '🌐';
 					}}
-					class="px-4 py-2 bg-[var(--color-surface-200-800)] text-[var(--color-surface-800-200)] rounded-md hover:bg-[var(--color-surface-300-700)]"
+					class="px-4 py-2 bg-(--color-surface-200-800) text-(--color-surface-800-200) rounded-md hover:bg-(--color-surface-300-700)"
 				>
 					{$t('admin.cancel')}
 				</button>
@@ -1044,7 +1043,7 @@
 					type="button"
 					on:click={createLanguage}
 					disabled={saving || !newLanguageCode || !newLanguageName}
-					class="px-4 py-2 bg-[var(--color-primary-600)] text-white rounded-md hover:bg-[var(--color-primary-700)] disabled:opacity-50"
+					class="px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700) disabled:opacity-50"
 				>
 					{saving ? $t('admin.creating') : $t('admin.create')}
 				</button>

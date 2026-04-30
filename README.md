@@ -184,6 +184,19 @@ For detailed admin setup instructions, see [docs/guides/ADMIN_SETUP.md](docs/gui
    pnpm type-check   # Run TypeScript type checking
    ```
 
+### Frontend runtime notes (local)
+
+- `frontend/pnpm start` runs `node build/index.js` and reads values from the process environment.
+- `frontend/pnpm startondev` loads `frontend/.env.production` before starting the built app.
+- `frontend/pnpm start:local` runs `build` then `startondev`.
+- `frontend/pnpm start:local:https` runs the built app on `http://localhost:4001` and an HTTPS proxy on `https://localhost:4000` for production-like local testing.
+
+### Admin styling isolation
+
+- Admin routes (`/admin`) now use a dedicated stylesheet: `frontend/src/lib/styles/admin.css`.
+- Public template styles are loaded only through `BodyTemplateWrapper` (non-admin routes).
+- This keeps admin UI layout/styles independent from gallery template packs.
+
 ## 🚀 Production Deployment
 
 > **📖 Full Deployment Guide**: For complete instructions including environment setup, MongoDB configuration, PM2 management, Nginx, and SSL, see **[docs/guides/SERVER_DEPLOYMENT.md](docs/guides/SERVER_DEPLOYMENT.md)**
@@ -458,7 +471,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
   - [x] Rotate photo 90° CW, 90° CCW, or 180° from photo edit page (admin and owner). Backend replaces file and regenerates thumbnails. API: `POST /api/admin/photos/:id/rotate` with body `{ angle: 90 | -90 | 180 }`.
   - [ ] Crop (future)
 - [x] **Social sharing features** – Share buttons (X, Facebook, WhatsApp, Copy link) on album and in photo lightbox; configurable in Site Config → Sharing (which options, album vs photo level); single-photo share URL with `#p=index` opens lightbox at that photo; elegant template: share on album grid per photo
-- [x] **Enhanced tag analytics** (search/tag-filter behavior) — Admin **Analytics → Search** includes `tagFilterStats` (summary + top tags in filters, CSV export). Owners: **`/owner/analytics`** and **`GET /api/owner/analytics/search-tag-filters`**. Search events set **`metadata.ownerScopeId`** on owner custom domains; **`GET/POST /api/v1/search`** logs analytics like site search. See **[`docs/development/design/ADVANCED_ANALYTICS_DESIGN.md`](docs/development/design/ADVANCED_ANALYTICS_DESIGN.md)**. Deeper admin-only insights (e.g. time series of tag filters only) remain optional.
+- [x] **Enhanced tag analytics** (search/tag-filter behavior) — Admin **Analytics → Search** includes `tagFilterStats` (summary + top tags in filters, CSV export). Owners: **`/owner/analytics`** and **`GET /api/owner/analytics/search-tag-filters`**. Search events set **`metadata.ownerScopeId`** on owner custom domains; **`GET/POST /api/v1/search`** logs analytics like site search. See **[`docs/archive/development/design/ADVANCED_ANALYTICS_DESIGN.md`](docs/archive/development/design/ADVANCED_ANALYTICS_DESIGN.md)**. Deeper admin-only insights (e.g. time series of tag filters only) remain optional.
 - [x] **User role management** – Admin/Owner/Guest roles, Admin → Users (role + groupAliases), Admin → Groups, owner dashboard and owner album/photo management (`/owner/albums`, `/owner/photos/[id]/edit`), AdminOrOwnerGuard and ownership enforcement
 - [x] **Welcome email on user creation** – Configurable SMTP settings and welcome email subject/body in Site Config; sent when an admin creates a new user (optional)
 - [x] **Force password change on first login** – System-generated or admin-set passwords mark the user to change password on first login; blocking modal/flow ensures password is updated before accessing protected areas
@@ -472,19 +485,19 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
   - [x] **IPTC/XMP import** – On upload and on “Re-extract from file”, IPTC and XMP metadata are extracted (exifr) and stored in the photo’s `iptcXmp` field (keywords, caption, copyright, creator, city, country, etc.); API and templates can use `iptcXmp`. Export (write back to file) optional/future.
 
 ### Phase 3 (Next 12 months) *
-- [x] Import/Sync & storage migration: export/import portable packages, import from raw folders, and migrate photo storage between providers (see [`docs/development/design/IMPORT_SYNC_DESIGN.md`](docs/development/design/IMPORT_SYNC_DESIGN.md) and [`docs/archive/development/PHASE_3_WORKFLOW.md`](docs/archive/development/PHASE_3_WORKFLOW.md))
-- [x] **AI-powered photo tagging** – Suggest tags per photo or in bulk; supports local storage and Google Drive (downloads to temp file); **Local AI provider fully implemented** with TensorFlow.js MobileNet v2 model for on-device classification; design in [`docs/development/design/AI_TAGGING_DESIGN.md`](docs/development/design/AI_TAGGING_DESIGN.md)
-- [x] **Site-wide template packs** — Visitor-facing **packs** are registered in code (`frontend/src/lib/template-packs/registry.ts`): required shells **Home**, **Gallery** (albums list), **Album**, **Login**, plus optional chrome such as **Header** / **Footer** (see `types.ts`). **About** and **custom / Page Builder pages** are not separate pack components; they use the shared **page builder** (`PageRenderer` + modules from site config). Admin selects the active pack and options under **Site configuration** (theme/layout) and **Template configuration** (component visibility, etc.). Adding a built-in pack means new Svelte under `frontend/src/lib/templates/<packId>/` plus a **registry** entry — not a loose per-folder `config.ts` as the only contract. Details: [`docs/development/TEMPLATING_REQUIREMENTS.md`](docs/development/TEMPLATING_REQUIREMENTS.md) §8, [`docs/development/TEMPLATING_TASKS.md`](docs/development/TEMPLATING_TASKS.md).
-- [x] **Advanced analytics** – Admin analytics dashboard (views, search, tags, storage); event logging with privacy (hashed IPs); design in [`docs/development/design/ADVANCED_ANALYTICS_DESIGN.md`](docs/development/design/ADVANCED_ANALYTICS_DESIGN.md)
-- [x] **API marketplace** – Public API at `/api/v1/` with OpenAPI docs; API keys and scopes; developer portal (`/developers`, `/developers/keys`, `/developers/docs`); marketplace (`/marketplace`, submit, admin approval); design in [`docs/development/design/API_MARKETPLACE.md`](docs/development/design/API_MARKETPLACE.md)
-- [x] **Smart tag suggestions & tag-based search optimization** – Context-based tag suggestions from similar photos, IPTC keywords, location, and patterns; optimized search with compound indexes and relevance scoring; design in [`docs/development/design/SMART_TAG_SUGGESTIONS_DESIGN.md`](docs/development/design/SMART_TAG_SUGGESTIONS_DESIGN.md)
+- [x] Import/Sync & storage migration: export/import portable packages, import from raw folders, and migrate photo storage between providers (see [`docs/archive/development/design/IMPORT_SYNC_DESIGN.md`](docs/archive/development/design/IMPORT_SYNC_DESIGN.md) and [`docs/archive/development/PHASE_3_WORKFLOW.md`](docs/archive/development/PHASE_3_WORKFLOW.md))
+- [x] **AI-powered photo tagging** – Suggest tags per photo or in bulk; supports local storage and Google Drive (downloads to temp file); **Local AI provider fully implemented** with TensorFlow.js MobileNet v2 model for on-device classification; design in [`docs/archive/development/design/AI_TAGGING_DESIGN.md`](docs/archive/development/design/AI_TAGGING_DESIGN.md)
+- [x] **Site-wide template packs** — Visitor-facing **packs** are registered in code (`frontend/src/lib/template-packs/registry.ts`): required shells **Home**, **Gallery** (albums list), **Album**, **Login**, plus optional chrome such as **Header** / **Footer** (see `types.ts`). **About** and **custom / Page Builder pages** are not separate pack components; they use the shared **page builder** (`PageRenderer` + modules from site config). Admin selects the active pack and options under **Site configuration** (theme/layout) and **Template configuration** (component visibility, etc.). Adding a built-in pack means new Svelte under `frontend/src/lib/templates/<packId>/` plus a **registry** entry — not a loose per-folder `config.ts` as the only contract. Details: [`docs/development/TEMPLATING.md`](docs/development/TEMPLATING.md) (requirements, implementation, §8 pack appendix), [Part III checklist](docs/development/TEMPLATING.md#part-iii-implementation-checklist-and-backlog); Admin / themes: [`docs/guides/TEMPLATING_USER_GUIDE.md`](docs/guides/TEMPLATING_USER_GUIDE.md); page builder modules: [`docs/development/PAGE_BUILDER_MODULES.md`](docs/development/PAGE_BUILDER_MODULES.md).
+- [x] **Advanced analytics** – Admin analytics dashboard (views, search, tags, storage); event logging with privacy (hashed IPs); design in [`docs/archive/development/design/ADVANCED_ANALYTICS_DESIGN.md`](docs/archive/development/design/ADVANCED_ANALYTICS_DESIGN.md)
+- [x] **API marketplace** – Public API at `/api/v1/` with OpenAPI docs; API keys and scopes; developer portal (`/developers`, `/developers/keys`, `/developers/docs`); marketplace (`/marketplace`, submit, admin approval); design in [`docs/archive/development/design/API_MARKETPLACE.md`](docs/archive/development/design/API_MARKETPLACE.md)
+- [x] **Smart tag suggestions & tag-based search optimization** – Context-based tag suggestions from similar photos, IPTC keywords, location, and patterns; optimized search with compound indexes and relevance scoring; design in [`docs/archive/development/design/SMART_TAG_SUGGESTIONS_DESIGN.md`](docs/archive/development/design/SMART_TAG_SUGGESTIONS_DESIGN.md)
 
 ### Phase 4 (Next 18 months) *
 - [ ] Enterprise features (SSO, audit logs, quotas, multi-tenancy)
 - [ ] Video support
-- [x] Advanced collaboration — album comments (Phase 4 Stage 3 MVP — see [`docs/development/PHASE_4_WORKFLOW.md`](docs/development/PHASE_4_WORKFLOW.md) supplementary detail)
-- [x] Integration marketplace (Phase 4 Stage 2 — see [`docs/development/PHASE_4_WORKFLOW.md`](docs/development/PHASE_4_WORKFLOW.md) supplementary detail)
-- [x] White-label solutions (Phase 4 Stage 1 — see [`docs/development/PHASE_4_WORKFLOW.md`](docs/development/PHASE_4_WORKFLOW.md))
+- [x] Advanced collaboration — album comments (Phase 4 Stage 3 MVP — see [`docs/archive/development/PHASE_4_WORKFLOW.md`](docs/archive/development/PHASE_4_WORKFLOW.md) supplementary detail)
+- [x] Integration marketplace (Phase 4 Stage 2 — see [`docs/archive/development/PHASE_4_WORKFLOW.md`](docs/archive/development/PHASE_4_WORKFLOW.md) supplementary detail)
+- [x] White-label solutions (Phase 4 Stage 1 — see [`docs/archive/development/PHASE_4_WORKFLOW.md`](docs/archive/development/PHASE_4_WORKFLOW.md))
 - [ ] Mobile app development
 
 *Note: Roadmap phases and timelines are subject to change based on user feedback, technical requirements, and development priorities.

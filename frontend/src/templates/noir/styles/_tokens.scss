@@ -1,0 +1,71 @@
+// ============================================================
+// Noir — _tokens.scss
+//
+// Pack-local CSS custom properties that mirror the design
+// mockup (template-noir-full.html). Defined inside the
+// .tpl-pack-noir scope so they only apply when the pack is
+// active. Values bridge to the global --tp-* tokens (which
+// come from ThemeColorApplier / site config) while exposing
+// the shorter mockup names used throughout the noir partials.
+//
+// Variables exposed:
+//   --bg, --bg-card, --bg-card2, --fg, --fg-dim, --fg-dimmer,
+//   --border, --gap, --gap-grid (alias for --gap)
+//
+// Light mode: [data-mode="light"] / html.light overrides.
+// ============================================================
+
+.tpl-pack-noir {
+  // ── Surfaces ─────────────────────────────────────────────────
+  --bg:        var(--tp-canvas, #080808);
+  --bg-card:   var(--tp-surface-1, #141414);
+  --bg-card2:  var(--tp-surface-2, #1c1c1c);
+
+  // Aliases compatible with the global _tokens.scss naming
+  --bg-2:      var(--bg-card);
+  --bg-3:      var(--bg-card2);
+
+  // ── Foreground ───────────────────────────────────────────────
+  --fg:        var(--tp-fg, #f5f5f3);
+  --fg-dim:    rgba(245, 245, 243, 0.38);
+  --fg-dimmer: rgba(245, 245, 243, 0.16);
+
+  // Aliases compatible with the global _tokens.scss naming
+  --fg-mid:    var(--fg-dim);
+  --fg-muted:  var(--fg-dimmer);
+
+  // ── Border ───────────────────────────────────────────────────
+  --border: rgba(255, 255, 255, 0.07);
+
+  // ── Spacing ──────────────────────────────────────────────────
+  --gap:      2px;   // tight grid gap (album / photo grids)
+  --gap-grid: var(--gap);
+
+  // ── Cursor (signature noir touch) ────────────────────────────
+  cursor: crosshair;
+}
+
+// ── Light mode overrides ──────────────────────────────────────
+// Two selectors so we work whether the consumer drives
+// [data-mode="light"] (mockup), html.light (ThemeColorApplier),
+// or both.
+
+.tpl-pack-noir[data-mode="light"],
+[data-mode="light"] .tpl-pack-noir,
+html.light .tpl-pack-noir {
+  --bg:        var(--tp-canvas, #f5f5f3);
+  --bg-card:   var(--tp-surface-1, #e8e8e5);
+  --bg-card2:  var(--tp-surface-2, #ddddd9);
+  --fg:        var(--tp-fg, #080808);
+  --fg-dim:    rgba(8, 8, 8, 0.45);
+  --fg-dimmer: rgba(8, 8, 8, 0.22);
+  --border:    rgba(0, 0, 0, 0.08);
+}
+
+// ── Body cursor ───────────────────────────────────────────────
+// Place on body for full-page coverage when the pack is active.
+
+main.tpl-pack-noir,
+main.tpl-pack-noir * {
+  cursor: inherit;
+}

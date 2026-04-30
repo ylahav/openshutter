@@ -1,0 +1,217 @@
+// ============================================================
+// Noir Hero — _hero.scss
+//
+// Mirrors template-noir-full.html .hero block:
+//   .hero (100vh full-bleed, flex center, crosshair cursor)
+//     img.hero-img (absolute inset-0, object-cover, filter
+//                    brightness(.35) grayscale(.3) dark)
+//     .hero-content (z-2, text-center)
+//       .hero-title (DM Sans 200, clamp(42, 8vw, 96), -.02em)
+//       .hero-rule (1px x 48px, fg-dim)
+//       .hero-sub (10px DM Mono, .28em, fg-dim)
+//     .hero-scroll (absolute bottom 32, 9px DM Mono, .22em,
+//                    pulse animation 2s)
+//
+// Produced DOM tree (page-builder Hero/Layout.svelte):
+//   div.flex-1.n-s-hero                ← layoutShell cell wrapper
+//     section[data-hero-pack="noir"]   ← hero section
+//       div.relative.w-full            ← image + overlay wrapper
+//         div.relative.isolate         ← image inner wrapper
+//           img.max-h-[50vh].object-contain  ← needs cover + 100vh
+//           div[tp-overlay-scrim]            ← gradient overlay
+//         div.absolute.inset-0         ← content wrapper
+//           div.relative.w-full.py-16
+//             h1.text-3xl              ← restyle as hero-title
+//             p.text-base              ← restyle as hero-sub
+//             a.rounded-full           ← hide CTA for noir
+//
+// SCSS workarounds: fake hero-rule via h1::after and fake
+// hero-scroll via section::after (until component renders them).
+// ============================================================
+
+@mixin n-mono($size: 10px, $spacing: 0.18em) {
+  font-family: 'DM Mono', monospace;
+  font-size: $size;
+  letter-spacing: $spacing;
+  text-transform: uppercase;
+  font-weight: 400;
+}
+
+// ── Outer wrapper cell ────────────────────────────────────────
+// The layoutShell wraps the section in a flex cell div.
+
+.n-s-hero {
+  display: block !important;
+  flex: none !important;
+  width: 100% !important;
+}
+
+// ── Section (full-bleed layout) ───────────────────────────────
+// Other layouts (split / editorial) use different DOM roots,
+// so we scope to data-hero-layout="fullbleed" only.
+
+section[data-hero-pack="noir"][data-hero-layout="fullbleed"] {
+  position: relative;
+  height: 100vh;
+  min-height: 480px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: crosshair;
+
+  // ── Image wrapper divs — collapse to passthrough ───────────
+
+  > div,
+  > div > div:first-child {
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  // ── Hero image ─────────────────────────────────────────────
+
+  img {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-height: none !important;
+    object-fit: cover !important;
+    object-position: center;
+    display: block;
+
+    // Mockup filter: brightness .35 grayscale .3 (dark)
+    filter: brightness(0.35) grayscale(0.3);
+    transition: filter 0.35s ease;
+  }
+
+  // ── Overlay scrim ──────────────────────────────────────────
+  // Replace the flat tp-overlay-scrim with a subtle bottom-up
+  // gradient. The mockup has no explicit overlay, but the
+  // image filter alone leaves the scroll prompt at risk; a
+  // soft scrim helps without being heavy.
+
+  div[class*="overlay"],
+  div[style*="overlay"],
+  .pointer-events-none[class*="absolute"] {
+    background: linear-gradient(
+      to top,
+      rgba(8, 8, 8, 0.55) 0%,
+      rgba(8, 8, 8, 0.05) 50%,
+      transparent 100%
+    ) !important;
+  }
+
+  // ── Content wrapper ────────────────────────────────────────
+
+  > div > div:last-child {
+    position: absolute !important;
+    inset: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    > div {
+      width: 100%;
+      padding: 0 !important;
+      text-align: center;
+      position: relative;
+      z-index: 2;
+    }
+  }
+
+  // ── Title (h1 → mockup .hero-title) ────────────────────────
+
+  h1 {
+    font-family: 'DM Sans', sans-serif !important;
+    font-weight: 200 !important;
+    font-size: clamp(42px, 8vw, 96px) !important;
+    letter-spacing: -0.02em !important;
+    line-height: 1 !important;
+    color: var(--fg) !important;
+    margin-bottom: 20px !important;
+    text-transform: lowercase;   // noir signature
+  }
+
+  // ── Rule — first try component-rendered .hero-rule ─────────
+
+  .hero-rule {
+    width: 1px;
+    height: 48px;
+    background: var(--fg-dim);
+    margin: 0 auto 20px;
+  }
+
+  // Fallback: fake a rule via h1::after when .hero-rule is absent
+  h1:not(:has(+ .hero-rule))::after {
+    content: '';
+    display: block;
+    width: 1px;
+    height: 48px;
+    background: var(--fg-dim);
+    margin: 20px auto 0;
+  }
+
+  // ── Subtitle (p → mockup .hero-sub) ───────────────────────
+
+  p {
+    @include n-mono(10px, 0.28em);
+    color: var(--fg-dim) !important;
+    margin-bottom: 0 !important;
+  }
+
+  // ── CTA button — hidden for noir ──────────────────────────
+
+  a[class*="rounded-full"],
+  a[class*="bg-[color:var(--os-primary)]"] {
+    display: none !important;
+  }
+
+  // ── Scroll prompt (mockup .hero-scroll) ────────────────────
+
+  .hero-scroll {
+    position: absolute;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    @include n-mono(9px, 0.22em);
+    color: var(--fg-dimmer);
+    text-decoration: none;
+    cursor: pointer;
+    animation: heroScroll 2s infinite;
+    z-index: 3;
+  }
+
+  // Fallback: fake the scroll prompt via section::after when
+  // component does not render span.hero-scroll.
+  &:not(:has(.hero-scroll))::after {
+    content: 'scroll';
+    position: absolute;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--fg-dimmer);
+    pointer-events: none;
+    animation: heroScroll 2s infinite;
+    z-index: 3;
+  }
+}
+
+// ── Animations ────────────────────────────────────────────────
+
+@keyframes heroScroll {
+  0%, 100% { opacity: 0.3; }
+  50%       { opacity: 0.8; }
+}
+
+// ── Light mode ────────────────────────────────────────────────
+
+[data-mode="light"] section[data-hero-pack="noir"][data-hero-layout="fullbleed"] img,
+html.light section[data-hero-pack="noir"][data-hero-layout="fullbleed"] img {
+  filter: brightness(0.55) grayscale(0.2);
+}

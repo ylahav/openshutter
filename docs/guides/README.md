@@ -17,5 +17,5 @@ Use these documents to **install, deploy, and run** OpenShutter — admins, owne
 | [FACE_RECOGNITION_SETUP.md](./FACE_RECOGNITION_SETUP.md) | Face detection setup |
 | [MANUAL_TEST_DEDICATED_STORAGE.md](./MANUAL_TEST_DEDICATED_STORAGE.md) | QA checklist (dedicated storage) |
 | [PERFORMANCE_IMPROVEMENTS.md](./PERFORMANCE_IMPROVEMENTS.md) | DB indexes and query notes |
-| [TEMPLATE_CONTROL.md](./TEMPLATE_CONTROL.md) | **Admin UI:** where to change themes, colors, pages |
+| [TEMPLATING_USER_GUIDE.md](./TEMPLATING_USER_GUIDE.md) | **Templating:** Admin workflows, URLs, creating a theme; points to dev spec |
 | [nginx-openshutter.conf](./nginx-openshutter.conf) | Example nginx config |

@@ -57,13 +57,13 @@
 					</div>
 				{/if}
 				<Dialog.Title
-					class="text-lg font-semibold text-[var(--heading-font-color)] {variant === 'danger'
+					class="text-lg font-semibold text-(--heading-font-color) {variant === 'danger'
 						? 'text-center'
 						: ''}"
 				>
 					{title}
 				</Dialog.Title>
-				<Dialog.Description class="mt-2 text-sm text-[var(--color-surface-600-400)] {variant === 'danger'
+				<Dialog.Description class="mt-2 text-sm text-(--color-surface-600-400) {variant === 'danger'
 					? 'text-center'
 					: ''}">
 					{message}

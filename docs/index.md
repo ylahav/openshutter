@@ -1,12 +1,10 @@
 # OpenShutter documentation
 
-Documentation is split by audience:
-
 | Audience | Folder | Purpose |
 |----------|--------|---------|
-| **Operators & site owners** | [`guides/`](./guides/README.md) | Install, deploy, configure storage, uploads, security, translations, white-label, admin how-tos |
-| **Engineering & contributors** | [`development/`](./development/README.md) | Roadmaps, phases, templating system, PRD, API/testing notes, design specs |
-| **Historical (completed)** | [`archive/development/`](./archive/development/README.md) | Frozen workflow records (e.g. Phase 3) kept for traceability |
+| **Operators & site owners** | [`guides/`](./guides/README.md) | Install, deploy, configure storage, security, translations, white-label, templating overview |
+| **Engineering & contributors** | [`development/`](./development/README.md) | Product requirements, templating architecture, page builder, API testing, types |
+| **Historical** | [`archive/development/`](./archive/development/README.md) | Frozen roadmaps, phase workflows, and design specs |
 
 Root [README.md](../README.md), [LICENSE](../LICENSE), and [CHANGELOG.md](../CHANGELOG.md) stay at the repository root.
 
@@ -16,37 +14,36 @@ Root [README.md](../README.md), [LICENSE](../LICENSE), and [CHANGELOG.md](../CHA
 
 **Getting started**
 
-1. Clone & install — [README.md](../README.md)  
+1. Clone and install — [README.md](../README.md)  
 2. First admin — [guides/ADMIN_SETUP.md](./guides/ADMIN_SETUP.md)  
 3. Production — [guides/SERVER_DEPLOYMENT.md](./guides/SERVER_DEPLOYMENT.md)  
 
-**Common guides**
+**Operations**
 
 - Storage: [guides/STORAGE.md](./guides/STORAGE.md) · [guides/GOOGLE_DRIVE.md](./guides/GOOGLE_DRIVE.md)  
 - Photos: [guides/PHOTO_UPLOAD.md](./guides/PHOTO_UPLOAD.md)  
 - i18n: [guides/translation-guide.md](./guides/translation-guide.md)  
 - White-label: [guides/WHITE_LABEL.md](./guides/WHITE_LABEL.md)  
+- Templating (Admin): [guides/TEMPLATING_USER_GUIDE.md](./guides/TEMPLATING_USER_GUIDE.md)  
 
 **Engineering**
 
-- Next steps (post–engineering-quality merge): [development/NEXT_STEPS.md](./development/NEXT_STEPS.md)  
-- Phase 4 (active + supplementary detail): [development/PHASE_4_WORKFLOW.md](./development/PHASE_4_WORKFLOW.md)  
 - Product requirements: [development/SYSTEM_PRD.md](./development/SYSTEM_PRD.md)  
-- CI / quality bar: [development/ENGINEERING_QUALITY_TASKS.md](./development/ENGINEERING_QUALITY_TASKS.md)  
-- Design deep-dives: [development/design/](./development/README.md) (see **Design specs** table there)  
+- Templating (requirements & implementation): [development/TEMPLATING.md](./development/TEMPLATING.md)  
+- Page builder modules: [development/PAGE_BUILDER_MODULES.md](./development/PAGE_BUILDER_MODULES.md)  
 
 **Archive**
 
-- [archive/development/PHASE_3_WORKFLOW.md](./archive/development/PHASE_3_WORKFLOW.md) — Phase 3 (complete)
+- Older roadmaps and design docs: [archive/development/README.md](./archive/development/README.md)  
 
 ---
 
 ## Folder READMEs
 
-- **[guides/README.md](./guides/README.md)** — full list of operator docs  
-- **[development/README.md](./development/README.md)** — full list of dev docs + design folder  
-- **[archive/development/README.md](./archive/development/README.md)** — what belongs in archive  
+- **[guides/README.md](./guides/README.md)** — operator and maintainer guides  
+- **[development/README.md](./development/README.md)** — active engineering docs  
+- **[archive/development/README.md](./archive/development/README.md)** — archived material  
 
 ---
 
-*Last updated: 2026-04 — guides vs development split; Phase 3 workflow archived.*
+*Last updated: 2026-04 — slimmed index; roadmaps and design specs moved to `archive/development/`.*

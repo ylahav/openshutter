@@ -26,12 +26,12 @@
 <div class="space-y-4">
 	<!-- svelte-ignore a11y_label_has_associated_control -->
 	<div>
-		<label class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">Name *</label>
+		<label class="block text-sm font-medium text-(--color-surface-800-200) mb-2">Name *</label>
 		<MultiLangInput bind:value={formData.name} />
 	</div>
 
 	<div>
-		<label for="user-form-username" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+		<label for="user-form-username" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
 			Username {mode === 'create' ? '*' : ''}
 		</label>
 		{#if mode === 'edit'}
@@ -40,9 +40,9 @@
 				type="text"
 				value={formData.username}
 				disabled
-				class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm bg-[var(--color-surface-100-900)] text-[var(--color-surface-600-400)]"
+				class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm bg-(--color-surface-100-900) text-(--color-surface-600-400)"
 			/>
-			<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">Username cannot be changed</p>
+			<p class="mt-1 text-xs text-(--color-surface-600-400)">Username cannot be changed</p>
 		{:else}
 			<input
 				id="user-form-username"
@@ -50,13 +50,13 @@
 				bind:value={formData.username}
 				placeholder="username@example.com"
 				required
-				class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
+				class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 			/>
 		{/if}
 	</div>
 
 	<div>
-		<label for="user-form-password" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">
+		<label for="user-form-password" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
 			{mode === 'create' ? 'Password (optional)' : 'New Password (leave blank to keep current)'}
 		</label>
 		<div class="relative">
@@ -67,15 +67,15 @@
 				placeholder={mode === 'create'
 					? 'Leave blank to auto-generate (sent by welcome email if configured)'
 					: 'Leave blank to keep current password'}
-				class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
+				class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 			/>
 			{#if mode === 'create'}
-				<p class="mt-1 text-xs text-[var(--color-surface-600-400)]">If blank, the system generates a secure password and sends it via welcome email. User will be required to change it on first login.</p>
+				<p class="mt-1 text-xs text-(--color-surface-600-400)">If blank, the system generates a secure password and sends it via welcome email. User will be required to change it on first login.</p>
 			{/if}
 			<button
 				type="button"
 				on:click={() => (showPassword = !showPassword)}
-				class="absolute right-3 top-1/2 transform -translate-y-1/2 text-[var(--color-surface-400-600)] hover:text-[var(--color-surface-600-400)]"
+				class="absolute right-3 top-1/2 transform -translate-y-1/2 text-(--color-surface-400-600) hover:text-(--color-surface-600-400)"
 				aria-label={showPassword ? 'Hide password' : 'Show password'}
 			>
 				{#if showPassword}
@@ -93,12 +93,12 @@
 	</div>
 
 	<div>
-		<label for="user-form-role" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">Role *</label>
+		<label for="user-form-role" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">Role *</label>
 		<select
 			id="user-form-role"
 			bind:value={formData.role}
 			on:change={() => onRoleChange?.(formData.role)}
-			class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
+			class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 		>
 			{#each roles as role}
 				<option value={role.value} title={role.description}>{role.label} – {role.description}</option>
@@ -109,11 +109,11 @@
 	<slot name="extra" />
 
 	<div>
-		<label for="user-form-language" class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">Preferred language</label>
+		<label for="user-form-language" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">Preferred language</label>
 		<select
 			id="user-form-language"
 			bind:value={formData.preferredLanguage}
-			class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
+			class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 		>
 			{#each supportedLanguages as lang}
 				<option value={lang.code}>{lang.name} ({lang.nativeName ?? lang.code})</option>
@@ -122,12 +122,12 @@
 	</div>
 
 	<fieldset class="space-y-2">
-		<legend class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">Groups</legend>
+		<legend class="block text-sm font-medium text-(--color-surface-800-200) mb-2">Groups</legend>
 		<div class="border border-surface-300-700 rounded-md p-3 max-h-32 overflow-y-auto">
 			{#if loadingGroups}
-				<p class="text-sm text-[var(--color-surface-600-400)]">Loading groups...</p>
+				<p class="text-sm text-(--color-surface-600-400)">Loading groups...</p>
 			{:else if groups.length === 0}
-				<p class="text-sm text-[var(--color-surface-600-400)]">No groups available</p>
+				<p class="text-sm text-(--color-surface-600-400)">No groups available</p>
 			{:else}
 				<div class="space-y-2">
 					{#each groups as group}
@@ -138,8 +138,8 @@
 								on:change={() => onToggleGroup(group.alias)}
 								class="mr-2"
 							/>
-							<span class="text-sm text-[var(--color-surface-800-200)]">{getGroupName(group)}</span>
-							<span class="ml-2 text-xs text-[var(--color-surface-600-400)]">({group.alias})</span>
+							<span class="text-sm text-(--color-surface-800-200)">{getGroupName(group)}</span>
+							<span class="ml-2 text-xs text-(--color-surface-600-400)">({group.alias})</span>
 						</label>
 					{/each}
 				</div>
@@ -149,7 +149,7 @@
 
 	{#if formData.role === 'owner'}
 		<fieldset class="space-y-2">
-			<legend class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">{$t('admin.dedicatedStorageLegend')}</legend>
+			<legend class="block text-sm font-medium text-(--color-surface-800-200) mb-2">{$t('admin.dedicatedStorageLegend')}</legend>
 			<div class="border border-surface-300-700 rounded-md p-3">
 				<label class="flex items-start cursor-pointer gap-2">
 					<input
@@ -159,15 +159,15 @@
 						data-testid="user-form-use-dedicated-storage"
 					/>
 					<span>
-						<span class="text-sm font-medium text-[var(--color-surface-900-100)]">{$t('admin.dedicatedStorageCheckboxLabel')}</span>
-						<span class="block text-xs text-[var(--color-surface-600-400)] mt-1">
+						<span class="text-sm font-medium text-(--color-surface-900-100)">{$t('admin.dedicatedStorageCheckboxLabel')}</span>
+						<span class="block text-xs text-(--color-surface-600-400) mt-1">
 							{$t('admin.dedicatedStorageCheckboxHelp')}
 						</span>
 					</span>
 				</label>
 			</div>
 			{#if formData.useDedicatedStorage}
-				<p class="text-xs text-[var(--color-primary-800)] bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] border border-[color-mix(in_oklab,var(--color-primary-500)_12%,transparent)] rounded-md px-3 py-2 mt-2">
+				<p class="text-xs text-(--color-primary-800) bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] border border-[color-mix(in_oklab,var(--color-primary-500)_12%,transparent)] rounded-md px-3 py-2 mt-2">
 					{$t('admin.dedicatedStorageOwnerNextSteps')}
 				</p>
 			{/if}
@@ -175,7 +175,7 @@
 	{/if}
 
 	<fieldset class="space-y-2">
-		<legend class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">Allowed Storage Providers</legend>
+		<legend class="block text-sm font-medium text-(--color-surface-800-200) mb-2">Allowed Storage Providers</legend>
 		<div class="border border-surface-300-700 rounded-md p-3">
 			<div class="space-y-2">
 				{#each storageProviders as provider}
@@ -186,7 +186,7 @@
 							on:change={() => onToggleStorageProvider(provider.id)}
 							class="mr-2"
 						/>
-						<span class="text-sm text-[var(--color-surface-800-200)]">{provider.name}</span>
+						<span class="text-sm text-(--color-surface-800-200)">{provider.name}</span>
 					</label>
 				{/each}
 			</div>
@@ -195,17 +195,17 @@
 
 	{#if formData.role === 'owner' && formData.allowedStorageProviders.includes('google-drive') && !formData.useDedicatedStorage}
 		<fieldset class="space-y-2">
-			<legend class="block text-sm font-medium text-[var(--color-surface-800-200)] mb-2">Storage connection (Google Drive)</legend>
-			<p class="text-xs text-[var(--color-surface-600-400)] mb-2">
+			<legend class="block text-sm font-medium text-(--color-surface-800-200) mb-2">Storage connection (Google Drive)</legend>
+			<p class="text-xs text-(--color-surface-600-400) mb-2">
 				Choose whether this owner uses the main domain's connection or their own. Connection and folder details are configured by the owner on their setup screen only (not here).
 			</p>
 			<div class="border border-surface-300-700 rounded-md p-3">
 				<label class="flex items-center cursor-pointer">
 					<input type="checkbox" bind:checked={formData.storageUseAdminConfig} class="mr-2" />
-					<span class="text-sm font-medium text-[var(--color-surface-800-200)]">Use main domain connection</span>
+					<span class="text-sm font-medium text-(--color-surface-800-200)">Use main domain connection</span>
 				</label>
 				{#if !formData.storageUseAdminConfig}
-					<p class="text-xs text-[var(--color-surface-600-400)] mt-2 pl-4 border-l-2 border-surface-200-800">
+					<p class="text-xs text-(--color-surface-600-400) mt-2 pl-4 border-l-2 border-surface-200-800">
 						Owner configures credentials and folder on their own setup page.
 					</p>
 				{/if}
@@ -216,16 +216,16 @@
 	<div class="flex items-center">
 		<label class="relative inline-flex items-center cursor-pointer">
 			<input type="checkbox" bind:checked={formData.blocked} class="sr-only peer" />
-			<div class="w-11 h-6 bg-[var(--color-surface-200-800)] peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[color-mix(in_oklab,var(--color-primary-500)_35%,transparent)] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-[var(--color-surface-50-950)] after:border-surface-300-700 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
-			<span class="ml-3 text-sm font-medium text-[var(--color-surface-800-200)]">Blocked</span>
+			<div class="w-11 h-6 bg-(--color-surface-200-800) peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[color-mix(in_oklab,var(--color-primary-500)_35%,transparent)] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-(--color-surface-50-950) after:border-surface-300-700 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
+			<span class="ml-3 text-sm font-medium text-(--color-surface-800-200)">Blocked</span>
 		</label>
 	</div>
 
 	<div class="flex items-center">
 		<label class="relative inline-flex items-center cursor-pointer">
 			<input type="checkbox" bind:checked={formData.forcePasswordChange} class="sr-only peer" />
-			<div class="w-11 h-6 bg-[var(--color-surface-200-800)] peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[color-mix(in_oklab,var(--color-primary-500)_35%,transparent)] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-[var(--color-surface-50-950)] after:border-surface-300-700 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
-			<span class="ml-3 text-sm font-medium text-[var(--color-surface-800-200)]">Force password change on next login</span>
+			<div class="w-11 h-6 bg-(--color-surface-200-800) peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[color-mix(in_oklab,var(--color-primary-500)_35%,transparent)] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-(--color-surface-50-950) after:border-surface-300-700 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+			<span class="ml-3 text-sm font-medium text-(--color-surface-800-200)">Force password change on next login</span>
 		</label>
 	</div>
 </div>

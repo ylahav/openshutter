@@ -10,8 +10,8 @@
 <div class="py-8">
 	<div class="max-w-4xl mx-auto px-4">
 		<div class="mb-10">
-			<h1 class="text-3xl font-bold text-[var(--color-surface-950-50)]">{$t('admin.blogWorkspaceTitle')}</h1>
-			<p class="text-[var(--color-surface-600-400)] mt-2">{$t('admin.blogWorkspaceSubtitle')}</p>
+			<h1 class="text-3xl font-bold text-(--color-surface-950-50)">{$t('admin.blogWorkspaceTitle')}</h1>
+			<p class="text-(--color-surface-600-400) mt-2">{$t('admin.blogWorkspaceSubtitle')}</p>
 		</div>
 
 		<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -27,9 +27,9 @@
 							/>
 						</svg>
 					</div>
-					<h2 class="text-xl font-semibold text-[var(--color-surface-950-50)] ml-3">{$t('admin.blogCategories')}</h2>
+					<h2 class="text-xl font-semibold text-(--color-surface-950-50) ml-3">{$t('admin.blogCategories')}</h2>
 				</div>
-				<p class="text-[var(--color-surface-600-400)] mb-4 text-sm">{$t('admin.manageBlogCategories')}</p>
+				<p class="text-(--color-surface-600-400) mb-4 text-sm">{$t('admin.manageBlogCategories')}</p>
 				<a
 					href="/admin/blog-categories"
 					class="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
@@ -53,9 +53,9 @@
 							/>
 						</svg>
 					</div>
-					<h2 class="text-xl font-semibold text-[var(--color-surface-950-50)] ml-3">{$t('admin.blogArticles')}</h2>
+					<h2 class="text-xl font-semibold text-(--color-surface-950-50) ml-3">{$t('admin.blogArticles')}</h2>
 				</div>
-				<p class="text-[var(--color-surface-600-400)] mb-4 text-sm">{$t('admin.manageBlogArticlesCard')}</p>
+				<p class="text-(--color-surface-600-400) mb-4 text-sm">{$t('admin.manageBlogArticlesCard')}</p>
 				<a
 					href="/admin/blog-articles"
 					class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
@@ -68,8 +68,8 @@
 			</div>
 		</div>
 
-		<p class="mt-8 text-sm text-[var(--color-surface-600-400)]">
-			Public preview: <a class="text-[var(--color-primary-600)] hover:underline" href="/blog">/blog</a>
+		<p class="mt-8 text-sm text-(--color-surface-600-400)">
+			Public preview: <a class="text-(--color-primary-600) hover:underline" href="/blog">/blog</a>
 		</p>
 	</div>
 </div>

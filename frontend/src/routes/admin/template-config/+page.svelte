@@ -23,7 +23,7 @@
 	let message: string | null = null;
 	let error: string | null = null;
 	/** Effective public-site template key (matches backend merge rules). */
-	let activeTemplate = 'default';
+	let activeTemplate = 'noir';
 	let templateSectionSnapshot: SiteConfig['template'] | undefined = undefined;
 	let localVisibility: TemplateComponentVisibility = {
 		hero: true,
@@ -104,7 +104,7 @@
 			const config = result.data as SiteConfig;
 			templateSectionSnapshot = config.template ? { ...config.template } : undefined;
 			activeTemplate =
-				config.template?.frontendTemplate || config.template?.activeTemplate || 'default';
+				config.template?.frontendTemplate || config.template?.activeTemplate || 'noir';
 
 			let templates: Array<{ templateName: string; visibility?: Record<string, boolean> }> = [];
 			if (tplRes.ok) {
@@ -239,10 +239,10 @@
 		<div class="max-w-4xl mx-auto px-4">
 			<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
 				<div class="animate-pulse">
-					<div class="h-8 bg-[var(--color-surface-200-800)] rounded w-1/3 mb-4"></div>
+					<div class="h-8 bg-(--color-surface-200-800) rounded w-1/3 mb-4"></div>
 					<div class="space-y-4">
 						{#each [1, 2, 3, 4, 5, 6] as i}
-							<div class="h-16 bg-[var(--color-surface-200-800)] rounded"></div>
+							<div class="h-16 bg-(--color-surface-200-800) rounded"></div>
 						{/each}
 					</div>
 				</div>
@@ -257,8 +257,8 @@
 			<div class="card preset-outlined-surface-200-800 bg-surface-50-950">
 				<!-- Header -->
 				<div class="px-6 py-4 border-b border-surface-200-800">
-					<h1 class="text-2xl font-bold text-[var(--color-surface-950-50)]">{$t('admin.templateConfigTitle')}</h1>
-					<p class="text-[var(--color-surface-600-400)] mt-1">{$t('admin.templateConfigSubtitle')}</p>
+					<h1 class="text-2xl font-bold text-(--color-surface-950-50)">{$t('admin.templateConfigTitle')}</h1>
+					<p class="text-(--color-surface-600-400) mt-1">{$t('admin.templateConfigSubtitle')}</p>
 				</div>
 
 				<!-- Content -->
@@ -277,18 +277,18 @@
 
 					<!-- Current Template Info -->
 					<div class="mb-8 p-4 bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] border border-[color-mix(in_oklab,var(--color-primary-500)_18%,transparent)] rounded-md">
-						<h3 class="text-lg font-semibold text-[var(--color-primary-900)] mb-2">{$t('admin.templateConfigCurrentTemplate')}</h3>
-						<p class="text-[var(--color-primary-800)]">
+						<h3 class="text-lg font-semibold text-(--color-primary-900) mb-2">{$t('admin.templateConfigCurrentTemplate')}</h3>
+						<p class="text-(--color-primary-800)">
 							<span class="font-medium">{$t('admin.templateConfigActiveTemplate')}</span> {activeTemplate}
 						</p>
-						<p class="text-[var(--color-primary-800)] text-sm mt-1">
+						<p class="text-(--color-primary-800) text-sm mt-1">
 							{$t('admin.templateConfigCurrentDescription')}
 						</p>
 					</div>
 
 					<!-- Component Visibility Settings -->
 					<div class="space-y-6">
-						<h3 class="text-lg font-semibold text-[var(--color-surface-950-50)]">{$t('admin.templateConfigComponentVisibility')}</h3>
+						<h3 class="text-lg font-semibold text-(--color-surface-950-50)">{$t('admin.templateConfigComponentVisibility')}</h3>
 
 						{#each Object.entries(componentLabels) as [component, label]}
 							<div class="flex items-start space-x-4 p-4 border border-surface-200-800 rounded-lg">
@@ -302,14 +302,14 @@
 												component as keyof TemplateComponentVisibility,
 												e.currentTarget.checked
 											)}
-										class="h-4 w-4 text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)] border-surface-300-700 rounded"
+										class="h-4 w-4 text-(--color-primary-600) focus:ring-(--color-primary-500) border-surface-300-700 rounded"
 									/>
 								</div>
 								<div class="flex-1">
-									<label for={component} class="text-sm font-medium text-[var(--color-surface-950-50)] cursor-pointer">
+									<label for={component} class="text-sm font-medium text-(--color-surface-950-50) cursor-pointer">
 										{label}
 									</label>
-									<p class="text-sm text-[var(--color-surface-600-400)] mt-1">
+									<p class="text-sm text-(--color-surface-600-400) mt-1">
 										{componentDescriptions[component as keyof typeof componentDescriptions]}
 									</p>
 								</div>
@@ -333,7 +333,7 @@
 						<button
 							on:click={handleReset}
 							disabled={saving}
-							class="px-4 py-2 text-sm font-medium text-[var(--color-surface-800-200)] bg-[var(--color-surface-50-950)] border border-surface-300-700 rounded-md hover:bg-[var(--color-surface-50-950)] disabled:opacity-50 disabled:cursor-not-allowed"
+							class="px-4 py-2 text-sm font-medium text-(--color-surface-800-200) bg-(--color-surface-50-950) border border-surface-300-700 rounded-md hover:bg-(--color-surface-50-950) disabled:opacity-50 disabled:cursor-not-allowed"
 						>
 							{$t('admin.templateConfigResetToDefaults')}
 						</button>
@@ -341,7 +341,7 @@
 						<button
 							on:click={handleSave}
 							disabled={saving}
-							class="px-6 py-2 text-sm font-medium text-white bg-[var(--color-primary-600)] border border-transparent rounded-md hover:bg-[var(--color-primary-700)] disabled:opacity-50 disabled:cursor-not-allowed"
+							class="px-6 py-2 text-sm font-medium text-white bg-(--color-primary-600) border border-transparent rounded-md hover:bg-(--color-primary-700) disabled:opacity-50 disabled:cursor-not-allowed"
 						>
 							{saving ? $t('admin.templateConfigSaving') : $t('admin.templateConfigSaveConfiguration')}
 						</button>

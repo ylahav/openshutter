@@ -21,7 +21,28 @@ export interface TemplateConfig {
     background: string
     text: string
     muted: string
-  }
+  } & Partial<
+    Record<
+      | 'surfaceCard'
+      | 'surfaceCardSecondary'
+      | 'surfaceCardTertiary'
+      | 'textSubtle'
+      | 'borderSubtle'
+      | 'lightBackground'
+      | 'lightText'
+      | 'lightMuted'
+      | 'lightSurfaceCard'
+      | 'lightSurfaceCardSecondary'
+      | 'lightSurfaceCardTertiary'
+      | 'lightTextSubtle'
+      | 'lightBorderSubtle'
+      | 'heroStrip'
+      | 'footerStrip'
+      | 'lightHeroStrip'
+      | 'lightFooterStrip',
+      string
+    >
+  >
   fonts: Record<FontRole, FontSetting>
   layout: {
     maxWidth: string
@@ -103,6 +124,9 @@ export interface TemplateComponent {
 }
 
 export interface SiteTemplateConfig {
+  /** Preferred visitor pack id when present. */
+  frontendTemplate?: string
+  /** @deprecated Legacy; use `frontendTemplate` when both exist. */
   activeTemplate: string
   customColors?: Partial<TemplateConfig['colors']>
   customFonts?: Partial<TemplateConfig['fonts']>

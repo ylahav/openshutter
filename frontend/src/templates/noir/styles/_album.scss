@@ -1,0 +1,373 @@
+// ============================================================
+// Noir Album Page — _album.scss
+//
+// Mirrors template-noir-full.html .alb-* and album-section blocks:
+//   .alb-hero (45vh, min-h 300, flex items-end)
+//     .alb-hero-img (absolute inset-0, cover, filter brightness .4 grayscale .2)
+//     .alb-ov (absolute inset-0, dark gradient bottom→top)
+//     .alb-content (z-2, padding 0 32 36)
+//       a.alb-back (9px DM Mono, .2em, fg-dim → fg)
+//       h1.alb-title (DM Sans 200, clamp(24, 4vw, 48), .04em, #f5f5f3)
+//       p.alb-desc (DM Sans 300, 13px, rgba(245,245,243,.6), max-w 480)
+//
+//   Section header inside album:
+//   .alb-section-hdr (flex baseline, padding 32 32 16)
+//     .alb-section-label (9px DM Mono, .28em, fg-dim)
+//     .alb-section-count (9px DM Mono, .18em, fg-dimmer)
+//
+//   .alb-divider (1px, var(--border), margin 16 32 0)
+//
+//   .photo-grid (5-col, gap var(--gap, 2px))
+//     .ph-card (square, overflow hidden, bg-card)
+//       img (absolute inset-0, cover, filter brightness .85 grayscale .1,
+//            hover scale 1.06)
+//
+// SCSS additionally absorbs the legacy page-builder DOM where
+// the album info appears as a card panel — collapse it into a
+// hero-like band so existing pages still look right until a
+// proper hero section is wired into the Album.svelte component.
+// ============================================================
+
+@mixin n-mono($size: 10px, $spacing: 0.18em) {
+  font-family: 'DM Mono', monospace;
+  font-size: $size;
+  letter-spacing: $spacing;
+  text-transform: uppercase;
+  font-weight: 400;
+}
+
+// ── Section wrapper — strip chrome ────────────────────────────
+
+.n-album > section,
+section.n-s-album,
+section[class*="@container"][class*="py-"] {
+  background: transparent !important;
+  padding: 0 !important;
+  overflow: visible !important;
+
+  > div {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+}
+
+// ── Album hero (component-rendered) ───────────────────────────
+
+.alb-hero {
+  position: relative;
+  height: 45vh;
+  min-height: 300px;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  background: var(--bg-card, #141414);
+}
+
+.alb-hero-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  filter: brightness(0.4) grayscale(0.2);
+  transition: filter 0.35s ease;
+}
+
+.alb-ov {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    rgba(8, 8, 8, 0.9) 0%,
+    rgba(8, 8, 8, 0.1) 100%
+  );
+}
+
+.alb-content {
+  position: relative;
+  z-index: 2;
+  padding: 0 32px 36px;
+  inset-inline-start: 0;
+
+  [dir="rtl"] & { direction: rtl; }
+}
+
+.alb-back {
+  display: block;
+  @include n-mono(9px, 0.2em);
+  color: var(--fg-dim);
+  text-decoration: none;
+  margin-bottom: 12px;
+  transition: color 0.2s;
+  cursor: pointer;
+
+  &:hover { color: var(--fg); }
+}
+
+.alb-title {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 200;
+  font-size: clamp(24px, 4vw, 48px);
+  letter-spacing: 0.04em;
+  color: #f5f5f3;
+  margin: 0 0 8px;
+  line-height: 1.15;
+}
+
+.alb-desc {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 13px;
+  color: rgba(245, 245, 243, 0.6);
+  max-width: 480px;
+  line-height: 1.6;
+  margin: 8px 0 0;
+}
+
+// ── Album section headers (sub-albums / photographs) ──────────
+
+.alb-section-hdr {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 32px 32px 16px;
+
+  [dir="rtl"] & { flex-direction: row-reverse; }
+}
+
+.alb-section-label {
+  @include n-mono(9px, 0.28em);
+  color: var(--fg-dim);
+}
+
+.alb-section-count {
+  @include n-mono(9px, 0.18em);
+  color: var(--fg-dimmer);
+}
+
+// ── Divider between sub-albums and photos in mixed state ──────
+
+.alb-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 16px 32px 0;
+}
+
+// ── Legacy: collapse the page-builder album card panel into a
+// hero-like band so descriptions / counts read like the mockup
+// even when the proper hero is not yet rendered. Remove once
+// Album.svelte wires up the dedicated hero section everywhere.
+
+div[class*="max-w-6xl"] {
+  margin: 0 !important;
+  max-width: 100% !important;
+
+  > div[class*="rounded-xl"],
+  > div[class*="bg-[color:var(--tp-surface-1)]"] {
+    background: var(--bg-card, #141414) !important;
+    border: none !important;
+    border-radius: 0 !important;
+    border-bottom: 1px solid var(--border) !important;
+    padding: 0 32px 36px !important;
+  }
+}
+
+section[class*="@container"] div[class*="max-w-6xl"] h1 {
+  font-family: 'DM Sans', sans-serif !important;
+  font-weight: 200 !important;
+  font-size: clamp(24px, 4vw, 48px) !important;
+  letter-spacing: 0.04em !important;
+  color: var(--fg) !important;
+  margin-bottom: 8px !important;
+  line-height: 1.15;
+}
+
+section[class*="@container"] div[class*="max-w-6xl"] .prose,
+section[class*="@container"] div[class*="max-w-6xl"] .prose-lg {
+  font-family: 'DM Sans', sans-serif !important;
+  font-size: 13px !important;
+  font-weight: 300 !important;
+  line-height: 1.6 !important;
+  color: rgba(245, 245, 243, 0.6) !important;
+  max-width: 480px !important;
+  margin-bottom: 0 !important;
+
+  p { margin: 0 !important; }
+}
+
+[data-mode="light"] section[class*="@container"] div[class*="max-w-6xl"] .prose,
+html.light section[class*="@container"] div[class*="max-w-6xl"] .prose {
+  color: rgba(8, 8, 8, 0.55) !important;
+}
+
+section[class*="@container"] div[class*="max-w-6xl"] div[class*="text-sm"] {
+  @include n-mono(9px, 0.22em);
+  color: var(--fg-dimmer) !important;
+  margin-top: 12px !important;
+
+  span { color: inherit !important; }
+}
+
+section[class*="@container"] > div > h3,
+section[class*="@container"] div[class*="max-w-7xl"] > h3 {
+  display: none !important;
+}
+
+// ── Sub-albums list (page-builder grid → 3-col .ac cards) ─────
+// The sub-album list re-uses the .ac card treatment from
+// _gallery.scss for visual consistency.
+
+section[class*="@container"] div[class*="grid"][class*="md:grid-cols-3"] {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: var(--gap, 2px) !important;
+  padding: 0 var(--gap, 2px) var(--gap, 2px) !important;
+}
+
+// ── Photo grid (5-col) ────────────────────────────────────────
+
+.photo-grid,
+section[class*="@container"] div[class*="grid"]:not([class*="md:grid-cols-3"]) {
+  display: grid !important;
+  grid-template-columns: repeat(5, 1fr) !important;
+  gap: var(--gap, 2px) !important;
+  padding: 0 var(--gap, 2px) var(--gap, 2px) !important;
+  margin-bottom: 0 !important;
+}
+
+@media (max-width: 1024px) {
+  .photo-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .photo-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .photo-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+// ── Photo card (.ph-card) ─────────────────────────────────────
+
+.ph-card,
+section[class*="@container"] div[class*="grid"] > button {
+  position: relative !important;
+  aspect-ratio: 1 / 1 !important;
+  width: 100% !important;
+  overflow: hidden !important;
+  display: block !important;
+  background: var(--bg-card, #141414);
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+
+  &:hover {
+    transform: none !important;
+    box-shadow: none !important;
+  }
+
+  > div[class*="p-"],
+  > div[class*="aspect"] {
+    position: absolute !important;
+    inset: 0 !important;
+    aspect-ratio: unset !important;
+    width: 100% !important;
+    height: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: var(--bg-card, #141414) !important;
+  }
+}
+
+// ── Photo image ───────────────────────────────────────────────
+
+.ph-card img,
+section[class*="@container"] div[class*="grid"] > button img {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  display: block;
+  filter: brightness(0.85) grayscale(0.1);
+  transition:
+    transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+    filter 0.35s ease;
+}
+
+.ph-card:hover img,
+section[class*="@container"] div[class*="grid"] > button:hover img {
+  transform: scale(1.06);
+}
+
+// Hide stray text inside photo cards (filename / description).
+section[class*="@container"] div[class*="grid"] > button h3,
+section[class*="@container"] div[class*="grid"] > button div[class*="prose"],
+section[class*="@container"] div[class*="grid"] > button div[class*="fg-muted"] {
+  display: none !important;
+}
+
+// ── Light mode ────────────────────────────────────────────────
+
+[data-mode="light"],
+html.light {
+  .alb-hero-img {
+    filter: brightness(0.6);
+  }
+
+  .alb-desc { color: rgba(8, 8, 8, 0.55); }
+
+  div[class*="max-w-6xl"] > div[class*="rounded-xl"],
+  div[class*="max-w-6xl"] > div[class*="bg-[color:var(--tp-surface-1)]"] {
+    background: var(--bg-card, #e8e8e5) !important;
+  }
+
+  .ph-card img,
+  section[class*="@container"] div[class*="grid"] > button img {
+    filter: brightness(0.95) grayscale(0);
+  }
+}
+
+// ── RTL ───────────────────────────────────────────────────────
+
+[dir="rtl"] {
+  .alb-content { direction: rtl; }
+
+  div[class*="max-w-6xl"] > div[class*="rounded-xl"] {
+    direction: rtl;
+  }
+
+  section[class*="@container"] div[class*="grid"] {
+    direction: rtl;
+  }
+}
+
+// ── Legacy count bar (photos-hdr / photos-count) ──────────────
+// Kept for older Album.svelte that emits these classes; the
+// new design uses .alb-section-hdr instead.
+
+.photos-hdr {
+  display: flex;
+  justify-content: flex-end;
+  padding: 32px 32px 16px;
+
+  [dir="rtl"] & { flex-direction: row-reverse; }
+}
+
+.photos-count {
+  @include n-mono(9px, 0.22em);
+  color: var(--fg-dimmer);
+}

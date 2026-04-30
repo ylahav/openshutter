@@ -1,0 +1,242 @@
+{
+	"description": "Default semantic colors and fonts for the Noir pack (see template-palette.ts / ThemeColorApplier --tp-*).",
+	"displayName": "Noir",
+	"packTokens": {
+		"layout": {
+			"maxWidth": "1200px",
+			"padX": "32px",
+			"gap": "16px",
+			"gapGrid": "2px"
+		},
+		"radii": {
+			"default": "0",
+			"lg": "0",
+			"sm": "0"
+		},
+		"header": {
+			"height": "auto"
+		},
+		"hero": {
+			"height": "100vh"
+		},
+		"card": {
+			"shadow": "0 12px 40px rgba(0,0,0,0.35)",
+			"shadowHover": "0 18px 48px rgba(0,0,0,0.45)",
+			"radius": "0"
+		},
+		"grid": {
+			"albumAspect": "1/1",
+			"photoAspect": "1/1"
+		},
+		"motion": {
+			"animDuration": "0.7s",
+			"transition": "0.3s"
+		}
+	},
+	"colorEditor": [
+		{
+			"token": "--bg",
+			"label": "Background (page)",
+			"lightKey": "lightBackground",
+			"darkKey": "background",
+			"kind": "color"
+		},
+		{
+			"token": "--bg-2",
+			"label": "Background 2 (surface)",
+			"lightKey": "lightSurfaceCard",
+			"darkKey": "surfaceCard",
+			"kind": "color"
+		},
+		{
+			"token": "--card-bg",
+			"label": "Card background",
+			"lightKey": "lightSurfaceCardSecondary",
+			"darkKey": "surfaceCardSecondary",
+			"kind": "color"
+		},
+		{
+			"token": "--fg",
+			"label": "Foreground (text)",
+			"lightKey": "lightText",
+			"darkKey": "text",
+			"kind": "color"
+		},
+		{
+			"token": "--fg-mid",
+			"label": "Foreground - muted body",
+			"lightKey": "lightMuted",
+			"darkKey": "muted",
+			"kind": "color"
+		},
+		{
+			"token": "--fg-muted",
+			"label": "Foreground - subtle",
+			"lightKey": "lightTextSubtle",
+			"darkKey": "textSubtle",
+			"kind": "color"
+		},
+		{
+			"token": "--border",
+			"label": "Border",
+			"lightKey": "lightBorderSubtle",
+			"darkKey": "borderSubtle",
+			"kind": "color"
+		},
+		{
+			"token": "--accent",
+			"label": "Accent",
+			"lightKey": "lightText",
+			"darkKey": "accent",
+			"kind": "color"
+		}
+	],
+	"fontEditor": [
+		{
+			"role": "heading",
+			"token": "--os-font-heading",
+			"label": "Display / headings"
+		},
+		{
+			"role": "body",
+			"token": "--os-font-body",
+			"label": "Body text"
+		},
+		{
+			"role": "links",
+			"token": "--os-font-links",
+			"label": "Links"
+		},
+		{
+			"role": "lists",
+			"token": "--os-font-lists",
+			"label": "Lists"
+		},
+		{
+			"role": "formInputs",
+			"token": "--os-font-form-inputs",
+			"label": "Form inputs"
+		},
+		{
+			"role": "formLabels",
+			"token": "--os-font-form-labels",
+			"label": "Form labels"
+		}
+	],
+	"layoutEditor": [
+		{
+			"key": "maxWidth",
+			"token": "--os-max-width",
+			"label": "Content max width"
+		},
+		{
+			"key": "containerPadding",
+			"token": "--os-padding",
+			"label": "Horizontal page padding"
+		},
+		{
+			"key": "gridGap",
+			"token": "--os-gap",
+			"label": "Section / module grid gap"
+		},
+		{
+			"key": "gapGrid",
+			"token": "--os-gap-grid",
+			"label": "Tight grid (albums, thumbnails)"
+		},
+		{
+			"key": "radius",
+			"token": "--os-radius",
+			"label": "Default border radius"
+		},
+		{
+			"key": "radiusLg",
+			"token": "--os-radius-lg",
+			"label": "Large radius"
+		},
+		{
+			"key": "radiusSm",
+			"token": "--os-radius-sm",
+			"label": "Small radius"
+		},
+		{
+			"key": "borderWidth",
+			"token": "--os-border-width",
+			"label": "Hairline border width"
+		},
+		{
+			"key": "heroHeight",
+			"token": "--os-hero-height",
+			"label": "Hero block height"
+		},
+		{
+			"key": "headerHeight",
+			"token": "--os-header-height",
+			"label": "Header min-height (auto or length)"
+		},
+		{
+			"key": "cardRadius",
+			"token": "--os-card-radius",
+			"label": "Card / media corner radius"
+		},
+		{
+			"key": "cardShadow",
+			"token": "--os-card-shadow",
+			"label": "Card shadow (CSS box-shadow)"
+		},
+		{
+			"key": "cardShadowHover",
+			"token": "--os-card-shadow-hover",
+			"label": "Card shadow on hover"
+		},
+		{
+			"key": "albumAspect",
+			"token": "--os-album-aspect",
+			"label": "Album tile aspect ratio (e.g. 3 / 4)"
+		},
+		{
+			"key": "photoAspect",
+			"token": "--os-photo-aspect",
+			"label": "Photo tile aspect ratio"
+		},
+		{
+			"key": "animDuration",
+			"token": "--os-anim-duration",
+			"label": "Long animation duration"
+		},
+		{
+			"key": "transition",
+			"token": "--os-transition",
+			"label": "Default transition duration"
+		}
+	],
+	"colors": {
+		"primary": "#f5f5f3",
+		"secondary": "#5e5e5b",
+		"accent": "#f5f5f3",
+		"background": "#080808",
+		"text": "#f5f5f3",
+		"muted": "#5e5e5b",
+		"surfaceCard": "#141414",
+		"surfaceCardSecondary": "#1c1c1c",
+		"surfaceCardTertiary": "#232323",
+		"textSubtle": "#2a2a28",
+		"borderSubtle": "#141414",
+		"lightBackground": "#f5f5f3",
+		"lightText": "#080808",
+		"lightMuted": "rgba(8,8,8,0.45)",
+		"lightSurfaceCard": "#e8e8e5",
+		"lightSurfaceCardSecondary": "#ddddd9",
+		"lightSurfaceCardTertiary": "#d2d2ce",
+		"lightTextSubtle": "rgba(8,8,8,0.22)",
+		"lightBorderSubtle": "rgba(0,0,0,0.08)"
+	},
+	"fonts": {
+		"heading": "DM Sans",
+		"body": "DM Sans",
+		"links": "DM Mono",
+		"lists": "DM Mono",
+		"formInputs": "DM Mono",
+		"formLabels": "DM Mono"
+	}
+}

@@ -7,6 +7,10 @@
 	export let onRemoveModule: (moduleId: string) => Promise<void>;
 	export let onEditModule: (module: PageModuleData) => void;
 	export let availableModuleTypes: Array<{ value: string; label: string }> = [];
+export let onMoveRow: (fromRowOrder: number, toRowOrder: number) => Promise<void>;
+export let onInsertRow: (atRowOrder: number) => Promise<void>;
+export let onDeleteRow: (rowOrder: number) => Promise<void>;
+export let onRemoveEmptyColumn: (columnIndex: number) => Promise<void>;
 
 	interface RowData {
 		rowOrder: number;
@@ -128,6 +132,11 @@
 		return modules.find((m) => m.rowOrder === r && m.columnIndex === c) ?? null;
 	}
 
+	function getModuleInstanceName(module: PageModuleData): string {
+		const props = (module?.props || {}) as Record<string, unknown>;
+		return String(props.instanceRef ?? props.presetKey ?? '').trim();
+	}
+
 	$: selectedCount = selectedCells.size;
 	$: selectedCellsArray = Array.from(selectedCells).map((key) => {
 		const [r, c] = key.split(':').map(Number);
@@ -164,17 +173,70 @@
 
 <div class="space-y-4">
 	{#if rows.length === 0}
-		<div class="text-center py-8 text-gray-500 border-2 border-dashed border-gray-300 rounded-lg">
+		<div class="text-center py-8 text-muted-foreground border-2 border-dashed border-border rounded-lg">
 			<p>No grid yet. Set grid dimensions and click "Initialize Grid".</p>
 		</div>
 	{:else}
 		{@const colCount = rows[0]?.columns.length ?? 1}
 		<!-- Grid with CSS Grid for spanning support -->
-		<div
-			class="gap-2"
-			style="display: grid; grid-template-columns: repeat({colCount}, 1fr); grid-template-rows: repeat({rows.length}, minmax(80px, auto));"
-		>
-			{#each rows as row (row.rowOrder)}
+		<div class="overflow-x-auto border-2 border-border rounded-lg">
+			<div
+				class="gap-2 p-2 bg-background min-w-max"
+				style="display: grid; grid-template-columns: minmax(10rem, 12rem) repeat({colCount}, minmax(8rem, 1fr)); grid-template-rows: repeat({rows.length}, minmax(80px, auto));"
+			>
+				{#each rows as row (row.rowOrder)}
+				{@const rowIdx = rows.findIndex((r) => r.rowOrder === row.rowOrder)}
+				<div
+					class="sticky left-0 z-10 flex flex-col justify-center gap-1 rounded-md border border-border bg-muted px-2 py-2"
+					style="grid-column: 1; grid-row: {row.rowOrder + 1}"
+				>
+					<div class="text-[11px] font-semibold text-foreground leading-tight">
+						Row {rowIdx + 1}
+					</div>
+					<div class="text-[10px] text-muted-foreground leading-tight">
+						Band · grid row {rowIdx + 1} of {rows.length}
+					</div>
+					<div class="mt-1 flex flex-wrap gap-1">
+						<button
+							type="button"
+							class="px-1.5 py-0.5 text-[11px] rounded border bg-background text-foreground border-border hover:bg-muted disabled:opacity-50"
+							disabled={rowIdx === 0}
+							on:click={() => onMoveRow(row.rowOrder, rows[rowIdx - 1]!.rowOrder)}
+						>
+							↑
+						</button>
+						<button
+							type="button"
+							class="px-1.5 py-0.5 text-[11px] rounded border bg-background text-foreground border-border hover:bg-muted disabled:opacity-50"
+							disabled={rowIdx >= rows.length - 1}
+							on:click={() => onMoveRow(row.rowOrder, rows[rowIdx + 1]!.rowOrder)}
+						>
+							↓
+						</button>
+						<button
+							type="button"
+							class="px-1.5 py-0.5 text-[11px] rounded border bg-background text-foreground border-border hover:bg-muted"
+							on:click={() => onInsertRow(row.rowOrder)}
+						>
+							+↑
+						</button>
+						<button
+							type="button"
+							class="px-1.5 py-0.5 text-[11px] rounded border bg-background text-foreground border-border hover:bg-muted"
+							on:click={() => onInsertRow(row.rowOrder + 1)}
+						>
+							+↓
+						</button>
+						<button
+							type="button"
+							class="px-1.5 py-0.5 text-[11px] rounded border border-red-300 bg-red-50 text-red-700 hover:bg-red-100 disabled:opacity-50"
+							disabled={rows.length <= 1}
+							on:click={() => onDeleteRow(row.rowOrder)}
+						>
+							🗑
+						</button>
+					</div>
+				</div>
 				{#each row.columns as col (col.columnIndex)}
 					{@const covered = isCellCovered(row.rowOrder, col.columnIndex)}
 					{@const mod = getModuleAt(row.rowOrder, col.columnIndex)}
@@ -183,26 +245,30 @@
 					{#if covered}
 						<!-- Covered cell - placeholder, not rendered (spanned by module) -->
 					{:else if mod && !mod.props?._placeholder}
+						{@const instanceName = getModuleInstanceName(mod)}
 						<div
-							class="border border-green-300 rounded-lg p-3 bg-green-50/50"
-							style="grid-column: {col.columnIndex + 1} / span {mod.colSpan ?? 1}; grid-row: {row.rowOrder + 1} / span {mod.rowSpan ?? 1}"
+							class="border border-primary/30 rounded-lg p-3 bg-primary/5"
+							style="grid-column: {col.columnIndex + 2} / span {mod.colSpan ?? 1}; grid-row: {row.rowOrder + 1} / span {mod.rowSpan ?? 1}"
 						>
 							<div class="flex flex-col h-full">
-								<p class="text-sm font-medium text-gray-900">{mod.type}</p>
+								<p class="text-sm font-medium text-foreground">{mod.type}</p>
+								{#if instanceName}
+									<p class="text-xs text-muted-foreground mt-1">Instance: {instanceName}</p>
+								{/if}
 								{#if (mod.rowSpan ?? 1) > 1 || (mod.colSpan ?? 1) > 1}
-									<p class="text-xs text-gray-500 mt-1">{mod.rowSpan ?? 1}×{mod.colSpan ?? 1} span</p>
+									<p class="text-xs text-muted-foreground mt-1">{mod.rowSpan ?? 1}×{mod.colSpan ?? 1} span</p>
 								{/if}
 								<div class="flex gap-2 mt-2">
 									<button
 										type="button"
-										class="text-xs text-blue-600 hover:text-blue-800"
+										class="text-xs text-primary hover:opacity-80"
 										on:click={() => onEditModule(mod)}
 									>
 										Edit
 									</button>
 									<button
 										type="button"
-										class="text-xs text-red-600 hover:text-red-800"
+										class="text-xs text-destructive hover:opacity-80"
 										on:click={() => onRemoveModule(mod._id)}
 									>
 										Remove
@@ -213,33 +279,44 @@
 					{:else}
 						<div
 							class="border rounded-lg p-3 min-h-[80px] cursor-pointer transition-colors
-								{selected ? 'ring-2 ring-blue-500 bg-blue-50 border-blue-400' : 'border-gray-300 bg-white hover:bg-gray-50'}"
-							style="grid-column: {col.columnIndex + 1}; grid-row: {row.rowOrder + 1}"
+								{selected ? 'ring-2 ring-ring bg-accent border-primary' : 'border-border bg-background hover:bg-muted'}"
+							style="grid-column: {col.columnIndex + 2}; grid-row: {row.rowOrder + 1}"
 							role="button"
 							tabindex="0"
 							on:click={() => toggleCell(row.rowOrder, col.columnIndex)}
 							on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleCell(row.rowOrder, col.columnIndex); } }}
 						>
-							<span class="text-xs text-gray-400">
-								{selected ? 'Selected' : 'Click to select'}
-							</span>
+							<div class="flex items-start justify-between gap-2">
+								<span class="text-xs text-muted-foreground">
+									{selected ? 'Selected' : 'Click to select'}
+								</span>
+								<button
+									type="button"
+									class="text-[11px] px-1.5 py-0.5 rounded border border-border bg-background text-muted-foreground hover:text-foreground hover:bg-muted"
+									title="Remove this empty column from the grid"
+									on:click|stopPropagation={() => onRemoveEmptyColumn(col.columnIndex)}
+								>
+									Remove cell
+								</button>
+							</div>
 						</div>
 					{/if}
 				{/each}
-			{/each}
+				{/each}
+			</div>
 		</div>
 
 		<!-- Selection toolbar -->
-		<div class="flex flex-wrap items-center gap-3 border-t border-gray-200 pt-4">
+		<div class="flex flex-wrap items-center gap-3 border-t border-border pt-4">
 			<button
 				type="button"
 				on:click={selectAll}
-				class="text-sm text-gray-600 hover:text-gray-900"
+				class="text-sm text-muted-foreground hover:text-foreground"
 			>
 				Select all
 			</button>
 			{#if selectedCount > 0}
-				<span class="text-sm text-gray-600">
+				<span class="text-sm text-muted-foreground">
 					{selectedCount} cell{selectedCount !== 1 ? 's' : ''} → 1 module
 					{#if selectionBounds && (selectionBounds.rowSpan > 1 || selectionBounds.colSpan > 1)}
 						({selectionBounds.rowSpan}×{selectionBounds.colSpan})
@@ -247,7 +324,7 @@
 				</span>
 				<select
 					bind:this={assignSelectEl}
-					class="text-sm border border-gray-300 rounded px-3 py-1.5"
+					class="text-sm border border-border rounded px-3 py-1.5 bg-background"
 					on:change={(e) => {
 						const v = e.currentTarget.value;
 						if (v) handleAssignToSelected(v);
@@ -261,7 +338,7 @@
 				<button
 					type="button"
 					on:click={clearSelection}
-					class="text-sm text-gray-600 hover:text-gray-900"
+					class="text-sm text-muted-foreground hover:text-foreground"
 				>
 					Clear selection
 				</button>

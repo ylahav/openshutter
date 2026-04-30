@@ -1,0 +1,25 @@
+.tpl-pack-studio {
+	.pb-contactForm {
+		border-radius: 10px;
+		border-color: var(--card-bd);
+		box-shadow: 0 8px 24px var(--card-sh);
+	}
+
+	.pb-contactForm__title {
+		font-family: 'Syne', sans-serif;
+		font-weight: 700;
+	}
+
+	.pb-contactForm__field input,
+	.pb-contactForm__field textarea {
+		border-radius: 8px;
+	}
+
+	.pb-contactForm__submit {
+		border-radius: 8px;
+	}
+}
+
+.s-contact {
+	margin-top: 85px;
+} 

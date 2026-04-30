@@ -1,0 +1,59 @@
+// ============================================================
+// Noir Page Title — _pageTitle.scss
+//
+// Generic page title module styled per the noir mockup
+// (matches .abt-title / .ct-title / .gal-title — DM Sans 200,
+// 32px, .04em, fg, with optional 1px x 40px rule below).
+//
+// Targets the page-builder pageTitle module.
+// ============================================================
+
+.tpl-pack-noir .pb-pageTitle {
+  border-bottom: none;
+  color: var(--fg);
+  padding: 128px 32px 32px;
+  background: transparent;
+
+  &.pb-pageTitle--compact {
+    padding: 32px 32px 16px;
+  }
+
+  &.pb-pageTitle--center { text-align: center; }
+  &.pb-pageTitle--left   { text-align: start; }
+  &.pb-pageTitle--right  { text-align: end; }
+}
+
+.tpl-pack-noir .pb-pageTitle__title {
+  margin: 0;
+  color: var(--fg);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 32px;
+  font-weight: 200;
+  letter-spacing: 0.04em;
+  line-height: 1.15;
+  text-transform: lowercase;
+
+  // Noir signature rule under the title.
+  &::after {
+    content: '';
+    display: block;
+    width: 1px;
+    height: 40px;
+    background: var(--fg-dim);
+    margin-top: 16px;
+  }
+}
+
+.tpl-pack-noir .pb-pageTitle--center .pb-pageTitle__title::after {
+  margin-inline: auto;
+}
+
+.tpl-pack-noir .pb-pageTitle__subtitle {
+  margin: 16px 0 0;
+  color: var(--fg-dim);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 300;
+  line-height: 1.6;
+  letter-spacing: 0;
+}

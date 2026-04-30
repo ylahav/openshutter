@@ -5,11 +5,12 @@
 	import { buildGoogleFontsUrl } from '$lib/constants/google-fonts';
 	import type { FontSetting } from '$lib/types/fonts';
 	import type { PageData } from '$types/page-builder';
+	import { buildShellLayoutCssVars } from '$lib/template/breakpoints';
 
 	export let tokens: {
 		colors: { primary: string; secondary: string; accent: string; background: string; text: string; muted: string };
 		fonts: Record<string, string | FontSetting>;
-		layout: { maxWidth: string; containerPadding: string; gridGap: string };
+		layout: { maxWidth: string; containerPadding: string; gridGap: string } & Record<string, string | undefined>;
 	} = {
 		colors: { primary: '#3B82F6', secondary: '#6B7280', accent: '#F59E0B', background: '#FFFFFF', text: '#111827', muted: '#6B7280' },
 		fonts: { heading: 'Inter', body: 'Inter', links: 'Inter', lists: 'Inter', formInputs: 'Inter', formLabels: 'Inter' },
@@ -26,9 +27,12 @@
 		return typeof v === 'string' ? 'inherit' : (v.weight ?? 'inherit');
 	}
 
-	export let pageType: 'home' | 'gallery' | 'album' | 'search' | 'pageBuilder' | 'header' | 'footer' = 'home';
+	export let pageType: 'home' | 'gallery' | 'album' | 'search' | 'login' | 'pageBuilder' | 'header' | 'footer' = 'home';
+	export let templateName: 'noir' | 'studio' | 'atelier' = 'atelier';
 	export let pageModules: any[] | undefined = undefined;
 	export let pageLayout: { gridRows?: number; gridColumns?: number } | undefined = undefined;
+	/** Named layout shells (merged over site template in preview). */
+	export let layoutPresets: Record<string, unknown> | null | undefined = undefined;
 
 	// Use provided modules/layout or fall back to defaults
 	$: modules = pageModules || DEFAULT_PAGE_MODULES[pageType] || [];
@@ -47,6 +51,13 @@
 			.map((r) => fontFamily(tokens.fonts[r]))
 			.filter(Boolean)
 	);
+
+	$: layoutShell = {
+		maxWidth: tokens.layout.maxWidth,
+		containerPadding: tokens.layout.containerPadding,
+		gridGap: tokens.layout.gridGap,
+		...tokens.layout
+	};
 
 	$: cssVars = `
 		--os-primary: ${tokens.colors.primary};
@@ -73,10 +84,9 @@
 		--os-font-form-labels: ${fontFamily(tokens.fonts.formLabels)}, sans-serif;
 		--os-font-form-labels-size: ${fontSize(tokens.fonts.formLabels)};
 		--os-font-form-labels-weight: ${fontWeight(tokens.fonts.formLabels)};
-		--os-max-width: ${tokens.layout.maxWidth};
-		--os-padding: ${tokens.layout.containerPadding};
-		--os-gap: ${tokens.layout.gridGap};
+		${buildShellLayoutCssVars(layoutShell).trim()}
 	`;
+	$: previewPackClass = `tpl-pack-${templateName}`;
 </script>
 
 <svelte:head>
@@ -86,7 +96,7 @@
 </svelte:head>
 
 <div
-	class="@container theme-preview-root rounded-lg overflow-hidden border border-gray-300 bg-white min-w-0 max-w-full"
+	class="@container theme-preview-root {previewPackClass} rounded-lg overflow-hidden border border-border bg-background min-w-0 max-w-full"
 	style={cssVars}
 >
 	<div
@@ -99,10 +109,15 @@
 	>
 		{#if modules.length > 0}
 			<!-- Use PageRenderer with actual modules -->
-			<PageRenderer page={page as PageData} modules={modules} />
+			<PageRenderer
+				page={page as PageData}
+				modules={modules}
+				layoutPresetsPreview={layoutPresets}
+				compact={pageType === 'header' || pageType === 'footer'}
+			/>
 		{:else}
 			<!-- Fallback for page types without modules -->
-			<div class="flex items-center justify-center h-full text-gray-400">
+			<div class="flex items-center justify-center h-full text-muted-foreground">
 				<p>No modules configured for {pageType}</p>
 			</div>
 		{/if}

@@ -1,0 +1,16 @@
+// Studio pack — page-builder hero (Hero/Layout.svelte).
+// Optional grid cell `className: "hero"` → `.pbModuleCell.s-hero` (legacy marketing shell).
+// Same class of issue as Noir: flex/grid parents need `min-width: 0` so split `1fr` columns keep the image track.
+
+.tpl-pack-studio {
+	.pbModuleCell.s-hero {
+		min-width: 0;
+	}
+
+	.pbModuleCell.s-hero > .pb-hero {
+		width: 100%;
+		min-width: 0;
+		position: relative;
+		z-index: 1;
+	}
+}

@@ -72,10 +72,10 @@
 	}
 </script>
 
-<div class="space-y-6">
+<div class="os-search-results space-y-6">
 	{#if error}
-		<div class="bg-white rounded-lg shadow-sm border p-8 text-center">
-			<div class="text-red-500 mb-4">
+		<div class="os-search-results__state os-search-results__state--error bg-white rounded-lg shadow-sm border p-8 text-center">
+			<div class="os-search-results__state-icon text-red-500 mb-4">
 				<svg class="h-12 w-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path
 						stroke-linecap="round"
@@ -89,14 +89,14 @@
 			</div>
 			<button
 				on:click={() => window.location.reload()}
-				class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+				class="os-search-results__action px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
 			>
 				{$t('search.retry')}
 			</button>
 		</div>
 	{:else if !query && !hasResults}
-		<div class="bg-white rounded-lg shadow-sm border p-8 text-center">
-			<svg class="h-12 w-12 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+		<div class="os-search-results__state os-search-results__state--empty bg-white rounded-lg shadow-sm border p-8 text-center">
+			<svg class="os-search-results__state-icon h-12 w-12 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 				<path
 					stroke-linecap="round"
 					stroke-linejoin="round"
@@ -110,15 +110,15 @@
 	{:else}
 		<!-- Results Header -->
 		{#if hasResults}
-			<div class="bg-white rounded-lg shadow-sm border p-4">
+			<div class="os-search-results__header bg-white rounded-lg shadow-sm border p-4">
 				<div class="flex items-center justify-between flex-wrap gap-2">
-					<div class="flex items-center space-x-4 flex-wrap">
+					<div class="os-search-results__header-meta flex items-center space-x-4 flex-wrap">
 						<h2 class="text-lg font-semibold text-gray-900">{$t('search.results')}</h2>
 						<span class="text-sm text-gray-600">
 							{photoCount} {photoCount === 1 ? $t('search.photo') : $t('search.photos')}
 						</span>
 						{#if searchSummary && searchSummary.trim()}
-							<span class="text-sm text-gray-500 border-l border-gray-300 pl-4">
+							<span class="os-search-results__summary text-sm text-gray-500 border-l border-gray-300 pl-4">
 								{$t('search.searchingFor')} {searchSummary}
 							</span>
 						{/if}
@@ -129,7 +129,7 @@
 
 		<!-- Loading / Thinking State (POST sent, waiting for result) -->
 		{#if loading}
-			<div class="bg-white rounded-lg shadow-sm border p-8 text-center">
+			<div class="os-search-results__state os-search-results__state--loading bg-white rounded-lg shadow-sm border p-8 text-center">
 				<div class="flex flex-col items-center gap-4">
 					<!-- Thinking icon: lightbulb (idea/thinking) with subtle pulse -->
 					<svg
@@ -149,12 +149,12 @@
 		{:else}
 			<!-- Photos Grid -->
 			{#if Array.isArray(results.photos) && results.photos.length > 0}
-				<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+				<div class="os-search-results__grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
 					{#each results.photos as photo, index}
 						<button
 							type="button"
 							on:click={() => openLightbox(index)}
-							class="cursor-pointer bg-white rounded-lg shadow overflow-hidden hover:shadow-lg transition-shadow w-full text-left border-0 p-0 font-inherit"
+							class="os-search-results__card cursor-pointer bg-white rounded-lg shadow overflow-hidden hover:shadow-lg transition-shadow w-full text-left border-0 p-0 font-inherit"
 							aria-label="{$t('search.viewPhoto')}: {photo.filename || (typeof photo.title === 'string' ? photo.title : '') || $t('search.untitled')}"
 						>
 							{#if photo.storage?.thumbnailPath || photo.storage?.url}
@@ -162,17 +162,17 @@
 								<img
 									src={imageUrl}
 									alt={photo.filename || 'Photo'}
-									class="w-full h-48 object-contain bg-black/5"
+									class="os-search-results__card-image w-full h-48 object-contain bg-black/5"
 									style={getPhotoRotationStyle(photo)}
 									loading="lazy"
 								/>
 							{:else}
-								<div class="w-full h-48 bg-gray-200 flex items-center justify-center">
+								<div class="os-search-results__card-image-fallback w-full h-48 bg-gray-200 flex items-center justify-center">
 									<span class="text-gray-400">{$t('search.noImage')}</span>
 								</div>
 							{/if}
-							<div class="p-2">
-								<p class="text-sm text-gray-600 truncate">
+							<div class="os-search-results__card-body p-2">
+								<p class="os-search-results__card-title text-sm text-gray-600 truncate">
 									{photo.filename || photo.title || $t('search.untitled')}
 								</p>
 							</div>
@@ -183,11 +183,11 @@
 
 			<!-- Load More Button -->
 			{#if results.hasMore}
-				<div class="text-center">
+				<div class="os-search-results__load-more text-center">
 					<button
 						on:click={handleLoadMore}
 						disabled={loading}
-						class="px-8 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+						class="os-search-results__action px-8 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
 					>
 						{loading ? $t('search.loading') : $t('search.loadMore')}
 					</button>
@@ -196,8 +196,8 @@
 
 			<!-- No Results Message -->
 			{#if query && !hasResults}
-				<div class="bg-white rounded-lg shadow-sm border p-8 text-center">
-					<svg class="h-12 w-12 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<div class="os-search-results__state os-search-results__state--no-results bg-white rounded-lg shadow-sm border p-8 text-center">
+					<svg class="os-search-results__state-icon h-12 w-12 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path
 							stroke-linecap="round"
 							stroke-linejoin="round"
