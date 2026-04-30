@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { activeTemplate } from '$stores/template';
+	import '$lib/styles/globals.css';
 	import '$templates/styles/main.scss';
 	import { browser } from '$app/environment';
 

@@ -1,0 +1,103 @@
+/* Admin-only stylesheet.
+   Avoid importing full Tailwind (preflight) again here, because it injects
+   global universal resets (`*, :before, :after`) a second time. */
+@import "tailwindcss/theme";
+@import "tailwindcss/utilities";
+@import "@skeletonlabs/skeleton";
+@import "@skeletonlabs/skeleton-svelte";
+@import "@skeletonlabs/skeleton/themes/cerberus";
+
+/* Admin-only hardcoded layout baseline.
+   Keep admin independent from visitor template layout variables. */
+[data-admin-chrome] {
+	--os-max-width: 1280px;
+	--os-padding: 1rem;
+	--os-gap: 1rem;
+}
+
+[data-admin-chrome] .os-shell-container {
+	width: 100%;
+	max-width: var(--os-max-width);
+	margin-inline: auto;
+	padding-inline: var(--os-padding);
+	box-sizing: border-box;
+}
+
+@media (min-width: 768px) {
+	[data-admin-chrome] {
+		--os-padding: 1.25rem;
+	}
+}
+
+@media (min-width: 1280px) {
+	[data-admin-chrome] {
+		--os-padding: 1.5rem;
+	}
+}
+
+/*
+ * Skeleton `@utility input` / `select` / `textarea` use a transparent background by design (see Skeleton form docs).
+ * Under admin chrome, bare `class="input"` should still read like the demo: add surface fill + fg so fields aren’t invisible on cards.
+ * Matches the spirit of overrides’ ADMIN_TEXT_INPUT_* helpers without requiring repeated utilities on every node.
+ */
+[data-admin-chrome] input.input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']):not(
+		[type='file']
+	):not([type='hidden']):not([type='submit']):not([type='reset']) {
+	color: var(--base-font-color);
+	background-color: var(--color-surface-50);
+}
+[data-admin-chrome].dark
+	input.input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']):not([type='file']):not(
+		[type='hidden']
+	):not([type='submit']):not([type='reset']) {
+	color: var(--base-font-color-dark);
+	background-color: var(--color-surface-900);
+}
+
+[data-admin-chrome] select.select {
+	color: var(--base-font-color);
+	background-color: var(--color-surface-50);
+}
+[data-admin-chrome].dark select.select {
+	color: var(--base-font-color-dark);
+	background-color: var(--color-surface-900);
+}
+
+[data-admin-chrome] textarea.textarea {
+	color: var(--base-font-color);
+	background-color: var(--color-surface-50);
+}
+[data-admin-chrome].dark textarea.textarea {
+	color: var(--base-font-color-dark);
+	background-color: var(--color-surface-900);
+}
+
+/* Explicit card baseline for admin pages that use generic `.card*` classes. */
+[data-admin-chrome] .card {
+	background-color: var(--color-surface-50);
+	border: 1px solid var(--color-surface-200);
+	border-radius: var(--radius-base);
+}
+
+[data-admin-chrome].dark .card {
+	background-color: var(--color-surface-900);
+	border-color: var(--color-surface-700);
+}
+
+[data-admin-chrome] .card-header {
+	border-bottom: 1px solid var(--color-surface-200);
+}
+
+[data-admin-chrome].dark .card-header {
+	border-bottom-color: var(--color-surface-700);
+}
+
+[data-admin-chrome] .card-footer {
+	border-top: 1px solid var(--color-surface-200);
+	background-color: color-mix(in oklab, var(--color-surface-50) 86%, white);
+}
+
+[data-admin-chrome].dark .card-footer {
+	border-top-color: var(--color-surface-700);
+	background-color: color-mix(in oklab, var(--color-surface-900) 88%, black);
+}

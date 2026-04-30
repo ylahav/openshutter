@@ -2,7 +2,6 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import type { LayoutData } from './$types';
-	import '$lib/styles/globals.css';
 	import { siteConfig, publicSiteFavicon } from '$stores/siteConfig';
 	import { loadSession } from '$lib/stores/auth';
 	import PackFallbackBanner from '$lib/components/PackFallbackBanner.svelte';

@@ -184,6 +184,19 @@ For detailed admin setup instructions, see [docs/guides/ADMIN_SETUP.md](docs/gui
    pnpm type-check   # Run TypeScript type checking
    ```
 
+### Frontend runtime notes (local)
+
+- `frontend/pnpm start` runs `node build/index.js` and reads values from the process environment.
+- `frontend/pnpm startondev` loads `frontend/.env.production` before starting the built app.
+- `frontend/pnpm start:local` runs `build` then `startondev`.
+- `frontend/pnpm start:local:https` runs the built app on `http://localhost:4001` and an HTTPS proxy on `https://localhost:4000` for production-like local testing.
+
+### Admin styling isolation
+
+- Admin routes (`/admin`) now use a dedicated stylesheet: `frontend/src/lib/styles/admin.css`.
+- Public template styles are loaded only through `BodyTemplateWrapper` (non-admin routes).
+- This keeps admin UI layout/styles independent from gallery template packs.
+
 ## 🚀 Production Deployment
 
 > **📖 Full Deployment Guide**: For complete instructions including environment setup, MongoDB configuration, PM2 management, Nginx, and SSL, see **[docs/guides/SERVER_DEPLOYMENT.md](docs/guides/SERVER_DEPLOYMENT.md)**
