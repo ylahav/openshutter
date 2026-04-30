@@ -1,24 +1,23 @@
 // ============================================================
 // Noir Header — _header.scss
 //
-// Targets the actual class names produced by the layoutShell
-// system. Overrides Tailwind utilities and inline styles.
+// Mirrors template-noir-full.html:
+//   header (fixed, z-100, padding 20px 32px, flex space-between)
+//     .logo-wrap (mix-blend-mode: difference, gap 10)
+//       img.logo-img (32x32, invert)
+//       span.logo-title (DM Sans 200, 13px, .18em uppercase)
+//     .hdr-r (mix-blend-mode: difference, gap 20)
+//       nav (flex gap 24, links 10px .18em fg-dim -> fg)
+//       .hdr-btns (gap 8) - mode toggle ghost pill
+//       select.lang-select (bottom-border, 9px .18em fg-dimmer)
+//       a.signin (bottom-border, 9px .18em fg-dimmer -> fg-dim)
 //
-// Produced DOM tree:
-//
-//  section.layout-shell.n-header          ← shell
-//    div.flex.gap-4.px-4.py-2             ← inner row
-//      div.flex-1.n-logo                  ← cell 1 (img logo)
-//      div.flex-1.n-site-title            ← cell 2 (text title)
-//      div.flex-1.n-menu                  ← cell 3 (nav links)
-//      div.flex-1.n-toggle-mode           ← cell 4 (SVG icon btn)
-//      div.flex-1.n-langs                 ← cell 5 (full dropdown)
-//
-// NOTE: cells carry inline style="flex: 1 1 0%" which requires
-//       !important to override until the component is fixed.
+// Targets the page-builder layout shell DOM:
+//   section.layout-shell.n-header
+//     div.flex.gap-4.px-4.py-2 (inner row)
+//       div.n-logo / div.n-site-title / div.n-menu /
+//       div.n-toggle-mode / div.n-langs / div.n-signin?
 // ============================================================
-
-// ── Shared mono mixin ────────────────────────────────────────
 
 @mixin n-mono($size: 10px, $spacing: 0.18em) {
   font-family: 'DM Mono', monospace;
@@ -28,39 +27,31 @@
   font-weight: 400;
 }
 
-// ── Shell ─────────────────────────────────────────────────────
-
+// Shell
 section.layout-shell.n-header {
-  position: fixed !important;
-  inset-inline: 0;
-  top: 0;
-  z-index: 100;
   background: transparent !important;
-  width: 100% !important;
+  inset-inline: 0;
+  margin: 0 auto;
+  position: fixed !important;
+  top: 0;
+  width: 100vw !important;
+  z-index: 100;
 
-  // All children composite over the hero image
   > div > * { mix-blend-mode: difference; }
-
-  // ── Inner row ─────────────────────────────────────────────
-  // flex → grid, strip gap and inner padding, apply header padding
 
   > div {
     display: grid !important;
-    grid-template-columns: auto auto 1fr auto auto !important;
     grid-template-rows: 1fr;
+    grid-auto-flow: column;
+    grid-auto-columns: max-content;
+    direction: ltr;
     align-items: center !important;
-    gap: 0 20px !important;         // override gap-4 (16px)
-    padding: 20px 32px !important;  // override px-4 py-2
-
-    [dir="rtl"] & { direction: rtl; }
+    gap: 0 20px !important;
+    padding: 20px 32px !important;
   }
 }
 
-// ── Cell sizing override ──────────────────────────────────────
-// All cells have inline style="flex: 1 1 0%" from layoutShell.
-// Grid children ignore flex-grow but we reset the wrapper
-// flex-col behaviour.
-
+// Cell sizing override
 section.layout-shell.n-header > div > [class*="n-"] {
   flex: none !important;
   width: auto !important;
@@ -69,42 +60,35 @@ section.layout-shell.n-header > div > [class*="n-"] {
   align-items: center;
 }
 
-// ── Cell 1 — Logo ─────────────────────────────────────────────
-
+// Cell 1 - Logo
 .n-logo {
   grid-column: 1;
 
-  // Collapse the inner wrapper divs
   > div,
-  > div > a {
-    display: contents;
-  }
+  > div > a { display: contents; }
 
-  // Logo image
   img {
     width: 32px;
     height: 32px;
     object-fit: contain;
     display: block;
-    // Invert so the image reads correctly under mix-blend-mode:difference
     filter: invert(1);
   }
 }
 
-// ── Cell 2 — Site title ───────────────────────────────────────
-
+// Cell 2 - Site title
 .n-site-title {
   grid-column: 2;
 
   > span {
     font-family: 'DM Sans', sans-serif !important;
-    font-size: 11px !important;
+    font-size: 13px !important;
     font-weight: 200 !important;
-    letter-spacing: 0.28em !important;
+    letter-spacing: 0.18em !important;
     text-transform: uppercase !important;
-    color: var(--fg-dim) !important;
+    color: var(--fg) !important;
+    white-space: nowrap;
 
-    // Vertical separator from logo
     padding-inline-start: 16px;
     border-inline-start: 1px solid var(--border);
   }
@@ -118,18 +102,26 @@ section.layout-shell.n-header > div > [class*="n-"] {
   }
 }
 
-// ── Cell 3 — Menu ─────────────────────────────────────────────
-
+// Cell 3 - Menu
 .n-menu {
   grid-column: 3;
-  justify-content: center !important; // centre links in the 1fr column
+  justify-content: center !important;
 
   nav {
     display: flex;
     align-items: center;
-    gap: 24px !important; // override gap-4 (16px)
+    flex-wrap: nowrap;
+    gap: 24px !important;
 
     [dir="rtl"] & { flex-direction: row-reverse; }
+  }
+
+  // When auth is injected by the Menu module (`showAuthButtons`),
+  // force sign-in/sign-out action to the visual end of nav.
+  nav [data-auth-action="sign-in"],
+  nav [data-auth-action="sign-out"] {
+    order: 99;
+    margin-inline-start: auto;
   }
 
   nav a {
@@ -137,48 +129,37 @@ section.layout-shell.n-header > div > [class*="n-"] {
     color: var(--fg-dim) !important;
     text-decoration: none !important;
     font-weight: 400 !important;
-    position: relative;
-    transition: color 0.2s;
+    transition: color 0.2s ease;
 
-    // Underline expands from centre on hover / active
-    &::after {
-      content: '';
-      position: absolute;
-      inset-inline: 50%;
-      bottom: -3px;
-      height: 1px;
-      background: var(--fg);
-      transition: inset-inline 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    &:hover {
-      color: var(--fg) !important;
-      &::after { inset-inline: 0; }
-    }
-
-    // Active — override --os-primary with --fg
+    &:hover,
     &[aria-current="page"],
     &.active {
       color: var(--fg) !important;
-      font-weight: 400 !important; // remove font-medium
-
-      &::after { inset-inline: 0; }
     }
+  }
+
+  nav button {
+    @include n-mono(10px, 0.18em);
+    color: var(--fg-dim) !important;
+    background: none !important;
+    border: 0 !important;
+    padding: 0 !important;
+    text-decoration: none !important;
+    font-weight: 400 !important;
+    line-height: 1;
+    transition: color 0.2s ease;
+
+    &:hover { color: var(--fg) !important; }
   }
 }
 
-// ── Cell 4 — Mode toggle ──────────────────────────────────────
-// Component renders SVG icon. SCSS: hides icon, styles the
-// button as a ghost pill, injects a CSS text label.
-// Permanent fix: component needs a variant="text" prop.
-
+// Cell 4 - Mode toggle
 .n-toggle-mode {
   grid-column: 4;
 
   button {
     @include n-mono(9px, 0.14em);
 
-    // Ghost pill — strip Tailwind rounded and hover bg
     background: none !important;
     border: 1px solid var(--border) !important;
     border-radius: 0 !important;
@@ -187,16 +168,13 @@ section.layout-shell.n-header > div > [class*="n-"] {
     cursor: pointer;
     transition: color 0.2s, border-color 0.2s;
 
-    // Hide the SVG sun/moon icon
-    svg { display: none; }
-
-    // CSS text label until component renders one
-    &::after {
+    &:not(.pb-themeToggle--text) svg { display: none; }
+    &:not(.pb-themeToggle--text)::after {
       content: 'light';
       display: inline;
     }
-    [data-mode="dark"] &::after,
-    html.dark &::after {
+    [data-mode="dark"] &:not(.pb-themeToggle--text)::after,
+    html.dark &:not(.pb-themeToggle--text)::after {
       content: 'dark';
     }
 
@@ -210,81 +188,117 @@ section.layout-shell.n-header > div > [class*="n-"] {
   }
 }
 
-// ── Cell 5 — Language selector ────────────────────────────────
-// Component renders: flag emoji + full name + chevron SVG.
-// SCSS: strips to a bottom-border text link.
-// Permanent fix: component needs variant="minimal" prop
-//               that renders just the language code (EN / HE).
-
+// Cell 5 - Language selector
 .n-langs {
   grid-column: 5;
 
-  // Collapse the dropdown wrapper
   > div { display: contents; }
 
-  button {
+  button,
+  select {
     @include n-mono(9px, 0.18em);
 
-    // Strip all dropdown chrome
     background: none !important;
     border: none !important;
     border-bottom: 1px solid var(--border) !important;
     border-radius: 0 !important;
     box-shadow: none !important;
-    padding: 0 0 1px !important;
+    padding: 0 14px 1px 0 !important;
     color: var(--fg-dimmer) !important;
     cursor: pointer;
     gap: 4px !important;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='rgba(245,245,243,.35)'/%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 0 center !important;
+
     transition: color 0.2s;
 
     &:hover {
       color: var(--fg-dim) !important;
       background: none !important;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='rgba(245,245,243,.35)'/%3E%3C/svg%3E") !important;
+      background-repeat: no-repeat !important;
+      background-position: right 0 center !important;
     }
 
-    // Hide flag emoji (first span)
     > span:first-child { display: none; }
-
-    // Hide chevron SVG
     > svg { display: none; }
 
-    // Language name span — force mono
     > span:not(:first-child) {
       @include n-mono(9px, 0.18em);
       color: inherit !important;
       font-weight: 400 !important;
     }
   }
+
+  [dir='rtl'] & button,
+  [dir='rtl'] & select {
+    padding: 0 0 1px 14px !important;
+    background-position: left 0 center !important;
+  }
 }
 
-// ── RTL ───────────────────────────────────────────────────────
+// Cell 6 - Sign in link (optional)
+.n-signin {
+  grid-column: 6;
 
+  a, button {
+    @include n-mono(9px, 0.18em);
+    color: var(--fg-dimmer) !important;
+    text-decoration: none !important;
+    border-bottom: 1px solid var(--border) !important;
+    padding-bottom: 1px !important;
+    background: none !important;
+    transition: color 0.2s;
+
+    &:hover { color: var(--fg-dim) !important; }
+  }
+}
+
+// Fallback: if auth module cell isn't named `n-signin`,
+// still pin it to the far-right slot in the header row.
+section.layout-shell.n-header > div > [class*="n-"]:has(.pb-authButtons) {
+  grid-column: 6;
+  order: 6;
+  justify-self: end;
+  margin-inline-start: auto;
+}
+
+// Ensure sign-in/auth cell is visually last even when the shell row
+// ends up behaving like flex (inline styles from PageBuilderGrid).
+section.layout-shell.n-header > div > .n-signin {
+  order: 6;
+  justify-self: end;
+  margin-inline-start: auto;
+}
+
+// RTL
 [dir="rtl"] {
   .n-site-title > span {
-    padding-inline-start: 16px;
-    border-inline-start: 1px solid var(--border);
-    padding-inline-end: 0;
-    border-inline-end: none;
+    padding-inline-end: 16px;
+    border-inline-end: 1px solid var(--border);
+    padding-inline-start: 0;
+    border-inline-start: none;
   }
 
   .n-menu nav { flex-direction: row-reverse; }
 }
 
-// ── Scroll state ──────────────────────────────────────────────
-// Add .is-scrolled to the section via JS on scroll.
-
+// Scroll state
 section.layout-shell.n-header.is-scrolled {
   background: rgba(8, 8, 8, 0.72) !important;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   transition: background 0.3s ease;
 
-  // Restore normal blending once background exists
   > div > * { mix-blend-mode: normal; }
 }
 
-// ── Responsive ────────────────────────────────────────────────
-
+// Responsive
 @media (max-width: 639px) {
   section.layout-shell.n-header > div {
     grid-template-columns: auto 1fr auto auto !important;
@@ -297,13 +311,17 @@ section.layout-shell.n-header.is-scrolled {
   .n-langs       { grid-column: 4 !important; }
 }
 
-// ── Page builder: reserve space for fixed header ───────────────
-// `n-header` is `position: fixed`, so it is out of flow. Without padding,
-// the first content row (e.g. /albums album grid) sits under the bar.
-
+// Page builder: reserve space for fixed header
 main.tpl-pack-noir:has(section.layout-shell.n-header) .pb-page {
   padding-top: var(--noir-fixed-header-reserve, 5.5rem);
   scroll-padding-top: var(--noir-fixed-header-reserve, 5.5rem);
+}
+
+// Hero pages don't need the reserve
+main.tpl-pack-noir:has(section.layout-shell.n-header) .pb-page:has(> :first-child section[data-hero-pack="noir"]),
+main.tpl-pack-noir:has(section.layout-shell.n-header) .pb-page:has(> .pb-row:first-child section[data-hero-pack="noir"]) {
+  padding-top: 0;
+  scroll-padding-top: 0;
 }
 
 @media (max-width: 639px) {

@@ -1,78 +1,228 @@
+// ============================================================
+// Noir About Page — _about.scss
+//
+// Mirrors template-noir-full.html .abt-* block:
+//   .abt-hdr (padding 128 32 32)
+//     h1.abt-title (DM Sans 200, 32px, .04em, fg)
+//     .abt-hr (1px x 40px, fg-dim, margin-top 16)
+//   .abt-body (grid 320px 1fr, gap 64, max-w 900, padding 0 32 64)
+//     .portrait (3/4 aspect, radius 2)
+//       img (cover, grayscale 20% → 0% on hover, .4s)
+//     .bio-text (DM Sans 300, 15px, line-height 1.85, fg-dim,
+//                margin-bottom 24)
+//     .email-lnk (9px DM Mono, .22em, fg, border-bottom fg-dim)
+//
+// Targets the page-builder generated DOM (richText / featureGrid)
+// where applicable and the matching mockup classes when the
+// component renders them directly.
+// ============================================================
+
+@mixin n-mono($size: 10px, $spacing: 0.18em) {
+  font-family: 'DM Mono', monospace;
+  font-size: $size;
+  letter-spacing: $spacing;
+  text-transform: uppercase;
+  font-weight: 400;
+}
+
+// ── Page header ───────────────────────────────────────────────
+
+.abt-hdr {
+  padding: 128px 32px 32px;
+}
+
+.abt-title {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 200;
+  font-size: 32px;
+  letter-spacing: 0.04em;
+  color: var(--fg);
+  margin: 0;
+}
+
+.abt-hr {
+  width: 1px;
+  height: 40px;
+  background: var(--fg-dim);
+  margin-top: 16px;
+}
+
+// ── Body grid (portrait + bio) ───────────────────────────────
+
+.abt-body {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 64px;
+  padding: 0 32px 64px;
+  max-width: 900px;
+
+  [dir="rtl"] & { direction: rtl; }
+}
+
+@media (max-width: 768px) {
+  .abt-body {
+    grid-template-columns: 1fr;
+    gap: 32px;
+    padding: 0 24px 48px;
+    max-width: 100%;
+  }
+}
+
+// ── Portrait ──────────────────────────────────────────────────
+
+.portrait {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+  border-radius: 2px;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    filter: grayscale(20%);
+    transition: filter 0.4s ease;
+  }
+
+  &:hover img { filter: grayscale(0%); }
+}
+
+// ── Bio text ──────────────────────────────────────────────────
+
+.bio-text {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 15px;
+  line-height: 1.85;
+  color: var(--fg-dim);
+  margin-bottom: 24px;
+  transition: color 0.35s;
+}
+
+// ── Email link ────────────────────────────────────────────────
+
+.email-lnk {
+  @include n-mono(9px, 0.22em);
+  color: var(--fg);
+  text-decoration: none;
+  border-bottom: 1px solid var(--fg-dim);
+  padding-bottom: 2px;
+  transition: border-color 0.2s;
+
+  &:hover { border-color: var(--fg); }
+}
+
+// ── Page-builder fallbacks ────────────────────────────────────
+// When the about page is rendered via page-builder modules
+// (richText + featureGrid) inside .n-about, apply noir colours
+// and typography on top of the generic Tailwind output.
 
 .n-about {
+  background: var(--bg);
+  color: var(--fg);
+
+  // Fallback header — when the page renders through richText,
+  // mimic .abt-hdr / .abt-title / .abt-hr.
   .n-about-header {
-    max-width: 56rem;
-    margin-left: auto;
-    margin-right: auto;
-    padding: 3rem 1rem;
-    text-align: center;
-    border-bottom: 1px solid #e5e7eb;
+    max-width: 100%;
+    margin: 0;
+    padding: 128px 32px 32px;
+    text-align: start;
+    border-bottom: none;
+
+    h1 {
+      font-family: 'DM Sans', sans-serif !important;
+      font-weight: 200 !important;
+      font-size: 32px !important;
+      letter-spacing: 0.04em !important;
+      color: var(--fg) !important;
+      margin: 0 !important;
+    }
+
+    // Fake the .abt-hr divider after the heading.
+    h1::after {
+      content: '';
+      display: block;
+      width: 1px;
+      height: 40px;
+      background: var(--fg-dim);
+      margin-top: 16px;
+    }
   }
 
   .n-about-into,
   .n-about-vision {
-    color: var(--fg-mid);
+    color: var(--fg-dim);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    font-size: 15px;
+    line-height: 1.85;
+    padding: 0 32px;
+    max-width: 720px;
   }
+
+  // Feature grid (page-builder featureGrid module) ─────────────
 
   .n-about-features {
     &.pb-featureGrid {
-      padding: 5rem 1rem;
-      background: var(--bg-2);
+      padding: 5rem 32px;
+      background: transparent;
     }
 
     .pb-featureGrid__inner {
-      max-width: min(72rem, 100%);
+      max-width: 900px;
       margin: 0 auto;
     }
 
     .pb-featureGrid__header {
-      text-align: center;
-      margin-bottom: 4rem;
+      text-align: start;
+      margin-bottom: 3rem;
     }
 
     .pb-featureGrid__title {
       margin: 0 0 1rem;
       color: var(--fg);
-      font-family: var(--os-font-heading), 'DM Sans', sans-serif;
-      font-size: clamp(2rem, 4vw, 2.5rem);
-      font-weight: 300;
-      letter-spacing: 0.02em;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 32px;
+      font-weight: 200;
+      letter-spacing: 0.04em;
     }
 
     .pb-featureGrid__subtitle {
-      margin: 0 auto;
+      margin: 0;
       max-width: 42rem;
-      color: var(--fg-mid);
-      font-family: var(--os-font-body), 'DM Mono', monospace;
-      font-size: clamp(1rem, 2vw, 1.25rem);
-      line-height: 1.6;
+      color: var(--fg-dim);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      line-height: 1.85;
+      font-weight: 300;
     }
 
     .pb-featureGrid__grid {
       display: grid;
-      gap: 2rem;
+      gap: var(--gap, 2px);
       grid-template-columns: 1fr;
     }
 
     .pb-featureGrid__card {
-      padding: 2rem;
-      background: var(--card-bg);
-      border: var(--os-border-width, 1px) solid var(--border);
-      border-radius: var(--os-card-radius, 0);
-      box-shadow: var(--os-card-shadow, 0 12px 40px rgba(0, 0, 0, 0.35));
-      transition: box-shadow var(--os-transition, 0.3s) ease;
+      padding: 32px;
+      background: var(--bg-card);
+      border: none;
+      border-radius: 0;
+      box-shadow: none;
+      transition: background 0.3s ease;
 
-      &:hover {
-        box-shadow: var(--os-card-shadow-hover, 0 18px 48px rgba(0, 0, 0, 0.45));
-      }
+      &:hover { background: var(--bg-card2); }
     }
 
     .pb-featureGrid__iconWrap {
-      width: 3rem;
-      height: 3rem;
+      width: 32px;
+      height: 32px;
       margin-bottom: 1.5rem;
-      border-radius: var(--os-radius-sm, 4px);
-      background: color-mix(in srgb, var(--accent) 16%, transparent);
+      border-radius: 0;
+      background: transparent;
+      border: 1px solid var(--border);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -84,63 +234,57 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
+      color: var(--fg-dim);
 
-      &.pb-featureGrid__icon--blue { color: #2563eb; }
-      &.pb-featureGrid__icon--green { color: #16a34a; }
-      &.pb-featureGrid__icon--purple { color: #9333ea; }
-      &.pb-featureGrid__icon--yellow { color: #ca8a04; }
-      &.pb-featureGrid__icon--red { color: #dc2626; }
+      // Override coloured icon variants — noir is monochrome.
+      &.pb-featureGrid__icon--blue,
+      &.pb-featureGrid__icon--green,
+      &.pb-featureGrid__icon--purple,
+      &.pb-featureGrid__icon--yellow,
+      &.pb-featureGrid__icon--red {
+        color: var(--fg-dim);
+      }
     }
 
     .pb-featureGrid__iconSvg {
-      width: 1.5rem;
-      height: 1.5rem;
+      width: 16px;
+      height: 16px;
     }
 
     .pb-featureGrid__cardTitle {
       margin: 0 0 0.75rem;
       color: var(--fg);
-      font-family: var(--os-font-heading), 'DM Sans', sans-serif;
-      font-size: 1.25rem;
-      font-weight: 500;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      font-weight: 400;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
     }
 
     .pb-featureGrid__cardBody {
-      color: var(--fg-mid);
-      font-family: var(--os-font-body), 'DM Mono', monospace;
+      color: var(--fg-dim);
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 300;
+      font-size: 13px;
       line-height: 1.6;
 
-      p {
-        margin: 0;
-      }
+      p { margin: 0; }
     }
   }
 }
 
 @media (min-width: 768px) {
-  .n-about {
-    .n-about-features {
-      &.pb-featureGrid {
-        padding-inline: 1.5rem;
-      }
-
-      .pb-featureGrid__grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
+  .n-about .n-about-features {
+    .pb-featureGrid__grid {
+      grid-template-columns: repeat(2, 1fr);
     }
   }
 }
 
 @media (min-width: 1024px) {
-  .n-about {
-    .n-about-features {
-      &.pb-featureGrid {
-        padding-inline: 2rem;
-      }
-
-      .pb-featureGrid__grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-      }
+  .n-about .n-about-features {
+    .pb-featureGrid__grid {
+      grid-template-columns: repeat(3, 1fr);
     }
   }
 }

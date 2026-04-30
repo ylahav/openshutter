@@ -65,9 +65,7 @@ export async function backendRequest(
 		authToken = options.cookies.get('auth_token') || null;
 	}
 
-	const defaultHeaders: HeadersInit = {
-		'Content-Type': 'application/json',
-	};
+	const defaultHeaders: HeadersInit = {};
 
 	// Add Authorization header if token is available (backend checks this too)
 	if (authToken) {
@@ -139,6 +137,16 @@ export async function backendRequest(
 		options.headers && typeof options.headers === 'object' && !Array.isArray(options.headers)
 			? (options.headers as Record<string, string>)
 			: {};
+
+	// For FormData, let fetch set proper multipart boundary automatically.
+	const isFormDataBody =
+		typeof FormData !== 'undefined' && options.body instanceof FormData;
+	const hasContentTypeHeader = Object.keys(optionHeaders).some(
+		(k) => k.toLowerCase() === 'content-type'
+	);
+	if (!isFormDataBody && !hasContentTypeHeader) {
+		defaultHeaders['Content-Type'] = 'application/json';
+	}
 
 	const finalHeaders: Record<string, string> = {
 		...defaultHeaders,

@@ -1,14 +1,15 @@
 // ============================================================
-// NOIR — styles/styles.scss
-// Pack hero styling targets page-builder `section[data-hero-pack="noir"]` (see styles/_hero.scss).
-// Shared stylesheet entrypoint for noir pages/components.
+// NOIR styles entrypoint
 // ============================================================
 
+@use './tokens';
+@use './design.generated';
 @use './header';
 @use './hero';
 @use './footer';
 @use './gallery';
 @use './album';
 @use './about';
+@use './login';
 @use './pageTitle';
 @use './contactForm';

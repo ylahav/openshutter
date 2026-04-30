@@ -32,6 +32,11 @@
 				? 'pb-logo__media--lg'
 				: 'pb-logo__media--md';
 
+	$: brandInlineStyle =
+		titlePosition === 'above' || titlePosition === 'below'
+			? 'display:inline-flex;align-items:center;flex-wrap:nowrap;gap:0.5rem;flex-direction:column;'
+			: 'display:inline-flex;align-items:center;flex-wrap:nowrap;gap:0.5rem;flex-direction:row;';
+
 	$: if (browser) {
 		const templateId = String($activeTemplate || '').trim().toLowerCase();
 		const stylePath = `/src/templates/${templateId}/styles/_logo.scss`;
@@ -47,7 +52,12 @@
 
 <div class={`pb-logo pb-logo--title-${titlePosition}`.trim()}>
 	{#if linkToHome}
-		<a href="/" aria-label={title} class={`pb-logo__link pb-logo__brand pb-logo__brand--${titlePosition}`.trim()}>
+		<a
+			href="/"
+			aria-label={title}
+			class={`pb-logo__link pb-logo__brand pb-logo__brand--${titlePosition}`.trim()}
+			style={brandInlineStyle}
+		>
 			{#if showSiteTitle && (titlePosition === 'left' || titlePosition === 'above')}
 				<span class="pb-logo__title">{title}</span>
 			{/if}
@@ -65,7 +75,7 @@
 			{/if}
 		</a>
 	{:else}
-		<div class={`pb-logo__brand pb-logo__brand--${titlePosition}`.trim()}>
+		<div class={`pb-logo__brand pb-logo__brand--${titlePosition}`.trim()} style={brandInlineStyle}>
 			{#if showSiteTitle && (titlePosition === 'left' || titlePosition === 'above')}
 				<span class="pb-logo__title">{title}</span>
 			{/if}

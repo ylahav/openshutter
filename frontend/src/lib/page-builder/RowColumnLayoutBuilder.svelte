@@ -10,6 +10,7 @@
 export let onMoveRow: (fromRowOrder: number, toRowOrder: number) => Promise<void>;
 export let onInsertRow: (atRowOrder: number) => Promise<void>;
 export let onDeleteRow: (rowOrder: number) => Promise<void>;
+export let onRemoveEmptyColumn: (columnIndex: number) => Promise<void>;
 
 	interface RowData {
 		rowOrder: number;
@@ -285,9 +286,19 @@ export let onDeleteRow: (rowOrder: number) => Promise<void>;
 							on:click={() => toggleCell(row.rowOrder, col.columnIndex)}
 							on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleCell(row.rowOrder, col.columnIndex); } }}
 						>
-							<span class="text-xs text-muted-foreground">
-								{selected ? 'Selected' : 'Click to select'}
-							</span>
+							<div class="flex items-start justify-between gap-2">
+								<span class="text-xs text-muted-foreground">
+									{selected ? 'Selected' : 'Click to select'}
+								</span>
+								<button
+									type="button"
+									class="text-[11px] px-1.5 py-0.5 rounded border border-border bg-background text-muted-foreground hover:text-foreground hover:bg-muted"
+									title="Remove this empty column from the grid"
+									on:click|stopPropagation={() => onRemoveEmptyColumn(col.columnIndex)}
+								>
+									Remove cell
+								</button>
+							</div>
 						</div>
 					{/if}
 				{/each}

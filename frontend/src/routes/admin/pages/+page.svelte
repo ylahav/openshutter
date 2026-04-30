@@ -1436,6 +1436,18 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 		layoutShellEditorRowStructure = rowMap;
 	}
 
+	async function removeEmptyLayoutShellColumn(columnIndex: number) {
+		if (layoutShellEditorGridColumns <= 1) return;
+		if (isColumnOccupied(layoutShellEditorModules, columnIndex)) {
+			layoutShellEditorError = 'Cannot remove this cell because the column has module content.';
+			return;
+		}
+
+		layoutShellEditorGridColumns = Math.max(1, layoutShellEditorGridColumns - 1);
+		layoutShellEditorRowStructure = removeColumnFromRowStructure(layoutShellEditorRowStructure, columnIndex);
+		layoutShellEditorModules = shiftModulesAfterColumnDelete(layoutShellEditorModules, columnIndex);
+	}
+
 	function applyModuleWrapperClassName(props: Record<string, unknown>): Record<string, unknown> {
 		const next = { ...props };
 		const cls = moduleWrapperClassName.trim();
@@ -2164,6 +2176,37 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 		rowStructure = next;
 	}
 
+	function isColumnOccupied(moduleList: PageModuleData[], columnIndex: number): boolean {
+		return moduleList.some((m) => {
+			const c = m.columnIndex ?? -1;
+			const span = Math.max(1, Number(m.colSpan ?? 1));
+			return c <= columnIndex && columnIndex < c + span;
+		});
+	}
+
+	function removeColumnFromRowStructure(current: Map<number, number[]>, columnIndex: number): Map<number, number[]> {
+		const next = new Map<number, number[]>();
+		for (const [rowOrder, proportions] of current.entries()) {
+			const cols = [...proportions];
+			if (cols.length <= 1) {
+				next.set(rowOrder, [1]);
+				continue;
+			}
+			const idx = Math.max(0, Math.min(cols.length - 1, columnIndex));
+			cols.splice(idx, 1);
+			next.set(rowOrder, cols.length ? cols : [1]);
+		}
+		return next;
+	}
+
+	function shiftModulesAfterColumnDelete(moduleList: PageModuleData[], columnIndex: number): PageModuleData[] {
+		return moduleList.map((m) => {
+			const c = m.columnIndex ?? 0;
+			if (c > columnIndex) return { ...m, columnIndex: c - 1 };
+			return m;
+		});
+	}
+
 	async function persistModulesRowOrder(updatedModules: PageModuleData[]) {
 		if (!editingPage) {
 			modules = updatedModules;
@@ -2249,6 +2292,19 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 			logger.error('Error deleting row:', err);
 			modulesError = handleError(err, 'Failed to delete row');
 		}
+	}
+
+	async function handleRemoveEmptyColumn(columnIndex: number) {
+		if (formData.gridColumns <= 1) return;
+		if (isColumnOccupied(modules, columnIndex)) {
+			modulesError = 'Cannot remove this cell because the column has module content.';
+			return;
+		}
+
+		formData.gridColumns = Math.max(1, formData.gridColumns - 1);
+		rowStructure = removeColumnFromRowStructure(rowStructure, columnIndex);
+		const shiftedModules = shiftModulesAfterColumnDelete(modules, columnIndex);
+		await persistModulesRowOrder(shiftedModules);
 	}
 
 	async function handleCreate() {
@@ -2588,6 +2644,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 								onMoveRow={handleMoveRow}
 								onInsertRow={handleInsertRow}
 								onDeleteRow={handleDeleteRow}
+								onRemoveEmptyColumn={handleRemoveEmptyColumn}
 								availableModuleTypes={MODULE_TYPES}
 							/>
 						{/if}
@@ -3782,6 +3839,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 							onMoveRow={handleMoveRow}
 							onInsertRow={handleInsertRow}
 							onDeleteRow={handleDeleteRow}
+							onRemoveEmptyColumn={handleRemoveEmptyColumn}
 							availableModuleTypes={MODULE_TYPES}
 						/>
 					{/if}
@@ -4707,6 +4765,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 				onMoveRow={moveLayoutShellRow}
 				onInsertRow={insertLayoutShellRow}
 				onDeleteRow={deleteLayoutShellRow}
+				onRemoveEmptyColumn={removeEmptyLayoutShellColumn}
 			/>
 			<div class="flex justify-end gap-2">
 				<button type="button" on:click={deleteLayoutShellInstance} disabled={layoutShellEditorSaving}

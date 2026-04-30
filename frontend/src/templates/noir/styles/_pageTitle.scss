@@ -1,37 +1,59 @@
-.pb-pageTitle {
-  border-bottom: var(--os-border-width, 1px) solid var(--tp-border);
-  color: var(--tp-fg);
-  padding: 2rem 0;
+// ============================================================
+// Noir Page Title — _pageTitle.scss
+//
+// Generic page title module styled per the noir mockup
+// (matches .abt-title / .ct-title / .gal-title — DM Sans 200,
+// 32px, .04em, fg, with optional 1px x 40px rule below).
+//
+// Targets the page-builder pageTitle module.
+// ============================================================
+
+.tpl-pack-noir .pb-pageTitle {
+  border-bottom: none;
+  color: var(--fg);
+  padding: 128px 32px 32px;
+  background: transparent;
 
   &.pb-pageTitle--compact {
-    padding: 0.5rem 0;
+    padding: 32px 32px 16px;
   }
 
-  &.pb-pageTitle--center {
-    text-align: center;
-  }
-
-  &.pb-pageTitle--left {
-    text-align: left;
-  }
+  &.pb-pageTitle--center { text-align: center; }
+  &.pb-pageTitle--left   { text-align: start; }
+  &.pb-pageTitle--right  { text-align: end; }
 }
 
-.pb-pageTitle__title {
-  margin: 0 0 0.75rem;
-  color: var(--tp-fg);
-  font-family: var(--os-font-heading), 'Cormorant Garamond', Georgia, serif;
-  font-size: clamp(2rem, 4vw, 3rem);
-  font-weight: 500;
-  line-height: 1.05;
-  letter-spacing: 0.04em;
-}
-
-.pb-pageTitle__subtitle {
+.tpl-pack-noir .pb-pageTitle__title {
   margin: 0;
-  color: var(--tp-fg-muted);
-  font-family: var(--os-font-body), 'Jost', sans-serif;
-  font-size: clamp(1rem, 2.2vw, 1.35rem);
-  font-weight: 400;
-  line-height: 1.4;
+  color: var(--fg);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 32px;
+  font-weight: 200;
+  letter-spacing: 0.04em;
+  line-height: 1.15;
+  text-transform: lowercase;
+
+  // Noir signature rule under the title.
+  &::after {
+    content: '';
+    display: block;
+    width: 1px;
+    height: 40px;
+    background: var(--fg-dim);
+    margin-top: 16px;
+  }
 }
 
+.tpl-pack-noir .pb-pageTitle--center .pb-pageTitle__title::after {
+  margin-inline: auto;
+}
+
+.tpl-pack-noir .pb-pageTitle__subtitle {
+  margin: 16px 0 0;
+  color: var(--fg-dim);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 300;
+  line-height: 1.6;
+  letter-spacing: 0;
+}

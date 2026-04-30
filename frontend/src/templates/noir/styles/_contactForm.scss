@@ -1,28 +1,250 @@
+// ============================================================
+// Noir Contact Page — _contactForm.scss
+//
+// Mirrors template-noir-full.html .ct-* block:
+//   .ct-hdr (padding 128 32 32)
+//     h1.ct-title (DM Sans 200, 32px, .04em, fg)
+//     .ct-rule (1px x 40px, fg-dim, margin-top 16)
+//   .ct-body (grid 240px 1fr, gap 80, padding 0 32 80, max-w 900)
+//     .ct-info (flex column gap 28)
+//       .ct-item (label + value column gap 6)
+//         .ct-ilbl (9px DM Mono, .24em, fg-dimmer)
+//         .ct-ival (12px, .06em, fg-dim -> fg)
+//     .ct-form (flex column gap 28)
+//       .ct-field (flex column gap 8)
+//         .ct-lbl  (9px DM Mono, .22em, fg-dimmer)
+//         .ct-inp / .ct-ta (transparent, border-bottom only,
+//                           DM Sans 14px, padding 8 0)
+//       .ct-btn (fg -> bg, 10px DM Mono, .22em, padding 12 28)
+//   .ct-sent (flex column gap 12, padding-top 16)
+//     .ct-sent-mark (24px, fg-dim)
+//     .ct-sent-text (12px DM Mono, .14em, fg-dim)
+//
+// Targets both the mockup classes and the page-builder
+// `pb-contactForm` module classes for compatibility.
+// ============================================================
+
+@mixin n-mono($size: 10px, $spacing: 0.18em) {
+  font-family: 'DM Mono', monospace;
+  font-size: $size;
+  letter-spacing: $spacing;
+  text-transform: uppercase;
+  font-weight: 400;
+}
+
+// Page header
+.ct-hdr { padding: 128px 32px 32px; }
+
+.ct-title {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 200;
+  font-size: 32px;
+  letter-spacing: 0.04em;
+  color: var(--fg);
+  margin: 0;
+}
+
+.ct-rule {
+  width: 1px;
+  height: 40px;
+  background: var(--fg-dim);
+  margin-top: 16px;
+}
+
+// Body grid
+.ct-body {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 80px;
+  padding: 0 32px 80px;
+  max-width: 900px;
+
+  [dir="rtl"] & { direction: rtl; }
+}
+
+@media (max-width: 768px) {
+  .ct-body {
+    grid-template-columns: 1fr;
+    gap: 48px;
+    padding: 0 24px 64px;
+    max-width: 100%;
+  }
+}
+
+// Info column
+.ct-info {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  padding-top: 4px;
+}
+
+.ct-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ct-ilbl {
+  @include n-mono(9px, 0.24em);
+  color: var(--fg-dimmer);
+}
+
+.ct-ival {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--fg-dim);
+  text-decoration: none;
+  transition: color 0.2s;
+
+  &:hover { color: var(--fg); }
+}
+
+// Form
+.ct-form {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.ct-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ct-lbl {
+  @include n-mono(9px, 0.22em);
+  color: var(--fg-dimmer);
+}
+
+.ct-inp,
+.ct-ta {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  color: var(--fg);
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 14px;
+  padding: 8px 0;
+  outline: none;
+  resize: none;
+  transition: border-color 0.2s, color 0.35s;
+
+  &::placeholder { color: var(--fg-dimmer); }
+  &:focus { border-color: var(--fg-dim); }
+}
+
+.ct-btn {
+  align-self: flex-start;
+  background: var(--fg);
+  color: var(--bg);
+  border: none;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  padding: 12px 28px;
+  cursor: pointer;
+  transition: opacity 0.2s, background 0.35s, color 0.35s;
+
+  &:hover { opacity: 0.82; }
+}
+
+// Sent state
+.ct-sent {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 16px;
+}
+
+.ct-sent-mark {
+  font-size: 24px;
+  color: var(--fg-dim);
+}
+
+.ct-sent-text {
+  @include n-mono(12px, 0.14em);
+  color: var(--fg-dim);
+}
+
+// Page-builder contactForm module compatibility
 .tpl-pack-noir {
-	.pb-contactForm {
-		border-radius: 0;
-		background: transparent;
-		border-color: color-mix(in srgb, var(--tp-fg-subtle) 30%, transparent);
-	}
+  .pb-contactForm {
+    border-radius: 0;
+    background: transparent;
+    border: none;
+    padding: 0 32px 80px;
+    max-width: 900px;
+  }
 
-	.pb-contactForm__title {
-		font-weight: 400;
-		letter-spacing: 0.06em;
-		text-transform: lowercase;
-	}
+  .pb-contactForm__title {
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 200;
+    font-size: 32px;
+    letter-spacing: 0.04em;
+    color: var(--fg);
+    text-transform: lowercase;
+    margin: 0 0 32px;
 
-	.pb-contactForm__field input,
-	.pb-contactForm__field textarea {
-		background: transparent;
-		border-width: 0 0 1px;
-		border-radius: 0;
-		padding-inline: 0;
-	}
+    &::after {
+      content: '';
+      display: block;
+      width: 1px;
+      height: 40px;
+      background: var(--fg-dim);
+      margin-top: 16px;
+    }
+  }
 
-	.pb-contactForm__submit {
-		border: 1px solid var(--tp-fg-muted);
-		border-radius: 0;
-		background: transparent;
-		color: var(--tp-fg);
-	}
+  .pb-contactForm__field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 28px;
+  }
+
+  .pb-contactForm__label {
+    @include n-mono(9px, 0.22em);
+    color: var(--fg-dimmer);
+  }
+
+  .pb-contactForm__field input,
+  .pb-contactForm__field textarea {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    border-radius: 0;
+    color: var(--fg);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    font-size: 14px;
+    padding: 8px 0;
+    outline: none;
+    resize: none;
+    transition: border-color 0.2s;
+
+    &::placeholder { color: var(--fg-dimmer); }
+    &:focus { border-color: var(--fg-dim); }
+  }
+
+  .pb-contactForm__submit {
+    align-self: flex-start;
+    background: var(--fg);
+    color: var(--bg);
+    border: none;
+    border-radius: 0;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    padding: 12px 28px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+
+    &:hover { opacity: 0.82; }
+  }
 }
