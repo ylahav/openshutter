@@ -250,10 +250,13 @@
 		config?.sortBy === 'lastPhotoDate'
 	) ? config.sortBy : 'manual';
 	$: sortDirection = config?.sortDirection === 'desc' ? 'desc' : 'asc';
-	$: maxItems = Math.min(60, Math.max(1, Number(config?.limit) || 12));
+	/** Cap for root/featured/selected grids only; album detail (`current`) shows all loaded photos + load more. */
+	$: maxItems = Math.min(500, Math.max(1, Number(config?.limit) || 12));
+	$: albumListSliceCap = albumSource === 'current' ? Number.POSITIVE_INFINITY : maxItems;
 
 	$: sortedAlbums = (() => {
 		const list: AlbumCard[] = Array.isArray(albums) ? [...albums] : [];
+		const cap = albumListSliceCap;
 		if (sortBy === 'manual') {
 			// "Manual" should respect explicit per-item order when present.
 			// Fall back to source order for items without order.
@@ -266,7 +269,7 @@
 				if (ao !== bo) return ao - bo;
 				return a.idx - b.idx;
 			});
-			return withIndex.map((x) => x.item).slice(0, maxItems);
+			return withIndex.map((x) => x.item).slice(0, cap);
 		}
 
 		const dir = sortDirection === 'desc' ? -1 : 1;
@@ -289,7 +292,7 @@
 			const bo = Number((b as any).order) || 0;
 			return ((ao - bo) || getAlbumName(a).localeCompare(getAlbumName(b))) * dir;
 		});
-		return list.slice(0, maxItems);
+		return list.slice(0, cap);
 	})();
 
 	$: coverAspectClass =
@@ -337,8 +340,13 @@
 		return null;
 	})();
 
+	const PHOTO_PAGE_SIZE = 100;
+
 	let albums: AlbumCard[] = [];
 	let loading = true;
+	/** Photo pagination for `albumSource === 'current'` (API returns paginated photos). */
+	let currentAlbumPagination: { page: number; limit: number; total: number; pages: number } | null = null;
+	let loadingMorePhotos = false;
 	/** Template / parent-provided list error (skips internal fetch). */
 	let listError: string | null = null;
 	let coverImages: Record<string, string> = {};
@@ -360,6 +368,11 @@
 		getCurrentAlbumCoverImage(currentAlbum) ||
 		(coverImages[currentAlbum?._id ?? ''] || '');
 	$: currentAlbumPhotoCount = Number(currentAlbum?.photoCount) || 0;
+	$: loadedPhotoCount = sortedAlbums.filter((a) => a.cardType === 'photo').length;
+	$: showAlbumLoadMore =
+		albumSource === 'current' &&
+		currentAlbumPagination != null &&
+		currentAlbumPagination.page < currentAlbumPagination.pages;
 	// Prefer sub-albums count from the fetched payload (we store it on `currentAlbum` when available).
 	$: currentAlbumSubAlbumCount = Number((currentAlbum as any)?.childAlbumCount) || 0;
 
@@ -512,32 +525,31 @@
 
 		listError = null;
 		loading = true;
+		currentAlbumPagination = null;
 		try {
 			if (albumSource === 'current' && currentAlbumAlias) {
 				// Fetch the current album from URL alias
 				try {
-					const response = await fetch(`/api/albums/${encodeURIComponent(currentAlbumAlias)}/data?page=1&limit=50&t=${Date.now()}`, {
-						credentials: 'include',
-					});
+					const response = await fetch(
+						`/api/albums/${encodeURIComponent(currentAlbumAlias)}/data?page=1&limit=${PHOTO_PAGE_SIZE}&t=${Date.now()}`,
+						{
+							credentials: 'include',
+						}
+					);
 					if (response.ok) {
 						const result = await response.json();
 						const albumData = result.success ? result.data : result;
 						if (albumData?.album) {
+							currentAlbumPagination =
+								albumData.pagination && typeof albumData.pagination.pages === 'number'
+									? albumData.pagination
+									: null;
 							// Keep a stable "current album" object for header rendering.
 							currentAlbum = { ...albumData.album, childAlbumCount: Array.isArray(albumData.subAlbums) ? albumData.subAlbums.length : (albumData.album as any)?.childAlbumCount };
 							const subAlbums = Array.isArray(albumData.subAlbums)
 								? albumData.subAlbums.map((item: any) => ({ ...item, cardType: 'subAlbum' as const }))
 								: [];
-							const photos = Array.isArray(albumData.photos)
-								? albumData.photos.map((item: any) => ({
-									...item,
-									cardType: 'photo' as const,
-									name: item?.title ?? item?.name ?? item?.filename ?? item?.originalName ?? 'Photo',
-									description: item?.description,
-									order: typeof item?.order === 'number' ? item.order : (typeof item?.photoOrder === 'number' ? item.photoOrder : undefined),
-									coverUrl: item?.thumbnailUrl ?? item?.previewUrl ?? item?.url ?? item?.imageUrl ?? ''
-								}))
-								: [];
+							const photos = Array.isArray(albumData.photos) ? mapFetchedPhotosToAlbumCards(albumData.photos) : [];
 							if (cardDataType === 'subAlbums') albums = subAlbums;
 							else if (cardDataType === 'photos') albums = photos;
 							else albums = [...subAlbums, ...photos];
@@ -549,11 +561,13 @@
 						logger.warn(`Album not found: ${currentAlbumAlias}`);
 						albums = [];
 						currentAlbum = null;
+						currentAlbumPagination = null;
 					}
 				} catch (err) {
 					logger.error(`Failed to fetch current album ${currentAlbumAlias}:`, err);
 					albums = [];
 					currentAlbum = null;
+					currentAlbumPagination = null;
 				}
 			} else if (albumSource === 'selected' && effectiveSelectedAlbums && effectiveSelectedAlbums.length > 0) {
 				currentAlbum = null;
@@ -645,6 +659,58 @@
 			albums = [];
 		} finally {
 			loading = false;
+		}
+	}
+
+	function mapFetchedPhotosToAlbumCards(raw: any[]): AlbumCard[] {
+		return raw.map((item: any) => ({
+			...item,
+			cardType: 'photo' as const,
+			name: item?.title ?? item?.name ?? item?.filename ?? item?.originalName ?? 'Photo',
+			description: item?.description,
+			order: typeof item?.order === 'number' ? item.order : (typeof item?.photoOrder === 'number' ? item.photoOrder : undefined),
+			coverUrl: item?.thumbnailUrl ?? item?.previewUrl ?? item?.url ?? item?.imageUrl ?? ''
+		}));
+	}
+
+	async function loadMorePhotosForCurrentAlbum() {
+		if (
+			!currentAlbum?._id ||
+			!currentAlbumPagination ||
+			loadingMorePhotos ||
+			currentAlbumPagination.page >= currentAlbumPagination.pages
+		) {
+			return;
+		}
+		const albumId = String(currentAlbum._id);
+		const nextPage = currentAlbumPagination.page + 1;
+		loadingMorePhotos = true;
+		try {
+			const res = await fetch(
+				`/api/albums/${encodeURIComponent(albumId)}/data?page=${nextPage}&limit=${PHOTO_PAGE_SIZE}&t=${Date.now()}`,
+				{ cache: 'no-store', credentials: 'include' }
+			);
+			if (!res.ok) return;
+			const result = await res.json().catch(() => ({}));
+			const albumData = result.success ? result.data : result;
+			const newPhotosRaw = Array.isArray(albumData?.photos) ? albumData.photos : [];
+			const newPhotoCards = mapFetchedPhotosToAlbumCards(newPhotosRaw);
+			const existingIds = new Set(
+				albums.filter((a) => a.cardType === 'photo').map((a) => String((a as any)._id ?? ''))
+			);
+			const mergedNew = newPhotoCards.filter((p) => p._id != null && !existingIds.has(String(p._id)));
+			const subOnly = albums.filter((a) => a.cardType !== 'photo');
+			const existingPhotos = albums.filter((a) => a.cardType === 'photo');
+			albums = [...subOnly, ...existingPhotos, ...mergedNew];
+			if (albumData?.pagination && typeof albumData.pagination.pages === 'number') {
+				currentAlbumPagination = albumData.pagination;
+			} else {
+				currentAlbumPagination = { ...currentAlbumPagination, page: nextPage };
+			}
+		} catch (e) {
+			logger.error('[AlbumGallery] load more photos failed:', e);
+		} finally {
+			loadingMorePhotos = false;
 		}
 	}
 
@@ -887,6 +953,20 @@
 								/>
 							{/if}
 						{/each}
+					</div>
+				{/if}
+				{#if showAlbumLoadMore}
+					<div class="pb-albumGallery__loadMoreWrap">
+						<button
+							type="button"
+							class="pb-albumGallery__loadMore"
+							disabled={loadingMorePhotos}
+							on:click={loadMorePhotosForCurrentAlbum}
+						>
+							{loadingMorePhotos
+								? 'Loading…'
+								: `Load more photos (${loadedPhotoCount} / ${currentAlbumPagination?.total ?? loadedPhotoCount})`}
+						</button>
 					</div>
 				{/if}
 			{:else}

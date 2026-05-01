@@ -493,6 +493,7 @@
 			'divider',
 			'featureGrid',
 			'albumsGrid',
+			'rootAlbumsList',
 			'albumView',
 			'cta',
 			'blogCategory',

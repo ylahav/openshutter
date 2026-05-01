@@ -7,6 +7,23 @@ import { parseError } from '$lib/utils/errorHandler';
 const BACKEND_URL = env.BACKEND_URL || process.env.BACKEND_URL || 'http://localhost:5000';
 const API_BASE = `${BACKEND_URL}/api`;
 
+/** NestJS HTTP exceptions use `message` for detail and `error` for the generic phrase (e.g. "Bad Request"). */
+function backendErrorMessage(data: unknown, statusText: string): string {
+	if (!data || typeof data !== 'object') {
+		return `Upload failed: ${statusText}`;
+	}
+	const d = data as Record<string, unknown>;
+	const msg = d.message;
+	if (Array.isArray(msg)) {
+		const joined = msg.map(String).filter(Boolean).join('; ');
+		if (joined) return joined;
+	}
+	if (typeof msg === 'string' && msg.trim()) return msg;
+	const err = d.error;
+	if (typeof err === 'string' && err && err !== 'Bad Request') return err;
+	return `Upload failed: ${statusText}`;
+}
+
 export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 	try {
 		// Require admin or owner (owners can upload to their albums)
@@ -79,7 +96,7 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 			return json(
 				{ 
 					success: false, 
-					error: responseData.error || responseData.message || `Upload failed: ${backendResponse.statusText}` 
+					error: backendErrorMessage(responseData, backendResponse.statusText)
 				},
 				{ status: backendResponse.status }
 			);

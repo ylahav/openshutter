@@ -7,6 +7,7 @@ import HeroModule from './modules/HeroModule.svelte';
 import RichTextModule from './modules/RichTextModule.svelte';
 import FeatureGridModule from './modules/FeatureGridModule.svelte';
 import AlbumsGridModule from './modules/AlbumsGridModule.svelte';
+import RootAlbumsListModule from './modules/RootAlbumsListModule.svelte';
 import AlbumGalleryModule from './modules/AlbumGalleryModule.svelte';
 import CtaModule from './modules/CtaModule.svelte';
 import BlogCategoryModule from './modules/BlogCategoryModule.svelte';
@@ -44,6 +45,12 @@ const smokeCases: SmokeCase[] = [
 		component: AlbumsGridModule,
 		defaultProps: {},
 		invalidProps: { albumSource: 'bad-value', selectedAlbums: 'not-array' }
+	},
+	{
+		name: 'Root Albums List',
+		component: RootAlbumsListModule,
+		defaultProps: {},
+		invalidProps: { title: 12, limit: 'bad-limit' }
 	},
 	{
 		name: 'Album view',
@@ -124,7 +131,17 @@ describe('page-builder registry consistency', () => {
 		const moduleMapAliases = getAliasesFromMap(pageRendererSrc);
 		const contentAliases = getFilterAliases(overridesSrc, 'PAGE_CONTENT_MODULES');
 
-		const contentRequired = ['hero', 'richText', 'featureGrid', 'albumsGrid', 'albumView', 'cta', 'blogCategory', 'blogArticle'];
+		const contentRequired = [
+			'hero',
+			'richText',
+			'featureGrid',
+			'albumsGrid',
+			'rootAlbumsList',
+			'albumView',
+			'cta',
+			'blogCategory',
+			'blogArticle'
+		];
 
 		for (const alias of contentRequired) {
 			expect(moduleTypeAliases).toContain(alias);

@@ -524,6 +524,8 @@ Other props worth knowing (defaults in code): `title`, `description`, `selectedA
 
 High-signal props (see `AlbumGalleryModule.svelte` for the full type): `title`, `description`, `albumHeaderFieldOrder`, `showAlbumPageTitle`, `albumSource` (`root` | `featured` | `selected` | `current`), `selectedAlbums`, `cardDataType` (`subAlbums` | `photos` | `both`), `mixedDisplayMode` (`grouped` | `interleaved`), `showSectionLabels`, `coverAspect`, card field orders (`albumCardFieldOrder`, `photoCardFieldOrder`, …), `sortBy`, `sortDirection`, `limit`.
 
+**`limit` vs album detail (`albumSource: current`):** For **root / featured / selected** grids, `limit` caps how many **album cards** appear (upper bound 500 in the layout). On an **album URL** (`current`), the module loads photos in **pages** (100 per request) and shows a **Load more photos** control when the album has more—`limit` does **not** truncate the photo grid on that view.
+
 **Typical album page** — current album from URL, albums + photos:
 
 ```json

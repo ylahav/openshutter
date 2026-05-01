@@ -292,6 +292,31 @@
 		}
 	}
 
+	&__loadMoreWrap {
+		display: flex;
+		justify-content: center;
+		margin: 2rem 0 1rem;
+	}
+
+	&__loadMore {
+		padding: 0.625rem 1.25rem;
+		font-size: 0.875rem;
+		font-weight: 500;
+		border-radius: 0.5rem;
+		border: 1px solid var(--tp-border);
+		background: var(--tp-surface-1);
+		color: var(--tp-fg);
+		cursor: pointer;
+		transition: opacity 0.2s ease, background 0.2s ease;
+		&:hover:not(:disabled) {
+			background: var(--tp-surface-2);
+		}
+		&:disabled {
+			opacity: 0.6;
+			cursor: not-allowed;
+		}
+	}
+
 	&__empty {
 		text-align: center;
 		padding: 2.5rem 1rem;

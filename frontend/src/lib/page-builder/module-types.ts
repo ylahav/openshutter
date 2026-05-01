@@ -19,6 +19,7 @@ export const PAGE_MODULE_TYPES = [
 	{ type: 'divider', label: 'Horizontal line' },
 	{ type: 'featureGrid', label: 'Feature Grid' },
 	{ type: 'albumsGrid', label: 'Albums Grid' },
+	{ type: 'rootAlbumsList', label: 'Root Albums List' },
 	{ type: 'albumView', label: 'Album View (albumView)' },
 	{ type: 'cta', label: 'Call to Action' },
 	{ type: 'blogCategory', label: 'Blog categories' },

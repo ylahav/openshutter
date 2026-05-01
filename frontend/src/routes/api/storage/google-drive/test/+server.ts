@@ -71,7 +71,9 @@ export const GET: RequestHandler = async () => {
 				suggestions.push('Check that the Client ID and Client Secret are correct.');
 			} else if (apiError.code === 403 || apiError.status === 403) {
 				suggestions.push('The application may not have the required permissions.');
-				suggestions.push('Verify that the OAuth scopes include "https://www.googleapis.com/auth/drive.file".');
+				suggestions.push(
+					'Verify that the OAuth scopes include "https://www.googleapis.com/auth/drive" (visible) or "https://www.googleapis.com/auth/drive.appdata" (hidden).'
+				);
 			} else if (apiError.code === 404 || apiError.status === 404) {
 				suggestions.push('The API endpoint may be incorrect or the service may be unavailable.');
 			}

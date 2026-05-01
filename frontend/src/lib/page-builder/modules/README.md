@@ -40,6 +40,7 @@ Use **`[data-layout-preset="…"]`** on layout regions and module-specific class
 | `divider` | [Divider/README.md](./Divider/README.md) |
 | `featureGrid` | [FeatureGrid/README.md](./FeatureGrid/README.md) |
 | `albumsGrid` | [AlbumsGrid/README.md](./AlbumsGrid/README.md) |
+| `rootAlbumsList` | Root-level album name list (`RootAlbumsList/Layout.svelte`) |
 | `albumView` | [AlbumGallery/README.md](./AlbumGallery/README.md) |
 | `cta` | [Cta/README.md](./Cta/README.md) |
 | `blogCategory` | [BlogCategory/README.md](./BlogCategory/README.md) |

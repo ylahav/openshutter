@@ -87,6 +87,13 @@ export const albumGalleryConfig = {
 		},
 		{ key: 'sortBy', type: 'select', label: 'Sort by', options: ['manual', 'order', 'name', 'photoCount', 'createdAt', 'lastPhotoDate'], default: 'manual' },
 		{ key: 'sortDirection', type: 'select', label: 'Sort direction', options: ['asc', 'desc'], default: 'asc' },
-		{ key: 'limit', type: 'number', label: 'Maximum items', default: 12 },
+		{
+			key: 'limit',
+			type: 'number',
+			label: 'Maximum items',
+			default: 12,
+			description:
+				'For album listing grids (root/featured/selected). On an album page (current album from URL), all loaded photos are shown with “Load more”; this cap does not cut off photos there.',
+		},
 	],
 } as const;

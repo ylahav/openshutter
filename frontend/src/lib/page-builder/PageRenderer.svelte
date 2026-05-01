@@ -9,6 +9,7 @@
 	import DividerModule from './modules/DividerModule.svelte';
 	import FeatureGridModule from './modules/FeatureGridModule.svelte';
 	import AlbumsGridModule from './modules/AlbumsGridModule.svelte';
+	import RootAlbumsListModule from './modules/RootAlbumsListModule.svelte';
 	import AlbumGalleryModule from './modules/AlbumGalleryModule.svelte';
 	import CtaModule from './modules/CtaModule.svelte';
 	import LogoModule from './modules/LogoModule.svelte';
@@ -65,6 +66,7 @@ import SearchFilterModule from './modules/SearchFilterModule.svelte';
 		divider: DividerModule,
 		featureGrid: FeatureGridModule,
 		albumsGrid: AlbumsGridModule,
+		rootAlbumsList: RootAlbumsListModule,
 		albumView: AlbumGalleryModule,
 		cta: CtaModule,
 		logo: LogoModule,
