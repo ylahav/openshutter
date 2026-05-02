@@ -88,6 +88,8 @@ export interface SiteConfig {
       showTemplateSelector?: boolean
       /** Public header language control: compact dropdown (default) or flag buttons. */
       languageSelectorVariant?: 'dropdown' | 'flags'
+      /** Theme control in the legacy shared header (not layout-shell header grid). */
+      themeToggleVariant?: 'icons' | 'text' | 'both'
     } | null
     /** Legacy flat per page or `{ pageKey: { xs: …, lg: … } }` (Admin saves full map here). */
     pageModules?: Record<string, unknown>

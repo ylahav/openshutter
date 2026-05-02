@@ -6,11 +6,11 @@ Used by the page builder **`themeToggle`** module and `Header.svelte`.
 
 ## Props
 
-- **`variant`**: `'icons'` (default) or `'text'` — sun/moon icons vs. `Light` / `Dark` labels.
+- **`variant`**: `'icons'` (default), `'text'`, or `'both'` — icons only, `Light` / `Dark` labels, or icon + label.
 
-## Markup
+## Styling
 
-Root is a `<button>` with sun/moon SVG; uses Tailwind `dark:` variants for hover.
+Markup uses **`pb-themeToggle*`** class hooks only. Base styles: **`primitives/theme-toggle/_theme-toggle.scss`** (pulled in via `modules/styles/_index.scss` → global template CSS). Packs override in their SCSS (e.g. `templates/<pack>/styles/_themeToggle.scss`).
 
 ## Import
 

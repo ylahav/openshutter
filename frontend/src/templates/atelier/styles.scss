@@ -650,7 +650,7 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
-// ─── Shared module: Auth buttons (scoped to pack root `<main class="tpl-pack-*">`) ───
+// ─── LayoutShell-powered header strip (auth buttons in `_authButtons.scss` partial) ───
 
 .tpl-pack-atelier {
   // LayoutShell-powered header strip (used in production routes)
@@ -738,33 +738,6 @@ body {
       border-color: var(--fg-lt);
       color: var(--fg);
       background: transparent;
-    }
-
-    // Keep sign-in/out module consistent with the static Atelier link style.
-    .auth-btns {
-      justify-content: flex-start;
-    }
-  }
-
-  .auth-btns {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-
-  .auth-btn {
-    @include small-caps(0.18em);
-    color: var(--fg-mut);
-    cursor: pointer;
-    text-decoration: none;
-    border: 0;
-    border-bottom: 1px solid var(--bdr);
-    padding: 0 0 1px;
-    background: transparent;
-    transition: color 0.2s;
-
-    &:hover {
-      color: var(--fg);
     }
   }
 }

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { activeTemplate } from '$stores/template';
+	import { loadPackPageBuilderPartials } from '$lib/template/load-pack-page-builder-partials';
 	import '$lib/styles/globals.css';
 	import '$templates/styles/main.scss';
 	import { browser } from '$app/environment';
@@ -17,6 +18,7 @@
 		} else {
 			await import('$templates/noir/styles/styles.scss');
 		}
+		await loadPackPageBuilderPartials(templateName);
 		loadedPackStyles.add(templateName);
 	}
 

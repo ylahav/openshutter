@@ -21,3 +21,4 @@ See `config.ts`.
 ## Classes & tokens for template styles
 
 - **Module root:** `pb-authButtons` wraps the inner `<div class={containerClass}>`. Inner classes remain prop-driven (`auth-btns`, `auth-btn`, etc.).
+- **Base CSS:** `modules/AuthButtons/_auth-buttons.scss` (loaded via `modules/styles/_index.scss`). Optional pack overrides: `templates/<pack>/styles/_authButtons.scss`, loaded in the browser after the main pack stylesheet (`loadPackPageBuilderPartials`).

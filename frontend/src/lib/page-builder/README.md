@@ -50,9 +50,10 @@ Examples:
 Optional template override:
 
 - `frontend/src/templates/<pack>/components/page-builder/*Module.svelte`
-- Optional template styles loaded by module runtime:
+- Optional template styles loaded by module runtime / pack SCSS:
   - `frontend/src/templates/<pack>/styles/_searchForm.scss`
   - `frontend/src/templates/<pack>/styles/_searchResults.scss`
+  - e.g. Studio: `_hero.scss`, `_albumsGrid.scss`, `_themeToggle.scss`, `_authButtons.scss` (`@use` from `styles.scss` or `loadPackPageBuilderPartials`)
 
 ## Current override rule
 
@@ -85,12 +86,13 @@ To make a module editable from the admin UI, update:
 
 ## Styling
 
-Use the template stylesheet for template-specific visual changes.
+**Contract:** visitor-facing modules use **semantic `pb-*` class hooks** in markup; **default CSS** lives in **`modules/styles/`** partials (loaded via `templates/styles/_components.scss`). Templates override with pack SCSS (see [modules/README.md](./modules/README.md) → *UI styling contract*).
 
 Recommended pattern:
 
-- keep shared behavior in the base module
-- keep template-specific visuals in template overrides and pack stylesheets
+- keep behavior and DOM structure in the base module / primitives
+- keep shared default look in `lib/page-builder/modules/styles/_<area>.scss`
+- keep pack-specific look in `templates/<pack>/styles/*.scss` (and optional `*Module.svelte` only when structure must differ)
 
 ## When to create a new module
 

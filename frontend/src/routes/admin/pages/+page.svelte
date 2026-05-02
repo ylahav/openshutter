@@ -23,7 +23,6 @@
 		legacySocialObjectToLinksJson,
 		parseLinksJson
 	} from '$lib/page-builder/modules/SocialMedia/resolveLinks';
-	import { normalizeHeroSplitLead } from '$lib/page-builder/modules/Hero/hero-layout';
 
 	// Available icon names from icons.ts (sorted)
 	const AVAILABLE_ICONS: string[] = [...AVAILABLE_ICON_NAMES].sort();
@@ -54,32 +53,16 @@
 		}>;
 	}
 
+	type RichTextBackgroundMode = 'white' | 'gray' | 'transparent' | 'custom';
+
 	interface RichTextProps {
 		title: MultiLangText;
 		body: MultiLangHTML;
-		background: 'white' | 'gray';
+		background: RichTextBackgroundMode;
+		backgroundColor?: string;
 	}
 
-	interface HeroProps {
-		title?: MultiLangText;
-		subtitle?: MultiLangText;
-		/** When false, hero does not render the CTA button. */
-		showCta?: boolean;
-		ctaLabel?: MultiLangText;
-		ctaUrl?: string;
-		backgroundStyle?: 'light' | 'dark' | 'image' | 'galleryLeading';
-		backgroundImage?: string;
-		heroLayout?: string;
-		heroImages?: string[];
-		heroGalleryLeadingLimit?: string;
-		heroSplitGridColumns?: string;
-		heroSplitMinHeight?: string;
-		heroSplitMediaMinHeight?: string;
-		/** Split only: `copy` = text column first (LTR). Omitted or `media` = image first. */
-		heroSplitLead?: 'media' | 'copy';
-		slideshowIntervalMs?: string;
-		filmstripMeta?: string;
-	}
+	type HeroProps = Record<string, unknown>;
 
 	interface AlbumsGridProps {
 		title: MultiLangText;
@@ -785,6 +768,7 @@ let layoutShellInstances: Record<
 		pageTitleShowTitle = true;
 		pageTitleShowSubtitle = true;
 		pageTitleAlign = 'center';
+		heroModuleProps = {};
 	}
 
 	let showModuleEditDialog = false;
@@ -804,70 +788,13 @@ let layoutShellInstances: Record<
 	// Rich Text form state
 	let richTextTitle: MultiLangText = { en: '', he: '' };
 	let richTextBody: MultiLangHTML = { en: '', he: '' };
-	let richTextBackground: 'white' | 'gray' = 'white';
+	let richTextBackground: RichTextBackgroundMode = 'white';
+	let richTextBackgroundColor = '';
 	let pageTitleShowTitle = true;
 	let pageTitleShowSubtitle = true;
 	let pageTitleAlign: 'left' | 'center' = 'center';
 
-	// Hero form state
-	let heroTitle: MultiLangText = { en: '', he: '' };
-	let heroSubtitle: MultiLangText = { en: '', he: '' };
-	let heroCtaLabel: MultiLangText = { en: '', he: '' };
-	let heroCtaUrl = '';
-	let heroShowCta = true;
-	let heroBackgroundStyle: 'light' | 'dark' | 'image' | 'galleryLeading' = 'light';
-	let heroBackgroundImage = '';
-	let heroLayout = '';
-	let heroImagesText = '';
-	let heroSlideshowIntervalMs = '';
-	let heroFilmstripMeta = '';
-	let heroGalleryLeadingLimit = '';
-	let heroSplitGridColumns = '';
-	let heroSplitMinHeight = '';
-	let heroSplitMediaMinHeight = '';
-	let heroSplitLead: 'media' | 'copy' = 'media';
-
-	function heroExtraPropsFromEditor(): Pick<
-		HeroProps,
-		| 'heroLayout'
-		| 'heroImages'
-		| 'heroGalleryLeadingLimit'
-		| 'heroSplitGridColumns'
-		| 'heroSplitMinHeight'
-		| 'heroSplitMediaMinHeight'
-		| 'heroSplitLead'
-		| 'slideshowIntervalMs'
-		| 'filmstripMeta'
-	> {
-		const imgs = heroImagesText
-			.split(/[\n,]+/)
-			.map((s) => s.trim())
-			.filter(Boolean);
-		const out: Pick<
-			HeroProps,
-			| 'heroLayout'
-			| 'heroImages'
-			| 'heroGalleryLeadingLimit'
-			| 'heroSplitGridColumns'
-			| 'heroSplitMinHeight'
-			| 'heroSplitMediaMinHeight'
-			| 'heroSplitLead'
-			| 'slideshowIntervalMs'
-			| 'filmstripMeta'
-		> = {};
-		if (heroLayout.trim()) out.heroLayout = heroLayout.trim();
-		if (imgs.length) out.heroImages = imgs;
-		if (heroGalleryLeadingLimit.trim()) out.heroGalleryLeadingLimit = heroGalleryLeadingLimit.trim();
-		if (heroLayout.trim() === 'split') {
-			if (heroSplitLead === 'copy') out.heroSplitLead = 'copy';
-			if (heroSplitGridColumns.trim()) out.heroSplitGridColumns = heroSplitGridColumns.trim();
-			if (heroSplitMinHeight.trim()) out.heroSplitMinHeight = heroSplitMinHeight.trim();
-			if (heroSplitMediaMinHeight.trim()) out.heroSplitMediaMinHeight = heroSplitMediaMinHeight.trim();
-		}
-		if (heroSlideshowIntervalMs.trim()) out.slideshowIntervalMs = heroSlideshowIntervalMs.trim();
-		if (heroFilmstripMeta.trim()) out.filmstripMeta = heroFilmstripMeta.trim();
-		return out;
-	}
+	let heroModuleProps: Record<string, unknown> = {};
 
 	// Albums Grid module form state
 	let albumsGridTitle: MultiLangText = { en: '', he: '' };
@@ -917,7 +844,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 	let menuOrientation: 'horizontal' | 'vertical' = 'horizontal';
 	let menuShowAuthButtons = false;
 	/** themeToggle module: icons vs text labels */
-	let themeToggleVariant: 'icons' | 'text' = 'icons';
+	let themeToggleVariant: 'icons' | 'text' | 'both' = 'icons';
 
 	let socialMediaModuleProps: Record<string, unknown> = {};
 	let albumViewModuleProps: Record<string, unknown> = {};
@@ -1496,11 +1423,15 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 			richTextBody = typeof props.body === 'string'
 				? { en: props.body, he: '' }
 				: (props.body || { en: '', he: '' });
-			richTextBackground = props.background === 'gray' ? 'gray' : 'white';
+			const b = props.background;
+			richTextBackground =
+				b === 'gray' || b === 'transparent' || b === 'custom' || b === 'white' ? b : 'white';
+			richTextBackgroundColor = typeof props.backgroundColor === 'string' ? props.backgroundColor : '';
 		} else {
 			richTextTitle = { en: '', he: '' };
 			richTextBody = { en: '', he: '' };
 			richTextBackground = 'white';
+			richTextBackgroundColor = '';
 		}
 		if (module.type === 'pageTitle') {
 			const props = module.props || {};
@@ -1513,61 +1444,13 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 			pageTitleAlign = 'center';
 		}
 
-		// Initialize hero form if it's a hero module
 		if (module.type === 'hero') {
-			const props = module.props || {};
-			const config = props.config ?? props;
-			heroTitle = typeof config.title === 'string'
-				? { en: config.title, he: '' }
-				: (config.title || { en: '', he: '' });
-			heroSubtitle = typeof config.subtitle === 'string'
-				? { en: config.subtitle, he: '' }
-				: (config.subtitle || { en: '', he: '' });
-			heroCtaLabel = typeof config.ctaLabel === 'string'
-				? { en: config.ctaLabel, he: '' }
-				: (config.ctaLabel || { en: '', he: '' });
-			heroCtaUrl = config.ctaUrl || '';
-			heroShowCta = config.showCta !== false;
-			heroBackgroundStyle = (config.backgroundStyle === 'dark' || config.backgroundStyle === 'image' || config.backgroundStyle === 'galleryLeading')
-				? config.backgroundStyle
-				: 'light';
-			heroBackgroundImage = config.backgroundImage || '';
-			heroLayout = String(config.heroLayout ?? config.layoutVariant ?? '').trim();
-			heroImagesText = Array.isArray(config.heroImages)
-				? (config.heroImages as string[]).join('\n')
-				: typeof config.heroImages === 'string'
-					? config.heroImages
-					: '';
-			heroSlideshowIntervalMs =
-				config.slideshowIntervalMs !== undefined && config.slideshowIntervalMs !== null
-					? String(config.slideshowIntervalMs)
-					: '';
-			heroFilmstripMeta = String(config.filmstripMeta ?? '').trim();
-			heroGalleryLeadingLimit =
-				config.heroGalleryLeadingLimit !== undefined && config.heroGalleryLeadingLimit !== null
-					? String(config.heroGalleryLeadingLimit)
-					: '';
-			heroSplitGridColumns = String(config.heroSplitGridColumns ?? '').trim();
-			heroSplitMinHeight = String(config.heroSplitMinHeight ?? '').trim();
-			heroSplitMediaMinHeight = String(config.heroSplitMediaMinHeight ?? '').trim();
-			heroSplitLead = normalizeHeroSplitLead(config.heroSplitLead) === 'copy' ? 'copy' : 'media';
+			const p = module.props || {};
+			const cfg = (p as { config?: Record<string, unknown> }).config ?? p;
+			heroModuleProps =
+				cfg && typeof cfg === 'object' && !Array.isArray(cfg) ? { ...(cfg as Record<string, unknown>) } : {};
 		} else {
-			heroTitle = { en: '', he: '' };
-			heroSubtitle = { en: '', he: '' };
-			heroCtaLabel = { en: '', he: '' };
-			heroCtaUrl = '';
-			heroShowCta = true;
-			heroBackgroundStyle = 'light';
-			heroBackgroundImage = '';
-			heroLayout = '';
-			heroImagesText = '';
-			heroSlideshowIntervalMs = '';
-			heroFilmstripMeta = '';
-			heroGalleryLeadingLimit = '';
-			heroSplitGridColumns = '';
-			heroSplitMinHeight = '';
-			heroSplitMediaMinHeight = '';
-			heroSplitLead = 'media';
+			heroModuleProps = {};
 		}
 
 		// Initialize albums grid module form if it's an albumsGrid module
@@ -1628,7 +1511,8 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 		}
 		if (module.type === 'themeToggle') {
 			const props = module.props || {};
-			themeToggleVariant = (props as { variant?: string }).variant === 'text' ? 'text' : 'icons';
+			const v = (props as { variant?: string }).variant;
+			themeToggleVariant = v === 'text' ? 'text' : v === 'both' ? 'both' : 'icons';
 		} else {
 			themeToggleVariant = 'icons';
 		}
@@ -1727,11 +1611,16 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 				} as FeatureGridProps;
 			} else if (moduleForm.type === 'richText') {
 				// Handle richText module
-				props = {
+				const rt: Record<string, unknown> = {
 					title: richTextTitle,
 					body: richTextBody,
 					background: richTextBackground
-				} as RichTextProps;
+				};
+				if (richTextBackground === 'custom') {
+					const c = richTextBackgroundColor.trim();
+					if (c) rt.backgroundColor = c;
+				}
+				props = rt as RichTextProps;
 			} else if (moduleForm.type === 'pageTitle') {
 				props = {
 					showTitle: pageTitleShowTitle,
@@ -1739,17 +1628,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 					align: pageTitleAlign
 				};
 			} else if (moduleForm.type === 'hero') {
-				// Handle hero module
-				props = {
-					title: heroTitle,
-					subtitle: heroSubtitle,
-					showCta: heroShowCta,
-					ctaLabel: heroCtaLabel,
-					ctaUrl: heroCtaUrl || undefined,
-					backgroundStyle: heroBackgroundStyle,
-					backgroundImage: heroBackgroundStyle === 'image' ? heroBackgroundImage : undefined,
-					...heroExtraPropsFromEditor()
-				} as HeroProps;
+				props = { ...heroModuleProps } as HeroProps;
 			} else if (moduleForm.type === 'albumsGrid') {
 				// Handle albumsGrid module
 				props = {
@@ -1788,7 +1667,12 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 					showAuthButtons: menuShowAuthButtons
 				};
 			} else if (moduleForm.type === 'themeToggle') {
-				props = themeToggleVariant === 'text' ? { variant: 'text' } : {};
+				props =
+					themeToggleVariant === 'text'
+						? { variant: 'text' }
+						: themeToggleVariant === 'both'
+							? { variant: 'both' }
+							: {};
 			} else if (moduleForm.type === 'socialMedia') {
 				props = { ...socialMediaModuleProps } as Record<string, unknown>;
 			} else if (moduleForm.type === 'albumView') {
@@ -1893,11 +1777,16 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 					}))
 				} as FeatureGridProps;
 			} else if (moduleForm.type === 'richText') {
-				props = {
+				const rt: Record<string, unknown> = {
 					title: richTextTitle,
 					body: richTextBody,
 					background: richTextBackground
-				} as RichTextProps;
+				};
+				if (richTextBackground === 'custom') {
+					const c = richTextBackgroundColor.trim();
+					if (c) rt.backgroundColor = c;
+				}
+				props = rt as RichTextProps;
 			} else if (moduleForm.type === 'pageTitle') {
 				props = {
 					showTitle: pageTitleShowTitle,
@@ -1905,16 +1794,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 					align: pageTitleAlign
 				};
 			} else if (moduleForm.type === 'hero') {
-				props = {
-					title: heroTitle,
-					subtitle: heroSubtitle,
-					showCta: heroShowCta,
-					ctaLabel: heroCtaLabel,
-					ctaUrl: heroCtaUrl || undefined,
-					backgroundStyle: heroBackgroundStyle,
-					backgroundImage: heroBackgroundStyle === 'image' ? heroBackgroundImage : undefined,
-					...heroExtraPropsFromEditor()
-				} as HeroProps;
+				props = { ...heroModuleProps } as HeroProps;
 			} else if (moduleForm.type === 'albumsGrid') {
 				props = {
 					title: albumsGridTitle,
@@ -1952,7 +1832,12 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 					showAuthButtons: menuShowAuthButtons
 				};
 			} else if (moduleForm.type === 'themeToggle') {
-				props = themeToggleVariant === 'text' ? { variant: 'text' } : {};
+				props =
+					themeToggleVariant === 'text'
+						? { variant: 'text' }
+						: themeToggleVariant === 'both'
+							? { variant: 'both' }
+							: {};
 			} else if (moduleForm.type === 'socialMedia') {
 				props = { ...socialMediaModuleProps } as Record<string, unknown>;
 			} else if (moduleForm.type === 'albumView') {
@@ -2840,18 +2725,35 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 						</div>
 
 						<div>
-							<label for="module-richtext-bg" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-								Background Color
+							<label for="module-richtext-bg-a" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
+								Background
 							</label>
 							<select
-								id="module-richtext-bg"
+								id="module-richtext-bg-a"
 								bind:value={richTextBackground}
 								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 							>
-								<option value="white">White</option>
-								<option value="gray">Gray</option>
+								<option value="white">White (theme)</option>
+								<option value="gray">Gray (theme)</option>
+								<option value="transparent">Transparent</option>
+								<option value="custom">Custom color…</option>
 							</select>
 						</div>
+						{#if richTextBackground === 'custom'}
+							<div>
+								<label for="module-richtext-bgcolor-a" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
+									Background color
+								</label>
+								<input
+									id="module-richtext-bgcolor-a"
+									type="text"
+									bind:value={richTextBackgroundColor}
+									placeholder="#f5f5f5, rgb(…), hsl(…)"
+									class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
+								/>
+								<p class="text-xs text-(--color-surface-600-400) mt-1">Any CSS color value.</p>
+							</div>
+						{/if}
 					</div>
 				{:else if moduleForm.type === 'pageTitle'}
 					<div class="space-y-4 border-t border-surface-200-800 pt-4">
@@ -2882,239 +2784,12 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 						</div>
 					</div>
 				{:else if moduleForm.type === 'hero'}
-					<!-- Hero Form -->
 					<div class="space-y-4 border-t border-surface-200-800 pt-4">
-						<div>
-							<label for="module-hero-title" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-								Title
-							</label>
-							<MultiLangInput id="module-hero-title" bind:value={heroTitle} />
-						</div>
-
-						<div>
-							<label for="module-hero-subtitle" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-								Subtitle
-							</label>
-							<MultiLangInput id="module-hero-subtitle" bind:value={heroSubtitle} />
-						</div>
-
-						<div class="flex items-start gap-3 rounded-md border border-surface-300-700 bg-(--color-surface-50-950) p-3">
-							<input
-								id="module-hero-show-cta"
-								type="checkbox"
-								bind:checked={heroShowCta}
-								class="mt-1 h-4 w-4 rounded border-surface-300-700 text-(--color-primary-600) focus:ring-(--color-primary-500)"
-							/>
-							<div class="min-w-0 flex-1">
-								<label for="module-hero-show-cta" class="block text-sm font-medium text-(--color-surface-800-200)">
-									Show call-to-action button
-								</label>
-								<p class="mt-1 text-xs text-(--color-surface-600-400)">
-									When off, the hero shows title and subtitle only (no button).
-								</p>
-							</div>
-						</div>
-
-						{#if heroShowCta}
-							<div>
-								<label for="module-hero-cta-label" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-									Button label
-								</label>
-								<MultiLangInput id="module-hero-cta-label" bind:value={heroCtaLabel} />
-							</div>
-
-							<div>
-								<label for="module-hero-cta-url" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-									Button URL
-								</label>
-								<input
-									id="module-hero-cta-url"
-									type="url"
-									bind:value={heroCtaUrl}
-									placeholder="https://..."
-									class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
-								/>
-							</div>
-						{/if}
-
-						<div>
-							<label for="module-hero-bg-style" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-								Background style
-							</label>
-							<select
-								id="module-hero-bg-style"
-								bind:value={heroBackgroundStyle}
-								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
-							>
-								<option value="light">Light</option>
-								<option value="dark">Dark</option>
-								<option value="image">Custom image (URL)</option>
-								<option value="galleryLeading">Gallery leading photo</option>
-							</select>
-							<p class="mt-1.5 text-xs text-(--color-surface-600-400)">
-								<strong>Custom image</strong> — paste a direct link to an image file. <strong>Gallery leading photo</strong> — uses a featured
-								photo from your library (no URL field).
-							</p>
-						</div>
-
-						{#if heroBackgroundStyle === 'image'}
-							<div>
-								<label for="module-hero-bg-image" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-									Background image URL
-								</label>
-								<input
-									id="module-hero-bg-image"
-									type="url"
-									bind:value={heroBackgroundImage}
-									placeholder="https://example.com/path/to/image.jpg"
-									class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
-								/>
-								<p class="mt-1 text-xs text-(--color-surface-600-400)">
-									Use this only with <strong>Custom image (URL)</strong>. For a featured gallery photo, pick <strong>Gallery leading photo</strong> instead (no URL).
-								</p>
-							</div>
-						{/if}
-
-						{#if heroBackgroundStyle === 'galleryLeading'}
-							<p class="rounded-md border border-surface-300-700 bg-(--color-surface-50-950) px-3 py-2 text-xs text-(--color-surface-600-400)">
-								Background comes from your published gallery-leading or album-cover photos. No URL is used.
-							</p>
-						{/if}
-
-						<div>
-							<span class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-								Layout
-							</span>
-							<select
-								bind:value={heroLayout}
-								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
-							>
-								<option value="">Template default</option>
-								<option value="fullbleed">Full-bleed</option>
-								<option value="split">Split</option>
-								<option value="editorial">Editorial</option>
-								<option value="stacked">Stacked</option>
-								<option value="mosaic">Mosaic</option>
-								<option value="filmstrip">Filmstrip</option>
-								<option value="minimal">Minimal / typographic</option>
-								<option value="portrait">Portrait</option>
-								<option value="slideshow">Slideshow</option>
-							</select>
-							<p class="mt-1 text-xs text-(--color-surface-600-400)">
-								Optional. Site-wide default: <code class="text-xs">template.hero.layout</code> in site config (see Hero README).
-							</p>
-						</div>
-
-						{#if heroLayout === 'split'}
-						<div class="rounded-md border border-surface-300-700 bg-(--color-surface-50-950) p-3 space-y-3">
-							<p class="text-sm font-medium text-(--color-surface-800-200)">Split layout</p>
-							<p class="text-xs text-(--color-surface-600-400)">
-								Shown only when Layout is <strong>Split</strong>. Sizes use raw CSS.
-							</p>
-							<div>
-								<span class="block text-xs font-medium text-(--color-surface-700-300) mb-1">
-									Primary column (reading order)
-								</span>
-								<select
-									bind:value={heroSplitLead}
-									class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm text-sm"
-								>
-									<option value="media">Image first</option>
-									<option value="copy">Text first</option>
-								</select>
-							</div>
-							<div>
-								<span class="block text-xs font-medium text-(--color-surface-700-300) mb-1">
-									Column widths (grid-template-columns)
-								</span>
-								<input
-									type="text"
-									bind:value={heroSplitGridColumns}
-									placeholder="1fr 1fr"
-									class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm font-mono text-sm"
-								/>
-							</div>
-							<div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-								<div>
-									<span class="block text-xs font-medium text-(--color-surface-700-300) mb-1">
-										Row min-height
-									</span>
-									<input
-										type="text"
-										bind:value={heroSplitMinHeight}
-										placeholder="min(70vh, 760px)"
-										class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm font-mono text-sm"
-									/>
-								</div>
-								<div>
-									<span class="block text-xs font-medium text-(--color-surface-700-300) mb-1">
-										Image column min-height
-									</span>
-									<input
-										type="text"
-										bind:value={heroSplitMediaMinHeight}
-										placeholder="260px"
-										class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm font-mono text-sm"
-									/>
-								</div>
-							</div>
-						</div>
-						{/if}
-
-						<div>
-							<span class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-								Extra image URLs (mosaic / slideshow), or gallery-leading photos
-							</span>
-							<textarea
-								bind:value={heroImagesText}
-								rows="3"
-								placeholder="One URL per line or comma-separated — leave empty to use multiple gallery-leading photos when background is Gallery leading"
-								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500) font-mono text-sm"
-							></textarea>
-							<p class="mt-1 text-xs text-(--color-surface-600-400)">
-								If this is empty and background is <strong>Gallery leading photo</strong>, mosaic/slideshow load several published leading/cover photos automatically (see count below).
-							</p>
-						</div>
-
-						<div>
-							<span class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-								Gallery leading count
-							</span>
-							<input
-								type="text"
-								bind:value={heroGalleryLeadingLimit}
-								placeholder="Default: 4 (mosaic) or 5 (slideshow); max 12"
-								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
-							/>
-							<p class="mt-1 text-xs text-(--color-surface-600-400)">
-								Only applies when background is Gallery leading, layout is mosaic or slideshow, and Extra image URLs is empty.
-							</p>
-						</div>
-
-						<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-							<div>
-								<span class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-									Slideshow interval (ms)
-								</span>
-								<input
-									type="text"
-									bind:value={heroSlideshowIntervalMs}
-									placeholder="5000"
-									class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
-								/>
-							</div>
-							<div>
-								<span class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-									Filmstrip right caption
-								</span>
-								<input
-									type="text"
-									bind:value={heroFilmstripMeta}
-									placeholder="e.g. 24 photographs"
-									class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
-								/>
-							</div>
-						</div>
+						<ModulePropsForm
+							moduleType="hero"
+							props={heroModuleProps}
+							onChange={(p) => (heroModuleProps = p)}
+						/>
 					</div>
 				{:else if moduleForm.type === 'contactForm'}
 					<div class="space-y-4 border-t border-surface-200-800 pt-4">
@@ -3343,6 +3018,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 							>
 								<option value="icons">Icons (sun / moon)</option>
 								<option value="text">Text (Light / Dark)</option>
+								<option value="both">Icon and text</option>
 							</select>
 							<p class="mt-1 text-xs text-(--color-surface-600-400)">
 								Text labels describe the theme you switch to when clicking.
@@ -4034,253 +3710,43 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 						</div>
 
 						<div>
-							<label for="module-richtext-bg" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-								Background Color
+							<label for="module-richtext-bg-bc" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
+								Background
 							</label>
 							<select
-								id="module-richtext-bg"
+								id="module-richtext-bg-bc"
 								bind:value={richTextBackground}
 								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 							>
-								<option value="white">White</option>
-								<option value="gray">Gray</option>
+								<option value="white">White (theme)</option>
+								<option value="gray">Gray (theme)</option>
+								<option value="transparent">Transparent</option>
+								<option value="custom">Custom color…</option>
 							</select>
 						</div>
+						{#if richTextBackground === 'custom'}
+							<div>
+								<label for="module-richtext-bgcolor-bc" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
+									Background color
+								</label>
+								<input
+									id="module-richtext-bgcolor-bc"
+									type="text"
+									bind:value={richTextBackgroundColor}
+									placeholder="#f5f5f5, rgb(…), hsl(…)"
+									class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
+								/>
+								<p class="text-xs text-(--color-surface-600-400) mt-1">Any CSS color value.</p>
+							</div>
+						{/if}
 					</div>
 				{:else if moduleForm.type === 'hero'}
-					<!-- Hero Form -->
 					<div class="space-y-4 border-t border-surface-200-800 pt-4">
-						<div>
-							<label for="module-hero-title" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-								Title
-							</label>
-							<MultiLangInput id="module-hero-title" bind:value={heroTitle} />
-						</div>
-
-						<div>
-							<label for="module-hero-subtitle" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-								Subtitle
-							</label>
-							<MultiLangInput id="module-hero-subtitle" bind:value={heroSubtitle} />
-						</div>
-
-						<div class="flex items-start gap-3 rounded-md border border-surface-300-700 bg-(--color-surface-50-950) p-3">
-							<input
-								id="module-hero-show-cta"
-								type="checkbox"
-								bind:checked={heroShowCta}
-								class="mt-1 h-4 w-4 rounded border-surface-300-700 text-(--color-primary-600) focus:ring-(--color-primary-500)"
-							/>
-							<div class="min-w-0 flex-1">
-								<label for="module-hero-show-cta" class="block text-sm font-medium text-(--color-surface-800-200)">
-									Show call-to-action button
-								</label>
-								<p class="mt-1 text-xs text-(--color-surface-600-400)">
-									When off, the hero shows title and subtitle only (no button).
-								</p>
-							</div>
-						</div>
-
-						{#if heroShowCta}
-							<div>
-								<label for="module-hero-cta-label" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-									Button label
-								</label>
-								<MultiLangInput id="module-hero-cta-label" bind:value={heroCtaLabel} />
-							</div>
-
-							<div>
-								<label for="module-hero-cta-url" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-									Button URL
-								</label>
-								<input
-									id="module-hero-cta-url"
-									type="url"
-									bind:value={heroCtaUrl}
-									placeholder="https://..."
-									class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
-								/>
-							</div>
-						{/if}
-
-						<div>
-							<label for="module-hero-bg-style" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-								Background style
-							</label>
-							<select
-								id="module-hero-bg-style"
-								bind:value={heroBackgroundStyle}
-								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
-							>
-								<option value="light">Light</option>
-								<option value="dark">Dark</option>
-								<option value="image">Custom image (URL)</option>
-								<option value="galleryLeading">Gallery leading photo</option>
-							</select>
-							<p class="mt-1.5 text-xs text-(--color-surface-600-400)">
-								<strong>Custom image</strong> — paste a direct link to an image file. <strong>Gallery leading photo</strong> — uses a featured
-								photo from your library (no URL field).
-							</p>
-						</div>
-
-						{#if heroBackgroundStyle === 'image'}
-							<div>
-								<label for="module-hero-bg-image" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-									Background image URL
-								</label>
-								<input
-									id="module-hero-bg-image"
-									type="url"
-									bind:value={heroBackgroundImage}
-									placeholder="https://example.com/path/to/image.jpg"
-									class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
-								/>
-								<p class="mt-1 text-xs text-(--color-surface-600-400)">
-									Use this only with <strong>Custom image (URL)</strong>. For a featured gallery photo, pick <strong>Gallery leading photo</strong> instead (no URL).
-								</p>
-							</div>
-						{/if}
-
-						{#if heroBackgroundStyle === 'galleryLeading'}
-							<p class="rounded-md border border-surface-300-700 bg-(--color-surface-50-950) px-3 py-2 text-xs text-(--color-surface-600-400)">
-								Background comes from your published gallery-leading or album-cover photos. No URL is used.
-							</p>
-						{/if}
-
-						<div>
-							<span class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-								Layout
-							</span>
-							<select
-								bind:value={heroLayout}
-								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
-							>
-								<option value="">Template default</option>
-								<option value="fullbleed">Full-bleed</option>
-								<option value="split">Split</option>
-								<option value="editorial">Editorial</option>
-								<option value="stacked">Stacked</option>
-								<option value="mosaic">Mosaic</option>
-								<option value="filmstrip">Filmstrip</option>
-								<option value="minimal">Minimal / typographic</option>
-								<option value="portrait">Portrait</option>
-								<option value="slideshow">Slideshow</option>
-							</select>
-							<p class="mt-1 text-xs text-(--color-surface-600-400)">
-								Optional. Site-wide default: <code class="text-xs">template.hero.layout</code> in site config (see Hero README).
-							</p>
-						</div>
-
-						{#if heroLayout === 'split'}
-						<div class="rounded-md border border-surface-300-700 bg-(--color-surface-50-950) p-3 space-y-3">
-							<p class="text-sm font-medium text-(--color-surface-800-200)">Split layout</p>
-							<p class="text-xs text-(--color-surface-600-400)">
-								Shown only when Layout is <strong>Split</strong>. Sizes use raw CSS.
-							</p>
-							<div>
-								<span class="block text-xs font-medium text-(--color-surface-700-300) mb-1">
-									Primary column (reading order)
-								</span>
-								<select
-									bind:value={heroSplitLead}
-									class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm text-sm"
-								>
-									<option value="media">Image first</option>
-									<option value="copy">Text first</option>
-								</select>
-							</div>
-							<div>
-								<span class="block text-xs font-medium text-(--color-surface-700-300) mb-1">
-									Column widths (grid-template-columns)
-								</span>
-								<input
-									type="text"
-									bind:value={heroSplitGridColumns}
-									placeholder="1fr 1fr"
-									class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm font-mono text-sm"
-								/>
-							</div>
-							<div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-								<div>
-									<span class="block text-xs font-medium text-(--color-surface-700-300) mb-1">
-										Row min-height
-									</span>
-									<input
-										type="text"
-										bind:value={heroSplitMinHeight}
-										placeholder="min(70vh, 760px)"
-										class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm font-mono text-sm"
-									/>
-								</div>
-								<div>
-									<span class="block text-xs font-medium text-(--color-surface-700-300) mb-1">
-										Image column min-height
-									</span>
-									<input
-										type="text"
-										bind:value={heroSplitMediaMinHeight}
-										placeholder="260px"
-										class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm font-mono text-sm"
-									/>
-								</div>
-							</div>
-						</div>
-						{/if}
-
-						<div>
-							<span class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-								Extra image URLs (mosaic / slideshow), or gallery-leading photos
-							</span>
-							<textarea
-								bind:value={heroImagesText}
-								rows="3"
-								placeholder="One URL per line or comma-separated — leave empty to use multiple gallery-leading photos when background is Gallery leading"
-								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500) font-mono text-sm"
-							></textarea>
-							<p class="mt-1 text-xs text-(--color-surface-600-400)">
-								If this is empty and background is <strong>Gallery leading photo</strong>, mosaic/slideshow load several published leading/cover photos automatically (see count below).
-							</p>
-						</div>
-
-						<div>
-							<span class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-								Gallery leading count
-							</span>
-							<input
-								type="text"
-								bind:value={heroGalleryLeadingLimit}
-								placeholder="Default: 4 (mosaic) or 5 (slideshow); max 12"
-								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
-							/>
-							<p class="mt-1 text-xs text-(--color-surface-600-400)">
-								Only applies when background is Gallery leading, layout is mosaic or slideshow, and Extra image URLs is empty.
-							</p>
-						</div>
-
-						<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-							<div>
-								<span class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-									Slideshow interval (ms)
-								</span>
-								<input
-									type="text"
-									bind:value={heroSlideshowIntervalMs}
-									placeholder="5000"
-									class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
-								/>
-							</div>
-							<div>
-								<span class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-									Filmstrip right caption
-								</span>
-								<input
-									type="text"
-									bind:value={heroFilmstripMeta}
-									placeholder="e.g. 24 photographs"
-									class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
-								/>
-							</div>
-						</div>
+						<ModulePropsForm
+							moduleType="hero"
+							props={heroModuleProps}
+							onChange={(p) => (heroModuleProps = p)}
+						/>
 					</div>
 				{:else if moduleForm.type === 'contactForm'}
 					<div class="space-y-4 border-t border-surface-200-800 pt-4">
@@ -5115,253 +4581,43 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 						</div>
 
 						<div>
-							<label for="module-richtext-bg" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-								Background Color
+							<label for="module-richtext-bg-bc" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
+								Background
 							</label>
 							<select
-								id="module-richtext-bg"
+								id="module-richtext-bg-bc"
 								bind:value={richTextBackground}
 								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 							>
-								<option value="white">White</option>
-								<option value="gray">Gray</option>
+								<option value="white">White (theme)</option>
+								<option value="gray">Gray (theme)</option>
+								<option value="transparent">Transparent</option>
+								<option value="custom">Custom color…</option>
 							</select>
 						</div>
+						{#if richTextBackground === 'custom'}
+							<div>
+								<label for="module-richtext-bgcolor-bc" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
+									Background color
+								</label>
+								<input
+									id="module-richtext-bgcolor-bc"
+									type="text"
+									bind:value={richTextBackgroundColor}
+									placeholder="#f5f5f5, rgb(…), hsl(…)"
+									class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
+								/>
+								<p class="text-xs text-(--color-surface-600-400) mt-1">Any CSS color value.</p>
+							</div>
+						{/if}
 					</div>
 				{:else if moduleForm.type === 'hero'}
-					<!-- Hero Form -->
 					<div class="space-y-4 border-t border-surface-200-800 pt-4">
-						<div>
-							<label for="module-hero-title" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-								Title
-							</label>
-							<MultiLangInput id="module-hero-title" bind:value={heroTitle} />
-						</div>
-
-						<div>
-							<label for="module-hero-subtitle" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-								Subtitle
-							</label>
-							<MultiLangInput id="module-hero-subtitle" bind:value={heroSubtitle} />
-						</div>
-
-						<div class="flex items-start gap-3 rounded-md border border-surface-300-700 bg-(--color-surface-50-950) p-3">
-							<input
-								id="module-hero-show-cta"
-								type="checkbox"
-								bind:checked={heroShowCta}
-								class="mt-1 h-4 w-4 rounded border-surface-300-700 text-(--color-primary-600) focus:ring-(--color-primary-500)"
-							/>
-							<div class="min-w-0 flex-1">
-								<label for="module-hero-show-cta" class="block text-sm font-medium text-(--color-surface-800-200)">
-									Show call-to-action button
-								</label>
-								<p class="mt-1 text-xs text-(--color-surface-600-400)">
-									When off, the hero shows title and subtitle only (no button).
-								</p>
-							</div>
-						</div>
-
-						{#if heroShowCta}
-							<div>
-								<label for="module-hero-cta-label" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-									Button label
-								</label>
-								<MultiLangInput id="module-hero-cta-label" bind:value={heroCtaLabel} />
-							</div>
-
-							<div>
-								<label for="module-hero-cta-url" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-									Button URL
-								</label>
-								<input
-									id="module-hero-cta-url"
-									type="url"
-									bind:value={heroCtaUrl}
-									placeholder="https://..."
-									class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
-								/>
-							</div>
-						{/if}
-
-						<div>
-							<label for="module-hero-bg-style" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-								Background style
-							</label>
-							<select
-								id="module-hero-bg-style"
-								bind:value={heroBackgroundStyle}
-								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
-							>
-								<option value="light">Light</option>
-								<option value="dark">Dark</option>
-								<option value="image">Custom image (URL)</option>
-								<option value="galleryLeading">Gallery leading photo</option>
-							</select>
-							<p class="mt-1.5 text-xs text-(--color-surface-600-400)">
-								<strong>Custom image</strong> — paste a direct link to an image file. <strong>Gallery leading photo</strong> — uses a featured
-								photo from your library (no URL field).
-							</p>
-						</div>
-
-						{#if heroBackgroundStyle === 'image'}
-							<div>
-								<label for="module-hero-bg-image" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-									Background image URL
-								</label>
-								<input
-									id="module-hero-bg-image"
-									type="url"
-									bind:value={heroBackgroundImage}
-									placeholder="https://example.com/path/to/image.jpg"
-									class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
-								/>
-								<p class="mt-1 text-xs text-(--color-surface-600-400)">
-									Use this only with <strong>Custom image (URL)</strong>. For a featured gallery photo, pick <strong>Gallery leading photo</strong> instead (no URL).
-								</p>
-							</div>
-						{/if}
-
-						{#if heroBackgroundStyle === 'galleryLeading'}
-							<p class="rounded-md border border-surface-300-700 bg-(--color-surface-50-950) px-3 py-2 text-xs text-(--color-surface-600-400)">
-								Background comes from your published gallery-leading or album-cover photos. No URL is used.
-							</p>
-						{/if}
-
-						<div>
-							<span class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-								Layout
-							</span>
-							<select
-								bind:value={heroLayout}
-								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
-							>
-								<option value="">Template default</option>
-								<option value="fullbleed">Full-bleed</option>
-								<option value="split">Split</option>
-								<option value="editorial">Editorial</option>
-								<option value="stacked">Stacked</option>
-								<option value="mosaic">Mosaic</option>
-								<option value="filmstrip">Filmstrip</option>
-								<option value="minimal">Minimal / typographic</option>
-								<option value="portrait">Portrait</option>
-								<option value="slideshow">Slideshow</option>
-							</select>
-							<p class="mt-1 text-xs text-(--color-surface-600-400)">
-								Optional. Site-wide default: <code class="text-xs">template.hero.layout</code> in site config (see Hero README).
-							</p>
-						</div>
-
-						{#if heroLayout === 'split'}
-						<div class="rounded-md border border-surface-300-700 bg-(--color-surface-50-950) p-3 space-y-3">
-							<p class="text-sm font-medium text-(--color-surface-800-200)">Split layout</p>
-							<p class="text-xs text-(--color-surface-600-400)">
-								Shown only when Layout is <strong>Split</strong>. Sizes use raw CSS.
-							</p>
-							<div>
-								<span class="block text-xs font-medium text-(--color-surface-700-300) mb-1">
-									Primary column (reading order)
-								</span>
-								<select
-									bind:value={heroSplitLead}
-									class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm text-sm"
-								>
-									<option value="media">Image first</option>
-									<option value="copy">Text first</option>
-								</select>
-							</div>
-							<div>
-								<span class="block text-xs font-medium text-(--color-surface-700-300) mb-1">
-									Column widths (grid-template-columns)
-								</span>
-								<input
-									type="text"
-									bind:value={heroSplitGridColumns}
-									placeholder="1fr 1fr"
-									class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm font-mono text-sm"
-								/>
-							</div>
-							<div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-								<div>
-									<span class="block text-xs font-medium text-(--color-surface-700-300) mb-1">
-										Row min-height
-									</span>
-									<input
-										type="text"
-										bind:value={heroSplitMinHeight}
-										placeholder="min(70vh, 760px)"
-										class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm font-mono text-sm"
-									/>
-								</div>
-								<div>
-									<span class="block text-xs font-medium text-(--color-surface-700-300) mb-1">
-										Image column min-height
-									</span>
-									<input
-										type="text"
-										bind:value={heroSplitMediaMinHeight}
-										placeholder="260px"
-										class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm font-mono text-sm"
-									/>
-								</div>
-							</div>
-						</div>
-						{/if}
-
-						<div>
-							<span class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-								Extra image URLs (mosaic / slideshow), or gallery-leading photos
-							</span>
-							<textarea
-								bind:value={heroImagesText}
-								rows="3"
-								placeholder="One URL per line or comma-separated — leave empty to use multiple gallery-leading photos when background is Gallery leading"
-								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500) font-mono text-sm"
-							></textarea>
-							<p class="mt-1 text-xs text-(--color-surface-600-400)">
-								If this is empty and background is <strong>Gallery leading photo</strong>, mosaic/slideshow load several published leading/cover photos automatically (see count below).
-							</p>
-						</div>
-
-						<div>
-							<span class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-								Gallery leading count
-							</span>
-							<input
-								type="text"
-								bind:value={heroGalleryLeadingLimit}
-								placeholder="Default: 4 (mosaic) or 5 (slideshow); max 12"
-								class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
-							/>
-							<p class="mt-1 text-xs text-(--color-surface-600-400)">
-								Only applies when background is Gallery leading, layout is mosaic or slideshow, and Extra image URLs is empty.
-							</p>
-						</div>
-
-						<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-							<div>
-								<span class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-									Slideshow interval (ms)
-								</span>
-								<input
-									type="text"
-									bind:value={heroSlideshowIntervalMs}
-									placeholder="5000"
-									class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
-								/>
-							</div>
-							<div>
-								<span class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-									Filmstrip right caption
-								</span>
-								<input
-									type="text"
-									bind:value={heroFilmstripMeta}
-									placeholder="e.g. 24 photographs"
-									class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
-								/>
-							</div>
-						</div>
+						<ModulePropsForm
+							moduleType="hero"
+							props={heroModuleProps}
+							onChange={(p) => (heroModuleProps = p)}
+						/>
 					</div>
 				{:else if moduleForm.type === 'contactForm'}
 					<div class="space-y-4 border-t border-surface-200-800 pt-4">

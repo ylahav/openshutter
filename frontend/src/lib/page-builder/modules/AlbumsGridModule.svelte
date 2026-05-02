@@ -55,6 +55,8 @@
 	export let sortDirection: NonNullable<AlbumsGridProps['sortDirection']> = 'asc';
 	export let limit: NonNullable<AlbumsGridProps['limit']> = 12;
 	export let showHeading: AlbumsGridProps['showHeading'] = undefined;
+	/** Consumed by PageBuilderGrid for `pbModuleCell` only; not passed into album gallery config. */
+	export let className: string | undefined = undefined;
 
 	// Temporary migration fallback for legacy nested props.config payloads
 	export let props: LegacyAlbumsGridProps | undefined = undefined;
@@ -88,7 +90,9 @@
 			showHeading
 		};
 		const legacyConfig = p?.config && typeof p.config === 'object' ? p.config : undefined;
-		return { ...defaults, ...(legacyConfig ?? {}), ...(p ?? {}) } satisfies AlbumsGridProps;
+		const { className: _cellClass, ...pRest } = (p ?? {}) as Record<string, unknown>;
+		const { className: _nestedCell, ...legacyRest } = (legacyConfig ?? {}) as Record<string, unknown>;
+		return { ...defaults, ...legacyRest, ...pRest } satisfies AlbumsGridProps;
 	})();
 </script>
 

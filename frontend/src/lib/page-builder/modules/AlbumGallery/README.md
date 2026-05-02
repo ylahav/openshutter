@@ -14,6 +14,7 @@ See **`config.ts`** for the full field list. Highlights:
 | Header | `showAlbumPageTitle`, `albumHeaderFieldOrder`, … |
 | Cards | `albumCardFieldOrder`, `photoCardFieldOrder`, `coverAspect`, `limit`, `sortBy` |
 | Visibility | `showCover`, `showPhotoCount`, featured badges, descriptions |
+| Cell | `className` — optional classes on **`pbModuleCell`** (pack-prefixed per token); use for template partials such as Studio **`_albumsGrid.scss`**. |
 
 Legacy/global keys (`showTitle`, `cardFieldOrder`, …) remain for older themes.
 

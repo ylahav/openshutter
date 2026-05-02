@@ -112,6 +112,7 @@ export interface TemplateConfig {
       showSiteTitle?: boolean
       menu?: { labelKey?: string; label?: string; href: string }[]
       enableThemeToggle?: boolean
+      themeToggleVariant?: 'icons' | 'text' | 'both'
       enableLanguageSelector?: boolean
       showGreeting?: boolean
       showAuthButtons?: boolean

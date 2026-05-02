@@ -27,6 +27,12 @@
 	$: showThemeToggle = $headerConfig?.enableThemeToggle !== undefined ? $headerConfig.enableThemeToggle : true;
 	$: languageSelectorVariant =
 		$headerConfig?.languageSelectorVariant === 'flags' ? 'flags' : 'dropdown';
+
+	let themeToggleVariant: 'icons' | 'text' | 'both' = 'icons';
+	$: {
+		const v = $headerConfig?.themeToggleVariant;
+		themeToggleVariant = v === 'text' || v === 'both' || v === 'icons' ? v : 'icons';
+	}
 	$: showAuthButtons = $headerConfig?.showAuthButtons !== undefined ? $headerConfig.showAuthButtons : true;
 	$: showGreeting = $headerConfig?.showGreeting !== undefined ? $headerConfig.showGreeting : true;
 
@@ -153,7 +159,7 @@
 					<!-- Theme toggle (if enabled) -->
 					{#if showThemeToggle}
 						<div class="ml-6">
-							<ThemeToggle />
+							<ThemeToggle variant={themeToggleVariant} />
 						</div>
 					{/if}
 				</div>

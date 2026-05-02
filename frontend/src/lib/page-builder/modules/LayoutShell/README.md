@@ -19,6 +19,10 @@ Inside the shared layout instance object (`layoutShellInstances` / `layoutPreset
 - `rowTemplateColumnsByRow`: per-row `grid-template-columns` map  
   Example: `{ "0": "1-3-1", "1": "auto 1fr auto" }`  
   (`1-3-1` shorthand is normalized to `1fr 3fr 1fr`)
+
+If this map is **empty**, the renderer derives columns from each module’s **`columnProportion`** for that row (e.g. `1`, `9`, `2` → `1fr 9fr 2fr`). If every proportion defaults to **1**, you get equal-width columns unless you set ratios here or in **Row templates** in the layout-shell editor.
+
+At render time, fractional tracks are emitted as **`minmax(0, Nfr)`** (not bare `Nfr`) so column widths follow your **1∶9∶2** intent instead of CSS Grid’s default `minmax(auto, Nfr)` minimums fighting the ratio. Shell row cells use **grid alignment** (`justify-self` / `align-self`), not a nested flex wrapper, so placement doesn’t distort track sizing.
 - `cellPlacementByCell`: per-cell alignment map keyed by `"row:col"`  
   Example:
   `{ "0:0": { "horizontal": "start", "vertical": "center" }, "0:2": { "horizontal": "end", "vertical": "end" } }`

@@ -215,3 +215,33 @@ section[data-hero-pack="noir"][data-hero-layout="fullbleed"] {
 html.light section[data-hero-pack="noir"][data-hero-layout="fullbleed"] img {
   filter: brightness(0.55) grayscale(0.2);
 }
+
+// ── Simplified page-builder hero (`.hero` + `.hero-img` + `.hero-inner`) ──
+
+.tpl-pack-noir .hero.hero--has-bg {
+  min-height: 100vh;
+}
+
+.tpl-pack-noir .hero .hero-img {
+  filter: brightness(0.35) grayscale(0.3);
+}
+
+.tpl-pack-noir .hero .hero-title {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 200;
+  font-size: clamp(2rem, 6vw, 4.5rem);
+  letter-spacing: -0.02em;
+  text-transform: lowercase;
+  color: var(--fg, var(--tp-fg));
+}
+
+.tpl-pack-noir .hero .hero-subtitle,
+.tpl-pack-noir .hero .hero-description {
+  @include n-mono(10px, 0.28em);
+  color: var(--fg-dim, var(--tp-fg-muted));
+}
+
+[data-mode="light"] .tpl-pack-noir .hero .hero-img,
+html.light .tpl-pack-noir .hero .hero-img {
+  filter: brightness(0.55) grayscale(0.2);
+}

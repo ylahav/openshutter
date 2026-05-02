@@ -95,5 +95,13 @@ export const albumGalleryConfig = {
 			description:
 				'For album listing grids (root/featured/selected). On an album page (current album from URL), all loaded photos are shown with “Load more”; this cap does not cut off photos there.',
 		},
+		{
+			key: 'className',
+			type: 'string',
+			label: 'Cell CSS classes',
+			required: false,
+			description:
+				'Optional classes on the page-builder cell (e.g. albums). The active template pack adds a short prefix per token (Studio: s-).',
+		},
 	],
 } as const;

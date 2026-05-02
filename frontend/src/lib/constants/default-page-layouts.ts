@@ -45,7 +45,8 @@ export const DEFAULT_PAGE_MODULES: Record<string, DefaultPageModule[]> = {
 			_id: 'mod_default_home_albums',
 			type: 'albumsGrid',
 			props: {
-				albumSource: 'root'
+				albumSource: 'root',
+				className: 'albums'
 			},
 			rowOrder: 1,
 			columnIndex: 0,
@@ -58,7 +59,8 @@ export const DEFAULT_PAGE_MODULES: Record<string, DefaultPageModule[]> = {
 			_id: 'mod_default_gallery_albums',
 			type: 'albumsGrid',
 			props: {
-				albumSource: 'root'
+				albumSource: 'root',
+				className: 'albums'
 			},
 			rowOrder: 0,
 			columnIndex: 0,
@@ -71,7 +73,8 @@ export const DEFAULT_PAGE_MODULES: Record<string, DefaultPageModule[]> = {
 			_id: 'mod_default_album_gallery',
 			type: 'albumsGrid',
 			props: {
-				albumSource: 'current'
+				albumSource: 'current',
+				className: 'albums'
 			},
 			rowOrder: 0,
 			columnIndex: 0,

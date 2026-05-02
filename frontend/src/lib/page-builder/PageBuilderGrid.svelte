@@ -3,7 +3,11 @@
 	import type { Writable } from 'svelte/store';
 	import type { PageModuleData } from '$lib/types/page-builder';
 	import type { ModulePlacement } from '$lib/page-builder/module-cell-placement';
-	import { omitPlacement, placementCellStyle } from '$lib/page-builder/module-cell-placement';
+	import { omitPlacement, placementCellStyle, placementGridCellClassNames } from '$lib/page-builder/module-cell-placement';
+	import {
+		hardenGridFrTracks,
+		shellGridTemplateColumns
+	} from '$lib/page-builder/normalize-grid-template-columns';
 	import { activeTemplate } from '$stores/template';
 	import { applyPackClassPrefix, packClassPrefixFor } from '$lib/template/packs/class-prefix';
 
@@ -82,7 +86,9 @@ function isSingleLayoutShellRow(row: RowData): boolean {
 	$: rows = buildRows(modules);
 	$: gridCols = layout?.gridColumns ?? Math.max(1, ...modules.map((m) => (m.columnIndex ?? 0) + (m.colSpan ?? 1)));
 	$: gridRows = layout?.gridRows ?? Math.max(1, ...modules.map((m) => (m.rowOrder ?? 0) + (m.rowSpan ?? 1)));
-	$: hasSpanning = modules.some((m) => (m.rowSpan ?? 1) > 1 || (m.colSpan ?? 1) > 1);
+	$: hasSpanning = modules.some(
+		(m) => Number(m.rowSpan ?? 1) > 1 || Number(m.colSpan ?? 1) > 1
+	);
 	$: spanningRenderModules = modules.map((m) => ({
 		module: m,
 		rowOrder: m.rowOrder ?? m.order ?? 0,
@@ -114,10 +120,39 @@ function isSingleLayoutShellRow(row: RowData): boolean {
 		};
 	}
 
-	function rowTemplateFor(rowOrder: number): string | undefined {
-		const perRow = rowTemplateColumnsByRow?.[String(rowOrder)]?.trim();
-		return perRow || gridTemplateColumns;
+	/** When explicit row templates are missing, derive `1fr 9fr 2fr` from `columnProportion` so the shell is CSS grid (not equal flex). */
+	function templateColumnsFromModuleProportions(rowOrder: number): string | undefined {
+		const rowMods = modules
+			.filter((m) => Number(m.rowOrder ?? 0) === rowOrder)
+			.sort((a, b) => Number(a.columnIndex ?? 0) - Number(b.columnIndex ?? 0));
+		if (rowMods.length < 2) return undefined;
+		const props = rowMods.map((m) => {
+			const p = Number(m.columnProportion ?? 1);
+			return Number.isFinite(p) && p > 0 ? p : 1;
+		});
+		if (props.every((p) => p === props[0])) return undefined;
+		return props.map((p) => `${p}fr`).join(' ');
 	}
+
+	function rowTemplateFor(row: RowData): string | undefined {
+		const perRow = rowTemplateColumnsByRow?.[String(row.rowOrder)]?.trim();
+		if (perRow) return shellGridTemplateColumns(perRow);
+		const gt = gridTemplateColumns?.trim();
+		if (gt) return shellGridTemplateColumns(gt);
+		const derived = templateColumnsFromModuleProportions(row.rowOrder);
+		return derived ? hardenGridFrTracks(derived) : undefined;
+	}
+
+	/** Single-row spanning grid — use minmax(0,1fr) so tracks don’t inherit content-based minimums. */
+	$: spanningGridTemplateColumns =
+		gridRows !== 1
+			? `repeat(${gridCols}, minmax(0, 1fr))`
+			: (() => {
+					const t = rowTemplateColumnsByRow?.['0']?.trim() || gridTemplateColumns?.trim();
+					if (t) return shellGridTemplateColumns(t);
+					const derived = templateColumnsFromModuleProportions(0);
+					return derived ? hardenGridFrTracks(derived) : `repeat(${gridCols}, minmax(0, 1fr))`;
+				})();
 
 	function wrapperClassName(m: PageModuleData | undefined, pack: string): string {
 		const skipPrefix = m?.props?.classNameNoPackPrefix === true;
@@ -141,6 +176,21 @@ function isSingleLayoutShellRow(row: RowData): boolean {
 	function cellWrapperClass(m: PageModuleData | undefined, pack: string): string {
 		return ['pbModuleCell', wrapperClassName(m, pack)].filter(Boolean).join(' ');
 	}
+
+	function gridShellCellWrapperClass(
+		m: PageModuleData | undefined,
+		pack: string,
+		placement: ModulePlacement | undefined
+	): string {
+		return [
+			'pbModuleCell',
+			'pbModuleCell--shellGrid',
+			placementGridCellClassNames(placement),
+			wrapperClassName(m, pack)
+		]
+			.filter(Boolean)
+			.join(' ');
+	}
 </script>
 
 {#if !moduleMapStore || !moduleMap}
@@ -152,12 +202,16 @@ function isSingleLayoutShellRow(row: RowData): boolean {
 {:else if hasSpanning}
 	<div
 		class="{compact ? 'w-full' : contentMax} {compact ? 'py-2' : 'py-6'} {contentGap}"
-		style="display: grid; grid-template-columns: repeat({gridCols}, 1fr); grid-template-rows: repeat({gridRows}, auto);"
+		style="display: grid; grid-template-columns: {spanningGridTemplateColumns}; grid-template-rows: repeat({gridRows}, auto);"
 	>
 		{#each spanningRenderModules as placed, idx (placed.module._id ?? `${placed.module.type}-${placed.rowOrder}-${placed.columnIndex}-${idx}`)}
 			<div
-				class={cellWrapperClass(placed.module, $activeTemplate)}
-				style="{placementCellStyle(effectivePlacement(placed.rowOrder, placed.columnIndex, placed.module))}grid-column: {placed.columnIndex + 1} / span {placed.colSpan}; grid-row: {placed.rowOrder + 1} / span {placed.rowSpan};"
+				class={gridShellCellWrapperClass(
+					placed.module,
+					$activeTemplate,
+					effectivePlacement(placed.rowOrder, placed.columnIndex, placed.module)
+				)}
+				style="grid-column: {placed.columnIndex + 1} / span {placed.colSpan}; grid-row: {placed.rowOrder + 1} / span {placed.rowSpan};"
 			>
 				{#if moduleMap[placed.module.type]}
 					<svelte:component
@@ -190,19 +244,23 @@ function isSingleLayoutShellRow(row: RowData): boolean {
 				{/if}
 			{/if}
 		{:else}
-			{@const rowTemplateColumns = rowTemplateFor(row.rowOrder)}
+			{@const rowTemplateColumns = rowTemplateFor(row)}
 			<div
 				class="{rowTemplateColumns ? 'grid' : 'flex'} gap-4 px-4 {compact ? 'py-2' : 'py-6'}"
 				data-pb-shell-row={rowTemplateColumns ? 'grid' : undefined}
-				style={rowTemplateColumns
-					? `grid-template-columns: var(--pb-shell-cols, ${rowTemplateColumns})`
-					: undefined}
+				style={rowTemplateColumns ? `grid-template-columns: ${rowTemplateColumns}` : undefined}
 			>
 				{#each row.columns as col (col.columnIndex)}
 					<div
-						class={cellWrapperClass(col.module, $activeTemplate)}
+						class={rowTemplateColumns
+							? gridShellCellWrapperClass(
+									col.module,
+									$activeTemplate,
+									effectivePlacement(row.rowOrder, col.columnIndex, col.module)
+								)
+							: cellWrapperClass(col.module, $activeTemplate)}
 						style={rowTemplateColumns
-							? placementCellStyle(effectivePlacement(row.rowOrder, col.columnIndex, col.module))
+							? undefined
 							: `${placementCellStyle(effectivePlacement(row.rowOrder, col.columnIndex, col.module))}flex: ${col.proportion};`}
 					>
 						{#if col.module}

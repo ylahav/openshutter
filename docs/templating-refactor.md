@@ -10,9 +10,10 @@ Use this as the working document for the multi-pack/page-builder integration.
 3. **Config-driven** — Pack id, colors, fonts, layout, header/menu from DB / `SiteConfig`, not code edits.
 4. **Page builder fallback** — When `pageModules` (etc.) is meaningfully set, `PageRenderer` wins; otherwise the pack page renders.
 5. **CSS tokens** — `--tp-*` (and related `--os-*`), dark/light, per-pack SCSS limited to structure not one-off hex.
-6. **SSR** — Public pages render real HTML on the server for SEO.
-7. **RTL** — Logical CSS + `dir` from locale (e.g. Hebrew).
-8. **Reactive** — Pack switch, theme toggle, font changes without full page reload.
+6. **Module CSS** — Visitor modules expose **`pb-*`** (and hero **`hero*`**) class hooks; shared defaults live in **`src/lib/page-builder/modules/styles/`** (partial SCSS, loaded via `templates/styles`); packs override in their SCSS without forking components when possible (see `frontend/src/lib/page-builder/modules/README.md`). Optional pack partials (e.g. **`_albumsGrid.scss`**) target **`className`** on **`pbModuleCell`** (pack-prefixed) for section-level spacing.
+7. **SSR** — Public pages render real HTML on the server for SEO.
+8. **RTL** — Logical CSS + `dir` from locale (e.g. Hebrew).
+9. **Reactive** — Pack switch, theme toggle, font changes without full page reload.
 
 ## Current architecture (2026-04)
 
@@ -89,6 +90,8 @@ Use this once per environment after deploy. The migration is idempotent.
 
 ## Related files
 
+- Optional pack SCSS loaded after main stylesheet (`_themeToggle.scss`, `_authButtons.scss`): `frontend/src/lib/template/load-pack-page-builder-partials.ts` (used from `BodyTemplateWrapper.svelte`)
+- Page-builder module styles (global `pb-*` base layer): `frontend/src/lib/page-builder/modules/styles/`
 - Pack registry: `frontend/src/lib/template-packs/registry.ts`
 - Template metadata / overrides: `frontend/src/services/template.ts`, `template-overrides.ts`, `template-config.ts`
 - Active pack: `frontend/src/lib/stores/active-template.svelte.ts` (re-export `frontend/src/lib/stores/template.ts`)

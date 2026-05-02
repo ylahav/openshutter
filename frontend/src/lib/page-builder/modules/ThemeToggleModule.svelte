@@ -7,7 +7,11 @@
 	export let props: Record<string, unknown> | undefined = undefined;
 
 	$: resolvedVariant =
-		variant === 'text' || props?.variant === 'text' ? 'text' : 'icons';
+		variant === 'both' || props?.variant === 'both'
+			? 'both'
+			: variant === 'text' || props?.variant === 'text'
+				? 'text'
+				: 'icons';
 </script>
 
 <Layout variant={resolvedVariant} />

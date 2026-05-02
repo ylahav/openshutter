@@ -65,3 +65,37 @@ export function placementCellStyle(placement: ModulePlacement | undefined): stri
 
 	return `display:flex;flex-direction:column;width:100%;min-width:0;min-height:0;align-items:${alignItems};justify-content:${justifyContent};`;
 }
+
+/**
+ * Modifier classes for **CSS grid** shell rows (`modules/styles/_module-cell.scss`).
+ * Horizontal placement → `justify-self`; vertical → `align-self` (same as `place-self` pair).
+ */
+export function placementGridCellClassNames(placement: ModulePlacement | undefined): string {
+	const h = placement?.horizontal ?? 'default';
+	const v = placement?.vertical ?? 'default';
+
+	const justifyKey =
+		h === 'default' || h === 'stretch'
+			? 'stretch'
+			: h === 'start'
+				? 'start'
+				: h === 'center'
+					? 'center'
+					: h === 'end'
+						? 'end'
+						: 'stretch';
+
+	const alignKey =
+		v === 'default' || v === 'start'
+			? 'start'
+			: v === 'stretch'
+				? 'stretch'
+				: v === 'center'
+					? 'center'
+					: v === 'end'
+						? 'end'
+						: 'start';
+
+	return `pbModuleCell--align-self-${alignKey} pbModuleCell--justify-self-${justifyKey}`;
+}
+

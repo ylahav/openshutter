@@ -17,17 +17,24 @@
 	$: bodyHtmlForRender =
 		String($activeTemplate ?? '').toLowerCase() === 'noir' ? stripInlineColorFromHtml(bodyHtml) : bodyHtml;
 	$: background = config?.background ?? 'white';
+	$: customBg =
+		background === 'custom' && typeof config?.backgroundColor === 'string' ? config.backgroundColor.trim() : '';
 	$: rootClass = `pb-richText ${compact ? 'pb-richText--compact' : 'pb-richText--regular'} ${
-		background === 'gray'
-			? 'pb-richText--gray'
-			: background === 'transparent'
-				? 'pb-richText--transparent'
-				: 'pb-richText--white'
+		background === 'custom'
+			? customBg
+				? 'pb-richText--custom'
+				: 'pb-richText--transparent'
+			: background === 'gray'
+				? 'pb-richText--gray'
+				: background === 'transparent'
+					? 'pb-richText--transparent'
+					: 'pb-richText--white'
 	}`;
+	$: rootStyle = background === 'custom' && customBg ? `background:${customBg}` : undefined;
 </script>
 
 {#if compact}
-	<div class={rootClass}>
+	<div class={rootClass} style={rootStyle}>
 		{#if titleText}
 			<h2 class="pb-richText__title">{titleText}</h2>
 		{/if}
@@ -38,7 +45,7 @@
 		</div>
 	</div>
 {:else}
-	<section class={rootClass}>
+	<section class={rootClass} style={rootStyle}>
 		<div class="pb-richText__inner">
 			{#if titleText}
 				<h2 class="pb-richText__title">{titleText}</h2>
@@ -75,6 +82,10 @@
 
 	.pb-richText--transparent {
 		background: transparent;
+	}
+
+	.pb-richText--custom {
+		/* background from inline `style` */
 	}
 
 	.pb-richText__inner {

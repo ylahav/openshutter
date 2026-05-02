@@ -1,0 +1,26 @@
+// Studio auth buttons — loaded after `styles.scss` (tokens + fonts available).
+.tpl-pack-studio {
+  .auth-btns {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .auth-btn {
+    font-family: "Outfit", sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    color: #fff;
+    background: var(--blue);
+    padding: 6px 14px;
+    border-radius: 7px;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.15s;
+
+    &:hover {
+		background: var(--blue-dk);
+    }
+  }
+}

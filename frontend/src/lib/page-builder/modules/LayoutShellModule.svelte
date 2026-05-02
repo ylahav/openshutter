@@ -6,6 +6,7 @@
 	import type { PageModuleData } from '$lib/types/page-builder';
 	import type { ModulePlacement } from '$lib/page-builder/module-cell-placement';
 	import PageBuilderGrid from '../PageBuilderGrid.svelte';
+	import { normalizeGridTemplateColumns } from '../normalize-grid-template-columns';
 
 	/** Legacy reference key into `siteConfig.template.layoutPresets`. */
 	export let presetKey = '';
@@ -68,25 +69,12 @@
 	$: normalizedChildren = childModules.map((m) => ({ ...m, type: normalizeType((m as any).type) }));
 	$: isAdminRoute = $page.url.pathname.startsWith('/admin');
 
-	function normalizeTemplateColumns(raw: string): string {
-		const v = raw.trim();
-		if (!v) return '';
-		// Shorthand ratios like "1-3-1" -> "1fr 3fr 1fr".
-		if (/^\d+(\.\d+)?(?:-\d+(\.\d+)?)+$/.test(v)) {
-			return v
-				.split('-')
-				.map((n) => `${n}fr`)
-				.join(' ');
-		}
-		return v;
-	}
-
 	function normalizeRowTemplates(input: unknown): Record<string, string> | undefined {
 		if (!input || typeof input !== 'object' || Array.isArray(input)) return undefined;
 		const out: Record<string, string> = {};
 		for (const [k, v] of Object.entries(input as Record<string, unknown>)) {
 			if (typeof v !== 'string') continue;
-			const normalized = normalizeTemplateColumns(v);
+			const normalized = normalizeGridTemplateColumns(v);
 			if (!normalized) continue;
 			out[k] = normalized;
 		}

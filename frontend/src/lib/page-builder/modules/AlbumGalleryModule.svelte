@@ -89,6 +89,8 @@
 	export let sortBy: NonNullable<AlbumGalleryProps['sortBy']> = 'manual';
 	export let sortDirection: NonNullable<AlbumGalleryProps['sortDirection']> = 'asc';
 	export let limit: NonNullable<AlbumGalleryProps['limit']> = 12;
+	/** Page-builder cell wrapper only; not part of `config` passed to Layout. */
+	export let className: string | undefined = undefined;
 
 	// Temporary migration fallback for legacy nested props.config payloads
 	export let props: LegacyAlbumGalleryProps | undefined = undefined;
@@ -142,7 +144,9 @@
 			limit
 		};
 		const legacyConfig = p?.config && typeof p.config === 'object' ? p.config : undefined;
-		return { ...defaults, ...(legacyConfig ?? {}), ...(p ?? {}) } satisfies AlbumGalleryProps;
+		const { className: _cellClass, ...pRest } = (p ?? {}) as Record<string, unknown>;
+		const { className: _nestedCell, ...legacyRest } = (legacyConfig ?? {}) as Record<string, unknown>;
+		return { ...defaults, ...legacyRest, ...pRest } satisfies AlbumGalleryProps;
 	})();
 </script>
 

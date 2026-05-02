@@ -4,8 +4,9 @@ import { logger } from '$lib/utils/logger';
 import { mergeHomeHeroPropsFromSiteTemplate } from '$lib/template/merge-home-hero-from-site-template';
 import { getConfiguredPackId } from '$lib/template-packs/resolve-visitor-pack';
 import {
-	galleryLeadingFetchLimit,
-	resolveHeroLayoutFromTemplateInputs
+	heroGalleryLeadingMediaLimit,
+	heroNeedsGalleryLeadingPrefetch,
+	normalizeHeroModuleConfig
 } from '$lib/page-builder/modules/Hero/hero-layout';
 import { resolveGalleryLeadingUrlsFromApiJson } from '$lib/page-builder/modules/Hero/gallery-leading-urls';
 
@@ -54,26 +55,15 @@ export const load: PageLoad = async ({ fetch, parent }) => {
         modules = mergeHomeHeroPropsFromSiteTemplate(modules, visitorSiteConfig.template) as typeof modules;
       }
 
-      const templateHeroLayoutRaw = (
-        visitorSiteConfig?.template as { hero?: { layout?: string } } | undefined
-      )?.hero?.layout;
       const heroRows = modules.filter((m) => m && String((m as { type?: string }).type) === 'hero');
       let prefetchedGl: string[] | null = null;
       for (const m of heroRows) {
         const raw = (m as { props?: unknown }).props;
         const props =
           raw && typeof raw === 'object' && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
-        if (String(props.backgroundStyle ?? 'light') !== 'galleryLeading') continue;
-        const resolvedLayout = resolveHeroLayoutFromTemplateInputs({
-          heroProps: props,
-          templateHeroLayoutRaw,
-          packId: pack
-        });
-        const lim = galleryLeadingFetchLimit({
-          backgroundStyle: 'galleryLeading',
-          resolvedLayout,
-          configLimit: props.heroGalleryLeadingLimit
-        });
+        const norm = normalizeHeroModuleConfig(props);
+        if (!heroNeedsGalleryLeadingPrefetch(norm)) continue;
+        const lim = heroGalleryLeadingMediaLimit(norm as Record<string, unknown>);
         if (lim <= 0) continue;
         try {
           const glRes = await fetch(`/api/photos/gallery-leading?limit=${lim}`);
@@ -96,7 +86,7 @@ export const load: PageLoad = async ({ fetch, parent }) => {
             raw && typeof raw === 'object' && !Array.isArray(raw)
               ? { ...(raw as Record<string, unknown>) }
               : {};
-          if (String(p.backgroundStyle ?? 'light') !== 'galleryLeading') return m;
+          if (!heroNeedsGalleryLeadingPrefetch(normalizeHeroModuleConfig(p))) return m;
           return { ...m, props: { ...p, prefetchedGalleryLeadingUrls: prefetchedGl } };
         });
       }
