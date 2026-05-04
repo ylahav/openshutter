@@ -127,12 +127,35 @@ export class SiteConfigService {
     }
   }
 
+  private validatePageAliasPrefixes(raw: unknown): void {
+    if (raw === undefined || raw === null) return
+    if (typeof raw !== 'object' || Array.isArray(raw)) {
+      throw new BadRequestException('Invalid template.pageAliasPrefixes: must be an object')
+    }
+    const token = /^[a-z0-9]{1,12}$/
+    for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+      if (!SiteConfigService.BUILTIN_TEMPLATE_IDS.has(String(key).trim().toLowerCase())) {
+        throw new BadRequestException(
+          `Invalid template.pageAliasPrefixes key: "${key}". Must be one of: ${[...SiteConfigService.BUILTIN_TEMPLATE_IDS].join(', ')}`,
+        )
+      }
+      if (value === undefined || value === null || value === '') continue
+      const v = String(value).trim().toLowerCase()
+      if (!token.test(v)) {
+        throw new BadRequestException(
+          `Invalid template.pageAliasPrefixes.${key}: "${value}". Use 1–12 lowercase letters or digits only.`,
+        )
+      }
+    }
+  }
+
   private validateTemplateUpdate(updates: SiteConfigUpdate): void {
     const t = updates.template
     if (!t) return
     if (t.frontendTemplate !== undefined) this.validateBuiltinTemplateId(t.frontendTemplate, 'frontendTemplate')
     // adminTemplate is legacy — not validated; persisted value is always normalized to 'default' on save.
     if (t.activeTemplate !== undefined) this.validateBuiltinTemplateId(t.activeTemplate, 'activeTemplate')
+    if (t.pageAliasPrefixes !== undefined) this.validatePageAliasPrefixes(t.pageAliasPrefixes)
   }
 
   /**
@@ -178,6 +201,7 @@ export class SiteConfigService {
         'customFonts',
         'componentVisibility',
         'headerConfig',
+        'pageAliasPrefixes',
       ] as const
       for (const k of replaceWhole) {
         if (Object.prototype.hasOwnProperty.call(t, k)) {

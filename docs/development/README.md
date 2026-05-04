@@ -6,7 +6,7 @@ Architecture and contributor notes. For **install, deploy, and operations**, see
 
 | Doc | Topic |
 |-----|--------|
-| [TEMPLATING.md](./TEMPLATING.md) | Visitor templating: requirements, implementation (tokens, SCSS, maintainer quick ref), checklist, §8 pack appendix |
+| [TEMPLATING.md](./TEMPLATING.md) | Visitor templating: **North star** (two surfaces, `prefix-alias`, URL→DB→PageRenderer), requirements, tokens/SCSS, checklist, §8 pack appendix |
 | [PAGE_BUILDER_MODULES.md](./PAGE_BUILDER_MODULES.md) | Page builder modules: authoring, `data` / URL context, examples |
 | [SYSTEM_PRD.md](./SYSTEM_PRD.md) | System / product requirements |
 | [TYPE_SYSTEM.md](./TYPE_SYSTEM.md) | Shared TypeScript types |

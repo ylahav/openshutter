@@ -3,6 +3,7 @@ import { logger } from '$lib/utils/logger';
 import { getEffectivePageGrid, getEffectivePageModules } from '$lib/template/breakpoints';
 import {
 	buildTemplateAwareAliasCandidates,
+	resolvePageAliasPrefixes,
 	resolveSiteTemplatePack
 } from '$lib/utils/template-page-alias';
 
@@ -31,7 +32,8 @@ export const load: PageLoad = async ({ fetch, parent }) => {
 			}
 
 			// Prefer a real page alias for /search when it exists (e.g. studio: s-search).
-			const aliasCandidates = buildTemplateAwareAliasCandidates('search', pack);
+			const pageAliasPrefixes = resolvePageAliasPrefixes(siteConfig);
+			const aliasCandidates = buildTemplateAwareAliasCandidates('search', pack, pageAliasPrefixes);
 			for (const candidateAlias of aliasCandidates) {
 				const pagesUrl = pack
 					? `/api/pages/${candidateAlias}?pack=${encodeURIComponent(pack)}`

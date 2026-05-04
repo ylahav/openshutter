@@ -21,6 +21,8 @@ export interface Page {
 	};
 	category: 'system' | 'site';
 	isPublished?: boolean;
+	/** Reserved **login** role page: when true, the login form heading is not shown (title still stored). */
+	hideLoginTitle?: boolean;
 	createdAt?: string;
 	updatedAt?: string;
 }

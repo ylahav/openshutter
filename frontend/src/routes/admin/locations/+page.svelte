@@ -6,6 +6,15 @@
 	import { useCrudOperations } from '$lib/composables/useCrudOperations';
 	import { useDialogManager } from '$lib/composables/useDialogManager';
 	import { normalizeMultiLangText } from '$lib/utils/multiLangHelpers';
+	import { handleError } from '$lib/utils/errorHandler';
+	import {
+		adminPostJson,
+		applyTemplateVars,
+		downloadJson,
+		fetchAdminPaginatedList,
+		parseImportItems
+	} from '$lib/utils/collectionImportExport';
+	import CollectionImportExportButtons from '$lib/components/admin/CollectionImportExportButtons.svelte';
 	import { t } from '$stores/i18n';
 	import type { PageData } from './$types';
 
@@ -119,6 +128,7 @@
 	let showDeleteDialog = false;
 	let editingLocation: Location | null = null;
 	let locationToDelete: Location | null = null;
+	let importExportBusy = false;
 
 	// Subscribe to stores
 	crudLoader.items.subscribe(value => locations = value);
@@ -239,6 +249,111 @@
 			// Success handled by onDeleteSuccess callback
 		}
 	}
+
+	function importFileErrorMessage(err: unknown): string {
+		if (err instanceof Error && err.message === 'INVALID_JSON') {
+			return translate('admin.collectionImportInvalidJson');
+		}
+		if (err instanceof Error && err.message === 'INVALID_SHAPE') {
+			return translate('admin.collectionImportInvalidEnvelope');
+		}
+		return handleError(err, translate('admin.collectionImportReadError'));
+	}
+
+	function setImportSummaryMessage(created: number, failed: number) {
+		const template = translate('admin.collectionImportResult');
+		crudOps.message.set(applyTemplateVars(template, { created, failed }));
+		setTimeout(() => crudOps.message.set(''), 8000);
+	}
+
+	async function handleLocationsExport() {
+		importExportBusy = true;
+		crudOps.error.set('');
+		try {
+			const rows = await fetchAdminPaginatedList('/api/admin/locations');
+			const items = rows.map((raw) => {
+				const row = raw as Record<string, unknown>;
+				const { _id, usageCount, createdBy, createdAt, updatedAt, ...rest } = row;
+				void _id;
+				void usageCount;
+				void createdBy;
+				void createdAt;
+				void updatedAt;
+				return rest;
+			});
+			downloadJson(`openshutter-locations-${new Date().toISOString().slice(0, 10)}.json`, {
+				schema: 'openshutter.admin.locations/v1',
+				exportedAt: new Date().toISOString(),
+				items
+			});
+		} catch (err) {
+			crudOps.error.set(handleError(err, translate('admin.collectionExportFailed')));
+		} finally {
+			importExportBusy = false;
+		}
+	}
+
+	async function handleLocationsImport(file: File) {
+		importExportBusy = true;
+		crudOps.error.set('');
+		let created = 0;
+		let failed = 0;
+		const failureLines: string[] = [];
+		try {
+			const list = parseImportItems(await file.text());
+			for (let i = 0; i < list.length; i++) {
+				const raw = list[i];
+				if (!raw || typeof raw !== 'object') {
+					failed++;
+					continue;
+				}
+				const o = raw as Record<string, unknown>;
+				const payload: Record<string, unknown> = {
+					name: o.name,
+					description: o.description,
+					address: o.address,
+					city: o.city,
+					state: o.state,
+					country: o.country,
+					postalCode: o.postalCode,
+					coordinates: o.coordinates,
+					placeId: o.placeId,
+					category: o.category,
+					isActive: o.isActive !== false
+				};
+				const name = o.name;
+				const hasName =
+					typeof name === 'string'
+						? !!(name as string).trim()
+						: name &&
+								typeof name === 'object' &&
+								Object.values(name as Record<string, unknown>).some(
+									(v) => typeof v === 'string' && (v as string).trim()
+								);
+				if (!hasName) {
+					failed++;
+					failureLines.push(`#${i + 1}: name required`);
+					continue;
+				}
+				try {
+					await adminPostJson('/api/admin/locations', payload);
+					created++;
+				} catch (e) {
+					failed++;
+					failureLines.push(`#${i + 1}: ${handleError(e, 'Error')}`);
+				}
+			}
+			await crudLoader.loadItems();
+			setImportSummaryMessage(created, failed);
+			if (failureLines.length) {
+				crudOps.error.set(failureLines.slice(0, 8).join(' · '));
+			}
+		} catch (err) {
+			crudOps.error.set(importFileErrorMessage(err));
+		} finally {
+			importExportBusy = false;
+		}
+	}
 </script>
 
 <svelte:head>
@@ -299,21 +414,30 @@
 					</select>
 				</div>
 
-				<button
-					type="button"
-					on:click={openCreateDialog}
-					class="px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700) text-sm font-medium flex items-center gap-2"
-				>
-					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M12 4v16m8-8H4"
-						/>
-					</svg>
-					{$t('admin.addLocation')}
-				</button>
+				<div class="flex flex-wrap items-center gap-2">
+					<CollectionImportExportButtons
+						exportLabel={$t('admin.collectionExportJson')}
+						importLabel={$t('admin.collectionImportJson')}
+						busy={importExportBusy}
+						onExport={handleLocationsExport}
+						onImportFile={handleLocationsImport}
+					/>
+					<button
+						type="button"
+						on:click={openCreateDialog}
+						class="px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700) text-sm font-medium flex items-center gap-2"
+					>
+						<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M12 4v16m8-8H4"
+							/>
+						</svg>
+						{$t('admin.addLocation')}
+					</button>
+				</div>
 			</div>
 
 			<!-- Locations List -->

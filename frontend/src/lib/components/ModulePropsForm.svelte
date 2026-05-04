@@ -22,6 +22,7 @@
 	import { searchFilterConfig } from '$lib/page-builder/modules/SearchFilter/config';
 	import { searchFormConfig } from '$lib/page-builder/modules/SearchForm/config';
 	import { searchResultsConfig } from '$lib/page-builder/modules/SearchResults/config';
+	import { loginFormConfig } from '$lib/page-builder/modules/LoginForm/config';
 	import { parseLinksJson } from '$lib/page-builder/modules/SocialMedia/resolveLinks';
 	import type { ModulePlacement, ModulePlacementAxis } from '$lib/page-builder/module-cell-placement';
 	import { normalizePlacement } from '$lib/page-builder/module-cell-placement';
@@ -54,7 +55,8 @@
 		searchBar: searchBarConfig,
 		searchFilter: searchFilterConfig,
 		searchForm: searchFormConfig,
-		searchResults: searchResultsConfig
+		searchResults: searchResultsConfig,
+		loginForm: loginFormConfig
 	};
 
 	$: config = moduleConfigMap[moduleType] || null;

@@ -9,6 +9,7 @@
 		shellGridTemplateColumns
 	} from '$lib/page-builder/normalize-grid-template-columns';
 	import { activeTemplate } from '$stores/template';
+	import { siteConfigData } from '$stores/siteConfig';
 	import { applyPackClassPrefix, packClassPrefixFor } from '$lib/template/packs/class-prefix';
 
 	/** Modules already normalized (e.g. albumGallery → albumView). */
@@ -29,6 +30,7 @@
 
 	const moduleMapStore = getContext<Writable<Record<string, any>> | undefined>('pbModuleMap');
 	$: moduleMap = $moduleMapStore;
+	$: pageAliasPrefixes = $siteConfigData?.template?.pageAliasPrefixes;
 
 	if (!moduleMapStore) {
 		console.error('[PageBuilderGrid] Missing pbModuleMap context');
@@ -155,8 +157,11 @@ function isSingleLayoutShellRow(row: RowData): boolean {
 				})();
 
 	function wrapperClassName(m: PageModuleData | undefined, pack: string): string {
+		// Login applies pack-prefixed root classes on `<main>` inside the module. Do not repeat the same hooks on the grid cell.
+		if (m?.type === 'loginForm') return '';
+
 		const skipPrefix = m?.props?.classNameNoPackPrefix === true;
-		const prefix = skipPrefix ? '' : packClassPrefixFor(pack);
+		const prefix = skipPrefix ? '' : packClassPrefixFor(pack, pageAliasPrefixes);
 
 		const raw = m?.props?.className;
 		let base = typeof raw === 'string' ? raw.trim() : '';

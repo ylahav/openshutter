@@ -63,7 +63,7 @@
 </script>
 
 <header
-	class="shadow-sm border-b transition-colors duration-300 bg-[color:var(--tp-surface-1)] border-[color:var(--tp-border)] text-[color:var(--tp-fg)]"
+	class="shadow-sm border-b transition-colors duration-300 bg-(--tp-surface-1) border-(--tp-border) text-(--tp-fg)"
 	style="font-family: var(--os-font-body);"
 >
 	<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -83,7 +83,7 @@
 							style="background: var(--os-primary, var(--tp-brand));"
 						>
 							<svg
-								class="w-6 h-6 text-[color:var(--tp-on-brand)]"
+								class="w-6 h-6 text-(--tp-on-brand)"
 								fill="none"
 								stroke="currentColor"
 								viewBox="0 0 24 24"
@@ -109,7 +109,7 @@
 					<div class="flex flex-col">
 						<a
 							href="/"
-							class="text-xl font-bold transition-colors text-[color:var(--tp-fg)] hover:text-[color:var(--os-primary)]"
+							class="text-xl font-bold transition-colors text-(--tp-fg) hover:text-(--os-primary)"
 						>
 							{$title}
 						</a>
@@ -119,25 +119,25 @@
 
 			<!-- Navigation -->
 			{#if showMenu || showTemplateSelector || showLanguageSelector || showThemeToggle}
-				<div class="hidden md:flex items-center gap-4 text-sm text-[color:var(--tp-fg-muted)]">
+				<div class="hidden md:flex items-center gap-4 text-sm text-(--tp-fg-muted)">
 					{#if showMenu}
 						<Menu
 							config={$headerConfig}
-							itemClass="text-[color:var(--tp-fg-muted)] hover:text-[color:var(--tp-fg)]"
-							activeItemClass="text-[color:var(--os-primary)] font-medium"
+							itemClass="text-(--tp-fg-muted) hover:text-(--tp-fg)"
+							activeItemClass="text-(--os-primary) font-medium"
 							containerClass="flex items-center gap-4"
 							showActiveIndicator={true}
 							showAuthButtons={showAuthButtons}
 						/>
 
 						{#if showAuthButtons && $auth.authenticated && $auth.user}
-							<span class="text-[color:var(--tp-fg-subtle)]">|</span>
+							<span class="text-(--tp-fg-subtle)">|</span>
 							<NotificationNavLink
-								linkClass="relative text-[color:var(--tp-fg-muted)] hover:text-[color:var(--tp-fg)]"
+								linkClass="relative text-(--tp-fg-muted) hover:text-(--tp-fg)"
 							/>
 							{#if showGreeting}
-								<span class="text-[color:var(--tp-fg-subtle)]">|</span>
-								<span class="text-[color:var(--tp-fg-muted)]">{$auth.user.name || $auth.user.email}</span>
+								<span class="text-(--tp-fg-subtle)">|</span>
+								<span class="text-(--tp-fg-muted)">{$auth.user.name || $auth.user.email}</span>
 							{/if}
 						{/if}
 					{/if}

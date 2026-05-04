@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { currentLanguage } from '$stores/language';
+	import { t } from '$stores/i18n';
 	import { MultiLangUtils } from '$lib/utils/multiLang';
 	import { getAlbumName } from '$lib/utils/albumUtils';
 	import type { AlbumCardVisualVariant } from './card-layout';
@@ -29,6 +30,16 @@
 	/** @deprecated use `variant="bareSquare"` */
 	export let noirStackCard = false;
 
+	function readChildAlbumCount(a: unknown): number {
+		const x = a as Record<string, unknown> | null | undefined;
+		if (!x || typeof x !== 'object') return 0;
+		const raw = x.childAlbumCount ?? x.childAlbumsCount ?? x.subAlbumCount;
+		if (raw == null || raw === '') return 0;
+		const n = Number(raw);
+		if (!Number.isFinite(n)) return 0;
+		return Math.max(0, Math.floor(n));
+	}
+
 	$: effectiveVariant = (noirStackCard ? 'bareSquare' : variant) as AlbumCardVisualVariant;
 
 	$: isSimpleRowLayout = effectiveVariant === 'roundedCard' && layout === 'row';
@@ -40,9 +51,14 @@
 		const n = Number(album?.photoCount) || 0;
 		return `${n} ${n === 1 ? 'photograph' : 'photographs'}`;
 	})();
+
+	$: thumbPhotoCount = Number(album?.photoCount) || 0;
+	$: thumbChildAlbumCount = readChildAlbumCount(album);
+	$: subAlbumsCountLabel =
+		thumbChildAlbumCount === 1 ? $t('albums.subAlbum') : $t('albums.subAlbums');
 </script>
 
-{#snippet albumFields(fields: typeof cardFieldOrder, coverMb: boolean)}
+{#snippet albumFields(fields: typeof cardFieldOrder, coverMb: boolean, showChildAlbumFooter: boolean)}
 	{#each fields as field}
 		{#if field === 'title' && showTitle}
 			<h3 class="pb-albumCard__title {coverMb ? 'pb-albumCard__title--withMargin' : ''}">
@@ -80,6 +96,14 @@
 			</div>
 		{/if}
 	{/each}
+	{#if showChildAlbumFooter && thumbChildAlbumCount > 0}
+		<div
+			class="pb-albumCard__childAlbumsLine {coverMb ? 'pb-albumCard__childAlbumsLine--withMargin' : ''}"
+		>
+			{thumbChildAlbumCount}
+			{subAlbumsCountLabel}
+		</div>
+	{/if}
 {/snippet}
 
 {#if effectiveVariant === 'compactList'}
@@ -99,6 +123,12 @@
 			{/if}
 			{#if showPhotoCount}
 				<span class="pb-albumCard__compactMeta">{album.photoCount || 0} photos</span>
+			{/if}
+			{#if thumbChildAlbumCount > 0}
+				<span class="pb-albumCard__compactMeta pb-albumCard__compactMeta--subAlbums">
+					{thumbChildAlbumCount}
+					{subAlbumsCountLabel}
+				</span>
 			{/if}
 		</div>
 	</a>
@@ -149,6 +179,12 @@
 						</div>
 					{/if}
 				{/each}
+				{#if thumbChildAlbumCount > 0}
+					<div class="pb-albumCard__photoCount pb-albumCard__photoCount--noirStack">
+						{thumbChildAlbumCount}
+						{subAlbumsCountLabel}
+					</div>
+				{/if}
 			</div>
 		</div>
 	</a>
@@ -173,6 +209,12 @@
 						<div class="pb-albumCard__portraitMeta">{album.photoCount || 0} photos</div>
 					{/if}
 				{/each}
+				{#if thumbChildAlbumCount > 0}
+					<div class="pb-albumCard__portraitMeta pb-albumCard__portraitMeta--subAlbums">
+						{thumbChildAlbumCount}
+						{subAlbumsCountLabel}
+					</div>
+				{/if}
 			</div>
 		</div>
 	</a>
@@ -189,10 +231,20 @@
 				</div>
 			{/if}
 			<div class="ac-ov ac-ov--always pb-albumCard__permanentShade" aria-hidden="true"></div>
-			{#if showPhotoCount}
-				<span class="ac-badge pb-albumCard__permanentCountBadge">{album.photoCount ?? 0}</span>
-			{:else if showFeaturedBadge && album.isFeatured}
-				<span class="pb-albumCard__permanentStarBadge">★</span>
+			{#if showPhotoCount || (showFeaturedBadge && album.isFeatured) || thumbChildAlbumCount > 0}
+				<div class="pb-albumCard__permanentBadges">
+					{#if showPhotoCount}
+						<span class="ac-badge pb-albumCard__permanentCountBadge">{album.photoCount ?? 0}</span>
+					{:else if showFeaturedBadge && album.isFeatured}
+						<span class="pb-albumCard__permanentStarBadge">★</span>
+					{/if}
+					{#if thumbChildAlbumCount > 0}
+						<span class="ac-badge pb-albumCard__permanentCountBadge pb-albumCard__permanentSubAlbumsBadge">
+							{thumbChildAlbumCount}
+							{subAlbumsCountLabel}
+						</span>
+					{/if}
+				</div>
 			{/if}
 			<div class="ac-info ac-info--always pb-albumCard__permanentInfo">
 				{#each overlayFields.filter((f) => !(f === 'photoCount' && showPhotoCount)) as field}
@@ -246,6 +298,12 @@
 			{#if showPhotoCount}
 				<span class="pb-albumCard__editorialCountLabel">{photoCountLabel}</span>
 			{/if}
+			{#if thumbChildAlbumCount > 0}
+				<span class="pb-albumCard__editorialSubAlbumsLabel"
+					>{thumbChildAlbumCount}
+					{subAlbumsCountLabel}</span
+				>
+			{/if}
 		</div>
 	</a>
 {:else if effectiveVariant === 'roundedCard' && layout === 'stack'}
@@ -257,8 +315,15 @@
 				{:else if showCover}
 					<div class="pb-albumCard__coverFallback">No cover</div>
 				{/if}
-				{#if showPhotoCount}
-					<span class="pb-albumCard__thumbBadge">{album.photoCount || 0} photos</span>
+				{#if (showPhotoCount && thumbPhotoCount > 0) || thumbChildAlbumCount > 0}
+					<div class="pb-albumCard__thumbBadges">
+						{#if showPhotoCount && thumbPhotoCount > 0}
+							<span class="pb-albumCard__thumbBadge">{thumbPhotoCount} photos</span>
+						{/if}
+						{#if thumbChildAlbumCount > 0}
+							<span class="pb-albumCard__thumbBadge">{thumbChildAlbumCount} {subAlbumsCountLabel}</span>
+						{/if}
+					</div>
 				{/if}
 			</div>
 		</div>
@@ -303,16 +368,26 @@
 				{:else}
 					<div class="pb-albumCard__rowFallback">No cover</div>
 				{/if}
+				{#if (showPhotoCount && thumbPhotoCount > 0) || thumbChildAlbumCount > 0}
+					<div class="pb-albumCard__thumbBadges">
+						{#if showPhotoCount && thumbPhotoCount > 0}
+							<span class="pb-albumCard__thumbBadge">{thumbPhotoCount} photos</span>
+						{/if}
+						{#if thumbChildAlbumCount > 0}
+							<span class="pb-albumCard__thumbBadge">{thumbChildAlbumCount} {subAlbumsCountLabel}</span>
+						{/if}
+					</div>
+				{/if}
 			</div>
 		</div>
 		<div class="pb-albumCard__rowBody">
-			{@render albumFields(bodyFieldsRow, false)}
+			{@render albumFields(bodyFieldsRow, false, false)}
 		</div>
 	</a>
 {:else}
 	<a {href} class="pb-albumCard pb-albumCard--stack">
 		<div class="pb-albumCard__body">
-			{@render albumFields(cardFieldOrder, true)}
+			{@render albumFields(cardFieldOrder, true, true)}
 		</div>
 	</a>
 {/if}

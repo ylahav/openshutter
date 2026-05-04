@@ -125,10 +125,10 @@ import SearchFilterModule from './modules/SearchFilterModule.svelte';
 </script>
 
 {#if !page}
-	<div class="min-h-screen flex items-center justify-center text-[color:var(--tp-fg-muted)]">Page not found.</div>
+	<div class="min-h-screen flex items-center justify-center text-(--tp-fg-muted)">Page not found.</div>
 {:else}
 	<div
-		class="{pageScopeClass} {compact ? 'w-full' : 'min-h-screen'} {compact ? '' : 'bg-[color:var(--tp-canvas)] text-[color:var(--tp-fg)]'}"
+		class="{pageScopeClass} {compact ? 'w-full' : 'min-h-screen'} {compact ? '' : 'bg-(--tp-canvas) text-(--tp-fg)'}"
 		data-page-key={pageKey || undefined}
 	>
 		<PageBuilderGrid modules={normalizedModules} layout={gridLayout} {compact} pageContext={pageContext} />

@@ -1,8 +1,75 @@
 # Templating — requirements, implementation, and architecture
 
-This document is the **single development reference** for OpenShutter’s visitor-site templating: **packs** (Svelte), **themes** (MongoDB + `site_config`), **page builder**, **semantic tokens / pack SCSS**, and the implementation **checklist**. **Site operators** should use **[`../guides/TEMPLATING_USER_GUIDE.md`](../guides/TEMPLATING_USER_GUIDE.md)** (Admin workflows, including creating a theme).
+This document is the **single development reference** for OpenShutter’s visitor-site templating: **packs** (Svelte), **themes** (MongoDB + `site_config`), **page builder**, **semantic tokens / pack SCSS**, and the implementation **checklist**. **Site operators** should use **[`../guides/TEMPLATING_USER_GUIDE.md`](../guides/TEMPLATING_USER_GUIDE.md)** (Admin workflows, [CMS page alias naming](../guides/TEMPLATING_USER_GUIDE.md#cms-page-aliases), creating a theme).
 
 **Related:** [Page builder modules — authoring & URL context](./PAGE_BUILDER_MODULES.md) · [Operator guide](../guides/TEMPLATING_USER_GUIDE.md)
+
+<a id="north-star-templating"></a>
+
+## North star: templating system (product model)
+
+This section is the **agreed mental model** for how backend config, DB pages, pack code, and visitor rendering fit together. **Visitor `/login`** is **`routes/[alias]`** with **`LoginCmsPageBody`** → **`PageRenderer`** + **`loginForm`** (`LoginFormModule` → `LoginForm/Layout.svelte`). The **document** has a single **`<main>`** from **`BodyTemplateWrapper`**; the login block root is **`<section class="pb-login">`** (do not nest a second `<main>`). The pack registry’s **`pages.Login`** entry is a shared stub (`PackLoginRegistryStub.svelte`), not a per-pack `Login.svelte`.
+
+### 1. Two backend definition surfaces
+
+| # | Surface | Role | Persistence / code |
+|---|---------|------|----------------------|
+| **1** | **Template management** | Site-wide look: active pack, palette, fonts, shell layout, header/footer **layoutShell** presets, theme rows, apply → **`site_config.template`**. | MongoDB + Admin (as today). **Target:** each built-in pack documents a stable **page-alias prefix** used in DB (see below). |
+| **2** | **Page builder + CMS pages** | Per-URL content: grids, **`page_modules`**, titles, body, **`alias`**, optional **`pageRole`**. | MongoDB **`pages`** + **`page_modules`** (as today). |
+
+**Page alias convention (target):** stored **`pages.alias`** (and matching slug where used) should follow **`{templatePrefix}-{urlAlias}`** where:
+
+- **`{templatePrefix}`** — one short token per template pack so multiple packs can each have their own row for the “same” public path (e.g. Studio → `s`, Noir → `n`, Atelier → `a`). **Implemented today** for class names and alias probing: `packClassPrefixFor()` in [`frontend/src/lib/template/packs/class-prefix.ts`](../../frontend/src/lib/template/packs/class-prefix.ts).
+- **`{urlAlias}`** — the public segment you want in the URL (e.g. `login`, `about`, `contact`).
+
+Example rows: `s-login`, `n-login`, `about` (shared). **Admin product expectation:** authors create/update aliases using that scheme so pack-specific pages do not collide.
+
+### 2. Page builder (unchanged in role)
+
+- Modules, props, placement (`rowOrder`, `columnIndex`, spans), breakpoint maps — **same concepts as today** ([§2.2.4](#templating-224), [`PAGE_BUILDER_MODULES.md`](./PAGE_BUILDER_MODULES.md)).
+- The page builder does **not** replace template management: it **consumes** the active pack for tokens/overrides and **stores** layout in the pages layer.
+
+### 3. Template implementation (pack code under `frontend/src/templates/<pack>/`)
+
+#### 3.a Module override
+
+If the pack provides a replacement for a page-builder module, it lives under:
+
+**`frontend/src/templates/<pack>/components/page-builder/<ModuleName>Module.svelte`**
+
+…where **`ModuleName`** matches the registry key (e.g. `HeroModule` → `hero`). Those entries are wired in **`TEMPLATE_PAGE_BUILDER_OVERRIDES`** ([`frontend/src/lib/page-builder/template-module-overrides.ts`](../../frontend/src/lib/page-builder/template-module-overrides.ts)). When present, this component is used **instead of** the default under **`frontend/src/lib/page-builder/modules/`**.
+
+#### 3.b Styles (`styles/`)
+
+| Style kind | File convention | Intent |
+|------------|-----------------|--------|
+| **Pack / global** | `styles.scss` (and shared `templates/styles/*`) | Pack-wide tokens, layout, imports. |
+| **Module partial** | **`_<moduleName>.scss`** (e.g. `_hero.scss`, `_login.scss`) | Scoped hooks for page-builder modules (`pb-*`, etc.). Loaded via the pack stylesheet graph and/or **`loadPackPageBuilderPartials`** ([`BodyTemplateWrapper.svelte`](../../frontend/src/lib/components/BodyTemplateWrapper.svelte)). |
+| **Page partial (target)** | **`_<urlAlias>.scss`** (e.g. `_login.scss`, `_about.scss`) | Appearance for a **CMS page** identified by **`urlAlias`** after resolution. **Direction:** import when that page is active, so **route-specific Svelte shells are not required** for pure DB-driven pages. |
+
+**Principle:** CMS **content and layout** live in the DB; **pack code** supplies **tokens, overrides, and SCSS**. Pack route shells (`Home.svelte`, …) remain useful for **wiring**, **data prefetch**, and **migration** until every route is `PageRenderer`-first.
+
+### 4. Frontend visitor resolution (target algorithm)
+
+1. **From the URL** — determine the logical **`urlAlias`** and any **route params** (dynamic segments, query keys — per-route docs).
+2. **Resolve the `pages` row** (public API / load function):
+   - Let **P** = active template prefix (`packClassPrefixFor(activePack)`).
+   - Try **`P + '-' + urlAlias`** (e.g. `s-login`). If not found, try **`urlAlias` alone** (e.g. `login`). If still not found → **404** (for that fetch).
+3. **Render** — `Page` + `page_modules` → **`PageRenderer`** / **`PageBuilderGrid`**, applying **§3.a** overrides and **§3.b** styles.
+
+**Code today:** [`buildTemplateAwareAliasCandidates()`](../../frontend/src/lib/utils/template-page-alias.ts) implements the **two-step** alias list used by several routes; **extend** this pattern everywhere a CMS page is loaded by alias so behavior matches §4.
+
+### 5. Alignment tracker (engineering)
+
+| Item | Notes |
+|------|--------|
+| Prefix per pack | **`packClassPrefixFor`** — keep in sync with Admin copy (“use `s-` for Studio”). |
+| DB alias scheme | Validate / document in Admin when saving **`pages.alias`**. |
+| Resolver order `P-A` then `A` | Generalize beyond current call sites. |
+| `_<alias>.scss` pipeline | Today some packs import e.g. `_login.scss` from **`BodyTemplateWrapper`**; **target** is alias-driven dynamic import once resolution is centralized. |
+| DB-only pages | Prefer **`PageRenderer`** + modules; shrink duplicate pack shells when a route is fully data-driven. |
+
+---
 
 ## Contents
 
@@ -10,6 +77,7 @@ This document is the **single development reference** for OpenShutter’s visito
 
 | Part | What to find there |
 |------|---------------------|
+| **[North star — templating system](#north-star-templating)** | Two backend surfaces, **`{prefix}-{alias}`** pages, pack overrides, SCSS conventions, visitor URL → DB → `PageRenderer` |
 | **[Part I — Requirements](#part-i--requirements-and-architecture)** | Conceptual model, persistence, functional + non-functional requirements, acceptance criteria |
 | **[Part II — Page builder & theme seeding](#part-ii--page-builder-and-theme-seeding)** | Page keys, `PageRenderer`, [built-in theme seeding](#templating-part2-seeding) (**layout-shape note** for contributors) |
 | **[Part III — Implementation checklist](#part-iii-implementation-checklist-and-backlog)** | Phased grid work (P0–P4), polish sprint, milestones, backlog |
@@ -73,7 +141,9 @@ Optional history: [`../archive/development/ADMIN_UI_ROADMAP.md`](../archive/deve
 2. **Owner domains:** merge `owner_site_settings` in `SiteConfigController.getConfig`.
 3. **`activeTemplate` store** ← `template.frontendTemplate` **first**, then `template.activeTemplate` (legacy), then optional non-admin `localStorage` preview → `normalizeTemplatePackId` (see `frontend/src/lib/stores/template.ts`).
 4. Pack shells render route pages; page-builder modules fill grids when `pageModules` for that page key is non-empty.
-5. **Route fallbacks (no modules for that page key):** **`/albums`** → `GalleryTemplateSwitcher` (album list mode; passes loaded albums / loading / error into `pack.pages.Gallery`). **`/login`** → `pack.pages.Login` (imports pack SCSS and embeds `LoginTemplateSwitcher`). **`/about`**, **`/contact`**, **`/search`**, dynamic **`/[alias]`**, and **`/page?alias=`** use the matching `*TemplateSwitcher` → pack `About`, `Contact`, `Search`, or `CmsPage` so fresh installs get pack styling instead of generic Tailwind-only placeholders.
+5. **Route fallbacks (no modules for that page key):** **`/albums`** → `GalleryTemplateSwitcher` (album list mode; passes loaded albums / loading / error into `pack.pages.Gallery`). **`/login`** → **`LoginCmsPageBody`** (merges theme **`pageModules.login`** with CMS modules) → **`PageRenderer`** with **`loginForm`** → **`LoginForm/Layout.svelte`**; **`pack.pages.Login`** is a registry-only stub, not the public login DOM. **`/about`**, **`/contact`**, **`/search`**, dynamic **`/[alias]`**, and **`/page?alias=`** use the matching `*TemplateSwitcher` → pack `About`, `Contact`, `Search`, or `CmsPage` so fresh installs get pack styling instead of generic Tailwind-only placeholders.
+
+**North star (target):** many of these fallbacks shrink once every route uses **`PageRenderer`** + DB modules; pack shells become thin loaders that resolve **[§4 URL → DB alias](#north-star-templating)** then render one grid. Until then, treat item 5 as **compatibility**, not the final architecture.
 
 ### Key files
 
@@ -82,7 +152,7 @@ Optional history: [`../archive/development/ADMIN_UI_ROADMAP.md`](../archive/deve
 | Pack registry | `frontend/src/lib/template/packs/registry.ts` |
 | Pack switchers (visitor) | `HomeTemplateSwitcher`, `GalleryTemplateSwitcher`, `AlbumTemplateSwitcher`, `AboutTemplateSwitcher`, `SearchTemplateSwitcher`, `ContactTemplateSwitcher`, `CmsPageTemplateSwitcher` in `frontend/src/lib/components/` |
 | Body shell | `frontend/src/lib/components/BodyTemplateWrapper.svelte` |
-| Pack SCSS | `frontend/src/templates/<pack>/styles.scss` imported from each pack **route shell** (`Home`, `Gallery`, `Album`, `Login`, `About`, `Search`, `Contact`, `CmsPage`) so Vite emits CSS and SvelteKit can inject `<link>` in the document head |
+| Pack SCSS | `frontend/src/templates/<pack>/styles.scss` (and partials such as **`_login.scss`**) loaded from pack **route shells** and **`BodyTemplateWrapper`** / **`loadPackPageBuilderPartials`**; there is **no** per-pack **`Login.svelte`** for public **`/login`** (see **North star**). |
 | Visitor template store | `frontend/src/lib/stores/template.ts` |
 | Public config API | `backend/src/site-config/site-config.controller.ts` |
 | Template normalization | `backend/src/services/site-config.ts` |
@@ -95,7 +165,7 @@ Optional history: [`../archive/development/ADMIN_UI_ROADMAP.md`](../archive/deve
 
 1. Public page loads; `GET /api/site-config` shows a normalized pack id.
 2. Switch pack under **Site configuration → Theme & layout**; verify **home**, `/albums`, an album, `/login`, `/search`, `/about`, `/contact` (CMS page must exist for about/contact), and a published CMS page under **`/[alias]`** with **no** `pageModules` → pack `CmsPage` shell.
-3. Empty **`login`** `pageModules` → **`pack.pages.Login`** (pack-styled sign-in), not only a bare `loginForm` module in `PageRenderer`.
+3. **`/login`** shows **`loginForm`** via **`LoginCmsPageBody`** (built-in default **`pageModules.login`** when the theme omits it); pack styling targets **`section.pb-login`** under **`.tpl-pack-*`**, not **`pack.pages.Login`**.
 4. Empty **`gallery`** `pageModules` → **`GalleryTemplateSwitcher`** / pack album list (not generic Tailwind-only listing).
 5. Owner-domain merge (if applicable).
 6. Light / dark / RTL: tokens from [§ Tokens…](#tokens-palette-and-pack-styles-implementation) behave sensibly.
@@ -193,7 +263,7 @@ Each pack’s `styles.scss` is imported from that pack’s route-level `.svelte`
 ### Adding a pack stylesheet
 
 1. Add `frontend/src/templates/<packId>/styles.scss` with a single root selector `.tpl-pack-<packId> { … }`.
-2. Add `import './styles.scss'` to that pack’s `Home.svelte`, `Gallery.svelte`, `Album.svelte`, `Login.svelte`, and `Search.svelte` (same pattern as existing packs).
+2. Add `import './styles.scss'` to that pack’s `Home.svelte`, `Gallery.svelte`, `Album.svelte`, and `Search.svelte` (same pattern as existing packs). **Do not** add a pack `Login.svelte` for public sign-in — login styling is pack SCSS + `/login` + `loginForm`; see **North star** above.
 3. Add `tpl-pack-<packId>` to `<main>` in `BodyTemplateWrapper.svelte` (and a conditional branch if the shell classes differ).
 4. Extend `buildTemplatePaletteCss` only if you need **new** semantic tokens — prefer reusing `--tp-*` so the theme editor stays coherent.
 
@@ -736,7 +806,7 @@ Phase 2 may add a dedicated **`UI_COMPONENTS.md`** for the contributor workflow 
 
 ## 8. Appendix: Create a template pack (built-in)
 
-OpenShutter ships **three** built-in **template packs**: **`noir`**, **`studio`**, and **`atelier`** — each provides Svelte shells for **Home**, **Gallery**, **Album**, **Login**, **About**, **Search**, **Contact**, and **CmsPage** (registered in `registry.ts`). Site header/footer chrome remains **`layoutShell`** / **`layoutPresets`**, not pack `Header.svelte` / `Footer.svelte`. Older installs may still store legacy ids (`default`, `minimal`, `simple`, `modern`, `elegant`); the API and frontend registry **normalize those to `noir`**.
+OpenShutter ships **three** built-in **template packs**: **`noir`**, **`studio`**, and **`atelier`** — each provides Svelte shells for **Home**, **Gallery**, **Album**, **About**, **Search**, **Contact**, and **CmsPage**, plus a registry-only **`Login`** stub (public **`/login`** uses **`routes/[alias]`** + **`LoginCmsPageBody`** + **`loginForm`**; see **North star**). All are registered in `registry.ts`. Site header/footer chrome remains **`layoutShell`** / **`layoutPresets`**, not pack `Header.svelte` / `Footer.svelte`. Older installs may still store legacy ids (`default`, `minimal`, `simple`, `modern`, `elegant`); the API and frontend registry **normalize those to `noir`**.
 
 ### Rough mapping from Joomla (mental model)
 
@@ -752,7 +822,7 @@ If you apply a theme and “nothing changes,” check for stale `pageModules` fr
 
 ### 1. Add Svelte components
 
-Under `frontend/src/templates/<packId>/`: `Home.svelte`, `Gallery.svelte`, `Album.svelte`, `Login.svelte`, `About.svelte`, `Search.svelte`, `Contact.svelte`, `CmsPage.svelte`, `styles.scss`, and shared pieces under `components/` (e.g. `Hero.svelte`, `AlbumList.svelte`). **`Gallery.svelte`** supports **`mode="photos"`** (default: loads photos client-side) and **`mode="albums"`** (album list; receives `albums` / `loading` / `error` from the route via `GalleryTemplateSwitcher`). **Do not** add pack-level `Header.svelte` / `Footer.svelte` — site chrome is **`layoutShell`** presets in the theme. Use Tailwind; colors/fonts from `siteConfigData` / CSS variables (`ThemeColorApplier`, etc.).
+Under `frontend/src/templates/<packId>/`: `Home.svelte`, `Gallery.svelte`, `Album.svelte`, `About.svelte`, `Search.svelte`, `Contact.svelte`, `CmsPage.svelte`, `styles.scss`, and shared pieces under `components/` (e.g. `Hero.svelte`, `AlbumList.svelte`). **No** `Login.svelte` here for `/login` (see **North star**). **`Gallery.svelte`** supports **`mode="photos"`** (default: loads photos client-side) and **`mode="albums"`** (album list; receives `albums` / `loading` / `error` from the route via `GalleryTemplateSwitcher`). **Do not** add pack-level `Header.svelte` / `Footer.svelte` — site chrome is **`layoutShell`** presets in the theme. Use Tailwind; colors/fonts from `siteConfigData` / CSS variables (`ThemeColorApplier`, etc.).
 
 ### 2. Header / footer chrome
 
@@ -760,7 +830,7 @@ Public chrome is built with **page builder modules** inside **`layoutShell`** re
 
 ### 3. Register the pack
 
-Edit `frontend/src/lib/template/packs/registry.ts`: add a loader with required `pages`: **`Home`**, **`Gallery`**, **`Album`**, **`Login`**, **`About`**, **`Search`**, **`Contact`**, **`CmsPage`**. Update `frontend/src/lib/template/packs/types.ts` (`TemplatePackPages`) in lockstep. Optional `components` may list shared parts only (e.g. `Hero`). Export `TEMPLATE_PACK_IDS` for first-class built-ins.
+Edit `frontend/src/lib/template/packs/registry.ts`: add a loader with required `pages`: **`Home`**, **`Gallery`**, **`Album`**, **`Login`** (use the shared **`PackLoginRegistryStub.svelte`** like existing packs), **`About`**, **`Search`**, **`Contact`**, **`CmsPage`**. Update `frontend/src/lib/template/packs/types.ts` (`TemplatePackPages`) in lockstep. Optional `components` may list shared parts only (e.g. `Hero`). Export `TEMPLATE_PACK_IDS` for first-class built-ins.
 
 ### 4. Align backend allowlists
 
@@ -813,3 +883,7 @@ When behavior changes (e.g. new built-in pack, new theme fields, or chrome resol
 **2026-04 (pack routes):** Registry and packs include **`About`**, **`Search`**, **`Contact`**, **`CmsPage`**; visitor routes **`/albums`**, **`/login`**, **`/about`**, **`/contact`**, **`/search`**, **`/[alias]`**, **`/page`** use `*TemplateSwitcher` fallbacks when `pageModules` is empty. **`Gallery`** supports **`mode: 'albums' | 'photos'`** with parent-passed album list data. **`TemplateService`**: removed webpack **`require.context`** usage; **`getTemplatePage`** deprecated in favor of **`getTemplatePack()`**. Docs: **`frontendTemplate` preferred over `activeTemplate`** for the live visitor pack id.
 
 **2026-04 (folder simplification):** Templating service/runtime paths consolidated under **`frontend/src/lib/template/`** (`packs/`, `breakpoints`, `theme/`). Pack implementation files moved to **`frontend/src/templates/`** and consumed via the **`$templates`** alias.
+
+**2026-05:** Added **[North star — templating system](#north-star-templating)** — two backend surfaces (template management vs DB pages), **`{templatePrefix}-{urlAlias}`** alias convention, pack **module overrides** and **SCSS** layout (`_<module>.scss`, target **`_<alias>.scss`**), visitor **URL → DB (`P-A` then `A`) → `PageRenderer`**, and an alignment tracker vs current route fallbacks.
+
+**2026-05 (login shell):** Public **`/login`** is **`routes/[alias]`** + **`LoginCmsPageBody`** + **`PageRenderer`** + **`loginForm`**; login block root **`section.pb-login`** inside the shell **`main`**; docs and **`PAGE_BUILDER_MODULES`** updated (no **`routes/login`** / per-pack **`Login.svelte`** for visitor sign-in UI).

@@ -1,5 +1,6 @@
 {
 	"displayName": "Studio",
+	"pageAliasPrefix": "s",
 	"colors": {
 		"primary": "#2563eb",
 		"secondary": "#1d4ed8",

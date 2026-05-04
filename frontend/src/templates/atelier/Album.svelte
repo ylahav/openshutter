@@ -20,6 +20,7 @@ import PhotoLightbox from '$lib/components/PhotoLightbox.svelte';
 import AlbumCollaborationPanel from '$lib/components/AlbumCollaborationPanel.svelte';
 import { getPhotoUrl, getPhotoRotationStyle } from '$lib/utils/photoUrl';
 import { logger } from '$lib/utils/logger';
+import { albumSlugFromRouteParams } from '$lib/utils/album-route-params';
 import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 
 	interface AlbumData {
@@ -41,7 +42,7 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 		};
 	}
 
-	let alias = $page.params.alias || $page.params.id;
+	$: alias = albumSlugFromRouteParams($page.params) ?? '';
 	let albumData: AlbumData | null = null;
 	let loading = true;
 	let error: string | null = null;
@@ -66,8 +67,8 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 	afterNavigate(({ to, from }) => {
 		if (!browser) return;
 		
-		const newAlias = to?.params?.alias || to?.params?.id;
-		const oldAlias = from?.params?.alias || from?.params?.id;
+		const newAlias = albumSlugFromRouteParams(to?.params);
+		const oldAlias = albumSlugFromRouteParams(from?.params);
 		
 		// Only fetch if the alias actually changed (not on initial load)
 		if (newAlias && newAlias !== oldAlias) {
@@ -207,38 +208,38 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 </script>
 
 {#if loading}
-	<div class="min-h-screen flex items-center justify-center bg-[color:var(--tp-canvas)]">
+	<div class="min-h-screen flex items-center justify-center bg-(--tp-canvas)">
 		<div class="text-center [font-family:var(--os-font-body)]">
 			<div
-				class="w-10 h-10 border-2 rounded-full animate-spin mx-auto mb-4 border-[color:var(--tp-border)] border-t-[color:var(--tp-fg)]"
+				class="w-10 h-10 border-2 rounded-full animate-spin mx-auto mb-4 border-(--tp-border) border-t-(--tp-fg)"
 			></div>
-			<p class="text-[10px] uppercase tracking-[0.2em] text-[color:var(--tp-fg-muted)]">{$t('albums.loadingAlbum')}</p>
+			<p class="text-[10px] uppercase tracking-[0.2em] text-(--tp-fg-muted)">{$t('albums.loadingAlbum')}</p>
 		</div>
 	</div>
 {:else if error}
-	<div class="min-h-screen flex items-center justify-center bg-[color:var(--tp-canvas)]">
+	<div class="min-h-screen flex items-center justify-center bg-(--tp-canvas)">
 		<div class="text-center [font-family:var(--os-font-body)]">
 			<p class="text-sm text-red-400/90 font-light">{error}</p>
 		</div>
 	</div>
 {:else if albumData}
-	<div class="min-h-screen w-full pt-24 pb-12 bg-[color:var(--tp-canvas)] text-[color:var(--tp-fg)] [font-family:var(--os-font-body)]">
+	<div class="min-h-screen w-full pt-24 pb-12 bg-(--tp-canvas) text-(--tp-fg) [font-family:var(--os-font-body)]">
 		<div class="max-w-[960px] mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-8 text-center">
 			<a
 				href="/albums"
-				class="inline-block text-[10px] uppercase tracking-[0.18em] no-underline mb-5 transition-colors text-[color:var(--tp-fg-muted)] hover:text-[color:var(--tp-fg)]"
+				class="inline-block text-[10px] uppercase tracking-[0.18em] no-underline mb-5 transition-colors text-(--tp-fg-muted) hover:text-(--tp-fg)"
 			>
 				← {$t('navigation.albums')}
 			</a>
 
 			{#if albumData.album}
-				<div class="pb-6 mb-6 text-start border-b border-[color:var(--tp-border)]">
+				<div class="pb-6 mb-6 text-start border-b border-(--tp-border)">
 					<AlbumBreadcrumbs albumId={albumData.album._id} />
 				</div>
 			{/if}
 
 			<h1
-				class="text-[28px] md:text-3xl font-normal tracking-[0.08em] text-[color:var(--tp-fg)]"
+				class="text-[28px] md:text-3xl font-normal tracking-[0.08em] text-(--tp-fg)"
 				style="font-family: var(--os-font-heading);"
 			>
 				{MultiLangUtils.getTextValue(albumData.album.name, $currentLanguage)}
@@ -246,7 +247,7 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 			<div class="w-9 h-px mx-auto my-2.5" style="background: var(--os-primary);"></div>
 			{#if albumData.album.description}
 				<div
-					class="prose prose-lg max-w-xl mx-auto mb-6 text-center italic text-sm leading-relaxed [&_*]:!text-[color:var(--tp-fg-muted)] [&_a]:!text-[color:var(--tp-fg)]"
+					class="prose prose-lg max-w-xl mx-auto mb-6 text-center italic text-sm leading-relaxed [&_*]:!text-(--tp-fg-muted) [&_a]:!text-(--tp-fg)"
 					style="font-family: var(--os-font-heading);"
 				>
 					{@html MultiLangUtils.getHTMLValue(albumData.album.description, $currentLanguage)}
@@ -254,7 +255,7 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 			{/if}
 			{#if showAlbumShare}
 				<div class="flex flex-col items-center gap-2">
-					<p class="text-[9px] uppercase tracking-[0.22em] text-[color:var(--tp-fg-subtle)]">Share album</p>
+					<p class="text-[9px] uppercase tracking-[0.22em] text-(--tp-fg-subtle)">Share album</p>
 					<SocialShareButtons
 						title={MultiLangUtils.getTextValue(albumData.album.name, $currentLanguage)}
 						size="sm"
@@ -267,9 +268,9 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 
 		<!-- Sub-albums -->
 		{#if albumData.subAlbums && albumData.subAlbums.length > 0}
-			<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 border-t border-[color:var(--tp-border)]">
+			<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 border-t border-(--tp-border)">
 				<h2
-					class="text-xl font-extralight mb-6 tracking-tight text-[color:var(--tp-fg)]"
+					class="text-xl font-extralight mb-6 tracking-tight text-(--tp-fg)"
 					style="font-family: var(--os-font-heading);"
 				>
 					Sub-albums
@@ -279,10 +280,10 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 						{@const coverImageUrl = subAlbumCoverImages[subAlbum._id]}
 						<a
 							href={`/albums/${subAlbum.alias || subAlbum._id}`}
-							class="group overflow-hidden border transition-all duration-300 bg-[color:var(--tp-surface-1)] border-[color:var(--tp-border)] hover:border-[color:var(--tp-fg-muted)]"
+							class="group overflow-hidden border transition-all duration-300 bg-(--tp-surface-1) border-(--tp-border) hover:border-(--tp-fg-muted)"
 						>
 							<div
-								class="aspect-square bg-gradient-to-b relative overflow-hidden from-[color:var(--tp-surface-2)] to-[color:var(--tp-surface-3)]"
+								class="aspect-square bg-gradient-to-b relative overflow-hidden from-(--tp-surface-2) to-(--tp-surface-3)"
 							>
 								{#if coverImageUrl}
 									<img
@@ -291,7 +292,7 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 										class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
 									/>
 								{:else}
-									<div class="absolute inset-0 flex items-center justify-center text-[color:var(--tp-fg-subtle)]">
+									<div class="absolute inset-0 flex items-center justify-center text-(--tp-fg-subtle)">
 										<svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
 											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
 										</svg>
@@ -299,10 +300,10 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 								{/if}
 							</div>
 							<div class="p-5">
-								<h3 class="text-sm uppercase tracking-[0.12em] mb-2 text-[color:var(--tp-fg)]">
+								<h3 class="text-sm uppercase tracking-[0.12em] mb-2 text-(--tp-fg)">
 									{MultiLangUtils.getTextValue(subAlbum.name, $currentLanguage)}
 								</h3>
-								<p class="text-xs font-light text-[color:var(--tp-fg-muted)]">
+								<p class="text-xs font-light text-(--tp-fg-muted)">
 									{#if subAlbum.photoCount && subAlbum.photoCount > 0}
 										{subAlbum.photoCount} photos
 									{/if}
@@ -322,9 +323,9 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 
 		<!-- Photos Grid -->
 		{#if albumData.photos && albumData.photos.length > 0}
-			<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 border-t border-[color:var(--tp-border)]">
+			<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 border-t border-(--tp-border)">
 				<h2
-					class="text-xl font-extralight mb-6 tracking-tight text-[color:var(--tp-fg)]"
+					class="text-xl font-extralight mb-6 tracking-tight text-(--tp-fg)"
 					style="font-family: var(--os-font-heading);"
 				>
 					Photos
@@ -336,14 +337,14 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 						{@const hasDimensions = photoWidth && photoHeight && photoWidth > 0 && photoHeight > 0}
 						{@const aspectRatio = hasDimensions ? photoWidth / photoHeight : 1}
 						<div
-							class="rounded-lg transition-all duration-300 p-5 border mb-6 break-inside-avoid bg-[color:var(--tp-surface-1)] border-[color:var(--tp-border)] hover:border-[color:var(--tp-fg-muted)]"
+							class="rounded-lg transition-all duration-300 p-5 border mb-6 break-inside-avoid bg-(--tp-surface-1) border-(--tp-border) hover:border-(--tp-fg-muted)"
 						>
 							<button
 								on:click={() => openLightbox(index)}
 								class="w-full mb-4"
 							>
 								<div
-									class="bg-gradient-to-b relative overflow-hidden rounded-lg from-[color:var(--tp-surface-2)] to-[color:var(--tp-surface-3)]"
+									class="bg-gradient-to-b relative overflow-hidden rounded-lg from-(--tp-surface-2) to-(--tp-surface-3)"
 									style={hasDimensions && aspectRatio < 1
 										? `width: 100%; max-height: 600px; aspect-ratio: ${aspectRatio};` 
 										: hasDimensions
@@ -357,9 +358,9 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 											aria-busy="true"
 										>
 											<div
-												class="animate-spin rounded-full h-10 w-10 border-2 mb-2 border-[color:var(--tp-border)] border-t-[color:var(--tp-fg)]"
+												class="animate-spin rounded-full h-10 w-10 border-2 mb-2 border-(--tp-border) border-t-(--tp-fg)"
 											></div>
-											<span class="text-xs text-[color:var(--tp-fg-muted)]">Loading photo…</span>
+											<span class="text-xs text-(--tp-fg-muted)">Loading photo…</span>
 										</div>
 									{/if}
 									<img
@@ -378,18 +379,18 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 							<!-- Photo metadata below the image -->
 							<div class="px-1">
 								{#if photo.title}
-									<h3 class="text-sm mb-1 uppercase tracking-[0.08em] text-[color:var(--tp-fg)]">
+									<h3 class="text-sm mb-1 uppercase tracking-[0.08em] text-(--tp-fg)">
 										<MultiLangText value={photo.title} fallback={`Photo ${index + 1}`} />
 									</h3>
 								{/if}
 								{#if photo.description}
-									<p class="text-xs mb-2 line-clamp-2 font-light text-[color:var(--tp-fg-muted)]">
+									<p class="text-xs mb-2 line-clamp-2 font-light text-(--tp-fg-muted)">
 										{@html (typeof photo.description === 'string' ? photo.description : MultiLangUtils.getHTMLValue(photo.description, $currentLanguage) || '').replace(/<[^>]*>/g, '')}
 									</p>
 								{/if}
 								
 								{#if photo.location || (photo.tags && photo.tags.length > 0) || (photo.people && photo.people.length > 0)}
-									<div class="flex flex-wrap gap-2 text-xs font-light text-[color:var(--tp-fg-muted)]">
+									<div class="flex flex-wrap gap-2 text-xs font-light text-(--tp-fg-muted)">
 										{#if photo.location}
 											<span class="flex items-center gap-1">
 												<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -452,8 +453,8 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 									</div>
 								{/if}
 								{#if showPhotoShare && typeof window !== 'undefined'}
-									<div class="mt-3 pt-3 border-t border-[color:var(--tp-border)]">
-										<p class="text-[9px] uppercase tracking-wider mb-1 text-[color:var(--tp-fg-muted)]">Share this photo</p>
+									<div class="mt-3 pt-3 border-t border-(--tp-border)">
+										<p class="text-[9px] uppercase tracking-wider mb-1 text-(--tp-fg-muted)">Share this photo</p>
 										<SocialShareButtons
 											url={typeof window !== 'undefined' ? `${window.location.origin}${$page.url.pathname}#p=${index}` : undefined}
 											title={MultiLangUtils.getTextValue(photo.title, $currentLanguage) || 'Photo'}
@@ -470,7 +471,7 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 						<button
 							on:click={loadMorePhotos}
 							disabled={loadingMore}
-							class="px-6 py-3 rounded-sm disabled:opacity-50 disabled:cursor-not-allowed transition-opacity text-[10px] uppercase tracking-[0.18em] bg-[color:var(--tp-fg)] text-[color:var(--tp-canvas)] hover:opacity-90 [font-family:var(--os-font-body)]"
+							class="px-6 py-3 rounded-sm disabled:opacity-50 disabled:cursor-not-allowed transition-opacity text-[10px] uppercase tracking-[0.18em] bg-(--tp-fg) text-(--tp-canvas) hover:opacity-90 [font-family:var(--os-font-body)]"
 						>
 							{loadingMore ? $t('search.loading') : `${$t('search.loadMore')} (${remainingCount} ${$t('albums.remaining')})`}
 						</button>
@@ -479,8 +480,8 @@ import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 			</div>
 		{:else}
 			{#if !albumData.subAlbums || albumData.subAlbums.length === 0}
-				<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 border-t border-[color:var(--tp-border)]">
-					<p class="text-sm text-center font-light text-[color:var(--tp-fg-muted)]">No photos in this album yet.</p>
+				<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 border-t border-(--tp-border)">
+					<p class="text-sm text-center font-light text-(--tp-fg-muted)">No photos in this album yet.</p>
 				</div>
 			{/if}
 		{/if}

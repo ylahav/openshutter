@@ -3,6 +3,8 @@ import type { FontSetting, FontRole } from '$lib/types/fonts'
 export interface TemplateConfig {
   templateName: string
   displayName: string
+  /** Default CMS alias / scoped class prefix; overridable in site settings per pack. */
+  pageAliasPrefix?: string
   description: string
   version: string
   author: string

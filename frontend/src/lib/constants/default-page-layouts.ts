@@ -101,7 +101,10 @@ export const DEFAULT_PAGE_MODULES: Record<string, DefaultPageModule[]> = {
 		{
 			_id: 'mod_default_login_form',
 			type: 'loginForm',
-			props: {},
+			props: {
+				/** Pack-prefixed on the page (`login` → `s-login`, `n-login`, …) for template SCSS hooks. */
+				class: 'login'
+			},
 			rowOrder: 0,
 			columnIndex: 0,
 			rowSpan: 1,

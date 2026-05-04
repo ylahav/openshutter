@@ -64,6 +64,7 @@ These **`type`** aliases are registered today in **`PAGE_MODULE_TYPES`** (`front
 | `blogArticle` | Blog articles | Content |
 | `layoutShell` | Layout region (named grid) | Content; Header; Footer (where exposed in picker) |
 | `pageTitle` | Page title (placement) | Content |
+| `loginForm` | Login Form | Theme **`pageModules.login`**; merged on **`/login`** via **`LoginCmsPageBody`** |
 | `logo` | Logo | Header |
 | `siteTitle` | Site Title | Header |
 | `menu` | Menu | Header |
@@ -75,6 +76,10 @@ These **`type`** aliases are registered today in **`PAGE_MODULE_TYPES`** (`front
 | `socialMedia` | Social Media | Header; Footer |
 
 Legacy saved type **`albumGallery`** is normalized to **`albumView`** in `PageRenderer`.
+
+### `loginForm` and public `/login`
+
+Visitor **`/login`** is **`routes/[alias]`** with **`LoginCmsPageBody`**, which merges **`site_config.template.pageModules.login`** (and breakpoint variants) with the CMS login page’s modules when present. UI: **`LoginForm/Layout.svelte`**. The **document** landmark **`main`** is **`BodyTemplateWrapper`**; the block root is **`<section class="pb-login">`** so there is no nested **`main`**. Pack styling uses **`section.pb-login`** under **`.tpl-pack-*`** (see **`frontend/src/lib/page-builder/modules/styles/_login-pb.scss`** and pack **`_login.scss`** partials). Details: **`frontend/src/lib/page-builder/modules/LoginForm/README.md`**.
 
 ---
 
@@ -397,7 +402,7 @@ Quick JSON lives in **§12.3–12.4** above. For **props semantics**, URL-aware 
 
 **Persistence:** Inner modules and grid shape live under **`layoutPresets`**, not in the outer `pageModules` entry (the outer entry only points at the name).
 
-**Admin cleanup:** In **Templates → Overrides**, editing a `layoutShell` exposes **Delete preset** (when unused) and **Delete all unused presets**; see [TEMPLATING_USER_GUIDE.md §6](../guides/TEMPLATING_USER_GUIDE.md#6-named-layout-regions-layoutshell-presets-and-cleanup).
+**Admin cleanup:** In **Templates → Overrides**, editing a `layoutShell` exposes **Delete preset** (when unused) and **Delete all unused presets**; see [TEMPLATING_USER_GUIDE.md §7](../guides/TEMPLATING_USER_GUIDE.md#named-layout-shell-presets).
 
 ```json
 {

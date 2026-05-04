@@ -21,6 +21,8 @@ function packPage<P extends Record<string, any>>(mod: unknown): Component<P> {
 
 const packCache = new Map<TemplatePackId, TemplatePack>();
 
+const loginRegistryStub = () => import('$lib/template-packs/PackLoginRegistryStub.svelte');
+
 const packLoaders: Record<TemplatePackId, () => Promise<TemplatePack>> = {
 	noir: async () => {
 		const [Album, Search, Contact, CmsPage, Login] = await Promise.all([
@@ -28,7 +30,7 @@ const packLoaders: Record<TemplatePackId, () => Promise<TemplatePack>> = {
 			import('$templates/noir/Search.svelte'),
 			import('$templates/noir/Contact.svelte'),
 			import('$templates/noir/CmsPage.svelte'),
-			import('$templates/noir/Login.svelte')
+			loginRegistryStub()
 		]);
 		return {
 			name: 'noir',
@@ -49,7 +51,7 @@ const packLoaders: Record<TemplatePackId, () => Promise<TemplatePack>> = {
 			import('$templates/studio/Search.svelte'),
 			import('$templates/studio/Contact.svelte'),
 			import('$templates/studio/CmsPage.svelte'),
-			import('$templates/studio/Login.svelte')
+			loginRegistryStub()
 		]);
 		return {
 			name: 'studio',
@@ -70,7 +72,7 @@ const packLoaders: Record<TemplatePackId, () => Promise<TemplatePack>> = {
 			import('$templates/atelier/Search.svelte'),
 			import('$templates/atelier/Contact.svelte'),
 			import('$templates/atelier/CmsPage.svelte'),
-			import('$templates/atelier/Login.svelte')
+			loginRegistryStub()
 		]);
 		return {
 			name: 'atelier',

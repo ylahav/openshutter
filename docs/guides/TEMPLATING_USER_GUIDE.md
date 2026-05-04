@@ -1,6 +1,6 @@
 # Templating — user guide
 
-How to **use** OpenShutter’s visitor-site templating from **Admin**: what each layer does, where to click, and how to **create a new site template (theme)**. For requirements, code layout, tokens, and adding a **pack** in the repository, see **[`../development/TEMPLATING.md`](../development/TEMPLATING.md)**.
+How to **use** OpenShutter’s visitor-site templating from **Admin**: what each layer does, where to click, how **CMS page aliases** relate to packs and URLs, and how to **create a new site template (theme)**. For requirements, code layout, tokens, and adding a **pack** in the repository, see **[`../development/TEMPLATING.md`](../development/TEMPLATING.md)** (including the **[North star — templating system](../development/TEMPLATING.md#north-star-templating)** model).
 
 ---
 
@@ -53,10 +53,47 @@ Footer uses the same pattern: a named **`layoutShell`** preset (e.g. `atelier_fo
 | Edit **themes** (colors, fonts, `pageModules`, `pageLayout`, `headerConfig`, …) | **Admin → Templates** — **Edit** → **Overrides** (`/admin/templates/overrides?themeId=…`), or **Theme builder** for site-only overrides (`/admin/templates/overrides` without `themeId`) |
 | **Navigation / menu** when not relying only on modules | **Site configuration** — fields that map to `headerConfig` / menu |
 | **Site-wide pack** field | **Site configuration → Theme & layout** — `frontendTemplate` / active pack (`noir`, `studio`, `atelier`) |
+| **CMS pages** (content pages, optional per-pack copies) | **Admin → Pages** — create / edit page; set **Alias** (and title, modules, publish, …) |
 
 ---
 
-## 5. Practical tips
+<a id="cms-page-aliases"></a>
+
+## 5. CMS pages: alias naming (`pack prefix` + URL slug)
+
+**CMS pages** live in the database (**Admin → Pages**). Each page has an **Alias** (and slug) used to match the visitor URL (for example `/about` uses alias `about`, `/login` uses `login`).
+
+### Why a prefix?
+
+The active **template pack** (`noir`, `studio`, `atelier`) can each need its **own** row for the “same” public path (different layout or copy per pack). To avoid clashes, **pack-specific** pages should use this pattern in the **Alias** field:
+
+**`<prefix>-<urlSlug>`**
+
+- **`<urlSlug>`** — the segment you want in the URL: `login`, `about`, `contact`, …
+- **`<prefix>`** — a **short letter per pack** (same as used elsewhere in the product):
+
+| Pack | Prefix | Example alias for `/login` |
+|------|--------|------------------------------|
+| Studio | `s` | `s-login` |
+| Noir | `n` | `n-login` |
+| Atelier | `a` | `a-login` |
+
+The public site still shows **`/login`**, **`/about`**, etc. When someone visits `/login`, the app looks up a page whose alias matches the **active pack** first (e.g. `s-login` when Studio is on), then falls back to the **bare** alias **`login`** if you use one shared row for all packs.
+
+### What you should enter in Admin
+
+1. **Pack-specific page** (different modules or copy per pack): set alias to **`s-login`**, **`n-login`**, or **`a-login`** as appropriate for that page row (often you maintain **one row per pack** for the same URL slug).
+2. **One page for every pack** (same content everywhere): you can keep a **single** alias without a prefix, e.g. **`about`**, and rely on the fallback lookup.
+
+**Reserved role pages** (e.g. page role **login**, **home**) follow the same idea when you create **per-pack** variants: prefer prefixed aliases so each pack’s row is unambiguous.
+
+### Engineering detail
+
+The exact resolution order and developer checklist live under **[North star — templating system](../development/TEMPLATING.md#north-star-templating)** in the development doc.
+
+---
+
+## 6. Practical tips
 
 1. After editing a **theme row**, use **Set as default** (or save when that theme is already active — see Overrides save behavior) so **`site_config.template`** matches. Applying a theme uses **replace** semantics for module/layout blobs where implemented.
 2. If you change **only** Site configuration and not the theme document, you are adjusting **live site config** directly (fine for logo, menu, and module visibility flags used by chrome modules).
@@ -77,7 +114,9 @@ If a page has **no** `layoutShell` for the strip you expect, add one in **Templa
 
 ---
 
-## 6. Named layout regions (`layoutShell`), presets, and cleanup
+<a id="named-layout-shell-presets"></a>
+
+## 7. Named layout regions (`layoutShell`), presets, and cleanup
 
 The **`layoutShell`** module is a **named grid** inside a page cell. Inner rows, columns, and modules live under **`template.layoutPresets`** keyed by **`presetKey`** (e.g. `site_header`). Several **`layoutShell`** placements can share one preset name.
 
@@ -99,7 +138,7 @@ Add a **`pageTitle`** module where you want the title/subtitle. When **`pageTitl
 
 ---
 
-## 7. Creating a new site template (theme)
+## 8. Creating a new site template (theme)
 
 In OpenShutter, a **theme** is a saved preset (MongoDB row) with a **name**, **base pack** (`noir`, `studio`, or `atelier`), **base palette** hint, and optional overrides (colors, fonts, layout, page modules). The **pack** itself is **code**; the theme customizes appearance and page-builder content on top.
 
@@ -120,7 +159,7 @@ A **pack** is a new set of Svelte shells under `frontend/src/templates/<packId>/
 
 ---
 
-## 8. See also
+## 9. See also
 
 - [`../development/TEMPLATING.md`](../development/TEMPLATING.md) — requirements, implementation, tokens, checklist, §8 pack appendix
 - [`../development/PAGE_BUILDER_MODULES.md`](../development/PAGE_BUILDER_MODULES.md) — module types, props, URL/`data` context for `PageRenderer`

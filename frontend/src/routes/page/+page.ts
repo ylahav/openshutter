@@ -1,7 +1,11 @@
 import type { PageLoad } from './$types';
-import { buildTemplateAwareAliasCandidates, resolveSiteTemplatePack } from '$lib/utils/template-page-alias';
+import { resolveSiteTemplatePack } from '$lib/utils/template-page-alias';
+import {
+	fetchVisitorSiteConfig,
+	resolveCmsPublishedPage
+} from '$lib/utils/resolve-cms-page-load';
 
-export const load: PageLoad = async ({ url, fetch }) => {
+export const load: PageLoad = async ({ url, fetch, parent }) => {
 	const alias = url.searchParams.get('alias');
 
 	if (!alias) {
@@ -9,40 +13,28 @@ export const load: PageLoad = async ({ url, fetch }) => {
 	}
 
 	try {
-		const siteConfigRes = await fetch('/api/site-config');
-		const siteConfigJson = siteConfigRes.ok ? await siteConfigRes.json().catch(() => null) : null;
-		const siteConfig = siteConfigJson?.success ? siteConfigJson?.data : siteConfigJson;
-		const pack = resolveSiteTemplatePack(siteConfig);
-		const aliasCandidates = buildTemplateAwareAliasCandidates(alias, pack);
+		const parentData = await parent();
+		const siteConfig =
+			parentData.visitorSiteConfig !== undefined && parentData.visitorSiteConfig !== null
+				? parentData.visitorSiteConfig
+				: await fetchVisitorSiteConfig(fetch);
+		const packHint =
+			typeof parentData.visitorTemplatePack === 'string' && parentData.visitorTemplatePack.trim()
+				? parentData.visitorTemplatePack.trim()
+				: resolveSiteTemplatePack(siteConfig);
 
-		for (const candidateAlias of aliasCandidates) {
-			const pagesUrl = pack
-				? `/api/pages/${candidateAlias}?pack=${encodeURIComponent(pack)}`
-				: `/api/pages/${candidateAlias}`;
-			const response = await fetch(pagesUrl);
-			const result = await response.json().catch(() => null);
+		const resolved = await resolveCmsPublishedPage(fetch, {
+			baseAlias: alias,
+			siteConfig,
+			packHint,
+			extraRequests: []
+		});
 
-			if (!response.ok) {
-				if (response.status === 404) continue;
-				return {
-					page: null,
-					modules: [],
-					error: result?.error || 'Page not found'
-				};
-			}
-
-			const data = result?.success ? result.data : result;
-			const page = data?.page ?? data;
-			const modules = Array.isArray(data?.modules) ? data.modules : [];
-
-			if (!page?.isPublished) {
-				continue;
-			}
-
-			return { page, modules, error: null };
+		if (!resolved) {
+			return { page: null, modules: [], error: 'Page not found' };
 		}
 
-		return { page: null, modules: [], error: 'Page not found' };
+		return { page: resolved.page, modules: resolved.modules, error: null };
 	} catch {
 		return { page: null, modules: [], error: 'Failed to load page' };
 	}

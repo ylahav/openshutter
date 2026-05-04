@@ -24,7 +24,7 @@ Many modules **wrap** a primitive—for example:
 | `languageSelector` | [`primitives/language-selector/LanguageSelector.svelte`](../page-builder/primitives/language-selector/README.md) |
 | `themeToggle` | [`primitives/theme-toggle/ThemeToggle.svelte`](../page-builder/primitives/theme-toggle/README.md) |
 | `themeSelect` | [`primitives/template-selector/TemplateSelector.svelte`](../page-builder/primitives/template-selector/README.md) |
-| `loginForm` | `LoginTemplateSwitcher.svelte` (also used inside **`pack.pages.Login`**) |
+| `loginForm` | `page-builder/modules/LoginForm/Layout.svelte` (via `LoginFormModule.svelte`; public `/login` uses `routes/[alias]` + `LoginCmsPageBody` + `PageRenderer`; `pack.pages.Login` is a registry stub) |
 
 **Pack routing (visitor):** `AlbumTemplateSwitcher`, `AboutTemplateSwitcher`, `SearchTemplateSwitcher`, `ContactTemplateSwitcher`, and `CmsPageTemplateSwitcher` load `getTemplatePack()` and render the active pack’s page component (see `docs/development/TEMPLATING.md`).
 

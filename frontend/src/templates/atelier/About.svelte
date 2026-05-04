@@ -8,7 +8,7 @@
 </script>
 
 <div
-	class="min-h-screen w-full bg-[color:var(--tp-canvas)] text-[color:var(--tp-fg)] [font-family:var(--os-font-body)]"
+	class="min-h-screen w-full bg-(--tp-canvas) text-(--tp-fg) [font-family:var(--os-font-body)]"
 >
 	{#if page}
 		<article class="max-w-[960px] mx-auto px-8 py-16">

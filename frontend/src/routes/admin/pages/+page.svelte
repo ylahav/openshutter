@@ -328,6 +328,7 @@
 		frontendTemplates: [] as string[],
 		category: 'site' as 'system' | 'site',
 		isPublished: false,
+		hideLoginTitle: false,
 		layoutZones: 'main',
 		gridRows: 1,
 		gridColumns: 1,
@@ -497,6 +498,7 @@ let layoutShellInstances: Record<
 			frontendTemplates: [],
 			category: 'site',
 			isPublished: false,
+			hideLoginTitle: false,
 			layoutZones: 'main',
 			gridRows: 1,
 			gridColumns: 1,
@@ -585,6 +587,7 @@ let layoutShellInstances: Record<
 			frontendTemplates: normalizePagePacks(page),
 			category: page.category || 'site',
 			isPublished: page.isPublished || false,
+			hideLoginTitle: (page as Page).hideLoginTitle === true,
 			layoutZones: (layout.zones && layout.zones.length > 0)
 				? layout.zones.join(', ')
 				: 'main',
@@ -763,6 +766,7 @@ let layoutShellInstances: Record<
 		searchFilterModuleProps = {};
 		searchFormModuleProps = {};
 		searchResultsModuleProps = {};
+		loginFormModuleProps = {};
 		editingLayoutShellModule = false;
 		moduleWrapperClassName = '';
 		pageTitleShowTitle = true;
@@ -854,6 +858,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 	let searchFilterModuleProps: Record<string, unknown> = {};
 	let searchFormModuleProps: Record<string, unknown> = {};
 	let searchResultsModuleProps: Record<string, unknown> = {};
+	let loginFormModuleProps: Record<string, unknown> = {};
 
 	function normalizeSocialMediaPropsForEditor(raw: Record<string, unknown>): Record<string, unknown> {
 		const p = { ...raw };
@@ -966,6 +971,15 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 					: {};
 			} catch {
 				searchResultsModuleProps = {};
+			}
+		}
+		if (moduleForm.type === 'loginForm') {
+			try {
+				loginFormModuleProps = moduleForm.propsJson.trim()
+					? (JSON.parse(moduleForm.propsJson) as Record<string, unknown>)
+					: {};
+			} catch {
+				loginFormModuleProps = {};
 			}
 		}
 	}
@@ -1569,6 +1583,13 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 		} else {
 			searchResultsModuleProps = {};
 		}
+		if (module.type === 'loginForm') {
+			const lp = { ...((module.props || {}) as Record<string, unknown>) };
+			if (lp.subtitle == null && lp.subheading != null) lp.subtitle = lp.subheading;
+			loginFormModuleProps = lp;
+		} else {
+			loginFormModuleProps = {};
+		}
 
 		editingFeatureIndex = null;
 		showModuleEditDialog = true;
@@ -1689,6 +1710,8 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 				props = { ...searchFilterModuleProps } as Record<string, unknown>;
 			} else if (moduleForm.type === 'searchResults') {
 				props = { ...searchResultsModuleProps } as Record<string, unknown>;
+			} else if (moduleForm.type === 'loginForm') {
+				props = { ...loginFormModuleProps } as Record<string, unknown>;
 			} else {
 				props = moduleForm.propsJson.trim() ? JSON.parse(moduleForm.propsJson) as Record<string, unknown> : {};
 			}
@@ -1852,6 +1875,8 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 				props = { ...searchFilterModuleProps } as Record<string, unknown>;
 			} else if (moduleForm.type === 'searchResults') {
 				props = { ...searchResultsModuleProps } as Record<string, unknown>;
+			} else if (moduleForm.type === 'loginForm') {
+				props = { ...loginFormModuleProps } as Record<string, unknown>;
 			} else {
 				props = moduleForm.propsJson.trim() ? JSON.parse(moduleForm.propsJson) as Record<string, unknown> : {};
 			}
@@ -2430,6 +2455,22 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 					</div>
 				</div>
 
+				{#if formData.pageRole === 'login'}
+					<div>
+						<label class="flex items-center gap-2 cursor-pointer">
+							<input
+								type="checkbox"
+								class="w-4 h-4 text-(--color-primary-600) border-surface-300-700 rounded focus:ring-(--color-primary-500)"
+								bind:checked={formData.hideLoginTitle}
+							/>
+							<span class="text-sm font-medium text-(--color-surface-800-200)">Do not display login title</span>
+						</label>
+						<p class="mt-1 text-xs text-(--color-surface-600-400)">
+							Hides the main heading on <code class="text-xs">/login</code>. Page title fields stay stored.
+						</p>
+					</div>
+				{/if}
+
 				<div>
 					<label for="create-leading-image" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
 						Leading Image URL
@@ -2794,6 +2835,17 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 				{:else if moduleForm.type === 'contactForm'}
 					<div class="space-y-4 border-t border-surface-200-800 pt-4">
 						<ModulePropsForm moduleType="contactForm" bind:props={contactFormModuleProps} />
+					</div>
+				{:else if moduleForm.type === 'loginForm'}
+					<div class="space-y-4 border-t border-surface-200-800 pt-4 text-(--color-surface-800-200)">
+						<ModulePropsForm
+							moduleType="loginForm"
+							props={loginFormModuleProps as Record<string, unknown>}
+							showPlacementInGrid={false}
+							onChange={(next) => {
+								loginFormModuleProps = next;
+							}}
+						/>
 					</div>
 				{:else if moduleForm.type === 'albumsGrid'}
 					<!-- Albums Grid Module Form -->
@@ -3266,7 +3318,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 							</p>
 						</div>
 					</div>
-				{:else if !['featureGrid', 'richText', 'pageTitle', 'hero', 'albumsGrid', 'albumView', 'layoutShell', 'menu', 'themeToggle', 'socialMedia', 'logo', 'contactForm', 'searchBar', 'searchFilter', 'searchForm', 'searchResults'].includes(moduleForm.type)}
+				{:else if !['featureGrid', 'richText', 'pageTitle', 'hero', 'albumsGrid', 'albumView', 'layoutShell', 'menu', 'themeToggle', 'socialMedia', 'logo', 'contactForm', 'loginForm', 'searchBar', 'searchFilter', 'searchForm', 'searchResults'].includes(moduleForm.type)}
 					<!-- JSON Editor for other module types -->
 					<div>
 						<label for="module-props-json" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
@@ -3434,6 +3486,22 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 						/>
 					</div>
 				</div>
+
+				{#if formData.pageRole === 'login'}
+					<div>
+						<label class="flex items-center gap-2 cursor-pointer">
+							<input
+								type="checkbox"
+								class="w-4 h-4 text-(--color-primary-600) border-surface-300-700 rounded focus:ring-(--color-primary-500)"
+								bind:checked={formData.hideLoginTitle}
+							/>
+							<span class="text-sm font-medium text-(--color-surface-800-200)">Do not display login title</span>
+						</label>
+						<p class="mt-1 text-xs text-(--color-surface-600-400)">
+							Hides the main heading on <code class="text-xs">/login</code>. Page title fields stay stored.
+						</p>
+					</div>
+				{/if}
 
 				<div>
 					<label for="edit-leading-image" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
@@ -3751,6 +3819,17 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 				{:else if moduleForm.type === 'contactForm'}
 					<div class="space-y-4 border-t border-surface-200-800 pt-4">
 						<ModulePropsForm moduleType="contactForm" bind:props={contactFormModuleProps} />
+					</div>
+				{:else if moduleForm.type === 'loginForm'}
+					<div class="space-y-4 border-t border-surface-200-800 pt-4 text-(--color-surface-800-200)">
+						<ModulePropsForm
+							moduleType="loginForm"
+							props={loginFormModuleProps as Record<string, unknown>}
+							showPlacementInGrid={false}
+							onChange={(next) => {
+								loginFormModuleProps = next;
+							}}
+						/>
 					</div>
 				{:else if moduleForm.type === 'albumsGrid'}
 					<!-- Albums Grid Module Form -->
@@ -4622,6 +4701,17 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 				{:else if moduleForm.type === 'contactForm'}
 					<div class="space-y-4 border-t border-surface-200-800 pt-4">
 						<ModulePropsForm moduleType="contactForm" bind:props={contactFormModuleProps} />
+					</div>
+				{:else if moduleForm.type === 'loginForm'}
+					<div class="space-y-4 border-t border-surface-200-800 pt-4 text-(--color-surface-800-200)">
+						<ModulePropsForm
+							moduleType="loginForm"
+							props={loginFormModuleProps as Record<string, unknown>}
+							showPlacementInGrid={false}
+							onChange={(next) => {
+								loginFormModuleProps = next;
+							}}
+						/>
 					</div>
 				{:else if moduleForm.type === 'albumsGrid'}
 					<!-- Albums Grid Module Form -->

@@ -6164,6 +6164,15 @@ let draggedAlbumHeaderField: string | null = null;
 							/>
 						</div>
 					</div>
+				{:else if editingModule.type === 'loginForm'}
+					<ModulePropsForm
+						moduleType="loginForm"
+						props={editingModule.props || {}}
+						showPlacementInGrid={false}
+						onChange={(next) => {
+							editingModule = { ...editingModule, props: { ...next } };
+						}}
+					/>
 				{:else}
 					<div class="text-sm text-(--color-surface-600-400)">
 						<p>Module-specific configuration options coming soon.</p>

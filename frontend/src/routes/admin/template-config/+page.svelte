@@ -6,8 +6,17 @@
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 	import { t } from '$stores/i18n';
+	import { TEMPLATE_PACK_IDS } from '$lib/template-packs/ids';
+	import { packClassPrefixFor } from '$lib/template/packs/class-prefix';
 // PageData is loaded via +page.server.ts; this component does not
 // currently consume it directly, so we omit the prop to avoid unused-export warnings.
+
+	interface TemplateListRow {
+		templateName: string;
+		displayName?: string;
+		pageAliasPrefix?: string;
+		visibility?: Record<string, boolean | undefined>;
+	}
 
 	interface TemplateComponentVisibility {
 		hero: boolean;
@@ -33,6 +42,43 @@
 		statistics: true,
 		promotion: true
 	};
+
+	let templatesList: TemplateListRow[] = [];
+	let localPageAliasPrefixes: Record<string, string> = {
+		noir: 'n',
+		studio: 's',
+		atelier: 'a'
+	};
+
+	const PREFIX_SAVE = /^[a-z0-9]{1,12}$/;
+
+	function mergeDisplayPrefixes(
+		saved: Record<string, string> | undefined,
+		templates: TemplateListRow[]
+	): Record<string, string> {
+		const out: Record<string, string> = {};
+		for (const id of TEMPLATE_PACK_IDS) {
+			const s = saved?.[id]?.trim().toLowerCase();
+			const api = templates.find((t) => t.templateName === id)?.pageAliasPrefix?.trim().toLowerCase();
+			out[id] =
+				s && PREFIX_SAVE.test(s)
+					? s
+					: api && PREFIX_SAVE.test(api)
+						? api
+						: packClassPrefixFor(id);
+		}
+		return out;
+	}
+
+	function normalizedPageAliasPrefixesForSave(p: Record<string, string>): Record<string, string> {
+		const out: Record<string, string> = {};
+		for (const id of TEMPLATE_PACK_IDS) {
+			const raw = String(p[id] ?? '').trim().toLowerCase();
+			const def = packClassPrefixFor(id);
+			if (raw && PREFIX_SAVE.test(raw) && raw !== def) out[id] = raw;
+		}
+		return out;
+	}
 
 	function defaultsFromTemplateVisibility(
 		v: Record<string, boolean | undefined> | undefined
@@ -106,13 +152,15 @@
 			activeTemplate =
 				config.template?.frontendTemplate || config.template?.activeTemplate || 'noir';
 
-			let templates: Array<{ templateName: string; visibility?: Record<string, boolean> }> = [];
+			let templates: TemplateListRow[] = [];
 			if (tplRes.ok) {
 				const tplJson = await tplRes.json();
 				if (tplJson?.success && Array.isArray(tplJson.data)) {
-					templates = tplJson.data;
+					templates = tplJson.data as TemplateListRow[];
 				}
 			}
+			templatesList = templates;
+			localPageAliasPrefixes = mergeDisplayPrefixes(config.template?.pageAliasPrefixes, templates);
 			const base = templates.find((t) => t.templateName === activeTemplate);
 			const defaults = defaultsFromTemplateVisibility(base?.visibility);
 			localVisibility = mergeVisibility(defaults, config.template?.componentVisibility);
@@ -131,15 +179,24 @@
 		};
 	}
 
-	function buildTemplatePayload(visibility: TemplateComponentVisibility) {
+	function handlePageAliasPrefixChange(packId: (typeof TEMPLATE_PACK_IDS)[number], value: string) {
+		localPageAliasPrefixes = { ...localPageAliasPrefixes, [packId]: value };
+	}
+
+	function buildTemplatePayload(
+		visibility: TemplateComponentVisibility,
+		opts?: { pageAliasPrefixesForSave?: Record<string, string> }
+	) {
 		const prev = templateSectionSnapshot || {};
 		const fe = prev.frontendTemplate || prev.activeTemplate || activeTemplate;
 		const ac = prev.activeTemplate || activeTemplate;
+		const prefixSource = opts?.pageAliasPrefixesForSave ?? localPageAliasPrefixes;
 		return {
 			...prev,
 			frontendTemplate: fe,
 			activeTemplate: ac,
-			componentVisibility: visibility
+			componentVisibility: visibility,
+			pageAliasPrefixes: normalizedPageAliasPrefixesForSave(prefixSource)
 		};
 	}
 
@@ -168,6 +225,10 @@
 				message = 'Template configuration saved successfully!';
 				if (result.data?.template) {
 					templateSectionSnapshot = { ...result.data.template };
+					localPageAliasPrefixes = mergeDisplayPrefixes(
+						result.data.template.pageAliasPrefixes,
+						templatesList
+					);
 				}
 			} else {
 				throw new Error(result.error || 'Failed to save template configuration');
@@ -187,11 +248,11 @@
 			error = null;
 
 			const tplRes = await fetch('/api/admin/templates', { cache: 'no-store' });
-			let templates: Array<{ templateName: string; visibility?: Record<string, boolean> }> = [];
+			let templates: TemplateListRow[] = [];
 			if (tplRes.ok) {
 				const tplJson = await tplRes.json();
 				if (tplJson?.success && Array.isArray(tplJson.data)) {
-					templates = tplJson.data;
+					templates = tplJson.data as TemplateListRow[];
 				}
 			}
 			const base = templates.find((t) => t.templateName === activeTemplate);
@@ -203,7 +264,7 @@
 					'Content-Type': 'application/json'
 				},
 				body: JSON.stringify({
-					template: buildTemplatePayload(resetVisibility)
+					template: buildTemplatePayload(resetVisibility, { pageAliasPrefixesForSave: {} })
 				})
 			});
 
@@ -218,6 +279,8 @@
 				if (result.data?.template) {
 					templateSectionSnapshot = { ...result.data.template };
 				}
+				localPageAliasPrefixes = mergeDisplayPrefixes(result.data?.template?.pageAliasPrefixes, templates);
+				templatesList = templates;
 			} else {
 				throw new Error(result.error || 'Failed to reset template configuration');
 			}
@@ -284,6 +347,37 @@
 						<p class="text-(--color-primary-800) text-sm mt-1">
 							{$t('admin.templateConfigCurrentDescription')}
 						</p>
+					</div>
+
+					<div class="mb-8 space-y-4">
+						<h3 class="text-lg font-semibold text-(--color-surface-950-50)">
+							{$t('admin.templateConfigPageAliasesTitle')}
+						</h3>
+						<p class="text-sm text-(--color-surface-600-400)">
+							{$t('admin.templateConfigPageAliasesDescription')}
+						</p>
+						<div class="space-y-3">
+							{#each TEMPLATE_PACK_IDS as packId}
+								{@const row = templatesList.find((t) => t.templateName === packId)}
+								<div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 p-4 border border-surface-200-800 rounded-lg">
+									<label class="text-sm font-medium text-(--color-surface-950-50) shrink-0 min-w-32" for={`prefix-${packId}`}>
+										{row?.displayName ?? packId}
+									</label>
+									<input
+										id={`prefix-${packId}`}
+										type="text"
+										autocomplete="off"
+										class="max-w-xs font-mono text-sm px-3 py-2 border border-surface-300-700 rounded-md bg-(--color-surface-50-950) text-(--color-surface-950-50) focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
+										value={localPageAliasPrefixes[packId] ?? ''}
+										on:input={(e) =>
+											handlePageAliasPrefixChange(packId, e.currentTarget.value)}
+									/>
+									<p class="text-xs text-(--color-surface-600-400) sm:flex-1">
+										{$t('admin.templateConfigPageAliasHint')}
+									</p>
+								</div>
+							{/each}
+						</div>
 					</div>
 
 					<!-- Component Visibility Settings -->

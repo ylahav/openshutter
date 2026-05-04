@@ -6,12 +6,23 @@
 	import { useCrudOperations } from '$lib/composables/useCrudOperations';
 	import { useDialogManager } from '$lib/composables/useDialogManager';
 	import { normalizeMultiLangText } from '$lib/utils/multiLangHelpers';
-	import { MultiLangUtils } from '$lib/utils/multiLang';
-	import { currentLanguage } from '$lib/stores/language';
+	import { handleError } from '$lib/utils/errorHandler';
+	import {
+		adminPostJson,
+		applyTemplateVars,
+		downloadJson,
+		fetchAdminPaginatedList,
+		parseImportItems
+	} from '$lib/utils/collectionImportExport';
+	import CollectionImportExportButtons from '$lib/components/admin/CollectionImportExportButtons.svelte';
+	import { t } from '$stores/i18n';
 	import type { PageData } from './$types';
 
 	// svelte-ignore export_let_unused - Required by SvelteKit page component
 	export let data: PageData;
+
+	let translate: (key: string, fallback?: string) => string = (key, fallback) => fallback || key;
+	$: translate = $t;
 
 	interface Group {
 		_id: string;
@@ -85,6 +96,7 @@
 	let editingGroup: Group | null = null;
 	let groupToDelete: Group | null = null;
 	let deleting = false;
+	let importExportBusy = false;
 
 	// Form state
 	let formData = {
@@ -158,6 +170,100 @@
 			// Success handled by onDeleteSuccess callback
 		}
 	}
+
+	function importFileErrorMessage(err: unknown): string {
+		if (err instanceof Error && err.message === 'INVALID_JSON') {
+			return translate('admin.collectionImportInvalidJson');
+		}
+		if (err instanceof Error && err.message === 'INVALID_SHAPE') {
+			return translate('admin.collectionImportInvalidEnvelope');
+		}
+		return handleError(err, translate('admin.collectionImportReadError'));
+	}
+
+	function setImportSummaryMessage(created: number, failed: number) {
+		const template = translate('admin.collectionImportResult');
+		crudOps.message.set(applyTemplateVars(template, { created, failed }));
+		setTimeout(() => crudOps.message.set(''), 8000);
+	}
+
+	async function handleGroupsExport() {
+		importExportBusy = true;
+		crudOps.error.set('');
+		try {
+			const rows = await fetchAdminPaginatedList('/api/admin/groups');
+			const items = rows.map((raw) => {
+				const row = raw as Record<string, unknown>;
+				const { _id, createdAt, updatedAt, ...rest } = row;
+				void _id;
+				void createdAt;
+				void updatedAt;
+				return rest;
+			});
+			downloadJson(`openshutter-groups-${new Date().toISOString().slice(0, 10)}.json`, {
+				schema: 'openshutter.admin.groups/v1',
+				exportedAt: new Date().toISOString(),
+				items
+			});
+		} catch (err) {
+			crudOps.error.set(handleError(err, translate('admin.collectionExportFailed')));
+		} finally {
+			importExportBusy = false;
+		}
+	}
+
+	async function handleGroupsImport(file: File) {
+		importExportBusy = true;
+		crudOps.error.set('');
+		let created = 0;
+		let failed = 0;
+		const failureLines: string[] = [];
+		try {
+			const list = parseImportItems(await file.text());
+			for (let i = 0; i < list.length; i++) {
+				const raw = list[i];
+				if (!raw || typeof raw !== 'object') {
+					failed++;
+					continue;
+				}
+				const o = raw as Record<string, unknown>;
+				const alias = String(o.alias || '')
+					.trim()
+					.toLowerCase();
+				const payload = { alias, name: o.name };
+				const name = o.name;
+				const hasName =
+					typeof name === 'string'
+						? !!name.trim()
+						: name &&
+								typeof name === 'object' &&
+								Object.values(name as Record<string, unknown>).some(
+									(v) => typeof v === 'string' && (v as string).trim()
+								);
+				if (!alias || !hasName) {
+					failed++;
+					failureLines.push(`#${i + 1}: alias and name required`);
+					continue;
+				}
+				try {
+					await adminPostJson('/api/admin/groups', payload);
+					created++;
+				} catch (e) {
+					failed++;
+					failureLines.push(`#${i + 1}: ${handleError(e, 'Error')}`);
+				}
+			}
+			await crudLoader.loadItems();
+			setImportSummaryMessage(created, failed);
+			if (failureLines.length) {
+				crudOps.error.set(failureLines.slice(0, 8).join(' · '));
+			}
+		} catch (err) {
+			crudOps.error.set(importFileErrorMessage(err));
+		} finally {
+			importExportBusy = false;
+		}
+	}
 </script>
 
 <svelte:head>
@@ -167,9 +273,18 @@
 <div class="py-8">
 	<div class="max-w-6xl mx-auto px-4">
 		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
-			<div class="mb-6">
-				<h1 class="text-2xl font-bold text-(--color-surface-950-50)">Groups Management</h1>
-				<p class="text-(--color-surface-600-400) mt-2">Define and manage user groups for access control</p>
+			<div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+				<div>
+					<h1 class="text-2xl font-bold text-(--color-surface-950-50)">Groups Management</h1>
+					<p class="text-(--color-surface-600-400) mt-2">Define and manage user groups for access control</p>
+				</div>
+				<CollectionImportExportButtons
+					exportLabel={$t('admin.collectionExportJson')}
+					importLabel={$t('admin.collectionImportJson')}
+					busy={importExportBusy}
+					onExport={handleGroupsExport}
+					onImportFile={handleGroupsImport}
+				/>
 			</div>
 
 			{#if message}

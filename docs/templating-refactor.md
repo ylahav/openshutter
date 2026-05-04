@@ -3,6 +3,8 @@
 Single source for goals, current architecture notes, and phased work.
 Use this as the working document for the multi-pack/page-builder integration.
 
+**North star (agreed product model, 2026-05):** See **[`development/TEMPLATING.md` — North star: templating system](./development/TEMPLATING.md#north-star-templating)** — two backend definition surfaces, **`{prefix}-{alias}`** CMS aliases, pack module/style overrides, visitor **URL → DB → `PageRenderer`**. This file tracks **gap closure** against that model.
+
 ## Goals
 
 1. **Multiple visual identities** — Noir, Studio, Atelier from one codebase (tokens + variants, not forked apps).

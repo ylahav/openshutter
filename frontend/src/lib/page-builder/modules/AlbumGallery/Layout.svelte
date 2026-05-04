@@ -84,6 +84,7 @@
 		name?: string | Record<string, string>;
 		description?: string | Record<string, string>;
 		coverUrl?: string;
+		childAlbumCount?: number;
 		photoCount?: number;
 		isFeatured?: boolean;
 		order?: number;

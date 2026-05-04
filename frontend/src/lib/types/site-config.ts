@@ -99,6 +99,11 @@ export interface SiteConfig {
     /** Shared layout-shell instances (preferred key; alias => grid + modules). */
     layoutShellInstances?: Record<string, { gridRows?: number; gridColumns?: number; modules?: unknown[] }>
     /**
+     * Per built-in pack: CMS page alias / page-builder scoped class prefix (lowercase a–z / 0–9, 1–12 chars).
+     * Omitted pack ids use each template pack’s built-in default.
+     */
+    pageAliasPrefixes?: Record<string, string>
+    /**
      * Optional site-wide hero defaults (page-builder `hero` module can override per instance).
      * @see `frontend/src/lib/page-builder/modules/Hero/README.md`
      */

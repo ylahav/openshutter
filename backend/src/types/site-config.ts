@@ -65,6 +65,11 @@ export interface SiteConfig {
     layoutPresets?: Record<string, { gridRows?: number; gridColumns?: number; modules?: any[] }>
     /** Shared layout-shell instances (preferred; module points via `props.instanceRef`). */
     layoutShellInstances?: Record<string, { gridRows?: number; gridColumns?: number; modules?: any[] }>
+    /**
+     * Per built-in pack: CMS page alias / page-builder scoped class prefix (lowercase alphanumeric, 1–12 chars).
+     * Keys: `noir` | `studio` | `atelier`. Omitted packs use each template's built-in default.
+     */
+    pageAliasPrefixes?: Record<string, string>
   }
   seo: {
     metaTitle: MultiLangText

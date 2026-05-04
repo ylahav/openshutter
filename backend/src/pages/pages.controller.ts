@@ -238,7 +238,24 @@ export class PagesController {
         throw new BadRequestException('User not authenticated');
       }
 
-      const { title, subtitle, alias, slug, pageRole, parentPageId, routeParams, leadingImage, frontendTemplate, frontendTemplates, introText, content, category, isPublished, layout } = body;
+      const {
+        title,
+        subtitle,
+        alias,
+        slug,
+        pageRole,
+        parentPageId,
+        routeParams,
+        leadingImage,
+        frontendTemplate,
+        frontendTemplates,
+        introText,
+        content,
+        category,
+        isPublished,
+        layout,
+        hideLoginTitle,
+      } = body;
 
       // Validate required fields
       if (!title || !alias) {
@@ -384,6 +401,7 @@ export class PagesController {
       if (normalizedIntroText) pageData.introText = normalizedIntroText;
       if (normalizedContent) pageData.content = normalizedContent;
       if (Object.keys(pageLayout).length > 0) pageData.layout = pageLayout;
+      if (hideLoginTitle !== undefined) pageData.hideLoginTitle = Boolean(hideLoginTitle);
 
       const result = await collection.insertOne(pageData);
       const page = await collection.findOne({ _id: result.insertedId });
@@ -506,6 +524,7 @@ export class PagesController {
       if (source.introText) pageData.introText = source.introText;
       if (source.content) pageData.content = source.content;
       if (source.layout && typeof source.layout === 'object') pageData.layout = source.layout;
+      if (typeof source.hideLoginTitle === 'boolean') pageData.hideLoginTitle = source.hideLoginTitle;
 
       const insertResult = await collection.insertOne(pageData);
       const newPageId = insertResult.insertedId;
@@ -574,7 +593,24 @@ export class PagesController {
         throw new NotFoundException(`Page not found: ${id}`);
       }
 
-      const { title, subtitle, alias, slug, pageRole, parentPageId, routeParams, leadingImage, frontendTemplate, frontendTemplates, introText, content, category, isPublished, layout } = body;
+      const {
+        title,
+        subtitle,
+        alias,
+        slug,
+        pageRole,
+        parentPageId,
+        routeParams,
+        leadingImage,
+        frontendTemplate,
+        frontendTemplates,
+        introText,
+        content,
+        category,
+        isPublished,
+        layout,
+        hideLoginTitle,
+      } = body;
 
       // Normalize title object if provided
       let normalizedTitle: Record<string, string> | undefined;
@@ -711,7 +747,6 @@ export class PagesController {
       };
 
       if (normalizedTitle !== undefined) updateData.title = normalizedTitle;
-      if (normalizedSubtitle !== undefined) updateData.subtitle = normalizedSubtitle;
       if (alias !== undefined) updateData.alias = alias.trim().toLowerCase();
       if (slug !== undefined) updateData.slug = slug.trim().toLowerCase();
       if (pageRole !== undefined) updateData.pageRole = normalizedPageRole || null;
@@ -722,10 +757,9 @@ export class PagesController {
         updateData.frontendTemplates = nextVariantPacks;
         updateData.frontendTemplate = nextVariantPacks.length === 1 ? nextVariantPacks[0] : null;
       }
-      if (normalizedIntroText !== undefined) updateData.introText = normalizedIntroText;
-      if (normalizedContent !== undefined) updateData.content = normalizedContent;
       if (category !== undefined) updateData.category = pageCategory;
       if (isPublished !== undefined) updateData.isPublished = Boolean(isPublished);
+      if (hideLoginTitle !== undefined) updateData.hideLoginTitle = Boolean(hideLoginTitle);
 
       // Merge layout: preserve gridRows, gridColumns, urlParams from request, or keep existing
       if (layout !== undefined) {
@@ -737,7 +771,24 @@ export class PagesController {
         updateData.layout = pageLayout;
       }
 
-      await collection.updateOne({ _id: new Types.ObjectId(id) }, { $set: updateData });
+      /** Fields the client sent but normalized to “empty” — must $unset or the old DB value remains. */
+      const unsetData: Record<string, ''> = {};
+      if (subtitle !== undefined) {
+        if (normalizedSubtitle !== undefined) updateData.subtitle = normalizedSubtitle;
+        else unsetData.subtitle = '';
+      }
+      if (introText !== undefined) {
+        if (normalizedIntroText !== undefined) updateData.introText = normalizedIntroText;
+        else unsetData.introText = '';
+      }
+      if (content !== undefined) {
+        if (normalizedContent !== undefined) updateData.content = normalizedContent;
+        else unsetData.content = '';
+      }
+
+      const updatePayload: { $set: typeof updateData; $unset?: Record<string, ''> } = { $set: updateData };
+      if (Object.keys(unsetData).length) updatePayload.$unset = unsetData;
+      await collection.updateOne({ _id: new Types.ObjectId(id) }, updatePayload);
       const updatedPage = await collection.findOne({ _id: new Types.ObjectId(id) });
 
       if (!updatedPage) {
