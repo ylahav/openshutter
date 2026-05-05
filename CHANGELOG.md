@@ -39,13 +39,6 @@
 - **Admin → Users (owners)**: Per-provider JSON for dedicated storage is no longer edited inline on the user form; owners configure credentials on **Owner → Storage**. Copy and i18n updated accordingly.
 
 ### Fixed
-- **Migration import replace semantics (templates/pages):** `configMode=replace` now fully replaces imported pages and page modules (instead of merge-like upserts), and template merge rules now treat `layoutShellInstances` and `menuInstances` as replace-whole keys to prevent stale instances after import/apply.
-- **Templates/pages migration bundle completeness:** Export/import packages now include the `themes` collection (`themes.json`) so non-active template headers/layouts are preserved across environments; preview/result metadata now includes theme counts/imported themes.
-- **Layout shell runtime fallback:** `LayoutShellModule` now resolves presets by merging `layoutPresets` with `layoutShellInstances` (instances override presets), so an empty `layoutShellInstances` object no longer hides valid presets like `atelier_header`.
-- **Admin page duplication on deployed server:** Added missing SvelteKit API proxy `POST /api/admin/pages/:id/duplicate` to forward to backend and avoid 404 “resource not found” errors in production deployments.
-- **Search filters in admin/owner contexts:** `SearchFilter` now loads filter options with admin-first endpoint fallback (`/api/admin/{tags,people,locations}` then public APIs), and supports multiple payload shapes (`data` / `items` / `results` / array), preventing empty filter lists in the popup.
-- **Search filter chip labels:** Active tag chips now resolve multilingual names instead of rendering raw objects (`[object Object]`) or unresolved IDs when data is available; filter options auto-load when active filters exist so labels resolve without opening the popup first.
-- **Photo edit location selection + save validation:** Admin and owner photo edit pages update `formData` immutably for location changes so first selection renders immediately; location admin save now omits coordinates unless both latitude and longitude are valid finite numbers, avoiding validation errors when fields are empty.
 - **`AlbumGalleryModule`:** Declared missing **`albumCard`** / **`photoCard`** props so the reactive `config` merge no longer throws **`ReferenceError`** on album routes.
 - **AI suggestions apply flow:** Fixed Tag Suggestions modal payload handling so **Apply** reliably sends selected suggestions to backend.
 - **AI suggestions empty-state regressions:** Removed frontend hardcoded high `minConfidence` override and applied provider-specific defaults (lower threshold for CLIP), preventing valid CLIP results from being filtered out.
@@ -121,6 +114,17 @@
 - **Light/dark mode**: Tailwind v4 `@custom-variant dark` uses the `.dark` class so the theme toggle updates the view. Body, header, footer, PageRenderer, RichText, and all template headers/footers (default, minimal, modern, elegant) use `dark:` variants. All page-builder modules (AlbumGallery, Cta, FeatureGrid, Hero, SocialMedia, AuthButtons, UserGreeting, SiteTitle, RichText) and shared UI primitives under **`page-builder/primitives`** (menu, language selector, template selector, theme toggle) support dark mode.
 - **Theme selection persistence**: When an admin changes the active theme via Theme Select (or header template selector), the frontend now sends both `frontendTemplate` and `activeTemplate` so the selected theme persists after reload (the store reads `frontendTemplate` first).
 - **Theme Select in layout grid**: “Theme Select” is included in the header and footer module allowlists on the template overrides page so it appears in “Choose module…” when assigning modules to the layout grid.
+
+## [1.3.0] - 2026-05-05
+
+### Fixed
+- **Migration import replace semantics (templates/pages):** `configMode=replace` now fully replaces imported pages and page modules (instead of merge-like upserts), and template merge rules now treat `layoutShellInstances` and `menuInstances` as replace-whole keys to prevent stale instances after import/apply.
+- **Templates/pages migration bundle completeness:** Export/import packages now include the `themes` collection (`themes.json`) so non-active template headers/layouts are preserved across environments; preview/result metadata now includes theme counts/imported themes.
+- **Layout shell runtime fallback:** `LayoutShellModule` now resolves presets by merging `layoutPresets` with `layoutShellInstances` (instances override presets), so an empty `layoutShellInstances` object no longer hides valid presets like `atelier_header`.
+- **Admin page duplication on deployed server:** Added missing SvelteKit API proxy `POST /api/admin/pages/:id/duplicate` to forward to backend and avoid 404 “resource not found” errors in production deployments.
+- **Search filters in admin/owner contexts:** `SearchFilter` now loads filter options with admin-first endpoint fallback (`/api/admin/{tags,people,locations}` then public APIs), and supports multiple payload shapes (`data` / `items` / `results` / array), preventing empty filter lists in the popup.
+- **Search filter chip labels:** Active tag chips now resolve multilingual names instead of rendering raw objects (`[object Object]`) or unresolved IDs when data is available; filter options auto-load when active filters exist so labels resolve without opening the popup first.
+- **Photo edit location selection + save validation:** Admin and owner photo edit pages update `formData` immutably for location changes so first selection renders immediately; location admin save now omits coordinates unless both latitude and longitude are valid finite numbers, avoiding validation errors when fields are empty.
 
 ## [1.0.8] - 2025-02-16
 
