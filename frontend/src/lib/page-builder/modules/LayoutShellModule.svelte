@@ -26,7 +26,10 @@
 
 	$: resolvedRef = String(instanceRef || presetKey || '').trim();
 	$: templateBag = ($siteConfigData?.template ?? {}) as Record<string, unknown>;
-	$: presetRegistry = ((templateBag.layoutShellInstances || templateBag.layoutPresets) ?? null) as
+	$: presetRegistry = ({
+		...((templateBag.layoutPresets as Record<string, unknown>) ?? {}),
+		...((templateBag.layoutShellInstances as Record<string, unknown>) ?? {})
+	}) as
 		| Record<
 				string,
 				{

@@ -195,6 +195,8 @@ export class SiteConfigService {
         'pageLayoutByBreakpoint',
         'pageModulesByBreakpoint',
         'layoutPresets',
+        'layoutShellInstances',
+        'menuInstances',
         'customLayout',
         'customLayoutByBreakpoint',
         'customColors',
@@ -242,6 +244,12 @@ export class SiteConfigService {
       }
       if (Object.prototype.hasOwnProperty.call(t, 'layoutPresets')) {
         mergedConfig.template.layoutPresets = { ...(t.layoutPresets ?? {}) }
+      }
+      if (Object.prototype.hasOwnProperty.call(t, 'layoutShellInstances')) {
+        mergedConfig.template.layoutShellInstances = { ...(t.layoutShellInstances ?? {}) }
+      }
+      if (Object.prototype.hasOwnProperty.call(t, 'menuInstances')) {
+        mergedConfig.template.menuInstances = { ...(t.menuInstances ?? {}) }
       }
       if (t.frontendTemplate !== undefined) mergedConfig.template.frontendTemplate = t.frontendTemplate
       if (t.activeTemplate !== undefined) mergedConfig.template.activeTemplate = t.activeTemplate
