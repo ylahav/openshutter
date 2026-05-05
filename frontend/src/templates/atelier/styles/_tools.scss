@@ -1,0 +1,33 @@
+// Atelier — shared SCSS variables and typography mixins (no CSS output).
+
+// SCSS vars
+$serif: "Cormorant Garamond", Georgia, serif;
+$jost: "Jost", sans-serif;
+$t: var(--os-transition, 0.4s);
+
+// ─── Mixins ──────────────────────────────────────────────────
+
+@mixin serif($w: 400, $s: 16px) {
+  font-family: var(--os-font-heading), $serif;
+  font-weight: $w;
+  font-size: $s;
+}
+
+@mixin jost($w: 400, $s: 14px) {
+  font-family: var(--os-font-body), $jost;
+  font-weight: $w;
+  font-size: $s;
+}
+
+@mixin small-caps($spacing: 0.22em) {
+  font-family: var(--os-font-body), $jost;
+  font-size: 10px;
+  letter-spacing: $spacing;
+  text-transform: uppercase;
+}
+
+@mixin gold-rule {
+  width: 36px;
+  height: 1px;
+  background: var(--gold);
+}

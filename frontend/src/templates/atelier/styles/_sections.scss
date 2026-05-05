@@ -1,0 +1,85 @@
+@use './tools' as *;
+
+// ─── Hero (page builder) ─────────────────────────────────────
+// Visitor home hero: `Hero/Layout.svelte` (`.pb-hero`, `data-hero-pack="atelier"`). Legacy `.a-hero` removed.
+
+// ─── Intro ───────────────────────────────────────────────────
+
+.hero {
+  text-align: center;
+  .hero-title {
+    color: var(--bg);
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: clamp(36px, 6vw, 64px);
+    font-weight: 300;
+    letter-spacing: .06em;
+    line-height: 1.15;
+    margin: 16px 0 24px;
+  
+  }
+  .hero-subtitle {
+    font-size: 16px;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: rgba(250, 246, 239, .5);
+  }
+  .hero-actions {
+    flex-direction: column;
+    gap: 10px;
+    .hero-btn {
+      width: 100%;
+      max-width: 200px;
+      margin: 0 auto;
+    }
+  }
+}
+.a-intro {
+  max-width: 540px;
+  margin: 56px auto 0;
+  padding: 0 32px;
+  text-align: center;
+
+  &__text {
+    @include serif(300, 18px);
+    font-style: italic;
+    line-height: 1.85;
+    color: var(--fg-mid);
+    transition: color $t;
+  }
+
+  &__rule {
+    @include gold-rule;
+    margin: 24px auto;
+  }
+}
+
+// ─── Section ─────────────────────────────────────────────────
+
+.a-section {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 48px 32px;
+
+  &__header {
+    text-align: center;
+    margin-bottom: 36px;
+  }
+
+  &__title {
+    @include serif(400, 24px);
+    letter-spacing: 0.08em;
+    color: var(--fg);
+    margin-bottom: 10px;
+    transition: color $t;
+  }
+
+  &__rule {
+    @include gold-rule;
+    margin: 0 auto 10px;
+  }
+
+  &__sub {
+    @include small-caps(0.22em);
+    color: var(--fg-lt);
+  }
+}

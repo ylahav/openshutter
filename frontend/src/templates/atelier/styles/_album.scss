@@ -1,0 +1,68 @@
+@use './tools' as *;
+
+// ─── Album page ──────────────────────────────────────────────
+
+.a-album-header {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 40px 32px 24px;
+  text-align: center;
+
+  &__back {
+    @include small-caps(0.18em);
+    color: var(--fg-lt);
+    text-decoration: none;
+    display: block;
+    margin-bottom: 20px;
+    cursor: pointer;
+    transition: color 0.2s;
+    &:hover {
+      color: var(--fg);
+    }
+  }
+
+  &__title {
+    @include serif(400, 28px);
+    letter-spacing: 0.08em;
+    color: var(--fg);
+  }
+
+  &__rule {
+    @include gold-rule;
+    margin: 10px auto;
+  }
+
+  &__desc {
+    @include serif(300, 14px);
+    font-style: italic;
+    color: var(--fg-mid);
+    max-width: 520px;
+    margin: 0 auto;
+    line-height: 1.7;
+  }
+}
+
+.a-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--os-gap-grid, 8px);
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 32px 48px;
+}
+
+.a-photo-card {
+  overflow: hidden;
+  border-radius: var(--os-card-radius, var(--os-radius, 2px));
+  cursor: pointer;
+  img {
+    aspect-ratio: var(--os-photo-aspect, 3 / 4);
+    width: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+  &:hover img {
+    transform: scale(1.04);
+  }
+}

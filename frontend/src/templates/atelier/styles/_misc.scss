@@ -1,0 +1,71 @@
+@use "./tools" as *;
+
+// ─── Page indicator ──────────────────────────────────────────
+
+.a-page-ind {
+  position: fixed;
+  bottom: 16px;
+  right: 20px;
+  @include jost(400, 10px);
+  color: var(--fg-lt);
+  pointer-events: none;
+  [dir="rtl"] & {
+    right: auto;
+    left: 20px;
+  }
+}
+
+// ─── Animations ──────────────────────────────────────────────
+
+.a-reveal {
+  opacity: 0;
+  transform: translateY(20px);
+  animation: aReveal 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  @for $i from 1 through 6 {
+    &:nth-child(#{$i}) {
+      animation-delay: #{$i * 0.1}s;
+    }
+  }
+}
+
+@keyframes aReveal {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.a-album {
+  color: var(--bg) !important;
+  .pb-albumGallery {
+    &__sectionTitle {
+      display: none !important;
+    }
+    &__list {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      @media (min-width: 640px) {
+        gap: 1.25rem !important;
+      }
+      .pb-albumCard {
+        border: 0!important;
+        background: transparent!important;
+        &__title {text-align: center!important;}
+        &__description {display: none;}
+        &__body {padding: 0!important;}
+        &__thumb {
+          border-radius: 0!important;
+          overflow: visible!important;
+          img {border-radius: 0!important;}
+        }
+      }
+    }
+  }
+}
+
+.pb-albumGallery__list--row {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1rem !important;
+}

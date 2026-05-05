@@ -1,0 +1,74 @@
+@use './tools' as *;
+
+// ─── Footer ──────────────────────────────────────────────────
+
+.a-footer {
+  background: var(--ft-bg);
+  padding: 40px 32px 32px;
+  text-align: center;
+  transition: background $t;
+
+  .pb-siteTitle {
+    &__link {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+    font-weight: 400;
+    font-size: 24px;
+    letter-spacing: .12em;
+    color: var(--bg)!important;
+    margin-bottom: 6px;
+    }
+  }
+  .pb-menuModule {
+    margin: 10px auto;
+    a {
+      color: var(--bg)!important;
+      &::hover {
+        opacity: 0.6;
+      }
+    }
+  }
+/*
+  &__name {
+    @include serif(400, 18px);
+    letter-spacing: 0.12em;
+    color: var(--ft-fg);
+    margin-bottom: 6px;
+  }
+
+  &__tag {
+    @include small-caps(0.26em);
+    color: var(--ft-dim);
+    margin-bottom: 20px;
+  }
+
+  &__rule {
+    @include gold-rule;
+    margin: 0 auto 20px;
+    opacity: 0.4;
+  }
+
+  &__links {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    margin-bottom: 24px;
+    a {
+      @include small-caps(0.2em);
+      color: var(--ft-dim);
+      text-decoration: none;
+      cursor: pointer;
+      transition: color 0.2s;
+      &:hover {
+        color: var(--ft-fg);
+        opacity: 0.6;
+      }
+    }
+  }
+
+  &__copy {
+    @include jost(400, 10px);
+    letter-spacing: 0.1em;
+    color: var(--ft-dimr);
+    }
+*/
+}

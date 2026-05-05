@@ -13,7 +13,7 @@
 			await import('$templates/studio/styles/styles.scss');
 			await import('$templates/studio/styles/_login.scss');
 		} else if (templateName === 'atelier') {
-			await import('$templates/atelier/styles.scss');
+			await import('$templates/atelier/styles/styles.scss');
 		} else {
 			await import('$templates/noir/styles/styles.scss');
 		}

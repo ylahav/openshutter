@@ -1,5 +1,5 @@
 <script lang="ts">
-	import './styles.scss';
+	import './styles/styles.scss';
 	import { currentLanguage } from '$stores/language';
 	import { MultiLangUtils } from '$utils/multiLang';
 	import type { PageData } from '$lib/types/page-builder';

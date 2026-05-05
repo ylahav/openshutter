@@ -1,0 +1,47 @@
+@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@300;400;500&display=swap");
+
+// Atelier — design tokens (:root / theme)
+//
+// ─── Pack color tokens → template palette (`buildTemplatePaletteCss`) ───
+// Atelier vocabulary: `--bg`, `--fg`, `--gold`, `--ft-*`, … — each aliases `--tp-*`.
+
+:root,
+html.light {
+  --bg: var(--tp-canvas);
+  --bg2: var(--tp-surface-1);
+  --bg3: var(--tp-surface-3);
+  --fg: var(--tp-fg);
+  --fg-mid: var(--tp-fg-muted);
+  --fg-lt: var(--tp-fg-subtle);
+  --fg-mut: var(--tp-fg-subtle);
+  --fg-faint: var(--tp-fg-faint);
+  --gold: var(--tp-brand);
+  --gold-lt: color-mix(in srgb, var(--tp-brand) 78%, white 22%);
+  --bdr: var(--tp-border);
+  --ft-bg: var(--tp-footer-strip-bg);
+  --ft-fg: var(--tp-fg);
+  --ft-dim: var(--tp-fg-muted);
+  --ft-dimr: var(--tp-fg-subtle);
+  --strip: var(--tp-hero-strip-bg);
+  --scrim: var(--tp-overlay-scrim);
+}
+
+html.dark {
+  --bg: var(--tp-canvas);
+  --bg2: var(--tp-surface-1);
+  --bg3: var(--tp-surface-3);
+  --fg: var(--tp-fg);
+  --fg-mid: var(--tp-fg-muted);
+  --fg-lt: var(--tp-fg-subtle);
+  --fg-mut: var(--tp-fg-subtle);
+  --fg-faint: var(--tp-fg-faint);
+  --gold: var(--tp-brand);
+  --gold-lt: color-mix(in srgb, var(--tp-brand) 78%, white 22%);
+  --bdr: var(--tp-border);
+  --ft-bg: var(--tp-footer-strip-bg);
+  --ft-fg: var(--tp-fg);
+  --ft-dim: var(--tp-fg-muted);
+  --ft-dimr: var(--tp-fg-subtle);
+  --strip: var(--tp-hero-strip-bg);
+  --scrim: var(--tp-overlay-scrim);
+}

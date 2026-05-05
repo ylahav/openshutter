@@ -1377,16 +1377,43 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 		layoutShellEditorRowStructure = rowMap;
 	}
 
+	function remapLayoutShellCellPlacementAfterColumnDelete(
+		placement: Record<string, { horizontal?: string; vertical?: string }>,
+		deletedColumnIndex: number
+	): Record<string, { horizontal?: string; vertical?: string }> {
+		const next: Record<string, { horizontal?: string; vertical?: string }> = {};
+		for (const [key, val] of Object.entries(placement)) {
+			const parts = key.split(':');
+			const r = Number(parts[0]);
+			const c = Number(parts[1]);
+			if (!Number.isFinite(r) || !Number.isFinite(c)) continue;
+			if (c === deletedColumnIndex) continue;
+			const newC = c > deletedColumnIndex ? c - 1 : c;
+			next[`${r}:${newC}`] = val;
+		}
+		return next;
+	}
+
 	async function removeEmptyLayoutShellColumn(columnIndex: number) {
-		if (layoutShellEditorGridColumns <= 1) return;
+		layoutShellEditorError = '';
+		const cols = Number(layoutShellEditorGridColumns);
+		if (!Number.isFinite(cols) || cols <= 1) {
+			layoutShellEditorError = 'Cannot remove a cell: the grid must keep at least one column.';
+			return;
+		}
 		if (isColumnOccupied(layoutShellEditorModules, columnIndex)) {
-			layoutShellEditorError = 'Cannot remove this cell because the column has module content.';
+			layoutShellEditorError =
+				'Cannot remove this column while it contains a module (including cells spanned from another row). Remove or shrink the module first.';
 			return;
 		}
 
-		layoutShellEditorGridColumns = Math.max(1, layoutShellEditorGridColumns - 1);
+		layoutShellEditorGridColumns = Math.max(1, cols - 1);
 		layoutShellEditorRowStructure = removeColumnFromRowStructure(layoutShellEditorRowStructure, columnIndex);
 		layoutShellEditorModules = shiftModulesAfterColumnDelete(layoutShellEditorModules, columnIndex);
+		layoutShellEditorCellPlacementByCell = remapLayoutShellCellPlacementAfterColumnDelete(
+			layoutShellEditorCellPlacementByCell,
+			columnIndex
+		);
 	}
 
 	function applyModuleWrapperClassName(props: Record<string, unknown>): Record<string, unknown> {
@@ -2088,7 +2115,9 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 
 	function isColumnOccupied(moduleList: PageModuleData[], columnIndex: number): boolean {
 		return moduleList.some((m) => {
-			const c = m.columnIndex ?? -1;
+			if (m.columnIndex === undefined || m.columnIndex === null) return false;
+			const c = Number(m.columnIndex);
+			if (!Number.isFinite(c)) return false;
 			const span = Math.max(1, Number(m.colSpan ?? 1));
 			return c <= columnIndex && columnIndex < c + span;
 		});
@@ -2205,13 +2234,19 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 	}
 
 	async function handleRemoveEmptyColumn(columnIndex: number) {
-		if (formData.gridColumns <= 1) return;
+		modulesError = '';
+		const cols = Number(formData.gridColumns);
+		if (!Number.isFinite(cols) || cols <= 1) {
+			modulesError = 'Cannot remove a cell: the grid must keep at least one column.';
+			return;
+		}
 		if (isColumnOccupied(modules, columnIndex)) {
-			modulesError = 'Cannot remove this cell because the column has module content.';
+			modulesError =
+				'Cannot remove this column while it contains a module (including cells spanned from another row). Remove or shrink the module first.';
 			return;
 		}
 
-		formData.gridColumns = Math.max(1, formData.gridColumns - 1);
+		formData.gridColumns = Math.max(1, cols - 1);
 		rowStructure = removeColumnFromRowStructure(rowStructure, columnIndex);
 		const shiftedModules = shiftModulesAfterColumnDelete(modules, columnIndex);
 		await persistModulesRowOrder(shiftedModules);

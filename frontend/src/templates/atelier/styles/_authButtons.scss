@@ -1,4 +1,4 @@
-// Atelier auth buttons — loaded after `styles.scss` (design tokens on :root).
+// Atelier auth buttons — loaded from `styles.scss` after layout-shell header partial.
 .tpl-pack-atelier {
 	.layout-shell[data-layout-preset$='header']:not(.a-header),
 	.layout-shell[data-layout-preset='header']:not(.a-header) {
