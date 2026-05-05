@@ -10,10 +10,22 @@
 	import { useCrudOperations } from '$lib/composables/useCrudOperations';
 	import { useDialogManager } from '$lib/composables/useDialogManager';
 	import { normalizeMultiLangText } from '$lib/utils/multiLangHelpers';
+	import { handleError } from '$lib/utils/errorHandler';
+	import {
+		adminPostJson,
+		applyTemplateVars,
+		downloadJson,
+		fetchAdminPaginatedList,
+		parseImportItems
+	} from '$lib/utils/collectionImportExport';
+	import CollectionImportExportButtons from '$lib/components/admin/CollectionImportExportButtons.svelte';
 	import type { PageData } from './$types';
 
 	// svelte-ignore export_let_unused - Required by SvelteKit page component
 	export let data: PageData;
+
+	let translate: (key: string, fallback?: string) => string = (key, fallback) => fallback || key;
+	$: translate = $t;
 
 	interface Person {
 		_id: string;
@@ -112,6 +124,7 @@
 	let showDeleteDialog = false;
 	let editingPerson: Person | null = null;
 	let personToDelete: Person | null = null;
+	let importExportBusy = false;
 
 	// Subscribe to stores
 	crudLoader.items.subscribe(value => people = value);
@@ -238,6 +251,154 @@
 			return dateString;
 		}
 	}
+
+	function importFileErrorMessage(err: unknown): string {
+		if (err instanceof Error && err.message === 'INVALID_JSON') {
+			return translate('admin.collectionImportInvalidJson');
+		}
+		if (err instanceof Error && err.message === 'INVALID_SHAPE') {
+			return translate('admin.collectionImportInvalidEnvelope');
+		}
+		return handleError(err, translate('admin.collectionImportReadError'));
+	}
+
+	function setImportSummaryMessage(created: number, failed: number) {
+		const template = translate('admin.collectionImportResult');
+		crudOps.message.set(applyTemplateVars(template, { created, failed }));
+		setTimeout(() => crudOps.message.set(''), 8000);
+	}
+
+	function tagDisplayName(tag: Record<string, unknown>): string {
+		const n = tag.name;
+		if (typeof n === 'string') return n;
+		if (n && typeof n === 'object') {
+			const o = n as Record<string, string>;
+			return (o.en || o.he || '').trim();
+		}
+		return '';
+	}
+
+	async function buildTagIdToNameMap(): Promise<Map<string, string>> {
+		const list = await fetchAdminPaginatedList('/api/admin/tags');
+		const map = new Map<string, string>();
+		for (const raw of list) {
+			if (!raw || typeof raw !== 'object') continue;
+			const tag = raw as Record<string, unknown>;
+			const id = String(tag._id ?? '');
+			if (!id) continue;
+			const label = tagDisplayName(tag);
+			map.set(id, label || id);
+		}
+		return map;
+	}
+
+	async function handlePeopleExport() {
+		importExportBusy = true;
+		crudOps.error.set('');
+		try {
+			const [rows, tagMap] = await Promise.all([
+				fetchAdminPaginatedList('/api/admin/people'),
+				buildTagIdToNameMap()
+			]);
+			const items = rows.map((raw) => {
+				const row = raw as Record<string, unknown>;
+				const {
+					_id,
+					fullName,
+					profileImage,
+					faceRecognition,
+					createdBy,
+					createdAt,
+					updatedAt,
+					tags: tagIds,
+					...rest
+				} = row;
+				void _id;
+				void fullName;
+				void profileImage;
+				void faceRecognition;
+				void createdBy;
+				void createdAt;
+				void updatedAt;
+				const ids = Array.isArray(tagIds) ? tagIds : [];
+				const tags = ids.map((tid) => tagMap.get(String(tid)) || String(tid));
+				return { ...rest, tags };
+			});
+			downloadJson(`openshutter-people-${new Date().toISOString().slice(0, 10)}.json`, {
+				schema: 'openshutter.admin.people/v1',
+				exportedAt: new Date().toISOString(),
+				items
+			});
+		} catch (err) {
+			crudOps.error.set(handleError(err, translate('admin.collectionExportFailed')));
+		} finally {
+			importExportBusy = false;
+		}
+	}
+
+	async function handlePeopleImport(file: File) {
+		importExportBusy = true;
+		crudOps.error.set('');
+		let created = 0;
+		let failed = 0;
+		const failureLines: string[] = [];
+		try {
+			const list = parseImportItems(await file.text());
+			for (let i = 0; i < list.length; i++) {
+				const raw = list[i];
+				if (!raw || typeof raw !== 'object') {
+					failed++;
+					continue;
+				}
+				const o = raw as Record<string, unknown>;
+				const tagsRaw = o.tags;
+				const tags: string[] = [];
+				if (Array.isArray(tagsRaw)) {
+					for (const x of tagsRaw) {
+						if (typeof x === 'string' && x.trim()) tags.push(x.trim());
+						else if (x && typeof x === 'object' && 'name' in (x as object)) {
+							const nm = String((x as { name?: string }).name || '').trim();
+							if (nm) tags.push(nm);
+						}
+					}
+				}
+				const payload = {
+					firstName: (o.firstName as Person['firstName']) ?? {},
+					lastName: (o.lastName as Person['lastName']) ?? {},
+					nickname: (o.nickname as Person['nickname']) ?? {},
+					birthDate: typeof o.birthDate === 'string' ? o.birthDate : undefined,
+					description: (o.description as Person['description']) ?? {},
+					tags,
+					isActive: o.isActive !== false
+				};
+				const fn = payload.firstName && typeof payload.firstName === 'object' ? payload.firstName : {};
+				const ln = payload.lastName && typeof payload.lastName === 'object' ? payload.lastName : {};
+				const anyFirst = Object.values(fn).some((v) => typeof v === 'string' && v.trim());
+				const anyLast = Object.values(ln).some((v) => typeof v === 'string' && v.trim());
+				if (!anyFirst || !anyLast) {
+					failed++;
+					failureLines.push(`#${i + 1}: first/last name required`);
+					continue;
+				}
+				try {
+					await adminPostJson('/api/admin/people', payload);
+					created++;
+				} catch (e) {
+					failed++;
+					failureLines.push(`#${i + 1}: ${handleError(e, 'Error')}`);
+				}
+			}
+			await crudLoader.loadItems();
+			setImportSummaryMessage(created, failed);
+			if (failureLines.length) {
+				crudOps.error.set(failureLines.slice(0, 8).join(' · '));
+			}
+		} catch (err) {
+			crudOps.error.set(importFileErrorMessage(err));
+		} finally {
+			importExportBusy = false;
+		}
+	}
 </script>
 
 <svelte:head>
@@ -287,21 +448,30 @@
 					</div>
 				</div>
 
-				<button
-					type="button"
-					on:click={openCreateDialog}
-					class="px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700) text-sm font-medium flex items-center gap-2"
-				>
-					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M12 4v16m8-8H4"
-						/>
-					</svg>
-					Add Person
-				</button>
+				<div class="flex flex-wrap items-center gap-2">
+					<CollectionImportExportButtons
+						exportLabel={$t('admin.collectionExportJson')}
+						importLabel={$t('admin.collectionImportJson')}
+						busy={importExportBusy}
+						onExport={handlePeopleExport}
+						onImportFile={handlePeopleImport}
+					/>
+					<button
+						type="button"
+						on:click={openCreateDialog}
+						class="px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700) text-sm font-medium flex items-center gap-2"
+					>
+						<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M12 4v16m8-8H4"
+							/>
+						</svg>
+						Add Person
+					</button>
+				</div>
 			</div>
 
 			<!-- People List -->

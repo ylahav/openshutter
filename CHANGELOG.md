@@ -1,6 +1,7 @@
 ## [Unreleased]
 
 ### Added
+- **Album gallery (page builder):** On **`albumSource: current`**, photo lists paginate (**100** photos per fetch) with a **Load more photos** button; the old **`maxItems`** slice no longer hides photos beyond the module **`limit`** on album pages. Listing grids (`root` / `featured` / `selected`) keep a higher cap (**500**). See **`docs/development/PAGE_BUILDER_MODULES.md`**.
 - **Docs:** [`docs/archive/development/NEXT_STEPS.md`](docs/archive/development/NEXT_STEPS.md) — post–engineering-quality merge priorities (CI, roadmap links, optional hygiene). [`ENGINEERING_QUALITY_TASKS.md`](docs/archive/development/ENGINEERING_QUALITY_TASKS.md) updated to reflect merge to `main`; [`docs/index.md`](docs/index.md) links the new doc.
 - **Search tag-filter analytics:** `GET /api/admin/analytics/search` returns **`tagFilterStats`** (searches using tag filters, share of searches, zero-result counts, top tags in filters with resolved names). CSV export (`type=search`) includes tag-filter sections. **`metadata.ownerScopeId`** on `analytics_events` search rows for owner-site / v1 host context. **Owner:** `GET /api/owner/analytics/search-tag-filters`, UI **`/owner/analytics`**, dashboard card on **`/owner`**, SvelteKit **`/api/owner/analytics/search-tag-filters`**. Documented in **`docs/archive/development/design/ADVANCED_ANALYTICS_DESIGN.md`** and **`docs/guides/owner-dashboard.md`**. **`AlbumAccessContext`** documents optional **`ownerSiteId`**.
 - **AI providers health API:** Admin-only endpoint **`GET /api/admin/ai/providers/health`** reports configured provider, auto fallback order, active provider, and per-provider availability/reason for **`google-vision`**, **`clip`**, and **`local`**.
@@ -14,6 +15,9 @@
 - **Integration marketplace (Phase 4 Stage 2):** Public **`GET /api/marketplace`** supports **`limit`** (default 100, max 200) and **`offset`**. Listing detail page shows **screenshots** when present. **Admin → Marketplace** can **edit tags** (comma-separated) per listing.
 
 ### Changed
+- **Google Drive — OAuth visible scope:** Authorization URLs now request **`https://www.googleapis.com/auth/drive`** (was `drive.file`) so uploads work in normal My Drive folders; consent screen scopes may need updating, then **renew token**. Owner and admin auth URL generation updated (`OwnerStorageView`, `storage-admin.controller`).
+- **Google Drive — upload errors:** Service-account **`storageQuotaExceeded`** responses surface a clear message (personal My Drive vs **Shared drive** / OAuth); generic 403 text no longer masks this. **`docs/guides/STORAGE.md`**, **`docs/guides/GOOGLE_DRIVE.md`**, **`SERVER_DEPLOYMENT.md`** updated.
+- **Photo upload proxy:** SvelteKit **`/api/photos/upload`** forwards Nest **`message`** before generic **`error: Bad Request`** so failures show the real backend text.
 - **Shared UI components:** Site-facing chrome controls (`Menu`, `LanguageSelector`, `ThemeToggle`, `TemplateSelector`) live under **`frontend/src/lib/page-builder/primitives/<name>/`** with a **README per component**. Imports use **`$pageBuilder/primitives/...`** (`$pageBuilder` alias in **`frontend/svelte.config.js`**). Deprecated import paths are blocked by ESLint. **Admin →** **UI components** / **`/admin/docs/ui`** render Markdown from **`primitives/`** and **`modules/`**, including a **“two layers”** intro (`_visitor-ui-layers.md`).
 - **Album gallery / packs:** Shared **`AlbumGallery`** layouts (card variants, justified rows, **`albumsGrid`** integration) and pack **Home/Gallery** shells lean on page-builder modules; Noir **`_albumsGrid.scss`** and duplicate pack **AlbumList/AlbumCard** components removed in favor of the shared module. **`siteConfig.template`** gains optional **`albumCard`** / **`photoCard`** theme keys for grid presets.
 - **Noir visitor header:** Fixed **`n-header`** no longer covers the first page-builder content row; **`_header.scss`** reserves space on **`.pb-page`** via **`--noir-fixed-header-reserve`** (see **`docs/development/TEMPLATING.md`**).
@@ -110,6 +114,17 @@
 - **Light/dark mode**: Tailwind v4 `@custom-variant dark` uses the `.dark` class so the theme toggle updates the view. Body, header, footer, PageRenderer, RichText, and all template headers/footers (default, minimal, modern, elegant) use `dark:` variants. All page-builder modules (AlbumGallery, Cta, FeatureGrid, Hero, SocialMedia, AuthButtons, UserGreeting, SiteTitle, RichText) and shared UI primitives under **`page-builder/primitives`** (menu, language selector, template selector, theme toggle) support dark mode.
 - **Theme selection persistence**: When an admin changes the active theme via Theme Select (or header template selector), the frontend now sends both `frontendTemplate` and `activeTemplate` so the selected theme persists after reload (the store reads `frontendTemplate` first).
 - **Theme Select in layout grid**: “Theme Select” is included in the header and footer module allowlists on the template overrides page so it appears in “Choose module…” when assigning modules to the layout grid.
+
+## [1.3.0] - 2026-05-05
+
+### Fixed
+- **Migration import replace semantics (templates/pages):** `configMode=replace` now fully replaces imported pages and page modules (instead of merge-like upserts), and template merge rules now treat `layoutShellInstances` and `menuInstances` as replace-whole keys to prevent stale instances after import/apply.
+- **Templates/pages migration bundle completeness:** Export/import packages now include the `themes` collection (`themes.json`) so non-active template headers/layouts are preserved across environments; preview/result metadata now includes theme counts/imported themes.
+- **Layout shell runtime fallback:** `LayoutShellModule` now resolves presets by merging `layoutPresets` with `layoutShellInstances` (instances override presets), so an empty `layoutShellInstances` object no longer hides valid presets like `atelier_header`.
+- **Admin page duplication on deployed server:** Added missing SvelteKit API proxy `POST /api/admin/pages/:id/duplicate` to forward to backend and avoid 404 “resource not found” errors in production deployments.
+- **Search filters in admin/owner contexts:** `SearchFilter` now loads filter options with admin-first endpoint fallback (`/api/admin/{tags,people,locations}` then public APIs), and supports multiple payload shapes (`data` / `items` / `results` / array), preventing empty filter lists in the popup.
+- **Search filter chip labels:** Active tag chips now resolve multilingual names instead of rendering raw objects (`[object Object]`) or unresolved IDs when data is available; filter options auto-load when active filters exist so labels resolve without opening the popup first.
+- **Photo edit location selection + save validation:** Admin and owner photo edit pages update `formData` immutably for location changes so first selection renders immediately; location admin save now omits coordinates unless both latitude and longitude are valid finite numbers, avoiding validation errors when fields are empty.
 
 ## [1.0.8] - 2025-02-16
 

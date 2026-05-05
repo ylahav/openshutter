@@ -17,6 +17,8 @@ export interface PageData {
 	introText?: MultiLangHTML | string;
 	content?: MultiLangHTML | string;
 	isPublished?: boolean;
+	/** Login role page: hide the login form main heading. */
+	hideLoginTitle?: boolean;
 }
 
 export interface PageModuleData {

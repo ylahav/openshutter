@@ -29,7 +29,9 @@ export const load: LayoutServerLoad = async ({ locals, fetch }) => {
 	return {
 		siteContext: locals.siteContext,
 		visitorTemplatePack,
-		visitorSiteConfig
+		visitorSiteConfig,
+		/** Alias for `visitorSiteConfig` — matches nested routes that read `{ siteConfig } = await parent()`. */
+		siteConfig: visitorSiteConfig
 	};
 };
 

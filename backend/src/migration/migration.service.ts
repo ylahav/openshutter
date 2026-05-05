@@ -37,6 +37,7 @@ const PACKAGE_LOCATIONS = 'locations.json';
 const PACKAGE_PAGES = 'pages.json';
 const PACKAGE_PAGE_MODULES = 'page-modules.json';
 const PACKAGE_TEMPLATE_CONFIG = 'template-config.json';
+const PACKAGE_THEMES = 'themes.json';
 const PACKAGE_PHOTOS_DIR = 'photos';
 type ExportScope = 'full' | 'templates-pages';
 
@@ -181,6 +182,7 @@ export class MigrationService {
     estimatedSizeBytes: number;
     albumTree: Array<{ alias: string; name: string; photoCount: number; children?: unknown[] }>;
     pageCount?: number;
+    themeCount?: number;
     includesConfig: boolean;
     bundle?: boolean;
     bundlePath?: string;
@@ -217,6 +219,8 @@ export class MigrationService {
     };
     const albumTree = buildTree(null);
     const pageCount = includeConfig || templatesOnly ? await this.pageModel.countDocuments({}).exec() : undefined;
+    const db = mongoose.connection.db;
+    const themeCount = includeConfig || templatesOnly ? await (db?.collection('themes').countDocuments({}) ?? Promise.resolve(0)) : undefined;
     const bundlePath = bundle ? `${dest}.zip` : undefined;
     return {
       albumCount: albums.length,
@@ -224,6 +228,7 @@ export class MigrationService {
       estimatedSizeBytes,
       albumTree,
       pageCount,
+      themeCount,
       includesConfig: includeConfig === true || templatesOnly,
       bundle: !!bundle,
       bundlePath,
@@ -353,6 +358,9 @@ export class MigrationService {
           path.join(dest, PACKAGE_TEMPLATE_CONFIG),
           JSON.stringify({ template: templateConfig }, null, 2),
         );
+        const themes = await db.collection('themes').find({}).toArray();
+        const themesJson = themes.map((t) => serializeDoc(t));
+        await fs.writeFile(path.join(dest, PACKAGE_THEMES), JSON.stringify(themesJson, null, 2));
       }
     }
 
@@ -586,6 +594,7 @@ export class MigrationService {
     photoCount: number;
     albumTree: Array<{ alias: string; photoCount: number }>;
     pageCount?: number;
+    themeCount?: number;
     hasTemplateConfig?: boolean;
   }> {
     const packageSource = await this.resolvePackageSourcePath(sourcePath);
@@ -607,6 +616,7 @@ export class MigrationService {
       const albumsJson = await readJsonArrayIfExists(path.join(src, PACKAGE_ALBUMS));
       const photosJson = await readJsonArrayIfExists(path.join(src, PACKAGE_PHOTOS));
     let pageCount: number | undefined;
+    let themeCount: number | undefined;
     let hasTemplateConfig: boolean | undefined;
     if (includeConfig) {
       try {
@@ -621,6 +631,13 @@ export class MigrationService {
         hasTemplateConfig = true;
       } catch {
         hasTemplateConfig = false;
+      }
+      try {
+        const themesRaw = await fs.readFile(path.join(src, PACKAGE_THEMES), 'utf-8');
+        const themesJson = JSON.parse(themesRaw);
+        themeCount = Array.isArray(themesJson) ? themesJson.length : 0;
+      } catch {
+        themeCount = 0;
       }
     }
     const albumIdToCount = new Map<string, number>();
@@ -644,6 +661,7 @@ export class MigrationService {
         photoCount: manifest.photoCount ?? photosJson.length,
         albumTree,
         pageCount,
+        themeCount,
         hasTemplateConfig,
       };
     } finally {
@@ -688,6 +706,7 @@ export class MigrationService {
       'customFonts',
       'componentVisibility',
       'headerConfig',
+      'menuInstances',
       'layoutPresets',
       'layoutShellInstances',
     ] as const;
@@ -719,7 +738,11 @@ export class MigrationService {
     );
   }
 
-  private async importPagesFromPackage(sourcePath: string, userId: string): Promise<number> {
+  private async importPagesFromPackage(
+    sourcePath: string,
+    userId: string,
+    configMode: 'merge' | 'replace',
+  ): Promise<number> {
     const filePath = path.join(sourcePath, PACKAGE_PAGES);
     let pagesJson: any[];
     try {
@@ -731,21 +754,34 @@ export class MigrationService {
     }
 
     const userObjectId = new Types.ObjectId(userId);
+    const db = mongoose.connection.db;
+    if (!db) return 0;
+    const modulesCollection = db.collection('page_modules');
+
+    if (configMode === 'replace') {
+      // Replace mode should fully reset imported page structures.
+      await modulesCollection.deleteMany({});
+      await this.pageModel.deleteMany({}).exec();
+    }
+
     const idMap = new Map<string, Types.ObjectId>();
     const pendingParent = new Map<string, string | null>();
     let imported = 0;
 
     for (const page of pagesJson) {
       const originalId = typeof page?._id === 'string' ? page._id : '';
-      const existing = await this.pageModel
-        .findOne(
-          page?.alias
-            ? { alias: page.alias }
-            : page?.slug
-              ? { slug: page.slug }
-              : { _id: new Types.ObjectId() },
-        )
-        .exec();
+      const existing =
+        configMode === 'replace'
+          ? null
+          : await this.pageModel
+              .findOne(
+                page?.alias
+                  ? { alias: page.alias }
+                  : page?.slug
+                    ? { slug: page.slug }
+                    : { _id: new Types.ObjectId() },
+              )
+              .exec();
 
       const docPayload: Record<string, unknown> = {
         title: page?.title ?? { en: '', he: '' },
@@ -800,7 +836,7 @@ export class MigrationService {
         .exec();
     }
 
-    await this.importPageModulesFromPackage(sourcePath, idMap, userObjectId);
+    await this.importPageModulesFromPackage(sourcePath, idMap, userObjectId, configMode);
 
     return imported;
   }
@@ -809,6 +845,7 @@ export class MigrationService {
     sourcePath: string,
     pageIdMap: Map<string, Types.ObjectId>,
     userObjectId: Types.ObjectId,
+    configMode: 'merge' | 'replace',
   ): Promise<void> {
     const filePath = path.join(sourcePath, PACKAGE_PAGE_MODULES);
     let modulesJson: any[];
@@ -832,8 +869,11 @@ export class MigrationService {
     }
 
     // Replace modules for imported pages to keep grid/module layout identical.
-    for (const pageId of targetPageIds) {
-      await modulesCollection.deleteMany({ pageId: new Types.ObjectId(pageId) });
+    // In replace mode, modules were already cleared globally.
+    if (configMode !== 'replace') {
+      for (const pageId of targetPageIds) {
+        await modulesCollection.deleteMany({ pageId: new Types.ObjectId(pageId) });
+      }
     }
 
     const now = new Date();
@@ -856,6 +896,75 @@ export class MigrationService {
     if (docsToInsert.length > 0) {
       await modulesCollection.insertMany(docsToInsert);
     }
+  }
+
+  private async importThemesFromPackage(
+    sourcePath: string,
+    configMode: 'merge' | 'replace',
+  ): Promise<number> {
+    const filePath = path.join(sourcePath, PACKAGE_THEMES);
+    let themesJson: any[];
+    try {
+      const raw = await fs.readFile(filePath, 'utf-8');
+      const parsed = JSON.parse(raw);
+      themesJson = Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return 0;
+    }
+
+    const db = mongoose.connection.db;
+    if (!db) return 0;
+    const themesCollection = db.collection('themes');
+
+    if (configMode === 'replace') {
+      await themesCollection.deleteMany({});
+      if (themesJson.length > 0) {
+        const docs = themesJson.map((t: any) => {
+          const { _id: ignoredId, ...rest } = t ?? {};
+          return {
+            ...rest,
+            _id:
+              typeof t?._id === 'string' && Types.ObjectId.isValid(t._id)
+                ? new Types.ObjectId(t._id)
+                : new Types.ObjectId(),
+          };
+        });
+        await themesCollection.insertMany(docs);
+      }
+      return themesJson.length;
+    }
+
+    let imported = 0;
+    for (const theme of themesJson) {
+      if (!theme || typeof theme !== 'object') continue;
+      const { _id: sourceId, ...rest } = theme;
+      const byId =
+        typeof sourceId === 'string' && Types.ObjectId.isValid(sourceId)
+          ? await themesCollection.findOne({ _id: new Types.ObjectId(sourceId) })
+          : null;
+      const keyFilter =
+        theme.baseTemplate && theme.name
+          ? { baseTemplate: theme.baseTemplate, name: theme.name }
+          : null;
+      const existing = byId ?? (keyFilter ? await themesCollection.findOne(keyFilter) : null);
+
+      if (existing) {
+        await themesCollection.updateOne(
+          { _id: existing._id },
+          { $set: { ...rest, updatedAt: new Date() } },
+        );
+      } else {
+        await themesCollection.insertOne({
+          ...rest,
+          _id:
+            typeof sourceId === 'string' && Types.ObjectId.isValid(sourceId)
+              ? new Types.ObjectId(sourceId)
+              : new Types.ObjectId(),
+        });
+      }
+      imported++;
+    }
+    return imported;
   }
 
   async importStartFromPackage(
@@ -1059,8 +1168,10 @@ export class MigrationService {
     }
 
       let importedPages = 0;
+      let importedThemes = 0;
       if (options?.includeConfig) {
-        importedPages = await this.importPagesFromPackage(src, userId);
+        importedPages = await this.importPagesFromPackage(src, userId, options.configMode ?? 'merge');
+        importedThemes = await this.importThemesFromPackage(src, options.configMode ?? 'merge');
         await this.importTemplateConfigFromPackage(src, options.configMode ?? 'merge');
       }
 
@@ -1069,6 +1180,7 @@ export class MigrationService {
         progress: total,
         result: {
           importedPages,
+          importedThemes,
           importedTemplateConfig: options?.includeConfig === true,
         },
       });

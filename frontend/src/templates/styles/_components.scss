@@ -3,6 +3,8 @@
 // Every variant is a data-attribute selector on the component root.
 // ============================================================
 @use 'mixins' as *;
+// Page builder — global .pb-* base layer (must stay near top for Sass @use rules)
+@use '../../lib/page-builder/modules/styles';
 
 // ─────────────────────────────────────────────────────────────
 // HERO  —  data-hero="fullbleed | split | editorial"

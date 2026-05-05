@@ -74,8 +74,10 @@ The owner dashboard shows **Storage management** when dedicated storage is enabl
 
 **Auth method** (in storage config):
 
-- **OAuth** (default): Uses Client ID, Client Secret, Refresh Token. Set **Redirect URI** to your production callback URL (e.g. `https://yourdomain.com/api/auth/google/callback`) when deployed, then re-authorize from the deployed site.
-- **Service account** (recommended for deployed servers): No redirect or refresh token. Paste **Service account JSON** (from Google Cloud Console → IAM → Service Accounts → Create key) or set **Client email** and **Private key**. **Folder ID** is required: create a folder in Drive, share it with the service account email (Editor), and set the folder ID.
+- **OAuth** (default): Uses Client ID, Client Secret, Refresh Token. Set **Redirect URI** to your production callback URL (e.g. `https://yourdomain.com/api/auth/google/callback`) when deployed, then re-authorize from the deployed site. **Visible** storage uses the **`https://www.googleapis.com/auth/drive`** scope so uploads work in normal My Drive folders (including galleries that were partially managed by a service account before). Add that scope on the OAuth consent screen if prompted. **Hidden (AppData)** still uses **`drive.appdata`** only.
+- **Service account** (good for servers that use **Google Workspace**): No redirect or refresh token. Paste **Service account JSON** (from Google Cloud Console → IAM → Service Accounts → Create key) or set **Client email** and **Private key**. **Folder ID** is required.
+
+**Service account and personal Google accounts:** Google does **not** give service accounts “My Drive” storage quota. Uploading **files** into a folder you shared from a **personal** (@gmail.com / Google One) Drive often fails with an API error about **storage quota** / “Service Accounts do not have storage quota”. Folder creation may still appear to work. **Fix:** use **OAuth (user)** for personal Drive, or use a **Google Workspace** account with a **Shared drive** (Team Drive), add the service account as **Content manager** (or higher) on that shared drive, and keep your gallery root **inside** that shared drive. See [`GOOGLE_DRIVE.md`](./GOOGLE_DRIVE.md).
 
 **OAuth fields**: Client ID, Client Secret, Refresh Token, optional Redirect URI. **Storage Type**: `appdata` (hidden) or `visible`. **Folder ID**: optional for OAuth visible; required for Service account.
 
@@ -89,7 +91,7 @@ Configure via admin dashboard at `/admin/storage`.
 5. The refresh token will be automatically saved
 6. Test the connection to verify everything works
 
-**Important**: When switching storage types, you must generate a new refresh token because the OAuth scopes are different (`drive.appdata` for hidden vs `drive.file` for visible).
+**Important**: When switching storage types **or** when the app’s requested scopes change (e.g. after an upgrade), generate a **new** refresh token. Scopes differ: **`drive.appdata`** (hidden) vs **`drive`** (visible).
 
 ### Automatic Token Renewal Detection
 

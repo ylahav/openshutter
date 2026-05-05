@@ -19,6 +19,7 @@
 	import AlbumCollaborationPanel from '$lib/components/AlbumCollaborationPanel.svelte';
 	import { getPhotoUrl, getPhotoRotationStyle } from '$lib/utils/photoUrl';
 	import { logger } from '$lib/utils/logger';
+	import { albumSlugFromRouteParams } from '$lib/utils/album-route-params';
 	import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
 
 	interface AlbumData {
@@ -40,7 +41,7 @@
 		};
 	}
 
-	let alias = $page.params.alias || $page.params.id;
+	$: alias = albumSlugFromRouteParams($page.params) ?? '';
 	let albumData: AlbumData | null = null;
 	let loading = true;
 	let error: string | null = null;
@@ -66,8 +67,8 @@
 	afterNavigate(({ to, from }) => {
 		if (!browser) return;
 		
-		const newAlias = to?.params?.alias || to?.params?.id;
-		const oldAlias = from?.params?.alias || from?.params?.id;
+		const newAlias = albumSlugFromRouteParams(to?.params);
+		const oldAlias = albumSlugFromRouteParams(from?.params);
 		
 		// Only fetch if the alias actually changed (not on initial load)
 		if (newAlias && newAlias !== oldAlias) {

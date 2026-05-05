@@ -88,6 +88,8 @@ export interface SiteConfig {
       showTemplateSelector?: boolean
       /** Public header language control: compact dropdown (default) or flag buttons. */
       languageSelectorVariant?: 'dropdown' | 'flags'
+      /** Theme control in the legacy shared header (not layout-shell header grid). */
+      themeToggleVariant?: 'icons' | 'text' | 'both'
     } | null
     /** Legacy flat per page or `{ pageKey: { xs: …, lg: … } }` (Admin saves full map here). */
     pageModules?: Record<string, unknown>
@@ -96,6 +98,11 @@ export interface SiteConfig {
     layoutPresets?: Record<string, { gridRows?: number; gridColumns?: number; modules?: unknown[] }>
     /** Shared layout-shell instances (preferred key; alias => grid + modules). */
     layoutShellInstances?: Record<string, { gridRows?: number; gridColumns?: number; modules?: unknown[] }>
+    /**
+     * Per built-in pack: CMS page alias / page-builder scoped class prefix (lowercase a–z / 0–9, 1–12 chars).
+     * Omitted pack ids use each template pack’s built-in default.
+     */
+    pageAliasPrefixes?: Record<string, string>
     /**
      * Optional site-wide hero defaults (page-builder `hero` module can override per instance).
      * @see `frontend/src/lib/page-builder/modules/Hero/README.md`

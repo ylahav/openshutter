@@ -993,9 +993,23 @@ export class GoogleDriveService implements IStorageService {
         rootFolderId: this.getRootFolderId()
       })
       
-      // Provide more detailed error message
+      // Provide more detailed error message (Google nests reasons under response.data.error.errors[])
+      const apiErrors = error?.response?.data?.error?.errors
+      const firstReason =
+        Array.isArray(apiErrors) && apiErrors[0]?.reason ? String(apiErrors[0].reason) : undefined
+      const apiMsg =
+        typeof error?.response?.data?.error?.message === 'string'
+          ? error.response.data.error.message
+          : undefined
+
       let errorMessage = `Failed to upload file ${filename}`
-      if (error.code === 403 || error.status === 403) {
+      if (
+        firstReason === 'storageQuotaExceeded' ||
+        (typeof apiMsg === 'string' && apiMsg.includes('Service Accounts do not have storage quota'))
+      ) {
+        errorMessage +=
+          '. Service accounts cannot consume personal My Drive storage for uploads. Use a Google Shared drive (share the root folder with the service account as Content manager), or use OAuth user credentials instead of a service account.'
+      } else if (error.code === 403 || error.status === 403) {
         errorMessage += '. Permission denied - check OAuth scopes and folder permissions'
       } else if (error.code === 404 || error.status === 404) {
         errorMessage += '. Folder not found - check if the album folder exists'

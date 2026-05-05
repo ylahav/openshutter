@@ -82,6 +82,11 @@ export class CreatePageDto {
 	@IsBoolean()
 	@IsOptional()
 	isPublished?: boolean;
+
+	/** Login role pages: hide the login form’s main heading (title copy still stored). */
+	@IsBoolean()
+	@IsOptional()
+	hideLoginTitle?: boolean;
 	
 	@IsOptional()
 	layout?: PageLayoutDto;

@@ -3,6 +3,8 @@ import type { FontSetting, FontRole } from '$lib/types/fonts'
 export interface TemplateConfig {
   templateName: string
   displayName: string
+  /** Default CMS alias / scoped class prefix; overridable in site settings per pack. */
+  pageAliasPrefix?: string
   description: string
   version: string
   author: string
@@ -84,6 +86,8 @@ export interface TemplateConfig {
       showSiteTitle?: boolean
       menu?: { labelKey?: string; label?: string; href: string }[]
       enableThemeToggle?: boolean
+      /** Legacy shared header: sun/moon only, text, or icon + label. */
+      themeToggleVariant?: 'icons' | 'text' | 'both'
       enableLanguageSelector?: boolean
       showGreeting?: boolean
       showAuthButtons?: boolean

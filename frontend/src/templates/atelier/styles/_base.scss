@@ -1,0 +1,26 @@
+@use './tools' as *;
+
+// ─── Reset ───────────────────────────────────────────────────
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  background: var(--bg);
+  transition: background $t;
+}
+
+body {
+  font-family: var(--os-font-body), $jost;
+  color: var(--fg);
+  min-height: 100vh;
+  transition:
+    background $t,
+    color $t;
+}

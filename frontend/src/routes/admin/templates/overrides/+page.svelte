@@ -133,6 +133,7 @@
 				showLogo?: boolean;
 				showSiteTitle?: boolean;
 				enableThemeToggle?: boolean;
+				themeToggleVariant?: 'icons' | 'text' | 'both';
 				enableLanguageSelector?: boolean;
 				showGreeting?: boolean;
 				showAuthButtons?: boolean;
@@ -493,6 +494,7 @@
 			'divider',
 			'featureGrid',
 			'albumsGrid',
+			'rootAlbumsList',
 			'albumView',
 			'cta',
 			'blogCategory',
@@ -5440,203 +5442,26 @@ let draggedAlbumHeaderField: string | null = null;
 						</div>
 					</div>
 				{:else if editingModule.type === 'hero'}
-					<div class="space-y-4">
-						<div>
-							<label for="hero-title" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-								Title
-							</label>
-							{#if typeof editingModule.props?.title === 'object'}
-								<MultiLangInput
-									id="hero-title"
-									bind:value={editingModule.props.title}
-									placeholder="Enter hero title"
-									class="w-full"
-								/>
-							{:else}
-								<input
-									id="hero-title"
-									type="text"
-									class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
-									value={editingModule.props?.title || ''}
-									placeholder="Enter hero title"
-									on:input={(e) => {
-										editingModule = {
-											...editingModule,
-											props: { ...editingModule.props, title: (e.currentTarget as HTMLInputElement).value }
-										};
-									}}
-								/>
-							{/if}
-						</div>
-
-						<div>
-							<label for="hero-subtitle" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-								Subtitle
-							</label>
-							{#if typeof editingModule.props?.subtitle === 'object'}
-								<MultiLangInput
-									id="hero-subtitle"
-									bind:value={editingModule.props.subtitle}
-									placeholder="Enter hero subtitle"
-									class="w-full"
-								/>
-							{:else}
-								<input
-									id="hero-subtitle"
-									type="text"
-									class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
-									value={editingModule.props?.subtitle || ''}
-									placeholder="Enter hero subtitle"
-									on:input={(e) => {
-										editingModule = {
-											...editingModule,
-											props: { ...editingModule.props, subtitle: (e.currentTarget as HTMLInputElement).value }
-										};
-									}}
-								/>
-							{/if}
-						</div>
-
-						<div>
-							<label for="hero-cta-label" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-								Button Label (CTA)
-							</label>
-							{#if typeof editingModule.props?.ctaLabel === 'object'}
-								<MultiLangInput
-									id="hero-cta-label"
-									bind:value={editingModule.props.ctaLabel}
-									placeholder="Enter button label"
-									class="w-full"
-								/>
-							{:else}
-								<input
-									id="hero-cta-label"
-									type="text"
-									class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
-									value={editingModule.props?.ctaLabel || ''}
-									placeholder="Enter button label"
-									on:input={(e) => {
-										editingModule = {
-											...editingModule,
-											props: { ...editingModule.props, ctaLabel: (e.currentTarget as HTMLInputElement).value }
-										};
-									}}
-								/>
-							{/if}
-						</div>
-
-						<div>
-							<label for="hero-cta-url" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-								Button URL (CTA)
-							</label>
-							<input
-								id="hero-cta-url"
-								type="url"
-								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
-								value={editingModule.props?.ctaUrl || ''}
-								placeholder="https://example.com"
-								on:input={(e) => {
-									editingModule = {
-										...editingModule,
-										props: { ...editingModule.props, ctaUrl: (e.currentTarget as HTMLInputElement).value }
-									};
-								}}
-							/>
-						</div>
-
-						<div>
-							<label for="hero-background-style" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-								Background Style
-							</label>
-							<select
-								id="hero-background-style"
-								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
-								value={editingModule.props?.backgroundStyle || 'light'}
-								on:change={(e) => {
-									const style = (e.currentTarget as HTMLSelectElement).value;
-									editingModule = {
-										...editingModule,
-										props: {
-											...editingModule.props,
-											backgroundStyle: style,
-											...(style !== 'image' ? { backgroundImage: undefined } : {})
-										}
-									};
-								}}
-							>
-								<option value="light">Light</option>
-								<option value="dark">Dark</option>
-								<option value="image">Image</option>
-								<option value="galleryLeading">Gallery Leading</option>
-							</select>
-						</div>
-
-						{#if editingModule.props?.backgroundStyle === 'image'}
-							<div>
-								<label for="hero-background-image" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-									Background Image URL
-								</label>
-								<input
-									id="hero-background-image"
-									type="url"
-									class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
-									value={editingModule.props?.backgroundImage || ''}
-									placeholder="https://example.com/image.jpg"
-									on:input={(e) => {
-										editingModule = {
-											...editingModule,
-											props: { ...editingModule.props, backgroundImage: (e.currentTarget as HTMLInputElement).value }
-										};
-									}}
-								/>
-							</div>
-							{/if}
+					<div class="space-y-4 border-t border-surface-200-800 pt-4">
+						<ModulePropsForm
+							moduleType="hero"
+							showPlacementInGrid={false}
+							props={editingModule.props || {}}
+							onChange={(next) => {
+								editingModule = { ...editingModule, props: { ...next } };
+							}}
+						/>
 					</div>
 				{:else if editingModule.type === 'richText'}
-					<div class="space-y-4">
-						<div>
-							<label for="richtext-title" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-								Title
-							</label>
-							<MultiLangInput
-								id="richtext-title"
-								bind:value={editingModule.props.title}
-								placeholder="Enter title"
-								className="w-full"
-							/>
-						</div>
-
-						<div>
-							<label for="richtext-body" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-								Body Content
-							</label>
-							<MultiLangHTMLEditor
-								id="richtext-body"
-								bind:value={editingModule.props.body}
-								className="w-full"
-							/>
-						</div>
-
-						<div>
-							<label for="richtext-background" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-								Background Color
-							</label>
-							<select
-								id="richtext-background"
-								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
-								value={editingModule.props?.background || 'white'}
-								on:change={(e) => {
-									editingModule = {
-										...editingModule,
-										props: { ...editingModule.props, background: (e.currentTarget as HTMLSelectElement).value as 'white' | 'gray' | 'transparent' }
-									};
-								}}
-							>
-								<option value="white">White</option>
-								<option value="gray">Gray</option>
-								<option value="transparent">Transparent</option>
-							</select>
-						</div>
+					<div class="space-y-4 border-t border-surface-200-800 pt-4">
+						<ModulePropsForm
+							moduleType="richText"
+							showPlacementInGrid={false}
+							props={editingModule.props || {}}
+							onChange={(next) => {
+								editingModule = { ...editingModule, props: { ...next } };
+							}}
+						/>
 					</div>
 				{:else if editingModule.type === 'pageTitle'}
 					<div class="space-y-4">
@@ -6012,18 +5837,22 @@ let draggedAlbumHeaderField: string | null = null;
 								class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 								value={editingModule.props?.variant ?? 'icons'}
 								on:change={(e) => {
-									const v = (e.currentTarget as HTMLSelectElement).value;
+									const v = (e.currentTarget as HTMLSelectElement).value as 'icons' | 'text' | 'both';
+									const rest = { ...(editingModule.props || {}) };
+									if (v === 'icons') {
+										delete rest.variant;
+									} else {
+										rest.variant = v;
+									}
 									editingModule = {
 										...editingModule,
-										props: {
-											...editingModule.props,
-											variant: v === 'text' ? 'text' : 'icons'
-										}
+										props: rest
 									};
 								}}
 							>
 								<option value="icons">Icons (sun / moon)</option>
 								<option value="text">Text (Light / Dark)</option>
+								<option value="both">Icon and text</option>
 							</select>
 							<p class="mt-1 text-xs text-(--color-surface-600-400)">
 								Labels describe the theme you switch to when clicking.
@@ -6335,6 +6164,15 @@ let draggedAlbumHeaderField: string | null = null;
 							/>
 						</div>
 					</div>
+				{:else if editingModule.type === 'loginForm'}
+					<ModulePropsForm
+						moduleType="loginForm"
+						props={editingModule.props || {}}
+						showPlacementInGrid={false}
+						onChange={(next) => {
+							editingModule = { ...editingModule, props: { ...next } };
+						}}
+					/>
 				{:else}
 					<div class="text-sm text-(--color-surface-600-400)">
 						<p>Module-specific configuration options coming soon.</p>

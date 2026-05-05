@@ -16,6 +16,7 @@
 	}>();
 
 	let showFilterPanel = false;
+	let loadingFilterOptions = false;
 	let filterOptions: { albums: any[]; tags: any[]; people: any[]; locations: any[] } = {
 		albums: [],
 		tags: [],
@@ -50,25 +51,55 @@
 		return MultiLangUtils.getTextValue(item.name || item.title || item.fullName || item.firstName || {}, $currentLanguage) || item._id || '';
 	}
 
-	async function openFilterPanel() {
-		showFilterPanel = true;
-		draftFilters = { ...activeFilters };
-		if (filterOptions.albums.length > 0) return;
+	function toArray(payload: any): any[] {
+		if (Array.isArray(payload)) return payload;
+		if (Array.isArray(payload?.data)) return payload.data;
+		if (Array.isArray(payload?.items)) return payload.items;
+		if (Array.isArray(payload?.results)) return payload.results;
+		return [];
+	}
+
+	async function fetchFirstSuccessfulJson(urls: string[]): Promise<any> {
+		for (const url of urls) {
+			try {
+				const res = await fetch(url, { credentials: 'include' });
+				if (!res.ok) continue;
+				return await res.json();
+			} catch {
+				// Try next fallback endpoint.
+			}
+		}
+		return [];
+	}
+
+	async function loadFilterOptions() {
+		if (loadingFilterOptions) return;
+		loadingFilterOptions = true;
 		try {
-			const [albumsRes, tagsRes, peopleRes, locationsRes] = await Promise.all([
-				fetch('/api/albums/hierarchy?includePrivate=false', { credentials: 'include' }),
-				fetch('/api/tags?limit=500&isActive=true', { credentials: 'include' }),
-				fetch('/api/people?limit=500&isActive=true', { credentials: 'include' }),
-				fetch('/api/locations?limit=500&isActive=true', { credentials: 'include' })
+			const isAdminContext =
+				typeof window !== 'undefined' && /^\/(admin|owner)(\/|$)/.test(window.location.pathname);
+			const [albumsPayload, tagsData, peopleData, locationsData] = await Promise.all([
+				fetchFirstSuccessfulJson(['/api/albums/hierarchy?includePrivate=false']),
+				fetchFirstSuccessfulJson(
+					isAdminContext
+						? ['/api/admin/tags?limit=500', '/api/tags?limit=500']
+						: ['/api/tags?limit=500', '/api/admin/tags?limit=500']
+				),
+				fetchFirstSuccessfulJson(
+					isAdminContext
+						? ['/api/admin/people?limit=500', '/api/people?limit=500']
+						: ['/api/people?limit=500', '/api/admin/people?limit=500']
+				),
+				fetchFirstSuccessfulJson(
+					isAdminContext
+						? ['/api/admin/locations?limit=500', '/api/locations?limit=500']
+						: ['/api/locations?limit=500', '/api/admin/locations?limit=500']
+				)
 			]);
-			const albumsPayload = albumsRes.ok ? await albumsRes.json() : {};
-			const tagsData = tagsRes.ok ? await tagsRes.json() : [];
-			const peopleData = peopleRes.ok ? await peopleRes.json() : [];
-			const locationsData = locationsRes.ok ? await locationsRes.json() : [];
-			const albumsTree = Array.isArray(albumsPayload) ? albumsPayload : albumsPayload?.data ?? [];
-			const tags = Array.isArray(tagsData) ? tagsData : tagsData?.data ?? [];
-			const people = Array.isArray(peopleData) ? peopleData : peopleData?.data ?? [];
-			const locations = Array.isArray(locationsData) ? locationsData : locationsData?.data ?? [];
+			const albumsTree = toArray(albumsPayload);
+			const tags = toArray(tagsData);
+			const people = toArray(peopleData);
+			const locations = toArray(locationsData);
 			const flattenAlbums = (arr: any[], out: any[] = []): any[] => {
 				for (const a of arr) {
 					out.push({
@@ -87,7 +118,25 @@
 			};
 		} catch (e) {
 			logger.error('Failed to load filter options', e);
+		} finally {
+			loadingFilterOptions = false;
 		}
+	}
+
+	$: if (
+		hasActiveSearchFilters(activeFilters) &&
+		filterOptions.tags.length === 0 &&
+		filterOptions.people.length === 0 &&
+		filterOptions.locations.length === 0
+	) {
+		loadFilterOptions();
+	}
+
+	async function openFilterPanel() {
+		showFilterPanel = true;
+		draftFilters = { ...activeFilters };
+		if (filterOptions.albums.length > 0) return;
+		await loadFilterOptions();
 	}
 
 	function applyFilterPanel() {
@@ -107,7 +156,7 @@
 	<button
 		type="button"
 		on:click={openFilterPanel}
-		class={`os-search-form__filters-btn px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${buttonClass}`.trim()}
+		class={`os-search-form__filters-btn ${buttonClass}`.trim()}
 	>
 		{$t('search.filters') || 'Filters'}
 	</button>
@@ -117,30 +166,30 @@
 	<div class={`os-search-filters mb-4 flex flex-wrap gap-2 ${chipsWrapClass}`.trim()}>
 		{#if activeFilters.albumId}
 			{@const albumName = filterOptions.albums.find((a) => toIdString(a._id) === toIdString(activeFilters.albumId))?.name ?? activeFilters.albumId}
-			<span class="os-search-filters__chip px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+			<span class="os-search-filters__chip">
 				{$t('search.album')}: {albumName}
-				<button type="button" on:click={() => dispatch('change', { ...activeFilters, albumId: null })} class="os-search-filters__chip-remove ml-2 hover:text-blue-900">×</button>
+				<button type="button" on:click={() => dispatch('change', { ...activeFilters, albumId: null })} class="os-search-filters__chip-remove">×</button>
 			</span>
 		{/if}
 		{#each activeFilters.tags as tagId}
-			{@const tagName = filterOptions.tags.find((t) => toIdString(t._id) === toIdString(tagId))?.name ?? tagId}
-			<span class="os-search-filters__chip px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+			{@const tagName = getItemName(filterOptions.tags.find((t) => toIdString(t._id) === toIdString(tagId))) || tagId}
+			<span class="os-search-filters__chip">
 				{$t('search.tags')}: {tagName}
-				<button type="button" on:click={() => removeFilterItem('tags', tagId)} class="os-search-filters__chip-remove ml-2 hover:text-blue-900">×</button>
+				<button type="button" on:click={() => removeFilterItem('tags', tagId)} class="os-search-filters__chip-remove">×</button>
 			</span>
 		{/each}
 		{#each activeFilters.people as personId}
 			{@const personName = getItemName(filterOptions.people.find((p) => toIdString(p._id) === toIdString(personId))) || personId}
-			<span class="os-search-filters__chip px-3 py-1 bg-blue-100 rounded-full text-sm">
-				<span class="text-blue-800">{$t('search.people')}: {personName}</span>
-				<button type="button" on:click={() => removeFilterItem('people', personId)} class="os-search-filters__chip-remove ml-2 hover:text-blue-900">×</button>
+			<span class="os-search-filters__chip">
+				<span>{$t('search.people')}: {personName}</span>
+				<button type="button" on:click={() => removeFilterItem('people', personId)} class="os-search-filters__chip-remove">×</button>
 			</span>
 		{/each}
 		{#each activeFilters.locationIds as locationId}
 			{@const locName = getItemName(filterOptions.locations.find((l) => toIdString(l._id) === toIdString(locationId))) || locationId}
-			<span class="os-search-filters__chip px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+			<span class="os-search-filters__chip">
 				{$t('search.locations')}: {locName}
-				<button type="button" on:click={() => removeFilterItem('locationIds', locationId)} class="os-search-filters__chip-remove ml-2 hover:text-blue-900">×</button>
+				<button type="button" on:click={() => removeFilterItem('locationIds', locationId)} class="os-search-filters__chip-remove">×</button>
 			</span>
 		{/each}
 	</div>
@@ -148,30 +197,30 @@
 
 {#if showFilterPanel}
 	<div class="os-search-filter-panel fixed inset-0 z-40 overflow-y-auto" aria-labelledby="filter-panel-title" role="dialog" aria-modal="true">
-		<div class="flex min-h-screen items-center justify-center p-4">
-			<div class="os-search-filter-panel__backdrop fixed inset-0 bg-black/50 transition-opacity" on:click={() => (showFilterPanel = false)} on:keydown={(e) => e.key === 'Escape' && (showFilterPanel = false)} role="button" tabindex="-1" aria-label="Close"></div>
-			<div class="os-search-filter-panel__dialog relative bg-white rounded-lg shadow-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
-				<h2 id="filter-panel-title" class="os-search-filter-panel__title text-lg font-semibold text-gray-900 mb-4">{$t('search.filters') || 'Filters'}</h2>
-				<div class="os-search-filter-panel__body space-y-4">
-					<div>
-						<label for="filter-album" class="block text-sm font-medium text-gray-700 mb-1">{$t('search.album') || 'Album'}</label>
-						<select id="filter-album" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900" bind:value={draftFilters.albumId}>
+		<div class="os-search-filter-panel__container">
+			<div class="os-search-filter-panel__backdrop" on:click={() => (showFilterPanel = false)} on:keydown={(e) => e.key === 'Escape' && (showFilterPanel = false)} role="button" tabindex="-1" aria-label="Close"></div>
+			<div class="os-search-filter-panel__dialog">
+				<h2 id="filter-panel-title" class="os-search-filter-panel__title">{$t('search.filters') || 'Filters'}</h2>
+				<div class="os-search-filter-panel__body">
+					<div class="os-search-filter-panel__field">
+						<label for="filter-album" class="os-search-filter-panel__label">{$t('search.album') || 'Album'}</label>
+						<select id="filter-album" class="os-search-filter-panel__input" bind:value={draftFilters.albumId}>
 							<option value="">— {$t('search.any') || 'Any'} —</option>
 							{#each filterOptions.albums as album}
 								<option value={album._id}>{getItemName(album)}</option>
 							{/each}
 						</select>
 					</div>
-					<div>
-						<span class="block text-sm font-medium text-gray-700 mb-1">{$t('search.tags') || 'Tags'}</span>
-						<div class="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-2 border border-gray-300 rounded-md">
+					<div class="os-search-filter-panel__field">
+						<span class="os-search-filter-panel__label">{$t('search.tags') || 'Tags'}</span>
+						<div class="os-search-filter-panel__checklist">
 							{#if filterOptions.tags.length === 0}
-								<span class="text-xs text-gray-500">No tags available</span>
+								<span class="os-search-filter-panel__empty">No tags available</span>
 							{/if}
 							{#each filterOptions.tags as tag}
 								{@const tagId = toIdString(tag._id)}
 								{@const checked = draftFilters.tags.includes(tagId)}
-								<label class="inline-flex items-center gap-1 text-sm text-gray-900">
+								<label class="os-search-filter-panel__checkbox-item">
 									<input
 										type="checkbox"
 										checked={checked}
@@ -180,21 +229,21 @@
 											else draftFilters = { ...draftFilters, tags: draftFilters.tags.filter((id) => toIdString(id) !== tagId) };
 										}}
 									/>
-									<span class="text-gray-900">{getItemName(tag)}</span>
+									<span>{getItemName(tag)}</span>
 								</label>
 							{/each}
 						</div>
 					</div>
-					<div>
-						<span class="block text-sm font-medium text-gray-700 mb-1">{$t('search.people') || 'People'}</span>
-						<div class="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-2 border border-gray-300 rounded-md">
+					<div class="os-search-filter-panel__field">
+						<span class="os-search-filter-panel__label">{$t('search.people') || 'People'}</span>
+						<div class="os-search-filter-panel__checklist">
 							{#if filterOptions.people.length === 0}
-								<span class="text-xs text-gray-500">No people available</span>
+								<span class="os-search-filter-panel__empty">No people available</span>
 							{/if}
 							{#each filterOptions.people as person}
 								{@const personId = toIdString(person._id)}
 								{@const checked = draftFilters.people.includes(personId)}
-								<label class="inline-flex items-center gap-1 text-sm text-gray-900">
+								<label class="os-search-filter-panel__checkbox-item">
 									<input
 										type="checkbox"
 										checked={checked}
@@ -203,21 +252,21 @@
 											else draftFilters = { ...draftFilters, people: draftFilters.people.filter((id) => toIdString(id) !== personId) };
 										}}
 									/>
-									<span class="text-gray-900">{getItemName(person)}</span>
+									<span>{getItemName(person)}</span>
 								</label>
 							{/each}
 						</div>
 					</div>
-					<div>
-						<span class="block text-sm font-medium text-gray-700 mb-1">{$t('search.locations') || 'Locations'}</span>
-						<div class="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-2 border border-gray-300 rounded-md">
+					<div class="os-search-filter-panel__field">
+						<span class="os-search-filter-panel__label">{$t('search.locations') || 'Locations'}</span>
+						<div class="os-search-filter-panel__checklist">
 							{#if filterOptions.locations.length === 0}
-								<span class="text-xs text-gray-500">No locations available</span>
+								<span class="os-search-filter-panel__empty">No locations available</span>
 							{/if}
 							{#each filterOptions.locations as loc}
 								{@const locId = toIdString(loc._id)}
 								{@const checked = draftFilters.locationIds.includes(locId)}
-								<label class="inline-flex items-center gap-1 text-sm text-gray-900">
+								<label class="os-search-filter-panel__checkbox-item">
 									<input
 										type="checkbox"
 										checked={checked}
@@ -226,34 +275,34 @@
 											else draftFilters = { ...draftFilters, locationIds: draftFilters.locationIds.filter((id) => toIdString(id) !== locId) };
 										}}
 									/>
-									<span class="text-gray-900">{getItemName(loc)}</span>
+									<span>{getItemName(loc)}</span>
 								</label>
 							{/each}
 						</div>
 					</div>
-					<div class="grid grid-cols-2 gap-3">
-						<div>
-							<label for="filter-dateFrom" class="block text-sm font-medium text-gray-700 mb-1">{$t('search.dateFrom') || 'Date from'}</label>
-							<input id="filter-dateFrom" type="date" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900" bind:value={draftFilters.dateFrom} />
+					<div class="os-search-filter-panel__date-grid">
+						<div class="os-search-filter-panel__field">
+							<label for="filter-dateFrom" class="os-search-filter-panel__label">{$t('search.dateFrom') || 'Date from'}</label>
+							<input id="filter-dateFrom" type="date" class="os-search-filter-panel__input" bind:value={draftFilters.dateFrom} />
 						</div>
-						<div>
-							<label for="filter-dateTo" class="block text-sm font-medium text-gray-700 mb-1">{$t('search.dateTo') || 'Date to'}</label>
-							<input id="filter-dateTo" type="date" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900" bind:value={draftFilters.dateTo} />
+						<div class="os-search-filter-panel__field">
+							<label for="filter-dateTo" class="os-search-filter-panel__label">{$t('search.dateTo') || 'Date to'}</label>
+							<input id="filter-dateTo" type="date" class="os-search-filter-panel__input" bind:value={draftFilters.dateTo} />
 						</div>
 					</div>
-					<div>
-						<label for="filter-sort" class="block text-sm font-medium text-gray-700 mb-1">{$t('search.sort') || 'Sort'}</label>
-						<select id="filter-sort" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900" bind:value={draftFilters.sortOrder}>
+					<div class="os-search-filter-panel__field">
+						<label for="filter-sort" class="os-search-filter-panel__label">{$t('search.sort') || 'Sort'}</label>
+						<select id="filter-sort" class="os-search-filter-panel__input" bind:value={draftFilters.sortOrder}>
 							<option value="desc">{$t('search.newestFirst') || 'Newest first'}</option>
 							<option value="asc">{$t('search.oldestFirst') || 'Oldest first'}</option>
 						</select>
 					</div>
 				</div>
-				<div class="os-search-filter-panel__actions mt-6 flex justify-end gap-2">
-					<button type="button" on:click={() => (showFilterPanel = false)} class="os-search-filter-panel__cancel px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200">
+				<div class="os-search-filter-panel__actions">
+					<button type="button" on:click={() => (showFilterPanel = false)} class="os-search-filter-panel__cancel">
 						{$t('search.cancel') || 'Cancel'}
 					</button>
-					<button type="button" on:click={applyFilterPanel} class="os-search-filter-panel__apply px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">
+					<button type="button" on:click={applyFilterPanel} class="os-search-filter-panel__apply">
 						{$t('search.apply') || 'Apply'}
 					</button>
 				</div>
@@ -261,3 +310,172 @@
 		</div>
 	</div>
 {/if}
+
+<style>
+	.os-search-form__filters-btn {
+		padding: 0.5rem 1rem;
+		font-size: 0.875rem;
+		font-weight: 500;
+		color: #374151;
+		background: #fff;
+		border: 1px solid #d1d5db;
+		border-radius: 0.375rem;
+		transition: background-color 0.2s ease;
+	}
+
+	.os-search-form__filters-btn:hover {
+		background: #f9fafb;
+	}
+
+	.os-search-filters__chip {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.25rem 0.75rem;
+		border-radius: 9999px;
+		background: #dbeafe;
+		color: #1e40af;
+		font-size: 0.875rem;
+	}
+
+	.os-search-filters__chip-remove {
+		background: transparent;
+		border: 0;
+		color: inherit;
+		cursor: pointer;
+		padding: 0;
+		font-size: 1rem;
+		line-height: 1;
+	}
+
+	.os-search-filters__chip-remove:hover {
+		color: #1e3a8a;
+	}
+
+	.os-search-filter-panel__container {
+		min-height: 100vh;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 1rem;
+	}
+
+	.os-search-filter-panel__backdrop {
+		position: fixed;
+		inset: 0;
+		background: rgb(0 0 0 / 50%);
+	}
+
+	.os-search-filter-panel__dialog {
+		position: relative;
+		width: 100%;
+		max-width: 32rem;
+		max-height: 90vh;
+		overflow-y: auto;
+		padding: 1.5rem;
+		background: #fff;
+		border-radius: 0.5rem;
+		box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+	}
+
+	.os-search-filter-panel__title {
+		margin: 0 0 1rem;
+		font-size: 1.125rem;
+		font-weight: 600;
+		color: #111827;
+	}
+
+	.os-search-filter-panel__body {
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+	}
+
+	.os-search-filter-panel__field {
+		display: flex;
+		flex-direction: column;
+	}
+
+	.os-search-filter-panel__label {
+		display: block;
+		margin-bottom: 0.25rem;
+		font-size: 0.875rem;
+		font-weight: 500;
+		color: #374151;
+	}
+
+	.os-search-filter-panel__input {
+		width: 100%;
+		padding: 0.5rem 0.75rem;
+		font-size: 0.875rem;
+		color: #111827;
+		border: 1px solid #d1d5db;
+		border-radius: 0.375rem;
+		background: #fff;
+	}
+
+	.os-search-filter-panel__checklist {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+		max-height: 8rem;
+		overflow-y: auto;
+		padding: 0.5rem;
+		border: 1px solid #d1d5db;
+		border-radius: 0.375rem;
+	}
+
+	.os-search-filter-panel__checkbox-item {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+		font-size: 0.875rem;
+		color: #111827;
+	}
+
+	.os-search-filter-panel__empty {
+		font-size: 0.75rem;
+		color: #6b7280;
+	}
+
+	.os-search-filter-panel__date-grid {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 0.75rem;
+	}
+
+	.os-search-filter-panel__actions {
+		margin-top: 1.5rem;
+		display: flex;
+		justify-content: flex-end;
+		gap: 0.5rem;
+	}
+
+	.os-search-filter-panel__cancel,
+	.os-search-filter-panel__apply {
+		padding: 0.5rem 1rem;
+		font-size: 0.875rem;
+		font-weight: 500;
+		border-radius: 0.375rem;
+		cursor: pointer;
+		border: 1px solid transparent;
+	}
+
+	.os-search-filter-panel__cancel {
+		background: #f3f4f6;
+		color: #374151;
+	}
+
+	.os-search-filter-panel__cancel:hover {
+		background: #e5e7eb;
+	}
+
+	.os-search-filter-panel__apply {
+		background: #2563eb;
+		color: #fff;
+	}
+
+	.os-search-filter-panel__apply:hover {
+		background: #1d4ed8;
+	}
+</style>

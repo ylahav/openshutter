@@ -1074,12 +1074,26 @@ export class AlbumsService {
     this.logger.debug(`getAlbumData - serializedAlbum.name type: ${typeof serializedAlbum.name}`);
     this.logger.debug(`getAlbumData - serializedAlbum keys: ${JSON.stringify(Object.keys(serializedAlbum))}`);
 
+    // Match list endpoints: each sub-album needs childAlbumCount for gallery cards (thumb badges).
+    const childAlbumCounts =
+      subAlbums.length === 0
+        ? []
+        : await Promise.all(
+            subAlbums.map((sub: any) => {
+              const oid =
+                sub._id instanceof Types.ObjectId ? sub._id : new Types.ObjectId(String(sub._id));
+              const childQuery = { $and: [{ parentAlbumId: oid }, subVisibility] };
+              return this.albumModel.countDocuments(childQuery);
+            }),
+          );
+
     // Serialize sub-albums
-    const serializedSubAlbums = subAlbums.map((subAlbum: any) => ({
+    const serializedSubAlbums = subAlbums.map((subAlbum: any, index: number) => ({
       ...subAlbum,
       _id: subAlbum._id.toString(),
       parentAlbumId: subAlbum.parentAlbumId ? subAlbum.parentAlbumId.toString() : null,
       coverPhotoId: subAlbum.coverPhotoId ? (subAlbum.coverPhotoId._id ? subAlbum.coverPhotoId._id.toString() : subAlbum.coverPhotoId.toString()) : null,
+      childAlbumCount: childAlbumCounts[index] ?? 0,
     }));
 
     return {

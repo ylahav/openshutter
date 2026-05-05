@@ -292,6 +292,31 @@
 		}
 	}
 
+	&__loadMoreWrap {
+		display: flex;
+		justify-content: center;
+		margin: 2rem 0 1rem;
+	}
+
+	&__loadMore {
+		padding: 0.625rem 1.25rem;
+		font-size: 0.875rem;
+		font-weight: 500;
+		border-radius: 0.5rem;
+		border: 1px solid var(--tp-border);
+		background: var(--tp-surface-1);
+		color: var(--tp-fg);
+		cursor: pointer;
+		transition: opacity 0.2s ease, background 0.2s ease;
+		&:hover:not(:disabled) {
+			background: var(--tp-surface-2);
+		}
+		&:disabled {
+			opacity: 0.6;
+			cursor: not-allowed;
+		}
+	}
+
 	&__empty {
 		text-align: center;
 		padding: 2.5rem 1rem;
@@ -473,6 +498,13 @@
 	.pb-albumCard__photoCount--noirStack {
 		margin-top: 0.25rem;
 	}
+	.pb-albumCard__childAlbumsLine {
+		font-size: 0.8125rem;
+		color: var(--tp-fg-muted);
+	}
+	.pb-albumCard__childAlbumsLine--withMargin {
+		margin-top: 0.35rem;
+	}
 	.pb-albumCard__badgeWrap--withMargin {
 		margin-bottom: 0.5rem;
 	}
@@ -502,6 +534,8 @@
 		}
 	}
 	.pb-albumCard__rowAspect {
+		position: relative;
+		overflow: hidden;
 		height: 100%;
 		width: 100%;
 		min-height: 7.5rem;
@@ -573,6 +607,9 @@
 		font-size: 0.75rem;
 		color: var(--tp-fg-muted);
 	}
+	.pb-albumCard__compactMeta--subAlbums {
+		margin-top: 0.15rem;
+	}
 
 	.pb-albumCard--portraitGrid {
 		position: relative;
@@ -630,6 +667,9 @@
 	.pb-albumCard__portraitMeta {
 		font-size: 0.75rem;
 		color: rgba(255, 255, 255, 0.85);
+	}
+	.pb-albumCard__portraitMeta--subAlbums {
+		margin-top: 0.2rem;
 	}
 
 	.pb-albumCard--permanentOverlay {
@@ -694,6 +734,35 @@
 		font-size: 1rem;
 		line-height: 1;
 		filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+	}
+	.pb-albumCard__permanentBadges {
+		position: absolute;
+		top: 0.5rem;
+		inset-inline-end: 0.5rem;
+		z-index: 3;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-end;
+		gap: 0.35rem;
+		pointer-events: none;
+	}
+	.pb-albumCard__permanentBadges > .pb-albumCard__permanentCountBadge,
+	.pb-albumCard__permanentBadges > .pb-albumCard__permanentSubAlbumsBadge {
+		position: static;
+		top: auto;
+		inset-inline-end: auto;
+	}
+	.pb-albumCard__permanentBadges > .pb-albumCard__permanentStarBadge {
+		position: static;
+		top: auto;
+		inset-inline-end: auto;
+	}
+	.pb-albumCard__permanentSubAlbumsBadge {
+		max-width: min(100%, 10rem);
+		text-align: end;
+		white-space: normal;
+		line-height: 1.25;
+		font-weight: 500;
 	}
 	.pb-albumCard__permanentInfo {
 		position: absolute;
@@ -779,10 +848,19 @@
 	}
 	.pb-albumCard__editorialAside {
 		flex-shrink: 0;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-end;
+		gap: 0.25rem;
 		text-align: end;
 		padding-inline-start: 0.5rem;
 	}
 	.pb-albumCard__editorialCountLabel {
+		font-size: 0.8125rem;
+		color: var(--tp-fg-muted);
+		white-space: nowrap;
+	}
+	.pb-albumCard__editorialSubAlbumsLabel {
 		font-size: 0.8125rem;
 		color: var(--tp-fg-muted);
 		white-space: nowrap;
@@ -796,11 +874,17 @@
 		overflow: hidden;
 		background: linear-gradient(to bottom, var(--tp-surface-2), var(--tp-surface-3));
 	}
-	.pb-albumCard__thumbBadge {
+	.pb-albumCard__thumbBadges {
 		position: absolute;
 		bottom: 0.5rem;
 		inset-inline-end: 0.5rem;
 		z-index: 1;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-end;
+		gap: 0.35rem;
+	}
+	.pb-albumCard__thumbBadge {
 		padding: 0.2rem 0.5rem;
 		border-radius: 0.25rem;
 		font-size: 0.75rem;

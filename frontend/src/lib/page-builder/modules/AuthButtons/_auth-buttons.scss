@@ -1,0 +1,32 @@
+// Auth buttons module (`AuthButtons/Layout.svelte`) — `.pb-authButtons`, `.auth-btns`, `.auth-btn*`.
+// Pack-specific polish: `templates/<pack>/styles/_authButtons.scss` (loaded after main pack CSS).
+
+.pb-authButtons {
+	min-width: 0;
+}
+
+.auth-btns {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	flex-wrap: wrap;
+}
+
+.auth-btn {
+	cursor: pointer;
+	text-decoration: none;
+	border: 0;
+	background: transparent;
+	color: var(--tp-fg-muted, inherit);
+	font: inherit;
+	padding: 0;
+	transition: color 0.2s ease;
+
+	&:hover {
+		color: var(--tp-fg, inherit);
+	}
+}
+
+button.auth-btn {
+	font: inherit;
+}

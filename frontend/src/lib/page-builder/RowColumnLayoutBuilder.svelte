@@ -294,7 +294,11 @@ export let onRemoveEmptyColumn: (columnIndex: number) => Promise<void>;
 									type="button"
 									class="text-[11px] px-1.5 py-0.5 rounded border border-border bg-background text-muted-foreground hover:text-foreground hover:bg-muted"
 									title="Remove this empty column from the grid"
-									on:click|stopPropagation={() => onRemoveEmptyColumn(col.columnIndex)}
+									on:click={(e) => {
+										e.preventDefault();
+										e.stopPropagation();
+										void onRemoveEmptyColumn(col.columnIndex);
+									}}
 								>
 									Remove cell
 								</button>

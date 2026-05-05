@@ -64,6 +64,7 @@ These **`type`** aliases are registered today in **`PAGE_MODULE_TYPES`** (`front
 | `blogArticle` | Blog articles | Content |
 | `layoutShell` | Layout region (named grid) | Content; Header; Footer (where exposed in picker) |
 | `pageTitle` | Page title (placement) | Content |
+| `loginForm` | Login Form | Theme **`pageModules.login`**; merged on **`/login`** via **`LoginCmsPageBody`** |
 | `logo` | Logo | Header |
 | `siteTitle` | Site Title | Header |
 | `menu` | Menu | Header |
@@ -75,6 +76,10 @@ These **`type`** aliases are registered today in **`PAGE_MODULE_TYPES`** (`front
 | `socialMedia` | Social Media | Header; Footer |
 
 Legacy saved type **`albumGallery`** is normalized to **`albumView`** in `PageRenderer`.
+
+### `loginForm` and public `/login`
+
+Visitor **`/login`** is **`routes/[alias]`** with **`LoginCmsPageBody`**, which merges **`site_config.template.pageModules.login`** (and breakpoint variants) with the CMS login page’s modules when present. UI: **`LoginForm/Layout.svelte`**. The **document** landmark **`main`** is **`BodyTemplateWrapper`**; the block root is **`<section class="pb-login">`** so there is no nested **`main`**. Pack styling uses **`section.pb-login`** under **`.tpl-pack-*`** (see **`frontend/src/lib/page-builder/modules/styles/_login-pb.scss`** and pack **`_login.scss`** partials). Details: **`frontend/src/lib/page-builder/modules/LoginForm/README.md`**.
 
 ---
 
@@ -397,7 +402,7 @@ Quick JSON lives in **§12.3–12.4** above. For **props semantics**, URL-aware 
 
 **Persistence:** Inner modules and grid shape live under **`layoutPresets`**, not in the outer `pageModules` entry (the outer entry only points at the name).
 
-**Admin cleanup:** In **Templates → Overrides**, editing a `layoutShell` exposes **Delete preset** (when unused) and **Delete all unused presets**; see [TEMPLATING_USER_GUIDE.md §6](../guides/TEMPLATING_USER_GUIDE.md#6-named-layout-regions-layoutshell-presets-and-cleanup).
+**Admin cleanup:** In **Templates → Overrides**, editing a `layoutShell` exposes **Delete preset** (when unused) and **Delete all unused presets**; see [TEMPLATING_USER_GUIDE.md §7](../guides/TEMPLATING_USER_GUIDE.md#named-layout-shell-presets).
 
 ```json
 {
@@ -523,6 +528,8 @@ Other props worth knowing (defaults in code): `title`, `description`, `selectedA
 **Role:** **Single-album** experience: album header (title, description, stats) plus **sub-albums and/or photos** in one or more card layouts. Uses **`data`** (`alias` / `params`) when **`albumSource`** is `current` so the correct album loads on `/albums/[alias]`.
 
 High-signal props (see `AlbumGalleryModule.svelte` for the full type): `title`, `description`, `albumHeaderFieldOrder`, `showAlbumPageTitle`, `albumSource` (`root` | `featured` | `selected` | `current`), `selectedAlbums`, `cardDataType` (`subAlbums` | `photos` | `both`), `mixedDisplayMode` (`grouped` | `interleaved`), `showSectionLabels`, `coverAspect`, card field orders (`albumCardFieldOrder`, `photoCardFieldOrder`, …), `sortBy`, `sortDirection`, `limit`.
+
+**`limit` vs album detail (`albumSource: current`):** For **root / featured / selected** grids, `limit` caps how many **album cards** appear (upper bound 500 in the layout). On an **album URL** (`current`), the module loads photos in **pages** (100 per request) and shows a **Load more photos** control when the album has more—`limit` does **not** truncate the photo grid on that view.
 
 **Typical album page** — current album from URL, albums + photos:
 

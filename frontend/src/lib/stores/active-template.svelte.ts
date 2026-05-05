@@ -20,7 +20,7 @@ const activeTemplateId = $derived.by(() => {
 		pathname = p.url.pathname;
 		pageData = p.data as PageDataForPack;
 	} catch {
-		/* No request / component context (e.g. Vitest importing pack Login → LoginTemplateSwitcher). */
+		/* No request / component context (e.g. Vitest importing pack Login stub). */
 		return getConfiguredPackId(cfg);
 	}
 	return resolveVisitorTemplatePackId(pathname, cfg, pageData);

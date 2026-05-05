@@ -3,14 +3,12 @@
 	import { page } from '$app/stores';
 	import { activeTemplate } from '$stores/template';
 	import { siteConfigData } from '$stores/siteConfig';
-	import { getTemplatePack } from '$lib/template/packs/registry';
 	import PageRenderer from '$lib/page-builder/PageRenderer.svelte';
 	import type { PageModuleData } from '$lib/types/page-builder';
 	import { getEffectivePageGrid, getEffectivePageModules } from '$lib/template/breakpoints';
 	import { viewportWidth } from '$lib/stores/viewport';
 	import { logger } from '$lib/utils/logger';
-
-	$: packPromise = getTemplatePack($activeTemplate);
+	import { DEFAULT_PAGE_LAYOUTS, DEFAULT_PAGE_MODULES } from '$lib/constants/default-page-layouts';
 
 	let rolePageModules: PageModuleData[] = [];
 	let rolePageLayout: { gridRows?: number; gridColumns?: number } | null = null;
@@ -21,28 +19,32 @@
 	$: fallbackModules = (Array.isArray(pageModulesRaw) ? pageModulesRaw : []) as PageModuleData[];
 	$: hasRolePageModules = Array.isArray(rolePageModules) && rolePageModules.length > 0;
 	$: pageModules = (hasRolePageModules ? rolePageModules : fallbackModules) as PageModuleData[];
+	/** Always page-builder: use built-in album modules when nothing is configured. */
+	$: albumModulesSource =
+		pageModules.length > 0
+			? pageModules
+			: (DEFAULT_PAGE_MODULES.album.map((m) => ({ ...m })) as PageModuleData[]);
 	$: routeParams = ($page?.params || {}) as Record<string, string | undefined>;
-	$: routeAlias = routeParams?.albumAlias || routeParams?.alias || null;
+	$: routeAlias =
+		routeParams?.param || routeParams?.albumAlias || routeParams?.alias || null;
 	$: isAlbumDetailRoute =
 		(typeof routeAlias === 'string' && routeAlias.trim().length > 0) ||
-		(/^\/albums\/[^/?#]+/.test($page?.url?.pathname || ''));
-	$: normalizedPageModules = normalizeAlbumDetailModules(pageModules, isAlbumDetailRoute);
-	$: hasPageModules = normalizedPageModules.length > 0;
+		(/^\/albums\/[^/?#]+/.test($page?.url?.pathname || '')) ||
+		(/^\/(?:album|gallery)\/[^/?#]+/i.test($page?.url?.pathname || ''));
+	$: normalizedPageModules = normalizeAlbumDetailModules(albumModulesSource, isAlbumDetailRoute);
 	$: pageLayout = getEffectivePageGrid($siteConfigData?.template, 'album', $viewportWidth);
 	$: effectiveLayout = hasRolePageModules
-		? rolePageLayout ?? pageLayout
-		: pageLayout;
+		? rolePageLayout ?? pageLayout ?? DEFAULT_PAGE_LAYOUTS.album
+		: pageLayout ?? DEFAULT_PAGE_LAYOUTS.album;
 
-	$: pageForRenderer = hasPageModules
-		? ({
-				_id: 'album',
-				title: {} as any,
-				subtitle: {} as any,
-				layout: effectiveLayout
-					? { gridRows: effectiveLayout.gridRows, gridColumns: effectiveLayout.gridColumns }
-					: undefined
-			} as any)
-		: null;
+	$: pageForRenderer = {
+		_id: 'album',
+		title: {} as any,
+		subtitle: {} as any,
+		layout: effectiveLayout
+			? { gridRows: effectiveLayout.gridRows, gridColumns: effectiveLayout.gridColumns }
+			: DEFAULT_PAGE_LAYOUTS.album
+	} as any;
 
 	function normalizeAlbumDetailModules(modules: PageModuleData[], onAlbumDetailRoute: boolean): PageModuleData[] {
 		const list = Array.isArray(modules) ? [...modules] : [];
@@ -113,10 +115,4 @@
 	});
 </script>
 
-{#if hasPageModules}
-	<PageRenderer page={pageForRenderer} modules={normalizedPageModules} />
-{:else}
-	{#await packPromise then pack}
-		<svelte:component this={pack.pages.Album} />
-	{/await}
-{/if}
+<PageRenderer page={pageForRenderer} modules={normalizedPageModules} />

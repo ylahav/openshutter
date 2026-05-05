@@ -18,6 +18,7 @@ const staticTemplates: Record<string, TemplateConfig> = {
   noir: {
     templateName: 'noir',
     displayName: 'Noir',
+    pageAliasPrefix: 'n',
     description: 'Cinematic dark layout — mono typography and full-bleed hero',
     version: '1.0.0',
     author: 'OpenShutter',
@@ -69,6 +70,7 @@ const staticTemplates: Record<string, TemplateConfig> = {
   studio: {
     templateName: 'studio',
     displayName: 'Studio',
+    pageAliasPrefix: 's',
     description: 'Editorial portfolio layout — Syne & Outfit, hero strip, card grid',
     version: '1.0.0',
     author: 'OpenShutter',
@@ -124,6 +126,7 @@ const staticTemplates: Record<string, TemplateConfig> = {
   atelier: {
     templateName: 'atelier',
     displayName: 'Atelier',
+    pageAliasPrefix: 'a',
     description: 'Warm editorial layout — Cormorant Garamond & Jost, tall hero, list albums',
     version: '1.0.0',
     author: 'OpenShutter',

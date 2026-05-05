@@ -18,9 +18,20 @@ Avoids OAuth redirect URI and refresh token issues on production.
 ### OAuth (local or single-user)
 
 - **Storage type**
-  - **Hidden (AppData)**: Files not visible in the user’s Drive; scope `drive.appdata`.
-  - **Visible**: Files visible in the user’s Drive; scope `drive.file`; optional **Folder ID** (defaults to root).
+  - **Hidden (AppData)**: Files not visible in the user’s Drive; scope **`https://www.googleapis.com/auth/drive.appdata`**.
+  - **Visible**: Files visible in the user’s Drive; scope **`https://www.googleapis.com/auth/drive`** (full Drive access for reliable uploads into existing folders). Optional **Folder ID** (defaults to root). This is a **sensitive** scope in Google Cloud Console—add it under OAuth consent **Scopes** if required, then **renew the token** after changing scopes.
 - **Production**: In Google Cloud Console, add your production callback URL (e.g. `https://yourdomain.com/api/auth/google/callback`). In storage config set **Redirect URI** to that exact URL and re-authorize from the **deployed** site so the refresh token is issued for production.
+
+### Service account: uploads vs personal Drive
+
+Service accounts **cannot** consume **personal My Drive** storage for **file** uploads. You may see **`storageQuotaExceeded`** or “Service Accounts do not have storage quota” in backend logs; the API returns **403**. **Shared folders** on a personal account do **not** fix this for binary uploads.
+
+**What works:**
+
+- **OAuth (user)** with **visible** storage—uses the signed-in user’s quota (typical for personal Google accounts).
+- **Google Workspace** + **Shared drive**: create a shared drive, add the service account as **Content manager** (or **Manager**), put the gallery root folder **inside** that shared drive, set **Folder ID** to that folder. See [Google’s shared drives overview](https://developers.google.com/workspace/drive/api/guides/about-shareddrives).
+
+**Personal @gmail.com** accounts generally **cannot** create shared drives (that feature is for **Workspace**). For personal paid storage (e.g. Google One), prefer **OAuth**, not a service account, for Drive-backed galleries.
 
 ---
 
@@ -87,10 +98,10 @@ Manual options (browser console or cURL) are documented in the repo history; the
 
 ## Summary
 
-| Method              | User sees files? | Best for              |
-|---------------------|------------------|------------------------|
-| **Service Account**| Yes (shared folder) | Deployed servers   |
-| **OAuth + AppData** | No              | Hidden storage         |
-| **OAuth + Visible** | Yes             | Local / single-user    |
+| Method | User sees files? | Best for |
+|--------|------------------|----------|
+| **Service account** | Yes (folder in **Shared drive** on Workspace, or shared folder metadata only) | Workspace + shared drive; stable server auth |
+| **OAuth + AppData** | No (hidden app folder) | Hidden storage |
+| **OAuth + Visible** | Yes (normal My Drive tree) | **Personal Google**, single-user, or any case using user quota |
 
-For deployment, use **Service Account** when possible. See [Server Deployment](./SERVER_DEPLOYMENT.md) and [Storage Configuration](./STORAGE.md) for more.
+For **personal** Google storage, prefer **OAuth + Visible**. For **Workspace** with hands-off tokens, **service account + shared drive**. See [Server Deployment](./SERVER_DEPLOYMENT.md) and [Storage Configuration](./STORAGE.md).

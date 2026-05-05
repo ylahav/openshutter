@@ -1057,8 +1057,7 @@
 													<button
 														type="button"
 														on:click={() => {
-															formData.location = null;
-															formData = formData;
+															formData = { ...formData, location: null };
 														}}
 														class="hover:text-purple-900"
 													>
@@ -1381,8 +1380,7 @@
 	collectionType="locations"
 	selectedItems={formData.location ? [formData.location] : []}
 	onSelectionChange={(items) => {
-		formData.location = items.length > 0 ? items[0] : null;
-		formData = formData;
+		formData = { ...formData, location: items.length > 0 ? String(items[0]) : null };
 	}}
 	searchPlaceholder="Search locations..."
 />

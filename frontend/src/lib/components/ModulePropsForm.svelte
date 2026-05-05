@@ -2,6 +2,7 @@
 <script lang="ts">
 	import MultiLangInput from './MultiLangInput.svelte';
 	import MultiLangHTMLEditor from './MultiLangHTMLEditor.svelte';
+	import ImageUrlWithUpload from './ImageUrlWithUpload.svelte';
 	import { heroConfig } from '$lib/page-builder/modules/Hero/config';
 	import { richTextConfig } from '$lib/page-builder/modules/RichText/config';
 	import { featureGridConfig } from '$lib/page-builder/modules/FeatureGrid/config';
@@ -21,6 +22,7 @@
 	import { searchFilterConfig } from '$lib/page-builder/modules/SearchFilter/config';
 	import { searchFormConfig } from '$lib/page-builder/modules/SearchForm/config';
 	import { searchResultsConfig } from '$lib/page-builder/modules/SearchResults/config';
+	import { loginFormConfig } from '$lib/page-builder/modules/LoginForm/config';
 	import { parseLinksJson } from '$lib/page-builder/modules/SocialMedia/resolveLinks';
 	import type { ModulePlacement, ModulePlacementAxis } from '$lib/page-builder/module-cell-placement';
 	import { normalizePlacement } from '$lib/page-builder/module-cell-placement';
@@ -53,7 +55,8 @@
 		searchBar: searchBarConfig,
 		searchFilter: searchFilterConfig,
 		searchForm: searchFormConfig,
-		searchResults: searchResultsConfig
+		searchResults: searchResultsConfig,
+		loginForm: loginFormConfig
 	};
 
 	$: config = moduleConfigMap[moduleType] || null;
@@ -97,10 +100,6 @@
 		const condition = field.visibleWhen;
 		const key = Object.keys(condition)[0];
 		const expected = condition[key];
-		// Hero CTA: default missing `showCta` to true so legacy modules still show label/url fields.
-		if (key === 'showCta' && expected === true) {
-			return props[key] !== false;
-		}
 		let actual = props[key];
 		if ((actual === undefined || actual === '') && fields?.length) {
 			const def = fields.find((f: any) => f.key === key);
@@ -379,21 +378,34 @@
 						{/each}
 					</div>
 				{:else if field.type === 'image'}
-					<label class="block text-sm font-medium text-gray-700 mb-1">
-						{field.label}
-						{#if field.required}
-							<span class="text-red-500">*</span>
+					{#if field.uploadSiteAsset}
+						<div>
+							<ImageUrlWithUpload
+								id={`mod-prop-${field.key}`}
+								label={field.label + (field.required ? ' *' : '')}
+								placeholder={field.placeholder || 'Enter image URL or upload'}
+								helpText={field.description || ''}
+								value={props[field.key] || ''}
+								onValueInput={(v) => updateProp(field.key, v)}
+							/>
+						</div>
+					{:else}
+						<label class="block text-sm font-medium text-gray-700 mb-1">
+							{field.label}
+							{#if field.required}
+								<span class="text-red-500">*</span>
+							{/if}
+						</label>
+						<input
+							type="text"
+							value={props[field.key] || ''}
+							on:input={(e) => updateProp(field.key, e.currentTarget.value)}
+							placeholder={field.placeholder || 'Enter image URL'}
+							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+						/>
+						{#if field.description}
+							<p class="text-xs text-gray-500 mt-1">{field.description}</p>
 						{/if}
-					</label>
-					<input
-						type="text"
-						value={props[field.key] || ''}
-						on:input={(e) => updateProp(field.key, e.currentTarget.value)}
-						placeholder={field.placeholder || 'Enter image URL'}
-						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-					/>
-					{#if field.description}
-						<p class="text-xs text-gray-500 mt-1">{field.description}</p>
 					{/if}
 				{:else if field.type === 'socialLinks'}
 					<label class="block text-sm font-medium text-gray-700 mb-1">

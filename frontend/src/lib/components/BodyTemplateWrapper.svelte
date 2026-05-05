@@ -1,9 +1,8 @@
 <script lang="ts">
 	import { activeTemplate } from '$stores/template';
+	import { loadPackPageBuilderPartials } from '$lib/template/load-pack-page-builder-partials';
 	import '$lib/styles/globals.css';
 	import '$templates/styles/main.scss';
-	import { browser } from '$app/environment';
-
 	const loadedPackStyles = new Set<string>();
 
 	async function ensurePackStyles(templateName: string) {
@@ -12,17 +11,17 @@
 			await import('$templates/noir/styles/styles.scss');
 		} else if (templateName === 'studio') {
 			await import('$templates/studio/styles/styles.scss');
+			await import('$templates/studio/styles/_login.scss');
 		} else if (templateName === 'atelier') {
-			await import('$templates/atelier/styles.scss');
+			await import('$templates/atelier/styles/styles.scss');
 		} else {
 			await import('$templates/noir/styles/styles.scss');
 		}
+		await loadPackPageBuilderPartials(templateName);
 		loadedPackStyles.add(templateName);
 	}
 
-	$: if (browser) {
-		void ensurePackStyles($activeTemplate || 'noir');
-	}
+	$: void ensurePackStyles($activeTemplate || 'noir');
 </script>
 
 {#if $activeTemplate === 'noir'}

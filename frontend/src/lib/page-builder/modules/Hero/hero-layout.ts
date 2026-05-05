@@ -1,96 +1,49 @@
 import { normalizeTemplatePackId, type TemplatePackId } from '$lib/template/packs/ids';
 
-/** Canonical hero layout slugs (theme `template.hero.layout` + module `heroLayout`). */
-export type HeroLayoutSlug =
-	| 'fullbleed'
-	| 'split'
-	| 'editorial'
+/** Reading order / presence of the content vs media columns (packs style via `.hero[data-content-media-order="…"]`). */
+export type HeroContentMediaOrder =
+	| 'content-first'
+	| 'media-first'
 	| 'stacked'
-	| 'mosaic'
-	| 'filmstrip'
-	| 'minimal'
-	| 'portrait'
-	| 'slideshow';
+	| 'content-only'
+	| 'media-only';
 
-const CANONICAL: Record<string, HeroLayoutSlug> = {
-	fullbleed: 'fullbleed',
-	split: 'split',
-	editorial: 'editorial',
-	stacked: 'stacked',
-	mosaic: 'mosaic',
-	filmstrip: 'filmstrip',
-	minimal: 'minimal',
-	portrait: 'portrait',
-	slideshow: 'slideshow'
-};
+export type HeroMediaSource = 'galleryLeading' | 'uploads';
 
-/** Accepts legacy module keys (e.g. layoutVariant / camelCase). */
-export function normalizeHeroLayout(raw: unknown): HeroLayoutSlug | null {
-	if (raw === undefined || raw === null) return null;
-	const s = String(raw).trim();
-	if (!s) return null;
-	const compact = s.toLowerCase().replace(/[\s_-]+/g, '');
-	if (compact in CANONICAL) return CANONICAL[compact];
-	// legacy: fullBleed → fullbleed
-	const deCamel = s.replace(/([A-Z])/g, '-$1').toLowerCase().replace(/[\s_-]+/g, '');
-	if (deCamel in CANONICAL) return CANONICAL[deCamel];
-	if (compact === 'typographic' || compact === 'minimaltypographic') return 'minimal';
-	if (compact === 'fullviewport') return 'fullbleed';
-	return null;
-}
+export type HeroMediaArrangement = 'square' | 'masonry' | 'carousel';
 
-/** Split row: image column first vs copy column first (visual order). */
-export type HeroSplitLead = 'media' | 'copy';
-
-export function normalizeHeroSplitLead(raw: unknown): HeroSplitLead {
+/** @deprecated legacy split layout; owner site settings may still reference. */
+export function normalizeHeroSplitLead(raw: unknown): 'media' | 'copy' {
 	if (raw === undefined || raw === null) return 'media';
 	const s = String(raw).trim().toLowerCase();
 	if (s === 'copy' || s === 'text') return 'copy';
 	return 'media';
 }
 
-export function defaultHeroLayoutForPack(pack: TemplatePackId): HeroLayoutSlug {
-	if (pack === 'noir') return 'fullbleed';
-	if (pack === 'studio') return 'split';
-	if (pack === 'atelier') return 'editorial';
-	return 'stacked';
+export function normalizeHeroContentMediaOrder(raw: unknown): HeroContentMediaOrder {
+	const s = String(raw ?? '').trim().toLowerCase().replace(/[\s_]+/g, '-');
+	if (s === 'contentfirst' || s === 'content-first') return 'content-first';
+	if (s === 'mediafirst' || s === 'media-first') return 'media-first';
+	if (s === 'stacked' || s === 'vertical') return 'stacked';
+	if (s === 'contentonly' || s === 'content-only') return 'content-only';
+	if (s === 'mediaonly' || s === 'media-only') return 'media-only';
+	return 'content-first';
 }
 
-/** Same resolution as Hero `Layout.svelte` (module + theme + pack default). */
-export function resolveHeroLayoutFromTemplateInputs(opts: {
-	heroProps: Record<string, unknown> | undefined;
-	templateHeroLayoutRaw: unknown;
-	packId: string;
-}): HeroLayoutSlug {
-	const pack = normalizeTemplatePackId(opts.packId) as TemplatePackId;
-	const themeHeroLayout = normalizeHeroLayout(opts.templateHeroLayoutRaw);
-	const moduleHeroLayout = normalizeHeroLayout(
-		opts.heroProps?.heroLayout ?? opts.heroProps?.layoutVariant
-	);
-	return moduleHeroLayout ?? themeHeroLayout ?? defaultHeroLayoutForPack(pack);
+export function normalizeHeroMediaSource(raw: unknown): HeroMediaSource {
+	const s = String(raw ?? '').trim().toLowerCase();
+	if (s === 'uploads' || s === 'upload' || s === 'manual' || s === 'urls') return 'uploads';
+	return 'galleryLeading';
 }
 
-/**
- * How many gallery-leading photos to request. For **`galleryLeading`** background, imagery comes
- * only from this API (manual `heroImages` are ignored). Mosaic / slideshow request a higher limit;
- * other layouts use 1.
- */
-export function galleryLeadingFetchLimit(opts: {
-	backgroundStyle: string;
-	resolvedLayout: HeroLayoutSlug;
-	configLimit: unknown;
-}): number {
-	if (opts.backgroundStyle !== 'galleryLeading') return 0;
-	const useMulti = opts.resolvedLayout === 'mosaic' || opts.resolvedLayout === 'slideshow';
-	if (!useMulti) return 1;
-	const raw = Number(opts.configLimit);
-	if (Number.isFinite(raw) && raw >= 2) return Math.min(12, Math.floor(raw));
-	return opts.resolvedLayout === 'slideshow' ? 5 : 4;
+export function normalizeHeroMediaArrangement(raw: unknown): HeroMediaArrangement {
+	const s = String(raw ?? '').trim().toLowerCase();
+	if (s === 'masonry') return 'masonry';
+	if (s === 'carousel' || s === 'slideshow') return 'carousel';
+	return 'square';
 }
 
-export function parseHeroImageList(config: Record<string, unknown> | undefined): string[] {
-	if (!config) return [];
-	const raw = config.heroImages ?? config.slideshowImages ?? config.mosaicImages;
+export function parseUrlList(raw: unknown): string[] {
 	if (Array.isArray(raw)) {
 		return raw
 			.filter((x): x is string => typeof x === 'string' && x.trim().length > 0)
@@ -99,25 +52,139 @@ export function parseHeroImageList(config: Record<string, unknown> | undefined):
 	if (typeof raw === 'string') {
 		return raw
 			.split(/[\n,]+/)
-			.map((s) => s.trim())
+			.map((x) => x.trim())
 			.filter(Boolean);
 	}
 	return [];
 }
 
-export function parseHeroStats(
-	config: Record<string, unknown> | undefined
-): { label: string; value: string }[] {
-	const raw = config?.heroStats;
-	if (!Array.isArray(raw)) return [];
-	return raw
-		.filter((r) => r && typeof r === 'object')
-		.map((r) => {
-			const o = r as Record<string, unknown>;
-			return {
-				label: String(o.label ?? ''),
-				value: String(o.value ?? '')
-			};
-		})
-		.filter((s) => s.label || s.value);
+function clampInt(n: number, min: number, max: number): number {
+	if (!Number.isFinite(n)) return min;
+	return Math.min(max, Math.max(min, Math.floor(n)));
+}
+
+/**
+ * Max gallery-leading photos to request for the **media** region (not the background image).
+ */
+export function heroGalleryLeadingMediaLimit(cfg: Record<string, unknown>): number {
+	const raw = Number(cfg.mediaMaxCount ?? cfg.heroGalleryLeadingLimit);
+	if (Number.isFinite(raw) && raw >= 1) return clampInt(raw, 1, 12);
+	return 4;
+}
+
+/** @deprecated legacy theme helper — v2 hero ignores template `hero.layout` for structure; kept for admin copy. */
+export function defaultHeroLayoutForPack(pack: TemplatePackId): string {
+	if (pack === 'noir') return 'fullbleed';
+	if (pack === 'studio') return 'split';
+	if (pack === 'atelier') return 'editorial';
+	return 'stacked';
+}
+
+/**
+ * Merge saved module props with legacy keys into a single v2-friendly config object
+ * (Layout reads both new and legacy fields via this).
+ */
+export function normalizeHeroModuleConfig(raw: Record<string, unknown> | undefined): Record<string, unknown> {
+	const c = raw && typeof raw === 'object' && !Array.isArray(raw) ? { ...raw } : {};
+
+	let contentMediaOrder = normalizeHeroContentMediaOrder(c.contentMediaOrder);
+
+	// Legacy: heroLayout + heroSplitLead
+	if (c.contentMediaOrder === undefined && (c.heroLayout != null || c.layoutVariant != null)) {
+		const legacy = String(c.heroLayout ?? c.layoutVariant ?? '')
+			.trim()
+			.toLowerCase();
+		if (legacy === 'split') {
+			const lead = String(c.heroSplitLead ?? 'media').toLowerCase();
+			contentMediaOrder = lead === 'copy' || lead === 'text' ? 'content-first' : 'media-first';
+		} else if (legacy === 'stacked' || legacy === 'editorial' || legacy === 'minimal' || legacy === 'portrait') {
+			contentMediaOrder = 'stacked';
+		} else {
+			contentMediaOrder = 'content-first';
+		}
+	}
+
+	const mediaSource = normalizeHeroMediaSource(
+		c.mediaSource ??
+			(String(c.backgroundStyle ?? '').toLowerCase() === 'galleryleading' ? 'galleryLeading' : 'uploads')
+	);
+
+	let mediaMaxCount = 4;
+	const rawMax = c.mediaMaxCount ?? c.heroGalleryLeadingLimit;
+	const parsedMax = Number(rawMax);
+	if (Number.isFinite(parsedMax) && parsedMax >= 1) {
+		mediaMaxCount = clampInt(parsedMax, 1, 12);
+	}
+
+	let mediaArrangement = normalizeHeroMediaArrangement(c.mediaArrangement);
+	if (c.mediaArrangement === undefined && c.heroLayout != null) {
+		const legacy = String(c.heroLayout).toLowerCase();
+		if (legacy === 'slideshow') mediaArrangement = 'carousel';
+		else if (legacy === 'mosaic') mediaArrangement = 'masonry';
+	}
+
+	const mediaImageUrls = (() => {
+		const fromNew = parseUrlList(c.mediaImages);
+		if (fromNew.length) return fromNew;
+		return parseUrlList(c.heroImages);
+	})();
+
+	let backgroundImage =
+		typeof c.backgroundImage === 'string' && c.backgroundImage.trim()
+			? c.backgroundImage.trim()
+			: undefined;
+
+	// Optional second button: map legacy single CTA
+	const buttonLabel = c.buttonLabel ?? c.ctaLabel;
+	const buttonUrl = c.buttonUrl ?? c.ctaUrl;
+
+	const mediaImagesStr =
+		typeof c.mediaImages === 'string' && c.mediaImages.trim()
+			? c.mediaImages
+			: mediaImageUrls.length
+				? mediaImageUrls.join('\n')
+				: '';
+
+	return {
+		...c,
+		contentMediaOrder,
+		mediaSource,
+		mediaMaxCount,
+		mediaArrangement,
+		...(mediaImagesStr ? { mediaImages: mediaImagesStr } : {}),
+		buttonLabel,
+		buttonUrl,
+		...(backgroundImage ? { backgroundImage } : {})
+	};
+}
+
+/** SSR / home loader: should we prefetch gallery-leading URLs for this hero? */
+export function heroNeedsGalleryLeadingPrefetch(props: Record<string, unknown>): boolean {
+	const n = normalizeHeroModuleConfig(props);
+	return normalizeHeroMediaSource(n.mediaSource) === 'galleryLeading';
+}
+
+/**
+ * @deprecated used by `+page.ts` — v2 uses `heroGalleryLeadingMediaLimit` + `heroNeedsGalleryLeadingPrefetch`.
+ */
+export function resolveHeroLayoutFromTemplateInputs(opts: {
+	heroProps: Record<string, unknown> | undefined;
+	templateHeroLayoutRaw: unknown;
+	packId: string;
+}): string {
+	const pack = normalizeTemplatePackId(opts.packId) as TemplatePackId;
+	const moduleHeroLayout = String(opts.heroProps?.heroLayout ?? opts.heroProps?.layoutVariant ?? '').trim();
+	if (moduleHeroLayout) return moduleHeroLayout.toLowerCase();
+	const themeHeroLayout = String(opts.templateHeroLayoutRaw ?? '').trim();
+	if (themeHeroLayout) return themeHeroLayout.toLowerCase();
+	return defaultHeroLayoutForPack(pack);
+}
+
+/** @deprecated */
+export function galleryLeadingFetchLimit(_opts: {
+	backgroundStyle: string;
+	resolvedLayout: string;
+	configLimit: unknown;
+}): number {
+	return 4;
 }

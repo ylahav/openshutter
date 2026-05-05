@@ -10,7 +10,7 @@
 </script>
 
 <div
-	class="min-h-screen w-full bg-[color:var(--tp-canvas)] text-[color:var(--tp-fg)] [font-family:var(--os-font-body)] pt-24 pb-16"
+	class="min-h-screen w-full bg-(--tp-canvas) text-(--tp-fg) [font-family:var(--os-font-body)] pt-24 pb-16"
 >
 	{#if error}
 		<div class="max-w-(--os-max-width) mx-auto px-7 py-24 text-center">
@@ -44,7 +44,7 @@
 				</div>
 			{/if}
 			{#if page.content}
-				<div class="prose prose-invert max-w-none text-[15px] leading-relaxed rounded-2xl border p-8 md:p-10 bg-[color:var(--tp-surface-1)] border-[color:var(--tp-border)]" style="color: var(--tp-fg);">
+				<div class="prose prose-invert max-w-none text-[15px] leading-relaxed rounded-2xl border p-8 md:p-10 bg-(--tp-surface-1) border-(--tp-border)" style="color: var(--tp-fg);">
 					{@html MultiLangUtils.getHTMLValue(page.content, $currentLanguage)}
 				</div>
 			{/if}

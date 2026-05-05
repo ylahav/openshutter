@@ -347,7 +347,20 @@
 					} else {
 						try {
 							const errorResponse = JSON.parse(xhr.responseText);
-							errorMsg = errorResponse.error || errorResponse.message || errorResponse.statusCode || errorMsg;
+							// NestJS: real text is in `message`; `error` is often the literal "Bad Request"
+							const m = errorResponse.message;
+							const msgStr = Array.isArray(m)
+								? m.map(String).filter(Boolean).join('; ')
+								: typeof m === 'string'
+									? m
+									: '';
+							const errStr =
+								typeof errorResponse.error === 'string' ? errorResponse.error : '';
+							errorMsg =
+								msgStr ||
+								(errStr && errStr !== 'Bad Request' ? errStr : '') ||
+								errorResponse.statusCode ||
+								errorMsg;
 						} catch {
 							// If response isn't JSON, check if it's HTML (nginx error page)
 							const responseText = xhr.responseText || xhr.statusText || 'Unknown error';

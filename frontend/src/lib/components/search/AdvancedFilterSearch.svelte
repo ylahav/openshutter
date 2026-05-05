@@ -339,7 +339,7 @@
 	})();
 </script>
 
-<div class="w-full" class:text-[color:var(--tp-fg)]={variant === 'noir'}>
+<div class="w-full" class:text-(--tp-fg)={variant === 'noir'}>
 	<!-- Search form module -->
 	<SearchForm {query} {loading} on:search={(e) => handleSearch(e.detail)} on:filters={openFilterPanel} />
 

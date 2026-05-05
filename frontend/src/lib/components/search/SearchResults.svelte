@@ -74,8 +74,8 @@
 
 <div class="os-search-results space-y-6">
 	{#if error}
-		<div class="os-search-results__state os-search-results__state--error bg-white rounded-lg shadow-sm border p-8 text-center">
-			<div class="os-search-results__state-icon text-red-500 mb-4">
+		<div class="os-search-results__state os-search-results__state--error">
+			<div class="os-search-results__state-icon">
 				<svg class="h-12 w-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path
 						stroke-linecap="round"
@@ -89,13 +89,13 @@
 			</div>
 			<button
 				on:click={() => window.location.reload()}
-				class="os-search-results__action px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+				class="os-search-results__action"
 			>
 				{$t('search.retry')}
 			</button>
 		</div>
 	{:else if !query && !hasResults}
-		<div class="os-search-results__state os-search-results__state--empty bg-white rounded-lg shadow-sm border p-8 text-center">
+		<div class="os-search-results__state os-search-results__state--empty ">
 			<svg class="os-search-results__state-icon h-12 w-12 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 				<path
 					stroke-linecap="round"

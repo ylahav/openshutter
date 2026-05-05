@@ -1,0 +1,95 @@
+@use './tools' as *;
+
+// ─── About page ──────────────────────────────────────────────
+.a-about {
+  
+  margin: 0 auto;
+  max-width: 960px;
+  .pb-featureGrid {
+    padding: 32px;
+  }
+}
+.a-about-header {
+  text-align: center;
+  padding: 56px 32px 32px;
+
+  &__title {
+    @include serif(400, 28px);
+    letter-spacing: 0.08em;
+    color: var(--fg);
+  }
+  &__rule {
+    @include gold-rule;
+    margin: 12px auto;
+  }
+  &__sub {
+    @include small-caps(0.28em);
+    color: var(--fg-lt);
+  }
+}
+
+.a-about-body {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 56px;
+  align-items: start;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 32px 64px;
+  [dir="rtl"] & {
+    direction: rtl;
+  }
+}
+
+.a-portrait {
+  width: 100%;
+  aspect-ratio: 3/4;
+  overflow: hidden;
+  border-radius: 2px;
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    filter: sepia(15%);
+    transition: filter 0.4s;
+  }
+  &:hover img {
+    filter: sepia(0%);
+  }
+}
+
+.a-about-name {
+  @include serif(400, 26px);
+  letter-spacing: 0.06em;
+  color: var(--fg);
+  margin-bottom: 8px;
+}
+
+.a-about-name-rule {
+  @include gold-rule;
+  margin-bottom: 20px;
+}
+
+.a-bio {
+  @include jost(300, 14px);
+  line-height: 1.85;
+  color: var(--fg-mid);
+  margin-bottom: 24px;
+  transition: color $t;
+}
+
+.a-email {
+  @include small-caps(0.18em);
+  color: var(--fg);
+  text-decoration: none;
+  border-bottom: 1px solid var(--bdr);
+  padding-bottom: 2px;
+  transition:
+    border-color 0.2s,
+    color $t;
+  &:hover {
+    border-color: var(--gold);
+    color: var(--gold);
+  }
+}

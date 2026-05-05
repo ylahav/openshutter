@@ -1,0 +1,21 @@
+.pb-rootAlbumsList {
+	width: 100%;
+}
+
+.pb-rootAlbumsList__title {
+	margin: 0 0 0.75rem;
+	color: var(--tp-fg);
+	font-size: clamp(1.25rem, 2.2vw, 1.75rem);
+	font-weight: 600;
+	line-height: 1.2;
+}
+
+.pb-rootAlbumsList__list {
+	margin: 0;
+	padding-left: 1.2rem;
+	color: var(--tp-fg);
+}
+
+.pb-rootAlbumsList__item {
+	margin: 0.2rem 0;
+}

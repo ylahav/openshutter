@@ -1,199 +1,127 @@
 // frontend/src/lib/page-builder/modules/Hero/config.ts
 export const heroConfig = {
-    type: 'hero',
-    label: 'Hero',
-    description: 'Large banner with title, subtitle and optional button.',
-    fields: [
-      {
-        key: 'title',
-        type: 'multilangText',
-        label: 'Title',
-        required: true,
-      },
-      {
-        key: 'subtitle',
-        type: 'multilangText',
-        label: 'Subtitle',
-        required: false,
-      },
-      {
-        key: 'showCta',
-        type: 'boolean',
-        label: 'Show call-to-action button',
-        default: true,
-        description: 'When off, title and subtitle only (no button).',
-      },
-      {
-        key: 'ctaLabel',
-        type: 'multilangText',
-        label: 'Button label',
-        required: false,
-        visibleWhen: { showCta: true },
-      },
-      {
-        key: 'ctaUrl',
-        type: 'string',
-        label: 'Button URL',
-        required: false,
-        visibleWhen: { showCta: true },
-      },
-      {
-        key: 'heroLayout',
-        type: 'select',
-        label: 'Layout',
-        options: [
-          'fullbleed',
-          'split',
-          'editorial',
-          'stacked',
-          'mosaic',
-          'filmstrip',
-          'minimal',
-          'portrait',
-          'slideshow',
-        ],
-        required: false,
-        description:
-          'Optional. If empty: uses `template.hero.layout` when set, else pack default (Noir: fullbleed, Studio: split, Atelier: editorial, others: stacked).',
-      },
-      {
-        key: 'heroSplitLead',
-        type: 'select',
-        label: 'Split layout — column order',
-        required: false,
-        options: [
-          { value: 'media', label: 'Image column first' },
-          { value: 'copy', label: 'Text column first' },
-        ],
-        description:
-          'Only when Layout is Split. Which side appears first in reading order (LTR: left vs right).',
-        visibleWhen: { heroLayout: 'split' },
-      },
-      {
-        key: 'heroSplitGridColumns',
-        type: 'string',
-        label: 'Split layout — column widths',
-        required: false,
-        placeholder: 'e.g. 1fr 1fr or minmax(0,3fr) minmax(0,2fr)',
-        description:
-          'Optional. CSS `grid-template-columns` for the split row (image | copy). Only applies when the resolved layout is split.',
-        visibleWhen: { heroLayout: 'split' },
-      },
-      {
-        key: 'heroSplitMinHeight',
-        type: 'string',
-        label: 'Split layout — row min height',
-        required: false,
-        placeholder: 'e.g. min(70vh, 760px) or 520px',
-        description:
-          'Optional. CSS min-height for the whole split hero row. Default: min(70vh, 760px).',
-        visibleWhen: { heroLayout: 'split' },
-      },
-      {
-        key: 'heroSplitMediaMinHeight',
-        type: 'string',
-        label: 'Split layout — image column min height',
-        required: false,
-        placeholder: 'e.g. 260px or 40vh',
-        description:
-          'Optional. CSS min-height for the image side only. Default: 260px.',
-        visibleWhen: { heroLayout: 'split' },
-      },
-      {
-        key: 'heroImages',
-        type: 'string',
-        label: 'Extra image URLs (mosaic / slideshow)',
-        required: false,
-        placeholder: 'One URL per line or comma-separated',
-        description:
-          'Optional. When set, these URLs are used (with the primary background image when applicable). When empty and background is Gallery leading, mosaic/slideshow use multiple published gallery-leading photos (see Gallery leading count).',
-      },
-      {
-        key: 'heroGalleryLeadingLimit',
-        type: 'string',
-        label: 'Gallery leading count (mosaic / slideshow)',
-        required: false,
-        placeholder: '4 or 5',
-        description:
-          'When background is Gallery leading and this layout is mosaic or slideshow and Extra image URLs is empty: how many leading photos to load (2–12). Default 4 for mosaic, 5 for slideshow.',
-      },
-      {
-        key: 'slideshowIntervalMs',
-        type: 'string',
-        label: 'Slideshow interval (ms)',
-        required: false,
-        placeholder: '5000',
-        description: 'Milliseconds between slides. Default 5000. Minimum 3000.',
-      },
-      {
-        key: 'filmstripMeta',
-        type: 'string',
-        label: 'Filmstrip right caption',
-        required: false,
-        description: 'Short line on the right under the strip (e.g. album count). Defaults to subtitle if empty.',
-      },
-      {
-        key: 'backgroundStyle',
-        type: 'select',
-        label: 'Background style',
-        options: ['light', 'dark', 'image', 'galleryLeading'],
-        default: 'light',
-        description:
-          'Custom image = paste a direct image URL. Gallery leading = featured photo from the library (no URL).',
-      },
-      {
-        key: 'backgroundImage',
-        type: 'string',
-        label: 'Background image URL',
-        required: false,
-        placeholder: 'https://…',
-        visibleWhen: { backgroundStyle: 'image' },
-        description: 'Required when background is Custom image. Not used for Gallery leading.',
-      },
-      {
-        key: 'imageFit',
-        type: 'select',
-        label: 'Image fit (image / gallery leading)',
-        options: ['contain', 'cover'],
-        required: false,
-        description:
-          'Optional. Default: Noir uses cover; other packs use contain. Controls object-fit on the hero photo.',
-      },
-      {
-        key: 'fullViewportHero',
-        type: 'boolean',
-        label: 'Full viewport height (100svh)',
-        required: false,
-        description:
-          'Optional. Noir defaults on for image heroes; set false for a shorter strip. Other packs default off unless enabled.',
-      },
-      {
-        key: 'showHeroRule',
-        type: 'boolean',
-        label: 'Show rule between title and subtitle',
-        required: false,
-        description: 'Optional. Noir defaults on when both title and subtitle exist.',
-      },
-      {
-        key: 'showScrollHint',
-        type: 'boolean',
-        label: 'Show bottom scroll hint (full-viewport image hero)',
-        required: false,
-        description: 'Optional. Noir defaults on for full-viewport image heroes.',
-      },
-      {
-        key: 'scrollHintHref',
-        type: 'string',
-        label: 'Scroll hint link (href)',
-        required: false,
-        placeholder: '/albums or #section',
-        description: 'Default /albums. Hash links use smooth scroll when clicked.',
-      },
-      {
-        key: 'scrollHintLabel',
-        type: 'multilangText',
-        label: 'Scroll hint label',
-        required: false,
-      },
-    ],
-  } as const;
+	type: 'hero',
+	label: 'Hero',
+	description:
+		'Background image with optional text and optional photo strip (gallery leading or your URLs).',
+	fields: [
+		{
+			key: 'title',
+			type: 'multilangText',
+			label: 'Title',
+			required: false
+		},
+		{
+			key: 'subtitle',
+			type: 'multilangText',
+			label: 'Subtitle',
+			required: false
+		},
+		{
+			key: 'description',
+			type: 'multilangText',
+			label: 'Description',
+			required: false,
+			description: 'Optional longer line under the subtitle.'
+		},
+		{
+			key: 'buttonLabel',
+			type: 'multilangText',
+			label: 'Primary button label',
+			required: false
+		},
+		{
+			key: 'buttonUrl',
+			type: 'string',
+			label: 'Primary button URL',
+			required: false,
+			placeholder: 'https://…'
+		},
+		{
+			key: 'button2Label',
+			type: 'multilangText',
+			label: 'Secondary button label',
+			required: false
+		},
+		{
+			key: 'button2Url',
+			type: 'string',
+			label: 'Secondary button URL',
+			required: false,
+			placeholder: 'https://…'
+		},
+		{
+			key: 'backgroundImage',
+			type: 'image',
+			uploadSiteAsset: true,
+			label: 'Background image',
+			required: false,
+			placeholder: 'https://…',
+			description: 'Full-width image behind the hero (URL or upload).'
+		},
+		{
+			key: 'contentMediaOrder',
+			type: 'select',
+			label: 'Content vs photos',
+			required: false,
+			default: 'content-first',
+			options: [
+				{ value: 'content-first', label: 'Text first, then photos (row)' },
+				{ value: 'media-first', label: 'Photos first, then text (row)' },
+				{ value: 'stacked', label: 'Stacked (photos under text)' },
+				{ value: 'content-only', label: 'Text only (hide photo strip)' },
+				{ value: 'media-only', label: 'Photos only (hide text)' }
+			]
+		},
+		{
+			key: 'mediaMaxCount',
+			type: 'string',
+			label: 'Max photos in strip',
+			required: false,
+			placeholder: '4',
+			description: '1–12. Ignored when photo strip is hidden.'
+		},
+		{
+			key: 'mediaSource',
+			type: 'select',
+			label: 'Photo strip source',
+			required: false,
+			default: 'galleryLeading',
+			options: [
+				{ value: 'galleryLeading', label: 'Gallery-leading photos' },
+				{ value: 'uploads', label: 'My image URLs (below)' }
+			]
+		},
+		{
+			key: 'mediaImages',
+			type: 'string',
+			label: 'Photo URLs (when source is “My image URLs”)',
+			required: false,
+			placeholder: 'One URL per line',
+			visibleWhen: { mediaSource: 'uploads' },
+			description: 'Direct image links or uploaded asset URLs.'
+		},
+		{
+			key: 'mediaArrangement',
+			type: 'select',
+			label: 'Photo layout (when count > 1)',
+			required: false,
+			default: 'square',
+			options: [
+				{ value: 'square', label: 'Even grid (square cells)' },
+				{ value: 'masonry', label: 'Masonry' },
+				{ value: 'carousel', label: 'Carousel' }
+			],
+			description: 'With a single photo, all three look the same.'
+		},
+		{
+			key: 'carouselIntervalMs',
+			type: 'string',
+			label: 'Carousel interval (ms)',
+			required: false,
+			placeholder: '5000',
+			visibleWhen: { mediaArrangement: 'carousel' },
+			description: 'Minimum 3000 ms.'
+		}
+	]
+} as const;

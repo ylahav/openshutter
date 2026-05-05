@@ -20,7 +20,7 @@
 //                     9px DM Mono, .18em uppercase, fg-dimmer)
 //
 // Targets both the mockup .login-* selectors and the page-
-// builder LoginTemplateSwitcher fallback DOM.
+// builder login (`LoginForm/Layout.svelte` → `section.pb-login`) fallback DOM.
 // ============================================================
 
 @mixin n-mono($size: 10px, $spacing: 0.18em) {
@@ -162,10 +162,9 @@ html.light .login-bg {
   &:hover { color: var(--fg-dim); }
 }
 
-// ── Page-builder LoginTemplateSwitcher fallback ───────────────
-// When the login page is rendered through generic
-// LoginTemplateSwitcher / pb-login DOM, apply noir styling on
-// top of the default form.
+// ── Page-builder login fallback (`section.pb-login`) ───────────
+// When the login page is rendered through `LoginForm/Layout.svelte`,
+// apply noir styling on top of the default form.
 
 .tpl-pack-noir {
   .pb-login,

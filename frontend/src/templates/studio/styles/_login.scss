@@ -1,0 +1,82 @@
+// Studio — _login.scss
+.s-login {
+  background: var(--surf2);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  position: relative;
+  .pb-login__shell {
+    background: var(--surf);
+    border: 1px solid var(--bdr);
+    border-radius: 16px;
+    padding: 40px;
+    width: 100%;
+    max-width: 380px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 2;
+  }
+}
+
+.pb-login__tagline {
+  text-align: center;
+  margin-bottom: 28px;
+}
+.s-login-mark {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 14px;
+  img {
+    width: 44px;
+    height: 44px;
+    object-fit: contain;
+  }
+}
+.s-login-title {
+  font-family: "Syne", sans-serif;
+  font-weight: 700;
+  font-size: 20px;
+  color: var(--ink);
+  margin-bottom: 4px;
+}
+.s-login-sub {
+  font-family: "Outfit", sans-serif;
+  font-size: 13px;
+  color: var(--ink-fnt);
+}
+.s-login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.s-login-submit {
+  background: var(--blue);
+  color: #fff;
+  font-family: "Outfit", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 11px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 4px;
+  &:hover {
+    background: var(--blue-dk);
+  }
+}
+.s-login-back {
+  display: block;
+  text-align: center;
+  margin-top: 20px;
+  font-family: "Outfit", sans-serif;
+  font-size: 13px;
+  color: var(--ink-fnt);
+  text-decoration: none;
+  cursor: pointer;
+}

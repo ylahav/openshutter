@@ -1,6 +1,7 @@
 {
 	"description": "Default semantic colors and fonts for the Noir pack (see template-palette.ts / ThemeColorApplier --tp-*).",
 	"displayName": "Noir",
+	"pageAliasPrefix": "n",
 	"packTokens": {
 		"layout": {
 			"maxWidth": "1200px",

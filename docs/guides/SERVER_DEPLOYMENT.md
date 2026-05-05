@@ -84,13 +84,9 @@ Before starting the services, ensure these are configured correctly:
    - This is critical for authentication to work
 
 3. **Google Drive on deployed servers** (if you use Google Drive storage):
-   - **Recommended: Use Service Account** instead of OAuth to avoid connection issues on production:
-     - In Admin → Storage → Google Drive, set **Auth method** to **Service account**.
-     - Create a service account in [Google Cloud Console](https://console.cloud.google.com/iam-admin/serviceaccounts), download its JSON key.
-     - Paste the full JSON into **Service account JSON**, or set **Client email** and **Private key**.
-     - Create a folder in Google Drive (or use an existing one), share it with the **service account email** (Editor), and set **Folder ID** to that folder’s ID.
-     - No redirect URI or refresh token needed; works on any server.
-   - **If you keep OAuth**: Add your production callback URL in [Google Cloud Console](https://console.cloud.google.com/apis/credentials) (e.g. `https://yourdomain.com/api/auth/google/callback`). In storage config, set **Redirect URI** to that exact URL and re-authorize from the **deployed** site so the refresh token is issued for production.
+   - **Service account** works best with **Google Workspace** and a **Shared drive** (service accounts do not get personal My Drive **file** storage quota). See [`docs/guides/GOOGLE_DRIVE.md`](../guides/GOOGLE_DRIVE.md).
+   - **Personal Google / Google One:** use **OAuth (user)** with **visible** storage, not a service account, for reliable photo uploads.
+   - **OAuth:** Add your production callback URL in [Google Cloud Console](https://console.cloud.google.com/apis/credentials) (e.g. `https://yourdomain.com/api/auth/google/callback`). In storage config, set **Redirect URI** to that exact URL and re-authorize from the **deployed** site. After upgrades that change OAuth scopes, **renew the token** from Storage.
 
 ### Create Production Environment Files
 
@@ -504,10 +500,15 @@ sudo nano /etc/nginx/sites-available/openshutter
 ```
 
 ### Nginx Configuration
+
+Use a large enough **`client_max_body_size`** and **proxy timeouts** for photo uploads and slow admin calls (e.g. **Google Drive folder tree**). A full example is in [`docs/guides/nginx-openshutter.conf`](./nginx-openshutter.conf) (`client_max_body_size 100M`, `proxy_read_timeout 300s` on `/api/`). If the UI shows **502** while PM2 logs still list Drive folders, raise **`proxy_read_timeout`** (and friends) on the `location` that handles `/api/`.
+
 ```nginx
 server {
     listen 80;
     server_name your-domain.com;
+
+    client_max_body_size 100M;
 
     location / {
         proxy_pass http://localhost:4000;
@@ -519,18 +520,24 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_cache_bypass $http_upgrade;
+        proxy_read_timeout 300s;
     }
 
-    location /api {
+    location /api/ {
         proxy_pass http://localhost:5000;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_connect_timeout 300s;
+        proxy_send_timeout 300s;
+        proxy_read_timeout 300s;
     }
 }
 ```
+
+**SvelteKit body limit:** the frontend process needs **`BODY_SIZE_LIMIT`** (e.g. `100M`) when uploads hit `/api/photos/upload` on the Node server—see [`PHOTO_UPLOAD.md`](./PHOTO_UPLOAD.md). **`ecosystem.config.js`** should set it **after** spreading `.env.production` so env files do not override it accidentally.
 
 ### Enable Site
 ```bash

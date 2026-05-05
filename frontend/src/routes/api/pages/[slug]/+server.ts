@@ -4,7 +4,10 @@ import { BackendHttpError, backendGet, parseBackendResponse } from '$lib/utils/b
 import { forwardedHostHeadersFromRequest } from '$lib/server/forward-host';
 import { logger } from '$lib/utils/logger';
 import { parseError } from '$lib/utils/errorHandler';
-import { buildTemplateAwareAliasCandidates } from '$lib/utils/template-page-alias';
+import {
+	buildTemplateAwareAliasCandidates,
+	resolvePageAliasPrefixes
+} from '$lib/utils/template-page-alias';
 
 export const GET: RequestHandler = async ({ params, cookies, url, request }) => {
 	try {
@@ -12,7 +15,17 @@ export const GET: RequestHandler = async ({ params, cookies, url, request }) => 
 		const role = url.searchParams.get('role');
 		const pack = url.searchParams.get('pack') || url.searchParams.get('frontendTemplate');
 		const headers = forwardedHostHeadersFromRequest(request);
-		const aliasCandidates = buildTemplateAwareAliasCandidates(slug, pack);
+
+		let pageAliasPrefixes: Record<string, string> | undefined;
+		try {
+			const scRes = await backendGet('/site-config', { cookies, headers });
+			const siteConfig = await parseBackendResponse<any>(scRes);
+			pageAliasPrefixes = resolvePageAliasPrefixes(siteConfig);
+		} catch {
+			pageAliasPrefixes = undefined;
+		}
+
+		const aliasCandidates = buildTemplateAwareAliasCandidates(slug, pack, pageAliasPrefixes);
 		let pageData: { page: any; modules: any[] } | null = null;
 
 		for (const candidateAlias of aliasCandidates) {

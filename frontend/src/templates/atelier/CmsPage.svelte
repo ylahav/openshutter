@@ -1,5 +1,5 @@
 <script lang="ts">
-	import './styles.scss';
+	import './styles/styles.scss';
 	import { goto } from '$app/navigation';
 	import { currentLanguage } from '$stores/language';
 	import { MultiLangUtils } from '$utils/multiLang';
@@ -10,15 +10,15 @@
 </script>
 
 <div
-	class="min-h-screen w-full bg-[color:var(--tp-canvas)] text-[color:var(--tp-fg)] [font-family:var(--os-font-body)]"
+	class="min-h-screen w-full bg-(--tp-canvas) text-(--tp-fg) [font-family:var(--os-font-body)]"
 >
 	{#if error}
 		<div class="max-w-[960px] mx-auto px-8 py-24 text-center">
-			<p class="text-[13px] uppercase tracking-[0.2em] text-[color:var(--tp-fg-muted)] mb-4">error</p>
-			<p class="text-sm text-[color:var(--tp-fg-muted)] mb-10">{error}</p>
+			<p class="text-[13px] uppercase tracking-[0.2em] text-(--tp-fg-muted) mb-4">error</p>
+			<p class="text-sm text-(--tp-fg-muted) mb-10">{error}</p>
 			<button
 				type="button"
-				class="text-[9px] uppercase tracking-[0.22em] border border-[color:var(--tp-border)] px-6 py-3 bg-transparent text-[color:var(--tp-fg)] cursor-pointer"
+				class="text-[9px] uppercase tracking-[0.22em] border border-(--tp-border) px-6 py-3 bg-transparent text-(--tp-fg) cursor-pointer"
 				on:click={() => goto('/')}
 			>
 				← home

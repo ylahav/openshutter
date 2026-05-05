@@ -8,9 +8,9 @@ export const themeToggleConfig = {
 			key: 'variant',
 			type: 'select',
 			label: 'Display',
-			options: ['icons', 'text'],
+			options: ['icons', 'text', 'both'],
 			default: 'icons',
-			description: 'Icons (sun/moon) or text labels (Light / Dark).'
+			description: 'Icons only, text labels (Light / Dark), or icon with label.'
 		}
 	]
 } as const;

@@ -1,0 +1,180 @@
+@use './tools' as *;
+
+// ─── Album list ──────────────────────────────────────────────
+
+.a-album-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.a-album-item {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 28px;
+  align-items: start;
+  padding: 28px 0;
+  border-bottom: var(--os-border-width, 1px) solid
+    var(--tp-card-border, var(--bdr));
+  cursor: pointer;
+  text-decoration: none;
+  transition: border-color $t;
+
+  &:first-child {
+    border-top: var(--os-border-width, 1px) solid
+      var(--tp-card-border, var(--bdr));
+  }
+  [dir="rtl"] & {
+    direction: rtl;
+  }
+
+  &__thumb {
+    overflow: hidden;
+    border-radius: var(--os-card-radius, var(--os-radius, 2px));
+  }
+
+  &__thumb-inner {
+    aspect-ratio: 4/3;
+    transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+  }
+
+  &:hover &__thumb-inner {
+    transform: scale(1.03);
+  }
+
+  &__body {
+    padding-top: 4px;
+  }
+
+  &__num {
+    @include small-caps(0.2em);
+    color: var(--gold);
+    margin-bottom: 8px;
+  }
+
+  &__title {
+    @include serif(400, 20px);
+    letter-spacing: 0.04em;
+    color: var(--fg);
+    margin-bottom: 8px;
+    transition: color 0.2s;
+  }
+
+  &:hover &__title {
+    color: var(--gold);
+  }
+
+  &__desc {
+    @include jost(300, 13px);
+    line-height: 1.75;
+    color: var(--fg-lt);
+    margin-bottom: 12px;
+  }
+
+  &__meta {
+    @include small-caps(0.16em);
+    color: var(--fg-lt);
+  }
+}
+
+@media (max-width: 767px) {
+  .a-album-item {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+// ─── Gallery grid ────────────────────────────────────────────
+
+.a-gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--os-gap-grid, var(--os-gap, 24px));
+}
+
+.a-gallery-card {
+  cursor: pointer;
+  text-decoration: none;
+  display: block;
+
+  &__thumb {
+    overflow: hidden;
+    border-radius: var(--os-card-radius, var(--os-radius, 2px));
+    margin-bottom: 10px;
+    img {
+      aspect-ratio: var(--os-album-aspect, 3 / 4);
+      width: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+  }
+
+  &:hover &__thumb img {
+    transform: scale(1.03);
+  }
+
+  &__title {
+    @include serif(400, 14px);
+    color: var(--fg);
+    text-align: center;
+    transition: color 0.2s;
+  }
+
+  &:hover &__title {
+    color: var(--gold);
+  }
+}
+
+// ─── CTA ─────────────────────────────────────────────────────
+
+.a-cta {
+  background: var(--bg2);
+  border-top: var(--os-border-width, 1px) solid var(--bdr);
+  border-bottom: var(--os-border-width, 1px) solid var(--bdr);
+  padding: 56px 32px;
+  text-align: center;
+  margin: 48px 0;
+  transition:
+    background $t,
+    border-color $t;
+
+  &__quote {
+    @include serif(300, 20px);
+    font-style: italic;
+    line-height: 1.7;
+    color: var(--fg-mid);
+    max-width: 480px;
+    margin: 0 auto 24px;
+    transition: color $t;
+  }
+
+  &__attr {
+    @include small-caps(0.18em);
+    color: var(--fg-lt);
+    margin-bottom: 28px;
+  }
+
+  &__btn {
+    display: inline-block;
+    border: 1px solid var(--fg-lt);
+    color: var(--fg-mid);
+    @include small-caps(0.22em);
+    padding: 10px 28px;
+    text-decoration: none;
+    cursor: pointer;
+    background: transparent;
+    font-family: $jost;
+    transition: all 0.2s;
+    &:hover {
+      background: var(--fg);
+      border-color: var(--fg);
+      color: var(--bg);
+    }
+  }
+}

@@ -3,14 +3,75 @@
 // Same class of issue as Noir: flex/grid parents need `min-width: 0` so split `1fr` columns keep the image track.
 
 .tpl-pack-studio {
-	.pbModuleCell.s-hero {
-		min-width: 0;
-	}
+  .pbModuleCell.s-hero {
+    min-width: 0;
+  }
 
-	.pbModuleCell.s-hero > .pb-hero {
-		width: 100%;
-		min-width: 0;
-		position: relative;
-		z-index: 1;
-	}
+  .pbModuleCell.s-hero > .hero {
+    width: 100%;
+    min-width: 0;
+    position: relative;
+    z-index: 1;
+  }
+}
+
+.s-hero {
+  background: #0f172a;
+  overflow: hidden;
+  position: relative;
+  min-height: 520px;
+
+  // Background only — .hero-media__img must stay full opacity.
+  .hero--has-bg > .hero-img {
+    min-height: 580px !important;
+    opacity: 0.25;
+    width: 100vw !important;
+  }
+
+  .hero-media__img {
+    opacity: 1;
+  }
+  .hero-inner {
+    max-width: var(--mw);
+    margin: 0 auto;
+    padding: 72px 28px 64px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    align-items: center;
+    position: relative;
+    z-index: 2;
+    .hero-content {
+      .hero-title {
+        font-family: "Syne", sans-serif;
+        font-weight: 800;
+        font-size: clamp(32px, 4vw, 52px);
+        color: #fff;
+        line-height: 1.1;
+        margin-bottom: 16px;
+        letter-spacing: -0.02em;
+      }
+      .hero-subtitle {
+        font-size: 15px;
+        line-height: 1.7;
+        color: #94a3b8;
+        margin-bottom: 28px;
+      }
+      .hero-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem 1rem;
+        margin-top: 0.5rem;
+        .hero-btn {
+          display: flex;
+          gap: 12px;
+          .hero-action {
+            font-size: 16px;
+            color: #fff;
+            line-height: 1.5;
+          }
+        }
+      }
+    }
+  }
 }

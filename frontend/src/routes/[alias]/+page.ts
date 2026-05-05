@@ -1,13 +1,40 @@
 import { error } from '@sveltejs/kit';
 import type { PageLoad } from './$types';
-import { buildTemplateAwareAliasCandidates, resolveSiteTemplatePack } from '$lib/utils/template-page-alias';
+import { packClassPrefixFor } from '$lib/template/packs/class-prefix';
+import { resolvePageAliasPrefixes, resolveSiteTemplatePack } from '$lib/utils/template-page-alias';
+import {
+	fetchVisitorSiteConfig,
+	loginRoleFallbackRequests,
+	resolveCmsPublishedPage
+} from '$lib/utils/resolve-cms-page-load';
 
-export const load: PageLoad = async ({ params, fetch }) => {
+/**
+ * Single-segment public URLs: `/[alias]` (e.g. `/login`, `/about`).
+ *
+ * Resolution (same CMS rules as `[alias]/[param]/+page.ts` for the path segment):
+ * 1. CMS slug `{prefix}-{alias}` when configured (e.g. `s-login`).
+ * 2. CMS slug `{alias}` (e.g. `login`).
+ * 3. **Login only:** extra API `?role=login&pack=…` when no published row matched steps 1–2 (legacy; does not require `isPublished`).
+ * 4. **Login only:** always render the login shell (`LoginCmsPageBody`); if no CMS document, `page` is null (theme defaults).
+ * 5. Other aliases: if no CMS match → 404.
+ *
+ * `cmsSlugPrefix` matches step 1 (`packClassPrefixFor` + `buildTemplateAwareAliasCandidates` inside `resolveCmsPublishedPage`).
+ */
+export const load: PageLoad = async ({ params, fetch, parent }) => {
 	const alias = params.alias;
 
-	// Known routes - these have dedicated routes; if we hit this, show 404
-	const knownRoutes = ['admin', 'api', 'login', 'albums', 'photos', 'owner', 'page', 'member', 'setup', 'search', 'auth'];
-	// Static assets - avoid hitting backend when browser requests favicon etc.
+	const knownRoutes = [
+		'admin',
+		'api',
+		'albums',
+		'photos',
+		'owner',
+		'page',
+		'member',
+		'setup',
+		'search',
+		'auth'
+	];
 	const staticAssets = ['favicon.ico', 'favicon.svg', 'robots.txt', 'sitemap.xml'];
 	const lower = alias?.toLowerCase() || '';
 	if (knownRoutes.includes(lower) || staticAssets.includes(lower)) {
@@ -18,36 +45,57 @@ export const load: PageLoad = async ({ params, fetch }) => {
 		throw error(404, 'Not found');
 	}
 
+	const parentData = await parent();
+	const siteConfig =
+		parentData.siteConfig ??
+		parentData.visitorSiteConfig ??
+		(await fetchVisitorSiteConfig(fetch));
+	const packHint =
+		(typeof parentData.visitorTemplatePack === 'string' && parentData.visitorTemplatePack.trim()
+			? parentData.visitorTemplatePack.trim()
+			: undefined) ?? resolveSiteTemplatePack(siteConfig);
+	const pageAliasPrefixes = resolvePageAliasPrefixes(siteConfig);
+	const prefix = packClassPrefixFor(
+		(siteConfig as { template?: { frontendTemplate?: string | null } } | null)?.template
+			?.frontendTemplate ?? packHint,
+		pageAliasPrefixes
+	);
+
+	const extraRequests = lower === 'login' ? loginRoleFallbackRequests(packHint) : [];
+
 	try {
-		const siteConfigRes = await fetch('/api/site-config');
-		const siteConfigJson = siteConfigRes.ok ? await siteConfigRes.json().catch(() => null) : null;
-		const siteConfig = siteConfigJson?.success ? siteConfigJson?.data : siteConfigJson;
-		const pack = resolveSiteTemplatePack(siteConfig);
-		const aliasCandidates = buildTemplateAwareAliasCandidates(alias, pack);
+		const resolved = await resolveCmsPublishedPage(fetch, {
+			baseAlias: alias,
+			siteConfig,
+			packHint,
+			extraRequests
+		});
 
-		for (const candidateAlias of aliasCandidates) {
-			const pagesUrl = pack
-				? `/api/pages/${candidateAlias}?pack=${encodeURIComponent(pack)}`
-				: `/api/pages/${candidateAlias}`;
-			const response = await fetch(pagesUrl);
-			const result = await response.json().catch(() => null);
+		const packId = packHint || 'atelier';
 
-			if (!response.ok) {
-				if (response.status === 404) continue;
-				throw error(response.status === 404 ? 404 : 500, result?.error || 'Page not found');
-			}
-
-			const data = result?.success ? result.data : result;
-			const page = data?.page ?? data;
-			const modules = Array.isArray(data?.modules) ? data.modules : [];
-			if (!page?.isPublished) {
-				continue;
-			}
-
-			return { page, modules };
+		if (lower === 'login') {
+			return {
+				page: (resolved?.page ?? null) as unknown,
+				modules: (resolved?.modules ?? []) as unknown[],
+				urlAlias: alias,
+				useLoginShell: true,
+				cmsSlugPrefix: prefix,
+				packId
+			};
 		}
 
-		throw error(404, 'Page not found');
+		if (!resolved) {
+			throw error(404, 'Page not found');
+		}
+
+		return {
+			page: resolved.page,
+			modules: resolved.modules,
+			urlAlias: alias,
+			useLoginShell: false,
+			cmsSlugPrefix: prefix,
+			packId
+		};
 	} catch (err) {
 		if (err && typeof err === 'object' && 'status' in err) {
 			throw err;

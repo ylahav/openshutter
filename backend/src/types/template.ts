@@ -9,6 +9,11 @@ export interface FontSetting {
 export interface TemplateConfig {
   templateName: string
   displayName: string
+  /**
+   * Default CMS page alias / scoped page-builder class prefix for this pack (e.g. `s` for studio).
+   * Sites may override per pack in `site_config.template.pageAliasPrefixes`.
+   */
+  pageAliasPrefix: string
   description: string
   version: string
   author: string
@@ -112,6 +117,7 @@ export interface TemplateConfig {
       showSiteTitle?: boolean
       menu?: { labelKey?: string; label?: string; href: string }[]
       enableThemeToggle?: boolean
+      themeToggleVariant?: 'icons' | 'text' | 'both'
       enableLanguageSelector?: boolean
       showGreeting?: boolean
       showAuthButtons?: boolean

@@ -611,8 +611,10 @@ export class StorageAdminController {
       // Determine scope based on storage type
       // Default to 'appdata' for backward compatibility
       const storageTypeValue = storageType || 'appdata'
+      // Visible: full Drive scope so uploads work in normal My Drive folders and mixed
+      // SA/OAuth trees. Narrow drive.file often returns 403 for parents not "opened" by the app.
       const scope = storageTypeValue === 'visible'
-        ? 'https://www.googleapis.com/auth/drive.file'  // For visible files
+        ? 'https://www.googleapis.com/auth/drive'
         : 'https://www.googleapis.com/auth/drive.appdata'  // For hidden AppData
 
       // Generate OAuth URL

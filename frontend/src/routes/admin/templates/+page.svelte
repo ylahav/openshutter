@@ -8,6 +8,7 @@
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 	import { applyThemeById } from '$lib/services/apply-theme';
+	import { packClassPrefixFor } from '$lib/template/packs/class-prefix';
 
 	interface Theme {
 		_id: string;
@@ -41,6 +42,10 @@
 	let applyThemeId: string | null = null;
 	let previewTemplate: string | null = null;
 	let previewThemeId: string | null = null;
+	/** Pack id → default `pageAliasPrefix` from GET /api/admin/templates */
+	let packPrefixes: Record<string, string> = {};
+
+	const PREFIX_TOKEN = /^[a-z0-9]{1,12}$/;
 
 	const BASE_TEMPLATE_PREVIEW: Record<
 		string,
@@ -73,8 +78,33 @@
 
 	onMount(async () => {
 		await siteConfig.load();
-		await loadThemes();
+		await Promise.all([loadThemes(), loadPackPrefixMap()]);
 	});
+
+	async function loadPackPrefixMap() {
+		try {
+			const response = await fetch('/api/admin/templates', { credentials: 'include', cache: 'no-store' });
+			if (!response.ok) return;
+			const result = await response.json();
+			const arr =
+				result?.success && Array.isArray(result.data)
+					? result.data
+					: Array.isArray(result)
+						? result
+						: [];
+			const m: Record<string, string> = {};
+			for (const item of arr) {
+				const name = item?.templateName;
+				const pre = item?.pageAliasPrefix;
+				if (typeof name === 'string' && typeof pre === 'string' && pre.trim()) {
+					m[name] = pre.trim().toLowerCase();
+				}
+			}
+			packPrefixes = m;
+		} catch (err) {
+			logger.debug('[admin/templates] loadPackPrefixMap failed', err);
+		}
+	}
 
 	async function loadThemes() {
 		loading = true;
@@ -331,6 +361,15 @@
 			{:else}
 				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 					{#each themes as theme}
+						{@const packId = String(theme.baseTemplate || 'noir').toLowerCase()}
+						{@const packDefault = packPrefixes[packId] ?? packClassPrefixFor(packId)}
+						{@const ovRaw = $siteConfigData?.template?.pageAliasPrefixes?.[packId]}
+						{@const ov =
+							typeof ovRaw === 'string' ? ovRaw.trim().toLowerCase() : ''}
+						{@const effectivePrefix =
+							ov && PREFIX_TOKEN.test(ov) ? ov : packDefault}
+						{@const hasOverride =
+							ov && PREFIX_TOKEN.test(ov) && ov !== packDefault}
 						<div class="border border-surface-200-800 rounded-lg overflow-hidden hover:shadow-md transition-shadow">
 							<div class="h-24 flex items-center justify-center gap-1 p-2" style="background: {getColor(theme, 'background')};">
 								<span class="w-6 h-6 rounded-full border border-surface-300-700" style="background: {getColor(theme, 'primary')}"></span>
@@ -355,6 +394,13 @@
 									{$t('admin.baseTemplateLabel')}: {theme.baseTemplate}{' '}
 									{theme.basePalette ? `· ${theme.basePalette}` : ''}{' '}
 									{theme.isBuiltIn ? `· ${$t('admin.builtIn')}` : ''}
+								</p>
+								<p class="text-xs text-(--color-surface-600-400) mt-1">
+									<span class="text-(--color-surface-600-400)">{$t('admin.templatesPageAliasPrefix')}:</span>
+									<span class="font-mono font-medium text-(--color-surface-900-100)">{effectivePrefix}</span>
+									{#if hasOverride}
+										<span class="text-(--color-surface-500-500)"> · {$t('admin.templatesPageAliasDefault')}: {packDefault}</span>
+									{/if}
 								</p>
 								<p class="text-xs text-(--color-surface-600-400) mt-1">{getTemplateStyleLabel(theme)}</p>
 								<div class="flex flex-wrap gap-2 mt-3">

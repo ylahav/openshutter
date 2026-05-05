@@ -109,8 +109,9 @@
 		const clientId = formData.gdClientId?.trim();
 		const redirectUri = `${window.location.origin}/api/auth/google/callback`;
 		const storageType = formData.gdStorageType || 'appdata';
+		// Full Drive for visible: drive.file often 403s uploads into existing gallery folders.
 		const scope = storageType === 'visible'
-			? 'https://www.googleapis.com/auth/drive.file'
+			? 'https://www.googleapis.com/auth/drive'
 			: 'https://www.googleapis.com/auth/drive.appdata';
 		return `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(clientId || '')}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&access_type=offline&prompt=consent`;
 	}

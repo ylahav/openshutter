@@ -1,0 +1,39 @@
+// Page builder grid cell wrappers (`PageBuilderGrid` → `.pbModuleCell`).
+.pbModuleCell {
+	box-sizing: border-box;
+	min-width: 0;
+	max-width: 100%;
+}
+
+// Shell rows use CSS Grid on the parent; cells are grid items (not nested flex).
+.pbModuleCell--shellGrid {
+	display: block;
+}
+
+// Placement maps to align-self (block axis) + justify-self (inline axis).
+// Together equivalent to `place-self: <align> <justify>` (e.g. center start).
+.pbModuleCell--shellGrid.pbModuleCell--align-self-start {
+	align-self: start;
+}
+.pbModuleCell--shellGrid.pbModuleCell--align-self-center {
+	align-self: center;
+}
+.pbModuleCell--shellGrid.pbModuleCell--align-self-end {
+	align-self: end;
+}
+.pbModuleCell--shellGrid.pbModuleCell--align-self-stretch {
+	align-self: stretch;
+}
+
+.pbModuleCell--shellGrid.pbModuleCell--justify-self-start {
+	justify-self: start;
+}
+.pbModuleCell--shellGrid.pbModuleCell--justify-self-center {
+	justify-self: center;
+}
+.pbModuleCell--shellGrid.pbModuleCell--justify-self-end {
+	justify-self: end;
+}
+.pbModuleCell--shellGrid.pbModuleCell--justify-self-stretch {
+	justify-self: stretch;
+}

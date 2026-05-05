@@ -16,6 +16,15 @@ import { t } from '$stores/i18n';
 	let loading = true;
 	let saving = false;
 	let uploadingLogo = false;
+	let loadingHeroPhotos = false;
+	let showHeroPhotoPicker = false;
+	let heroPhotoPickerError: string | null = null;
+	let heroPhotos: Array<{
+		_id: string;
+		title?: string | Record<string, string>;
+		storage?: { url?: string; thumbnailPath?: string };
+		url?: string;
+	}> = [];
 	let error: string | null = null;
 	let success: string | null = null;
 
@@ -196,6 +205,62 @@ import { t } from '$stores/i18n';
 			uploadingLogo = false;
 			input.value = '';
 		}
+	}
+
+	function getPhotoImageUrl(photo: {
+		storage?: { url?: string; thumbnailPath?: string };
+		url?: string;
+	}): string {
+		return photo.storage?.thumbnailPath || photo.storage?.url || photo.url || '';
+	}
+
+	function getPhotoTitle(photo: {
+		title?: string | Record<string, string>;
+		_id: string;
+	}): string {
+		const title = photo.title;
+		if (typeof title === 'string' && title.trim()) return title.trim();
+		if (title && typeof title === 'object') {
+			const enTitle = typeof title.en === 'string' ? title.en.trim() : '';
+			if (enTitle) return enTitle;
+			const firstValue = Object.values(title).find(
+				(value) => typeof value === 'string' && value.trim()
+			);
+			if (typeof firstValue === 'string' && firstValue.trim()) return firstValue.trim();
+		}
+		return `Photo ${photo._id.slice(-6)}`;
+	}
+
+	async function openHeroPhotoPicker() {
+		showHeroPhotoPicker = true;
+		if (heroPhotos.length > 0 || loadingHeroPhotos) return;
+
+		loadingHeroPhotos = true;
+		heroPhotoPickerError = null;
+		try {
+			const response = await fetch('/api/photos?limit=120');
+			if (!response.ok) {
+				await handleApiErrorResponse(response);
+			}
+			const result = await response.json();
+			const list = Array.isArray(result) ? result : result?.data ?? result?.photos ?? [];
+			heroPhotos = Array.isArray(list) ? list : [];
+		} catch (err) {
+			logger.error('Failed to load photos for hero picker:', err);
+			heroPhotoPickerError = handleError(err, 'Failed to load uploaded photos');
+		} finally {
+			loadingHeroPhotos = false;
+		}
+	}
+
+	function selectHeroPhoto(photo: {
+		storage?: { url?: string; thumbnailPath?: string };
+		url?: string;
+	}) {
+		const url = getPhotoImageUrl(photo);
+		if (!url) return;
+		formData.hero.backgroundImage = url;
+		showHeroPhotoPicker = false;
 	}
 </script>
 
@@ -418,6 +483,61 @@ import { t } from '$stores/i18n';
 										class="w-full px-3 py-2 border border-gray-300 rounded-md"
 										placeholder="https://..."
 									/>
+									<div class="mt-3 flex items-center gap-2">
+										<button
+											type="button"
+											on:click={openHeroPhotoPicker}
+											class="px-3 py-1.5 text-sm border border-gray-300 rounded-md bg-white hover:bg-gray-50"
+										>
+											Choose from uploaded photos
+										</button>
+										{#if formData.hero.backgroundImage}
+											<button
+												type="button"
+												on:click={() => (formData.hero.backgroundImage = '')}
+												class="px-3 py-1.5 text-sm border border-gray-300 rounded-md bg-white hover:bg-gray-50"
+											>
+												Clear
+											</button>
+										{/if}
+									</div>
+									{#if showHeroPhotoPicker}
+										<div class="mt-3 border border-gray-200 rounded-md p-3 bg-gray-50">
+											{#if loadingHeroPhotos}
+												<p class="text-sm text-gray-600">Loading photos...</p>
+											{:else if heroPhotoPickerError}
+												<p class="text-sm text-red-600">{heroPhotoPickerError}</p>
+											{:else if heroPhotos.length === 0}
+												<p class="text-sm text-gray-600">No uploaded photos were found.</p>
+											{:else}
+												<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+													{#each heroPhotos as photo (photo._id)}
+														{@const photoUrl = getPhotoImageUrl(photo)}
+														<button
+															type="button"
+															class="text-left border border-gray-200 rounded-md overflow-hidden bg-white hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+															on:click={() => selectHeroPhoto(photo)}
+															disabled={!photoUrl}
+															title={photoUrl ? 'Use this photo' : 'Photo has no valid URL'}
+														>
+															{#if photoUrl}
+																<img
+																	src={photoUrl}
+																	alt={getPhotoTitle(photo)}
+																	class="w-full h-24 object-cover bg-gray-100"
+																/>
+															{:else}
+																<div class="w-full h-24 bg-gray-100"></div>
+															{/if}
+															<div class="p-2">
+																<p class="text-xs text-gray-700 truncate">{getPhotoTitle(photo)}</p>
+															</div>
+														</button>
+													{/each}
+												</div>
+											{/if}
+										</div>
+									{/if}
 								</div>
 							{/if}
 							<div>

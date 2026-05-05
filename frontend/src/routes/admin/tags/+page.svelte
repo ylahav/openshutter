@@ -8,6 +8,15 @@
 	import { useCrudOperations } from '$lib/composables/useCrudOperations';
 	import { useDialogManager } from '$lib/composables/useDialogManager';
 	import { normalizeMultiLangText } from '$lib/utils/multiLangHelpers';
+	import { handleError } from '$lib/utils/errorHandler';
+	import {
+		adminPostJson,
+		applyTemplateVars,
+		downloadJson,
+		fetchAdminPaginatedList,
+		parseImportItems
+	} from '$lib/utils/collectionImportExport';
+	import CollectionImportExportButtons from '$lib/components/admin/CollectionImportExportButtons.svelte';
 	import { t } from '$stores/i18n';
 	import type { PageData } from './$types';
 
@@ -133,6 +142,8 @@
 		byAction: {},
 		bySourceAction: {}
 	};
+
+	let importExportBusy = false;
 
 	// Subscribe to stores
 	crudLoader.items.subscribe(value => tags = value);
@@ -268,6 +279,96 @@
 		if (typeof tag.description === 'string') return tag.description;
 		return MultiLangUtils.getTextValue(tag.description) || '';
 	}
+
+	function importFileErrorMessage(err: unknown): string {
+		if (err instanceof Error && err.message === 'INVALID_JSON') {
+			return translate('admin.collectionImportInvalidJson');
+		}
+		if (err instanceof Error && err.message === 'INVALID_SHAPE') {
+			return translate('admin.collectionImportInvalidEnvelope');
+		}
+		return handleError(err, translate('admin.collectionImportReadError'));
+	}
+
+	function setImportSummaryMessage(created: number, failed: number) {
+		const template = translate('admin.collectionImportResult');
+		const text = applyTemplateVars(template, { created, failed });
+		crudOps.message.set(text);
+		setTimeout(() => crudOps.message.set(''), 8000);
+	}
+
+	async function handleTagsExport() {
+		importExportBusy = true;
+		crudOps.error.set('');
+		try {
+			const rows = await fetchAdminPaginatedList('/api/admin/tags');
+			const items = rows.map((raw) => {
+				const row = raw as Record<string, unknown>;
+				const { _id, usageCount, createdBy, createdAt, updatedAt, ...rest } = row;
+				void _id;
+				void usageCount;
+				void createdBy;
+				void createdAt;
+				void updatedAt;
+				return rest;
+			});
+			downloadJson(`openshutter-tags-${new Date().toISOString().slice(0, 10)}.json`, {
+				schema: 'openshutter.admin.tags/v1',
+				exportedAt: new Date().toISOString(),
+				items
+			});
+		} catch (err) {
+			crudOps.error.set(handleError(err, translate('admin.collectionExportFailed')));
+		} finally {
+			importExportBusy = false;
+		}
+	}
+
+	async function handleTagsImport(file: File) {
+		importExportBusy = true;
+		crudOps.error.set('');
+		let created = 0;
+		let failed = 0;
+		const failureLines: string[] = [];
+		try {
+			const list = parseImportItems(await file.text());
+			for (let i = 0; i < list.length; i++) {
+				const raw = list[i];
+				if (!raw || typeof raw !== 'object') {
+					failed++;
+					continue;
+				}
+				const o = raw as Record<string, unknown>;
+				const payload = {
+					name: o.name,
+					description: o.description ?? {},
+					color: typeof o.color === 'string' ? o.color : undefined,
+					category: typeof o.category === 'string' ? o.category : undefined
+				};
+				if (payload.name == null) {
+					failed++;
+					failureLines.push(`#${i + 1}: ${translate('admin.tagsTagNameLabel')}`);
+					continue;
+				}
+				try {
+					await adminPostJson('/api/admin/tags', payload);
+					created++;
+				} catch (e) {
+					failed++;
+					failureLines.push(`#${i + 1}: ${handleError(e, 'Error')}`);
+				}
+			}
+			await crudLoader.loadItems();
+			setImportSummaryMessage(created, failed);
+			if (failureLines.length) {
+				crudOps.error.set(failureLines.slice(0, 8).join(' · '));
+			}
+		} catch (err) {
+			crudOps.error.set(importFileErrorMessage(err));
+		} finally {
+			importExportBusy = false;
+		}
+	}
 </script>
 
 <svelte:head>
@@ -369,21 +470,30 @@
 					</select>
 				</div>
 
-				<button
-					type="button"
-					on:click={openCreateDialog}
-					class="px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700) text-sm font-medium flex items-center gap-2"
-				>
-					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M12 4v16m8-8H4"
-						/>
-					</svg>
-					{$t('admin.addTag')}
-				</button>
+				<div class="flex flex-wrap items-center gap-2">
+					<CollectionImportExportButtons
+						exportLabel={$t('admin.collectionExportJson')}
+						importLabel={$t('admin.collectionImportJson')}
+						busy={importExportBusy}
+						onExport={handleTagsExport}
+						onImportFile={handleTagsImport}
+					/>
+					<button
+						type="button"
+						on:click={openCreateDialog}
+						class="px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700) text-sm font-medium flex items-center gap-2"
+					>
+						<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M12 4v16m8-8H4"
+							/>
+						</svg>
+						{$t('admin.addTag')}
+					</button>
+				</div>
 			</div>
 
 			<!-- Tags List -->

@@ -24,7 +24,7 @@ Root [README.md](../README.md), [LICENSE](../LICENSE), and [CHANGELOG.md](../CHA
 - Photos: [guides/PHOTO_UPLOAD.md](./guides/PHOTO_UPLOAD.md)  
 - i18n: [guides/translation-guide.md](./guides/translation-guide.md)  
 - White-label: [guides/WHITE_LABEL.md](./guides/WHITE_LABEL.md)  
-- Templating (Admin): [guides/TEMPLATING_USER_GUIDE.md](./guides/TEMPLATING_USER_GUIDE.md)  
+- Templating (Admin): [guides/TEMPLATING_USER_GUIDE.md](./guides/TEMPLATING_USER_GUIDE.md) (includes [CMS page aliases](./guides/TEMPLATING_USER_GUIDE.md#cms-page-aliases))  
 
 **Engineering**
 
