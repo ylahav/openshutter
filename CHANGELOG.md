@@ -39,6 +39,9 @@
 - **Admin → Users (owners)**: Per-provider JSON for dedicated storage is no longer edited inline on the user form; owners configure credentials on **Owner → Storage**. Copy and i18n updated accordingly.
 
 ### Fixed
+- **Search filters in admin/owner contexts:** `SearchFilter` now loads filter options with admin-first endpoint fallback (`/api/admin/{tags,people,locations}` then public APIs), and supports multiple payload shapes (`data` / `items` / `results` / array), preventing empty filter lists in the popup.
+- **Search filter chip labels:** Active tag chips now resolve multilingual names instead of rendering raw objects (`[object Object]`) or unresolved IDs when data is available; filter options auto-load when active filters exist so labels resolve without opening the popup first.
+- **Photo edit location selection + save validation:** Admin and owner photo edit pages update `formData` immutably for location changes so first selection renders immediately; location admin save now omits coordinates unless both latitude and longitude are valid finite numbers, avoiding validation errors when fields are empty.
 - **`AlbumGalleryModule`:** Declared missing **`albumCard`** / **`photoCard`** props so the reactive `config` merge no longer throws **`ReferenceError`** on album routes.
 - **AI suggestions apply flow:** Fixed Tag Suggestions modal payload handling so **Apply** reliably sends selected suggestions to backend.
 - **AI suggestions empty-state regressions:** Removed frontend hardcoded high `minConfidence` override and applied provider-specific defaults (lower threshold for CLIP), preventing valid CLIP results from being filtered out.

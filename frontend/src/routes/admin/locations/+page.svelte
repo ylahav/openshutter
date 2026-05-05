@@ -76,11 +76,18 @@
 		transformPayload: (data: LocationFormData): Partial<Location> => {
 			const payload: Partial<Location> = { ...data };
 			const coords = data.coordinates;
-			if (coords?.latitude != null && coords?.longitude != null) {
-				payload.coordinates = {
-					latitude: typeof coords.latitude === 'string' ? parseFloat(coords.latitude) : coords.latitude,
-					longitude: typeof coords.longitude === 'string' ? parseFloat(coords.longitude) : coords.longitude
-				};
+			const parseCoordinate = (value: number | string | undefined): number | null => {
+				if (value == null) return null;
+				if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+				const trimmed = value.trim();
+				if (!trimmed) return null;
+				const parsed = Number(trimmed);
+				return Number.isFinite(parsed) ? parsed : null;
+			};
+			const latitude = parseCoordinate(coords?.latitude);
+			const longitude = parseCoordinate(coords?.longitude);
+			if (latitude != null && longitude != null) {
+				payload.coordinates = { latitude, longitude };
 			} else {
 				delete payload.coordinates;
 			}

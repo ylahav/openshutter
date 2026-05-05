@@ -16,6 +16,7 @@
 	}>();
 
 	let showFilterPanel = false;
+	let loadingFilterOptions = false;
 	let filterOptions: { albums: any[]; tags: any[]; people: any[]; locations: any[] } = {
 		albums: [],
 		tags: [],
@@ -50,25 +51,55 @@
 		return MultiLangUtils.getTextValue(item.name || item.title || item.fullName || item.firstName || {}, $currentLanguage) || item._id || '';
 	}
 
-	async function openFilterPanel() {
-		showFilterPanel = true;
-		draftFilters = { ...activeFilters };
-		if (filterOptions.albums.length > 0) return;
+	function toArray(payload: any): any[] {
+		if (Array.isArray(payload)) return payload;
+		if (Array.isArray(payload?.data)) return payload.data;
+		if (Array.isArray(payload?.items)) return payload.items;
+		if (Array.isArray(payload?.results)) return payload.results;
+		return [];
+	}
+
+	async function fetchFirstSuccessfulJson(urls: string[]): Promise<any> {
+		for (const url of urls) {
+			try {
+				const res = await fetch(url, { credentials: 'include' });
+				if (!res.ok) continue;
+				return await res.json();
+			} catch {
+				// Try next fallback endpoint.
+			}
+		}
+		return [];
+	}
+
+	async function loadFilterOptions() {
+		if (loadingFilterOptions) return;
+		loadingFilterOptions = true;
 		try {
-			const [albumsRes, tagsRes, peopleRes, locationsRes] = await Promise.all([
-				fetch('/api/albums/hierarchy?includePrivate=false', { credentials: 'include' }),
-				fetch('/api/tags?limit=500&isActive=true', { credentials: 'include' }),
-				fetch('/api/people?limit=500&isActive=true', { credentials: 'include' }),
-				fetch('/api/locations?limit=500&isActive=true', { credentials: 'include' })
+			const isAdminContext =
+				typeof window !== 'undefined' && /^\/(admin|owner)(\/|$)/.test(window.location.pathname);
+			const [albumsPayload, tagsData, peopleData, locationsData] = await Promise.all([
+				fetchFirstSuccessfulJson(['/api/albums/hierarchy?includePrivate=false']),
+				fetchFirstSuccessfulJson(
+					isAdminContext
+						? ['/api/admin/tags?limit=500', '/api/tags?limit=500']
+						: ['/api/tags?limit=500', '/api/admin/tags?limit=500']
+				),
+				fetchFirstSuccessfulJson(
+					isAdminContext
+						? ['/api/admin/people?limit=500', '/api/people?limit=500']
+						: ['/api/people?limit=500', '/api/admin/people?limit=500']
+				),
+				fetchFirstSuccessfulJson(
+					isAdminContext
+						? ['/api/admin/locations?limit=500', '/api/locations?limit=500']
+						: ['/api/locations?limit=500', '/api/admin/locations?limit=500']
+				)
 			]);
-			const albumsPayload = albumsRes.ok ? await albumsRes.json() : {};
-			const tagsData = tagsRes.ok ? await tagsRes.json() : [];
-			const peopleData = peopleRes.ok ? await peopleRes.json() : [];
-			const locationsData = locationsRes.ok ? await locationsRes.json() : [];
-			const albumsTree = Array.isArray(albumsPayload) ? albumsPayload : albumsPayload?.data ?? [];
-			const tags = Array.isArray(tagsData) ? tagsData : tagsData?.data ?? [];
-			const people = Array.isArray(peopleData) ? peopleData : peopleData?.data ?? [];
-			const locations = Array.isArray(locationsData) ? locationsData : locationsData?.data ?? [];
+			const albumsTree = toArray(albumsPayload);
+			const tags = toArray(tagsData);
+			const people = toArray(peopleData);
+			const locations = toArray(locationsData);
 			const flattenAlbums = (arr: any[], out: any[] = []): any[] => {
 				for (const a of arr) {
 					out.push({
@@ -87,7 +118,25 @@
 			};
 		} catch (e) {
 			logger.error('Failed to load filter options', e);
+		} finally {
+			loadingFilterOptions = false;
 		}
+	}
+
+	$: if (
+		hasActiveSearchFilters(activeFilters) &&
+		filterOptions.tags.length === 0 &&
+		filterOptions.people.length === 0 &&
+		filterOptions.locations.length === 0
+	) {
+		loadFilterOptions();
+	}
+
+	async function openFilterPanel() {
+		showFilterPanel = true;
+		draftFilters = { ...activeFilters };
+		if (filterOptions.albums.length > 0) return;
+		await loadFilterOptions();
 	}
 
 	function applyFilterPanel() {
@@ -123,7 +172,7 @@
 			</span>
 		{/if}
 		{#each activeFilters.tags as tagId}
-			{@const tagName = filterOptions.tags.find((t) => toIdString(t._id) === toIdString(tagId))?.name ?? tagId}
+			{@const tagName = getItemName(filterOptions.tags.find((t) => toIdString(t._id) === toIdString(tagId))) || tagId}
 			<span class="os-search-filters__chip">
 				{$t('search.tags')}: {tagName}
 				<button type="button" on:click={() => removeFilterItem('tags', tagId)} class="os-search-filters__chip-remove">×</button>
