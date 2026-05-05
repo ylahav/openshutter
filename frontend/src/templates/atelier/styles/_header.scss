@@ -1,0 +1,133 @@
+@use "./tools" as *;
+
+// ─── Header ──────────────────────────────────────────────────
+
+.a-header {
+  background: var(--tp-header-bg, var(--bg));
+  border-bottom: var(--os-border-width, 1px) solid
+    var(--tp-header-border, var(--bdr));
+  padding: 28px 32px 20px;
+  text-align: center;
+  position: relative;
+  transition:
+    background $t,
+    border-color $t;
+  transition:
+    background 0.4s,
+    border-color 0.4s;
+  > div {
+    grid-template-columns: 2fr 8fr 1fr 1fr !important;
+  }
+  .a-header-logo {
+    .pb-logo {
+      border-bottom: 1px solid var(--gold);
+      padding-bottom: 10px;
+      a {
+        font-family: "Cormorant Garamond", Georgia, serif;
+        font-weight: 400;
+        font-size: 32px;
+        letter-spacing: 0.12em;
+        color: var(--fg);
+        text-decoration: none;
+        display: block;
+        cursor: pointer;
+        transition: color 0.4s;
+      }
+     
+    }
+  }
+
+  &__btns {
+    position: absolute;
+    top: 28px;
+    right: 32px;
+    display: flex;
+    gap: 8px;
+    [dir="rtl"] & {
+      right: auto;
+      left: 32px;
+    }
+  }
+
+  &__btn {
+    background: none;
+    border: 1px solid var(--bdr);
+    color: var(--fg-lt);
+    font-family: $jost;
+    @include small-caps(0.14em);
+    padding: 4px 10px;
+    cursor: pointer;
+    transition:
+      color 0.2s,
+      border-color 0.2s;
+    &:hover {
+      color: var(--fg);
+      border-color: var(--fg-lt);
+    }
+  }
+
+  &__signin {
+    position: absolute;
+    top: 28px;
+    left: 32px;
+    @include small-caps(0.18em);
+    color: var(--fg-lt);
+    text-decoration: none;
+    border-bottom: 1px solid var(--bdr);
+    padding-bottom: 1px;
+    cursor: pointer;
+    transition: color 0.2s;
+    &:hover {
+      color: var(--fg-mid);
+    }
+    [dir="rtl"] & {
+      left: auto;
+      right: 32px;
+    }
+  }
+
+  &__name {
+    @include serif(400, 28px);
+    letter-spacing: 0.12em;
+    color: var(--fg);
+    text-decoration: none;
+    display: block;
+    cursor: pointer;
+    transition: color $t;
+  }
+
+  &__tag {
+    @include small-caps(0.32em);
+    color: var(--fg-lt);
+    margin-top: 4px;
+    transition: color $t;
+  }
+
+  &__rule {
+    @include gold-rule;
+    margin: 14px auto;
+  }
+
+  &__nav {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    [dir="rtl"] & {
+      flex-direction: row-reverse;
+    }
+  }
+
+  &__link {
+    @include small-caps(0.22em);
+    color: var(--fg-mid);
+    text-decoration: none;
+    cursor: pointer;
+    transition: color 0.2s;
+    &:hover {
+      color: var(--fg);
+    }
+    &.active {
+      color: var(--gold);
+    }
+  }
+}

@@ -25,7 +25,7 @@ Legacy pack hooks may still set **`data-hero-layout`** (e.g. from `heroLayout` /
 |-----------|--------|
 | `title`, `subtitle`, `description` | MultiLang; optional — omitted when empty. |
 | `buttonLabel` / `buttonUrl`, `button2Label` / `button2Url` | Primary/secondary CTA; optional. |
-| `backgroundImage` | URL or upload (site asset). |
+| `backgroundImage` | URL or upload (site asset). Owner Site Settings also supports selecting from existing uploaded photos. |
 | `contentMediaOrder` | Row order, stack, or hide one side. |
 | `mediaMaxCount` | Cap on strip photos (1–12). |
 | `mediaSource` | `galleryLeading` or uploads list. |
@@ -34,6 +34,14 @@ Legacy pack hooks may still set **`data-hero-layout`** (e.g. from `heroLayout` /
 | `carouselIntervalMs` | Carousel timing (also accepts legacy `slideshowIntervalMs`). |
 
 Gallery-leading fetch uses published photos (prefer **`isGalleryLeading`**, then **`isLeading`**). Home SSR can prefetch leading URLs when needed (see `routes/+page.ts` and **`heroNeedsGalleryLeadingPrefetch`** / **`heroGalleryLeadingMediaLimit`** in **`hero-layout.ts`**).
+
+### Owner Site Settings note
+
+In `routes/owner/site-settings/+page.svelte`, when Hero background style is `image`, owners can now:
+
+- paste a URL manually,
+- upload a new image, or
+- choose from already uploaded photos (loaded from `/api/photos`).
 
 ## Classes & tokens for template styles
 
