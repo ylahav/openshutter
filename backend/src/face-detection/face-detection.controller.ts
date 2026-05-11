@@ -448,4 +448,106 @@ export class FaceDetectionController {
 			);
 		}
 	}
+
+	/**
+	 * Remove a face rectangle from a photo by index.
+	 * Path: POST /api/admin/face-recognition/remove-face
+	 */
+	@Post('remove-face')
+	async removeFace(
+		@Body() body: { photoId: string; faceIndex: number },
+	) {
+		try {
+			const { photoId, faceIndex } = body;
+
+			if (!photoId) {
+				throw new BadRequestException('Photo ID is required');
+			}
+			if (typeof faceIndex !== 'number' || faceIndex < 0) {
+				throw new BadRequestException('Valid faceIndex is required');
+			}
+
+			await connectDB();
+			const db = mongoose.connection.db;
+			if (!db) throw new InternalServerErrorException('Database connection not established');
+
+			let objectId: Types.ObjectId;
+			try {
+				objectId = new Types.ObjectId(photoId);
+			} catch (_error) {
+				throw new BadRequestException('Invalid photo ID format');
+			}
+
+			const photo = await db.collection('photos').findOne({ _id: objectId });
+			if (!photo) {
+				throw new NotFoundException('Photo not found');
+			}
+
+			const existingFaces = (photo.faceRecognition?.faces || []) as any[];
+			if (faceIndex >= existingFaces.length) {
+				throw new BadRequestException('Invalid face index');
+			}
+
+			const removed = existingFaces[faceIndex];
+			const updatedFaces = existingFaces.filter((_f, i) => i !== faceIndex);
+
+			// If the removed face was the only reference to a person on this photo,
+			// drop that person from photo.people too. Other photo metadata stays as-is.
+			const removedPersonId = removed?.matchedPersonId
+				? (removed.matchedPersonId instanceof Types.ObjectId
+					? removed.matchedPersonId.toString()
+					: String(removed.matchedPersonId))
+				: null;
+
+			let updatedPeopleObjectIds = photo.people as any[] | undefined;
+			if (removedPersonId) {
+				const stillReferenced = updatedFaces.some((f: any) => {
+					if (!f?.matchedPersonId) return false;
+					const id = f.matchedPersonId instanceof Types.ObjectId
+						? f.matchedPersonId.toString()
+						: String(f.matchedPersonId);
+					return id === removedPersonId;
+				});
+				if (!stillReferenced && Array.isArray(photo.people)) {
+					updatedPeopleObjectIds = photo.people.filter((p: any) => {
+						const id = p instanceof Types.ObjectId ? p.toString() : String(p);
+						return id !== removedPersonId;
+					});
+				}
+			}
+
+			const setUpdate: Record<string, unknown> = {
+				'faceRecognition.faces': updatedFaces,
+				'faceRecognition.processedAt': new Date(),
+				updatedAt: new Date(),
+			};
+			if (updatedPeopleObjectIds && updatedPeopleObjectIds !== photo.people) {
+				setUpdate.people = updatedPeopleObjectIds;
+			}
+
+			await db.collection('photos').updateOne(
+				{ _id: objectId },
+				{ $set: setUpdate },
+			);
+
+			return {
+				success: true,
+				data: {
+					photoId,
+					removedIndex: faceIndex,
+					remainingFaces: updatedFaces.length,
+				},
+			};
+		} catch (error) {
+			this.logger.error(
+				`Failed to remove face: ${error instanceof Error ? error.message : String(error)}`,
+			);
+			if (error instanceof BadRequestException || error instanceof NotFoundException) {
+				throw error;
+			}
+			throw new InternalServerErrorException(
+				`Failed to remove face: ${error instanceof Error ? error.message : 'Unknown error'}`,
+			);
+		}
+	}
 }

@@ -62,6 +62,74 @@ export class PhotosAdminController {
 	}
 
 	/**
+	 * Translate stored face detection rectangles and landmarks from the original-image
+	 * coordinate system into the cropped-image coordinate system.
+	 *
+	 * Faces whose bounding box has no overlap with the crop area, or whose remaining
+	 * overlap is less than 25% of the original face area, are dropped. Partially
+	 * overlapping faces are clipped to the new image bounds. Landmark points are
+	 * translated and kept only when all four (eyes/nose/mouth) remain inside the new
+	 * image; otherwise landmarks are removed but the face entry (with descriptor and
+	 * matched person) is preserved.
+	 */
+	private transformFacesForCrop(
+		faces: any[] | undefined,
+		crop: { x: number; y: number; width: number; height: number }
+	): any[] {
+		if (!Array.isArray(faces) || faces.length === 0) return [];
+		const cropRight = crop.x + crop.width;
+		const cropBottom = crop.y + crop.height;
+		const transformed: any[] = [];
+		for (const face of faces) {
+			if (!face || !face.box || typeof face.box.x !== 'number') continue;
+			const ox = face.box.x;
+			const oy = face.box.y;
+			const ow = face.box.width;
+			const oh = face.box.height;
+			const interLeft = Math.max(ox, crop.x);
+			const interTop = Math.max(oy, crop.y);
+			const interRight = Math.min(ox + ow, cropRight);
+			const interBottom = Math.min(oy + oh, cropBottom);
+			const interW = interRight - interLeft;
+			const interH = interBottom - interTop;
+			if (interW <= 0 || interH <= 0) continue;
+			const origArea = Math.max(1, ow * oh);
+			if ((interW * interH) / origArea < 0.25) continue;
+			const newBox = {
+				x: Math.round(interLeft - crop.x),
+				y: Math.round(interTop - crop.y),
+				width: Math.round(interW),
+				height: Math.round(interH),
+			};
+			const translatePoint = (p: { x: number; y: number } | undefined) => {
+				if (!p || typeof p.x !== 'number' || typeof p.y !== 'number') return undefined;
+				const nx = Math.round(p.x - crop.x);
+				const ny = Math.round(p.y - crop.y);
+				if (nx < 0 || ny < 0 || nx >= crop.width || ny >= crop.height) return undefined;
+				return { x: nx, y: ny };
+			};
+			let newLandmarks: any | undefined;
+			if (face.landmarks) {
+				const leftEye = translatePoint(face.landmarks.leftEye);
+				const rightEye = translatePoint(face.landmarks.rightEye);
+				const nose = translatePoint(face.landmarks.nose);
+				const mouth = translatePoint(face.landmarks.mouth);
+				if (leftEye && rightEye && nose && mouth) {
+					newLandmarks = { leftEye, rightEye, nose, mouth };
+				}
+			}
+			const next: any = { ...face, box: newBox };
+			if (newLandmarks) {
+				next.landmarks = newLandmarks;
+			} else {
+				delete next.landmarks;
+			}
+			transformed.push(next);
+		}
+		return transformed;
+	}
+
+	/**
 	 * Get a photo by ID (admin or owner of the photo's album - includes unpublished)
 	 * Path: GET /api/admin/photos/:id
 	 */
@@ -108,7 +176,9 @@ export class PhotosAdminController {
 						: photo.location.toString()
 					: null,
 				uploadedBy: photo.uploadedBy ? photo.uploadedBy.toString() : null,
-				canRestoreOriginal: !!(photo as any).originalBackupPath,
+				canRestoreOriginal:
+					!!(photo as any).originalBackupPath ||
+					(typeof (photo as any).rotation === 'number' && (photo as any).rotation !== 0),
 			};
 
 			// Ensure storage object is properly preserved
@@ -930,10 +1000,25 @@ export class PhotosAdminController {
 				throw new BadRequestException('angle must be 90, -90, or 180');
 			}
 
-			await db.collection('photos').updateOne(
-				{ _id: objectId },
-				{ $set: { rotation: angle, updatedAt: new Date() } }
-			);
+			// Accumulate rotation: combine current display rotation with the requested delta.
+			// Normalize the result into (-180, 180]; canonical values are 0, 90, 180, -90.
+			// When the accumulated rotation is 0, unset the field so the photo has no rotation override.
+			const current = Number((photo as any).rotation) || 0;
+			let accumulated = (current + angle) % 360;
+			accumulated = ((accumulated % 360) + 360) % 360; // [0, 360)
+			if (accumulated > 180) accumulated -= 360; // (-180, 180]
+
+			if (accumulated === 0) {
+				await db.collection('photos').updateOne(
+					{ _id: objectId },
+					{ $set: { updatedAt: new Date() }, $unset: { rotation: '' } }
+				);
+			} else {
+				await db.collection('photos').updateOne(
+					{ _id: objectId },
+					{ $set: { rotation: accumulated, updatedAt: new Date() } }
+				);
+			}
 
 			const updatedPhoto = await db.collection('photos').findOne({ _id: objectId });
 			if (!updatedPhoto) throw new NotFoundException('Photo not found after rotate');
@@ -946,6 +1031,9 @@ export class PhotosAdminController {
 				people: updatedPhoto.people ? updatedPhoto.people.map((p: any) => (p._id ? p._id.toString() : p.toString())) : [],
 				location: updatedPhoto.location ? (updatedPhoto.location._id ? updatedPhoto.location._id.toString() : updatedPhoto.location.toString()) : null,
 				uploadedBy: updatedPhoto.uploadedBy ? updatedPhoto.uploadedBy.toString() : null,
+				canRestoreOriginal:
+					!!(updatedPhoto as any).originalBackupPath ||
+					(typeof (updatedPhoto as any).rotation === 'number' && (updatedPhoto as any).rotation !== 0),
 			};
 			if (updatedPhoto.storage) {
 				serialized.storage = {
@@ -1064,7 +1152,9 @@ export class PhotosAdminController {
 				}
 			}
 
-			// Backup current file as "original" before first edit (so admin can restore later)
+			// Backup current file as "original" before first edit (so admin can restore later).
+			// Also snapshot the current faceRecognition so face boxes (in pre-crop coords)
+			// can be restored together with the file.
 			if (!photo.originalBackupPath) {
 				const ext = (photo.mimeType || 'image/jpeg').split('/')[1] || 'jpg';
 				const backupFolder = albumPath ? `${albumPath}/.originals` : '.originals';
@@ -1077,15 +1167,17 @@ export class PhotosAdminController {
 						backupFolder,
 						{ originalPhotoId: objectId.toString(), reason: 'pre-crop' }
 					);
+					const backupSet: Record<string, unknown> = {
+						originalBackupPath: backupResult.path,
+						originalBackupFilename: photo.filename,
+						updatedAt: new Date(),
+					};
+					if (photo.faceRecognition) {
+						backupSet.originalBackupFaceRecognition = photo.faceRecognition;
+					}
 					await db.collection('photos').updateOne(
 						{ _id: objectId },
-						{
-							$set: {
-								originalBackupPath: backupResult.path,
-								originalBackupFilename: photo.filename,
-								updatedAt: new Date()
-							}
-						}
+						{ $set: backupSet }
 					);
 					this.logger.debug(`Backed up original for restore: ${backupResult.path}`);
 				} catch (backupErr) {
@@ -1184,25 +1276,46 @@ export class PhotosAdminController {
 			// Calculate new file size
 			const compressionResult = await ImageCompressionService.compressImage(croppedBuffer, 'gallery');
 
+			// Translate stored face-detection rectangles into the new (cropped) image's
+			// coordinate system. Faces fully outside the crop area are dropped; partial
+			// overlaps are clipped. Descriptors and matched person ids are preserved so
+			// existing person assignments survive the crop.
+			const fr = (photo as any).faceRecognition;
+			let faceUpdate: Record<string, unknown> | undefined;
+			if (fr && Array.isArray(fr.faces) && fr.faces.length > 0) {
+				const newFaces = this.transformFacesForCrop(fr.faces, {
+					x: finalX,
+					y: finalY,
+					width: finalWidth,
+					height: finalHeight,
+				});
+				faceUpdate = {
+					...fr,
+					faces: newFaces,
+				};
+			}
+
 			// Update photo document (new filename so storage URLs change and album shows cropped image)
+			const updateSet: Record<string, unknown> = {
+				filename: newFilename,
+				'storage.path': uploadResult.path,
+				'storage.fileId': uploadResult.fileId,
+				'storage.url': `/api/storage/serve/${provider}/${encodeURIComponent(uploadResult.path)}${storageServeQs(photo)}`,
+				'storage.thumbnails': thumbnails,
+				'storage.thumbnailPath': mediumThumbnail,
+				'storage.blurDataURL': blurDataURL,
+				dimensions: newDimensions,
+				size: compressionResult.compressed.length,
+				compressionRatio: compressionResult.compressionRatio,
+				exif: exifData,
+				updatedAt: new Date(),
+			};
+			if (faceUpdate !== undefined) {
+				updateSet.faceRecognition = faceUpdate;
+			}
 			const updateResult = await db.collection('photos').updateOne(
 				{ _id: objectId },
-				{
-					$set: {
-						filename: newFilename,
-						'storage.path': uploadResult.path,
-						'storage.fileId': uploadResult.fileId,
-						'storage.url': `/api/storage/serve/${provider}/${encodeURIComponent(uploadResult.path)}${storageServeQs(photo)}`,
-						'storage.thumbnails': thumbnails,
-						'storage.thumbnailPath': mediumThumbnail,
-						'storage.blurDataURL': blurDataURL,
-						dimensions: newDimensions,
-						size: compressionResult.compressed.length,
-						compressionRatio: compressionResult.compressionRatio,
-						exif: exifData,
-						updatedAt: new Date()
-					}
-				}
+				{ $set: updateSet }
 			);
 
 			if (updateResult.modifiedCount === 0) {
@@ -1288,6 +1401,46 @@ export class PhotosAdminController {
 			await this.assertOwnerCanAccessPhoto(req, photo, db);
 
 			const backupPath = photo.originalBackupPath;
+			const hasRotation = typeof (photo as any).rotation === 'number' && (photo as any).rotation !== 0;
+
+			// Rotation-only restore: no file backup exists, but the photo has a display rotation.
+			// Just clear the rotation field so the photo displays in its native orientation again.
+			if ((!backupPath || typeof backupPath !== 'string') && hasRotation) {
+				await db.collection('photos').updateOne(
+					{ _id: objectId },
+					{ $set: { updatedAt: new Date() }, $unset: { rotation: '' } }
+				);
+
+				const updatedRotPhoto = await db.collection('photos').findOne({ _id: objectId });
+				if (!updatedRotPhoto) throw new NotFoundException('Photo not found after rotation reset');
+
+				const rotSerialized: any = {
+					...updatedRotPhoto,
+					_id: updatedRotPhoto._id.toString(),
+					albumId: updatedRotPhoto.albumId ? updatedRotPhoto.albumId.toString() : null,
+					tags: updatedRotPhoto.tags ? updatedRotPhoto.tags.map((t: any) => (t._id ? t._id.toString() : t.toString())) : [],
+					people: updatedRotPhoto.people ? updatedRotPhoto.people.map((p: any) => (p._id ? p._id.toString() : p.toString())) : [],
+					location: updatedRotPhoto.location ? (updatedRotPhoto.location._id ? updatedRotPhoto.location._id.toString() : updatedRotPhoto.location.toString()) : null,
+					uploadedBy: updatedRotPhoto.uploadedBy ? updatedRotPhoto.uploadedBy.toString() : null,
+					canRestoreOriginal: false,
+				};
+				if (updatedRotPhoto.storage) {
+					rotSerialized.storage = {
+						provider: updatedRotPhoto.storage.provider || 'local',
+						fileId: updatedRotPhoto.storage.fileId || '',
+						url: updatedRotPhoto.storage.url || '',
+						path: updatedRotPhoto.storage.path || '',
+						thumbnailPath: updatedRotPhoto.storage.thumbnailPath || updatedRotPhoto.storage.url || '',
+						thumbnails: updatedRotPhoto.storage.thumbnails || {},
+						blurDataURL: updatedRotPhoto.storage.blurDataURL,
+						bucket: updatedRotPhoto.storage.bucket,
+						folderId: updatedRotPhoto.storage.folderId,
+					};
+				}
+
+				return { success: true, message: 'Rotation cleared', data: rotSerialized };
+			}
+
 			if (!backupPath || typeof backupPath !== 'string') {
 				throw new BadRequestException('No original backup available for this photo');
 			}
@@ -1379,28 +1532,38 @@ export class PhotosAdminController {
 			const exifData = await ExifExtractor.extractExifData(originalBuffer);
 			const compressionResult = await ImageCompressionService.compressImage(originalBuffer, 'gallery');
 
-			// Update photo and clear backup fields
+			// Update photo and clear backup fields. Restore the pre-crop faceRecognition
+			// snapshot (if one was taken) so face rectangles match the original image
+			// again; if no snapshot exists we leave faceRecognition untouched (next
+			// "Detect faces" run on the edit page will refresh it).
+			const restoredFaceRecognition = (photo as any).originalBackupFaceRecognition;
+			const restoreSet: Record<string, unknown> = {
+				filename: newFilename,
+				'storage.path': uploadResult.path,
+				'storage.fileId': uploadResult.fileId,
+				'storage.url': `/api/storage/serve/${provider}/${encodeURIComponent(uploadResult.path)}${storageServeQs(photo)}`,
+				'storage.thumbnails': thumbnails,
+				'storage.thumbnailPath': mediumThumbnail,
+				'storage.blurDataURL': blurDataURL,
+				dimensions,
+				size: compressionResult.compressed.length,
+				compressionRatio: compressionResult.compressionRatio,
+				exif: exifData,
+				updatedAt: new Date(),
+			};
+			if (restoredFaceRecognition !== undefined && restoredFaceRecognition !== null) {
+				restoreSet.faceRecognition = restoredFaceRecognition;
+			}
 			await db.collection('photos').updateOne(
 				{ _id: objectId },
 				{
-					$set: {
-						filename: newFilename,
-						'storage.path': uploadResult.path,
-						'storage.fileId': uploadResult.fileId,
-						'storage.url': `/api/storage/serve/${provider}/${encodeURIComponent(uploadResult.path)}${storageServeQs(photo)}`,
-						'storage.thumbnails': thumbnails,
-						'storage.thumbnailPath': mediumThumbnail,
-						'storage.blurDataURL': blurDataURL,
-						dimensions,
-						size: compressionResult.compressed.length,
-						compressionRatio: compressionResult.compressionRatio,
-						exif: exifData,
-						updatedAt: new Date()
-					},
+					$set: restoreSet,
 					$unset: {
 						originalBackupPath: '',
-						originalBackupFilename: ''
-					}
+						originalBackupFilename: '',
+						originalBackupFaceRecognition: '',
+						rotation: '',
+					},
 				}
 			);
 

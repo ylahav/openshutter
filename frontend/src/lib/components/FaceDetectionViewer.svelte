@@ -33,6 +33,7 @@
 
 	let isDetecting = false;
 	let addingManual = false;
+	let removingFace = false;
 	let faces: FaceDetection[] = [];
 	let modelsLoaded = false;
 	let isManualMode = false;
@@ -87,7 +88,9 @@
 
 	onMount(async () => {
 		if (typeof window === 'undefined') return;
-		
+
+		window.addEventListener('keydown', handleKeydown);
+
 		try {
 			await FaceRecognitionService.loadModels();
 			modelsLoaded = true;
@@ -96,7 +99,16 @@
 		}
 	});
 
-	$: if (detectedFaces.length > 0) {
+	onDestroy(() => {
+		if (typeof window !== 'undefined') {
+			window.removeEventListener('keydown', handleKeydown);
+		}
+	});
+
+	// Always keep the local `faces` array in sync with the detectedFaces prop, even when
+	// it becomes empty (e.g. after the user removes the last face). Otherwise the canvas
+	// keeps the stale rectangles drawn until the next manual refresh.
+	$: {
 		const newFaces = detectedFaces.map((face) => ({
 			descriptor: [] as number[],
 			box: face.box,
@@ -197,35 +209,48 @@
 		}
 	}
 
-	$: if ((faces.length > 0 || currentRect) && image?.complete) {
+	// Redraw whenever faces or the in-progress manual rectangle change. The condition is
+	// kept generic (no length check) so the canvas is also cleared when faces becomes empty.
+	$: if (image?.complete) {
+		// Reference reactive deps so Svelte re-runs this when they change
+		void faces;
+		void currentRect;
 		drawFaces();
 	}
 
 	// When rotation changes and we have existing faces, recalculate face detection so boxes match the new orientation
-	$: if (prevRotation !== undefined && rotation !== prevRotation && (faces.length > 0 || detectedFaces.length > 0)) {
+	$: if (
+		prevRotation !== undefined &&
+		rotation !== prevRotation &&
+		(faces.length > 0 || detectedFaces.length > 0) &&
+		!isDetecting
+	) {
 		prevRotation = rotation;
 		didRedetectForRotation = true;
-		handleDetectFaces();
+		handleDetectFaces({ silent: true });
 	} else if (prevRotation === undefined) {
 		prevRotation = rotation;
 	}
-	// One-time: photo already has rotation + faces from server; re-detect so boxes are in rotated coords
+	// One-time: photo already has rotation + faces from server; re-detect so boxes are in rotated coords.
+	// Silent: do not show "Faces detected successfully" toast for the auto-run on mount.
 	$: if (
 		!didRedetectForRotation &&
 		(rotation === 90 || rotation === -90 || rotation === 180) &&
 		detectedFaces.length > 0 &&
 		image?.complete &&
-		modelsLoaded
+		modelsLoaded &&
+		!isDetecting
 	) {
 		didRedetectForRotation = true;
-		handleDetectFaces();
+		handleDetectFaces({ silent: true });
 	}
 
-	async function handleDetectFaces() {
+	async function handleDetectFaces(opts: { silent?: boolean } = {}) {
 		if (!image || !modelsLoaded) {
 			onError?.('Image not loaded or models not ready');
 			return;
 		}
+		if (isDetecting) return;
 
 		isDetecting = true;
 		try {
@@ -269,7 +294,9 @@
 			});
 
 			if (response.ok) {
-				onSuccess?.('Faces detected successfully');
+				if (!opts.silent) {
+					onSuccess?.('Faces detected successfully');
+				}
 				onFaceDetected?.(detections);
 			} else {
 				await handleApiErrorResponse(response);
@@ -399,6 +426,50 @@
 		drawFaces();
 	}
 
+	async function handleRemoveFace(faceIndex: number) {
+		if (faceIndex < 0 || faceIndex >= faces.length || removingFace) return;
+		removingFace = true;
+		try {
+			const response = await fetch('/api/admin/face-recognition/remove-face', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				credentials: 'include',
+				body: JSON.stringify({ photoId, faceIndex }),
+			});
+			if (response.ok) {
+				selectedFaceIndex = null;
+				// Optimistic local update so the rectangle disappears immediately,
+				// before the parent has finished reloading the photo.
+				faces = faces.filter((_, i) => i !== faceIndex);
+				manualFaces = new Set();
+				onSuccess?.('Face removed');
+				// Reuse the parent's reload hook so detectedFaces + faces stay in sync
+				onFaceDetected?.([]);
+			} else {
+				await handleApiErrorResponse(response);
+			}
+		} catch (error) {
+			logger.error('Remove face failed:', error);
+			onError?.(handleError(error, 'Failed to remove face'));
+		} finally {
+			removingFace = false;
+		}
+	}
+
+	function handleKeydown(e: KeyboardEvent) {
+		if (selectedFaceIndex === null || removingFace) return;
+		// Avoid stealing keys when the user is typing in an input/textarea
+		const target = e.target as HTMLElement | null;
+		const tag = target?.tagName;
+		const isEditable =
+			tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target?.isContentEditable;
+		if (isEditable) return;
+		if (e.key === 'Delete' || e.key === 'Backspace') {
+			e.preventDefault();
+			void handleRemoveFace(selectedFaceIndex);
+		}
+	}
+
 	function handleImageLoad() {
 		if (canvas && image) {
 			drawFaces();
@@ -459,8 +530,38 @@
 	</div>
 
 	{#if faces.length > 0}
-		<div class="mt-4 text-sm text-gray-600">
-			Detected {faces.length} face{faces.length !== 1 ? 's' : ''}
+		<div class="mt-4 flex flex-wrap items-center justify-between gap-2">
+			<div class="text-sm text-gray-600">
+				Detected {faces.length} face{faces.length !== 1 ? 's' : ''}
+				{#if selectedFaceIndex !== null}
+					<span class="ml-2 text-gray-500">— click a face to select, then press <kbd class="px-1.5 py-0.5 bg-gray-100 border border-gray-300 rounded text-xs">Delete</kbd> to remove</span>
+				{/if}
+			</div>
+			{#if selectedFaceIndex !== null}
+				{@const idx = selectedFaceIndex}
+				<div class="flex items-center gap-2 p-2 bg-yellow-50 border border-yellow-200 rounded-lg">
+					<span class="text-sm font-medium text-yellow-900">
+						Selected: {getFaceLabel ? getFaceLabel(idx, detectedFaces[idx]?.matchedPersonId) : `Face ${idx + 1}`}
+					</span>
+					<button
+						type="button"
+						on:click={() => handleRemoveFace(idx)}
+						disabled={removingFace}
+						class="px-3 py-1.5 text-sm font-medium text-white bg-red-600 rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+						title="Remove this face (Delete)"
+					>
+						{removingFace ? 'Removing…' : 'Remove face'}
+					</button>
+					<button
+						type="button"
+						on:click={() => { selectedFaceIndex = null; drawFaces(); }}
+						disabled={removingFace}
+						class="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800"
+					>
+						Cancel
+					</button>
+				</div>
+			{/if}
 		</div>
 	{/if}
 

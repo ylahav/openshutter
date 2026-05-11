@@ -7,7 +7,7 @@
 	import { MultiLangUtils } from '$utils/multiLang';
 	import MultiLangInput from '$lib/components/MultiLangInput.svelte';
 	import MultiLangHTMLEditor from '$lib/components/MultiLangHTMLEditor.svelte';
-	import NotificationDialog from '$lib/components/NotificationDialog.svelte';
+	import Toast from '$lib/components/Toast.svelte';
 	import FaceDetectionViewer from '$lib/components/FaceDetectionViewer.svelte';
 	import FaceMatchingPanel from '$lib/components/FaceMatchingPanel.svelte';
 	import CollectionPopup from '$lib/components/CollectionPopup.svelte';
@@ -1145,10 +1145,10 @@
 
 <div class="py-8">
 	<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-		{#if loading}
+		{#if loading && !photo}
 			<div class="text-center py-12">
 				<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-(--color-primary-600) mx-auto"></div>
-				<p class="mt-4 text-(--color-surface-600-400)">Loading photo...!!!</p>
+				<p class="mt-4 text-(--color-surface-600-400)">Loading photo...</p>
 			</div>
 		{:else if error && !photo}
 			<div class="text-center py-12">
@@ -1617,10 +1617,6 @@
 										// or the reactive block would also call loadPhoto() and we’d return early)
 										loadPhotoCalled = false;
 										await loadPhoto();
-										// Scroll to face matching so user can set who each face is
-										setTimeout(() => {
-											document.getElementById('face-matching-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-										}, 150);
 									}}
 									onFaceClick={(index) => {
 										// Handle face click if needed
@@ -1847,7 +1843,7 @@
 	</div>
 </div>
 
-<NotificationDialog
+<Toast
 	isOpen={notification.show}
 	message={notification.message}
 	type={notification.type}

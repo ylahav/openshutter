@@ -9,6 +9,7 @@
 	let canvas: HTMLCanvasElement;
 	let image: HTMLImageElement | null = null;
 	let container: HTMLDivElement;
+	let canvasWrapper: HTMLDivElement;
 	let isDragging = false;
 	let startX = 0;
 	let startY = 0;
@@ -19,10 +20,41 @@
 	let imageWidth = 0;
 	let imageHeight = 0;
 	let scale = 1;
+	let fitScale = 1;
 	let offsetX = 0;
 	let offsetY = 0;
 	let cropping = false;
-	let resizeMode: 'none' | 'nw' | 'ne' | 'sw' | 'se' | 'move' = 'none';
+	let resizeMode: 'none' | 'nw' | 'ne' | 'sw' | 'se' | 'move' | 'pan' = 'none';
+	let hoverMode: 'none' | 'nw' | 'ne' | 'sw' | 'se' | 'move' | 'pan' = 'none';
+
+	function getCanvasArea(): { width: number; height: number } {
+		// Canvas is sized to fit its flex wrapper; the controls bar lives below
+		// the wrapper, so this is always the actual drawable area regardless of
+		// how tall the controls are at the current viewport / language.
+		if (!canvasWrapper) return { width: 0, height: 0 };
+		return { width: canvasWrapper.clientWidth, height: canvasWrapper.clientHeight };
+	}
+
+	function fitImageToCanvas() {
+		const { width: cw, height: ch } = getCanvasArea();
+		if (!cw || !ch || !imageWidth || !imageHeight) return;
+		canvas.width = cw;
+		canvas.height = ch;
+		const availableWidth = cw - 40;
+		const availableHeight = ch - 40;
+		const scaleX = availableWidth / imageWidth;
+		const scaleY = availableHeight / imageHeight;
+		fitScale = Math.min(scaleX, scaleY, 1);
+		scale = fitScale;
+		const scaledWidth = imageWidth * scale;
+		const scaledHeight = imageHeight * scale;
+		offsetX = (cw - scaledWidth) / 2;
+		offsetY = (ch - scaledHeight) / 2;
+		cropX = offsetX;
+		cropY = offsetY;
+		cropWidth = scaledWidth;
+		cropHeight = scaledHeight;
+	}
 
 	function loadImage() {
 		if (!browser || !imageUrl) return;
@@ -33,35 +65,8 @@
 			image = img;
 			imageWidth = img.width;
 			imageHeight = img.height;
-			
-			// Calculate scale to fit container
-			if (container && canvas) {
-				// Ensure canvas matches container size
-				const containerWidth = container.clientWidth;
-				const containerHeight = container.clientHeight - 80; // Account for controls
-				
-				// Update canvas size to match container
-				canvas.width = containerWidth;
-				canvas.height = containerHeight;
-				
-				const availableWidth = containerWidth - 40; // padding
-				const availableHeight = containerHeight - 40;
-				const scaleX = availableWidth / imageWidth;
-				const scaleY = availableHeight / imageHeight;
-				scale = Math.min(scaleX, scaleY, 1); // Don't scale up
-				
-				// Center image
-				const scaledWidth = imageWidth * scale;
-				const scaledHeight = imageHeight * scale;
-				offsetX = (availableWidth - scaledWidth) / 2 + 20;
-				offsetY = (availableHeight - scaledHeight) / 2 + 20;
-				
-				// Initialize crop to full image
-				cropX = offsetX;
-				cropY = offsetY;
-				cropWidth = scaledWidth;
-				cropHeight = scaledHeight;
-				
+			if (canvasWrapper && canvas) {
+				fitImageToCanvas();
 				draw();
 			}
 		};
@@ -124,69 +129,102 @@
 		e.preventDefault();
 		const pos = getMousePos(e);
 		resizeMode = getResizeMode(pos);
-		if (resizeMode === 'none') return; // Don't start dragging if not on crop area
+		if (resizeMode === 'none') return;
 		isDragging = true;
 		startX = pos.x;
 		startY = pos.y;
 		cropping = true;
 	}
 
-	function getResizeMode(pos: { x: number; y: number }): 'none' | 'nw' | 'ne' | 'sw' | 'se' | 'move' {
+	function getResizeMode(pos: { x: number; y: number }): 'none' | 'nw' | 'ne' | 'sw' | 'se' | 'move' | 'pan' {
 		const handleSize = 20;
 		const isNearNW = Math.abs(pos.x - cropX) < handleSize && Math.abs(pos.y - cropY) < handleSize;
 		const isNearNE = Math.abs(pos.x - (cropX + cropWidth)) < handleSize && Math.abs(pos.y - cropY) < handleSize;
 		const isNearSW = Math.abs(pos.x - cropX) < handleSize && Math.abs(pos.y - (cropY + cropHeight)) < handleSize;
 		const isNearSE = Math.abs(pos.x - (cropX + cropWidth)) < handleSize && Math.abs(pos.y - (cropY + cropHeight)) < handleSize;
 		const isInCropArea = pos.x >= cropX && pos.x <= cropX + cropWidth && pos.y >= cropY && pos.y <= cropY + cropHeight;
+		const isInCanvas = pos.x >= 0 && pos.x <= canvas.width && pos.y >= 0 && pos.y <= canvas.height;
 
 		if (isNearNW) return 'nw';
 		if (isNearNE) return 'ne';
 		if (isNearSW) return 'sw';
 		if (isNearSE) return 'se';
 		if (isInCropArea) return 'move';
+		if (isInCanvas) return 'pan';
 		return 'none';
 	}
 
+	function cursorFor(mode: 'none' | 'nw' | 'ne' | 'sw' | 'se' | 'move' | 'pan', active: boolean): string {
+		switch (mode) {
+			case 'nw':
+			case 'se':
+				return 'nwse-resize';
+			case 'ne':
+			case 'sw':
+				return 'nesw-resize';
+			case 'move':
+				return 'move';
+			case 'pan':
+				return active ? 'grabbing' : 'grab';
+			default:
+				return 'default';
+		}
+	}
+
+	function handleHover(e: MouseEvent) {
+		if (isDragging || !image) return;
+		hoverMode = getResizeMode(getMousePos(e));
+	}
+
 	function handleMove(e: MouseEvent | TouchEvent) {
-		if (!isDragging || !image) return;
+		if (!isDragging || !image) {
+			if (e instanceof MouseEvent) handleHover(e);
+			return;
+		}
 		e.preventDefault();
 		const pos = getMousePos(e);
 		const dx = pos.x - startX;
 		const dy = pos.y - startY;
 
-		if (resizeMode === 'move') {
-			// Move crop area
+		if (resizeMode === 'pan') {
+			// Pan the image. Move the crop rectangle with it so the crop stays
+			// anchored over the same image pixels (no surprise re-framing).
+			offsetX += dx;
+			offsetY += dy;
+			cropX += dx;
+			cropY += dy;
+		} else if (resizeMode === 'move') {
 			const newX = Math.max(offsetX, Math.min(offsetX + imageWidth * scale - cropWidth, cropX + dx));
 			const newY = Math.max(offsetY, Math.min(offsetY + imageHeight * scale - cropHeight, cropY + dy));
 			cropX = newX;
 			cropY = newY;
 		} else if (resizeMode === 'nw') {
-			// Resize from northwest corner
 			cropX = Math.max(offsetX, cropX + dx);
 			cropY = Math.max(offsetY, cropY + dy);
 			cropWidth = Math.max(50, cropWidth - dx);
 			cropHeight = Math.max(50, cropHeight - dy);
 		} else if (resizeMode === 'ne') {
-			// Resize from northeast corner
 			cropY = Math.max(offsetY, cropY + dy);
 			cropWidth = Math.max(50, cropWidth + dx);
 			cropHeight = Math.max(50, cropHeight - dy);
 		} else if (resizeMode === 'sw') {
-			// Resize from southwest corner
 			cropX = Math.max(offsetX, cropX + dx);
 			cropWidth = Math.max(50, cropWidth - dx);
 			cropHeight = Math.max(50, cropHeight + dy);
 		} else if (resizeMode === 'se') {
-			// Resize from southeast corner
 			cropWidth = Math.max(50, cropWidth + dx);
 			cropHeight = Math.max(50, cropHeight + dy);
 		}
 
-		// Constrain crop to image bounds
-		cropX = Math.max(offsetX, Math.min(offsetX + imageWidth * scale - cropWidth, cropX));
-		cropY = Math.max(offsetY, Math.min(offsetY + imageHeight * scale - cropHeight, cropY));
-		cropWidth = Math.max(50, Math.min(imageWidth * scale - (cropX - offsetX), cropWidth));
-		cropHeight = Math.max(50, Math.min(imageHeight * scale - (cropY - offsetY), cropHeight));
+		if (resizeMode !== 'pan') {
+			// Constrain crop to image bounds (pan keeps the crop anchored to the image
+			// so we skip these snap-to-bounds rules — otherwise zooming-in then panning
+			// would yank the crop back into the viewport).
+			cropX = Math.max(offsetX, Math.min(offsetX + imageWidth * scale - cropWidth, cropX));
+			cropY = Math.max(offsetY, Math.min(offsetY + imageHeight * scale - cropHeight, cropY));
+			cropWidth = Math.max(50, Math.min(imageWidth * scale - (cropX - offsetX), cropWidth));
+			cropHeight = Math.max(50, Math.min(imageHeight * scale - (cropY - offsetY), cropHeight));
+		}
 
 		startX = pos.x;
 		startY = pos.y;
@@ -203,46 +241,33 @@
 		if (!image) return;
 		e.preventDefault();
 		const delta = e.deltaY > 0 ? 0.9 : 1.1;
-		const newScale = Math.max(0.1, Math.min(2, scale * delta));
-		
-		// Zoom towards mouse position
+		const maxScale = Math.max(2, fitScale * 8);
+		const minScale = Math.max(0.1, fitScale * 0.5);
+		const newScale = Math.max(minScale, Math.min(maxScale, scale * delta));
+		if (newScale === scale) return;
+
+		// Zoom around the cursor: keep the image pixel under the mouse stationary,
+		// and keep the crop rectangle anchored over the same image pixels.
 		const pos = getMousePos(e);
 		const scaleChange = newScale / scale;
 		offsetX = pos.x - (pos.x - offsetX) * scaleChange;
 		offsetY = pos.y - (pos.y - offsetY) * scaleChange;
-		
+		cropX = pos.x - (pos.x - cropX) * scaleChange;
+		cropY = pos.y - (pos.y - cropY) * scaleChange;
+		cropWidth *= scaleChange;
+		cropHeight *= scaleChange;
 		scale = newScale;
-		
-		// Adjust crop to stay within bounds
-		cropX = Math.max(offsetX, Math.min(offsetX + imageWidth * scale - cropWidth, cropX));
-		cropY = Math.max(offsetY, Math.min(offsetY + imageHeight * scale - cropHeight, cropY));
-		
 		draw();
 	}
 
 	async function applyCrop() {
 		if (!image) return;
+		// Convert canvas coords to image coords; clamp to image bounds at the end.
+		const imageX = (cropX - offsetX) / scale;
+		const imageY = (cropY - offsetY) / scale;
+		const imageCropWidth = cropWidth / scale;
+		const imageCropHeight = cropHeight / scale;
 
-		// Convert canvas coordinates to image coordinates
-		// Ensure crop area is within image bounds
-		const minX = offsetX;
-		const maxX = offsetX + imageWidth * scale;
-		const minY = offsetY;
-		const maxY = offsetY + imageHeight * scale;
-		
-		// Clamp crop coordinates to image bounds
-		const clampedCropX = Math.max(minX, Math.min(maxX - cropWidth, cropX));
-		const clampedCropY = Math.max(minY, Math.min(maxY - cropHeight, cropY));
-		const clampedCropWidth = Math.min(cropWidth, maxX - clampedCropX);
-		const clampedCropHeight = Math.min(cropHeight, maxY - clampedCropY);
-		
-		// Convert to image coordinates
-		const imageX = Math.max(0, (clampedCropX - offsetX) / scale);
-		const imageY = Math.max(0, (clampedCropY - offsetY) / scale);
-		const imageCropWidth = clampedCropWidth / scale;
-		const imageCropHeight = clampedCropHeight / scale;
-		
-		// Final validation - ensure we don't exceed actual image dimensions
 		const finalX = Math.round(Math.max(0, Math.min(imageWidth - 1, imageX)));
 		const finalY = Math.round(Math.max(0, Math.min(imageHeight - 1, imageY)));
 		const finalWidth = Math.round(Math.max(1, Math.min(imageWidth - finalX, imageCropWidth)));
@@ -258,51 +283,33 @@
 
 	function resetCrop() {
 		if (!image) return;
-		cropX = offsetX;
-		cropY = offsetY;
-		cropWidth = imageWidth * scale;
-		cropHeight = imageHeight * scale;
+		fitImageToCanvas();
 		draw();
 	}
 
 	onMount(() => {
-		if (browser && container && canvas) {
-			// Set canvas size to match container
+		if (browser && canvasWrapper && canvas) {
 			const updateCanvasSize = () => {
-				if (container && canvas) {
-					canvas.width = container.clientWidth;
-					canvas.height = container.clientHeight - 80; // Account for controls
-					if (image) {
-						// Recalculate layout if image is already loaded
-						const availableWidth = container.clientWidth - 40;
-						const availableHeight = canvas.height - 40;
-						const scaleX = availableWidth / imageWidth;
-						const scaleY = availableHeight / imageHeight;
-						scale = Math.min(scaleX, scaleY, 1);
-						
-						const scaledWidth = imageWidth * scale;
-						const scaledHeight = imageHeight * scale;
-						offsetX = (availableWidth - scaledWidth) / 2 + 20;
-						offsetY = (availableHeight - scaledHeight) / 2 + 20;
-						
-						// Adjust crop area to stay within bounds
-						cropX = Math.max(offsetX, Math.min(offsetX + scaledWidth - cropWidth, cropX));
-						cropY = Math.max(offsetY, Math.min(offsetY + scaledHeight - cropHeight, cropY));
-						cropWidth = Math.min(cropWidth, scaledWidth);
-						cropHeight = Math.min(cropHeight, scaledHeight);
-						
-						draw();
-					}
+				if (!canvasWrapper || !canvas) return;
+				const { width: cw, height: ch } = getCanvasArea();
+				if (!cw || !ch) return;
+				canvas.width = cw;
+				canvas.height = ch;
+				if (image) {
+					// Window/modal resize: refit the image so it stays visible. This
+					// resets pan/zoom, which is fine because the user expects a clean
+					// frame after resizing the modal.
+					fitImageToCanvas();
+					draw();
 				}
 			};
-			
+
 			updateCanvasSize();
 			loadImage();
-			
-			// Handle window resize
+
 			const resizeObserver = new ResizeObserver(updateCanvasSize);
-			resizeObserver.observe(container);
-			
+			resizeObserver.observe(canvasWrapper);
+
 			return () => {
 				resizeObserver.disconnect();
 			};
@@ -315,24 +322,26 @@
 </script>
 
 <div class="photo-cropper" bind:this={container}>
-	<canvas
-		bind:this={canvas}
-		class="cropper-canvas"
-		on:mousedown={handleStart}
-		on:mousemove={handleMove}
-		on:mouseup={handleEnd}
-		on:mouseleave={handleEnd}
-		on:touchstart={handleStart}
-		on:touchmove={handleMove}
-		on:touchend={handleEnd}
-		on:wheel={handleWheel}
-		style="cursor: {cropping ? (resizeMode === 'move' ? 'move' : resizeMode !== 'none' ? 'nwse-resize' : 'default') : 'default'}"
-	></canvas>
-	
+	<div class="cropper-canvas-wrapper" bind:this={canvasWrapper}>
+		<canvas
+			bind:this={canvas}
+			class="cropper-canvas"
+			on:mousedown={handleStart}
+			on:mousemove={handleMove}
+			on:mouseup={handleEnd}
+			on:mouseleave={handleEnd}
+			on:touchstart={handleStart}
+			on:touchmove={handleMove}
+			on:touchend={handleEnd}
+			on:wheel={handleWheel}
+			style="cursor: {cursorFor(isDragging ? resizeMode : hoverMode, isDragging)}"
+		></canvas>
+	</div>
+
 	<div class="cropper-controls">
 		<div class="cropper-info">
 			<p class="text-sm text-gray-600">
-				Drag to move, drag corners to resize, scroll to zoom
+				Drag the crop rectangle or its corners. Drag outside it to pan. Scroll to zoom.
 			</p>
 			{#if image}
 				{@const cropInfo = (() => {
@@ -348,7 +357,7 @@
 					};
 				})()}
 				<p class="text-xs text-gray-500 mt-1">
-					Crop: {cropInfo.width} × {cropInfo.height}px (from {cropInfo.x}, {cropInfo.y}) | Image: {imageWidth} × {imageHeight}px
+					Crop: {cropInfo.width} × {cropInfo.height}px (from {cropInfo.x}, {cropInfo.y}) | Image: {imageWidth} × {imageHeight}px | Zoom: {Math.round((scale / (fitScale || 1)) * 100)}%
 				</p>
 			{/if}
 		</div>
@@ -382,46 +391,57 @@
 	.photo-cropper {
 		position: relative;
 		width: 100%;
-		height: 600px;
+		height: min(75vh, 720px);
+		min-height: 320px;
 		background: #2d2d2d;
 		border-radius: 8px;
+		display: flex;
+		flex-direction: column;
 		overflow: hidden;
+	}
+
+	.cropper-canvas-wrapper {
+		flex: 1 1 auto;
+		min-height: 0;
+		overflow: hidden;
+		display: block;
+		position: relative;
 	}
 
 	.cropper-canvas {
 		display: block;
 		width: 100%;
-		height: calc(100% - 80px);
+		height: 100%;
 		touch-action: none;
 		background: transparent;
 	}
 
 	.cropper-controls {
-		position: absolute;
-		bottom: 0;
-		left: 0;
-		right: 0;
+		flex: 0 0 auto;
 		background: white;
 		padding: 16px;
 		border-top: 1px solid #e5e7eb;
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
+		gap: 12px;
 	}
 
 	.cropper-info {
-		flex: 1;
+		flex: 1 1 auto;
+		min-width: 0;
 	}
 
 	.cropper-buttons {
 		display: flex;
 		gap: 8px;
+		flex: 0 0 auto;
 	}
 
 	@media (max-width: 640px) {
 		.cropper-controls {
 			flex-direction: column;
-			gap: 12px;
+			align-items: stretch;
 		}
 
 		.cropper-buttons {
