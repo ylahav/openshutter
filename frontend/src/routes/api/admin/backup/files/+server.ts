@@ -2,7 +2,7 @@ import type { RequestHandler } from './$types';
 import { promises as fs } from 'fs';
 import { join } from 'path';
 import { existsSync } from 'fs';
-import archiver from 'archiver';
+import { ZipArchive } from 'archiver';
 import { logger } from '$lib/utils/logger';
 import { parseError } from '$lib/utils/errorHandler';
 
@@ -27,7 +27,7 @@ export const POST: RequestHandler = async ({ locals }) => {
 		];
 
 		// Create a zip archive
-		const archive = archiver('zip', { zlib: { level: 9 } });
+		const archive = new ZipArchive({ zlib: { level: 9 } });
 
 		// Create a readable stream for the response
 		const stream = new ReadableStream({

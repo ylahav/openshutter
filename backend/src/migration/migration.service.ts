@@ -6,7 +6,7 @@ import * as fs from 'fs/promises';
 import { createWriteStream } from 'fs';
 import * as path from 'path';
 import { randomUUID } from 'crypto';
-import archiver from 'archiver';
+import { ZipArchive } from 'archiver';
 import AdmZip from 'adm-zip';
 import { storageManager } from '../services/storage/manager';
 import { storageConfigService } from '../services/storage/config';
@@ -472,7 +472,7 @@ export class MigrationService {
           throw new Error(`Destination directory ${dest} does not exist or is not accessible: ${statErr instanceof Error ? statErr.message : String(statErr)}`);
         }
         const output = createWriteStream(zipPath);
-        const archive = archiver('zip', { zlib: { level: 9 } });
+        const archive = new ZipArchive({ zlib: { level: 9 } });
 
         await new Promise<void>((resolve, reject) => {
           let resolved = false;
@@ -504,7 +504,7 @@ export class MigrationService {
 
           archive.pipe(output);
           archive.directory(dest, false);
-          // In archiver v7, finalize() does not return a Promise; we just call it
+          // finalize() is sync; completion is signaled via stream events
           archive.finalize();
         });
 

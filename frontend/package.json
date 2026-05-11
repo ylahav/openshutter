@@ -70,7 +70,6 @@
     "@tailwindcss/postcss": "^4.3.0",
     "@tailwindcss/vite": "^4.3.0",
     "@testing-library/svelte": "^5.3.1",
-    "@types/archiver": "^7.0.0",
     "@types/node": "^25.6.2",
     "@types/yauzl": "^2.10.3",
     "@typescript-eslint/eslint-plugin": "^8.59.2",

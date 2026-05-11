@@ -48,7 +48,6 @@
   "devDependencies": {
     "@nestjs/cli": "^11.0.21",
     "@types/adm-zip": "^0.5.8",
-    "@types/archiver": "^7.0.0",
     "@types/cookie-parser": "^1.4.10",
     "@types/express": "^5.0.6",
     "@types/multer": "^2.1.0",

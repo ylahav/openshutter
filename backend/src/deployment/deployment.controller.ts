@@ -3,7 +3,7 @@ import { AdminGuard } from '../common/guards/admin.guard';
 import { execSync } from 'child_process';
 import { existsSync, readFileSync, statSync, writeFileSync, unlinkSync, createWriteStream } from 'fs';
 import { join } from 'path';
-import archiver from 'archiver';
+import { ZipArchive } from 'archiver';
 import { Response } from 'express';
 
 interface DeploymentConfig {
@@ -212,7 +212,7 @@ export class DeploymentController {
 			// Create ZIP archive
 			const zipPath = join(projectRoot, `openshutter-deployment-${config.domain}.zip`);
 			const output = createWriteStream(zipPath);
-			const archive = archiver('zip', { zlib: { level: 9 } });
+			const archive = new ZipArchive({ zlib: { level: 9 } });
 
 			return new Promise<void>((resolve, reject) => {
 				output.on('close', () => {
