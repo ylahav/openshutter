@@ -11,6 +11,7 @@ Architecture and contributor notes. For **install, deploy, and operations**, see
 | [SYSTEM_PRD.md](./SYSTEM_PRD.md) | System / product requirements |
 | [TYPE_SYSTEM.md](./TYPE_SYSTEM.md) | Shared TypeScript types |
 | [API_TESTING.md](./API_TESTING.md) | Testing NestJS APIs |
+| [SWAGGER_SETUP.md](./SWAGGER_SETUP.md) | OpenAPI/Swagger UI: install, env, URLs |
 
 ## Visitor templates — two documents
 

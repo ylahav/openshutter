@@ -2,7 +2,7 @@
 
 ## Installation
 
-Swagger dependencies are listed in `package.json`. Install with:
+Swagger dependencies are listed in `backend/package.json`. Install with:
 
 ```bash
 cd backend
@@ -11,7 +11,7 @@ pnpm install
 
 ## Configuration
 
-Swagger is configured in `src/main.ts` and is available at:
+Swagger is configured in `backend/src/main.ts` and is available at:
 - **Development:** `/api/v1/docs` (enabled by default)
 - **Production:** `/api/v1/docs` (only if `ENABLE_SWAGGER=true` in `.env`)
 

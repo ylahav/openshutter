@@ -2,6 +2,17 @@ packages:
   - frontend
   - backend
 
+allowBuilds:
+  '@nestjs/core': true
+  '@parcel/watcher': true
+  '@scarf/scarf': true
+  '@tensorflow/tfjs-node': true
+  canvas: true
+  core-js: true
+  esbuild: true
+  protobufjs: true
+  sharp: true
+
 onlyBuiltDependencies:
   - '@nestjs/core'
   - '@parcel/watcher'
