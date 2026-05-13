@@ -77,7 +77,7 @@ A comprehensive photo gallery management system with multi-storage support, adva
 
 - Node.js 18+ (includes [Corepack](https://nodejs.org/api/corepack.html) for pnpm)
 - **pnpm** — enable with `corepack enable` then `corepack prepare pnpm@10.33.0 --activate` (version matches root `package.json` `packageManager`), or see [pnpm installation](https://pnpm.io/installation)
-- MongoDB instance
+- **MongoDB** — a running server reachable at `MONGODB_URI` (default `mongodb://localhost:27017/openshutter`; see [docs/guides/LOCAL_DEVELOPMENT.md](docs/guides/LOCAL_DEVELOPMENT.md))
 - Google Cloud Platform account (for Google Drive integration)
 - AWS account (for S3 integration, optional)
 
@@ -142,8 +142,8 @@ A comprehensive photo gallery management system with multi-storage support, adva
 
 4. **Set up MongoDB**
    - Install MongoDB locally or use MongoDB Atlas
-   - Create a database named `openshutter`
-   - Ensure the connection string is correct in `.env.local`
+   - Create a database named `openshutter` (or rely on the driver creating it on first connect)
+   - Ensure `MONGODB_URI` in **`backend/.env`** matches your instance (default local URI above)
 
 ## 🔐 Initial Admin Access
 
@@ -167,7 +167,11 @@ For detailed admin setup instructions, see [docs/guides/ADMIN_SETUP.md](docs/gui
 
 ## 🚀 Development
 
-1. **Start the development server**
+**Before `pnpm dev`:** start MongoDB (local service or Atlas). The API expects a live database; without it, the admin dashboard and public home page API routes will fail even if Node processes start.
+
+For separate terminals, env vars, and troubleshooting (“dashboard won’t load”, “could not reach gallery server”), see **[docs/guides/LOCAL_DEVELOPMENT.md](docs/guides/LOCAL_DEVELOPMENT.md)**.
+
+1. **Start the development server** (from the **repository root**—starts backend + frontend)
    ```bash
    pnpm dev
    ```
@@ -357,7 +361,7 @@ For detailed deployment instructions, see [docs/guides/SERVER_DEPLOYMENT.md](doc
    - Create account at [MongoDB Atlas](https://www.mongodb.com/atlas)
    - Create a new cluster
    - Get connection string
-   - Update `MONGODB_URI` in `.env.local`
+   - Update `MONGODB_URI` in **`backend/.env`**
 
 ## 🗂️ Storage Management
 

@@ -4,6 +4,7 @@ Use these documents to **install, deploy, and run** OpenShutter — admins, owne
 
 | Doc | Topic |
 |-----|--------|
+| [LOCAL_DEVELOPMENT.md](./LOCAL_DEVELOPMENT.md) | **Local dev:** MongoDB, `pnpm dev` from repo root, env vars, troubleshooting |
 | [ADMIN_SETUP.md](./ADMIN_SETUP.md) | First-time admin bootstrap |
 | [SERVER_DEPLOYMENT.md](./SERVER_DEPLOYMENT.md) | Production: PM2, nginx, SSL, env |
 | [STORAGE.md](./STORAGE.md) | Storage providers and configuration |

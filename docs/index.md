@@ -15,8 +15,9 @@ Root [README.md](../README.md), [LICENSE](../LICENSE), and [CHANGELOG.md](../CHA
 **Getting started**
 
 1. Clone and install — [README.md](../README.md)  
-2. First admin — [guides/ADMIN_SETUP.md](./guides/ADMIN_SETUP.md)  
-3. Production — [guides/SERVER_DEPLOYMENT.md](./guides/SERVER_DEPLOYMENT.md)  
+2. Local development (MongoDB, full stack) — [guides/LOCAL_DEVELOPMENT.md](./guides/LOCAL_DEVELOPMENT.md)  
+3. First admin — [guides/ADMIN_SETUP.md](./guides/ADMIN_SETUP.md)  
+4. Production — [guides/SERVER_DEPLOYMENT.md](./guides/SERVER_DEPLOYMENT.md)  
 
 **Operations**
 
