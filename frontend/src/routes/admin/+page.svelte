@@ -5,6 +5,7 @@
 	import { t } from '$stores/i18n';
 	import { getAlbumName } from '$lib/utils/albumUtils';
 	import type { AdminDashboardSummary } from '$lib/types/admin-dashboard';
+	import { adminBtnPrimarySm, adminBtnSecondary, adminRingPrimary } from '$lib/admin/admin-cerberus';
 
 	export let data: PageData;
 
@@ -76,7 +77,7 @@
 			<div class="shrink-0">
 				<a
 					href="/admin/albums"
-					class="inline-flex items-center justify-center rounded-lg bg-(--color-primary-600) px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-(--color-primary-700) focus:outline-none focus:ring-2 focus:ring-(--color-primary-500) focus:ring-offset-2"
+					class="{adminBtnPrimarySm} shadow-sm {adminRingPrimary}"
 				>
 					{$t('admin.dashboardNewAlbum')}
 				</a>
@@ -99,7 +100,7 @@
 					{/if}
 					<button
 						type="button"
-						class="mt-3 inline-flex items-center rounded-lg border border-(--color-surface-300-600) bg-(--color-surface-50-900) px-4 py-2 text-sm font-medium text-(--color-surface-900-100) hover:bg-(--color-surface-100-800) disabled:opacity-50"
+						class="{adminBtnSecondary} mt-3 {adminRingPrimary} disabled:opacity-50"
 						disabled={retrying}
 						on:click={retryDashboard}
 					>
@@ -271,27 +272,27 @@
 						<div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
 							<a
 								href="/admin/albums"
-								class="inline-flex items-center justify-center rounded-lg border border-(--color-surface-200-600) bg-(--color-surface-50-900) px-3 py-2.5 text-center text-xs font-medium text-(--color-surface-900-100) hover:bg-(--color-surface-100-800)"
+								class="{adminBtnSecondary} justify-center text-center text-xs min-h-10 whitespace-normal leading-tight {adminRingPrimary}"
 								>{$t('admin.dashboardQuickNewAlbum')}</a>
 							<a
 								href="/admin/tags"
-								class="inline-flex items-center justify-center rounded-lg border border-(--color-surface-200-600) bg-(--color-surface-50-900) px-3 py-2.5 text-center text-xs font-medium text-(--color-surface-900-100) hover:bg-(--color-surface-100-800)"
+								class="{adminBtnSecondary} justify-center text-center text-xs min-h-10 whitespace-normal leading-tight {adminRingPrimary}"
 								>{$t('admin.dashboardQuickAddTag')}</a>
 							<a
 								href="/admin/people"
-								class="inline-flex items-center justify-center rounded-lg border border-(--color-surface-200-600) bg-(--color-surface-50-900) px-3 py-2.5 text-center text-xs font-medium text-(--color-surface-900-100) hover:bg-(--color-surface-100-800)"
+								class="{adminBtnSecondary} justify-center text-center text-xs min-h-10 whitespace-normal leading-tight {adminRingPrimary}"
 								>{$t('admin.dashboardQuickAddPerson')}</a>
 							<a
 								href="/admin/locations"
-								class="inline-flex items-center justify-center rounded-lg border border-(--color-surface-200-600) bg-(--color-surface-50-900) px-3 py-2.5 text-center text-xs font-medium text-(--color-surface-900-100) hover:bg-(--color-surface-100-800)"
+								class="{adminBtnSecondary} justify-center text-center text-xs min-h-10 whitespace-normal leading-tight {adminRingPrimary}"
 								>{$t('admin.dashboardQuickAddLocation')}</a>
 							<a
 								href="/admin/import-sync"
-								class="inline-flex items-center justify-center rounded-lg border border-(--color-surface-200-600) bg-(--color-surface-50-900) px-3 py-2.5 text-center text-xs font-medium text-(--color-surface-900-100) hover:bg-(--color-surface-100-800)"
+								class="{adminBtnSecondary} justify-center text-center text-xs min-h-10 whitespace-normal leading-tight {adminRingPrimary}"
 								>{$t('admin.dashboardQuickImport')}</a>
 							<a
 								href="/admin/backup-restore"
-								class="inline-flex items-center justify-center rounded-lg border border-(--color-surface-200-600) bg-(--color-surface-50-900) px-3 py-2.5 text-center text-xs font-medium text-(--color-surface-900-100) hover:bg-(--color-surface-100-800)"
+								class="{adminBtnSecondary} justify-center text-center text-xs min-h-10 whitespace-normal leading-tight {adminRingPrimary}"
 								>{$t('admin.dashboardQuickExport')}</a>
 						</div>
 					</section>

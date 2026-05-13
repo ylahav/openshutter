@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+### Changed
+- **Admin UI Phase 6 (Wave 1 partial):** Dashboard header CTA, retry, and quick actions use **`admin-cerberus`** (`frontend/src/routes/admin/+page.svelte`). Albums list empty-state **Create album** link matches the same pattern. Users create/edit dialogs use **`adminBtnPrimarySm`** / **`adminBtnSecondary`**. **`/admin/storage`** and **`/owner/storage`** page wrappers drop **`min-h-screen bg-gray-50`** so the admin/owner chrome body background shows through consistently.
+
 ### Fixed
 - **Admin toast (success) looked empty:** `AdminToastRegion` applied enter opacity on `Toast.Message`, but Zag’s `data-state` is on the **`Toast` root**, so the message stayed at **opacity 0**. Removed that animation from the message card and aligned the title with **`dark:text-(--base-font-color-dark)`** for admin dark mode.
 - **Admin `/admin/storage` on Node deployments:** SvelteKit **`frontend/src/routes/api/admin/storage/**`** proxies **`GET/PUT /api/admin/storage...`**, **`POST .../test`**, and **`GET .../tree`** to Nest with forwarded auth cookies (replacing missing routes that returned HTML/404 in production). **`OwnerStorageView`** used from **`/admin/storage`** with **`isSiteAdmin`**: per-provider enable/disable, site-wide JSON for providers without bespoke forms (e.g. S3, Backblaze), and Google Drive tree errors surfaced from the API. Vite dev **`server.proxy.bypass`** routes **`/api/admin/storage`** to SvelteKit. Documented in **`docs/guides/STORAGE.md`** and **`README.md`**.

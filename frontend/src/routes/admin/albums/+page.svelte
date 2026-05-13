@@ -5,6 +5,7 @@
 	import { afterNavigate } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { adminToast } from '$lib/admin/adminToast';
+	import { adminBtnPrimarySm, adminRingPrimary } from '$lib/admin/admin-cerberus';
 	import AdminConfirmDialog from '$lib/components/admin/AdminConfirmDialog.svelte';
 	import AlbumTree from '$lib/components/AlbumTree.svelte';
 	import { MultiLangUtils } from '$lib/utils/multiLang';
@@ -795,7 +796,7 @@
 				</p>
 				<a
 					href="/albums/new"
-					class="inline-flex items-center px-6 py-3 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700)"
+					class="{adminBtnPrimarySm} px-6 py-3 {adminRingPrimary}"
 				>
 					{$t('admin.createAlbum')}
 				</a>

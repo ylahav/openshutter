@@ -17,6 +17,7 @@
 	import UserForm from './components/UserForm.svelte';
 	import OwnerDomainsSection from './components/OwnerDomainsSection.svelte';
 	import AdminConfirmDialog from '$lib/components/admin/AdminConfirmDialog.svelte';
+	import { adminBtnPrimarySm, adminBtnSecondary, adminRingPrimary } from '$lib/admin/admin-cerberus';
 
 	// svelte-ignore export_let_unused - Required by SvelteKit page component
 	export let data: PageData;
@@ -498,7 +499,7 @@
 							dialogs.closeAll();
 							resetForm();
 						}}
-						class="px-4 py-2 bg-(--color-surface-200-800) text-(--color-surface-800-200) rounded-md hover:bg-(--color-surface-300-700) text-sm font-medium"
+						class="{adminBtnSecondary} {adminRingPrimary}"
 					>
 						{$t('admin.cancel')}
 					</button>
@@ -506,7 +507,7 @@
 						type="button"
 						on:click={handleCreate}
 						disabled={saving || !formData.username.trim()}
-						class="px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700) disabled:opacity-50 text-sm font-medium"
+						class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
 					>
 						{#if saving}
 							{$t('admin.creatingUser')}
@@ -570,7 +571,7 @@
 							editingUser = null;
 							resetForm();
 						}}
-						class="px-4 py-2 bg-(--color-surface-200-800) text-(--color-surface-800-200) rounded-md hover:bg-(--color-surface-300-700) text-sm font-medium"
+						class="{adminBtnSecondary} {adminRingPrimary}"
 					>
 						{$t('admin.cancel')}
 					</button>
@@ -579,7 +580,7 @@
 						data-testid="admin-users-save-edit"
 						on:click={handleEdit}
 						disabled={saving}
-						class="px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700) disabled:opacity-50 text-sm font-medium"
+						class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
 					>
 						{#if saving}
 							{$t('admin.updatingUser')}

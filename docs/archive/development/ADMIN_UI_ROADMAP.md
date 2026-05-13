@@ -120,7 +120,7 @@ Use this as the working backlog until both phases are closed.
 
 #### B. Execute Phase 6 (waves)
 
-- [ ] **Wave 1** — Migrate all routes in Wave 1 table (dashboard through storage).
+- [ ] **Wave 1** — Migrate all routes in Wave 1 table (dashboard through storage). *Started:* dashboard (`admin-cerberus` header CTA, retry, quick actions), albums list empty-state CTA, users create/edit dialog footers, **`/admin/storage`** and **`/owner/storage`** shells (inherit body background; removed **`bg-gray-50`**). *Remaining:* album detail/edit, photos upload/edit, site-config pass.
 - [ ] **Wave 2** — Import/backup/translations/marketplace/analytics/locations.
 - [ ] **Wave 3** — Blog suite, pages, tags, people, groups.
 - [ ] **Wave 4** — Templates + theme-layout.

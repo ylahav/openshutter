@@ -6,8 +6,8 @@ Snapshot to drive migration: prefer **`adminToast`** for transient success/error
 
 | Admin route (`+page.svelte`) | `adminToast` | `AdminConfirmDialog` | Notes |
 |-----------------------------|:-------------:|:---------------------:|-------|
-| `/admin` | — | — | Dashboard; inline cards typical |
-| `/admin/albums` | ✓ | ✓ | Wave 1 |
+| `/admin` | — | — | Dashboard; inline cards typical. **Wave 1 partial:** primary CTA, retry, quick actions use **`admin-cerberus`**. |
+| `/admin/albums` | ✓ | ✓ | Wave 1; **partial:** empty-state **Create album** uses **`admin-cerberus`**. |
 | `/admin/albums/[id]` | — | ✓ | Wave 1 |
 | `/admin/albums/[id]/edit` | — | — | Wave 1 |
 | `/admin/analytics` | — | — | |
@@ -31,7 +31,7 @@ Snapshot to drive migration: prefer **`adminToast`** for transient success/error
 | `/admin/photos/upload` | — | — | Inline upload report panels |
 | `/admin/photos/[id]/edit` | — | — | Uses `Toast` for some flows |
 | `/admin/site-config` | ✓ | ✓ | |
-| `/admin/storage` | — | — | Embeds `OwnerStorageView` |
+| `/admin/storage` | — | — | Embeds `OwnerStorageView`. **Wave 1 partial:** page shell uses admin body background (no **`gray-50`**). |
 | `/admin/storage/google-drive-setup` | — | — | |
 | `/admin/tags` | — | — | |
 | `/admin/templates` | — | — | |
@@ -39,7 +39,7 @@ Snapshot to drive migration: prefer **`adminToast`** for transient success/error
 | `/admin/templates/overrides` | — | ✓ | Multiple confirms |
 | `/admin/theme-layout` | — | — | |
 | `/admin/translations` | — | ✓ | Two confirm dialogs |
-| `/admin/users` | — | ✓ | |
+| `/admin/users` | — | ✓ | **Wave 1 partial:** create/edit dialog footers use **`admin-cerberus`**. |
 
 **Next steps (Phase 6 Wave 1):** add **`adminToast`** to dashboard, album detail/edit, photos upload/edit, users, storage wrapper—wherever inline green/red banners are used only for transient feedback.
 
