@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { IUserDocument } from '../models/User';
 import * as bcrypt from 'bcryptjs';
 import { storageConfigService } from '../services/storage/config';
@@ -44,6 +44,14 @@ function getInitialAdminUser() {
 @Injectable()
 export class AuthService {
   constructor(@InjectModel('User') private userModel: Model<IUserDocument>) {}
+
+  /** Persist successful password-login time (ignored for invalid ids). */
+  async recordLastLogin(userId: string): Promise<void> {
+    if (!Types.ObjectId.isValid(userId)) return;
+    await this.userModel
+      .updateOne({ _id: new Types.ObjectId(userId) }, { $set: { lastLoginAt: new Date() } })
+      .exec();
+  }
 
   async validateUser(email: string, password: string): Promise<any> {
     // Bootstrap initial admin if needed
@@ -119,6 +127,7 @@ export class AuthService {
         useDedicatedStorage: Boolean(u.useDedicatedStorage),
         createdAt: u.createdAt,
         updatedAt: u.updatedAt,
+        lastLoginAt: u.lastLoginAt ?? undefined,
       },
     };
   }
@@ -203,6 +212,7 @@ export class AuthService {
         useDedicatedStorage: Boolean(u.useDedicatedStorage),
         createdAt: u.createdAt,
         updatedAt: u.updatedAt,
+        lastLoginAt: u.lastLoginAt ?? undefined,
       },
     };
   }

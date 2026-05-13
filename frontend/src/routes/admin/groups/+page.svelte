@@ -15,6 +15,7 @@
 		parseImportItems
 	} from '$lib/utils/collectionImportExport';
 	import CollectionImportExportButtons from '$lib/components/admin/CollectionImportExportButtons.svelte';
+	import { displayGroupAlias } from '$lib/utils/owner-groups';
 	import { t } from '$stores/i18n';
 	import type { PageData } from './$types';
 
@@ -30,14 +31,16 @@
 		name: MultiLangText | string;
 		createdAt?: string;
 		updatedAt?: string;
+		memberCount?: number;
+		albumUsageCount?: number;
 	}
 
 	// Use CRUD composables
 	const crudLoader = useCrudLoader<Group>('/api/admin/groups');
 	const crudOps = useCrudOperations<Group>('/api/admin/groups', {
-		createSuccessMessage: 'Group created successfully!',
-		updateSuccessMessage: 'Group updated successfully!',
-		deleteSuccessMessage: 'Group deleted successfully!',
+		createSuccessMessage: $t('admin.groupsCreatedSuccessfully'),
+		updateSuccessMessage: $t('admin.groupsUpdatedSuccessfully'),
+		deleteSuccessMessage: $t('admin.groupsDeletedSuccessfully'),
 		onCreateSuccess: (newGroup) => {
 			crudLoader.items.update(items => [...items, newGroup]);
 			dialogs.closeAll();
@@ -140,7 +143,24 @@
 	function getGroupName(group: Group): string {
 		const nameField = typeof group.name === 'string' ? group.name : group.name;
 		if (typeof nameField === 'string') return nameField;
-		return nameField?.en || nameField?.he || group.alias;
+		return nameField?.en || nameField?.he || displayGroupAlias(group.alias);
+	}
+
+	function memberCountLabel(group: Group): string {
+		const n = group.memberCount ?? 0;
+		if (n === 1) return translate('admin.groupsMemberCountOne');
+		return translate('admin.groupsMemberCount').replace('{count}', String(n));
+	}
+
+	function albumUsageLabel(group: Group): string {
+		const n = group.albumUsageCount ?? 0;
+		if (n === 0) return translate('admin.groupsAlbumUsageNone');
+		if (n === 1) return translate('admin.groupsAlbumUsageOne');
+		return translate('admin.groupsAlbumUsage').replace('{count}', String(n));
+	}
+
+	function isGroupAlbumUnused(group: Group): boolean {
+		return (group.albumUsageCount ?? 0) === 0;
 	}
 
 	async function handleCreate() {
@@ -267,7 +287,7 @@
 </script>
 
 <svelte:head>
-	<title>Groups Management - Admin</title>
+	<title>{$t('admin.groupsManagement')} - {$t('navigation.admin')}</title>
 </svelte:head>
 
 <div class="py-8">
@@ -275,16 +295,28 @@
 		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
 			<div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
 				<div>
-					<h1 class="text-2xl font-bold text-(--color-surface-950-50)">Groups Management</h1>
-					<p class="text-(--color-surface-600-400) mt-2">Define and manage user groups for access control</p>
+					<h1 class="text-2xl font-bold text-(--color-surface-950-50)">{$t('admin.groupsManagement')}</h1>
+					<p class="text-(--color-surface-600-400) mt-2">{$t('admin.defineUserGroups')}</p>
 				</div>
-				<CollectionImportExportButtons
-					exportLabel={$t('admin.collectionExportJson')}
-					importLabel={$t('admin.collectionImportJson')}
-					busy={importExportBusy}
-					onExport={handleGroupsExport}
-					onImportFile={handleGroupsImport}
-				/>
+				<div class="flex flex-wrap items-center gap-2">
+					<CollectionImportExportButtons
+						exportLabel={$t('admin.collectionExportJson')}
+						importLabel={$t('admin.collectionImportJson')}
+						busy={importExportBusy}
+						onExport={handleGroupsExport}
+						onImportFile={handleGroupsImport}
+					/>
+					<button
+						type="button"
+						on:click={openCreateDialog}
+						class="px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700) text-sm font-medium flex items-center gap-2"
+					>
+						<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+						</svg>
+						{$t('admin.groupsAddGroup')}
+					</button>
+				</div>
 			</div>
 
 			{#if message}
@@ -295,51 +327,11 @@
 				<div class="mb-4 p-4 rounded-md bg-red-50 text-red-700">{error}</div>
 			{/if}
 
-			<!-- Create Group Form -->
-			<div class="bg-(--color-surface-50-950) rounded-lg p-4 mb-6">
-				<h2 class="text-lg font-semibold text-(--color-surface-950-50) mb-3">Create New Group</h2>
-				<div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-					<div>
-						<label for="alias-create" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-							Alias *
-						</label>
-						<input
-							type="text"
-							id="alias-create"
-							bind:value={formData.alias}
-							placeholder="e.g., family, friends, team"
-							class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
-						/>
-						<p class="mt-1 text-xs text-(--color-surface-600-400)">Unique identifier (lowercase, no spaces)</p>
-					</div>
-					<div>
-						<span class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-							Name *
-						</span>
-						<MultiLangInput bind:value={formData.name} />
-					</div>
-					<div>
-						<button
-							type="button"
-							on:click={handleCreate}
-							disabled={saving || !formData.alias.trim()}
-							class="w-full px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700) disabled:opacity-50 text-sm font-medium"
-						>
-							{#if saving}
-								Creating...
-							{:else}
-								Create Group
-							{/if}
-						</button>
-					</div>
-				</div>
-			</div>
-
 			<!-- Groups List -->
 			{#if loading}
 				<div class="text-center py-8">
 					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-(--color-primary-600)"></div>
-					<p class="mt-2 text-(--color-surface-600-400)">Loading groups...</p>
+					<p class="mt-2 text-(--color-surface-600-400)">{$t('admin.groupsLoading')}</p>
 				</div>
 			{:else if groups.length === 0}
 				<div class="text-center py-8">
@@ -356,25 +348,41 @@
 							d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
 						/>
 					</svg>
-					<h3 class="text-lg font-semibold text-(--color-surface-950-50) mb-2">No groups found</h3>
-					<p class="text-(--color-surface-600-400)">Start by creating your first group.</p>
+					<h3 class="text-lg font-semibold text-(--color-surface-950-50) mb-2">{$t('admin.groupsNoGroupsTitle')}</h3>
+					<p class="text-(--color-surface-600-400)">{$t('admin.groupsNoGroupsHint')}</p>
 				</div>
 			{:else}
 				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 					{#each groups as group}
-						<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-4">
-							<div class="flex items-start justify-between mb-3">
-								<div class="flex-1">
-									<h3 class="font-semibold text-(--color-surface-950-50) mb-1">{getGroupName(group)}</h3>
-									<p class="text-sm text-(--color-surface-600-400)">Alias: <code class="bg-(--color-surface-100-900) px-1 rounded">{group.alias}</code></p>
+						<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-4 flex flex-col">
+							<div class="flex items-start justify-between gap-2 mb-2">
+								<div class="min-w-0 flex-1">
+									<h3 class="font-semibold text-(--color-surface-950-50) mb-1 wrap-break-word leading-snug">
+										{getGroupName(group)}
+									</h3>
+									<p class="text-sm text-(--color-surface-600-400)">
+										{$t('admin.groupsCardAliasLabel')}:
+										<code class="bg-(--color-surface-100-900) px-1 rounded text-xs">{displayGroupAlias(group.alias)}</code>
+									</p>
+									<p class="text-sm text-(--color-surface-600-400) mt-1">{memberCountLabel(group)}</p>
+									<p class="text-sm mt-0.5 flex flex-wrap items-center gap-2 text-(--color-surface-600-400)">
+										{#if isGroupAlbumUnused(group)}
+											<span
+												class="inline-flex shrink-0 items-center rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-900 dark:border-amber-800/50 dark:bg-amber-950/40 dark:text-amber-100"
+											>
+												{$t('admin.tagsUnusedBadge')}
+											</span>
+										{/if}
+										<span>{albumUsageLabel(group)}</span>
+									</p>
 								</div>
 
-								<div class="flex space-x-1">
+								<div class="flex shrink-0 space-x-1">
 									<button
 										type="button"
 										on:click={() => openEditDialog(group)}
 										class="p-1 text-(--color-surface-600-400) hover:text-(--color-primary-600) hover:bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] rounded"
-										aria-label="Edit group"
+										aria-label={$t('admin.groupsEditDialogTitle')}
 									>
 										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 											<path
@@ -389,7 +397,7 @@
 										type="button"
 										on:click={() => openDeleteDialog(group)}
 										class="p-1 text-(--color-surface-600-400) hover:text-red-600 hover:bg-red-50 rounded"
-										aria-label="Delete group"
+										aria-label={$t('admin.groupsDeleteDialogTitle')}
 									>
 										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 											<path
@@ -410,11 +418,70 @@
 	</div>
 </div>
 
+<!-- Create Dialog -->
+{#if showCreateDialog}
+	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+			<h2 class="text-xl font-bold text-(--color-surface-950-50) mb-4">{$t('admin.groupsCreateDialogTitle')}</h2>
+
+			{#if error}
+				<div class="mb-4 p-4 bg-red-50 text-red-700 rounded-md">{error}</div>
+			{/if}
+
+			<div class="space-y-4">
+				<div>
+					<label for="alias-create-modal" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
+						{$t('admin.groupsAliasLabel')} *
+					</label>
+					<input
+						type="text"
+						id="alias-create-modal"
+						bind:value={formData.alias}
+						placeholder={$t('admin.groupsAliasPlaceholder')}
+						class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
+					/>
+					<p class="mt-1 text-xs text-(--color-surface-600-400)">{$t('admin.groupsAliasHint')}</p>
+				</div>
+				<div>
+					<span class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
+						{$t('admin.groupsNameLabel')} *
+					</span>
+					<MultiLangInput bind:value={formData.name} />
+				</div>
+				<div class="flex justify-end gap-2 pt-2">
+					<button
+						type="button"
+						on:click={() => {
+							dialogs.closeAll();
+							resetForm();
+						}}
+						class="px-4 py-2 bg-(--color-surface-200-800) text-(--color-surface-800-200) rounded-md hover:bg-(--color-surface-300-700) text-sm font-medium"
+					>
+						{$t('admin.groupsCancel')}
+					</button>
+					<button
+						type="button"
+						on:click={handleCreate}
+						disabled={saving || !formData.alias.trim()}
+						class="px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700) disabled:opacity-50 text-sm font-medium"
+					>
+						{#if saving}
+							{$t('admin.groupsCreating')}
+						{:else}
+							{$t('admin.groupsCreateButton')}
+						{/if}
+					</button>
+				</div>
+			</div>
+		</div>
+	</div>
+{/if}
+
 <!-- Edit Dialog -->
 {#if showEditDialog && editingGroup}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
 		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full max-w-md p-6">
-			<h2 class="text-xl font-bold text-(--color-surface-950-50) mb-4">Edit Group</h2>
+			<h2 class="text-xl font-bold text-(--color-surface-950-50) mb-4">{$t('admin.groupsEditDialogTitle')}</h2>
 
 			{#if error}
 				<div class="mb-4 p-4 bg-red-50 text-red-700 rounded-md">{error}</div>
@@ -423,21 +490,21 @@
 			<div class="space-y-4">
 				<div>
 					<label for="alias-edit" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-						Alias
+						{$t('admin.groupsAliasLabel')}
 					</label>
 					<input
 						type="text"
 						id="alias-edit"
-						value={formData.alias}
+						value={displayGroupAlias(formData.alias)}
 						disabled
 						class="w-full px-3 py-2 border border-surface-300-700 rounded-md shadow-sm bg-(--color-surface-100-900) text-(--color-surface-600-400)"
 					/>
-					<p class="mt-1 text-xs text-(--color-surface-600-400)">Alias cannot be changed</p>
+					<p class="mt-1 text-xs text-(--color-surface-600-400)">{$t('admin.groupsAliasImmutableHint')}</p>
 				</div>
 
 				<div>
 					<span class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
-						Name *
+						{$t('admin.groupsNameLabel')} *
 					</span>
 					<MultiLangInput bind:value={formData.name} />
 				</div>
@@ -452,7 +519,7 @@
 						}}
 						class="px-4 py-2 bg-(--color-surface-200-800) text-(--color-surface-800-200) rounded-md hover:bg-(--color-surface-300-700) text-sm font-medium"
 					>
-						Cancel
+						{$t('admin.groupsCancel')}
 					</button>
 					<button
 						type="button"
@@ -461,9 +528,9 @@
 						class="px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700) disabled:opacity-50 text-sm font-medium"
 					>
 						{#if saving}
-							Updating...
+							{$t('admin.groupsUpdating')}
 						{:else}
-							Update Group
+							{$t('admin.groupsUpdateButton')}
 						{/if}
 					</button>
 				</div>
@@ -476,7 +543,7 @@
 {#if showDeleteDialog && groupToDelete}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
 		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full max-w-md p-6">
-			<h2 class="text-xl font-bold text-(--color-surface-950-50) mb-4">Delete Group</h2>
+			<h2 class="text-xl font-bold text-(--color-surface-950-50) mb-4">{$t('admin.groupsDeleteDialogTitle')}</h2>
 
 			{#if error}
 				<div class="mb-4 p-4 bg-red-50 text-red-700 rounded-md">{error}</div>
@@ -484,12 +551,14 @@
 
 			<div class="space-y-4">
 				<p class="text-(--color-surface-600-400)">
-					Are you sure you want to delete <strong>{getGroupName(groupToDelete)}</strong> ({groupToDelete.alias})? This
-					action cannot be undone.
+					{applyTemplateVars($t('admin.groupsDeleteConfirm'), {
+						name: getGroupName(groupToDelete),
+						alias: displayGroupAlias(groupToDelete.alias)
+					})}
 				</p>
 				<div class="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
 					<p class="text-sm text-yellow-800">
-						⚠️ Make sure no users or albums are assigned to this group before deleting.
+						{$t('admin.groupsDeleteWarning')}
 					</p>
 				</div>
 				<div class="flex justify-end space-x-2">
@@ -501,7 +570,7 @@
 						}}
 						class="px-4 py-2 bg-(--color-surface-200-800) text-(--color-surface-800-200) rounded-md hover:bg-(--color-surface-300-700) text-sm font-medium"
 					>
-						Cancel
+						{$t('admin.groupsCancel')}
 					</button>
 					<button
 						type="button"
@@ -510,9 +579,9 @@
 						class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 text-sm font-medium"
 					>
 						{#if saving}
-							Deleting...
+							{$t('admin.groupsDeleting')}
 						{:else}
-							Delete Group
+							{$t('admin.groupsDeleteButton')}
 						{/if}
 					</button>
 				</div>

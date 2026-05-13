@@ -6,10 +6,233 @@ import { SUPPORTED_LANGUAGES } from '../types/multi-lang';
 import { CreatePersonDto } from './dto/create-person.dto';
 import { UpdatePersonDto } from './dto/update-person.dto';
 
+/** When the person has no profile image, admin UI can show a crop from a tagged / matched photo. */
+export interface FaceAvatarFromPhoto {
+  imageUrl: string;
+  box?: { x: number; y: number; width: number; height: number };
+  sourceWidth: number;
+  sourceHeight: number;
+  rotation?: number;
+}
+
 @Controller('admin/people')
 @UseGuards(AdminGuard)
 export class PeopleController {
   private readonly logger = new Logger(PeopleController.name);
+
+  /** Safe ObjectId hex from a people.tags element (ObjectId, ref shape, or string). */
+  private personTagRefToIdString(tid: any): string {
+    if (tid == null) return '';
+    try {
+      const raw = tid._id != null ? tid._id : tid;
+      if (raw == null) return '';
+      if (typeof raw === 'string') return raw.trim();
+      if (typeof raw.toString === 'function') return String(raw.toString()).trim();
+    } catch {
+      return '';
+    }
+    return '';
+  }
+
+  /** $set stage: normalize `people` to an array for $unwind (scalar ObjectId supported). */
+  private peopleArrayNormSetStage(): { $set: Record<string, any> } {
+    return {
+      $set: {
+        _peopleNorm: {
+          $cond: {
+            if: { $isArray: '$people' },
+            then: '$people',
+            else: {
+              $cond: {
+                if: { $in: [{ $type: '$people' }, ['missing', 'null']] },
+                then: [],
+                else: ['$people'],
+              },
+            },
+          },
+        },
+      },
+    };
+  }
+
+  private photoPrimaryUrl(doc: any): string {
+    const u = doc?.storage?.url;
+    if (typeof u === 'string' && u.trim()) return u.trim();
+    const t = doc?.storage?.thumbnailPath;
+    if (typeof t === 'string' && t.trim()) return t.trim();
+    return '';
+  }
+
+  private faceAvatarFromPhotoDoc(
+    doc: any,
+    face: { box?: { x: number; y: number; width: number; height: number } } | null,
+  ): FaceAvatarFromPhoto | null {
+    const imageUrl = this.photoPrimaryUrl(doc);
+    if (!imageUrl) return null;
+    const dw = Math.max(0, Math.floor(Number(doc?.dimensions?.width) || 0));
+    const dh = Math.max(0, Math.floor(Number(doc?.dimensions?.height) || 0));
+    const rotation = typeof doc?.rotation === 'number' ? doc.rotation : undefined;
+    const box = face?.box;
+    if (
+      box &&
+      dw > 0 &&
+      dh > 0 &&
+      Number.isFinite(box.x) &&
+      Number.isFinite(box.y) &&
+      box.width > 0 &&
+      box.height > 0
+    ) {
+      return {
+        imageUrl,
+        box: { x: box.x, y: box.y, width: box.width, height: box.height },
+        sourceWidth: dw,
+        sourceHeight: dh,
+        rotation,
+      };
+    }
+    return { imageUrl, sourceWidth: dw > 0 ? dw : 1, sourceHeight: dh > 0 ? dh : 1, rotation };
+  }
+
+  /**
+   * One photo-derived avatar per person: prefer a face matched to this person, else most recent photo
+   * that lists them in `people`.
+   */
+  private async buildFaceAvatarFromPhotoMap(
+    photosCollection: { aggregate: (pipeline: Record<string, any>[]) => { toArray: () => Promise<any[]> } },
+    personIdBsons: Types.ObjectId[],
+  ): Promise<Map<string, FaceAvatarFromPhoto>> {
+    const map = new Map<string, FaceAvatarFromPhoto>();
+    if (personIdBsons.length === 0) return map;
+
+    const facesMatchedPipeline: Record<string, any>[] = [
+      { $match: { 'faceRecognition.faces.matchedPersonId': { $in: personIdBsons } } },
+      { $unwind: '$faceRecognition.faces' },
+      { $match: { 'faceRecognition.faces.matchedPersonId': { $in: personIdBsons } } },
+      { $sort: { uploadedAt: -1 } },
+      {
+        $group: {
+          _id: '$faceRecognition.faces.matchedPersonId',
+          doc: { $first: '$$ROOT' },
+          face: { $first: '$faceRecognition.faces' },
+        },
+      },
+    ];
+    try {
+      const rows = await photosCollection.aggregate(facesMatchedPipeline).toArray();
+      for (const row of rows) {
+        const pid = row._id != null ? String(row._id) : '';
+        if (!pid) continue;
+        const av = this.faceAvatarFromPhotoDoc(row.doc, row.face);
+        if (av) map.set(pid, av);
+      }
+    } catch (e) {
+      this.logger.error('Face avatar (matched faces) aggregation failed:', e);
+    }
+
+    const stillNeed = personIdBsons.filter((id) => !map.has(id.toString()));
+    if (stillNeed.length === 0) return map;
+
+    const peopleRefPipeline: Record<string, any>[] = [
+      { $match: { people: { $in: stillNeed } } },
+      this.peopleArrayNormSetStage(),
+      { $unwind: { path: '$_peopleNorm' } },
+      { $match: { _peopleNorm: { $in: stillNeed } } },
+      { $sort: { uploadedAt: -1 } },
+      { $group: { _id: '$_peopleNorm', doc: { $first: '$$ROOT' } } },
+    ];
+    try {
+      const rows2 = await photosCollection.aggregate(peopleRefPipeline).toArray();
+      for (const row of rows2) {
+        const pid = row._id != null ? String(row._id) : '';
+        if (!pid || map.has(pid)) continue;
+        const av = this.faceAvatarFromPhotoDoc(row.doc, null);
+        if (av) map.set(pid, av);
+      }
+    } catch (e) {
+      this.logger.error('Face avatar (people refs) aggregation failed:', e);
+    }
+
+    return map;
+  }
+
+  private tagDocumentDisplayName(tagDoc: { name?: unknown }): string {
+    const n = tagDoc?.name;
+    if (typeof n === 'string') return n.trim();
+    if (n && typeof n === 'object') {
+      const o = n as Record<string, string>;
+      const v =
+        (o.en || o.he || Object.values(o).find((x) => typeof x === 'string' && String(x).trim())) ?? '';
+      return String(v).trim();
+    }
+    return '';
+  }
+
+  /** Serialize one person document for admin API: string ids, resolved tag labels, photo count. */
+  private mapPersonForAdminResponse(
+    person: Record<string, any>,
+    tagLabelById: Map<string, string>,
+    photoCount: number,
+    faceAvatarFromPhoto?: FaceAvatarFromPhoto | null,
+  ): Record<string, any> {
+    const pid = person._id.toString();
+    const tagsResolved = Array.isArray(person.tags)
+      ? person.tags
+          .map((tid: any) => {
+            const tidStr = this.personTagRefToIdString(tid);
+            if (!tidStr || !Types.ObjectId.isValid(tidStr)) return null;
+            const name = (tagLabelById.get(tidStr) ?? '').trim();
+            return { _id: tidStr, name };
+          })
+          .filter((x): x is { _id: string; name: string } => x != null)
+      : [];
+
+    const profUrl =
+      person.profileImage && typeof person.profileImage.url === 'string'
+        ? person.profileImage.url.trim()
+        : '';
+
+    const out: Record<string, any> = {
+      ...person,
+      _id: pid,
+      tags: tagsResolved,
+      photoCount,
+      createdBy: person.createdBy ? person.createdBy.toString() : null,
+    };
+
+    if (!profUrl && faceAvatarFromPhoto?.imageUrl) {
+      out.faceAvatarFromPhoto = faceAvatarFromPhoto;
+    }
+
+    return out;
+  }
+
+  private async enrichSinglePersonForAdmin(db: NonNullable<typeof mongoose.connection.db>, person: Record<string, any>) {
+    const tagCollection = db.collection('tags');
+    const photosCollection = db.collection('photos');
+
+    const oidList: Types.ObjectId[] = [];
+    if (Array.isArray(person.tags)) {
+      for (const tid of person.tags) {
+        const idStr = this.personTagRefToIdString(tid);
+        if (idStr && Types.ObjectId.isValid(idStr)) {
+          oidList.push(new Types.ObjectId(idStr));
+        }
+      }
+    }
+
+    const tagLabelById = new Map<string, string>();
+    if (oidList.length > 0) {
+      const tagDocs = await tagCollection.find({ _id: { $in: oidList } }).project({ name: 1 }).toArray();
+      for (const td of tagDocs) {
+        tagLabelById.set(td._id.toString(), this.tagDocumentDisplayName(td));
+      }
+    }
+
+    const photoCount = await photosCollection.countDocuments({ people: person._id });
+    const avatarMap = await this.buildFaceAvatarFromPhotoMap(photosCollection, [person._id]);
+    const faceAv = avatarMap.get(person._id.toString()) ?? null;
+    return this.mapPersonForAdminResponse(person, tagLabelById, photoCount, faceAv);
+  }
 
   /**
    * Get all people with optional search and pagination
@@ -53,15 +276,69 @@ export class PeopleController {
         collection.countDocuments(query),
       ]);
 
-      // Serialize ObjectIds to strings
-      const serializedPeople = people.map((person: any) => ({
-        ...person,
-        _id: person._id.toString(),
-        tags: person.tags
-          ? person.tags.map((tag: any) => (tag._id ? tag._id.toString() : tag.toString()))
-          : [],
-        createdBy: person.createdBy ? person.createdBy.toString() : null,
-      }));
+      const tagCollection = db.collection('tags');
+      const photosCollection = db.collection('photos');
+
+      const allTagIds = new Set<string>();
+      for (const person of people) {
+        if (!Array.isArray(person.tags)) continue;
+        for (const tid of person.tags) {
+          const idStr = this.personTagRefToIdString(tid);
+          if (idStr && Types.ObjectId.isValid(idStr)) {
+            allTagIds.add(idStr);
+          }
+        }
+      }
+
+      const tagOidList = [...allTagIds].map((id) => new Types.ObjectId(id));
+      const tagDocs =
+        tagOidList.length > 0
+          ? await tagCollection.find({ _id: { $in: tagOidList } }).project({ name: 1 }).toArray()
+          : [];
+
+      const tagLabelById = new Map<string, string>();
+      for (const td of tagDocs) {
+        tagLabelById.set(td._id.toString(), this.tagDocumentDisplayName(td));
+      }
+
+      const personIdBsons = people.map((p: any) => p._id);
+      const photoCountPipeline: Record<string, any>[] = [
+        { $match: { people: { $in: personIdBsons } } },
+        this.peopleArrayNormSetStage(),
+        { $unwind: { path: '$_peopleNorm' } },
+        { $match: { _peopleNorm: { $in: personIdBsons } } },
+        { $group: { _id: '$_peopleNorm', count: { $sum: 1 } } },
+      ];
+      let photoCountRows: { _id?: unknown; count?: number }[] = [];
+      if (personIdBsons.length > 0) {
+        try {
+          photoCountRows = await photosCollection.aggregate(photoCountPipeline).toArray();
+        } catch (aggErr) {
+          this.logger.error('Photo count aggregation failed:', aggErr);
+          photoCountRows = [];
+        }
+      }
+
+      const photoCountByPersonId = new Map<string, number>();
+      for (const row of photoCountRows) {
+        if (row._id) {
+          photoCountByPersonId.set(row._id.toString(), row.count ?? 0);
+        }
+      }
+
+      const faceAvatarMap =
+        personIdBsons.length > 0
+          ? await this.buildFaceAvatarFromPhotoMap(photosCollection, personIdBsons)
+          : new Map<string, FaceAvatarFromPhoto>();
+
+      const serializedPeople = people.map((person: any) =>
+        this.mapPersonForAdminResponse(
+          person,
+          tagLabelById,
+          photoCountByPersonId.get(person._id.toString()) ?? 0,
+          faceAvatarMap.get(person._id.toString()) ?? null,
+        ),
+      );
 
       return {
         data: serializedPeople,
@@ -97,7 +374,7 @@ export class PeopleController {
         throw new NotFoundException(`Person not found: ${id}`);
       }
 
-      return person;
+      return this.enrichSinglePersonForAdmin(db, person);
     } catch (error) {
       if (error instanceof HttpException) throw error;
       this.logger.error('Error fetching person:', error);
@@ -217,8 +494,11 @@ export class PeopleController {
 
       const result = await collection.insertOne(personData);
       const person = await collection.findOne({ _id: result.insertedId });
+      if (!person) {
+        throw new InternalServerErrorException('Failed to load created person');
+      }
 
-      return person;
+      return this.enrichSinglePersonForAdmin(db, person);
     } catch (error) {
       if (error instanceof HttpException) throw error;
       this.logger.error('Error creating person:', error);
@@ -332,8 +612,11 @@ export class PeopleController {
 
       await collection.updateOne({ _id: new Types.ObjectId(id) }, { $set: updateData });
       const updatedPerson = await collection.findOne({ _id: new Types.ObjectId(id) });
+      if (!updatedPerson) {
+        throw new NotFoundException(`Person not found: ${id}`);
+      }
 
-      return updatedPerson;
+      return this.enrichSinglePersonForAdmin(db, updatedPerson);
     } catch (error) {
       if (error instanceof HttpException) throw error;
       this.logger.error('Error updating person:', error);

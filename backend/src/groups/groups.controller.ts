@@ -22,14 +22,47 @@ export class GroupsController {
       const db = mongoose.connection.db;
       if (!db) throw new InternalServerErrorException('Database connection not established');
       const collection = db.collection('groups');
+      const usersCollection = db.collection('users');
+      const albumsCollection = db.collection('albums');
 
       const groups = await collection.find({}).sort({ alias: 1 }).toArray();
 
-      // Convert ObjectIds to strings
-      const serializedGroups = groups.map((group) => ({
-        ...group,
-        _id: group._id.toString(),
-      }));
+      const [memberRows, albumRows] = await Promise.all([
+        usersCollection
+          .aggregate([
+            { $match: { groupAliases: { $exists: true, $ne: [] } } },
+            { $unwind: '$groupAliases' },
+            { $group: { _id: '$groupAliases', count: { $sum: 1 } } },
+          ])
+          .toArray(),
+        albumsCollection
+          .aggregate([
+            { $match: { allowedGroups: { $exists: true, $ne: [] } } },
+            { $unwind: '$allowedGroups' },
+            { $group: { _id: '$allowedGroups', count: { $sum: 1 } } },
+          ])
+          .toArray(),
+      ]);
+
+      const memberCountByAlias = new Map<string, number>();
+      for (const row of memberRows) {
+        if (row._id != null) memberCountByAlias.set(String(row._id), row.count ?? 0);
+      }
+      const albumUsageByAlias = new Map<string, number>();
+      for (const row of albumRows) {
+        if (row._id != null) albumUsageByAlias.set(String(row._id), row.count ?? 0);
+      }
+
+      // Convert ObjectIds to strings; attach usage for admin cards
+      const serializedGroups = groups.map((group: any) => {
+        const alias = String(group.alias ?? '');
+        return {
+          ...group,
+          _id: group._id.toString(),
+          memberCount: memberCountByAlias.get(alias) ?? 0,
+          albumUsageCount: albumUsageByAlias.get(alias) ?? 0,
+        };
+      });
 
       return {
         data: serializedGroups,
@@ -61,10 +94,20 @@ export class GroupsController {
         throw new NotFoundException(`Group not found: ${id}`);
       }
 
+      const usersCollection = db.collection('users');
+      const albumsCollection = db.collection('albums');
+      const alias = String((group as any).alias ?? '');
+      const [memberCount, albumUsageCount] = await Promise.all([
+        usersCollection.countDocuments({ groupAliases: alias }),
+        albumsCollection.countDocuments({ allowedGroups: alias }),
+      ]);
+
       // Convert ObjectId to string
       return {
         ...group,
         _id: group._id.toString(),
+        memberCount,
+        albumUsageCount,
       };
     } catch (error) {
       if (error instanceof NotFoundException) {
@@ -144,10 +187,12 @@ export class GroupsController {
         throw new BadRequestException('Failed to retrieve created group');
       }
 
-      // Convert ObjectId to string
+      // Convert ObjectId to string (new group: no members or album refs yet)
       return {
         ...group,
         _id: group._id.toString(),
+        memberCount: 0,
+        albumUsageCount: 0,
       };
     } catch (error) {
       if (error instanceof BadRequestException) {
@@ -196,10 +241,20 @@ export class GroupsController {
         throw new NotFoundException(`Group not found after update: ${id}`);
       }
 
+      const usersCollection = db.collection('users');
+      const albumsCollection = db.collection('albums');
+      const alias = String((updatedGroup as any).alias ?? '');
+      const [memberCount, albumUsageCount] = await Promise.all([
+        usersCollection.countDocuments({ groupAliases: alias }),
+        albumsCollection.countDocuments({ allowedGroups: alias }),
+      ]);
+
       // Convert ObjectId to string
       return {
         ...updatedGroup,
         _id: updatedGroup._id.toString(),
+        memberCount,
+        albumUsageCount,
       };
     } catch (error) {
       if (error instanceof NotFoundException || error instanceof BadRequestException) {

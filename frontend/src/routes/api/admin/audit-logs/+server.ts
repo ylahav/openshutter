@@ -21,11 +21,17 @@ export const GET: RequestHandler = async ({ url, locals, cookies }) => {
 
 		const endpoint = `/admin/audit-logs${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
 		const response = await backendGet(endpoint, { cookies });
-		const result = await parseBackendResponse<{ data: any[] }>(response);
+		const result = await parseBackendResponse<{ data?: unknown[]; pagination?: Record<string, unknown> } | unknown[]>(
+			response
+		);
+
+		const rows = Array.isArray(result) ? result : result?.data ?? [];
+		const pagination = Array.isArray(result) ? undefined : result?.pagination;
 
 		return json({
 			success: true,
-			data: result.data || result
+			data: rows,
+			pagination
 		});
 	} catch (error) {
 		logger.error('API: Error fetching audit logs:', error);

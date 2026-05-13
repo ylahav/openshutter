@@ -236,7 +236,17 @@ export class AlbumsAdminController {
 			// Owner: only albums they created
 			const user = (req as any).user;
 			if (user?.role === 'owner' && user?.id) {
-				query.createdBy = new Types.ObjectId(user.id);
+				const ownerId = String(user.id).trim();
+				if (!Types.ObjectId.isValid(ownerId)) {
+					this.logger.warn(`Invalid owner id for album list: ${ownerId}`);
+					throw new BadRequestException('Invalid user id');
+				}
+				try {
+					query.createdBy = new Types.ObjectId(ownerId);
+				} catch (oidErr) {
+					this.logger.warn(`Could not build ObjectId for owner: ${ownerId}`, oidErr);
+					throw new BadRequestException('Invalid user id');
+				}
 			}
 
 			// Handle parentId filter (admin can see all, no isPublic filter)
@@ -247,7 +257,12 @@ export class AlbumsAdminController {
 					this.logger.warn(`Invalid parentId format: ${parentId}`);
 					return [];
 				}
-				query.parentAlbumId = new Types.ObjectId(parentId);
+				try {
+					query.parentAlbumId = new Types.ObjectId(parentId);
+				} catch (oidErr) {
+					this.logger.warn(`Invalid parentId ObjectId: ${parentId}`, oidErr);
+					return [];
+				}
 			}
 
 			// Support level filter
@@ -267,23 +282,26 @@ export class AlbumsAdminController {
 
 		// Performance optimization: Use aggregation to get child counts in a single query
 		// instead of N+1 queries (one per album)
-		const albumIds = albums.map((album: any) => album._id);
-		const childCounts = await db
-			.collection('albums')
-			.aggregate([
-				{
-					$match: {
-						parentAlbumId: { $in: albumIds },
+		const albumIds = albums.map((album: any) => album._id).filter(Boolean);
+		let childCounts: any[] = [];
+		if (albumIds.length > 0) {
+			childCounts = await db
+				.collection('albums')
+				.aggregate([
+					{
+						$match: {
+							parentAlbumId: { $in: albumIds },
+						},
 					},
-				},
-				{
-					$group: {
-						_id: '$parentAlbumId',
-						count: { $sum: 1 },
+					{
+						$group: {
+							_id: '$parentAlbumId',
+							count: { $sum: 1 },
+						},
 					},
-				},
-			])
-			.toArray();
+				])
+				.toArray();
+		}
 
 		// Create a map for O(1) lookup
 		const childCountMap = new Map<string, number>();
@@ -310,6 +328,9 @@ export class AlbumsAdminController {
 
 	return serialized;
 	} catch (error) {
+		if (error instanceof HttpException) {
+			throw error;
+		}
 		this.logger.error('Failed to get admin albums:', error);
 		throw new InternalServerErrorException(`Failed to get admin albums: ${error instanceof Error ? error.message : 'Unknown error'}`);
 	}
@@ -411,7 +432,20 @@ export class AlbumsAdminController {
 			}
 
 			// Convert ObjectIds to strings for JSON serialization
+			const albumCreatedByStr =
+				album.createdBy != null
+					? album.createdBy.toString
+						? album.createdBy.toString()
+						: String(album.createdBy)
+					: '';
 			const serializedPhotos = photos.map((photo: any) => {
+				const photoStorageOwnerStr =
+					photo.storage?.storageOwnerId != null
+						? photo.storage.storageOwnerId.toString
+							? photo.storage.storageOwnerId.toString()
+							: String(photo.storage.storageOwnerId)
+						: '';
+				const resolvedStorageOwnerId = (photoStorageOwnerStr || albumCreatedByStr || '').trim() || undefined;
 				const serialized: any = {
 					...photo,
 					_id: photo._id.toString(),
@@ -439,6 +473,7 @@ export class AlbumsAdminController {
 						blurDataURL: photo.storage.blurDataURL,
 						bucket: photo.storage.bucket,
 						folderId: photo.storage.folderId,
+						...(resolvedStorageOwnerId ? { storageOwnerId: resolvedStorageOwnerId } : {}),
 					};
 				}
 				return serialized;

@@ -12,6 +12,8 @@
 	export let id: string | undefined = undefined;
 	export let required = false;
 	export let maxLength: number | undefined = undefined;
+	/** When set with maxLength, counter turns amber below this length (e.g. 50 for SEO titles capped at 60). */
+	export let recommendedMinLength: number | undefined = undefined;
 	export let showLanguageTabs = true;
 	export let defaultLanguage: LanguageCode = 'en';
 	export let multiline = false;
@@ -161,6 +163,18 @@
 
 	$: currentLangConfig = availableLanguages.find((lang) => lang.code === activeLanguage);
 	$: hasContent = (lang: LanguageCode) => !!(value && value[lang] && value[lang].trim());
+	$: charCountClass = (() => {
+		if (!maxLength) return '';
+		const len = inputValue.length;
+		if (len > maxLength) return 'text-red-600 font-medium';
+		if (recommendedMinLength != null && len > 0 && len < recommendedMinLength) {
+			return 'text-amber-600 font-medium';
+		}
+		if (recommendedMinLength != null && len >= recommendedMinLength) {
+			return 'text-emerald-600';
+		}
+		return 'text-gray-500';
+	})();
 </script>
 
 <div class="space-y-2 {className}">
@@ -239,7 +253,7 @@
 
 	<!-- Character Count -->
 	{#if maxLength}
-		<div class="text-xs text-gray-500 text-right">
+		<div class="text-xs text-right {charCountClass}">
 			{inputValue.length} / {maxLength}
 		</div>
 	{/if}

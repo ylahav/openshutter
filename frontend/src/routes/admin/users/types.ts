@@ -24,6 +24,8 @@ export interface User {
 	};
 	createdAt?: string;
 	updatedAt?: string;
+	/** ISO date from backend; set on each successful password login. */
+	lastLoginAt?: string;
 }
 
 export interface OwnerDomain {

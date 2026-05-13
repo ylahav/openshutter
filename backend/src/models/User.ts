@@ -36,6 +36,8 @@ export interface User {
   }
   forcePasswordChange?: boolean
   preferredLanguage?: string
+  /** Updated on each successful password login (optional for legacy documents). */
+  lastLoginAt?: Date
   createdAt: Date
   updatedAt: Date
 }
@@ -95,6 +97,10 @@ const UserSchema = new Schema<IUserDocument>({
     type: String,
     trim: true,
     default: ''
+  },
+  lastLoginAt: {
+    type: Date,
+    required: false
   },
   createdAt: {
     type: Date,

@@ -48,6 +48,8 @@ export class AuthController {
       }
     }
 
+    await this.authService.recordLastLogin(user.id);
+
     return {
       user,
       role: user.role,

@@ -1,5 +1,4 @@
 <script lang="ts">
-	import '$lib/styles/admin.css';
 	import { invalidateAll } from '$app/navigation';
 	import ForcePasswordChangeModal from '$lib/components/ForcePasswordChangeModal.svelte';
 

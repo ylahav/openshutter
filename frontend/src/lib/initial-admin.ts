@@ -18,6 +18,11 @@ export const INITIAL_ADMIN_USER = {
   updatedAt: new Date()
 }
 
+/** Seed OpenShutter platform admin (not a tenant-managed user). */
+export function isPlatformSystemAccountUsername(username: string): boolean {
+  return String(username || '').trim().toLowerCase() === INITIAL_ADMIN_CREDENTIALS.email.toLowerCase();
+}
+
 // Function to check if credentials match initial admin
 export function isInitialAdmin(email: string, password: string): boolean {
   return email === INITIAL_ADMIN_CREDENTIALS.email && 

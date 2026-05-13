@@ -1,9 +1,10 @@
 <script lang="ts">
+	import '$lib/styles/admin.css';
 	import { onMount, onDestroy } from 'svelte';
 	import { page } from '$app/stores';
 	import { browser } from '$app/environment';
 	import AdminToastRegion from '$lib/components/admin/AdminToastRegion.svelte';
-	import { logout } from '$lib/stores/auth';
+	import AdminSidebar from '$lib/components/admin/AdminSidebar.svelte';
 	import { applyHtmlThemeClass, getResolvedSiteThemeFromStore } from '$lib/stores/theme';
 	import { adminUiColorMode, toggleAdminUiColorMode } from '$lib/stores/admin-ui-theme';
 	import { siteConfigData, productName } from '$stores/siteConfig';
@@ -11,10 +12,6 @@
 	import { SUPPORTED_LANGUAGES, type LanguageCode } from '$types/multi-lang';
 	import { adminSelectSmClass } from '$lib/admin/admin-cerberus';
 	import { t } from '$stores/i18n';
-
-	async function handleLogout() {
-		await logout();
-	}
 
 	$: hideOs = !!$siteConfigData?.whiteLabel?.hideOpenShutterBranding;
 	$: brand = hideOs ? $t('admin.chromeBrandShort') : $t('admin.chromeBrandLong');
@@ -42,8 +39,6 @@
 		}
 	}
 
-	const navLinkClass = 'btn btn-sm preset-outlined-surface-200-800';
-	const logoutClass = 'btn btn-sm preset-filled-error-500';
 	/** Outlined like nav links — `preset-tonal` + `light-dark()` broke when `color-scheme` did not match admin dark UI. */
 	const colorModeBtnClass =
 		'btn btn-sm preset-outlined-surface-200-800 inline-flex items-center justify-center p-2 min-w-[2.25rem]';
@@ -101,6 +96,8 @@
 		);
 	}
 
+	let mobileNavOpen = false;
+
 	$: showUiDebug = browser && $page.url.searchParams.get('uiDebug') === '1';
 </script>
 
@@ -113,17 +110,39 @@
 	data-admin-chrome
 	data-theme="cerberus"
 >
-	<div class="os-shell-container max-w-(--os-max-width)">
+	<div
+		class="w-full max-w-[min(100vw-0px,96rem)] mx-auto px-[var(--os-padding)] box-border"
+	>
 		<header
-			class="border-b border-[color:color-mix(in_oklab,var(--color-surface-950)_12%,transparent)] dark:border-[color:color-mix(in_oklab,var(--color-surface-50)_14%,transparent)] pt-4 pb-3 mb-6"
+			class="border-b border-[color:color-mix(in_oklab,var(--color-surface-950)_12%,transparent)] dark:border-[color:color-mix(in_oklab,var(--color-surface-50)_14%,transparent)] py-2.5 mb-4"
 			aria-label={chromeHeading}
 		>
 			<div class="flex flex-nowrap items-center justify-between gap-2 sm:gap-3 min-w-0">
-				<h1
-					class="text-base sm:text-lg font-semibold text-(--heading-font-color) dark:text-(--heading-font-color-dark) tracking-tight min-w-0 flex-1 truncate pr-2"
-				>
-					{chromeHeading}
-				</h1>
+				<div class="flex items-center gap-2 min-w-0 shrink lg:min-w-0">
+					<button
+						type="button"
+						class="{colorModeBtnClass} lg:hidden"
+						on:click={() => (mobileNavOpen = true)}
+						aria-expanded={mobileNavOpen}
+						aria-controls="admin-sidebar-nav"
+						title={$t('admin.sidebarOpenMenu')}
+						aria-label={$t('admin.sidebarOpenMenu')}
+					>
+						<svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M4 6h16M4 12h16M4 18h16"
+							/>
+						</svg>
+					</button>
+					<p
+						class="text-sm font-medium text-(--heading-font-color) dark:text-(--heading-font-color-dark) truncate lg:hidden max-w-[min(100%,14rem)] sm:max-w-[20rem]"
+					>
+						{chromeHeading}
+					</p>
+				</div>
 				<nav class="flex flex-nowrap items-center gap-1.5 sm:gap-2 shrink-0" aria-label={$t('admin.chromeNavAria')}>
 					<button
 						type="button"
@@ -169,23 +188,15 @@
 							{/each}
 						</select>
 					{/if}
-					<a href="/" class={navLinkClass}>
-						{$t('admin.chromeNavSite')}
-					</a>
-					<a
-						href="/admin"
-						class={navLinkClass}
-						aria-current={$page.url.pathname === '/admin' ? 'page' : undefined}
-					>
-						{$t('admin.chromeNavAdmin')}
-					</a>
-					<button type="button" class={logoutClass} on:click={handleLogout}>
-						{$t('header.logout')}
-					</button>
 				</nav>
 			</div>
 		</header>
-		<slot />
+		<div class="flex flex-col lg:flex-row lg:items-stretch gap-0 lg:gap-6 pb-10">
+			<AdminSidebar bind:mobileOpen={mobileNavOpen} heading={chromeHeading} />
+			<div class="flex-1 min-w-0 min-h-0">
+				<slot />
+			</div>
+		</div>
 	</div>
 	<AdminToastRegion />
 	{#if showUiDebug}

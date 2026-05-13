@@ -1055,6 +1055,10 @@ export class PagesController {
         throw new NotFoundException(`Page not found: ${id}`);
       }
 
+      if (page.category === 'system') {
+        throw new BadRequestException('System pages cannot be deleted');
+      }
+
       await collection.deleteOne({ _id: new Types.ObjectId(id) });
 
       return { success: true, message: 'Page deleted successfully' };

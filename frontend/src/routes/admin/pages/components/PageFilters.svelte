@@ -5,7 +5,6 @@
 	export let categoryFilter = 'all';
 	export let publishedFilter = 'all';
 	export let sortBy = 'title-asc';
-	export let groupByName = false;
 	export let categories: PageCategoryOption[] = [];
 	export let onFilterChange: () => void = () => {};
 	export let onAddPage: () => void = () => {};
@@ -67,11 +66,6 @@
 			<option value="alias-asc">Alias A-Z</option>
 			<option value="alias-desc">Alias Z-A</option>
 		</select>
-
-		<label class="inline-flex items-center gap-2 text-sm text-(--color-surface-700-300)">
-			<input type="checkbox" bind:checked={groupByName} on:change={onFilterChange} />
-			Group same name together
-		</label>
 	</div>
 
 	<button

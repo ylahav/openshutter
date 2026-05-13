@@ -49,7 +49,7 @@ Footer uses the same pattern: a named **`layoutShell`** preset (e.g. `atelier_fo
 |------|--------|
 | **Set the live theme** (theme row → `site_config`) | **Admin → Templates** (`/admin/templates`): **Set as default** on a theme card (confirm dialog) — applies that theme to the site |
 | See current defaults (public theme name, pack) | Top of **Templates** after load |
-| Toggle **component visibility** (hero, auth buttons, …) | **Admin → Template configuration** (`/admin/template-config`) |
+| Toggle **component visibility** (hero, auth buttons, …) | **Admin → Layout** (`/admin/theme-layout`) |
 | Edit **themes** (colors, fonts, `pageModules`, `pageLayout`, `headerConfig`, …) | **Admin → Templates** — **Edit** → **Overrides** (`/admin/templates/overrides?themeId=…`), or **Theme builder** for site-only overrides (`/admin/templates/overrides` without `themeId`) |
 | **Navigation / menu** when not relying only on modules | **Site configuration** — fields that map to `headerConfig` / menu |
 | **Site-wide pack** field | **Site configuration → Theme & layout** — `frontendTemplate` / active pack (`noir`, `studio`, `atelier`) |

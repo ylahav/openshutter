@@ -602,6 +602,13 @@ export class PhotosAdminController {
 					.map((id: any) => new Types.ObjectId(String(id)));
 			}
 
+			// Update people if provided (replace with provided person IDs)
+			if (updates.people !== undefined && Array.isArray(updates.people)) {
+				update.people = updates.people
+					.filter((id: any) => id != null && Types.ObjectId.isValid(String(id)))
+					.map((id: any) => new Types.ObjectId(String(id)));
+			}
+
 			// Update metadata if provided (merge into existing: rating, category, or custom keys)
 			if (updates.metadata !== undefined && typeof updates.metadata === 'object') {
 				for (const [key, value] of Object.entries(updates.metadata)) {

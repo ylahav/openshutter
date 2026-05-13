@@ -61,6 +61,48 @@
 		'#6366F1'
 	];
 
+	/** List-indicator colour by category (not tag.color), so rows are visually distinct. */
+	const CATEGORY_INDICATOR_COLORS: Record<string, string> = {
+		general: '#64748b',
+		location: '#0d9488',
+		event: '#c026d3',
+		object: '#ea580c',
+		mood: '#7c3aed',
+		technical: '#2563eb',
+		custom: '#525252'
+	};
+
+	/** Title-case words for Latin tag names; leave RTL/CJK/Cyrillic unchanged. */
+	function normalizeTagLabelLatin(raw: string): string {
+		const s = raw.trim();
+		if (!s) return s;
+		if (/[\u0590-\u05FF\u0600-\u06FF\u0400-\u04FF\u3040-\u30FF\u4E00-\u9FFF]/.test(s)) {
+			return s;
+		}
+		return s
+			.split(/(\s+)/)
+			.map((part) => {
+				if (/^\s+$/.test(part) || part === '') return part;
+				return part.charAt(0).toLocaleUpperCase() + part.slice(1).toLocaleLowerCase();
+			})
+			.join('');
+	}
+
+	function normalizeNamePayloadForStorage(name: MultiLangText): MultiLangText {
+		const cleaned = MultiLangUtils.clean(name) as MultiLangText;
+		const rec = cleaned as Record<string, string | undefined>;
+		for (const key of Object.keys(rec)) {
+			const v = rec[key];
+			if (typeof v === 'string' && v.trim()) {
+				rec[key] = normalizeTagLabelLatin(v);
+			}
+		}
+		return cleaned;
+	}
+
+	let feedbackAdvancedOpen = false;
+	let feedbackTelemetryLoadStarted = false;
+
 	// Use CRUD composables
 	const crudLoader = useCrudLoader<Tag>('/api/admin/tags', {
 		searchParam: 'search',
@@ -80,7 +122,7 @@
 			const rawName = data.name && typeof data.name === 'object' ? data.name : {};
 			const rawDescription = data.description && typeof data.description === 'object' ? data.description : {};
 			return {
-				name: MultiLangUtils.clean(rawName),
+				name: normalizeNamePayloadForStorage(rawName as MultiLangText),
 				description: MultiLangUtils.clean(rawDescription),
 				color: data.color,
 				category: data.category,
@@ -170,8 +212,13 @@
 	};
 
 	onMount(async () => {
-		await Promise.all([crudLoader.loadItems(), loadFeedbackStats()]);
+		await crudLoader.loadItems();
 	});
+
+	$: if (feedbackAdvancedOpen && !feedbackTelemetryLoadStarted) {
+		feedbackTelemetryLoadStarted = true;
+		void loadFeedbackStats();
+	}
 
 	async function loadFeedbackStats() {
 		try {
@@ -272,6 +319,23 @@
 	function getTagName(tag: Tag): string {
 		if (typeof tag.name === 'string') return tag.name;
 		return MultiLangUtils.getTextValue(tag.name) || tag._id;
+	}
+
+	function getCategoryIndicatorColor(category: string | undefined): string {
+		return CATEGORY_INDICATOR_COLORS[category || 'general'] ?? CATEGORY_INDICATOR_COLORS.general;
+	}
+
+	/** Same as {@link normalizeTagLabelLatin}; used for list card display. */
+	function formatTagDisplayLabel(raw: string): string {
+		return normalizeTagLabelLatin(raw);
+	}
+
+	function getTagDisplayName(tag: Tag): string {
+		return formatTagDisplayLabel(getTagName(tag));
+	}
+
+	function isTagUnused(tag: Tag): boolean {
+		return tag.usageCount === 0;
 	}
 
 	function getTagDescription(tag: Tag): string {
@@ -391,47 +455,6 @@
 				<div class="mb-4 p-4 rounded-md bg-red-50 text-red-700">{error}</div>
 			{/if}
 
-			<div class="mb-6 p-4 rounded-md border border-surface-200-800 bg-(--color-surface-50-950)">
-				<div class="flex items-center justify-between gap-3">
-					<div>
-						<h2 class="text-sm font-semibold text-(--color-surface-950-50)">{$t('admin.tagsFeedbackSignalsTitle')}</h2>
-						<p class="text-xs text-(--color-surface-600-400) mt-1">{$t('admin.tagsFeedbackSignalsSubtitle')}</p>
-					</div>
-					<button
-						type="button"
-						on:click={loadFeedbackStats}
-						class="px-3 py-1.5 text-xs font-medium text-(--color-surface-800-200) bg-(--color-surface-50-950) border border-surface-300-700 rounded hover:bg-(--color-surface-100-900)"
-					>
-						{$t('admin.tagsFeedbackSignalsRefresh')}
-					</button>
-				</div>
-
-				{#if feedbackStatsLoading}
-					<p class="mt-3 text-xs text-(--color-surface-600-400)">{$t('admin.tagsFeedbackSignalsLoading')}</p>
-				{:else if feedbackStatsError}
-					<p class="mt-3 text-xs text-red-600">{feedbackStatsError}</p>
-				{:else}
-					<div class="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3">
-						<div class="p-3 bg-(--color-surface-50-950) border border-surface-200-800 rounded">
-							<p class="text-xs text-(--color-surface-600-400)">{$t('admin.tagsFeedbackSignalsTotalEvents')}</p>
-							<p class="text-xl font-semibold text-(--color-surface-950-50)">{feedbackStats.total || 0}</p>
-						</div>
-						<div class="p-3 bg-(--color-surface-50-950) border border-surface-200-800 rounded">
-							<p class="text-xs text-(--color-surface-600-400)">{$t('admin.tagsFeedbackSignalsBySource')}</p>
-							<p class="text-sm text-(--color-surface-900-100)">{$t('admin.tagsFeedbackSignalsAI')}: {feedbackStats.bySource.ai || 0}</p>
-							<p class="text-sm text-(--color-surface-900-100)">{$t('admin.tagsFeedbackSignalsContext')}: {feedbackStats.bySource.context || 0}</p>
-							<p class="text-sm text-(--color-surface-900-100)">{$t('admin.tagsFeedbackSignalsManual')}: {feedbackStats.bySource.manual || 0}</p>
-						</div>
-						<div class="p-3 bg-(--color-surface-50-950) border border-surface-200-800 rounded">
-							<p class="text-xs text-(--color-surface-600-400)">{$t('admin.tagsFeedbackSignalsByAction')}</p>
-							<p class="text-sm text-(--color-surface-900-100)">{$t('admin.tagsFeedbackSignalsApplied')}: {feedbackStats.byAction.applied || 0}</p>
-							<p class="text-sm text-(--color-surface-900-100)">{$t('admin.tagsFeedbackSignalsDismissed')}: {feedbackStats.byAction.dismissed || 0}</p>
-							<p class="text-sm text-(--color-surface-900-100)">{$t('admin.tagsFeedbackSignalsRemoved')}: {feedbackStats.byAction.removed || 0}</p>
-						</div>
-					</div>
-				{/if}
-			</div>
-
 			<!-- Search and Filters -->
 			<div class="flex items-center justify-between mb-6">
 				<div class="flex items-center space-x-4">
@@ -523,14 +546,29 @@
 			{:else}
 				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 					{#each tags as tag}
-						<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-4">
+						<div
+							class="card preset-outlined-surface-200-800 bg-surface-50-950 p-4 {isTagUnused(tag)
+								? 'border border-dashed border-amber-300/90 bg-amber-50/40 dark:border-amber-800/60 dark:bg-amber-950/25'
+								: ''}"
+						>
 							<div class="flex items-start justify-between mb-3">
-								<div class="flex items-center space-x-2 flex-1">
+								<div class="flex items-center space-x-2 flex-1 min-w-0">
 									<div
-										class="w-4 h-4 rounded-full border border-surface-300-700"
-										style="background-color: {tag.color || '#3B82F6'}"
+										class="w-4 h-4 shrink-0 rounded-full border border-surface-400/40 ring-1 ring-black/5 dark:ring-white/10"
+										style="background-color: {getCategoryIndicatorColor(tag.category)}"
+										title={getCategoryLabel(tag.category || 'general')}
+										aria-hidden="true"
 									></div>
-									<h3 class="font-semibold text-(--color-surface-950-50)">{getTagName(tag)}</h3>
+									<h3 class="font-semibold text-(--color-surface-950-50) truncate">
+										{getTagDisplayName(tag)}
+									</h3>
+									{#if isTagUnused(tag)}
+										<span
+											class="shrink-0 rounded-full border border-amber-400/70 bg-amber-100/90 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-900 dark:border-amber-700 dark:bg-amber-950/50 dark:text-amber-100"
+										>
+											{$t('admin.tagsUnusedBadge')}
+										</span>
+									{/if}
 								</div>
 
 								<div class="flex space-x-1">
@@ -578,7 +616,11 @@
 									{getCategoryLabel(tag.category || 'general')}
 								</span>
 								{#if tag.usageCount !== undefined}
-									<span class="text-xs text-(--color-surface-600-400)">
+									<span
+										class="text-xs {isTagUnused(tag)
+											? 'font-medium text-amber-800 dark:text-amber-200'
+											: 'text-(--color-surface-600-400)'}"
+									>
 										{$t('admin.tagsUsedLabel')} {tag.usageCount}
 										{tag.usageCount === 1 ? $t('admin.tagsTimeSingular') : $t('admin.tagsTimePlural')}
 									</span>
@@ -588,6 +630,67 @@
 					{/each}
 				</div>
 			{/if}
+
+			<details class="mt-8 border-t border-(--color-surface-200-700) pt-4" bind:open={feedbackAdvancedOpen}>
+				<summary
+					class="cursor-pointer list-none text-sm font-medium text-(--color-surface-700-300) hover:text-(--color-surface-950-50) [&::-webkit-details-marker]:hidden"
+				>
+					<span class="inline-flex items-center gap-2">
+						<svg class="h-4 w-4 text-(--color-surface-500-400)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
+							/>
+						</svg>
+						{$t('admin.tagsAdvancedTelemetrySummary')}
+					</span>
+				</summary>
+				<p class="mt-2 text-xs text-(--color-surface-600-400) max-w-2xl">
+					{$t('admin.tagsAdvancedTelemetryHelp')}
+				</p>
+				<div class="mt-4 p-4 rounded-md border border-surface-200-800 bg-(--color-surface-50-950)">
+					<div class="flex items-center justify-between gap-3">
+						<div>
+							<h2 class="text-sm font-semibold text-(--color-surface-950-50)">{$t('admin.tagsFeedbackSignalsTitle')}</h2>
+							<p class="text-xs text-(--color-surface-600-400) mt-1">{$t('admin.tagsFeedbackSignalsSubtitle')}</p>
+						</div>
+						<button
+							type="button"
+							on:click={loadFeedbackStats}
+							class="px-3 py-1.5 text-xs font-medium text-(--color-surface-800-200) bg-(--color-surface-50-950) border border-surface-300-700 rounded hover:bg-(--color-surface-100-900)"
+						>
+							{$t('admin.tagsFeedbackSignalsRefresh')}
+						</button>
+					</div>
+
+					{#if feedbackStatsLoading}
+						<p class="mt-3 text-xs text-(--color-surface-600-400)">{$t('admin.tagsFeedbackSignalsLoading')}</p>
+					{:else if feedbackStatsError}
+						<p class="mt-3 text-xs text-red-600">{feedbackStatsError}</p>
+					{:else}
+						<div class="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3">
+							<div class="p-3 bg-(--color-surface-50-950) border border-surface-200-800 rounded">
+								<p class="text-xs text-(--color-surface-600-400)">{$t('admin.tagsFeedbackSignalsTotalEvents')}</p>
+								<p class="text-xl font-semibold text-(--color-surface-950-50)">{feedbackStats.total || 0}</p>
+							</div>
+							<div class="p-3 bg-(--color-surface-50-950) border border-surface-200-800 rounded">
+								<p class="text-xs text-(--color-surface-600-400)">{$t('admin.tagsFeedbackSignalsBySource')}</p>
+								<p class="text-sm text-(--color-surface-900-100)">{$t('admin.tagsFeedbackSignalsAI')}: {feedbackStats.bySource.ai || 0}</p>
+								<p class="text-sm text-(--color-surface-900-100)">{$t('admin.tagsFeedbackSignalsContext')}: {feedbackStats.bySource.context || 0}</p>
+								<p class="text-sm text-(--color-surface-900-100)">{$t('admin.tagsFeedbackSignalsManual')}: {feedbackStats.bySource.manual || 0}</p>
+							</div>
+							<div class="p-3 bg-(--color-surface-50-950) border border-surface-200-800 rounded">
+								<p class="text-xs text-(--color-surface-600-400)">{$t('admin.tagsFeedbackSignalsByAction')}</p>
+								<p class="text-sm text-(--color-surface-900-100)">{$t('admin.tagsFeedbackSignalsApplied')}: {feedbackStats.byAction.applied || 0}</p>
+								<p class="text-sm text-(--color-surface-900-100)">{$t('admin.tagsFeedbackSignalsDismissed')}: {feedbackStats.byAction.dismissed || 0}</p>
+								<p class="text-sm text-(--color-surface-900-100)">{$t('admin.tagsFeedbackSignalsRemoved')}: {feedbackStats.byAction.removed || 0}</p>
+							</div>
+						</div>
+					{/if}
+				</div>
+			</details>
 		</div>
 	</div>
 </div>
@@ -837,7 +940,7 @@
 			<div class="space-y-4">
 				<p class="text-(--color-surface-600-400)">
 					{$t('admin.tagsDeleteConfirmPrefix')}
-					<strong>{tagToDelete.name}</strong>
+					<strong>{getTagDisplayName(tagToDelete)}</strong>
 					{$t('admin.tagsDeleteConfirmSuffix')}
 				</p>
 				{#if tagToDelete.usageCount && tagToDelete.usageCount > 0}

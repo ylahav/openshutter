@@ -6,7 +6,7 @@
  */
 
 /** Bump this to bust caches after backend image pipeline changes (e.g. EXIF orientation fix). */
-const STORAGE_URL_VERSION = 2;
+const STORAGE_URL_VERSION = 3;
 
 /**
  * Photo storage structure (flexible to handle different API response formats)
@@ -17,6 +17,8 @@ interface PhotoStorage {
 	path?: string;
 	thumbnailPath?: string;
 	thumbnails?: Record<string, string>;
+	/** When set, appended to `/api/storage/serve/...` URLs so dedicated owner storage resolves on the backend. */
+	storageOwnerId?: string;
 }
 
 /**
@@ -55,18 +57,42 @@ export interface PhotoUrlOptions {
  * Helper function to construct storage URLs
  * Handles both full URLs and relative paths.
  * Appends ?v=N so deployed clients bypass old cached (e.g. wrong-orientation) responses.
+ * Appends storageOwnerId for same-origin `/api/storage/serve/...` URLs (dedicated owner storage).
  */
-function constructStorageUrl(path: string, provider: string = 'local'): string {
+function constructStorageUrl(path: string, provider: string = 'local', storageOwnerId?: string): string {
 	const param = `v=${STORAGE_URL_VERSION}`;
-	// If already a full URL, append cache-bust param
+	const owner =
+		storageOwnerId != null && String(storageOwnerId).trim() !== ''
+			? String(storageOwnerId).trim()
+			: '';
+
+	const appendOwner = (url: string): string => {
+		if (!owner) return url;
+		const sep = url.includes('?') ? '&' : '?';
+		return `${url}${sep}storageOwnerId=${encodeURIComponent(owner)}`;
+	};
+
 	if (path.startsWith('/api/storage/serve/') || path.startsWith('http')) {
 		const sep = path.includes('?') ? '&' : '?';
-		return `${path}${sep}${param}`;
+		const withV = `${path}${sep}${param}`;
+		if (path.startsWith('/api/storage/serve/')) {
+			return appendOwner(withV);
+		}
+		return withV;
 	}
 
-	// Remove leading slash if present
 	const cleanPath = path.startsWith('/') ? path.slice(1) : path;
-	return `/api/storage/serve/${provider}/${encodeURIComponent(cleanPath)}?${param}`;
+	if (!cleanPath.trim()) {
+		return '';
+	}
+	const base = `/api/storage/serve/${provider}/${encodeURIComponent(cleanPath)}?${param}`;
+	return appendOwner(base);
+}
+
+function resolveStorageOwnerId(storage: PhotoStorage | undefined): string | undefined {
+	if (!storage?.storageOwnerId) return undefined;
+	const s = String(storage.storageOwnerId).trim();
+	return s || undefined;
 }
 
 /**
@@ -92,6 +118,7 @@ export function getPhotoUrl(photo: PhotoLike, options: PhotoUrlOptions = {}): st
 	}
 
 	const provider = photo.storage.provider || 'local';
+	const storageOwnerId = resolveStorageOwnerId(photo.storage);
 
 	// Helper to check if a path is a thumbnail path
 	const isThumbnailPath = (path: string): boolean => {
@@ -105,7 +132,7 @@ export function getPhotoUrl(photo: PhotoLike, options: PhotoUrlOptions = {}): st
 			const urlPath = photo.storage!.url;
 			// If url is not a thumbnail path, use it
 			if (!isThumbnailPath(urlPath)) {
-				return constructStorageUrl(urlPath, provider);
+				return constructStorageUrl(urlPath, provider, storageOwnerId);
 			}
 		}
 		// Check path
@@ -113,7 +140,7 @@ export function getPhotoUrl(photo: PhotoLike, options: PhotoUrlOptions = {}): st
 			const pathValue = photo.storage!.path;
 			// If path is not a thumbnail path, use it
 			if (!isThumbnailPath(pathValue)) {
-				return constructStorageUrl(pathValue, provider);
+				return constructStorageUrl(pathValue, provider, storageOwnerId);
 			}
 		}
 		return null;
@@ -132,7 +159,7 @@ export function getPhotoUrl(photo: PhotoLike, options: PhotoUrlOptions = {}): st
 				// For Google Drive, thumbnails might not exist, so use full image directly
 				return fullImagePath;
 			}
-			return constructStorageUrl(thumbnailUrl, provider);
+			return constructStorageUrl(thumbnailUrl, provider, storageOwnerId);
 		}
 	}
 
@@ -147,14 +174,14 @@ export function getPhotoUrl(photo: PhotoLike, options: PhotoUrlOptions = {}): st
 		}
 		
 		// Otherwise use thumbnailPath
-		return constructStorageUrl(photo.storage.thumbnailPath, provider);
+		return constructStorageUrl(photo.storage.thumbnailPath, provider, storageOwnerId);
 	}
 
 	// Fallback to url (checking if it's not a thumbnail)
 	if (photo.storage.url) {
 		const urlPath = photo.storage.url;
 		if (!isThumbnailPath(urlPath)) {
-			return constructStorageUrl(urlPath, provider);
+			return constructStorageUrl(urlPath, provider, storageOwnerId);
 		}
 	}
 
@@ -162,13 +189,13 @@ export function getPhotoUrl(photo: PhotoLike, options: PhotoUrlOptions = {}): st
 	if (photo.storage.path) {
 		const pathValue = photo.storage.path;
 		if (!isThumbnailPath(pathValue)) {
-			return constructStorageUrl(pathValue, provider);
+			return constructStorageUrl(pathValue, provider, storageOwnerId);
 		}
 	}
 
 	// Final fallback - use thumbnailPath even if it's a thumbnail (better than nothing)
 	if (photo.storage.thumbnailPath) {
-		return constructStorageUrl(photo.storage.thumbnailPath, provider);
+		return constructStorageUrl(photo.storage.thumbnailPath, provider, storageOwnerId);
 	}
 
 	// Final fallback
@@ -196,10 +223,11 @@ export function getPhotoFullUrl(photo: PhotoLike, fallback: string = '/placehold
 	}
 
 	const provider = photo.storage.provider || 'local';
+	const storageOwnerId = resolveStorageOwnerId(photo.storage);
 
 	// For full image, prefer url or path over thumbnailPath
 	if (photo.storage.url) {
-		const url = constructStorageUrl(photo.storage.url, provider);
+		const url = constructStorageUrl(photo.storage.url, provider, storageOwnerId);
 		// Skip thumbnail paths
 		if (!url.includes('/medium/') && !url.includes('/small/') && !url.includes('/thumb/')) {
 			return url;
@@ -208,7 +236,7 @@ export function getPhotoFullUrl(photo: PhotoLike, fallback: string = '/placehold
 
 	// Try path if available
 	if (photo.storage.path) {
-		const path = constructStorageUrl(photo.storage.path, provider);
+		const path = constructStorageUrl(photo.storage.path, provider, storageOwnerId);
 		// Skip thumbnail paths
 		if (!path.includes('/medium/') && !path.includes('/small/') && !path.includes('/thumb/')) {
 			return path;

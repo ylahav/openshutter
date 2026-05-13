@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
+	import { t } from '$stores/i18n';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 // PageData is loaded via +page.server.ts; this component does not
 // currently consume it directly, so we omit the prop to avoid unused-export warnings.
@@ -665,13 +666,13 @@
 </script>
 
 <svelte:head>
-	<title>Migration Tools - Admin</title>
+	<title>{$t('admin.migrationToolsPageTitle')} — {$t('navigation.admin')}</title>
 </svelte:head>
 
 <div class="py-8">
 	<div class="max-w-4xl mx-auto px-4">
 		<div class="mb-6 mt-12">
-			<h1 class="text-2xl font-bold text-(--color-surface-950-50)">Migration Tools</h1>
+			<h1 class="text-2xl font-bold text-(--color-surface-950-50)">{$t('admin.migrationToolsPageTitle')}</h1>
 		</div>
 
 		{#if message}
@@ -686,7 +687,7 @@
 				on:click={() => (migrationOption = 'albums-photos-db')}
 			>
 				<strong>Albums &amp; Photos (DB only)</strong><br />
-				<span class="text-xs opacity-80">Metadata-only migration (phase 2)</span>
+				<span class="text-xs opacity-80">{$t('admin.migrationAlbumsPhotosDbSubtitle')}</span>
 			</button>
 			<button
 				class="text-left px-4 py-3 rounded border {migrationOption === 'storage-backup' ? 'bg-(--color-surface-50-950) border-(--color-primary-600) text-(--color-surface-950-50)' : 'bg-(--color-surface-100-900) border-surface-200-800 text-(--color-surface-800-200)'}"
@@ -736,7 +737,7 @@
 		{#if migrationOption === 'albums-photos-db'}
 			<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6 mb-6">
 				<p class="text-(--color-surface-700-300)">
-					Albums + photos DB-only migration is planned for phase 2 (partial collection migration without file copies).
+					{$t('admin.migrationAlbumsPhotosDbComingSoon')}
 				</p>
 			</div>
 		{/if}
@@ -757,13 +758,20 @@
 			>
 				Import
 			</button>
-			<button
-				class="px-4 py-2 rounded-t {activeTab === 'storage' ? 'bg-(--color-surface-50-950) border border-b-0 border-surface-200-800 font-medium text-(--color-surface-950-50)' : 'bg-(--color-surface-100-900) text-(--color-surface-800-200) hover:text-(--color-surface-950-50)'}"
-				on:click={() => (activeTab = 'storage')}
-				disabled={migrationOption !== 'storage-migration'}
+			<span
+				class="inline-block"
+				title={migrationOption !== 'storage-migration'
+					? $t('admin.migrationTabStorageMigrationTooltip')
+					: undefined}
 			>
-				Storage migration
-			</button>
+				<button
+					class="px-4 py-2 rounded-t {activeTab === 'storage' ? 'bg-(--color-surface-50-950) border border-b-0 border-surface-200-800 font-medium text-(--color-surface-950-50)' : 'bg-(--color-surface-100-900) text-(--color-surface-800-200) hover:text-(--color-surface-950-50)'}"
+					on:click={() => (activeTab = 'storage')}
+					disabled={migrationOption !== 'storage-migration'}
+				>
+					Storage migration
+				</button>
+			</span>
 		</div>
 		{/if}
 

@@ -17,12 +17,16 @@
 	import { EXIF_DISPLAY_FIELDS } from '$lib/constants/exif-fields';
 	import { IPTC_XMP_DISPLAY_FIELDS } from '$lib/constants/iptc-xmp-fields';
 	import { resolveCollaborationVisibility } from '$lib/utils/collaboration-visibility';
+	import { MultiLangUtils } from '$utils/multiLang';
+	import AdminBrandingDropzone from '$lib/components/admin/AdminBrandingDropzone.svelte';
+	import { browser } from '$app/environment';
 	import {
 		adminBtnPrimary,
 		adminBtnPrimarySm,
 		adminInputSmClass,
 		adminSelectSmClass,
 	} from '$lib/admin/admin-cerberus';
+	import AdminConfirmDialog from '$lib/components/admin/AdminConfirmDialog.svelte';
 
 	let config: SiteConfig | null = null;
 	let descriptionValue: any = {};
@@ -32,28 +36,6 @@
 	let activeTab = 'basic';
 	let availableLanguages: Array<{ code: string; name: string; flag: string }> = [];
 
-	const configTabs: { id: string; labelKey: string }[] = [
-		{ id: 'basic', labelKey: 'admin.basicSettings' },
-		{ id: 'languages', labelKey: 'admin.languageSettings' },
-		{ id: 'branding', labelKey: 'admin.branding' },
-		{ id: 'seo', labelKey: 'admin.seoSettings' },
-		{ id: 'contact', labelKey: 'admin.contactTitle' },
-		{ id: 'home', labelKey: 'admin.services' },
-		{ id: 'navigation', labelKey: 'admin.navigation' },
-		{ id: 'exifMetadata', labelKey: 'admin.exifMetadata' },
-		{ id: 'iptcXmpMetadata', labelKey: 'admin.iptcXmpMetadata' },
-		{ id: 'sharing', labelKey: 'admin.sharing' },
-		{ id: 'email', labelKey: 'admin.email' }
-	];
-
-	// Test email modal
-	let showTestMailModal = false;
-	let testTo = '';
-	let testSubject = 'Test email';
-	let testBody = 'This is a test email.';
-	let testMailResult: 'idle' | 'sending' | { success: true } | { success: false; error: string } = 'idle';
-
-	// Menu items state
 	interface MenuItem {
 		labelKey?: string;
 		label?: string;
@@ -64,6 +46,200 @@
 		type?: 'link' | 'login' | 'logout';
 	}
 	let menuItems: MenuItem[] = [];
+	let navigationClearDialogOpen = false;
+
+	function openNavigationClearDialog() {
+		navigationClearDialogOpen = true;
+	}
+
+	function closeNavigationClearDialog() {
+		navigationClearDialogOpen = false;
+	}
+
+	function confirmClearNavigationMenu() {
+		menuItems = [];
+		closeNavigationClearDialog();
+	}
+
+	type SiteConfigTab = { id: string; labelKey: string };
+
+	const CONFIG_TAB_GROUPS: { titleKey: string; tabs: SiteConfigTab[] }[] = [
+		{
+			titleKey: 'admin.siteConfigNavGroupIdentity',
+			tabs: [
+				{ id: 'basic', labelKey: 'admin.basicSettings' },
+				{ id: 'languages', labelKey: 'admin.languageSettings' },
+				{ id: 'branding', labelKey: 'admin.branding' },
+			],
+		},
+		{
+			titleKey: 'admin.siteConfigNavGroupDiscovery',
+			tabs: [
+				{ id: 'seo', labelKey: 'admin.seoSettings' },
+				{ id: 'sharing', labelKey: 'admin.sharing' },
+			],
+		},
+		{
+			titleKey: 'admin.siteConfigNavGroupCommunication',
+			tabs: [
+				{ id: 'contact', labelKey: 'admin.contactTitle' },
+				{ id: 'email', labelKey: 'admin.email' },
+			],
+		},
+		{
+			titleKey: 'admin.siteConfigNavGroupTechnical',
+			tabs: [
+				{ id: 'navigation', labelKey: 'admin.navigation' },
+				{ id: 'exifMetadata', labelKey: 'admin.exifMetadata' },
+				{ id: 'iptcXmpMetadata', labelKey: 'admin.iptcXmpMetadata' },
+				{ id: 'home', labelKey: 'admin.services' },
+			],
+		},
+	];
+
+	function flattenSiteConfigTabs(): SiteConfigTab[] {
+		return CONFIG_TAB_GROUPS.flatMap((g) => g.tabs);
+	}
+
+	let baselineSerialized = '';
+	type BaselineClone = {
+		config: SiteConfig;
+		descriptionValue: Record<string, unknown>;
+		menuItems: MenuItem[];
+	};
+	let baselineState: BaselineClone | null = null;
+
+	let unsavedTabSwitchDialogOpen = false;
+	let pendingTabId: string | null = null;
+
+	function sortKeysDeep(v: unknown): unknown {
+		if (v === null || typeof v !== 'object') return v;
+		if (Array.isArray(v)) return v.map(sortKeysDeep);
+		const o = v as Record<string, unknown>;
+		const sorted: Record<string, unknown> = {};
+		for (const k of Object.keys(o).sort()) {
+			sorted[k] = sortKeysDeep(o[k]);
+		}
+		return sorted;
+	}
+
+	function stableSerializePayload(obj: unknown): string {
+		return JSON.stringify(sortKeysDeep(obj));
+	}
+
+	function getSavePayload(): Record<string, unknown> | null {
+		if (!config) return null;
+		return {
+			title: config.title,
+			description: descriptionValue,
+			logo: config.logo,
+			favicon: config.favicon,
+			languages: config.languages,
+			seo: config.seo,
+			theme: config.theme,
+			contact: config.contact,
+			homePage: config.homePage,
+			features: config.features,
+			exifMetadata: config.exifMetadata,
+			iptcXmpMetadata: config.iptcXmpMetadata,
+			mail: config.mail,
+			welcomeEmail: config.welcomeEmail,
+			template: {
+				...(config.template || {}),
+				headerConfig: {
+					...(config.template?.headerConfig || {}),
+					menu: menuItems.length > 0 ? menuItems : [],
+				},
+			},
+		};
+	}
+
+	function captureBaseline() {
+		if (!config) return;
+		try {
+			baselineState = {
+				config: structuredClone(config) as SiteConfig,
+				descriptionValue: structuredClone(descriptionValue) as Record<string, unknown>,
+				menuItems: structuredClone(menuItems),
+			};
+		} catch {
+			baselineState = {
+				config: JSON.parse(JSON.stringify(config)) as SiteConfig,
+				descriptionValue: JSON.parse(JSON.stringify(descriptionValue)),
+				menuItems: JSON.parse(JSON.stringify(menuItems)),
+			};
+		}
+		const payload = getSavePayload();
+		baselineSerialized = payload ? stableSerializePayload(payload) : '';
+	}
+
+	function discardToBaseline() {
+		if (!baselineState) return;
+		try {
+			config = structuredClone(baselineState.config) as SiteConfig;
+			descriptionValue = structuredClone(baselineState.descriptionValue);
+			menuItems = structuredClone(baselineState.menuItems);
+		} catch {
+			config = JSON.parse(JSON.stringify(baselineState.config)) as SiteConfig;
+			descriptionValue = JSON.parse(JSON.stringify(baselineState.descriptionValue));
+			menuItems = JSON.parse(JSON.stringify(baselineState.menuItems));
+		}
+	}
+
+	$: isDirty =
+		!!config &&
+		!!baselineState &&
+		(() => {
+			const p = getSavePayload();
+			return !!(p && stableSerializePayload(p) !== baselineSerialized);
+		})();
+
+	function requestTabChange(next: string) {
+		if (next === activeTab) return;
+		if (!isDirty) {
+			activeTab = next;
+			return;
+		}
+		pendingTabId = next;
+		unsavedTabSwitchDialogOpen = true;
+	}
+
+	function confirmDiscardAndSwitchTab() {
+		discardToBaseline();
+		if (pendingTabId) activeTab = pendingTabId;
+		pendingTabId = null;
+		unsavedTabSwitchDialogOpen = false;
+		captureBaseline();
+	}
+
+	function closeUnsavedTabSwitchDialog() {
+		unsavedTabSwitchDialogOpen = false;
+		pendingTabId = null;
+	}
+
+	function stripHtmlForPreview(html: string): string {
+		if (!html) return '';
+		const stripped = html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+		return stripped.length > 180 ? `${stripped.slice(0, 177)}…` : stripped;
+	}
+
+	$: previewLang = config?.languages?.defaultLanguage || 'en';
+	$: seoPreviewTitle = String(
+		MultiLangUtils.getValue(config?.seo?.metaTitle || {}, previewLang) ||
+			MultiLangUtils.getValue(config?.title || {}, previewLang) ||
+			'',
+	).trim();
+	$: seoPreviewDescRaw = MultiLangUtils.getValue(config?.seo?.metaDescription || {}, previewLang);
+	$: seoPreviewDesc =
+		typeof seoPreviewDescRaw === 'string' ? stripHtmlForPreview(seoPreviewDescRaw) : '';
+	$: seoPreviewHost = $page.url.hostname || 'example.com';
+
+	// Test email modal
+	let showTestMailModal = false;
+	let testTo = '';
+	let testSubject = 'Test email';
+	let testBody = 'This is a test email.';
+	let testMailResult: 'idle' | 'sending' | { success: true } | { success: false; error: string } = 'idle';
 
 	function normalizeWelcomeEmailMultiLang(data: any) {
 		const welcomeEmail = data?.welcomeEmail || {};
@@ -143,9 +319,21 @@
 		if (tab === 'template') {
 			activeTab = 'basic';
 			goto('/admin/site-config', { replaceState: true });
-		} else if (tab && configTabs.some((t) => t.id === tab)) {
+		} else if (tab && flattenSiteConfigTabs().some((t) => t.id === tab)) {
 			activeTab = tab;
 		}
+	});
+
+	onMount(() => {
+		function beforeUnload(e: BeforeUnloadEvent) {
+			if (!browser || !config || !baselineState) return;
+			const p = getSavePayload();
+			if (!p || stableSerializePayload(p) === baselineSerialized) return;
+			e.preventDefault();
+			e.returnValue = '';
+		}
+		window.addEventListener('beforeunload', beforeUnload);
+		return () => window.removeEventListener('beforeunload', beforeUnload);
 	});
 
 	async function loadConfig() {
@@ -190,6 +378,7 @@
 
 			// Initialize menu items from config
 			menuItems = data.template?.headerConfig?.menu || [];
+			captureBaseline();
 		} catch (error) {
 			logger.error('Error loading site config:', error);
 			message = error instanceof Error ? error.message : 'Failed to load configuration';
@@ -240,34 +429,15 @@
 		message = '';
 
 		try {
+			const payload = getSavePayload();
+			if (!payload) return;
+
 			const response = await fetch('/api/admin/site-config', {
 				method: 'PUT',
 				headers: {
 					'Content-Type': 'application/json'
 				},
-				body: JSON.stringify({
-					title: config.title,
-					description: descriptionValue,
-					logo: config.logo,
-					favicon: config.favicon,
-					languages: config.languages,
-					seo: config.seo,
-					theme: config.theme,
-					contact: config.contact,
-					homePage: config.homePage,
-					features: config.features,
-					exifMetadata: config.exifMetadata,
-					iptcXmpMetadata: config.iptcXmpMetadata,
-					mail: config.mail,
-					welcomeEmail: config.welcomeEmail,
-					template: {
-						...(config.template || {}),
-						headerConfig: {
-							...(config.template?.headerConfig || {}),
-							menu: menuItems.length > 0 ? menuItems : []
-						}
-					}
-				})
+				body: JSON.stringify(payload)
 			});
 
 			if (!response.ok) {
@@ -362,22 +532,6 @@
 		}
 	}
 
-	async function onLogoFileChange(e: Event) {
-		const file = (e.currentTarget as HTMLInputElement).files?.[0];
-		if (file) await handleFileUpload(file, 'logo');
-	}
-	async function onFaviconFileChange(e: Event) {
-		const file = (e.currentTarget as HTMLInputElement).files?.[0];
-		if (file) await handleFileUpload(file, 'favicon');
-	}
-	async function onWhiteLabelLogoFileChange(e: Event) {
-		const file = (e.currentTarget as HTMLInputElement).files?.[0];
-		if (file) await handleFileUpload(file, 'whiteLabelLogo');
-	}
-	async function onWhiteLabelFaviconFileChange(e: Event) {
-		const file = (e.currentTarget as HTMLInputElement).files?.[0];
-		if (file) await handleFileUpload(file, 'whiteLabelFavicon');
-	}
 	async function handleFileUpload(
 		file: File,
 		type: 'logo' | 'favicon' | 'whiteLabelLogo' | 'whiteLabelFavicon'
@@ -476,6 +630,29 @@
 				<h1 class="text-2xl font-bold text-(--color-surface-950-50)">{$t('admin.siteConfiguration')}</h1>
 			</div>
 
+			{#if isDirty}
+				<div
+					class="mb-4 flex items-start gap-3 rounded-lg border border-amber-400/70 bg-[color-mix(in_oklab,var(--color-warning-500)_14%,transparent)] px-4 py-3 text-sm text-(--color-surface-900-100)"
+					role="status"
+				>
+					<svg
+						class="h-5 w-5 shrink-0 text-amber-800 dark:text-amber-200 mt-0.5"
+						fill="none"
+						stroke="currentColor"
+						viewBox="0 0 24 24"
+						aria-hidden="true"
+					>
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+						/>
+					</svg>
+					<p class="leading-snug">{$t('admin.siteConfigUnsavedBanner')}</p>
+				</div>
+			{/if}
+
 			{#if message}
 				<div
 					class="mb-4 p-4 rounded-lg border-2 {message.includes('successfully')
@@ -538,11 +715,11 @@
 				<Tabs
 					class="flex min-w-0 flex-col gap-6 lg:flex-row w-full"
 					value={activeTab}
-					onValueChange={(d) => (activeTab = d.value)}
+					onValueChange={(d) => requestTabChange(d.value)}
 					orientation="vertical"
 				>
 					<!-- Sidebar nav: dropdown on small screens, vertical list on lg+ -->
-					<aside class="lg:w-52 shrink-0">
+					<aside class="lg:w-56 shrink-0">
 						<div class="card preset-outlined-surface-200-800 bg-surface-50-950 overflow-hidden">
 							<label for="site-config-tab-select" class="sr-only">
 								{$t('admin.configurationSection')}
@@ -550,23 +727,40 @@
 							<select
 								id="site-config-tab-select"
 								class="select lg:hidden w-full py-3 px-4 text-sm font-medium border-0 border-b border-surface-200-800 rounded-t-lg"
-								bind:value={activeTab}
+								value={activeTab}
+								on:change={(e) =>
+									requestTabChange((e.currentTarget as HTMLSelectElement).value)}
 							>
-								{#each configTabs as tab}
-									<option value={tab.id}>{$t(tab.labelKey)}</option>
+								{#each CONFIG_TAB_GROUPS as group}
+									<optgroup label={$t(group.titleKey)}>
+										{#each group.tabs as tab}
+											<option value={tab.id}>{$t(tab.labelKey)}</option>
+										{/each}
+									</optgroup>
 								{/each}
 							</select>
 							<Tabs.List
-								class="hidden lg:flex flex-col py-1 w-full"
+								class="hidden lg:flex flex-col py-1 w-full gap-0"
 								aria-label={$t('admin.configurationSections')}
 							>
-								{#each configTabs as tab}
-									<Tabs.Trigger
-										value={tab.id}
-										class="w-full text-left py-2.5 px-4 text-sm font-medium border-l-2 border-transparent text-(--color-surface-600-400) hover:bg-(--color-surface-50-950) data-selected:bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] data-selected:text-(--color-primary-700) data-selected:border-(--color-primary-600) rounded-none"
-									>
-										{$t(tab.labelKey)}
-									</Tabs.Trigger>
+								{#each CONFIG_TAB_GROUPS as group}
+									<div class="pt-3 first:pt-0 border-t border-surface-200-800 first:border-t-0">
+										<p
+											class="px-4 pt-1 pb-1 text-[10px] font-semibold uppercase tracking-wide text-(--color-surface-500-500)"
+										>
+											{$t(group.titleKey)}
+										</p>
+										<div class="flex flex-col">
+											{#each group.tabs as tab}
+												<Tabs.Trigger
+													value={tab.id}
+													class="w-full text-left py-2 px-4 text-sm font-medium border-l-2 border-transparent text-(--color-surface-600-400) hover:bg-(--color-surface-50-950) data-selected:bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] data-selected:text-(--color-primary-700) data-selected:border-(--color-primary-600) rounded-none"
+												>
+													{$t(tab.labelKey)}
+												</Tabs.Trigger>
+											{/each}
+										</div>
+									</div>
 								{/each}
 								<Tabs.Indicator />
 							</Tabs.List>
@@ -677,96 +871,64 @@
 						<div class="grid grid-cols-1 gap-6">
 							<!-- Logo -->
 							<div>
-								<label for="logo-upload" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
+								<span class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
 									{$t('admin.logo')}
-								</label>
-								<div class="flex gap-4 items-start">
-									<div class="flex-1">
+								</span>
+								<AdminBrandingDropzone
+									accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+									previewUrl={config.logo}
+									previewVariant="logo"
+									hint={$t('admin.brandingDropzoneHint')}
+									formatsHint={$t('admin.brandingDropzoneFormatsLogo')}
+									onFile={(f) => handleFileUpload(f, 'logo')}
+								/>
+								<p class="mt-2 text-xs text-(--color-surface-600-400)">
+									{$t('admin.brandingLogoHelp')}
+								</p>
+								{#if config.logo}
+									<div class="mt-3">
+										<label for="logo-url" class="block text-xs text-(--color-surface-600-400) mb-2">{$t('admin.brandingCurrentLogoUrl')}</label>
 										<input
-											id="logo-upload"
-											type="file"
-											accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
-											on:change={onLogoFileChange}
-											class="block w-full text-sm text-(--color-surface-600-400) file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] file:text-(--color-primary-700) hover:file:bg-[color-mix(in_oklab,var(--color-primary-500)_22%,transparent)]"
+											id="logo-url"
+											type="text"
+											value={config.logo}
+											on:input={(e) => updateConfig('logo', e.currentTarget.value)}
+											placeholder="/api/storage/serve/..."
+											class={adminInputSmClass}
 										/>
-										<p class="mt-1 text-xs text-(--color-surface-600-400)">
-											{$t('admin.brandingLogoHelp')}
-										</p>
-										{#if config.logo}
-											<div class="mt-3">
-												<label for="logo-url" class="block text-xs text-(--color-surface-600-400) mb-2">{$t('admin.brandingCurrentLogoUrl')}</label>
-												<input
-													id="logo-url"
-													type="text"
-													value={config.logo}
-													on:input={(e) => updateConfig('logo', e.currentTarget.value)}
-													placeholder="/api/storage/serve/..."
-													class={adminInputSmClass}
-												/>
-											</div>
-										{/if}
 									</div>
-									{#if config.logo}
-										<div class="mt-8">
-											<p class="text-xs text-(--color-surface-600-400) mb-2">{$t('admin.preview')}</p>
-											<img
-												src={config.logo}
-												alt={$t('admin.logoPreviewAlt')}
-												class="max-h-16 object-contain border border-surface-200-800 rounded p-2 bg-(--color-surface-50-950)"
-												on:error={(e) => {
-													(e.currentTarget as HTMLImageElement).style.display = 'none';
-												}}
-											/>
-										</div>
-									{/if}
-								</div>
+								{/if}
 							</div>
 
 							<!-- Favicon -->
 							<div>
-								<label for="favicon-upload" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
+								<span class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
 									{$t('admin.favicon')}
-								</label>
-								<div class="flex gap-4 items-start">
-									<div class="flex-1">
+								</span>
+								<AdminBrandingDropzone
+									accept="image/x-icon,image/vnd.microsoft.icon,image/png,image/jpeg"
+									previewUrl={config.favicon}
+									previewVariant="favicon"
+									hint={$t('admin.brandingDropzoneHint')}
+									formatsHint={$t('admin.brandingDropzoneFormatsFavicon')}
+									onFile={(f) => handleFileUpload(f, 'favicon')}
+								/>
+								<p class="mt-2 text-xs text-(--color-surface-600-400)">
+									{$t('admin.brandingFaviconHelp')}
+								</p>
+								{#if config.favicon}
+									<div class="mt-3">
+										<label for="favicon-url" class="block text-xs text-(--color-surface-600-400) mb-2">{$t('admin.brandingCurrentFaviconUrl')}</label>
 										<input
-											id="favicon-upload"
-											type="file"
-											accept="image/x-icon,image/vnd.microsoft.icon,image/png,image/jpeg"
-											on:change={onFaviconFileChange}
-											class="block w-full text-sm text-(--color-surface-600-400) file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] file:text-(--color-primary-700) hover:file:bg-[color-mix(in_oklab,var(--color-primary-500)_22%,transparent)]"
+											id="favicon-url"
+											type="text"
+											value={config.favicon}
+											on:input={(e) => updateConfig('favicon', e.currentTarget.value)}
+											placeholder="/api/storage/serve/..."
+											class={adminInputSmClass}
 										/>
-										<p class="mt-1 text-xs text-(--color-surface-600-400)">
-											{$t('admin.brandingFaviconHelp')}
-										</p>
-										{#if config.favicon}
-											<div class="mt-3">
-												<label for="favicon-url" class="block text-xs text-(--color-surface-600-400) mb-2">{$t('admin.brandingCurrentFaviconUrl')}</label>
-												<input
-													id="favicon-url"
-													type="text"
-													value={config.favicon}
-													on:input={(e) => updateConfig('favicon', e.currentTarget.value)}
-													placeholder="/api/storage/serve/..."
-													class={adminInputSmClass}
-												/>
-											</div>
-										{/if}
 									</div>
-									{#if config.favicon}
-										<div class="mt-8">
-											<p class="text-xs text-(--color-surface-600-400) mb-2">{$t('admin.preview')}</p>
-											<img
-												src={config.favicon}
-												alt={$t('admin.brandingFaviconPreviewAlt')}
-												class="w-8 h-8 object-contain border border-surface-200-800 rounded p-1 bg-(--color-surface-50-950)"
-												on:error={(e) => {
-													(e.currentTarget as HTMLImageElement).style.display = 'none';
-												}}
-											/>
-										</div>
-									{/if}
-								</div>
+								{/if}
 							</div>
 
 							<!-- White-label -->
@@ -815,22 +977,14 @@
 												placeholder="/api/storage/serve/..."
 												class={adminInputSmClass}
 											/>
-											<input
-												type="file"
+											<AdminBrandingDropzone
 												accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
-												on:change={onWhiteLabelLogoFileChange}
-												class="block w-full text-xs text-(--color-surface-600-400) file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-(--color-surface-100-900)"
+												previewUrl={config?.whiteLabel?.logo}
+												previewVariant="logo"
+												hint={$t('admin.brandingDropzoneHint')}
+												formatsHint={$t('admin.brandingDropzoneFormatsLogo')}
+												onFile={(f) => handleFileUpload(f, 'whiteLabelLogo')}
 											/>
-											{#if config?.whiteLabel?.logo}
-												<img
-													src={config.whiteLabel.logo}
-													alt=""
-													class="h-10 w-auto object-contain border border-surface-200-800 rounded p-1 bg-(--color-surface-50-950)"
-													on:error={(e) => {
-														(e.currentTarget as HTMLImageElement).style.display = 'none';
-													}}
-												/>
-											{/if}
 										</div>
 										<div class="space-y-2">
 											<label for="wl-favicon-url" class="block text-sm font-medium text-(--color-surface-800-200)"
@@ -849,22 +1003,14 @@
 												placeholder="/api/storage/serve/..."
 												class={adminInputSmClass}
 											/>
-											<input
-												type="file"
+											<AdminBrandingDropzone
 												accept="image/x-icon,image/vnd.microsoft.icon,image/png,image/jpeg"
-												on:change={onWhiteLabelFaviconFileChange}
-												class="block w-full text-xs text-(--color-surface-600-400) file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-(--color-surface-100-900)"
+												previewUrl={config?.whiteLabel?.favicon}
+												previewVariant="favicon"
+												hint={$t('admin.brandingDropzoneHint')}
+												formatsHint={$t('admin.brandingDropzoneFormatsFavicon')}
+												onFile={(f) => handleFileUpload(f, 'whiteLabelFavicon')}
 											/>
-											{#if config?.whiteLabel?.favicon}
-												<img
-													src={config.whiteLabel.favicon}
-													alt=""
-													class="w-8 h-8 object-contain border border-surface-200-800 rounded p-1 bg-(--color-surface-50-950)"
-													on:error={(e) => {
-														(e.currentTarget as HTMLImageElement).style.display = 'none';
-													}}
-												/>
-											{/if}
 										</div>
 									</div>
 									<label class="flex items-center gap-2">
@@ -912,7 +1058,7 @@
 								<MultiLangInput
 									id="meta-title"
 									value={config.seo?.metaTitle || {}}
-onChange={(value) => {
+									onChange={(value) => {
 										if (!config) return;
 										config = {
 											...(config),
@@ -924,6 +1070,7 @@ onChange={(value) => {
 									}}
 									placeholder={$t('admin.seoMetaTitleInputPlaceholder')}
 									maxLength={60}
+									recommendedMinLength={50}
 									showLanguageTabs={true}
 									defaultLanguage={config.languages?.defaultLanguage || 'en'}
 								/>
@@ -960,6 +1107,29 @@ onChange={(value) => {
 								<p class="mt-1 text-xs text-(--color-surface-600-400)">
 									{$t('admin.seoMetaDescriptionHelp')}
 								</p>
+							</div>
+
+							<div
+								class="rounded-lg border border-surface-200-800 bg-(--color-surface-50-950) p-4 shadow-sm"
+							>
+								<p
+									class="text-xs font-semibold uppercase tracking-wide text-(--color-surface-500-500) mb-3"
+								>
+									{$t('admin.seoSearchPreviewTitle')}
+								</p>
+								<div class="max-w-xl space-y-1 font-[Arial,Helvetica,sans-serif]">
+									<p
+										class="text-[1.125rem] leading-snug text-[#1a0dab] dark:text-[#8ab4f8] line-clamp-2"
+									>
+										{seoPreviewTitle || $t('admin.seoSearchPreviewTitlePlaceholder')}
+									</p>
+									<p class="text-sm text-[#006621] dark:text-[#81c995]">
+										https://{seoPreviewHost}
+									</p>
+									<p class="text-sm leading-snug text-(--color-surface-600-400) line-clamp-2">
+										{seoPreviewDesc || $t('admin.seoSearchPreviewDescriptionFallback')}
+									</p>
+								</div>
 							</div>
 
 							<!-- Meta Keywords -->
@@ -1717,11 +1887,7 @@ on:click={() => {
 								{#if menuItems.length > 0}
 									<button
 										type="button"
-										on:click={() => {
-											if (confirm($t('admin.navigationClearAllConfirm'))) {
-												menuItems = [];
-											}
-										}}
+										on:click={openNavigationClearDialog}
 										class="btn preset-tonal text-sm"
 									>
 										{$t('admin.navigationClearAll')}
@@ -2502,3 +2668,29 @@ on:click={() => {
 		{/if}
 	</div>
 {/if}
+
+<AdminConfirmDialog
+	open={navigationClearDialogOpen}
+	title={$t('admin.navigationClearAll')}
+	message={$t('admin.navigationClearAllConfirm')}
+	confirmText={$t('admin.navigationClearAll')}
+	cancelText={$t('admin.cancel')}
+	variant="danger"
+	onOpenChange={(o) => {
+		if (!o) closeNavigationClearDialog();
+	}}
+	onConfirm={confirmClearNavigationMenu}
+/>
+
+<AdminConfirmDialog
+	open={unsavedTabSwitchDialogOpen}
+	title={$t('admin.siteConfigUnsavedSwitchTitle')}
+	message={$t('admin.siteConfigUnsavedSwitchMessage')}
+	confirmText={$t('admin.siteConfigDiscardChanges')}
+	cancelText={$t('admin.siteConfigKeepEditing')}
+	variant="danger"
+	onOpenChange={(o) => {
+		if (!o) closeUnsavedTabSwitchDialog();
+	}}
+	onConfirm={confirmDiscardAndSwitchTab}
+/>

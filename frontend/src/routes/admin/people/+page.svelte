@@ -19,6 +19,7 @@
 		parseImportItems
 	} from '$lib/utils/collectionImportExport';
 	import CollectionImportExportButtons from '$lib/components/admin/CollectionImportExportButtons.svelte';
+	import PersonFaceCrop from '$lib/components/admin/PersonFaceCrop.svelte';
 	import type { PageData } from './$types';
 
 	// svelte-ignore export_let_unused - Required by SvelteKit page component
@@ -36,11 +37,19 @@
 		birthDate?: string;
 		description?: MultiLangText;
 		tags?: string[] | Array<{ _id: string; name: string }>;
+		photoCount?: number;
 		isActive?: boolean;
 		profileImage?: {
 			url: string;
 			storageProvider: string;
 			fileId: string;
+		};
+		faceAvatarFromPhoto?: {
+			imageUrl: string;
+			box?: { x: number; y: number; width: number; height: number };
+			sourceWidth: number;
+			sourceHeight: number;
+			rotation?: number;
 		};
 		faceRecognition?: {
 			descriptor?: number[];
@@ -186,9 +195,7 @@
 				? new Date(person.birthDate).toISOString().split('T')[0]
 				: '',
 			description: normalizeMultiLangText(person.description),
-			tags: Array.isArray(person.tags)
-				? person.tags.map((tag) => (typeof tag === 'string' ? tag : tag.name)).join(', ')
-				: '',
+			tags: personTagNamesForForm(person),
 			isActive: person.isActive !== undefined ? person.isActive : true
 		};
 		dialogs.openEdit();
@@ -238,6 +245,44 @@
 		return fullName || $t('admin.unknownPerson');
 	}
 
+	function hasFaceDescriptor(person: Person): boolean {
+		const d = person.faceRecognition?.descriptor;
+		return Array.isArray(d) && d.length > 0;
+	}
+
+	function tagChipLabel(tag: string | { _id: string; name: string }): string {
+		if (typeof tag === 'string') {
+			if (/^[a-f0-9]{24}$/i.test(tag.trim())) return '';
+			return tag.trim();
+		}
+		const n = (tag.name || '').trim();
+		if (n) return n;
+		return '';
+	}
+
+	function personTagNamesForForm(person: Person): string {
+		if (!Array.isArray(person.tags)) return '';
+		return person.tags
+			.map((tag) => {
+				if (typeof tag === 'string') return tag.trim();
+				const n = (tag.name || '').trim();
+				if (n) return n;
+				return '';
+			})
+			.filter(Boolean)
+			.join(', ');
+	}
+
+	function personPhotoCountLine(person: Person): string {
+		const c = person.photoCount ?? 0;
+		return translate('admin.personPhotoCount').replace('{count}', String(c));
+	}
+
+	function personBornLine(person: Person): string {
+		if (!person.birthDate) return '';
+		return translate('admin.personBorn').replace('{date}', formatDate(person.birthDate));
+	}
+
 	function formatDate(dateString: string): string {
 		if (!dateString) return '';
 		try {
@@ -250,6 +295,17 @@
 		} catch {
 			return dateString;
 		}
+	}
+
+	function personVisibleTagsForChips(person: Person): Array<string | { _id: string; name: string }> {
+		if (!Array.isArray(person.tags)) return [];
+		return person.tags.filter((tag) => {
+			if (typeof tag === 'string') {
+				const s = tag.trim();
+				return s.length > 0 && !/^[a-f0-9]{24}$/i.test(s);
+			}
+			return !!tag._id;
+		});
 	}
 
 	function importFileErrorMessage(err: unknown): string {
@@ -307,6 +363,7 @@
 					fullName,
 					profileImage,
 					faceRecognition,
+					faceAvatarFromPhoto,
 					createdBy,
 					createdAt,
 					updatedAt,
@@ -317,11 +374,26 @@
 				void fullName;
 				void profileImage;
 				void faceRecognition;
+				void faceAvatarFromPhoto;
 				void createdBy;
 				void createdAt;
 				void updatedAt;
 				const ids = Array.isArray(tagIds) ? tagIds : [];
-				const tags = ids.map((tid) => tagMap.get(String(tid)) || String(tid));
+				const tags = ids
+					.map((tid) => {
+						if (typeof tid === 'string') {
+							return tagMap.get(tid) || tid;
+						}
+						if (tid && typeof tid === 'object') {
+							const o = tid as { _id?: unknown; name?: string };
+							const name = (o.name || '').trim();
+							if (name) return name;
+							const id = String(o._id ?? '');
+							return id ? tagMap.get(id) || id : '';
+						}
+						return String(tid ?? '');
+					})
+					.filter(Boolean);
 				return { ...rest, tags };
 			});
 			downloadJson(`openshutter-people-${new Date().toISOString().slice(0, 10)}.json`, {
@@ -501,19 +573,26 @@
 			{:else}
 				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 					{#each people as person}
-						<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
-							<div class="flex items-start justify-between mb-4">
-								<div class="flex items-center space-x-3">
+						{@const tagChips = personVisibleTagsForChips(person)}
+						<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-5 flex flex-col h-full min-h-[140px]">
+							<div class="flex gap-4 items-start">
+								<!-- Face / profile photo -->
+								<div class="shrink-0 w-20 h-20 sm:w-24 sm:h-24">
 									{#if person.profileImage?.url}
 										<img
 											src={person.profileImage.url}
 											alt={getPersonDisplayName(person)}
-											class="w-10 h-10 rounded-full object-cover"
+											class="h-full w-full rounded-2xl object-cover ring-1 ring-surface-200-800 shadow-sm"
 										/>
+									{:else if person.faceAvatarFromPhoto?.imageUrl}
+										<PersonFaceCrop avatar={person.faceAvatarFromPhoto} alt={getPersonDisplayName(person)} />
 									{:else}
-										<div class="w-10 h-10 bg-[color-mix(in_oklab,var(--color-primary-500)_22%,transparent)] rounded-full flex items-center justify-center">
+										<div
+											class="flex h-full w-full items-center justify-center rounded-2xl bg-[color-mix(in_oklab,var(--color-primary-500)_18%,transparent)] ring-1 ring-surface-200-800"
+											aria-hidden="true"
+										>
 											<svg
-												class="h-5 w-5 text-(--color-primary-600)"
+												class="h-10 w-10 sm:h-12 sm:w-12 text-(--color-primary-600)"
 												fill="none"
 												stroke="currentColor"
 												viewBox="0 0 24 24"
@@ -521,88 +600,89 @@
 												<path
 													stroke-linecap="round"
 													stroke-linejoin="round"
-													stroke-width="2"
+													stroke-width="1.5"
 													d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
 												/>
 											</svg>
 										</div>
 									{/if}
-									<div>
-										<h3 class="font-semibold text-(--color-surface-950-50)">
-											{getPersonDisplayName(person)}
-										</h3>
-										{#if person.nickname && MultiLangUtils.getTextValue(person.nickname, $currentLanguage)}
-											<p class="text-sm text-(--color-surface-600-400)">
-												"{MultiLangUtils.getTextValue(person.nickname, $currentLanguage)}"
-											</p>
-										{/if}
-									</div>
 								</div>
 
-								<div class="flex space-x-1">
-									<button
-										type="button"
-										on:click={() => openEditDialog(person)}
-										class="p-2 text-(--color-surface-600-400) hover:text-(--color-primary-600) hover:bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] rounded"
-										aria-label="Edit person"
-									>
-										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-											<path
-												stroke-linecap="round"
-												stroke-linejoin="round"
-												stroke-width="2"
-												d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-											/>
-										</svg>
-									</button>
-									<button
-										type="button"
-										on:click={() => openDeleteDialog(person)}
-										class="p-2 text-(--color-surface-600-400) hover:text-red-600 hover:bg-red-50 rounded"
-										aria-label="Delete person"
-									>
-										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-											<path
-												stroke-linecap="round"
-												stroke-linejoin="round"
-												stroke-width="2"
-												d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-											/>
-										</svg>
-									</button>
+								<div class="flex-1 min-w-0 flex flex-col gap-1">
+									<div class="flex items-start justify-between gap-2">
+										<h3 class="font-semibold text-(--color-surface-950-50) text-base leading-snug truncate pe-1">
+											{getPersonDisplayName(person)}
+										</h3>
+										<div class="flex shrink-0 items-center gap-0.5 -mt-0.5 -me-1">
+											<button
+												type="button"
+												on:click={() => openEditDialog(person)}
+												class="p-2 text-(--color-surface-600-400) hover:text-(--color-primary-600) hover:bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] rounded-md"
+												aria-label="Edit person"
+											>
+												<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+													<path
+														stroke-linecap="round"
+														stroke-linejoin="round"
+														stroke-width="2"
+														d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+													/>
+												</svg>
+											</button>
+											<button
+												type="button"
+												on:click={() => openDeleteDialog(person)}
+												class="p-2 text-(--color-surface-600-400) hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-md"
+												aria-label="Delete person"
+											>
+												<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+													<path
+														stroke-linecap="round"
+														stroke-linejoin="round"
+														stroke-width="2"
+														d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+													/>
+												</svg>
+											</button>
+										</div>
+									</div>
+									{#if person.nickname && MultiLangUtils.getTextValue(person.nickname, $currentLanguage)}
+										<p class="text-sm text-(--color-surface-600-400) -mt-0.5 truncate">
+											"{MultiLangUtils.getTextValue(person.nickname, $currentLanguage)}"
+										</p>
+									{/if}
+									<p class="text-sm text-(--color-surface-600-400) min-h-5">
+										{#if person.birthDate}
+											{personBornLine(person)}
+										{/if}
+									</p>
+									<p class="text-sm text-(--color-surface-600-400)">{personPhotoCountLine(person)}</p>
+									{#if !hasFaceDescriptor(person)}
+										<span
+											class="inline-flex self-start items-center px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-900 dark:bg-amber-950/40 dark:text-amber-200 mt-0.5"
+										>
+											{translate('admin.personFaceRecognitionDisabled')}
+										</span>
+									{/if}
+									{#if tagChips.length > 0}
+										<div class="flex flex-wrap gap-1 pt-1">
+											{#each tagChips as tag}
+												{@const label = tagChipLabel(tag)}
+												<span
+													class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-(--color-surface-100-900) text-(--color-surface-900-100)"
+												>
+													{label || translate('admin.personUnknownTag')}
+												</span>
+											{/each}
+										</div>
+									{/if}
 								</div>
 							</div>
 
 							{#if person.description && MultiLangUtils.getTextValue(person.description, $currentLanguage)}
-								<p class="text-sm text-(--color-surface-600-400) mb-3">
+								<p class="text-sm text-(--color-surface-600-400) mt-3 pt-3 border-t border-surface-200-800 line-clamp-3">
 									{MultiLangUtils.getTextValue(person.description, $currentLanguage)}
 								</p>
-							{/if}
-
-							{#if person.birthDate}
-								<p class="text-sm text-(--color-surface-600-400) mb-3">Born: {formatDate(person.birthDate)}</p>
-							{/if}
-
-							{#if person.tags && person.tags.length > 0}
-								<div class="flex flex-wrap gap-1">
-									{#each person.tags as tag}
-										<span
-											class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-(--color-surface-100-900) text-(--color-surface-900-100)"
-										>
-											{typeof tag === 'string' ? tag : tag.name}
-										</span>
-									{/each}
-								</div>
-							{/if}
-
-							{#if person.faceRecognition?.descriptor}
-								<div class="mt-3 pt-3 border-t border-surface-200-800">
-									<span
-										class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800"
-									>
-										Face Recognition Enabled
-									</span>
-								</div>
 							{/if}
 						</div>
 					{/each}

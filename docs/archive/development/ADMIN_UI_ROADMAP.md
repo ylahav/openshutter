@@ -74,6 +74,19 @@ Standardize implementations so every admin screen uses the same APIs:
 - **Regressions:** Preserve all existing **routes, API calls, and permissions**; changes are presentational and structural only unless a bug is fixed.
 - **QA:** Smoke-test every admin area after Phase 1–3 (layout shell + config) because routing/layout touches everything.
 
+### Backlog — Owners and the admin dashboard (`/admin`)
+
+**Context:** Gallery **owners** today can use only a subset of `/admin/**` routes (`ownerCanAccess` in `frontend/src/routes/admin/+layout.server.ts`). **`/admin` itself is not allowed**, so owners never land on the new **dashboard** (`frontend/src/routes/admin/+page.svelte`). The dashboard summary API (`GET /api/admin/dashboard`, backend `AdminDashboardController`) is **`AdminGuard`** only and returns **site-wide** aggregates (all albums/photos), which would be wrong for an owner without scoping.
+
+| # | Task | Notes |
+|---|------|--------|
+| 1 | **Product decision: owner entry point** | Either allow **`/admin`** for owners (dashboard as home) or keep **`/owner`** (or equivalent) as the only home and link “insights” there—align with multi-owner / white-label expectations. |
+| 2 | **`ownerCanAccess` + redirects** | If owners should see the dashboard: include pathname **`/admin`** (and optionally **`/admin/`**) in `ownerCanAccess`, and re-check any redirects (e.g. storage / `useAdminConfig`) so owners are not bounced unexpectedly. |
+| 3 | **Backend: scoped dashboard summary** | For **`role === owner`**, return counts and “recent albums” filtered by **`createdBy`** (and photos constrained to those albums—or the same ownership rules as `AlbumsAdminController`). Reuse patterns from existing **AdminOrOwnerGuard** endpoints. |
+| 4 | **Guards and proxy** | Expose summary under **`AdminOrOwnerGuard`** (or a dedicated guard) instead of **`AdminGuard`** only; mirror auth in **`frontend/src/routes/api/admin/dashboard/+server.ts`** and **`admin/+page.server.ts`** so owners can SSR-load data when allowed. |
+| 5 | **Alerts and storage for owners** | **Featured / public / storage** alerts and totals: define whether they are **owner-scoped** or hidden until an owner has a dedicated quota story (optional **`STORAGE_QUOTA_BYTES`** per owner is not in scope unless product asks). |
+| 6 | **QA** | With owner login on a owner-site context, smoke-test dashboard, sidebar links, and that no cross-owner data appears in stats or recent lists. |
+
 ## Relationship to other docs
 
 - **[`ROADMAP_COMMUNITY.md`](./ROADMAP_COMMUNITY.md)** — Community “admin template switcher” items are **obsolete**; visitor templating and packs remain in scope there.
@@ -88,4 +101,4 @@ Standardize implementations so every admin screen uses the same APIs:
 
 ---
 
-*Last updated: 2026-04 — admin chrome (header, language, toasts, Cerberus helpers, Skeleton components where adopted); aligns admin with a static, operator-focused UI; visitor template and theme systems unchanged.*
+*Last updated: 2026-05 — admin chrome unchanged; added **Backlog — Owners and the admin dashboard** (owner access to `/admin`, scoped dashboard API, guards, QA).*

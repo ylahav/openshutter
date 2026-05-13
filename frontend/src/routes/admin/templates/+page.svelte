@@ -8,7 +8,8 @@
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 	import { applyThemeById } from '$lib/services/apply-theme';
-	import { packClassPrefixFor } from '$lib/template/packs/class-prefix';
+	import ThemePackPreviewThumb from '$lib/components/admin/ThemePackPreviewThumb.svelte';
+	import { adminBtnPrimarySm, adminBtnSecondary } from '$lib/admin/admin-cerberus';
 
 	interface Theme {
 		_id: string;
@@ -42,28 +43,20 @@
 	let applyThemeId: string | null = null;
 	let previewTemplate: string | null = null;
 	let previewThemeId: string | null = null;
-	/** Pack id → default `pageAliasPrefix` from GET /api/admin/templates */
-	let packPrefixes: Record<string, string> = {};
-
-	const PREFIX_TOKEN = /^[a-z0-9]{1,12}$/;
 
 	const BASE_TEMPLATE_PREVIEW: Record<
 		string,
 		{
-			colors: { primary: string; secondary: string; accent: string; background: string };
 			label: string;
 		}
 	> = {
 		noir: {
-			colors: { primary: '#f5f5f3', secondary: '#a1a1a1', accent: '#f5f5f3', background: '#080808' },
 			label: 'Cinematic mono'
 		},
 		studio: {
-			colors: { primary: '#2563eb', secondary: '#1d4ed8', accent: '#60a5fa', background: '#0f172a' },
 			label: 'Editorial blue'
 		},
 		atelier: {
-			colors: { primary: '#b8955a', secondary: '#5c4033', accent: '#d4b07a', background: '#1a1008' },
 			label: 'Warm editorial'
 		}
 	};
@@ -78,33 +71,8 @@
 
 	onMount(async () => {
 		await siteConfig.load();
-		await Promise.all([loadThemes(), loadPackPrefixMap()]);
+		await loadThemes();
 	});
-
-	async function loadPackPrefixMap() {
-		try {
-			const response = await fetch('/api/admin/templates', { credentials: 'include', cache: 'no-store' });
-			if (!response.ok) return;
-			const result = await response.json();
-			const arr =
-				result?.success && Array.isArray(result.data)
-					? result.data
-					: Array.isArray(result)
-						? result
-						: [];
-			const m: Record<string, string> = {};
-			for (const item of arr) {
-				const name = item?.templateName;
-				const pre = item?.pageAliasPrefix;
-				if (typeof name === 'string' && typeof pre === 'string' && pre.trim()) {
-					m[name] = pre.trim().toLowerCase();
-				}
-			}
-			packPrefixes = m;
-		} catch (err) {
-			logger.debug('[admin/templates] loadPackPrefixMap failed', err);
-		}
-	}
 
 	async function loadThemes() {
 		loading = true;
@@ -242,11 +210,6 @@
 		}
 	}
 
-	function getColor(theme: Theme, key: string): string {
-		const fallback = BASE_TEMPLATE_PREVIEW[theme.baseTemplate]?.colors as Record<string, string> | undefined;
-		return theme.customColors?.[key] || fallback?.[key] || '#999';
-	}
-
 	function getTemplateStyleLabel(theme: Theme): string {
 		return BASE_TEMPLATE_PREVIEW[theme.baseTemplate]?.label || 'Custom style';
 	}
@@ -254,14 +217,14 @@
 	function previewTheme(theme: Theme): void {
 		previewTemplate = theme.baseTemplate;
 		previewThemeId = theme._id;
-		message = `Previewing ${theme.name}. Use Set as default or Apply Preview to save, or Revert Preview to discard.`;
+		message = $t('admin.templatesPreviewModeOn').replace('{name}', theme.name);
 		error = '';
 	}
 
 	function clearPreview(): void {
 		previewTemplate = null;
 		previewThemeId = null;
-		message = 'Preview cleared.';
+		message = $t('admin.templatesPreviewCleared');
 	}
 
 	function openApplyPreview(): void {
@@ -277,12 +240,9 @@
 <div class="py-8">
 	<div class="max-w-5xl mx-auto px-4">
 		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
-			<div class="flex items-center justify-between mb-6">
-				<div>
+			<div class="flex flex-col gap-6 mb-6 lg:flex-row lg:items-start lg:justify-between">
+				<div class="min-w-0 flex-1">
 					<h1 class="text-2xl font-bold text-(--color-surface-950-50)">{$t('admin.templates')}</h1>
-					<p id="templates-preview-help" class="text-sm text-(--color-surface-600-400) mt-2 max-w-2xl">
-						{$t('admin.previewCurrentPageHelp')}
-					</p>
 					<div class="mt-3 text-sm space-y-1 rounded-lg border border-surface-200-800 bg-(--color-surface-50-950) px-3 py-2 max-w-xl">
 						<p class="font-medium text-(--color-surface-900-100)">{$t('admin.templatesDefaultsHeading')}</p>
 						<p>
@@ -292,41 +252,46 @@
 							<span class="font-mono text-(--color-surface-900-100)">{frontendTemplate}</span>
 						</p>
 					</div>
+					<p
+						id="templates-preview-help"
+						class="mt-2 text-xs text-(--color-surface-600-400) max-w-xl leading-snug"
+					>
+						{$t('admin.templatesPreviewHint')}
+					</p>
 					{#if previewTemplate}
-						<p class="mt-1 text-xs text-amber-700">
-							Preview mode: <span class="font-semibold">{previewTemplate}</span> (not saved yet)
+						<p class="mt-2 text-xs text-amber-800 dark:text-amber-200">
+							{$t('admin.templatesPreviewModeBanner').replace('{pack}', previewTemplate)}
 						</p>
 					{/if}
 				</div>
-				<div class="flex gap-2">
+				<div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
 					<button
 						type="button"
 						on:click={() => (showCreateModal = true)}
-						class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm font-medium"
+						class="{adminBtnSecondary} text-sm shrink-0"
 					>
 						+ {$t('admin.createNewTheme')}
 					</button>
-					<a
-						href="/admin/templates/overrides"
-						class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 text-sm font-medium"
-					>
+					<a href="/admin/templates/overrides" class="{adminBtnPrimarySm} shrink-0 text-center no-underline">
 						{$t('admin.themeBuilder')}
 					</a>
 					{#if previewTemplate && previewThemeId}
-						<button
-							type="button"
-							on:click={openApplyPreview}
-							class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm font-medium"
-							title={$t('admin.applyPreview')}
-						>
-							{$t('admin.applyPreview')}
-						</button>
+						<div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
+							<button
+								type="button"
+								on:click={openApplyPreview}
+								class="{adminBtnPrimarySm} shrink-0"
+								title={$t('admin.applyPreview')}
+							>
+								{$t('admin.applyPreview')}
+							</button>
+						</div>
 					{/if}
 					{#if previewTemplate}
 						<button
 							type="button"
 							on:click={clearPreview}
-							class="px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 text-sm font-medium"
+							class="btn preset-tonal text-sm shrink-0"
 							title={$t('admin.revertPreview')}
 						>
 							{$t('admin.revertPreview')}
@@ -353,7 +318,7 @@
 					<button
 						type="button"
 						on:click={() => (showCreateModal = true)}
-						class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+						class="{adminBtnPrimarySm}"
 					>
 						{$t('admin.createYourFirstTheme')}
 					</button>
@@ -362,20 +327,8 @@
 				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 					{#each themes as theme}
 						{@const packId = String(theme.baseTemplate || 'noir').toLowerCase()}
-						{@const packDefault = packPrefixes[packId] ?? packClassPrefixFor(packId)}
-						{@const ovRaw = $siteConfigData?.template?.pageAliasPrefixes?.[packId]}
-						{@const ov =
-							typeof ovRaw === 'string' ? ovRaw.trim().toLowerCase() : ''}
-						{@const effectivePrefix =
-							ov && PREFIX_TOKEN.test(ov) ? ov : packDefault}
-						{@const hasOverride =
-							ov && PREFIX_TOKEN.test(ov) && ov !== packDefault}
 						<div class="border border-surface-200-800 rounded-lg overflow-hidden hover:shadow-md transition-shadow">
-							<div class="h-24 flex items-center justify-center gap-1 p-2" style="background: {getColor(theme, 'background')};">
-								<span class="w-6 h-6 rounded-full border border-surface-300-700" style="background: {getColor(theme, 'primary')}"></span>
-								<span class="w-6 h-6 rounded-full border border-surface-300-700" style="background: {getColor(theme, 'secondary')}"></span>
-								<span class="w-6 h-6 rounded-full border border-surface-300-700" style="background: {getColor(theme, 'accent')}"></span>
-							</div>
+							<ThemePackPreviewThumb {packId} />
 							<div class="p-4">
 								<div class="flex items-center gap-2">
 									<h3 class="font-semibold text-(--color-surface-950-50)">{theme.name}</h3>
@@ -386,7 +339,7 @@
 									{/if}
 									{#if previewTemplate === theme.baseTemplate}
 										<span class="px-2 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-800">
-											Previewing
+											{$t('admin.templatesPreviewingBadge')}
 										</span>
 									{/if}
 								</div>
@@ -394,13 +347,6 @@
 									{$t('admin.baseTemplateLabel')}: {theme.baseTemplate}{' '}
 									{theme.basePalette ? `· ${theme.basePalette}` : ''}{' '}
 									{theme.isBuiltIn ? `· ${$t('admin.builtIn')}` : ''}
-								</p>
-								<p class="text-xs text-(--color-surface-600-400) mt-1">
-									<span class="text-(--color-surface-600-400)">{$t('admin.templatesPageAliasPrefix')}:</span>
-									<span class="font-mono font-medium text-(--color-surface-900-100)">{effectivePrefix}</span>
-									{#if hasOverride}
-										<span class="text-(--color-surface-500-500)"> · {$t('admin.templatesPageAliasDefault')}: {packDefault}</span>
-									{/if}
 								</p>
 								<p class="text-xs text-(--color-surface-600-400) mt-1">{getTemplateStyleLabel(theme)}</p>
 								<div class="flex flex-wrap gap-2 mt-3">
@@ -439,7 +385,7 @@
 										on:click={() => (deleteThemeId = theme._id)}
 										class="text-xs px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200"
 									>
-										{$t('admin.remove')}
+										{$t('admin.delete')}
 									</button>
 								</div>
 							</div>
@@ -595,10 +541,10 @@
 	<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-labelledby="delete-theme-title">
 		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl max-w-md w-full p-6">
 			<h2 id="delete-theme-title" class="text-lg font-semibold text-(--color-surface-950-50) mb-4">
-				{$t('admin.removeThemeQuestion')}
+				{$t('admin.deleteThemeQuestion')}
 			</h2>
 			<p class="text-(--color-surface-600-400) mb-4">
-				{$t('admin.removeThemeDescription')}
+				{$t('admin.deleteThemeDescription')}
 			</p>
 			<div class="flex justify-end gap-2">
 				<button

@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { currentLanguage } from '$stores/language';
-	import { MultiLangUtils } from '$utils/multiLang';
+	import { t } from '$stores/i18n';
 	import { goto } from '$app/navigation';
 	import { dndzone } from 'svelte-dnd-action';
 	import { getAlbumName } from '$lib/utils/albumUtils';
@@ -21,6 +20,7 @@
 		allowedGroups?: string[];
 		allowedUsers?: string[];
 		childAlbumCount?: number;
+		updatedAt?: string;
 	}
 
 	interface AlbumTreeNode extends Album {
@@ -35,6 +35,8 @@
 	export let onOpen: ((node: AlbumTreeNode) => void) | undefined = undefined;
 	export let showAccordion = true;
 	export let expandAllByDefault = false; // Option to expand all nodes by default
+	/** When not `manual`, sibling order follows name or updated date (drag-and-drop should be disabled). */
+	export let clientSortBy: 'manual' | 'name' | 'date' = 'manual';
 
 	let expandedNodes: Set<string> = new Set();
 	let localAlbums = albums;
@@ -71,7 +73,7 @@
 					}
 				});
 			};
-			const initialTree = buildTree(albums);
+			const initialTree = buildTree(albums, clientSortBy);
 			collectIds(initialTree);
 			expandedNodes = allNodeIds;
 		}
@@ -103,7 +105,7 @@
 		return out;
 	}
 
-	function buildTree(albums: Album[]): AlbumTreeNode[] {
+	function buildTree(albums: Album[], sortBy: 'manual' | 'name' | 'date'): AlbumTreeNode[] {
 		const byId = new Map<string, AlbumTreeNode>();
 		albums.forEach((a) => byId.set(a._id, { ...a, children: [] }));
 		const roots: AlbumTreeNode[] = [];
@@ -117,6 +119,15 @@
 		});
 		const sortRecursive = (nodes: AlbumTreeNode[]) => {
 			nodes.sort((a, b) => {
+				if (sortBy === 'name') {
+					return getAlbumName(a).localeCompare(getAlbumName(b), undefined, { sensitivity: 'base' });
+				}
+				if (sortBy === 'date') {
+					const da = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+					const db = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+					if (db !== da) return db - da;
+					return getAlbumName(a).localeCompare(getAlbumName(b), undefined, { sensitivity: 'base' });
+				}
 				const orderA = a.order ?? 0;
 				const orderB = b.order ?? 0;
 				if (orderA !== orderB) {
@@ -391,7 +402,7 @@
 		});
 
 		// Update flatItems from the new tree structure
-		const newTree = buildTree(localAlbums);
+		const newTree = buildTree(localAlbums, clientSortBy);
 		flatItems = flatten(newTree, expandedNodes);
 		flatItemsForDnd = transformForDnd(flatItems);
 
@@ -419,7 +430,7 @@
 		localAlbums = albums;
 	}
 
-	$: tree = buildTree(localAlbums);
+	$: tree = buildTree(localAlbums, clientSortBy);
 	// Make flatItems reactive to both tree and expandedNodes changes
 	// Convert Set to Array to ensure Svelte tracks changes properly
 	// This ensures that when expandedNodes changes, this reactive statement re-runs
@@ -443,7 +454,7 @@
 		use:dndzone={{
 			items: flatItemsForDnd,
 			type: 'album-tree',
-			dragDisabled: false,
+			dragDisabled: !onReorder,
 			dropFromOthersDisabled: true,
 			dropTargetStyle: {
 				outline: '2px dashed rgba(59, 130, 246, 0.5)',
@@ -480,7 +491,7 @@
 						<!-- Drag handle - visible icon -->
 						<div 
 							class="drag-handle shrink-0 cursor-grab active:cursor-grabbing text-gray-600 hover:text-gray-800 p-1.5 rounded hover:bg-gray-200 transition-colors flex items-center justify-center border border-gray-300" 
-							title="Drag to reorder"
+							title={$t('admin.albumsListDragToReorder')}
 							style="user-select: none; min-width: 28px; height: 28px; touch-action: none;"
 						>
 							<span class="text-base font-bold text-gray-600 leading-none" style="line-height: 1;">⋮⋮</span>
@@ -493,32 +504,19 @@
 									handleNodeClick(node);
 								}
 							}}
-							class="flex-1 text-left flex items-center gap-3 min-w-0 cursor-pointer"
+							class="flex-1 text-left min-w-0 cursor-pointer"
 							role="button"
 							tabindex="0"
 						>
 							<div class="flex-1 min-w-0">
 								<div class="flex items-center gap-2 flex-wrap">
 									<span class="font-medium text-gray-900 truncate">{getAlbumName(node)}</span>
-									{#if node.isPublished === false}
-										<span
-											class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800"
-										>
-											Unpublished
-										</span>
-									{/if}
 									{#if node.isFeatured}
 										<span
 											class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800"
+											title={$t('admin.featured')}
 										>
-											⭐ Featured
-										</span>
-									{/if}
-									{#if !node.isPublic}
-										<span
-											class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800"
-										>
-											Private
+											⭐ {$t('admin.featured')}
 										</span>
 									{/if}
 									{#if (node.allowedGroups ?? []).length > 0}
@@ -539,9 +537,43 @@
 									{/if}
 								</div>
 								<div class="text-sm text-gray-500">
-									{node.photoCount || 0} photos • Level {node.level} • Order {node.order}
+									{(node.photoCount || 0).toLocaleString()}
+									{(node.photoCount || 0) === 1 ? $t('admin.photoSingular') : $t('admin.photosPlural')}
+									{#if (node.childAlbumCount ?? 0) > 0}
+										<span>
+											{' · '}
+											{(node.childAlbumCount ?? 0) === 1
+												? $t('admin.albumsListSubAlbumOne')
+												: $t('admin.albumsListSubAlbumsMany').replace(
+														'{count}',
+														String(node.childAlbumCount ?? 0)
+													)}
+										</span>
+									{/if}
 								</div>
 							</div>
+						</div>
+
+						<div class="shrink-0 self-center">
+							{#if node.isPublished === false}
+								<span
+									class="inline-flex items-center rounded-full bg-(--color-surface-200-600) px-2.5 py-0.5 text-xs font-medium text-(--color-surface-800-200)"
+								>
+									{$t('admin.dashboardDraft')}
+								</span>
+							{:else if node.isPublic !== true}
+								<span
+									class="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-900 dark:bg-amber-900/40 dark:text-amber-100"
+								>
+									{$t('admin.private')}
+								</span>
+							{:else}
+								<span
+									class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-900 dark:bg-emerald-900/50 dark:text-emerald-100"
+								>
+									{$t('admin.dashboardPublished')}
+								</span>
+							{/if}
 						</div>
 
 						{#if renderActions}

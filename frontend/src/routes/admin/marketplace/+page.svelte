@@ -3,6 +3,7 @@
 	import { productName } from '$stores/siteConfig';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 	import { logger } from '$lib/utils/logger';
+	import AdminConfirmDialog from '$lib/components/admin/AdminConfirmDialog.svelte';
 
 	interface Listing {
 		_id: string;
@@ -39,6 +40,18 @@
 	let editingTagsId: string | null = null;
 	let tagEditValue = '';
 	let savingTagsId: string | null = null;
+
+	let deleteListingDialog: {
+		isOpen: boolean;
+		listingId: string | null;
+		listingName: string;
+		isDeleting: boolean;
+	} = {
+		isOpen: false,
+		listingId: null,
+		listingName: '',
+		isDeleting: false,
+	};
 
 	onMount(() => fetchListings());
 
@@ -133,19 +146,45 @@
 		}
 	}
 
-	async function deleteListing(id: string) {
-		if (!confirm('Delete this listing? This cannot be undone.')) return;
+	function openDeleteListingDialog(listing: Listing) {
+		deleteListingDialog = {
+			isOpen: true,
+			listingId: listing._id,
+			listingName: listing.name,
+			isDeleting: false,
+		};
+	}
+
+	function closeDeleteListingDialog() {
+		deleteListingDialog = {
+			isOpen: false,
+			listingId: null,
+			listingName: '',
+			isDeleting: false,
+		};
+	}
+
+	async function confirmDeleteListing() {
+		const id = deleteListingDialog.listingId;
+		if (!id || deleteListingDialog.isDeleting) return;
+		deleteListingDialog = { ...deleteListingDialog, isDeleting: true };
 		deletingId = id;
 		try {
 			const res = await fetch(`/api/admin/marketplace/${id}`, {
 				method: 'DELETE',
 				credentials: 'include',
 			});
-			if (!res.ok) await handleApiErrorResponse(res);
-			else fetchListings();
+			if (!res.ok) {
+				await handleApiErrorResponse(res);
+				deleteListingDialog = { ...deleteListingDialog, isDeleting: false };
+			} else {
+				fetchListings();
+				closeDeleteListingDialog();
+			}
 		} catch (e) {
 			logger.error('Delete listing:', e);
 			error = handleError(e, 'Failed to delete');
+			deleteListingDialog = { ...deleteListingDialog, isDeleting: false };
 		} finally {
 			deletingId = null;
 		}
@@ -280,7 +319,7 @@
 								<button
 									type="button"
 									disabled={deletingId === listing._id}
-									on:click={() => deleteListing(listing._id)}
+									on:click={() => openDeleteListingDialog(listing)}
 									class="text-sm text-red-600 hover:underline disabled:opacity-50"
 								>
 									Delete
@@ -293,3 +332,19 @@
 		</div>
 	{/if}
 </div>
+
+<AdminConfirmDialog
+	open={deleteListingDialog.isOpen}
+	title="Delete marketplace listing"
+	message={deleteListingDialog.listingName
+		? `Delete “${deleteListingDialog.listingName}”? This cannot be undone.`
+		: 'Delete this listing? This cannot be undone.'}
+	confirmText={deleteListingDialog.isDeleting ? 'Deleting…' : 'Delete'}
+	cancelText="Cancel"
+	variant="danger"
+	confirmDisabled={deleteListingDialog.isDeleting}
+	onOpenChange={(o) => {
+		if (!o) closeDeleteListingDialog();
+	}}
+	onConfirm={confirmDeleteListing}
+/>

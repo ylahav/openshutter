@@ -542,6 +542,11 @@ export class UsersController {
         throw new NotFoundException(`User not found: ${id}`);
       }
 
+      const username = String(user.username || '').trim().toLowerCase();
+      if (username === 'admin@openshutter.org') {
+        throw new BadRequestException('The OpenShutter platform administrator account cannot be deleted');
+      }
+
       // Check if this is the last active admin
       if (user.role === 'admin' && !user.blocked) {
         const otherActiveAdmins = await collection.countDocuments({

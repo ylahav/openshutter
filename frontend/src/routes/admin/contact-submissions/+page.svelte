@@ -73,17 +73,9 @@
 
 <div class="py-8">
   <div class="max-w-7xl mx-auto px-4 space-y-6">
-    <div class="flex items-center justify-between gap-3">
-      <div>
-        <h1 class="text-3xl font-bold text-(--color-surface-950-50)">Contact Submissions</h1>
-        <p class="text-(--color-surface-600-400) mt-2">Messages sent from the contact form.</p>
-      </div>
-      <a
-        href="/admin"
-        class="px-4 py-2 border border-surface-300-700 rounded-md text-sm font-medium text-(--color-surface-800-200) bg-(--color-surface-50-950) hover:bg-(--color-surface-100-900)"
-      >
-        Back to Admin
-      </a>
+    <div>
+      <h1 class="text-3xl font-bold text-(--color-surface-950-50)">Contact Submissions</h1>
+      <p class="text-(--color-surface-600-400) mt-2">Messages sent from the contact form.</p>
     </div>
 
     <form on:submit={handleSearchSubmit} class="flex items-center gap-2">
@@ -143,35 +135,37 @@
       {/if}
     </div>
 
-    <div class="flex items-center justify-between">
-      <p class="text-sm text-(--color-surface-600-400)">Total: {total}</p>
-      <div class="flex items-center gap-2">
-        <button
-          type="button"
-          disabled={page <= 1 || loading}
-          on:click={async () => {
-            if (page <= 1) return;
-            page -= 1;
-            await load();
-          }}
-          class="px-3 py-2 border border-surface-300-700 rounded-md text-sm disabled:opacity-50"
-        >
-          Previous
-        </button>
-        <span class="text-sm text-(--color-surface-800-200)">Page {page} / {pages}</span>
-        <button
-          type="button"
-          disabled={page >= pages || loading}
-          on:click={async () => {
-            if (page >= pages) return;
-            page += 1;
-            await load();
-          }}
-          class="px-3 py-2 border border-surface-300-700 rounded-md text-sm disabled:opacity-50"
-        >
-          Next
-        </button>
+    {#if total > 0}
+      <div class="flex items-center justify-between">
+        <p class="text-sm text-(--color-surface-600-400)">Total: {total}</p>
+        <div class="flex items-center gap-2">
+          <button
+            type="button"
+            disabled={page <= 1 || loading}
+            on:click={async () => {
+              if (page <= 1) return;
+              page -= 1;
+              await load();
+            }}
+            class="px-3 py-2 border border-surface-300-700 rounded-md text-sm disabled:opacity-50"
+          >
+            Previous
+          </button>
+          <span class="text-sm text-(--color-surface-800-200)">Page {page} / {pages}</span>
+          <button
+            type="button"
+            disabled={page >= pages || loading}
+            on:click={async () => {
+              if (page >= pages) return;
+              page += 1;
+              await load();
+            }}
+            class="px-3 py-2 border border-surface-300-700 rounded-md text-sm disabled:opacity-50"
+          >
+            Next
+          </button>
+        </div>
       </div>
-    </div>
+    {/if}
   </div>
 </div>

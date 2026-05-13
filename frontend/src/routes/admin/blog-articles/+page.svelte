@@ -7,6 +7,8 @@
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 	import { t } from '$stores/i18n';
 	import { productName } from '$stores/siteConfig';
+	import { adminToast } from '$lib/admin/adminToast';
+	import AdminConfirmDialog from '$lib/components/admin/AdminConfirmDialog.svelte';
 	interface BlogArticleRow {
 		_id: string;
 		title: string | { en?: string; he?: string };
@@ -25,6 +27,16 @@
 	let searchTerm = '';
 	let categoryFilter = '';
 	let statusFilter = '';
+
+	let deleteArticleDialog: {
+		isOpen: boolean;
+		articleId: string | null;
+		isDeleting: boolean;
+	} = {
+		isOpen: false,
+		articleId: null,
+		isDeleting: false,
+	};
 
 	onMount(async () => {
 		await Promise.all([loadCategoryOptions(), fetchArticles()]);
@@ -65,14 +77,27 @@
 		}
 	}
 
-	async function handleDelete(articleId: string) {
-		if (!confirm($t('owner.confirmDeleteArticle'))) return;
+	function openDeleteArticleDialog(articleId: string) {
+		deleteArticleDialog = { isOpen: true, articleId, isDeleting: false };
+	}
+
+	function closeDeleteArticleDialog() {
+		deleteArticleDialog = { isOpen: false, articleId: null, isDeleting: false };
+	}
+
+	async function confirmDeleteArticle() {
+		const id = deleteArticleDialog.articleId;
+		if (!id || deleteArticleDialog.isDeleting) return;
+		deleteArticleDialog = { ...deleteArticleDialog, isDeleting: true };
 		try {
-			const response = await fetch(`/api/admin/blog-articles/${articleId}`, { method: 'DELETE' });
+			const response = await fetch(`/api/admin/blog-articles/${id}`, { method: 'DELETE' });
 			if (!response.ok) await handleApiErrorResponse(response);
-			articles = articles.filter((a) => a._id !== articleId);
+			articles = articles.filter((a) => a._id !== id);
+			closeDeleteArticleDialog();
 		} catch (err) {
 			error = handleError(err, $t('owner.failedToDelete'));
+			adminToast.error({ title: $t('owner.failedToDelete'), description: error });
+			deleteArticleDialog = { ...deleteArticleDialog, isDeleting: false };
 		}
 	}
 
@@ -279,7 +304,7 @@
 											</button>
 											<button
 												type="button"
-												on:click={() => handleDelete(article._id)}
+												on:click={() => openDeleteArticleDialog(article._id)}
 												class="text-red-600 hover:underline"
 											>
 												{$t('admin.delete')}
@@ -295,3 +320,17 @@
 		</div>
 	</div>
 {/if}
+
+<AdminConfirmDialog
+	open={deleteArticleDialog.isOpen}
+	title={$t('admin.delete')}
+	message={$t('owner.confirmDeleteArticle')}
+	confirmText={deleteArticleDialog.isDeleting ? $t('admin.deleting') : $t('admin.delete')}
+	cancelText={$t('admin.cancel')}
+	variant="danger"
+	confirmDisabled={deleteArticleDialog.isDeleting}
+	onOpenChange={(o) => {
+		if (!o) closeDeleteArticleDialog();
+	}}
+	onConfirm={confirmDeleteArticle}
+/>

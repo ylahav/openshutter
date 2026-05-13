@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { slide } from 'svelte/transition';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { currentLanguage } from '$stores/language';
@@ -17,6 +18,11 @@
 	// svelte-ignore export_let_unused - Required by SvelteKit page component
 	export let data: PageData;
 
+	interface Person {
+		_id: string;
+		name: string | { en?: string; he?: string };
+	}
+
 	interface Album {
 		_id: string;
 		name: string | { en?: string; he?: string };
@@ -25,6 +31,7 @@
 		level: number;
 		isFeatured: boolean;
 		isPublic: boolean;
+		isPublished?: boolean;
 		photoCount: number;
 		coverPhotoId?: string;
 		parentAlbumId?: string;
@@ -56,6 +63,16 @@
 	}
 
 	const albumId = $page.params.id;
+	/** Shared header actions (non-destructive ghost); delete uses danger variant. */
+	const btnGhost =
+		'inline-flex items-center justify-center gap-2 rounded-md border border-(--color-surface-200-700) bg-transparent px-4 py-2 text-sm font-medium text-(--color-surface-900-100) hover:bg-[color-mix(in_oklab,var(--color-surface-950)_6%,transparent)] dark:hover:bg-[color-mix(in_oklab,var(--color-surface-50)_8%,transparent)] transition-colors';
+	const btnGhostDanger =
+		'inline-flex items-center justify-center gap-2 rounded-md border border-red-300/70 bg-transparent px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 dark:border-red-800/80 dark:text-red-300 dark:hover:bg-red-950/40 transition-colors';
+	const btnGhostSm =
+		'inline-flex items-center justify-center rounded-md border border-(--color-surface-200-700) bg-transparent px-3 py-1.5 text-xs font-medium text-(--color-surface-900-100) hover:bg-[color-mix(in_oklab,var(--color-surface-950)_6%,transparent)] dark:hover:bg-[color-mix(in_oklab,var(--color-surface-50)_8%,transparent)] transition-colors';
+	const btnGhostDangerSm =
+		'inline-flex items-center justify-center rounded-md border border-red-300/70 bg-transparent px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50 dark:border-red-800/80 dark:text-red-300 dark:hover:bg-red-950/40 transition-colors';
+
 	let album: Album | null = null;
 	let photos: Photo[] = [];
 	let loading = true;
@@ -76,7 +93,6 @@
 	
 	// Bulk operations
 	let selectedPhotoIds = new Set<string>();
-	let showBulkActions = false;
 	let showLocationDialog = false;
 	let showMetadataDialog = false;
 	let locations: Location[] = [];
@@ -84,6 +100,11 @@
 	let showTagsDialog = false;
 	let tags: { _id: string; name: string | { en?: string; he?: string }; category?: string }[] = [];
 	let selectedTagIds: string[] = [];
+	let showPeopleDialog = false;
+	let people: Person[] = [];
+	let selectedPersonIds: string[] = [];
+	let bulkDeleteDialogOpen = false;
+	let isBulkDeletingPhotos = false;
 	let bulkMetadataRating: string = '';
 	let bulkMetadataCategory: string = '';
 	let bulkExifDate: string = '';
@@ -286,7 +307,6 @@
 			selectedPhotoIds.add(photoId);
 		}
 		selectedPhotoIds = selectedPhotoIds; // Trigger reactivity
-		showBulkActions = selectedPhotoIds.size > 0;
 	}
 
 	function toggleSelectAll() {
@@ -296,7 +316,11 @@
 			selectedPhotoIds = new Set(photos.map(p => p._id));
 		}
 		selectedPhotoIds = selectedPhotoIds; // Trigger reactivity
-		showBulkActions = selectedPhotoIds.size > 0;
+	}
+
+	function clearPhotoSelection() {
+		selectedPhotoIds.clear();
+		selectedPhotoIds = selectedPhotoIds;
 	}
 
 	async function loadLocations() {
@@ -315,6 +339,7 @@
 		isPublished?: boolean;
 		location?: string | null;
 		tags?: string[];
+		people?: string[];
 		metadata?: Record<string, unknown>;
 		exif?: Record<string, unknown>;
 	}) {
@@ -339,11 +364,13 @@
 			if (result.success) {
 				successMessage = result.data?.message || `Updated ${selectedPhotoIds.size} photo(s)`;
 				selectedPhotoIds.clear();
-				showBulkActions = false;
+				selectedPhotoIds = selectedPhotoIds;
 				showLocationDialog = false;
 				showTagsDialog = false;
+				showPeopleDialog = false;
 				selectedLocationId = null;
 				selectedTagIds = [];
+				selectedPersonIds = [];
 				
 				// Reload photos to reflect changes
 				await loadPhotos();
@@ -408,6 +435,82 @@
 		showTagsDialog = false;
 	}
 
+	async function loadPeople() {
+		try {
+			const response = await fetch('/api/admin/people?limit=1000', { credentials: 'include' });
+			if (!response.ok) return;
+			const result = await response.json();
+			const data = result.data ?? result;
+			people = Array.isArray(data) ? data : data?.data ?? [];
+		} catch (err) {
+			logger.error('Failed to load people', err);
+		}
+	}
+
+	function openPeopleDialog() {
+		showPeopleDialog = true;
+		selectedPersonIds = [];
+		if (people.length === 0) {
+			loadPeople();
+		}
+	}
+
+	function togglePerson(personId: string) {
+		if (selectedPersonIds.includes(personId)) {
+			selectedPersonIds = selectedPersonIds.filter((id) => id !== personId);
+		} else {
+			selectedPersonIds = [...selectedPersonIds, personId];
+		}
+	}
+
+	function applyPeople() {
+		bulkUpdatePhotos({ people: selectedPersonIds });
+		showPeopleDialog = false;
+	}
+
+	function openBulkDeleteDialog() {
+		bulkDeleteDialogOpen = true;
+	}
+
+	async function confirmBulkDeletePhotos() {
+		if (selectedPhotoIds.size === 0 || isBulkDeletingPhotos) return;
+		isBulkDeletingPhotos = true;
+		error = '';
+		successMessage = '';
+		bulkDeleteDialogOpen = false;
+		const ids = Array.from(selectedPhotoIds);
+		let deleted = 0;
+		let failed = 0;
+		try {
+			for (const id of ids) {
+				const response = await fetch(`/api/admin/photos/${id}`, { method: 'DELETE' });
+				if (response.ok) {
+					deleted++;
+					photos = photos.filter((p) => p._id !== id);
+				} else {
+					failed++;
+				}
+			}
+			selectedPhotoIds.clear();
+			selectedPhotoIds = selectedPhotoIds;
+			await Promise.all([loadAlbum(), loadPhotos()]);
+			if (deleted > 0) {
+				successMessage = $t('admin.bulkDeletePhotosSuccess').replace('{count}', String(deleted));
+				setTimeout(() => {
+					successMessage = '';
+				}, 4000);
+			}
+			if (failed > 0) {
+				error = $t('admin.bulkDeletePhotosPartial').replace('{failed}', String(failed));
+			}
+		} catch (err) {
+			logger.error('Bulk delete photos failed:', err);
+			error = handleError(err, $t('admin.failedToDeletePhoto'));
+		} finally {
+			isBulkDeletingPhotos = false;
+		}
+	}
+
 	function openMetadataDialog() {
 		showMetadataDialog = true;
 		bulkMetadataRating = '';
@@ -456,7 +559,7 @@
 					: (result.message || 'Re-extracted EXIF for selected photos.');
 				successMessage = msg;
 				selectedPhotoIds.clear();
-				showBulkActions = false;
+				selectedPhotoIds = selectedPhotoIds;
 				await loadPhotos();
 				setTimeout(() => { successMessage = ''; }, 4000);
 			} else {
@@ -540,7 +643,7 @@
 			if (lastDone?.success) {
 				successMessage = lastDone.message ?? `Regenerated thumbnails for ${regenProgress?.processed ?? 0} photo(s).`;
 				selectedPhotoIds.clear();
-				showBulkActions = false;
+				selectedPhotoIds = selectedPhotoIds;
 				await loadPhotos();
 				setTimeout(() => { successMessage = ''; }, 4000);
 			} else if (lastDone && !lastDone.success) {
@@ -591,43 +694,63 @@
 
 			<!-- Header -->
 			<div class="mb-6">
-				<div class="flex items-center justify-between">
-					<div>
+				<div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+					<div class="min-w-0">
 						<h1 class="text-3xl font-bold text-(--color-surface-950-50)">{getAlbumName(album)}</h1>
-						<p class="mt-2 text-(--color-surface-600-400)">
-							{album.photoCount || 0} {album.photoCount === 1 ? $t('admin.photoSingular') : $t('admin.photosPlural')}
-							• {album.isPublic ? $t('admin.public') : $t('admin.private')}
+						<p class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-sm text-(--color-surface-600-400)">
+							<span class="font-medium text-(--color-surface-800-200) tabular-nums">
+								{album.photoCount || 0}
+								{album.photoCount === 1 ? $t('admin.photoSingular') : $t('admin.photosPlural')}
+							</span>
+							<span class="text-(--color-surface-400-500)" aria-hidden="true">·</span>
+							{#if album.isPublished !== false}
+								<span
+									class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-900 dark:bg-emerald-900/50 dark:text-emerald-100"
+								>
+									{$t('admin.dashboardPublished')}
+								</span>
+							{:else}
+								<span
+									class="inline-flex items-center rounded-full bg-(--color-surface-200-600) px-2.5 py-0.5 text-xs font-medium text-(--color-surface-800-200)"
+								>
+									{$t('admin.dashboardDraft')}
+								</span>
+							{/if}
+							{#if album.isPublic === true}
+								<span
+									class="inline-flex items-center rounded-full bg-sky-100 px-2.5 py-0.5 text-xs font-medium text-sky-900 dark:bg-sky-900/45 dark:text-sky-100"
+								>
+									{$t('admin.public')}
+								</span>
+							{:else}
+								<span
+									class="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-900 dark:bg-amber-900/40 dark:text-amber-100"
+								>
+									{$t('admin.private')}
+								</span>
+							{/if}
 							{#if album.isFeatured}
-								• ⭐ {$t('admin.featured')}
+								<span class="text-(--color-surface-400-500)" aria-hidden="true">·</span>
+								<span class="inline-flex items-center gap-1 text-amber-800 dark:text-amber-200">
+									⭐ {$t('admin.featured')}
+								</span>
 							{/if}
 						</p>
 					</div>
-					<div class="flex items-center gap-3">
-						<a
-							href="/admin/photos/upload?albumId={albumId}"
-							class="px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700)"
-						>
+					<div class="flex shrink-0 flex-wrap items-center gap-2">
+						<a href="/admin/photos/upload?albumId={albumId}" class={btnGhost}>
 							{$t('admin.uploadPhotos')}
 						</a>
-						<a
-							href="/albums/new?parentAlbumId={albumId}"
-							class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
-						>
+						<a href="/albums/new?parentAlbumId={albumId}" class={btnGhost}>
 							{$t('admin.createSubAlbum')}
 						</a>
-						<a
-							href="/admin/albums/{albumId}/edit"
-							class="btn preset-filled-primary-500"
-						>
+						<a href="/admin/albums/{albumId}/edit" class={btnGhost}>
 							{$t('admin.editAlbum')}
 						</a>
-						<button
-							on:click={() => (showDeleteDialog = true)}
-							class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-						>
+						<button type="button" on:click={() => (showDeleteDialog = true)} class={btnGhostDanger}>
 							{$t('admin.deleteAlbum')}
 						</button>
-						<a href="/admin/albums" class="px-4 py-2 text-(--color-surface-800-200) bg-(--color-surface-100-900) rounded-md hover:bg-(--color-surface-200-800)">
+						<a href="/admin/albums" class={btnGhost}>
 							{$t('admin.back')}
 						</a>
 					</div>
@@ -642,9 +765,13 @@
 				<div class="mb-4 p-4 rounded-md bg-green-50 text-green-700 text-sm">{successMessage}</div>
 			{/if}
 
-			<!-- Album Description -->
+			<!-- Album Description (context callout, not an input) -->
 			{#if album.description}
-				<div class="mb-6 card preset-outlined-surface-200-800 bg-surface-50-950 p-4">
+				<div
+					class="album-description-callout mb-6 rounded-r-lg border border-(--color-surface-200-700) border-l-[3px] border-l-(--color-primary-500) bg-[color-mix(in_oklab,var(--color-surface-950)_4%,transparent)] py-3 pl-4 pr-4 text-sm leading-relaxed text-(--color-surface-700-300) dark:bg-[color-mix(in_oklab,var(--color-surface-50)_5%,transparent)] [&_a]:text-(--color-primary-600) [&_a]:underline"
+					role="note"
+					aria-label={$t('admin.albumDescriptionNote')}
+				>
 					{@html MultiLangUtils.getHTMLValue(album.description, $currentLanguage) || ''}
 				</div>
 			{/if}
@@ -653,19 +780,11 @@
 			<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
 				<div class="flex items-center justify-between mb-6">
 					<h2 class="text-2xl font-bold text-(--color-surface-950-50)">
-						{$t('admin.photosHeading')} ({photos.length}
-						{#if album && album.photoCount !== photos.length}
-							<span class="text-sm font-normal text-(--color-surface-600-400)">
-								/ {album.photoCount} {$t('admin.totalLabel')}
-							</span>
-						{/if})
+						{$t('admin.photosHeading')} ({photos.length}{#if album && album.photoCount !== photos.length}<span class="text-sm font-normal text-(--color-surface-600-400)">{' / '}{album.photoCount}{' '}{$t('admin.totalLabel')}</span>{/if})
 					</h2>
 					{#if photos.length > 0}
 						<div class="flex items-center gap-2">
-							<button
-								on:click={toggleSelectAll}
-								class="px-3 py-1 text-sm text-(--color-surface-800-200) bg-(--color-surface-100-900) rounded-md hover:bg-(--color-surface-200-800)"
-							>
+							<button type="button" on:click={toggleSelectAll} class={btnGhostSm}>
 								{selectedPhotoIds.size === photos.length
 									? $t('admin.deselectAll')
 									: $t('admin.selectAll')}
@@ -674,70 +793,126 @@
 					{/if}
 				</div>
 
-				{#if showBulkActions}
-					<div class="mb-4 p-4 bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] border border-[color-mix(in_oklab,var(--color-primary-500)_18%,transparent)] rounded-lg">
-						<div class="flex items-center justify-between">
-							<span class="text-sm font-medium text-(--color-primary-900)">
-								{selectedPhotoIds.size} photo{selectedPhotoIds.size === 1 ? '' : 's'} selected
-							</span>
-							<div class="flex gap-2">
+				{#if selectedPhotoIds.size > 0}
+					<div
+						class="mb-4 overflow-hidden rounded-lg border border-[color-mix(in_oklab,var(--color-primary-500)_22%,transparent)] bg-[color-mix(in_oklab,var(--color-primary-500)_10%,transparent)] shadow-sm dark:border-[color-mix(in_oklab,var(--color-primary-400)_25%,transparent)] dark:bg-[color-mix(in_oklab,var(--color-primary-500)_12%,transparent)]"
+						in:slide={{ duration: 220 }}
+						out:slide={{ duration: 180 }}
+						role="region"
+						aria-label={$t('admin.bulkSelectionBarAria')}
+					>
+						<div
+							class="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+						>
+							<p class="text-sm font-semibold text-(--color-primary-950) dark:text-(--color-primary-100)">
+								{$t('admin.albumDetailPhotosSelected').replace('{count}', String(selectedPhotoIds.size))}
+							</p>
+							<div class="flex flex-wrap items-center gap-2">
 								<button
-									on:click={() => bulkUpdatePhotos({ isPublished: true })}
-									disabled={isBulkUpdating}
-									class="px-3 py-1 text-sm bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
-								>
-									Publish
-								</button>
-								<button
-									on:click={() => bulkUpdatePhotos({ isPublished: false })}
-									disabled={isBulkUpdating}
-									class="px-3 py-1 text-sm bg-yellow-600 text-white rounded-md hover:bg-yellow-700 disabled:opacity-50"
-								>
-									Unpublish
-								</button>
-								<button
-									on:click={openLocationDialog}
-									disabled={isBulkUpdating}
-									class="px-3 py-1 text-sm bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700) disabled:opacity-50"
-								>
-									{$t('admin.setLocation')}
-								</button>
-								<button
+									type="button"
 									on:click={openTagsDialog}
 									disabled={isBulkUpdating}
-									class="px-3 py-1 text-sm bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50"
+									class={btnGhostSm + ' border-(--color-primary-300-600) bg-[color-mix(in_oklab,var(--color-surface-50)_55%,transparent)] dark:bg-[color-mix(in_oklab,var(--color-surface-950)_35%,transparent)]'}
 								>
-									{$t('admin.setTags')}
+									{$t('admin.bulkActionAddTag')}
 								</button>
 								<button
-									on:click={openMetadataDialog}
+									type="button"
+									on:click={openPeopleDialog}
 									disabled={isBulkUpdating}
-									class="px-3 py-1 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50"
+									class={btnGhostSm + ' border-(--color-primary-300-600) bg-[color-mix(in_oklab,var(--color-surface-50)_55%,transparent)] dark:bg-[color-mix(in_oklab,var(--color-surface-950)_35%,transparent)]'}
 								>
-									{$t('admin.setMetadata')}
+									{$t('admin.bulkActionTagPerson')}
 								</button>
 								<button
-									on:click={bulkReExtractExif}
-									disabled={isBulkUpdating}
-									class="px-3 py-1 text-sm bg-cyan-600 text-white rounded-md hover:bg-cyan-700 disabled:opacity-50"
-									title={$t('admin.reExtractExifTitle')}
+									type="button"
+									on:click={openBulkDeleteDialog}
+									disabled={isBulkUpdating || isBulkDeletingPhotos}
+									class={btnGhostDangerSm}
 								>
-									{$t('admin.reExtractExif')}
+									{$t('admin.delete')}
 								</button>
 								<button
-									on:click={bulkRegenerateThumbnails}
-									disabled={isBulkUpdating || (regenProgress?.inProgress ?? false)}
-									class="px-3 py-1 text-sm bg-amber-600 text-white rounded-md hover:bg-amber-700 disabled:opacity-50"
-									title={$t('admin.regenerateThumbnailsTitle')}
+									type="button"
+									on:click={clearPhotoSelection}
+									disabled={isBulkUpdating || isBulkDeletingPhotos}
+									class={btnGhostSm + ' border-(--color-primary-300-600)'}
 								>
-									{$t('admin.regenerateThumbnails')}
+									{$t('admin.clearFilters')}
 								</button>
-								<button
-									on:click={() => { selectedPhotoIds.clear(); showBulkActions = false; }}
-									class="btn btn-sm preset-filled-primary-500"
-								>
-									{$t('admin.cancel')}
-								</button>
+								<details class="relative min-w-0 sm:ml-1">
+									<summary
+										class="cursor-pointer list-none rounded-md border border-(--color-surface-200-700) bg-transparent px-3 py-1.5 text-xs font-medium text-(--color-surface-800-200) hover:bg-[color-mix(in_oklab,var(--color-surface-950)_6%,transparent)] dark:hover:bg-[color-mix(in_oklab,var(--color-surface-50)_8%,transparent)] [&::-webkit-details-marker]:hidden"
+									>
+										{$t('admin.bulkMoreActions')}
+									</summary>
+									<div
+										class="absolute right-0 z-20 mt-1 min-w-48 rounded-md border border-(--color-surface-200-700) bg-(--color-surface-50-950) py-1 shadow-lg"
+									>
+										<button
+											type="button"
+											class="block w-full px-3 py-2 text-left text-sm hover:bg-(--color-surface-100-900)"
+											on:click={() => {
+												bulkUpdatePhotos({ isPublished: true });
+											}}
+											disabled={isBulkUpdating}
+										>
+											{$t('admin.bulkPublishPhotos')}
+										</button>
+										<button
+											type="button"
+											class="block w-full px-3 py-2 text-left text-sm hover:bg-(--color-surface-100-900)"
+											on:click={() => bulkUpdatePhotos({ isPublished: false })}
+											disabled={isBulkUpdating}
+										>
+											{$t('admin.bulkUnpublishPhotos')}
+										</button>
+										<button
+											type="button"
+											class="block w-full px-3 py-2 text-left text-sm hover:bg-(--color-surface-100-900)"
+											on:click={() => {
+												(document.activeElement as HTMLElement)?.blur?.();
+												openLocationDialog();
+											}}
+											disabled={isBulkUpdating}
+										>
+											{$t('admin.setLocation')}
+										</button>
+										<button
+											type="button"
+											class="block w-full px-3 py-2 text-left text-sm hover:bg-(--color-surface-100-900)"
+											on:click={() => {
+												(document.activeElement as HTMLElement)?.blur?.();
+												openMetadataDialog();
+											}}
+											disabled={isBulkUpdating}
+										>
+											{$t('admin.setMetadata')}
+										</button>
+										<button
+											type="button"
+											class="block w-full px-3 py-2 text-left text-sm hover:bg-(--color-surface-100-900)"
+											on:click={() => {
+												(document.activeElement as HTMLElement)?.blur?.();
+												bulkReExtractExif();
+											}}
+											disabled={isBulkUpdating}
+										>
+											{$t('admin.reExtractExif')}
+										</button>
+										<button
+											type="button"
+											class="block w-full px-3 py-2 text-left text-sm hover:bg-(--color-surface-100-900)"
+											on:click={() => {
+												(document.activeElement as HTMLElement)?.blur?.();
+												bulkRegenerateThumbnails();
+											}}
+											disabled={isBulkUpdating || (regenProgress?.inProgress ?? false)}
+										>
+											{$t('admin.regenerateThumbnails')}
+										</button>
+									</div>
+								</details>
 							</div>
 						</div>
 					</div>
@@ -838,14 +1013,15 @@
 									<div class="flex gap-2">
 										<a
 											href="/admin/photos/{photo._id}/edit"
-											class="px-3 py-1 bg-(--color-primary-600) text-white text-sm rounded hover:bg-(--color-primary-700)"
+											class="rounded-md border border-white/50 bg-white/10 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm hover:bg-white/20"
 										>
 											{$t('admin.edit')}
 										</a>
 										<button
+											type="button"
 											on:click={() => openPhotoDeleteDialog(photo)}
 											disabled={photoDeleteDialog.isDeleting}
-											class="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 disabled:opacity-50"
+											class="rounded-md border border-red-300/80 bg-red-500/20 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-500/35 disabled:opacity-50"
 										>
 											{$t('admin.delete')}
 										</button>
@@ -900,6 +1076,20 @@
 		if (!o) closePhotoDeleteDialog();
 	}}
 	onConfirm={confirmDeletePhoto}
+/>
+
+<AdminConfirmDialog
+	open={bulkDeleteDialogOpen}
+	title={$t('admin.bulkDeletePhotosTitle')}
+	message={$t('admin.bulkDeletePhotosMessage').replace('{count}', String(selectedPhotoIds.size))}
+	confirmText={isBulkDeletingPhotos ? $t('admin.deleting') : $t('admin.delete')}
+	cancelText={$t('admin.cancel')}
+	variant="danger"
+	confirmDisabled={isBulkDeletingPhotos}
+	onOpenChange={(o) => {
+		if (!o) bulkDeleteDialogOpen = false;
+	}}
+	onConfirm={confirmBulkDeletePhotos}
 />
 
 <!-- Location Selection Dialog -->
@@ -993,6 +1183,64 @@
 					on:click={applyTags}
 					disabled={isBulkUpdating}
 					class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50"
+				>
+					{isBulkUpdating ? $t('admin.applying') : $t('admin.apply')}
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
+
+<!-- People (bulk tag) dialog -->
+{#if showPeopleDialog}
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 mx-4 flex max-h-[80vh] w-full max-w-md flex-col p-6">
+			<h3 class="mb-2 text-lg font-semibold">
+				{$t('admin.bulkTagPersonDialogTitle').replace('{count}', String(selectedPhotoIds.size))}
+			</h3>
+			<p class="mb-4 text-sm text-(--color-surface-600-400)">
+				{$t('admin.bulkTagPersonDialogDescription')}
+			</p>
+			<div class="mb-4 min-h-[200px] flex-1 overflow-y-auto rounded-md border border-surface-200-800 p-3">
+				{#if people.length === 0}
+					<p class="text-sm text-(--color-surface-600-400)">{$t('admin.loadingPeople')}</p>
+				{:else}
+					<div class="space-y-2">
+						{#each people as person}
+							{@const personName =
+								typeof person.name === 'string'
+									? person.name
+									: MultiLangUtils.getTextValue(person.name, $currentLanguage) || person._id}
+							<label
+								class="flex cursor-pointer items-center gap-2 rounded p-2 hover:bg-(--color-surface-50-950)"
+							>
+								<input
+									type="checkbox"
+									checked={selectedPersonIds.includes(person._id)}
+									on:change={() => togglePerson(person._id)}
+								/>
+								<span class="text-sm text-(--color-surface-950-50)">{personName}</span>
+							</label>
+						{/each}
+					</div>
+				{/if}
+			</div>
+			<div class="flex justify-end gap-2">
+				<button
+					type="button"
+					on:click={() => {
+						showPeopleDialog = false;
+						selectedPersonIds = [];
+					}}
+					class="rounded-md px-4 py-2 text-(--color-surface-800-200) hover:bg-(--color-surface-100-900)"
+				>
+					{$t('admin.cancel')}
+				</button>
+				<button
+					type="button"
+					on:click={applyPeople}
+					disabled={isBulkUpdating}
+					class="rounded-md bg-(--color-primary-600) px-4 py-2 text-white hover:bg-(--color-primary-700) disabled:opacity-50"
 				>
 					{isBulkUpdating ? $t('admin.applying') : $t('admin.apply')}
 				</button>

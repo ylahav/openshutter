@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { beforeNavigate } from '$app/navigation';
+	import { beforeNavigate, goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { siteConfigData, siteConfig } from '$stores/siteConfig';
 	import { handleAuthError } from '$lib/utils/auth-error-handler';
@@ -57,6 +57,7 @@
 		parseLinksJson
 	} from '$lib/page-builder/modules/SocialMedia/resolveLinks';
 	import ModulePropsForm from '$lib/components/ModulePropsForm.svelte';
+	import AdminConfirmDialog from '$lib/components/admin/AdminConfirmDialog.svelte';
 
 	/** Readable defaults when template / overrides omit a key (also fixes invisible #000 on white fields). */
 	const DEFAULT_COLOR_HEX: Record<string, string> = {
@@ -178,6 +179,16 @@
 	let error = '';
 	let activeTab = 'colors';
 	let hasChanges = false;
+
+	/** Phase 5: replace `confirm()` with Skeleton admin dialogs */
+	let leaveWithoutSaveDialogOpen = false;
+	let pendingLeaveUrl: string | null = null;
+	let resetOverridesDialogOpen = false;
+	let cancelEditsDialogOpen = false;
+	let deleteLayoutInstanceDialogOpen = false;
+	let deleteLayoutInstancePresetKey: string | null = null;
+	let deleteAllUnusedLayoutDialogOpen = false;
+
 	let previewPageType: 'home' | 'gallery' | 'album' | 'search' | 'login' = 'home';
 	type PreviewDeviceId = 'desktop' | 'tablet' | 'mobile' | 'mobileSm';
 	const PREVIEW_DEVICE_ORDER: PreviewDeviceId[] = ['desktop', 'tablet', 'mobile', 'mobileSm'];
@@ -319,11 +330,25 @@
 	beforeNavigate((navigation) => {
 		if (!hasChanges) return;
 		if (navigation.to?.url.pathname === navigation.from?.url.pathname) return;
-		const leave = confirm('You have unsaved changes. Leave without saving?');
-		if (!leave) {
-			navigation.cancel();
-		}
+		const href = navigation.to?.url?.href;
+		if (!href) return;
+		navigation.cancel();
+		pendingLeaveUrl = href;
+		leaveWithoutSaveDialogOpen = true;
 	});
+
+	function closeLeaveWithoutSaveDialog() {
+		leaveWithoutSaveDialogOpen = false;
+		pendingLeaveUrl = null;
+	}
+
+	function confirmLeaveWithoutSave() {
+		hasChanges = false;
+		leaveWithoutSaveDialogOpen = false;
+		const url = pendingLeaveUrl;
+		pendingLeaveUrl = null;
+		if (url) void goto(url);
+	}
 
 	async function loadTheme(id: string) {
 		try {
@@ -2454,11 +2479,16 @@ let draggedAlbumHeaderField: string | null = null;
 		}
 	}
 
-	async function resetOverrides() {
-		if (!confirm('Are you sure you want to reset all template overrides to default?')) {
-			return;
-		}
+	function openResetOverridesDialog() {
+		resetOverridesDialogOpen = true;
+	}
 
+	function closeResetOverridesDialog() {
+		resetOverridesDialogOpen = false;
+	}
+
+	async function confirmResetOverrides() {
+		if (resetting) return;
 		resetting = true;
 		message = '';
 		error = '';
@@ -2489,6 +2519,7 @@ let draggedAlbumHeaderField: string | null = null;
 			localOverrides = {};
 			hasChanges = false;
 			siteConfig.load(); // Refresh site config store
+			closeResetOverridesDialog();
 
 			setTimeout(() => {
 				message = '';
@@ -2501,12 +2532,52 @@ let draggedAlbumHeaderField: string | null = null;
 		}
 	}
 
-	function cancelChanges() {
-		if (hasChanges && !confirm('You have unsaved changes. Are you sure you want to cancel?')) {
+	function openCancelEditsDialog() {
+		if (!hasChanges) {
+			initializeLocalOverrides();
 			return;
 		}
+		cancelEditsDialogOpen = true;
+	}
+
+	function closeCancelEditsDialog() {
+		cancelEditsDialogOpen = false;
+	}
+
+	function confirmCancelEdits() {
 		initializeLocalOverrides();
 		hasChanges = false;
+		closeCancelEditsDialog();
+	}
+
+	function openDeleteLayoutInstanceDialog(presetKey: string) {
+		deleteLayoutInstancePresetKey = presetKey;
+		deleteLayoutInstanceDialogOpen = true;
+	}
+
+	function closeDeleteLayoutInstanceDialog() {
+		deleteLayoutInstanceDialogOpen = false;
+		deleteLayoutInstancePresetKey = null;
+	}
+
+	function confirmDeleteLayoutInstance() {
+		if (deleteLayoutInstancePresetKey) {
+			deleteLayoutInstanceIfUnused(deleteLayoutInstancePresetKey);
+		}
+		closeDeleteLayoutInstanceDialog();
+	}
+
+	function openDeleteAllUnusedLayoutDialog() {
+		deleteAllUnusedLayoutDialogOpen = true;
+	}
+
+	function closeDeleteAllUnusedLayoutDialog() {
+		deleteAllUnusedLayoutDialogOpen = false;
+	}
+
+	function confirmDeleteAllUnusedLayout() {
+		deleteAllUnusedLayoutInstances();
+		closeDeleteAllUnusedLayoutDialog();
 	}
 </script>
 
@@ -2542,7 +2613,7 @@ let draggedAlbumHeaderField: string | null = null;
 					{#if hasChanges}
 						<button
 							type="button"
-							on:click={cancelChanges}
+							on:click={openCancelEditsDialog}
 							class="px-4 py-2 bg-(--color-surface-200-800) text-(--color-surface-800-200) rounded-md hover:bg-(--color-surface-300-700) text-sm font-medium"
 						>
 							{$t('admin.cancel')}
@@ -2551,7 +2622,7 @@ let draggedAlbumHeaderField: string | null = null;
 					{#if hasOverrides() && !themeId}
 							<button
 								type="button"
-								on:click={resetOverrides}
+								on:click={openResetOverridesDialog}
 								disabled={resetting}
 								class="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 disabled:opacity-50 text-sm font-medium"
 							>
@@ -4565,8 +4636,7 @@ let draggedAlbumHeaderField: string | null = null;
 									disabled={!layoutShellActivePresetExists || layoutShellCurrentPresetUsage.length > 0}
 									on:click={() => {
 										if (!layoutShellActivePresetKey) return;
-										if (!confirm(`Delete instance "${layoutShellActivePresetKey}"? This cannot be undone before save.`)) return;
-										deleteLayoutInstanceIfUnused(layoutShellActivePresetKey);
+										openDeleteLayoutInstanceDialog(layoutShellActivePresetKey);
 									}}
 								>
 									Delete instance
@@ -4576,8 +4646,7 @@ let draggedAlbumHeaderField: string | null = null;
 									class="px-3 py-1.5 text-xs rounded border border-amber-300 text-amber-700 hover:bg-amber-50 disabled:opacity-50 disabled:cursor-not-allowed"
 									disabled={layoutShellUnusedPresetKeys.length === 0}
 									on:click={() => {
-										if (!confirm(`Delete all unused instances (${layoutShellUnusedPresetKeys.length})?`)) return;
-										deleteAllUnusedLayoutInstances();
+										openDeleteAllUnusedLayoutDialog();
 									}}
 								>
 									Delete all unused instances ({layoutShellUnusedPresetKeys.length})
@@ -6200,3 +6269,71 @@ let draggedAlbumHeaderField: string | null = null;
 		</div>
 	</div>
 {/if}
+
+<AdminConfirmDialog
+	open={leaveWithoutSaveDialogOpen}
+	title="Unsaved changes"
+	message="You have unsaved changes. Leave without saving?"
+	confirmText="Leave without saving"
+	cancelText={$t('admin.cancel')}
+	variant="default"
+	onOpenChange={(o) => {
+		if (!o) closeLeaveWithoutSaveDialog();
+	}}
+	onConfirm={confirmLeaveWithoutSave}
+/>
+
+<AdminConfirmDialog
+	open={resetOverridesDialogOpen}
+	title={$t('admin.resetToDefault')}
+	message="Are you sure you want to reset all template overrides to default?"
+	confirmText={resetting ? $t('admin.resetting') : $t('admin.resetToDefault')}
+	cancelText={$t('admin.cancel')}
+	variant="danger"
+	confirmDisabled={resetting}
+	onOpenChange={(o) => {
+		if (!o && !resetting) closeResetOverridesDialog();
+	}}
+	onConfirm={confirmResetOverrides}
+/>
+
+<AdminConfirmDialog
+	open={cancelEditsDialogOpen}
+	title="Discard unsaved changes?"
+	message="You have unsaved changes. Are you sure you want to discard them and reload the last saved state?"
+	confirmText="Discard changes"
+	cancelText={$t('admin.cancel')}
+	variant="danger"
+	onOpenChange={(o) => {
+		if (!o) closeCancelEditsDialog();
+	}}
+	onConfirm={confirmCancelEdits}
+/>
+
+<AdminConfirmDialog
+	open={deleteLayoutInstanceDialogOpen}
+	title="Delete layout instance"
+	message={deleteLayoutInstancePresetKey
+		? `Delete instance "${deleteLayoutInstancePresetKey}"? This cannot be undone before save.`
+		: ''}
+	confirmText="Delete"
+	cancelText={$t('admin.cancel')}
+	variant="danger"
+	onOpenChange={(o) => {
+		if (!o) closeDeleteLayoutInstanceDialog();
+	}}
+	onConfirm={confirmDeleteLayoutInstance}
+/>
+
+<AdminConfirmDialog
+	open={deleteAllUnusedLayoutDialogOpen}
+	title="Delete unused layout instances"
+	message={`Delete all unused instances (${layoutShellUnusedPresetKeys.length})? This cannot be undone before save.`}
+	confirmText="Delete all"
+	cancelText={$t('admin.cancel')}
+	variant="danger"
+	onOpenChange={(o) => {
+		if (!o) closeDeleteAllUnusedLayoutDialog();
+	}}
+	onConfirm={confirmDeleteAllUnusedLayout}
+/>

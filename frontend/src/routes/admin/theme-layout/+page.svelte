@@ -1,15 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import Header from '$lib/components/Header.svelte';
-	import Footer from '$lib/components/Footer.svelte';
 	import type { SiteConfig } from '$lib/types/site-config';
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 	import { t } from '$stores/i18n';
 	import { TEMPLATE_PACK_IDS } from '$lib/template-packs/ids';
 	import { packClassPrefixFor } from '$lib/template/packs/class-prefix';
-// PageData is loaded via +page.server.ts; this component does not
-// currently consume it directly, so we omit the prop to avoid unused-export warnings.
 
 	interface TemplateListRow {
 		templateName: string;
@@ -109,22 +105,23 @@
 		};
 	}
 
-	const componentLabels = {
-		hero: $t('admin.templateConfig.heroLabel'),
-		languageSelector: $t('admin.templateConfig.languageSelectorLabel'),
-		authButtons: $t('admin.templateConfig.authButtonsLabel'),
-		footerMenu: $t('admin.templateConfig.footerMenuLabel'),
-		statistics: $t('admin.templateConfig.statisticsLabel'),
-		promotion: $t('admin.templateConfig.promotionLabel')
+	/** Flat `admin.templateConfig*` keys — reactive so language switches update labels. */
+	$: componentLabels = {
+		hero: $t('admin.templateConfigHeroLabel'),
+		languageSelector: $t('admin.templateConfigLanguageSelectorLabel'),
+		authButtons: $t('admin.templateConfigAuthButtonsLabel'),
+		footerMenu: $t('admin.templateConfigFooterMenuLabel'),
+		statistics: $t('admin.templateConfigStatisticsLabel'),
+		promotion: $t('admin.templateConfigPromotionLabel')
 	};
 
-	const componentDescriptions = {
-		hero: $t('admin.templateConfig.heroDescription'),
-		languageSelector: $t('admin.templateConfig.languageSelectorDescription'),
-		authButtons: $t('admin.templateConfig.authButtonsDescription'),
-		footerMenu: $t('admin.templateConfig.footerMenuDescription'),
-		statistics: $t('admin.templateConfig.statisticsDescription'),
-		promotion: $t('admin.templateConfig.promotionDescription')
+	$: componentDescriptions = {
+		hero: $t('admin.templateConfigHeroDescription'),
+		languageSelector: $t('admin.templateConfigLanguageSelectorDescription'),
+		authButtons: $t('admin.templateConfigAuthButtonsDescription'),
+		footerMenu: $t('admin.templateConfigFooterMenuDescription'),
+		statistics: $t('admin.templateConfigStatisticsDescription'),
+		promotion: $t('admin.templateConfigPromotionDescription')
 	};
 
 	onMount(async () => {
@@ -294,7 +291,7 @@
 </script>
 
 <svelte:head>
-	<title>{$t('admin.templateConfigTitle')} - {$t('navigation.admin')}</title>
+	<title>{$t('admin.sidebarNavTemplateLayout')} - {$t('navigation.admin')}</title>
 </svelte:head>
 
 {#if loading}
@@ -314,13 +311,11 @@
 	</div>
 {:else}
 	<div class="py-8">
-		<Header />
-
 		<div class="max-w-4xl mx-auto px-4">
 			<div class="card preset-outlined-surface-200-800 bg-surface-50-950">
 				<!-- Header -->
 				<div class="px-6 py-4 border-b border-surface-200-800">
-					<h1 class="text-2xl font-bold text-(--color-surface-950-50)">{$t('admin.templateConfigTitle')}</h1>
+					<h1 class="text-2xl font-bold text-(--color-surface-950-50)">{$t('admin.sidebarNavTemplateLayout')}</h1>
 					<p class="text-(--color-surface-600-400) mt-1">{$t('admin.templateConfigSubtitle')}</p>
 				</div>
 
@@ -349,39 +344,8 @@
 						</p>
 					</div>
 
-					<div class="mb-8 space-y-4">
-						<h3 class="text-lg font-semibold text-(--color-surface-950-50)">
-							{$t('admin.templateConfigPageAliasesTitle')}
-						</h3>
-						<p class="text-sm text-(--color-surface-600-400)">
-							{$t('admin.templateConfigPageAliasesDescription')}
-						</p>
-						<div class="space-y-3">
-							{#each TEMPLATE_PACK_IDS as packId}
-								{@const row = templatesList.find((t) => t.templateName === packId)}
-								<div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 p-4 border border-surface-200-800 rounded-lg">
-									<label class="text-sm font-medium text-(--color-surface-950-50) shrink-0 min-w-32" for={`prefix-${packId}`}>
-										{row?.displayName ?? packId}
-									</label>
-									<input
-										id={`prefix-${packId}`}
-										type="text"
-										autocomplete="off"
-										class="max-w-xs font-mono text-sm px-3 py-2 border border-surface-300-700 rounded-md bg-(--color-surface-50-950) text-(--color-surface-950-50) focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
-										value={localPageAliasPrefixes[packId] ?? ''}
-										on:input={(e) =>
-											handlePageAliasPrefixChange(packId, e.currentTarget.value)}
-									/>
-									<p class="text-xs text-(--color-surface-600-400) sm:flex-1">
-										{$t('admin.templateConfigPageAliasHint')}
-									</p>
-								</div>
-							{/each}
-						</div>
-					</div>
-
 					<!-- Component Visibility Settings -->
-					<div class="space-y-6">
+					<div class="space-y-6 mb-8">
 						<h3 class="text-lg font-semibold text-(--color-surface-950-50)">{$t('admin.templateConfigComponentVisibility')}</h3>
 
 						{#each Object.entries(componentLabels) as [component, label]}
@@ -399,7 +363,7 @@
 										class="h-4 w-4 text-(--color-primary-600) focus:ring-(--color-primary-500) border-surface-300-700 rounded"
 									/>
 								</div>
-								<div class="flex-1">
+								<div class="flex-1 min-w-0">
 									<label for={component} class="text-sm font-medium text-(--color-surface-950-50) cursor-pointer">
 										{label}
 									</label>
@@ -407,20 +371,56 @@
 										{componentDescriptions[component as keyof typeof componentDescriptions]}
 									</p>
 								</div>
-								<div class="shrink-0">
-									<span
-										class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {localVisibility[component as keyof TemplateComponentVisibility]
-											? 'bg-green-100 text-green-800'
-											: 'bg-red-100 text-red-800'}"
-									>
-										{localVisibility[component as keyof TemplateComponentVisibility]
-											? $t('admin.templateConfigVisible')
-											: $t('admin.templateConfigHidden')}
-									</span>
+								<div class="shrink-0 self-start">
+									{#if !localVisibility[component as keyof TemplateComponentVisibility]}
+										<span
+											class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-100"
+										>
+											{$t('admin.templateConfigHidden')}
+										</span>
+									{/if}
 								</div>
 							</div>
 						{/each}
 					</div>
+
+					<details class="mb-8 rounded-lg border border-surface-200-800 border-dashed bg-(--color-surface-50-950)">
+						<summary
+							class="cursor-pointer select-none list-none px-4 py-3 text-sm font-medium text-(--color-surface-800-200) hover:bg-(--color-surface-100-900) rounded-lg [&::-webkit-details-marker]:hidden"
+						>
+							{$t('admin.templateConfigPageAliasesAdvancedSummary')}
+						</summary>
+						<div class="space-y-4 border-t border-surface-200-800 px-4 pb-4 pt-4">
+							<h3 class="text-base font-semibold text-(--color-surface-950-50)">
+								{$t('admin.templateConfigPageAliasesTitle')}
+							</h3>
+							<p class="text-sm text-(--color-surface-600-400)">
+								{$t('admin.templateConfigPageAliasesDescription')}
+							</p>
+							<div class="space-y-3">
+								{#each TEMPLATE_PACK_IDS as packId}
+									{@const row = templatesList.find((t) => t.templateName === packId)}
+									<div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 p-4 border border-surface-200-800 rounded-lg bg-(--color-surface-50-950)">
+										<label class="text-sm font-medium text-(--color-surface-950-50) shrink-0 min-w-32" for={`prefix-${packId}`}>
+											{row?.displayName ?? packId}
+										</label>
+										<input
+											id={`prefix-${packId}`}
+											type="text"
+											autocomplete="off"
+											class="max-w-xs font-mono text-sm px-3 py-2 border border-surface-300-700 rounded-md bg-(--color-surface-50-950) text-(--color-surface-950-50) focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
+											value={localPageAliasPrefixes[packId] ?? ''}
+											on:input={(e) =>
+												handlePageAliasPrefixChange(packId, e.currentTarget.value)}
+										/>
+										<p class="text-xs text-(--color-surface-600-400) sm:flex-1">
+											{$t('admin.templateConfigPageAliasHint')}
+										</p>
+									</div>
+								{/each}
+							</div>
+						</div>
+					</details>
 
 					<!-- Action Buttons -->
 					<div class="mt-8 flex items-center justify-between">
@@ -444,6 +444,4 @@
 			</div>
 		</div>
 	</div>
-	{/if}
-
-	<Footer />
+{/if}

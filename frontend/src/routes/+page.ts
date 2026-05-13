@@ -19,6 +19,8 @@ export const load: PageLoad = async ({ fetch, parent }) => {
   let albumsError: string | null = null;
   let page: any = null;
   let modules: any[] = [];
+  /** ok = CMS home resolved; missing = 404 / empty page; unavailable = proxy/backend/network error */
+  let homePageStatus: 'ok' | 'missing' | 'unavailable' = 'ok';
 
   try {
     // Fetch root albums (no parent) - API handles access control.
@@ -90,22 +92,31 @@ export const load: PageLoad = async ({ fetch, parent }) => {
           return { ...m, props: { ...p, prefetchedGalleryLeadingUrls: prefetchedGl } };
         });
       }
+
+      homePageStatus = page ? 'ok' : 'missing';
+    } else if (pageRes.status === 404) {
+      homePageStatus = 'missing';
+      logger.error('[Home] Home page not found:', pageRes.status, pageRes.statusText);
     } else {
+      homePageStatus = 'unavailable';
       logger.error('[Home] Failed to fetch DB home page:', pageRes.status, pageRes.statusText);
     }
   } catch (err) {
+    homePageStatus = 'unavailable';
     logger.error('[Home] Error fetching DB home page:', err);
   }
   
-  logger.debug('[Home] Final load result:', { 
+  logger.debug('[Home] Final load result:', {
     hasPage: !!page,
     modulesCount: modules.length,
+    homePageStatus
   });
 
   return {
     rootAlbums,
     albumsError,
     page,
-    modules
+    modules,
+    homePageStatus
   };
 };

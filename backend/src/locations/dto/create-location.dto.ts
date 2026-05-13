@@ -1,6 +1,7 @@
-import { IsString, IsOptional, IsBoolean, IsIn, ValidateNested, IsNumber, Min, Max, Allow } from 'class-validator';
+import { IsString, IsOptional, IsBoolean, IsIn, ValidateNested, IsNumber, Min, Max, Allow, ValidateIf } from 'class-validator';
 import { Type } from 'class-transformer';
 import { MultiLangText } from '../../types/multi-lang';
+import { AreaBoundsDto } from './area-bounds.dto';
 
 /** Latitude/longitude for a location. */
 export class CoordinatesDto {
@@ -20,6 +21,17 @@ export class CoordinatesDto {
  * Used by POST /api/admin/locations.
  */
 export class CreateLocationDto {
+	@IsString()
+	@IsIn(['place', 'area'])
+	@IsOptional()
+	locationKind?: 'place' | 'area';
+
+	@ValidateIf((_, v) => v !== null && v !== undefined)
+	@ValidateNested()
+	@Type(() => AreaBoundsDto)
+	@IsOptional()
+	areaBounds?: AreaBoundsDto;
+
 	/** Name is validated in controller (string or MultiLangText with at least one language). */
 	@Allow()
 	name: string | MultiLangText;
@@ -57,9 +69,21 @@ export class CreateLocationDto {
 	placeId?: string;
 	
 	@IsString()
-	@IsIn(['city', 'landmark', 'venue', 'outdoor', 'indoor', 'travel', 'home', 'work', 'custom'])
+	@IsIn(['city', 'colony', 'village', 'kibbutz', 'landmark', 'venue', 'outdoor', 'indoor', 'travel', 'home', 'work', 'custom'])
 	@IsOptional()
-	category?: 'city' | 'landmark' | 'venue' | 'outdoor' | 'indoor' | 'travel' | 'home' | 'work' | 'custom';
+	category?:
+		| 'city'
+		| 'colony'
+		| 'village'
+		| 'kibbutz'
+		| 'landmark'
+		| 'venue'
+		| 'outdoor'
+		| 'indoor'
+		| 'travel'
+		| 'home'
+		| 'work'
+		| 'custom';
 	
 	@IsBoolean()
 	@IsOptional()

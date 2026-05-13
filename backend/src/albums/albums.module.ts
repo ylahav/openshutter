@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AlbumsController } from './albums.controller';
 import { AlbumsAdminController } from './albums-admin.controller';
+import { AdminDashboardController } from './admin-dashboard.controller';
 import { AlbumsService } from './albums.service';
 import { AlbumSchema } from '../models/Album';
 import { PhotoSchema } from '../models/Photo';
@@ -25,7 +26,7 @@ import { AnalyticsModule } from '../analytics/analytics.module';
     ]),
     AnalyticsModule,
   ],
-  controllers: [AlbumsController, AlbumsAdminController],
+  controllers: [AlbumsController, AlbumsAdminController, AdminDashboardController],
   providers: [AlbumsService, OptionalAdminGuard, AdminOrOwnerGuard],
   exports: [AlbumsService],
 })

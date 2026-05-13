@@ -16,6 +16,7 @@
 	import UserTable from './components/UserTable.svelte';
 	import UserForm from './components/UserForm.svelte';
 	import OwnerDomainsSection from './components/OwnerDomainsSection.svelte';
+	import AdminConfirmDialog from '$lib/components/admin/AdminConfirmDialog.svelte';
 
 	// svelte-ignore export_let_unused - Required by SvelteKit page component
 	export let data: PageData;
@@ -114,6 +115,16 @@
 	let ownerDomains: OwnerDomain[] = [];
 	let ownerDomainsError = '';
 	let newOwnerDomainHostname = '';
+
+	let removeOwnerDomainDialog: {
+		isOpen: boolean;
+		domain: OwnerDomain | null;
+		isDeleting: boolean;
+	} = {
+		isOpen: false,
+		domain: null,
+		isDeleting: false,
+	};
 
 	// Subscribe to stores
 	crudLoader.items.subscribe(value => users = value);
@@ -294,8 +305,19 @@
 		}
 	}
 
-	async function deleteOwnerDomain(domain: OwnerDomain) {
-		if (!confirm(get(t)('admin.confirmRemoveOwnerDomain').replace('{hostname}', domain.hostname))) return;
+	function openRemoveOwnerDomainDialog(domain: OwnerDomain) {
+		removeOwnerDomainDialog = { isOpen: true, domain, isDeleting: false };
+	}
+
+	function closeRemoveOwnerDomainDialog() {
+		removeOwnerDomainDialog = { isOpen: false, domain: null, isDeleting: false };
+	}
+
+	async function confirmRemoveOwnerDomain() {
+		const domain = removeOwnerDomainDialog.domain;
+		if (!domain || removeOwnerDomainDialog.isDeleting) return;
+		removeOwnerDomainDialog = { ...removeOwnerDomainDialog, isDeleting: true };
+		ownerDomainsError = '';
 		try {
 			const response = await fetch(`/api/admin/owner-domains/${encodeURIComponent(domain.id)}`, {
 				method: 'DELETE',
@@ -304,9 +326,11 @@
 				await handleApiErrorResponse(response);
 			}
 			ownerDomains = ownerDomains.filter((d) => d.id !== domain.id);
+			closeRemoveOwnerDomainDialog();
 		} catch (err) {
 			logger.error('Error deleting owner domain:', err);
 			ownerDomainsError = handleError(err, get(t)('admin.failedToDeleteOwnerDomain'));
+			removeOwnerDomainDialog = { ...removeOwnerDomainDialog, isDeleting: false };
 		}
 	}
 
@@ -535,7 +559,7 @@
 						bind:newOwnerDomainHostname
 						onAddDomain={addOwnerDomain}
 						onUpdateDomain={updateOwnerDomain}
-						onDeleteDomain={deleteOwnerDomain}
+						onDeleteDomain={openRemoveOwnerDomainDialog}
 					/>
 				</UserForm>
 				<div class="flex justify-end space-x-2 pt-4">
@@ -620,3 +644,19 @@
 		</div>
 	</div>
 {/if}
+
+<AdminConfirmDialog
+	open={removeOwnerDomainDialog.isOpen}
+	title={get(t)('admin.ownerDomainsRemove')}
+	message={removeOwnerDomainDialog.domain
+		? get(t)('admin.confirmRemoveOwnerDomain').replace('{hostname}', removeOwnerDomainDialog.domain.hostname)
+		: ''}
+	confirmText={removeOwnerDomainDialog.isDeleting ? get(t)('admin.deleting') : get(t)('admin.ownerDomainsRemove')}
+	cancelText={get(t)('admin.cancel')}
+	variant="danger"
+	confirmDisabled={removeOwnerDomainDialog.isDeleting}
+	onOpenChange={(o) => {
+		if (!o) closeRemoveOwnerDomainDialog();
+	}}
+	onConfirm={confirmRemoveOwnerDomain}
+/>

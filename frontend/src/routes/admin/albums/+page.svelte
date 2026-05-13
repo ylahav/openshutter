@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { get } from 'svelte/store';
 	import { goto } from '$app/navigation';
 	import { afterNavigate } from '$app/navigation';
 	import { page } from '$app/stores';
@@ -40,6 +41,7 @@
 		allowedUsers?: string[];
 		createdAt: string;
 		updatedAt: string;
+		childAlbumCount?: number;
 	}
 
 	interface Photo {
@@ -61,6 +63,10 @@
 	let loading = true;
 	let error = '';
 	let searchQuery = '';
+	type AlbumStatusFilter = 'all' | 'published' | 'draft' | 'private';
+	type AlbumSortOption = 'manual' | 'name' | 'date';
+	let statusFilter: AlbumStatusFilter = 'all';
+	let sortOption: AlbumSortOption = 'manual';
 	let albumsKey = 0; // Key to force AlbumTree re-render when albums change
 
 	// Cover photo modal state
@@ -160,6 +166,31 @@
 		}
 	}
 
+	async function toggleFeatured(album: Album) {
+		try {
+			const current = album.isFeatured === true;
+			const response = await fetch(`/api/admin/albums/${album._id}`, {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({
+					isFeatured: !current,
+				}),
+			});
+
+			if (!response.ok) {
+				await handleApiErrorResponse(response);
+			}
+
+			await loadAlbums();
+			albumsKey += 1;
+		} catch (err) {
+			logger.error('Failed to toggle featured status:', err);
+			error = handleError(err, $t('admin.failedToUpdateFeaturedStatus'));
+		}
+	}
+
 	onMount(() => {
 		// Load albums asynchronously
 		(async () => {
@@ -214,6 +245,8 @@
 				togglePublic(album);
 			} else if (action === 'cover-photo') {
 				openCoverPhotoModal(album);
+			} else if (action === 'toggle-featured') {
+				toggleFeatured(album);
 			} else if (action === 'delete') {
 				openDeleteDialog(album);
 			}
@@ -301,55 +334,85 @@
 		}
 	}
 
+	function escAttr(s: string): string {
+		return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+	}
+
 	function renderAlbumActions(node: any): string {
-		const albumName = getAlbumName(node).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 		const isPublished = node.isPublished !== undefined ? node.isPublished : true;
 		const isPublic = node.isPublic !== undefined ? node.isPublic : false;
+		const isFeatured = node.isFeatured === true;
+		const tx = (key: string) => escAttr(get(t)(key));
+		const returnTo = encodeURIComponent('/admin/albums');
+		const uploadHref = `/admin/photos/upload?albumId=${encodeURIComponent(node._id)}&returnTo=${returnTo}`;
+		const iconBtn =
+			'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-base leading-none text-(--color-surface-500-500) hover:bg-(--color-surface-100-900) hover:text-(--color-surface-800-200)';
+		const iconBtnActive = ' text-(--color-primary-600) hover:text-(--color-primary-800)';
 		return `
-			<div class="flex items-center gap-2 album-actions" data-album-id="${node._id}">
+			<div class="flex flex-wrap items-center gap-x-1.5 gap-y-1 album-actions text-left" data-album-id="${node._id}">
 				<button
 					type="button"
 					data-action="toggle-published"
-					class="p-1.5 rounded transition-colors ${isPublished 
-						? 'text-green-600 hover:text-green-900 hover:bg-green-50' 
-						: 'text-(--color-surface-400-600) hover:text-(--color-surface-600-400) hover:bg-(--color-surface-50-950)'}"
-					title="${isPublished ? 'Published - Click to unpublish' : 'Unpublished - Click to publish'}"
+					class="inline-flex shrink-0 items-center rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors ${isPublished
+						? 'border-emerald-200 bg-emerald-50 text-emerald-900 hover:bg-emerald-100 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-100'
+						: 'border-(--color-surface-300-600) bg-(--color-surface-100-900) text-(--color-surface-700-300) hover:bg-(--color-surface-200-800)'}"
+					title="${isPublished ? tx('admin.albumsListUnpublishHint') : tx('admin.albumsListPublishHint')}"
 				>
-					${isPublished ? '✓' : '○'}
+					${isPublished ? tx('admin.dashboardPublished') : tx('admin.dashboardDraft')}
 				</button>
+				<span class="shrink-0 text-(--color-surface-400-500) select-none" aria-hidden="true">·</span>
+				<a
+					href="/admin/albums/${node._id}/edit"
+					class="shrink-0 text-xs font-medium text-(--color-primary-600) hover:text-(--color-primary-800) hover:underline"
+					title="${tx('admin.editAlbum')}"
+				>${tx('admin.albumsListActionEdit')}</a>
+				<a
+					href="${uploadHref}"
+					class="shrink-0 text-xs font-medium text-(--color-primary-600) hover:text-(--color-primary-800) hover:underline"
+					title="${tx('admin.uploadPhotos')}"
+				>${tx('admin.albumsListActionUpload')}</a>
+				<span class="mx-0.5 h-4 w-px shrink-0 self-center bg-(--color-surface-300-600)" aria-hidden="true"></span>
 				<button
 					type="button"
 					data-action="toggle-public"
-					class="p-1.5 rounded transition-colors ${isPublic 
-						? 'text-(--color-primary-600) hover:text-(--color-primary-900) hover:bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)]' 
-						: 'text-(--color-surface-400-600) hover:text-(--color-surface-600-400) hover:bg-(--color-surface-50-950)'}"
-					title="${isPublic ? 'Public - Click to make private' : 'Private - Click to make public'}"
+					class="${iconBtn}${isPublic ? iconBtnActive : ''}"
+					title="${tx('admin.albumsListPublicToggleHint')}"
 				>
 					${isPublic ? '🌐' : '🔒'}
 				</button>
 				<button
 					type="button"
 					data-action="cover-photo"
-					class="text-purple-600 hover:text-purple-900 p-1.5 rounded hover:bg-purple-50"
-					title="Set Cover Photo"
+					class="${iconBtn}"
+					title="${tx('admin.setCoverPhoto')}"
 				>
 					🖼️
 				</button>
 				<a
 					href="/albums/${node.alias}"
 					target="_blank"
-					class="text-(--color-surface-600-400) hover:text-(--color-surface-950-50) p-1.5 rounded hover:bg-(--color-surface-100-900)"
-					title="View"
+					rel="noopener noreferrer"
+					class="${iconBtn}"
+					title="${tx('search.view')}"
 				>
 					👁️
 				</a>
 				<button
 					type="button"
-					data-action="delete"
-					class="text-red-600 hover:text-red-900 p-1.5 rounded hover:bg-red-50"
-					title="Delete"
+					data-action="toggle-featured"
+					class="${iconBtn}${isFeatured ? ' text-amber-600 hover:text-amber-800 hover:bg-amber-50 dark:hover:bg-amber-950/30' : ''}"
+					title="${tx('admin.albumsListToggleFeaturedHint')}"
 				>
-					🗑️
+					⭐
+				</button>
+				<span class="mx-0.5 h-4 w-px shrink-0 self-center bg-(--color-surface-300-600)" aria-hidden="true"></span>
+				<button
+					type="button"
+					data-action="delete"
+					class="shrink-0 text-xs font-medium text-red-600 hover:text-red-900 hover:underline"
+					title="${tx('admin.deleteAlbum')}"
+				>
+					${tx('admin.delete')}
 				</button>
 			</div>
 		`;
@@ -362,15 +425,61 @@
 	// Album name function is now imported from shared utility
 
 
-	function getFilteredAlbums(): Album[] {
-		if (!searchQuery.trim()) return albums;
-		const query = searchQuery.toLowerCase();
-		return albums.filter(
-			(album) =>
-				getAlbumName(album).toLowerCase().includes(query) ||
-				album.alias.toLowerCase().includes(query),
+	function albumMatchesRowStatus(a: Album): boolean {
+		const published = a.isPublished !== false;
+		const isPublic = a.isPublic === true;
+		if (statusFilter === 'all') return true;
+		if (statusFilter === 'draft') return !published;
+		if (statusFilter === 'private') return published && !isPublic;
+		if (statusFilter === 'published') return published && isPublic;
+		return true;
+	}
+
+	function albumMatchesSearch(a: Album, q: string): boolean {
+		if (!q.trim()) return true;
+		const ql = q.toLowerCase();
+		return (
+			getAlbumName(a).toLowerCase().includes(ql) ||
+			String(a.alias ?? '')
+				.toLowerCase()
+				.includes(ql)
 		);
 	}
+
+	function getDisplayAlbums(): Album[] {
+		const q = searchQuery.trim();
+		if (!q && statusFilter === 'all') {
+			return albums;
+		}
+		const byId = new Map(albums.map((x) => [x._id, x]));
+		const direct = new Set(
+			albums.filter((a) => albumMatchesSearch(a, q) && albumMatchesRowStatus(a)).map((a) => a._id)
+		);
+		const visible = new Set<string>();
+		const addAncestors = (id: string) => {
+			let cur: Album | undefined = byId.get(id);
+			while (cur) {
+				visible.add(cur._id);
+				const pid = cur.parentAlbumId;
+				cur = pid ? byId.get(pid) : undefined;
+			}
+		};
+		const addDescendants = (id: string) => {
+			for (const a of albums) {
+				if (a.parentAlbumId === id) {
+					visible.add(a._id);
+					addDescendants(a._id);
+				}
+			}
+		};
+		for (const id of direct) {
+			addAncestors(id);
+			addDescendants(id);
+		}
+		return albums.filter((a) => visible.has(a._id));
+	}
+
+	$: reorderEnabled = !searchQuery.trim() && statusFilter === 'all' && sortOption === 'manual';
 
 	async function handleReorder(
 		updates: Array<{ id: string; parentAlbumId: string | null; order: number }>
@@ -574,55 +683,102 @@
 		{/if}
 
 		<!-- Stats Overview -->
-		<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+		<div class="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-5">
 			<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-4">
 				<div class="text-center">
-					<div class="text-2xl font-bold text-(--color-primary-600)">{albums.length}</div>
-					<div class="text-sm text-(--color-surface-600-400)">{$t('admin.totalAlbums')}</div>
+					<div class="text-2xl font-bold text-orange-600 tabular-nums">
+						{albums.reduce((total, album) => total + (album.photoCount || 0), 0).toLocaleString()}
+					</div>
+					<div class="text-sm text-(--color-surface-600-400)">{$t('admin.albumsListStatPhotosLabel')}</div>
 				</div>
 			</div>
 			<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-4">
 				<div class="text-center">
-					<div class="text-2xl font-bold text-green-600">
-						{albums.filter((a) => a.isPublished).length}
-					</div>
-					<div class="text-sm text-(--color-surface-600-400)">{$t('admin.publishedAlbums')}</div>
+					<div class="text-2xl font-bold text-(--color-primary-600) tabular-nums">{albums.length.toLocaleString()}</div>
+					<div class="text-sm text-(--color-surface-600-400)">{$t('admin.albumsListStatAlbumsLabel')}</div>
+					<div class="mt-0.5 text-xs text-(--color-surface-500-400)">{$t('admin.albumsListStatAlbumsSub')}</div>
 				</div>
 			</div>
 			<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-4">
 				<div class="text-center">
-					<div class="text-2xl font-bold text-(--color-primary-600)">
-						{albums.filter((a) => a.isPublic).length}
+					<div class="text-2xl font-bold text-green-600 tabular-nums">
+						{albums.filter((a) => a.isPublished !== false).length.toLocaleString()}
 					</div>
-					<div class="text-sm text-(--color-surface-600-400)">{$t('admin.publicAlbums')}</div>
+					<div class="text-sm text-(--color-surface-600-400)">{$t('admin.albumsListStatPublishedLabel')}</div>
 				</div>
 			</div>
 			<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-4">
 				<div class="text-center">
-					<div class="text-2xl font-bold text-purple-600">
-						{albums.filter((a) => a.isFeatured).length}
+					<div class="text-2xl font-bold text-(--color-primary-600) tabular-nums">
+						{albums.filter((a) => a.isPublic === true).length.toLocaleString()}
 					</div>
-					<div class="text-sm text-(--color-surface-600-400)">{$t('admin.featuredAlbums')}</div>
+					<div class="text-sm text-(--color-surface-600-400)">{$t('admin.albumsListStatPublicLabel')}</div>
 				</div>
 			</div>
 			<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-4">
 				<div class="text-center">
-					<div class="text-2xl font-bold text-orange-600">
-						{albums.reduce((total, album) => total + (album.photoCount || 0), 0)}
+					<div
+						class="text-2xl font-bold tabular-nums {albums.filter((a) => a.isFeatured).length === 0 &&
+						albums.some((a) => a.isPublished !== false)
+							? 'text-red-600'
+							: 'text-purple-600'}"
+					>
+						{albums.filter((a) => a.isFeatured).length.toLocaleString()}
 					</div>
-					<div class="text-sm text-(--color-surface-600-400)">{$t('admin.totalPhotos')}</div>
+					<div
+						class="text-sm {albums.filter((a) => a.isFeatured).length === 0 &&
+						albums.some((a) => a.isPublished !== false)
+							? 'text-red-600 font-medium'
+							: 'text-(--color-surface-600-400)'}"
+					>
+						{$t('admin.albumsListStatFeaturedLabel')}
+					</div>
+					{#if albums.filter((a) => a.isFeatured).length === 0 && albums.some((a) => a.isPublished !== false)}
+						<div class="mt-0.5 text-xs font-medium text-red-600">{$t('admin.dashboardStatFeaturedHint')}</div>
+					{/if}
 				</div>
 			</div>
 		</div>
 
-		<!-- Search -->
-		<div class="mb-4">
+		<!-- Search, status filter, sort -->
+		<div class="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
 			<input
 				type="text"
 				bind:value={searchQuery}
 				placeholder={$t('admin.searchAlbumsPlaceholder')}
-				class="w-full md:w-64 px-4 py-2 border border-surface-300-700 rounded-md focus:outline-none focus:ring-2 focus:ring-(--color-primary-500)"
+				class="w-full min-w-0 flex-1 px-4 py-2 border border-surface-300-700 rounded-md focus:outline-none focus:ring-2 focus:ring-(--color-primary-500) sm:max-w-md"
 			/>
+			<div class="flex flex-wrap items-center gap-2 sm:gap-3">
+				<div class="flex items-center gap-1.5">
+					<span class="text-sm font-medium text-(--color-surface-600-400) shrink-0" id="album-status-lbl"
+						>{$t('admin.albumsListFilterLabel')}</span
+					>
+					<select
+						bind:value={statusFilter}
+						aria-labelledby="album-status-lbl"
+						class="rounded-md border border-surface-300-700 bg-(--color-surface-50-950) px-3 py-2 text-sm text-(--color-surface-900-100) focus:outline-none focus:ring-2 focus:ring-(--color-primary-500)"
+					>
+						<option value="all">{$t('admin.albumsListFilterAll')}</option>
+						<option value="published">{$t('admin.albumsListFilterPublished')}</option>
+						<option value="draft">{$t('admin.albumsListFilterDraft')}</option>
+						<option value="private">{$t('admin.albumsListFilterPrivate')}</option>
+					</select>
+				</div>
+				<div class="flex items-center gap-1.5">
+					<span class="text-sm font-medium text-(--color-surface-600-400) shrink-0" id="album-sort-lbl"
+						>{$t('admin.albumsListSortLabel')}</span
+					>
+					<select
+						bind:value={sortOption}
+						aria-labelledby="album-sort-lbl"
+						class="rounded-md border border-surface-300-700 bg-(--color-surface-50-950) px-3 py-2 text-sm text-(--color-surface-900-100) focus:outline-none focus:ring-2 focus:ring-(--color-primary-500)"
+					>
+						<option value="manual">{$t('admin.albumsListSortManual')}</option>
+						<option value="name">{$t('admin.albumsListSortName')}</option>
+						<option value="date">{$t('admin.albumsListSortDate')}</option>
+					</select>
+				</div>
+			</div>
 		</div>
 
 		{#if loading}
@@ -630,29 +786,31 @@
 				<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-(--color-primary-600)"></div>
 				<p class="mt-2 text-(--color-surface-600-400)">{$t('admin.loadingAlbums')}</p>
 			</div>
-		{:else if getFilteredAlbums().length === 0}
+		{:else if albums.length === 0}
 			<div class="text-center py-12 card preset-outlined-surface-200-800 bg-surface-50-950">
 				<div class="text-(--color-surface-400-600) text-6xl mb-4">📁</div>
 				<h3 class="text-xl font-semibold text-(--color-surface-950-50) mb-2">{$t('admin.noAlbumsFound')}</h3>
 				<p class="text-(--color-surface-600-400) mb-6">
-					{searchQuery
-						? $t('admin.noAlbumsMatchSearch')
-						: $t('admin.getStartedByCreatingFirstAlbum')}
+					{$t('admin.getStartedByCreatingFirstAlbum')}
 				</p>
-				{#if !searchQuery}
-					<a
-						href="/albums/new"
-						class="inline-flex items-center px-6 py-3 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700)"
-					>
-						{$t('admin.createAlbum')}
-					</a>
-				{/if}
+				<a
+					href="/albums/new"
+					class="inline-flex items-center px-6 py-3 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700)"
+				>
+					{$t('admin.createAlbum')}
+				</a>
+			</div>
+		{:else if getDisplayAlbums().length === 0}
+			<div class="text-center py-12 card preset-outlined-surface-200-800 bg-surface-50-950">
+				<div class="text-(--color-surface-400-600) text-6xl mb-4">🔎</div>
+				<h3 class="text-xl font-semibold text-(--color-surface-950-50) mb-2">{$t('admin.albumsListNoResultsTitle')}</h3>
+				<p class="text-(--color-surface-600-400) mb-6">{$t('admin.albumsListNoMatches')}</p>
 			</div>
 		{:else}
 			<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
 				{#key albumsKey}
 				<AlbumTree
-					albums={getFilteredAlbums().map((a) => ({
+					albums={getDisplayAlbums().map((a) => ({
 						_id: a._id,
 						name:
 							typeof a.name === 'string'
@@ -663,15 +821,18 @@
 						level: a.level,
 						order: a.order,
 						photoCount: a.photoCount,
+						childAlbumCount: a.childAlbumCount ?? 0,
+						updatedAt: a.updatedAt,
 						isPublic: a.isPublic !== undefined ? a.isPublic : false,
 						isPublished: a.isPublished !== undefined ? a.isPublished : true,
 						isFeatured: a.isFeatured,
 						allowedGroups: a.allowedGroups ?? [],
 						allowedUsers: a.allowedUsers ?? []
 					}))}
-					onReorder={handleReorder}
+					onReorder={reorderEnabled ? handleReorder : undefined}
 					onOpen={handleOpen}
 					renderActions={renderAlbumActions}
+					clientSortBy={sortOption}
 					showAccordion={true}
 					expandAllByDefault={false}
 				/>

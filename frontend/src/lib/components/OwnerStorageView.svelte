@@ -3,6 +3,10 @@
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 	import { t } from '$stores/i18n';
+	import StorageTreeItem from '$lib/components/StorageTreeItem.svelte';
+
+	/** When true, load/save site-wide settings via `/api/admin/storage/*` (admin role only). */
+	export let isSiteAdmin = false;
 
 	export let backHref = '/owner';
 
@@ -75,16 +79,157 @@
 	let googleDriveMessage: { type: 'success' | 'error'; text: string } | null = null;
 	let oauthWindow: Window | null = null;
 
+	let googleDriveLiveOk: boolean | null = null;
+	let googleDriveLiveTesting = false;
+	let googleDriveTreeOpen = false;
+	let googleDriveTreeLoading = false;
+	let googleDriveTreeRoot: any = null;
+
 	$: activeOption = storageOptions.find((o) => o.id === activeTab) || storageOptions[0];
+
+	$: googleDriveOwnerConfigured =
+		formData.gdAuthMethod === 'service_account'
+			? !!(formData.gdServiceAccountJson?.trim() && formData.gdFolderId?.trim())
+			: !!(formData.gdClientId?.trim() &&
+					formData.gdClientSecret?.trim() &&
+					formData.gdRefreshToken?.trim());
+
+	function applyGoogleDriveFormFromConfig(c: Record<string, unknown>) {
+		formData.gdAuthMethod = String(c.authMethod ?? 'oauth');
+		formData.gdClientId = String(c.clientId ?? '');
+		formData.gdClientSecret = String(c.clientSecret ?? '');
+		formData.gdRefreshToken = String(c.refreshToken ?? '');
+		formData.gdStorageType = String(c.storageType ?? 'appdata');
+		formData.gdFolderId = String(c.folderId ?? '');
+		formData.gdServiceAccountJson = String(
+			typeof c.serviceAccountJson === 'string' ? c.serviceAccountJson : '',
+		);
+		formData.storageRootFolderId = String(c.rootFolderId ?? '');
+		formData.storageSharedDriveId = String(c.sharedDriveId ?? '');
+		formData.storageFolderPrefix = String(c.folderPrefix ?? '');
+	}
+
+	async function loadSiteAdminConfigsFromApi() {
+		const res = await fetch('/api/admin/storage');
+		if (!res.ok) await handleApiErrorResponse(res);
+		const configs = await res.json();
+		if (!Array.isArray(configs)) return;
+
+		storageOptions = configs.map((row: Record<string, any>) => ({
+			id: row.providerId as string,
+			name: (row.name as string) || (row.providerId as string),
+			type: row.providerId as string,
+			isEnabled: row.isEnabled !== false,
+		}));
+
+		dedicatedRawJson = {};
+		for (const row of configs) {
+			const id = row.providerId as string;
+			const c = (row.config && typeof row.config === 'object' ? row.config : {}) as Record<
+				string,
+				unknown
+			>;
+			if (id === 'google-drive') {
+				applyGoogleDriveFormFromConfig(c);
+			} else if (id === 'wasabi') {
+				formData.wasabiEndpoint = String(c.endpoint ?? '');
+				formData.wasabiBucketName = String(c.bucketName ?? '');
+				formData.wasabiRegion = String(c.region ?? '');
+				formData.wasabiAccessKeyId = String(c.accessKeyId ?? '');
+				formData.wasabiSecretAccessKey = String(c.secretAccessKey ?? '');
+			} else if (id === 'local') {
+				formData.localBasePath = String(c.basePath ?? '');
+			} else {
+				dedicatedRawJson[id] = JSON.stringify(c, null, 2);
+			}
+		}
+		dedicatedRawJson = { ...dedicatedRawJson };
+	}
+
+	async function pingGoogleDriveAdminTest() {
+		if (!isSiteAdmin) return;
+		googleDriveLiveTesting = true;
+		googleDriveLiveOk = null;
+		try {
+			const r = await fetch('/api/admin/storage/google-drive/test', { method: 'POST' });
+			const j = await r.json().catch(() => ({}));
+			googleDriveLiveOk = r.ok && j.success === true;
+		} catch {
+			googleDriveLiveOk = false;
+		} finally {
+			googleDriveLiveTesting = false;
+		}
+	}
+
+	async function openGoogleDriveTree() {
+		if (!isSiteAdmin) return;
+		googleDriveTreeOpen = true;
+		googleDriveTreeLoading = true;
+		googleDriveTreeRoot = null;
+		try {
+			const r = await fetch('/api/admin/storage/google-drive/tree?maxDepth=4');
+			const j = await r.json().catch(() => ({}));
+			if (!r.ok) {
+				googleDriveTreeRoot = null;
+				return;
+			}
+			googleDriveTreeRoot = j.data ?? j;
+		} finally {
+			googleDriveTreeLoading = false;
+		}
+	}
+
+	async function saveSiteAdminProvider(providerId: string) {
+		const opt = storageOptions.find((o) => o.id === providerId);
+		const isEnabled = opt?.isEnabled !== false;
+
+		let body: Record<string, unknown> = { isEnabled };
+
+		if (providerId === 'google-drive') {
+			body = { isEnabled, ...buildGoogleDedicatedConfig() };
+		} else if (providerId === 'wasabi') {
+			body.endpoint = formData.wasabiEndpoint?.trim() || undefined;
+			body.bucketName = formData.wasabiBucketName?.trim() || undefined;
+			body.region = formData.wasabiRegion?.trim() || undefined;
+			body.accessKeyId = formData.wasabiAccessKeyId?.trim() || undefined;
+			body.secretAccessKey = formData.wasabiSecretAccessKey?.trim() || undefined;
+		} else if (providerId === 'local') {
+			body.basePath = formData.localBasePath?.trim() || undefined;
+		} else {
+			let parsed: Record<string, unknown>;
+			try {
+				parsed = JSON.parse(dedicatedRawJson[providerId] || '{}');
+			} catch {
+				throw new Error('Invalid JSON for this provider');
+			}
+			if (typeof parsed !== 'object' || parsed === null) {
+				throw new Error('Config must be a JSON object');
+			}
+			body = { ...parsed, isEnabled };
+		}
+
+		const res = await fetch(`/api/admin/storage/${encodeURIComponent(providerId)}`, {
+			method: 'PUT',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(body),
+		});
+		if (!res.ok) await handleApiErrorResponse(res);
+		await loadSiteAdminConfigsFromApi();
+	}
 
 	onMount(async () => {
 		try {
 			await fetchProfile();
-			dedicatedMode = profile?.useDedicatedStorage === true;
-			await Promise.all([
-				fetchStorageOptions(),
-				dedicatedMode ? fetchDedicatedConfigs() : Promise.resolve(),
-			]);
+			dedicatedMode = !isSiteAdmin && profile?.useDedicatedStorage === true;
+			if (isSiteAdmin) {
+				await loadSiteAdminConfigsFromApi();
+				await pingGoogleDriveAdminTest();
+			} else {
+				await Promise.all([
+					fetchStorageOptions(),
+					dedicatedMode ? fetchDedicatedConfigs() : Promise.resolve(),
+				]);
+			}
 		} finally {
 			loading = false;
 		}
@@ -153,8 +298,12 @@
 				throw new Error(tokenData?.error || 'Failed to exchange code for tokens.');
 			}
 			formData.gdRefreshToken = tokenData.refreshToken;
-			// Save to profile immediately
-			await saveStorageConfig();
+			if (isSiteAdmin) {
+				await saveSiteAdminProvider('google-drive');
+				await pingGoogleDriveAdminTest();
+			} else {
+				await saveStorageConfig();
+			}
 			googleDriveMessage = { type: 'success', text: 'New refresh token generated and saved successfully.' };
 		} catch (err) {
 			googleDriveMessage = { type: 'error', text: err instanceof Error ? err.message : 'Failed to complete Google authorization.' };
@@ -273,18 +422,7 @@
 					unknown
 				>;
 				if (id === 'google-drive') {
-					formData.gdAuthMethod = String(c.authMethod ?? 'oauth');
-					formData.gdClientId = String(c.clientId ?? '');
-					formData.gdClientSecret = String(c.clientSecret ?? '');
-					formData.gdRefreshToken = String(c.refreshToken ?? '');
-					formData.gdStorageType = String(c.storageType ?? 'appdata');
-					formData.gdFolderId = String(c.folderId ?? '');
-					formData.gdServiceAccountJson = String(
-						typeof c.serviceAccountJson === 'string' ? c.serviceAccountJson : '',
-					);
-					formData.storageRootFolderId = String(c.rootFolderId ?? '');
-					formData.storageSharedDriveId = String(c.sharedDriveId ?? '');
-					formData.storageFolderPrefix = String(c.folderPrefix ?? '');
+					applyGoogleDriveFormFromConfig(c);
 				} else if (id === 'wasabi') {
 					formData.wasabiEndpoint = String(c.endpoint ?? '');
 					formData.wasabiBucketName = String(c.bucketName ?? '');
@@ -325,7 +463,7 @@
 			const result = await response.json();
 			profile = (result.user || result) as UserProfile;
 			const fromProfileStorage = profile?.useDedicatedStorage !== true;
-			if (fromProfileStorage && profile?.storageConfig?.googleDrive) {
+			if (!isSiteAdmin && fromProfileStorage && profile?.storageConfig?.googleDrive) {
 				const gd = profile.storageConfig.googleDrive;
 				formData.storageRootFolderId = gd.rootFolderId ?? '';
 				formData.storageSharedDriveId = gd.sharedDriveId ?? '';
@@ -338,7 +476,7 @@
 				formData.gdFolderId = gd.folderId ?? '';
 				formData.gdServiceAccountJson = gd.serviceAccountJson ?? '';
 			}
-			if (fromProfileStorage && profile?.storageConfig?.wasabi) {
+			if (!isSiteAdmin && fromProfileStorage && profile?.storageConfig?.wasabi) {
 				const wa = profile.storageConfig.wasabi;
 				formData.wasabiEndpoint = wa.endpoint ?? '';
 				formData.wasabiBucketName = wa.bucketName ?? '';
@@ -395,6 +533,23 @@
 		const providerId = _providerId || activeTab;
 		if (!profile) return;
 
+		if (isSiteAdmin) {
+			saving = true;
+			error = null;
+			success = null;
+			try {
+				await saveSiteAdminProvider(providerId);
+				success = 'Storage settings saved.';
+				if (providerId === 'google-drive') await pingGoogleDriveAdminTest();
+			} catch (err) {
+				logger.error('Failed to save site storage:', err);
+				error = handleError(err, 'Failed to save');
+			} finally {
+				saving = false;
+			}
+			return;
+		}
+
 		if (dedicatedMode) {
 			saving = true;
 			error = null;
@@ -435,7 +590,8 @@
 	}
 
 	/** Site-wide admin connection (profile); dedicated owners skip this and use their own rows. */
-	$: useSiteAdminStorage = !dedicatedMode && profile?.storageConfig?.useAdminConfig === true;
+	$: useSiteAdminStorage =
+		!isSiteAdmin && !dedicatedMode && profile?.storageConfig?.useAdminConfig === true;
 </script>
 
 {#if loading}
@@ -541,12 +697,33 @@
 						</div>
 					{:else if activeTab === 'google-drive'}
 						<div class="space-y-6">
-							<h2 class="text-xl font-semibold text-gray-900">Google Drive Configuration</h2>
-							<p class="text-sm text-gray-500">
-								{dedicatedMode
-									? $t('owner.storageGoogleDedicatedHint')
-									: 'Same configuration as admin: OAuth or Service account, credentials, and folder. Data is stored in your account only.'}
-							</p>
+							<div class="flex flex-wrap items-start justify-between gap-4">
+								<div class="min-w-0 flex-1">
+									<h2 class="text-xl font-semibold text-gray-900">
+										{isSiteAdmin ? $t('admin.googleDriveConfig') : 'Google Drive Configuration'}
+									</h2>
+									<p class="text-sm text-gray-500 mt-1">
+										{dedicatedMode
+											? $t('owner.storageGoogleDedicatedHint')
+											: isSiteAdmin
+												? $t('admin.configureStorageProviders')
+												: 'Same configuration as admin: OAuth or Service account, credentials, and folder. Data is stored in your account only.'}
+									</p>
+								</div>
+								<div class="shrink-0 text-sm font-medium" aria-live="polite">
+										{#if isSiteAdmin}
+											{#if googleDriveLiveTesting}
+												<span class="text-gray-500">…</span>
+											{:else if googleDriveLiveOk === true}
+												<span class="text-green-700">{$t('admin.storageConnectionConnected')}</span>
+											{:else if googleDriveLiveOk === false}
+												<span class="text-amber-700">{$t('admin.connectionFailed')}</span>
+											{/if}
+										{:else if googleDriveOwnerConfigured}
+											<span class="text-green-700">{$t('admin.storageConnectionConfigured')}</span>
+										{/if}
+									</div>
+							</div>
 
 							{#if googleDriveMessage}
 								<div class="rounded-md p-3 text-sm {googleDriveMessage.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}">
@@ -623,7 +800,8 @@
 										<div class="flex gap-3">
 											<input
 												id="owner-gd-refresh-token"
-												type="text"
+												type="password"
+												autocomplete="new-password"
 												bind:value={formData.gdRefreshToken}
 												placeholder="Enter OAuth Refresh Token (or click Renew Token)"
 												class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
@@ -631,7 +809,7 @@
 											<button
 												type="button"
 												on:click={startGoogleOAuth}
-												class="px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+												class="shrink-0 px-3 py-2 border border-gray-300 bg-white text-gray-800 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500"
 											>
 												Renew Token
 											</button>
@@ -673,14 +851,32 @@
 									{/if}
 								{/if}
 
-								<div class="flex gap-4 pt-2">
+								<div class="flex flex-wrap items-center gap-3 pt-2">
 									<button
 										type="submit"
 										disabled={saving}
-										class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50"
+										class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
 									>
-										{saving ? 'Saving...' : 'Save Configuration'}
+										{saving ? $t('admin.saving') : $t('admin.saveConfiguration')}
 									</button>
+									{#if isSiteAdmin}
+										<button
+											type="button"
+											disabled={googleDriveLiveTesting || saving}
+											on:click={pingGoogleDriveAdminTest}
+											class="inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-gray-800 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400 disabled:opacity-50"
+										>
+											{$t('admin.testConnection')}
+										</button>
+										<button
+											type="button"
+											disabled={saving}
+											on:click={openGoogleDriveTree}
+											class="inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-gray-800 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400 disabled:opacity-50"
+										>
+											{$t('admin.viewTree')}
+										</button>
+									{/if}
 								</div>
 							</form>
 						</div>
@@ -782,6 +978,39 @@
 					{/if}
 				</div>
 			</div>
+
+			{#if isSiteAdmin && googleDriveTreeOpen}
+				<div
+					class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40"
+					role="dialog"
+					aria-modal="true"
+					aria-labelledby="gd-tree-dialog-title"
+				>
+					<div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[85vh] overflow-hidden flex flex-col border border-gray-200">
+						<div class="flex items-center justify-between gap-3 px-4 py-3 border-b border-gray-200">
+							<h3 id="gd-tree-dialog-title" class="text-lg font-semibold text-gray-900">
+								{$t('admin.viewTree')}
+							</h3>
+							<button
+								type="button"
+								class="px-3 py-1.5 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
+								on:click={() => (googleDriveTreeOpen = false)}
+							>
+								{$t('admin.close')}
+							</button>
+						</div>
+						<div class="p-4 overflow-auto flex-1 text-sm">
+							{#if googleDriveTreeLoading}
+								<p class="text-gray-600">…</p>
+							{:else if googleDriveTreeRoot}
+								<StorageTreeItem node={googleDriveTreeRoot} />
+							{:else}
+								<p class="text-amber-800">{$t('admin.failedToLoad')}</p>
+							{/if}
+						</div>
+					</div>
+				</div>
+			{/if}
 		{/if}
 	</div>
 {/if}

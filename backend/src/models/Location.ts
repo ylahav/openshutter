@@ -1,6 +1,15 @@
 import mongoose, { Document, Schema, Types } from 'mongoose'
 
 export interface ILocation extends Document {
+  /** Pin vs broader region (town/country); drives admin UI and map style. */
+  locationKind?: 'place' | 'area'
+  /** Optional map viewport from geocoding (Nominatim bbox or Google viewport). */
+  areaBounds?: {
+    south: number
+    north: number
+    west: number
+    east: number
+  }
   name: { en?: string; he?: string }
   description?: { en?: string; he?: string }
   address?: string
@@ -22,6 +31,17 @@ export interface ILocation extends Document {
 }
 
 export const LocationSchema = new Schema<ILocation>({
+  locationKind: {
+    type: String,
+    enum: ['place', 'area'],
+    default: 'place',
+  },
+  areaBounds: {
+    south: { type: Number, min: -90, max: 90 },
+    north: { type: Number, min: -90, max: 90 },
+    west: { type: Number, min: -180, max: 180 },
+    east: { type: Number, min: -180, max: 180 },
+  },
   name: {
     en: { type: String, trim: true },
     he: { type: String, trim: true }
@@ -69,7 +89,7 @@ export const LocationSchema = new Schema<ILocation>({
   category: {
     type: String,
     trim: true,
-    enum: ['city', 'landmark', 'venue', 'outdoor', 'indoor', 'travel', 'home', 'work', 'custom'],
+    enum: ['city', 'colony', 'village', 'kibbutz', 'landmark', 'venue', 'outdoor', 'indoor', 'travel', 'home', 'work', 'custom'],
     default: 'custom'
   },
   isActive: {

@@ -46,6 +46,7 @@ import {
 } from './owner-dedicated-storage/owner-dedicated-storage.controller';
 import { AIProvidersHealthController } from './ai/ai-providers-health.controller';
 import { ContactSubmissionsModule } from './contact-submissions/contact-submissions.module';
+import { AuditLogsController } from './audit-logs/audit-logs.controller';
 
 @Module({
   imports: [
@@ -96,6 +97,7 @@ import { ContactSubmissionsModule } from './contact-submissions/contact-submissi
     AdminOwnerDedicatedStorageController,
     OwnerDedicatedStorageController,
     AIProvidersHealthController,
+    AuditLogsController,
   ],
   providers: [AdminGuard, AdminOrOwnerGuard],
 })

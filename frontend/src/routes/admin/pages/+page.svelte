@@ -278,7 +278,6 @@
 	let categoryFilter = 'all';
 	let publishedFilter = 'all';
 	let sortBy: 'title-asc' | 'title-desc' | 'alias-asc' | 'alias-desc' = 'title-asc';
-	let groupByName = true;
 	let showCreateDialog = false;
 	let showEditDialog = false;
 	let showDeleteDialog = false;
@@ -620,14 +619,34 @@ let layoutShellInstances: Record<
 		crudOps.error.set('');
 	}
 
-	function openDuplicateDialog(page: Page) {
+	function openDuplicateDialog(page: Page, options?: { initialTargetPacks?: string[] }) {
 		dialogs.closeAll();
 		showDuplicateDialog = true;
 		pageToDuplicate = page;
 		duplicateAliasOverride = '';
-		duplicateTargetPacks = normalizePagePacks(page);
+		const fromOpts = options?.initialTargetPacks?.filter((p) =>
+			['atelier', 'noir', 'studio'].includes(String(p || '').trim().toLowerCase())
+		);
+		duplicateTargetPacks =
+			fromOpts && fromOpts.length > 0 ? [...fromOpts] : normalizePagePacks(page);
 		crudOps.error.set('');
 		error = '';
+	}
+
+	/** Pre-open duplicate dialog targeting the next unused theme pack for this title group. */
+	function openAddVariantForGroup(groupPages: Page[]) {
+		if (!groupPages.length) return;
+		if (groupPages.every((p) => p.category === 'system')) return;
+		const used = new Set<string>();
+		for (const p of groupPages) {
+			for (const x of normalizePagePacks(p)) {
+				if (x === 'atelier' || x === 'noir' || x === 'studio') used.add(x);
+			}
+		}
+		const order = ['atelier', 'noir', 'studio'] as const;
+		const missing = order.filter((id) => !used.has(id));
+		if (!missing.length) return;
+		openDuplicateDialog(groupPages[0], { initialTargetPacks: [missing[0]] });
 	}
 
 	function closeDuplicateDialog() {
@@ -2319,7 +2338,6 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 				bind:categoryFilter
 				bind:publishedFilter
 				bind:sortBy
-				bind:groupByName
 				categories={CATEGORIES}
 				onFilterChange={() => crudLoader.loadItems()}
 				onAddPage={openCreateDialog}
@@ -2354,10 +2372,9 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 					pages={pages}
 					categories={CATEGORIES}
 					{sortBy}
-					{groupByName}
 					onEdit={openEditDialog}
-					onDuplicate={openDuplicateDialog}
 					onDelete={openDeleteDialog}
+					onAddVariant={openAddVariantForGroup}
 				/>
 			{/if}
 		</div>

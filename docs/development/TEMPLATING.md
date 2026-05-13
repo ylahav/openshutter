@@ -766,7 +766,7 @@ Cross-reference **§2.2.1**, **§2.2.3**, and **§2.2.4** in [Part I](#part-i--r
 
 ### Milestone 2 — Admin experience
 
-- [x] Site config **Theme & layout** + template hub; `/admin/template-config` visibility.
+- [x] Site config **Theme & layout** + template hub; `/admin/theme-layout` visibility.
 - [x] Preview / apply / revert flows.
 - [x] Reset visibility to template defaults.
 - [ ] Permissions / audit for template changes — *deferred*.
