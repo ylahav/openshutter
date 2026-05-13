@@ -8,8 +8,8 @@ Snapshot to drive migration: prefer **`adminToast`** for transient success/error
 |-----------------------------|:-------------:|:---------------------:|-------|
 | `/admin` | — | — | Dashboard; inline cards typical. **Wave 1 partial:** primary CTA, retry, quick actions use **`admin-cerberus`**. |
 | `/admin/albums` | ✓ | ✓ | Wave 1; **partial:** empty-state **Create album** uses **`admin-cerberus`**. |
-| `/admin/albums/[id]` | — | ✓ | Wave 1 |
-| `/admin/albums/[id]/edit` | — | — | Wave 1 |
+| `/admin/albums/[id]` | ✓ | ✓ | **Wave 1 partial:** **`adminToast`** for successes; bulk dialogs use **`admin-cerberus`**; red banner kept for **`error`**. |
+| `/admin/albums/[id]/edit` | ✓ | — | **Wave 1 partial:** save / leading-photo feedback via **`adminToast`**; removed **`NotificationDialog`**; Cerberus primary/secondary actions. |
 | `/admin/analytics` | — | — | |
 | `/admin/audit-logs` | — | — | |
 | `/admin/backup-restore` | — | ✓ | |
@@ -30,7 +30,7 @@ Snapshot to drive migration: prefer **`adminToast`** for transient success/error
 | `/admin/people` | — | — | |
 | `/admin/photos/upload` | — | — | Inline upload report panels |
 | `/admin/photos/[id]/edit` | — | — | Uses `Toast` for some flows |
-| `/admin/site-config` | ✓ | ✓ | |
+| `/admin/site-config` | ✓ | ✓ | **Wave 1 partial:** save/upload/test-email use **`adminToast`**; top **`message`** banner is **errors only** (Cerberus-style surface). |
 | `/admin/storage` | — | — | Embeds `OwnerStorageView`. **Wave 1 partial:** page shell uses admin body background (no **`gray-50`**). |
 | `/admin/storage/google-drive-setup` | — | — | |
 | `/admin/tags` | — | — | |
@@ -41,6 +41,6 @@ Snapshot to drive migration: prefer **`adminToast`** for transient success/error
 | `/admin/translations` | — | ✓ | Two confirm dialogs |
 | `/admin/users` | — | ✓ | **Wave 1 partial:** create/edit dialog footers use **`admin-cerberus`**. |
 
-**Next steps (Phase 6 Wave 1):** add **`adminToast`** to dashboard, album detail/edit, photos upload/edit, users, storage wrapper—wherever inline green/red banners are used only for transient feedback.
+**Next steps (Phase 6 Wave 1):** finish **`/admin/photos/upload`** and **`/admin/photos/[id]/edit`** (`adminToast` + **`admin-cerberus`** where inline banners or raw primaries remain). Optional: dashboard load toasts; **`OwnerStorageView`** internals.
 
 *Generated with repo static scan; re-run `rg "adminToast|AdminConfirmDialog" frontend/src/routes/admin` after changes. **ESLint** warns on `confirm`/`alert` in admin scripts — see `frontend/eslint.config.js`.*

@@ -1,7 +1,7 @@
 ## [Unreleased]
 
 ### Changed
-- **Admin UI Phase 6 (Wave 1 partial):** Dashboard header CTA, retry, and quick actions use **`admin-cerberus`** (`frontend/src/routes/admin/+page.svelte`). Albums list empty-state **Create album** link matches the same pattern. Users create/edit dialogs use **`adminBtnPrimarySm`** / **`adminBtnSecondary`**. **`/admin/storage`** and **`/owner/storage`** page wrappers drop **`min-h-screen bg-gray-50`** so the admin/owner chrome body background shows through consistently.
+- **Admin UI Phase 6 (Wave 1 partial):** Dashboard header CTA, retry, and quick actions use **`admin-cerberus`**. Albums list empty-state **Create album** link matches. Users create/edit dialogs use **`adminBtnPrimarySm`** / **`adminBtnSecondary`**. **`/admin/storage`** and **`/owner/storage`** wrappers drop **`min-h-screen bg-gray-50`**. **Album detail** (`admin/albums/[id]`): transient successes use **`adminToast`**; bulk modals and empty-state upload CTA use **`admin-cerberus`**. **Album edit** uses **`adminToast`** for save and leading-photo updates; **`NotificationDialog`** removed. **Site config:** save no longer sets a faux success **`message`**; branding upload validation/success/errors and test-email success use **`adminToast`**; the main **`message`** strip is **errors only** with neutral alert styling; test-email success panel drops raw **`bg-green-50`**.
 
 ### Fixed
 - **Admin toast (success) looked empty:** `AdminToastRegion` applied enter opacity on `Toast.Message`, but Zag’s `data-state` is on the **`Toast` root**, so the message stayed at **opacity 0**. Removed that animation from the message card and aligned the title with **`dark:text-(--base-font-color-dark)`** for admin dark mode.

@@ -7,12 +7,13 @@
 	import MultiLangInput from '$lib/components/MultiLangInput.svelte';
 	import MultiLangHTMLEditor from '$lib/components/MultiLangHTMLEditor.svelte';
 	import AlbumBreadcrumbs from '$lib/components/AlbumBreadcrumbs.svelte';
-	import NotificationDialog from '$lib/components/NotificationDialog.svelte';
 	import { getPhotoUrl, getPhotoRotationStyle } from '$lib/utils/photoUrl';
 	import { getPhotoTitle } from '$lib/utils/photoUtils';
 	import { getAlbumName } from '$lib/utils/albumUtils';
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
+	import { adminToast } from '$lib/admin/adminToast';
+	import { adminBtnPrimarySm, adminBtnSecondary, adminRingPrimary } from '$lib/admin/admin-cerberus';
 
 	interface Album {
 		_id: string;
@@ -68,7 +69,6 @@
 	let loading = true;
 	let saving = false;
 	let error = '';
-	let notification = { show: false, message: '', type: 'success' as 'success' | 'error' };
 
 		let formData = {
 		name: {} as Record<string, string>,
@@ -225,24 +225,15 @@
 			const updatedAlbum = await response.json();
 			logger.debug('Album updated:', updatedAlbum);
 
-			notification = {
-				show: true,
-				message: 'Album updated successfully',
-				type: 'success',
-			};
+			adminToast.success({ title: 'Album updated successfully' });
 
-			// Redirect after a short delay
+			// Redirect after a short delay so the toast is visible
 			setTimeout(() => {
 				goto(`/admin/albums/${albumId}`);
-			}, 1000);
+			}, 600);
 		} catch (err) {
 			logger.error('Failed to update album:', err);
 			error = handleError(err, 'Failed to update album');
-			notification = {
-				show: true,
-				message: error,
-				type: 'error',
-			};
 		} finally {
 			saving = false;
 		}
@@ -379,12 +370,12 @@
 				await handleApiErrorResponse(response);
 			} else {
 				album = { ...album, coverPhotoId: photoId };
-				notification = { show: true, message: 'Leading photo updated', type: 'success' };
+				adminToast.success({ title: 'Leading photo updated' });
 				closeCoverPhotoModal();
 			}
 		} catch (err) {
 			logger.error('Failed to set cover photo:', err);
-			notification = { show: true, message: handleError(err, 'Failed to set leading photo'), type: 'error' };
+			adminToast.error({ title: handleError(err, 'Failed to set leading photo') });
 		} finally {
 			coverPhotoModal = { ...coverPhotoModal, saving: false };
 		}
@@ -460,7 +451,7 @@
 			<div class="text-center py-12">
 				<h1 class="text-2xl font-bold text-(--color-surface-950-50) mb-4">Error</h1>
 				<p class="text-(--color-surface-600-400) mb-4">{error}</p>
-				<a href="/admin/albums" class="btn-primary">Back to Albums</a>
+				<a href="/admin/albums" class="{adminBtnPrimarySm} {adminRingPrimary}">Back to Albums</a>
 			</div>
 		{:else if album}
 			<!-- Breadcrumbs -->
@@ -477,7 +468,7 @@
 				<div class="flex items-center gap-3">
 					<a
 						href="/albums/new?parentAlbumId={albumId}"
-						class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm font-medium inline-flex items-center gap-2"
+						class="{adminBtnPrimarySm} {adminRingPrimary} inline-flex items-center gap-2"
 					>
 						<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -589,7 +580,7 @@
 						<button
 							type="button"
 							on:click={openCoverPhotoModal}
-							class="px-4 py-2 text-sm font-medium text-purple-700 bg-purple-50 border border-purple-200 rounded-md hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+							class="{adminBtnSecondary} {adminRingPrimary}"
 						>
 							{album.coverPhotoId ? 'Change leading photo' : 'Select leading photo'}
 						</button>
@@ -862,14 +853,14 @@
 					<div class="flex justify-end space-x-3 pt-6 border-t border-surface-200-800">
 						<a
 							href="/admin/albums/{albumId}"
-							class="px-4 py-2 text-sm font-medium text-(--color-surface-800-200) bg-(--color-surface-50-950) border border-surface-300-700 rounded-md hover:bg-(--color-surface-50-950) focus:outline-none focus:ring-2 focus:ring-(--color-primary-500)"
+							class="{adminBtnSecondary} {adminRingPrimary}"
 						>
 							Cancel
 						</a>
 						<button
 							type="submit"
 							disabled={saving}
-							class="px-4 py-2 text-sm font-medium text-white bg-(--color-primary-600) border border-transparent rounded-md hover:bg-(--color-primary-700) focus:outline-none focus:ring-2 focus:ring-(--color-primary-500) disabled:opacity-50 disabled:cursor-not-allowed"
+							class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50 disabled:cursor-not-allowed"
 						>
 							{saving ? 'Saving...' : 'Save Changes'}
 						</button>
@@ -903,14 +894,14 @@
 			{#if coverPhotoModal.saving}
 				<div class="absolute inset-0 flex items-center justify-center bg-(--color-surface-50-950)/80 rounded-md z-10">
 					<div class="text-center">
-						<div class="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-purple-500"></div>
+						<div class="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-(--color-primary-600)"></div>
 						<p class="mt-2 text-(--color-surface-800-200) font-medium">Saving...</p>
 					</div>
 				</div>
 			{/if}
 			{#if coverPhotoModal.loading}
 				<div class="text-center py-8">
-					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-(--color-primary-600)"></div>
 					<p class="mt-2 text-(--color-surface-600-400)">Loading photos...</p>
 				</div>
 			{:else if coverPhotoModal.totalPhotos === 0}
@@ -944,11 +935,11 @@
 								<img
 									src={getPhotoUrl(photo, { fallback: '' }) || photo.storage?.thumbnailPath || photo.storage?.url || photo.url}
 									alt={getPhotoTitle(photo) || photo.filename || 'Photo'}
-									class="w-full h-20 object-cover rounded-lg hover:opacity-75 transition-opacity {isCurrentCover ? 'ring-2 ring-purple-500' : ''}"
+									class="w-full h-20 object-cover rounded-lg hover:opacity-75 transition-opacity {isCurrentCover ? 'ring-2 ring-(--color-primary-500)' : ''}"
 									style="image-orientation: from-image; {getPhotoRotationStyle(photo)}"
 								/>
 								{#if isCurrentCover}
-									<div class="absolute top-1 right-1 bg-purple-500 text-white text-xs px-1.5 py-0.5 rounded-full font-medium">
+									<div class="absolute top-1 right-1 bg-(--color-primary-600) text-white text-xs px-1.5 py-0.5 rounded-full font-medium">
 										✓
 									</div>
 								{/if}
@@ -965,7 +956,7 @@
 								type="button"
 								on:click={() => goToPage(coverPhotoModal.currentPage - 1)}
 								disabled={coverPhotoModal.currentPage === 1 || coverPhotoModal.saving}
-								class="px-3 py-1 text-sm font-medium text-(--color-surface-600-400) bg-(--color-surface-100-900) rounded-md hover:bg-(--color-surface-200-800) disabled:opacity-50 disabled:cursor-not-allowed"
+								class="{adminBtnSecondary} text-xs {adminRingPrimary} disabled:opacity-50 disabled:cursor-not-allowed"
 							>
 								Previous
 							</button>
@@ -976,7 +967,7 @@
 								type="button"
 								on:click={() => goToPage(coverPhotoModal.currentPage + 1)}
 								disabled={coverPhotoModal.currentPage === getTotalPages() || coverPhotoModal.saving}
-								class="px-3 py-1 text-sm font-medium text-(--color-surface-600-400) bg-(--color-surface-100-900) rounded-md hover:bg-(--color-surface-200-800) disabled:opacity-50 disabled:cursor-not-allowed"
+								class="{adminBtnSecondary} text-xs {adminRingPrimary} disabled:opacity-50 disabled:cursor-not-allowed"
 							>
 								Next
 							</button>
@@ -989,7 +980,7 @@
 				<button
 					type="button"
 					on:click={closeCoverPhotoModal}
-					class="px-4 py-2 text-sm font-medium text-(--color-surface-800-200) bg-(--color-surface-100-900) rounded-md hover:bg-(--color-surface-200-800)"
+					class="{adminBtnSecondary} {adminRingPrimary}"
 				>
 					Cancel
 				</button>
@@ -997,12 +988,3 @@
 		</div>
 	</div>
 {/if}
-
-<NotificationDialog
-	isOpen={notification.show}
-	message={notification.message}
-	type={notification.type}
-	onClose={() => {
-		notification.show = false;
-	}}
-/>

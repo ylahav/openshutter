@@ -451,7 +451,6 @@
 			descriptionValue = data.description || {};
 			// Reload menu items from saved config
 			menuItems = data.template?.headerConfig?.menu || [];
-			message = 'successfully';
 			adminToast.success({
 				title: get(t)('admin.configurationSaved'),
 				description: get(t)('admin.configurationSavedMessage'),
@@ -470,7 +469,6 @@
 		} catch (error) {
 			logger.error('Error saving site config:', error);
 			const errMsg = handleError(error, 'Failed to save configuration');
-			message = errMsg;
 			adminToast.error({
 				title: get(t)('admin.saveFailed'),
 				description: errMsg,
@@ -523,6 +521,7 @@
 			const result = await response.json();
 			if (result.success) {
 				testMailResult = { success: true };
+				adminToast.success({ title: 'Email sent successfully', description: 'Check the recipient inbox.' });
 			} else {
 				testMailResult = { success: false, error: result.error || 'Failed to send' };
 			}
@@ -541,7 +540,7 @@
 		// Validate file size (5MB limit)
 		const maxSize = 5 * 1024 * 1024;
 		if (file.size > maxSize) {
-			message = 'File size must be less than 5MB';
+			adminToast.error({ title: 'File size must be less than 5MB' });
 			return;
 		}
 
@@ -552,7 +551,9 @@
 				: ['image/x-icon', 'image/vnd.microsoft.icon', 'image/png', 'image/jpeg'];
 		
 		if (!allowedTypes.includes(file.type)) {
-			message = `Invalid file type. Allowed types: ${allowedTypes.join(', ')}`;
+			adminToast.error({
+				title: `Invalid file type. Allowed types: ${allowedTypes.join(', ')}`,
+			});
 			return;
 		}
 
@@ -592,13 +593,10 @@
 
 			const labelKey =
 				type === 'logo' || type === 'whiteLabelLogo' ? 'Logo' : 'Favicon';
-			message = `${labelKey} uploaded successfully!`;
-			setTimeout(() => {
-				message = '';
-			}, 3000);
+			adminToast.success({ title: `${labelKey} uploaded successfully.` });
 		} catch (error) {
 			logger.error(`Failed to upload ${type}:`, error);
-			message = handleError(error, `Failed to upload ${type}`);
+			adminToast.error({ title: handleError(error, `Failed to upload ${type}`) });
 		}
 	}
 </script>
@@ -655,57 +653,27 @@
 
 			{#if message}
 				<div
-					class="mb-4 p-4 rounded-lg border-2 {message.includes('successfully')
-						? 'bg-green-50 text-green-800 border-green-300 shadow-lg'
-						: 'bg-red-50 text-red-800 border-red-300 shadow-lg'}"
+					class="mb-4 rounded-lg border border-red-300 bg-red-50 p-4 text-red-800 shadow-sm dark:border-red-800/80 dark:bg-red-950/40 dark:text-red-100"
+					role="alert"
 				>
-					<div class="flex items-center">
-						{#if message.includes('successfully')}
-							<svg
-								class="w-6 h-6 text-green-600 mr-3 shrink-0"
-								fill="none"
-								stroke="currentColor"
-								viewBox="0 0 24 24"
-							>
-								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									stroke-width="2"
-									d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-								/>
-							</svg>
-						{:else}
-							<svg
-								class="w-6 h-6 text-red-600 mr-3 shrink-0"
-								fill="none"
-								stroke="currentColor"
-								viewBox="0 0 24 24"
-							>
-								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									stroke-width="2"
-									d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-								/>
-							</svg>
-						{/if}
+					<div class="flex items-start gap-3">
+						<svg
+							class="mt-0.5 h-6 w-6 shrink-0 text-red-600 dark:text-red-400"
+							fill="none"
+							stroke="currentColor"
+							viewBox="0 0 24 24"
+							aria-hidden="true"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+							/>
+						</svg>
 						<div>
-							<h3
-								class="text-lg font-semibold {message.includes('successfully')
-									? 'text-green-800'
-									: 'text-red-800'}"
-							>
-								{message.includes('successfully') ? 'Success!' : 'Error'}
-							</h3>
-							<p
-								class="text-sm {message.includes('successfully')
-									? 'text-green-700'
-									: 'text-red-700'}"
-							>
-								{message.includes('successfully')
-									? 'Your site configuration has been saved successfully. Redirecting to admin dashboard...'
-									: message}
-							</p>
+							<h3 class="text-lg font-semibold">Error</h3>
+							<p class="text-sm text-red-700 dark:text-red-200">{message}</p>
 						</div>
 					</div>
 				</div>
@@ -2641,9 +2609,11 @@ on:click={() => {
 						{:else}
 							<div class="space-y-4">
 								{#if testMailResult.success}
-									<div class="p-4 rounded-lg bg-green-50 border border-green-200 text-green-800">
+									<div
+										class="rounded-lg border border-surface-200-800 bg-[color-mix(in_oklab,var(--color-surface-950)_4%,transparent)] p-4 text-(--color-surface-800-200) dark:bg-[color-mix(in_oklab,var(--color-surface-50)_6%,transparent)]"
+									>
 										<p class="font-medium">Email sent successfully.</p>
-										<p class="text-sm mt-1">Check the recipient inbox.</p>
+										<p class="mt-1 text-sm text-(--color-surface-600-400)">Check the recipient inbox.</p>
 									</div>
 								{:else}
 									<div class="p-4 rounded-lg bg-red-50 border border-red-200 text-red-800">

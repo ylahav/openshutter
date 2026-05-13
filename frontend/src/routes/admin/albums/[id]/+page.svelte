@@ -13,6 +13,8 @@
 	import { getPhotoTitle } from '$lib/utils/photoUtils';
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
+	import { adminToast } from '$lib/admin/adminToast';
+	import { adminBtnPrimarySm, adminBtnSecondary, adminRingPrimary } from '$lib/admin/admin-cerberus';
 	import type { PageData } from './$types';
 
 	// svelte-ignore export_let_unused - Required by SvelteKit page component
@@ -77,7 +79,6 @@
 	let photos: Photo[] = [];
 	let loading = true;
 	let error = '';
-	let successMessage = '';
 	let showDeleteDialog = false;
 	let photoDeleteDialog: {
 		isOpen: boolean;
@@ -207,7 +208,6 @@
 			isDeleting: true,
 		};
 		error = '';
-		successMessage = '';
 
 		try {
 			logger.debug('[confirmDeletePhoto] Deleting photo:', deletedPhotoId);
@@ -235,14 +235,10 @@
 				// Remove photo from local array immediately for better UX
 				photos = photos.filter((p) => p._id !== deletedPhotoId);
 				
-				// Show success message
-				successMessage = $t('admin.photoDeletedSuccessfully').replace('{title}', photoTitle);
-				
-				// Clear success message after 3 seconds
-				setTimeout(() => {
-					successMessage = '';
-				}, 3000);
-				
+				adminToast.success({
+					title: $t('admin.photoDeletedSuccessfully').replace('{title}', photoTitle),
+				});
+
 				// Reload album and photos to update counts
 				await Promise.all([loadAlbum(), loadPhotos()]);
 			} else {
@@ -347,7 +343,6 @@
 
 		isBulkUpdating = true;
 		error = '';
-		successMessage = '';
 
 		try {
 			const response = await fetch('/api/admin/photos/bulk-update', {
@@ -362,7 +357,8 @@
 			const result = await response.json();
 
 			if (result.success) {
-				successMessage = result.data?.message || `Updated ${selectedPhotoIds.size} photo(s)`;
+				const msg = result.data?.message || `Updated ${selectedPhotoIds.size} photo(s)`;
+				adminToast.success({ title: msg });
 				selectedPhotoIds.clear();
 				selectedPhotoIds = selectedPhotoIds;
 				showLocationDialog = false;
@@ -371,13 +367,9 @@
 				selectedLocationId = null;
 				selectedTagIds = [];
 				selectedPersonIds = [];
-				
+
 				// Reload photos to reflect changes
 				await loadPhotos();
-				
-				setTimeout(() => {
-					successMessage = '';
-				}, 3000);
 			} else {
 				error = result.error || 'Failed to update photos';
 			}
@@ -476,7 +468,6 @@
 		if (selectedPhotoIds.size === 0 || isBulkDeletingPhotos) return;
 		isBulkDeletingPhotos = true;
 		error = '';
-		successMessage = '';
 		bulkDeleteDialogOpen = false;
 		const ids = Array.from(selectedPhotoIds);
 		let deleted = 0;
@@ -495,10 +486,9 @@
 			selectedPhotoIds = selectedPhotoIds;
 			await Promise.all([loadAlbum(), loadPhotos()]);
 			if (deleted > 0) {
-				successMessage = $t('admin.bulkDeletePhotosSuccess').replace('{count}', String(deleted));
-				setTimeout(() => {
-					successMessage = '';
-				}, 4000);
+				adminToast.success({
+					title: $t('admin.bulkDeletePhotosSuccess').replace('{count}', String(deleted)),
+				});
 			}
 			if (failed > 0) {
 				error = $t('admin.bulkDeletePhotosPartial').replace('{failed}', String(failed));
@@ -542,7 +532,6 @@
 
 		isBulkUpdating = true;
 		error = '';
-		successMessage = '';
 
 		try {
 			const response = await fetch('/api/admin/photos/bulk/re-extract-exif', {
@@ -557,11 +546,10 @@
 				const msg = result.processedCount != null
 					? `Re-extracted EXIF for ${result.processedCount} photo(s)${result.failedCount > 0 ? `; ${result.failedCount} failed.` : ''}`
 					: (result.message || 'Re-extracted EXIF for selected photos.');
-				successMessage = msg;
+				adminToast.success({ title: msg });
 				selectedPhotoIds.clear();
 				selectedPhotoIds = selectedPhotoIds;
 				await loadPhotos();
-				setTimeout(() => { successMessage = ''; }, 4000);
 			} else {
 				error = result.error || 'Failed to re-extract EXIF';
 			}
@@ -578,7 +566,6 @@
 
 		isBulkUpdating = true;
 		error = '';
-		successMessage = '';
 		regenProgress = { total: selectedPhotoIds.size, processed: 0, failed: 0, inProgress: true };
 
 		try {
@@ -641,11 +628,13 @@
 			regenProgress = regenProgress ? { ...regenProgress, inProgress: false } : null;
 
 			if (lastDone?.success) {
-				successMessage = lastDone.message ?? `Regenerated thumbnails for ${regenProgress?.processed ?? 0} photo(s).`;
+				const doneMsg =
+					lastDone.message ??
+					`Regenerated thumbnails for ${regenProgress ? regenProgress.processed : 0} photo(s).`;
+				adminToast.success({ title: doneMsg });
 				selectedPhotoIds.clear();
 				selectedPhotoIds = selectedPhotoIds;
 				await loadPhotos();
-				setTimeout(() => { successMessage = ''; }, 4000);
 			} else if (lastDone && !lastDone.success) {
 				error = lastDone.error ?? 'Failed to regenerate thumbnails';
 			}
@@ -679,7 +668,7 @@
 		<div class="text-center">
 			<h1 class="text-2xl font-bold text-(--color-surface-950-50) mb-4">{$t('admin.errorTitle')}</h1>
 			<p class="text-(--color-surface-600-400) mb-4">{error || $t('admin.albumNotFound')}</p>
-			<a href="/admin/albums" class="px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700)">
+			<a href="/admin/albums" class="{adminBtnPrimarySm} {adminRingPrimary}">
 				{$t('admin.backToAlbums')}
 			</a>
 		</div>
@@ -759,10 +748,6 @@
 
 			{#if error}
 				<div class="mb-4 p-4 rounded-md bg-red-50 text-red-700 text-sm">{error}</div>
-			{/if}
-
-			{#if successMessage}
-				<div class="mb-4 p-4 rounded-md bg-green-50 text-green-700 text-sm">{successMessage}</div>
 			{/if}
 
 			<!-- Album Description (context callout, not an input) -->
@@ -957,7 +942,7 @@
 						<div class="mt-6">
 							<a
 								href="/admin/photos/upload?albumId={albumId}"
-								class="inline-flex items-center px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700)"
+								class="{adminBtnPrimarySm} {adminRingPrimary}"
 							>
 								Upload Photos
 							</a>
@@ -1126,14 +1111,16 @@
 			<div class="flex justify-end gap-2">
 				<button
 					on:click={() => { showLocationDialog = false; selectedLocationId = null; }}
-					class="px-4 py-2 text-(--color-surface-800-200) bg-(--color-surface-100-900) rounded-md hover:bg-(--color-surface-200-800)"
+					type="button"
+					class="{adminBtnSecondary} {adminRingPrimary}"
 				>
 					{$t('admin.cancel')}
 				</button>
 				<button
+					type="button"
 					on:click={applyLocation}
 					disabled={isBulkUpdating}
-					class="px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700) disabled:opacity-50"
+					class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
 				>
 					{isBulkUpdating ? $t('admin.applying') : $t('admin.apply')}
 				</button>
@@ -1174,15 +1161,17 @@
 			</div>
 			<div class="flex justify-end gap-2">
 				<button
+					type="button"
 					on:click={() => { showTagsDialog = false; selectedTagIds = []; }}
-					class="px-4 py-2 text-(--color-surface-800-200) bg-(--color-surface-100-900) rounded-md hover:bg-(--color-surface-200-800)"
+					class="{adminBtnSecondary} {adminRingPrimary}"
 				>
 					{$t('admin.cancel')}
 				</button>
 				<button
+					type="button"
 					on:click={applyTags}
 					disabled={isBulkUpdating}
-					class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50"
+					class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
 				>
 					{isBulkUpdating ? $t('admin.applying') : $t('admin.apply')}
 				</button>
@@ -1232,7 +1221,7 @@
 						showPeopleDialog = false;
 						selectedPersonIds = [];
 					}}
-					class="rounded-md px-4 py-2 text-(--color-surface-800-200) hover:bg-(--color-surface-100-900)"
+					class="{adminBtnSecondary} {adminRingPrimary}"
 				>
 					{$t('admin.cancel')}
 				</button>
@@ -1240,7 +1229,7 @@
 					type="button"
 					on:click={applyPeople}
 					disabled={isBulkUpdating}
-					class="rounded-md bg-(--color-primary-600) px-4 py-2 text-white hover:bg-(--color-primary-700) disabled:opacity-50"
+					class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
 				>
 					{isBulkUpdating ? $t('admin.applying') : $t('admin.apply')}
 				</button>
@@ -1272,7 +1261,7 @@
 					<select
 						id="bulk-rating"
 						bind:value={bulkMetadataRating}
-						class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+						class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:outline-none focus:ring-2 focus:ring-(--color-primary-500)"
 					>
 						<option value="">{ $t('admin.leaveUnchangedOption') }</option>
 						{#each [1, 2, 3, 4, 5] as n}
@@ -1288,7 +1277,7 @@
 						id="bulk-category"
 						type="text"
 						bind:value={bulkMetadataCategory}
-						class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+						class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:outline-none focus:ring-2 focus:ring-(--color-primary-500)"
 						placeholder={$t('admin.categoryPlaceholder')}
 					/>
 				</div>
@@ -1304,7 +1293,7 @@
 							<input
 								id="bulk-exif-date"
 								type="datetime-local"
-								class="w-full px-3 py-2 border border-surface-300-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-(--color-primary-500)"
 								bind:value={bulkExifDate}
 							/>
 						</div>
@@ -1315,7 +1304,7 @@
 							<input
 								id="bulk-exif-make"
 								type="text"
-								class="w-full px-3 py-2 border border-surface-300-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-(--color-primary-500)"
 								placeholder={$t('admin.exifMakePlaceholder')}
 								bind:value={bulkExifMake}
 							/>
@@ -1327,7 +1316,7 @@
 							<input
 								id="bulk-exif-model"
 								type="text"
-								class="w-full px-3 py-2 border border-surface-300-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+								class="w-full px-3 py-2 border border-surface-300-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-(--color-primary-500)"
 								placeholder={$t('admin.exifModelPlaceholder')}
 								bind:value={bulkExifModel}
 							/>
@@ -1337,15 +1326,17 @@
 			</div>
 			<div class="flex justify-end gap-2">
 				<button
+					type="button"
 					on:click={() => { showMetadataDialog = false; bulkMetadataRating = ''; bulkMetadataCategory = ''; bulkExifDate = ''; bulkExifMake = ''; bulkExifModel = ''; }}
-					class="px-4 py-2 text-(--color-surface-800-200) bg-(--color-surface-100-900) rounded-md hover:bg-(--color-surface-200-800)"
+					class="{adminBtnSecondary} {adminRingPrimary}"
 				>
 					{$t('admin.cancel')}
 				</button>
 				<button
+					type="button"
 					on:click={applyMetadata}
 					disabled={isBulkUpdating || (bulkMetadataRating === '' && bulkMetadataCategory.trim() === '' && !bulkExifDate.trim() && !bulkExifMake.trim() && !bulkExifModel.trim())}
-					class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+					class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50 disabled:cursor-not-allowed"
 				>
 					{isBulkUpdating ? $t('admin.applying') : $t('admin.apply')}
 				</button>
