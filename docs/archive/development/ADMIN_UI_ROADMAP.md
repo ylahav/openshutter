@@ -116,7 +116,7 @@ Use this as the working backlog until both phases are closed.
 - [x] **`SortableList` abstraction** — [`AdminSortableList.svelte`](../../../frontend/src/lib/components/admin/AdminSortableList.svelte); **adopt** on a concrete admin screen = Phase 6 follow-up (albums use `AlbumTree`).
 - [x] **Toast audit** — [`ADMIN_TOAST_CONFIRM_AUDIT.md`](../../../frontend/src/lib/admin/ADMIN_TOAST_CONFIRM_AUDIT.md) (static snapshot + `rg` hint).
 - [x] **Confirm audit** — Same audit table (`AdminConfirmDialog` column).
-- [ ] **Optional:** ESLint rule or PR checklist — prefer `admin-cerberus` / Skeleton on new `/admin` files.
+- [x] **Optional:** ESLint rule or PR checklist — `confirm`/`alert` **warnings** in `src/routes/admin/**` and `src/lib/components/admin/**` (`frontend/eslint.config.js`); reviewer checklist [`.github/ADMIN_UI_PR_CHECKLIST.md`](../../../.github/ADMIN_UI_PR_CHECKLIST.md); PR template link.
 
 #### B. Execute Phase 6 (waves)
 
@@ -158,4 +158,4 @@ Use this as the working backlog until both phases are closed.
 
 ---
 
-*Last updated: 2026-05 — **Phase 5 platform (checklist A):** interaction doc, toast/confirm audit, `AdminSortableList`, `form-errors`; roadmap table + checklist updated. **Backlog** (owners + dashboard) unchanged.*
+*Last updated: 2026-05 — **Phase 5 checklist A** complete including **ESLint + PR checklist**; **Backlog** (owners + dashboard) unchanged.*

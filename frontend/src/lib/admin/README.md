@@ -11,5 +11,8 @@ Operator UI under `/admin` uses **Skeleton (Cerberus)** scoped in `AdminAppChrom
 | [`ADMIN_TOAST_CONFIRM_AUDIT.md`](./ADMIN_TOAST_CONFIRM_AUDIT.md) | Snapshot of which admin pages use toasts vs inline banners vs confirm dialogs (update when migrating). |
 | [`../components/admin/AdminConfirmDialog.svelte`](../components/admin/AdminConfirmDialog.svelte) | Destructive / high-friction confirmations. |
 | [`../components/admin/AdminSortableList.svelte`](../components/admin/AdminSortableList.svelte) | Flat vertical list reordering via `svelte-dnd-action` + Cerberus row chrome. |
+| [`.github/ADMIN_UI_PR_CHECKLIST.md`](../../../../.github/ADMIN_UI_PR_CHECKLIST.md) | **PR reviewer checklist** when changing admin UI (Cerberus, toasts, confirms, forms). |
+
+**ESLint:** `frontend/eslint.config.js` warns on `confirm` / `alert` in `src/routes/admin/**` and `src/lib/components/admin/**` scripts.
 
 Roadmap: [`docs/archive/development/ADMIN_UI_ROADMAP.md`](../../../docs/archive/development/ADMIN_UI_ROADMAP.md) (Phases 5–6).

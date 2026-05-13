@@ -16,4 +16,5 @@ Describe the changes and the motivation.
 - [ ] No linter/type errors
 - [ ] CI passes on `main` PRs (lint, type-check, build — see `.github/workflows/ci.yml`)
 - [ ] Updated docs where relevant
+- [ ] **Admin UI (if applicable):** reviewed [Admin UI PR checklist](ADMIN_UI_PR_CHECKLIST.md) — or N/A
 

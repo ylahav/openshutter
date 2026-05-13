@@ -125,6 +125,40 @@ export default [
     },
   },
   {
+    /**
+     * Admin UI Phase 5 — script-side guardrails (templates still need Cerberus class review in PR).
+     * @see src/lib/admin/ADMIN_INTERACTION_PATTERNS.md
+     */
+    files: ['src/routes/admin/**/*.{svelte,ts}', 'src/lib/components/admin/**/*.svelte'],
+    rules: {
+      'no-restricted-syntax': [
+        'warn',
+        {
+          selector: "CallExpression[callee.type='Identifier'][callee.name='confirm']",
+          message:
+            'Avoid browser confirm() in admin UI — use AdminConfirmDialog (see src/lib/admin/ADMIN_INTERACTION_PATTERNS.md).',
+        },
+        {
+          selector:
+            "CallExpression[callee.type='MemberExpression'][callee.object.type='Identifier'][callee.object.name='window'][callee.property.type='Identifier'][callee.property.name='confirm']",
+          message:
+            'Avoid window.confirm in admin UI — use AdminConfirmDialog (see src/lib/admin/ADMIN_INTERACTION_PATTERNS.md).',
+        },
+        {
+          selector: "CallExpression[callee.type='Identifier'][callee.name='alert']",
+          message:
+            'Avoid browser alert() in admin UI — use adminToast or AdminConfirmDialog (see src/lib/admin/ADMIN_INTERACTION_PATTERNS.md).',
+        },
+        {
+          selector:
+            "CallExpression[callee.type='MemberExpression'][callee.object.type='Identifier'][callee.object.name='window'][callee.property.type='Identifier'][callee.property.name='alert']",
+          message:
+            'Avoid window.alert in admin UI — use adminToast or AdminConfirmDialog (see src/lib/admin/ADMIN_INTERACTION_PATTERNS.md).',
+        },
+      ],
+    },
+  },
+  {
     ignores: [
       'build/**',
       '.svelte-kit/**',

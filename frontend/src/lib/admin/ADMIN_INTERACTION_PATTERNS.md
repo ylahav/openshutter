@@ -60,6 +60,11 @@ Skeleton **does not** ship a dedicated “Drawer” name. Use one of:
 
 Prefer **`admin-cerberus.ts`** class exports and Skeleton **`btn` / `input` / `select`** presets under `[data-admin-chrome]` so light/dark matches the admin shell.
 
+## ESLint & PR checklist (admin scope)
+
+- **ESLint:** For `src/routes/admin/**` and `src/lib/components/admin/**`, ESLint **warns** on `confirm()`, `window.confirm`, `alert()`, and `window.alert` in **`<script>`** — use **`AdminConfirmDialog`** / **`adminToast`** instead (`frontend/eslint.config.js`). Template `class="..."` strings are still reviewed manually.
+- **PR checklist:** When changing admin UI, reviewers use [`.github/ADMIN_UI_PR_CHECKLIST.md`](../../../../.github/ADMIN_UI_PR_CHECKLIST.md) (Cerberus, toasts, confirms, forms).
+
 ## See also
 
 - [`README.md`](./README.md) — index of admin helpers.

@@ -43,4 +43,4 @@ Snapshot to drive migration: prefer **`adminToast`** for transient success/error
 
 **Next steps (Phase 6 Wave 1):** add **`adminToast`** to dashboard, album detail/edit, photos upload/edit, users, storage wrapper—wherever inline green/red banners are used only for transient feedback.
 
-*Generated with repo static scan; re-run `rg "adminToast|AdminConfirmDialog" frontend/src/routes/admin` after changes.*
+*Generated with repo static scan; re-run `rg "adminToast|AdminConfirmDialog" frontend/src/routes/admin` after changes. **ESLint** warns on `confirm`/`alert` in admin scripts — see `frontend/eslint.config.js`.*
