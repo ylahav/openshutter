@@ -63,10 +63,10 @@ Standardize implementations so every admin screen uses the same APIs:
 | Pattern | Status | Location / notes |
 |---------|--------|------------------|
 | **Modals / dialogs** | **Partial** | **`AdminConfirmDialog.svelte`** — Skeleton `Dialog` + `Portal`. Used on several flows (albums, users, site-config, marketplace, …). **Remaining:** audit remaining destructive actions; add a **generic modal shell** only if non-confirm dialogs repeat often. |
-| **Drawers / side panels** | **Not standardized** | Policy: same Skeleton stack as modals where possible. **Remaining:** pick Skeleton **`Drawer`** (or equivalent), document widths/breakpoints, migrate **one** representative screen, then reuse. |
-| **Toasts / notifications** | **Partial** | **`adminToast`**, **`AdminToastRegion`** in **`AdminAppChrome`**. **Remaining:** replace inline success/error banners on admin pages incrementally (many routes still use local `success` / `error` strings). |
-| **Form validation** | **Not standardized** | **Remaining:** short **maintainer doc** + optional helpers (e.g. map `handleApiErrorResponse` / Nest `message` to field errors); consistent **`disabled` submit** while **`submitting`**. |
-| **Drag and drop** | **Not abstracted** | **`svelte-dnd-action`** is in **`frontend/package.json`**. **Remaining:** add **`SortableList`** (or one shared wrapper) for album/grid reorder and similar lists. |
+| **Drawers / side panels** | **Partial** | **Documented** in [`ADMIN_INTERACTION_PATTERNS.md`](../../../frontend/src/lib/admin/ADMIN_INTERACTION_PATTERNS.md): `Dialog` edge layout vs **`FloatingPanel`** + `Portal` ([Skeleton Floating Panel](https://www.skeleton.dev/docs/svelte/framework-components/floating-panel)). **Remaining:** first production screen using the chosen pattern. |
+| **Toasts / notifications** | **Partial** | **`adminToast`**, **`AdminToastRegion`** in **`AdminAppChrome`**. **Audit:** [`ADMIN_TOAST_CONFIRM_AUDIT.md`](../../../frontend/src/lib/admin/ADMIN_TOAST_CONFIRM_AUDIT.md). **Remaining:** migrate inline banners (start Wave 1). |
+| **Form validation** | **Partial** | **Doc + helpers:** [`ADMIN_INTERACTION_PATTERNS.md`](../../../frontend/src/lib/admin/ADMIN_INTERACTION_PATTERNS.md) (submit state, server errors), [`form-errors.ts`](../../../frontend/src/lib/admin/form-errors.ts) (`submitErrorMessage`, `fieldHintFromApiError`). **Remaining:** adopt on each page (Phase 6). |
+| **Drag and drop** | **Partial** | **`AdminSortableList.svelte`** — flat list wrapper over `svelte-dnd-action` + Cerberus row chrome (`$lib/components/admin/AdminSortableList.svelte`). **Existing:** `AlbumTree` for nested album DnD. **Remaining:** adopt `AdminSortableList` on a suitable flat list (or keep bespoke zones where layout is non-list). |
 
 **Cerberus class helpers:** `frontend/src/lib/admin/admin-cerberus.ts` — `adminText*`, `adminBtnPrimary` / `adminBtnPrimarySm`, `adminInputSmClass`, `adminSelectSmClass`, borders, focus ring. Prefer these over ad hoc Tailwind on **new** admin work.
 
@@ -111,11 +111,11 @@ Use this as the working backlog until both phases are closed.
 
 #### A. Finish Phase 5 (platform)
 
-- [ ] **Form validation doc** — One short doc under `frontend/src/lib/admin/` or `docs/guides/` (field errors, `submitting`, mapping API errors).
-- [ ] **Drawer pattern** — Choose API (Skeleton drawer), document breakpoints; implement **one** reference usage.
-- [ ] **`SortableList` (or equivalent)** — Thin wrapper over `svelte-dnd-action` + Cerberus row styles; use in **one** reorder UI (e.g. album order or overrides).
-- [ ] **Toast audit** — List admin pages with inline `success`/`error` banners; migrate high-traffic Wave **1** pages first.
-- [ ] **Confirm audit** — Ensure destructive deletes/archives use **`AdminConfirmDialog`** consistently.
+- [x] **Form validation doc** — [`frontend/src/lib/admin/ADMIN_INTERACTION_PATTERNS.md`](../../../frontend/src/lib/admin/ADMIN_INTERACTION_PATTERNS.md) + [`form-errors.ts`](../../../frontend/src/lib/admin/form-errors.ts).
+- [x] **Drawer pattern** — Documented in the same interaction doc (Skeleton `Dialog` side sheet + `FloatingPanel` option); live screen migration remains optional.
+- [x] **`SortableList` abstraction** — [`AdminSortableList.svelte`](../../../frontend/src/lib/components/admin/AdminSortableList.svelte); **adopt** on a concrete admin screen = Phase 6 follow-up (albums use `AlbumTree`).
+- [x] **Toast audit** — [`ADMIN_TOAST_CONFIRM_AUDIT.md`](../../../frontend/src/lib/admin/ADMIN_TOAST_CONFIRM_AUDIT.md) (static snapshot + `rg` hint).
+- [x] **Confirm audit** — Same audit table (`AdminConfirmDialog` column).
 - [ ] **Optional:** ESLint rule or PR checklist — prefer `admin-cerberus` / Skeleton on new `/admin` files.
 
 #### B. Execute Phase 6 (waves)
@@ -158,4 +158,4 @@ Use this as the working backlog until both phases are closed.
 
 ---
 
-*Last updated: 2026-05 — **Phase 5/6:** expanded status, 33-route migration waves, **master checklist**; admin chrome unchanged; **Backlog** (owners + dashboard) unchanged.*
+*Last updated: 2026-05 — **Phase 5 platform (checklist A):** interaction doc, toast/confirm audit, `AdminSortableList`, `form-errors`; roadmap table + checklist updated. **Backlog** (owners + dashboard) unchanged.*

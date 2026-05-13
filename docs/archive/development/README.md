@@ -8,7 +8,7 @@
 | [PHASE_4_WORKFLOW.md](./PHASE_4_WORKFLOW.md) | Phase 4 stages and supplementary detail |
 | [NEXT_STEPS.md](./NEXT_STEPS.md) | Post–engineering-quality merge notes |
 | [ROADMAP_COMMUNITY.md](./ROADMAP_COMMUNITY.md) | Community priorities snapshot |
-| [ADMIN_UI_ROADMAP.md](./ADMIN_UI_ROADMAP.md) | Admin shell UX: **Phases 1–4** done; **Phases 5–6** (interaction patterns + page migration) **master checklist**; owner-scoped `/admin` dashboard in **Backlog** |
+| [ADMIN_UI_ROADMAP.md](./ADMIN_UI_ROADMAP.md) | Admin shell UX: **Phases 1–4** done; **Phase 5** platform artifacts (`ADMIN_INTERACTION_PATTERNS.md`, `ADMIN_TOAST_CONFIRM_AUDIT.md`, `AdminSortableList`, `form-errors.ts`); **Phase 6** page migration; owner `/admin` dashboard in **Backlog** |
 | [ENGINEERING_QUALITY_TASKS.md](./ENGINEERING_QUALITY_TASKS.md) | CI / lint / quality policy snapshot |
 | [VIDEO_TASKS.md](./VIDEO_TASKS.md) | Video feature checklist |
 | [functional-spec.md](./functional-spec.md) | Functional / API specification snapshot |
