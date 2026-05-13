@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { get } from 'svelte/store';
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 	import { t } from '$stores/i18n';
@@ -84,6 +85,17 @@
 	let googleDriveTreeOpen = false;
 	let googleDriveTreeLoading = false;
 	let googleDriveTreeRoot: any = null;
+	let googleDriveTreeError: string | null = null;
+
+	function nestJsonMessage(j: Record<string, unknown> | null | undefined): string | null {
+		if (!j || typeof j !== 'object') return null;
+		const m = j.message;
+		if (typeof m === 'string' && m.trim()) return m.trim();
+		if (Array.isArray(m)) return m.map(String).join(' ').trim() || null;
+		const e = j.error;
+		if (typeof e === 'string' && e.trim()) return e.trim();
+		return null;
+	}
 
 	$: activeOption = storageOptions.find((o) => o.id === activeTab) || storageOptions[0];
 
@@ -166,14 +178,20 @@
 		googleDriveTreeOpen = true;
 		googleDriveTreeLoading = true;
 		googleDriveTreeRoot = null;
+		googleDriveTreeError = null;
 		try {
 			const r = await fetch('/api/admin/storage/google-drive/tree?maxDepth=4');
-			const j = await r.json().catch(() => ({}));
+			const j = (await r.json().catch(() => ({}))) as Record<string, unknown>;
 			if (!r.ok) {
 				googleDriveTreeRoot = null;
+				googleDriveTreeError =
+					nestJsonMessage(j) || get(t)('admin.failedToLoadFolderTree');
 				return;
 			}
-			googleDriveTreeRoot = j.data ?? j;
+			googleDriveTreeRoot = (j.data ?? j) as any;
+		} catch (err) {
+			googleDriveTreeRoot = null;
+			googleDriveTreeError = handleError(err, get(t)('admin.failedToLoadFolderTree'));
 		} finally {
 			googleDriveTreeLoading = false;
 		}
@@ -215,6 +233,27 @@
 		});
 		if (!res.ok) await handleApiErrorResponse(res);
 		await loadSiteAdminConfigsFromApi();
+	}
+
+	async function toggleSiteAdminProviderEnabled(providerId: string, enabled: boolean) {
+		if (!isSiteAdmin) return;
+		saving = true;
+		error = null;
+		try {
+			const res = await fetch(`/api/admin/storage/${encodeURIComponent(providerId)}`, {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ isEnabled: enabled }),
+			});
+			if (!res.ok) await handleApiErrorResponse(res);
+			await loadSiteAdminConfigsFromApi();
+			if (providerId === 'google-drive') await pingGoogleDriveAdminTest();
+		} catch (err) {
+			logger.error('Failed to toggle storage provider:', err);
+			error = handleError(err, 'Failed to update provider');
+		} finally {
+			saving = false;
+		}
 	}
 
 	onMount(async () => {
@@ -456,6 +495,16 @@
 		dedicatedRawJson = { ...dedicatedRawJson };
 	}
 
+	$: if (
+		isSiteAdmin &&
+		activeTab &&
+		!['google-drive', 'wasabi', 'local'].includes(activeTab) &&
+		dedicatedRawJson[activeTab] === undefined
+	) {
+		dedicatedRawJson[activeTab] = '{}';
+		dedicatedRawJson = { ...dedicatedRawJson };
+	}
+
 	async function fetchProfile() {
 		try {
 			const response = await fetch('/api/auth/profile');
@@ -636,7 +685,11 @@
 			</p>
 		{:else}
 			<p class="text-sm text-gray-600 mb-4">
-				Local storage is always managed by the administrator. Configure the providers below that are enabled for your account.
+				{#if isSiteAdmin}
+					{$t('admin.configureStorageProviders')}
+				{:else}
+					Local storage is always managed by the administrator. Configure the providers below that are enabled for your account.
+				{/if}
 			</p>
 		{/if}
 
@@ -657,15 +710,48 @@
 							<button
 								type="button"
 								on:click={() => (activeTab = option.id)}
-								class="py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap {activeTab === option.id
+								class="py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap flex items-center gap-2 {activeTab === option.id
 									? 'border-green-600 text-green-600'
 									: 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}"
 							>
-								{option.name}
+								<span>{option.name}</span>
+								{#if isSiteAdmin}
+									<span
+										class="text-xs font-normal px-2 py-0.5 rounded-full {option.isEnabled
+											? 'bg-green-100 text-green-800'
+											: 'bg-gray-100 text-gray-600'}"
+									>
+										{option.isEnabled ? $t('admin.enabled') : $t('admin.inactive')}
+									</span>
+								{/if}
 							</button>
 						{/each}
 					</nav>
 				</div>
+
+				{#if isSiteAdmin && activeOption}
+					<div
+						class="px-6 py-3 bg-gray-50 border-b border-gray-200 flex flex-wrap items-center justify-between gap-3"
+						data-testid="site-admin-storage-enable-row"
+					>
+						<span class="text-sm text-gray-700">{$t('admin.storageProviderSiteToggle')}</span>
+						<label class="inline-flex items-center gap-2 cursor-pointer select-none">
+							<input
+								type="checkbox"
+								class="rounded border-gray-300 text-green-600 focus:ring-green-500"
+								checked={activeOption.isEnabled}
+								disabled={saving}
+								on:change={(e) => {
+									const on = (e.currentTarget as HTMLInputElement).checked;
+									void toggleSiteAdminProviderEnabled(activeTab, on);
+								}}
+							/>
+							<span class="text-sm text-gray-800">
+								{activeOption.isEnabled ? $t('admin.enabled') : $t('admin.inactive')}
+							</span>
+						</label>
+					</div>
+				{/if}
 
 				<!-- Tab content -->
 				<div class="p-6">
@@ -969,6 +1055,26 @@
 										{saving ? $t('owner.saving') : $t('owner.storageGenericSave')}
 									</button>
 								</form>
+							{:else if isSiteAdmin}
+								<p class="text-sm text-gray-500">
+									{$t('admin.storageGenericSiteAdminHelp')}
+								</p>
+								<form on:submit={(e) => handleSubmit(e, activeTab)} class="space-y-4">
+									{#key activeTab}
+										<textarea
+											rows="14"
+											bind:value={dedicatedRawJson[activeTab]}
+											class="w-full font-mono text-xs border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-green-500"
+										></textarea>
+									{/key}
+									<button
+										type="submit"
+										disabled={saving}
+										class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
+									>
+										{saving ? $t('admin.saving') : $t('admin.saveConfiguration')}
+									</button>
+								</form>
 							{:else}
 								<p class="text-sm text-gray-500">
 									Per-owner configuration for this provider is not available yet. Connection is managed by the main site.
@@ -994,7 +1100,10 @@
 							<button
 								type="button"
 								class="px-3 py-1.5 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
-								on:click={() => (googleDriveTreeOpen = false)}
+								on:click={() => {
+									googleDriveTreeOpen = false;
+									googleDriveTreeError = null;
+								}}
 							>
 								{$t('admin.close')}
 							</button>
@@ -1002,10 +1111,12 @@
 						<div class="p-4 overflow-auto flex-1 text-sm">
 							{#if googleDriveTreeLoading}
 								<p class="text-gray-600">…</p>
+							{:else if googleDriveTreeError}
+								<p class="text-red-800 whitespace-pre-wrap">{googleDriveTreeError}</p>
 							{:else if googleDriveTreeRoot}
 								<StorageTreeItem node={googleDriveTreeRoot} />
 							{:else}
-								<p class="text-amber-800">{$t('admin.failedToLoad')}</p>
+								<p class="text-amber-800">{$t('admin.failedToLoadFolderTree')}</p>
 							{/if}
 						</div>
 					</div>

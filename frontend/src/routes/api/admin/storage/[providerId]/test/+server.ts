@@ -1,30 +1,31 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { backendPost, parseBackendResponse } from '$lib/utils/backend-api';
+import { backendPost } from '$lib/utils/backend-api';
+import { logger } from '$lib/utils/logger';
 
+/** POST /api/admin/storage/:providerId/test → Nest POST /api/admin/storage/:providerId/test */
 export const POST: RequestHandler = async ({ params, locals, cookies }) => {
 	try {
-		// Check admin access
 		if (!locals.user || locals.user.role !== 'admin') {
 			return json({ success: false, error: 'Unauthorized' }, { status: 401 });
 		}
 
-		const { providerId } = params;
-		if (!providerId) {
-			return json({ success: false, error: 'Provider ID is required' }, { status: 400 });
+		const response = await backendPost(
+			`/admin/storage/${encodeURIComponent(params.providerId)}/test`,
+			undefined,
+			{ cookies },
+		);
+		const text = await response.text();
+		let parsed: unknown = {};
+		try {
+			parsed = text ? JSON.parse(text) : {};
+		} catch {
+			parsed = { success: false, error: 'Invalid response from backend' };
 		}
 
-		// Test connection in backend
-		const response = await backendPost(`/admin/storage/${providerId}/test`, {}, { cookies });
-		const result = await parseBackendResponse(response);
-
-		return json({ success: true, data: result });
+		return json(parsed, { status: response.status });
 	} catch (error) {
-		console.error('[storage test] Connection test failed:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
-		return json(
-			{ success: false, error: errorMessage || 'Connection test failed' },
-			{ status: 500 }
-		);
+		logger.error('API admin/storage test:', error);
+		return json({ success: false, error: 'Connection test failed' }, { status: 500 });
 	}
 };

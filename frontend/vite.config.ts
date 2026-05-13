@@ -58,12 +58,14 @@ export default defineConfig({
 				bypass: (req) => {
 					// Let SvelteKit handle these routes
 					const url = req.url || '';
+					const pathOnly = url.split('?')[0] || url;
 					const method = req.method || 'GET';
-					
+
 					if (
 						url.startsWith('/api/auth/login') ||
 						url.startsWith('/api/auth/google/') ||
-						// /api/admin/storage is proxied to backend (no SvelteKit handler)
+						pathOnly === '/api/admin/storage' ||
+						pathOnly.startsWith('/api/admin/storage/') ||
 						url.startsWith('/api/admin/storage-options') ||
 						url.startsWith('/api/admin/translations') ||
 						url.startsWith('/api/owner/storage-options') ||

@@ -37,6 +37,13 @@ OpenShutter supports multiple storage providers for photo and album storage. Thi
 
 All storage providers are configured through the admin dashboard at `/admin/storage` (admin access required). Owners who use their **own** storage connection (admin has not set "Use main domain connection") manage storage at **`/owner/storage`**; if that flag is set, visiting `/admin/storage` as an owner redirects to `/owner`. This is the recommended method as it stores configurations securely in the database and provides a user-friendly interface.
 
+**Admin dashboard (`/admin/storage`) behavior**
+
+- **Enable / disable**: Each provider tab shows whether it is enabled for the site (**Enabled** / **Inactive**) and includes a toggle to turn the provider on or off without re-entering credentials.
+- **Site-wide JSON**: Providers that do not use the shared Google Drive / Wasabi / Local forms (for example **Amazon S3**, **Backblaze B2**) are configured as **JSON** on this page by global admins—the same credentials apply site-wide for tenants using main-site storage.
+- **Browser → API**: The UI calls `/api/admin/storage/*`. In production these paths are handled by **SvelteKit server routes** (`frontend/src/routes/api/admin/storage/...`) which forward the request (and session cookies) to the Nest backend (`BACKEND_URL`). Ensure your reverse proxy forwards `/api` to the Node process that runs the built frontend so these handlers run; alternatively, routing `/api/admin/storage/*` directly to the Nest server also works if paths match the backend’s `/api` prefix.
+- **View tree**: Folder browsing is only available for providers that implement tree listing (notably **Google Drive**). The provider must be **enabled**; errors from the API are shown in the dialog.
+
 #### Dedicated per-owner storage
 
 For multi-tenant setups, an admin can enable **Use dedicated per-owner storage** on an owner account (**Admin → Users** → edit owner). That owner then configures credentials per allowed provider on **`/owner/storage`**; data is stored for that owner only, not in the shared site profile storage block. **Allowed Storage Providers** on the same user form limits which provider tabs they see.
@@ -51,7 +58,7 @@ The owner dashboard shows **Storage management** when dedicated storage is enabl
 3. **Select Provider**: Choose the storage provider tab you want to configure
 4. **Configure Settings**: Fill in the required credentials and settings
 5. **Test Connection**: Use the "Test Connection" button to verify settings
-6. **View Tree**: Use the "View Tree" button to browse the folder structure (available for all providers)
+6. **View Tree**: Where supported (e.g. Google Drive), use "View Tree" to browse the folder structure—the provider must be enabled
 7. **Save Configuration**: Click "Save Configuration" to store the settings
 
 **Storage configurations are stored in MongoDB** and encrypted at rest. The admin dashboard provides:
@@ -239,12 +246,12 @@ OpenShutter automatically detects when Google Drive tokens expire or become inva
 - **Non-JSON / "Unexpected token '<'" errors (proxy/auth issue)**:
   - Symptom: the UI tries to parse the response as JSON but receives an HTML page (often starts with `<html>`), e.g. `Unexpected token '<', "<html>..." is not valid JSON`.
   - Common causes:
-    - Reverse proxy routes `/api/admin/storage/*` to the wrong upstream (frontend instead of backend).
+    - Reverse proxy sends `/api/admin/storage/*` to a host that returns **HTML** (SPA fallback 404, login page, or wrong service) instead of JSON.
     - Request is not authenticated (redirect/login HTML page) even though the UI expects JSON.
   - What to do:
-    - Verify that `/api/admin/storage/:providerId/test` is proxied to the backend server.
+    - Confirm `/api/admin/storage` and `/api/admin/storage/*` reach the **Node** process (SvelteKit adapter) that serves the built frontend, **or** route them to the Nest backend at `/api/admin/storage/*`—both can work; the failure mode is usually HTML from nginx “try_files” or an auth redirect.
     - Ensure cookies/session are included (admin UI uses `credentials: include`).
-    - Use `curl -i` on the deployed server to confirm the endpoint returns `application/json` (not HTML) on failure cases.
+    - Use `curl -i` with an admin session cookie to confirm the endpoint returns `application/json` (not HTML) for both success and error responses.
 
 #### Photo Upload Failures
 - **Check Storage Provider**: Verify the album's storage provider is configured

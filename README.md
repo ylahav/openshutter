@@ -370,10 +370,11 @@ For detailed deployment instructions, see [docs/guides/SERVER_DEPLOYMENT.md](doc
 Access the storage configuration at `/admin/storage` (admin only):
 
 - **Google Drive**: Configure OAuth credentials, folder ID, and connection testing
-- **AWS S3**: Set up access keys, region, and bucket configuration  
+- **AWS S3 / Backblaze B2**: Site-wide JSON configuration on the admin page (when not using the Wasabi-style form)
 - **Local Storage**: Configure storage path and file size limits
 - **Asset Uploads**: Logo/favicon uploads require at least one enabled storage provider (enable Local Storage if your default provider is disabled)
-- **Provider Status**: Enable/disable storage providers
+- **Provider Status**: Enable/disable providers per tab (stored in `storage_configs`)
+- **API path**: `/api/admin/storage/*` is implemented in SvelteKit and forwarded to the Nest backend (see `docs/guides/STORAGE.md`)
 - **Connection Testing**: Test storage provider connectivity
 - **Usage Monitoring**: View storage quotas and usage statistics
 
