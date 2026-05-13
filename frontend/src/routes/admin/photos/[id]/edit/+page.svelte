@@ -7,7 +7,8 @@
 	import { MultiLangUtils } from '$utils/multiLang';
 	import MultiLangInput from '$lib/components/MultiLangInput.svelte';
 	import MultiLangHTMLEditor from '$lib/components/MultiLangHTMLEditor.svelte';
-	import Toast from '$lib/components/Toast.svelte';
+	import { adminToast } from '$lib/admin/adminToast';
+	import { adminBtnPrimarySm, adminBtnSecondary, adminRingPrimary } from '$lib/admin/admin-cerberus';
 	import FaceDetectionViewer from '$lib/components/FaceDetectionViewer.svelte';
 	import FaceMatchingPanel from '$lib/components/FaceMatchingPanel.svelte';
 	import CollectionPopup from '$lib/components/CollectionPopup.svelte';
@@ -91,7 +92,6 @@
 	let showCropModal = false;
 	let restoringOriginal = false;
 	let error = '';
-	let notification = { show: false, message: '', type: 'success' as 'success' | 'error' };
 	
 	let tags: Tag[] = [];
 	let people: Person[] = [];
@@ -437,28 +437,17 @@
 
 			const updatedPhoto = await response.json();
 
-			notification = {
-				show: true,
-				message: 'Photo updated successfully',
-				type: 'success',
-			};
-
-			// Redirect after a short delay
+			adminToast.success({ title: 'Photo updated successfully' });
 			setTimeout(() => {
 				if (photo?.albumId) {
 					goto(`/admin/albums/${photo.albumId}`);
 				} else {
 					goto('/admin/albums');
 				}
-			}, 1000);
+			}, 600);
 		} catch (err) {
 			logger.error('Failed to update photo:', err);
 			error = handleError(err, 'Failed to update photo');
-			notification = {
-				show: true,
-				message: error,
-				type: 'error',
-			};
 		} finally {
 			saving = false;
 		}
@@ -494,12 +483,7 @@
 				};
 			}
 
-			notification = {
-				show: true,
-				message: result.message || 'Thumbnails regenerated successfully',
-				type: 'success',
-			};
-
+			adminToast.success({ title: result.message || 'Thumbnails regenerated successfully' });
 			// Reload the page after a short delay to show updated thumbnails
 			setTimeout(() => {
 				loadPhotoCalled = false;
@@ -508,12 +492,7 @@
 			}, 1000);
 		} catch (err) {
 			logger.error('Failed to regenerate thumbnails:', err);
-			error = handleError(err, 'Failed to regenerate thumbnails');
-			notification = {
-				show: true,
-				message: error,
-				type: 'error',
-			};
+			adminToast.error({ title: handleError(err, 'Failed to regenerate thumbnails') });
 		} finally {
 			regeneratingThumbnails = false;
 		}
@@ -536,7 +515,7 @@
 			if (updatedPhotoData?.storage) {
 				photo = { ...photo, storage: updatedPhotoData.storage };
 			}
-			notification = { show: true, message: result.message || 'Photo rotated', type: 'success' };
+			adminToast.success({ title: result.message || 'Photo rotated' });
 			setTimeout(() => {
 				loadPhotoCalled = false;
 				lastLoadedPhotoId = null;
@@ -544,8 +523,7 @@
 			}, 500);
 		} catch (err) {
 			logger.error('Failed to rotate photo:', err);
-			error = handleError(err, 'Failed to rotate photo');
-			notification = { show: true, message: error, type: 'error' };
+			adminToast.error({ title: handleError(err, 'Failed to rotate photo') });
 		} finally {
 			rotatingPhoto = false;
 		}
@@ -578,11 +556,10 @@
 			
 			const newWidth = updatedPhotoData?.dimensions?.width || crop.width;
 			const newHeight = updatedPhotoData?.dimensions?.height || crop.height;
-			notification = { 
-				show: true, 
-				message: result.message || `Photo cropped successfully. New size: ${newWidth} × ${newHeight}px`, 
-				type: 'success' 
-			};
+			adminToast.success({
+				title: result.message || 'Photo cropped successfully',
+				description: `New size: ${newWidth} × ${newHeight}px`,
+			});
 			showCropModal = false;
 			
 			// Reload photo to get fresh data and ensure dimensions are updated
@@ -593,8 +570,7 @@
 			}, 500);
 		} catch (err) {
 			logger.error('Failed to crop photo:', err);
-			error = handleError(err, 'Failed to crop photo');
-			notification = { show: true, message: error, type: 'error' };
+			adminToast.error({ title: handleError(err, 'Failed to crop photo') });
 		} finally {
 			croppingPhoto = false;
 		}
@@ -616,14 +592,13 @@
 			if (updatedPhotoData) {
 				photo = { ...photo, ...updatedPhotoData, canRestoreOriginal: updatedPhotoData.canRestoreOriginal ?? false };
 			}
-			notification = { show: true, message: result.message || 'Photo restored to original', type: 'success' };
+			adminToast.success({ title: result.message || 'Photo restored to original' });
 			loadPhotoCalled = false;
 			lastLoadedPhotoId = null;
 			await loadPhoto();
 		} catch (err) {
 			logger.error('Failed to restore original:', err);
-			error = handleError(err, 'Failed to restore original');
-			notification = { show: true, message: error, type: 'error' };
+			adminToast.error({ title: handleError(err, 'Failed to restore original') });
 		} finally {
 			restoringOriginal = false;
 		}
@@ -641,18 +616,12 @@
 			if (updated?.exif !== undefined) {
 				photo = { ...photo, exif: updated.exif };
 			}
-			notification = {
-				show: true,
-				message: result.message || 'EXIF data re-extracted successfully',
-				type: 'success',
-			};
+			adminToast.success({
+				title: result.message || 'EXIF data re-extracted successfully',
+			});
 		} catch (err) {
 			logger.error('Re-extract EXIF failed:', err);
-			notification = {
-				show: true,
-				message: handleError(err, 'Failed to re-extract EXIF'),
-				type: 'error',
-			};
+			adminToast.error({ title: handleError(err, 'Failed to re-extract EXIF') });
 		} finally {
 			reExtractingExif = false;
 		}
@@ -998,18 +967,14 @@
 			const appliedTagIds = await applySuggestedTags({ tagIds, source: 'context' });
 
 			showContextTagSuggestions = false;
-			notification = {
-				show: true,
-				message: `Successfully applied ${appliedTagIds.length} tag${appliedTagIds.length === 1 ? '' : 's'}`,
-				type: 'success',
-			};
+			adminToast.success({
+				title: `Applied ${appliedTagIds.length} tag${appliedTagIds.length === 1 ? '' : 's'}`,
+			});
 		} catch (error) {
 			logger.error('Failed to apply context tags:', error);
-			notification = {
-				show: true,
-				message: error instanceof Error ? error.message : 'Failed to apply tags',
-				type: 'error',
-			};
+			adminToast.error({
+				title: error instanceof Error ? error.message : 'Failed to apply tags',
+			});
 		}
 	}
 
@@ -1044,18 +1009,14 @@
 			});
 
 			showAITagSuggestions = false;
-			notification = {
-				show: true,
-				message: `Successfully applied ${appliedTagIds.length} tag${appliedTagIds.length === 1 ? '' : 's'}`,
-				type: 'success',
-			};
+			adminToast.success({
+				title: `Applied ${appliedTagIds.length} tag${appliedTagIds.length === 1 ? '' : 's'}`,
+			});
 		} catch (error) {
 			logger.error('Failed to apply tags:', error);
-			notification = {
-				show: true,
-				message: error instanceof Error ? error.message : 'Failed to apply tags',
-				type: 'error',
-			};
+			adminToast.error({
+				title: error instanceof Error ? error.message : 'Failed to apply tags',
+			});
 		}
 	}
 
@@ -1069,18 +1030,12 @@
 				source: 'context',
 			});
 
-			notification = {
-				show: true,
-				message: `Applied related tag${appliedTagIds.length === 1 ? '' : 's'} successfully`,
-				type: 'success',
-			};
+			adminToast.success({ title: 'Related tag applied' });
 		} catch (error) {
 			logger.error('Failed to apply related tag:', error);
-			notification = {
-				show: true,
-				message: error instanceof Error ? error.message : 'Failed to apply related tag',
-				type: 'error',
-			};
+			adminToast.error({
+				title: error instanceof Error ? error.message : 'Failed to apply related tag',
+			});
 		} finally {
 			applyingRelatedTagId = null;
 		}
@@ -1154,7 +1109,7 @@
 			<div class="text-center py-12">
 				<h1 class="text-2xl font-bold text-(--color-surface-950-50) mb-4">Error</h1>
 				<p class="text-(--color-surface-600-400) mb-4">{error}</p>
-				<a href="/admin/albums" class="btn-primary">Back to Albums</a>
+				<a href="/admin/albums" class="{adminBtnPrimarySm} {adminRingPrimary}">Back to Albums</a>
 			</div>
 		{:else if photo}
 			<!-- Header -->
@@ -1173,7 +1128,7 @@
 					{#if photo.albumId}
 						<a
 							href="/admin/albums/{photo.albumId}"
-							class="px-4 py-2 text-sm font-medium text-(--color-surface-800-200) bg-(--color-surface-50-950) border border-surface-300-700 rounded-md hover:bg-(--color-surface-50-950)"
+							class="{adminBtnSecondary} {adminRingPrimary}"
 						>
 							← Back to Album
 						</a>
@@ -1235,7 +1190,7 @@
 								type="button"
 								on:click={() => handleRotate(-90)}
 								disabled={rotatingPhoto}
-								class="px-3 py-1.5 text-sm font-medium text-(--color-surface-800-200) bg-(--color-surface-50-950) border border-surface-300-700 rounded-md hover:bg-(--color-surface-50-950) disabled:opacity-50"
+								class="{adminBtnSecondary} text-xs {adminRingPrimary} disabled:opacity-50"
 								title="90° counter-clockwise"
 							>
 								↺ 90° CCW
@@ -1244,7 +1199,7 @@
 								type="button"
 								on:click={() => handleRotate(90)}
 								disabled={rotatingPhoto}
-								class="px-3 py-1.5 text-sm font-medium text-(--color-surface-800-200) bg-(--color-surface-50-950) border border-surface-300-700 rounded-md hover:bg-(--color-surface-50-950) disabled:opacity-50"
+								class="{adminBtnSecondary} text-xs {adminRingPrimary} disabled:opacity-50"
 								title="90° clockwise"
 							>
 								90° CW ↻
@@ -1253,7 +1208,7 @@
 								type="button"
 								on:click={() => handleRotate(180)}
 								disabled={rotatingPhoto}
-								class="px-3 py-1.5 text-sm font-medium text-(--color-surface-800-200) bg-(--color-surface-50-950) border border-surface-300-700 rounded-md hover:bg-(--color-surface-50-950) disabled:opacity-50"
+								class="{adminBtnSecondary} text-xs {adminRingPrimary} disabled:opacity-50"
 								title="180°"
 							>
 								180°
@@ -1270,7 +1225,7 @@
 							type="button"
 							on:click={() => (showCropModal = true)}
 							disabled={croppingPhoto || !photoUrl}
-							class="px-3 py-1.5 text-sm font-medium text-(--color-surface-800-200) bg-(--color-surface-50-950) border border-surface-300-700 rounded-md hover:bg-(--color-surface-50-950) disabled:opacity-50"
+							class="{adminBtnSecondary} text-sm {adminRingPrimary} disabled:opacity-50"
 							title="Crop photo"
 						>
 							✂️ Crop Photo
@@ -1307,7 +1262,7 @@
 							type="button"
 							on:click={handleRegenerateThumbnails}
 							disabled={regeneratingThumbnails}
-							class="px-4 py-2 text-sm font-medium text-white bg-(--color-primary-600) border border-transparent rounded-md hover:bg-(--color-primary-700) focus:outline-none focus:ring-2 focus:ring-(--color-primary-500) disabled:opacity-50 disabled:cursor-not-allowed"
+							class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50 disabled:cursor-not-allowed"
 						>
 							{regeneratingThumbnails ? 'Regenerating...' : 'Rebuild Thumbnails'}
 						</button>
@@ -1518,7 +1473,9 @@
 											{#each formData.people as personId}
 												{@const person = people.find(p => p._id === personId)}
 												{#if person}
-													<span class="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-800 text-sm rounded-md">
+													<span
+														class="inline-flex items-center gap-1 rounded-md bg-[color-mix(in_oklab,var(--color-primary-500)_16%,transparent)] px-2 py-1 text-sm text-(--color-surface-800-200)"
+													>
 														{getPersonName(person)}
 														<button
 															type="button"
@@ -1526,7 +1483,7 @@
 																formData.people = formData.people.filter((id) => id !== personId);
 																formData = formData;
 															}}
-															class="hover:text-green-900"
+															class="text-(--color-surface-600-400) hover:text-(--color-surface-900-100)"
 														>
 															×
 														</button>
@@ -1621,11 +1578,11 @@
 									onFaceClick={(index) => {
 										// Handle face click if needed
 									}}
-									onError={(error) => {
-										notification = { show: true, message: error, type: 'error' };
+									onError={(err) => {
+										adminToast.error({ title: err });
 									}}
 									onSuccess={(message) => {
-										notification = { show: true, message, type: 'success' };
+										adminToast.success({ title: message });
 									}}
 								/>
 
@@ -1817,14 +1774,14 @@
 						{#if photo.albumId}
 							<a
 								href="/admin/albums/{photo.albumId}"
-								class="px-4 py-2 text-sm font-medium text-(--color-surface-800-200) bg-(--color-surface-50-950) border border-surface-300-700 rounded-md hover:bg-(--color-surface-50-950) focus:outline-none focus:ring-2 focus:ring-(--color-primary-500)"
+								class="{adminBtnSecondary} {adminRingPrimary}"
 							>
 								Cancel
 							</a>
 						{:else}
 							<a
 								href="/admin/albums"
-								class="px-4 py-2 text-sm font-medium text-(--color-surface-800-200) bg-(--color-surface-50-950) border border-surface-300-700 rounded-md hover:bg-(--color-surface-50-950) focus:outline-none focus:ring-2 focus:ring-(--color-primary-500)"
+								class="{adminBtnSecondary} {adminRingPrimary}"
 							>
 								Cancel
 							</a>
@@ -1832,7 +1789,7 @@
 						<button
 							type="submit"
 							disabled={saving}
-							class="px-4 py-2 text-sm font-medium text-white bg-(--color-primary-600) border border-transparent rounded-md hover:bg-(--color-primary-700) focus:outline-none focus:ring-2 focus:ring-(--color-primary-500) disabled:opacity-50 disabled:cursor-not-allowed"
+							class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50 disabled:cursor-not-allowed"
 						>
 							{saving ? 'Saving...' : 'Save Changes'}
 						</button>
@@ -1842,15 +1799,6 @@
 		{/if}
 	</div>
 </div>
-
-<Toast
-	isOpen={notification.show}
-	message={notification.message}
-	type={notification.type}
-	onClose={() => {
-		notification.show = false;
-	}}
-/>
 
 <!-- Collection Popups -->
 <CollectionPopup

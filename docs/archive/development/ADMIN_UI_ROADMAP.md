@@ -120,7 +120,7 @@ Use this as the working backlog until both phases are closed.
 
 #### B. Execute Phase 6 (waves)
 
-- [ ] **Wave 1** — Migrate all routes in Wave 1 table (dashboard through storage). *Done / partial:* dashboard, albums list, album **`[id]`** detail (toasts + Cerberus dialogs/CTAs), album **`[id]/edit`** (toasts, no **`NotificationDialog`**, Cerberus actions), users dialogs, storage shells, **site-config** (toast-first save/upload/test-email; inline banner errors only). *Remaining:* **photos upload** and **photo `[id]/edit`** pass.
+- [x] **Wave 1** — Core admin routes in Wave 1 table: dashboard, albums list/detail/edit, photos upload/edit, users, site-config, storage shells; **`adminToast`** + **`admin-cerberus`** on those surfaces (see audit). *Follow-up (optional):* **`OwnerStorageView`** internals; dashboard load toasts.
 - [ ] **Wave 2** — Import/backup/translations/marketplace/analytics/locations.
 - [ ] **Wave 3** — Blog suite, pages, tags, people, groups.
 - [ ] **Wave 4** — Templates + theme-layout.

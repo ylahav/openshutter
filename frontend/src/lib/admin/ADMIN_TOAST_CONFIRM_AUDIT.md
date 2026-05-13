@@ -28,8 +28,8 @@ Snapshot to drive migration: prefer **`adminToast`** for transient success/error
 | `/admin/marketplace` | — | ✓ | |
 | `/admin/pages` | — | — | Very large page |
 | `/admin/people` | — | — | |
-| `/admin/photos/upload` | — | — | Inline upload report panels |
-| `/admin/photos/[id]/edit` | — | — | Uses `Toast` for some flows |
+| `/admin/photos/upload` | ✓ | — | **Wave 1:** batch summary **`adminToast`**; **`admin-cerberus`** tabs/actions; **`AlertModal`** removed (errors use toast). Report panels use surface / theme mixes (no raw **`green-50`**). |
+| `/admin/photos/[id]/edit` | ✓ | — | **Wave 1:** **`adminToast`** replaces bottom **`Toast`**; Cerberus save/back/rotate/crop/rebuild actions; person chip uses primary mix. |
 | `/admin/site-config` | ✓ | ✓ | **Wave 1 partial:** save/upload/test-email use **`adminToast`**; top **`message`** banner is **errors only** (Cerberus-style surface). |
 | `/admin/storage` | — | — | Embeds `OwnerStorageView`. **Wave 1 partial:** page shell uses admin body background (no **`gray-50`**). |
 | `/admin/storage/google-drive-setup` | — | — | |
@@ -41,6 +41,6 @@ Snapshot to drive migration: prefer **`adminToast`** for transient success/error
 | `/admin/translations` | — | ✓ | Two confirm dialogs |
 | `/admin/users` | — | ✓ | **Wave 1 partial:** create/edit dialog footers use **`admin-cerberus`**. |
 
-**Next steps (Phase 6 Wave 1):** finish **`/admin/photos/upload`** and **`/admin/photos/[id]/edit`** (`adminToast` + **`admin-cerberus`** where inline banners or raw primaries remain). Optional: dashboard load toasts; **`OwnerStorageView`** internals.
+**Next steps (Phase 6 Wave 2+):** begin **Wave 2** routes (import-sync, backup-restore, etc.); optional **`OwnerStorageView`** Cerberus pass; smoke checklist **C**.
 
 *Generated with repo static scan; re-run `rg "adminToast|AdminConfirmDialog" frontend/src/routes/admin` after changes. **ESLint** warns on `confirm`/`alert` in admin scripts — see `frontend/eslint.config.js`.*

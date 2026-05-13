@@ -1,11 +1,12 @@
 <script lang="ts">
-	import { onMount, tick } from 'svelte';
+	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { MultiLangUtils } from '$lib/utils/multiLang';
 	import { currentLanguage } from '$stores/language';
 	import type { UploadReport } from '$types';
-	import AlertModal from '$lib/components/AlertModal.svelte';
+	import { adminToast } from '$lib/admin/adminToast';
+	import { adminBtnPrimarySm, adminBtnSecondary, adminRingPrimary } from '$lib/admin/admin-cerberus';
 	import { logger } from '$lib/utils/logger';
 	import { handleError } from '$lib/utils/errorHandler';
 	import type { PageData } from './$types';
@@ -47,9 +48,6 @@
 	let folderUploadReport: UploadReport | null = null;
 	let isUploadingFolder = false;
 	let folderError: string | null = null;
-	let showErrorModal = false;
-	let errorModalTitle = '';
-	let errorModalMessage = '';
 
 	onMount(() => {
 		albumId = $page.url.searchParams.get('albumId');
@@ -83,12 +81,31 @@
 		}
 	}
 
-	async function showError(title: string, message: string) {
-		errorModalTitle = title;
-		errorModalMessage = message;
-		showErrorModal = false; // Reset first to ensure reactivity
-		await tick(); // Wait for reactivity
-		showErrorModal = true;
+	function showError(title: string, message: string) {
+		adminToast.error({ title, description: message });
+	}
+
+	function toastUploadBatchSummary(r: UploadReport) {
+		const { successful, skipped, failed, total } = r;
+		if (failed > 0 && successful === 0 && skipped === 0) {
+			adminToast.error({
+				title: 'Upload failed',
+				description: `All ${failed} file(s) failed (of ${total}).`,
+			});
+		} else if (failed > 0) {
+			adminToast.info({
+				title: 'Upload finished with issues',
+				description: `${successful} uploaded, ${skipped} skipped, ${failed} failed (of ${total}).`,
+			});
+		} else if (successful > 0 || skipped > 0) {
+			adminToast.success({
+				title: 'Upload complete',
+				description:
+					skipped > 0
+						? `${successful} uploaded, ${skipped} skipped (of ${total}).`
+						: `${successful} file(s) uploaded (of ${total}).`,
+			});
+		}
 	}
 
 	function handleFilesSelected(files: FileList | null) {
@@ -599,6 +616,9 @@
 			}))
 		};
 		logger.debug(`[Photo Upload] Report generated:`, fileUploadReport);
+		if (!(uploadMode === 'folder' && isUploadingFolder)) {
+			toastUploadBatchSummary(fileUploadReport);
+		}
 	}
 
 	function handleDragOver(e: DragEvent) {
@@ -727,6 +747,7 @@
 						error: u.error || 'Upload failed'
 					}))
 				};
+				toastUploadBatchSummary(folderUploadReport);
 			}
 		}
 	}
@@ -756,47 +777,37 @@
 			</div>
 			<div class="flex space-x-3">
 				<button
+					type="button"
 					on:click={() => {
 						if (returnTo) goto(returnTo);
 						else if (albumId) goto(data?.user?.role === 'owner' ? `/owner/albums/${albumId}` : `/admin/albums/${albumId}`);
 						else goto(data?.user?.role === 'owner' ? '/owner/albums' : '/admin');
 					}}
-					class="px-4 py-2 border border-surface-300-700 rounded-md text-sm font-medium text-(--color-surface-800-200) bg-(--color-surface-50-950) hover:bg-(--color-surface-50-950)"
+					class="{adminBtnSecondary} {adminRingPrimary}"
 				>
 					{albumId ? 'Back to Album' : 'Back to Photos'}
 				</button>
 			</div>
 		</div>
 
-		<!-- Error Modal -->
-		<AlertModal
-			isOpen={showErrorModal}
-			title={errorModalTitle}
-			message={errorModalMessage}
-			variant="error"
-			onClose={() => {
-				showErrorModal = false;
-				error = null;
-				folderError = null;
-			}}
-		/>
-
 		<!-- Upload Mode Tabs -->
 		<div class="mb-6 card preset-outlined-surface-200-800 bg-surface-50-950 p-1">
 			<div class="flex space-x-1">
 				<button
-					on:click={() => uploadMode = 'files'}
-					class="flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors {uploadMode === 'files'
-						? 'bg-(--color-primary-600) text-white'
-						: 'text-(--color-surface-800-200) hover:bg-(--color-surface-100-900)'}"
+					type="button"
+					on:click={() => (uploadMode = 'files')}
+					class="flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors {uploadMode === 'files'
+						? `${adminBtnPrimarySm} ${adminRingPrimary}`
+						: `${adminBtnSecondary} ${adminRingPrimary}`}"
 				>
 					Upload Files
 				</button>
 				<button
-					on:click={() => uploadMode = 'folder'}
-					class="flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors {uploadMode === 'folder'
-						? 'bg-(--color-primary-600) text-white'
-						: 'text-(--color-surface-800-200) hover:bg-(--color-surface-100-900)'}"
+					type="button"
+					on:click={() => (uploadMode = 'folder')}
+					class="flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors {uploadMode === 'folder'
+						? `${adminBtnPrimarySm} ${adminRingPrimary}`
+						: `${adminBtnSecondary} ${adminRingPrimary}`}"
 				>
 					Upload from Folder
 				</button>
@@ -847,7 +858,7 @@
 							type="button"
 							on:click={() => folderInput?.click()}
 							disabled={isUploadingFolder || !albumId}
-							class="w-full px-4 py-3 text-sm font-medium text-white bg-(--color-primary-600) border border-transparent rounded-md hover:bg-(--color-primary-700) disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+							class="{adminBtnPrimarySm} {adminRingPrimary} w-full flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
 						>
 							<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
@@ -920,37 +931,47 @@
 						
 						<!-- Summary -->
 						<div class="grid grid-cols-4 gap-4 mb-6">
-							<div class="bg-(--color-surface-50-950) rounded-lg p-4">
+							<div class="rounded-lg border border-surface-200-800 bg-(--color-surface-50-950) p-4">
 								<div class="text-2xl font-bold text-(--color-surface-950-50)">{folderUploadReport.total}</div>
 								<div class="text-sm text-(--color-surface-600-400)">Total Files</div>
 							</div>
-							<div class="bg-green-50 rounded-lg p-4">
-								<div class="text-2xl font-bold text-green-600">{folderUploadReport.successful}</div>
-								<div class="text-sm text-green-600">Successful</div>
+							<div
+								class="rounded-lg border border-surface-200-800 bg-[color-mix(in_oklab,var(--color-primary-500)_10%,transparent)] p-4 dark:bg-[color-mix(in_oklab,var(--color-primary-500)_16%,transparent)]"
+							>
+								<div class="text-2xl font-bold text-(--color-primary-700) dark:text-(--color-primary-300)">
+									{folderUploadReport.successful}
+								</div>
+								<div class="text-sm text-(--color-surface-600-400)">Successful</div>
 							</div>
-							<div class="bg-yellow-50 rounded-lg p-4">
-								<div class="text-2xl font-bold text-yellow-600">{folderUploadReport.skipped}</div>
-								<div class="text-sm text-yellow-600">Skipped</div>
+							<div
+								class="rounded-lg border border-surface-200-800 bg-[color-mix(in_oklab,var(--color-warning-500)_12%,transparent)] p-4 dark:bg-[color-mix(in_oklab,var(--color-warning-500)_18%,transparent)]"
+							>
+								<div class="text-2xl font-bold text-amber-800 dark:text-amber-200">{folderUploadReport.skipped}</div>
+								<div class="text-sm text-(--color-surface-600-400)">Skipped</div>
 							</div>
-							<div class="bg-red-50 rounded-lg p-4">
-								<div class="text-2xl font-bold text-red-600">{folderUploadReport.failed}</div>
-								<div class="text-sm text-red-600">Failed</div>
+							<div
+								class="rounded-lg border border-red-300/80 bg-[color-mix(in_oklab,var(--color-error-500)_10%,transparent)] p-4 dark:border-red-800/60 dark:bg-[color-mix(in_oklab,var(--color-error-500)_16%,transparent)]"
+							>
+								<div class="text-2xl font-bold text-red-700 dark:text-red-300">{folderUploadReport.failed}</div>
+								<div class="text-sm text-(--color-surface-600-400)">Failed</div>
 							</div>
 						</div>
 
 						<!-- Successful Uploads -->
 						{#if folderUploadReport.successes.length > 0}
 							<div class="mb-6">
-								<h4 class="text-sm font-semibold text-green-600 mb-2">
+								<h4 class="mb-2 text-sm font-semibold text-(--color-surface-800-200)">
 									✓ Successful ({folderUploadReport.successes.length})
 								</h4>
-								<div class="bg-green-50 border border-green-200 rounded-md p-4 max-h-48 overflow-y-auto">
+								<div
+									class="max-h-48 overflow-y-auto rounded-md border border-surface-200-800 bg-[color-mix(in_oklab,var(--color-surface-950)_4%,transparent)] p-4 dark:bg-[color-mix(in_oklab,var(--color-surface-50)_5%,transparent)]"
+								>
 									<ul class="space-y-1">
 										{#each folderUploadReport.successes as item}
-											<li class="text-sm text-green-800">
+											<li class="text-sm text-(--color-surface-800-200)">
 												{item.filename}
 												{#if item.photoId}
-													<span class="text-green-600"> (ID: {item.photoId.substring(0, 8)}...)</span>
+													<span class="text-(--color-surface-600-400)"> (ID: {item.photoId.substring(0, 8)}...)</span>
 												{/if}
 											</li>
 										{/each}
@@ -962,15 +983,17 @@
 						<!-- Skipped Files -->
 						{#if folderUploadReport.skippedItems.length > 0}
 							<div class="mb-6">
-								<h4 class="text-sm font-semibold text-yellow-600 mb-2">
+								<h4 class="mb-2 text-sm font-semibold text-(--color-surface-800-200)">
 									⊘ Skipped ({folderUploadReport.skippedItems.length})
 								</h4>
-								<div class="bg-yellow-50 border border-yellow-200 rounded-md p-4 max-h-48 overflow-y-auto">
+								<div
+									class="max-h-48 overflow-y-auto rounded-md border border-surface-200-800 bg-[color-mix(in_oklab,var(--color-warning-500)_10%,transparent)] p-4 dark:bg-[color-mix(in_oklab,var(--color-warning-500)_14%,transparent)]"
+								>
 									<ul class="space-y-1">
 										{#each folderUploadReport.skippedItems as item}
-											<li class="text-sm text-yellow-800">
+											<li class="text-sm text-(--color-surface-800-200)">
 												{item.filename}
-												<span class="text-yellow-600"> - {item.reason}</span>
+												<span class="text-(--color-surface-600-400)"> - {item.reason}</span>
 											</li>
 										{/each}
 									</ul>
@@ -981,15 +1004,17 @@
 						<!-- Failed Uploads -->
 						{#if folderUploadReport.failures.length > 0}
 							<div class="mb-6">
-								<h4 class="text-sm font-semibold text-red-600 mb-2">
+								<h4 class="mb-2 text-sm font-semibold text-(--color-surface-800-200)">
 									✗ Failed ({folderUploadReport.failures.length})
 								</h4>
-								<div class="bg-red-50 border border-red-200 rounded-md p-4 max-h-48 overflow-y-auto">
+								<div
+									class="max-h-48 overflow-y-auto rounded-md border border-red-300/70 bg-[color-mix(in_oklab,var(--color-error-500)_8%,transparent)] p-4 dark:border-red-800/60 dark:bg-[color-mix(in_oklab,var(--color-error-500)_14%,transparent)]"
+								>
 									<ul class="space-y-1">
 										{#each folderUploadReport.failures as item}
-											<li class="text-sm text-red-800">
+											<li class="text-sm text-red-900 dark:text-red-100">
 												{item.filename}
-												<span class="text-red-600"> - {item.error}</span>
+												<span class="text-red-700 dark:text-red-300"> - {item.error}</span>
 											</li>
 										{/each}
 									</ul>
@@ -1096,8 +1121,11 @@
 				</div>
 
 				{#if hasErrors}
-					<div class="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
-						<p class="text-sm text-red-600">Some uploads failed. Please try again.</p>
+					<div
+						class="mt-4 rounded-md border border-red-300 bg-red-50 p-3 dark:border-red-800/80 dark:bg-red-950/40"
+						role="alert"
+					>
+						<p class="text-sm text-red-700 dark:text-red-200">Some uploads failed. Please try again.</p>
 					</div>
 				{/if}
 			</div>
@@ -1110,37 +1138,47 @@
 				
 				<!-- Summary -->
 				<div class="grid grid-cols-4 gap-4 mb-6">
-					<div class="bg-(--color-surface-50-950) rounded-lg p-4">
+					<div class="rounded-lg border border-surface-200-800 bg-(--color-surface-50-950) p-4">
 						<div class="text-2xl font-bold text-(--color-surface-950-50)">{fileUploadReport.total}</div>
 						<div class="text-sm text-(--color-surface-600-400)">Total Files</div>
 					</div>
-					<div class="bg-green-50 rounded-lg p-4">
-						<div class="text-2xl font-bold text-green-600">{fileUploadReport.successful}</div>
-						<div class="text-sm text-green-600">Successful</div>
+					<div
+						class="rounded-lg border border-surface-200-800 bg-[color-mix(in_oklab,var(--color-primary-500)_10%,transparent)] p-4 dark:bg-[color-mix(in_oklab,var(--color-primary-500)_16%,transparent)]"
+					>
+						<div class="text-2xl font-bold text-(--color-primary-700) dark:text-(--color-primary-300)">
+							{fileUploadReport.successful}
+						</div>
+						<div class="text-sm text-(--color-surface-600-400)">Successful</div>
 					</div>
-					<div class="bg-yellow-50 rounded-lg p-4">
-						<div class="text-2xl font-bold text-yellow-600">{fileUploadReport.skipped}</div>
-						<div class="text-sm text-yellow-600">Skipped</div>
+					<div
+						class="rounded-lg border border-surface-200-800 bg-[color-mix(in_oklab,var(--color-warning-500)_12%,transparent)] p-4 dark:bg-[color-mix(in_oklab,var(--color-warning-500)_18%,transparent)]"
+					>
+						<div class="text-2xl font-bold text-amber-800 dark:text-amber-200">{fileUploadReport.skipped}</div>
+						<div class="text-sm text-(--color-surface-600-400)">Skipped</div>
 					</div>
-					<div class="bg-red-50 rounded-lg p-4">
-						<div class="text-2xl font-bold text-red-600">{fileUploadReport.failed}</div>
-						<div class="text-sm text-red-600">Failed</div>
+					<div
+						class="rounded-lg border border-red-300/80 bg-[color-mix(in_oklab,var(--color-error-500)_10%,transparent)] p-4 dark:border-red-800/60 dark:bg-[color-mix(in_oklab,var(--color-error-500)_16%,transparent)]"
+					>
+						<div class="text-2xl font-bold text-red-700 dark:text-red-300">{fileUploadReport.failed}</div>
+						<div class="text-sm text-(--color-surface-600-400)">Failed</div>
 					</div>
 				</div>
 
 				<!-- Successful Uploads -->
 				{#if fileUploadReport.successes.length > 0}
 					<div class="mb-6">
-						<h4 class="text-sm font-semibold mb-2 text-green-600">
+						<h4 class="mb-2 text-sm font-semibold text-(--color-surface-800-200)">
 							✓ Successful ({fileUploadReport.successes.length})
 						</h4>
-						<div class="bg-green-50 border border-green-200 rounded-md p-4 max-h-48 overflow-y-auto">
+						<div
+							class="max-h-48 overflow-y-auto rounded-md border border-surface-200-800 bg-[color-mix(in_oklab,var(--color-surface-950)_4%,transparent)] p-4 dark:bg-[color-mix(in_oklab,var(--color-surface-50)_5%,transparent)]"
+						>
 							<ul class="space-y-1">
 								{#each fileUploadReport.successes as item}
-									<li class="text-sm text-green-800">
+									<li class="text-sm text-(--color-surface-800-200)">
 										{item.filename}
 										{#if item.photoId}
-											<span class="text-green-600"> (ID: {item.photoId.substring(0, 8)}...)</span>
+											<span class="text-(--color-surface-600-400)"> (ID: {item.photoId.substring(0, 8)}...)</span>
 										{/if}
 									</li>
 								{/each}
@@ -1152,15 +1190,17 @@
 				<!-- Skipped Files -->
 				{#if fileUploadReport.skippedItems.length > 0}
 					<div class="mb-6">
-						<h4 class="text-sm font-semibold mb-2 text-yellow-600">
+						<h4 class="mb-2 text-sm font-semibold text-(--color-surface-800-200)">
 							⊘ Skipped ({fileUploadReport.skippedItems.length})
 						</h4>
-						<div class="bg-yellow-50 border border-yellow-200 rounded-md p-4 max-h-48 overflow-y-auto">
+						<div
+							class="max-h-48 overflow-y-auto rounded-md border border-surface-200-800 bg-[color-mix(in_oklab,var(--color-warning-500)_10%,transparent)] p-4 dark:bg-[color-mix(in_oklab,var(--color-warning-500)_14%,transparent)]"
+						>
 							<ul class="space-y-1">
 								{#each fileUploadReport.skippedItems as item}
-									<li class="text-sm text-yellow-800">
+									<li class="text-sm text-(--color-surface-800-200)">
 										{item.filename}
-										<span class="text-yellow-600"> - {item.reason}</span>
+										<span class="text-(--color-surface-600-400)"> - {item.reason}</span>
 									</li>
 								{/each}
 							</ul>
@@ -1171,15 +1211,17 @@
 				<!-- Failed Uploads -->
 				{#if fileUploadReport.failures.length > 0}
 					<div class="mb-6">
-						<h4 class="text-sm font-semibold mb-2 text-red-600">
+						<h4 class="mb-2 text-sm font-semibold text-(--color-surface-800-200)">
 							✗ Failed ({fileUploadReport.failures.length})
 						</h4>
-						<div class="bg-red-50 border border-red-200 rounded-md p-4 max-h-48 overflow-y-auto">
+						<div
+							class="max-h-48 overflow-y-auto rounded-md border border-red-300/70 bg-[color-mix(in_oklab,var(--color-error-500)_8%,transparent)] p-4 dark:border-red-800/60 dark:bg-[color-mix(in_oklab,var(--color-error-500)_14%,transparent)]"
+						>
 							<ul class="space-y-1">
 								{#each fileUploadReport.failures as item}
-									<li class="text-sm text-red-800">
+									<li class="text-sm text-red-900 dark:text-red-100">
 										{item.filename}
-										<span class="text-red-600"> - {item.error}</span>
+										<span class="text-red-700 dark:text-red-300"> - {item.error}</span>
 									</li>
 								{/each}
 							</ul>
@@ -1194,19 +1236,17 @@
 		{#if allUploadsComplete}
 			<div class="mt-8 flex justify-end space-x-3">
 				<button
+					type="button"
 					on:click={() => {
 						if (returnTo) goto(returnTo);
 						else if (albumId) goto(data?.user?.role === 'owner' ? `/owner/albums/${albumId}` : `/admin/albums/${albumId}`);
 						else goto(data?.user?.role === 'owner' ? '/owner/albums' : '/admin');
 					}}
-					class="px-4 py-2 text-sm font-medium text-(--color-surface-800-200) bg-(--color-surface-50-950) border border-surface-300-700 rounded-md hover:bg-(--color-surface-50-950)"
+					class="{adminBtnSecondary} {adminRingPrimary}"
 				>
 					{albumId ? 'Back to Album' : 'Upload More Photos'}
 				</button>
-				<button
-					on:click={handleFinish}
-					class="px-4 py-2 text-sm font-medium text-white bg-(--color-primary-600) border border-transparent rounded-md hover:bg-(--color-primary-700)"
-				>
+				<button type="button" on:click={handleFinish} class="{adminBtnPrimarySm} {adminRingPrimary}">
 					{albumId ? 'Go to Album' : 'Go to Photos'}
 				</button>
 			</div>
