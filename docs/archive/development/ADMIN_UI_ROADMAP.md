@@ -56,23 +56,80 @@ Legacy Mongo documents may still store an old `adminTemplate`; the next **PUT** 
 
 ### Phase 5 — Cross-cutting interaction patterns
 
+**Status:** **Partially complete.** Shared primitives exist (see table); **Phase 5 is “done”** when those primitives are **documented**, **filled where missing** (drawer pattern, DnD wrapper), and **adopted broadly**—that adoption overlaps **Phase 6** (page-by-page). Treat Phase 5 as **libraries + conventions** and Phase 6 as **applying them to each route**.
+
 Standardize implementations so every admin screen uses the same APIs:
 
-| Pattern | Status / location |
-|---------|-------------------|
-| **Modals / dialogs** | **`AdminConfirmDialog.svelte`** — Skeleton `Dialog` + `Portal`; use for destructive flows (e.g. album delete). Extend for other modals as needed. |
-| **Drawers / side panels** | Same stack as modals where possible; consistent widths and breakpoints. |
-| **Toasts / notifications** | **`adminToast`**, **`AdminToastRegion`** (mounted in **`AdminAppChrome`**); replace ad-hoc page `message` strings incrementally. |
-| **Form validation** | Shared pattern: field errors, `submit` disabled/loading, server error mapping (align with existing fetch/error helpers). |
-| **Drag and drop** | Keep **`svelte-dnd-action`** (already in `frontend/package.json`) or wrap it in one admin **`SortableList`** abstraction for grids and reorder lists. |
+| Pattern | Status | Location / notes |
+|---------|--------|------------------|
+| **Modals / dialogs** | **Partial** | **`AdminConfirmDialog.svelte`** — Skeleton `Dialog` + `Portal`. Used on several flows (albums, users, site-config, marketplace, …). **Remaining:** audit remaining destructive actions; add a **generic modal shell** only if non-confirm dialogs repeat often. |
+| **Drawers / side panels** | **Not standardized** | Policy: same Skeleton stack as modals where possible. **Remaining:** pick Skeleton **`Drawer`** (or equivalent), document widths/breakpoints, migrate **one** representative screen, then reuse. |
+| **Toasts / notifications** | **Partial** | **`adminToast`**, **`AdminToastRegion`** in **`AdminAppChrome`**. **Remaining:** replace inline success/error banners on admin pages incrementally (many routes still use local `success` / `error` strings). |
+| **Form validation** | **Not standardized** | **Remaining:** short **maintainer doc** + optional helpers (e.g. map `handleApiErrorResponse` / Nest `message` to field errors); consistent **`disabled` submit** while **`submitting`**. |
+| **Drag and drop** | **Not abstracted** | **`svelte-dnd-action`** is in **`frontend/package.json`**. **Remaining:** add **`SortableList`** (or one shared wrapper) for album/grid reorder and similar lists. |
 
-**Cerberus class helpers:** `frontend/src/lib/admin/admin-cerberus.ts` — `adminText*`, `adminBtnPrimary` / `adminBtnPrimarySm`, `adminInputSmClass`, `adminSelectSmClass`, borders, focus ring.
+**Cerberus class helpers:** `frontend/src/lib/admin/admin-cerberus.ts` — `adminText*`, `adminBtnPrimary` / `adminBtnPrimarySm`, `adminInputSmClass`, `adminSelectSmClass`, borders, focus ring. Prefer these over ad hoc Tailwind on **new** admin work.
+
+---
 
 ### Phase 6 — Incremental page migration
 
-- **No big-bang rewrite.** Migrate high-traffic or visually inconsistent admin pages first (e.g. dashboard, lists, template overrides).
-- **Regressions:** Preserve all existing **routes, API calls, and permissions**; changes are presentational and structural only unless a bug is fixed.
-- **QA:** Smoke-test every admin area after Phase 1–3 (layout shell + config) because routing/layout touches everything.
+**Status:** **Ongoing / not formally closed.** Many pages still mix legacy Tailwind (`bg-*-600`, etc.) with Cerberus; migration is **presentational only** unless fixing a bug.
+
+- **No big-bang rewrite.** Migrate in **waves** (below); prioritize high-traffic and visually inconsistent screens.
+- **Regressions:** Preserve all **routes, API calls, roles, and guards**; **owner**-accessible routes (`ownerCanAccess`) stay permission-identical.
+- **QA:** After each wave (or before release), smoke-test **admin** and **owner-as-admin** paths touched by layout/nav changes.
+
+#### Inventory — admin `+page.svelte` routes (33)
+
+Paths are under `frontend/src/routes/admin/`:
+
+| Wave | Routes (priority) |
+|------|-------------------|
+| **1 — Core ops** | `+page.svelte` (dashboard), `albums/+page.svelte`, `albums/[id]/+page.svelte`, `albums/[id]/edit/+page.svelte`, `photos/upload/+page.svelte`, `photos/[id]/edit/+page.svelte`, `users/+page.svelte`, `site-config/+page.svelte`, `storage/+page.svelte` |
+| **2 — Heavy / config** | `import-sync/+page.svelte`, `backup-restore/+page.svelte`, `translations/+page.svelte`, `marketplace/+page.svelte`, `analytics/+page.svelte`, `locations/+page.svelte` |
+| **3 — Content & taxonomy** | `pages/+page.svelte`, `blog-articles/+page.svelte`, `blog-articles/new/+page.svelte`, `blog-articles/[id]/edit/+page.svelte`, `blog-categories/+page.svelte`, `blog-categories/new/+page.svelte`, `blog-categories/[id]/edit/+page.svelte`, `blogs/+page.svelte`, `tags/+page.svelte`, `people/+page.svelte`, `groups/+page.svelte` |
+| **4 — Themes & templates** | `templates/+page.svelte`, `templates/customize/+page.svelte`, `templates/overrides/+page.svelte`, `theme-layout/+page.svelte` |
+| **5 — Supporting** | `audit-logs/+page.svelte`, `contact-submissions/+page.svelte`, `docs/ui/+page.svelte`, `storage/google-drive-setup/+page.svelte` |
+
+*(New admin routes should be added to this table when created.)*
+
+#### Definition of done — single admin page (Phase 6)
+
+For each migrated page:
+
+- [ ] Buttons/inputs use **`admin-cerberus`** (or Skeleton **`btn`** presets scoped to Cerberus), not one-off primary colors unless justified.
+- [ ] User-visible success/error uses **`adminToast`** where it is **transient feedback**; keep **`AdminConfirmDialog`** for destructive confirmation.
+- [ ] Submit actions show **loading state** (disable buttons / spinner) during async work.
+- [ ] No accidental change to **fetch URLs**, **methods**, or **role checks**.
+
+---
+
+### Master checklist — completing Phase 5 & 6
+
+Use this as the working backlog until both phases are closed.
+
+#### A. Finish Phase 5 (platform)
+
+- [ ] **Form validation doc** — One short doc under `frontend/src/lib/admin/` or `docs/guides/` (field errors, `submitting`, mapping API errors).
+- [ ] **Drawer pattern** — Choose API (Skeleton drawer), document breakpoints; implement **one** reference usage.
+- [ ] **`SortableList` (or equivalent)** — Thin wrapper over `svelte-dnd-action` + Cerberus row styles; use in **one** reorder UI (e.g. album order or overrides).
+- [ ] **Toast audit** — List admin pages with inline `success`/`error` banners; migrate high-traffic Wave **1** pages first.
+- [ ] **Confirm audit** — Ensure destructive deletes/archives use **`AdminConfirmDialog`** consistently.
+- [ ] **Optional:** ESLint rule or PR checklist — prefer `admin-cerberus` / Skeleton on new `/admin` files.
+
+#### B. Execute Phase 6 (waves)
+
+- [ ] **Wave 1** — Migrate all routes in Wave 1 table (dashboard through storage).
+- [ ] **Wave 2** — Import/backup/translations/marketplace/analytics/locations.
+- [ ] **Wave 3** — Blog suite, pages, tags, people, groups.
+- [ ] **Wave 4** — Templates + theme-layout.
+- [ ] **Wave 5** — Audit logs, contact submissions, docs UI, Google Drive setup.
+
+#### C. Verification
+
+- [ ] **Smoke script / checklist** — Run through sidebar nav as **admin** after each wave (see **`docs/guides/ADMIN_SETUP.md`** if extended).
+- [ ] **Owner subset** — Where **`ownerCanAccess`** applies, re-test albums/photos/storage flows (**`/admin`** dashboard backlog is separate; see below).
 
 ### Backlog — Owners and the admin dashboard (`/admin`)
 
@@ -101,4 +158,4 @@ Standardize implementations so every admin screen uses the same APIs:
 
 ---
 
-*Last updated: 2026-05 — admin chrome unchanged; added **Backlog — Owners and the admin dashboard** (owner access to `/admin`, scoped dashboard API, guards, QA).*
+*Last updated: 2026-05 — **Phase 5/6:** expanded status, 33-route migration waves, **master checklist**; admin chrome unchanged; **Backlog** (owners + dashboard) unchanged.*
