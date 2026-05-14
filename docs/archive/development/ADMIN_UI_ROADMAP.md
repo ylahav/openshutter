@@ -4,7 +4,7 @@ This document is the **source of truth** for how the **admin panel** should rela
 
 **UI toolkit (decided):** **Skeleton** `@skeletonlabs/skeleton` + `@skeletonlabs/skeleton-svelte` (**v4.14.x**), theme **Cerberus**, scoped via `frontend/src/lib/styles/admin-skeleton.css` (imported from `frontend/src/routes/admin/+layout.svelte`) so visitor CSS is not merged with Skeleton’s `@theme`. **DaisyUI** was a strong alternative for class-first speed; **Skeleton** wins here for Svelte 5 components, Zag-based primitives (dialogs, lists), and one coherent system for modals / drawers / forms in later phases.
 
-**What is in use today:** **`AdminAppChrome`** (`frontend/src/lib/components/AdminAppChrome.svelte`) sets **`data-theme="cerberus"`** and scopes Skeleton **CSS** via `admin-skeleton.css`. Shared class fragments live in **`frontend/src/lib/admin/admin-cerberus.ts`** (e.g. `adminInputSmClass`, `adminSelectSmClass`, primary button presets). **`@skeletonlabs/skeleton-svelte` components** are used where it pays off: **toasts** (`AdminToastRegion`, `adminToast` / `createToaster`), **confirm dialogs** (`AdminConfirmDialog`), and selected screens (e.g. **Site configuration**: `Tabs`, `Switch`). Most admin pages still use **plain markup + utilities** wired to Cerberus tokens; migration is incremental (**Phase 6**).
+**What is in use today:** **`AdminAppChrome`** (`frontend/src/lib/components/AdminAppChrome.svelte`) sets **`data-theme="cerberus"`** and scopes Skeleton **CSS** via `admin-skeleton.css`. Shared class fragments live in **`frontend/src/lib/admin/admin-cerberus.ts`** (e.g. `adminInputSmClass`, `adminSelectSmClass`, `adminBtnSm*`, badges, primary button presets). **`@skeletonlabs/skeleton-svelte` components** are used where it pays off: **toasts** (`AdminToastRegion`, `adminToast` / `createToaster`), **confirm dialogs** (`AdminConfirmDialog`), and selected screens (e.g. **Site configuration**: `Tabs`, `Switch`). **Phase 6 Waves 1–5** (inventory below) target **`adminToast`** + **`admin-cerberus`** on those routes; **stragglers** and embeds (e.g. **`OwnerStorageView`**) are tracked in [`ADMIN_TOAST_CONFIRM_AUDIT.md`](../../../frontend/src/lib/admin/ADMIN_TOAST_CONFIRM_AUDIT.md).
 
 ## Vision (clarified)
 
@@ -52,23 +52,23 @@ Legacy Mongo documents may still store an old `adminTemplate`; the next **PUT** 
 
 **Components in admin (non-exhaustive):** `Toast` + `createToaster` (`frontend/src/lib/components/admin/AdminToastRegion.svelte`, `frontend/src/lib/admin/toaster.ts`, `adminToast` helpers); `Dialog` + `Portal` (`AdminConfirmDialog.svelte`); `Tabs` / `Switch` on **`/admin/site-config`** and elsewhere as migrated. Prefer **`btn`** + Skeleton **presets** and shared **`admin-cerberus`** strings over one-off gray/blue Tailwind on new work.
 
-**Next deliverables:** keep migrating heavy forms and lists to the same primitives; avoid adding DaisyUI or a second design system.
+**Next deliverables:** finish **straggler** screens in [`ADMIN_TOAST_CONFIRM_AUDIT.md`](../../../frontend/src/lib/admin/ADMIN_TOAST_CONFIRM_AUDIT.md); avoid adding DaisyUI or a second design system.
 
 ### Phase 5 — Cross-cutting interaction patterns
 
-**Status:** **Partially complete.** Shared primitives exist (see table); **Phase 5 is “done”** when those primitives are **documented**, **filled where missing** (drawer pattern, DnD wrapper), and **adopted broadly**—that adoption overlaps **Phase 6** (page-by-page). Treat Phase 5 as **libraries + conventions** and Phase 6 as **applying them to each route**.
+**Status:** **Platform checklist complete** (Master checklist **§A** below — docs, audits, ESLint/PR hooks, `AdminSortableList`, `form-errors`). The **pattern table** tracks **ongoing adoption** on individual screens (overlaps Phase 6 and the toast/confirm **audit**); not every row needs to read “complete” for the platform work to be done.
 
 Standardize implementations so every admin screen uses the same APIs:
 
 | Pattern | Status | Location / notes |
 |---------|--------|------------------|
-| **Modals / dialogs** | **Partial** | **`AdminConfirmDialog.svelte`** — Skeleton `Dialog` + `Portal`. Used on several flows (albums, users, site-config, marketplace, …). **Remaining:** audit remaining destructive actions; add a **generic modal shell** only if non-confirm dialogs repeat often. |
+| **Modals / dialogs** | **Partial** | **`AdminConfirmDialog.svelte`** — Skeleton `Dialog` + `Portal`. Used on several flows (albums, users, site-config, marketplace, …). **Remaining:** audit any destructive actions still using browser **`confirm`**; add a **generic modal shell** only if non-confirm dialogs repeat often. |
 | **Drawers / side panels** | **Partial** | **Documented** in [`ADMIN_INTERACTION_PATTERNS.md`](../../../frontend/src/lib/admin/ADMIN_INTERACTION_PATTERNS.md): `Dialog` edge layout vs **`FloatingPanel`** + `Portal` ([Skeleton Floating Panel](https://www.skeleton.dev/docs/svelte/framework-components/floating-panel)). **Remaining:** first production screen using the chosen pattern. |
-| **Toasts / notifications** | **Partial** | **`adminToast`**, **`AdminToastRegion`** in **`AdminAppChrome`**. **Audit:** [`ADMIN_TOAST_CONFIRM_AUDIT.md`](../../../frontend/src/lib/admin/ADMIN_TOAST_CONFIRM_AUDIT.md). **Remaining:** clear **partial** rows and optional **`OwnerStorageView`** surfaces. |
-| **Form validation** | **Partial** | **Doc + helpers:** [`ADMIN_INTERACTION_PATTERNS.md`](../../../frontend/src/lib/admin/ADMIN_INTERACTION_PATTERNS.md) (submit state, server errors), [`form-errors.ts`](../../../frontend/src/lib/admin/form-errors.ts) (`submitErrorMessage`, `fieldHintFromApiError`). **Remaining:** adopt on each page (Phase 6). |
+| **Toasts / notifications** | **Mostly adopted** | **`adminToast`**, **`AdminToastRegion`** in **`AdminAppChrome`**. **Waves 1–5** routes in the inventory table use toasts per [`ADMIN_TOAST_CONFIRM_AUDIT.md`](../../../frontend/src/lib/admin/ADMIN_TOAST_CONFIRM_AUDIT.md). **Remaining:** clear **partial** audit rows and optional **`OwnerStorageView`** surfaces. |
+| **Form validation** | **Partial** | **Doc + helpers:** [`ADMIN_INTERACTION_PATTERNS.md`](../../../frontend/src/lib/admin/ADMIN_INTERACTION_PATTERNS.md) (submit state, server errors), [`form-errors.ts`](../../../frontend/src/lib/admin/form-errors.ts) (`submitErrorMessage`, `fieldHintFromApiError`). **Remaining:** adopt on straggler pages; heavy forms already lean on the doc in migrated waves. |
 | **Drag and drop** | **Partial** | **`AdminSortableList.svelte`** — flat list wrapper over `svelte-dnd-action` + Cerberus row chrome (`$lib/components/admin/AdminSortableList.svelte`). **Existing:** `AlbumTree` for nested album DnD. **Remaining:** adopt `AdminSortableList` on a suitable flat list (or keep bespoke zones where layout is non-list). |
 
-**Cerberus class helpers:** `frontend/src/lib/admin/admin-cerberus.ts` — `adminText*`, `adminBtnPrimary` / `adminBtnPrimarySm`, `adminInputSmClass`, `adminSelectSmClass`, borders, focus ring. Prefer these over ad hoc Tailwind on **new** admin work.
+**Cerberus class helpers:** `frontend/src/lib/admin/admin-cerberus.ts` — `adminText*`, `adminBtnPrimary` / `adminBtnPrimarySm` / `adminBtnSmPrimary` / `adminBtnSmSecondary` / `adminBtnSmDanger`, `adminBadgePrimary` / `adminBadgeCaution`, `adminInputSmClass`, `adminSelectSmClass`, borders, focus ring. Prefer these over ad hoc Tailwind on **new** admin work.
 
 ---
 
@@ -109,7 +109,7 @@ For each migrated page:
 
 ### Master checklist — completing Phase 5 & 6
 
-Use this as the working backlog until both phases are closed.
+**Phase 5 §A (platform)** and **Phase 6 Waves 1–5** are **checked off** below. Ongoing work: **stragglers** in the Phase 5 pattern table and [`ADMIN_TOAST_CONFIRM_AUDIT.md`](../../../frontend/src/lib/admin/ADMIN_TOAST_CONFIRM_AUDIT.md), **§C owner** smoke pass, and the **Backlog** table for owners + `/admin` dashboard.
 
 #### A. Finish Phase 5 (platform)
 
@@ -160,4 +160,4 @@ Use this as the working backlog until both phases are closed.
 
 ---
 
-*Last updated: 2026-05 — **Phase 6 Waves 1–5** migrated per inventory; **§C smoke checklist** added at [`docs/guides/ADMIN_SMOKE_CHECKLIST.md`](../../guides/ADMIN_SMOKE_CHECKLIST.md); **owner dashboard backlog** unchanged.*
+*Last updated: 2026-05 — **Phase 5 §A** (platform) and **Phase 6 Waves 1–5** complete per inventory; **Phase 5 pattern table** tracks stragglers; **§C smoke** doc at [`docs/guides/ADMIN_SMOKE_CHECKLIST.md`](../../guides/ADMIN_SMOKE_CHECKLIST.md); **owner dashboard backlog** unchanged.*
