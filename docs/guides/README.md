@@ -6,6 +6,7 @@ Use these documents to **install, deploy, and run** OpenShutter — admins, owne
 |-----|--------|
 | [LOCAL_DEVELOPMENT.md](./LOCAL_DEVELOPMENT.md) | **Local dev:** MongoDB, `pnpm dev` from repo root, env vars, troubleshooting |
 | [ADMIN_SETUP.md](./ADMIN_SETUP.md) | First-time admin bootstrap |
+| [ADMIN_SMOKE_CHECKLIST.md](./ADMIN_SMOKE_CHECKLIST.md) | Admin UI smoke pass after layout / Phase 6 migrations |
 | [SERVER_DEPLOYMENT.md](./SERVER_DEPLOYMENT.md) | Production: PM2, nginx, SSL, env |
 | [STORAGE.md](./STORAGE.md) | Storage providers and configuration |
 | [GOOGLE_DRIVE.md](./GOOGLE_DRIVE.md) | Google Drive integration |

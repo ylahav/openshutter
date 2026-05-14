@@ -64,7 +64,7 @@ Standardize implementations so every admin screen uses the same APIs:
 |---------|--------|------------------|
 | **Modals / dialogs** | **Partial** | **`AdminConfirmDialog.svelte`** — Skeleton `Dialog` + `Portal`. Used on several flows (albums, users, site-config, marketplace, …). **Remaining:** audit remaining destructive actions; add a **generic modal shell** only if non-confirm dialogs repeat often. |
 | **Drawers / side panels** | **Partial** | **Documented** in [`ADMIN_INTERACTION_PATTERNS.md`](../../../frontend/src/lib/admin/ADMIN_INTERACTION_PATTERNS.md): `Dialog` edge layout vs **`FloatingPanel`** + `Portal` ([Skeleton Floating Panel](https://www.skeleton.dev/docs/svelte/framework-components/floating-panel)). **Remaining:** first production screen using the chosen pattern. |
-| **Toasts / notifications** | **Partial** | **`adminToast`**, **`AdminToastRegion`** in **`AdminAppChrome`**. **Audit:** [`ADMIN_TOAST_CONFIRM_AUDIT.md`](../../../frontend/src/lib/admin/ADMIN_TOAST_CONFIRM_AUDIT.md). **Remaining:** migrate inline banners (start Wave 1). |
+| **Toasts / notifications** | **Partial** | **`adminToast`**, **`AdminToastRegion`** in **`AdminAppChrome`**. **Audit:** [`ADMIN_TOAST_CONFIRM_AUDIT.md`](../../../frontend/src/lib/admin/ADMIN_TOAST_CONFIRM_AUDIT.md). **Remaining:** clear **partial** rows and optional **`OwnerStorageView`** surfaces. |
 | **Form validation** | **Partial** | **Doc + helpers:** [`ADMIN_INTERACTION_PATTERNS.md`](../../../frontend/src/lib/admin/ADMIN_INTERACTION_PATTERNS.md) (submit state, server errors), [`form-errors.ts`](../../../frontend/src/lib/admin/form-errors.ts) (`submitErrorMessage`, `fieldHintFromApiError`). **Remaining:** adopt on each page (Phase 6). |
 | **Drag and drop** | **Partial** | **`AdminSortableList.svelte`** — flat list wrapper over `svelte-dnd-action` + Cerberus row chrome (`$lib/components/admin/AdminSortableList.svelte`). **Existing:** `AlbumTree` for nested album DnD. **Remaining:** adopt `AdminSortableList` on a suitable flat list (or keep bespoke zones where layout is non-list). |
 
@@ -74,7 +74,7 @@ Standardize implementations so every admin screen uses the same APIs:
 
 ### Phase 6 — Incremental page migration
 
-**Status:** **Ongoing / not formally closed.** Many pages still mix legacy Tailwind (`bg-*-600`, etc.) with Cerberus; migration is **presentational only** unless fixing a bug.
+**Status:** **Waves 1–5 complete** for listed routes (presentational migration); **stragglers** remain on some screens (see [`ADMIN_TOAST_CONFIRM_AUDIT.md`](../../../frontend/src/lib/admin/ADMIN_TOAST_CONFIRM_AUDIT.md)). Optional: **`OwnerStorageView`** internals; dashboard load toasts.
 
 - **No big-bang rewrite.** Migrate in **waves** (below); prioritize high-traffic and visually inconsistent screens.
 - **Regressions:** Preserve all **routes, API calls, roles, and guards**; **owner**-accessible routes (`ownerCanAccess`) stay permission-identical.
@@ -98,10 +98,12 @@ Paths are under `frontend/src/routes/admin/`:
 
 For each migrated page:
 
-- [ ] Buttons/inputs use **`admin-cerberus`** (or Skeleton **`btn`** presets scoped to Cerberus), not one-off primary colors unless justified.
-- [ ] User-visible success/error uses **`adminToast`** where it is **transient feedback**; keep **`AdminConfirmDialog`** for destructive confirmation.
-- [ ] Submit actions show **loading state** (disable buttons / spinner) during async work.
-- [ ] No accidental change to **fetch URLs**, **methods**, or **role checks**.
+- [x] Buttons/inputs use **`admin-cerberus`** (or Skeleton **`btn`** presets scoped to Cerberus), not one-off primary colors unless justified.
+- [x] User-visible success/error uses **`adminToast`** where it is **transient feedback**; keep **`AdminConfirmDialog`** for destructive confirmation.
+- [x] Submit actions show **loading state** (disable buttons / spinner) during async work.
+- [x] No accidental change to **fetch URLs**, **methods**, or **role checks**.
+
+*(Waves 1–5 target routes in the inventory table; partial screens and follow-ups are tracked in [`ADMIN_TOAST_CONFIRM_AUDIT.md`](../../../frontend/src/lib/admin/ADMIN_TOAST_CONFIRM_AUDIT.md).)*
 
 ---
 
@@ -121,15 +123,15 @@ Use this as the working backlog until both phases are closed.
 #### B. Execute Phase 6 (waves)
 
 - [x] **Wave 1** — Core admin routes in Wave 1 table: dashboard, albums list/detail/edit, photos upload/edit, users, site-config, storage shells; **`adminToast`** + **`admin-cerberus`** on those surfaces (see audit). *Follow-up (optional):* **`OwnerStorageView`** internals; dashboard load toasts.
-- [ ] **Wave 2** — Import/backup/translations/marketplace/analytics/locations.
-- [ ] **Wave 3** — Blog suite, pages, tags, people, groups.
-- [ ] **Wave 4** — Templates + theme-layout.
-- [ ] **Wave 5** — Audit logs, contact submissions, docs UI, Google Drive setup.
+- [x] **Wave 2** — Import/backup/translations/marketplace/analytics/locations.
+- [x] **Wave 3** — Blog suite, pages, tags, people, groups.
+- [x] **Wave 4** — Templates + theme-layout.
+- [x] **Wave 5** — Audit logs, contact submissions, docs UI, Google Drive setup.
 
 #### C. Verification
 
-- [ ] **Smoke script / checklist** — Run through sidebar nav as **admin** after each wave (see **`docs/guides/ADMIN_SETUP.md`** if extended).
-- [ ] **Owner subset** — Where **`ownerCanAccess`** applies, re-test albums/photos/storage flows (**`/admin`** dashboard backlog is separate; see below).
+- [x] **Smoke script / checklist** — [`docs/guides/ADMIN_SMOKE_CHECKLIST.md`](../../guides/ADMIN_SMOKE_CHECKLIST.md) (linked from [`ADMIN_SETUP.md`](../../guides/ADMIN_SETUP.md)); run after waves or admin chrome changes.
+- [ ] **Owner subset** — Human pass using checklist **§5** (`ownerCanAccess` routes; no cross-owner data). **`/admin` dashboard** for owners remains in the **Backlog** table below until product/backend tasks close.
 
 ### Backlog — Owners and the admin dashboard (`/admin`)
 
@@ -158,4 +160,4 @@ Use this as the working backlog until both phases are closed.
 
 ---
 
-*Last updated: 2026-05 — **Phase 5 checklist A** complete including **ESLint + PR checklist**; **Backlog** (owners + dashboard) unchanged.*
+*Last updated: 2026-05 — **Phase 6 Waves 1–5** migrated per inventory; **§C smoke checklist** added at [`docs/guides/ADMIN_SMOKE_CHECKLIST.md`](../../guides/ADMIN_SMOKE_CHECKLIST.md); **owner dashboard backlog** unchanged.*

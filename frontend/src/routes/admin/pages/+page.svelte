@@ -9,6 +9,8 @@
 	import { AVAILABLE_ICON_NAMES } from '$lib/icons';
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
+	import { adminToast } from '$lib/admin/adminToast';
+	import { adminBtnPrimarySm, adminRingPrimary } from '$lib/admin/admin-cerberus';
 	import { useCrudLoader } from '$lib/composables/useCrudLoader';
 	import { useCrudOperations } from '$lib/composables/useCrudOperations';
 	import { useDialogManager } from '$lib/composables/useDialogManager';
@@ -272,7 +274,6 @@
 	let pages: Page[] = [];
 	let loading = false;
 	let saving = false;
-	let message = '';
 	let error = '';
 	let searchTerm = '';
 	let categoryFilter = 'all';
@@ -298,7 +299,10 @@
 	crudOps.error.subscribe(value => {
 		if (value) error = value;
 	});
-	crudOps.message.subscribe(value => message = value);
+	crudOps.message.subscribe((value) => {
+		if (!value) return;
+		adminToast.success({ title: value });
+	});
 	dialogs.showCreate.subscribe(value => showCreateDialog = value);
 	dialogs.showEdit.subscribe(value => showEditDialog = value);
 	dialogs.showDelete.subscribe(value => showDeleteDialog = value);
@@ -683,7 +687,7 @@ let layoutShellInstances: Record<
 			}
 			closeDuplicateDialog();
 			await crudLoader.loadItems();
-			message = 'Page duplicated successfully.';
+			adminToast.success({ title: 'Page duplicated successfully.' });
 		} catch (err) {
 			error = handleError(err, 'Duplicate failed');
 			logger.error(error);
@@ -1173,7 +1177,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 			menuPresetKey = key;
 			availableMenuInstanceNames = Object.keys(nextInstances).sort((a, b) => a.localeCompare(b));
 			showMenuEditorDialog = false;
-			message = `Menu instance "${key}" saved.`;
+			adminToast.success({ title: `Menu instance "${key}" saved.` });
 		} catch (err) {
 			menuEditorError = handleError(err, 'Failed to save menu instance');
 		} finally {
@@ -1206,7 +1210,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 			availableMenuInstanceNames = Object.keys(nextInstances).sort((a, b) => a.localeCompare(b));
 			if (menuPresetKey === key) menuPresetKey = '';
 			showMenuEditorDialog = false;
-			message = `Menu instance "${key}" deleted.`;
+			adminToast.success({ title: `Menu instance "${key}" deleted.` });
 		} catch (err) {
 			menuEditorError = handleError(err, 'Failed to delete menu instance');
 		} finally {
@@ -1265,7 +1269,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 				availableLayoutPresetNames = [...availableLayoutPresetNames, key].sort((a, b) => a.localeCompare(b));
 			}
 			showLayoutShellEditorDialog = false;
-			message = `Layout instance "${key}" saved.`;
+			adminToast.success({ title: `Layout instance "${key}" saved.` });
 		} catch (err) {
 			layoutShellEditorError = handleError(err, 'Failed to save layout instance');
 			logger.error(layoutShellEditorError);
@@ -1298,7 +1302,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 			availableLayoutPresetNames = Object.keys(nextInstances).sort((a, b) => a.localeCompare(b));
 			if (layoutShellPresetKey === key) layoutShellPresetKey = '';
 			showLayoutShellEditorDialog = false;
-			message = `Layout instance "${key}" deleted.`;
+			adminToast.success({ title: `Layout instance "${key}" deleted.` });
 		} catch (err) {
 			layoutShellEditorError = handleError(err, 'Failed to delete layout instance');
 		} finally {
@@ -2324,10 +2328,6 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 				<p class="text-(--color-surface-600-400) mt-2">{$t('admin.pagesManagementDescription')}</p>
 			</div>
 
-			{#if message}
-				<div class="mb-4 p-4 rounded-md bg-green-50 text-green-700">{message}</div>
-			{/if}
-
 			{#if error}
 				<div class="mb-4 p-4 rounded-md bg-red-50 text-red-700">{error}</div>
 			{/if}
@@ -2660,7 +2660,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 						type="button"
 						on:click={handleCreate}
 						disabled={saving || !formData.title || !formData.alias.trim() || !gridInitialized}
-						class="px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700) disabled:opacity-50 text-sm font-medium"
+						class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
 					>
 						{#if saving}
 							Creating...
@@ -2726,7 +2726,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 								<button
 									type="button"
 									on:click={addFeatureItem}
-									class="px-3 py-1.5 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700) text-sm font-medium"
+									class="{adminBtnPrimarySm} {adminRingPrimary}"
 								>
 									+ Add Item
 								</button>
@@ -3027,7 +3027,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 								type="button"
 								on:click={openLayoutShellEditorDialog}
 								disabled={!layoutShellPresetKey.trim() && !layoutShellReusePick.trim()}
-								class="px-3 py-2 text-xs bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700)"
+								class="{adminBtnPrimarySm} {adminRingPrimary} text-xs"
 							>
 								Edit this instance
 							</button>
@@ -3103,7 +3103,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 								type="button"
 								on:click={openMenuEditorDialog}
 								disabled={!menuPresetKey.trim() && !menuReusePick.trim()}
-								class="px-3 py-2 text-xs bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700)"
+								class="{adminBtnPrimarySm} {adminRingPrimary} text-xs"
 							>
 								Edit this instance
 							</button>
@@ -3403,7 +3403,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 					<button
 						type="button"
 						on:click={saveModuleEdit}
-						class="px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700) text-sm font-medium"
+						class="{adminBtnPrimarySm} {adminRingPrimary}"
 					>
 						Save Module
 					</button>
@@ -3673,7 +3673,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 						type="button"
 						on:click={handleEdit}
 						disabled={saving || !formData.title || !formData.alias.trim()}
-						class="px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700) disabled:opacity-50 text-sm font-medium"
+						class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
 					>
 						{#if saving}
 							Updating...
@@ -3738,7 +3738,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 								<button
 									type="button"
 									on:click={addFeatureItem}
-									class="px-3 py-1.5 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700) text-sm font-medium"
+									class="{adminBtnPrimarySm} {adminRingPrimary}"
 								>
 									+ Add Item
 								</button>
@@ -4065,7 +4065,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 					<button
 						type="button"
 						on:click={saveModuleEdit}
-						class="px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700) text-sm font-medium"
+						class="{adminBtnPrimarySm} {adminRingPrimary}"
 					>
 						Save Module
 					</button>
@@ -4142,7 +4142,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 						type="button"
 						on:click={handleDuplicatePage}
 						disabled={saving}
-						class="px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700) disabled:opacity-50 text-sm font-medium"
+						class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
 					>
 						{#if saving}
 							Duplicating…
@@ -4267,7 +4267,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 					<div class="flex items-end">
 						<button
 							type="button"
-							class="w-full px-3 py-2 text-xs bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700)"
+							class="{adminBtnPrimarySm} {adminRingPrimary} w-full text-xs"
 							on:click={() => {
 								const row = Math.max(1, Math.min(layoutShellEditorGridRows, Number(layoutShellEditorAlignRow || 1)));
 								const col = Math.max(1, Math.min(layoutShellEditorGridColumns, Number(layoutShellEditorAlignCol || 1)));
@@ -4374,7 +4374,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 					Cancel
 				</button>
 				<button type="button" on:click={saveLayoutShellInstance} disabled={layoutShellEditorSaving}
-					class="px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700) disabled:opacity-50 text-sm font-medium">
+					class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50">
 					{layoutShellEditorSaving ? 'Saving...' : 'Save instance'}
 				</button>
 			</div>
@@ -4446,7 +4446,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 					<button
 						type="button"
 						on:click={addMenuEditorItem}
-						class="px-3 py-1.5 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700) text-sm font-medium"
+						class="{adminBtnPrimarySm} {adminRingPrimary}"
 					>
 						+ Add item
 					</button>
@@ -4517,7 +4517,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 					Cancel
 				</button>
 				<button type="button" on:click={saveMenuInstance} disabled={menuEditorSaving}
-					class="px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700) disabled:opacity-50 text-sm font-medium">
+					class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50">
 					{menuEditorSaving ? 'Saving...' : 'Save instance'}
 				</button>
 			</div>
@@ -4620,7 +4620,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 								<button
 									type="button"
 									on:click={addFeatureItem}
-									class="px-3 py-1.5 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700) text-sm font-medium"
+									class="{adminBtnPrimarySm} {adminRingPrimary}"
 								>
 									+ Add Item
 								</button>
@@ -4931,7 +4931,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 					<button
 						type="button"
 						on:click={saveModuleEdit}
-						class="px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700) text-sm font-medium"
+						class="{adminBtnPrimarySm} {adminRingPrimary}"
 					>
 						Save Module
 					</button>

@@ -7,6 +7,7 @@
 	import LineChart from '$lib/components/analytics/LineChart.svelte';
 	import BarChart from '$lib/components/analytics/BarChart.svelte';
 	import PieChart from '$lib/components/analytics/PieChart.svelte';
+	import { adminBtnPrimarySm, adminRingPrimary } from '$lib/admin/admin-cerberus';
 	import type { PageData } from './$types';
 
 	export let data: PageData;
@@ -339,8 +340,9 @@
 					{/if}
 					<div class="flex-1"></div>
 					<button
+						type="button"
 						on:click={() => exportData(activeTab)}
-						class="px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700) text-sm font-medium"
+						class="{adminBtnPrimarySm} {adminRingPrimary}"
 					>
 						{$t('admin.analyticsExportCsv')}
 					</button>

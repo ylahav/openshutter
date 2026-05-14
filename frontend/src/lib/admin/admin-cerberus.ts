@@ -31,6 +31,18 @@ export const adminBtnPrimarySm = 'btn preset-filled-primary-500 text-sm';
 export const adminBtnSecondary = 'btn preset-tonal';
 export const adminBtnDanger = 'btn preset-filled-error-500';
 
+/** Compact toolbar / card actions (Skeleton `btn-sm`). */
+export const adminBtnSmSecondary = 'btn btn-sm preset-tonal';
+export const adminBtnSmPrimary = 'btn btn-sm preset-filled-primary-500';
+export const adminBtnSmDanger = 'btn btn-sm preset-filled-error-500';
+
+/** Status chips — prefer over raw Tailwind `green-*` / `amber-*` fills on admin cards. */
+export const adminBadgePrimary =
+	'inline-flex items-center rounded-full border border-[color-mix(in_oklab,var(--color-primary-500)_35%,transparent)] bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] px-2 py-0.5 text-xs font-medium text-(--color-primary-900)';
+/** Preview / caution (amber tint without solid `bg-amber-100`). */
+export const adminBadgeCaution =
+	'inline-flex items-center rounded-full border border-[color-mix(in_oklab,#d97706_35%,transparent)] bg-[color-mix(in_oklab,#d97706_12%,transparent)] px-2 py-0.5 text-xs font-medium text-amber-950 dark:text-amber-100';
+
 /** Skeleton form primitives (background fill comes from `admin-skeleton.css` under `[data-admin-chrome]`). */
 export const adminInputClass = 'input w-full';
 export const adminSelectClass = 'select w-full';

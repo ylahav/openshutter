@@ -3,14 +3,14 @@
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 	import AdminConfirmDialog from '$lib/components/admin/AdminConfirmDialog.svelte';
+	import { adminToast } from '$lib/admin/adminToast';
+	import { adminBtnPrimarySm, adminRingPrimary } from '$lib/admin/admin-cerberus';
 	import { t } from '$stores/i18n';
 
 	const LS_LAST_DB = 'openshutter.admin.lastBackup.database';
 	const LS_LAST_FILES = 'openshutter.admin.lastBackup.files';
 
 	let loading = false;
-	let message = '';
-	let messageType: 'success' | 'error' = 'success';
 
 	let lastBackupDatabaseIso = '';
 	let lastBackupFilesIso = '';
@@ -68,15 +68,13 @@
 		isRestoring: false,
 	};
 
-	const backupPrimaryClass =
-		'w-full px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700) disabled:opacity-50 text-sm font-medium flex items-center justify-center';
+	const backupPrimaryClass = `${adminBtnPrimarySm} w-full justify-center items-center ${adminRingPrimary} disabled:opacity-50`;
 
 	const restoreCautionClass =
 		'w-full px-4 py-2 rounded-md text-sm font-medium flex items-center justify-center cursor-pointer border border-amber-500 bg-amber-50 text-amber-950 shadow-sm hover:bg-amber-100 dark:border-amber-600 dark:bg-amber-950/40 dark:text-amber-100 dark:hover:bg-amber-950/60';
 
 	async function handleDatabaseBackup() {
 		loading = true;
-		message = '';
 		try {
 			const response = await fetch('/api/admin/backup/database', {
 				method: 'POST',
@@ -106,16 +104,10 @@
 
 			recordSuccessfulBackup('database');
 
-			message = 'Database backup created and downloaded successfully!';
-			messageType = 'success';
-
-			setTimeout(() => {
-				message = '';
-			}, 5000);
+			adminToast.success({ title: 'Database backup created and downloaded successfully!' });
 		} catch (err) {
 			logger.error('Error creating database backup:', err);
-			message = handleError(err, 'Failed to create database backup');
-			messageType = 'error';
+			adminToast.error({ title: handleError(err, 'Failed to create database backup') });
 		} finally {
 			loading = false;
 		}
@@ -125,8 +117,6 @@
 		const target = event.target as HTMLInputElement;
 		const file = target.files?.[0];
 		if (!file) return;
-
-		message = '';
 
 		try {
 			const fileContent = await file.text();
@@ -144,8 +134,7 @@
 			};
 		} catch (err) {
 			logger.error('Error reading database backup file:', err);
-			message = handleError(err, 'Failed to restore database');
-			messageType = 'error';
+			adminToast.error({ title: handleError(err, 'Failed to restore database') });
 			target.value = '';
 		}
 	}
@@ -167,7 +156,6 @@
 
 		restoreDbDialog = { ...restoreDbDialog, isRestoring: true };
 		loading = true;
-		message = '';
 
 		try {
 			const response = await fetch('/api/admin/backup/restore-database', {
@@ -183,17 +171,11 @@
 			}
 
 			const json = await response.json();
-			message = json?.message || 'Database restored successfully!';
-			messageType = 'success';
-
-			setTimeout(() => {
-				message = '';
-			}, 5000);
+			adminToast.success({ title: json?.message || 'Database restored successfully!' });
 			closeRestoreDbDialog();
 		} catch (err) {
 			logger.error('Error restoring database:', err);
-			message = handleError(err, 'Failed to restore database');
-			messageType = 'error';
+			adminToast.error({ title: handleError(err, 'Failed to restore database') });
 			restoreDbDialog = { ...restoreDbDialog, isRestoring: false };
 		} finally {
 			loading = false;
@@ -202,7 +184,6 @@
 
 	async function handleFilesBackup() {
 		loading = true;
-		message = '';
 		try {
 			const response = await fetch('/api/admin/backup/files', {
 				method: 'POST',
@@ -225,21 +206,16 @@
 
 				recordSuccessfulBackup('files');
 
-				message = 'Files backup created and downloaded successfully!';
-				messageType = 'success';
+				adminToast.success({ title: 'Files backup created and downloaded successfully!' });
 			} else {
 				const data = await response.json();
-				message = data?.message || 'Files backup feature requires additional setup.';
-				messageType = 'error';
+				adminToast.error({
+					title: data?.message || 'Files backup feature requires additional setup.',
+				});
 			}
-
-			setTimeout(() => {
-				message = '';
-			}, 5000);
 		} catch (err) {
 			logger.error('Error creating files backup:', err);
-			message = handleError(err, 'Failed to create files backup');
-			messageType = 'error';
+			adminToast.error({ title: handleError(err, 'Failed to create files backup') });
 		} finally {
 			loading = false;
 		}
@@ -251,7 +227,6 @@
 		if (!file) return;
 
 		loading = true;
-		message = '';
 
 		try {
 			const formData = new FormData();
@@ -267,16 +242,10 @@
 			}
 
 			const data = await response.json();
-			message = data?.message || 'Files restored successfully!';
-			messageType = 'success';
-
-			setTimeout(() => {
-				message = '';
-			}, 5000);
+			adminToast.success({ title: data?.message || 'Files restored successfully!' });
 		} catch (err) {
 			logger.error('Error restoring files:', err);
-			message = handleError(err, 'Failed to restore files');
-			messageType = 'error';
+			adminToast.error({ title: handleError(err, 'Failed to restore files') });
 		} finally {
 			loading = false;
 			target.value = '';
@@ -294,16 +263,6 @@
 			<h1 class="text-2xl font-bold text-(--color-surface-950-50)">{$t('admin.backupRestore')}</h1>
 			<p class="text-(--color-surface-600-400) mt-2">{$t('admin.backupRestoreDescription')}</p>
 		</div>
-
-		{#if message}
-			<div
-				class="mb-6 p-4 rounded-md {messageType === 'success'
-					? 'bg-green-50 border border-green-200 text-green-700'
-					: 'bg-red-50 border border-red-200 text-red-700'}"
-			>
-				{message}
-			</div>
-		{/if}
 
 		<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 			<!-- Database Backup & Restore -->
@@ -354,7 +313,7 @@
 					>
 						{#if loading}
 							<svg
-								class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+								class="animate-spin -ml-1 mr-3 h-5 w-5 text-current opacity-80"
 								xmlns="http://www.w3.org/2000/svg"
 								fill="none"
 								viewBox="0 0 24 24"
@@ -467,7 +426,7 @@
 					>
 						{#if loading}
 							<svg
-								class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+								class="animate-spin -ml-1 mr-3 h-5 w-5 text-current opacity-80"
 								xmlns="http://www.w3.org/2000/svg"
 								fill="none"
 								viewBox="0 0 24 24"

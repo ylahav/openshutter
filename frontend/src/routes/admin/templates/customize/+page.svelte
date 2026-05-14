@@ -1,7 +1,12 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { beforeNavigate, goto } from '$app/navigation';
-	import NotificationDialog from '$lib/components/NotificationDialog.svelte';
+	import { adminToast } from '$lib/admin/adminToast';
+	import {
+		adminBtnPrimarySm,
+		adminBtnSecondary,
+		adminRingPrimary
+	} from '$lib/admin/admin-cerberus';
 // PageData is loaded via +page.server.ts; this component does not
 // currently consume it directly, so we omit the prop to avoid unused-export warnings.
 
@@ -19,16 +24,7 @@
 	let originalRaw = '';
 	let loading = true;
 	let saving = false;
-	let error: string | null = null;
-	let message: string | null = null;
 	$: hasUnsavedChanges = raw !== originalRaw;
-
-	let notification = {
-		isOpen: false,
-		type: 'info' as 'success' | 'error' | 'info' | 'warning',
-		title: '',
-		message: ''
-	};
 
 	onMount(() => {
 		const handleBeforeUnload = (event: BeforeUnloadEvent) => {
@@ -53,7 +49,6 @@
 	async function loadTemplates() {
 		try {
 			loading = true;
-			error = null;
 			const [tplRes, cfgRes] = await Promise.all([
 				fetch('/api/admin/templates', { cache: 'no-store' }),
 				fetch('/api/admin/site-config', { cache: 'no-store' })
@@ -68,8 +63,7 @@
 			selected = current;
 			await loadTemplateConfig();
 		} catch (e) {
-			error = 'Failed to load templates';
-			showNotification('error', 'Error', 'Failed to load templates');
+			adminToast.error({ title: 'Failed to load templates' });
 		} finally {
 			loading = false;
 		}
@@ -78,7 +72,6 @@
 	async function loadTemplateConfig() {
 		if (!selected) return;
 		try {
-			error = null;
 			raw = '';
 			const res = await fetch(`/api/admin/templates/${selected}/config`, { cache: 'no-store' });
 			const json = await res.json();
@@ -87,12 +80,11 @@
 				raw = pretty;
 				originalRaw = pretty;
 			} else {
-				error = json?.error || 'Failed to load template config';
-				showNotification('error', 'Error', error || 'Failed to load template config');
+				const errText = json?.error || 'Failed to load template config';
+				adminToast.error({ title: 'Error', description: errText });
 			}
 		} catch (e) {
-			error = 'Failed to load template config';
-			showNotification('error', 'Error', error);
+			adminToast.error({ title: 'Error', description: 'Failed to load template config' });
 		}
 	}
 
@@ -105,19 +97,21 @@
 	async function save() {
 		try {
 			saving = true;
-			error = null;
-			message = null;
 			let parsed: any;
 			try {
 				parsed = JSON.parse(raw);
 			} catch {
-				error = 'Invalid JSON';
-				showNotification('error', 'Invalid JSON', 'Please check your JSON syntax');
+				adminToast.error({
+					title: 'Invalid JSON',
+					description: 'Please check your JSON syntax'
+				});
 				return;
 			}
 			if (parsed.templateName !== selected) {
-				error = 'templateName must match the selected template';
-				showNotification('error', 'Validation Error', error);
+				adminToast.error({
+					title: 'Validation Error',
+					description: 'templateName must match the selected template'
+				});
 				return;
 			}
 			const res = await fetch(`/api/admin/templates/${selected}/config`, {
@@ -127,38 +121,20 @@
 			});
 			const j = await res.json();
 			if (!j?.success) {
-				error = j?.error || 'Failed to save';
-				showNotification('error', 'Save Failed', error || 'Failed to save');
+				const errText = j?.error || 'Failed to save';
+				adminToast.error({ title: 'Save Failed', description: errText });
 				return;
 			}
-			message = 'Saved successfully';
-			showNotification('success', 'Success', message);
+			adminToast.success({ title: 'Saved successfully' });
 			// Keep original in sync after successful save
 			originalRaw = JSON.stringify(parsed, null, 2);
 			// Refresh list cache
 			await fetch('/api/admin/templates', { cache: 'no-store' });
 		} catch (e) {
-			error = 'Failed to save';
-			showNotification('error', 'Save Failed', error);
+			adminToast.error({ title: 'Save Failed', description: 'Failed to save' });
 		} finally {
 			saving = false;
-			setTimeout(() => {
-				message = null;
-			}, 2000);
 		}
-	}
-
-	function showNotification(type: 'success' | 'error' | 'info' | 'warning', title: string, msg: string) {
-		notification = {
-			isOpen: true,
-			type,
-			title,
-			message: msg
-		};
-	}
-
-	function closeNotification() {
-		notification.isOpen = false;
 	}
 
 	function cancel() {
@@ -187,7 +163,7 @@
 				<h1 class="text-2xl font-semibold text-(--color-surface-950-50)">Template Customization</h1>
 				<button
 					on:click={() => goto('/admin/templates')}
-					class="inline-flex items-center px-4 py-2 border border-surface-300-700 rounded-md shadow-sm text-sm font-medium text-(--color-surface-800-200) bg-(--color-surface-50-950) hover:bg-(--color-surface-50-950)"
+					class="{adminBtnSecondary} text-sm shrink-0"
 				>
 					Back to Templates
 				</button>
@@ -207,7 +183,11 @@
 					{/each}
 				</select>
 				{#if selected === activeTemplate}
-					<span class="text-xs px-2 py-1 rounded bg-green-600 text-white">Active</span>
+					<span
+						class="inline-flex items-center rounded-full border border-[color-mix(in_oklab,var(--color-primary-500)_35%,transparent)] bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] px-2 py-1 text-xs font-medium text-(--color-primary-800)"
+					>
+						Active
+					</span>
 				{/if}
 			</div>
 
@@ -219,13 +199,6 @@
 						<div><strong>Description:</strong> {currentTemplate.description}</div>
 					{/if}
 				</div>
-			{/if}
-
-			{#if error}
-				<div class="p-3 rounded bg-red-100 text-red-800 border border-red-200">{error}</div>
-			{/if}
-			{#if message}
-				<div class="p-3 rounded bg-green-100 text-green-800 border border-green-200">{message}</div>
 			{/if}
 
 			<!-- Side-by-side editor and help -->
@@ -243,14 +216,14 @@
 						<button
 							on:click={save}
 							disabled={saving}
-							class="px-4 py-2 rounded-md bg-(--color-primary-600) text-white disabled:opacity-50 hover:bg-(--color-primary-700)"
+							class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
 						>
 							{saving ? 'Saving...' : 'Save'}
 						</button>
 						<button
 							on:click={cancel}
 							disabled={saving || raw === originalRaw}
-							class="px-4 py-2 rounded-md bg-(--color-surface-200-800) text-(--color-surface-800-200) disabled:opacity-50 hover:bg-(--color-surface-300-700)"
+							class="{adminBtnSecondary} disabled:opacity-50"
 						>
 							Cancel
 						</button>
@@ -289,11 +262,3 @@
 		</div>
 	</div>
 {/if}
-
-<NotificationDialog
-	isOpen={notification.isOpen}
-	onClose={closeNotification}
-	type={notification.type}
-	title={notification.title}
-	message={notification.message}
-/>

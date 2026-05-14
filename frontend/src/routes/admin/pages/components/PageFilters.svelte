@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { adminBtnPrimarySm, adminRingPrimary } from '$lib/admin/admin-cerberus';
 	import type { PageCategoryOption } from '../types';
 
 	export let searchTerm = '';
@@ -71,7 +72,7 @@
 	<button
 		type="button"
 		on:click={onAddPage}
-		class="px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700) text-sm font-medium flex items-center gap-2"
+		class="{adminBtnPrimarySm} {adminRingPrimary} flex items-center gap-2"
 	>
 		<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 			<path

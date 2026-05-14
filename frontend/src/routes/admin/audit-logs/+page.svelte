@@ -7,6 +7,12 @@
 	import { currentLanguage } from '$stores/language';
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
+	import { adminToast } from '$lib/admin/adminToast';
+	import {
+		adminBtnPrimarySm,
+		adminBtnSecondary,
+		adminRingPrimary
+	} from '$lib/admin/admin-cerberus';
 	import { MultiLangUtils } from '$lib/utils/multiLang';
 	import { get } from 'svelte/store';
 
@@ -36,7 +42,7 @@
 	let logs: Log[] = [];
 	let pagination: Pagination | null = null;
 	let loading = true;
-	let error = '';
+	let loadErrored = false;
 	let exportBusy = false;
 
 	let userChoices: { id: string; label: string }[] = [];
@@ -98,7 +104,7 @@
 
 	async function loadLogs() {
 		loading = true;
-		error = '';
+		loadErrored = false;
 		try {
 			const qs = $page.url.searchParams.toString();
 			const url = qs ? `/api/admin/audit-logs?${qs}` : '/api/admin/audit-logs';
@@ -115,7 +121,8 @@
 			}
 		} catch (err) {
 			logger.error('Error loading audit logs:', err);
-			error = handleError(err, 'Failed to load audit logs');
+			adminToast.error({ title: handleError(err, $t('admin.auditLogsLoadFailed')) });
+			loadErrored = true;
 			logs = [];
 			pagination = null;
 		} finally {
@@ -207,9 +214,10 @@
 			a.download = `audit-logs-${new Date().toISOString().slice(0, 10)}.csv`;
 			a.click();
 			URL.revokeObjectURL(a.href);
+			adminToast.success({ title: $t('admin.auditLogsCsvDownloaded') });
 		} catch (err) {
 			logger.error('CSV export failed:', err);
-			error = handleError(err, 'Failed to export CSV');
+			adminToast.error({ title: handleError(err, 'Failed to export CSV') });
 		} finally {
 			exportBusy = false;
 		}
@@ -267,8 +275,8 @@
 			<div class="flex flex-wrap gap-2">
 				<button
 					type="button"
-					class="btn preset-outlined-surface-200-800"
-					disabled={exportBusy || !!error || logs.length === 0}
+					class="{adminBtnSecondary}"
+					disabled={exportBusy || logs.length === 0}
 					on:click={downloadCsv}
 				>
 					{exportBusy ? '…' : $t('admin.auditLogsDownloadCsv')}
@@ -327,10 +335,14 @@
 				</div>
 			</div>
 			<div class="flex flex-wrap items-center gap-3">
-				<button type="button" class="btn preset-filled-primary-500" on:click={applyFilters}>
+				<button
+					type="button"
+					class="{adminBtnPrimarySm} {adminRingPrimary}"
+					on:click={applyFilters}
+				>
 					{$t('admin.auditLogsApplyFilters')}
 				</button>
-				<button type="button" class="btn preset-outlined-surface-200-800" on:click={clearFilters}>
+				<button type="button" class="{adminBtnSecondary}" on:click={clearFilters}>
 					{$t('admin.auditLogsClearFilters')}
 				</button>
 				<div class="flex items-center gap-2 ml-auto">
@@ -356,9 +368,14 @@
 				<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-(--color-primary-600)"></div>
 				<p class="ml-4 text-(--color-surface-600-400)">{$t('admin.loadingAuditLogs')}</p>
 			</div>
-		{:else if error}
-			<div class="p-4 bg-red-50 border border-red-200 rounded-md dark:bg-red-950/30 dark:border-red-900">
-				<p class="text-red-800 dark:text-red-200">{error}</p>
+		{:else if loadErrored}
+			<div
+				class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6 text-center space-y-3"
+			>
+				<p class="text-(--color-surface-800-200)">{$t('admin.auditLogsLoadFailed')}</p>
+				<button type="button" class="{adminBtnPrimarySm} {adminRingPrimary}" on:click={loadLogs}>
+					{$t('admin.auditLogsRetry')}
+				</button>
 			</div>
 		{:else if logs.length === 0}
 			<div class="text-center py-12">
@@ -441,7 +458,7 @@
 				<div class="flex flex-wrap items-center justify-between gap-3 mt-6">
 					<button
 						type="button"
-						class="btn preset-outlined-surface-200-800"
+						class="{adminBtnSecondary}"
 						disabled={currentPage <= 1}
 						on:click={() => goPage(currentPage - 1)}
 					>
@@ -454,7 +471,7 @@
 					</span>
 					<button
 						type="button"
-						class="btn preset-outlined-surface-200-800"
+						class="{adminBtnSecondary}"
 						disabled={currentPage >= pagination.totalPages}
 						on:click={() => goPage(currentPage + 1)}
 					>

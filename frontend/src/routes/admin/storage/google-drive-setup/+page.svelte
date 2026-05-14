@@ -2,15 +2,23 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
+	import { logger } from '$lib/utils/logger';
+	import { adminToast } from '$lib/admin/adminToast';
+	import {
+		adminBtnPrimarySm,
+		adminBtnSecondary,
+		adminRingPrimary
+	} from '$lib/admin/admin-cerberus';
 
 	let loading = true;
-	let error = '';
+	let setupError = '';
 	let success = false;
 
 	onMount(async () => {
 		const code = $page.url.searchParams.get('code');
 		if (!code) {
-			error = 'No authorization code received';
+			setupError = 'No authorization code received';
+			adminToast.error({ title: setupError });
 			loading = false;
 			return;
 		}
@@ -33,14 +41,14 @@
 			const tokenResponse = await fetch('/api/auth/google/token', {
 				method: 'POST',
 				headers: {
-					'Content-Type': 'application/json',
+					'Content-Type': 'application/json'
 				},
 				body: JSON.stringify({
 					code,
 					clientId: config.config.clientId,
 					clientSecret: config.config.clientSecret,
-					redirectUri,
-				}),
+					redirectUri
+				})
 			});
 
 			const tokenData = await tokenResponse.json();
@@ -53,11 +61,11 @@
 			const updateResponse = await fetch('/api/admin/storage/google-drive', {
 				method: 'PUT',
 				headers: {
-					'Content-Type': 'application/json',
+					'Content-Type': 'application/json'
 				},
 				body: JSON.stringify({
-					refreshToken: tokenData.refreshToken,
-				}),
+					refreshToken: tokenData.refreshToken
+				})
 			});
 
 			if (!updateResponse.ok) {
@@ -66,13 +74,14 @@
 			}
 
 			success = true;
+			adminToast.success({ title: 'Google Drive has been successfully configured.' });
 
 			// Notify parent window if opened in popup
 			if (typeof window !== 'undefined' && window.opener) {
 				window.opener.postMessage(
 					{
 						type: 'GOOGLE_OAUTH_SUCCESS',
-						refreshToken: tokenData.refreshToken,
+						refreshToken: tokenData.refreshToken
 					},
 					window.location.origin
 				);
@@ -89,15 +98,16 @@
 				}, 3000);
 			}
 		} catch (err) {
-			console.error('Error setting up Google Drive:', err);
-			error = err instanceof Error ? err.message : 'Failed to set up Google Drive';
+			logger.error('Error setting up Google Drive:', err);
+			setupError = err instanceof Error ? err.message : 'Failed to set up Google Drive';
+			adminToast.error({ title: setupError });
 
 			// Notify parent window if opened in popup
 			if (typeof window !== 'undefined' && window.opener) {
 				window.opener.postMessage(
 					{
 						type: 'GOOGLE_OAUTH_ERROR',
-						error,
+						error: setupError
 					},
 					window.location.origin
 				);
@@ -116,7 +126,9 @@
 	<div class="max-w-md w-full bg-(--color-surface-50-950) rounded-lg shadow-lg p-8">
 		{#if loading}
 			<div class="text-center">
-				<div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-(--color-primary-600) mb-4"></div>
+				<div
+					class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-(--color-primary-600) mb-4"
+				></div>
 				<h2 class="text-xl font-semibold text-(--color-surface-950-50) mb-2">Setting up Google Drive...</h2>
 				<p class="text-(--color-surface-600-400)">Exchanging authorization code for refresh token...</p>
 			</div>
@@ -130,32 +142,33 @@
 				{:else}
 					<a
 						href="/admin/storage"
-						class="inline-block px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700)"
+						class="{adminBtnPrimarySm} {adminRingPrimary} inline-block text-center no-underline"
 					>
 						Go to Storage Settings
 					</a>
 				{/if}
 			</div>
-		{:else if error}
+		{:else if setupError}
 			<div class="text-center">
 				<div class="text-6xl mb-4">❌</div>
 				<h2 class="text-xl font-semibold text-(--color-surface-950-50) mb-2">Setup Failed</h2>
-				<p class="text-red-600 mb-6">{error}</p>
+				<p class="text-red-600 mb-6">{setupError}</p>
 				<div class="space-y-2">
 					<a
 						href="/admin/storage"
-						class="inline-block px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700)"
+						class="{adminBtnPrimarySm} {adminRingPrimary} inline-block w-full text-center no-underline"
 					>
 						Go to Storage Settings
 					</a>
 					{#if typeof window !== 'undefined' && window.opener}
 						<button
+							type="button"
 							on:click={() => {
 								if (typeof window !== 'undefined') {
 									window.close();
 								}
 							}}
-							class="block w-full px-4 py-2 bg-(--color-surface-200-800) text-(--color-surface-800-200) rounded-md hover:bg-(--color-surface-300-700)"
+							class="{adminBtnSecondary} w-full"
 						>
 							Close Window
 						</button>

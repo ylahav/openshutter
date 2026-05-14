@@ -2,8 +2,10 @@
 	import { onDestroy } from 'svelte';
 	import { t } from '$stores/i18n';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
-// PageData is loaded via +page.server.ts; this component does not
-// currently consume it directly, so we omit the prop to avoid unused-export warnings.
+	import { adminToast } from '$lib/admin/adminToast';
+	import { adminBtnPrimarySm, adminRingPrimary } from '$lib/admin/admin-cerberus';
+	// PageData is loaded via +page.server.ts; this component does not
+	// currently consume it directly, so we omit the prop to avoid unused-export warnings.
 
 	type Tab = 'export' | 'import' | 'storage';
 	type MigrationOption =
@@ -71,8 +73,6 @@
 	let storageStatus: { status: string; progress: number; total: number; current?: string; error?: string } | null = null;
 	let storagePollInterval: ReturnType<typeof setInterval> | null = null;
 
-	let message = '';
-	let messageType: 'success' | 'error' = 'success';
 	let fullDbLoading = false;
 
 	async function selectImportDirectory() {
@@ -88,7 +88,7 @@
 					const dirName = dirHandle.name;
 					importPath = `./migration-data/${dirName}`;
 					importPath = importPath; // Force reactivity
-					showMsg(`Selected directory: ${dirName}. Adjust path if needed.`, 'success');
+					showMsg(`Selected directory: ${dirName}. Adjust path if needed.`, 'info');
 				} else {
 					showMsg('Directory picker not available. Please enter path manually.', 'error');
 				}
@@ -115,7 +115,7 @@
 					importPath = `./migration-data/${dirName}`;
 					// Force reactivity by reassigning
 					importPath = importPath;
-					showMsg(`Selected directory: ${dirName}. Adjust path if needed.`, 'success');
+					showMsg(`Selected directory: ${dirName}. Adjust path if needed.`, 'info');
 					console.log('Import path set to:', importPath);
 				}
 			} else {
@@ -123,7 +123,7 @@
 				const fileName = firstFile.name;
 				importPath = `./migration-data/${fileName}`;
 				importPath = importPath;
-				showMsg(`Selected file: ${fileName}. Please adjust path to directory.`, 'success');
+				showMsg(`Selected file: ${fileName}. Please adjust path to directory.`, 'info');
 			}
 		} else {
 			showMsg('No files selected', 'error');
@@ -333,10 +333,10 @@
 		loadStorageAlbums();
 	}
 
-	function showMsg(msg: string, type: 'success' | 'error' = 'success') {
-		message = msg;
-		messageType = type;
-		setTimeout(() => (message = ''), 5000);
+	function showMsg(msg: string, type: 'success' | 'error' | 'info' = 'success') {
+		if (type === 'error') adminToast.error({ title: msg });
+		else if (type === 'info') adminToast.info({ title: msg });
+		else adminToast.success({ title: msg });
 	}
 
 	// --- Export ---
@@ -675,12 +675,6 @@
 			<h1 class="text-2xl font-bold text-(--color-surface-950-50)">{$t('admin.migrationToolsPageTitle')}</h1>
 		</div>
 
-		{#if message}
-			<div class="mb-4 p-3 rounded-md {messageType === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}">
-				{message}
-			</div>
-		{/if}
-
 		<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2 mb-6">
 			<button
 				class="text-left px-4 py-3 rounded border {migrationOption === 'albums-photos-db' ? 'bg-(--color-surface-50-950) border-(--color-primary-600) text-(--color-surface-950-50)' : 'bg-(--color-surface-100-900) border-surface-200-800 text-(--color-surface-800-200)'}"
@@ -725,7 +719,8 @@
 					Download a complete database snapshot (all collections) as JSON for backup or migration.
 				</p>
 				<button
-					class="px-4 py-2 bg-(--color-primary-600) text-white rounded hover:bg-(--color-primary-700) disabled:opacity-50"
+					type="button"
+					class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
 					disabled={fullDbLoading}
 					on:click={downloadFullDbBackup}
 				>
@@ -811,7 +806,8 @@
 						Preview
 					</button>
 					<button
-						class="px-4 py-2 bg-(--color-primary-600) text-white rounded hover:bg-(--color-primary-700) disabled:opacity-50"
+						type="button"
+						class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
 						disabled={exportLoading || !!exportJobId}
 						on:click={exportStart}
 					>
@@ -861,7 +857,8 @@
 								</p>
 								{#if exportBundlePath}
 									<button
-										class="px-3 py-1 bg-(--color-primary-600) text-white rounded hover:bg-(--color-primary-700)"
+										type="button"
+										class="{adminBtnPrimarySm} {adminRingPrimary}"
 										on:click={downloadExportBundle}
 									>
 										Download ZIP
@@ -1074,7 +1071,8 @@
 							Preview
 						</button>
 						<button
-							class="px-4 py-2 bg-(--color-primary-600) text-white rounded hover:bg-(--color-primary-700) disabled:opacity-50"
+							type="button"
+							class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
 							disabled={storageLoading || !storageProviders.length || !sourceProviderId || !targetProviderId || !!storageJobId}
 							on:click={storageStart}
 						>

@@ -9,6 +9,8 @@
 	import { currentLanguage } from '$lib/stores/language';
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
+	import { adminToast } from '$lib/admin/adminToast';
+	import { adminBtnPrimarySm, adminRingPrimary, adminBtnPrimary } from '$lib/admin/admin-cerberus';
 	import { t } from '$stores/i18n';
 	import { productName } from '$stores/siteConfig';
 
@@ -32,8 +34,6 @@
 
 	let loading = true;
 	let saving = false;
-	let error: string | null = null;
-	let success: string | null = null;
 	interface CategoryOption {
 		alias: string;
 		title: unknown;
@@ -65,7 +65,7 @@
 	onMount(async () => {
 		articleId = $page.params.id ?? '';
 		if (!articleId) {
-			error = 'Missing article id';
+			adminToast.error({ title: 'Missing article id' });
 			loading = false;
 			return;
 		}
@@ -164,7 +164,7 @@
 					);
 			}
 		} catch (err) {
-			error = handleError(err, 'Failed to load article');
+			adminToast.error({ title: handleError(err, 'Failed to load article') });
 		} finally {
 			loading = false;
 		}
@@ -184,15 +184,18 @@
 	async function handleSubmit(e: Event) {
 		e.preventDefault();
 		saving = true;
-		error = null;
-		success = null;
 		try {
 			if (!MultiLangUtils.getTextValue(formData.title, $currentLanguage).trim()) {
-				throw new Error($t('owner.titleRequired'));
+				adminToast.error({ title: $t('owner.titleRequired') });
+				return;
 			}
-			if (!formData.category.trim()) throw new Error($t('owner.categoryRequired'));
+			if (!formData.category.trim()) {
+				adminToast.error({ title: $t('owner.categoryRequired') });
+				return;
+			}
 			if (!MultiLangUtils.getHTMLValue(formData.content, $currentLanguage).trim()) {
-				throw new Error($t('owner.contentRequired'));
+				adminToast.error({ title: $t('owner.contentRequired') });
+				return;
 			}
 
 			const payload = { ...formData };
@@ -205,10 +208,10 @@
 			});
 			if (!response.ok) await handleApiErrorResponse(response);
 
-			success = $t('admin.articleUpdatedSuccessfully');
+			adminToast.success({ title: $t('admin.articleUpdatedSuccessfully') });
 			setTimeout(() => goto('/admin/blog-articles'), 1000);
 		} catch (err) {
-			error = handleError(err, $t('owner.failedToUpdate'));
+			adminToast.error({ title: handleError(err, $t('owner.failedToUpdate')) });
 		} finally {
 			saving = false;
 		}
@@ -237,17 +240,6 @@
 			</div>
 
 			<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
-				{#if error}
-					<div class="mb-6 bg-red-50 border border-red-200 rounded-md p-4">
-						<p class="text-sm text-red-800">{error}</p>
-					</div>
-				{/if}
-				{#if success}
-					<div class="mb-6 bg-green-50 border border-green-200 rounded-md p-4">
-						<p class="text-sm text-green-800">{success}</p>
-					</div>
-				{/if}
-
 				<form on:submit={handleSubmit} class="space-y-6">
 					<div>
 						<h3 class="text-lg font-medium text-(--color-surface-950-50) mb-4">{$t('owner.basicInformation')}</h3>
@@ -299,7 +291,7 @@
 										}}
 										class="flex-1 px-3 py-2 border border-surface-300-700 rounded-l-md"
 									/>
-									<button type="button" on:click={handleAddTag} class="px-3 py-2 bg-(--color-primary-600) text-white rounded-r-md">
+									<button type="button" on:click={handleAddTag} class="{adminBtnPrimarySm} {adminRingPrimary} rounded-l-none rounded-r-md">
 										{$t('owner.add')}
 									</button>
 								</div>
@@ -365,7 +357,7 @@
 						<button
 							type="submit"
 							disabled={saving}
-							class="px-6 py-3 bg-green-600 text-white rounded-md disabled:opacity-50"
+							class="{adminBtnPrimary} {adminRingPrimary} px-6 py-3 disabled:opacity-50 inline-flex items-center"
 						>
 							{saving ? $t('owner.saving') : $t('admin.saveChanges')}
 						</button>

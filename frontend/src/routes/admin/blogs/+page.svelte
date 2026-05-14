@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { adminBtnPrimarySm, adminRingPrimary } from '$lib/admin/admin-cerberus';
 	import { t } from '$stores/i18n';
 	import { productName } from '$stores/siteConfig';
 </script>
@@ -32,7 +33,7 @@
 				<p class="text-(--color-surface-600-400) mb-4 text-sm">{$t('admin.manageBlogCategories')}</p>
 				<a
 					href="/admin/blog-categories"
-					class="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
+					class="{adminBtnPrimarySm} {adminRingPrimary} inline-flex items-center no-underline"
 				>
 					{$t('admin.manageBlogCategories')}
 					<svg class="ml-2 w-4 h-4 rtl-flip" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -58,7 +59,7 @@
 				<p class="text-(--color-surface-600-400) mb-4 text-sm">{$t('admin.manageBlogArticlesCard')}</p>
 				<a
 					href="/admin/blog-articles"
-					class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+					class="{adminBtnPrimarySm} {adminRingPrimary} inline-flex items-center no-underline"
 				>
 					{$t('admin.blogArticles')}
 					<svg class="ml-2 w-4 h-4 rtl-flip" fill="none" stroke="currentColor" viewBox="0 0 24 24">

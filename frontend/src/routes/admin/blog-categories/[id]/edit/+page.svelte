@@ -7,8 +7,12 @@
 	import { currentLanguage } from '$lib/stores/language';
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
+	import { adminToast } from '$lib/admin/adminToast';
+	import { adminBtnPrimary, adminRingPrimary } from '$lib/admin/admin-cerberus';
 	import { t } from '$stores/i18n';
-// PageData is loaded via +page.server.ts; this component does not
+	import { get } from 'svelte/store';
+
+	// PageData is loaded via +page.server.ts; this component does not
 // currently consume it directly, so we omit the prop to avoid unused-export warnings.
 
 	interface BlogCategoryFormData {
@@ -34,8 +38,6 @@
 
 	let loading = true;
 	let saving = false;
-	let error: string | null = null;
-	let success: string | null = null;
 
 	onMount(async () => {
 		await fetchCategory();
@@ -62,7 +64,9 @@
 				};
 			}
 		} catch (err) {
-			error = err instanceof Error ? err.message : get(t)('admin.unknown');
+			adminToast.error({
+				title: err instanceof Error ? err.message : get(t)('admin.unknown'),
+			});
 		} finally {
 			loading = false;
 		}
@@ -71,11 +75,9 @@
 	async function handleSubmit(e: Event) {
 		e.preventDefault();
 		saving = true;
-		error = null;
-		success = null;
 
 		if (!MultiLangUtils.getTextValue(formData.title, $currentLanguage)) {
-			error = get(t)('admin.titleRequired');
+			adminToast.error({ title: get(t)('admin.titleRequired') });
 			saving = false;
 			return;
 		}
@@ -97,10 +99,10 @@
 				await handleApiErrorResponse(response);
 			}
 
-			success = get(t)('admin.categoryUpdatedSuccessfully');
+			adminToast.success({ title: get(t)('admin.categoryUpdatedSuccessfully') });
 		} catch (err) {
 			logger.error('Failed to update category:', err);
-			error = handleError(err, 'Failed to update category');
+			adminToast.error({ title: handleError(err, 'Failed to update category') });
 		} finally {
 			saving = false;
 		}
@@ -141,18 +143,6 @@
 					{$t('admin.backToCategories')}
 				</button>
 			</div>
-
-			{#if error}
-				<div class="mb-6 bg-red-50 border border-red-200 rounded-md p-4">
-					<p class="text-sm text-red-800">{error}</p>
-				</div>
-			{/if}
-
-			{#if success}
-				<div class="mb-6 bg-green-50 border border-green-200 rounded-md p-4">
-					<p class="text-sm text-green-800">{success}</p>
-				</div>
-			{/if}
 
 			<form on:submit={handleSubmit} class="space-y-6">
 				<!-- Basic Information -->
@@ -244,11 +234,11 @@
 					<button
 						type="submit"
 						disabled={saving}
-						class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-(--color-primary-600) hover:bg-(--color-primary-700) disabled:opacity-50 disabled:cursor-not-allowed"
+						class="{adminBtnPrimary} {adminRingPrimary} px-6 py-3 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center"
 					>
 						{#if saving}
 							<svg
-								class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+								class="animate-spin -ml-1 mr-3 h-5 w-5 text-current opacity-80"
 								fill="none"
 								viewBox="0 0 24 24"
 							>

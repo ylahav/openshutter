@@ -6,6 +6,8 @@
 	import { currentLanguage } from '$lib/stores/language';
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
+	import { adminToast } from '$lib/admin/adminToast';
+	import { adminBtnPrimary, adminRingPrimary } from '$lib/admin/admin-cerberus';
 	import { t } from '$stores/i18n';
 	import type { PageData } from './$types';
 
@@ -32,17 +34,13 @@
 	};
 
 	let saving = false;
-	let error: string | null = null;
-	let success: string | null = null;
 
 	async function handleSubmit(e: Event) {
 		e.preventDefault();
 		saving = true;
-		error = null;
-		success = null;
 
 		if (!MultiLangUtils.getTextValue(formData.title, $currentLanguage)) {
-			error = $t('admin.titleRequired');
+			adminToast.error({ title: $t('admin.titleRequired') });
 			saving = false;
 			return;
 		}
@@ -64,13 +62,13 @@
 				await handleApiErrorResponse(response);
 			}
 
-			success = $t('admin.categoryCreatedSuccessfully');
+			adminToast.success({ title: $t('admin.categoryCreatedSuccessfully') });
 			setTimeout(() => {
 				goto('/admin/blog-categories');
 			}, 1500);
 		} catch (err) {
 			logger.error('Failed to create category:', err);
-			error = handleError(err, 'Failed to create category');
+			adminToast.error({ title: handleError(err, 'Failed to create category') });
 		} finally {
 			saving = false;
 		}
@@ -103,18 +101,6 @@
 				{$t('admin.backToCategories')}
 			</button>
 		</div>
-
-		{#if error}
-			<div class="mb-6 bg-red-50 border border-red-200 rounded-md p-4">
-				<p class="text-sm text-red-800">{error}</p>
-			</div>
-		{/if}
-
-		{#if success}
-			<div class="mb-6 bg-green-50 border border-green-200 rounded-md p-4">
-				<p class="text-sm text-green-800">{success}</p>
-			</div>
-		{/if}
 
 		<form on:submit={handleSubmit} class="space-y-6">
 			<!-- Basic Information -->
@@ -206,11 +192,11 @@
 				<button
 					type="submit"
 					disabled={saving}
-					class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-(--color-primary-600) hover:bg-(--color-primary-700) disabled:opacity-50 disabled:cursor-not-allowed"
+					class="{adminBtnPrimary} {adminRingPrimary} px-6 py-3 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center"
 				>
 					{#if saving}
 						<svg
-							class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+							class="animate-spin -ml-1 mr-3 h-5 w-5 text-current opacity-80"
 							fill="none"
 							viewBox="0 0 24 24"
 						>

@@ -18,6 +18,8 @@
 	import { displayGroupAlias } from '$lib/utils/owner-groups';
 	import { t } from '$stores/i18n';
 	import type { PageData } from './$types';
+	import { adminToast } from '$lib/admin/adminToast';
+	import { adminBtnPrimarySm, adminRingPrimary } from '$lib/admin/admin-cerberus';
 
 	// svelte-ignore export_let_unused - Required by SvelteKit page component
 	export let data: PageData;
@@ -74,7 +76,6 @@
 	let groups: Group[] = [];
 	let loading = false;
 	let saving = false;
-	let message = '';
 	let error = '';
 	let showCreateDialog = false;
 	let showEditDialog = false;
@@ -90,7 +91,10 @@
 	crudOps.error.subscribe(value => {
 		if (value) error = value;
 	});
-	crudOps.message.subscribe(value => message = value);
+	crudOps.message.subscribe((value) => {
+		if (!value) return;
+		adminToast.success({ title: value });
+	});
 	dialogs.showCreate.subscribe(value => showCreateDialog = value);
 	dialogs.showEdit.subscribe(value => showEditDialog = value);
 	dialogs.showDelete.subscribe(value => showDeleteDialog = value);
@@ -204,7 +208,6 @@
 	function setImportSummaryMessage(created: number, failed: number) {
 		const template = translate('admin.collectionImportResult');
 		crudOps.message.set(applyTemplateVars(template, { created, failed }));
-		setTimeout(() => crudOps.message.set(''), 8000);
 	}
 
 	async function handleGroupsExport() {
@@ -309,7 +312,7 @@
 					<button
 						type="button"
 						on:click={openCreateDialog}
-						class="px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700) text-sm font-medium flex items-center gap-2"
+						class="{adminBtnPrimarySm} {adminRingPrimary} flex items-center gap-2"
 					>
 						<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -318,10 +321,6 @@
 					</button>
 				</div>
 			</div>
-
-			{#if message}
-				<div class="mb-4 p-4 rounded-md bg-green-50 text-green-700">{message}</div>
-			{/if}
 
 			{#if error}
 				<div class="mb-4 p-4 rounded-md bg-red-50 text-red-700">{error}</div>
@@ -463,7 +462,7 @@
 						type="button"
 						on:click={handleCreate}
 						disabled={saving || !formData.alias.trim()}
-						class="px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700) disabled:opacity-50 text-sm font-medium"
+						class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
 					>
 						{#if saving}
 							{$t('admin.groupsCreating')}
@@ -525,7 +524,7 @@
 						type="button"
 						on:click={handleEdit}
 						disabled={saving}
-						class="px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700) disabled:opacity-50 text-sm font-medium"
+						class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
 					>
 						{#if saving}
 							{$t('admin.groupsUpdating')}

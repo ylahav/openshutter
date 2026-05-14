@@ -291,9 +291,17 @@
 							<td class="px-4 py-3 text-sm text-(--color-surface-600-400)">{listing.developerName}</td>
 							<td class="px-4 py-3">
 								{#if listing.isApproved}
-									<span class="inline-flex rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">Approved</span>
+									<span
+										class="inline-flex rounded-full border border-[color-mix(in_oklab,var(--color-success-500)_35%,transparent)] bg-[color-mix(in_oklab,var(--color-success-500)_14%,transparent)] px-2 py-0.5 text-xs font-medium text-(--color-success-900)"
+									>
+										Approved
+									</span>
 								{:else}
-									<span class="inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">Pending</span>
+									<span
+										class="inline-flex rounded-full border border-[color-mix(in_oklab,var(--color-warning-500)_40%,transparent)] bg-[color-mix(in_oklab,var(--color-warning-500)_14%,transparent)] px-2 py-0.5 text-xs font-medium text-(--color-warning-900)"
+									>
+										Pending
+									</span>
 								{/if}
 							</td>
 							<td class="px-4 py-3">

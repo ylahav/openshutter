@@ -8,6 +8,7 @@
 	import { t } from '$stores/i18n';
 	import { productName } from '$stores/siteConfig';
 	import { adminToast } from '$lib/admin/adminToast';
+	import { adminBtnPrimarySm, adminRingPrimary } from '$lib/admin/admin-cerberus';
 	import AdminConfirmDialog from '$lib/components/admin/AdminConfirmDialog.svelte';
 	interface BlogArticleRow {
 		_id: string;
@@ -23,7 +24,6 @@
 	let articles: BlogArticleRow[] = [];
 	let categoryOptions: string[] = [];
 	let loading = true;
-	let error: string | null = null;
 	let searchTerm = '';
 	let categoryFilter = '';
 	let statusFilter = '';
@@ -71,7 +71,7 @@
 			articles = Array.isArray(result?.data) ? result.data : Array.isArray(result) ? result : [];
 		} catch (err) {
 			logger.error('Failed to fetch articles:', err);
-			error = handleError(err, $t('owner.requestFailed'));
+			adminToast.error({ title: handleError(err, $t('owner.requestFailed')) });
 		} finally {
 			loading = false;
 		}
@@ -95,8 +95,7 @@
 			articles = articles.filter((a) => a._id !== id);
 			closeDeleteArticleDialog();
 		} catch (err) {
-			error = handleError(err, $t('owner.failedToDelete'));
-			adminToast.error({ title: $t('owner.failedToDelete'), description: error });
+			adminToast.error({ title: handleError(err, $t('owner.failedToDelete')) });
 			deleteArticleDialog = { ...deleteArticleDialog, isDeleting: false };
 		}
 	}
@@ -117,7 +116,7 @@
 					: a
 			);
 		} catch (err) {
-			error = handleError(err, $t('owner.failedToUpdate'));
+			adminToast.error({ title: handleError(err, $t('owner.failedToUpdate')) });
 		}
 	}
 
@@ -148,8 +147,9 @@
 				</div>
 				<div class="flex flex-wrap gap-3">
 					<button
+						type="button"
 						on:click={() => goto('/admin/blog-articles/new')}
-						class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+						class="{adminBtnPrimarySm} {adminRingPrimary} inline-flex items-center"
 					>
 						{$t('owner.createNewArticle')}
 					</button>
@@ -207,26 +207,22 @@
 					</div>
 				</div>
 				<button
+					type="button"
 					on:click={fetchArticles}
-					class="mt-4 inline-flex items-center px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700)"
+					class="{adminBtnPrimarySm} {adminRingPrimary} mt-4 inline-flex items-center"
 				>
 					{$t('owner.filter')}
 				</button>
 			</div>
-
-			{#if error}
-				<div class="mb-6 bg-red-50 border border-red-200 rounded-md p-4">
-					<p class="text-sm text-red-800">{error}</p>
-				</div>
-			{/if}
 
 			<div class="card preset-outlined-surface-200-800 bg-surface-50-950 overflow-hidden">
 				{#if articles.length === 0}
 					<div class="text-center py-12 text-(--color-surface-600-400)">
 						<p class="mb-4">{$t('owner.noArticles')}</p>
 						<button
+							type="button"
 							on:click={() => goto('/admin/blog-articles/new')}
-							class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+							class="{adminBtnPrimarySm} {adminRingPrimary} inline-flex items-center"
 						>
 							{$t('owner.createNewArticle')}
 						</button>
@@ -266,9 +262,9 @@
 										<td class="px-4 py-3 text-sm">{article.category}</td>
 										<td class="px-4 py-3">
 											<span
-												class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium {article.isPublished
-													? 'bg-green-100 text-green-800'
-													: 'bg-yellow-100 text-yellow-800'}"
+												class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium border {article.isPublished
+													? 'border-[color-mix(in_oklab,var(--color-success-500)_35%,transparent)] bg-[color-mix(in_oklab,var(--color-success-500)_14%,transparent)] text-(--color-success-900)'
+													: 'border-[color-mix(in_oklab,var(--color-warning-500)_40%,transparent)] bg-[color-mix(in_oklab,var(--color-warning-500)_14%,transparent)] text-(--color-warning-900)'}"
 											>
 												{article.isPublished ? 'Published' : 'Draft'}
 											</span>

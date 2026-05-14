@@ -7,9 +7,24 @@
 	import { handleAuthError } from '$lib/utils/auth-error-handler';
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
+	import { adminToast } from '$lib/admin/adminToast';
 	import { applyThemeById } from '$lib/services/apply-theme';
 	import ThemePackPreviewThumb from '$lib/components/admin/ThemePackPreviewThumb.svelte';
-	import { adminBtnPrimarySm, adminBtnSecondary } from '$lib/admin/admin-cerberus';
+	import {
+		adminBadgeCaution,
+		adminBadgePrimary,
+		adminBtnDanger,
+		adminBtnPrimarySm,
+		adminBtnSecondary,
+		adminBtnSmDanger,
+		adminBtnSmPrimary,
+		adminBtnSmSecondary,
+		adminInputSmClass,
+		adminLabelClass,
+		adminLabelTextClass,
+		adminRingPrimary,
+		adminSelectSmClass
+	} from '$lib/admin/admin-cerberus';
 
 	interface Theme {
 		_id: string;
@@ -30,8 +45,6 @@
 
 	let themes: Theme[] = [];
 	let loading = true;
-	let message = '';
-	let error = '';
 	let showCreateModal = false;
 	let createSubmitting = false;
 	let createName = '';
@@ -76,7 +89,6 @@
 
 	async function loadThemes() {
 		loading = true;
-		error = '';
 		try {
 			const response = await fetch('/api/admin/themes', { credentials: 'include' });
 			if (!response.ok) {
@@ -108,7 +120,7 @@
 			});
 		} catch (err) {
 			if (handleAuthError(err, $page.url.pathname)) return;
-			error = handleError(err, $t('admin.errorLoadingTemplates'));
+			adminToast.error({ title: handleError(err, $t('admin.errorLoadingTemplates')) });
 		} finally {
 			loading = false;
 		}
@@ -117,7 +129,6 @@
 	async function createTheme() {
 		if (!createName.trim()) return;
 		createSubmitting = true;
-		error = '';
 		try {
 			const response = await fetch('/api/admin/themes', {
 				method: 'POST',
@@ -138,7 +149,7 @@
 			createName = '';
 			createBaseTemplate = 'noir';
 			createBasePalette = 'light';
-			message = $t('admin.themeCreatedSuccessfully');
+			adminToast.success({ title: $t('admin.themeCreatedSuccessfully') });
 			if (newTheme) themes = [newTheme, ...themes];
 			try {
 				await loadThemes();
@@ -147,7 +158,7 @@
 			}
 			if (themeId) goto(`/admin/templates/overrides?themeId=${themeId}`);
 		} catch (err) {
-			error = handleError(err, $t('admin.failedToCreateTheme'));
+			adminToast.error({ title: handleError(err, $t('admin.failedToCreateTheme')) });
 		} finally {
 			createSubmitting = false;
 		}
@@ -165,12 +176,12 @@
 			const result = await response.json();
 			duplicateThemeId = null;
 			duplicateName = '';
-			message = $t('admin.themeDuplicated');
+			adminToast.success({ title: $t('admin.themeDuplicated') });
 			await loadThemes();
 			const newId = result.data?._id ?? result?._id;
 			if (newId) goto(`/admin/templates/overrides?themeId=${newId}`);
 		} catch (err) {
-			error = handleError(err, $t('admin.failedToDuplicateTheme'));
+			adminToast.error({ title: handleError(err, $t('admin.failedToDuplicateTheme')) });
 		}
 	}
 
@@ -178,19 +189,18 @@
 		try {
 			const result = await applyThemeById(themeId);
 			if (!result.ok) {
-				error = result.error;
+				adminToast.error({ title: result.error });
 				return;
 			}
 			previewTemplate = null;
 			previewThemeId = null;
 			applyThemeId = null;
-			message = $t('admin.themeApplied').replace('{name}', result.themeName);
+			adminToast.success({ title: $t('admin.themeApplied').replace('{name}', result.themeName) });
 			setTimeout(() => {
-				message = '';
 				window.location.reload();
 			}, 600);
 		} catch (err) {
-			error = handleError(err, $t('admin.failedToApplyTheme'));
+			adminToast.error({ title: handleError(err, $t('admin.failedToApplyTheme')) });
 		}
 	}
 
@@ -202,11 +212,10 @@
 			});
 			if (!response.ok) await handleApiErrorResponse(response);
 			deleteThemeId = null;
-			message = $t('admin.themeDeleted');
+			adminToast.success({ title: $t('admin.themeDeleted') });
 			await loadThemes();
-			setTimeout(() => (message = ''), 3000);
 		} catch (err) {
-			error = handleError(err, $t('admin.failedToDeleteTheme'));
+			adminToast.error({ title: handleError(err, $t('admin.failedToDeleteTheme')) });
 		}
 	}
 
@@ -217,14 +226,13 @@
 	function previewTheme(theme: Theme): void {
 		previewTemplate = theme.baseTemplate;
 		previewThemeId = theme._id;
-		message = $t('admin.templatesPreviewModeOn').replace('{name}', theme.name);
-		error = '';
+		adminToast.info({ title: $t('admin.templatesPreviewModeOn').replace('{name}', theme.name) });
 	}
 
 	function clearPreview(): void {
 		previewTemplate = null;
 		previewThemeId = null;
-		message = $t('admin.templatesPreviewCleared');
+		adminToast.info({ title: $t('admin.templatesPreviewCleared') });
 	}
 
 	function openApplyPreview(): void {
@@ -259,7 +267,9 @@
 						{$t('admin.templatesPreviewHint')}
 					</p>
 					{#if previewTemplate}
-						<p class="mt-2 text-xs text-amber-800 dark:text-amber-200">
+						<p
+							class="mt-2 max-w-xl rounded-md border border-[color-mix(in_oklab,#d97706_28%,transparent)] bg-[color-mix(in_oklab,#d97706_8%,transparent)] px-2 py-1.5 text-xs text-amber-950 dark:text-amber-100"
+						>
 							{$t('admin.templatesPreviewModeBanner').replace('{pack}', previewTemplate)}
 						</p>
 					{/if}
@@ -272,7 +282,7 @@
 					>
 						+ {$t('admin.createNewTheme')}
 					</button>
-					<a href="/admin/templates/overrides" class="{adminBtnPrimarySm} shrink-0 text-center no-underline">
+					<a href="/admin/templates/overrides" class="{adminBtnPrimarySm} {adminRingPrimary} shrink-0 text-center no-underline">
 						{$t('admin.themeBuilder')}
 					</a>
 					{#if previewTemplate && previewThemeId}
@@ -280,7 +290,7 @@
 							<button
 								type="button"
 								on:click={openApplyPreview}
-								class="{adminBtnPrimarySm} shrink-0"
+								class="{adminBtnPrimarySm} {adminRingPrimary} shrink-0"
 								title={$t('admin.applyPreview')}
 							>
 								{$t('admin.applyPreview')}
@@ -291,7 +301,7 @@
 						<button
 							type="button"
 							on:click={clearPreview}
-							class="btn preset-tonal text-sm shrink-0"
+							class="{adminBtnSecondary} text-sm shrink-0"
 							title={$t('admin.revertPreview')}
 						>
 							{$t('admin.revertPreview')}
@@ -300,16 +310,11 @@
 				</div>
 			</div>
 
-			{#if message}
-				<div class="mb-4 p-4 rounded-md bg-green-50 text-green-700">{message}</div>
-			{/if}
-			{#if error}
-				<div class="mb-4 p-4 rounded-md bg-red-50 text-red-700">{error}</div>
-			{/if}
-
 			{#if loading}
 				<div class="text-center py-12">
-					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+					<div
+						class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-(--color-primary-600)"
+					></div>
 					<p class="mt-2 text-(--color-surface-600-400)">{$t('admin.loadingTemplates')}</p>
 				</div>
 			{:else if themes.length === 0}
@@ -318,7 +323,7 @@
 					<button
 						type="button"
 						on:click={() => (showCreateModal = true)}
-						class="{adminBtnPrimarySm}"
+						class="{adminBtnPrimarySm} {adminRingPrimary}"
 					>
 						{$t('admin.createYourFirstTheme')}
 					</button>
@@ -333,12 +338,12 @@
 								<div class="flex items-center gap-2">
 									<h3 class="font-semibold text-(--color-surface-950-50)">{theme.name}</h3>
 									{#if liveThemeId ? liveThemeId === theme._id : theme.baseTemplate === frontendTemplate}
-										<span class="px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800">
+										<span class={adminBadgePrimary}>
 											{$t('admin.defaultThemeBadge')}
 										</span>
 									{/if}
 									{#if previewTemplate === theme.baseTemplate}
-										<span class="px-2 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-800">
+										<span class={adminBadgeCaution}>
 											{$t('admin.templatesPreviewingBadge')}
 										</span>
 									{/if}
@@ -352,21 +357,21 @@
 								<div class="flex flex-wrap gap-2 mt-3">
 									<a
 										href="/admin/templates/overrides?themeId={theme._id}"
-										class="text-xs px-2 py-1 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200"
+										class="{adminBtnSmSecondary} no-underline shrink-0"
 									>
 										{$t('admin.edit')}
 									</a>
 									<button
 										type="button"
 										on:click={() => (applyThemeId = theme._id)}
-										class="text-xs px-2 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200"
+										class="{adminBtnSmPrimary} {adminRingPrimary} shrink-0"
 									>
 										{$t('admin.setAsDefaultTheme')}
 									</button>
 									<button
 										type="button"
 										on:click={() => previewTheme(theme)}
-										class="text-xs px-2 py-1 bg-amber-100 text-amber-700 rounded hover:bg-amber-200"
+										class="{adminBtnSmSecondary} shrink-0"
 										title={$t('admin.previewCurrentPageTitle')}
 										aria-label={$t('admin.previewCurrentPageTitle')}
 										aria-describedby="templates-preview-help"
@@ -376,14 +381,14 @@
 									<button
 										type="button"
 										on:click={() => { duplicateThemeId = theme._id; duplicateName = `${theme.name} (copy)`; }}
-										class="text-xs px-2 py-1 bg-(--color-surface-100-900) text-(--color-surface-800-200) rounded hover:bg-(--color-surface-200-800)"
+										class="{adminBtnSmSecondary} shrink-0"
 									>
 										{$t('admin.duplicate')}
 									</button>
 									<button
 										type="button"
 										on:click={() => (deleteThemeId = theme._id)}
-										class="text-xs px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200"
+										class="{adminBtnSmDanger} shrink-0"
 									>
 										{$t('admin.delete')}
 									</button>
@@ -406,25 +411,25 @@
 			</h2>
 			<div class="space-y-4">
 				<div>
-					<label for="theme-name" class="block text-sm font-medium text-(--color-surface-800-200) mb-1">
-						{$t('admin.themeName')}
+					<label for="theme-name" class="{adminLabelClass}">
+						<span class="{adminLabelTextClass}">{$t('admin.themeName')}</span>
 					</label>
 					<input
 						id="theme-name"
 						type="text"
 						bind:value={createName}
 						placeholder={$t('admin.themeNamePlaceholder')}
-						class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-indigo-500"
+						class="{adminInputSmClass} {adminRingPrimary}"
 					/>
 				</div>
 				<div>
-					<label for="theme-base" class="block text-sm font-medium text-(--color-surface-800-200) mb-1">
-						{$t('admin.baseTheme')}
+					<label for="theme-base" class="{adminLabelClass}">
+						<span class="{adminLabelTextClass}">{$t('admin.baseTheme')}</span>
 					</label>
 					<select
 						id="theme-base"
 						bind:value={createBaseTemplate}
-						class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-indigo-500"
+						class="{adminSelectSmClass} {adminRingPrimary}"
 					>
 						<option value="noir">{$t('admin.baseThemeNoir')}</option>
 						<option value="studio">{$t('admin.baseThemeStudio')}</option>
@@ -432,13 +437,13 @@
 					</select>
 				</div>
 				<div>
-					<label for="theme-palette" class="block text-sm font-medium text-(--color-surface-800-200) mb-1">
-						{$t('admin.basePalette')}
+					<label for="theme-palette" class="{adminLabelClass}">
+						<span class="{adminLabelTextClass}">{$t('admin.basePalette')}</span>
 					</label>
 					<select
 						id="theme-palette"
 						bind:value={createBasePalette}
-						class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-indigo-500"
+						class="{adminSelectSmClass} {adminRingPrimary}"
 					>
 						<option value="light">{$t('admin.basePaletteLight')}</option>
 						<option value="dark">{$t('admin.basePaletteDark')}</option>
@@ -451,7 +456,7 @@
 				<button
 					type="button"
 					on:click={() => (showCreateModal = false)}
-					class="px-4 py-2 text-(--color-surface-800-200) hover:bg-(--color-surface-100-900) rounded-md"
+					class="{adminBtnSecondary}"
 					>
 						{$t('admin.cancel')}
 					</button>
@@ -459,7 +464,7 @@
 					type="button"
 					on:click={createTheme}
 					disabled={!createName.trim() || createSubmitting}
-					class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50"
+					class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
 				>
 					{createSubmitting ? $t('admin.creatingTheme') : $t('admin.create')}
 				</button>
@@ -476,28 +481,28 @@
 				{$t('admin.duplicateTheme')}
 			</h2>
 			<div class="mb-4">
-				<label for="duplicate-name" class="block text-sm font-medium text-(--color-surface-800-200) mb-1">
-					{$t('admin.newThemeName')}
+				<label for="duplicate-name" class="{adminLabelClass}">
+					<span class="{adminLabelTextClass}">{$t('admin.newThemeName')}</span>
 				</label>
 				<input
 					id="duplicate-name"
 					type="text"
 					bind:value={duplicateName}
-					class="w-full px-3 py-2 border border-surface-300-700 rounded-md focus:ring-2 focus:ring-indigo-500"
+					class="{adminInputSmClass} {adminRingPrimary}"
 				/>
 			</div>
 			<div class="flex justify-end gap-2">
 				<button
 					type="button"
 					on:click={() => { duplicateThemeId = null; duplicateName = ''; }}
-					class="px-4 py-2 text-(--color-surface-800-200) hover:bg-(--color-surface-100-900) rounded-md"
+					class="{adminBtnSecondary}"
 				>
 					{$t('admin.cancel')}
 				</button>
 				<button
 					type="button"
 					on:click={() => duplicateTheme(duplicateThemeId!, duplicateName)}
-					class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+					class="{adminBtnPrimarySm} {adminRingPrimary}"
 				>
 					{$t('admin.duplicate')}
 				</button>
@@ -520,14 +525,14 @@
 				<button
 					type="button"
 					on:click={() => (applyThemeId = null)}
-					class="px-4 py-2 text-(--color-surface-800-200) hover:bg-(--color-surface-100-900) rounded-md"
+					class="{adminBtnSecondary}"
 				>
 					{$t('admin.cancel')}
 				</button>
 				<button
 					type="button"
 					on:click={() => applyTheme(applyThemeId!)}
-					class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+					class="{adminBtnPrimarySm} {adminRingPrimary}"
 				>
 					{$t('admin.setAsDefaultTheme')}
 				</button>
@@ -547,18 +552,10 @@
 				{$t('admin.deleteThemeDescription')}
 			</p>
 			<div class="flex justify-end gap-2">
-				<button
-					type="button"
-					on:click={() => (deleteThemeId = null)}
-					class="px-4 py-2 text-(--color-surface-800-200) hover:bg-(--color-surface-100-900) rounded-md"
-				>
+				<button type="button" on:click={() => (deleteThemeId = null)} class="{adminBtnSecondary}">
 					{$t('admin.cancel')}
 				</button>
-				<button
-					type="button"
-					on:click={() => deleteTheme(deleteThemeId!)}
-					class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-				>
+				<button type="button" on:click={() => deleteTheme(deleteThemeId!)} class="{adminBtnDanger}">
 					{$t('admin.delete')}
 				</button>
 			</div>

@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import AdminConfirmDialog from '$lib/components/admin/AdminConfirmDialog.svelte';
+	import { adminToast } from '$lib/admin/adminToast';
+	import { adminBtnPrimarySm, adminRingPrimary } from '$lib/admin/admin-cerberus';
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 	import { t } from '$stores/i18n';
@@ -15,8 +17,6 @@
 	let loading = true;
 	let saving = false;
 	let deleting = false;
-	let message = '';
-	let error = '';
 	let selectedLanguage: string | null = null;
 	let translations: Record<string, any> = {};
 	let editingKey: string | null = null;
@@ -75,7 +75,6 @@
 	async function loadLanguages() {
 		try {
 			loading = true;
-			error = '';
 			const response = await fetch('/api/admin/translations');
 			if (!response.ok) {
 				await handleApiErrorResponse(response);
@@ -88,7 +87,7 @@
 			}
 		} catch (err) {
 			logger.error('Error loading languages:', err);
-			error = handleError(err, 'Failed to load languages');
+			adminToast.error({ title: handleError(err, 'Failed to load languages') });
 		} finally {
 			loading = false;
 		}
@@ -97,7 +96,6 @@
 	async function loadTranslations(languageCode: string, forceReload: boolean = false) {
 		try {
 			loading = true;
-			error = '';
 			// Add cache-busting parameter if force reload
 			const cacheBuster = forceReload ? `&_t=${Date.now()}` : '';
 			const response = await fetch(`/api/admin/translations?languageCode=${languageCode}${cacheBuster}`);
@@ -163,7 +161,7 @@
 			}
 		} catch (err) {
 			logger.error('Error loading translations:', err);
-			error = handleError(err, 'Failed to load translations');
+			adminToast.error({ title: handleError(err, 'Failed to load translations') });
 		} finally {
 			loading = false;
 		}
@@ -171,7 +169,7 @@
 
 	function openAutoTranslateDialog() {
 		if (!selectedLanguage || selectedLanguage === 'en') {
-			error = 'Cannot auto-translate English (source language)';
+			adminToast.error({ title: 'Cannot auto-translate English (source language)' });
 			return;
 		}
 		showAutoTranslateDialog = true;
@@ -208,7 +206,7 @@
 
 	async function confirmAutoTranslate() {
 		if (!selectedLanguage || selectedLanguage === 'en') {
-			error = 'Cannot auto-translate English (source language)';
+			adminToast.error({ title: 'Cannot auto-translate English (source language)' });
 			return;
 		}
 
@@ -216,12 +214,9 @@
 
 		// Count missing translations first
 		const totalMissing = countMissingTranslations();
-		
+
 		if (totalMissing === 0) {
-			message = 'No missing translations found!';
-			setTimeout(() => {
-				message = '';
-			}, 3000);
+			adminToast.info({ title: 'No missing translations found!' });
 			return;
 		}
 
@@ -234,9 +229,7 @@
 
 		try {
 			autoTranslating = true;
-			error = '';
-			message = '';
-			
+
 			const startTime = Date.now();
 			const estimatedTimePerTranslation = 200; // milliseconds per translation
 			const estimatedTotalTime = totalMissing * estimatedTimePerTranslation;
@@ -294,60 +287,67 @@
 					total: translationProgress.total,
 					currentKey: ''
 				};
-				
+
 				const translatedCount = result.data.translated || 0;
-				message = result.data.message || `Auto-translation completed! Translated ${translatedCount} keys.`;
-				
+				let completionSummary =
+					result.data.message || `Auto-translation completed! Translated ${translatedCount} keys.`;
+
 				// Wait longer for file system to sync (Windows file system can be slow)
-				await new Promise(resolve => setTimeout(resolve, 1000));
-				
+				await new Promise((resolve) => setTimeout(resolve, 1000));
+
 				// Force reload translations by clearing cache and reloading
 				if (selectedLanguage) {
 					const langCode = selectedLanguage;
 					translations = {};
 					englishTranslations = {};
-					
+
 					logger.debug(`[Translations] Force reloading translations for ${langCode}...`);
 					await loadTranslations(langCode, true); // Force reload with cache busting
-					
+
 					// Wait a bit more and verify
-					await new Promise(resolve => setTimeout(resolve, 500));
-					
+					await new Promise((resolve) => setTimeout(resolve, 500));
+
 					// Verify translations were loaded
 					const missingAfter = countMissingTranslations();
 					const totalKeys = getAllKeys(translations).length;
-					
+
 					logger.debug(`[Translations] After reload: ${totalKeys} total keys, ${missingAfter} missing`);
-					
+
 					if (missingAfter < totalMissing) {
-						message = `Success! Translated ${translatedCount} keys. ${missingAfter} keys still missing.`;
+						completionSummary = `Success! Translated ${translatedCount} keys. ${missingAfter} keys still missing.`;
 					} else if (totalKeys > 0) {
 						// Translations loaded but count might be wrong - check if we actually have translations
 						const sampleKey = getAllKeys(translations)[0];
 						const sampleValue = getNestedValue(translations, sampleKey);
 						if (sampleValue && typeof sampleValue === 'string' && sampleValue.trim() !== '') {
-							message = `Translations loaded successfully! Check the editor to verify.`;
+							completionSummary = `Translations loaded successfully! Check the editor to verify.`;
 						} else {
-							logger.warn('[Translations] Translations reloaded but appear empty. File may not have been saved correctly.');
-							message = `Translation completed but reload failed. Please refresh the page manually.`;
+							logger.warn(
+								'[Translations] Translations reloaded but appear empty. File may not have been saved correctly.'
+							);
+							completionSummary = `Translation completed but reload failed. Please refresh the page manually.`;
 						}
 					} else {
-						logger.warn('[Translations] No translations loaded after reload. File may not exist or be empty.');
-						message = `Translation completed but failed to reload. Please refresh the page manually.`;
+						logger.warn(
+							'[Translations] No translations loaded after reload. File may not exist or be empty.'
+						);
+						completionSummary = `Translation completed but failed to reload. Please refresh the page manually.`;
 					}
 				}
-				
-				// Reset progress after a moment
+
+				adminToast.success({ title: completionSummary });
+
 				setTimeout(() => {
 					translationProgress = { current: 0, total: 0, currentKey: '' };
-					message = '';
 				}, 5000);
 			} else {
 				throw new Error(result.error || 'Failed to auto-translate');
 			}
 		} catch (err) {
 			logger.error('Error auto-translating:', err);
-			error = err instanceof Error ? err.message : 'Failed to auto-translate';
+			adminToast.error({
+				title: err instanceof Error ? err.message : 'Failed to auto-translate',
+			});
 			translationProgress = { current: 0, total: 0, currentKey: '' };
 		} finally {
 			autoTranslating = false;
@@ -359,8 +359,6 @@
 
 		try {
 			saving = true;
-			message = '';
-			error = '';
 			const response = await fetch(`/api/admin/translations?languageCode=${selectedLanguage}`, {
 				method: 'PUT',
 				headers: {
@@ -376,9 +374,8 @@
 
 			const result = await response.json();
 			if (result.success) {
-				message = 'Translations saved successfully!';
+				adminToast.success({ title: 'Translations saved successfully!' });
 				setTimeout(() => {
-					message = '';
 					// Reload page to refresh translations in the app
 					if (typeof window !== 'undefined') {
 						window.location.reload();
@@ -389,7 +386,9 @@
 			}
 		} catch (err) {
 			logger.error('Error saving translations:', err);
-			error = err instanceof Error ? err.message : 'Failed to save translations';
+			adminToast.error({
+				title: err instanceof Error ? err.message : 'Failed to save translations',
+			});
 		} finally {
 			saving = false;
 		}
@@ -397,13 +396,12 @@
 
 	async function createLanguage() {
 		if (!newLanguageCode || !newLanguageName) {
-			error = $t('admin.languageCodeAndNameRequired');
+			adminToast.error({ title: $t('admin.languageCodeAndNameRequired') });
 			return;
 		}
 
 		try {
 			saving = true;
-			error = '';
 			const response = await fetch('/api/admin/translations', {
 				method: 'POST',
 				headers: {
@@ -423,21 +421,20 @@
 
 			const result = await response.json();
 			if (result.success) {
-				message = $t('admin.languageCreatedSuccessfully');
+				adminToast.success({ title: $t('admin.languageCreatedSuccessfully') });
 				showAddLanguageDialog = false;
 				newLanguageCode = '';
 				newLanguageName = '';
 				newLanguageFlag = '🌐';
 				await loadLanguages();
-				setTimeout(() => {
-					message = '';
-				}, 3000);
 			} else {
 				throw new Error(result.error || 'Failed to create language');
 			}
 		} catch (err) {
 			logger.error('Error creating language:', err);
-			error = err instanceof Error ? err.message : 'Failed to create language';
+			adminToast.error({
+				title: err instanceof Error ? err.message : 'Failed to create language',
+			});
 		} finally {
 			saving = false;
 		}
@@ -445,7 +442,7 @@
 
 	function openDeleteLanguageDialog(languageCode: string) {
 		if (languageCode === 'en') {
-			error = 'Cannot delete English language (default fallback)';
+			adminToast.error({ title: 'Cannot delete English language (default fallback)' });
 			return;
 		}
 		languageToDelete = languageCode;
@@ -465,7 +462,6 @@
 
 		try {
 			deleting = true;
-			error = '';
 			const response = await fetch(`/api/admin/translations?languageCode=${languageCode}`, {
 				method: 'DELETE'
 			});
@@ -477,21 +473,20 @@
 
 			const result = await response.json();
 			if (result.success) {
-				message = 'Language deleted successfully!';
+				adminToast.success({ title: 'Language deleted successfully!' });
 				if (selectedLanguage === languageCode) {
 					selectedLanguage = null;
 					translations = {};
 				}
 				await loadLanguages();
-				setTimeout(() => {
-					message = '';
-				}, 3000);
 			} else {
 				throw new Error(result.error || 'Failed to delete language');
 			}
 		} catch (err) {
 			logger.error('Error deleting language:', err);
-			error = err instanceof Error ? err.message : 'Failed to delete language';
+			adminToast.error({
+				title: err instanceof Error ? err.message : 'Failed to delete language',
+			});
 		} finally {
 			deleting = false;
 		}
@@ -520,8 +515,8 @@
 			setNestedValue(translations, key, parsedValue);
 			translations = { ...translations }; // Trigger reactivity
 			cancelEdit();
-		} catch (err) {
-			error = 'Invalid value format';
+		} catch {
+			adminToast.error({ title: 'Invalid value format' });
 		}
 	}
 
@@ -701,24 +696,12 @@
 					<button
 						type="button"
 						on:click={() => (showAddLanguageDialog = true)}
-						class="px-4 py-2 bg-(--color-primary-600) text-white text-sm font-medium rounded-md hover:bg-(--color-primary-700)"
+						class="{adminBtnPrimarySm} {adminRingPrimary}"
 					>
 						+ {$t('admin.addLanguage')}
 					</button>
 				</div>
 			</div>
-
-			{#if message}
-				<div class="mb-4 p-4 bg-green-50 text-green-800 border border-green-300 rounded-lg">
-					{message}
-				</div>
-			{/if}
-
-			{#if error}
-				<div class="mb-4 p-4 bg-red-50 text-red-800 border border-red-300 rounded-lg">
-					{error}
-				</div>
-			{/if}
 
 			{#if autoTranslating && translationProgress.total > 0}
 				<div class="mb-4 p-4 bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] border border-[color-mix(in_oklab,var(--color-primary-500)_24%,transparent)] rounded-lg">
@@ -806,10 +789,10 @@
 											type="button"
 											on:click={openAutoTranslateDialog}
 											disabled={autoTranslating || saving}
-											class="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+											class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
 										>
 											{#if autoTranslating}
-												<div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+												<div class="animate-spin rounded-full h-4 w-4 border-b-2 border-current opacity-80"></div>
 												<span>{$t('admin.translating')}</span>
 											{:else}
 												<span>🌐</span>
@@ -896,7 +879,7 @@
 																			<button
 																				type="button"
 																				on:click={() => saveEdit(key)}
-																				class="px-2 py-1 bg-(--color-primary-600) text-white text-xs rounded hover:bg-(--color-primary-700)"
+																				class="{adminBtnPrimarySm} text-xs py-1 px-2 {adminRingPrimary}"
 																			>
 																				{$t('admin.save')}
 																			</button>
@@ -949,7 +932,7 @@
 											type="button"
 											on:click={saveTranslations}
 											disabled={saving}
-											class="px-6 py-2 bg-(--color-primary-600) text-white font-medium rounded-md hover:bg-(--color-primary-700) disabled:opacity-50 disabled:cursor-not-allowed"
+											class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50 disabled:cursor-not-allowed px-6"
 										>
 											{saving ? $t('admin.savingTranslations') : $t('admin.saveTranslations')}
 										</button>
@@ -1043,7 +1026,7 @@
 					type="button"
 					on:click={createLanguage}
 					disabled={saving || !newLanguageCode || !newLanguageName}
-					class="px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700) disabled:opacity-50"
+					class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
 				>
 					{saving ? $t('admin.creating') : $t('admin.create')}
 				</button>

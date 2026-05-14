@@ -66,6 +66,10 @@ Once you've completed the setup and logged in:
    - Update site title, description, logo, and other settings
    - Configure languages, themes, and SEO settings
 
+### Admin UI smoke checklist (operators)
+
+After changing admin layout, Skeleton, or merged **Phase 6** UI waves, run **[`ADMIN_SMOKE_CHECKLIST.md`](./ADMIN_SMOKE_CHECKLIST.md)** (shell, sidebar, toasts, and key routes). For **owner** accounts, use **§5 Owner subset** in that doc.
+
 ## 🔧 Configuration Files
 
 ### Initial Admin Settings

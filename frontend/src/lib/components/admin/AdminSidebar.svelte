@@ -184,7 +184,7 @@
 						></div>
 					</div>
 				</div>
-				<ul class="space-y-0.5">
+				<ul class="m-0 list-none space-y-0.5 p-0">
 					{#each group.items as item}
 						{@const active = navItemActive(pathname, item.href)}
 						{@const label = $t(item.labelKey)}

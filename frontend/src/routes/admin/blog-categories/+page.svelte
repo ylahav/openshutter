@@ -9,6 +9,8 @@
 	import { useDialogManager } from '$lib/composables/useDialogManager';
 	import { normalizeMultiLangText } from '$lib/utils/multiLangHelpers';
 	import type { PageData } from './$types';
+	import { adminToast } from '$lib/admin/adminToast';
+	import { adminBtnPrimarySm, adminRingPrimary } from '$lib/admin/admin-cerberus';
 
 	// svelte-ignore export_let_unused - Required by SvelteKit page component
 	export let data: PageData;
@@ -81,7 +83,6 @@
 	let categories: BlogCategory[] = [];
 	let loading = false;
 	let saving = false;
-	let message = '';
 	let error = '';
 	let searchTerm = '';
 	let activeFilter = 'all';
@@ -101,7 +102,10 @@
 	crudOps.error.subscribe(value => {
 		if (value) error = value;
 	});
-	crudOps.message.subscribe(value => message = value);
+	crudOps.message.subscribe((value) => {
+		if (!value) return;
+		adminToast.success({ title: value });
+	});
 	dialogs.showCreate.subscribe(value => showCreateDialog = value);
 	dialogs.showEdit.subscribe(value => showEditDialog = value);
 	dialogs.showDelete.subscribe(value => showDeleteDialog = value);
@@ -240,10 +244,6 @@
 				<p class="text-(--color-surface-600-400) mt-2">{$t('admin.manageBlogCategories')}</p>
 			</div>
 
-			{#if message}
-				<div class="mb-4 p-4 rounded-md bg-green-50 text-green-700">{message}</div>
-			{/if}
-
 			{#if error}
 				<div class="mb-4 p-4 rounded-md bg-red-50 text-red-700">{error}</div>
 			{/if}
@@ -288,8 +288,8 @@
 				<button
 					type="button"
 					on:click={openCreateDialog}
-					class="px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700) text-sm font-medium flex items-center gap-2"
-					>
+					class="{adminBtnPrimarySm} {adminRingPrimary} flex items-center gap-2"
+				>
 					<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path
 							stroke-linecap="round"
@@ -491,7 +491,7 @@
 						type="button"
 						on:click={handleCreate}
 						disabled={saving || !formData.title}
-						class="px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700) disabled:opacity-50 text-sm font-medium"
+						class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
 					>
 						{#if saving}
 							Creating...
@@ -602,7 +602,7 @@
 						type="button"
 						on:click={handleEdit}
 						disabled={saving || !formData.title}
-						class="px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700) disabled:opacity-50 text-sm font-medium"
+						class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
 					>
 						{#if saving}
 							Updating...

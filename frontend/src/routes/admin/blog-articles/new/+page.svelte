@@ -8,6 +8,8 @@
 	import { currentLanguage } from '$lib/stores/language';
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
+	import { adminToast } from '$lib/admin/adminToast';
+	import { adminBtnPrimarySm, adminRingPrimary, adminBtnPrimary } from '$lib/admin/admin-cerberus';
 	import { t } from '$stores/i18n';
 	import { productName } from '$stores/siteConfig';
 
@@ -30,8 +32,6 @@
 	}
 
 	let saving = false;
-	let error: string | null = null;
-	let success: string | null = null;
 	interface CategoryOption {
 		alias: string;
 		title: unknown;
@@ -119,18 +119,19 @@
 	async function handleSubmit(e: Event) {
 		e.preventDefault();
 		saving = true;
-		error = null;
-		success = null;
 
 		try {
 			if (!MultiLangUtils.getTextValue(formData.title, $currentLanguage).trim()) {
-				throw new Error($t('owner.titleRequired'));
+				adminToast.error({ title: $t('owner.titleRequired') });
+				return;
 			}
 			if (!formData.category.trim()) {
-				throw new Error($t('owner.categoryRequired'));
+				adminToast.error({ title: $t('owner.categoryRequired') });
+				return;
 			}
 			if (!MultiLangUtils.getHTMLValue(formData.content, $currentLanguage).trim()) {
-				throw new Error($t('owner.contentRequired'));
+				adminToast.error({ title: $t('owner.contentRequired') });
+				return;
 			}
 
 			const payload = { ...formData };
@@ -148,11 +149,11 @@
 				await handleApiErrorResponse(response);
 			}
 
-			success = $t('owner.articleCreatedSuccessfully');
+			adminToast.success({ title: $t('owner.articleCreatedSuccessfully') });
 			setTimeout(() => goto('/admin/blog-articles'), 1200);
 		} catch (err) {
 			logger.error('Failed to create article:', err);
-			error = handleError(err, $t('owner.failedToCreateArticle'));
+			adminToast.error({ title: handleError(err, $t('owner.failedToCreateArticle')) });
 		} finally {
 			saving = false;
 		}
@@ -179,18 +180,6 @@
 		</div>
 
 		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
-			{#if error}
-				<div class="mb-6 bg-red-50 border border-red-200 rounded-md p-4">
-					<p class="text-sm text-red-800">{error}</p>
-				</div>
-			{/if}
-
-			{#if success}
-				<div class="mb-6 bg-green-50 border border-green-200 rounded-md p-4">
-					<p class="text-sm text-green-800">{success}</p>
-				</div>
-			{/if}
-
 			<form on:submit={handleSubmit} class="space-y-6">
 				<div>
 					<h3 class="text-lg font-medium text-(--color-surface-950-50) mb-4">{$t('owner.basicInformation')}</h3>
@@ -255,7 +244,7 @@
 									<button
 										type="button"
 										on:click={handleAddTag}
-										class="px-3 py-2 bg-(--color-primary-600) text-white rounded-r-md hover:bg-(--color-primary-700)"
+										class="{adminBtnPrimarySm} {adminRingPrimary} rounded-l-none rounded-r-md"
 									>
 										{$t('owner.add')}
 									</button>
@@ -401,11 +390,11 @@
 					<button
 						type="submit"
 						disabled={saving}
-						class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+						class="{adminBtnPrimary} {adminRingPrimary} px-6 py-3 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center"
 					>
 						{#if saving}
 							<svg
-								class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+								class="animate-spin -ml-1 mr-3 h-5 w-5 text-current opacity-80"
 								fill="none"
 								viewBox="0 0 24 24"
 							>

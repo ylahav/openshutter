@@ -6,6 +6,12 @@
 	import { handleAuthError } from '$lib/utils/auth-error-handler';
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
+	import { adminToast } from '$lib/admin/adminToast';
+	import {
+		adminBtnPrimarySm,
+		adminBtnSecondary,
+		adminRingPrimary
+	} from '$lib/admin/admin-cerberus';
 	import ThemeBuilderPreview from '$lib/components/ThemeBuilderPreview.svelte';
 	import { PAGE_MODULE_TYPES } from '$lib/page-builder/module-types';
 	import ModuleCellPlacementControls from '$lib/page-builder/ModuleCellPlacementControls.svelte';
@@ -175,8 +181,6 @@
 	let loading = true;
 	let saving = false;
 	let resetting = false;
-	let message = '';
-	let error = '';
 	let activeTab = 'colors';
 	let hasChanges = false;
 
@@ -358,7 +362,7 @@
 			editingTheme = result.data || result;
 		} catch (err) {
 			logger.error('Load theme error:', err);
-			error = handleError(err, 'Failed to load theme');
+			adminToast.error({ title: handleError(err, 'Failed to load theme') });
 		}
 	}
 
@@ -1923,7 +1927,6 @@ let draggedAlbumHeaderField: string | null = null;
 
 	async function loadTemplates() {
 		loading = true;
-		error = '';
 		try {
 			const response = await fetch('/api/admin/templates', {
 				credentials: 'include',
@@ -1986,7 +1989,9 @@ let draggedAlbumHeaderField: string | null = null;
 			templates = templatesArray;
 			
 			if (templates.length === 0) {
-				error = 'No templates available. Please check server configuration.';
+				adminToast.error({
+					title: 'No templates available. Please check server configuration.'
+				});
 				activeTemplate = null;
 				return;
 			}
@@ -2020,7 +2025,10 @@ let draggedAlbumHeaderField: string | null = null;
 						templateName,
 						availableTemplates: templates.map(t => t.templateName)
 					});
-					error = `Template "${templateName}" not found. Available templates: ${templates.map(t => t.templateName).join(', ')}`;
+					adminToast.error({
+						title: `Template "${templateName}" not found.`,
+						description: `Available templates: ${templates.map(t => t.templateName).join(', ')}`
+					});
 				} else {
 					logger.debug('[Overrides] Using fallback template:', activeTemplate.templateName);
 				}
@@ -2033,7 +2041,7 @@ let draggedAlbumHeaderField: string | null = null;
 				return; // Redirecting, don't set error message
 			}
 			
-			error = handleError(err, 'Failed to load templates');
+			adminToast.error({ title: handleError(err, 'Failed to load templates') });
 			activeTemplate = null;
 		} finally {
 			loading = false;
@@ -2389,8 +2397,6 @@ let draggedAlbumHeaderField: string | null = null;
 
 	async function saveOverrides() {
 		saving = true;
-		message = '';
-		error = '';
 
 		try {
 			syncLegacyFromBreakpoints();
@@ -2445,10 +2451,13 @@ let draggedAlbumHeaderField: string | null = null;
 					});
 					if (!configResponse.ok) await handleApiErrorResponse(configResponse);
 					await siteConfig.load();
-					message = 'Theme saved and applied successfully!';
+					adminToast.success({ title: 'Theme saved and applied successfully!' });
 					setTimeout(() => window.location.reload(), 500);
 				} else {
-					message = 'Theme saved successfully! Remember to apply it from the themes list to see changes on the site.';
+					adminToast.success({
+						title:
+							'Theme saved successfully! Remember to apply it from the themes list to see changes on the site.'
+					});
 				}
 			} else {
 				// Save to site config
@@ -2464,16 +2473,15 @@ let draggedAlbumHeaderField: string | null = null;
 					body: JSON.stringify({ template: templateData })
 				});
 				if (!response.ok) await handleApiErrorResponse(response);
-				message = 'Template overrides saved successfully!';
+				adminToast.success({ title: 'Template overrides saved successfully!' });
 				await siteConfig.load();
 				setTimeout(() => window.location.reload(), 500);
 			}
 
 			hasChanges = false;
-			setTimeout(() => (message = ''), 3000);
 		} catch (err) {
 			logger.error('Error saving overrides:', err);
-			error = handleError(err, 'Failed to save overrides');
+			adminToast.error({ title: handleError(err, 'Failed to save overrides') });
 		} finally {
 			saving = false;
 		}
@@ -2490,8 +2498,6 @@ let draggedAlbumHeaderField: string | null = null;
 	async function confirmResetOverrides() {
 		if (resetting) return;
 		resetting = true;
-		message = '';
-		error = '';
 
 		try {
 			const response = await fetch('/api/admin/site-config', {
@@ -2515,18 +2521,14 @@ let draggedAlbumHeaderField: string | null = null;
 				await handleApiErrorResponse(response);
 			}
 
-			message = 'Template overrides reset to default!';
+			adminToast.success({ title: 'Template overrides reset to default!' });
 			localOverrides = {};
 			hasChanges = false;
 			siteConfig.load(); // Refresh site config store
 			closeResetOverridesDialog();
-
-			setTimeout(() => {
-				message = '';
-			}, 3000);
 		} catch (err) {
 			logger.error('Error resetting overrides:', err);
-			error = handleError(err, 'Failed to reset overrides');
+			adminToast.error({ title: handleError(err, 'Failed to reset overrides') });
 		} finally {
 			resetting = false;
 		}
@@ -2598,7 +2600,7 @@ let draggedAlbumHeaderField: string | null = null;
 				<div class="flex flex-wrap items-center gap-2 sm:justify-end">
 					<a
 						href="/admin/templates"
-						class="inline-flex items-center justify-center px-4 py-2 border border-surface-300-700 rounded-md shadow-sm text-sm font-medium text-(--color-surface-800-200) bg-(--color-surface-50-950) hover:bg-(--color-surface-50-950)"
+						class="{adminBtnSecondary} text-sm shrink-0 inline-flex items-center justify-center no-underline"
 					>
 						{$t('admin.backToTemplates')}
 					</a>
@@ -2606,7 +2608,7 @@ let draggedAlbumHeaderField: string | null = null;
 						type="button"
 						disabled={loading || !activeTemplate}
 						on:click={() => (showThemePreviewModal = true)}
-						class="inline-flex items-center justify-center px-4 py-2 border border-indigo-200 rounded-md shadow-sm text-sm font-medium text-indigo-800 bg-indigo-50 hover:bg-indigo-100 disabled:opacity-50 disabled:cursor-not-allowed"
+						class="{adminBtnSecondary} text-sm shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
 					>
 						{$t('admin.openLivePreview')}
 					</button>
@@ -2614,7 +2616,7 @@ let draggedAlbumHeaderField: string | null = null;
 						<button
 							type="button"
 							on:click={openCancelEditsDialog}
-							class="px-4 py-2 bg-(--color-surface-200-800) text-(--color-surface-800-200) rounded-md hover:bg-(--color-surface-300-700) text-sm font-medium"
+							class="{adminBtnSecondary} text-sm shrink-0"
 						>
 							{$t('admin.cancel')}
 						</button>
@@ -2637,7 +2639,7 @@ let draggedAlbumHeaderField: string | null = null;
 						type="button"
 						on:click={saveOverrides}
 						disabled={!hasChanges || saving}
-						class="px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700) disabled:opacity-50 text-sm font-medium"
+						class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
 					>
 						{#if saving}
 							{$t('admin.saving')}
@@ -2647,14 +2649,6 @@ let draggedAlbumHeaderField: string | null = null;
 					</button>
 				</div>
 			</div>
-
-			{#if message}
-				<div class="mb-4 p-4 rounded-md bg-green-50 text-green-700">{message}</div>
-			{/if}
-
-			{#if error}
-				<div class="mb-4 p-4 rounded-md bg-red-50 text-red-700">{error}</div>
-			{/if}
 
 			{#if hasOverrides()}
 				<div class="mb-4 p-4 rounded-md bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] text-(--color-primary-700) text-sm">
@@ -4383,7 +4377,7 @@ let draggedAlbumHeaderField: string | null = null;
 										type="button"
 										on:click={() => handleAssignToSelected()}
 										disabled={!assignedModuleType}
-										class="px-3 py-1.5 text-sm font-medium bg-(--color-primary-600) text-white rounded hover:bg-(--color-primary-700) disabled:opacity-50 disabled:cursor-not-allowed"
+										class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50 disabled:cursor-not-allowed"
 									>
 										Assign
 									</button>
@@ -4450,7 +4444,7 @@ let draggedAlbumHeaderField: string | null = null;
 								type="button"
 								on:click={() => (previewDeviceId = devId)}
 								class="px-2.5 py-1 rounded-md text-xs font-medium border transition-colors {previewDeviceId === devId
-									? 'bg-indigo-600 text-white border-indigo-600'
+									? 'border-(--color-primary-500) text-(--color-primary-700) bg-[color-mix(in_oklab,var(--color-primary-500)_18%,transparent)]'
 									: 'bg-(--color-surface-50-950) text-(--color-surface-800-200) border-surface-300-700 hover:bg-(--color-surface-50-950)'}"
 							>
 								{previewDeviceLabels[devId]}
@@ -4468,7 +4462,7 @@ let draggedAlbumHeaderField: string | null = null;
 								type="button"
 								on:click={() => (previewPageType = pageKey)}
 								class="px-2 py-1 text-xs rounded border transition-colors {previewPageType === pageKey
-									? 'bg-(--color-primary-600) text-white border-(--color-primary-600)'
+									? 'border-(--color-primary-500) text-(--color-primary-700) bg-[color-mix(in_oklab,var(--color-primary-500)_18%,transparent)]'
 									: 'bg-(--color-surface-50-950) text-(--color-surface-800-200) border-surface-200-800 hover:bg-(--color-surface-100-900)'}"
 							>
 								{pageKey.charAt(0).toUpperCase() + pageKey.slice(1)}
@@ -4875,7 +4869,7 @@ let draggedAlbumHeaderField: string | null = null;
 										</label>
 										<button
 											type="button"
-											class="mt-5 px-3 py-1.5 text-xs font-medium rounded-md bg-(--color-primary-600) text-white hover:bg-(--color-primary-700) disabled:opacity-50"
+											class="mt-5 {adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
 											disabled={!layoutShellInnerSelectionBounds || !layoutShellInnerAssignedModuleType}
 											on:click={() => {
 												if (!layoutShellInnerSelectionBounds) return;
@@ -4924,7 +4918,7 @@ let draggedAlbumHeaderField: string | null = null;
 										</label>
 										<button
 											type="button"
-											class="mt-5 px-3 py-1.5 text-xs font-medium rounded-md bg-(--color-primary-600) text-white hover:bg-(--color-primary-700) disabled:opacity-50"
+											class="mt-5 {adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
 											disabled={layoutShellInnerSelectedCells.size === 0}
 											on:click={() =>
 												setLayoutShellSelectedCellsPlacement(
@@ -6254,14 +6248,14 @@ let draggedAlbumHeaderField: string | null = null;
 					on:click={() => {
 						closeEditingModuleEditor();
 					}}
-					class="px-4 py-2 text-(--color-surface-800-200) hover:bg-(--color-surface-200-800) rounded-md text-sm font-medium"
+					class="{adminBtnSecondary} text-sm shrink-0"
 				>
 					Cancel
 				</button>
 				<button
 					type="button"
 					on:click={saveModuleChanges}
-					class="px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700) text-sm font-medium"
+					class="{adminBtnPrimarySm} {adminRingPrimary}"
 				>
 					Save Changes
 				</button>

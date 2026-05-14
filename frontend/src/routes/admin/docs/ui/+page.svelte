@@ -84,6 +84,11 @@
 
 	const docs: DocEntry[] = [...introDocs, ...sharedDocs, pbOverview, ...pbModuleDocs];
 
+	const uiDocNavSelected =
+		'border-(--color-primary-500) text-(--color-primary-700) bg-[color-mix(in_oklab,var(--color-primary-500)_18%,transparent)]';
+	const uiDocNavIdle =
+		'border border-transparent hover:bg-[color-mix(in_oklab,var(--color-surface-950)_6%,transparent)] dark:hover:bg-[color-mix(in_oklab,var(--color-surface-50)_10%,transparent)] text-(--color-surface-800-200)';
+
 	let selectedId = 'concepts';
 
 	$: active = docs.find((d) => d.id === selectedId) ?? docs[0];
@@ -121,9 +126,7 @@
 									<button
 										type="button"
 										class="w-full text-left px-3 py-2 rounded-md text-sm transition-colors
-											{selectedId === d.id
-											? 'bg-(--color-primary-500) text-white'
-											: 'hover:bg-[color:color-mix(in_oklab,var(--color-surface-950)_6%,transparent)] dark:hover:bg-[color:color-mix(in_oklab,var(--color-surface-50)_10%,transparent)] text-(--color-surface-800-200)'}"
+											{selectedId === d.id ? uiDocNavSelected : uiDocNavIdle}"
 										on:click={() => (selectedId = d.id)}
 									>
 										{d.title}
@@ -142,9 +145,7 @@
 									<button
 										type="button"
 										class="w-full text-left px-3 py-2 rounded-md text-sm transition-colors
-											{selectedId === d.id
-											? 'bg-(--color-primary-500) text-white'
-											: 'hover:bg-[color:color-mix(in_oklab,var(--color-surface-950)_6%,transparent)] dark:hover:bg-[color:color-mix(in_oklab,var(--color-surface-50)_10%,transparent)] text-(--color-surface-800-200)'}"
+											{selectedId === d.id ? uiDocNavSelected : uiDocNavIdle}"
 										on:click={() => (selectedId = d.id)}
 									>
 										{d.title}
@@ -163,9 +164,7 @@
 									<button
 										type="button"
 										class="w-full text-left px-3 py-2 rounded-md text-sm transition-colors
-											{selectedId === d.id
-											? 'bg-(--color-primary-500) text-white'
-											: 'hover:bg-[color:color-mix(in_oklab,var(--color-surface-950)_6%,transparent)] dark:hover:bg-[color:color-mix(in_oklab,var(--color-surface-50)_10%,transparent)] text-(--color-surface-800-200)'}"
+											{selectedId === d.id ? uiDocNavSelected : uiDocNavIdle}"
 										on:click={() => (selectedId = d.id)}
 									>
 										{d.title}

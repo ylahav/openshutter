@@ -3,6 +3,12 @@
 	import type { SiteConfig } from '$lib/types/site-config';
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
+	import { adminToast } from '$lib/admin/adminToast';
+	import {
+		adminBtnPrimarySm,
+		adminBtnSecondary,
+		adminRingPrimary
+	} from '$lib/admin/admin-cerberus';
 	import { t } from '$stores/i18n';
 	import { TEMPLATE_PACK_IDS } from '$lib/template-packs/ids';
 	import { packClassPrefixFor } from '$lib/template/packs/class-prefix';
@@ -25,8 +31,6 @@
 
 	let loading = true;
 	let saving = false;
-	let message: string | null = null;
-	let error: string | null = null;
 	/** Effective public-site template key (matches backend merge rules). */
 	let activeTemplate = 'noir';
 	let templateSectionSnapshot: SiteConfig['template'] | undefined = undefined;
@@ -136,12 +140,14 @@
 				fetch('/api/admin/templates', { cache: 'no-store' })
 			]);
 			if (!cfgRes.ok) {
-				error = 'Failed to load site configuration';
+				adminToast.error({ title: 'Failed to load site configuration' });
 				return;
 			}
 			const result = await cfgRes.json();
 			if (!result.success || !result.data) {
-				error = result.error || 'Failed to load site configuration';
+				adminToast.error({
+					title: result.error || 'Failed to load site configuration'
+				});
 				return;
 			}
 			const config = result.data as SiteConfig;
@@ -163,7 +169,7 @@
 			localVisibility = mergeVisibility(defaults, config.template?.componentVisibility);
 		} catch (err) {
 			logger.error('Failed to load config:', err);
-			error = handleError(err, 'Failed to load template configuration');
+			adminToast.error({ title: handleError(err, 'Failed to load template configuration') });
 		} finally {
 			loading = false;
 		}
@@ -200,8 +206,6 @@
 	async function handleSave() {
 		try {
 			saving = true;
-			message = null;
-			error = null;
 
 			const response = await fetch('/api/admin/site-config', {
 				method: 'PUT',
@@ -219,7 +223,7 @@
 
 			const result = await response.json();
 			if (result.success) {
-				message = 'Template configuration saved successfully!';
+				adminToast.success({ title: 'Template configuration saved successfully!' });
 				if (result.data?.template) {
 					templateSectionSnapshot = { ...result.data.template };
 					localPageAliasPrefixes = mergeDisplayPrefixes(
@@ -232,7 +236,7 @@
 			}
 		} catch (err) {
 			logger.error('Error saving template configuration:', err);
-			error = 'Failed to save template configuration';
+			adminToast.error({ title: handleError(err, 'Failed to save template configuration') });
 		} finally {
 			saving = false;
 		}
@@ -241,8 +245,6 @@
 	async function handleReset() {
 		try {
 			saving = true;
-			message = null;
-			error = null;
 
 			const tplRes = await fetch('/api/admin/templates', { cache: 'no-store' });
 			let templates: TemplateListRow[] = [];
@@ -271,7 +273,7 @@
 
 			const result = await response.json();
 			if (result.success) {
-				message = 'Template configuration reset to defaults!';
+				adminToast.success({ title: 'Template configuration reset to defaults!' });
 				localVisibility = resetVisibility;
 				if (result.data?.template) {
 					templateSectionSnapshot = { ...result.data.template };
@@ -283,7 +285,7 @@
 			}
 		} catch (err) {
 			logger.error('Error resetting template configuration:', err);
-			error = handleError(err, 'Failed to reset template configuration');
+			adminToast.error({ title: handleError(err, 'Failed to reset template configuration') });
 		} finally {
 			saving = false;
 		}
@@ -321,18 +323,6 @@
 
 				<!-- Content -->
 				<div class="p-6">
-					{#if error}
-						<div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-md">
-							<p class="text-red-800">{error}</p>
-						</div>
-					{/if}
-
-					{#if message}
-						<div class="mb-6 p-4 bg-green-50 border border-green-200 rounded-md">
-							<p class="text-green-800">{message}</p>
-						</div>
-					{/if}
-
 					<!-- Current Template Info -->
 					<div class="mb-8 p-4 bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] border border-[color-mix(in_oklab,var(--color-primary-500)_18%,transparent)] rounded-md">
 						<h3 class="text-lg font-semibold text-(--color-primary-900) mb-2">{$t('admin.templateConfigCurrentTemplate')}</h3>
@@ -427,7 +417,7 @@
 						<button
 							on:click={handleReset}
 							disabled={saving}
-							class="px-4 py-2 text-sm font-medium text-(--color-surface-800-200) bg-(--color-surface-50-950) border border-surface-300-700 rounded-md hover:bg-(--color-surface-50-950) disabled:opacity-50 disabled:cursor-not-allowed"
+							class="{adminBtnSecondary} disabled:opacity-50 disabled:cursor-not-allowed"
 						>
 							{$t('admin.templateConfigResetToDefaults')}
 						</button>
@@ -435,7 +425,7 @@
 						<button
 							on:click={handleSave}
 							disabled={saving}
-							class="px-6 py-2 text-sm font-medium text-white bg-(--color-primary-600) border border-transparent rounded-md hover:bg-(--color-primary-700) disabled:opacity-50 disabled:cursor-not-allowed"
+							class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50 disabled:cursor-not-allowed"
 						>
 							{saving ? $t('admin.templateConfigSaving') : $t('admin.templateConfigSaveConfiguration')}
 						</button>
