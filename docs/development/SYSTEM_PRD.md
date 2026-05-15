@@ -632,7 +632,7 @@ Operational notes:
 - **Integration marketplace (Stage 2) ✅** — Discovery on `/marketplace`: search, category filter, featured section; listing detail with tags and screenshots; **`tags`** / **`featured`** and **`limit`/`offset`** on **`GET /api/marketplace`**; admin moderation + tag editing (see [`PHASE_4_WORKFLOW.md`](../archive/development/PHASE_4_WORKFLOW.md) supplementary detail). Reviews, version history UI, verified badges deferred.
 - **Advanced collaboration (Stage 3) ✅** — Threaded comments, @mentions, notifications, tasks/activity, per-photo comments in lightbox, v1 **`comments:*`** scopes (see [`PHASE_4_WORKFLOW.md`](../archive/development/PHASE_4_WORKFLOW.md) supplementary detail). Further polish (multi-level threading, rich text, push) deferred there.
 - **Machine learning for tag optimization (Stage 4)** — Design and implementation: [`PHASE_4_WORKFLOW.md`](../archive/development/PHASE_4_WORKFLOW.md) §4 and supplementary **Stage 4** section (feedback signals, related tags, optional search tuning).
-- Mobile app development
+- Mobile app development ([`MOBILE_APP_TASKS.md`](./MOBILE_APP_TASKS.md))
 - Video support
 - Enterprise features (SSO, audit logs, quotas, multi-tenancy)
 

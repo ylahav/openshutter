@@ -10,6 +10,12 @@
 	} from '$lib/constants/iptc-xmp-fields';
 	import { t } from '$stores/i18n';
 	import { getPhotoRotationStyle } from '$lib/utils/photoUrl';
+	import {
+		isLightboxImageCached,
+		preloadLightboxImage,
+		resolveLightboxUrls,
+		scheduleIdle,
+	} from '$lib/utils/lightboxImageCache';
 	import { MultiLangUtils } from '$utils/multiLang';
 	import { logger } from '$lib/utils/logger';
 	import SocialShareButtons from '$lib/components/SocialShareButtons.svelte';
@@ -35,8 +41,12 @@
 		description?: string | any; // Can be string or multi-language HTML object
 		takenAt?: string | Date;
 		storage?: {
+			provider?: string;
 			url?: string;
+			path?: string;
 			thumbnailPath?: string;
+			thumbnails?: Record<string, string>;
+			storageOwnerId?: string;
 		};
 		faceRecognition?: {
 			faces?: Array<{
@@ -129,8 +139,10 @@
 		albumCollaboration,
 	}: Props = $props();
 
-	let current = $derived(startIndex ?? initialIndex ?? 0);
+	let current = $state(startIndex ?? initialIndex ?? 0);
 	let playing = $derived(autoPlay);
+	let displaySrc = $state('');
+	let refiningFull = $state(false);
 	let showInfo = $state(false);
 	let showShare = $state(false);
 	let showFaces = $state(false);
@@ -162,12 +174,106 @@
 		});
 	});
 
-	// Show loading when photo index changes (user switched to another photo)
+	// When lightbox opens, sync index from props (not on every next/prev).
 	$effect(() => {
-		if (isOpen && photos.length > 0) {
-			// React to current index change
-			const _ = current;
+		if (!isOpen) return;
+		const idx = startIndex ?? initialIndex;
+		if (typeof idx === 'number' && idx >= 0) current = idx;
+	});
+
+	// Progressive display: preview (medium) first, then full; instant if prefetched.
+	$effect(() => {
+		if (!isOpen || !photos.length) {
+			displaySrc = '';
+			return;
+		}
+
+		const idx = current;
+		const p = photos[idx];
+		if (!p) return;
+
+		const { previewUrl, fullUrl } = resolveLightboxUrls(p);
+		const progressive = !!(previewUrl && fullUrl && previewUrl !== fullUrl);
+		let cancelled = false;
+
+		void (async () => {
 			imageLoading = true;
+			refiningFull = false;
+
+			if (fullUrl && isLightboxImageCached(fullUrl)) {
+				displaySrc = fullUrl;
+				imageLoading = false;
+				return;
+			}
+
+			if (previewUrl) {
+				try {
+					await preloadLightboxImage(previewUrl);
+					if (!cancelled) {
+						displaySrc = previewUrl;
+						imageLoading = false;
+					}
+				} catch {
+					if (fullUrl && !cancelled) {
+						try {
+							await preloadLightboxImage(fullUrl);
+							displaySrc = fullUrl;
+							imageLoading = false;
+						} catch {
+							imageLoading = false;
+						}
+					} else if (!cancelled) {
+						imageLoading = false;
+					}
+				}
+			} else if (fullUrl) {
+				try {
+					await preloadLightboxImage(fullUrl);
+					if (!cancelled) {
+						displaySrc = fullUrl;
+						imageLoading = false;
+					}
+				} catch {
+					if (!cancelled) imageLoading = false;
+				}
+			} else {
+				imageLoading = false;
+			}
+
+			if (!progressive || cancelled || !fullUrl) return;
+
+			refiningFull = true;
+			try {
+				await preloadLightboxImage(fullUrl);
+				if (!cancelled) displaySrc = fullUrl;
+			} catch {
+				/* keep preview */
+			}
+			refiningFull = false;
+		})();
+
+		return () => {
+			cancelled = true;
+		};
+	});
+
+	// Prefetch prev/next photos (preview immediately, full when idle).
+	$effect(() => {
+		if (!isOpen || photos.length < 2) return;
+
+		const neighbors = new Set<number>();
+		const n = photos.length;
+		for (const offset of [-1, 1, 2]) {
+			neighbors.add((current + offset + n) % n);
+		}
+		neighbors.delete(current);
+
+		for (const i of neighbors) {
+			const { previewUrl, fullUrl } = resolveLightboxUrls(photos[i]);
+			if (previewUrl) void preloadLightboxImage(previewUrl);
+			if (fullUrl && fullUrl !== previewUrl) {
+				scheduleIdle(() => void preloadLightboxImage(fullUrl));
+			}
 		}
 	});
 
@@ -558,7 +664,6 @@
 	}
 
 	let photo = $derived(photos[current]);
-	let photoUrl = $derived(photo?.url || photo?.storage?.url || photo?.storage?.thumbnailPath || '');
 	let photoTitle = $derived(
 		typeof photo?.title === 'string' 
 			? photo.title 
@@ -708,7 +813,7 @@
 					{/if}
 					<img
 						bind:this={imageRef}
-						src={photoUrl}
+						src={displaySrc}
 						alt={photoTitle}
 						class="object-contain max-h-[85vh] max-w-[92vw] transition-opacity duration-200 {imageLoading ? 'opacity-30' : 'opacity-100'}"
 						style={getPhotoRotationStyle(photo)}
@@ -716,6 +821,14 @@
 						onload={handleImageLoad}
 						onerror={() => (imageLoading = false)}
 					/>
+					{#if refiningFull && !imageLoading}
+						<div
+							class="absolute bottom-2 right-2 rounded bg-black/50 px-2 py-0.5 text-xs text-white/80"
+							aria-hidden="true"
+						>
+							HD…
+						</div>
+					{/if}
 					{#if showFaces && matchedFaces.length > 0}
 						<canvas
 							bind:this={canvasRef}
