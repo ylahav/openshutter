@@ -12,6 +12,12 @@
     "apiUnavailableTitle": "לא ניתן להגיע לשרת הגלריה.",
     "apiUnavailableHint": "הפעל את שרת Nest (מהשורש של הפרויקט הרץ pnpm dev, או pnpm dev:backend בטרמינל נפרד). ודא ש-MongoDB פועל."
   },
+  "lightbox": {
+    "loadingPhoto": "טוען תמונה…",
+    "previewQuality": "איכות רגילה — טוען רזולוציה מלאה",
+    "loadingFullResolution": "טוען רזולוציה מלאה…",
+    "fullResolutionReady": "רזולוציה מלאה"
+  },
   "pwa": {
     "installTitle": "התקנת אפליקציית הגלריה",
     "installBody": "הוסיפו למסך הבית לגישה מהירה ולתצוגה במסך מלא.",

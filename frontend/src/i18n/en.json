@@ -12,6 +12,12 @@
     "apiUnavailableTitle": "Could not reach the gallery server.",
     "apiUnavailableHint": "Start the Nest backend (from the repository root run pnpm dev, or run pnpm dev:backend in another terminal). Ensure MongoDB is running."
   },
+  "lightbox": {
+    "loadingPhoto": "Loading photo…",
+    "previewQuality": "Standard quality — full resolution loading",
+    "loadingFullResolution": "Loading full resolution…",
+    "fullResolutionReady": "Full resolution"
+  },
   "pwa": {
     "installTitle": "Install gallery app",
     "installBody": "Add to your home screen for quick access and a full-screen view.",

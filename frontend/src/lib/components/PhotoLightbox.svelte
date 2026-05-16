@@ -143,6 +143,24 @@
 	let playing = $derived(autoPlay);
 	let displaySrc = $state('');
 	let refiningFull = $state(false);
+	let showFullReady = $state(false);
+	let fullReadyTimer: ReturnType<typeof setTimeout> | undefined;
+
+	function clearFullReadyTimer() {
+		if (fullReadyTimer) {
+			clearTimeout(fullReadyTimer);
+			fullReadyTimer = undefined;
+		}
+	}
+
+	const lightboxUrls = $derived.by(() => {
+		const p = photos[current];
+		if (!p) return { previewUrl: '', fullUrl: '', progressive: false };
+		const { previewUrl, fullUrl } = resolveLightboxUrls(p);
+		const progressive = !!(previewUrl && fullUrl && previewUrl !== fullUrl);
+		return { previewUrl, fullUrl, progressive };
+	});
+
 	let showInfo = $state(false);
 	let showShare = $state(false);
 	let showFaces = $state(false);
@@ -165,6 +183,15 @@
 	let imageRef = $state<HTMLImageElement | undefined>(undefined);
 	let canvasRef = $state<HTMLCanvasElement | undefined>(undefined);
 	let imageLoading = $state(true);
+
+	const showPreviewQuality = $derived(
+		lightboxUrls.progressive &&
+			!imageLoading &&
+			!refiningFull &&
+			!showFullReady &&
+			!!displaySrc &&
+			displaySrc === lightboxUrls.previewUrl,
+	);
 
 	// Ensure the overlay panel starts at the top when opening/toggling it.
 	$effect(() => {
@@ -199,6 +226,8 @@
 		void (async () => {
 			imageLoading = true;
 			refiningFull = false;
+			showFullReady = false;
+			clearFullReadyTimer();
 
 			if (fullUrl && isLightboxImageCached(fullUrl)) {
 				displaySrc = fullUrl;
@@ -245,7 +274,14 @@
 			refiningFull = true;
 			try {
 				await preloadLightboxImage(fullUrl);
-				if (!cancelled) displaySrc = fullUrl;
+				if (!cancelled) {
+					displaySrc = fullUrl;
+					showFullReady = true;
+					clearFullReadyTimer();
+					fullReadyTimer = setTimeout(() => {
+						showFullReady = false;
+					}, 2500);
+				}
 			} catch {
 				/* keep preview */
 			}
@@ -254,6 +290,7 @@
 
 		return () => {
 			cancelled = true;
+			clearFullReadyTimer();
 		};
 	});
 
@@ -800,15 +837,25 @@
 			</button>
 			<div class="max-h-[85vh] max-w-[92vw] relative flex items-center">
 				<div class="relative shrink-0">
+					<div class="sr-only" aria-live="polite" aria-atomic="true">
+						{#if imageLoading}
+							{$t('lightbox.loadingPhoto')}
+						{:else if refiningFull}
+							{$t('lightbox.loadingFullResolution')}
+						{:else if showFullReady}
+							{$t('lightbox.fullResolutionReady')}
+						{:else if showPreviewQuality}
+							{$t('lightbox.previewQuality')}
+						{/if}
+					</div>
 					<!-- Loading indicator when switching photos -->
 					{#if imageLoading}
 						<div
 							class="absolute inset-0 flex flex-col items-center justify-center bg-black/60 z-10 min-w-[200px] min-h-[200px] rounded-lg"
-							aria-live="polite"
 							aria-busy="true"
 						>
 							<div class="animate-spin rounded-full h-12 w-12 border-2 border-white/30 border-t-white mb-3"></div>
-							<span class="text-white/90 text-sm">Loading photo…</span>
+							<span class="text-white/90 text-sm">{$t('lightbox.loadingPhoto')}</span>
 						</div>
 					{/if}
 					<img
@@ -823,10 +870,28 @@
 					/>
 					{#if refiningFull && !imageLoading}
 						<div
-							class="absolute bottom-2 right-2 rounded bg-black/50 px-2 py-0.5 text-xs text-white/80"
-							aria-hidden="true"
+							class="absolute top-2 left-1/2 z-20 flex max-w-[min(92vw,20rem)] -translate-x-1/2 items-center gap-2 rounded-full bg-black/75 px-3 py-1.5 text-sm text-white shadow-lg"
+							role="status"
 						>
-							HD…
+							<span
+								class="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-white/30 border-t-white"
+								aria-hidden="true"
+							></span>
+							<span class="text-center leading-snug">{$t('lightbox.loadingFullResolution')}</span>
+						</div>
+					{:else if showPreviewQuality}
+						<div
+							class="absolute bottom-2 left-1/2 z-20 max-w-[min(92vw,20rem)] -translate-x-1/2 rounded-full bg-black/60 px-3 py-1.5 text-center text-xs text-white/90"
+							role="status"
+						>
+							{$t('lightbox.previewQuality')}
+						</div>
+					{:else if showFullReady}
+						<div
+							class="absolute bottom-2 left-1/2 z-20 -translate-x-1/2 rounded-full bg-black/60 px-3 py-1 text-xs text-white/95 transition-opacity duration-300"
+							role="status"
+						>
+							{$t('lightbox.fullResolutionReady')}
 						</div>
 					{/if}
 					{#if showFaces && matchedFaces.length > 0}
