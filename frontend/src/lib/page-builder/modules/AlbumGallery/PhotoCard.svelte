@@ -2,7 +2,8 @@
 	import { createEventDispatcher } from 'svelte';
 	import { currentLanguage } from '$stores/language';
 	import { MultiLangUtils } from '$lib/utils/multiLang';
-	import { getPhotoUrl } from '$lib/utils/photoUrl';
+	import AlbumGridImage from '$lib/components/AlbumGridImage.svelte';
+	import { getPhotoGridUrl } from '$lib/utils/photoUrl';
 
 	const dispatch = createEventDispatcher<{ open: undefined }>();
 
@@ -22,6 +23,8 @@
 	export let showFeaturedBadge = true;
 	/** `tile` = cropped cell; `masonry` = natural image height; `full` = titled card. */
 	export let presentation: 'full' | 'tile' | 'masonry' = 'full';
+	/** Position in grid for lazy-load / fetch priority (default: lazy). */
+	export let gridIndex = 999;
 
 	function resolveTitle(v: unknown): string {
 		if (typeof v === 'string') return v;
@@ -43,7 +46,7 @@
 		(typeof photo?.previewUrl === 'string' && photo.previewUrl) ||
 		(typeof photo?.url === 'string' && photo.url) ||
 		(typeof photo?.imageUrl === 'string' && photo.imageUrl) ||
-		getPhotoUrl(photo ?? {}, { preferThumbnail: true, fallback: '' });
+		getPhotoGridUrl(photo ?? {}, '');
 </script>
 
 {#if presentation === 'tile'}
@@ -55,7 +58,7 @@
 	>
 		<div class="pb-photoCard__tileFrame {coverAspectClass}">
 			{#if photoUrl}
-				<img src={photoUrl} alt="" class="pb-photoCard__tileImg" />
+				<AlbumGridImage index={gridIndex} src={photoUrl} alt="" className="pb-photoCard__tileImg" />
 			{:else}
 				<div class="pb-photoCard__tileFallback">No image</div>
 			{/if}
@@ -69,7 +72,7 @@
 		aria-label={photoTitle}
 	>
 		{#if photoUrl}
-			<img src={photoUrl} alt="" class="pb-photoCard__masonryImg" />
+			<AlbumGridImage index={gridIndex} src={photoUrl} alt="" className="pb-photoCard__masonryImg" />
 		{:else}
 			<div class="pb-photoCard__masonryFallback">No image</div>
 		{/if}
@@ -83,7 +86,12 @@
 				{:else if field === 'cover' && showCover}
 					<div class="pb-photoCard__cover {coverAspectClass}">
 						{#if photoUrl}
-							<img src={photoUrl} alt={photoTitle} class="pb-photoCard__coverImage" />
+							<AlbumGridImage
+								index={gridIndex}
+								src={photoUrl}
+								alt={photoTitle}
+								className="pb-photoCard__coverImage"
+							/>
 						{:else}
 							<div class="pb-photoCard__coverFallback">No image</div>
 						{/if}

@@ -93,6 +93,43 @@ function getPhotoUrl(photo, baseUrl) {
 	return photo.url || '';
 }
 
+/** Mirrors getPhotoGridUrl (small thumbs first) */
+function getPhotoGridUrl(photo, baseUrl) {
+	const construct = (path, provider, ownerId) =>
+		constructStorageUrl(path, provider, ownerId, baseUrl);
+	if (!photo.storage) return photo.url || '';
+	const provider = photo.storage.provider || 'local';
+	const storageOwnerId = resolveStorageOwnerId(photo.storage);
+
+	const getFullImagePath = () => {
+		if (photo.storage.url && !isThumbnailPath(photo.storage.url)) {
+			return construct(photo.storage.url, provider, storageOwnerId);
+		}
+		if (photo.storage.path && !isThumbnailPath(photo.storage.path)) {
+			return construct(photo.storage.path, provider, storageOwnerId);
+		}
+		return null;
+	};
+
+	if (photo.storage.thumbnails && typeof photo.storage.thumbnails === 'object') {
+		const thumbs = photo.storage.thumbnails;
+		const thumbnailUrl = thumbs.small || thumbs.medium || Object.values(thumbs)[0];
+		if (thumbnailUrl) {
+			const fullImagePath = getFullImagePath();
+			if (fullImagePath && isThumbnailPath(thumbnailUrl)) return fullImagePath;
+			return construct(thumbnailUrl, provider, storageOwnerId);
+		}
+	}
+	if (photo.storage.thumbnailPath) {
+		let pathValue = photo.storage.thumbnailPath;
+		if (pathValue.includes('/medium/')) pathValue = pathValue.replace('/medium/', '/small/');
+		const fullImagePath = getFullImagePath();
+		if (fullImagePath && isThumbnailPath(pathValue)) return fullImagePath;
+		return construct(pathValue, provider, storageOwnerId);
+	}
+	return getPhotoUrl(photo, baseUrl);
+}
+
 /** Mirrors getPhotoFullUrl */
 function getPhotoFullUrl(photo, baseUrl) {
 	if (!photo.storage) return photo.url || '';
@@ -181,13 +218,18 @@ async function main() {
 	const lbRows = [];
 
 	for (const photo of photos.slice(0, 12)) {
-		const grid = getPhotoUrl(photo, base);
+		const grid = getPhotoGridUrl(photo, base);
+		const gridMedium = getPhotoUrl(photo, base);
 		const full = getPhotoFullUrl(photo, base);
 		const lb = getLightboxUrl(photo, base);
 
 		if (grid) {
 			const r = await timedFetch(grid);
-			gridRows.push({ ...r, kind: pathKind(grid), role: 'grid (getPhotoUrl)' });
+			gridRows.push({ ...r, kind: pathKind(grid), role: 'grid (getPhotoGridUrl / small)' });
+		}
+		if (gridMedium && gridMedium !== grid) {
+			const r = await timedFetch(gridMedium);
+			gridRows.push({ ...r, kind: pathKind(gridMedium), role: 'grid legacy (medium)' });
 		}
 		if (full && full !== grid) {
 			const r = await timedFetch(full);
@@ -216,7 +258,7 @@ async function main() {
 		console.log('');
 	};
 
-	printSection('Grid URLs (getPhotoUrl)', gridRows);
+	printSection('Grid URLs (getPhotoGridUrl + legacy medium)', gridRows);
 	printSection('Full URLs (getPhotoFullUrl)', fullRows);
 	printSection('Lightbox URLs (PhotoLightbox logic)', lbRows);
 

@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { createEventDispatcher, onMount } from 'svelte';
 	import { browser } from '$app/environment';
-	import { getPhotoUrl } from '$lib/utils/photoUrl';
+	import AlbumGridImage from '$lib/components/AlbumGridImage.svelte';
+	import { getPhotoGridUrl } from '$lib/utils/photoUrl';
 	import { layoutJustifiedRows, photoAspectRatio } from './justify-rows';
 
 	export let photos: any[] = [];
@@ -20,7 +21,7 @@
 			: [];
 
 	function thumbUrl(p: any) {
-		return getPhotoUrl(p ?? {}, { preferThumbnail: true, fallback: '' });
+		return getPhotoGridUrl(p ?? {}, '');
 	}
 
 	function label(p: any) {
@@ -45,9 +46,10 @@
 </script>
 
 <div bind:this={container} class="pb-justifyPhotoGrid" style="--pb-justify-gap:{gapPx}px">
-	{#each rows as row}
+	{#each rows as row, rowIndex}
 		<div class="pb-justifyPhotoGrid__row" style="gap: {gapPx}px; margin-bottom: {gapPx}px">
-			{#each row as cell}
+			{#each row as cell, cellIndex}
+				{@const flatIndex = rows.slice(0, rowIndex).reduce((n, r) => n + r.length, 0) + cellIndex}
 				<button
 					type="button"
 					class="pb-justifyPhotoGrid__cell"
@@ -56,11 +58,12 @@
 					on:click={() => dispatch('open', { photo: cell.item.photo })}
 				>
 					{#if thumbUrl(cell.item.photo)}
-						<img
+						<AlbumGridImage
+							index={flatIndex}
 							src={thumbUrl(cell.item.photo)}
 							alt=""
-							class="pb-justifyPhotoGrid__img"
-							draggable="false"
+							className="pb-justifyPhotoGrid__img"
+							draggable={false}
 						/>
 					{:else}
 						<span class="pb-justifyPhotoGrid__fallback">No image</span>

@@ -688,7 +688,7 @@
 {#if isOpen}
 	<div
 		bind:this={containerRef}
-		class="photo-lightbox-root fixed inset-0 z-[9999] bg-black/95 flex flex-col"
+		class="photo-lightbox-root fixed inset-0 z-9999 bg-black/95 flex flex-col"
 		role="dialog"
 		aria-modal="true"
 		style="color: white;"

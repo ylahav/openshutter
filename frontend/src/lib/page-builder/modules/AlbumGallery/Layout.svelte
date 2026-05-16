@@ -865,6 +865,7 @@
 							<div class="pb-albumGallery__largePreview">
 								<div class="pb-albumGallery__largePreviewHero">
 									<PhotoCard
+										gridIndex={0}
 										photo={photoItems[0]}
 										coverAspectClass={largePreviewHeroAspectClass}
 										cardFieldOrder={photoCardFieldOrder}
@@ -881,8 +882,9 @@
 									<div
 										class="pb-albumGallery__largePreviewRest pb-albumGallery__list pb-albumGallery__list--photos"
 									>
-										{#each photoItems.slice(1) as album}
+										{#each photoItems.slice(1) as album, pi}
 											<PhotoCard
+												gridIndex={pi + 1}
 												photo={album}
 												coverAspectClass={photoCoverAspectClass}
 												cardFieldOrder={photoCardFieldOrder}
@@ -900,8 +902,9 @@
 							</div>
 						{:else}
 							<div class={groupedPhotosListClass}>
-								{#each photoItems as album}
+								{#each photoItems as album, pi}
 									<PhotoCard
+										gridIndex={pi}
 										photo={album}
 										coverAspectClass={photoCoverAspectClass}
 										cardFieldOrder={photoCardFieldOrder}
@@ -922,6 +925,7 @@
 						{#each sortedAlbums as album, si}
 							{#if album.cardType === 'photo'}
 								<PhotoCard
+									gridIndex={si}
 									photo={album}
 									coverAspectClass={photoCoverAspectClass}
 									cardFieldOrder={photoCardFieldOrder}

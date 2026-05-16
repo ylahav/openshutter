@@ -49,8 +49,25 @@ export function getPhotoRotationStyle(photo: { rotation?: number } | null | unde
 export interface PhotoUrlOptions {
 	/** Whether to prefer thumbnail URLs (default: true) */
 	preferThumbnail?: boolean;
+	/** Thumbnail tier for grids: `small` saves bandwidth on mobile (default: `medium`). */
+	thumbnailSize?: 'small' | 'medium';
 	/** Fallback URL if no photo URL is found (default: '/placeholder.jpg') */
 	fallback?: string;
+}
+
+function pickThumbnailFromRecord(
+	thumbnails: Record<string, string>,
+	size: 'small' | 'medium'
+): string | undefined {
+	if (size === 'small') {
+		return thumbnails.small || thumbnails.medium || Object.values(thumbnails)[0];
+	}
+	return thumbnails.medium || thumbnails.small || Object.values(thumbnails)[0];
+}
+
+/** Prefer smallest thumbnail tier — use for album grids, not lightbox. */
+export function getPhotoGridUrl(photo: PhotoLike, fallback: string = ''): string {
+	return getPhotoUrl(photo, { preferThumbnail: true, thumbnailSize: 'small', fallback });
 }
 
 /**
@@ -111,7 +128,7 @@ function resolveStorageOwnerId(storage: PhotoStorage | undefined): string | unde
  * @returns Photo URL string
  */
 export function getPhotoUrl(photo: PhotoLike, options: PhotoUrlOptions = {}): string {
-	const { preferThumbnail = true, fallback = '/placeholder.jpg' } = options;
+	const { preferThumbnail = true, thumbnailSize = 'medium', fallback = '/placeholder.jpg' } = options;
 
 	if (!photo.storage) {
 		return photo.url || fallback;
@@ -149,8 +166,7 @@ export function getPhotoUrl(photo: PhotoLike, options: PhotoUrlOptions = {}): st
 	// Check thumbnails object first (if preferThumbnail is true)
 	if (preferThumbnail && photo.storage.thumbnails && typeof photo.storage.thumbnails === 'object') {
 		const thumbnails = photo.storage.thumbnails as Record<string, string>;
-		// Prefer medium, then small, then any available
-		const thumbnailUrl = thumbnails.medium || thumbnails.small || Object.values(thumbnails)[0];
+		const thumbnailUrl = pickThumbnailFromRecord(thumbnails, thumbnailSize);
 		if (thumbnailUrl) {
 			// Check if we have a full image available
 			const fullImagePath = getFullImagePath();
@@ -166,15 +182,18 @@ export function getPhotoUrl(photo: PhotoLike, options: PhotoUrlOptions = {}): st
 	// Check thumbnailPath (if preferThumbnail is true)
 	if (preferThumbnail && photo.storage.thumbnailPath) {
 		const fullImagePath = getFullImagePath();
-		
+		let pathValue = photo.storage.thumbnailPath;
+		if (thumbnailSize === 'small' && pathValue.includes('/medium/')) {
+			pathValue = pathValue.replace('/medium/', '/small/');
+		}
+
 		// If thumbnailPath looks like a thumbnail AND we have a full image, use full image directly
 		// This prevents 404s for Google Drive where thumbnails might not exist
-		if (fullImagePath && isThumbnailPath(photo.storage.thumbnailPath)) {
+		if (fullImagePath && isThumbnailPath(pathValue)) {
 			return fullImagePath;
 		}
-		
-		// Otherwise use thumbnailPath
-		return constructStorageUrl(photo.storage.thumbnailPath, provider, storageOwnerId);
+
+		return constructStorageUrl(pathValue, provider, storageOwnerId);
 	}
 
 	// Fallback to url (checking if it's not a thumbnail)
