@@ -125,6 +125,8 @@ export interface SiteConfig {
     maxUploadSize: string
     /** Optional Stage 4 flag: apply/dismiss-based boost for tag search relevance. */
     enableTagFeedbackSearchBoost?: boolean
+    /** Installable PWA: service worker, manifest link, install prompt on public site. Default true when unset. */
+    enablePwa?: boolean
   }
   /** EXIF metadata display: which fields to show when displaying photo EXIF (empty/undefined = show all) */
   exifMetadata?: {

@@ -12,6 +12,15 @@
     "apiUnavailableTitle": "Could not reach the gallery server.",
     "apiUnavailableHint": "Start the Nest backend (from the repository root run pnpm dev, or run pnpm dev:backend in another terminal). Ensure MongoDB is running."
   },
+  "pwa": {
+    "installTitle": "Install gallery app",
+    "installBody": "Add to your home screen for quick access and a full-screen view.",
+    "installAction": "Install",
+    "installDismiss": "Not now",
+    "installManualTitle": "Install this gallery",
+    "installManualChrome": "Chrome (desktop): look for the install icon in the address bar, or open the menu (⋮) → \"Install app\" / \"Install Gallery\".\n\nChrome (Android): menu (⋮) → \"Install app\" or \"Add to Home screen\".\n\niPhone: Share → \"Add to Home Screen\".",
+    "installAssetsMissing": "Install files are missing on the server (manifest or service worker). Redeploy the latest build with the static/ folder."
+  },
   "templatePack": {
     "unknownFallback": "The site theme \"{name}\" is not recognized. The default layout is shown until you pick a valid theme under Site configuration.",
     "dismiss": "Dismiss"
@@ -1580,6 +1589,9 @@
       "collabServiceTasks": "Tasks",
       "collabServiceActivity": "Activity feed",
       "collaborationModeratorNote": "Album owners and admins always see all collaboration sections on albums they can access, so they can moderate even when a column is off for normal users.",
+      "pwaSectionTitle": "Progressive web app (PWA)",
+      "pwaSectionHelp": "When enabled, visitors can install the site as an app and use offline caching on public pages. Turn off if you do not want install prompts or a service worker.",
+      "pwaEnable": "Enable installable PWA on the public site",
       "tagSearchFeedbackBoostSectionTitle": "Tag search (feedback boost)",
       "tagSearchFeedbackBoostSectionHelp": "When enabled, photo search with tag filters uses apply/dismiss signals from tag feedback to slightly adjust relevance (off by default; needs feedback data).",
       "tagSearchFeedbackBoostEnable": "Boost tag search ranking using feedback",

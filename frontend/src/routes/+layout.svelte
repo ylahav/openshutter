@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import type { LayoutData } from './$types';
-	import { siteConfig, publicSiteFavicon } from '$stores/siteConfig';
+	import { siteConfig, siteConfigData, publicSiteFavicon } from '$stores/siteConfig';
 	import { loadSession } from '$lib/stores/auth';
 	import PackFallbackBanner from '$lib/components/PackFallbackBanner.svelte';
 	import AdminAppChrome from '$lib/components/AdminAppChrome.svelte';
@@ -10,6 +10,13 @@
 	import ThemeColorApplier from '$lib/components/ThemeColorApplier.svelte';
 	import TokenRenewalNotification from '$lib/components/TokenRenewalNotification.svelte';
 	import PhotoCopyProtection from '$lib/components/PhotoCopyProtection.svelte';
+	import PwaInstallBanner from '$lib/components/PwaInstallBanner.svelte';
+	import {
+		isPwaFeatureEnabled,
+		registerPublicServiceWorker,
+		unregisterPublicServiceWorkers,
+	} from '$lib/pwa/pwa-install';
+	import { browser } from '$app/environment';
 	import { logger } from '$lib/utils/logger';
 	import { canonicalUrlFromPageUrl, pathShouldNoindex } from '$lib/utils/canonical-url';
 
@@ -40,6 +47,7 @@
 			: '';
 	$: faviconHref = faviconFromConfig || DEFAULT_FAVICON;
 	$: isAdminRoute = $page.url.pathname.startsWith('/admin');
+	$: pwaEnabled = !isAdminRoute && isPwaFeatureEnabled($siteConfigData?.features);
 	$: publicShellPromise = isAdminRoute
 		? null
 		: import('$lib/components/BodyTemplateWrapper.svelte');
@@ -54,24 +62,29 @@
 			});
 		}
 		loadSession();
-
-		// Unregister any existing service workers from previous app versions
-		if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
-			navigator.serviceWorker.getRegistrations().then((registrations) => {
-				for (const registration of registrations) {
-					registration.unregister().then((success) => {
-						if (success) {
-							logger.debug('Service worker unregistered');
-						}
-					});
-				}
-			});
-		}
 	});
+
+	let lastPwaSync: boolean | undefined = undefined;
+	$: if (browser) {
+		if (lastPwaSync !== pwaEnabled) {
+			lastPwaSync = pwaEnabled;
+			if (pwaEnabled) void registerPublicServiceWorker();
+			else void unregisterPublicServiceWorkers();
+		}
+	}
 </script>
 
 <svelte:head>
 	<link rel="icon" href={faviconHref} />
+	{#if pwaEnabled}
+		<link rel="manifest" href="/manifest.json" />
+		<meta name="mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+	{/if}
+	{#if !isAdminRoute}
+		<link rel="apple-touch-icon" href={faviconHref} />
+	{/if}
 	<link rel="canonical" href={canonicalHref} />
 	<meta property="og:url" content={canonicalHref} />
 	{#if noindexPanel}
@@ -88,6 +101,9 @@
 		</AdminAppChrome>
 	{:else}
 		<PhotoCopyProtection />
+		{#if pwaEnabled}
+			<PwaInstallBanner />
+		{/if}
 		<ThemeColorApplier initialSiteConfig={data.visitorSiteConfig ?? null} />
 		<TokenRenewalNotification />
 		<PackFallbackBanner />

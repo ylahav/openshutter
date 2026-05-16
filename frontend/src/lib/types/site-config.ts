@@ -166,6 +166,8 @@ export interface SiteConfig {
     enableWatermark: boolean
     maxUploadSize: string
     enableTagFeedbackSearchBoost?: boolean
+    /** Installable PWA on the public site (service worker + install UI). Default true when unset. */
+    enablePwa?: boolean
   }
   footer?: {
     copyrightText?: string

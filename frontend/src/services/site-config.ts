@@ -171,7 +171,8 @@ export class SiteConfigService {
         sharingOnPhoto: true,
         enableDownload: false,
         enableWatermark: false,
-        maxUploadSize: '10MB'
+        maxUploadSize: '10MB',
+        enablePwa: true
       },
       template: {
         activeTemplate: 'noir'

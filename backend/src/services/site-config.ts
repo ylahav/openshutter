@@ -443,6 +443,7 @@ export class SiteConfigService {
         enableWatermark: false,
         maxUploadSize: '10MB',
         enableTagFeedbackSearchBoost: false,
+        enablePwa: true,
       },
       template: {
         frontendTemplate: 'atelier',

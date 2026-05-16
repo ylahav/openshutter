@@ -12,6 +12,15 @@
     "apiUnavailableTitle": "לא ניתן להגיע לשרת הגלריה.",
     "apiUnavailableHint": "הפעל את שרת Nest (מהשורש של הפרויקט הרץ pnpm dev, או pnpm dev:backend בטרמינל נפרד). ודא ש-MongoDB פועל."
   },
+  "pwa": {
+    "installTitle": "התקנת אפליקציית הגלריה",
+    "installBody": "הוסיפו למסך הבית לגישה מהירה ולתצוגה במסך מלא.",
+    "installAction": "התקנה",
+    "installDismiss": "לא עכשיו",
+    "installManualTitle": "התקנת הגלריה",
+    "installManualChrome": "Chrome (מחשב): אייקון התקנה בשורת הכתובת, או תפריט (⋮) → \"התקן אפליקציה\".\n\nChrome (אנדרואיד): תפריט (⋮) → \"התקן אפליקציה\" / \"הוסף למסך הבית\".\n\nאייפון: שיתוף → \"הוסף למסך הבית\".",
+    "installAssetsMissing": "קבצי ההתקנה חסרים בשרת (manifest או service worker). יש לפרוס מחדש את הגרסה האחרונה עם תיקיית static/."
+  },
   "templatePack": {
     "unknownFallback": "נושא האתר \"{name}\" אינו מזוהה. ",
     "dismiss": "לְפַטֵר"
@@ -1582,6 +1591,9 @@
     "collabServiceTasks": "משימות",
     "collabServiceActivity": "הזנת פעילות",
     "collaborationModeratorNote": "בעלי אלבומים ומנהלי מערכת תמיד רואים את כל קטעי שיתוף הפעולה באלבומים שהם יכולים לגשת אליהם, כך שהם יכולים לנהל גם כאשר עמודה כבויה עבור משתמשים רגילים.",
+    "pwaSectionTitle": "אפליקציית אינטרנט מתקדמת (PWA)",
+    "pwaSectionHelp": "כאשר מופעל, מבקרים יכולים להתקין את האתר כאפליקציה ולהשתמש במטמון לא מקוון בדפים הציבוריים. כבה אם אינך רוצה הנחיות התקנה או service worker.",
+    "pwaEnable": "אפשר PWA להתקנה באתר הציבורי",
     "tagSearchFeedbackBoostSectionTitle": "חיפוש תגים (חיזוק משוב)",
     "tagSearchFeedbackBoostSectionHelp": "כאשר מופעל, חיפוש תמונות עם מסנני תגים משתמש באותות החל/ביטול ממשוב התג כדי להתאים מעט את הרלוונטיות (כבוי כברירת מחדל; צריך נתוני משוב).",
     "tagSearchFeedbackBoostEnable": "שפר את דירוג חיפוש התגים באמצעות משוב",

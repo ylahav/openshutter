@@ -2167,6 +2167,36 @@ on:click={() => {
 								<p class="text-xs text-(--color-surface-600-400) mt-2">{$t('admin.collaborationModeratorNote')}</p>
 							{/if}
 							<div class="border-t border-surface-200-800 pt-6 space-y-3">
+								<h3 class="text-lg font-semibold text-(--color-surface-950-50)">{$t('admin.pwaSectionTitle')}</h3>
+								<p class="text-sm text-(--color-surface-600-400) -mt-1">
+									{$t('admin.pwaSectionHelp')}
+								</p>
+								<Switch
+									class="flex cursor-pointer items-center gap-3"
+									checked={config.features?.enablePwa !== false}
+									onCheckedChange={(d) => {
+										if (!config) return;
+										config = {
+											...(config),
+											features: {
+												...config.features,
+												enablePwa: d.checked,
+											},
+										} as SiteConfig;
+									}}
+								>
+									<Switch.Control
+										class="preset-filled-secondary-50-950 data-[state=checked]:preset-filled-secondary-500"
+									>
+										<Switch.Thumb />
+									</Switch.Control>
+									<Switch.Label class="text-sm font-medium text-(--color-surface-800-200)">
+										{$t('admin.pwaEnable')}
+									</Switch.Label>
+									<Switch.HiddenInput />
+								</Switch>
+							</div>
+							<div class="border-t border-surface-200-800 pt-6 space-y-3">
 								<h3 class="text-lg font-semibold text-(--color-surface-950-50)">{$t('admin.tagSearchFeedbackBoostSectionTitle')}</h3>
 								<p class="text-sm text-(--color-surface-600-400) -mt-1">
 									{$t('admin.tagSearchFeedbackBoostSectionHelp')}
