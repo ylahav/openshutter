@@ -8,6 +8,7 @@ import { LocationSchema } from '../models/Location';
 import { PageSchema } from '../models/Page';
 import { MigrationService } from './migration.service';
 import { MigrationController } from './migration.controller';
+import { StorageRestoreService } from './storage-restore.service';
 
 @Module({
   imports: [
@@ -21,7 +22,7 @@ import { MigrationController } from './migration.controller';
     ]),
   ],
   controllers: [MigrationController],
-  providers: [MigrationService],
-  exports: [MigrationService],
+  providers: [MigrationService, StorageRestoreService],
+  exports: [MigrationService, StorageRestoreService],
 })
 export class MigrationModule {}

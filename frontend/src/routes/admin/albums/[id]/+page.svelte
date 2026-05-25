@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { slide } from 'svelte/transition';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { currentLanguage } from '$stores/language';
@@ -8,7 +7,7 @@
 	import { t } from '$stores/i18n';
 	import AlbumBreadcrumbs from '$lib/components/AlbumBreadcrumbs.svelte';
 	import AdminConfirmDialog from '$lib/components/admin/AdminConfirmDialog.svelte';
-	import { getPhotoUrl, getPhotoRotationStyle } from '$lib/utils/photoUrl';
+	import { getPhotoGridUrl, getPhotoFullUrl, getPhotoRotationStyle } from '$lib/utils/photoUrl';
 	import { getAlbumName } from '$lib/utils/albumUtils';
 	import { getPhotoTitle } from '$lib/utils/photoUtils';
 	import { logger } from '$lib/utils/logger';
@@ -78,6 +77,9 @@
 	let album: Album | null = null;
 	let photos: Photo[] = [];
 	let loading = true;
+	let albumError = '';
+	let photosError = '';
+	/** Inline feedback for actions on this page (delete, bulk, etc.) */
 	let error = '';
 	let showDeleteDialog = false;
 	let photoDeleteDialog: {
@@ -123,7 +125,7 @@
 	async function loadAlbum() {
 		try {
 			loading = true;
-			error = '';
+			albumError = '';
 			const response = await fetch(`/api/admin/albums/${albumId}?t=${Date.now()}`, {
 				cache: 'no-store',
 			});
@@ -134,23 +136,25 @@
 			album = result.data || result;
 		} catch (err) {
 			logger.error('Failed to fetch album:', err);
-			error = handleError(err, $t('admin.failedToLoadAlbum'));
+			album = null;
+			albumError = handleError(err, $t('admin.failedToLoadAlbum'));
 		} finally {
 			loading = false;
 		}
 	}
 
 	async function loadPhotos() {
+		photosError = '';
 		try {
 			const response = await fetch(`/api/admin/albums/${albumId}/photos?t=${Date.now()}`, {
 				cache: 'no-store',
 			});
 			logger.debug('Photos API response status:', response.status);
-			
+
 			if (!response.ok) {
 				await handleApiErrorResponse(response);
 			}
-			
+
 			const result = await response.json();
 			logger.debug('Photos API result:', result);
 			if (result.success) {
@@ -164,7 +168,7 @@
 						storage: photos[0].storage,
 						thumbnailPath: photos[0].storage?.thumbnailPath,
 						url: photos[0].storage?.url,
-						constructedUrl: getPhotoUrl(photos[0], { fallback: '' }),
+						constructedUrl: getPhotoGridUrl(photos[0], ''),
 					});
 				}
 			} else {
@@ -172,7 +176,8 @@
 			}
 		} catch (err) {
 			logger.error('Failed to fetch photos:', err);
-			error = handleError(err, $t('admin.failedToFetchPhotos'));
+			photos = [];
+			photosError = handleError(err, $t('admin.failedToFetchPhotos'));
 		}
 	}
 
@@ -663,11 +668,11 @@
 			<p class="mt-4 text-(--color-surface-600-400)">{$t('admin.loadingAlbum')}</p>
 		</div>
 	</div>
-{:else if error || !album}
+{:else if albumError || !album}
 	<div class="min-h-[50vh] flex items-center justify-center">
 		<div class="text-center">
 			<h1 class="text-2xl font-bold text-(--color-surface-950-50) mb-4">{$t('admin.errorTitle')}</h1>
-			<p class="text-(--color-surface-600-400) mb-4">{error || $t('admin.albumNotFound')}</p>
+			<p class="text-(--color-surface-600-400) mb-4">{albumError || $t('admin.albumNotFound')}</p>
 			<a href="/admin/albums" class="{adminBtnPrimarySm} {adminRingPrimary}">
 				{$t('admin.backToAlbums')}
 			</a>
@@ -749,6 +754,9 @@
 			{#if error}
 				<div class="mb-4 p-4 rounded-md bg-red-50 text-red-700 text-sm">{error}</div>
 			{/if}
+			{#if photosError}
+				<div class="mb-4 p-4 rounded-md bg-red-50 text-red-700 text-sm">{photosError}</div>
+			{/if}
 
 			<!-- Album Description (context callout, not an input) -->
 			{#if album.description}
@@ -780,9 +788,7 @@
 
 				{#if selectedPhotoIds.size > 0}
 					<div
-						class="mb-4 overflow-hidden rounded-lg border border-[color-mix(in_oklab,var(--color-primary-500)_22%,transparent)] bg-[color-mix(in_oklab,var(--color-primary-500)_10%,transparent)] shadow-sm dark:border-[color-mix(in_oklab,var(--color-primary-400)_25%,transparent)] dark:bg-[color-mix(in_oklab,var(--color-primary-500)_12%,transparent)]"
-						in:slide={{ duration: 220 }}
-						out:slide={{ duration: 180 }}
+						class="relative z-30 mb-4 overflow-visible rounded-lg border border-[color-mix(in_oklab,var(--color-primary-500)_22%,transparent)] bg-[color-mix(in_oklab,var(--color-primary-500)_10%,transparent)] shadow-sm dark:border-[color-mix(in_oklab,var(--color-primary-400)_25%,transparent)] dark:bg-[color-mix(in_oklab,var(--color-primary-500)_12%,transparent)]"
 						role="region"
 						aria-label={$t('admin.bulkSelectionBarAria')}
 					>
@@ -825,14 +831,14 @@
 								>
 									{$t('admin.clearFilters')}
 								</button>
-								<details class="relative min-w-0 sm:ml-1">
+								<details class="relative z-50 min-w-0 sm:ml-1">
 									<summary
 										class="cursor-pointer list-none rounded-md border border-(--color-surface-200-700) bg-transparent px-3 py-1.5 text-xs font-medium text-(--color-surface-800-200) hover:bg-[color-mix(in_oklab,var(--color-surface-950)_6%,transparent)] dark:hover:bg-[color-mix(in_oklab,var(--color-surface-50)_8%,transparent)] [&::-webkit-details-marker]:hidden"
 									>
 										{$t('admin.bulkMoreActions')}
 									</summary>
 									<div
-										class="absolute right-0 z-20 mt-1 min-w-48 rounded-md border border-(--color-surface-200-700) bg-(--color-surface-50-950) py-1 shadow-lg"
+										class="absolute right-0 z-60 mt-1 min-w-48 rounded-md border border-(--color-surface-200-700) bg-(--color-surface-50-950) py-1 shadow-xl"
 									>
 										<button
 											type="button"
@@ -949,11 +955,12 @@
 						</div>
 					</div>
 				{:else}
-					<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+					<div class="relative z-0 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
 						{#each photos as photo}
-							{@const photoUrl = getPhotoUrl(photo, { fallback: '' })}
+							{@const photoUrl = getPhotoGridUrl(photo, '')}
+							{@const photoFallbackUrl = getPhotoFullUrl(photo, '')}
 							{@const isSelected = selectedPhotoIds.has(photo._id)}
-							<div class="relative group">
+							<div class="relative z-0 group">
 								<div class="absolute top-2 left-2 z-10">
 									<input
 										type="checkbox"
@@ -971,8 +978,16 @@
 											class="w-full h-full object-cover"
 											style="image-orientation: from-image; {getPhotoRotationStyle(photo)}"
 											on:error={(e) => {
-												logger.debug('Image failed to load:', photoUrl, photo);
 												const target = e.currentTarget as HTMLImageElement;
+												if (
+													photoFallbackUrl &&
+													photoFallbackUrl !== photoUrl &&
+													target.src !== photoFallbackUrl
+												) {
+													target.src = photoFallbackUrl;
+													return;
+												}
+												logger.debug('Image failed to load:', photoUrl, photo);
 												target.style.display = 'none';
 											}}
 											on:load={() => {

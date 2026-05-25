@@ -15,6 +15,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { MigrationService } from './migration.service';
+import { StorageRestoreService } from './storage-restore.service';
 import type { StorageProviderId } from '../services/storage/types';
 import type { Response } from 'express';
 import type { MulterIncomingFile } from '../common/types/multer-incoming-file';
@@ -24,7 +25,10 @@ import * as path from 'path';
 @Controller('admin')
 @UseGuards(AdminGuard)
 export class MigrationController {
-  constructor(private readonly migrationService: MigrationService) {}
+  constructor(
+    private readonly migrationService: MigrationService,
+    private readonly storageRestoreService: StorageRestoreService,
+  ) {}
 
   // --- Export ---
   @Post('export/preview')
@@ -215,5 +219,61 @@ export class MigrationController {
   async storageMigrationCancel(@Param('jobId') jobId: string) {
     this.migrationService.cancelStorageMigration(jobId);
     return { success: true };
+  }
+
+  // --- Storage restore (re-index existing remote folders) ---
+  @Get('storage-restore/providers')
+  async storageRestoreProviders() {
+    return this.storageRestoreService.getProviders();
+  }
+
+  @Post('storage-restore/scan-albums')
+  async storageRestoreScanAlbums(
+    @Body() body: { providerId: StorageProviderId; rootPrefix?: string },
+  ) {
+    const { providerId, rootPrefix } = body ?? {};
+    if (!providerId || typeof providerId !== 'string') {
+      throw new BadRequestException('providerId is required');
+    }
+    return this.storageRestoreService.scanAlbums(providerId, rootPrefix);
+  }
+
+  @Post('storage-restore/execute-albums')
+  async storageRestoreExecuteAlbums(
+    @Body() body: { providerId: StorageProviderId; rootPrefix?: string; itemIds?: string[] },
+    @Req() req: any,
+  ) {
+    const { providerId, rootPrefix, itemIds } = body ?? {};
+    if (!providerId || typeof providerId !== 'string') {
+      throw new BadRequestException('providerId is required');
+    }
+    const userId = req?.user?.id ?? req?.user?._id;
+    if (!userId) throw new BadRequestException('User context required');
+    return this.storageRestoreService.executeAlbums(providerId, userId, { rootPrefix, itemIds });
+  }
+
+  @Post('storage-restore/scan-photos')
+  async storageRestoreScanPhotos(
+    @Body() body: { providerId: StorageProviderId; rootPrefix?: string },
+  ) {
+    const { providerId, rootPrefix } = body ?? {};
+    if (!providerId || typeof providerId !== 'string') {
+      throw new BadRequestException('providerId is required');
+    }
+    return this.storageRestoreService.scanPhotos(providerId, rootPrefix);
+  }
+
+  @Post('storage-restore/execute-photos')
+  async storageRestoreExecutePhotos(
+    @Body() body: { providerId: StorageProviderId; rootPrefix?: string; itemIds?: string[] },
+    @Req() req: any,
+  ) {
+    const { providerId, rootPrefix, itemIds } = body ?? {};
+    if (!providerId || typeof providerId !== 'string') {
+      throw new BadRequestException('providerId is required');
+    }
+    const userId = req?.user?.id ?? req?.user?._id;
+    if (!userId) throw new BadRequestException('User context required');
+    return this.storageRestoreService.executePhotos(providerId, userId, { rootPrefix, itemIds });
   }
 }

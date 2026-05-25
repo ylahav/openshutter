@@ -14,6 +14,25 @@ import { CreateAlbumDto } from './dto/create-album.dto';
 import { UpdateAlbumDto } from './dto/update-album.dto';
 import { ReorderAlbumsDto } from './dto/reorder-albums.dto';
 
+function toIdString(value: unknown): string | null {
+	if (value == null) return null;
+	if (typeof value === 'string') return value.trim() || null;
+	if (typeof value === 'object' && value !== null && '_id' in value) {
+		const id = (value as { _id?: unknown })._id;
+		return id != null ? String(id) : null;
+	}
+	try {
+		return String(value);
+	} catch {
+		return null;
+	}
+}
+
+function serializeRefIds(values: unknown): string[] {
+	if (!Array.isArray(values)) return [];
+	return values.map((v) => toIdString(v)).filter((id): id is string => Boolean(id));
+}
+
 @Controller('admin/albums')
 @UseGuards(AdminOrOwnerGuard)
 export class AlbumsAdminController {
@@ -450,15 +469,9 @@ export class AlbumsAdminController {
 					...photo,
 					_id: photo._id.toString(),
 					albumId: photo.albumId ? (photo.albumId.toString ? photo.albumId.toString() : photo.albumId) : null,
-					tags: photo.tags ? photo.tags.map((tag: any) => (tag._id ? tag._id.toString() : tag.toString())) : [],
-					people: photo.people
-						? photo.people.map((person: any) => (person._id ? person._id.toString() : person.toString()))
-						: [],
-					location: photo.location
-						? photo.location._id
-							? photo.location._id.toString()
-							: photo.location.toString()
-						: null,
+					tags: serializeRefIds(photo.tags),
+					people: serializeRefIds(photo.people),
+					location: toIdString(photo.location),
 				};
 				if (photo.sourceAlbumId != null) serialized.sourceAlbumId = photo.sourceAlbumId;
 				if (photo.sourceAlbumName != null) serialized.sourceAlbumName = photo.sourceAlbumName;
@@ -527,7 +540,7 @@ export class AlbumsAdminController {
 				parentAlbumId: album.parentAlbumId?.toString() || null,
 				coverPhotoId: album.coverPhotoId?.toString() || null,
 				createdBy: album.createdBy?.toString() || null,
-				tags: album.tags?.map((tag: any) => (tag._id ? tag._id.toString() : tag.toString())) || [],
+				tags: serializeRefIds(album.tags),
 				allowedUsers: album.allowedUsers?.map((userId: any) => userId.toString()) || [],
 				allowedGroups: album.allowedGroups || [],
 			};
