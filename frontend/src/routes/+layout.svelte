@@ -66,7 +66,13 @@
 
 	let lastPwaSync: boolean | undefined = undefined;
 	$: if (browser) {
-		if (lastPwaSync !== pwaEnabled) {
+		// Never let the public PWA service worker control /admin (breaks SvelteKit client navigation).
+		if (isAdminRoute) {
+			if (lastPwaSync !== false) {
+				lastPwaSync = false;
+				void unregisterPublicServiceWorkers();
+			}
+		} else if (lastPwaSync !== pwaEnabled) {
 			lastPwaSync = pwaEnabled;
 			if (pwaEnabled) void registerPublicServiceWorker();
 			else void unregisterPublicServiceWorkers();

@@ -1,5 +1,5 @@
 /* OpenShutter PWA service worker — minimal shell for installability + offline navigation fallback */
-const CACHE = 'openshutter-pwa-v1';
+const CACHE = 'openshutter-pwa-v2';
 const OFFLINE_URL = '/offline.html';
 const PRECACHE = [OFFLINE_URL, '/manifest.json', '/icon.svg', '/icon-192x192.png', '/icon-512x512.png'];
 
@@ -27,6 +27,15 @@ self.addEventListener('fetch', (event) => {
 
 	const url = new URL(event.request.url);
 	if (url.origin !== self.location.origin) return;
+
+	// Admin + SvelteKit data loads must bypass this worker (stale shell while URL changes).
+	if (
+		url.pathname.startsWith('/admin') ||
+		url.pathname.includes('__data.json') ||
+		url.pathname.startsWith('/_app/')
+	) {
+		return;
+	}
 
 	// Navigation: network first, offline page when disconnected
 	if (event.request.mode === 'navigate') {
