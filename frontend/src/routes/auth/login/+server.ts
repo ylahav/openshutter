@@ -3,6 +3,7 @@ import type { RequestHandler } from './$types';
 import { SignJWT } from 'jose';
 import { env } from '$env/dynamic/private';
 import { logger } from '$lib/utils/logger';
+import { authCookieSecure } from '$lib/server/auth-cookie';
 
 // Simple static JWT secret - backend handles all authentication
 function getJWTSecret(): Uint8Array {
@@ -17,7 +18,7 @@ const JWT_TTL = 60 * 60 * 24 * 7; // 7 days
 // Backend API URL - use absolute URL for server-side requests
 const BACKEND_URL = env.BACKEND_URL || process.env.BACKEND_URL || 'http://localhost:5000';
 
-export const POST: RequestHandler = async ({ request, cookies }) => {
+export const POST: RequestHandler = async ({ request, cookies, url }) => {
 	try {
 		const { email, password } = await request.json();
 
@@ -56,7 +57,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 
 		cookies.set('auth_token', jwt, {
 			httpOnly: true,
-			secure: process.env.NODE_ENV === 'production',
+			secure: authCookieSecure(url),
 			path: '/',
 			maxAge: JWT_TTL,
 			sameSite: 'lax'

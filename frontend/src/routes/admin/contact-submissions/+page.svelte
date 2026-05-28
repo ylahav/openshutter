@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { writable } from 'svelte/store';
 	import { onMount } from 'svelte';
 	import { t } from '$stores/i18n';
 	import { handleError } from '$lib/utils/errorHandler';
@@ -21,7 +22,7 @@
 		createdAt: string;
 	};
 
-	let loading = true;
+	const loading = writable(true);
 	let items: ContactSubmission[] = [];
 	let page = 1;
 	let limit = 20;
@@ -30,7 +31,7 @@
 	let search = '';
 
 	async function load() {
-		loading = true;
+		loading.set(true);
 		try {
 			const qs = new URLSearchParams();
 			qs.set('page', String(page));
@@ -53,7 +54,7 @@
 			total = 0;
 			pages = 1;
 		} finally {
-			loading = false;
+			loading.set(false);
 		}
 	}
 
@@ -103,7 +104,7 @@
 		</form>
 
 		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 overflow-hidden">
-			{#if loading}
+			{#if $loading}
 				<div class="p-6 text-(--color-surface-600-400)">{$t('loading.loading')}</div>
 			{:else if items.length === 0}
 				<div class="p-6 text-(--color-surface-600-400)">{$t('admin.contactSubmissionsEmpty')}</div>

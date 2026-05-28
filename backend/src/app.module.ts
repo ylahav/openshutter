@@ -1,5 +1,6 @@
 import { MiddlewareConsumer, Module, NestModule, RequestMethod } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { resolve } from 'path';
 import { DatabaseModule } from './database/database.module';
 import { PhotosModule } from './photos/photos.module';
 import { AlbumsModule } from './albums/albums.module';
@@ -53,7 +54,11 @@ import { AuditLogsController } from './audit-logs/audit-logs.controller';
     ScheduleModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '.env',
+      // Repo-root .env.local overrides backend/.env (keeps AUTH_JWT_SECRET in sync for pnpm dev)
+      envFilePath: [
+        resolve(process.cwd(), '.env'),
+        resolve(process.cwd(), '..', '.env.local'),
+      ],
       load: [configuration],
     }),
     DatabaseModule,

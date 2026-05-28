@@ -38,15 +38,15 @@ If the setup wizard doesn't appear (e.g., if the database was already initialize
 - **Password**: `admin123!`
 - **Role**: System Administrator
 
-**⚠️ IMPORTANT**: These default credentials should only be used if the setup wizard is not available. Always change them immediately after first login in production!
+**⚠️ IMPORTANT**: These default credentials should only be used if the setup wizard is not available. On first login with the default password, you will be **required to change your password** before using the admin panel.
 
 ### After Initial Setup
 
 Once you've completed the setup and logged in:
 
-1. **Change Your Password** (if you used default credentials)
-   - Go to your profile settings
-   - Update your password to something secure
+1. **Change Your Password** (automatic on first login with default credentials)
+   - If you sign in with the default password (`admin123!`), a modal blocks the admin panel until you set a new password
+   - You can also update your password anytime from profile settings
 
 2. **Configure Storage Providers** (Optional but Recommended)
    - Navigate to `/admin/storage` in the admin dashboard

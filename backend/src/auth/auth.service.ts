@@ -67,6 +67,7 @@ export class AuthService {
         role: 'admin',
         groupAliases: [],
         blocked: false,
+        forcePasswordChange: true,
         createdAt: now,
         updatedAt: now,
       });
@@ -75,6 +76,7 @@ export class AuthService {
         email: newUser.username,
         name: (newUser.name && (newUser.name.en || Object.values(newUser.name)[0])) || newUser.username,
         role: newUser.role || 'owner',
+        forcePasswordChange: true,
       };
     }
 
@@ -97,12 +99,27 @@ export class AuthService {
       return null;
     }
 
+    let forcePasswordChange = (user as any).forcePasswordChange ?? false;
+    if (
+      user.role === 'admin' &&
+      user.username === INITIAL_ADMIN_CREDENTIALS.email &&
+      (await verifyPassword(INITIAL_ADMIN_CREDENTIALS.password, user.passwordHash))
+    ) {
+      forcePasswordChange = true;
+      if (!(user as any).forcePasswordChange) {
+        await this.userModel.updateOne(
+          { _id: user._id },
+          { $set: { forcePasswordChange: true, updatedAt: new Date() } },
+        );
+      }
+    }
+
     return {
       id: String(user._id),
       email: user.username,
       name: (user.name && (user.name.en || Object.values(user.name)[0])) || user.username,
       role: user.role || 'owner',
-      forcePasswordChange: (user as any).forcePasswordChange ?? false,
+      forcePasswordChange,
       groupAliases: Array.isArray((user as any).groupAliases)
         ? (user as any).groupAliases
         : [],

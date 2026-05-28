@@ -40,10 +40,13 @@ export class DatabaseInitController {
       await this.initService.initializeDefaultAdmin();
       await this.initService.initializeDefaultSiteConfig();
       await this.initService.initializeDefaultStorageConfigs();
-      
+      await this.initService.initializeDefaultThemes();
+      await this.initService.ensurePageRolePackIndex();
+      await this.initService.initializeReservedPages();
+
       return {
         success: true,
-        message: 'Database initialized successfully',
+        message: 'Database initialized successfully (admin, site config, storage, themes, pages)',
         timestamp: new Date().toISOString(),
       };
     } catch (error) {

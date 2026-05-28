@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { writable } from 'svelte/store';
 	import { onMount } from 'svelte';
 	import { get } from 'svelte/store';
 	import { goto } from '$app/navigation';
@@ -32,7 +33,7 @@
 		seoDescription: { en?: string; he?: string };
 	}
 
-	let loading = true;
+	const loading = writable(true);
 	let saving = false;
 	interface CategoryOption {
 		alias: string;
@@ -66,7 +67,7 @@
 		articleId = $page.params.id ?? '';
 		if (!articleId) {
 			adminToast.error({ title: 'Missing article id' });
-			loading = false;
+			loading.set(false);
 			return;
 		}
 		await loadCategories();
@@ -116,7 +117,7 @@
 
 	async function loadArticle() {
 		try {
-			loading = true;
+			loading.set(true);
 			const res = await fetch(`/api/admin/blog-articles/${articleId}`);
 			if (!res.ok) await handleApiErrorResponse(res);
 			const json = await res.json();
@@ -166,7 +167,7 @@
 		} catch (err) {
 			adminToast.error({ title: handleError(err, 'Failed to load article') });
 		} finally {
-			loading = false;
+			loading.set(false);
 		}
 	}
 
@@ -222,7 +223,7 @@
 	<title>{$t('admin.edit')} — {$t('admin.blogArticles')} — {$productName}</title>
 </svelte:head>
 
-{#if loading}
+{#if $loading}
 	<div class="min-h-screen flex items-center justify-center bg-(--color-surface-50-950)">
 		<p class="text-(--color-surface-600-400)">{$t('loading.loading')}</p>
 	</div>

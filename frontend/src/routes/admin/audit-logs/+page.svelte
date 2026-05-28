@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { writable } from 'svelte/store';
 	import { afterNavigate, goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { browser } from '$app/environment';
@@ -41,7 +42,7 @@
 
 	let logs: Log[] = [];
 	let pagination: Pagination | null = null;
-	let loading = true;
+	const loading = writable(true);
 	let loadErrored = false;
 	let exportBusy = false;
 
@@ -103,7 +104,7 @@
 	}
 
 	async function loadLogs() {
-		loading = true;
+		loading.set(true);
 		loadErrored = false;
 		try {
 			const qs = $page.url.searchParams.toString();
@@ -126,7 +127,7 @@
 			logs = [];
 			pagination = null;
 		} finally {
-			loading = false;
+			loading.set(false);
 		}
 	}
 
@@ -363,7 +364,7 @@
 			</div>
 		</div>
 
-		{#if loading}
+		{#if $loading}
 			<div class="flex items-center justify-center py-12">
 				<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-(--color-primary-600)"></div>
 				<p class="ml-4 text-(--color-surface-600-400)">{$t('admin.loadingAuditLogs')}</p>

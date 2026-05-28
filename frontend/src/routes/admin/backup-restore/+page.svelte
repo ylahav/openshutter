@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { writable } from 'svelte/store';
 	import { onMount } from 'svelte';
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
@@ -10,7 +11,7 @@
 	const LS_LAST_DB = 'openshutter.admin.lastBackup.database';
 	const LS_LAST_FILES = 'openshutter.admin.lastBackup.files';
 
-	let loading = false;
+	const loading = writable(false);
 
 	let lastBackupDatabaseIso = '';
 	let lastBackupFilesIso = '';
@@ -74,7 +75,7 @@
 		'w-full px-4 py-2 rounded-md text-sm font-medium flex items-center justify-center cursor-pointer border border-amber-500 bg-amber-50 text-amber-950 shadow-sm hover:bg-amber-100 dark:border-amber-600 dark:bg-amber-950/40 dark:text-amber-100 dark:hover:bg-amber-950/60';
 
 	async function handleDatabaseBackup() {
-		loading = true;
+		loading.set(true);
 		try {
 			const response = await fetch('/api/admin/backup/database', {
 				method: 'POST',
@@ -109,7 +110,7 @@
 			logger.error('Error creating database backup:', err);
 			adminToast.error({ title: handleError(err, 'Failed to create database backup') });
 		} finally {
-			loading = false;
+			loading.set(false);
 		}
 	}
 
@@ -155,7 +156,7 @@
 		if (!backup || restoreDbDialog.isRestoring) return;
 
 		restoreDbDialog = { ...restoreDbDialog, isRestoring: true };
-		loading = true;
+		loading.set(true);
 
 		try {
 			const response = await fetch('/api/admin/backup/restore-database', {
@@ -178,12 +179,12 @@
 			adminToast.error({ title: handleError(err, 'Failed to restore database') });
 			restoreDbDialog = { ...restoreDbDialog, isRestoring: false };
 		} finally {
-			loading = false;
+			loading.set(false);
 		}
 	}
 
 	async function handleFilesBackup() {
-		loading = true;
+		loading.set(true);
 		try {
 			const response = await fetch('/api/admin/backup/files', {
 				method: 'POST',
@@ -217,7 +218,7 @@
 			logger.error('Error creating files backup:', err);
 			adminToast.error({ title: handleError(err, 'Failed to create files backup') });
 		} finally {
-			loading = false;
+			loading.set(false);
 		}
 	}
 
@@ -226,7 +227,7 @@
 		const file = target.files?.[0];
 		if (!file) return;
 
-		loading = true;
+		loading.set(true);
 
 		try {
 			const formData = new FormData();
@@ -247,7 +248,7 @@
 			logger.error('Error restoring files:', err);
 			adminToast.error({ title: handleError(err, 'Failed to restore files') });
 		} finally {
-			loading = false;
+			loading.set(false);
 			target.value = '';
 		}
 	}
@@ -311,7 +312,7 @@
 						disabled={loading}
 						class={backupPrimaryClass}
 					>
-						{#if loading}
+						{#if $loading}
 							<svg
 								class="animate-spin -ml-1 mr-3 h-5 w-5 text-current opacity-80"
 								xmlns="http://www.w3.org/2000/svg"
@@ -424,7 +425,7 @@
 						disabled={loading}
 						class={backupPrimaryClass}
 					>
-						{#if loading}
+						{#if $loading}
 							<svg
 								class="animate-spin -ml-1 mr-3 h-5 w-5 text-current opacity-80"
 								xmlns="http://www.w3.org/2000/svg"

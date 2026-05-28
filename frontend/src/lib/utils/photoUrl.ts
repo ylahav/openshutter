@@ -6,7 +6,7 @@
  */
 
 /** Bump this to bust caches after backend image pipeline changes (e.g. EXIF orientation fix). */
-const STORAGE_URL_VERSION = 3;
+const STORAGE_URL_VERSION = 4;
 
 /**
  * Photo storage structure (flexible to handle different API response formats)
@@ -89,16 +89,43 @@ function constructStorageUrl(path: string, provider: string = 'local', storageOw
 		return `${url}${sep}storageOwnerId=${encodeURIComponent(owner)}`;
 	};
 
+	const normalizePath = (raw: string, prov: string): string => {
+		let value = String(raw || '').trim();
+		if (!value) return '';
+		try {
+			value = decodeURIComponent(value);
+		} catch {
+			// Keep raw value when it is not URI-encoded.
+		}
+		if (prov === 'local') {
+			// Local provider stores relative paths; leading slash resolves incorrectly in serve route.
+			value = value.replace(/^\/+/, '');
+		}
+		return value;
+	};
+
 	if (path.startsWith('/api/storage/serve/') || path.startsWith('http')) {
+		if (path.startsWith('/api/storage/serve/')) {
+			const [rawPath, rawQuery = ''] = path.split('?');
+			const parts = rawPath.split('/');
+			// /api/storage/serve/{provider}/{encodedPath}
+			if (parts.length >= 6) {
+				const prov = parts[4] || provider || 'local';
+				const encodedRest = parts.slice(5).join('/');
+				const normalizedRest = normalizePath(encodedRest, prov);
+				const rebuiltPath = `/api/storage/serve/${prov}/${encodeURIComponent(normalizedRest)}`;
+				const existingParams = new URLSearchParams(rawQuery);
+				existingParams.set('v', String(STORAGE_URL_VERSION));
+				const withQuery = `${rebuiltPath}?${existingParams.toString()}`;
+				return appendOwner(withQuery);
+			}
+		}
 		const sep = path.includes('?') ? '&' : '?';
 		const withV = `${path}${sep}${param}`;
-		if (path.startsWith('/api/storage/serve/')) {
-			return appendOwner(withV);
-		}
-		return withV;
+		return path.startsWith('/api/storage/serve/') ? appendOwner(withV) : withV;
 	}
 
-	const cleanPath = path.startsWith('/') ? path.slice(1) : path;
+	const cleanPath = normalizePath(path, provider);
 	if (!cleanPath.trim()) {
 		return '';
 	}

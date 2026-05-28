@@ -61,10 +61,15 @@
 	}
 
 	// Use CRUD composables
-	const crudLoader = useCrudLoader<Person>('/api/admin/people', {
-		searchParam: 'search',
-		searchValue: () => searchTerm
-	});
+	const { items, loading, error: listLoadError, loadItems } = useCrudLoader<Person>(
+		'/api/admin/people',
+		{
+			searchParam: 'search',
+			searchValue: () => searchTerm,
+			initialItems: data.initialItems,
+			initialLoadError: data.listLoadError,
+		},
+	);
 	/** Form/payload shape for create/update person (tags can be string or array). */
 	type PersonFormData = Partial<Omit<Person, '_id'>> & { tags?: string | string[] | Array<{ _id: string; name: string }> };
 	/** Payload sent to API (tags normalized to string[]). */
@@ -95,15 +100,15 @@
 			};
 		},
 		onCreateSuccess: (newPerson) => {
-			crudLoader.items.update(items => [...items, newPerson]);
+			items.update((list) => [...list, newPerson]);
 			dialogs.closeAll();
 			resetForm();
 		},
 		onUpdateSuccess: (updatedPerson) => {
 			const currentEditingPerson = editingPerson;
 			if (currentEditingPerson) {
-				crudLoader.items.update(items => 
-					items.map(p => p._id === currentEditingPerson._id ? updatedPerson : p)
+				items.update((list) =>
+					list.map((p) => (p._id === currentEditingPerson._id ? updatedPerson : p)),
 				);
 			}
 			dialogs.closeAll();
@@ -113,9 +118,7 @@
 		onDeleteSuccess: () => {
 			const currentPersonToDelete = personToDelete;
 			if (currentPersonToDelete) {
-				crudLoader.items.update(items => 
-					items.filter(p => p._id !== currentPersonToDelete._id)
-				);
+				items.update((list) => list.filter((p) => p._id !== currentPersonToDelete._id));
 			}
 			dialogs.closeAll();
 			personToDelete = null;
@@ -123,9 +126,6 @@
 	});
 	const dialogs = useDialogManager();
 
-	// Reactive stores from composables
-	let people: Person[] = [];
-	let loading = false;
 	let saving = false;
 	let error = '';
 	let searchTerm = '';
@@ -136,12 +136,6 @@
 	let personToDelete: Person | null = null;
 	let importExportBusy = false;
 
-	// Subscribe to stores
-	crudLoader.items.subscribe(value => people = value);
-	crudLoader.loading.subscribe(value => loading = value);
-	crudLoader.error.subscribe(value => {
-		if (value) error = value;
-	});
 	crudOps.saving.subscribe(value => saving = value);
 	crudOps.error.subscribe(value => {
 		if (value) error = value;
@@ -168,7 +162,8 @@
 	$: defaultLang = $currentLanguage;
 
 	onMount(async () => {
-		await crudLoader.loadItems();
+		if (data.listLoadError) return;
+		await loadItems(data.initialItems !== undefined ? { background: true } : undefined);
 	});
 
 	function resetForm() {
@@ -463,7 +458,7 @@
 					failureLines.push(`#${i + 1}: ${handleError(e, 'Error')}`);
 				}
 			}
-			await crudLoader.loadItems();
+			await loadItems();
 			setImportSummaryMessage(created, failed);
 			if (failureLines.length) {
 				crudOps.error.set(failureLines.slice(0, 8).join(' · '));
@@ -500,7 +495,7 @@
 							type="text"
 							placeholder="Search people..."
 							bind:value={searchTerm}
-							on:input={() => crudLoader.loadItems()}
+							on:input={() => loadItems()}
 							class="pl-10 pr-4 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500) w-64"
 						/>
 						<svg
@@ -546,12 +541,12 @@
 			</div>
 
 			<!-- People List -->
-			{#if loading}
+			{#if $loading}
 				<div class="text-center py-8">
 					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-(--color-primary-600)"></div>
 					<p class="mt-2 text-(--color-surface-600-400)">Loading people...</p>
 				</div>
-			{:else if people.length === 0}
+			{:else if $items.length === 0}
 				<div class="text-center py-8">
 					<svg
 						class="h-12 w-12 text-(--color-surface-400-600) mx-auto mb-4"
@@ -571,7 +566,7 @@
 				</div>
 			{:else}
 				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-					{#each people as person}
+					{#each $items as person}
 						{@const tagChips = personVisibleTagsForChips(person)}
 						<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-5 flex flex-col h-full min-h-[140px]">
 							<div class="flex gap-4 items-start">

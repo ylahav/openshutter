@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { t } from '$stores/i18n';
-	import { goto } from '$app/navigation';
+	import { navigateAdmin } from '$lib/admin/adminNavigate';
 	import { dndzone } from 'svelte-dnd-action';
 	import { getAlbumName } from '$lib/utils/albumUtils';
 	import { logger } from '$lib/utils/logger';
@@ -32,7 +32,7 @@
 		| ((updates: Array<{ id: string; parentAlbumId: string | null; order: number }>) => Promise<void>)
 		| undefined = undefined;
 	export let renderActions: ((node: AlbumTreeNode) => any) | undefined = undefined;
-	export let onOpen: ((node: AlbumTreeNode) => void) | undefined = undefined;
+	export let onOpen: ((node: AlbumTreeNode, event?: MouseEvent) => void) | undefined = undefined;
 	export let showAccordion = true;
 	export let expandAllByDefault = false; // Option to expand all nodes by default
 	/** When not `manual`, sibling order follows name or updated date (drag-and-drop should be disabled). */
@@ -156,11 +156,11 @@
 		expandedNodes = newExpandedNodes;
 	}
 
-	function handleNodeClick(node: AlbumTreeNode) {
+	function handleNodeClick(node: AlbumTreeNode, event?: MouseEvent) {
 		if (onOpen) {
-			onOpen(node);
+			onOpen(node, event);
 		} else {
-			goto(`/admin/albums/${node._id}`);
+			navigateAdmin(`/admin/albums/${node._id}`, event);
 		}
 	}
 
@@ -496,17 +496,10 @@
 						>
 							<span class="text-base font-bold text-gray-600 leading-none" style="line-height: 1;">⋮⋮</span>
 						</div>
-						<div
-							on:click|stopPropagation={() => handleNodeClick(node)}
-							on:keydown|stopPropagation={(e) => {
-								if (e.key === 'Enter' || e.key === ' ') {
-									e.preventDefault();
-									handleNodeClick(node);
-								}
-							}}
-							class="flex-1 text-left min-w-0 cursor-pointer"
-							role="button"
-							tabindex="0"
+						<a
+							href="/admin/albums/{node._id}"
+							on:click|stopPropagation={(e) => handleNodeClick(node, e)}
+							class="flex-1 text-left min-w-0 cursor-pointer no-underline text-inherit block"
 						>
 							<div class="flex-1 min-w-0">
 								<div class="flex items-center gap-2 flex-wrap">
@@ -552,7 +545,7 @@
 									{/if}
 								</div>
 							</div>
-						</div>
+						</a>
 
 						<div class="shrink-0 self-center">
 							{#if node.isPublished === false}

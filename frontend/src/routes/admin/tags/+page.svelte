@@ -106,13 +106,18 @@
 	let feedbackTelemetryLoadStarted = false;
 
 	// Use CRUD composables
-	const crudLoader = useCrudLoader<Tag>('/api/admin/tags', {
-		searchParam: 'search',
-		searchValue: () => searchTerm,
-		filterParams: {
-			category: () => categoryFilter
-		}
-	});
+	const { items, loading, error: listLoadError, loadItems } = useCrudLoader<Tag>(
+		'/api/admin/tags',
+		{
+			searchParam: 'search',
+			searchValue: () => searchTerm,
+			filterParams: {
+				category: () => categoryFilter
+			},
+			initialItems: data.initialItems,
+			initialLoadError: data.listLoadError,
+		},
+	);
 	/** Payload sent to create/update tag API. */
 	type TagPayload = Pick<Partial<Tag>, 'name' | 'description' | 'color' | 'category' | 'isActive'>;
 
@@ -132,15 +137,15 @@
 			};
 		},
 		onCreateSuccess: (newTag) => {
-			crudLoader.items.update(items => [...items, newTag]);
+			items.update((list) => [...list, newTag]);
 			dialogs.closeAll();
 			resetForm();
 		},
 		onUpdateSuccess: (updatedTag) => {
 			const currentEditingTag = editingTag;
 			if (currentEditingTag) {
-				crudLoader.items.update(items => 
-					items.map(t => t._id === currentEditingTag._id ? updatedTag : t)
+				items.update((list) =>
+					list.map((t) => (t._id === currentEditingTag._id ? updatedTag : t)),
 				);
 			}
 			dialogs.closeAll();
@@ -150,9 +155,7 @@
 		onDeleteSuccess: () => {
 			const currentTagToDelete = tagToDelete;
 			if (currentTagToDelete) {
-				crudLoader.items.update(items => 
-					items.filter(t => t._id !== currentTagToDelete._id)
-				);
+				items.update((list) => list.filter((t) => t._id !== currentTagToDelete._id));
 			}
 			dialogs.closeAll();
 			tagToDelete = null;
@@ -160,9 +163,6 @@
 	});
 	const dialogs = useDialogManager();
 
-	// Reactive stores from composables
-	let tags: Tag[] = [];
-	let loading = false;
 	let saving = false;
 	let error = '';
 	let searchTerm = '';
@@ -188,12 +188,6 @@
 
 	let importExportBusy = false;
 
-	// Subscribe to stores
-	crudLoader.items.subscribe(value => tags = value);
-	crudLoader.loading.subscribe(value => loading = value);
-	crudLoader.error.subscribe(value => {
-		if (value) error = value;
-	});
 	crudOps.saving.subscribe(value => saving = value);
 	crudOps.error.subscribe(value => {
 		if (value) error = value;
@@ -216,7 +210,8 @@
 	};
 
 	onMount(async () => {
-		await crudLoader.loadItems();
+		if (data.listLoadError) return;
+		await loadItems(data.initialItems !== undefined ? { background: true } : undefined);
 	});
 
 	$: if (feedbackAdvancedOpen && !feedbackTelemetryLoadStarted) {
@@ -425,7 +420,7 @@
 					failureLines.push(`#${i + 1}: ${handleError(e, 'Error')}`);
 				}
 			}
-			await crudLoader.loadItems();
+			await loadItems();
 			setImportSummaryMessage(created, failed);
 			if (failureLines.length) {
 				crudOps.error.set(failureLines.slice(0, 8).join(' · '));
@@ -462,7 +457,7 @@
 							type="text"
 							placeholder={$t('admin.searchTagsPlaceholder')}
 							bind:value={searchTerm}
-							on:input={() => crudLoader.loadItems()}
+							on:input={() => loadItems()}
 							class="pl-10 pr-4 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500) w-64"
 						/>
 						<svg
@@ -482,7 +477,7 @@
 
 					<select
 						bind:value={categoryFilter}
-						on:change={() => crudLoader.loadItems()}
+						on:change={() => loadItems()}
 						class="px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 					>
 						<option value="all">{$t('admin.allCategories')}</option>
@@ -519,12 +514,12 @@
 			</div>
 
 			<!-- Tags List -->
-			{#if loading}
+			{#if $loading}
 				<div class="text-center py-8">
 					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-(--color-primary-600)"></div>
 					<p class="mt-2 text-(--color-surface-600-400)">{$t('admin.loadingTags')}</p>
 				</div>
-			{:else if tags.length === 0}
+			{:else if $items.length === 0}
 				<div class="text-center py-8">
 					<svg
 						class="h-12 w-12 text-(--color-surface-400-600) mx-auto mb-4"
@@ -544,7 +539,7 @@
 				</div>
 			{:else}
 				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-					{#each tags as tag}
+					{#each $items as tag}
 						<div
 							class="card preset-outlined-surface-200-800 bg-surface-50-950 p-4 {isTagUnused(tag)
 								? 'border border-dashed border-amber-300/90 bg-amber-50/40 dark:border-amber-800/60 dark:bg-amber-950/25'

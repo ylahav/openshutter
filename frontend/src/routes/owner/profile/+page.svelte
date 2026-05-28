@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { writable } from 'svelte/store';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import MultiLangInput from '$lib/components/MultiLangInput.svelte';
@@ -38,7 +39,7 @@
 	}
 
 	let profile: UserProfile | null = null;
-	let loading = true;
+	const loading = writable(true);
 	let saving = false;
 	let error: string | null = null;
 	let success: string | null = null;
@@ -60,7 +61,7 @@ let formData = {
 
 	async function fetchProfile() {
 		try {
-			loading = true;
+			loading.set(true);
 			const response = await fetch('/api/auth/profile');
 			if (!response.ok) {
 				await handleApiErrorResponse(response);
@@ -89,7 +90,7 @@ let formData = {
 			logger.error('Failed to fetch profile:', err);
 			error = handleError(err, $t('owner.requestFailed'));
 		} finally {
-			loading = false;
+			loading.set(false);
 		}
 	}
 
@@ -180,7 +181,7 @@ let formData = {
 	<title>{$t('owner.profileManagement')} - {$t('owner.ownerPanel')}</title>
 </svelte:head>
 
-{#if loading}
+{#if $loading}
 	<div class="min-h-screen bg-gray-50 flex items-center justify-center">
 		<div class="text-center">
 			<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>

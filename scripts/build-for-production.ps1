@@ -366,6 +366,9 @@ AUTH_JWT_SECRET=${JWT_SECRET}
 NODE_ENV=production
 BACKEND_URL=http://localhost:${BACKEND_PORT}
 PORT=${FRONTEND_PORT}
+
+# SvelteKit CSRF / cookie security (http for local install, https on public servers)
+ORIGIN=http://localhost:${FRONTEND_PORT}
 EOF
 
 echo ""
@@ -518,6 +521,16 @@ wait $BACKEND_PID $FRONTEND_PID
 $startScriptPath = Join-Path $DEPLOY_DIR "start.sh"
 $startScriptContent = $START_SCRIPT -replace "`r`n", "`n" -replace "`r", "`n"
 [System.IO.File]::WriteAllText($startScriptPath, $startScriptContent, [System.Text.UTF8Encoding]::new($false))
+
+# Copy Windows PowerShell scripts (preferred on Windows over Git Bash)
+$deployScriptsDir = Join-Path $PROJECT_ROOT "scripts\deployment"
+foreach ($ps1 in @('build.ps1', 'start.ps1', 'stop.ps1')) {
+    $src = Join-Path $deployScriptsDir $ps1
+    if (Test-Path $src) {
+        Copy-Item -Path $src -Destination (Join-Path $DEPLOY_DIR $ps1) -Force
+        Write-Host "    Copied $ps1" -ForegroundColor Green
+    }
+}
 
 # Create deployment package using ZIP (preferred on Windows) or tar
 Write-Host "  Creating archive..." -ForegroundColor Blue
@@ -729,7 +742,11 @@ if (Test-Path "openshutter-deployment.zip") {
 }
 Write-Host "  3. Configure .env.production with your MongoDB URI (external MongoDB required)" -ForegroundColor White
 Write-Host "     Example: MONGODB_URI=mongodb://your-mongodb-host:27017/openshutter" -ForegroundColor Gray
-Write-Host "  4. Install dependencies: cd openshutter; chmod +x build.sh; ./build.sh" -ForegroundColor White
-Write-Host "  5. Start application: chmod +x start.sh; ./start.sh" -ForegroundColor White
+Write-Host "  4. Install dependencies:" -ForegroundColor White
+Write-Host "       Linux/macOS:  cd openshutter && chmod +x build.sh && ./build.sh" -ForegroundColor White
+Write-Host "       Windows:      cd openshutter; .\build.ps1" -ForegroundColor White
+Write-Host "  5. Start application:" -ForegroundColor White
+Write-Host "       Linux/macOS:  ./start.sh" -ForegroundColor White
+Write-Host "       Windows:      .\start.ps1  (stop with .\stop.ps1)" -ForegroundColor White
 Write-Host "     Or use PM2 (recommended): See docs/SERVER_DEPLOYMENT.md" -ForegroundColor White
 Write-Host ""

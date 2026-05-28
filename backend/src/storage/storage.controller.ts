@@ -1,11 +1,10 @@
 import { Controller, Get, Param, Query, Res, NotFoundException, Logger } from '@nestjs/common';
 import { Response } from 'express';
 import { StorageManager } from '../services/storage/manager';
-import type { StorageOwnerContext } from '../services/storage/types';
+import { resolveOwnerStorageContext } from '../services/storage/owner-storage-context';
 import { StorageConfigError } from '../services/storage/types';
 import { readFile } from 'fs/promises';
-import { join } from 'path';
-import { isAbsolute } from 'path';
+import { basename, dirname, isAbsolute, join } from 'path';
 import sharp from 'sharp';
 
 function isImageContentType(contentType: string): boolean {
@@ -41,6 +40,47 @@ async function applyExifOrientationToImage(
   }
 }
 
+function normalizeLocalDecodedPath(input: string): string {
+  let pathValue = String(input || '').trim();
+  if (!pathValue) return '';
+  if (pathValue.startsWith('/')) pathValue = pathValue.replace(/^\/+/, '');
+
+  if (pathValue.startsWith('search-ms:')) {
+    // Windows Explorer "Search results" pseudo-URI; extract real file path from location crumb.
+    const locationMatch = pathValue.match(/location:([^&]+)/i);
+    const locationRaw = locationMatch?.[1] ? decodeURIComponent(locationMatch[1]) : '';
+    const locationNormalized = locationRaw.replace(/\\/g, '/');
+    const idx = locationNormalized.toLowerCase().indexOf('/public/albums/');
+    if (idx >= 0) {
+      pathValue = locationNormalized.slice(idx + '/public/albums/'.length);
+    } else {
+      // Last-resort: use trailing filename from the pseudo-URI.
+      const filename = locationNormalized.split('/').pop() || '';
+      pathValue = filename;
+    }
+  }
+
+  return pathValue.replace(/\\/g, '/').replace(/^\/+/, '');
+}
+
+function localFallbackCandidates(pathValue: string): string[] {
+  const out: string[] = [];
+  if (!pathValue) return out;
+  if (pathValue.includes('/medium/medium-')) {
+    out.push(pathValue.replace('/medium/medium-', '/'));
+  }
+  if (pathValue.includes('/small/small-')) {
+    out.push(pathValue.replace('/small/small-', '/'));
+  }
+  if (pathValue.includes('/thumb/')) {
+    out.push(pathValue.replace('/thumb/', '/'));
+  }
+  const fileName = basename(pathValue);
+  if (fileName.startsWith('medium-')) out.push(join(dirname(pathValue), fileName.replace(/^medium-/, '')).replace(/\\/g, '/'));
+  if (fileName.startsWith('small-')) out.push(join(dirname(pathValue), fileName.replace(/^small-/, '')).replace(/\\/g, '/'));
+  return [...new Set(out)];
+}
+
 @Controller('storage')
 export class StorageController {
   private readonly logger = new Logger(StorageController.name);
@@ -57,8 +97,10 @@ export class StorageController {
   ) {
     try {
       const storageManager = StorageManager.getInstance();
-      const ownerCtx: StorageOwnerContext | undefined =
-        storageOwnerId && storageOwnerId.trim() ? { ownerUserId: storageOwnerId.trim() } : undefined;
+      const ownerCtx =
+        storageOwnerId && storageOwnerId.trim()
+          ? await resolveOwnerStorageContext(storageOwnerId.trim())
+          : undefined;
 
       // Decode the path - handle both single and double encoding
       let decodedPath = filePath;
@@ -79,11 +121,15 @@ export class StorageController {
       if (provider === 'local') {
         const localService = await storageManager.getProviderForServe(provider as any, ownerCtx);
         const basePath = (localService as any).basePath || process.env.LOCAL_STORAGE_PATH || './uploads';
+        const normalizedPath = normalizeLocalDecodedPath(decodedPath);
+        if (normalizedPath !== decodedPath) {
+          this.logger.debug(`Normalized local path: ${decodedPath} -> ${normalizedPath}`);
+        }
         
         // Replicate the getFullPath logic from LocalStorageService
         const fullPath = isAbsolute(basePath)
-          ? join(basePath, decodedPath)
-          : join(process.cwd(), basePath, decodedPath);
+          ? join(basePath, normalizedPath)
+          : join(process.cwd(), basePath, normalizedPath);
         
         this.logger.debug(`Full file path: ${fullPath}`);
         
@@ -91,7 +137,7 @@ export class StorageController {
           const fileBuffer = await readFile(fullPath);
           
           // Determine content type from file extension
-          const ext = decodedPath.split('.').pop()?.toLowerCase();
+          const ext = normalizedPath.split('.').pop()?.toLowerCase();
           const contentTypeMap: Record<string, string> = {
             'jpg': 'image/jpeg',
             'jpeg': 'image/jpeg',
@@ -112,15 +158,48 @@ export class StorageController {
           res.send(outBuffer);
         } catch (error) {
           this.logger.error(`Failed to serve file ${fullPath}: ${error instanceof Error ? error.message : String(error)}`);
+          // If medium/small thumbnail is missing, try original file path before returning 404.
+          const fallbackPaths = localFallbackCandidates(normalizedPath);
+          for (const candidate of fallbackPaths) {
+            const candidateFullPath = isAbsolute(basePath)
+              ? join(basePath, candidate)
+              : join(process.cwd(), basePath, candidate);
+            try {
+              const fallbackBuffer = await readFile(candidateFullPath);
+              const ext = candidate.split('.').pop()?.toLowerCase();
+              const contentTypeMap: Record<string, string> = {
+                'jpg': 'image/jpeg',
+                'jpeg': 'image/jpeg',
+                'png': 'image/png',
+                'gif': 'image/gif',
+                'webp': 'image/webp',
+                'ico': 'image/x-icon',
+                'svg': 'image/svg+xml',
+              };
+              const contentType = contentTypeMap[ext || ''] || 'application/octet-stream';
+              let outBuffer: Buffer = fallbackBuffer;
+              if (isImageContentType(contentType)) {
+                outBuffer = Buffer.from(await applyExifOrientationToImage(fallbackBuffer, contentType));
+              }
+              this.logger.warn(`Served local fallback file: ${candidateFullPath}`);
+              res.setHeader('Content-Type', contentType);
+              res.setHeader('Cache-Control', 'public, max-age=31536000');
+              res.send(outBuffer);
+              return;
+            } catch {
+              // Try next fallback
+            }
+          }
           this.logger.error(`Error details: ${JSON.stringify({
             originalPath: filePath,
             decodedPath: decodedPath,
+            normalizedPath: normalizedPath,
             fullPath: fullPath,
             basePath: basePath,
             error: error instanceof Error ? error.message : String(error),
             stack: error instanceof Error ? error.stack : undefined
           })}`);
-          throw new NotFoundException(`File not found: ${decodedPath}`);
+          throw new NotFoundException(`File not found: ${normalizedPath}`);
         }
       } else if (provider === 'google-drive') {
         // For Google Drive, use getFileBuffer (getProviderForServe so disabled provider can still serve)

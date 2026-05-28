@@ -1,6 +1,8 @@
 <script lang="ts">
+	import { writable } from 'svelte/store';
 	import { onMount } from 'svelte';
-	import { beforeNavigate, goto } from '$app/navigation';
+	import { beforeNavigate } from '$app/navigation';
+	import { navigateAdmin } from '$lib/admin/adminNavigate';
 	import { page } from '$app/stores';
 	import { siteConfigData, siteConfig } from '$stores/siteConfig';
 	import { handleAuthError } from '$lib/utils/auth-error-handler';
@@ -175,10 +177,14 @@
 		? `src/templates/${activeTemplate.templateName}/theme.defaults.json`
 		: 'src/templates/<pack>/theme.defaults.json';
 
-	let templates: TemplateConfig[] = [];
+	let templates: TemplateConfig[] = (data.initialTemplates as TemplateConfig[]) ?? [];
 	let sharedLayoutPresetsFromThemes: Record<string, { gridRows?: number; gridColumns?: number; modules?: unknown[] }> = {};
 	let activeTemplate: TemplateConfig | null = null;
-	let loading = true;
+	const loading = writable(
+		((data.initialTemplates?.length ?? 0) === 0 || (data.themeId && !data.initialTheme)) &&
+			!data.loadError,
+	);
+	let loadedThemeQueryId: string | null = data.themeId ?? null;
 	let saving = false;
 	let resetting = false;
 	let activeTab = 'colors';
@@ -311,6 +317,78 @@
 		}
 	}
 
+	function pickActiveTemplateFromList(): void {
+		const templateName =
+			editingTheme?.baseTemplate ||
+			$siteConfigData?.template?.frontendTemplate ||
+			$siteConfigData?.template?.activeTemplate ||
+			'noir';
+		const found = templates.find((t) => t.templateName === templateName);
+		if (found) {
+			activeTemplate = found;
+			return;
+		}
+		const foundByDisplay = templates.find(
+			(t) => t.displayName?.toLowerCase() === templateName.toLowerCase(),
+		);
+		activeTemplate = foundByDisplay || templates[0] || null;
+	}
+
+	function applyPreloadedTheme() {
+		if (!data.initialTheme || typeof data.initialTheme !== 'object') return;
+		editingTheme = data.initialTheme as typeof editingTheme;
+	}
+
+	async function bootstrapOverrides() {
+		loading.set(true);
+		try {
+			if (data.loadError) {
+				adminToast.error({ title: data.loadError });
+			}
+			applyPreloadedTheme();
+			await siteConfig.load();
+			if (themeId && editingTheme?._id !== themeId) {
+				await loadTheme(themeId);
+			}
+			await Promise.all([
+				loadSharedLayoutPresetsFromThemes(),
+				templates.length === 0 ? loadTemplates({ skipLoadingToggle: true }) : Promise.resolve(),
+				loadBlogCategoriesForOverrides(),
+			]);
+			if (templates.length > 0) pickActiveTemplateFromList();
+			initializeLocalOverrides();
+		} catch (err) {
+			logger.error('[Overrides] bootstrap failed:', err);
+			adminToast.error({ title: handleError(err, 'Failed to load theme editor') });
+		} finally {
+			loading.set(false);
+		}
+	}
+
+	async function reloadForThemeQuery(id: string) {
+		loading.set(true);
+		try {
+			await loadTheme(id);
+			if (templates.length === 0) {
+				await loadTemplates({ skipLoadingToggle: true });
+			}
+			pickActiveTemplateFromList();
+			initializeLocalOverrides();
+		} catch (err) {
+			logger.error('[Overrides] reload theme failed:', err);
+			adminToast.error({ title: handleError(err, 'Failed to load theme') });
+		} finally {
+			loading.set(false);
+		}
+	}
+
+	$: if (themeId !== loadedThemeQueryId) {
+		loadedThemeQueryId = themeId;
+		if (themeId) {
+			void reloadForThemeQuery(themeId);
+		}
+	}
+
 	onMount(() => {
 		const handleBeforeUnload = (event: BeforeUnloadEvent) => {
 			if (!hasChanges) return;
@@ -318,16 +396,8 @@
 			event.returnValue = '';
 		};
 		window.addEventListener('beforeunload', handleBeforeUnload);
-		void (async () => {
-			await siteConfig.load();
-			if (themeId) {
-				await loadTheme(themeId);
-			}
-			await loadSharedLayoutPresetsFromThemes();
-			await loadTemplates();
-			await loadBlogCategoriesForOverrides();
-			initializeLocalOverrides();
-		})();
+		if (templates.length > 0) pickActiveTemplateFromList();
+		void bootstrapOverrides();
 		return () => window.removeEventListener('beforeunload', handleBeforeUnload);
 	});
 
@@ -351,7 +421,7 @@
 		leaveWithoutSaveDialogOpen = false;
 		const url = pendingLeaveUrl;
 		pendingLeaveUrl = null;
-		if (url) void goto(url);
+		if (url) navigateAdmin(url);
 	}
 
 	async function loadTheme(id: string) {
@@ -1925,8 +1995,8 @@ let draggedAlbumHeaderField: string | null = null;
 		hasChanges = true;
 	}
 
-	async function loadTemplates() {
-		loading = true;
+	async function loadTemplates(opts?: { skipLoadingToggle?: boolean }) {
+		if (!opts?.skipLoadingToggle) loading.set(true);
 		try {
 			const response = await fetch('/api/admin/templates', {
 				credentials: 'include',
@@ -2044,7 +2114,7 @@ let draggedAlbumHeaderField: string | null = null;
 			adminToast.error({ title: handleError(err, 'Failed to load templates') });
 			activeTemplate = null;
 		} finally {
-			loading = false;
+			if (!opts?.skipLoadingToggle) loading.set(false);
 		}
 	}
 
@@ -2656,7 +2726,7 @@ let draggedAlbumHeaderField: string | null = null;
 				</div>
 			{/if}
 
-			{#if loading}
+			{#if $loading}
 				<div class="text-center py-8">
 					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-(--color-primary-600)"></div>
 					<p class="mt-2 text-(--color-surface-600-400)">{$t('admin.loadingTemplateOverrides')}</p>

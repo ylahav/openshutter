@@ -174,15 +174,20 @@
 	].sort((a, b) => a.label.localeCompare(b.label));
 
 	// Use CRUD composables
-	const crudLoader = useCrudLoader<Page>('/api/admin/pages', {
-		searchParam: 'search',
-		searchValue: () => searchTerm,
-		filterParams: {
-			category: () => categoryFilter,
-			published: () => publishedFilter
-		}
-	});
-		const crudOps = useCrudOperations<Page>('/api/admin/pages', {
+	const { items, loading, error: listLoadError, loadItems } = useCrudLoader<Page>(
+		'/api/admin/pages',
+		{
+			searchParam: 'search',
+			searchValue: () => searchTerm,
+			filterParams: {
+				category: () => categoryFilter,
+				published: () => publishedFilter
+			},
+			initialItems: data.initialItems,
+			initialLoadError: data.listLoadError,
+		},
+	);
+	const crudOps = useCrudOperations<Page>('/api/admin/pages', {
 		createSuccessMessage: 'Page created successfully!',
 		updateSuccessMessage: 'Page updated successfully!',
 		deleteSuccessMessage: 'Page deleted successfully!',
@@ -242,15 +247,15 @@
 			}
 			
 			pendingModules = [];
-			crudLoader.items.update(items => [...items, newPage]);
+			items.update((list) => [...list, newPage]);
 			dialogs.closeAll();
 			resetForm();
 		},
 		onUpdateSuccess: (updatedPage) => {
 			const currentEditingPage = editingPage;
 			if (currentEditingPage) {
-				crudLoader.items.update(items => 
-					items.map(p => p._id === currentEditingPage._id ? updatedPage : p)
+				items.update((list) =>
+					list.map((p) => (p._id === currentEditingPage._id ? updatedPage : p)),
 				);
 			}
 			dialogs.closeAll();
@@ -260,9 +265,7 @@
 		onDeleteSuccess: () => {
 			const currentPageToDelete = pageToDelete;
 			if (currentPageToDelete) {
-				crudLoader.items.update(items => 
-					items.filter(p => p._id !== currentPageToDelete._id)
-				);
+				items.update((list) => list.filter((p) => p._id !== currentPageToDelete._id));
 			}
 			dialogs.closeAll();
 			pageToDelete = null;
@@ -270,9 +273,6 @@
 	});
 	const dialogs = useDialogManager();
 
-	// Reactive stores from composables
-	let pages: Page[] = [];
-	let loading = false;
 	let saving = false;
 	let error = '';
 	let searchTerm = '';
@@ -289,12 +289,6 @@
 	let duplicateTargetPacks: string[] = [];
 	let duplicateAliasOverride = '';
 
-	// Subscribe to stores
-	crudLoader.items.subscribe(value => pages = value);
-	crudLoader.loading.subscribe(value => loading = value);
-	crudLoader.error.subscribe(value => {
-		if (value) error = value;
-	});
 	crudOps.saving.subscribe(value => saving = value);
 	crudOps.error.subscribe(value => {
 		if (value) error = value;
@@ -354,7 +348,13 @@ let layoutShellInstances: Record<
 	let menuInstances: Record<string, MenuInstanceConfig> = {};
 
 	onMount(async () => {
-		await Promise.all([crudLoader.loadItems(), loadAlbums(), loadBlogCategories(), loadLayoutPresetNames()]);
+		if (data.listLoadError) return;
+		await Promise.all([
+			loadItems(data.initialItems !== undefined ? { background: true } : undefined),
+			loadAlbums(),
+			loadBlogCategories(),
+			loadLayoutPresetNames()
+		]);
 	});
 
 	async function loadLayoutPresetNames() {
@@ -686,7 +686,7 @@ let layoutShellInstances: Record<
 				await handleApiErrorResponse(res);
 			}
 			closeDuplicateDialog();
-			await crudLoader.loadItems();
+			await loadItems();
 			adminToast.success({ title: 'Page duplicated successfully.' });
 		} catch (err) {
 			error = handleError(err, 'Duplicate failed');
@@ -2339,17 +2339,17 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 				bind:publishedFilter
 				bind:sortBy
 				categories={CATEGORIES}
-				onFilterChange={() => crudLoader.loadItems()}
+				onFilterChange={() => loadItems()}
 				onAddPage={openCreateDialog}
 			/>
 
 			<!-- Pages List -->
-			{#if loading}
+			{#if $loading}
 				<div class="text-center py-8">
 					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-(--color-primary-600)"></div>
 					<p class="mt-2 text-(--color-surface-600-400)">{$t('admin.loadingPages')}</p>
 				</div>
-			{:else if pages.length === 0}
+			{:else if $items.length === 0}
 				<div class="text-center py-8">
 					<svg
 						class="h-12 w-12 text-(--color-surface-400-600) mx-auto mb-4"
@@ -2369,7 +2369,7 @@ let layoutShellEditorAlignVertical: 'default' | 'start' | 'center' | 'end' | 'st
 				</div>
 			{:else}
 				<PageList
-					pages={pages}
+					pages={$items}
 					categories={CATEGORIES}
 					{sortBy}
 					onEdit={openEditDialog}

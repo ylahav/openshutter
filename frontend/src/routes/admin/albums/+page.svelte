@@ -1,7 +1,7 @@
 <script lang="ts">
+	import { writable } from 'svelte/store';
 	import { onMount } from 'svelte';
 	import { get } from 'svelte/store';
-	import { goto } from '$app/navigation';
 	import { afterNavigate } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { adminToast } from '$lib/admin/adminToast';
@@ -15,6 +15,7 @@
 	import { getPhotoTitle } from '$lib/utils/photoUtils';
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
+	import { navigateAdmin } from '$lib/admin/adminNavigate';
 	import type { PageData } from './$types';
 
 	// svelte-ignore export_let_unused - Required by SvelteKit page component
@@ -60,9 +61,9 @@
 		isPublished?: boolean;
 	}
 
-	let albums: Album[] = [];
-	let loading = true;
-	let error = '';
+	let albums: Album[] = Array.isArray(data.initialItems) ? (data.initialItems as Album[]) : [];
+	const loading = writable(albums.length === 0 && !data.listLoadError);
+	let error = data.listLoadError ?? '';
 	let searchQuery = '';
 	type AlbumStatusFilter = 'all' | 'published' | 'draft' | 'private';
 	type AlbumSortOption = 'manual' | 'name' | 'date';
@@ -201,7 +202,7 @@
 				logger.debug('[onMount] Album load completed. Albums count:', albums.length, 'Loading:', loading);
 			} catch (err) {
 				logger.error('[onMount] Failed to load albums on mount:', err);
-				loading = false; // Ensure loading is set to false even if loadAlbums fails unexpectedly
+				loading.set(false); // Ensure loading is set to false even if loadAlbums fails unexpectedly
 				error = handleError(err, $t('admin.failedToLoadAlbums'));
 				albums = []; // Ensure albums is always an array
 			}
@@ -261,7 +262,7 @@
 	});
 
 	async function loadAlbums() {
-		loading = true;
+		loading.set(true);
 		error = '';
 		try {
 			// Use admin endpoint to get ALL albums (including private ones)
@@ -330,7 +331,7 @@
 			error = handleError(err, 'Failed to load albums');
 			albums = []; // Ensure albums is always an array
 		} finally {
-			loading = false;
+			loading.set(false);
 			logger.debug('[loadAlbums] Loading complete. Albums count:', albums.length);
 		}
 	}
@@ -419,8 +420,8 @@
 		`;
 	}
 
-	function handleOpen(node: { _id: string }) {
-		goto(`/admin/albums/${node._id}`);
+	function handleOpen(node: { _id: string }, event?: MouseEvent) {
+		navigateAdmin(`/admin/albums/${node._id}`, event);
 	}
 
 	// Album name function is now imported from shared utility
@@ -535,7 +536,7 @@
 		} catch (err) {
 			logger.error('Failed to fetch photos:', err);
 		} finally {
-			coverPhotoModal.loading = false;
+			coverPhotoModal = { ...coverPhotoModal, loading: false };
 		}
 	}
 
@@ -782,7 +783,7 @@
 			</div>
 		</div>
 
-		{#if loading}
+		{#if $loading}
 			<div class="text-center py-8">
 				<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-(--color-primary-600)"></div>
 				<p class="mt-2 text-(--color-surface-600-400)">{$t('admin.loadingAlbums')}</p>

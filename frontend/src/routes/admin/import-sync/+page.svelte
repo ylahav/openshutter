@@ -1,9 +1,13 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
+	import { page } from '$app/stores';
 	import { t } from '$stores/i18n';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 	import { adminToast } from '$lib/admin/adminToast';
 	import { adminBtnPrimarySm, adminRingPrimary } from '$lib/admin/admin-cerberus';
+	import { navigateAdmin } from '$lib/admin/adminNavigate';
+	import { adminQueryHref } from '$lib/admin/adminQueryHref';
+	import { parseQueryEnum } from '$lib/admin/adminQueryTab';
 	// PageData is loaded via +page.server.ts; this component does not
 	// currently consume it directly, so we omit the prop to avoid unused-export warnings.
 
@@ -14,8 +18,55 @@
 		| 'storage-migration'
 		| 'full-db'
 		| 'templates-pages';
-	let migrationOption: MigrationOption = 'templates-pages';
-	let activeTab: Tab = 'export';
+	const MIGRATION_OPTIONS: MigrationOption[] = [
+		'albums-photos-db',
+		'storage-backup',
+		'storage-migration',
+		'full-db',
+		'templates-pages',
+	];
+	const TAB_OPTIONS: Tab[] = ['export', 'import', 'storage'];
+
+	function defaultTabForMode(mode: MigrationOption): Tab {
+		if (mode === 'storage-migration') return 'storage';
+		return 'export';
+	}
+
+	const importSyncRoute = '/admin/import-sync';
+
+	function tabFromUrl(url: URL, mode: MigrationOption): Tab {
+		const fromUrl = url.searchParams.get('tab');
+		if (fromUrl && TAB_OPTIONS.includes(fromUrl as Tab)) return fromUrl as Tab;
+		return defaultTabForMode(mode);
+	}
+
+	/** Derived from `$page` so tab panels update when query links are clicked. */
+	$: migrationOption = parseQueryEnum($page.url, 'mode', MIGRATION_OPTIONS, 'templates-pages');
+	$: activeTab = tabFromUrl($page.url, migrationOption);
+	$: panelKey = $page.url.search;
+
+	function migrationHref(mode: MigrationOption, tab?: Tab) {
+		return adminQueryHref(importSyncRoute, {
+			mode,
+			tab: tab ?? defaultTabForMode(mode),
+		});
+	}
+
+	function applyExportDefaultsForMode(mode: MigrationOption) {
+		if (mode === 'templates-pages') {
+			exportScope = 'templates-pages';
+			exportIncludeConfig = true;
+		} else if (mode === 'storage-backup') {
+			exportScope = 'full';
+			exportIncludeConfig = false;
+		}
+	}
+
+	let lastModeForExportDefaults = '';
+	$: if (migrationOption !== lastModeForExportDefaults) {
+		lastModeForExportDefaults = migrationOption;
+		applyExportDefaultsForMode(migrationOption);
+	}
 
 	// Export
 	let exportBundle = true;
@@ -310,24 +361,6 @@
 
 	loadStorageProviders();
 	loadStorageAlbums();
-
-	$: {
-		if (migrationOption === 'templates-pages') {
-			activeTab = activeTab === 'storage' ? 'export' : activeTab;
-			exportScope = 'templates-pages';
-			exportIncludeConfig = true;
-		} else if (migrationOption === 'storage-backup') {
-			activeTab = 'export';
-			exportScope = 'full';
-			exportIncludeConfig = false;
-		} else if (migrationOption === 'storage-migration') {
-			activeTab = 'storage';
-		} else if (migrationOption === 'albums-photos-db') {
-			activeTab = 'export';
-		} else if (migrationOption === 'full-db') {
-			activeTab = 'export';
-		}
-	}
 
 	$: if (activeTab === 'storage' && storageAlbums.length === 0) {
 		loadStorageAlbums();
@@ -675,42 +708,43 @@
 			<h1 class="text-2xl font-bold text-(--color-surface-950-50)">{$t('admin.migrationToolsPageTitle')}</h1>
 		</div>
 
+		{#key panelKey}
 		<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2 mb-6">
-			<button
-				class="text-left px-4 py-3 rounded border {migrationOption === 'albums-photos-db' ? 'bg-(--color-surface-50-950) border-(--color-primary-600) text-(--color-surface-950-50)' : 'bg-(--color-surface-100-900) border-surface-200-800 text-(--color-surface-800-200)'}"
-				on:click={() => (migrationOption = 'albums-photos-db')}
+			<a
+				href={migrationHref('albums-photos-db')}
+				class="text-left px-4 py-3 rounded border no-underline block {migrationOption === 'albums-photos-db' ? 'bg-(--color-surface-50-950) border-(--color-primary-600) text-(--color-surface-950-50)' : 'bg-(--color-surface-100-900) border-surface-200-800 text-(--color-surface-800-200)'}"
 			>
 				<strong>Albums &amp; Photos (DB only)</strong><br />
 				<span class="text-xs opacity-80">{$t('admin.migrationAlbumsPhotosDbSubtitle')}</span>
-			</button>
-			<button
-				class="text-left px-4 py-3 rounded border {migrationOption === 'storage-backup' ? 'bg-(--color-surface-50-950) border-(--color-primary-600) text-(--color-surface-950-50)' : 'bg-(--color-surface-100-900) border-surface-200-800 text-(--color-surface-800-200)'}"
-				on:click={() => (migrationOption = 'storage-backup')}
+			</a>
+			<a
+				href={migrationHref('storage-backup')}
+				class="text-left px-4 py-3 rounded border no-underline block {migrationOption === 'storage-backup' ? 'bg-(--color-surface-50-950) border-(--color-primary-600) text-(--color-surface-950-50)' : 'bg-(--color-surface-100-900) border-surface-200-800 text-(--color-surface-800-200)'}"
 			>
 				<strong>Storage Backup</strong><br />
 				<span class="text-xs opacity-80">Export photos + albums package</span>
-			</button>
-			<button
-				class="text-left px-4 py-3 rounded border {migrationOption === 'storage-migration' ? 'bg-(--color-surface-50-950) border-(--color-primary-600) text-(--color-surface-950-50)' : 'bg-(--color-surface-100-900) border-surface-200-800 text-(--color-surface-800-200)'}"
-				on:click={() => (migrationOption = 'storage-migration')}
+			</a>
+			<a
+				href={migrationHref('storage-migration')}
+				class="text-left px-4 py-3 rounded border no-underline block {migrationOption === 'storage-migration' ? 'bg-(--color-surface-50-950) border-(--color-primary-600) text-(--color-surface-950-50)' : 'bg-(--color-surface-100-900) border-surface-200-800 text-(--color-surface-800-200)'}"
 			>
 				<strong>Storage → Storage Migration</strong><br />
 				<span class="text-xs opacity-80">Copy files and update DB references</span>
-			</button>
-			<button
-				class="text-left px-4 py-3 rounded border {migrationOption === 'full-db' ? 'bg-(--color-surface-50-950) border-(--color-primary-600) text-(--color-surface-950-50)' : 'bg-(--color-surface-100-900) border-surface-200-800 text-(--color-surface-800-200)'}"
-				on:click={() => (migrationOption = 'full-db')}
+			</a>
+			<a
+				href={migrationHref('full-db')}
+				class="text-left px-4 py-3 rounded border no-underline block {migrationOption === 'full-db' ? 'bg-(--color-surface-50-950) border-(--color-primary-600) text-(--color-surface-950-50)' : 'bg-(--color-surface-100-900) border-surface-200-800 text-(--color-surface-800-200)'}"
 			>
 				<strong>Full DB Backup</strong><br />
 				<span class="text-xs opacity-80">All collections JSON snapshot</span>
-			</button>
-			<button
-				class="text-left px-4 py-3 rounded border {migrationOption === 'templates-pages' ? 'bg-(--color-surface-50-950) border-(--color-primary-600) text-(--color-surface-950-50)' : 'bg-(--color-surface-100-900) border-surface-200-800 text-(--color-surface-800-200)'}"
-				on:click={() => (migrationOption = 'templates-pages')}
+			</a>
+			<a
+				href={migrationHref('templates-pages')}
+				class="text-left px-4 py-3 rounded border no-underline block {migrationOption === 'templates-pages' ? 'bg-(--color-surface-50-950) border-(--color-primary-600) text-(--color-surface-950-50)' : 'bg-(--color-surface-100-900) border-surface-200-800 text-(--color-surface-800-200)'}"
 			>
 				<strong>Templates &amp; Pages</strong><br />
 				<span class="text-xs opacity-80">Deploy style/layout changes from dev to prod</span>
-			</button>
+			</a>
 		</div>
 
 		{#if migrationOption === 'full-db'}
@@ -739,34 +773,48 @@
 
 		{#if migrationOption !== 'full-db' && migrationOption !== 'albums-photos-db'}
 		<div class="flex gap-2 mb-6 border-b border-surface-200-800">
-			<button
-				class="px-4 py-2 rounded-t {activeTab === 'export' ? 'bg-(--color-surface-50-950) border border-b-0 border-surface-200-800 font-medium text-(--color-surface-950-50)' : 'bg-(--color-surface-100-900) text-(--color-surface-800-200) hover:text-(--color-surface-950-50)'}"
-				on:click={() => (activeTab = 'export')}
-				disabled={migrationOption === 'storage-migration'}
-			>
-				Export
-			</button>
-			<button
-				class="px-4 py-2 rounded-t {activeTab === 'import' ? 'bg-(--color-surface-50-950) border border-b-0 border-surface-200-800 font-medium text-(--color-surface-950-50)' : 'bg-(--color-surface-100-900) text-(--color-surface-800-200) hover:text-(--color-surface-950-50)'}"
-				on:click={() => (activeTab = 'import')}
-				disabled={migrationOption === 'storage-migration' || migrationOption === 'storage-backup'}
-			>
-				Import
-			</button>
-			<span
-				class="inline-block"
-				title={migrationOption !== 'storage-migration'
-					? $t('admin.migrationTabStorageMigrationTooltip')
-					: undefined}
-			>
-				<button
-					class="px-4 py-2 rounded-t {activeTab === 'storage' ? 'bg-(--color-surface-50-950) border border-b-0 border-surface-200-800 font-medium text-(--color-surface-950-50)' : 'bg-(--color-surface-100-900) text-(--color-surface-800-200) hover:text-(--color-surface-950-50)'}"
-					on:click={() => (activeTab = 'storage')}
-					disabled={migrationOption !== 'storage-migration'}
+			{#if migrationOption !== 'storage-migration'}
+				<a
+					href={migrationHref(migrationOption, 'export')}
+					class="px-4 py-2 rounded-t no-underline {activeTab === 'export' ? 'bg-(--color-surface-50-950) border border-b-0 border-surface-200-800 font-medium text-(--color-surface-950-50)' : 'bg-(--color-surface-100-900) text-(--color-surface-800-200) hover:text-(--color-surface-950-50)'}"
+				>
+					Export
+				</a>
+			{:else}
+				<span
+					class="px-4 py-2 rounded-t opacity-50 cursor-not-allowed bg-(--color-surface-100-900) text-(--color-surface-800-200)"
+					title={$t('admin.migrationTabStorageMigrationTooltip')}
+				>
+					Export
+				</span>
+			{/if}
+			{#if migrationOption !== 'storage-migration' && migrationOption !== 'storage-backup'}
+				<a
+					href={migrationHref(migrationOption, 'import')}
+					class="px-4 py-2 rounded-t no-underline {activeTab === 'import' ? 'bg-(--color-surface-50-950) border border-b-0 border-surface-200-800 font-medium text-(--color-surface-950-50)' : 'bg-(--color-surface-100-900) text-(--color-surface-800-200) hover:text-(--color-surface-950-50)'}"
+				>
+					Import
+				</a>
+			{:else}
+				<span class="px-4 py-2 rounded-t opacity-50 cursor-not-allowed bg-(--color-surface-100-900) text-(--color-surface-800-200)">
+					Import
+				</span>
+			{/if}
+			{#if migrationOption === 'storage-migration'}
+				<a
+					href={migrationHref('storage-migration', 'storage')}
+					class="px-4 py-2 rounded-t no-underline {activeTab === 'storage' ? 'bg-(--color-surface-50-950) border border-b-0 border-surface-200-800 font-medium text-(--color-surface-950-50)' : 'bg-(--color-surface-100-900) text-(--color-surface-800-200) hover:text-(--color-surface-950-50)'}"
 				>
 					Storage migration
-				</button>
-			</span>
+				</a>
+			{:else}
+				<span
+					class="px-4 py-2 rounded-t opacity-50 cursor-not-allowed bg-(--color-surface-100-900) text-(--color-surface-800-200)"
+					title={$t('admin.migrationTabStorageMigrationTooltip')}
+				>
+					Storage migration
+				</span>
+			{/if}
 		</div>
 		{/if}
 
@@ -1026,7 +1074,11 @@
 				<p class="text-(--color-surface-600-400) mb-4">
 					Copy photo assets from one storage provider to another (e.g. local → S3). DB references are updated after each copy.
 					<span class="block mt-2 text-sm">
-						<strong>Note:</strong> Configure storage providers in <a href="/admin/storage" class="text-(--color-primary-600) hover:underline">Storage Management</a> first.
+						<strong>Note:</strong> Configure storage providers in <a
+							href="/admin/storage"
+							class="text-(--color-primary-600) hover:underline"
+							on:click={(e) => navigateAdmin('/admin/storage', e)}
+						>Storage Management</a> first.
 					</span>
 				</p>
 				<div class="mb-4">
@@ -1149,5 +1201,6 @@
 				{/if}
 			</div>
 		{/if}
+		{/key}
 	</div>
 </div>

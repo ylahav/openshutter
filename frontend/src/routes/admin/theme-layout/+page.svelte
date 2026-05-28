@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { writable } from 'svelte/store';
 	import { onMount } from 'svelte';
 	import type { SiteConfig } from '$lib/types/site-config';
 	import { logger } from '$lib/utils/logger';
@@ -29,7 +30,7 @@
 		promotion: boolean;
 	}
 
-	let loading = true;
+	const loading = writable(true);
 	let saving = false;
 	/** Effective public-site template key (matches backend merge rules). */
 	let activeTemplate = 'noir';
@@ -134,7 +135,7 @@
 
 	async function loadConfig() {
 		try {
-			loading = true;
+			loading.set(true);
 			const [cfgRes, tplRes] = await Promise.all([
 				fetch('/api/admin/site-config'),
 				fetch('/api/admin/templates', { cache: 'no-store' })
@@ -171,7 +172,7 @@
 			logger.error('Failed to load config:', err);
 			adminToast.error({ title: handleError(err, 'Failed to load template configuration') });
 		} finally {
-			loading = false;
+			loading.set(false);
 		}
 	}
 
@@ -296,7 +297,7 @@
 	<title>{$t('admin.sidebarNavTemplateLayout')} - {$t('navigation.admin')}</title>
 </svelte:head>
 
-{#if loading}
+{#if $loading}
 	<div class="py-8">
 		<div class="max-w-4xl mx-auto px-4">
 			<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-6">

@@ -43,7 +43,9 @@
 	$: dash = data.dashboard as AdminDashboardSummary | null | undefined;
 	$: loadFailed = data.dashboardLoadFailed === true;
 	$: backendUnreachable = data.dashboardBackendUnreachable === true;
+	$: authFailed = data.dashboardAuthFailed === true;
 	$: stats = dash?.stats;
+	$: showAdminDashboard = data.user?.role === 'admin' && dash && stats;
 	$: storageQuota =
 		dash?.storage?.quotaBytes != null && dash.storage.quotaBytes > 0 ? dash.storage.quotaBytes : null;
 	$: storagePct =
@@ -84,30 +86,7 @@
 			</div>
 		</header>
 
-		{#if data.user?.role === 'admin'}
-			{#if loadFailed || !dash}
-				<div
-					class="rounded-xl border border-(--color-surface-200-700) bg-[color-mix(in_oklab,var(--color-surface-950)_4%,transparent)] px-4 py-6 text-center dark:bg-[color-mix(in_oklab,var(--color-surface-50)_6%,transparent)]"
-					role="alert"
-				>
-					<p class="text-(--color-surface-700-300)">
-						{backendUnreachable ? $t('admin.dashboardBackendUnreachable') : $t('admin.dashboardLoadError')}
-					</p>
-					{#if backendUnreachable}
-						<p class="mt-2 text-sm text-(--color-surface-600-400)">
-							{$t('admin.dashboardBackendUnreachableHint')}
-						</p>
-					{/if}
-					<button
-						type="button"
-						class="{adminBtnSecondary} mt-3 {adminRingPrimary} disabled:opacity-50"
-						disabled={retrying}
-						on:click={retryDashboard}
-					>
-						{retrying ? '…' : $t('admin.dashboardRetry')}
-					</button>
-				</div>
-			{:else if dash && stats}
+		{#if showAdminDashboard}
 				<div class="space-y-6">
 			{#each dash.alerts as alert (alert.id)}
 				{#if alert.id === 'no_featured'}
@@ -335,7 +314,7 @@
 								<div
 									class="h-full rounded-full bg-(--color-primary-600) transition-[width]"
 									style={`width: ${storagePct ?? 0}%`}
-								/>
+								></div>
 							</div>
 						{:else}
 							<p class="text-sm text-(--color-surface-600-400)">
@@ -355,11 +334,36 @@
 				</div>
 			</div>
 				</div>
-			{:else}
-				<p class="text-sm text-(--color-surface-600-400)">{$t('admin.manageGallerySettings')}</p>
-			{/if}
 		{:else}
-			<p class="text-sm text-(--color-surface-600-400)">{$t('admin.manageGallerySettings')}</p>
+			<div
+				class="rounded-xl border border-(--color-surface-200-700) bg-[color-mix(in_oklab,var(--color-surface-950)_4%,transparent)] px-4 py-6 text-center dark:bg-[color-mix(in_oklab,var(--color-surface-50)_6%,transparent)]"
+				role="alert"
+			>
+				<p class="text-(--color-surface-700-300)">
+					{backendUnreachable
+						? $t('admin.dashboardBackendUnreachable')
+						: authFailed
+							? $t('admin.dashboardAuthFailed')
+							: $t('admin.dashboardLoadError')}
+				</p>
+				{#if backendUnreachable}
+					<p class="mt-2 text-sm text-(--color-surface-600-400)">
+						{$t('admin.dashboardBackendUnreachableHint')}
+					</p>
+				{:else if authFailed}
+					<p class="mt-2 text-sm text-(--color-surface-600-400)">
+						{$t('admin.dashboardAuthFailedHint')}
+					</p>
+				{/if}
+				<button
+					type="button"
+					class="{adminBtnSecondary} mt-3 {adminRingPrimary} disabled:opacity-50"
+					disabled={retrying}
+					on:click={retryDashboard}
+				>
+					{retrying ? '…' : $t('admin.dashboardRetry')}
+				</button>
+			</div>
 		{/if}
 	</div>
 </div>

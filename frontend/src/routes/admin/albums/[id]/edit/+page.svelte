@@ -1,7 +1,11 @@
 <script lang="ts">
+	import { writable } from 'svelte/store';
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
-	import { goto } from '$app/navigation';
+	import { navigateAdmin } from '$lib/admin/adminNavigate';
+	import type { PageData } from './$types';
+
+	export let data: PageData;
 	import { currentLanguage } from '$stores/language';
 	import { MultiLangUtils } from '$utils/multiLang';
 	import MultiLangInput from '$lib/components/MultiLangInput.svelte';
@@ -64,11 +68,11 @@
 		name: string | { en?: string; he?: string };
 	}
 
-	const albumId: string = $page.params.id || '';
+	$: albumId = $page.params.id ?? data.albumId ?? '';
 	let album: Album | null = null;
-	let loading = true;
+	const loading = writable(!data.initialAlbum && !data.loadError);
 	let saving = false;
-	let error = '';
+	let error = data.loadError ?? '';
 
 		let formData = {
 		name: {} as Record<string, string>,
@@ -132,58 +136,105 @@
 			)
 		: users;
 
+	function applyAlbumToForm(source: Album) {
+		album = source;
+		formData.name =
+			typeof source.name === 'string' ? { en: source.name } : source.name || {};
+		formData.description =
+			typeof source.description === 'string'
+				? { en: source.description }
+				: source.description || {};
+		formData.isPublic = source.isPublic || false;
+		formData.isPublished = source.isPublished !== undefined ? source.isPublished : true;
+		formData.isFeatured = source.isFeatured || false;
+		formData.showExifData = source.showExifData !== undefined ? source.showExifData : true;
+		formData.order = source.order || 0;
+		formData.tags =
+			source.tags?.map((tag: string | { _id?: { toString(): string }; toString(): string }) =>
+				typeof tag === 'string' ? tag : tag._id?.toString() || tag.toString(),
+			) || [];
+		formData.people =
+			source.people?.map((person: string | { _id?: { toString(): string }; toString(): string }) =>
+				typeof person === 'string' ? person : person._id?.toString() || person.toString(),
+			) || [];
+		formData.location = source.location
+			? typeof source.location === 'string'
+				? source.location
+				: source.location && typeof source.location === 'object' && '_id' in source.location
+					? (source.location as { _id: { toString(): string } })._id.toString()
+					: String(source.location)
+			: null;
+		formData.allowedUsers = source.allowedUsers?.map((id: string) => String(id)) || [];
+		formData.allowedGroups = source.allowedGroups?.map((a: string) => String(a)) || [];
+	}
+
 	async function loadAlbum() {
+		if (!albumId) return;
 		try {
-			loading = true;
 			error = '';
 			const response = await fetch(`/api/admin/albums/${albumId}?t=${Date.now()}`, {
 				cache: 'no-store',
+				credentials: 'include',
 			});
 			if (!response.ok) {
 				await handleApiErrorResponse(response);
 			}
 			const result = await response.json();
-			album = result.data || result;
-			logger.debug('Album loaded:', album);
-
-			// Initialize form data
-			if (album) {
-				formData.name =
-					typeof album.name === 'string' ? { en: album.name } : album.name || {};
-				formData.description =
-					typeof album.description === 'string'
-						? { en: album.description }
-						: album.description || {};
-				formData.isPublic = album.isPublic || false;
-				formData.isPublished = album.isPublished !== undefined ? album.isPublished : true;
-				formData.isFeatured = album.isFeatured || false;
-				formData.showExifData = album.showExifData !== undefined ? album.showExifData : true;
-				formData.order = album.order || 0;
-				// Convert ObjectIds to strings if needed
-				formData.tags =
-					album.tags?.map((tag: string | { _id?: { toString(): string }; toString(): string }) =>
-						typeof tag === 'string' ? tag : tag._id?.toString() || tag.toString()
-					) || [];
-				formData.people =
-					album.people?.map((person: string | { _id?: { toString(): string }; toString(): string }) =>
-						typeof person === 'string' ? person : person._id?.toString() || person.toString()
-					) || [];
-				formData.location =
-					album.location
-						? typeof album.location === 'string'
-							? album.location
-							: (album.location && typeof album.location === 'object' && '_id' in album.location)
-								? (album.location as { _id: { toString(): string } })._id.toString()
-								: String(album.location)
-						: null;
-				formData.allowedUsers = album.allowedUsers?.map((id: string) => String(id)) || [];
-				formData.allowedGroups = album.allowedGroups?.map((a: string) => String(a)) || [];
-			}
+			const loaded = (result.data || result) as Album;
+			logger.debug('Album loaded:', loaded);
+			applyAlbumToForm(loaded);
 		} catch (err) {
 			logger.error('Failed to fetch album:', err);
 			error = handleError(err, 'Failed to load album');
+		}
+	}
+
+	async function loadAccessOptions() {
+		loadingGroups = true;
+		loadingUsers = true;
+		try {
+			const [groupsRes, usersRes] = await Promise.all([
+				fetch('/api/admin/groups', { cache: 'no-store', credentials: 'include' }),
+				fetch('/api/admin/users?limit=500', { cache: 'no-store', credentials: 'include' }),
+			]);
+			if (groupsRes.ok) {
+				const g = await groupsRes.json();
+				groups = g.data || g || [];
+			}
+			if (usersRes.ok) {
+				const u = await usersRes.json();
+				users = Array.isArray(u.data) ? u.data : [];
+			}
+		} catch (_) {
+			// non-blocking
 		} finally {
-			loading = false;
+			loadingGroups = false;
+			loadingUsers = false;
+		}
+	}
+
+	if (data.initialAlbum) {
+		applyAlbumToForm(data.initialAlbum as Album);
+	}
+
+	async function bootstrapEditPage() {
+		loading.set(true);
+		try {
+			if (data.loadError && !data.initialAlbum) {
+				error = data.loadError;
+				return;
+			}
+			if (data.initialAlbum) {
+				applyAlbumToForm(data.initialAlbum as Album);
+			} else {
+				await loadAlbum();
+			}
+			void loadAccessOptions();
+		} catch (err) {
+			logger.error('Failed to bootstrap album edit:', err);
+			error = handleError(err, 'Failed to load album');
+		} finally {
+			loading.set(false);
 		}
 	}
 
@@ -215,6 +266,7 @@
 				headers: {
 					'Content-Type': 'application/json',
 				},
+				credentials: 'include',
 				body: JSON.stringify(updateData),
 			});
 
@@ -229,7 +281,7 @@
 
 			// Redirect after a short delay so the toast is visible
 			setTimeout(() => {
-				goto(`/admin/albums/${albumId}`);
+				navigateAdmin(`/admin/albums/${albumId}`);
 			}, 600);
 		} catch (err) {
 			logger.error('Failed to update album:', err);
@@ -399,31 +451,7 @@
 	onMount(() => {
 		window.addEventListener('keydown', handleKeydown);
 		window.addEventListener('click', handleClickOutside);
-		(async () => {
-			await loadAlbum();
-			// Load groups and users for access control
-			loadingGroups = true;
-			loadingUsers = true;
-			try {
-				const [groupsRes, usersRes] = await Promise.all([
-					fetch('/api/admin/groups', { cache: 'no-store' }),
-					fetch('/api/admin/users?limit=500', { cache: 'no-store' }),
-				]);
-				if (groupsRes.ok) {
-					const g = await groupsRes.json();
-					groups = g.data || g || [];
-				}
-				if (usersRes.ok) {
-					const u = await usersRes.json();
-					users = Array.isArray(u.data) ? u.data : [];
-				}
-			} catch (_) {
-				// non-blocking
-			} finally {
-				loadingGroups = false;
-				loadingUsers = false;
-			}
-		})();
+		void bootstrapEditPage();
 		return () => {
 			window.removeEventListener('keydown', handleKeydown);
 			window.removeEventListener('click', handleClickOutside);
@@ -442,7 +470,7 @@
 
 <div class="py-8">
 	<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-		{#if loading}
+		{#if $loading}
 			<div class="text-center py-12">
 				<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-(--color-primary-600) mx-auto"></div>
 				<p class="mt-4 text-(--color-surface-600-400)">Loading album...</p>

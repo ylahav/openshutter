@@ -11,6 +11,7 @@
 	import { currentLanguage, setLanguage } from '$stores/language';
 	import { SUPPORTED_LANGUAGES, type LanguageCode } from '$types/multi-lang';
 	import { adminSelectSmClass } from '$lib/admin/admin-cerberus';
+	import { adminLinkReload } from '$lib/admin/adminLinkReload';
 	import { t } from '$stores/i18n';
 
 	$: hideOs = !!$siteConfigData?.whiteLabel?.hideOpenShutterBranding;
@@ -103,6 +104,7 @@
 
 <!-- Cerberus CSS variables are defined on this node; body on public routes stays unchanged. -->
 <main
+	use:adminLinkReload
 	class="min-h-screen antialiased bg-(--body-background-color) text-(--base-font-color) dark:bg-(--body-background-color-dark) dark:text-(--base-font-color-dark) {$adminUiColorMode === 'dark'
 		? '[color-scheme:dark]'
 		: '[color-scheme:light]'}"

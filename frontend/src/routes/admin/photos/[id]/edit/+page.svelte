@@ -1,8 +1,17 @@
 <script lang="ts">
+	import { writable } from 'svelte/store';
 	import { onDestroy, onMount } from 'svelte';
 	import { browser } from '$app/environment';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
+	import type { PageData } from './$types';
+	import {
+		buildFormDataFromPhoto,
+		normalizeLoadedPhoto,
+		type PhotoEditRecord,
+	} from '$lib/admin/photoEditLoad';
+
+	let { data }: { data: PageData } = $props();
 	import { currentLanguage } from '$stores/language';
 	import { MultiLangUtils } from '$utils/multiLang';
 	import MultiLangInput from '$lib/components/MultiLangInput.svelte';
@@ -82,9 +91,11 @@
 		name: string | { en?: string; he?: string };
 	}
 
-	let photoId: string = '';
-	let photo: Photo | null = null;
-	let loading = true;
+	const photoId = $derived($page.params.id ?? data.photoId ?? '');
+	let photo = $state<Photo | null>(null);
+	const loading = writable(true);
+	let lastPhotoId = $state('');
+	let photoLoadDone = false;
 	let saving = false;
 	let regeneratingThumbnails = false;
 	let rotatingPhoto = false;
@@ -92,12 +103,11 @@
 	let showCropModal = false;
 	let restoringOriginal = false;
 	let error = '';
-	
+
 	let tags: Tag[] = [];
 	let people: Person[] = [];
 	let locations: Location[] = [];
 	let loadingOptions = true;
-	let loadPhotoCalled = false;
 	
 	// Popup states
 	let showTagsPopup = false;
@@ -152,33 +162,7 @@
 		context: null,
 	};
 	
-	// Track the last loaded photoId to prevent reloading the same photo
-	let lastLoadedPhotoId: string | null = null;
-	
-	// Update photoId from route params reactively
-	$: {
-		const id = $page.params.id || '';
-		if (id && id !== photoId) {
-			photoId = id;
-			// Reset loading state when navigating to a new photo
-			loadPhotoCalled = false;
-			lastLoadedPhotoId = null; // Reset so new photo can be loaded
-		}
-	}
-	
-	// Load photo when photoId changes (for navigation between photos)
-	// Only trigger once per photoId change
-	$: if (browser && photoId && !loadPhotoCalled && photoId !== lastLoadedPhotoId) {
-		loadPhoto().catch((err) => {
-			logger.error('[Reactive] loadPhoto error:', err);
-			error = handleError(err, 'Failed to load photo');
-			loading = false;
-			loadPhotoCalled = false; // Reset on error so it can retry
-			lastLoadedPhotoId = null; // Reset on error
-		});
-	}
-
-	$: {
+	$effect(() => {
 		const selectedTagIds = [...new Set((formData.tags || []).map((tagId) => String(tagId).trim()).filter(Boolean))].sort();
 		const relatedTagsKey = photoId && selectedTagIds.length > 0 ? `${photoId}:${selectedTagIds.join(',')}` : '';
 
@@ -191,7 +175,7 @@
 			lastRelatedTagsKey = relatedTagsKey;
 			loadRelatedTags(selectedTagIds, relatedTagsKey);
 		}
-	}
+	});
 
 	let formData = {
 		title: {} as Record<string, string>,
@@ -218,24 +202,32 @@
 		return getPhotoUrl(photo, { fallback: '' });
 	}
 
+	function applyLoadedPhotoRecord(raw: PhotoEditRecord) {
+		const loaded = normalizeLoadedPhoto(raw);
+		photo = loaded as Photo;
+		const built = buildFormDataFromPhoto(loaded, $currentLanguage);
+		formData = { ...built.formData };
+		descriptionLanguage = built.descriptionLanguage;
+	}
+
 	async function loadPhoto() {
-		if (loadPhotoCalled) {
+		if (photoLoadDone) {
 			return;
 		}
-		
+
 		if (!photoId) {
 			error = 'No photo ID provided';
-			loading = false;
+			loading.set(false);
 			return;
 		}
-		
-		loadPhotoCalled = true;
-		
+
+		photoLoadDone = true;
+
 		let timeoutId: ReturnType<typeof setTimeout> | null = null;
 		const controller = new AbortController();
 		
 		try {
-			loading = true;
+			loading.set(true);
 			error = '';
 			const url = `/api/admin/photos/${photoId}?t=${Date.now()}`;
 			
@@ -260,38 +252,14 @@
 				}
 				
 				const responseData = await response.json();
-				loading = false;
 				// Extract photo data from response (API returns { success: true, data: {...} })
-				let loadedPhoto = responseData.data || responseData;
-				// Normalize faceRecognition so UI always gets a clean faces array (ensures reactivity after detect)
-				if (loadedPhoto?.faceRecognition?.faces && Array.isArray(loadedPhoto.faceRecognition.faces)) {
-					loadedPhoto = {
-						...loadedPhoto,
-						faceRecognition: {
-							...loadedPhoto.faceRecognition,
-							faces: loadedPhoto.faceRecognition.faces.map((f: any) => ({
-								box: f.box || { x: 0, y: 0, width: 0, height: 0 },
-								matchedPersonId: f.matchedPersonId != null ? String(f.matchedPersonId) : undefined,
-								confidence: f.confidence,
-							})),
-						},
-					};
-				}
-				// Preserve canRestoreOriginal so "Restore original" button shows when backup exists
-				photo = {
-					...loadedPhoto,
-					canRestoreOriginal: loadedPhoto.canRestoreOriginal === true
-				};
-				lastLoadedPhotoId = photoId; // Mark this photo as loaded
-				
-				// Debug: Log storage information
+				const loadedPhoto = (responseData.data || responseData) as PhotoEditRecord;
+				applyLoadedPhotoRecord(loadedPhoto);
 				logger.debug('[loadPhoto] Photo loaded:', {
 					photoId,
 					hasStorage: !!photo?.storage,
-					storage: photo?.storage,
 					photoUrl: photo ? getPhotoUrlLocal(photo) : 'N/A',
 					faceCount: photo?.faceRecognition?.faces?.length ?? 0,
-					responseStructure: { hasData: !!responseData.data, hasSuccess: !!responseData.success }
 				});
 			} catch (fetchError: any) {
 				// Clear timeout on error
@@ -304,73 +272,6 @@
 				}
 				throw fetchError;
 			}
-
-			// Initialize form data
-			if (photo) {
-				formData.title =
-					typeof photo.title === 'string' ? { en: photo.title } : photo.title || {};
-				formData.description =
-					typeof photo.description === 'string'
-						? { en: photo.description }
-						: photo.description || {};
-				// Ensure the editor shows content even if current language is missing
-				const descriptionEntries = Object.entries(formData.description || {}).filter(
-					([, value]) => typeof value === 'string' && value.trim().length > 0
-				);
-				const firstAvailableLanguage = descriptionEntries.length > 0 ? descriptionEntries[0][0] : 'en';
-				const preferredLanguage =
-					($currentLanguage && formData.description?.[$currentLanguage]?.trim())
-						? $currentLanguage
-						: (formData.description?.en?.trim() ? 'en' : firstAvailableLanguage);
-
-				descriptionLanguage = preferredLanguage || $currentLanguage || 'en';
-				if (
-					$currentLanguage &&
-					formData.description &&
-					!formData.description[$currentLanguage] &&
-					formData.description[descriptionLanguage]
-				) {
-					formData.description = {
-						...formData.description,
-						[$currentLanguage]: formData.description[descriptionLanguage]
-					};
-				}
-				formData.isPublished = photo.isPublished || false;
-				formData.isLeading = photo.isLeading || false;
-				formData.isGalleryLeading = photo.isGalleryLeading || false;
-				formData.tags =
-					photo.tags?.map((tag: any) =>
-						typeof tag === 'string' ? tag : tag._id?.toString() || tag.toString()
-					) || [];
-				formData.people =
-					photo.people?.map((person: any) =>
-						typeof person === 'string' ? person : person._id?.toString() || person.toString()
-					) || [];
-				formData.location =
-					photo.location
-						? typeof photo.location === 'string'
-							? photo.location
-							: (photo.location as any)._id?.toString() || String(photo.location)
-						: null;
-				formData.metadata =
-					photo.metadata && typeof photo.metadata === 'object'
-						? { ...photo.metadata }
-						: {};
-				// EXIF overrides (date/camera) – init from photo.exif for editing
-				const ex = photo.exif && typeof photo.exif === 'object' ? photo.exif : {};
-				const dt = ex.dateTime ?? ex.dateTimeOriginal ?? ex.dateTimeDigitized;
-				formData.exifOverrides = {
-					dateTime: dt
-						? (typeof dt === 'string'
-								? dt.slice(0, 16)
-								: new Date(dt as Date).toISOString().slice(0, 16))
-						: '',
-					make: (ex.make as string) ?? '',
-					model: (ex.model as string) ?? '',
-				};
-				// Trigger reactivity after mutating formData fields
-				formData = { ...formData };
-			}
 		} catch (err) {
 			logger.error('[loadPhoto] Failed to fetch photo:', err);
 			error = handleError(err, 'Failed to load photo');
@@ -381,8 +282,8 @@
 				clearTimeout(timeoutId);
 				timeoutId = null;
 			}
-			loading = false;
-			// Don't reset loadPhotoCalled here - it's reset when photoId changes in the reactive block above
+			loading.set(false);
+			// photoLoadDone stays true until photoId changes
 		}
 	}
 
@@ -486,9 +387,8 @@
 			adminToast.success({ title: result.message || 'Thumbnails regenerated successfully' });
 			// Reload the page after a short delay to show updated thumbnails
 			setTimeout(() => {
-				loadPhotoCalled = false;
-				lastLoadedPhotoId = null;
-				loadPhoto();
+				photoLoadDone = false;
+				void loadPhoto();
 			}, 1000);
 		} catch (err) {
 			logger.error('Failed to regenerate thumbnails:', err);
@@ -517,9 +417,8 @@
 			}
 			adminToast.success({ title: result.message || 'Photo rotated' });
 			setTimeout(() => {
-				loadPhotoCalled = false;
-				lastLoadedPhotoId = null;
-				loadPhoto();
+				photoLoadDone = false;
+				void loadPhoto();
 			}, 500);
 		} catch (err) {
 			logger.error('Failed to rotate photo:', err);
@@ -564,9 +463,8 @@
 			
 			// Reload photo to get fresh data and ensure dimensions are updated
 			setTimeout(() => {
-				loadPhotoCalled = false;
-				lastLoadedPhotoId = null;
-				loadPhoto();
+				photoLoadDone = false;
+				void loadPhoto();
 			}, 500);
 		} catch (err) {
 			logger.error('Failed to crop photo:', err);
@@ -593,8 +491,7 @@
 				photo = { ...photo, ...updatedPhotoData, canRestoreOriginal: updatedPhotoData.canRestoreOriginal ?? false };
 			}
 			adminToast.success({ title: result.message || 'Photo restored to original' });
-			loadPhotoCalled = false;
-			lastLoadedPhotoId = null;
+			photoLoadDone = false;
 			await loadPhoto();
 		} catch (err) {
 			logger.error('Failed to restore original:', err);
@@ -1052,30 +949,37 @@
 		return MultiLangUtils.getTextValue(location.name || {}, $currentLanguage) || 'Unknown';
 	}
 
-	onMount(() => {
-		if (!browser) {
-			loading = false;
+	$effect(() => {
+		if (!browser) return;
+		const id = photoId;
+		if (!id || id === lastPhotoId) return;
+		lastPhotoId = id;
+		photoLoadDone = false;
+		error = '';
+		if (data.initialPhoto && id === data.photoId) {
+			applyLoadedPhotoRecord(data.initialPhoto as PhotoEditRecord);
+			photoLoadDone = true;
+			loading.set(false);
 			return;
 		}
-		
-		// Set photoId from route params
-		const initialPhotoId = $page.params.id || '';
-		if (initialPhotoId) {
-			photoId = initialPhotoId;
+		if (data.loadError && id === data.photoId) {
+			error = data.loadError;
+			loading.set(false);
+			return;
 		}
-		
-		// Load photo and options
-		if (photoId) {
-			loadPhoto().catch((err) => {
-				logger.error('[onMount] loadPhoto error:', err);
-				error = handleError(err, 'Failed to load photo');
-				loading = false;
-			});
-		} else {
+		void loadPhoto();
+	});
+
+	onMount(() => {
+		if (!browser) {
+			loading.set(false);
+			return;
+		}
+		if (!photoId) {
 			error = 'No photo ID provided';
-			loading = false;
+			loading.set(false);
 		}
-		
+
 		loadOptions().catch((err) => {
 			logger.error('[onMount] loadOptions error:', err);
 		});
@@ -1100,7 +1004,7 @@
 
 <div class="py-8">
 	<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-		{#if loading && !photo}
+		{#if $loading && !photo}
 			<div class="text-center py-12">
 				<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-(--color-primary-600) mx-auto"></div>
 				<p class="mt-4 text-(--color-surface-600-400)">Loading photo...</p>
@@ -1570,9 +1474,7 @@
 									people={people}
 									getPersonName={getPersonNameById}
 									onFaceDetected={async () => {
-										// Allow loadPhoto to run again (do not set lastLoadedPhotoId = null,
-										// or the reactive block would also call loadPhoto() and we’d return early)
-										loadPhotoCalled = false;
+										photoLoadDone = false;
 										await loadPhoto();
 									}}
 									onFaceClick={(index) => {
@@ -1596,7 +1498,7 @@
 										}))}
 										onMatchComplete={async () => {
 											// Reload photo to get updated matches and people list
-											loadPhotoCalled = false;
+											photoLoadDone = false;
 											await loadPhoto();
 											// Update formData.people to include newly assigned people
 											if (photo) {
@@ -1935,3 +1837,4 @@
 		</div>
 	</div>
 {/if}
+

@@ -23,23 +23,32 @@ export const GET: RequestHandler = async ({ url, locals, cookies }) => {
 
 		if (search) queryParams.set('search', search);
 		if (role && role !== 'all') queryParams.set('role', role);
-		if (blocked !== null && blocked !== undefined) queryParams.set('blocked', blocked);
+		if (blocked && blocked !== 'all') queryParams.set('blocked', blocked);
 		if (page) queryParams.set('page', page);
 		if (limit) queryParams.set('limit', limit);
 
 		const endpoint = `/admin/users${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
 		const response = await backendGet(endpoint, { cookies });
-		const result = await parseBackendResponse<{ data: any[]; pagination: any }>(response);
+		const result = await parseBackendResponse<{ data?: any[]; pagination?: any } | any[]>(response);
+		const users = Array.isArray(result)
+			? result
+			: Array.isArray(result?.data)
+				? result.data
+				: [];
+		const pagination =
+			!Array.isArray(result) && result?.pagination
+				? result.pagination
+				: {
+						page: parseInt(page),
+						limit: parseInt(limit),
+						total: users.length,
+						totalPages: users.length ? 1 : 0
+					};
 
 		return json({
 			success: true,
-			data: result.data || result,
-			pagination: result.pagination || {
-				page: parseInt(page),
-				limit: parseInt(limit),
-				total: 0,
-				totalPages: 0
-			}
+			data: users,
+			pagination
 		});
 	} catch (error) {
 		logger.error('Admin Users API error:', error);

@@ -438,14 +438,28 @@ export class AlbumsAdminController {
 						? album.createdBy.toString()
 						: String(album.createdBy)
 					: '';
-			const serializedPhotos = photos.map((photo: any) => {
+			const albumOwnerCtx = await resolveOwnerStorageContext(albumCreatedByStr || undefined);
+			const photoOwnerCtxCache = new Map<string, Awaited<ReturnType<typeof resolveOwnerStorageContext>>>();
+			const resolvePhotoStorageOwnerId = async (photo: any): Promise<string | undefined> => {
 				const photoStorageOwnerStr =
 					photo.storage?.storageOwnerId != null
 						? photo.storage.storageOwnerId.toString
 							? photo.storage.storageOwnerId.toString()
 							: String(photo.storage.storageOwnerId)
 						: '';
-				const resolvedStorageOwnerId = (photoStorageOwnerStr || albumCreatedByStr || '').trim() || undefined;
+				if (photoStorageOwnerStr) {
+					if (!photoOwnerCtxCache.has(photoStorageOwnerStr)) {
+						photoOwnerCtxCache.set(
+							photoStorageOwnerStr,
+							await resolveOwnerStorageContext(photoStorageOwnerStr),
+						);
+					}
+					return photoOwnerCtxCache.get(photoStorageOwnerStr)?.ownerUserId;
+				}
+				return albumOwnerCtx?.ownerUserId;
+			};
+			const serializedPhotos = await Promise.all(photos.map(async (photo: any) => {
+				const resolvedStorageOwnerId = await resolvePhotoStorageOwnerId(photo);
 				const serialized: any = {
 					...photo,
 					_id: photo._id.toString(),
@@ -477,7 +491,7 @@ export class AlbumsAdminController {
 					};
 				}
 				return serialized;
-			});
+			}));
 
 			return {
 				success: true,

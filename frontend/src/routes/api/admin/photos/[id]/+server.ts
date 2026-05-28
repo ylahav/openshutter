@@ -12,8 +12,15 @@ export const GET: RequestHandler = async ({ params, locals, cookies }) => {
 		}
 
 		const { id } = await params;
+		const controller = new AbortController();
+		const timeoutId = setTimeout(() => controller.abort(), 12000);
 
-		const response = await backendGet(`/admin/photos/${id}`, { cookies });
+		let response: Response;
+		try {
+			response = await backendGet(`/admin/photos/${id}`, { cookies, signal: controller.signal });
+		} finally {
+			clearTimeout(timeoutId);
+		}
 		const photo = await parseBackendResponse<any>(response);
 
 		return json({
@@ -22,6 +29,12 @@ export const GET: RequestHandler = async ({ params, locals, cookies }) => {
 		});
 	} catch (error) {
 		logger.error('Get photo error:', error);
+		if (error instanceof Error && error.name === 'AbortError') {
+			return json(
+				{ success: false, error: 'Timed out while loading photo details' },
+				{ status: 504 },
+			);
+		}
 		const parsed = parseError(error);
 		return json({ 
 			success: false, 

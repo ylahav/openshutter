@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { writable } from 'svelte/store';
 	import { onMount } from 'svelte';
 	import { t } from '$stores/i18n';
 	import { getAlbumName } from '$lib/utils/albumUtils';
@@ -84,7 +85,7 @@
 	let searchData: any = null;
 	let tagsData: any = null;
 	let storageData: any = null;
-	let loading = true;
+	const loading = writable(true);
 	let loadingTab = false;
 	let loadingAIHealth = false;
 	let error = '';
@@ -162,7 +163,7 @@
 	}
 
 	async function loadAnalytics() {
-		loading = true;
+		loading.set(true);
 		error = '';
 		try {
 			const response = await fetch('/api/admin/analytics');
@@ -175,7 +176,7 @@
 			logger.error('Error loading analytics:', err);
 			error = handleError(err, translate('admin.analyticsFailedToLoadAnalytics', 'Failed to load analytics'));
 		} finally {
-			loading = false;
+			loading.set(false);
 		}
 	}
 
@@ -354,7 +355,7 @@
 			<div class="mb-4 p-4 rounded-md bg-red-50 text-red-700">{error}</div>
 		{/if}
 
-		{#if loading}
+		{#if $loading}
 			<div class="text-center py-8">
 				<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-(--color-primary-600)"></div>
 				<p class="mt-2 text-(--color-surface-600-400)">{$t('admin.analyticsLoadingAnalytics')}</p>

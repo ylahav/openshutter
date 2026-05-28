@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { writable } from 'svelte/store';
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
@@ -38,7 +39,7 @@
 	}
 
 	let album: Album | null = null;
-	let loading = true;
+	const loading = writable(true);
 	let saving = false;
 	let error: string | null = null;
 	let albumId = $page.params.id;
@@ -134,7 +135,7 @@
 
 	async function fetchAlbum() {
 		try {
-			loading = true;
+			loading.set(true);
 			const res = await fetch(`/api/albums/${albumId}`, { credentials: 'include' });
 			if (!res.ok) {
 				await handleApiErrorResponse(res);
@@ -164,7 +165,7 @@
 			logger.error('Failed to fetch album:', e);
 			error = handleError(e, 'Failed to fetch album');
 		} finally {
-			loading = false;
+			loading.set(false);
 		}
 	}
 
@@ -213,7 +214,7 @@
 	<title>Edit Album - Owner</title>
 </svelte:head>
 
-{#if loading}
+{#if $loading}
 	<div class="min-h-screen bg-gray-50 flex items-center justify-center">
 		<div class="text-center">
 			<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>

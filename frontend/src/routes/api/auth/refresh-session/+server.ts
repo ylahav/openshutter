@@ -4,6 +4,7 @@ import { SignJWT } from 'jose';
 import { env } from '$env/dynamic/private';
 import { backendGet, parseBackendResponse } from '$lib/utils/backend-api';
 import { logger } from '$lib/utils/logger';
+import { authCookieSecure } from '$lib/server/auth-cookie';
 
 const JWT_TTL = 60 * 60 * 24 * 7; // 7 days
 
@@ -16,7 +17,7 @@ function getJWTSecret(): Uint8Array {
  * Refresh the session JWT with current user data from the backend (e.g. after password change so forcePasswordChange is updated).
  * Requires valid auth cookie. Returns the updated user and sets a new auth_token cookie.
  */
-export const POST: RequestHandler = async ({ locals, cookies }) => {
+export const POST: RequestHandler = async ({ locals, cookies, url }) => {
 	try {
 		if (!locals.user?.id) {
 			return json({ success: false, error: 'Unauthorized' }, { status: 401 });
@@ -46,10 +47,9 @@ export const POST: RequestHandler = async ({ locals, cookies }) => {
 			.setExpirationTime(`${JWT_TTL}s`)
 			.sign(JWT_SECRET);
 
-		const isProduction = process.env.NODE_ENV === 'production';
 		cookies.set('auth_token', jwt, {
 			httpOnly: true,
-			secure: isProduction,
+			secure: authCookieSecure(url),
 			path: '/',
 			maxAge: JWT_TTL,
 			sameSite: 'lax',

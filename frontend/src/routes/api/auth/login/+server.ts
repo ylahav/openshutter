@@ -4,6 +4,7 @@ import { SignJWT } from 'jose';
 import { env } from '$env/dynamic/private';
 import { logger } from '$lib/utils/logger';
 import { forwardedHostHeadersFromRequest } from '$lib/server/forward-host';
+import { authCookieSecure } from '$lib/server/auth-cookie';
 
 // Simple static JWT secret - backend handles all authentication
 function getJWTSecret(): Uint8Array {
@@ -18,7 +19,7 @@ const JWT_TTL = 60 * 60 * 24 * 7; // 7 days
 // Backend API URL - use absolute URL for server-side requests
 const BACKEND_URL = env.BACKEND_URL || process.env.BACKEND_URL || 'http://localhost:5000';
 
-export const POST: RequestHandler = async ({ request, cookies }) => {
+export const POST: RequestHandler = async ({ request, cookies, url }) => {
 	try {
 		const { email, password } = await request.json();
 
@@ -65,13 +66,9 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			tokenLength: jwt.length
 		});
 
-		// Set the cookie using SvelteKit's cookies API
-		// In development, don't use secure flag (allows http://localhost)
-		const isProduction = process.env.NODE_ENV === 'production';
-		
 		cookies.set('auth_token', jwt, {
 			httpOnly: true,
-			secure: isProduction,
+			secure: authCookieSecure(url),
 			path: '/',
 			maxAge: JWT_TTL,
 			sameSite: 'lax'

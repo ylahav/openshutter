@@ -38,21 +38,27 @@
 	}
 
 	// Use CRUD composables
-	const crudLoader = useCrudLoader<Group>('/api/admin/groups');
+	const { items, loading, error: listLoadError, loadItems } = useCrudLoader<Group>(
+		'/api/admin/groups',
+		{
+			initialItems: data.initialItems,
+			initialLoadError: data.listLoadError,
+		},
+	);
 	const crudOps = useCrudOperations<Group>('/api/admin/groups', {
 		createSuccessMessage: $t('admin.groupsCreatedSuccessfully'),
 		updateSuccessMessage: $t('admin.groupsUpdatedSuccessfully'),
 		deleteSuccessMessage: $t('admin.groupsDeletedSuccessfully'),
 		onCreateSuccess: (newGroup) => {
-			crudLoader.items.update(items => [...items, newGroup]);
+			items.update((list) => [...list, newGroup]);
 			dialogs.closeAll();
 			resetForm();
 		},
 		onUpdateSuccess: (updatedGroup) => {
 			const currentEditingGroup = editingGroup;
 			if (currentEditingGroup) {
-				crudLoader.items.update(items => 
-					items.map(g => g._id === currentEditingGroup._id ? updatedGroup : g)
+				items.update((list) =>
+					list.map((g) => (g._id === currentEditingGroup._id ? updatedGroup : g)),
 				);
 			}
 			dialogs.closeAll();
@@ -62,9 +68,7 @@
 		onDeleteSuccess: () => {
 			const currentGroupToDelete = groupToDelete;
 			if (currentGroupToDelete) {
-				crudLoader.items.update(items => 
-					items.filter(g => g._id !== currentGroupToDelete._id)
-				);
+				items.update((list) => list.filter((g) => g._id !== currentGroupToDelete._id));
 			}
 			dialogs.closeAll();
 			groupToDelete = null;
@@ -72,22 +76,7 @@
 	});
 	const dialogs = useDialogManager();
 
-	// Reactive stores from composables
-	let groups: Group[] = [];
-	let loading = false;
-	let saving = false;
 	let error = '';
-	let showCreateDialog = false;
-	let showEditDialog = false;
-	let showDeleteDialog = false;
-
-	// Subscribe to stores
-	crudLoader.items.subscribe(value => groups = value);
-	crudLoader.loading.subscribe(value => loading = value);
-	crudLoader.error.subscribe(value => {
-		if (value) error = value;
-	});
-	crudOps.saving.subscribe(value => saving = value);
 	crudOps.error.subscribe(value => {
 		if (value) error = value;
 	});
@@ -95,10 +84,6 @@
 		if (!value) return;
 		adminToast.success({ title: value });
 	});
-	dialogs.showCreate.subscribe(value => showCreateDialog = value);
-	dialogs.showEdit.subscribe(value => showEditDialog = value);
-	dialogs.showDelete.subscribe(value => showDeleteDialog = value);
-
 	// Local state
 	let editingGroup: Group | null = null;
 	let groupToDelete: Group | null = null;
@@ -112,7 +97,8 @@
 	};
 
 	onMount(async () => {
-		await crudLoader.loadItems();
+		if (data.listLoadError) return;
+		await loadItems(data.initialItems !== undefined ? { background: true } : undefined);
 	});
 
 	function resetForm() {
@@ -276,7 +262,7 @@
 					failureLines.push(`#${i + 1}: ${handleError(e, 'Error')}`);
 				}
 			}
-			await crudLoader.loadItems();
+			await loadItems();
 			setImportSummaryMessage(created, failed);
 			if (failureLines.length) {
 				crudOps.error.set(failureLines.slice(0, 8).join(' · '));
@@ -327,12 +313,12 @@
 			{/if}
 
 			<!-- Groups List -->
-			{#if loading}
+			{#if $loading}
 				<div class="text-center py-8">
 					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-(--color-primary-600)"></div>
 					<p class="mt-2 text-(--color-surface-600-400)">{$t('admin.groupsLoading')}</p>
 				</div>
-			{:else if groups.length === 0}
+			{:else if $items.length === 0}
 				<div class="text-center py-8">
 					<svg
 						class="h-12 w-12 text-(--color-surface-400-600) mx-auto mb-4"
@@ -352,7 +338,7 @@
 				</div>
 			{:else}
 				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-					{#each groups as group}
+					{#each $items as group}
 						<div class="card preset-outlined-surface-200-800 bg-surface-50-950 p-4 flex flex-col">
 							<div class="flex items-start justify-between gap-2 mb-2">
 								<div class="min-w-0 flex-1">
@@ -418,7 +404,7 @@
 </div>
 
 <!-- Create Dialog -->
-{#if showCreateDialog}
+{#if $dialogs.showCreate}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
 		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
 			<h2 class="text-xl font-bold text-(--color-surface-950-50) mb-4">{$t('admin.groupsCreateDialogTitle')}</h2>
@@ -461,10 +447,10 @@
 					<button
 						type="button"
 						on:click={handleCreate}
-						disabled={saving || !formData.alias.trim()}
+						disabled={$crudOps.saving || !formData.alias.trim()}
 						class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
 					>
-						{#if saving}
+						{#if $crudOps.saving}
 							{$t('admin.groupsCreating')}
 						{:else}
 							{$t('admin.groupsCreateButton')}
@@ -477,7 +463,7 @@
 {/if}
 
 <!-- Edit Dialog -->
-{#if showEditDialog && editingGroup}
+{#if $dialogs.showEdit && editingGroup}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
 		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full max-w-md p-6">
 			<h2 class="text-xl font-bold text-(--color-surface-950-50) mb-4">{$t('admin.groupsEditDialogTitle')}</h2>
@@ -523,10 +509,10 @@
 					<button
 						type="button"
 						on:click={handleEdit}
-						disabled={saving}
+						disabled={$crudOps.saving}
 						class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
 					>
-						{#if saving}
+						{#if $crudOps.saving}
 							{$t('admin.groupsUpdating')}
 						{:else}
 							{$t('admin.groupsUpdateButton')}
@@ -539,7 +525,7 @@
 {/if}
 
 <!-- Delete Dialog -->
-{#if showDeleteDialog && groupToDelete}
+{#if $dialogs.showDelete && groupToDelete}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
 		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full max-w-md p-6">
 			<h2 class="text-xl font-bold text-(--color-surface-950-50) mb-4">{$t('admin.groupsDeleteDialogTitle')}</h2>
@@ -574,10 +560,10 @@
 					<button
 						type="button"
 						on:click={handleDelete}
-						disabled={saving}
+						disabled={$crudOps.saving}
 						class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 text-sm font-medium"
 					>
-						{#if saving}
+						{#if $crudOps.saving}
 							{$t('admin.groupsDeleting')}
 						{:else}
 							{$t('admin.groupsDeleteButton')}

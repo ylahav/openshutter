@@ -1,15 +1,30 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { get } from 'svelte/store';
+	import { get, writable } from 'svelte/store';
+	import { adminQueryHref } from '$lib/admin/adminQueryHref';
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 	import { t } from '$stores/i18n';
 	import StorageTreeItem from '$lib/components/StorageTreeItem.svelte';
+	import StorageProviderPanel from '$lib/components/admin/StorageProviderPanel.svelte';
 
 	/** When true, load/save site-wide settings via `/api/admin/storage/*` (admin role only). */
 	export let isSiteAdmin = false;
 
 	export let backHref = '/owner';
+
+	/** Preloaded from `/admin/storage` page load (avoids stuck spinner on hard refresh). */
+	export let initialStorageConfigs: Array<{
+		providerId: string;
+		name?: string;
+		isEnabled?: boolean;
+		config?: Record<string, unknown>;
+	}> | null = null;
+
+	export let storageLoadError = '';
+
+	/** Optional `?provider=` from `/admin/storage` for reliable tab selection in Svelte 5. */
+	export let initialProvider = '';
 
 	interface StorageOption {
 		id: string;
@@ -49,11 +64,38 @@
 	/** Mirrors profile: dedicated per-owner `owner_storage_configs` instead of profile.storageConfig. */
 	let dedicatedMode = false;
 	let storageOptions: StorageOption[] = [];
-	let loading = true;
+	const loading = writable(!(initialStorageConfigs?.length || storageLoadError));
 	let saving = false;
-	let error: string | null = null;
+	let error: string | null = storageLoadError || null;
 	let success: string | null = null;
-	let activeTab = '';
+	/** Owner routes: local tab id. Site admin: driven by `initialProvider` / `?provider=` from parent. */
+	const ownerTab = writable('');
+
+	function isBespokeProvider(id: string) {
+		return (
+			id === 'local' ||
+			id === 'google-drive' ||
+			id === 'wasabi' ||
+			id === 'aws-s3' ||
+			id === 'backblaze'
+		);
+	}
+
+	$: activeTabId = (() => {
+		if (isSiteAdmin) {
+			if (initialProvider && storageOptions.some((o) => o.id === initialProvider)) {
+				return initialProvider;
+			}
+			return storageOptions[0]?.id ?? '';
+		}
+		const picked = get(ownerTab);
+		if (picked && storageOptions.some((o) => o.id === picked)) return picked;
+		return storageOptions[0]?.id ?? '';
+	})();
+
+	function selectProvider(providerId: string) {
+		if (!isSiteAdmin) ownerTab.set(providerId);
+	}
 
 	let formData = {
 		storageRootFolderId: '',
@@ -71,6 +113,16 @@
 		wasabiRegion: '',
 		wasabiAccessKeyId: '',
 		wasabiSecretAccessKey: '',
+		awsAccessKeyId: '',
+		awsSecretAccessKey: '',
+		awsRegion: '',
+		awsBucketName: '',
+		awsEndpoint: '',
+		bbApplicationKeyId: '',
+		bbApplicationKey: '',
+		bbBucketName: '',
+		bbRegion: '',
+		bbEndpoint: '',
 		localBasePath: ''
 	};
 
@@ -97,7 +149,19 @@
 		return null;
 	}
 
-	$: activeOption = storageOptions.find((o) => o.id === activeTab) || storageOptions[0];
+	const FETCH_TIMEOUT_MS = 20_000;
+
+	async function fetchWithTimeout(url: string, init?: RequestInit): Promise<Response> {
+		const controller = new AbortController();
+		const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+		try {
+			return await fetch(url, { ...init, signal: controller.signal });
+		} finally {
+			clearTimeout(timer);
+		}
+	}
+
+	$: activeOption = storageOptions.find((o) => o.id === activeTabId) || storageOptions[0];
 
 	$: googleDriveOwnerConfigured =
 		formData.gdAuthMethod === 'service_account'
@@ -105,6 +169,42 @@
 			: !!(formData.gdClientId?.trim() &&
 					formData.gdClientSecret?.trim() &&
 					formData.gdRefreshToken?.trim());
+
+	function applyAwsS3FormFromConfig(c: Record<string, unknown>) {
+		formData.awsAccessKeyId = String(c.accessKeyId ?? '');
+		formData.awsSecretAccessKey = String(c.secretAccessKey ?? '');
+		formData.awsRegion = String(c.region ?? '');
+		formData.awsBucketName = String(c.bucketName ?? '');
+		formData.awsEndpoint = String(c.endpoint ?? '');
+	}
+
+	function applyBackblazeFormFromConfig(c: Record<string, unknown>) {
+		formData.bbApplicationKeyId = String(c.applicationKeyId ?? '');
+		formData.bbApplicationKey = String(c.applicationKey ?? '');
+		formData.bbBucketName = String(c.bucketName ?? '');
+		formData.bbRegion = String(c.region ?? '');
+		formData.bbEndpoint = String(c.endpoint ?? '');
+	}
+
+	function buildAwsS3Config(): Record<string, unknown> {
+		return {
+			accessKeyId: formData.awsAccessKeyId?.trim() || undefined,
+			secretAccessKey: formData.awsSecretAccessKey?.trim() || undefined,
+			region: formData.awsRegion?.trim() || undefined,
+			bucketName: formData.awsBucketName?.trim() || undefined,
+			endpoint: formData.awsEndpoint?.trim() || undefined,
+		};
+	}
+
+	function buildBackblazeConfig(): Record<string, unknown> {
+		return {
+			applicationKeyId: formData.bbApplicationKeyId?.trim() || undefined,
+			applicationKey: formData.bbApplicationKey?.trim() || undefined,
+			bucketName: formData.bbBucketName?.trim() || undefined,
+			region: formData.bbRegion?.trim() || undefined,
+			endpoint: formData.bbEndpoint?.trim() || undefined,
+		};
+	}
 
 	function applyGoogleDriveFormFromConfig(c: Record<string, unknown>) {
 		formData.gdAuthMethod = String(c.authMethod ?? 'oauth');
@@ -121,13 +221,8 @@
 		formData.storageFolderPrefix = String(c.folderPrefix ?? '');
 	}
 
-	async function loadSiteAdminConfigsFromApi() {
-		const res = await fetch('/api/admin/storage');
-		if (!res.ok) await handleApiErrorResponse(res);
-		const configs = await res.json();
-		if (!Array.isArray(configs)) return;
-
-		storageOptions = configs.map((row: Record<string, any>) => ({
+	function applySiteAdminStorageRows(configs: Array<Record<string, unknown>>) {
+		storageOptions = configs.map((row) => ({
 			id: row.providerId as string,
 			name: (row.name as string) || (row.providerId as string),
 			type: row.providerId as string,
@@ -149,6 +244,10 @@
 				formData.wasabiRegion = String(c.region ?? '');
 				formData.wasabiAccessKeyId = String(c.accessKeyId ?? '');
 				formData.wasabiSecretAccessKey = String(c.secretAccessKey ?? '');
+			} else if (id === 'aws-s3') {
+				applyAwsS3FormFromConfig(c);
+			} else if (id === 'backblaze') {
+				applyBackblazeFormFromConfig(c);
 			} else if (id === 'local') {
 				formData.localBasePath = String(c.basePath ?? '');
 			} else {
@@ -156,6 +255,21 @@
 			}
 		}
 		dedicatedRawJson = { ...dedicatedRawJson };
+		if (storageOptions.length > 0 && !get(ownerTab) && !isSiteAdmin) {
+			ownerTab.set(storageOptions[0].id);
+		}
+	}
+
+	async function loadSiteAdminConfigsFromApi() {
+		const res = await fetchWithTimeout('/api/admin/storage');
+		if (!res.ok) await handleApiErrorResponse(res);
+		const configs = await res.json();
+		if (!Array.isArray(configs)) return;
+		applySiteAdminStorageRows(configs);
+	}
+
+	if (initialStorageConfigs?.length) {
+		applySiteAdminStorageRows(initialStorageConfigs);
 	}
 
 	async function pingGoogleDriveAdminTest() {
@@ -163,7 +277,7 @@
 		googleDriveLiveTesting = true;
 		googleDriveLiveOk = null;
 		try {
-			const r = await fetch('/api/admin/storage/google-drive/test', { method: 'POST' });
+			const r = await fetchWithTimeout('/api/admin/storage/google-drive/test', { method: 'POST' });
 			const j = await r.json().catch(() => ({}));
 			googleDriveLiveOk = r.ok && j.success === true;
 		} catch {
@@ -211,6 +325,10 @@
 			body.region = formData.wasabiRegion?.trim() || undefined;
 			body.accessKeyId = formData.wasabiAccessKeyId?.trim() || undefined;
 			body.secretAccessKey = formData.wasabiSecretAccessKey?.trim() || undefined;
+		} else if (providerId === 'aws-s3') {
+			Object.assign(body, buildAwsS3Config());
+		} else if (providerId === 'backblaze') {
+			Object.assign(body, buildBackblazeConfig());
 		} else if (providerId === 'local') {
 			body.basePath = formData.localBasePath?.trim() || undefined;
 		} else {
@@ -258,19 +376,24 @@
 
 	onMount(async () => {
 		try {
-			await fetchProfile();
-			dedicatedMode = !isSiteAdmin && profile?.useDedicatedStorage === true;
+			if (!isSiteAdmin) {
+				await fetchProfile();
+				dedicatedMode = profile?.useDedicatedStorage === true;
+			}
 			if (isSiteAdmin) {
 				await loadSiteAdminConfigsFromApi();
-				await pingGoogleDriveAdminTest();
+				void pingGoogleDriveAdminTest();
 			} else {
 				await Promise.all([
 					fetchStorageOptions(),
 					dedicatedMode ? fetchDedicatedConfigs() : Promise.resolve(),
 				]);
 			}
+		} catch (err) {
+			logger.error('Failed to load storage view:', err);
+			error = handleError(err, get(t)('admin.failedToLoadStorageConfiguration'));
 		} finally {
-			loading = false;
+			loading.set(false);
 		}
 		setupGoogleOAuthListener();
 	});
@@ -410,6 +533,12 @@
 				isEnabled: true,
 			};
 		}
+		if (providerId === 'aws-s3') {
+			return { config: buildAwsS3Config(), isEnabled: true };
+		}
+		if (providerId === 'backblaze') {
+			return { config: buildBackblazeConfig(), isEnabled: true };
+		}
 		if (providerId === 'local') {
 			return {
 				config: {
@@ -468,6 +597,10 @@
 					formData.wasabiRegion = String(c.region ?? '');
 					formData.wasabiAccessKeyId = String(c.accessKeyId ?? '');
 					formData.wasabiSecretAccessKey = String(c.secretAccessKey ?? '');
+				} else if (id === 'aws-s3') {
+					applyAwsS3FormFromConfig(c);
+				} else if (id === 'backblaze') {
+					applyBackblazeFormFromConfig(c);
 				} else if (id === 'local') {
 					formData.localBasePath = String(c.basePath ?? '');
 				} else {
@@ -481,27 +614,27 @@
 		}
 	}
 
-	$: if (storageOptions.length > 0 && !activeTab) {
-		activeTab = storageOptions[0].id;
+	$: if (storageOptions.length > 0 && !get(ownerTab) && !isSiteAdmin) {
+		ownerTab.set(storageOptions[0].id);
 	}
 
 	$: if (
 		dedicatedMode &&
-		activeTab &&
-		!['google-drive', 'wasabi', 'local'].includes(activeTab) &&
-		dedicatedRawJson[activeTab] === undefined
+		activeTabId &&
+		!isBespokeProvider(activeTabId) &&
+		dedicatedRawJson[activeTabId] === undefined
 	) {
-		dedicatedRawJson[activeTab] = '{}';
+		dedicatedRawJson[activeTabId] = '{}';
 		dedicatedRawJson = { ...dedicatedRawJson };
 	}
 
 	$: if (
 		isSiteAdmin &&
-		activeTab &&
-		!['google-drive', 'wasabi', 'local'].includes(activeTab) &&
-		dedicatedRawJson[activeTab] === undefined
+		activeTabId &&
+		!isBespokeProvider(activeTabId) &&
+		dedicatedRawJson[activeTabId] === undefined
 	) {
-		dedicatedRawJson[activeTab] = '{}';
+		dedicatedRawJson[activeTabId] = '{}';
 		dedicatedRawJson = { ...dedicatedRawJson };
 	}
 
@@ -579,7 +712,7 @@
 
 	async function handleSubmit(e: Event, _providerId?: string) {
 		e.preventDefault();
-		const providerId = _providerId || activeTab;
+		const providerId = _providerId || activeTabId;
 		if (!profile) return;
 
 		if (isSiteAdmin) {
@@ -643,7 +776,7 @@
 		!isSiteAdmin && !dedicatedMode && profile?.storageConfig?.useAdminConfig === true;
 </script>
 
-{#if loading}
+{#if $loading}
 	<div class="min-h-[40vh] flex items-center justify-center">
 		<div class="text-center">
 			<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
@@ -706,16 +839,15 @@
 				<!-- Tabs -->
 				<div class="border-b border-gray-200">
 					<nav class="-mb-px flex space-x-8 px-6" aria-label="Tabs">
-						{#each storageOptions as option}
-							<button
-								type="button"
-								on:click={() => (activeTab = option.id)}
-								class="py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap flex items-center gap-2 {activeTab === option.id
-									? 'border-green-600 text-green-600'
-									: 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}"
-							>
-								<span>{option.name}</span>
-								{#if isSiteAdmin}
+						{#each storageOptions as option (option.id)}
+							{#if isSiteAdmin}
+								<a
+									href={adminQueryHref('/admin/storage', { provider: option.id })}
+									class="py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap flex items-center gap-2 no-underline {activeTabId === option.id
+										? 'border-green-600 text-green-600'
+										: 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}"
+								>
+									<span>{option.name}</span>
 									<span
 										class="text-xs font-normal px-2 py-0.5 rounded-full {option.isEnabled
 											? 'bg-green-100 text-green-800'
@@ -723,8 +855,18 @@
 									>
 										{option.isEnabled ? $t('admin.enabled') : $t('admin.inactive')}
 									</span>
-								{/if}
-							</button>
+								</a>
+							{:else}
+								<button
+									type="button"
+									on:click={() => selectProvider(option.id)}
+									class="py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap flex items-center gap-2 {activeTabId === option.id
+										? 'border-green-600 text-green-600'
+										: 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}"
+								>
+									<span>{option.name}</span>
+								</button>
+							{/if}
 						{/each}
 					</nav>
 				</div>
@@ -743,7 +885,7 @@
 								disabled={saving}
 								on:change={(e) => {
 									const on = (e.currentTarget as HTMLInputElement).checked;
-									void toggleSiteAdminProviderEnabled(activeTab, on);
+									void toggleSiteAdminProviderEnabled(activeTabId, on);
 								}}
 							/>
 							<span class="text-sm text-gray-800">
@@ -755,7 +897,7 @@
 
 				<!-- Tab content -->
 				<div class="p-6">
-					{#if activeTab === 'local'}
+					<StorageProviderPanel tabId="local" activeTab={activeTabId}>
 						<div class="space-y-4">
 							<h2 class="text-xl font-semibold text-gray-900">{$t('owner.storageLocalDedicatedTitle')}</h2>
 							<p class="text-sm text-gray-500">
@@ -781,7 +923,9 @@
 								</button>
 							</form>
 						</div>
-					{:else if activeTab === 'google-drive'}
+					</StorageProviderPanel>
+
+					<StorageProviderPanel tabId="google-drive" activeTab={activeTabId}>
 						<div class="space-y-6">
 							<div class="flex flex-wrap items-start justify-between gap-4">
 								<div class="min-w-0 flex-1">
@@ -966,8 +1110,9 @@
 								</div>
 							</form>
 						</div>
+					</StorageProviderPanel>
 
-					{:else if activeTab === 'wasabi'}
+					<StorageProviderPanel tabId="wasabi" activeTab={activeTabId}>
 						<div class="space-y-4">
 							<h2 class="text-lg font-semibold text-gray-900">Wasabi</h2>
 							<p class="text-sm text-gray-500">Configure your Wasabi (S3-compatible) connection. Your credentials are stored in your account only.</p>
@@ -1031,57 +1176,224 @@
 								</button>
 							</form>
 						</div>
+					</StorageProviderPanel>
 
-					{:else}
+					<StorageProviderPanel tabId="aws-s3" activeTab={activeTabId}>
 						<div class="space-y-4">
-							<h2 class="text-lg font-semibold text-gray-900">{activeOption?.name ?? activeTab}</h2>
-							{#if dedicatedMode}
-								<p class="text-sm text-gray-500">
-									{$t('owner.storageGenericDedicatedHelp')}
-								</p>
-								<form on:submit={(e) => handleSubmit(e, activeTab)} class="space-y-4">
-									{#key activeTab}
-										<textarea
-											rows="14"
-											bind:value={dedicatedRawJson[activeTab]}
-											class="w-full font-mono text-xs border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-green-500"
-										></textarea>
-									{/key}
-									<button
-										type="submit"
-										disabled={saving}
-										class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
+							<h2 class="text-xl font-semibold text-gray-900">Amazon S3</h2>
+							<p class="text-sm text-gray-500">
+								{isSiteAdmin
+									? 'Configure site-wide Amazon S3 credentials below.'
+									: 'Your dedicated Amazon S3 credentials (stored for your account only).'}
+							</p>
+							<form on:submit={(e) => handleSubmit(e, 'aws-s3')} class="space-y-4">
+								<div>
+									<label for="owner-aws-access-key" class="block text-sm font-medium text-gray-700 mb-1"
+										>Access Key ID</label
 									>
-										{saving ? $t('owner.saving') : $t('owner.storageGenericSave')}
-									</button>
-								</form>
-							{:else if isSiteAdmin}
-								<p class="text-sm text-gray-500">
-									{$t('admin.storageGenericSiteAdminHelp')}
-								</p>
-								<form on:submit={(e) => handleSubmit(e, activeTab)} class="space-y-4">
-									{#key activeTab}
-										<textarea
-											rows="14"
-											bind:value={dedicatedRawJson[activeTab]}
-											class="w-full font-mono text-xs border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-green-500"
-										></textarea>
-									{/key}
-									<button
-										type="submit"
-										disabled={saving}
-										class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
+									<input
+										id="owner-aws-access-key"
+										type="text"
+										bind:value={formData.awsAccessKeyId}
+										placeholder="AWS Access Key ID"
+										class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+									/>
+								</div>
+								<div>
+									<label for="owner-aws-secret-key" class="block text-sm font-medium text-gray-700 mb-1"
+										>Secret Access Key</label
 									>
-										{saving ? $t('admin.saving') : $t('admin.saveConfiguration')}
-									</button>
-								</form>
-							{:else}
-								<p class="text-sm text-gray-500">
-									Per-owner configuration for this provider is not available yet. Connection is managed by the main site.
-								</p>
-							{/if}
+									<input
+										id="owner-aws-secret-key"
+										type="password"
+										bind:value={formData.awsSecretAccessKey}
+										placeholder="AWS Secret Access Key"
+										class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+									/>
+								</div>
+								<div>
+									<label for="owner-aws-region" class="block text-sm font-medium text-gray-700 mb-1"
+										>Region</label
+									>
+									<input
+										id="owner-aws-region"
+										type="text"
+										bind:value={formData.awsRegion}
+										placeholder="e.g. us-east-1"
+										class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+									/>
+								</div>
+								<div>
+									<label for="owner-aws-bucket" class="block text-sm font-medium text-gray-700 mb-1"
+										>Bucket name</label
+									>
+									<input
+										id="owner-aws-bucket"
+										type="text"
+										bind:value={formData.awsBucketName}
+										placeholder="Your S3 bucket name"
+										class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+									/>
+								</div>
+								<div>
+									<label for="owner-aws-endpoint" class="block text-sm font-medium text-gray-700 mb-1"
+										>Endpoint <span class="text-gray-400 font-normal">(optional)</span></label
+									>
+									<input
+										id="owner-aws-endpoint"
+										type="text"
+										bind:value={formData.awsEndpoint}
+										placeholder="Leave empty for standard AWS S3"
+										class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+									/>
+								</div>
+								<button
+									type="submit"
+									disabled={saving}
+									class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
+								>
+									{saving ? $t('admin.saving') : 'Save Amazon S3'}
+								</button>
+							</form>
 						</div>
-					{/if}
+					</StorageProviderPanel>
+
+					<StorageProviderPanel tabId="backblaze" activeTab={activeTabId}>
+						<div class="space-y-4">
+							<h2 class="text-xl font-semibold text-gray-900">Backblaze B2</h2>
+							<p class="text-sm text-gray-500">
+								{isSiteAdmin
+									? 'Configure site-wide Backblaze B2 credentials below (application key from the B2 console).'
+									: 'Your dedicated Backblaze B2 credentials (stored for your account only).'}
+							</p>
+							<form on:submit={(e) => handleSubmit(e, 'backblaze')} class="space-y-4">
+								<div>
+									<label for="owner-bb-app-key-id" class="block text-sm font-medium text-gray-700 mb-1"
+										>Application Key ID</label
+									>
+									<input
+										id="owner-bb-app-key-id"
+										type="text"
+										bind:value={formData.bbApplicationKeyId}
+										placeholder="24-character key ID (starts with K)"
+										class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+									/>
+								</div>
+								<div>
+									<label for="owner-bb-app-key" class="block text-sm font-medium text-gray-700 mb-1"
+										>Application Key</label
+									>
+									<input
+										id="owner-bb-app-key"
+										type="password"
+										bind:value={formData.bbApplicationKey}
+										placeholder="32-character application key"
+										class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+									/>
+								</div>
+								<div>
+									<label for="owner-bb-bucket" class="block text-sm font-medium text-gray-700 mb-1"
+										>Bucket name</label
+									>
+									<input
+										id="owner-bb-bucket"
+										type="text"
+										bind:value={formData.bbBucketName}
+										placeholder="B2 bucket name"
+										class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+									/>
+								</div>
+								<div>
+									<label for="owner-bb-region" class="block text-sm font-medium text-gray-700 mb-1"
+										>Region</label
+									>
+									<input
+										id="owner-bb-region"
+										type="text"
+										bind:value={formData.bbRegion}
+										placeholder="e.g. us-west-002"
+										class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+									/>
+								</div>
+								<div>
+									<label for="owner-bb-endpoint" class="block text-sm font-medium text-gray-700 mb-1"
+										>Endpoint</label
+									>
+									<input
+										id="owner-bb-endpoint"
+										type="text"
+										bind:value={formData.bbEndpoint}
+										placeholder="e.g. https://s3.us-west-002.backblazeb2.com"
+										class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+									/>
+									<p class="mt-1 text-xs text-gray-500">
+										S3-compatible endpoint for your bucket region. If empty, a default Backblaze
+										endpoint is derived from the region.
+									</p>
+								</div>
+								<button
+									type="submit"
+									disabled={saving}
+									class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
+								>
+									{saving ? $t('admin.saving') : 'Save Backblaze'}
+								</button>
+							</form>
+						</div>
+					</StorageProviderPanel>
+
+					{#each storageOptions.filter((o) => !isBespokeProvider(o.id)) as option (option.id)}
+						<StorageProviderPanel tabId={option.id} activeTab={activeTabId}>
+							<div class="space-y-4">
+								<h2 class="text-lg font-semibold text-gray-900">{option.name}</h2>
+								{#if dedicatedMode}
+									<p class="text-sm text-gray-500">
+										{$t('owner.storageGenericDedicatedHelp')}
+									</p>
+									<form on:submit={(e) => handleSubmit(e, option.id)} class="space-y-4">
+										{#key option.id}
+											<textarea
+												rows="14"
+												bind:value={dedicatedRawJson[option.id]}
+												class="w-full font-mono text-xs border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-green-500"
+											></textarea>
+										{/key}
+										<button
+											type="submit"
+											disabled={saving}
+											class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
+										>
+											{saving ? $t('owner.saving') : $t('owner.storageGenericSave')}
+										</button>
+									</form>
+								{:else if isSiteAdmin}
+									<p class="text-sm text-gray-500">
+										{$t('admin.storageGenericSiteAdminHelp')}
+									</p>
+									<form on:submit={(e) => handleSubmit(e, option.id)} class="space-y-4">
+										{#key option.id}
+											<textarea
+												rows="14"
+												bind:value={dedicatedRawJson[option.id]}
+												class="w-full font-mono text-xs border border-gray-300 rounded-md p-2 focus:ring-2 focus:ring-green-500"
+											></textarea>
+										{/key}
+										<button
+											type="submit"
+											disabled={saving}
+											class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
+										>
+											{saving ? $t('admin.saving') : $t('admin.saveConfiguration')}
+										</button>
+									</form>
+								{:else}
+									<p class="text-sm text-gray-500">
+										Per-owner configuration for this provider is not available yet. Connection is managed by the main site.
+									</p>
+								{/if}
+							</div>
+						</StorageProviderPanel>
+					{/each}
 				</div>
 			</div>
 

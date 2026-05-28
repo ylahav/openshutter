@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { writable } from 'svelte/store';
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
@@ -36,7 +37,7 @@
 		sortOrder: 0
 	};
 
-	let loading = true;
+	const loading = writable(true);
 	let saving = false;
 
 	onMount(async () => {
@@ -47,7 +48,7 @@
 		if (!categoryId) return;
 
 		try {
-			loading = true;
+			loading.set(true);
 			const response = await fetch(`/api/admin/blog-categories/${categoryId}`);
 			if (!response.ok) {
 				throw new Error(get(t)('admin.failedToLoadCategory'));
@@ -68,7 +69,7 @@
 				title: err instanceof Error ? err.message : get(t)('admin.unknown'),
 			});
 		} finally {
-			loading = false;
+			loading.set(false);
 		}
 	}
 
@@ -113,7 +114,7 @@
 	<title>{$t('admin.editCategory')} - {$t('navigation.admin')}</title>
 </svelte:head>
 
-{#if loading}
+{#if $loading}
 	<div class="min-h-[50vh] flex items-center justify-center">
 		<div class="text-center">
 			<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-(--color-primary-600) mx-auto"></div>

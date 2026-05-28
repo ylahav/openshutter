@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { get } from 'svelte/store';
 	import { goto } from '$app/navigation';
+	import { useCrudLoader } from '$lib/composables/useCrudLoader';
 	import { MultiLangUtils } from '$lib/utils/multiLang';
 	import { currentLanguage } from '$lib/stores/language';
 	import { logger } from '$lib/utils/logger';
@@ -10,6 +12,10 @@
 	import { adminToast } from '$lib/admin/adminToast';
 	import { adminBtnPrimarySm, adminRingPrimary } from '$lib/admin/admin-cerberus';
 	import AdminConfirmDialog from '$lib/components/admin/AdminConfirmDialog.svelte';
+	import type { PageData } from './$types';
+
+	export let data: PageData;
+
 	interface BlogArticleRow {
 		_id: string;
 		title: string | { en?: string; he?: string };
@@ -21,9 +27,21 @@
 		leadingImage?: { url: string; alt?: string | { en?: string; he?: string } };
 	}
 
-	let articles: BlogArticleRow[] = [];
+	const { items, loading, error: listLoadError, loadItems } = useCrudLoader<BlogArticleRow>(
+		'/api/admin/blog-articles',
+		{
+			searchParam: 'search',
+			searchValue: () => searchTerm,
+			filterParams: {
+				category: () => categoryFilter,
+				isPublished: () => statusFilter,
+			},
+			initialItems: data.initialItems as BlogArticleRow[],
+			initialLoadError: data.listLoadError,
+		},
+	);
+
 	let categoryOptions: string[] = [];
-	let loading = true;
 	let searchTerm = '';
 	let categoryFilter = '';
 	let statusFilter = '';
@@ -39,7 +57,9 @@
 	};
 
 	onMount(async () => {
-		await Promise.all([loadCategoryOptions(), fetchArticles()]);
+		await loadCategoryOptions();
+		const hasPreload = (data.initialItems?.length ?? 0) > 0 || Boolean(data.listLoadError);
+		await loadItems({ background: hasPreload });
 	});
 
 	async function loadCategoryOptions() {
@@ -53,27 +73,6 @@
 				.filter(Boolean);
 		} catch (e) {
 			logger.warn('Failed to load category list:', e);
-		}
-	}
-
-	async function fetchArticles() {
-		try {
-			loading = true;
-			const params = new URLSearchParams();
-			if (searchTerm) params.set('search', searchTerm);
-			if (categoryFilter) params.set('category', categoryFilter);
-			if (statusFilter) params.set('isPublished', statusFilter);
-
-			const response = await fetch(`/api/admin/blog-articles?${params.toString()}`);
-			if (!response.ok) await handleApiErrorResponse(response);
-
-			const result = await response.json();
-			articles = Array.isArray(result?.data) ? result.data : Array.isArray(result) ? result : [];
-		} catch (err) {
-			logger.error('Failed to fetch articles:', err);
-			adminToast.error({ title: handleError(err, $t('owner.requestFailed')) });
-		} finally {
-			loading = false;
 		}
 	}
 
@@ -92,10 +91,10 @@
 		try {
 			const response = await fetch(`/api/admin/blog-articles/${id}`, { method: 'DELETE' });
 			if (!response.ok) await handleApiErrorResponse(response);
-			articles = articles.filter((a) => a._id !== id);
+			items.update((list) => list.filter((a) => a._id !== id));
 			closeDeleteArticleDialog();
 		} catch (err) {
-			adminToast.error({ title: handleError(err, $t('owner.failedToDelete')) });
+			adminToast.error({ title: handleError(err, get(t)('owner.failedToDelete')) });
 			deleteArticleDialog = { ...deleteArticleDialog, isDeleting: false };
 		}
 	}
@@ -109,14 +108,15 @@
 			});
 			if (!response.ok) await handleApiErrorResponse(response);
 			const result = await response.json();
-			const updatedArticle = (result && result.data) ? result.data : result;
-			articles = articles.map((a) =>
-				a._id === article._id
-					? { ...a, isPublished: Boolean((updatedArticle as { isPublished?: boolean })?.isPublished ?? !a.isPublished) }
-					: a
+			const updatedArticle = result && result.data ? result.data : result;
+			const published = Boolean(
+				(updatedArticle as { isPublished?: boolean })?.isPublished ?? !article.isPublished,
+			);
+			items.update((list) =>
+				list.map((a) => (a._id === article._id ? { ...a, isPublished: published } : a)),
 			);
 		} catch (err) {
-			adminToast.error({ title: handleError(err, $t('owner.failedToUpdate')) });
+			adminToast.error({ title: handleError(err, get(t)('owner.failedToUpdate')) });
 		}
 	}
 
@@ -130,7 +130,7 @@
 	<title>{$t('admin.blogArticles')} - {$productName}</title>
 </svelte:head>
 
-{#if loading}
+{#if $loading}
 	<div class="min-h-[50vh] flex items-center justify-center">
 		<div class="text-center">
 			<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-(--color-primary-600) mx-auto"></div>
@@ -208,15 +208,21 @@
 				</div>
 				<button
 					type="button"
-					on:click={fetchArticles}
+					on:click={() => loadItems()}
 					class="{adminBtnPrimarySm} {adminRingPrimary} mt-4 inline-flex items-center"
 				>
 					{$t('owner.filter')}
 				</button>
 			</div>
 
+			{#if $listLoadError}
+				<div class="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+					{$listLoadError}
+				</div>
+			{/if}
+
 			<div class="card preset-outlined-surface-200-800 bg-surface-50-950 overflow-hidden">
-				{#if articles.length === 0}
+				{#if $items.length === 0}
 					<div class="text-center py-12 text-(--color-surface-600-400)">
 						<p class="mb-4">{$t('owner.noArticles')}</p>
 						<button
@@ -243,7 +249,7 @@
 								</tr>
 							</thead>
 							<tbody class="divide-y divide-surface-200-800">
-								{#each articles as article}
+								{#each $items as article (article._id)}
 									<tr class="hover:bg-(--color-surface-50-950)">
 										<td class="px-4 py-3">
 											<div class="flex items-center gap-3">

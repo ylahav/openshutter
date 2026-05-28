@@ -3,7 +3,8 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { AdminGuard } from '../common/guards/admin.guard';
 import type { MulterIncomingFile } from '../common/types/multer-incoming-file';
 import { connectDB } from '../config/db';
-import mongoose, { Types } from 'mongoose';
+import mongoose from 'mongoose';
+import { documentForRestore } from './backup-restore.util';
 
 @Controller('admin/backup')
 @UseGuards(AdminGuard)
@@ -68,6 +69,11 @@ export class BackupController {
       if (!backup || !backup.collections) {
         throw new BadRequestException('Invalid backup format');
       }
+      if (backup.prepared !== true && backup.version !== '1.1') {
+        this.logger.warn(
+          'Restoring an unprepared backup. Run scripts/prepare-database-backup.mjs first for a clean starting point.',
+        );
+      }
 
       await connectDB();
       const db = mongoose.connection.db;
@@ -83,11 +89,9 @@ export class BackupController {
       const restoredCollections: string[] = [];
       for (const [collectionName, documents] of Object.entries(backup.collections)) {
         if (Array.isArray(documents)) {
-          // Convert string IDs back to ObjectId
-          const documentsWithObjectIds = documents.map((doc: any) => ({
-            ...doc,
-            _id: new Types.ObjectId(doc._id),
-          }));
+          const documentsWithObjectIds = documents.map((doc: any) =>
+            documentForRestore(collectionName, doc as Record<string, unknown>),
+          );
 
           if (documentsWithObjectIds.length > 0) {
             await db.collection(collectionName).insertMany(documentsWithObjectIds);

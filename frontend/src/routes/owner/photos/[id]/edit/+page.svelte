@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { writable } from 'svelte/store';
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
 	import { page } from '$app/stores';
@@ -71,7 +72,7 @@
 
 	let photoId: string = '';
 	let photo: Photo | null = null;
-	let loading = true;
+	const loading = writable(true);
 	let saving = false;
 	let regeneratingThumbnails = false;
 	let rotatingPhoto = false;
@@ -109,7 +110,7 @@
 		photo = data.photo;
 		lastLoadedPhotoId = photoId;
 		loadPhotoCalled = true;
-		loading = false;
+		loading.set(false);
 		error = '';
 		formData.title = typeof data.photo.title === 'string' ? { en: data.photo.title } : data.photo.title || {};
 		formData.description = typeof data.photo.description === 'string' ? { en: data.photo.description } : data.photo.description || {};
@@ -142,7 +143,7 @@
 		loadPhoto().catch((err) => {
 			logger.error('[Reactive] loadPhoto error:', err);
 			error = handleError(err, 'Failed to load photo');
-			loading = false;
+			loading.set(false);
 			loadPhotoCalled = false; // Reset on error so it can retry
 			lastLoadedPhotoId = null; // Reset on error
 		});
@@ -180,7 +181,7 @@
 		
 		if (!photoId) {
 			error = 'No photo ID provided';
-			loading = false;
+			loading.set(false);
 			return;
 		}
 		
@@ -190,7 +191,7 @@
 		const controller = new AbortController();
 		
 		try {
-			loading = true;
+			loading.set(true);
 			error = '';
 			const url = `/api/admin/photos/${photoId}?t=${Date.now()}`;
 			
@@ -215,7 +216,7 @@
 				}
 				
 				const responseData = await response.json();
-				loading = false;
+				loading.set(false);
 				// Extract photo data from response (API returns { success: true, data: {...} })
 				let loadedPhoto = responseData.data || responseData;
 				// Normalize faceRecognition so UI always gets a clean faces array (ensures reactivity after detect)
@@ -335,7 +336,7 @@
 				clearTimeout(timeoutId);
 				timeoutId = null;
 			}
-			loading = false;
+			loading.set(false);
 			// Don't reset loadPhotoCalled here - it's reset when photoId changes in the reactive block above
 		}
 	}
@@ -664,7 +665,7 @@
 
 	onMount(() => {
 		if (!browser) {
-			loading = false;
+			loading.set(false);
 			return;
 		}
 		
@@ -679,11 +680,11 @@
 			loadPhoto().catch((err) => {
 				logger.error('[onMount] loadPhoto error:', err);
 				error = handleError(err, 'Failed to load photo');
-				loading = false;
+				loading.set(false);
 			});
 		} else {
 			error = 'No photo ID provided';
-			loading = false;
+			loading.set(false);
 		}
 		
 		loadOptions().catch((err) => {
@@ -703,7 +704,7 @@
 
 <div class="min-h-screen bg-gray-50">
 	<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-		{#if loading}
+		{#if $loading}
 			<div class="text-center py-12">
 				<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
 				<p class="mt-4 text-gray-600">Loading photo...!!!</p>

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { writable } from 'svelte/store';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
@@ -10,7 +11,7 @@
 		adminRingPrimary
 	} from '$lib/admin/admin-cerberus';
 
-	let loading = true;
+	const loading = writable(true);
 	let setupError = '';
 	let success = false;
 
@@ -19,7 +20,7 @@
 		if (!code) {
 			setupError = 'No authorization code received';
 			adminToast.error({ title: setupError });
-			loading = false;
+			loading.set(false);
 			return;
 		}
 
@@ -113,7 +114,7 @@
 				);
 			}
 		} finally {
-			loading = false;
+			loading.set(false);
 		}
 	});
 </script>
@@ -124,7 +125,7 @@
 
 <div class="min-h-[50vh] flex items-center justify-center p-4">
 	<div class="max-w-md w-full bg-(--color-surface-50-950) rounded-lg shadow-lg p-8">
-		{#if loading}
+		{#if $loading}
 			<div class="text-center">
 				<div
 					class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-(--color-primary-600) mb-4"

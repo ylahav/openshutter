@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { afterNavigate } from '$app/navigation';
+	import { page } from '$app/stores';
 	import { useCrudLoader } from '$lib/composables/useCrudLoader';
 	import { useCrudOperations } from '$lib/composables/useCrudOperations';
 	import { useDialogManager } from '$lib/composables/useDialogManager';
@@ -33,13 +35,15 @@
 	];
 
 	// Use CRUD composables for users
-	const crudLoader = useCrudLoader<User>('/api/admin/users', {
+	const { items, loading, error: usersLoadError, loadItems } = useCrudLoader<User>('/api/admin/users', {
 		searchParam: 'search',
 		searchValue: () => searchTerm,
 		filterParams: {
 			role: () => roleFilter,
 			blocked: () => blockedFilter
-		}
+		},
+		initialItems: data.initialItems,
+		initialLoadError: data.listLoadError
 	});
 	/** Payload sent to create/update user API (User fields + optional password). */
 	type UserPayload = Partial<Omit<User, '_id' | 'createdAt' | 'updatedAt'>> & { password?: string };
@@ -62,7 +66,7 @@
 			return payload as UserPayload;
 		},
 		onCreateSuccess: (newUser) => {
-			crudLoader.items.update((items) => [...items, newUser]);
+			items.update((list) => [...list, newUser]);
 			if (newUser.role === 'owner') {
 				crudOps.message.set(get(t)('admin.ownerCreatedNextSteps'));
 				openEditDialog(newUser);
@@ -74,8 +78,8 @@
 		onUpdateSuccess: (updatedUser) => {
 			const currentEditingUser = editingUser;
 			if (currentEditingUser) {
-				crudLoader.items.update(items => 
-					items.map(u => u._id === currentEditingUser._id ? updatedUser : u)
+				items.update(list =>
+					list.map(u => u._id === currentEditingUser._id ? updatedUser : u)
 				);
 			}
 			dialogs.closeAll();
@@ -85,8 +89,8 @@
 		onDeleteSuccess: () => {
 			const currentUserToDelete = userToDelete;
 			if (currentUserToDelete) {
-				crudLoader.items.update(items => 
-					items.filter(u => u._id !== currentUserToDelete._id)
+				items.update(list =>
+					list.filter(u => u._id !== currentUserToDelete._id)
 				);
 			}
 			dialogs.closeAll();
@@ -96,20 +100,14 @@
 	const dialogs = useDialogManager();
 
 	// Reactive stores from composables
-	let users: User[] = [];
 	let groups: Group[] = [];
-	let loading = false;
 	let loadingGroups = false;
 	let loadingOwnerDomains = false;
-	let saving = false;
 	let message = '';
 	let error = '';
 	let searchTerm = '';
 	let roleFilter = 'all';
 	let blockedFilter = 'all';
-	let showCreateDialog = false;
-	let showEditDialog = false;
-	let showDeleteDialog = false;
 	let editingUser: User | null = null;
 	let userToDelete: User | null = null;
 
@@ -127,20 +125,11 @@
 		isDeleting: false,
 	};
 
-	// Subscribe to stores
-	crudLoader.items.subscribe(value => users = value);
-	crudLoader.loading.subscribe(value => loading = value);
-	crudLoader.error.subscribe(value => {
-		if (value) error = value;
-	});
-	crudOps.saving.subscribe(value => saving = value);
+	// Subscribe to dialog/ops stores (list uses $items / $loading in template)
 	crudOps.error.subscribe(value => {
 		if (value) error = value;
 	});
 	crudOps.message.subscribe(value => message = value);
-	dialogs.showCreate.subscribe(value => showCreateDialog = value);
-	dialogs.showEdit.subscribe(value => showEditDialog = value);
-	dialogs.showDelete.subscribe(value => showDeleteDialog = value);
 
 	// Form state
 	let formData: UserFormData = {
@@ -160,7 +149,19 @@
 	let showPassword = false;
 
 	onMount(async () => {
-		await Promise.all([crudLoader.loadItems(), loadGroups()]);
+		if (data.listLoadError) {
+			return;
+		}
+		await Promise.all([
+			loadItems(data.initialItems !== undefined ? { background: true } : undefined),
+			loadGroups()
+		]);
+	});
+
+	afterNavigate(() => {
+		if ($page.url.pathname === '/admin/users') {
+			void loadItems();
+		}
 	});
 
 	async function loadGroups() {
@@ -429,17 +430,17 @@
 				bind:roleFilter
 				bind:blockedFilter
 				roles={ROLES}
-				onFilterChange={() => crudLoader.loadItems()}
+				onFilterChange={() => loadItems()}
 				onAddUser={openCreateDialog}
 			/>
 
 			<!-- Users List -->
-			{#if loading}
+			{#if $loading}
 				<div class="text-center py-8">
 					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-(--color-primary-600)"></div>
 					<p class="mt-2 text-(--color-surface-600-400)">{$t('admin.loadingUsers')}</p>
 				</div>
-			{:else if users.length === 0}
+			{:else if $items.length === 0}
 				<div class="text-center py-8">
 					<svg
 						class="h-12 w-12 text-(--color-surface-400-600) mx-auto mb-4"
@@ -454,12 +455,24 @@
 							d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
 						/>
 					</svg>
-					<h3 class="text-lg font-semibold text-(--color-surface-950-50) mb-2">{$t('admin.noUsersFound')}</h3>
-					<p class="text-(--color-surface-600-400)">{$t('admin.startByAddingFirstUser')}</p>
+					{#if $usersLoadError || error}
+						<h3 class="text-lg font-semibold text-(--color-surface-950-50) mb-2">{$t('admin.failedToLoadUsers')}</h3>
+						<p class="text-red-600 mb-4">{$usersLoadError || error}</p>
+						<button
+							type="button"
+							class="px-4 py-2 bg-(--color-primary-600) text-white rounded-md hover:bg-(--color-primary-700)"
+							on:click={() => loadItems()}
+						>
+							{$t('admin.retry')}
+						</button>
+					{:else}
+						<h3 class="text-lg font-semibold text-(--color-surface-950-50) mb-2">{$t('admin.noUsersFound')}</h3>
+						<p class="text-(--color-surface-600-400)">{$t('admin.startByAddingFirstUser')}</p>
+					{/if}
 				</div>
 			{:else}
 				<UserTable
-					users={users}
+					users={$items}
 					groups={groups}
 					onEdit={openEditDialog}
 					onDelete={openDeleteDialog}
@@ -470,7 +483,7 @@
 </div>
 
 <!-- Create Dialog -->
-{#if showCreateDialog}
+{#if $dialogs.showCreate}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
 		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
 			<h2 class="text-xl font-bold text-(--color-surface-950-50) mb-4">{$t('admin.addNewUser')}</h2>
@@ -506,10 +519,10 @@
 					<button
 						type="button"
 						on:click={handleCreate}
-						disabled={saving || !formData.username.trim()}
+						disabled={$crudOps.saving || !formData.username.trim()}
 						class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
 					>
-						{#if saving}
+						{#if $crudOps.saving}
 							{$t('admin.creatingUser')}
 						{:else}
 							{$t('admin.createUser')}
@@ -522,7 +535,7 @@
 {/if}
 
 <!-- Edit Dialog -->
-{#if showEditDialog && editingUser}
+{#if $dialogs.showEdit && editingUser}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
 		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
 			<h2 class="text-xl font-bold text-(--color-surface-950-50) mb-4">{$t('admin.editUser')}</h2>
@@ -579,10 +592,10 @@
 						type="button"
 						data-testid="admin-users-save-edit"
 						on:click={handleEdit}
-						disabled={saving}
+						disabled={$crudOps.saving}
 						class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
 					>
-						{#if saving}
+						{#if $crudOps.saving}
 							{$t('admin.updatingUser')}
 						{:else}
 							{$t('admin.updateUser')}
@@ -595,7 +608,7 @@
 {/if}
 
 <!-- Delete Dialog -->
-{#if showDeleteDialog && userToDelete}
+{#if $dialogs.showDelete && userToDelete}
 	<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
 		<div class="card preset-outlined-surface-200-800 bg-surface-50-950 shadow-xl w-full max-w-md p-6">
 			<h2 class="text-xl font-bold text-(--color-surface-950-50) mb-4">{$t('admin.deleteUser')}</h2>
@@ -631,10 +644,10 @@
 					<button
 						type="button"
 						on:click={handleDelete}
-						disabled={saving}
+						disabled={$crudOps.saving}
 						class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 text-sm font-medium"
 					>
-						{#if saving}
+						{#if $crudOps.saving}
 							{$t('admin.deletingUser')}
 						{:else}
 							{$t('admin.deleteUser')}

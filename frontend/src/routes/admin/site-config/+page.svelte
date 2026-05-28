@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { writable } from 'svelte/store';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { get } from 'svelte/store';
@@ -10,7 +11,7 @@
 	import { SUPPORTED_LANGUAGES } from '$lib/types/multi-lang';
 	import { ROLE_OPTIONS } from '$lib/constants/roles';
 	import { siteConfig } from '$stores/siteConfig';
-	import { Switch, Tabs } from '@skeletonlabs/skeleton-svelte';
+	import { Switch } from '@skeletonlabs/skeleton-svelte';
 	import { t } from '$stores/i18n';
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
@@ -27,13 +28,44 @@
 		adminSelectSmClass,
 	} from '$lib/admin/admin-cerberus';
 	import AdminConfirmDialog from '$lib/components/admin/AdminConfirmDialog.svelte';
+	import SiteConfigTabPanel from '$lib/components/admin/SiteConfigTabPanel.svelte';
+	import { pushQuery } from '$lib/admin/adminQueryTab';
+	import type { PageData } from './$types';
 
-	let config: SiteConfig | null = null;
-	let descriptionValue: any = {};
-	let loading = true;
+	export let data: PageData;
+
+	let config: SiteConfig | null = data.initialConfig;
+	let descriptionValue: any = data.initialConfig?.description || {};
+	const loading = writable(!data.initialConfig && !data.loadError);
 	let saving = false;
 	let message = '';
-	let activeTab = 'basic';
+	const SITE_CONFIG_TAB_IDS = [
+		'basic',
+		'languages',
+		'branding',
+		'seo',
+		'sharing',
+		'contact',
+		'email',
+		'navigation',
+		'exifMetadata',
+		'iptcXmpMetadata',
+		'home',
+	] as const;
+
+	function resolveActiveTab(url: URL, fallback = 'basic'): string {
+		const tab = url.searchParams.get('tab');
+		if (tab === 'template') return 'basic';
+		if (tab && SITE_CONFIG_TAB_IDS.includes(tab as (typeof SITE_CONFIG_TAB_IDS)[number])) {
+			return tab;
+		}
+		return fallback;
+	}
+
+	$: activeTab = resolveActiveTab(
+		$page.url,
+		data.initialTab && data.initialTab !== 'template' ? data.initialTab : 'basic',
+	);
 	let availableLanguages: Array<{ code: string; name: string; flag: string }> = [];
 
 	interface MenuItem {
@@ -194,19 +226,19 @@
 			return !!(p && stableSerializePayload(p) !== baselineSerialized);
 		})();
 
-	function requestTabChange(next: string) {
+	async function requestTabChange(next: string) {
 		if (next === activeTab) return;
 		if (!isDirty) {
-			activeTab = next;
+			await pushQuery($page.url, { tab: next });
 			return;
 		}
 		pendingTabId = next;
 		unsavedTabSwitchDialogOpen = true;
 	}
 
-	function confirmDiscardAndSwitchTab() {
+	async function confirmDiscardAndSwitchTab() {
 		discardToBaseline();
-		if (pendingTabId) activeTab = pendingTabId;
+		if (pendingTabId) await pushQuery($page.url, { tab: pendingTabId });
 		pendingTabId = null;
 		unsavedTabSwitchDialogOpen = false;
 		captureBaseline();
@@ -314,13 +346,19 @@
 	$: collabVisAdmin = config ? resolveCollaborationVisibility(config.features) : null;
 
 	onMount(async () => {
-		await Promise.all([loadConfig(), loadAvailableLanguages()]);
-		const tab = get(page).url.searchParams.get('tab');
-		if (tab === 'template') {
-			activeTab = 'basic';
-			goto('/admin/site-config', { replaceState: true });
-		} else if (tab && flattenSiteConfigTabs().some((t) => t.id === tab)) {
-			activeTab = tab;
+		if (data.loadError) {
+			message = data.loadError;
+		}
+		if (data.initialConfig) {
+			menuItems = data.initialConfig.template?.headerConfig?.menu || [];
+			captureBaseline();
+		}
+		if (data.initialTab === 'template' || get(page).url.searchParams.get('tab') === 'template') {
+			void goto('/admin/site-config', { replaceState: true });
+		}
+		await loadAvailableLanguages();
+		if (!data.initialConfig) {
+			await loadConfig();
 		}
 	});
 
@@ -337,8 +375,12 @@
 	});
 
 	async function loadConfig() {
+		loading.set(true);
 		try {
-			const response = await fetch('/api/admin/site-config');
+			const response = await fetch('/api/admin/site-config', {
+				credentials: 'include',
+				signal: AbortSignal.timeout(20_000),
+			});
 			const result = await response.json().catch(() => ({}));
 
 			if (!response.ok) {
@@ -383,13 +425,16 @@
 			logger.error('Error loading site config:', error);
 			message = error instanceof Error ? error.message : 'Failed to load configuration';
 		} finally {
-			loading = false;
+			loading.set(false);
 		}
 	}
 
 	async function loadAvailableLanguages() {
 		try {
-			const response = await fetch('/api/admin/languages');
+			const response = await fetch('/api/admin/languages', {
+				credentials: 'include',
+				signal: AbortSignal.timeout(15_000),
+			});
 			if (response.ok) {
 				const data = await response.json();
 				if (data.success) {
@@ -605,7 +650,7 @@
 	<title>{$t('admin.siteConfiguration')} - {$t('navigation.admin')}</title>
 </svelte:head>
 
-{#if loading}
+{#if $loading}
 	<div class="min-h-[50vh] flex items-center justify-center">
 		<div class="text-center">
 			<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-(--color-primary-600) mx-auto"></div>
@@ -680,12 +725,7 @@
 			{/if}
 
 			<form on:submit|preventDefault={handleSubmit} class="flex flex-col lg:flex-row gap-6">
-				<Tabs
-					class="flex min-w-0 flex-col gap-6 lg:flex-row w-full"
-					value={activeTab}
-					onValueChange={(d) => requestTabChange(d.value)}
-					orientation="vertical"
-				>
+				<div class="flex min-w-0 flex-col gap-6 lg:flex-row w-full">
 					<!-- Sidebar nav: dropdown on small screens, vertical list on lg+ -->
 					<aside class="lg:w-56 shrink-0">
 						<div class="card preset-outlined-surface-200-800 bg-surface-50-950 overflow-hidden">
@@ -707,8 +747,9 @@
 									</optgroup>
 								{/each}
 							</select>
-							<Tabs.List
+							<div
 								class="hidden lg:flex flex-col py-1 w-full gap-0"
+								role="tablist"
 								aria-label={$t('admin.configurationSections')}
 							>
 								{#each CONFIG_TAB_GROUPS as group}
@@ -720,24 +761,29 @@
 										</p>
 										<div class="flex flex-col">
 											{#each group.tabs as tab}
-												<Tabs.Trigger
-													value={tab.id}
-													class="w-full text-left py-2 px-4 text-sm font-medium border-l-2 border-transparent text-(--color-surface-600-400) hover:bg-(--color-surface-50-950) data-selected:bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] data-selected:text-(--color-primary-700) data-selected:border-(--color-primary-600) rounded-none"
+												<button
+													type="button"
+													role="tab"
+													aria-selected={activeTab === tab.id}
+													class="w-full text-left py-2 px-4 text-sm font-medium border-l-2 rounded-none {activeTab === tab.id
+														? 'bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] text-(--color-primary-700) border-(--color-primary-600)'
+														: 'border-transparent text-(--color-surface-600-400) hover:bg-(--color-surface-50-950)'}"
+													on:click={() => requestTabChange(tab.id)}
 												>
 													{$t(tab.labelKey)}
-												</Tabs.Trigger>
+												</button>
 											{/each}
 										</div>
 									</div>
 								{/each}
-								<Tabs.Indicator />
-							</Tabs.List>
+							</div>
 						</div>
 					</aside>
 
 					<!-- Tab content -->
 					<div class="min-w-0 flex-1 card preset-outlined-surface-200-800 bg-surface-50-950 p-6">
-						<Tabs.Content value="basic">
+						{#key activeTab}
+						<SiteConfigTabPanel tabId="basic" {activeTab}>
 						<div class="grid grid-cols-1 gap-6">
 							<div>
 								<label for="site-title" class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
@@ -772,8 +818,8 @@
 								/>
 							</div>
 						</div>
-						</Tabs.Content>
-						<Tabs.Content value="languages">
+						</SiteConfigTabPanel>
+						<SiteConfigTabPanel tabId="languages" {activeTab}>
 						<div class="space-y-4">
 							<fieldset class="space-y-2">
 								<legend class="block text-sm font-medium text-(--color-surface-800-200) mb-2">
@@ -834,8 +880,8 @@
 								</p>
 							</div>
 						</div>
-						</Tabs.Content>
-						<Tabs.Content value="branding">
+						</SiteConfigTabPanel>
+						<SiteConfigTabPanel tabId="branding" {activeTab}>
 						<div class="grid grid-cols-1 gap-6">
 							<!-- Logo -->
 							<div>
@@ -1015,8 +1061,8 @@
 								</div>
 							</div>
 						</div>
-						</Tabs.Content>
-						<Tabs.Content value="seo">
+						</SiteConfigTabPanel>
+						<SiteConfigTabPanel tabId="seo" {activeTab}>
 						<div class="grid grid-cols-1 gap-6">
 							<!-- Meta Title -->
 							<div>
@@ -1165,8 +1211,8 @@ on:input={(e) => {
 								{/if}
 							</div>
 						</div>
-						</Tabs.Content>
-						<Tabs.Content value="contact">
+						</SiteConfigTabPanel>
+						<SiteConfigTabPanel tabId="contact" {activeTab}>
 						<div class="grid grid-cols-1 gap-6">
 							<!-- Email -->
 							<div>
@@ -1383,8 +1429,8 @@ on:input={(e) => {
 								</div>
 							</div>
 						</div>
-						</Tabs.Content>
-						<Tabs.Content value="home">
+						</SiteConfigTabPanel>
+						<SiteConfigTabPanel tabId="home" {activeTab}>
 						<div class="grid grid-cols-1 gap-6">
 							<!-- Contact Title -->
 							<div>
@@ -1586,8 +1632,8 @@ on:click={() => {
 								{/if}
 							</div>
 						</div>
-						</Tabs.Content>
-						<Tabs.Content value="navigation">
+						</SiteConfigTabPanel>
+						<SiteConfigTabPanel tabId="navigation" {activeTab}>
 						<div class="space-y-6">
 							<div>
 								<h3 class="text-lg font-semibold text-(--color-surface-950-50) mb-2">{$t('admin.navigationMenuTitle')}</h3>
@@ -1876,8 +1922,8 @@ on:click={() => {
 								</ul>
 							</div>
 						</div>
-						</Tabs.Content>
-						<Tabs.Content value="exifMetadata">
+						</SiteConfigTabPanel>
+						<SiteConfigTabPanel tabId="exifMetadata" {activeTab}>
 						<div class="space-y-4">
 							<div>
 								<h3 class="text-lg font-semibold text-(--color-surface-950-50) mb-2">{$t('admin.exifDisplaySectionTitle')}</h3>
@@ -1950,8 +1996,8 @@ on:click={() => {
 								</p>
 							</div>
 						</div>
-						</Tabs.Content>
-						<Tabs.Content value="iptcXmpMetadata">
+						</SiteConfigTabPanel>
+						<SiteConfigTabPanel tabId="iptcXmpMetadata" {activeTab}>
 						<div class="space-y-4">
 							<div>
 								<h3 class="text-lg font-semibold text-(--color-surface-950-50) mb-2">{$t('admin.iptcXmpDisplaySectionTitle')}</h3>
@@ -2024,8 +2070,8 @@ on:click={() => {
 								</p>
 							</div>
 						</div>
-						</Tabs.Content>
-						<Tabs.Content value="sharing">
+						</SiteConfigTabPanel>
+						<SiteConfigTabPanel tabId="sharing" {activeTab}>
 						<div class="grid grid-cols-1 gap-6">
 							<h3 class="text-lg font-semibold text-(--color-surface-950-50)">{$t('admin.collaborationSectionTitle')}</h3>
 							<p class="text-sm text-(--color-surface-600-400) -mt-2">{$t('admin.collaborationMatrixHelp')}</p>
@@ -2365,8 +2411,8 @@ on:click={() => {
 							</div>
 							</div>
 						</div>
-						</Tabs.Content>
-						<Tabs.Content value="email">
+						</SiteConfigTabPanel>
+						<SiteConfigTabPanel tabId="email" {activeTab}>
 						<div class="grid grid-cols-1 gap-6">
 							<h3 class="text-lg font-semibold text-(--color-surface-950-50)">{$t('admin.smtpSectionTitle')}</h3>
 							<p class="text-sm text-(--color-surface-600-400) -mt-2">
@@ -2550,7 +2596,8 @@ on:click={() => {
 								<p class="mt-2 text-xs text-(--color-surface-600-400)">{$t('admin.sendTestEmailHelp')}</p>
 							</div>
 						</div>
-						</Tabs.Content>
+						</SiteConfigTabPanel>
+						{/key}
 
 					<!-- Submit Button -->
 					<div class="flex justify-end pt-6 border-t border-surface-200-800">
@@ -2563,7 +2610,7 @@ on:click={() => {
 						</button>
 					</div>
 					</div>
-				</Tabs>
+				</div>
 			</form>
 		</div>
 

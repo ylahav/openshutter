@@ -5,7 +5,6 @@
 	import { siteConfig, siteConfigData, publicSiteFavicon } from '$stores/siteConfig';
 	import { loadSession } from '$lib/stores/auth';
 	import PackFallbackBanner from '$lib/components/PackFallbackBanner.svelte';
-	import AdminAppChrome from '$lib/components/AdminAppChrome.svelte';
 	import ThemeProvider from '$lib/components/ThemeProvider.svelte';
 	import ThemeColorApplier from '$lib/components/ThemeColorApplier.svelte';
 	import TokenRenewalNotification from '$lib/components/TokenRenewalNotification.svelte';
@@ -47,6 +46,7 @@
 			: '';
 	$: faviconHref = faviconFromConfig || DEFAULT_FAVICON;
 	$: isAdminRoute = $page.url.pathname.startsWith('/admin');
+	$: adminNavKey = $page.url.pathname + $page.url.search;
 	$: pwaEnabled = !isAdminRoute && isPwaFeatureEnabled($siteConfigData?.features);
 	$: publicShellPromise = isAdminRoute
 		? null
@@ -100,11 +100,10 @@
 
 <ThemeProvider defaultTheme="system" enableSystem={true} disableTransitionOnChange={false}>
 	{#if isAdminRoute}
-		<!-- Admin: static shell — visitor templating: docs/guides/TEMPLATING_USER_GUIDE.md -->
-		<TokenRenewalNotification />
-		<AdminAppChrome>
+		{#key adminNavKey}
+			<TokenRenewalNotification />
 			<slot />
-		</AdminAppChrome>
+		{/key}
 	{:else}
 		<PhotoCopyProtection />
 		{#if pwaEnabled}

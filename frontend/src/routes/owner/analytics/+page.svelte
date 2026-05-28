@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { writable } from 'svelte/store';
 	import { onMount } from 'svelte';
 	import { t } from '$stores/i18n';
 	import { productName } from '$stores/siteConfig';
@@ -13,7 +14,7 @@
 	let dateFrom = '';
 	let dateTo = '';
 	let period: 'day' | 'week' | 'month' = 'day';
-	let loading = true;
+	const loading = writable(true);
 	let error = '';
 	let payload: {
 		summary?: { totalSearches?: number };
@@ -69,7 +70,7 @@
 
 	async function loadStats() {
 		if (isAdmin) return;
-		loading = true;
+		loading.set(true);
 		error = '';
 		try {
 			const params = new URLSearchParams();
@@ -86,7 +87,7 @@
 			logger.error('Owner search insights:', err);
 			error = handleError(err, 'Failed to load insights');
 		} finally {
-			loading = false;
+			loading.set(false);
 		}
 	}
 
@@ -95,7 +96,7 @@
 		if (!isAdmin) {
 			loadStats();
 		} else {
-			loading = false;
+			loading.set(false);
 		}
 	});
 
@@ -321,3 +322,4 @@
 		{/if}
 	</div>
 </div>
+

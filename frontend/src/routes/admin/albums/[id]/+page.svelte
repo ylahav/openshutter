@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { writable } from 'svelte/store';
 	import { onMount } from 'svelte';
 	import { slide } from 'svelte/transition';
 	import { page } from '$app/stores';
@@ -8,7 +9,7 @@
 	import { t } from '$stores/i18n';
 	import AlbumBreadcrumbs from '$lib/components/AlbumBreadcrumbs.svelte';
 	import AdminConfirmDialog from '$lib/components/admin/AdminConfirmDialog.svelte';
-	import { getPhotoUrl, getPhotoRotationStyle } from '$lib/utils/photoUrl';
+	import { getPhotoUrl, getPhotoFullUrl, getPhotoRotationStyle } from '$lib/utils/photoUrl';
 	import { getAlbumName } from '$lib/utils/albumUtils';
 	import { getPhotoTitle } from '$lib/utils/photoUtils';
 	import { logger } from '$lib/utils/logger';
@@ -64,7 +65,7 @@
 		isActive?: boolean;
 	}
 
-	const albumId = $page.params.id;
+	$: albumId = $page.params.id;
 	/** Shared header actions (non-destructive ghost); delete uses danger variant. */
 	const btnGhost =
 		'inline-flex items-center justify-center gap-2 rounded-md border border-(--color-surface-200-700) bg-transparent px-4 py-2 text-sm font-medium text-(--color-surface-900-100) hover:bg-[color-mix(in_oklab,var(--color-surface-950)_6%,transparent)] dark:hover:bg-[color-mix(in_oklab,var(--color-surface-50)_8%,transparent)] transition-colors';
@@ -75,10 +76,10 @@
 	const btnGhostDangerSm =
 		'inline-flex items-center justify-center rounded-md border border-red-300/70 bg-transparent px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50 dark:border-red-800/80 dark:text-red-300 dark:hover:bg-red-950/40 transition-colors';
 
-	let album: Album | null = null;
-	let photos: Photo[] = [];
-	let loading = true;
-	let error = '';
+	let album: Album | null = (data.initialAlbum as Album | null) ?? null;
+	let photos: Photo[] = Array.isArray(data.initialPhotos) ? (data.initialPhotos as Photo[]) : [];
+	const loading = writable(!data.initialAlbum && !data.loadError);
+	let error = data.loadError ?? '';
 	let showDeleteDialog = false;
 	let photoDeleteDialog: {
 		isOpen: boolean;
@@ -92,8 +93,16 @@
 		isDeleting: false,
 	};
 	
-	// Bulk operations
+	// Bulk operations — always assign a new Set so Svelte 5 picks up changes
 	let selectedPhotoIds = new Set<string>();
+
+	function photoSelectionId(id: unknown): string {
+		return String(id);
+	}
+
+	function allPhotosSelected(): boolean {
+		return photos.length > 0 && photos.every((p) => selectedPhotoIds.has(photoSelectionId(p._id)));
+	}
 	let showLocationDialog = false;
 	let showMetadataDialog = false;
 	let locations: Location[] = [];
@@ -121,8 +130,9 @@
 	// Using empty string fallback for admin pages (as per original implementation)
 
 	async function loadAlbum() {
+		if (!albumId) return;
 		try {
-			loading = true;
+			loading.set(true);
 			error = '';
 			const response = await fetch(`/api/admin/albums/${albumId}?t=${Date.now()}`, {
 				cache: 'no-store',
@@ -136,11 +146,12 @@
 			logger.error('Failed to fetch album:', err);
 			error = handleError(err, $t('admin.failedToLoadAlbum'));
 		} finally {
-			loading = false;
+			loading.set(false);
 		}
 	}
 
 	async function loadPhotos() {
+		if (!albumId) return;
 		try {
 			const response = await fetch(`/api/admin/albums/${albumId}/photos?t=${Date.now()}`, {
 				cache: 'no-store',
@@ -174,6 +185,17 @@
 			logger.error('Failed to fetch photos:', err);
 			error = handleError(err, $t('admin.failedToFetchPhotos'));
 		}
+	}
+
+	function resolvePhotoDisplayUrl(photo: Photo): string {
+		return (
+			getPhotoUrl(photo, { fallback: '' }) ||
+			getPhotoFullUrl(photo, '') ||
+			photo.storage?.thumbnailPath ||
+			photo.storage?.url ||
+			photo.url ||
+			''
+		);
 	}
 
 	function openPhotoDeleteDialog(photo: Photo) {
@@ -296,27 +318,22 @@
 		}
 	}
 
-	function togglePhotoSelection(photoId: string) {
-		if (selectedPhotoIds.has(photoId)) {
-			selectedPhotoIds.delete(photoId);
-		} else {
-			selectedPhotoIds.add(photoId);
-		}
-		selectedPhotoIds = selectedPhotoIds; // Trigger reactivity
+	function togglePhotoSelection(photoId: unknown) {
+		const id = photoSelectionId(photoId);
+		const next = new Set(selectedPhotoIds);
+		if (next.has(id)) next.delete(id);
+		else next.add(id);
+		selectedPhotoIds = next;
 	}
 
 	function toggleSelectAll() {
-		if (selectedPhotoIds.size === photos.length) {
-			selectedPhotoIds.clear();
-		} else {
-			selectedPhotoIds = new Set(photos.map(p => p._id));
-		}
-		selectedPhotoIds = selectedPhotoIds; // Trigger reactivity
+		selectedPhotoIds = allPhotosSelected()
+			? new Set()
+			: new Set(photos.map((p) => photoSelectionId(p._id)));
 	}
 
 	function clearPhotoSelection() {
-		selectedPhotoIds.clear();
-		selectedPhotoIds = selectedPhotoIds;
+		selectedPhotoIds = new Set();
 	}
 
 	async function loadLocations() {
@@ -359,8 +376,7 @@
 			if (result.success) {
 				const msg = result.data?.message || `Updated ${selectedPhotoIds.size} photo(s)`;
 				adminToast.success({ title: msg });
-				selectedPhotoIds.clear();
-				selectedPhotoIds = selectedPhotoIds;
+				selectedPhotoIds = new Set();
 				showLocationDialog = false;
 				showTagsDialog = false;
 				showPeopleDialog = false;
@@ -482,8 +498,7 @@
 					failed++;
 				}
 			}
-			selectedPhotoIds.clear();
-			selectedPhotoIds = selectedPhotoIds;
+			selectedPhotoIds = new Set();
 			await Promise.all([loadAlbum(), loadPhotos()]);
 			if (deleted > 0) {
 				adminToast.success({
@@ -547,8 +562,7 @@
 					? `Re-extracted EXIF for ${result.processedCount} photo(s)${result.failedCount > 0 ? `; ${result.failedCount} failed.` : ''}`
 					: (result.message || 'Re-extracted EXIF for selected photos.');
 				adminToast.success({ title: msg });
-				selectedPhotoIds.clear();
-				selectedPhotoIds = selectedPhotoIds;
+				selectedPhotoIds = new Set();
 				await loadPhotos();
 			} else {
 				error = result.error || 'Failed to re-extract EXIF';
@@ -632,8 +646,7 @@
 					lastDone.message ??
 					`Regenerated thumbnails for ${regenProgress ? regenProgress.processed : 0} photo(s).`;
 				adminToast.success({ title: doneMsg });
-				selectedPhotoIds.clear();
-				selectedPhotoIds = selectedPhotoIds;
+				selectedPhotoIds = new Set();
 				await loadPhotos();
 			} else if (lastDone && !lastDone.success) {
 				error = lastDone.error ?? 'Failed to regenerate thumbnails';
@@ -647,8 +660,26 @@
 		}
 	}
 
-	onMount(async () => {
-		await Promise.all([loadAlbum(), loadPhotos()]);
+	async function refreshAlbumPage() {
+		if (!albumId) return;
+		try {
+			await Promise.all([loadAlbum(), loadPhotos()]);
+		} catch (err) {
+			logger.error('Failed to refresh album page:', err);
+		}
+	}
+
+	onMount(() => {
+		if (data.loadError && !album) {
+			loading.set(false);
+			return;
+		}
+		if (data.initialAlbum) {
+			loading.set(false);
+			void refreshAlbumPage();
+		} else {
+			void refreshAlbumPage();
+		}
 	});
 </script>
 
@@ -656,7 +687,7 @@
 	<title>{album ? getAlbumName(album) : $t('admin.albumFallbackTitle')} - {$t('navigation.admin')}</title>
 </svelte:head>
 
-{#if loading}
+{#if $loading}
 	<div class="min-h-[50vh] flex items-center justify-center">
 			<div class="text-center">
 			<div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-(--color-primary-600)"></div>
@@ -770,7 +801,7 @@
 					{#if photos.length > 0}
 						<div class="flex items-center gap-2">
 							<button type="button" on:click={toggleSelectAll} class={btnGhostSm}>
-								{selectedPhotoIds.size === photos.length
+								{allPhotosSelected()
 									? $t('admin.deselectAll')
 									: $t('admin.selectAll')}
 							</button>
@@ -951,19 +982,20 @@
 				{:else}
 					<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
 						{#each photos as photo}
-							{@const photoUrl = getPhotoUrl(photo, { fallback: '' })}
-							{@const isSelected = selectedPhotoIds.has(photo._id)}
+							{@const photoUrl = resolvePhotoDisplayUrl(photo)}
+							{@const fallbackPhotoUrl = getPhotoFullUrl(photo, '')}
+							{@const pid = photoSelectionId(photo._id)}
 							<div class="relative group">
 								<div class="absolute top-2 left-2 z-10">
 									<input
 										type="checkbox"
-										checked={isSelected}
-										on:change={() => togglePhotoSelection(photo._id)}
+										checked={selectedPhotoIds.has(pid)}
+										on:change={() => togglePhotoSelection(pid)}
 										class="w-5 h-5 text-(--color-primary-600) border-surface-300-700 rounded focus:ring-(--color-primary-500) bg-(--color-surface-50-950)/90"
-										title={isSelected ? 'Deselect' : 'Select'}
+										title={selectedPhotoIds.has(pid) ? 'Deselect' : 'Select'}
 									/>
 								</div>
-								<div class="aspect-square bg-(--color-surface-200-800) rounded-lg overflow-hidden {isSelected ? 'ring-4 ring-(--color-primary-500)' : ''}">
+								<div class="aspect-square bg-(--color-surface-200-800) rounded-lg overflow-hidden {selectedPhotoIds.has(pid) ? 'ring-4 ring-(--color-primary-500)' : ''}">
 									{#if photoUrl}
 										<img
 											src={photoUrl}
@@ -973,7 +1005,13 @@
 											on:error={(e) => {
 												logger.debug('Image failed to load:', photoUrl, photo);
 												const target = e.currentTarget as HTMLImageElement;
-												target.style.display = 'none';
+												const triedFallback = target.dataset.fallbackTried === '1';
+												if (!triedFallback && fallbackPhotoUrl && fallbackPhotoUrl !== photoUrl) {
+													target.dataset.fallbackTried = '1';
+													target.src = fallbackPhotoUrl;
+													return;
+												}
+												target.style.opacity = '0.35';
 											}}
 											on:load={() => {
 												logger.debug('Image loaded successfully:', photoUrl);

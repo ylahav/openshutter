@@ -1,8 +1,12 @@
 <script lang="ts">
+	import { get } from 'svelte/store';
 	import { onMount } from 'svelte';
+	import { page } from '$app/stores';
 	import AdminConfirmDialog from '$lib/components/admin/AdminConfirmDialog.svelte';
+	import type { PageData } from './$types';
 	import { adminToast } from '$lib/admin/adminToast';
 	import { adminBtnPrimarySm, adminRingPrimary } from '$lib/admin/admin-cerberus';
+	import { pushQuery } from '$lib/admin/adminQueryTab';
 	import { logger } from '$lib/utils/logger';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
 	import { t } from '$stores/i18n';
@@ -13,12 +17,15 @@
 		flag: string;
 	}
 
-	let languages: Language[] = [];
-	let loading = true;
+	export let data: PageData;
+
+	let languages: Language[] = data.initialLanguages ?? [];
+	let languagesLoading = false;
+	let translationsLoading = false;
 	let saving = false;
 	let deleting = false;
-	let selectedLanguage: string | null = null;
 	let translations: Record<string, any> = {};
+	let translationsLoadedFor: string | null = null;
 	let editingKey: string | null = null;
 	let editingValue: string = '';
 	let searchTerm = '';
@@ -68,20 +75,47 @@
 		hi: { name: 'Hindi', flag: '🇮🇳' },
 	};
 
+	function resolveSelectedLanguage(url: URL, langs: Language[]): string | null {
+		const raw = url.searchParams.get('lang');
+		if (!raw) return null;
+		return langs.some((l) => l.code === raw) ? raw : null;
+	}
+
+	/** From `$page` so the editor updates when `?lang=` changes (client nav or back/forward). */
+	$: selectedLanguage = resolveSelectedLanguage($page.url, languages);
+
+	async function selectLanguage(code: string) {
+		if (resolveSelectedLanguage(get(page).url, languages) === code) {
+			await loadTranslations(code);
+			return;
+		}
+		await pushQuery(get(page).url, { lang: code }, { invalidateAll: false });
+	}
+
+	$: if (selectedLanguage) {
+		void loadTranslations(selectedLanguage);
+	}
+
 	onMount(async () => {
-		await loadLanguages();
+		if (data.loadError) {
+			adminToast.error({ title: data.loadError });
+			return;
+		}
+		await loadLanguages(data.initialLanguages?.length ? { background: true } : undefined);
 	});
 
-	async function loadLanguages() {
+	async function loadLanguages(opts?: { background?: boolean }) {
 		try {
-			loading = true;
+			if (!opts?.background) {
+				languagesLoading = true;
+			}
 			const response = await fetch('/api/admin/translations');
 			if (!response.ok) {
 				await handleApiErrorResponse(response);
 			}
 			const result = await response.json();
 			if (result.success) {
-				languages = result.data;
+				languages = Array.isArray(result.data) ? result.data : [];
 			} else {
 				throw new Error(result.error || 'Failed to load languages');
 			}
@@ -89,13 +123,15 @@
 			logger.error('Error loading languages:', err);
 			adminToast.error({ title: handleError(err, 'Failed to load languages') });
 		} finally {
-			loading = false;
+			languagesLoading = false;
 		}
 	}
 
 	async function loadTranslations(languageCode: string, forceReload: boolean = false) {
+		if (forceReload) translationsLoadedFor = null;
+		if (!forceReload && translationsLoadedFor === languageCode) return;
 		try {
-			loading = true;
+			translationsLoading = true;
 			// Add cache-busting parameter if force reload
 			const cacheBuster = forceReload ? `&_t=${Date.now()}` : '';
 			const response = await fetch(`/api/admin/translations?languageCode=${languageCode}${cacheBuster}`);
@@ -117,9 +153,9 @@
 				
 				// Force reactivity by creating a new object
 				translations = JSON.parse(JSON.stringify(loadedTranslations));
-				selectedLanguage = languageCode;
-				expandedKeys.clear();
-				expandedCategories.clear();
+				translationsLoadedFor = languageCode;
+				expandedKeys = new Set();
+				expandedCategories = new Set();
 				
 				// Force categories update by triggering reactivity
 				categories = getCategories();
@@ -163,7 +199,7 @@
 			logger.error('Error loading translations:', err);
 			adminToast.error({ title: handleError(err, 'Failed to load translations') });
 		} finally {
-			loading = false;
+			translationsLoading = false;
 		}
 	}
 
@@ -205,7 +241,8 @@
 	}
 
 	async function confirmAutoTranslate() {
-		if (!selectedLanguage || selectedLanguage === 'en') {
+		const lang = selectedLanguage;
+		if (!lang || lang === 'en') {
 			adminToast.error({ title: 'Cannot auto-translate English (source language)' });
 			return;
 		}
@@ -261,7 +298,7 @@
 				}
 			}, 300);
 			
-			const response = await fetch(`/api/admin/translations?languageCode=${selectedLanguage}`, {
+			const response = await fetch(`/api/admin/translations?languageCode=${lang}`, {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json'
@@ -296,8 +333,8 @@
 				await new Promise((resolve) => setTimeout(resolve, 1000));
 
 				// Force reload translations by clearing cache and reloading
-				if (selectedLanguage) {
-					const langCode = selectedLanguage;
+				if (lang) {
+					const langCode = lang;
 					translations = {};
 					englishTranslations = {};
 
@@ -355,11 +392,12 @@
 	}
 
 	async function saveTranslations() {
-		if (!selectedLanguage) return;
+		const lang = selectedLanguage;
+		if (!lang) return;
 
 		try {
 			saving = true;
-			const response = await fetch(`/api/admin/translations?languageCode=${selectedLanguage}`, {
+			const response = await fetch(`/api/admin/translations?languageCode=${lang}`, {
 				method: 'PUT',
 				headers: {
 					'Content-Type': 'application/json'
@@ -475,8 +513,9 @@
 			if (result.success) {
 				adminToast.success({ title: 'Language deleted successfully!' });
 				if (selectedLanguage === languageCode) {
-					selectedLanguage = null;
+					translationsLoadedFor = null;
 					translations = {};
+					await pushQuery(get(page).url, { lang: null }, { invalidateAll: false });
 				}
 				await loadLanguages();
 			} else {
@@ -657,27 +696,22 @@
 		}).length;
 	}
 
-	// Store categories explicitly instead of relying on reactive statement
 	let categories: string[] = [];
-	
+
 	$: allKeys = getAllKeys(translations);
 	$: filteredKeys = filterKeys(allKeys, searchTerm);
-	$: {
-		// Update categories when translations change
-		if (Object.keys(translations).length > 0) {
-			const newCategories = getCategories();
-			if (newCategories.length !== categories.length || newCategories.some((cat, i) => cat !== categories[i])) {
-				categories = newCategories;
-			}
-		} else {
-			categories = [];
-		}
+
+	$: if (Object.keys(translations).length > 0) {
+		categories = getCategories();
+	} else {
+		categories = [];
 	}
-	$: filteredCategories = searchTerm 
-		? categories.filter(cat => {
-			const catKeys = getCategoryKeys(cat);
-			return catKeys.some(key => key.toLowerCase().includes(searchTerm.toLowerCase()));
-		})
+
+	$: filteredCategories = searchTerm
+		? categories.filter((cat) => {
+				const catKeys = getCategoryKeys(cat);
+				return catKeys.some((key) => key.toLowerCase().includes(searchTerm.toLowerCase()));
+			})
 		: categories;
 </script>
 
@@ -695,7 +729,7 @@
 				<div class="flex items-center gap-2">
 					<button
 						type="button"
-						on:click={() => (showAddLanguageDialog = true)}
+						onclick={() => (showAddLanguageDialog = true)}
 						class="{adminBtnPrimarySm} {adminRingPrimary}"
 					>
 						+ {$t('admin.addLanguage')}
@@ -727,7 +761,7 @@
 				</div>
 			{/if}
 
-			{#if loading && !selectedLanguage}
+			{#if languagesLoading && !selectedLanguage}
 				<div class="text-center py-12">
 					<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-(--color-primary-600) mx-auto"></div>
 					<p class="mt-4 text-(--color-surface-600-400)">{$t('admin.loadingLanguages')}</p>
@@ -745,11 +779,11 @@
 									class="p-3 rounded-lg border cursor-pointer transition-colors {selectedLanguage === lang.code
 										? 'bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)] border-(--color-primary-500)'
 										: 'bg-(--color-surface-50-950) border-surface-200-800 hover:bg-(--color-surface-100-900)'}"
-									on:click={() => loadTranslations(lang.code)}
-									on:keydown={(e) => {
+									onclick={() => void selectLanguage(lang.code)}
+									onkeydown={(e) => {
 										if (e.key === 'Enter' || e.key === ' ') {
 											e.preventDefault();
-											loadTranslations(lang.code);
+											void selectLanguage(lang.code);
 										}
 									}}
 								>
@@ -762,7 +796,10 @@
 										{#if lang.code !== 'en'}
 											<button
 												type="button"
-												on:click|stopPropagation={() => openDeleteLanguageDialog(lang.code)}
+												onclick={(e) => {
+													e.stopPropagation();
+													openDeleteLanguageDialog(lang.code);
+												}}
 												class="text-red-600 hover:text-red-800 text-sm"
 												disabled={deleting}
 											>
@@ -778,6 +815,7 @@
 					<!-- Translation Editor -->
 					<div class="lg:col-span-2">
 						{#if selectedLanguage}
+							{#key $page.url.search}
 							<div class="mb-4">
 								<div class="flex items-center justify-between mb-4">
 									<h2 class="text-lg font-semibold text-(--color-surface-950-50)">
@@ -787,7 +825,7 @@
 									{#if selectedLanguage !== 'en'}
 										<button
 											type="button"
-											on:click={openAutoTranslateDialog}
+											onclick={openAutoTranslateDialog}
 											disabled={autoTranslating || saving}
 											class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
 										>
@@ -811,7 +849,7 @@
 									/>
 								</div>
 
-								{#if loading}
+								{#if translationsLoading}
 									<div class="text-center py-12">
 										<div class="animate-spin rounded-full h-8 w-8 border-b-2 border-(--color-primary-600) mx-auto"></div>
 										<p class="mt-4 text-(--color-surface-600-400)">{$t('admin.loadingTranslations')}</p>
@@ -878,14 +916,14 @@
 																		<div class="flex gap-2 mt-2">
 																			<button
 																				type="button"
-																				on:click={() => saveEdit(key)}
+																				onclick={() => saveEdit(key)}
 																				class="{adminBtnPrimarySm} text-xs py-1 px-2 {adminRingPrimary}"
 																			>
 																				{$t('admin.save')}
 																			</button>
 																			<button
 																				type="button"
-																				on:click={cancelEdit}
+																				onclick={cancelEdit}
 																				class="px-2 py-1 bg-(--color-surface-200-800) text-(--color-surface-800-200) text-xs rounded hover:bg-(--color-surface-300-700)"
 																			>
 																				{$t('admin.cancel')}
@@ -907,7 +945,7 @@
 																	{#if !isEditing}
 																		<button
 																			type="button"
-																			on:click={() => startEdit(key, value || englishValue || '')}
+																			onclick={() => startEdit(key, value || englishValue || '')}
 																			class="text-(--color-primary-600) hover:text-(--color-primary-800) p-1 rounded hover:bg-[color-mix(in_oklab,var(--color-primary-500)_14%,transparent)]"
 																			title={isMissing
 																				? $t('admin.addTranslation')
@@ -930,7 +968,7 @@
 									<div class="mt-4 flex justify-end">
 										<button
 											type="button"
-											on:click={saveTranslations}
+											onclick={saveTranslations}
 											disabled={saving}
 											class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50 disabled:cursor-not-allowed px-6"
 										>
@@ -939,6 +977,7 @@
 									</div>
 								{/if}
 							</div>
+							{/key}
 						{:else}
 							<div class="text-center py-12 text-(--color-surface-600-400)">
 								<p>{$t('admin.selectLanguageToEditTranslations')}</p>
@@ -968,7 +1007,7 @@
 						bind:value={newLanguageCode}
 						placeholder={$t('admin.languageCodePlaceholder')}
 						class="w-full px-3 py-2 border border-surface-300-700 rounded-md"
-						on:input={(e) => {
+						oninput={(e) => {
 							newLanguageCode = e.currentTarget.value.toLowerCase();
 							// Auto-fill name and flag if available
 							if (languageMetadata[newLanguageCode]) {
@@ -1012,7 +1051,7 @@
 			<div class="flex justify-end gap-2 mt-6">
 				<button
 					type="button"
-					on:click={() => {
+					onclick={() => {
 						showAddLanguageDialog = false;
 						newLanguageCode = '';
 						newLanguageName = '';
@@ -1024,7 +1063,7 @@
 				</button>
 				<button
 					type="button"
-					on:click={createLanguage}
+					onclick={createLanguage}
 					disabled={saving || !newLanguageCode || !newLanguageName}
 					class="{adminBtnPrimarySm} {adminRingPrimary} disabled:opacity-50"
 				>

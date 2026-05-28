@@ -1,6 +1,8 @@
 <script lang="ts">
+	import { writable } from 'svelte/store';
 	import { onMount } from 'svelte';
-	import { beforeNavigate, goto } from '$app/navigation';
+	import { beforeNavigate } from '$app/navigation';
+	import { navigateAdmin } from '$lib/admin/adminNavigate';
 	import { adminToast } from '$lib/admin/adminToast';
 	import {
 		adminBtnPrimarySm,
@@ -22,7 +24,7 @@
 	let selected = '';
 	let raw = '';
 	let originalRaw = '';
-	let loading = true;
+	const loading = writable(true);
 	let saving = false;
 	$: hasUnsavedChanges = raw !== originalRaw;
 
@@ -48,7 +50,7 @@
 
 	async function loadTemplates() {
 		try {
-			loading = true;
+			loading.set(true);
 			const [tplRes, cfgRes] = await Promise.all([
 				fetch('/api/admin/templates', { cache: 'no-store' }),
 				fetch('/api/admin/site-config', { cache: 'no-store' })
@@ -65,7 +67,7 @@
 		} catch (e) {
 			adminToast.error({ title: 'Failed to load templates' });
 		} finally {
-			loading = false;
+			loading.set(false);
 		}
 	}
 
@@ -142,7 +144,7 @@
 			return;
 		}
 		raw = originalRaw;
-		goto('/admin/templates');
+		navigateAdmin('/admin/templates');
 	}
 </script>
 
@@ -150,7 +152,7 @@
 	<title>Template Customization - Admin</title>
 </svelte:head>
 
-{#if loading}
+{#if $loading}
 	<div class="py-8">
 		<div class="max-w-6xl mx-auto px-4">
 			<p>Loading...</p>
@@ -162,7 +164,7 @@
 			<div class="flex items-center justify-between">
 				<h1 class="text-2xl font-semibold text-(--color-surface-950-50)">Template Customization</h1>
 				<button
-					on:click={() => goto('/admin/templates')}
+					on:click={() => navigateAdmin('/admin/templates')}
 					class="{adminBtnSecondary} text-sm shrink-0"
 				>
 					Back to Templates

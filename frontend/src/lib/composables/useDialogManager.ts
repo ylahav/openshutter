@@ -17,9 +17,9 @@
  * ```typescript
  * const dialogs = useDialogManager();
  * 
- * // In component
- * $: showCreateDialog = $dialogs.showCreate;
- * 
+ * // In template (Svelte 5: use store auto-subscription — do not copy to plain `let`)
+ * {#if $dialogs.showCreate}
+ *
  * // Open create dialog
  * dialogs.openCreate();
  * 

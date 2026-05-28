@@ -467,6 +467,7 @@ export class DatabaseInitService implements OnApplicationBootstrap {
     try {
       // Initialize in sequence to avoid race conditions
       await this.initializeDefaultAdmin();
+      await this.ensureDefaultAdminPasswordChange();
       await this.initializeDefaultSiteConfig();
       await this.initializeDefaultStorageConfigs();
       await ownerStorageConfigService.ensureIndexes();
@@ -514,6 +515,7 @@ export class DatabaseInitService implements OnApplicationBootstrap {
         role: 'admin',
         groupAliases: [],
         blocked: false,
+        forcePasswordChange: true,
         allowedStorageProviders: [],
         createdAt: now,
         updatedAt: now,
@@ -522,13 +524,46 @@ export class DatabaseInitService implements OnApplicationBootstrap {
       this.logger.log(`✅ Default admin user created successfully`);
       this.logger.log(`   Email: ${INITIAL_ADMIN_CREDENTIALS.email}`);
       this.logger.log(`   User ID: ${newUser._id}`);
-      this.logger.warn(`⚠️  IMPORTANT: Change the default admin password after first login!`);
+      this.logger.warn(`⚠️  IMPORTANT: Default admin must change password on first login (forcePasswordChange enabled).`);
     } catch (error) {
       this.logger.error(`Failed to initialize default admin: ${error instanceof Error ? error.message : 'Unknown error'}`);
       if (error instanceof Error && error.stack) {
         this.logger.error(`Stack trace: ${error.stack}`);
       }
       throw error;
+    }
+  }
+
+  /**
+   * Existing installs: require password change while the seeded admin still uses the default password.
+   */
+  async ensureDefaultAdminPasswordChange(): Promise<void> {
+    try {
+      const admin = await this.userModel.findOne({
+        username: INITIAL_ADMIN_CREDENTIALS.email,
+        role: 'admin',
+      });
+      if (!admin?.passwordHash) return;
+
+      const stillDefault = await bcrypt.compare(
+        INITIAL_ADMIN_CREDENTIALS.password,
+        admin.passwordHash,
+      );
+      if (!stillDefault) return;
+
+      if (admin.forcePasswordChange) return;
+
+      await this.userModel.updateOne(
+        { _id: admin._id },
+        { $set: { forcePasswordChange: true, updatedAt: new Date() } },
+      );
+      this.logger.warn(
+        `Set forcePasswordChange on ${INITIAL_ADMIN_CREDENTIALS.email} (default password still in use)`,
+      );
+    } catch (error) {
+      this.logger.warn(
+        `Could not enforce default admin password change: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     }
   }
 

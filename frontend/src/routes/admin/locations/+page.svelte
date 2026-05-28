@@ -101,13 +101,18 @@
 	}
 
 	// Use CRUD composables
-	const crudLoader = useCrudLoader<Location>('/api/admin/locations', {
-		searchParam: 'search',
-		searchValue: () => searchTerm,
-		filterParams: {
-			category: () => categoryFilter
-		}
-	});
+	const { items, loading, error: listLoadError, loadItems } = useCrudLoader<Location>(
+		'/api/admin/locations',
+		{
+			searchParam: 'search',
+			searchValue: () => searchTerm,
+			filterParams: {
+				category: () => categoryFilter
+			},
+			initialItems: data.initialItems,
+			initialLoadError: data.listLoadError,
+		},
+	);
 	/** Coordinates may come from form as string; we normalize to number. */
 	type LocationFormData = Partial<Omit<Location, '_id'>> & {
 		coordinates?: { latitude?: number | string; longitude?: number | string };
@@ -173,15 +178,15 @@
 			return payload;
 		},
 		onCreateSuccess: (newLocation) => {
-			crudLoader.items.update(items => [...items, newLocation]);
+			items.update((list) => [...list, newLocation]);
 			dialogs.closeAll();
 			resetForm();
 		},
 		onUpdateSuccess: (updatedLocation) => {
 			const currentEditingLocation = editingLocation;
 			if (currentEditingLocation) {
-				crudLoader.items.update(items => 
-					items.map(l => l._id === currentEditingLocation._id ? updatedLocation : l)
+				items.update((list) =>
+					list.map((l) => (l._id === currentEditingLocation._id ? updatedLocation : l)),
 				);
 			}
 			dialogs.closeAll();
@@ -191,9 +196,7 @@
 		onDeleteSuccess: () => {
 			const currentLocationToDelete = locationToDelete;
 			if (currentLocationToDelete) {
-				crudLoader.items.update(items => 
-					items.filter(l => l._id !== currentLocationToDelete._id)
-				);
+				items.update((list) => list.filter((l) => l._id !== currentLocationToDelete._id));
 			}
 			dialogs.closeAll();
 			locationToDelete = null;
@@ -201,9 +204,6 @@
 	});
 	const dialogs = useDialogManager();
 
-	// Reactive stores from composables
-	let locations: Location[] = [];
-	let loading = false;
 	let saving = false;
 	let error = '';
 	let searchTerm = '';
@@ -217,12 +217,6 @@
 	let geocodeBusy = false;
 	let geocodeFlash = '';
 
-	// Subscribe to stores
-	crudLoader.items.subscribe(value => locations = value);
-	crudLoader.loading.subscribe(value => loading = value);
-	crudLoader.error.subscribe(value => {
-		if (value) error = value;
-	});
 	crudOps.saving.subscribe(value => saving = value);
 	crudOps.error.subscribe(value => {
 		if (value) error = value;
@@ -253,7 +247,8 @@
 	};
 
 	onMount(async () => {
-		await crudLoader.loadItems();
+		if (data.listLoadError) return;
+		await loadItems(data.initialItems !== undefined ? { background: true } : undefined);
 	});
 
 	function resetForm() {
@@ -597,7 +592,7 @@
 					failureLines.push(`#${i + 1}: ${handleError(e, 'Error')}`);
 				}
 			}
-			await crudLoader.loadItems();
+			await loadItems();
 			setImportSummaryMessage(created, failed);
 			if (failureLines.length) {
 				crudOps.error.set(failureLines.slice(0, 8).join(' · '));
@@ -634,7 +629,7 @@
 							type="text"
 							placeholder={$t('admin.searchLocationsPlaceholder')}
 							bind:value={searchTerm}
-							on:input={() => crudLoader.loadItems()}
+							on:input={() => loadItems()}
 							class="pl-10 pr-4 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500) w-64"
 						/>
 						<svg
@@ -654,7 +649,7 @@
 
 					<select
 						bind:value={categoryFilter}
-						on:change={() => crudLoader.loadItems()}
+						on:change={() => loadItems()}
 						class="px-3 py-2 border border-surface-300-700 rounded-md shadow-sm focus:ring-2 focus:ring-(--color-primary-500) focus:border-(--color-primary-500)"
 					>
 						<option value="all">{$t('admin.allCategories')}</option>
@@ -691,12 +686,12 @@
 			</div>
 
 			<!-- Locations List -->
-			{#if loading}
+			{#if $loading}
 				<div class="text-center py-8">
 					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-(--color-primary-600)"></div>
 					<p class="mt-2 text-(--color-surface-600-400)">{$t('admin.loadingLocations')}</p>
 				</div>
-			{:else if locations.length === 0}
+			{:else if $items.length === 0}
 				<div class="text-center py-8">
 					<svg
 						class="h-12 w-12 text-(--color-surface-400-600) mx-auto mb-4"
@@ -722,7 +717,7 @@
 				</div>
 			{:else}
 				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-					{#each locations as location}
+					{#each $items as location}
 						{@const kind = effectiveLocationKind(location)}
 						{@const areaLine = formatCityCountryLine(location)}
 						{@const areaOsmUrl = kind === 'area' ? areaQueryStaticMapUrl(location) : null}

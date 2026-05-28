@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { writable } from 'svelte/store';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import AlbumTree from '$lib/components/AlbumTree.svelte';
@@ -26,7 +27,7 @@ import { t } from '$stores/i18n';
 	}
 
 	let albums: Album[] = [];
-	let loading = true;
+	const loading = writable(true);
 	let error: string | null = null;
 
 	const isAdmin = data.user?.role === 'admin';
@@ -41,7 +42,7 @@ import { t } from '$stores/i18n';
 
 	async function fetchAlbums() {
 		try {
-			loading = true;
+			loading.set(true);
 			const response = await fetch('/api/albums?mine=true', { credentials: 'include' });
 			if (!response.ok) {
 				await handleApiErrorResponse(response);
@@ -53,7 +54,7 @@ import { t } from '$stores/i18n';
 			logger.error('Failed to fetch albums:', err);
 			error = handleError(err, $t('owner.requestFailed'));
 		} finally {
-			loading = false;
+			loading.set(false);
 		}
 	}
 
@@ -84,7 +85,7 @@ import { t } from '$stores/i18n';
 	<title>{pageTitle} - {$t('owner.ownerPanel')}</title>
 </svelte:head>
 
-{#if loading}
+{#if $loading}
 	<div class="min-h-screen bg-gray-50 flex items-center justify-center">
 		<div class="text-center">
 			<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { writable } from 'svelte/store';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import MultiLangInput from '$lib/components/MultiLangInput.svelte';
@@ -13,7 +14,7 @@ import { t } from '$stores/i18n';
 	export let data: PageData;
 
 	const isOwner = data?.user?.role === 'owner';
-	let loading = true;
+	const loading = writable(true);
 	let saving = false;
 	let uploadingLogo = false;
 	let loadingHeroPhotos = false;
@@ -58,7 +59,7 @@ import { t } from '$stores/i18n';
 
 	async function fetchSettings() {
 		try {
-			loading = true;
+			loading.set(true);
 			error = null;
 			const response = await fetch('/api/owner/site-settings');
 			if (!response.ok) {
@@ -120,7 +121,7 @@ import { t } from '$stores/i18n';
 			logger.error('Failed to fetch site settings:', err);
 			error = handleError(err, $t('owner.requestFailed'));
 		} finally {
-			loading = false;
+			loading.set(false);
 		}
 	}
 
@@ -268,7 +269,7 @@ import { t } from '$stores/i18n';
 	<title>{$t('owner.siteSettings')} - {$t('owner.ownerPanel')}</title>
 </svelte:head>
 
-{#if loading}
+{#if $loading}
 	<div class="min-h-screen bg-gray-50 flex items-center justify-center">
 		<div class="text-center">
 			<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>

@@ -1,22 +1,30 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
+	import { enhance } from '$app/forms';
 	import { productName } from '$stores/siteConfig';
 	import { logger } from '$lib/utils/logger';
+	import type { PageProps } from './$types';
+
+	let { form }: PageProps = $props();
 
 	let loading = true;
 	let showLandingPage = false;
-	let error: string | null = null;
-	let submitting = false;
+	let error = $state<string | null>(null);
+	let submitting = $state(false);
 
 	// Form data
-	let username = 'admin@openshutter.org';
-	let password = '';
-	let confirmPassword = '';
-	let siteTitle = '';
-	let siteDescription = '';
-	let logoFile: File | null = null;
-	let logoPreview: string | null = null;
+	let username = $state('admin@openshutter.org');
+	let password = $state('');
+	let confirmPassword = $state('');
+	let siteTitle = $state('');
+	let siteDescription = $state('');
+	let logoPreview = $state<string | null>(null);
+
+	$effect(() => {
+		if (form?.error) {
+			error = form.error;
+		}
+	});
 
 	onMount(async () => {
 		try {
@@ -40,94 +48,75 @@
 	function handleLogoChange(e: Event) {
 		const target = e.target as HTMLInputElement;
 		if (target.files && target.files[0]) {
-			logoFile = target.files[0];
-			
-			// Create preview
+			const file = target.files[0];
 			const reader = new FileReader();
 			reader.onload = (e) => {
 				logoPreview = e.target?.result as string;
 			};
-			reader.readAsDataURL(logoFile);
+			reader.readAsDataURL(file);
 		}
 	}
 
 	function removeLogo() {
-		logoFile = null;
 		logoPreview = null;
-		// Reset file input
 		const fileInput = document.getElementById('logo') as HTMLInputElement;
 		if (fileInput) {
 			fileInput.value = '';
 		}
 	}
 
-	async function handleSubmit(e: Event) {
-		e.preventDefault();
-		error = null;
-
-		// Validation
+	function validateSetupForm(): string | null {
 		if (!username || !username.trim()) {
-			error = 'Username is required';
-			return;
+			return 'Username is required';
 		}
-
 		if (!password) {
-			error = 'Password is required';
-			return;
+			return 'Password is required';
 		}
-
 		if (password.length < 6) {
-			error = 'Password must be at least 6 characters long';
-			return;
+			return 'Password must be at least 6 characters long';
 		}
-
 		if (password !== confirmPassword) {
-			error = 'Passwords do not match';
-			return;
+			return 'Passwords do not match';
 		}
-
 		if (!siteTitle || !siteTitle.trim()) {
-			error = 'Site title is required';
-			return;
+			return 'Site title is required';
 		}
+		return null;
+	}
 
-		submitting = true;
-
-		try {
-			const formData = new FormData();
-			formData.append('username', username.trim());
-			formData.append('password', password);
-			formData.append('title', siteTitle.trim());
-			
-			if (siteDescription && siteDescription.trim()) {
-				formData.append('description', siteDescription.trim());
-			}
-			
-			if (logoFile) {
-				formData.append('logo', logoFile);
-			}
-
-			const response = await fetch('/api/init/setup', {
-				method: 'POST',
-				body: formData,
-			});
-
-			const data = await response.json();
-
-			if (!response.ok || !data.success) {
-				error = data.error || data.message || 'Setup failed';
-				submitting = false;
+	const handleEnhance = () => {
+		return async ({
+			cancel,
+		}: {
+			cancel: () => void;
+		}) => {
+			error = null;
+			const validationError = validateSetupForm();
+			if (validationError) {
+				error = validationError;
+				cancel();
 				return;
 			}
+			submitting = true;
 
-			// Success - redirect to login
-			window.location.href = '/login?redirect=/admin';
-		} catch (err) {
-			logger.error('Setup error:', err);
-			error = 'An error occurred during setup. Please try again.';
-			submitting = false;
-		}
-	}
+			return async ({
+				result,
+				update,
+			}: {
+				result: { type: string; data?: { error?: string } };
+				update: (opts?: { reset: boolean }) => Promise<void>;
+			}) => {
+				submitting = false;
+				if (result.type === 'failure') {
+					error = result.data?.error ?? 'Setup failed';
+					await update({ reset: false });
+				} else if (result.type === 'error') {
+					error = 'An error occurred during setup. Please try again.';
+					await update({ reset: false });
+				}
+			};
+		};
+	};
 </script>
 
 <svelte:head>
@@ -157,7 +146,12 @@
 				</p>
 			</div>
 
-			<form on:submit|preventDefault={handleSubmit} class="bg-white shadow-md rounded-lg p-8 space-y-6">
+			<form
+				method="POST"
+				enctype="multipart/form-data"
+				use:enhance={handleEnhance}
+				class="bg-white shadow-md rounded-lg p-8 space-y-6"
+			>
 				{#if error}
 					<div class="bg-red-50 border-l-4 border-red-400 p-4">
 						<p class="text-sm text-red-700">{error}</p>
@@ -180,6 +174,7 @@
 							</label>
 							<input
 								id="username"
+								name="username"
 								type="email"
 								required
 								bind:value={username}
@@ -194,6 +189,7 @@
 							</label>
 							<input
 								id="password"
+								name="password"
 								type="password"
 								required
 								bind:value={password}
@@ -237,6 +233,7 @@
 							</label>
 							<input
 								id="siteTitle"
+								name="title"
 								type="text"
 								required
 								bind:value={siteTitle}
@@ -251,6 +248,7 @@
 							</label>
 							<textarea
 								id="siteDescription"
+								name="description"
 								bind:value={siteDescription}
 								rows="4"
 								class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
@@ -277,6 +275,7 @@
 								{/if}
 								<input
 									id="logo"
+									name="logo"
 									type="file"
 									accept="image/*"
 									on:change={handleLogoChange}

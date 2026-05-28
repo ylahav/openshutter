@@ -22,8 +22,10 @@
  *   searchValue: () => searchTerm
  * });
  * 
- * // In component
+ * // In component (Svelte 5: use store auto-subscription in templates)
  * $: if (searchTerm) loadItems();
+ * // Template: `{#if $loading}` and `{#each $items as row}` — not `let loading` copies.
+ * // Optional +page.ts: pass `initialItems` / `initialLoadError`, then `loadItems({ background: true })` on mount.
  * ```
  * 
  * @example With filters
@@ -93,15 +95,21 @@ export interface CrudLoaderOptions<T = unknown> {
 			limit?: string;
 		};
 	};
+	/** Preloaded in +page.ts so the first paint is not stuck on a spinner (Svelte 5). */
+	initialItems?: T[];
+	/** Set when +page.ts load failed; keeps loading false and surfaces the message. */
+	initialLoadError?: string;
 }
 
 export function useCrudLoader<T = unknown>(
 	endpoint: string,
 	options: CrudLoaderOptions<T> = {}
 ) {
-	const items = writable<T[]>([]);
-	const loading = writable(false);
-	const error = writable('');
+	const hasPreloaded =
+		options.initialItems !== undefined || Boolean(options.initialLoadError);
+	const items = writable<T[]>(options.initialItems ?? []);
+	const loading = writable(!hasPreloaded);
+	const error = writable(options.initialLoadError ?? '');
 
 	/**
 	 * Loads items from the API endpoint with current search and filter parameters
@@ -114,8 +122,10 @@ export function useCrudLoader<T = unknown>(
 	 * - Error handling and logging
 	 * - Data transformation (if provided)
 	 */
-	async function loadItems() {
-		loading.set(true);
+	async function loadItems(opts?: { background?: boolean }) {
+		if (!opts?.background) {
+			loading.set(true);
+		}
 		error.set('');
 
 		try {
@@ -157,7 +167,9 @@ export function useCrudLoader<T = unknown>(
 			// Build endpoint URL
 			const url = options.endpointBuilder
 				? options.endpointBuilder(endpoint, params)
-				: `${endpoint}?${params.toString()}`;
+				: params.toString()
+					? `${endpoint}?${params.toString()}`
+					: endpoint;
 
 			const response = await fetch(url, { credentials: 'include' });
 			
@@ -193,20 +205,6 @@ export function useCrudLoader<T = unknown>(
 		}
 	}
 
-	return {
-		items: {
-			subscribe: items.subscribe,
-			set: items.set,
-			update: items.update
-		},
-		loading: {
-			subscribe: loading.subscribe,
-			set: loading.set
-		},
-		error: {
-			subscribe: error.subscribe,
-			set: error.set
-		},
-		loadItems
-	};
+	// Return writables directly so Svelte 5 `$items` auto-subscription works in templates.
+	return { items, loading, error, loadItems };
 }

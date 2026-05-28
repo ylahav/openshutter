@@ -1,7 +1,14 @@
 import tailwindcss from '@tailwindcss/vite'
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vitest/config';
+import dotenv from 'dotenv';
 import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.resolve(__dirname, '..');
+// Shared repo-root secrets (e.g. AUTH_JWT_SECRET) — loaded before SvelteKit env files
+dotenv.config({ path: path.join(repoRoot, '.env.local') });
 
 // Get configuration from environment variables (for development)
 // These are only used during development - production uses adapter-node

@@ -86,22 +86,18 @@ export class AdminDashboardController {
 			const usedBytes = storageAgg[0]?.bytes ?? 0;
 
 			const rawRecent = await albums
-				.find(
-					{},
-					{
-						sort: { updatedAt: -1 },
-						limit: 5,
-						projection: {
-							_id: 1,
-							name: 1,
-							alias: 1,
-							photoCount: 1,
-							level: 1,
-							isPublished: 1,
-							coverPhotoId: 1,
-						},
-					},
-				)
+				.find({})
+				.sort({ updatedAt: -1 })
+				.limit(5)
+				.project({
+					_id: 1,
+					name: 1,
+					alias: 1,
+					photoCount: 1,
+					level: 1,
+					isPublished: 1,
+					coverPhotoId: 1,
+				})
 				.toArray();
 
 			const coverIds = rawRecent.map((a) => a.coverPhotoId).filter(Boolean) as mongoose.Types.ObjectId[];

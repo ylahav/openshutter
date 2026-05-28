@@ -297,6 +297,9 @@ AUTH_JWT_SECRET=${JWT_SECRET}
 NODE_ENV=production
 BACKEND_URL=http://localhost:${BACKEND_PORT}
 PORT=${FRONTEND_PORT}
+
+# SvelteKit CSRF / cookie security (http for local install, https on public servers)
+ORIGIN=http://localhost:${FRONTEND_PORT}
 EOF
 
 echo ""
@@ -445,6 +448,15 @@ EOF
 
 chmod +x "$DEPLOY_DIR/start.sh"
 
+# Copy Windows PowerShell scripts
+DEPLOY_SCRIPTS_DIR="$(cd "$(dirname "$0")/deployment" && pwd)"
+for ps1 in build.ps1 start.ps1 stop.ps1; do
+    if [ -f "$DEPLOY_SCRIPTS_DIR/$ps1" ]; then
+        cp "$DEPLOY_SCRIPTS_DIR/$ps1" "$DEPLOY_DIR/"
+        echo "    Copied $ps1"
+    fi
+done
+
 # Create deployment package
 cd "$TEMP_DIR"
 tar -czf openshutter-deployment.tar.gz openshutter/
@@ -483,9 +495,13 @@ if [ $? -eq 0 ]; then
     echo -e "  2. Extract: ${YELLOW}tar -xzf openshutter-deployment.tar.gz${NC}"
     echo -e "  3. Configure ${YELLOW}.env.production${NC} with your MongoDB URI (external MongoDB required)"
     echo -e "     Example: ${YELLOW}MONGODB_URI=mongodb://your-mongodb-host:27017/openshutter${NC}"
-    echo -e "  4. Install dependencies: ${YELLOW}cd openshutter && pnpm install --prod${NC}"
-    echo -e "  5. Start with Docker: ${YELLOW}docker-compose up -d${NC}"
-    echo -e "     Or start manually: ${YELLOW}./start.sh${NC}"
+    echo -e "  4. Install dependencies:"
+    echo -e "     Linux/macOS: ${YELLOW}cd openshutter && ./build.sh${NC}"
+    echo -e "     Windows:     ${YELLOW}cd openshutter; .\\build.ps1${NC}"
+    echo -e "  5. Start application:"
+    echo -e "     Linux/macOS: ${YELLOW}./start.sh${NC}"
+    echo -e "     Windows:     ${YELLOW}.\\start.ps1${NC} (stop with ${YELLOW}.\\stop.ps1${NC})"
+    echo -e "     Or Docker:   ${YELLOW}docker-compose up -d${NC}"
     echo ""
     echo -e "${YELLOW}Note: Docker image does NOT include MongoDB. Use external MongoDB instance.${NC}"
     echo ""

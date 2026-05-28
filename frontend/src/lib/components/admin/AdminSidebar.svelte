@@ -44,6 +44,10 @@
 		mobileOpen = false;
 	}
 
+	function onNavClick() {
+		closeMobile();
+	}
+
 	async function handleLogout() {
 		closeMobile();
 		await logout();
@@ -195,7 +199,7 @@
 								class={useCollapsed ? linkCollapsed(active) : linkSurface(active)}
 								title={useCollapsed ? label : undefined}
 								aria-current={active ? 'page' : undefined}
-								on:click={closeMobile}
+								on:click={onNavClick}
 							>
 								<AdminNavIcon
 									name={item.icon}

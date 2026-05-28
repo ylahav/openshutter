@@ -21,6 +21,7 @@ import type { FontSetting } from '../types/template';
 import { mergeThemeCustomLayoutForCreate } from '../template/shell-layout';
 import { validateTemplatePagesLayer } from '../template/validate-pages-layer';
 import { noirFooterLayoutShellInstances, noirFooterPageModules } from '../template/noir-footer-shell';
+import { DatabaseInitService } from '../database/database-init.service';
 
 const PALETTE_PRESETS: Record<string, { colors: Record<string, string> }> = {
   light: {
@@ -180,7 +181,10 @@ const BASE_TEMPLATES: Record<string, { colors: Record<string, string>; fonts: Re
 export class ThemesController {
   private readonly logger = new Logger(ThemesController.name);
 
-  constructor(@InjectConnection() private connection: Connection) {}
+  constructor(
+    @InjectConnection() private connection: Connection,
+    private readonly databaseInitService: DatabaseInitService,
+  ) {}
 
   private getCollection() {
     const db = this.connection.db;
@@ -200,8 +204,7 @@ export class ThemesController {
   async findAll() {
     try {
       const collection = this.getCollection();
-      const validPacks = ['noir', 'studio', 'atelier'];
-      const themes = await collection.find({ baseTemplate: { $in: validPacks } }).sort({ createdAt: -1 }).toArray();
+      const themes = await this.listPackThemes(collection);
       return themes.map((t) => this.serialize(t));
     } catch (error) {
       this.logger.error('Error fetching themes:', error);
@@ -209,6 +212,36 @@ export class ThemesController {
         `Failed to fetch themes: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
     }
+  }
+
+  /** Idempotent: insert Noir / Studio / Atelier if missing (admin-only). */
+  @Post('seed')
+  async seedBuiltIn() {
+    try {
+      await this.databaseInitService.initializeDefaultThemes();
+      const collection = this.getCollection();
+      const themes = await this.listPackThemes(collection);
+      return {
+        success: true,
+        count: themes.length,
+        data: themes.map((t) => this.serialize(t)),
+      };
+    } catch (error) {
+      this.logger.error('Error seeding built-in themes:', error);
+      throw new BadRequestException(
+        `Failed to seed themes: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+    }
+  }
+
+  private async listPackThemes(collection: ReturnType<ThemesController['getCollection']>) {
+    const validPacks = ['noir', 'studio', 'atelier'];
+    return collection
+      .find({
+        $or: [{ baseTemplate: { $in: validPacks } }, { isBuiltIn: true }],
+      })
+      .sort({ createdAt: -1 })
+      .toArray();
   }
 
   @Get(':id')

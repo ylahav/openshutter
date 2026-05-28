@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { writable } from 'svelte/store';
 	import { onMount } from 'svelte';
 	import { productName } from '$stores/siteConfig';
 	import { handleError, handleApiErrorResponse } from '$lib/utils/errorHandler';
@@ -32,7 +33,7 @@
 	};
 
 	let listings: Listing[] = [];
-	let loading = true;
+	const loading = writable(true);
 	let error = '';
 	let filterApproved: 'all' | 'true' | 'false' = 'all';
 	let togglingId: string | null = null;
@@ -56,7 +57,7 @@
 	onMount(() => fetchListings());
 
 	function fetchListings() {
-		loading = true;
+		loading.set(true);
 		error = '';
 		const q = filterApproved !== 'all' ? `?approved=${filterApproved}` : '';
 		fetch(`/api/admin/marketplace${q}`, { credentials: 'include' })
@@ -71,7 +72,7 @@
 				logger.error('Marketplace admin load:', e);
 				error = handleError(e, 'Failed to load listings');
 			})
-			.finally(() => { loading = false; });
+			.finally(() => { loading.set(false); });
 	}
 
 	async function toggleApproved(listing: Listing) {
@@ -220,7 +221,7 @@
 		<div class="rounded-md bg-red-50 p-4 text-red-700 text-sm">{error}</div>
 	{/if}
 
-	{#if loading}
+	{#if $loading}
 		<p class="text-(--color-surface-600-400)">Loading...</p>
 	{:else if listings.length === 0}
 		<div class="rounded-lg border border-surface-200-800 bg-(--color-surface-50-950) p-8 text-center text-(--color-surface-600-400)">

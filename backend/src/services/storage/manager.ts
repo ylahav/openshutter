@@ -85,7 +85,17 @@ export class StorageManager implements IStorageManager {
     forServe: boolean,
   ): Promise<IStorageService> {
     if (ctx?.ownerUserId) {
-      return this.getOwnerDedicatedService(providerId, ctx, forServe)
+      try {
+        return await this.getOwnerDedicatedService(providerId, ctx, forServe)
+      } catch (error) {
+        if (forServe && error instanceof StorageConfigError) {
+          this.logger.debug(
+            `Dedicated storage unavailable for owner ${ctx.ownerUserId}, using global config for serve: ${error.message}`,
+          )
+          return this.getProviderForServeGlobal(providerId)
+        }
+        throw error
+      }
     }
     if (forServe) {
       return this.getProviderForServeGlobal(providerId)
